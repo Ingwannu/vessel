@@ -92,6 +92,10 @@ pub enum NodeError {
     /// The directory agents are probed in (protocol 9) cannot be created.
     #[error("the probe directory is unusable")]
     ProbeDir(#[source] StoreError),
+    /// The folder of worktrees and setup logs (protocol 10) cannot be
+    /// prepared.
+    #[error("the workspace directory is unusable")]
+    WorkspaceDir(#[source] StoreError),
     /// The HTTP server failed.
     #[error("the server failed")]
     Serve(#[source] std::io::Error),

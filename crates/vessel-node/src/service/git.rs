@@ -1,172 +1,243 @@
-//! Protocol 10's git calls (track B, ADR 0023): routing only; the work is `crate::workspace`'s.
+//! Protocol 10's git calls (track B, ADR 0023): routing only; the work is
+//! `crate::workspace`'s.
 
-#![expect(
-    clippy::unused_async,
-    reason = "the calls answer `unsupported` until their slice is built; each becomes a real call"
-)]
+use vessel_proto::WireError;
+use vessel_proto::workspace::{
+    BranchList, Commit, CommitOutcome, CommitPage, DiffSummary, Discard, Fetch, FetchOutcome,
+    FileDiff, FileRead, GetChanges, GetFileDiff, GetStatus, GitStatus, ListBranches, ListStashes,
+    Pull, PullOutcome, Push, PushOutcome, ReadLog, RenameBranch, RenameOutcome, ShowFile, Stage,
+    StashChanges, StashList, StashOutcome, Switch, SwitchOutcome, Unstage,
+};
 
-use vessel_proto::{ErrorCode, WireError};
-
+use super::projects::wire;
 use super::{Connection, NodeService};
+use crate::workspace::IndexChange;
 
 impl NodeService {
     /// `git.status`.
     pub(crate) async fn git_status(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::GetStatus,
-    ) -> Result<vessel_proto::workspace::GitStatus, WireError> {
-        Err(not_built("git.status"))
+        request: GetStatus,
+    ) -> Result<GitStatus, WireError> {
+        self.workspaces
+            .git_status(request.root)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.changes`.
     pub(crate) async fn git_changes(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::GetChanges,
-    ) -> Result<vessel_proto::workspace::DiffSummary, WireError> {
-        Err(not_built("git.changes"))
+        request: GetChanges,
+    ) -> Result<DiffSummary, WireError> {
+        self.workspaces
+            .git_changes(request.root, &request.scope, request.ignore_whitespace)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.diff`.
     pub(crate) async fn git_diff(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::GetFileDiff,
-    ) -> Result<vessel_proto::workspace::FileDiff, WireError> {
-        Err(not_built("git.diff"))
+        request: GetFileDiff,
+    ) -> Result<FileDiff, WireError> {
+        self.workspaces
+            .git_diff(
+                request.root,
+                &request.scope,
+                &request.path,
+                request.ignore_whitespace,
+                request.from_hunk.unwrap_or(0),
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.show`.
     pub(crate) async fn git_show(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ShowFile,
-    ) -> Result<vessel_proto::workspace::FileRead, WireError> {
-        Err(not_built("git.show"))
+        request: ShowFile,
+    ) -> Result<FileRead, WireError> {
+        self.workspaces
+            .git_show(
+                request.root,
+                &request.at,
+                &request.path,
+                request.offset,
+                request.limit,
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.branches`.
     pub(crate) async fn git_branches(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ListBranches,
-    ) -> Result<vessel_proto::workspace::BranchList, WireError> {
-        Err(not_built("git.branches"))
+        request: ListBranches,
+    ) -> Result<BranchList, WireError> {
+        self.workspaces
+            .git_branches(request.root)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.log`.
     pub(crate) async fn git_log(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ReadLog,
-    ) -> Result<vessel_proto::workspace::CommitPage, WireError> {
-        Err(not_built("git.log"))
+        request: ReadLog,
+    ) -> Result<CommitPage, WireError> {
+        self.workspaces
+            .git_log(
+                request.root,
+                request.from.as_ref(),
+                request.skip,
+                request.limit,
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.stashes`.
     pub(crate) async fn git_stashes(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ListStashes,
-    ) -> Result<vessel_proto::workspace::StashList, WireError> {
-        Err(not_built("git.stashes"))
+        request: ListStashes,
+    ) -> Result<StashList, WireError> {
+        self.workspaces
+            .git_stashes(request.root)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.stage`.
     pub(crate) async fn git_stage(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Stage,
-    ) -> Result<vessel_proto::workspace::GitStatus, WireError> {
-        Err(not_built("git.stage"))
+        request: Stage,
+    ) -> Result<GitStatus, WireError> {
+        self.workspaces
+            .git_index(request.root, &request.paths, IndexChange::Stage)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.unstage`.
     pub(crate) async fn git_unstage(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Unstage,
-    ) -> Result<vessel_proto::workspace::GitStatus, WireError> {
-        Err(not_built("git.unstage"))
+        request: Unstage,
+    ) -> Result<GitStatus, WireError> {
+        self.workspaces
+            .git_index(request.root, &request.paths, IndexChange::Unstage)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.discard`.
     pub(crate) async fn git_discard(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Discard,
-    ) -> Result<vessel_proto::workspace::GitStatus, WireError> {
-        Err(not_built("git.discard"))
+        request: Discard,
+    ) -> Result<GitStatus, WireError> {
+        self.workspaces
+            .git_index(
+                request.root,
+                &request.paths,
+                IndexChange::Discard {
+                    untracked: request.untracked,
+                },
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.commit`.
     pub(crate) async fn git_commit(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Commit,
-    ) -> Result<vessel_proto::workspace::CommitOutcome, WireError> {
-        Err(not_built("git.commit"))
+        request: Commit,
+    ) -> Result<CommitOutcome, WireError> {
+        self.workspaces
+            .git_commit(request.root, &request.message, request.stage)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.fetch`.
     pub(crate) async fn git_fetch(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Fetch,
-    ) -> Result<vessel_proto::workspace::FetchOutcome, WireError> {
-        Err(not_built("git.fetch"))
+        request: Fetch,
+    ) -> Result<FetchOutcome, WireError> {
+        self.workspaces
+            .git_fetch(request.root, request.remote.as_ref())
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.push`.
     pub(crate) async fn git_push(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Push,
-    ) -> Result<vessel_proto::workspace::PushOutcome, WireError> {
-        Err(not_built("git.push"))
+        request: Push,
+    ) -> Result<PushOutcome, WireError> {
+        self.workspaces
+            .git_push(request.root, request.remote.as_ref(), request.set_upstream)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.pull`.
     pub(crate) async fn git_pull(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Pull,
-    ) -> Result<vessel_proto::workspace::PullOutcome, WireError> {
-        Err(not_built("git.pull"))
+        request: Pull,
+    ) -> Result<PullOutcome, WireError> {
+        self.workspaces
+            .git_pull(request.root)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.switch`.
     pub(crate) async fn git_switch(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::Switch,
-    ) -> Result<vessel_proto::workspace::SwitchOutcome, WireError> {
-        Err(not_built("git.switch"))
+        request: Switch,
+    ) -> Result<SwitchOutcome, WireError> {
+        self.workspaces
+            .git_switch(request.root, &request.branch, request.create.as_ref())
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.rename_branch`.
     pub(crate) async fn git_rename_branch(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::RenameBranch,
-    ) -> Result<vessel_proto::workspace::RenameOutcome, WireError> {
-        Err(not_built("git.rename_branch"))
+        request: RenameBranch,
+    ) -> Result<RenameOutcome, WireError> {
+        self.workspaces
+            .git_rename_branch(request.root, request.from.as_ref(), &request.to)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `git.stash`.
     pub(crate) async fn git_stash(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::StashChanges,
-    ) -> Result<vessel_proto::workspace::StashOutcome, WireError> {
-        Err(not_built("git.stash"))
+        request: StashChanges,
+    ) -> Result<StashOutcome, WireError> {
+        self.workspaces
+            .git_stash(request.root, &request.action)
+            .await
+            .map_err(|error| wire(&error))
     }
-}
-
-fn not_built(method: &str) -> WireError {
-    WireError::new(
-        ErrorCode::Unsupported,
-        format!("`{method}` is not built on this node yet"),
-    )
 }

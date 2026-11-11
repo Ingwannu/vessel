@@ -53,3 +53,5 @@ mod transfers;
 mod transfers_across;
 #[cfg(test)]
 mod waiting;
+#[cfg(test)]
+mod workspace;

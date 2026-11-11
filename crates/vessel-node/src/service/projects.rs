@@ -1,91 +1,124 @@
-//! Protocol 10's project calls (track B, ADR 0024): routing only; the work is `crate::workspace`'s.
+//! Protocol 10's project calls (track B, ADR 0024): routing only; the work
+//! is `crate::workspace`'s.
 
-#![expect(
-    clippy::unused_async,
-    reason = "the calls answer `unsupported` until their slice is built; each becomes a real call"
-)]
-
-use vessel_proto::{Ack, ErrorCode, WireError};
+use vessel_proto::workspace::{
+    AddProject, ApproveCommands, CloneProject, GetProject, GetProjectCommands, InitProject,
+    ListProjects, ProjectCommands, ProjectInfo, ProjectList, RemoveProject,
+};
+use vessel_proto::{Ack, WireError};
 
 use super::{Connection, NodeService};
+use crate::principal::Principal;
+use crate::waits::Waiter;
+use crate::workspace::{MAX_WAIT_SECS, WorkspaceError};
+
+/// A workspace failure, on the wire.
+pub(super) fn wire(error: &WorkspaceError) -> WireError {
+    error.wire()
+}
 
 impl NodeService {
     /// `project.list`.
     pub(crate) async fn list_projects(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ListProjects,
-    ) -> Result<vessel_proto::workspace::ProjectList, WireError> {
-        Err(not_built("project.list"))
+        _: ListProjects,
+    ) -> Result<ProjectList, WireError> {
+        Ok(self.workspaces.list_projects().await)
     }
 
-    /// `project.get`.
+    /// `project.get`: with `changed_from`, a long poll inside the caller's
+    /// wait shares (as `session.read`'s); a forwarded call answers at once,
+    /// so a home's link is never held by a member's poll.
     pub(crate) async fn get_project(
         &self,
-        _: &Connection,
-        _request: vessel_proto::workspace::GetProject,
-    ) -> Result<vessel_proto::workspace::ProjectInfo, WireError> {
-        Err(not_built("project.get"))
+        connection: &Connection,
+        request: GetProject,
+    ) -> Result<ProjectInfo, WireError> {
+        let mut wait = request.changed_from.map(|_| MAX_WAIT_SECS);
+        if matches!(connection.principal(), Principal::Delegated { .. }) {
+            wait = None;
+        }
+        let here = self.links.node();
+        let shares = Waiter::of(connection.principal(), here).shares(here);
+        let _slot = self.wait_slot(connection, shares, &mut wait);
+        self.workspaces
+            .get_project(request.project, request.changed_from, wait.is_some())
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `project.add`.
     pub(crate) async fn add_project(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::AddProject,
-    ) -> Result<vessel_proto::workspace::ProjectInfo, WireError> {
-        Err(not_built("project.add"))
+        request: AddProject,
+    ) -> Result<ProjectInfo, WireError> {
+        self.workspaces
+            .add_project(request.path, request.name)
+            .await
+            .map_err(|error| wire(&error))
     }
 
-    /// `project.clone`.
+    /// `project.clone`: answers with the project `cloning`.
     pub(crate) async fn clone_project(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::CloneProject,
-    ) -> Result<vessel_proto::workspace::ProjectInfo, WireError> {
-        Err(not_built("project.clone"))
+        request: CloneProject,
+    ) -> Result<ProjectInfo, WireError> {
+        self.workspaces
+            .clone_project(request.url, request.parent, request.folder, request.name)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `project.init`.
     pub(crate) async fn init_project(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::InitProject,
-    ) -> Result<vessel_proto::workspace::ProjectInfo, WireError> {
-        Err(not_built("project.init"))
+        request: InitProject,
+    ) -> Result<ProjectInfo, WireError> {
+        self.workspaces
+            .init_project(request.path, request.name)
+            .await
+            .map_err(|error| wire(&error))
     }
 
-    /// `project.remove`.
+    /// `project.remove`: forgets it; its files stay.
     pub(crate) async fn remove_project(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::RemoveProject,
+        request: RemoveProject,
     ) -> Result<Ack, WireError> {
-        Err(not_built("project.remove"))
+        let live = self.sessions.live_folders();
+        self.workspaces
+            .remove_project(request.project, &live)
+            .await
+            .map(|()| Ack)
+            .map_err(|error| wire(&error))
     }
 
     /// `project.commands`.
     pub(crate) async fn project_commands(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::GetProjectCommands,
-    ) -> Result<vessel_proto::workspace::ProjectCommands, WireError> {
-        Err(not_built("project.commands"))
+        request: GetProjectCommands,
+    ) -> Result<ProjectCommands, WireError> {
+        self.workspaces
+            .commands(request.project, request.base.as_ref())
+            .await
+            .map_err(|error| wire(&error))
     }
 
-    /// `project.approve`.
+    /// `project.approve`: agents are refused before this runs (`guard`).
     pub(crate) async fn approve_commands(
         &self,
         _: &Connection,
-        _request: vessel_proto::workspace::ApproveCommands,
-    ) -> Result<vessel_proto::workspace::ProjectCommands, WireError> {
-        Err(not_built("project.approve"))
+        request: ApproveCommands,
+    ) -> Result<ProjectCommands, WireError> {
+        self.workspaces
+            .approve(request.project, request.digest, request.approved)
+            .await
+            .map_err(|error| wire(&error))
     }
-}
-
-fn not_built(method: &str) -> WireError {
-    WireError::new(
-        ErrorCode::Unsupported,
-        format!("`{method}` is not built on this node yet"),
-    )
 }

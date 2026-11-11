@@ -246,6 +246,18 @@ impl Sessions {
         Ok(list)
     }
 
+    /// The live sessions and the folders they run in (a session without
+    /// one runs in the node's home, which no worktree is in): what keeps a
+    /// worktree from being removed (protocol 10).
+    pub(crate) fn live_folders(&self) -> Vec<(SessionId, PathBuf)> {
+        self.runtime
+            .list()
+            .into_iter()
+            .filter(|info| info.status.is_live())
+            .filter_map(|info| Some((info.id, info.spec.cwd?)))
+            .collect()
+    }
+
     pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
         Ok(match self.find(id).await? {
             Found::Live { handle, .. } => handle.info(),

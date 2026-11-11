@@ -36,8 +36,10 @@ use crate::transfers::export::Exporter;
 use crate::transfers::import::{Importer, Local, Pull, Remote};
 use crate::transfers::{Holder, Transfers};
 use crate::waits::{ConnectionWaits, Share, WaitSlot, Waiter, Waits};
+use crate::workspace::Workspaces;
+use vessel_proto::workspace::SessionPlace;
 
-// Protocol 9's calls: what a session runs with, and titles.
+// Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
 mod options;
@@ -74,6 +76,8 @@ pub(crate) struct NodeService {
     waits: Arc<Waits>,
     /// What agents offer, probed and kept (protocol 9, `probes`).
     probes: Probes,
+    /// Projects, worktrees, git and files (protocol 10, `workspace`).
+    workspaces: Arc<Workspaces>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -93,6 +97,7 @@ pub(crate) struct Parts {
     pub(crate) links: Arc<Links>,
     pub(crate) transfers: Arc<Transfers>,
     pub(crate) probes: Probes,
+    pub(crate) workspaces: Arc<Workspaces>,
 }
 
 impl NodeService {
@@ -113,6 +118,7 @@ impl NodeService {
             links,
             transfers,
             probes,
+            workspaces,
         } = parts;
         Self {
             lsp,
@@ -131,6 +137,7 @@ impl NodeService {
             transfers,
             waits: Arc::default(),
             probes,
+            workspaces,
         }
     }
 
@@ -235,7 +242,15 @@ impl NodeService {
         _: &Connection,
         _: ListSessions,
     ) -> Result<Vec<SessionInfo>, WireError> {
-        self.sessions.list().await.map_err(|error| wire(&error))
+        self.sessions
+            .list()
+            .await
+            .map(|list| {
+                list.into_iter()
+                    .map(|info| self.with_workspace(info))
+                    .collect()
+            })
+            .map_err(|error| wire(&error))
     }
 
     pub(crate) async fn get_session(
@@ -246,6 +261,7 @@ impl NodeService {
         self.sessions
             .get(request.session)
             .await
+            .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
     }
 
@@ -265,12 +281,19 @@ impl NodeService {
     async fn create(
         &self,
         connection: &Connection,
-        spec: SessionSpec,
+        mut spec: SessionSpec,
         origin: Option<SessionOrigin>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
+        // An imported session's place named its own machine's project; it
+        // runs in the folder it brings (carrying worktrees is wave 2's).
+        if origin.is_some() {
+            spec.place = None;
+        }
+        // A place resolves to the folder `cwd` names (protocol 10).
+        let notices = self.place(connection, &mut spec).await?;
         let mut options = self
             .launcher
             .options(&self.profiles, &spec, &connection.principal)
@@ -286,6 +309,7 @@ impl NodeService {
             .reserve(id, &connection.principal, self.launcher.has_tools())
             .map_err(|error| wire(&error))?;
         options.id = Some(id);
+        options.notices.extend(notices);
         if let Some(secret) = &secret
             && let Err(error) = self
                 .launcher
@@ -312,7 +336,11 @@ impl NodeService {
             self.agents.forget(id);
             self.models.retire(id);
         }
-        created.map_err(|error| wire(&error))
+        let info = created.map_err(|error| wire(&error))?;
+        if let Some(SessionPlace::Worktree { worktree }) = info.spec.place.as_deref() {
+            self.workspaces.claim(*worktree, info.id).await;
+        }
+        Ok(self.with_workspace(info))
     }
 
     pub(crate) async fn send_input(
@@ -530,7 +558,9 @@ impl NodeService {
             .await;
         self.agents.end_move(id, moved.is_ok());
         self.models.end_move(id, moved.is_ok());
-        moved.map_err(|error| wire(&error))
+        moved
+            .map(|info| self.with_workspace(info))
+            .map_err(|error| wire(&error))
     }
 
     /// For an agent, an `operate` call on `session` needs the session to

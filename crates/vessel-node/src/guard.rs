@@ -21,6 +21,12 @@
 //! - Cost: the rows repeat the protocol table's handler names and types;
 //!   the compiler keeps them in step.
 //!
+//! [Decision Log: agents and workspaces] (protocol 10, ADR 0024)
+//! - Agents get, of the workspace calls, only what orchestration needs
+//!   (`workspace::policy`); the rest are refused right after the scope,
+//!   whatever the agent's scopes, by the same generated method, so a new
+//!   workspace call is held to the list from its first row.
+//!
 //! [Decision Log: ownership] (protocol 5, ADR 0013)
 //! - Agents may `operate` only on sessions their own session started (or
 //!   that those started). Every request type declares which session it
@@ -69,6 +75,10 @@ macro_rules! guarded {
                     request: $request,
                 ) -> Result<$response, WireError> {
                     connection.principal().permit(<$request as Request>::METHOD)?;
+                    crate::workspace::refuse_agents(
+                        connection.principal(),
+                        <$request as Request>::METHOD,
+                    )?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
                     }

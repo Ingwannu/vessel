@@ -3342,6 +3342,8 @@ dependencies = [
  "vessel-session",
  "vessel-store",
  "vessel-testkit",
+ "vessel-workspace",
+ "which",
 ]
 
 [[package]]

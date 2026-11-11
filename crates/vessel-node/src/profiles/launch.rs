@@ -247,7 +247,7 @@ fn missing_secret(name: &SecretName) -> String {
 /// (protocol 6) is recorded as the origin's agent, a variant protocol 5
 /// readers know, or else as the delivering device, which is true here;
 /// [`origin`] keeps the rest.
-fn creator(principal: &Principal) -> Creator {
+pub(crate) fn creator(principal: &Principal) -> Creator {
     match principal {
         Principal::Owner => Creator::Owner,
         Principal::Device { id, .. } => Creator::Device { id: *id },

@@ -201,6 +201,33 @@ pub async fn read(
     .await
 }
 
+/// The largest blob `git.show` pages (a larger one is refused).
+pub const MAX_BLOB: usize = 16 * 1024 * 1024;
+
+/// A page of a blob already read (`git.show`), as [`read`] pages a file:
+/// its version is its size and hash (a blob has no change time).
+#[must_use]
+pub fn blob_page(bytes: &[u8], offset: u64, limit: Option<u32>) -> FileRead {
+    let limit = usize::try_from(limit.unwrap_or(DEFAULT_PAGE).clamp(1, MAX_PAGE)).unwrap_or(1);
+    let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
+    let start = bytes.get(..SNIFF.min(bytes.len())).unwrap_or_default();
+    let from = usize::try_from(offset)
+        .unwrap_or(usize::MAX)
+        .min(bytes.len());
+    let page = bytes
+        .get(from..from.saturating_add(limit).min(bytes.len()))
+        .unwrap_or_default();
+    let hash = ContentHash::from_sha256(Sha256::digest(bytes).into());
+    FileRead {
+        version: FileVersion {
+            size,
+            modified: 0,
+            hash: Some(hash),
+        },
+        content: crate::text::page(start, page, offset, size),
+    }
+}
+
 /// Read until `buffer` is full or the file ends; how many bytes were read.
 fn read_up_to(file: &mut File, buffer: &mut [u8]) -> Result<usize, FileError> {
     let mut filled = 0;

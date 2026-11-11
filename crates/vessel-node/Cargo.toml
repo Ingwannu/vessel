@@ -27,6 +27,9 @@ vessel-rpc.workspace = true
 vessel-secure.workspace = true
 vessel-session.workspace = true
 vessel-store.workspace = true
+# Projects, worktrees, git and files (protocol 10, ADRs 0023 and 0024):
+# the work; the node keeps who may call, the record and the sessions.
+vessel-workspace.workspace = true
 
 axum.workspace = true
 # The model proxy's own accept loop (`models::listen`): HTTP/1 with a
@@ -74,6 +77,8 @@ tracing-subscriber.workspace = true
 rusqlite.workspace = true
 tempfile.workspace = true
 vessel-harness = { workspace = true, features = ["fakes"] }
+# The workspace tests run the machine's real git (protocol 10).
+which.workspace = true
 # An agent's `vessel` tools driven across a fleet (e2e `across`). Not a
 # cycle: vessel-mcp itself needs only vessel-client and vessel-proto.
 vessel-mcp.workspace = true
