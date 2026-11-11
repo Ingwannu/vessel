@@ -681,7 +681,10 @@ async fn sessions_from_schema_3_have_no_origin() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN via;
+            "DROP TABLE approvals;
+             DROP TABLE worktrees;
+             DROP TABLE projects;
+             ALTER TABLE sessions DROP COLUMN via;
              ALTER TABLE sessions DROP COLUMN origin;
              ALTER TABLE sessions DROP COLUMN model;
              ALTER TABLE sessions DROP COLUMN title;
@@ -710,7 +713,10 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN profile;
+            "DROP TABLE approvals;
+             DROP TABLE worktrees;
+             DROP TABLE projects;
+             ALTER TABLE sessions DROP COLUMN profile;
              ALTER TABLE sessions DROP COLUMN created_by;
              ALTER TABLE sessions DROP COLUMN via;
              ALTER TABLE sessions DROP COLUMN origin;
@@ -751,7 +757,10 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN model;
+            "DROP TABLE approvals;
+             DROP TABLE worktrees;
+             DROP TABLE projects;
+             ALTER TABLE sessions DROP COLUMN model;
              ALTER TABLE sessions DROP COLUMN title;
              ALTER TABLE sessions DROP COLUMN choices;",
         )

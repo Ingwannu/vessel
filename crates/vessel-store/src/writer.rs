@@ -73,6 +73,11 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done,
     },
+    /// Change the record of projects and worktrees (protocol 10).
+    Workspace {
+        write: crate::workspace::WorkspaceWrite,
+        done: Done,
+    },
 }
 
 /// Start the writer thread on `connection`.
@@ -198,6 +203,12 @@ fn apply(
         Write::RevokeDevice { device, at, done } => {
             let applied = isolated(transaction, |connection| {
                 devices::revoke(connection, device, at)
+            });
+            (done, applied)
+        }
+        Write::Workspace { write, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::workspace::apply(connection, &write)
             });
             (done, applied)
         }

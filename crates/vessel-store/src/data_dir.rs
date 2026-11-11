@@ -59,6 +59,8 @@ const MODELS_FILE: &str = "models.toml";
 const MCP_DIR: &str = "mcp";
 /// Where the node starts agents to ask what they offer (protocol 9).
 const PROBE_DIR: &str = "probe";
+/// The workspace folder's name in the data directory (protocol 10).
+const WORKSPACE_DIR: &str = "workspace";
 
 /// `profiles.toml` as read: its text, and whether other users can read it
 /// (it may hold secrets, so the node warns).
@@ -253,6 +255,34 @@ impl DataDir {
             {
                 tracing::warn!(path = %path.display(), %error, "could not remove a stale MCP configuration file");
             }
+        }
+        Ok(dir)
+    }
+
+    /// The node's workspace folder (protocol 10, ADR 0024): `worktrees/`
+    /// (the worktrees it makes, one folder per project), `logs/` (each
+    /// worktree's setup output), `no-hooks/` (an empty folder git's hooks
+    /// are pointed at) and `scratch/` (temporary files).
+    #[must_use]
+    pub fn workspace_dir(&self) -> PathBuf {
+        self.root.join(WORKSPACE_DIR)
+    }
+
+    /// Create the workspace folder and its four folders, owner-only.
+    /// Returns it.
+    ///
+    /// # Errors
+    /// A folder cannot be created.
+    pub fn prepare_workspace_dir(&self) -> Result<PathBuf, StoreError> {
+        let dir = self.workspace_dir();
+        for path in [
+            dir.clone(),
+            dir.join("worktrees"),
+            dir.join("logs"),
+            dir.join("no-hooks"),
+            dir.join("scratch"),
+        ] {
+            files::create_private_dir(&path).map_err(StoreError::io(&path))?;
         }
         Ok(dir)
     }
