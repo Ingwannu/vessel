@@ -32,10 +32,19 @@
   white-space: normal;
 }
 
+/* A description is a line or two under the label. An agent writes its own
+   (Claude Code lists each of its agent definitions with a paragraph), and
+   a menu of paragraphs is taller than the window, so it is cut at two
+   lines: enough to tell the rows apart, which is all a menu owes. */
 .menu-item .description {
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 16px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .menu-shortcut {
