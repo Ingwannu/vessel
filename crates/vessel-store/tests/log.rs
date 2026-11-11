@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use fixtures::{at, data_dir, new_session, open, output, plain, record, status};
 use vessel_proto::{
-    AgentEvent, Creator, DeviceId, EventRecord, EventSeq, HarnessSessionId, NodeId, ProfileName,
-    RemoteCreator, SessionEvent, SessionId, SessionInfo, SessionOrigin, SessionStatus,
+    Activity, AgentEvent, Creator, DeviceId, DisplayStatus, EventRecord, EventSeq,
+    HarnessSessionId, KanbanColumn, NodeId, ProfileName, RemoteCreator, SessionBoard, SessionEvent,
+    SessionId, SessionInfo, SessionOrigin, SessionStatus,
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
@@ -249,6 +250,35 @@ async fn session_rows_follow_the_records() {
     assert_eq!(stored.next_seq, EventSeq::new(4));
     assert_eq!(stored.spec, session.spec);
     assert_eq!(stored.created_at, session.created_at);
+    assert_eq!(stored.board, Some(archived(exited.at)), "ended: archived");
+}
+
+/// Where an ended session sits on the board (protocol 8, ADR 0019): the
+/// archive, its last activity its end. Derived on reading, never stored.
+fn archived(end: chrono::DateTime<chrono::Utc>) -> SessionBoard {
+    SessionBoard::new(
+        KanbanColumn::Archive,
+        DisplayStatus::Terminated,
+        Activity::Exited,
+        end,
+    )
+}
+
+/// A stored session that is still live has no board from the store: the
+/// node serves live sessions from its runtime, which has the facts.
+#[tokio::test]
+async fn a_live_stored_session_has_no_board() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0);
+    store.create_session(session.clone()).await.unwrap();
+    store
+        .append(session.id, vec![status(0, SessionStatus::Starting)])
+        .await
+        .unwrap();
+    let stored = store.session(session.id).await.unwrap().unwrap();
+    assert!(stored.status.is_live());
+    assert_eq!(stored.board, None);
 }
 
 #[tokio::test]
@@ -294,6 +324,12 @@ async fn restart_interrupts_sessions_that_were_live() {
     assert_eq!(interrupted.status, SessionStatus::Interrupted);
     assert_eq!(interrupted.next_seq, EventSeq::new(3));
     assert!(interrupted.ended_at.is_some());
+    // Read back after a restart, every session is ended, so archived.
+    assert_eq!(
+        interrupted.board,
+        interrupted.ended_at.map(archived),
+        "interrupted at the restart"
+    );
 
     let store = reopened.store;
     let log = store
@@ -330,6 +366,16 @@ async fn restart_interrupts_sessions_that_were_live() {
     );
     let untouched = store.session(ended.id).await.unwrap().unwrap();
     assert_eq!(untouched.status, SessionStatus::Exited { code: Some(3) });
+    assert_eq!(untouched.board, untouched.ended_at.map(archived));
+    assert!(
+        store
+            .sessions()
+            .await
+            .unwrap()
+            .iter()
+            .all(|info| info.board == info.ended_at.map(archived)),
+        "listed as read one by one"
+    );
     assert_eq!(store.sessions().await.unwrap().len(), 2);
 
     // A second restart finds nothing left to interrupt.
