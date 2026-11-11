@@ -74,6 +74,20 @@ number after**, and the numbers are kept (`docs/PERFORMANCE.md`).
 4. **Nothing else changes.** Same behaviour, same wire. An optimisation
    that needs a wire change is described and left for the coordinator.
 
+### Track P: progress (2026-11-11)
+
+Built: the benchmarks (`benches/` in vessel-store, -proto, -rpc,
+-session, -web), the load test (`vessel-cli`'s `load`), the page's
+measurement (`web/e2e/perf.ts`), and the baseline, all in
+`docs/PERFORMANCE.md`. Changed, each with its number before and after
+there: compressed responses made at build; Pretendard in its subsets;
+the page divided by screen with every chunk pinned by the index's import
+map (ADR 0017's amendment); memoised timeline entries, a windowed
+timeline and the reducer's index by id; an unchanged session list draws
+nothing; fat LTO with one codegen unit for release builds. Measured and
+left: the terminal (xterm's renderer), the store's write path, fan-out.
+Described and left: a session list subscription (a wire change).
+
 ## Feature tracks
 
 Written when the inventories are in: one table of every feature the three
