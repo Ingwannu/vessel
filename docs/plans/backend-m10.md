@@ -563,3 +563,125 @@ Left open:
   Types).
 - This section and track E's both end this file, so merging the two
   joins them by hand.
+
+## Track W2: progress (2026-11-11)
+
+Built on `backend/m10` (tracks C, E and W0 merged), in `web/` and the
+docs this track owns. No crate and no wire type changed.
+
+What was built:
+
+- **Settings as routed pages.** `/settings/<section>` for every section
+  `data/settings.ts` lists (the contract with track W1, not edited), an
+  unknown or missing one going to the default; `/fleet`, `/fleet/<machine>`,
+  `/sync` and `/devices` redirect to their sections with the machine they
+  named (`?machine=`). Each section is agent-orchestrator's settings page
+  at GOAT's readable width: a centred 896px column, one lead sentence,
+  sections 40px apart, a 14px heading over a card of the kit's rows.
+  Literal values (addresses, ids, paths) only in detail rows.
+- **Machines**: GOAT's environment rows (a server icon, the name, one
+  line of platform, reach, state and live sessions; "This machine" and
+  "Default" badges; a "…" menu of Rename…, Make default, Forget…). Forget
+  and Rename ask first, in dialogs that say what they do and do not do;
+  this machine has neither. A chosen machine's detail (what Fleet's
+  inspector was) opens under the list: state, reach, platform, version
+  and protocol, id, its agents (each opening its card), its live
+  sessions.
+- **Add a machine**: one dialog over track E's ops, reached from
+  Machines, the welcome and the command palette (a new palette action).
+  Paseo's order (the command, the link, "Connect to this machine?" with
+  the key's fingerprint, routes, id and expiry, then a name checked as
+  typed) and GOAT's checklist after Connect (Paired, Connected, Agents
+  found, each pending, passed, failed or skipped, a failure saying what
+  to do with a command to copy). The link lives in the dialog's state
+  only.
+- **Agents**: per machine, every agent Vessel drives as GOAT's provider
+  rows (Available, Needs attention with the machine's reason, Not found);
+  an agent's card asks `harness.options` only when opened and lists what
+  it offers in the plan's words (Models, Effort, Permissions, then the
+  agent's own).
+- **Models, Devices, Sync, Appearance, About** on rows and the kit, their
+  actions kept (invite with a hidden-until-asked link and QR code,
+  revoke; the sync state), their words plain. About lists each machine's
+  version and protocol and every bundled package's licence.
+- **Welcome**: the index is the board once a machine is connected and
+  Paseo's first screen until then, with `vessel node start` to copy when
+  this machine's own node is the one not running.
+- **The bridge's op failures are typed.** `Bridge.op` rejected with a
+  bare `Error`; it rejects with `OpFailed { reason }` now (`unreadable`,
+  `busy`, `failed`, or `disconnected` for a lost socket), and
+  `data/outcome.ts`'s `attempt` turns every call and op into an
+  `Outcome`, so what a screen says next is a switch on the reason.
+- **Kit**: `CommandLine` (GOAT's setup command, copying and saying so on
+  itself) and four icons (server, and a checklist's passed, failed and
+  skipped), in the gallery.
+- **Structure**: `routes/fleet.tsx`, `devices.tsx` and `sync.tsx` are gone
+  and off the list of files still to divide (6 left); `routes/settings.tsx`
+  only composes. Every decision is a pure function with a test
+  (`data/machines`, `pairing`, `agents`, `devices`, `sync`, `welcome`,
+  `settings-place`, `model-rows`, `about`, `outcome`); every call is a
+  typed function in `data/` (`book`, `agents`, `devices`, `sync`). The
+  styles only the old pages used (tables, the summary strip, panels,
+  pairing) are removed, as is `nodeFacts`.
+
+Checked:
+
+- End to end: Settings' machines (from `/fleet`), a device invited and
+  revoked (from `/devices?node=`), the Models section, and a new
+  `machines.spec.ts`: a machine added through the dialog with a real link
+  from `vessel node pair` (garbage refused first, the fingerprint matched
+  against `vessel node status`, the name rules), then renamed, made
+  default and forgotten, each checked against `vessel nodes list`; an
+  agent's card listing what the fake agent offers.
+- Captures (`e2e/settings-screens.ts`): every section, each stage of
+  adding (and a refused link), the menu, rename and forget, light and
+  dark, the busiest at 390px, and the welcome from a UI with an empty
+  book; each looked at.
+
+Gate, run in `web/` on the code as committed (the docs commit after it
+changes no code):
+
+- `npm run lint`: ESLint and Prettier clean; `fonts: 47 stacks follow the
+  rule`, `controls: nothing native outside the kit`, `size: within
+  budget, 6 files still to divide`.
+- `npm run typecheck`: no errors, the page and then `scripts/`.
+- `npm run test`: 26 files, 104 tests passed.
+- `npm run build`: built; the script 1,149.21 kB (340.58 kB gzipped), the
+  stylesheet 76.25 kB.
+- `npm run e2e`: 18 passed.
+- `npm run screens`: 3 passed (every main screen; the kit; Settings and
+  the welcome), 68 captures, 42 of them this track's, each looked at.
+
+What the wire does not give a screen (no Rust changed; for the
+coordinator):
+
+- A pairing link names the machine by its id and key only, so "Connect
+  to this machine?" cannot show its name (Paseo's shows the host's);
+  `PairingOffer` would need the node's name.
+- `vessel node pair` does not print the key's fingerprint; the dialog
+  points at `vessel node status`'s `key` line instead. Printing it next
+  to the link would make the comparison one step.
+- A device paired from the page is labelled with the UI machine's host
+  name (the `pair` op takes no device label).
+- The bridge stops dialling this machine's node after a hard failure (no
+  token before the node has run); the welcome retries it on focus and on
+  "Check again" rather than claim it connects by itself.
+
+For the merge with track W1:
+
+- "Start a session there" calls `openNewSession(machine)`; when W1's
+  `/new` replaces the dialog, that function is the one place to change.
+- The sidebar here still has Fleet, Sync and Devices (they redirect) and
+  no section list; no in-page section list was added. The palette's
+  places likewise still name Fleet, Sync and Devices.
+- `e2e/open.ts` waits for the sidebar's "Fleet" navigation; `screens.ts`
+  lost its Fleet, Sync, Devices and Settings captures (they are in
+  `settings-screens.ts`) and imports the sync setup from `fleet-home.ts`.
+
+Differences from the references that remain: DESIGN.md §12, items 6 to
+9 (an 896px column; an agent's card as one list, not tabs; no on/off
+switch on a machine's row; the confirmation names the machine by its id).
+
+Not verified: browsers other than Chromium; an agent's card against a
+real agent (only the fake); pairing through a relay (the test fleet's
+links name a direct route only).

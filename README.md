@@ -54,9 +54,10 @@ next):
    agents symbols, references, hover, call hierarchy and diagnostics as MCP
    tools, without running repository code by default (below).
 7. **A web UI.** `vessel ui` serves the fleet in a browser on this
-   machine: nodes, sessions (structured and terminal), new sessions on any
-   route, sync, devices and settings, with the session's model calls
-   ("Web UI" below).
+   machine: sessions (structured and terminal) with their model calls, new
+   sessions on any route, and Settings, where machines are added, renamed
+   and forgotten and each machine's agents, models, devices and sync are
+   shown ("Web UI" below).
 
 ## Try it
 
@@ -516,12 +517,15 @@ vessel log 3f2a                              # model calls: route, model, tokens
 
 `vessel ui` serves Vessel's web UI on this machine and opens it in the
 browser on Unix (on Windows, open the printed address): the fleet; every
-node's sessions as a board, one lane per status (running, interrupted,
+machine's sessions as a board, one lane per status (running, interrupted,
 failed, exited), a session an agent started named on its card and set
 under the one that started it; a session as a terminal or as a structured
 timeline with its prompt box and permission answers; new sessions, fleet
-sync, devices and pairing with a QR code, and settings. The page is white
-and black, with a dark theme in Settings.
+and Settings: Machines (add, rename, make default, forget), Agents (what
+each agent on a machine offers: models, effort, permissions), Models,
+Devices (pairing a phone with a QR code), Sync, Appearance and About. The
+page is white and black, with a dark theme in Settings › Appearance.
+With no machine connected it opens on a welcome that offers to add one.
 
 ```bash
 vessel ui            # serves on 127.0.0.1:7079 (any free port if taken), opens the browser
@@ -548,6 +552,19 @@ vessel ui --no-open  # prints the address instead
   server proof and launch id; an old tab stops when the UI is restarted.
   A tab whose connection keeps failing stops redialling and says it is
   disconnected; Retry (or a reload) resumes once `vessel ui` answers again.
+- **Adding a machine** (Settings › Machines › Add machine, the welcome, or
+  the command palette): run `vessel node pair` on that machine and paste
+  the link it prints. The page reads the link without sending anything and
+  shows the machine's key; compare it with the `key` line of
+  `vessel node status` there before connecting. Then name it (the book's
+  names: letters, digits, `.`, `_`, `-`), and a checklist shows it paired,
+  connected and which agents it has. The link works once, for ten minutes;
+  the page never puts it in an address, a log or a notification.
+- An agent's card in Settings › Agents starts that agent once on its
+  machine to ask what it offers (no prompt is sent); the machine keeps
+  the answer for ten minutes.
+- The old addresses `/fleet`, `/sync` and `/devices` lead to the matching
+  Settings section.
 - Links in agent output, in the timeline's Markdown or a terminal's OSC 8
   hyperlinks, open only when they are http(s): in a new tab that cannot
   reach the UI's, after a confirmation showing the URL for the terminal.

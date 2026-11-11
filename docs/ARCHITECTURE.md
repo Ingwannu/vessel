@@ -202,17 +202,22 @@ web/src/wire/     generated from the Rust types (proto.ts, bridge.ts) and typed 
 web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, typed calls, resumed
                   follows; frames narrowed by predicates (frames.ts), replies by their method
 web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal
-                  adapter, the theme, the palette's entries and the forms' choices as pure functions
+                  adapter, the theme, the palette's entries and the forms' choices as pure functions;
+                  every call a screen makes as a typed function giving an `Outcome` (outcome.ts),
+                  and what Settings decides (machines, pairing, agents, devices, sync, welcome)
 web/src/features/ an area's components and hooks: the command palette, the theme switch, the
-                  kit's gallery at /kit
-web/src/routes/   the screens: fleet, sessions, session (structured / terminal), new session,
-                  sync, devices, settings
+                  kit's gallery at /kit, settings/ (the frame and its sections), machines/
+                  (Machines, Agents, the add-machine dialog), welcome/
+web/src/routes/   the screens, composed: home (welcome or board), sessions, session (structured /
+                  terminal), new session, settings (/settings/<section>), the old addresses'
+                  redirects
 web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
 web/src/ui/       the shell, the design's tokens, the fonts, and the areas' CSS in styles/ (one
                   file per area, imported in order from styles/index.css)
 web/scripts/      the build's integrity pass and lint's checks (fonts, controls, file size)
 web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
-                  and `screens` (the main screens, and /kit in both themes)
+                  and `screens` (the main screens, Settings and the welcome, and /kit in both
+                  themes)
 ```
 
 The layers import one way: `wire` <- `bridge` <- `data` <- `features` <-

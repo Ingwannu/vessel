@@ -96,15 +96,17 @@ conversation; the rest of the app must feel like an IDE's debug console.
 
 | Place | What it is | Primary objects |
 | --- | --- | --- |
-| **Fleet** | Every node the book knows, plus live facts from each daemon | node, reach, role, harnesses, profiles, live count |
 | **Sessions** | Every session, one node or all, as a board | session card, status lane, creator |
 | **Session** | One session, terminal or structured | timeline or PTY, actions |
 | **New session** | Create dialog | node, harness, profile, model, cwd, mode |
-| **Sync** | Fleet configuration as the home publishes it | generation, members, conflicts, MCP, secrets (names only) |
-| **Devices** | Pairing and revocation, per the selected node | device, scopes, invite link |
-| **Settings** | This client | node book, theme |
+| **Settings** | Sections, each a page (§3.1): Appearance; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | theme; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
+| **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog, this machine's start command |
 
-There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
+There is no home dashboard: the index is the board once any machine is
+connected, and the welcome until then. What was the Fleet page (the
+machines and their inspector) is Settings › Machines, as
+agent-orchestrator and GOAT keep machines in their settings; Sync and
+Devices are sections there too (milestone 10, track W2).
 
 ### 2.2 Chrome
 
@@ -157,17 +159,17 @@ There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
 Names are UI, ids are protocol.
 
 ```
-/                         → /fleet
-/fleet                    all nodes
-/fleet/:node              one node (its book key)
+/                         the board once a machine is connected; the welcome before
 /sessions                 the board, all nodes
 /sessions?node=:node      the board, one node
 /sessions/:node/:id       one session, structured or terminal by its mode
-/sync
-/sync?node=:node
-/devices
-/devices?node=:node
-/settings
+/settings                 → /settings/appearance
+/settings/:section        one section; an unknown one → the default
+/settings/:section?machine=:node            the machine a section is about
+/settings/agents?machine=:node&agent=:kind  an agent's card open
+/settings/machines?machine=:node            a machine's detail open
+/fleet, /fleet/:node      → /settings/machines(?machine=:node)
+/sync?node=, /devices?node=  → /settings/sync, /settings/devices (?machine=)
 ```
 
 Creating a session is a dialog over the current route, not a page.
@@ -201,7 +203,8 @@ Do not flatten this into a card field with a raw id and no link. The tree
 Devices, pairing, drain/stop, and the node book entry are per node.
 Sync conflicts are per member. The selected node is:
 
-1. the node in the URL (opening a node's page selects it), else
+1. the node in the URL (opening a machine's detail in Settings selects
+   it), else
 2. the last node the operator selected this session, else
 3. the book's `default_node`, else
 4. the local node if the book has one.
@@ -227,10 +230,59 @@ the pane, not a centred 720px reading column — this is an app.
 
 ### 3.1 Common page frames
 
-**Fleet.** Main is one column: one line of summary facts (nodes, live
-sessions, harnesses), then a full-width node table. Selecting a row opens
-a 320px inspector with harnesses, profiles, reach, last error. The summary
-is a sentence of numbers, not tiles: the table under it is the fleet.
+**Settings.** agent-orchestrator's settings page: the section's name is
+the title bar's heading (after "Settings"); the body is a centred column
+896px wide (GOAT's readable width) with 24px around it and 48px below,
+one lead sentence, then sections 40px apart, each a 14px medium heading
+(an action at its right: Add machine, a machine picker, a quiet link)
+12px over a card of the kit's rows (§6.14). Detail is one level down: a
+chosen machine's or agent's card opens under its list, never as a page
+of its own, and literal values (an address, an id, a path) are only in
+those detail rows. A section about one machine (Agents, Models, Devices,
+Sync) names it in its heading and offers a ghost select of the machines;
+the choice is the address's `?machine=`, so it survives a reload and a
+move between sections. Below 768px the column's padding is 12px.
+
+- **Machines**: a row per machine (a server icon, its name, one line:
+  platform, how it is reached, its state, live sessions; "This machine"
+  and "Default" badges; a "…" menu of Rename…, Make default and, apart
+  and in the danger colour, Forget…). This machine (the node `vessel ui`
+  runs beside) has no Rename or Forget. The chosen machine's detail:
+  state, how it is reached, what it runs on, its Vessel and protocol,
+  its id; its agents (each opening its card in Agents); its live
+  sessions.
+- **Agents**: every agent Vessel drives, installed first, as GOAT's
+  provider rows: the agent's letter, its name and version, a dot and one
+  headline: Available, Needs attention (with the machine's reason:
+  installed but no conversation adapter), Not found. Its card: status,
+  version, program, then what it offers, asked of the machine when the
+  card opens (`harness.options` starts the agent once there; the card
+  says so while it waits) as one list in the page's words: Models,
+  Effort, Permissions, then the agent's other options, each with its
+  values and the one in use.
+- **Models**: the machine's routes (provider, model, small model, API)
+  and profiles (agent, where its models come from), read-only.
+- **Devices**: the devices paired with the machine (what each may do,
+  when seen), Revoke behind a confirmation; then a card for a new link:
+  a name, New link, and the link and its QR code hidden until asked for
+  and hidden again after 30s, on blur and once copied.
+- **Sync**: what the machine shares (its version, the secrets its tool
+  servers name), its files and tool servers, the machines that pull it
+  (up to date, behind, not yet) with any kept edit as a warning above
+  them. A machine that shares nothing says how to make it the one that
+  does.
+- **Appearance**: the colour scheme (system, light, dark).
+- **About**: this page's version and licence, each machine's version and
+  the protocol it speaks with the page, and every package the page
+  bundles with its licence (checked against `package.json` by a test).
+
+**Welcome.** Paseo's first screen in agent-orchestrator's welcome column
+(400px, centred): the mark, "Welcome to Vessel", one sentence, the
+primary "Add a machine"; under a hairline, while this machine's own node
+is not running, "Or use this machine" with `vessel node start` to copy
+and Check again (the page also tries again when it gets focus back). It
+leaves for the board as soon as a machine connects, and stays while one
+is being redialled, so it does not blink (`data/welcome.ts`).
 
 **Sessions.** The board fills the frame under the title bar: four lanes,
 each a 48px heading over its own scrolling column of cards, then a 36px
@@ -258,13 +310,9 @@ The inspector hides below 1100px (toggle `⌘I`). The composer is sticky.
 **Terminal session.** Header 40px, reconnecting banner if needed, then
 the terminal consumes all remaining height. No inspector.
 
-**Dialogs** (new session, pair, confirm kill or revoke): 480px wide,
+**Dialogs** (new session, add a machine, confirm kill, revoke or forget): 480px wide,
 centred, 16px padding, dimmer `--overlay` at 32% black (light) / 56%
 (dark). New session can grow to 560px because of the model list.
-
-**Sync.** Two stacked sections, not tabs: Sources (home) then Members.
-Conflicts, when any exist, pin to the top of Members as a list, not a
-toast.
 
 ### 3.2 Spacing scale
 
@@ -858,6 +906,7 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Badge | §6.4; `word`, `accent` or `mono` |
 | Kbd | as text (11px, tertiary, the sidebar search's), or a key chip: 20px, radius 4, 12px medium on the 7% wash |
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
+| CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
 | EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
 | Command palette | a dialog (§6.9) up to 720px wide, 14vh from the top, radius 14, solid where the reference's is glass: a 16px search line, 14px rows 28px tall inset 6px, the highlighted one on a 9% wash, at most 420px of rows in groups, a foot of keys. `⌘K` or `/` (not while typing) |
 
@@ -881,7 +930,7 @@ divided by hairlines. A row, 10px by 16px: a mark (a 16px icon, or a
 state dot), the title at 14px medium, under it a 13px description or a
 12px line of facts joined by " · ", then the control (a switch, a badge)
 and a menu at the right. **Chosen is the 7% wash, never an edge or a
-bar.** Fleet's machines are rows.
+bar.** Settings' machines, agents, devices and facts are rows.
 
 ---
 
@@ -988,6 +1037,40 @@ Create is the only primary button. The dialog does not close until
 the RPC returns; the button shows a spinner. Failure sits inline,
 not only as a toast.
 
+### 7.6 Adding a machine
+
+One dialog over the bridge's ops (track E), opened from Settings ›
+Machines' "Add machine", the welcome and the command palette; Paseo's
+order and GOAT's checklist (`data/pairing.ts` decides every line):
+
+1. **Add a machine.** "On the other machine, run" `vessel node pair` (a
+   CommandLine; Vessel must be running there, `vessel node start`), then
+   "Paste the link it printed". Continue reads it with `inspect`, which
+   sends nothing; text that is not a link says so under the field.
+2. **Connect to this machine?** The key's fingerprint (13px mono, the
+   first line), how it will be reached (each direct address, then each
+   relay), the machine's id and when the link expires; one sentence: the
+   key should match the `key` line of `vessel node status` there. Then
+   "Name it", checked as typed against the book's rules and its names
+   (`nameProblem`); Connect is off until the name is good. An expired link
+   says so and offers no Connect.
+3. **The checklist** (`pair`, then what the bridge pushes): Paired,
+   Connected, Agents found, each a spinner, then a check in the ready
+   colour or a cross in the danger colour with one line of result; a row
+   after a failure is skipped (a dashed circle, "Not tried"). A failed row
+   says what to do and, where a command helps, gives it to copy
+   (`vessel node pair` for a used or expired link, `vessel node start`
+   for a machine that does not answer, `vessel harnesses` for one with no
+   agent). A busy page or a lost connection says to wait, not to make a
+   new link: the op's typed reason decides, not its message.
+4. **Ready.** "<name> is ready", Close, and "Start a session there",
+   which opens a new session on it. A refused link offers "Use another
+   link", back to the first stage with the field empty.
+
+The link is a credential until used: it lives in the dialog's state only,
+goes to `inspect` and `pair`, and is never put in an address, a log, a
+toast or a test's failure message.
+
 ---
 
 ## 8. Accessibility
@@ -1068,6 +1151,10 @@ So M7 does not have to guess names.
 | Permission | `PermissionId` + `PermissionOption` |
 | Devices | `device.list`; scopes `read`, `operate`, `admin` |
 | Pairing link | `vessel://pair#…` (fragment; never sent to a server) |
+| Add a machine | bridge ops `inspect` (reads the link), `pair` (book entry and credential), then `nodes`, `harness.list` |
+| Rename, Make default, Forget | bridge ops `rename`, `default`, `forget`; each answers with the book |
+| An agent's status | `harness.list` (`Harness.structured`); absent from it is "Not found" |
+| What an agent offers | `harness.options` (`SessionOption`, grouped by `OptionCategory`) |
 | Kill / move / copy | `session.kill`, `session.move_profile`, export/import |
 
 Secret values never appear in the UI. Sync may list secret *names*.
@@ -1140,3 +1227,16 @@ control, GOAT), on purpose:
 5. **A segmented control's chosen segment** is GOAT's lifted thumb: the
    reference's (its menu's 7% fill on the field fill) cannot be told
    apart on a white card.
+6. **Settings is a column, not the full pane.** agent-orchestrator's
+   settings body is up to 1152px wide; this one is GOAT's 896px reading
+   width, so a row's control stays near its label on a wide window.
+7. **An agent's card is a list, not tabs.** agent-orchestrator's harness
+   page has Account, Models and Health tabs; Vessel shows what the agent
+   offers in one list, since the node reports no account or health of
+   its own for an agent.
+8. **No machine switch on the row.** GOAT's machine row carries an
+   on/off switch; a book entry has no such state, so the row has none.
+9. **The confirmation names the machine by its id.** Paseo's "Connect to
+   this host?" shows the host's name; a Vessel pairing link carries the
+   node's id and key but not its name, which the checklist shows once the
+   machine has connected.
