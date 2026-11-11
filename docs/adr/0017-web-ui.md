@@ -149,6 +149,8 @@ Option 3.
 - Responses carry CSP, `nosniff`, no-referrer, frame denial, COOP
   `same-origin` and CORP `same-origin`. `index.html` is `no-store`; all other
   assets are `no-cache` with content SHA-256 ETags, not immutable.
+  (Amended in milestone 10: content-hashed assets are immutable; see the
+  amendment below.)
 - The build emits SHA-384 SRI on every script and stylesheet referenced by
   the index. It rejects JS/CSS chunks outside that integrity graph: a future
   code-splitting change must extend the integrity policy first. This matters
@@ -178,6 +180,16 @@ Option 3.
   **`Op::Pair` is the deliberate exception:** the user supplies a pairing
   link, inspects its fingerprint, then pairs; the connector dials the address
   from that link before the new entry exists in the book.
+- The book's other edits from the page (milestone 10): `Op::Forget`,
+  `Op::Rename` and `Op::Default` are `vessel nodes remove`, `rename` and
+  `default`, made by the CLI's `BookFile` through `NodeSource` on a book
+  opened right before the edit, so a change made with the CLI while the
+  page is open is kept. They dial nothing. They stand where `Op::Pair`
+  stands: behind the socket's mutual proof, with no further gate (a
+  launch has one session key, and every welcomed tab holds it). This
+  machine's node is not a book entry and cannot be forgotten or renamed.
+  A forgotten or renamed node's connection is closed and its streams end
+  with `reason: removed`.
 
 **Front end.**
 - React 19 with TanStack Router (typed routes), Vite, TypeScript strict,
@@ -287,3 +299,37 @@ Option 3.
   browser may call it, in an exhaustive `match` on `Method`, so the
   question cannot be skipped. `Call` and the generated types grow on
   their own.
+
+## Amendment: immutable hashed assets (milestone 10, 2026-11-11)
+
+**Context.** The page preloads a 2 MB font and loads its script and
+stylesheet from `assets/`, all `no-cache`. Each visit asked for each of
+them again; through a tunnel or a slow link the page drew its fallback
+face first every time.
+
+**Options.** Keep `no-cache`; `max-age` alone (Firefox still revalidates
+on reload); a service worker cache (what the per-launch origin defends
+against); `immutable` for files named by their content's hash.
+
+**Decision.** Files under `assets/` named `<name>-<hash>.<ext>` (Vite's
+names, recognised by `vessel-web`'s `src/hashed.rs` at build time) are
+served `public, max-age=31536000, immutable`, keeping their ETags.
+`index.html` stays `no-store`, anything else `no-cache`.
+
+**Why it does not weaken the poisoned-cache defence.** Our headers
+describe only our own responses. They cannot evict or revalidate an
+entry another process wrote under one of our paths, since that entry's
+own `immutable` keeps the browser from asking us at all; the "not
+immutable" above never protected against that. What does is SRI on every
+script and stylesheet of the `no-store` index (the poisoned file is
+refused, not run) and a fresh origin per launch (nothing can be cached
+for it before it exists). What we cache under a hashed path is the file
+that hash names. `web/e2e/security.spec.ts` poisons a script and checks
+that it does not run under the real index: that is the defence's test,
+and it holds unchanged. Its separate assertion of the old `no-cache`
+header on a script is the one line of it this amendment changes.
+
+**Consequences.** A broken hashed file stays cached for its origin until
+a new build renames it; each launch is a new origin anyway. A font is not
+covered by SRI: a font poisoned on the literal loopback origin (not the
+printed one) could be drawn, as before this amendment.

@@ -1,5 +1,5 @@
 //! The node book on the command line: which node `--node` means, and
-//! `vessel nodes add|list|show|remove|default`.
+//! `vessel nodes add|list|show|remove|rename|default`.
 //!
 //! The book itself (layering, the project file's limits, edits that keep
 //! comments) is `vessel_client::book`; this module finds its files and
@@ -150,6 +150,10 @@ fn edit(path: &Path, command: NodesCommand) -> Result<String, CliError> {
         NodesCommand::Remove { name } => {
             file.remove(&name)?;
             Ok(format!("removed {name}\n"))
+        }
+        NodesCommand::Rename { name, to } => {
+            file.rename(&name, &to)?;
+            Ok(format!("renamed {name} to {to}\n"))
         }
         NodesCommand::Default { name, none: _ } => {
             file.set_default(name.as_deref())?;

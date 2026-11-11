@@ -13,6 +13,9 @@
 //!   book and its `NodeConnector`; the bridge's tests with in-process
 //!   nodes. The bridge only routes: what a node allows is the node's to
 //!   decide.
+//! - The book's edits (pair, forget, rename, default) are the source's
+//!   too, so the book has one writer, the CLI's (`BookFile`), and the
+//!   page cannot do to the book what `vessel nodes` cannot.
 
 use std::future::Future;
 
@@ -49,4 +52,23 @@ pub trait NodeSource: Send + Sync + 'static {
         name: &str,
         link: &str,
     ) -> impl Future<Output = Result<BookNode, Self::Error>> + Send;
+
+    /// Remove `node` from the book, as `vessel nodes remove` does. Never
+    /// called with [`NodeKey::HERE`] (the bridge refuses it: that node is
+    /// not in the book).
+    fn forget(&self, node: &NodeKey) -> impl Future<Output = Result<(), Self::Error>> + Send;
+
+    /// Rename `node` to `name` in the book, as `vessel nodes rename` does,
+    /// with the book's own check of `name`. Never called with
+    /// [`NodeKey::HERE`].
+    fn rename(
+        &self,
+        node: &NodeKey,
+        name: &str,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send;
+
+    /// Make `node` the default, as `vessel nodes default` does;
+    /// [`NodeKey::HERE`] clears the book's default (`--none`), which makes
+    /// this machine's node the default.
+    fn set_default(&self, node: &NodeKey) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }

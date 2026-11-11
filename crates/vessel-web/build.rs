@@ -10,6 +10,9 @@
 //!   `index.html`; otherwise the placeholder page in `assets/placeholder`,
 //!   which says how to build the UI. `VESSEL_WEB_REQUIRE_BUNDLE=1` (CI's web
 //!   job, the release) makes a missing bundle a build error instead.
+//! - Each file is recorded with its content's SHA-256 (its entity tag) and
+//!   whether its name carries a content hash (`src/hashed.rs`), which
+//!   decides its caching (`files`).
 //! - Watching: the bundle's directory when it exists; otherwise all of
 //!   `web/`, so a bundle built later is noticed (cargo scans a watched
 //!   directory recursively).
@@ -17,6 +20,11 @@
 //!   committing `web/dist` (minified diffs in every UI change).
 
 use sha2::{Digest as _, Sha256};
+
+// The rule for content-hashed names, shared with the crate's tests.
+#[path = "src/hashed.rs"]
+mod hashed;
+use hashed::hashed;
 use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -50,6 +58,11 @@ fn run() -> Result<(), String> {
     for variable in ["VESSEL_WEB_DIST", "VESSEL_WEB_REQUIRE_BUNDLE"] {
         let _written = writeln!(cargo, "cargo::rerun-if-env-changed={variable}");
     }
+    let _written = writeln!(
+        cargo,
+        "cargo::rerun-if-changed={}",
+        manifest.join("src/hashed.rs").display()
+    );
     let placeholder = manifest.join("assets/placeholder");
     let _written = writeln!(cargo, "cargo::rerun-if-changed={}", placeholder.display());
     let bundled = dist.join("index.html").is_file();
@@ -116,10 +129,12 @@ fn table(files: &[File], bundled: bool) -> io::Result<String> {
         etag.push('"');
         let _written = writeln!(
             out,
-            "    File {{ path: {:?}, kind: {:?}, bytes: include_bytes!({:?}), etag: {etag:?} }},",
+            "    File {{ path: {:?}, kind: {:?}, bytes: include_bytes!({:?}), etag: {etag:?}, \
+             hashed: {} }},",
             file.url,
             kind(&file.url),
             file.disk.display().to_string(),
+            hashed(&file.url),
         );
     }
     out.push_str("];\n");

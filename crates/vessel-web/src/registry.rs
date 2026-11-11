@@ -174,6 +174,12 @@ impl<S: NodeSource> Registry<S> {
         &self.source
     }
 
+    /// Whether the UI is stopping (every entry's `stop` is then cancelled
+    /// too, so this tells a stop from a removal).
+    pub(crate) fn stopping(&self) -> bool {
+        self.shutdown.is_cancelled()
+    }
+
     pub(crate) const fn client_info(&self) -> &ClientInfo {
         &self.client
     }
@@ -303,7 +309,11 @@ impl<S: NodeSource> Registry<S> {
                 &key,
                 &entry,
                 Link::Failed {
-                    message: "the node was removed or the UI stopped".to_owned(),
+                    message: if self.shutdown.is_cancelled() {
+                        "the UI is stopping".to_owned()
+                    } else {
+                        "the node was removed from the book".to_owned()
+                    },
                 },
             );
         }

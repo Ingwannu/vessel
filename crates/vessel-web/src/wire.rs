@@ -13,7 +13,8 @@
 //!   [`ServerFrame::Event`], the stream's ups and downs as
 //!   [`ServerFrame::Stream`];
 //! - asks the bridge itself ([`ClientFrame::Op`]) for what only this
-//!   machine knows: the book's nodes, pairing, QR codes.
+//!   machine knows: the book's nodes, pairing, QR codes, and the book's
+//!   edits (forget, rename, default).
 //!
 //! Every node's connection state is pushed as [`ServerFrame::Node`].
 //!
@@ -250,6 +251,30 @@ pub enum Op {
         /// What to encode (a pairing link).
         text: String,
     },
+    /// Remove a node from the book (`vessel nodes remove`) and close the
+    /// bridge's connection to it; streams following it end as
+    /// [`StreamStop::Removed`]. This machine's node ([`NodeKey::HERE`]) is
+    /// not in the book and is refused.
+    Forget {
+        /// The node.
+        node: NodeKey,
+    },
+    /// Give a node in the book another name (`vessel nodes rename`); the
+    /// default follows it. Its connection and streams end under the old
+    /// name, as when it is forgotten: follow it again under the new one.
+    Rename {
+        /// The node.
+        node: NodeKey,
+        /// Its new name, checked as the book checks names.
+        name: String,
+    },
+    /// Make a node the one commands use when none is named (`vessel nodes
+    /// default`); [`NodeKey::HERE`] clears the book's default, which is
+    /// what makes this machine's node the default (`--none`).
+    Default {
+        /// The node.
+        node: NodeKey,
+    },
 }
 
 /// An op's result.
@@ -281,6 +306,22 @@ pub enum OpResult {
     Qr {
         /// The code as an SVG document.
         svg: String,
+    },
+    /// [`Op::Forget`].
+    Forget {
+        /// The nodes as the book has them now, in the order to show them.
+        nodes: Vec<BookNode>,
+    },
+    /// [`Op::Rename`].
+    Rename {
+        /// The nodes as the book has them now, in the order to show them.
+        nodes: Vec<BookNode>,
+    },
+    /// [`Op::Default`].
+    Default {
+        /// The nodes as the book has them now, in the order to show them
+        /// (the default moved: two entries changed).
+        nodes: Vec<BookNode>,
     },
 }
 
@@ -376,12 +417,32 @@ pub enum StreamState {
     },
     /// The session ended; no more records.
     Ended,
-    /// The stream stopped (the session is gone, or the node cannot be
-    /// reached again); follow again to retry.
+    /// The stream stopped (the session is gone, the node cannot be
+    /// reached again, it left the book, or the UI is stopping); `reason`
+    /// says which kind, `message` the details. Follow again to retry.
     Failed {
         /// Why.
         message: String,
+        /// Which kind of stop, for the page to act on without reading
+        /// `message`.
+        reason: StreamStop,
     },
+}
+
+/// Why a followed session's stream stopped for good.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum StreamStop {
+    /// The node left the book (forgotten or renamed from the page, or
+    /// removed with `vessel nodes`); its connection is closed. Following
+    /// it again fails unless it is back in the book.
+    Removed,
+    /// `vessel ui` is stopping.
+    Stopping,
+    /// Anything else: the session is gone, the node cannot be reached
+    /// again, or the bridge refused the follow.
+    Error,
 }
 
 /// `GET /api/status`: what is serving.

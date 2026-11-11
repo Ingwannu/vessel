@@ -55,7 +55,7 @@ and 0013).
 | `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal. | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Nothing about sessions, nodes or harnesses. | proto |
-| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes). The CLI gives it the nodes through `NodeSource`. | proto, client |
+| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
 | `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7). | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). | - |
 
@@ -213,11 +213,19 @@ not the tab's session key. `auth` and `socket` verify role-separated HMAC
 proofs and fresh nonces before starting `bridge`; `transport` counts sockets
 from TCP accept through upgrades and enforces HTTP deadlines. The browser
 keeps the issued session key in `sessionStorage` for reloads. A changed
-launch or bad proof stops the tab. `files` serves content ETags; the web
-build's `scripts/integrity.mjs` closes the script/stylesheet SRI graph.
-`registry` validates the current book before allocating entries and cancels
-removed nodes. Pairing deliberately dials the supplied link before adding
-its entry. See ADR 0017 for transcripts, bounds and platform tradeoffs.
+launch or bad proof stops the tab. `files` serves content ETags, and
+content-hashed `assets/` files as immutable for a year (milestone 10;
+`index.html` is `no-store`); the web build's `scripts/integrity.mjs`
+closes the script/stylesheet SRI graph, which is what keeps a poisoned
+cache from running. `registry` validates the current book before
+allocating entries and cancels removed nodes. Pairing deliberately dials
+the supplied link before adding its entry. The page's `forget`, `rename`
+and `default` ops are `vessel nodes remove|rename|default` through
+`NodeSource`: the book is opened right before each edit, then read again
+by the registry, which closes a removed node's connection and ends its
+streams as `removed`. This machine's node is not a book entry and is
+refused for `forget` and `rename`. See ADR 0017 for transcripts, bounds
+and platform tradeoffs.
 
 
 ### By crate

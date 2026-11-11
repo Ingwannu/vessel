@@ -364,10 +364,13 @@ async fn pipe(mut inbound: TcpStream, upstream: SocketAddr, cut: CancellationTok
 }
 
 /// The nodes the tests' UI offers: names to websocket addresses and
-/// tokens, with every dial counted.
+/// tokens, with every dial counted. Its edits check names with the book's
+/// own `NodeName` and fail as the book does (no such node, a name taken);
+/// the CLI's real book source is tested in `vessel-cli`.
 #[derive(Default, Clone)]
 pub(crate) struct Source {
     nodes: Arc<Mutex<Vec<(String, NodeUrl, BearerToken)>>>,
+    default: Arc<Mutex<Option<String>>>,
     dials: Arc<AtomicUsize>,
 }
 
@@ -392,10 +395,26 @@ impl Source {
     }
 }
 
-/// There is no such node in the tests' source.
+/// What the tests' source refuses.
 #[derive(Debug, thiserror::Error)]
-#[error("no node named {0}")]
-pub(crate) struct NoSuchNode(String);
+pub(crate) enum NoSuchNode {
+    #[error("no node named {0}")]
+    Missing(String),
+    #[error("a node named {0} is already in the book")]
+    Exists(String),
+    #[error(transparent)]
+    Name(#[from] vessel_client::book::InvalidNodeName),
+}
+
+impl Source {
+    /// The position of `node`, or why there is none.
+    fn find(nodes: &[(String, NodeUrl, BearerToken)], node: &NodeKey) -> Result<usize, NoSuchNode> {
+        nodes
+            .iter()
+            .position(|(name, _url, _token)| name == node.as_str())
+            .ok_or_else(|| NoSuchNode::Missing(node.to_string()))
+    }
+}
 
 impl NodeSource for Source {
     type Connector = Counted;
@@ -412,7 +431,7 @@ impl NodeSource for Source {
                 label: name.clone(),
                 address: url.to_string(),
                 transport: Transport::Ws,
-                default: false,
+                default: self.default.lock().unwrap().as_ref() == Some(name),
                 id: None,
             })
             .collect())
@@ -423,7 +442,7 @@ impl NodeSource for Source {
         let (_name, url, token) = nodes
             .iter()
             .find(|(name, _url, _token)| name == node.as_str())
-            .ok_or_else(|| NoSuchNode(node.to_string()))?;
+            .ok_or_else(|| NoSuchNode::Missing(node.to_string()))?;
         Ok(Counted {
             inner: WsConnector::new(url.clone(), token.clone()),
             dials: Arc::clone(&self.dials),
@@ -433,7 +452,48 @@ impl NodeSource for Source {
     async fn seen(&self, _node: &NodeKey, _id: NodeId) {}
 
     async fn pair(&self, name: &str, _link: &str) -> Result<BookNode, NoSuchNode> {
-        Err(NoSuchNode(name.to_owned()))
+        Err(NoSuchNode::Missing(name.to_owned()))
+    }
+
+    async fn forget(&self, node: &NodeKey) -> Result<(), NoSuchNode> {
+        assert!(!node.is_here(), "the bridge refuses this machine's node");
+        let mut nodes = self.nodes.lock().unwrap();
+        let at = Self::find(&nodes, node)?;
+        let _gone = nodes.remove(at);
+        let mut default = self.default.lock().unwrap();
+        if default.as_deref() == Some(node.as_str()) {
+            *default = None;
+        }
+        Ok(())
+    }
+
+    async fn rename(&self, node: &NodeKey, name: &str) -> Result<(), NoSuchNode> {
+        assert!(!node.is_here(), "the bridge refuses this machine's node");
+        let to: vessel_client::book::NodeName = name.parse()?;
+        let mut nodes = self.nodes.lock().unwrap();
+        let at = Self::find(&nodes, node)?;
+        if nodes.iter().any(|(name, _url, _token)| name == to.as_str()) {
+            return Err(NoSuchNode::Exists(to.to_string()));
+        }
+        if let Some(entry) = nodes.get_mut(at) {
+            entry.0 = to.to_string();
+        }
+        let mut default = self.default.lock().unwrap();
+        if default.as_deref() == Some(node.as_str()) {
+            *default = Some(to.to_string());
+        }
+        Ok(())
+    }
+
+    async fn set_default(&self, node: &NodeKey) -> Result<(), NoSuchNode> {
+        let chosen = if node.is_here() {
+            None
+        } else {
+            let _at = Self::find(&self.nodes.lock().unwrap(), node)?;
+            Some(node.to_string())
+        };
+        *self.default.lock().unwrap() = chosen;
+        Ok(())
     }
 }
 

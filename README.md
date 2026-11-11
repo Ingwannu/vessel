@@ -100,6 +100,10 @@ first.
   different machine answering at that name later is refused.
 - A project can pick one of your nodes with `.vessel/config.toml`
   (`default_node = "gpu-box"`), and may do nothing else.
+- `vessel nodes list|show|remove|rename|default` edit the book in place,
+  keeping its comments; the web UI's Machines page makes the same edits.
+  A rename moves the whole entry and the default with it, but not a
+  project file that names the old name.
 - A dropped connection during `attach` reconnects by itself and continues
   where it was.
 
