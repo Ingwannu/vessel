@@ -109,7 +109,10 @@ async function settle(
 ): Promise<Opening> {
   const resting = await rest(page, REST_MS);
   const size = await pageFootprint(page, cdp);
-  const entries = await page.locator(".timeline-column > .t-item").count();
+  // Entries in the document: every one before the timeline was windowed
+  // (milestone 11), the ones near the view since. That the fold finished
+  // is the `last` mark: the turn's end drawn as the last entry.
+  const entries = await page.locator(".timeline-column .t-item").count();
   const scroll = await scrollThrough(page, ".timeline", SCROLL_STEPS, "up");
   const marks = await readMarks(page);
   const click = marks.at.get("click") ?? Number.NaN;
@@ -154,13 +157,8 @@ export async function measureTimeline(
       }
       const drawn = openings.map((opening) => opening.entries);
       notes.push(
-        `${String(size)} entries: ${drawn.join(", ")} timeline items drawn (the ${String(size)} and the session's own)`,
+        `${String(size)} entries: ${drawn.join(", ")} timeline items in the document once settled`,
       );
-      if (drawn.some((entries) => entries < size)) {
-        throw new Error(
-          `fewer than ${String(size)} entries drawn: ${drawn.join(", ")}`,
-        );
-      }
       tables.push({
         name: `${String(size)} entries, desktop (1440×900), unthrottled`,
         rows: rows(METRICS, openings),
