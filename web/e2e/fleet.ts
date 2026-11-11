@@ -45,7 +45,7 @@ export interface FleetEnv {
 const EXE = process.platform === "win32" ? ".exe" : "";
 
 function targetDir(): string {
-  const given = process.env.VESSEL_TARGET_DIR;
+  const given = process.env["VESSEL_TARGET_DIR"];
   if (given !== undefined && given !== "") {
     return given;
   }
@@ -222,11 +222,11 @@ export async function startFleet(): Promise<FleetEnv> {
   // for the machine's user (in ~/.local/bin, say) must not be found.
   const system =
     process.platform === "win32"
-      ? `${process.env.SYSTEMROOT ?? "C:\\Windows"}\\System32`
+      ? `${process.env["SYSTEMROOT"] ?? "C:\\Windows"}\\System32`
       : "/usr/local/bin:/usr/bin:/bin";
   const base: NodeJS.ProcessEnv = {
     PATH: `${fakes}${process.platform === "win32" ? ";" : ":"}${system}`,
-    SYSTEMROOT: process.env.SYSTEMROOT,
+    SYSTEMROOT: process.env["SYSTEMROOT"],
     RUST_LOG: "info",
   };
   const pids: number[] = [];

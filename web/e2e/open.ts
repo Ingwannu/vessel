@@ -13,8 +13,8 @@ export async function launchUi(
   const env = loadEnv();
   const child = spawn(env.vessel, ["ui", "--no-open", "--port", String(port)], {
     env: {
-      PATH: process.env.PATH,
-      SYSTEMROOT: process.env.SYSTEMROOT,
+      PATH: process.env["PATH"],
+      SYSTEMROOT: process.env["SYSTEMROOT"],
       HOME: env.root,
       USERPROFILE: env.root,
       VESSEL_CONFIG_DIR: join(env.root, "config"),

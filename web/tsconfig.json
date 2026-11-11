@@ -19,7 +19,11 @@
     "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false
   },
   "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

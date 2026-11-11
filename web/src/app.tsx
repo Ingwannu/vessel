@@ -24,7 +24,7 @@ import { Shell } from "./ui/shell";
 
 /** `?node=` on the pages scoped by node. */
 function nodeSearch(search: Record<string, unknown>): { node?: string } {
-  return typeof search.node === "string" ? { node: search.node } : {};
+  return typeof search["node"] === "string" ? { node: search["node"] } : {};
 }
 
 /** `/` is Fleet: there is no home dashboard apart from it (DESIGN.md §2.1).

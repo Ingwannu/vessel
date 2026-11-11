@@ -14,7 +14,7 @@ import { openUi } from "./open";
 import { type FleetEnv, loadEnv } from "./fleet";
 
 const OUT =
-  process.env.VESSEL_SCREEN_DIR ??
+  process.env["VESSEL_SCREEN_DIR"] ??
   join(import.meta.dirname, "..", "artifacts", "screens");
 
 async function shot(page: Page, name: string): Promise<void> {
@@ -43,7 +43,7 @@ function cli(
     input,
     encoding: "utf8",
     env: {
-      PATH: process.env.PATH,
+      PATH: process.env["PATH"],
       HOME: env.root,
       USERPROFILE: env.root,
       VESSEL_CONFIG_DIR: join(env.root, "config"),
@@ -64,7 +64,7 @@ async function fleetHome(env: FleetEnv): Promise<void> {
     join(sources, "skills", "release-notes", "SKILL.md"),
     "---\nname: release-notes\n---\nWrite them.\n",
   );
-  const laptop = env.nodes.laptop;
+  const laptop = env.nodes["laptop"];
   if (laptop === undefined) {
     return;
   }
@@ -248,7 +248,7 @@ test("every main screen", async ({ page }) => {
     execFileSync(env.vessel, ["nodes", "add", "laptop", "--pair", "--yes"], {
       input: `${link}\n`,
       env: {
-        PATH: process.env.PATH,
+        PATH: process.env["PATH"],
         HOME: phone,
         USERPROFILE: phone,
         VESSEL_CONFIG_DIR: join(phone, "config"),

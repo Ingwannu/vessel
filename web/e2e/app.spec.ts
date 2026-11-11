@@ -203,7 +203,7 @@ test("a device is invited, pairs, and is revoked", async ({ page }) => {
   execFileSync(env.vessel, ["nodes", "add", "laptop", "--pair", "--yes"], {
     input: `${link}\n`,
     env: {
-      PATH: process.env.PATH,
+      PATH: process.env["PATH"],
       HOME: phone,
       USERPROFILE: phone,
       VESSEL_CONFIG_DIR: join(phone, "config"),
@@ -237,7 +237,7 @@ test("terminal replay cannot answer device queries, while keys and paste still w
   const queries = `${esc}[c${esc}[6n${esc}]10;?${bel}${esc}P$qm${esc}\\REPLAY_END`;
   execFileSync(env.vessel, ["--node", "laptop", "send", session, queries], {
     env: {
-      PATH: process.env.PATH,
+      PATH: process.env["PATH"],
       HOME: env.root,
       USERPROFILE: env.root,
       VESSEL_CONFIG_DIR: join(env.root, "config"),

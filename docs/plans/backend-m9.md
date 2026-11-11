@@ -196,3 +196,50 @@ alternative, an Expo rewrite as Paseo did).
 - **An archive action.** Ended sessions are the archive; nothing removes
   one.
 - **The shells** (ADR 0020).
+
+## Track B: progress (2026-11-11)
+
+Built, on `backend/m9`:
+
+- `web/src/ui/tokens.css`: the reference's light and dark themes, with the
+  two departures the file states (AA text colours, Pretendard).
+- `web/src/ui/shell.tsx` and `app.css`: the grey shell, the framed page
+  with its title bar inside, the sidebar (brand, search, places, nodes
+  with their live sessions, Settings), rows with the growing pill, filled
+  buttons with the inset edge. Pages no longer render a heading of their
+  own.
+- `web/src/data/board.ts`, `routes/sessions.tsx`: the lanes Building,
+  Validating, In review, Ready from `SessionInfo.board`; the fallback for
+  a node older than protocol 8; the card; the needs-you card; the archive
+  as a count under the lanes that opens the ended sessions.
+- `web/tsconfig.json`: `exactOptionalPropertyTypes`,
+  `noPropertyAccessFromIndexSignature`, `allowUnusedLabels: false` and
+  `allowUnreachableCode: false`, on top of `strict` and
+  `noUncheckedIndexedAccess`. Fourteen index-signature accesses were the
+  only code that had to change.
+- `docs/design/web-ui/DESIGN.md` and ADR 0020 (proposed).
+
+Checked: `web/`'s lint (33 font stacks), typecheck, 40 unit tests, build,
+16 end-to-end tests (one rewritten for the lanes and the archive), every
+screen in both themes; and the built page against a node still on
+protocol 7 (it connects, and its ended session is in the archive).
+
+Not built yet, from this track's list:
+
+- **The needs-you card and the working spinner have not been seen with
+  real data.** No node sends a placement until track A lands, so the unit
+  tests cover them and no screen does.
+- The phone layout below 768px is what milestone 8 had (stacked lanes);
+  the sidebar as a drawer is not built.
+- The page's transport is still one module with one implementation; the
+  seam ADR 0020 needs is not cut until the ADR is accepted.
+
+Differences from the reference that remain, beyond the two the tokens
+state:
+
+- The card's title is the working directory's last segment. Theirs is the
+  task's title; a Vessel session has none in the protocol.
+- The card's mark is a letter. Theirs is the agent's logo.
+- The card has no branch and no pull requests: no node reports them yet.
+- A slim row scopes the board to one node when the book has several.
+  Theirs has one board per project, reached from the sidebar.
