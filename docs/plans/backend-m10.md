@@ -171,8 +171,12 @@ written, the generated `web/src/wire/bridge.ts`.
 - `forget { node }`: remove a machine from the book and close its
   connection. Not the machine this page was opened from.
 - `rename { node, name }` and `default { node }`.
-- Every op is refused when the page's session is not the bootstrap one,
-  as `pair` is. Tests beside the existing bridge tests.
+- Every op sits where `pair` sits: behind the socket's mutual proof and
+  within a tab's limit of calls in flight, with no further gate. A launch
+  has one session key and every authenticated tab holds it, so there is
+  no "bootstrap session" to tell apart (this plan first said there was;
+  ADR 0017's amendment records the decision). Tests beside the existing
+  bridge tests.
 
 ## Track W0: the controls (`backend/m10`, first)
 
