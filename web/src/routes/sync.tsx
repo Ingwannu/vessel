@@ -52,10 +52,7 @@ export function SyncPage(): ReactElement {
   } | null>(null);
   const published = result?.node === node ? result.published : null;
   const error = result?.node === node ? result.error : null;
-  useCrumbs(
-    [{ label: "Sync" }, ...(node === null ? [] : [{ label }])],
-    `${node ?? ""}${label}`,
-  );
+  useCrumbs([{ label: "Sync" }, ...(node === null ? [] : [{ label }])]);
   useEffect(() => {
     if (node === null || !connected) {
       return undefined;

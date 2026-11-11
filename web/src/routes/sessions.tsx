@@ -60,7 +60,6 @@ export function SessionsPage(): ReactElement {
     scopeLabel === null
       ? [{ label: "Sessions" }]
       : [{ label: "Sessions", to: "/sessions" }, { label: scopeLabel }],
-    scope ?? "",
   );
   const rows = tree(state, nodes);
   const dealt = board(rows);

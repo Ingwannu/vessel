@@ -21,7 +21,7 @@ import { toast } from "../ui/toasts";
 import type { PairingOffer } from "../wire/proto";
 
 export function SettingsPage(): ReactElement {
-  useCrumbs([{ label: "Settings" }], "settings");
+  useCrumbs([{ label: "Settings" }]);
   const theme = useStore(themeStore, (value) => value);
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);

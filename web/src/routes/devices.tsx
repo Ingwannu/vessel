@@ -71,10 +71,7 @@ export function DevicesPage(): ReactElement {
   }, [showing]);
   const [name, setName] = useState("phone");
   const [revoking, setRevoking] = useState<DeviceInfo | null>(null);
-  useCrumbs(
-    [{ label: "Devices" }, ...(node === null ? [] : [{ label }])],
-    `${node ?? ""}${label}`,
-  );
+  useCrumbs([{ label: "Devices" }, ...(node === null ? [] : [{ label }])]);
 
   const load = useCallback(() => {
     if (node === null) {

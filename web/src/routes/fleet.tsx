@@ -48,7 +48,6 @@ export function FleetPage(): ReactElement {
           { label: "Fleet", to: "/fleet" },
           { label: nodeLabel(selected, statuses[selected.key]) },
         ],
-    chosen ?? "",
   );
   const online = nodes.filter(
     (node) => statuses[node.key]?.state === "connected",

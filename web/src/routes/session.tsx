@@ -43,14 +43,11 @@ export function SessionPage(): ReactElement {
   );
   const [fetched, setFetched] = useState<SessionInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useCrumbs(
-    [
-      { label: "Fleet", to: "/fleet" },
-      { label, to: `/fleet/${node}` },
-      { label: shortId(id), mono: true },
-    ],
-    `${node}/${id}/${label}`,
-  );
+  useCrumbs([
+    { label: "Fleet", to: "/fleet" },
+    { label, to: `/fleet/${node}` },
+    { label: shortId(id), mono: true },
+  ]);
   useEffect(() => {
     let current = true;
     fleet.bridge.call(node, "session.get", { session: id }).then(
