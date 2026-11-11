@@ -1,0 +1,30 @@
+[package]
+name = "vessel-workspace"
+description = "Projects, git worktrees, git and files for a Vessel node, kept inside their folders"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+vessel-proc.workspace = true
+vessel-proto.workspace = true
+chrono.workspace = true
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs"] }
+tokio-util.workspace = true
+toml_edit.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+# The tests find `git` on the test runner's `PATH`; the node finds it on its
+# own and passes the path in.
+which.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true
