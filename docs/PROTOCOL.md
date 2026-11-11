@@ -4,6 +4,73 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## Version 10 (2026-11-11)
+
+Nodes speak 2..=10. Track B of milestone 11 (`docs/plans/backend-m11.md`,
+"Track B: contract", which has every call's failures and bounds; ADRs
+0023 and 0024) adds 40 methods, two optional fields and no event. Track
+A's part of version 10 is recorded with its own changes.
+
+- Types (`vessel_proto::workspace`, one module per area): `ProjectId`,
+  `WorktreeId`; `RelPath` (relative, `/`-separated, never absolute,
+  climbing, a drive, or any `.git` by git's `verify_path` rules: a bad
+  one does not decode); `CloneUrl` (`https`, `http`, `ssh`, `git` or
+  `user@host:path`; no `<transport>::`, leading `-` or credentials);
+  bounded names (`BranchName`, `RefName`, `RemoteName`, `CommitId`,
+  `ProjectName`, `FolderName`, `CommitMessage`, `ProjectCommand`,
+  `CommandsDigest`, `ContentHash`, `FindQuery`, `GrepQuery`); every reply
+  enum that will grow has `unknown`.
+- `SessionSpec.place?`: `project { project, dir? }` or `worktree {
+  worktree }`. The node fills `cwd` with the folder it resolves to (so a
+  protocol 9 client still sees where the session runs), refuses a place
+  together with a `cwd`, and starts the log with `vessel:` notices (the
+  folder, the branch and its base, setup's result and, after a failure,
+  its last lines). In a worktree whose setup runs: `conflict`. A
+  `session.create` with a place needs protocol 10 (`Call::since`). The
+  first session started in a worktree made for no session claims it.
+  `SessionInfo.workspace? { project, worktree?, branch? }`, filled from
+  the place on every answer.
+- Methods, all forwardable, in `vessel-web`'s list; agents may call only
+  `project.list`, `project.get`, `project.commands`, `worktree.list`,
+  `worktree.create` (at most 8 they made), `worktree.output`, and
+  `session.create` in a project or a worktree they made (or made for a
+  session they may operate); every other one answers them `forbidden`.
+  - Projects: `project.list` (read; with the git found: `found {
+    version }`, `too_old`, `missing`), `project.get { project,
+    changed_from? }` (read; a long poll until the revision differs, at
+    most 30 s), `project.add { path, name? }`, `project.clone { url,
+    parent, folder?, name? }` (answers `cloning`; progress in `state`),
+    `project.init { path, name? }`, `project.remove` (forgets; files
+    stay), `project.commands { project, base? }` (read),
+    `project.approve { project, digest, approved }` (all operate).
+    Roots refused: a file system's root, the home folder, any folder
+    holding the node's data folder or inside it.
+  - Worktrees: `worktree.list { project? }`, `worktree.create { project,
+    branch: new { name?, base? } | existing { name } | snapshot {
+    worktree, name? }, setup: run | skip }` answering `created`,
+    `needs_approval { commands }` or `refused { reason }`;
+    `worktree.output { worktree, from, wait? }` (a page of at most
+    64 KiB of setup's output, a long poll); `worktree.setup`;
+    `worktree.remove { worktree, if_lost: keep | snapshot | discard }`
+    answering `removed { snapshot? }` or `kept { reasons }`;
+    `worktree.snapshots { project }`, `worktree.drop_snapshot`.
+  - Git (`root`: `project { project }` or `worktree { worktree }`):
+    `git.status`, `git.changes { scope, ignore_whitespace }` (scopes
+    `unstaged`, `staged`, `uncommitted`, `base { base? }`, `commit {
+    id }`), `git.diff` (one file's typed hunks, paged by hunk),
+    `git.show` (a file at a commit, paged), `git.branches`, `git.log`,
+    `git.stashes` (read); `git.stage`, `git.unstage`, `git.discard`,
+    `git.commit`, `git.fetch`, `git.push`, `git.pull` (fast-forward
+    only), `git.switch`, `git.rename_branch`, `git.stash` (operate),
+    each with typed refusals (`GitRefusal`).
+  - Files: `file.list`, `file.read`, `file.find { query, key? }` (by
+    name; a newer search with the same key replaces a running one),
+    `file.grep` (read); `file.write { expect: absent | version | any }`,
+    `file.create_dir`, `file.rename`, `file.delete` (operate). A path
+    that leads out of the root and one that is not there both answer
+    `not_found`.
+- Store schema 7 (`projects`, `worktrees`, `approvals`).
+
 ## Version 9 (2026-11-11)
 
 Nodes speak 2..=9; version 9 adds four methods, two events (with

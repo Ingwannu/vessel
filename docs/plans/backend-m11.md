@@ -1077,3 +1077,80 @@ Not taken, and why:
 - The desktop and phone shells (ADR 0020, still proposed). All three
   references ship a phone app; Vessel's answer until the decision is the
   page on a phone plus push (track E).
+
+## Track B: progress
+
+2026-11-11, on `backend/m11-workspace`. ADRs 0023 (git as a program)
+and 0024 (projects, worktrees, the project's file and its trust); store
+schema 7; crate `vessel-workspace`.
+
+Built, each slice with its tests:
+
+- The wire (protocol 10): every type and the 40 methods above, with
+  `Call::since`, the forwardable list and `vessel-web`'s list.
+- `vessel-workspace`: the hardened git runs and both pools, status,
+  diffs, log, branches, stashes, every write, clones, worktrees, the
+  inspection, snapshots, checked paths, files, the name index, `git
+  grep`, `vessel.toml` and its digest, setup and teardown; 36 tests
+  against temporary repositories with the real git.
+- The node: the registry (schema 7, read back at start, a clone or a
+  setup the node's stop interrupted told as failed), every call, the
+  agents' list in `guard`, `session.create`'s place, `SessionInfo.
+  workspace` on every answer; 16 tests (13 against temporary
+  repositories) and 2 end to end over the wire (as the owner, and as an
+  agent).
+- `vessel mcp`: `list_projects`, `list_worktrees`, `create_worktree`
+  (follows setup), `create_session`'s `project`, `dir` and `worktree`.
+- The CLI: `vessel project list|add|clone|init|remove|commands|approve`,
+  `vessel worktree list|new|output|setup|remove|snapshots`, `vessel run
+  --project [--dir] | --project --new-worktree | --worktree`.
+
+Changed from the contract while building, and why:
+
+- The worktrees' folder is `<data>/workspace/worktrees/<project
+  id>/<8 hex>`: the data folder's workspace folder also holds the setup
+  logs, git's empty hooks folder and scratch files, all owner-only.
+- The first session started in a worktree made for no session claims it
+  (`created_for`): a worktree is made before its session (the three
+  steps), so this is how tidying finds the session's own.
+- `session.create` with both a `place` and a `cwd` is `invalid_request`;
+  an imported session's `place` is dropped (it named the other
+  machine's project; carrying worktrees is wave 2's).
+- Tidying is `Workspaces::retire(session, live sessions)`; nothing calls
+  it yet. The coordinator wires it to track A's archive and delete; the
+  node's retention dropping a session's log does not tidy yet.
+
+Measured (release build, the development machine; no local path is
+named): the name index over 300,000 synthetic paths builds in about
+1.0 s and answers a query in 21-25 ms; over a real repository of about
+35,000 paths, 5-10 ms. A git process costs 2.0 ms (`rev-parse`) to
+2.5 ms (`status`) each, over 200 runs.
+
+What agents cannot do, so is not offered as an agent tool: approve
+commands, add, clone, start or forget projects, run setup again, remove
+worktrees, snapshots, and every git and file call (an agent uses its own
+tools in its folder).
+
+Only CI can confirm: Windows (setup through `cmd.exe /d /c` on a `.cmd`
+file; `git~1` and trailing dots and spaces; drive names; Git Credential
+Manager honouring `GCM_INTERACTIVE=never`; the symbolic-link tests are
+Unix-only), macOS (canonical `/private` temporary paths), and git
+2.25 to 2.42 (developed with 2.43).
+
+Not verified: a successful clone from a real remote and its progress
+(only the failing path is tested; the parser has unit tests); a `ssh` or
+`gpg` prompt on a node started from a terminal; the MCP tools end to
+end with a project (their parsing is unit-tested, the agent's rights end
+to end through the node).
+
+For the page track: `project.list` says which git the node has; a
+clone is followed with `project.get { changed_from }`; a new worktree is
+`worktree.create`, then `worktree.output` until `setup` is not
+`running`, then `session.create { place: worktree }` (a session in a
+worktree whose setup runs is refused); `needs_approval` carries the
+commands and the digest to show and approve with `project.approve`;
+`worktree.remove` answers `kept { reasons }` for a person to choose
+`snapshot` or `discard`; every path is a `RelPath` from a listing;
+`file.find` takes a `key` per input box so typing replaces the running
+search; `SessionInfo.workspace` names a session's project, worktree and
+branch.
