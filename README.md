@@ -619,13 +619,21 @@ npm run lint && npm run typecheck && npm test   # ESLint, Prettier, the font rul
 npm run build && npm run fonts                  # SRI-protected web/dist and built font audit
 npm run e2e                                     # Playwright against real nodes with the fake harnesses
 npm run screens                                 # every main screen into web/artifacts/screens/
+npm run perf                                    # the page's speed, measured, into web/artifacts/perf.json
 ```
 
-`e2e` and `screens` need the Rust binaries first (`cargo build -p
+`e2e`, `screens` and `perf` need the Rust binaries first (`cargo build -p
 vessel-cli -p vessel-node --bin vesseld` and `cargo build -p
 vessel-testkit --bins`). Set `VESSEL_SCREEN_DIR` to write screenshots outside
-the checkout. CI uploads only the deliberate screenshots with pairing links
-hidden; traces, videos and automatic failure screenshots are disabled.
+the checkout. `perf` runs on demand only (minutes, not part of `e2e`): the
+board loading cold over a slow and a phone-like link, a timeline of 5,000
+and 20,000 entries, a terminal under heavy output, a board of 500 cards
+(`docs/PERFORMANCE.md` keeps the figures). `VESSEL_PERF_OUT` names its
+JSON file, `VESSEL_PERF_RUNS` the runs per measurement, and
+`VESSEL_CARGO_PROFILE=release` runs the fleet on release binaries (`cargo
+build --release ...`) instead of debug ones. CI uploads only the
+deliberate screenshots with pairing links hidden; traces, videos and
+automatic failure screenshots are disabled.
 
 ## Environment
 

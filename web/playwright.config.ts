@@ -1,6 +1,7 @@
-// End-to-end tests against a real fleet (e2e/fleet.ts), and the `screens`
+// End-to-end tests against a real fleet (e2e/fleet.ts), the `screens`
 // project that captures every main screen into artifacts/screens/
-// (untracked) for review.
+// (untracked) for review, and the `perf` project that measures the page
+// (e2e/perf.ts, on demand).
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
@@ -30,5 +31,8 @@ export default defineConfig({
   projects: [
     { name: "e2e", testMatch: /\.spec\.ts$/ },
     { name: "screens", testMatch: /screens\.ts$/ },
+    // `npm run perf` only: the page's speed (e2e/perf.ts); its modules
+    // under e2e/perf/ are not tests.
+    { name: "perf", testMatch: /[\\/]perf\.ts$/ },
   ],
 });

@@ -15,7 +15,9 @@
 //
 // The Rust binaries are built beforehand (`cargo build -p vessel-cli -p
 // vessel-node -p vessel-testkit --bins`, with the bundle embedded); their
-// directory comes from `VESSEL_TARGET_DIR` or `cargo metadata`.
+// directory comes from `VESSEL_TARGET_DIR` or `cargo metadata`, and the
+// build (debug, or release with `VESSEL_CARGO_PROFILE=release`) from
+// `cargoProfile`.
 
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import {
@@ -69,8 +71,24 @@ function targetDir(): string {
   return parsed.target_directory;
 }
 
+/** Which build of the Rust binaries the fleet runs: `debug` (cargo's
+ * dev profile, what the tests build) unless `VESSEL_CARGO_PROFILE` says
+ * `release` (`cargo build --release ...`), which the page's performance
+ * measurement (perf.ts) may want so that a debug node is not what it
+ * measures. */
+export function cargoProfile(): "debug" | "release" {
+  const given = process.env["VESSEL_CARGO_PROFILE"];
+  if (given === undefined || given === "" || given === "debug") {
+    return "debug";
+  }
+  if (given === "release") {
+    return "release";
+  }
+  throw new Error("VESSEL_CARGO_PROFILE is debug or release");
+}
+
 function binary(name: string): string {
-  const path = join(targetDir(), "debug", `${name}${EXE}`);
+  const path = join(targetDir(), cargoProfile(), `${name}${EXE}`);
   if (!existsSync(path)) {
     throw new Error(`${path} is missing: build the Rust binaries first`);
   }
