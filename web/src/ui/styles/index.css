@@ -19,9 +19,10 @@
 
 @import "./base.css";
 @import "./shell.css";
-@import "./controls.css";
 @import "./tables.css";
 @import "./board.css";
+@import "./card.css";
+@import "./archive.css";
 @import "./session.css";
 @import "./timeline.css";
 @import "./permission.css";

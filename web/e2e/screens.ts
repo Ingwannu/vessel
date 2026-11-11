@@ -10,6 +10,7 @@ import { hostname } from "node:os";
 
 import { expect, type Page, test } from "@playwright/test";
 
+import { choose, newSessionDialog } from "./kit";
 import { openUi } from "./open";
 import { type FleetEnv, loadEnv } from "./fleet";
 
@@ -115,17 +116,12 @@ async function newSession(
   cwd: string,
   route = "",
 ): Promise<void> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await dialog.getByLabel("Node").selectOption({ label: `${node} · serving` });
-  await dialog.getByLabel("Harness").selectOption("claude-code");
+  const dialog = await newSessionDialog(page, node, mode);
   if (route !== "") {
     // Picks the profile on the route (e2e/fleet.ts: claude-qwen).
-    await dialog.getByLabel("Model").selectOption(route);
+    await choose(page, dialog.getByLabel("Model"), new RegExp(`^${route}\\b`));
   }
   await dialog.getByLabel("Working directory").fill(cwd);
-  // The radio sits inside its segment's label, which is what a person clicks.
-  await dialog.locator(".seg label").filter({ hasText: mode }).click();
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(dialog).toBeHidden();
 }
@@ -215,12 +211,11 @@ test("every main screen", async ({ page }) => {
   await expect(page.getByLabel("Session terminal")).toContainText("args [");
   await shot(page, "04-session-terminal");
 
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await dialog.getByLabel("Node").selectOption({ label: "laptop · serving" });
-  await dialog.getByLabel("Harness").selectOption("claude-code");
-  await dialog.getByLabel("Model").selectOption("qwen-coder");
-  await expect(dialog.getByLabel("Profile")).toHaveValue("claude-qwen");
+  const dialog = await newSessionDialog(page, "laptop", "Structured");
+  await choose(page, dialog.getByLabel("Model"), /^qwen-coder\b/);
+  await expect(dialog.getByLabel("Profile")).toContainText(
+    "Claude Code on Qwen",
+  );
   await shot(page, "05-new-session");
   await page.keyboard.press("Escape");
 
@@ -271,7 +266,7 @@ test("every main screen", async ({ page }) => {
   await shot(page, "08-settings");
 
   // The dark theme: the same system inverted (DESIGN.md §4.2).
-  await page.locator(".seg label").filter({ hasText: "Dark" }).click();
+  await page.getByRole("radio", { name: "Dark" }).click();
   await page.goto(`${origin}/fleet/laptop`);
   await expect(
     page.getByRole("complementary", { name: "laptop" }),

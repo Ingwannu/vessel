@@ -51,8 +51,9 @@
   align-items: flex-end;
 }
 
-.field.grow {
+.pair-new > .grow {
   flex: 1;
+  min-width: 0;
 }
 
 .offer {

@@ -20,7 +20,7 @@ import { openExternal } from "../data/links";
 import { addCall, type Usage, usageLine } from "../data/models";
 import { decodeBytes } from "../data/terminal";
 import { TerminalSender } from "../data/terminal-sender";
-import { Banner } from "../ui/kit";
+import { Banner, Tooltip } from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { StreamState } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
@@ -174,9 +174,9 @@ export function TerminalView({
               <span>{size === null ? "" : `${size.cols}×${size.rows}`}</span>
               <span>utf-8</span>
               {calls === null ? null : (
-                <span className="calls" title={calls.models.join(", ")}>
-                  {usageLine(calls)}
-                </span>
+                <Tooltip label={calls.models.join(", ")}>
+                  <span className="calls">{usageLine(calls)}</span>
+                </Tooltip>
               )}
               <span className="live">
                 {frozen

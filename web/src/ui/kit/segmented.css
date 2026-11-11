@@ -6,6 +6,7 @@
 
 .segmented {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 2px;
   padding: 2px;
@@ -36,6 +37,13 @@
 
 .segment:hover {
   color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* The same look for a set of links that scope a page (the board's nodes):
+   the current one carries `data-checked` and `aria-current`. */
+a.segment {
+  text-decoration: none;
 }
 
 .segment[data-checked] {

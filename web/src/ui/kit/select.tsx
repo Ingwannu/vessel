@@ -20,7 +20,8 @@ import { type Choice, choiceOf, runs } from "./choice";
 import { Icon } from "./icon";
 
 export interface SelectProps<V extends string> {
-  value: V;
+  /** `null` while nothing is chosen: the placeholder shows. */
+  value: V | null;
   onChange: (value: V) => void;
   options: readonly Choice<V>[];
   /** The control's name when it is not inside a Field. */

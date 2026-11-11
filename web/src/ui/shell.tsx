@@ -21,7 +21,7 @@ import { nodeLabel, selectedNode } from "../data/nodes";
 import { SidebarSearch } from "../features/palette/palette";
 import { NewSessionDialog } from "../routes/new-session";
 import type { SessionInfo } from "../wire/proto";
-import { Banner, Icon, StatusDot } from "./kit";
+import { Banner, Button, Icon, IconButton, StatusDot, Tooltip } from "./kit";
 import { Toasts } from "./toasts";
 
 const MARK = (
@@ -83,15 +83,14 @@ function Disconnected() {
     <Banner
       tone="error"
       action={
-        <button
-          className="btn sm"
-          type="button"
+        <Button
+          size="sm"
           onClick={() => {
             fleet.bridge.retry();
           }}
         >
           Retry
-        </button>
+        </Button>
       }
     >
       Disconnected — vessel ui may have restarted. If it did, open the address
@@ -140,20 +139,20 @@ function FrameTop() {
         <Link
           className={link.kind === "open" ? "chip" : "chip reconnecting"}
           to="/settings"
-          title="This client"
         >
           <StatusDot tone={chip.tone} label={chip.text} />
           {chip.text}
         </Link>
-        <button
-          className="btn primary sm"
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
+          icon="plus"
           onClick={() => {
             openNewSession(selected);
           }}
         >
-          <Icon name="plus" size={14} /> New
-        </button>
+          New
+        </Button>
       </div>
     </header>
   );
@@ -223,17 +222,16 @@ function Sidebar() {
       </div>
       <div className="side-label">
         <span>Nodes</span>
-        <button
-          className="btn ghost xs icon-btn"
-          type="button"
-          aria-label="New session"
-          title="New session"
-          onClick={() => {
-            openNewSession(selected);
-          }}
-        >
-          <Icon name="plus" size={14} />
-        </button>
+        <Tooltip label="New session">
+          <IconButton
+            label="New session"
+            icon="plus"
+            size="xs"
+            onClick={() => {
+              openNewSession(selected);
+            }}
+          />
+        </Tooltip>
       </div>
       <div className="side-scroll">
         {(book ?? []).map((node) => {

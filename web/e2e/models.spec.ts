@@ -4,6 +4,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
+import { choose, newSessionDialog, optionOf } from "./kit";
 import { openUi } from "./open";
 
 /** Open New session on laptop with Claude Code on route `qwen-coder`. */
@@ -11,26 +12,24 @@ async function routed(
   page: Page,
   mode: "Structured" | "Terminal",
 ): Promise<void> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await dialog.getByLabel("Node").selectOption({ label: "laptop · serving" });
-  await dialog.getByLabel("Harness").selectOption("claude-code");
+  const dialog = await newSessionDialog(page, "laptop", mode);
   const model = dialog.getByLabel("Model");
+  const profile = dialog.getByLabel("Profile");
   // A route no profile of this harness names is listed, not offered.
   await expect(
-    model.getByRole("option", { name: /gpt-oss .* no profile/ }),
-  ).toHaveAttribute("disabled", "");
-  await model.selectOption("qwen-coder");
+    await optionOf(page, model, /gpt-oss .* no profile/),
+  ).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
+  await choose(page, model, /^qwen-coder\b/);
   // Picking the route picks the profile on it, and the other way round.
-  await expect(dialog.getByLabel("Profile")).toHaveValue("claude-qwen");
+  await expect(profile).toContainText("Claude Code on Qwen");
   await expect(dialog).toContainText(
     "Through profile claude-qwen, pinned to qwen/qwen3-coder and qwen/qwen3-coder-flash.",
   );
-  await dialog.getByLabel("Profile").selectOption("");
-  await expect(model).toHaveValue("");
-  await dialog.getByLabel("Profile").selectOption("claude-qwen");
-  await expect(model).toHaveValue("qwen-coder");
-  await dialog.locator(".seg label").filter({ hasText: mode }).click();
+  await choose(page, profile, /^default$/);
+  await expect(model).toContainText("harness default");
+  await choose(page, profile, /^Claude Code on Qwen/);
+  await expect(model).toContainText("qwen-coder");
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(dialog).toBeHidden();
 }

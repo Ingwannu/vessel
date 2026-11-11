@@ -86,7 +86,18 @@
 }
 
 .text-field.area.mono > .text-field-input {
-  line-height: 20px;
+  line-height: 22px;
+}
+
+/* No shell of its own: the box it sits in is the shell. */
+.text-field.area.bare {
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+}
+
+.text-field.area.bare:focus-within {
+  outline: none;
 }
 
 .field[data-invalid] .text-field,

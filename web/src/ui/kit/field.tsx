@@ -8,7 +8,7 @@
 import "./field.css";
 
 import { Field as Base } from "@base-ui/react/field";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 export function Field({
   label,
@@ -41,5 +41,43 @@ export function Field({
         <Base.Description className="field-hint">{hint}</Base.Description>
       )}
     </Base.Root>
+  );
+}
+
+/** A label over a group of controls that name themselves (a Segmented's
+ * radios, a row of checkboxes): Base UI's Field would give its one label
+ * to every control inside, so a group is labelled as a group instead. */
+export function FieldGroup({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string | null;
+  children: ReactNode;
+}) {
+  const id = useId();
+  const invalid = error !== undefined && error !== null && error !== "";
+  return (
+    <div
+      className="field"
+      role="group"
+      aria-labelledby={`${id}-label`}
+      data-invalid={invalid ? "" : undefined}
+    >
+      <span className="field-label" id={`${id}-label`}>
+        {label}
+      </span>
+      {children}
+      {invalid ? (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      ) : hint === undefined ? null : (
+        <p className="field-hint">{hint}</p>
+      )}
+    </div>
   );
 }

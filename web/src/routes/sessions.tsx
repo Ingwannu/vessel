@@ -19,6 +19,7 @@ import {
   sinceLabel,
   tone,
 } from "../data/board";
+import { searchArchive } from "../data/archive";
 import type { FleetState } from "../data/fleet";
 import {
   harnessMark,
@@ -26,12 +27,19 @@ import {
   isLive,
   sessionTitle,
   shortId,
-  when,
 } from "../data/format";
 import { labelOf, nodeLabel } from "../data/nodes";
 import { tree } from "../data/tree";
 import { useWhere } from "../data/where";
-import { Dialog, EmptyState, Icon } from "../ui/kit";
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  Icon,
+  IconButton,
+  TextField,
+  Tooltip,
+} from "../ui/kit";
 import { toast } from "../ui/toasts";
 
 /** How many archived cards the archive shows before "Show more": a node
@@ -79,9 +87,10 @@ export function SessionsPage(): ReactElement {
           title is in the frame's title bar. */}
       {book.length > 1 ? (
         <div className="board-scope">
-          <div className="seg" role="group" aria-label="Node">
+          <div className="segmented sm" role="group" aria-label="Node">
             <Link
-              className={scope === null ? "active" : undefined}
+              className="segment"
+              data-checked={scope === null ? "" : undefined}
               to="/sessions"
               aria-current={scope === null ? "true" : undefined}
             >
@@ -90,7 +99,8 @@ export function SessionsPage(): ReactElement {
             {book.map((node) => (
               <Link
                 key={node.key}
-                className={scope === node.key ? "active" : undefined}
+                className="segment"
+                data-checked={scope === node.key ? "" : undefined}
                 to="/sessions"
                 search={{ node: node.key }}
                 aria-current={scope === node.key ? "true" : undefined}
@@ -110,15 +120,14 @@ export function SessionsPage(): ReactElement {
                 : `No sessions on ${scopeLabel} yet`
             }
             action={
-              <button
-                className="btn primary"
-                type="button"
+              <Button
+                variant="primary"
                 onClick={() => {
                   openNewSession(scope);
                 }}
               >
                 New session
-              </button>
+              </Button>
             }
           >
             Start one and it appears here, in the lane of what it is doing.
@@ -141,17 +150,18 @@ export function SessionsPage(): ReactElement {
           {/* The archive is not a lane: a quiet count under the lanes that
               opens the ended sessions. */}
           <div className="archive-bar">
-            <button
-              className="btn ghost xs"
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
+              icon="archive"
               disabled={dealt.archive.length === 0}
               onClick={() => {
                 setArchiveOpen(true);
               }}
             >
-              <Icon name="archive" size={14} /> Archive
+              Archive
               <span className="count">{dealt.archive.length}</span>
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -173,24 +183,22 @@ export function SessionsPage(): ReactElement {
           }}
           footer={
             <>
-              <button
-                className="btn ghost"
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setKilling(null);
                 }}
               >
                 Cancel
-              </button>
-              <button
-                className="btn danger solid"
-                type="button"
+              </Button>
+              <Button
+                variant="danger-solid"
                 onClick={() => {
                   kill(killing);
                 }}
               >
                 Kill
-              </button>
+              </Button>
             </>
           }
         >
@@ -260,31 +268,21 @@ function Archive({
 }) {
   const [query, setQuery] = useState("");
   const [shown, setShown] = useState(ARCHIVE_PAGE);
-  const text = query.trim().toLowerCase();
-  const found =
-    text === ""
-      ? cards
-      : cards.filter(
-          (card) =>
-            card.session.id.startsWith(text) ||
-            (card.session.spec.cwd ?? "~").toLowerCase().includes(text) ||
-            labelOf(state, card.node).toLowerCase().includes(text),
-        );
+  const found = searchArchive(cards, state, query);
   const rest = found.length - shown;
   return (
     <Dialog title="Archive" size="lg" onClose={onClose}>
-      <label className="field">
-        <span className="visually-hidden">Search the archive</span>
-        <input
-          type="search"
-          placeholder="Search by directory, id or node"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setShown(ARCHIVE_PAGE);
-          }}
-        />
-      </label>
+      <TextField
+        icon="search"
+        role="searchbox"
+        aria-label="Search the archive"
+        placeholder="Search by directory, id or node"
+        value={query}
+        onChange={(next) => {
+          setQuery(next);
+          setShown(ARCHIVE_PAGE);
+        }}
+      />
       {found.length === 0 ? (
         <p className="hint">No ended session matches.</p>
       ) : (
@@ -301,15 +299,17 @@ function Archive({
         </ul>
       )}
       {rest > 0 ? (
-        <button
-          className="btn ghost sm lane-more"
-          type="button"
-          onClick={() => {
-            setShown(shown + ARCHIVE_PAGE);
-          }}
-        >
-          Show {Math.min(rest, ARCHIVE_PAGE)} more
-        </button>
+        <div className="lane-more">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setShown(shown + ARCHIVE_PAGE);
+            }}
+          >
+            Show {Math.min(rest, ARCHIVE_PAGE)} more
+          </Button>
+        </div>
       ) : null}
     </Dialog>
   );
@@ -387,7 +387,6 @@ function SessionCard({
         to="/sessions/$node/$id"
         params={{ node, id: session.id }}
         aria-label={`Open ${id}: ${title}, ${phrase}, on ${labelOf(state, node)}`}
-        title={`${spec.cwd ?? "~"} · ${when(placed.at)}`}
       />
       <div className="card-head">
         <CardOrigin card={card} state={state} />
@@ -401,17 +400,17 @@ function SessionCard({
           </span>
           <span className="title">{title}</span>
           {onKill !== null && isLive(session) ? (
-            <button
-              className="btn ghost sm icon-btn card-action"
-              type="button"
-              aria-label={`Kill ${id}`}
-              title="Kill"
-              onClick={() => {
-                onKill(card);
-              }}
-            >
-              <Icon name="kill" size={14} />
-            </button>
+            <span className="card-action">
+              <Tooltip label="Kill">
+                <IconButton
+                  label={`Kill ${id}`}
+                  icon="kill"
+                  onClick={() => {
+                    onKill(card);
+                  }}
+                />
+              </Tooltip>
+            </span>
           ) : null}
         </div>
         <div className="card-line">

@@ -74,7 +74,9 @@
   min-width: 0;
 }
 
+/* The label keeps its room; the detail gives way first. */
 .select-value > .label {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -82,8 +84,8 @@
 }
 
 .select-value > .detail {
-  flex: none;
-  max-width: 45%;
+  flex: 0 4 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -2,16 +2,26 @@
 // daemon reports; a node's facts in the inspector.
 
 import { type ReactElement, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 import { useCrumbs, useFleet, useFleetState } from "../context";
 import type { FleetState } from "../data/fleet";
 import { harnessName, isLive, nodeState, shortId, when } from "../data/format";
 import { apiName, routeLine } from "../data/models";
-import { nodeLabel } from "../data/nodes";
+import { nodeFacts, nodeLabel } from "../data/nodes";
 import { useWhere } from "../data/where";
 import type { BookNode, NodeStatus } from "../wire/bridge";
-import { Badge, Banner, EmptyState, Skeleton, StatusDot } from "../ui/kit";
+import {
+  Badge,
+  Banner,
+  Button,
+  EmptyState,
+  Row,
+  RowList,
+  Skeleton,
+  StatusDot,
+  Tooltip,
+} from "../ui/kit";
 
 export function FleetPage(): ReactElement {
   const where = useWhere();
@@ -21,7 +31,6 @@ export function FleetPage(): ReactElement {
   const bookError = useFleetState((state) => state.bookError);
   const statuses = useFleetState((state) => state.statuses);
   const sessions = useFleetState((state) => state.sessions);
-  const navigate = useNavigate();
   const nodes = book ?? [];
   const selected = nodes.find((node) => node.key === chosen) ?? null;
   // The node in view is the selected node (DESIGN.md §2.5), however the
@@ -90,13 +99,9 @@ export function FleetPage(): ReactElement {
           <Banner
             tone="error"
             action={
-              <button
-                className="btn sm"
-                type="button"
-                onClick={() => void fleet.loadBook()}
-              >
+              <Button size="sm" onClick={() => void fleet.loadBook()}>
                 Retry
-              </button>
+              </Button>
             }
           >
             The node book could not be read: {bookError}
@@ -111,39 +116,16 @@ export function FleetPage(): ReactElement {
           </EmptyState>
         ) : (
           <div className={selected === null ? "" : "two-col"}>
-            <div className="table-wrap">
-              <table className="data" aria-label="Nodes">
-                <thead>
-                  <tr>
-                    <th scope="col">Node</th>
-                    <th scope="col">State</th>
-                    <th scope="col">Reach</th>
-                    <th scope="col">Harnesses</th>
-                    <th scope="col" className="right">
-                      Live
-                    </th>
-                    <th scope="col">Version</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nodes.map((node) => (
-                    <NodeRow
-                      key={node.key}
-                      node={node}
-                      status={statuses[node.key]}
-                      selected={node.key === chosen}
-                      open={() => {
-                        fleet.select(node.key);
-                        void navigate({
-                          to: "/fleet/$node",
-                          params: { node: node.key },
-                        });
-                      }}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RowList label="Nodes">
+              {nodes.map((node) => (
+                <NodeRow
+                  key={node.key}
+                  node={node}
+                  status={statuses[node.key]}
+                  selected={node.key === chosen}
+                />
+              ))}
+            </RowList>
             {selected === null ? null : <NodePanel node={selected} />}
           </div>
         )}
@@ -152,74 +134,36 @@ export function FleetPage(): ReactElement {
   );
 }
 
-function reach(node: BookNode): string {
-  switch (node.transport) {
-    case "ws":
-      return "direct";
-    case "ssh":
-      return "ssh";
-    case "paired":
-      return "relay";
-  }
-}
-
+/** A node in the list (the kit's Row): its state, its name opening its
+ * panel, its facts on one line, its state's word at the right. */
 function NodeRow({
   node,
   status,
   selected,
-  open,
 }: {
   node: BookNode;
   status: NodeStatus | undefined;
   selected: boolean;
-  open: () => void;
 }) {
   const sessions = useFleetState((state) => state.sessions[node.key]);
   const harnesses = useFleetState((state) => state.harnesses[node.key]);
   const state = nodeState(status);
-  const info = status?.state === "connected" ? status.node : null;
-  const detail =
-    info === null
-      ? `${node.address} · ${state.word}`
-      : `${info.os}/${info.arch} · ${node.transport === "ws" ? "websocket" : node.transport}`;
   return (
-    <tr
-      className={selected ? "selected" : undefined}
-      onClick={open}
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          open();
-        }
-      }}
-    >
-      <td>
-        <div className="inline">
-          <StatusDot tone={state.tone} label={state.word} />
-          <div className="stack">
-            <span className="name">{nodeLabel(node, status)}</span>
-            <span className="muted">{detail}</span>
-          </div>
-        </div>
-      </td>
-      <td>
-        <Badge tone={state.tone}>{state.word}</Badge>
-      </td>
-      <td>
-        <Badge look="mono">{reach(node)}</Badge>
-      </td>
-      <td className="mono muted">
-        {harnesses === undefined
-          ? "—"
-          : harnesses.map((harness) => harnessName(harness.kind)).join(", ")}
-      </td>
-      <td className="mono right">
-        {info === null || sessions === undefined
-          ? "—"
-          : sessions.filter(isLive).length}
-      </td>
-      <td className="mono muted">{info === null ? "—" : info.version}</td>
-    </tr>
+    <Row
+      selected={selected}
+      lead={<StatusDot tone={state.tone} label={state.word} />}
+      title={
+        <Link
+          to="/fleet/$node"
+          params={{ node: node.key }}
+          aria-current={selected ? "page" : undefined}
+        >
+          {nodeLabel(node, status)}
+        </Link>
+      }
+      meta={nodeFacts(node, status, harnesses, sessions)}
+      control={<Badge tone={state.tone}>{state.word}</Badge>}
+    />
   );
 }
 
@@ -273,15 +217,14 @@ function NodePanel({ node }: { node: BookNode }) {
         {status?.state === "failed" || status?.state === "reconnecting" ? (
           <div className="panel-section">
             <p className="hint">{status.message}</p>
-            <button
-              className="btn sm"
-              type="button"
+            <Button
+              size="sm"
               onClick={() => {
                 void fleet.bridge.op({ op: "retry", node: node.key });
               }}
             >
               Retry now
-            </button>
+            </Button>
           </div>
         ) : null}
         {harnesses === undefined ? null : (
@@ -324,12 +267,10 @@ function NodePanel({ node }: { node: BookNode }) {
             <h3>Model routes</h3>
             <div className="stack">
               {routes.map((route) => (
-                <div
-                  className="inline"
-                  key={route.name}
-                  title={apiName(route.api)}
-                >
-                  <Badge look="accent">{route.name}</Badge>
+                <div className="inline" key={route.name}>
+                  <Tooltip label={apiName(route.api)}>
+                    <Badge look="accent">{route.name}</Badge>
+                  </Tooltip>
                   <span className="muted">
                     {routeLine(route)}
                     {route.small_model === undefined ||

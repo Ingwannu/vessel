@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ago,
+  answerEmphasis,
   harnessName,
   nodeState,
   sessionTitle,
@@ -48,5 +49,8 @@ describe("formatting", () => {
     expect(toolTone("completed")).toBe("ok");
     expect(toolTone("failed")).toBe("danger");
     expect(nodeState(undefined)).toEqual({ word: "connecting", tone: "warn" });
+    expect(answerEmphasis("allow_once", true)).toBe("primary");
+    expect(answerEmphasis("reject_once", false)).toBe("secondary");
+    expect(answerEmphasis("reject_always", true)).toBe("danger");
   });
 });

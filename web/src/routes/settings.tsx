@@ -7,7 +7,14 @@ import { useCrumbs, useFleet, useFleetState } from "../context";
 import { nodeState, when } from "../data/format";
 import { nodeLabel } from "../data/nodes";
 import { chooseTheme, currentTheme, type Theme } from "../data/theme";
-import { Badge, EmptyState, Icon } from "../ui/kit";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  Segmented,
+  TextField,
+} from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { PairingOffer } from "../wire/proto";
 
@@ -30,25 +37,18 @@ export function SettingsPage(): ReactElement {
         <div className="panel">
           <h2>Theme</h2>
           <div className="pad">
-            <div className="seg" role="radiogroup" aria-label="Theme">
-              {(["light", "dark"] as const).map((value) => (
-                <label
-                  key={value}
-                  className={theme === value ? "active" : undefined}
-                >
-                  <input
-                    type="radio"
-                    name="theme"
-                    checked={theme === value}
-                    onChange={() => {
-                      chooseTheme(value);
-                      setTheme(value);
-                    }}
-                  />
-                  <span>{value === "dark" ? "Dark" : "Light"}</span>
-                </label>
-              ))}
-            </div>
+            <Segmented
+              label="Theme"
+              value={theme}
+              onChange={(value) => {
+                chooseTheme(value);
+                setTheme(value);
+              }}
+              options={[
+                { value: "light", label: "Light", icon: "sun" },
+                { value: "dark", label: "Dark", icon: "moon" },
+              ]}
+            />
           </div>
         </div>
         <div className="panel">
@@ -154,27 +154,22 @@ function PairWithNode() {
           you confirm.
         </p>
         <div className="inline pair-new">
-          <label className="field grow">
-            <span>Pairing link</span>
-            <input
-              type="text"
-              spellCheck={false}
-              placeholder="vessel://pair#…"
-              value={link}
-              onChange={(event) => {
-                setLink(event.target.value);
-                setOffer(null);
-              }}
-            />
-          </label>
-          <button
-            className="btn"
-            type="button"
-            disabled={link.trim() === ""}
-            onClick={inspect}
-          >
-            <Icon name="link" size={14} /> Check
-          </button>
+          <div className="grow">
+            <Field label="Pairing link">
+              <TextField
+                mono
+                placeholder="vessel://pair#…"
+                value={link}
+                onChange={(next) => {
+                  setLink(next);
+                  setOffer(null);
+                }}
+              />
+            </Field>
+          </div>
+          <Button icon="link" disabled={link.trim() === ""} onClick={inspect}>
+            Check
+          </Button>
         </div>
         {offer === null ? null : (
           <div className="offer">
@@ -191,25 +186,16 @@ function PairWithNode() {
               <dd>{when(offer.offer.expires)}</dd>
             </dl>
             <div className="inline pair-new">
-              <label className="field">
-                <span>Name in the book</span>
-                <input
-                  type="text"
-                  spellCheck={false}
-                  value={name}
-                  onChange={(event) => {
-                    setName(event.target.value);
-                  }}
-                />
-              </label>
-              <button
-                className="btn primary"
-                type="button"
+              <Field label="Name in the book">
+                <TextField value={name} onChange={setName} />
+              </Field>
+              <Button
+                variant="primary"
                 disabled={busy || name.trim() === ""}
                 onClick={pair}
               >
                 {busy ? "Pairing…" : "Pair"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

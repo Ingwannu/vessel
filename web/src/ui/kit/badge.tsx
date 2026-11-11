@@ -4,7 +4,7 @@
 
 import "./badge.css";
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 /** The colours state has (DESIGN.md §4.1): ok is the ready lane's green,
  * warn the review lane's amber, danger the danger red, interrupt the
@@ -42,17 +42,19 @@ function lookClass(look: BadgeLook): string {
   }
 }
 
+/** The span's own props pass through, so a Tooltip can name a badge. */
 export function Badge({
   tone = "neutral",
   look = "word",
   children,
+  ...rest
 }: {
   tone?: Tone;
   look?: BadgeLook;
   children: ReactNode;
-}) {
+} & Omit<ComponentProps<"span">, "className" | "style" | "children">) {
   return (
-    <span className={`badge${lookClass(look)}${toneClass(tone)}`}>
+    <span {...rest} className={`badge${lookClass(look)}${toneClass(tone)}`}>
       {children}
     </span>
   );

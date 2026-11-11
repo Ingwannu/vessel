@@ -4,6 +4,7 @@
 import type { NodeStatus } from "../wire/bridge";
 import type {
   HarnessKind,
+  PermissionOptionKind,
   SessionInfo,
   SessionStatus,
   ToolCallStatus,
@@ -59,6 +60,19 @@ export function toolTone(status: ToolCallStatus): StateTone {
     case "failed":
       return "danger";
   }
+}
+
+/** How loud a permission answer's button is (DESIGN.md §6.7): the
+ * harness's first option is the primary one, a lasting rejection is
+ * danger, the rest are plain. */
+export function answerEmphasis(
+  kind: PermissionOptionKind,
+  first: boolean,
+): "primary" | "secondary" | "danger" {
+  if (kind === "reject_always") {
+    return "danger";
+  }
+  return first ? "primary" : "secondary";
 }
 
 /** Whether a session counts as live (the sidebar's count). */

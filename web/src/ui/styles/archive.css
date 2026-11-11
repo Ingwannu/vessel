@@ -1,0 +1,56 @@
+/* The board's archive and its narrow layout (DESIGN.md §6.12). */
+
+/* The archive is not a lane: a quiet count under the lanes. */
+.archive-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.archive-bar .count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* The archive's cards: three to a row, each as tall as its row. */
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: var(--s-3);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.archive-grid .card {
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-grid .card-foot {
+  margin-top: auto;
+}
+
+/* Narrow panes: the lanes stack and the page scrolls as one. */
+@media (max-width: 767px) {
+  .board {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .lane {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-faint);
+  }
+
+  .lane-body {
+    overflow: visible;
+  }
+
+  .archive-grid {
+    grid-template-columns: 1fr;
+  }
+}

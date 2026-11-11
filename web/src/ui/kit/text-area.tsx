@@ -20,6 +20,9 @@ import {
 } from "react";
 
 export interface TextAreaProps {
+  /** `field` is a field's shell; `bare` draws no shell, for a box that is
+   * the shell itself (a composer, whose box carries the edge and ring). */
+  look?: "field" | "bare";
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -42,6 +45,7 @@ function lineHeight(element: HTMLElement): number {
 }
 
 export function TextArea({
+  look = "field",
   value,
   onChange,
   placeholder,
@@ -75,7 +79,7 @@ export function TextArea({
   }, [own, value, minRows, maxRows]);
   return (
     <span
-      className={mono ? "text-field area mono" : "text-field area"}
+      className={`text-field area${look === "bare" ? " bare" : ""}${mono ? " mono" : ""}`}
       data-disabled={disabled === true ? "" : undefined}
     >
       <Field.Control

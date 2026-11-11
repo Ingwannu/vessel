@@ -2,6 +2,7 @@
 // error stays until dismissed.
 
 import { Store, useStore } from "../data/store";
+import { IconButton } from "./kit";
 
 interface Toast {
   id: number;
@@ -38,16 +39,14 @@ export function Toasts() {
           role={item.tone === "error" ? "alert" : "status"}
         >
           <span>{item.text}</span>
-          <button
-            className="btn ghost sm icon-btn"
-            type="button"
-            aria-label="Dismiss"
+          <IconButton
+            label="Dismiss"
+            icon="close"
+            size="xs"
             onClick={() => {
               dismiss(item.id);
             }}
-          >
-            ×
-          </button>
+          />
         </div>
       ))}
     </div>

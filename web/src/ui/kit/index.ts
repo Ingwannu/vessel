@@ -17,7 +17,7 @@ export { Combobox, type Suggestion } from "./combobox";
 export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
-export { Field } from "./field";
+export { Field, FieldGroup } from "./field";
 export { Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
 export {

@@ -47,18 +47,15 @@
   padding: 8px 8px 6px;
 }
 
-.composer textarea {
-  border: 0;
-  background: transparent;
-  resize: none;
-  min-height: 44px;
-  padding: 4px 6px;
-  font: var(--t-mono-lg);
-  color: var(--text-primary);
+/* The composer is one box: its prompt (the kit's bare TextArea) draws no
+   edge, and the focus ring is the box's. */
+.composer:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -1px;
 }
 
-.composer textarea:disabled {
-  color: var(--text-disabled);
+.composer .text-field.mono {
+  font: var(--t-mono-lg);
 }
 
 .composer-bar {

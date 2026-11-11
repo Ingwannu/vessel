@@ -42,7 +42,7 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   await page.getByRole("button", { name: "Retry" }).click();
   await expect(connected).toBeVisible();
   await expect(disconnected).toBeHidden();
-  await expect(page.getByRole("table", { name: "Nodes" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Nodes" })).toBeVisible();
 
   // Again, and this time a reload: the key in this tab survived.
   await drop();
@@ -50,5 +50,5 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   failing = false;
   await page.reload();
   await expect(connected).toBeVisible();
-  await expect(page.getByRole("table", { name: "Nodes" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Nodes" })).toBeVisible();
 });
