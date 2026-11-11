@@ -82,6 +82,15 @@ async fn a_session_moves_to_a_logged_in_profile_and_stays_moved() {
             status_of(record) == Some(&SessionStatus::Running)
         })
         .await;
+        // Set to a mode other than the agent's default (protocol 9): the
+        // agent restarted under the other profile must keep it.
+        let plan = vessel_proto::OptionChoice {
+            id: vessel_proto::OptionId::new("mode"),
+            value: vessel_proto::ChoiceValue::Select {
+                value: vessel_proto::OptionValueId::new("plan"),
+            },
+        };
+        drop(client.set_option(id, plan).await.unwrap());
         let session = client.session(id).await.unwrap().harness_session.unwrap();
         let transcript = format!("{session}.jsonl");
         let project = claude_project(&homes.path().join("alt"), &fixture.cwd()).unwrap();
@@ -120,6 +129,12 @@ async fn a_session_moves_to_a_logged_in_profile_and_stays_moved() {
         assert_eq!(
             ask(&client, &mut stream, &mut seen, id, "loaded").await,
             format!("loaded {session}")
+        );
+        assert!(
+            ask(&client, &mut stream, &mut seen, id, "options")
+                .await
+                .contains("mode=plan"),
+            "the restarted agent runs in the session's mode"
         );
         assert_eq!(
             ask(&client, &mut stream, &mut seen, id, "env CLAUDE_CONFIG_DIR").await,

@@ -38,6 +38,7 @@ mod support {
             cwd: std::env::temp_dir(),
             model: model.map(ModelId::new),
             resume: None,
+            options: Vec::new(),
             mcp_servers: vessel_proto::ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
         }
@@ -91,6 +92,8 @@ mod support {
         /// Timeline events, harness log lines excluded.
         pub(super) events: Vec<AgentEvent>,
         pub(super) log: Vec<String>,
+        /// Every options report (protocol 9), in order.
+        pub(super) options: Vec<Vec<vessel_proto::SessionOption>>,
         pub(super) disconnect: Option<Disconnect>,
     }
 
@@ -107,6 +110,7 @@ mod support {
                 outputs,
                 events: Vec::new(),
                 log: Vec::new(),
+                options: Vec::new(),
                 disconnect: None,
             }
         }
@@ -116,6 +120,7 @@ mod support {
             loop {
                 match self.outputs.next().await? {
                     AgentOutput::Event(AgentEvent::HarnessLog { line }) => self.log.push(line),
+                    AgentOutput::Options(options) => self.options.push(options),
                     AgentOutput::Event(event) => {
                         self.events.push(event.clone());
                         return Some(event);
@@ -153,6 +158,7 @@ mod support {
                     .expect("outputs ended before the disconnect")
                 {
                     AgentOutput::Event(AgentEvent::HarnessLog { line }) => self.log.push(line),
+                    AgentOutput::Options(options) => self.options.push(options),
                     AgentOutput::Event(event) => self.events.push(event),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect.clone());

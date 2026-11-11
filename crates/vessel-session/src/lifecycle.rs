@@ -8,10 +8,12 @@
 
 use std::time::Duration;
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio::time::Instant;
 use vessel_agent::AgentProcess;
-use vessel_proto::{AgentEvent, ModelCall, SessionEvent, SessionStatus};
+use vessel_proto::{
+    AgentEvent, ContentBlock, ModelCall, SessionEvent, SessionStatus, SessionTitle,
+};
 use vessel_pty::{PtyProcess, Signal};
 
 use crate::publish::Publisher;
@@ -76,6 +78,20 @@ pub(crate) struct Lifecycle {
     /// Model calls to record (`SessionHandle::model_call`); the shared
     /// state holds the sender, so this stays open while the actor runs.
     pub(crate) model_calls: mpsc::Receiver<ModelCall>,
+    /// Renames to publish (`SessionHandle::rename`, protocol 9); open while
+    /// the actor runs, as `model_calls` is.
+    pub(crate) renames: mpsc::Receiver<Rename>,
+    /// Whether the session has a title (given, renamed, or taken from a
+    /// prompt): only an untitled session takes one from its prompt.
+    pub(crate) titled: bool,
+}
+
+/// A rename for the actor to publish, in order with the session's other
+/// records; `done` is answered once it is in the log and the info.
+#[derive(Debug)]
+pub(crate) struct Rename {
+    pub(crate) title: SessionTitle,
+    pub(crate) done: oneshot::Sender<()>,
 }
 
 impl Lifecycle {
@@ -120,6 +136,33 @@ impl Lifecycle {
         while let Ok(call) = self.model_calls.try_recv() {
             self.publish(process, SessionEvent::ModelCall(call)).await;
         }
+    }
+
+    /// Publish a rename and answer it.
+    pub(crate) async fn renamed<P: Stoppable>(&mut self, process: &mut P, rename: Rename) {
+        self.rename(process, rename.title).await;
+        // The caller may have given up; the title stands.
+        let _gone = rename.done.send(());
+    }
+
+    /// The title an untitled session takes from a prompt: the first text
+    /// block that gives one (`SessionTitle::from_prompt`). So the first
+    /// prompt with text names it; one of only images or links does not.
+    /// Read before the prompt is published; the title follows it.
+    pub(crate) fn title_from(&self, content: &[ContentBlock]) -> Option<SessionTitle> {
+        if self.titled {
+            return None;
+        }
+        content.iter().find_map(|block| match block {
+            ContentBlock::Text { text } => SessionTitle::from_prompt(text),
+            ContentBlock::ResourceLink { .. } | ContentBlock::Opaque { .. } => None,
+        })
+    }
+
+    /// Publish `title` as the session's title.
+    pub(crate) async fn rename<P: Stoppable>(&mut self, process: &mut P, title: SessionTitle) {
+        self.titled = true;
+        self.publish(process, SessionEvent::Renamed { title }).await;
     }
 
     /// Publish a status change.

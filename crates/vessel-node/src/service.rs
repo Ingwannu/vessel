@@ -9,15 +9,13 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_proto::{
     Ack, BlobChunk, CloseTransfer, CopySecret, CreateSession, Creator, DeleteSecret, DeviceInfo,
-    ErrorCode, EventPage, ExportMemory, ExportSession, FleetMember, Generation, GetHarnessOptions,
-    GetManifest, GetNode, GetSession, GetSessionOptions, Harness, HarnessOptions, ImportMemory,
-    ImportSession, Invitation, InviteDevice, KillSession, ListDevices, ListHarnesses, ListMembers,
-    ListModels, ListProfiles, ListSecrets, ListSessions, Manifest, MemoryImported, ModelRoute,
-    MoveProfile, NodeInfo, ProfileInfo, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
-    RenameSession, ReportApplied, Request, RevokeDevice, SecretName, SendInput, SessionId,
-    SessionImported, SessionInfo, SessionOption, SessionOrigin, SessionSpec, SetSecret,
-    SetSessionOption, StopNode, Subscribe, Subscribed, TransferManifest, Unsubscribe, WatchFleet,
-    WireError,
+    ErrorCode, EventPage, ExportMemory, ExportSession, FleetMember, Generation, GetManifest,
+    GetNode, GetSession, Harness, ImportMemory, ImportSession, Invitation, InviteDevice,
+    KillSession, ListDevices, ListHarnesses, ListMembers, ListModels, ListProfiles, ListSecrets,
+    ListSessions, Manifest, MemoryImported, ModelRoute, MoveProfile, NodeInfo, ProfileInfo,
+    ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles, ReportApplied, RevokeDevice, SecretName,
+    SendInput, SessionId, SessionImported, SessionInfo, SessionOrigin, SessionSpec, SetSecret,
+    StopNode, Subscribe, Subscribed, TransferManifest, Unsubscribe, WatchFleet, WireError,
 };
 use vessel_rpc::{Outbound, Peer};
 
@@ -28,6 +26,7 @@ use crate::fleet::{Home, Links};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::principal::Principal;
+use crate::probes::Probes;
 use crate::profiles::launch::{Launcher, agent_session};
 use crate::profiles::{NodeProfiles, moving};
 use crate::secret_copy::Copied;
@@ -37,6 +36,9 @@ use crate::transfers::export::Exporter;
 use crate::transfers::import::{Importer, Local, Pull, Remote};
 use crate::transfers::{Holder, Transfers};
 use crate::waits::{ConnectionWaits, Share, WaitSlot, Waiter, Waits};
+
+// Protocol 9's calls: what a session runs with, and titles.
+mod options;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -66,6 +68,8 @@ pub(crate) struct NodeService {
     transfers: Arc<Transfers>,
     /// Waiting reads by origin (`waits`).
     waits: Arc<Waits>,
+    /// What agents offer, probed and kept (protocol 9, `probes`).
+    probes: Probes,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -84,6 +88,7 @@ pub(crate) struct Parts {
     pub(crate) fleet: Arc<Home>,
     pub(crate) links: Arc<Links>,
     pub(crate) transfers: Arc<Transfers>,
+    pub(crate) probes: Probes,
 }
 
 impl NodeService {
@@ -103,6 +108,7 @@ impl NodeService {
             fleet,
             links,
             transfers,
+            probes,
         } = parts;
         Self {
             lsp,
@@ -120,6 +126,7 @@ impl NodeService {
             links,
             transfers,
             waits: Arc::default(),
+            probes,
         }
     }
 
@@ -447,72 +454,6 @@ impl NodeService {
         _: ListModels,
     ) -> Result<Vec<ModelRoute>, WireError> {
         Ok(self.models.list())
-    }
-}
-
-/// What a session runs with, and titles (protocol 9, milestone 10, ADR
-/// 0022). The contract exists; until each call is built it answers
-/// `unsupported`, after the scope and ownership checks like every call.
-impl NodeService {
-    /// `harness.options`: what a harness's agent offers before a session.
-    #[expect(
-        clippy::unused_async,
-        reason = "every call has the same async shape, so the guard's rows are uniform"
-    )]
-    pub(crate) async fn harness_options(
-        &self,
-        _: &Connection,
-        _: GetHarnessOptions,
-    ) -> Result<HarnessOptions, WireError> {
-        Err(wire(&ServiceError::NotBuilt(
-            <GetHarnessOptions as Request>::METHOD,
-        )))
-    }
-
-    /// `session.options`: a session's options as its agent last reported
-    /// them.
-    #[expect(
-        clippy::unused_async,
-        reason = "every call has the same async shape, so the guard's rows are uniform"
-    )]
-    pub(crate) async fn session_options(
-        &self,
-        _: &Connection,
-        _: GetSessionOptions,
-    ) -> Result<Vec<SessionOption>, WireError> {
-        Err(wire(&ServiceError::NotBuilt(
-            <GetSessionOptions as Request>::METHOD,
-        )))
-    }
-
-    /// `session.set_option`: change one option of a running session.
-    #[expect(
-        clippy::unused_async,
-        reason = "every call has the same async shape, so the guard's rows are uniform"
-    )]
-    pub(crate) async fn set_session_option(
-        &self,
-        _: &Connection,
-        _: SetSessionOption,
-    ) -> Result<Vec<SessionOption>, WireError> {
-        Err(wire(&ServiceError::NotBuilt(
-            <SetSessionOption as Request>::METHOD,
-        )))
-    }
-
-    /// `session.rename`: give a session a title.
-    #[expect(
-        clippy::unused_async,
-        reason = "every call has the same async shape, so the guard's rows are uniform"
-    )]
-    pub(crate) async fn rename_session(
-        &self,
-        _: &Connection,
-        _: RenameSession,
-    ) -> Result<SessionInfo, WireError> {
-        Err(wire(&ServiceError::NotBuilt(
-            <RenameSession as Request>::METHOD,
-        )))
     }
 }
 

@@ -11,11 +11,12 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tracing::Instrument as _;
-use vessel_agent::{AgentProcess, AgentSetup};
+use vessel_agent::{AgentProcess, AgentSetup, CommandSpec};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
-    Creator, EventRecord, HarnessSessionId, ModelCall, ModelId, NodeId, ResolvedMcpServers,
-    SessionId, SessionInfo, SessionMode, SessionModel, SessionOrigin, SessionSpec, TerminalSize,
+    Creator, EventRecord, HarnessKind, HarnessSessionId, ModelCall, ModelId, NodeId, OptionChoice,
+    ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionModel, SessionOption,
+    SessionOrigin, SessionSpec, TerminalSize,
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
@@ -23,7 +24,7 @@ use crate::activity::Tracker;
 use crate::config::RuntimeConfig;
 use crate::error::{RemoveError, SessionError};
 use crate::handle::{Input, SessionHandle, Shared};
-use crate::lifecycle::Lifecycle;
+use crate::lifecycle::{Lifecycle, Rename};
 use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove};
 use crate::publish::Publisher;
 use crate::ring::Ring;
@@ -144,7 +145,18 @@ struct TerminalMcp {
 struct AgentStart {
     model: Option<ModelId>,
     resume: Option<HarnessSessionId>,
+    options: Vec<OptionChoice>,
     mcp_servers: ResolvedMcpServers,
+}
+
+/// How many renames may wait for a session's actor; a caller waits for
+/// room (each also waits for its own to be published).
+const RENAME_CAPACITY: usize = 8;
+
+/// A structured session's agent command and the directory ACP is given.
+struct AgentCommand {
+    command: CommandSpec,
+    cwd: PathBuf,
 }
 
 /// A session that was just started.
@@ -248,12 +260,10 @@ impl SessionRuntime {
                 resume,
                 options,
             } => {
-                if !options.is_empty() {
-                    return Err(SessionError::OptionsNotBuilt);
-                }
                 let start = AgentStart {
                     model,
                     resume,
+                    options,
                     mcp_servers,
                 };
                 self.create_structured(spec, (profile, model_proxy), start, record)
@@ -331,38 +341,13 @@ impl SessionRuntime {
         start: AgentStart,
         record: Record,
     ) -> Result<Created, SessionError> {
-        let lookup = self.config.harness_lookup.clone();
-        let env = self.config.harness_env.clone();
-        let launch_spec = spec.clone();
-        // Lookup and directory checks block.
-        let (command, cwd) = tokio::task::spawn_blocking(move || {
-            // Structured sessions get their MCP servers over ACP, not here.
-            let none = ResolvedMcpServers::new();
-            let command = vessel_harness::launch(
-                &lookup,
-                &env,
-                &launch_spec,
-                &profile,
-                proxy.as_ref(),
-                &none,
-                None,
-            )?
-            .command;
-            // ACP needs an explicit directory; the launch defaults it to
-            // the home directory, and the node's own is the last resort.
-            let cwd = command
-                .cwd
-                .clone()
-                .or_else(|| std::env::current_dir().ok())
-                .ok_or(SessionError::NoWorkingDirectory)?;
-            Ok::<_, SessionError>((command, cwd))
-        })
-        .await
-        .map_err(SessionError::Internal)??;
+        let AgentCommand { command, cwd } =
+            self.agent_command(spec.clone(), profile, proxy).await?;
         let setup = AgentSetup {
             cwd,
             model: start.model,
             resume: start.resume,
+            options: start.options,
             mcp_servers: start.mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
         };
@@ -398,6 +383,89 @@ impl SessionRuntime {
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
 
+    /// The command that starts `spec`'s agent under `profile`, and the
+    /// directory ACP is given.
+    async fn agent_command(
+        &self,
+        spec: SessionSpec,
+        profile: Profile,
+        proxy: Option<ModelProxy>,
+    ) -> Result<AgentCommand, SessionError> {
+        let lookup = self.config.harness_lookup.clone();
+        let env = self.config.harness_env.clone();
+        // Lookup and directory checks block.
+        tokio::task::spawn_blocking(move || {
+            // Structured sessions get their MCP servers over ACP, not here.
+            let none = ResolvedMcpServers::new();
+            let command = vessel_harness::launch(
+                &lookup,
+                &env,
+                &spec,
+                &profile,
+                proxy.as_ref(),
+                &none,
+                None,
+            )?
+            .command;
+            // ACP needs an explicit directory; the launch defaults it to
+            // the home directory, and the node's own is the last resort.
+            let cwd = command
+                .cwd
+                .clone()
+                .or_else(|| std::env::current_dir().ok())
+                .ok_or(SessionError::NoWorkingDirectory)?;
+            Ok::<_, SessionError>(AgentCommand { command, cwd })
+        })
+        .await
+        .map_err(SessionError::Internal)?
+    }
+
+    /// What `harness`'s agent offers before any session of it exists
+    /// (protocol 9's `harness.options`, `vessel_agent::probe`): started as
+    /// a structured session would be, under `profile` (the harness's
+    /// default without one) and `proxy` (a routed profile's), in `cwd`,
+    /// without MCP servers (they change nothing an agent offers, and
+    /// starting them would only slow the probe), then stopped. No prompt
+    /// is sent. Bounded by the handshake timeout.
+    ///
+    /// # Errors
+    /// [`SessionError::Launch`] when the harness or its adapter is missing
+    /// or `cwd` is unusable, [`SessionError::Probe`] when the agent did not
+    /// start or complete its handshake (the message says why: not signed
+    /// in, for example), [`SessionError::ShuttingDown`] after shutdown
+    /// began.
+    pub async fn probe(
+        &self,
+        harness: HarnessKind,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+    ) -> Result<Vec<SessionOption>, SessionError> {
+        if self.shutdown.is_cancelled() {
+            return Err(SessionError::ShuttingDown);
+        }
+        let mode = SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        };
+        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+        let profile = profile.unwrap_or_else(|| Profile::default_for(harness));
+        if !profile.is_default() {
+            spec = spec.with_profile(profile.name().clone());
+        }
+        let AgentCommand { command, cwd } = self.agent_command(spec, profile, proxy).await?;
+        let setup = AgentSetup {
+            cwd,
+            model: None,
+            resume: None,
+            options: Vec::new(),
+            mcp_servers: ResolvedMcpServers::new(),
+            handshake_timeout: self.config.agent_handshake_timeout,
+        };
+        Ok(vessel_agent::probe(&command, setup).await?)
+    }
+
     /// Move a live structured session to another profile (ADR 0011): link
     /// its files into the target home, restart its agent there with
     /// `session/load`, and publish `ProfileChanged`. The session keeps its
@@ -422,6 +490,9 @@ impl SessionRuntime {
             return Err(MoveError::Terminal.into());
         };
         let model = model.clone();
+        // The new agent starts in the agent's defaults; the session keeps
+        // what it runs with (its permissions mode above all) instead.
+        let options = handle.choices();
         let harness_session = info.harness_session.clone().ok_or(MoveError::NotReady)?;
         let control = handle.0.control.clone().ok_or(MoveError::Terminal)?;
         let ProfileMove {
@@ -466,6 +537,7 @@ impl SessionRuntime {
             cwd,
             model,
             resume: Some(harness_session),
+            options,
             mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
         };
@@ -513,8 +585,10 @@ impl SessionRuntime {
         // of a live session ever sees it without a place.
         let activity = Tracker::new(created_at);
         info.board = Some(activity.board(created_at));
+        let titled = info.title.is_some();
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
-        let (info, kill, shared) = self.shared(info, input, control, model_calls);
+        let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
+        let (info, kill, shared) = self.shared(info, input, control, (model_calls, renames));
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -522,6 +596,8 @@ impl SessionRuntime {
                 stop: Stopper::new(kill, self.shutdown.clone()),
                 notices,
                 model_calls: recorded,
+                renames: renaming,
+                titled,
             },
             shared,
             durable,
@@ -534,7 +610,7 @@ impl SessionRuntime {
         info: SessionInfo,
         input: Input,
         control: Option<mpsc::Sender<Control>>,
-        model_calls: mpsc::Sender<ModelCall>,
+        (model_calls, renames): (mpsc::Sender<ModelCall>, mpsc::Sender<Rename>),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
         let (info, info_receiver) = watch::channel(info);
@@ -548,6 +624,8 @@ impl SessionRuntime {
             control,
             model_calls,
             ended: AtomicBool::new(false),
+            renames,
+            reported: Mutex::new(None),
         });
         (info, kill, shared)
     }

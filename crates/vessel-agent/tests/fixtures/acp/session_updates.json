@@ -65,8 +65,13 @@
     "skipped": "AvailableCommands"
   },
   {
-    "name": "mode change is skipped",
+    "name": "a mode change is the agent's option report",
     "notification": {"sessionId": "s1", "update": {"sessionUpdate": "current_mode_update", "currentModeId": "plan"}},
-    "skipped": "CurrentMode"
+    "mode": "plan"
+  },
+  {
+    "name": "a config option change is the agent's option report",
+    "notification": {"sessionId": "s1", "update": {"sessionUpdate": "config_option_update", "configOptions": [{"id": "mode", "name": "Mode", "category": "mode", "type": "select", "currentValue": "plan", "options": [{"value": "default", "name": "Manual"}, {"value": "plan", "name": "Plan"}]}, {"id": "fast", "name": "Fast", "type": "boolean", "currentValue": true}]}},
+    "config": ["mode", "fast"]
   }
 ]

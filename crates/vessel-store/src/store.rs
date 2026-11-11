@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::{
-    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, SessionId, SessionInfo,
+    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, SessionId, SessionInfo,
 };
 
 use crate::config::StoreConfig;
@@ -131,6 +131,16 @@ impl Store {
     /// The read failed.
     pub async fn session(&self, id: SessionId) -> Result<Option<SessionInfo>, StoreError> {
         self.read(move |reader| reader.session(id)).await
+    }
+
+    /// The agent options a stored session last ran with, as choices
+    /// (protocol 9, schema 6): what an export carries on. `None` before
+    /// its first options report, and for an unknown session.
+    ///
+    /// # Errors
+    /// The read failed, or the stored value is corrupt.
+    pub async fn choices(&self, id: SessionId) -> Result<Option<Vec<OptionChoice>>, StoreError> {
+        self.read(move |reader| reader.choices(id)).await
     }
 
     /// Every stored session, newest first.

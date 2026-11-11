@@ -11,14 +11,18 @@
 //!   is never answered (an adapter stuck at start).
 //! - `initialize`: protocol v1, `loadSession` supported, HTTP MCP servers
 //!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set).
-//! - `session/new`: session `fake-session-<n>`, with one `model` select
-//!   option (`fake-small`, the default, or `fake-large`).
+//! - `session/new`: session `fake-session-<n>`, with the options
+//!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
+//!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
+//!   `effort` and `fast`.
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` and an agent message chunk `replayed <id>`, then
-//!   answers with the same `model` option as `session/new`.
+//!   answers with the same options as `session/new`, as they stand.
 //! - Both remember the MCP servers they were given, and `session/load` the
 //!   session id it loaded.
-//! - `session/set_config_option`: accepts the two models, rejects others.
+//! - `session/set_config_option`: sets an option to a value it offers
+//!   (`mode` never to `locked`), rejects anything else; `session/set_mode`
+//!   the same for the older modes.
 //! - `session/prompt`, by prompt text:
 //!   - `plain`: one message chunk `echo: plain`, then `end_turn`;
 //!   - `wait`: nothing until `session/cancel`, then `cancelled`;
@@ -31,6 +35,11 @@
 //!     `session/new` or `session/load` as ACP sent them (values included);
 //!   - `loaded`: one message chunk `loaded <id>` (the id `session/load`
 //!     got) or `loaded none`;
+//!   - `options`: one message chunk `options mode=<m> model=<m>
+//!     effort=<e> fast=<bool>`, the values the fake runs with;
+//!   - `switch <mode>`: the agent changes its own mode and reports it
+//!     (`config_option_update`, or `current_mode_update` for the older
+//!     modes), then one message chunk `switched <mode>`;
 //!   - `cwd`: one message chunk `cwd <path>`, the working directory of the
 //!     last `session/new` or `session/load`;
 //!   - `args`: one message chunk `args <JSON array of its arguments>`;
@@ -61,17 +70,18 @@ use agent_client_protocol::v1::schema::{
     InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
     McpCapabilities, McpServer, NewSessionRequest, NewSessionResponse, PermissionOption,
     PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptRequest,
-    PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionConfigOption,
-    SessionConfigOptionCategory, SessionConfigOptionValue, SessionConfigSelectOption, SessionId,
+    PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionId,
     SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
-    SetSessionConfigOptionResponse, StopReason, TextContent, ToolCall, ToolCallContent,
-    ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields, ToolKind,
+    SetSessionConfigOptionResponse, SetSessionModeRequest, SetSessionModeResponse, StopReason,
+    TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
+    ToolKind,
 };
 use agent_client_protocol::{Agent, ByteStreams, Error};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 use tokio_util::sync::CancellationToken;
 
-const MODELS: [&str; 2] = ["fake-small", "fake-large"];
+#[path = "fake_acp/options.rs"]
+mod options;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
@@ -106,10 +116,10 @@ fn complain(line: &str) {
 }
 
 /// What the fake remembers between requests.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct State {
     sessions: u32,
-    model: Option<String>,
+    options: options::Options,
     turn: Option<CancellationToken>,
     /// From the last `session/new` or `session/load`.
     mcp_servers: Vec<McpServer>,
@@ -117,6 +127,19 @@ struct State {
     loaded: Option<String>,
     /// The working directory of the last `session/new` or `session/load`.
     cwd: Option<std::path::PathBuf>,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            sessions: 0,
+            options: options::Options::from_env(),
+            turn: None,
+            mcp_servers: Vec::new(),
+            loaded: None,
+            cwd: None,
+        }
+    }
 }
 
 /// The answer to a prompt that reports what the fake was given, if it is
@@ -143,6 +166,7 @@ fn report(prompt: &str, state: &State) -> Option<String> {
         });
     }
     match prompt {
+        "options" => Some(state.options.describe()),
         "mcp" => Some(format!(
             "mcp {}",
             serde_json::to_string(&state.mcp_servers).unwrap_or_default()
@@ -185,7 +209,7 @@ async fn serve() -> ExitCode {
     let hang_at_initialize = hang == "initialize";
     let hang_at_new = hang == "session/new";
     let http_mcp = std::env::var_os("FAKE_ACP_NO_HTTP_MCP").is_none();
-    let state = Shared::default();
+    let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
         tokio::io::stdin().compat(),
@@ -217,18 +241,18 @@ async fn serve() -> ExitCode {
                     if hang_at_new {
                         std::future::pending::<()>().await;
                     }
-                    let (id, model) = {
+                    let response = {
                         let mut state = lock(&state);
                         state.mcp_servers = request.mcp_servers;
                         state.cwd = Some(request.cwd);
                         state.sessions = state.sessions.saturating_add(1);
                         let id = format!("fake-session-{}", state.sessions);
-                        let model = state.model.get_or_insert_with(|| MODELS[0].to_owned());
-                        (id, model.clone())
+                        let mut response = NewSessionResponse::new(id);
+                        response.config_options = state.options.config();
+                        response.modes = state.options.modes();
+                        response
                     };
-                    responder.respond(
-                        NewSessionResponse::new(id).config_options(vec![model_option(&model)]),
-                    )
+                    responder.respond(response)
                 }
             },
             agent_client_protocol::on_receive_request!(),
@@ -249,19 +273,17 @@ async fn serve() -> ExitCode {
                     say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
                         &format!("replayed {}", request.session_id.0),
                     ))))?;
-                    let model = {
+                    let response = {
                         let mut state = lock(&state);
                         state.mcp_servers.clone_from(&request.mcp_servers);
                         state.loaded = Some(request.session_id.0.to_string());
                         state.cwd = Some(request.cwd.clone());
-                        state
-                            .model
-                            .get_or_insert_with(|| MODELS[0].to_owned())
-                            .clone()
+                        let mut response = LoadSessionResponse::new();
+                        response.config_options = state.options.config();
+                        response.modes = state.options.modes();
+                        response
                     };
-                    responder.respond(
-                        LoadSessionResponse::new().config_options(vec![model_option(&model)]),
-                    )
+                    responder.respond(response)
                 }
             },
             agent_client_protocol::on_receive_request!(),
@@ -270,17 +292,28 @@ async fn serve() -> ExitCode {
             {
                 let state = Arc::clone(&state);
                 async move |request: SetSessionConfigOptionRequest, responder, _cx| {
-                    let SessionConfigOptionValue::ValueId { value } = &request.value else {
-                        return responder.respond_with_error(Error::invalid_params());
-                    };
-                    let known = MODELS.iter().any(|model| *model == &*value.0);
-                    if &*request.config_id.0 != "model" || !known {
-                        return responder.respond_with_error(Error::invalid_params());
+                    let set = lock(&state)
+                        .options
+                        .set(&request.config_id.0, &request.value);
+                    match set {
+                        Ok(options) => {
+                            responder.respond(SetSessionConfigOptionResponse::new(options))
+                        }
+                        Err(error) => responder.respond_with_error(error),
                     }
-                    lock(&state).model = Some(value.0.to_string());
-                    responder.respond(SetSessionConfigOptionResponse::new(vec![model_option(
-                        &value.0,
-                    )]))
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let state = Arc::clone(&state);
+                async move |request: SetSessionModeRequest, responder, _cx| {
+                    let set = lock(&state).options.set_mode(&request.mode_id.0);
+                    match set {
+                        Ok(()) => responder.respond(SetSessionModeResponse::new()),
+                        Err(error) => responder.respond_with_error(error),
+                    }
                 }
             },
             agent_client_protocol::on_receive_request!(),
@@ -295,8 +328,25 @@ async fn serve() -> ExitCode {
                         let mut state = lock(&state);
                         state.turn = Some(turn.clone());
                         let report = report(&prompt, &state);
-                        (state.model.clone().unwrap_or_default(), report)
+                        (state.options.model.clone(), report)
                     };
+                    if let Some(mode) = prompt.strip_prefix("switch ") {
+                        let update = lock(&state).options.switch(mode.trim());
+                        if let Some(update) = update {
+                            cx.send_notification(SessionNotification::new(
+                                request.session_id.clone(),
+                                update,
+                            ))?;
+                        }
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::AgentMessageChunk(ContentChunk::new(text(&format!(
+                                "switched {}",
+                                mode.trim()
+                            )))),
+                        ))?;
+                        return responder.respond(PromptResponse::new(StopReason::EndTurn));
+                    }
                     if let Some(report) = report {
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
@@ -508,17 +558,4 @@ fn prompt_text(prompt: &[ContentBlock]) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
-}
-
-fn model_option(current: &str) -> SessionConfigOption {
-    SessionConfigOption::select(
-        "model",
-        "Model",
-        current.to_owned(),
-        MODELS
-            .iter()
-            .map(|model| SessionConfigSelectOption::new(*model, *model))
-            .collect::<Vec<_>>(),
-    )
-    .category(SessionConfigOptionCategory::Model)
 }

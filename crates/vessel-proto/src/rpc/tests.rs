@@ -276,7 +276,7 @@ fn a_new_field_raises_what_a_call_needs() {
     let plain = SessionSpec::new(HarnessKind::ClaudeCode, structured(Vec::new()));
     assert_eq!(create(plain.clone()).since(), ProtocolVersion::new(2));
     assert_eq!(
-        create(plain.clone().with_title("Fix the build")).since(),
+        create(plain.clone().with_title("Fix the build".parse().unwrap())).since(),
         V9
     );
     let choosing = SessionSpec::new(HarnessKind::ClaudeCode, structured(chosen))
@@ -299,7 +299,7 @@ fn options_and_titles_read_as_their_wire_form() {
             }],
         },
     )
-    .with_title("Fix the build");
+    .with_title("Fix the build".parse().unwrap());
     let text = serde_json::to_string(&CreateSession { spec: spec.clone() }.into_call()).unwrap();
     assert_eq!(
         text,
@@ -327,12 +327,15 @@ fn options_and_titles_read_as_their_wire_form() {
     );
     // A spec's title is the session's until something renames it.
     let named = SessionInfo::new(crate::id::SessionId::random(), spec, DateTime::UNIX_EPOCH);
-    assert_eq!(named.title.as_deref(), Some("Fix the build"));
+    assert_eq!(
+        named.title.as_ref().map(crate::title::SessionTitle::as_str),
+        Some("Fix the build")
+    );
 
     let session = crate::id::SessionId::random();
     let rename = RenameSession {
         session,
-        title: "Release notes".to_owned(),
+        title: "Release notes".parse().unwrap(),
     }
     .into_call();
     let text = serde_json::to_string(&rename).unwrap();
@@ -423,7 +426,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
     assert_eq!(text, r#"{"type":"options_changed","options":[]}"#);
 
     let renamed = SessionEvent::Renamed {
-        title: "Fix the build".to_owned(),
+        title: "Fix the build".parse().unwrap(),
     };
     assert_eq!(renamed.since(), V9);
     assert_eq!(

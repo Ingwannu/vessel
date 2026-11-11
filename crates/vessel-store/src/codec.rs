@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Row;
 use vessel_proto::{
-    Activity, DisplayStatus, EventRecord, EventSeq, HarnessSessionId, KanbanColumn, ProfileName,
-    SessionBoard, SessionEvent, SessionId, SessionInfo, SessionSpec, SessionStatus,
+    EventRecord, EventSeq, HarnessSessionId, OptionChoice, ProfileName, SessionBoard, SessionEvent,
+    SessionId, SessionInfo, SessionSpec, SessionStatus, SessionTitle,
 };
 
 use crate::config::ByteCount;
@@ -65,7 +65,7 @@ fn decode<T: serde::de::DeserializeOwned>(
 
 /// The columns [`session_from_row`] expects, in order.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
-     via, origin, model";
+     via, origin, model, title";
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -116,8 +116,32 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         .get::<_, Option<String>>(11)?
         .map(|model| decode(id, Column::Model, &model))
         .transpose()?;
+    // Schema 6: the current title, the one truth for it (`SessionInfo`'s
+    // docs); `NULL` is none, as for every row stored before schema 6.
+    info.title = row
+        .get::<_, Option<String>>(12)?
+        .map(|title| {
+            // Stored as the bare text; the title rule is the serde one, so
+            // an edited row that breaks it is `Corrupt`, never a value.
+            decode::<SessionTitle>(
+                id,
+                Column::Title,
+                &serde_json::Value::String(title).to_string(),
+            )
+        })
+        .transpose()?;
     info.board = stored_board(&info);
     Ok(info)
+}
+
+/// A session's `choices` column (schema 6): `None` before its first
+/// options report.
+pub(crate) fn choices_from_sql(
+    session: SessionId,
+    text: Option<String>,
+) -> Result<Option<Vec<OptionChoice>>, StoreError> {
+    text.map(|text| decode(session, Column::Choices, &text))
+        .transpose()
 }
 
 /// A stored session's place on the board (protocol 8, ADR 0019); derived
@@ -131,26 +155,22 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
 ///   must not depend on (ADR 0001's crate map), and the store has none of
 ///   the facts behind a live placement (turns, permissions, output).
 /// - Choice: a stored session that has ended is in the archive, its
-///   activity `exited`, its last activity its end: exactly what the
-///   reducer gives any ended session (an ended session is the archive
-///   whatever else is true), and what the session's own info showed at its
-///   end. A node test holds the two equal. A stored session still live is
+///   activity `exited`, its last activity its end:
+///   `SessionBoard::archived`, the one definition the session runtime uses
+///   for any ended session too, so what the session's own info showed at
+///   its end is what this gives. A stored session still live is
 ///   one the node serves from its runtime; the store leaves its board out
 ///   rather than guess, and a client would place it by its status.
-/// - Must stay true: if the reducer ever places an ended session elsewhere,
-///   this changes with it.
+/// - Must stay true: an ended session's place is `SessionBoard::archived`
+///   wherever it is built.
 fn stored_board(info: &SessionInfo) -> Option<SessionBoard> {
     if info.status.is_live() {
         return None;
     }
     // An ended row always has its end time (the final status sets both);
     // the creation is a floor, should one ever lack it.
-    let ended = info.ended_at.unwrap_or(info.created_at);
-    Some(SessionBoard::new(
-        KanbanColumn::Archive,
-        DisplayStatus::Terminated,
-        Activity::Exited,
-        ended,
+    Some(SessionBoard::archived(
+        info.ended_at.unwrap_or(info.created_at),
     ))
 }
 

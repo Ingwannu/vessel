@@ -104,6 +104,11 @@ pub enum OptionKind {
         /// Whether it is on.
         on: bool,
     },
+    /// A kind this build does not know, sent by a newer node. A client
+    /// skips the option: it can neither show nor set it. Without this, one
+    /// option of a later kind would fail the decode of the whole list.
+    #[serde(other)]
+    Unknown,
 }
 
 /// One of a session's config options, as the agent reports it.
@@ -122,6 +127,68 @@ pub struct SessionOption {
     /// Its control and current state.
     #[serde(flatten)]
     pub kind: OptionKind,
+}
+
+impl SessionOption {
+    /// The name of its value now: the select's value as the agent names it
+    /// (its id when the agent does not list it), `on` or `off` for a
+    /// toggle; `None` for an option of an unknown kind.
+    #[must_use]
+    pub fn current_name(&self) -> Option<&str> {
+        match &self.kind {
+            OptionKind::Select { current, values } => Some(
+                values
+                    .iter()
+                    .find(|value| value.id == *current)
+                    .map_or_else(|| current.as_str(), |value| value.name.as_str()),
+            ),
+            OptionKind::Toggle { on: true } => Some("on"),
+            OptionKind::Toggle { on: false } => Some("off"),
+            OptionKind::Unknown => None,
+        }
+    }
+
+    /// The choice that keeps it as it is now: its select's current value or
+    /// its toggle's state; `None` for an unknown kind. What a session
+    /// carries to where it continues (a move, an import), so it runs there
+    /// as it ran here.
+    #[must_use]
+    pub fn choice(&self) -> Option<OptionChoice> {
+        let value = match &self.kind {
+            OptionKind::Select { current, .. } => ChoiceValue::Select {
+                value: current.clone(),
+            },
+            OptionKind::Toggle { on } => ChoiceValue::Toggle { on: *on },
+            OptionKind::Unknown => return None,
+        };
+        Some(OptionChoice {
+            id: self.id.clone(),
+            value,
+        })
+    }
+
+    /// `Model Haiku, Mode plan, Fast mode off`: each option's name and its
+    /// value's, for a line of text (an older client's stand-in, the CLI);
+    /// `none` without any. Options of an unknown kind are left out.
+    #[must_use]
+    pub fn summary(options: &[Self]) -> String {
+        let mut text = String::new();
+        for option in options {
+            let Some(value) = option.current_name() else {
+                continue;
+            };
+            if !text.is_empty() {
+                text.push_str(", ");
+            }
+            text.push_str(&option.name);
+            text.push(' ');
+            text.push_str(value);
+        }
+        if text.is_empty() {
+            text.push_str("none");
+        }
+        text
+    }
 }
 
 /// The value a client asks an option to take.
@@ -268,6 +335,37 @@ mod tests {
             serde_json::from_str::<SessionOption>(&text).unwrap(),
             option
         );
+    }
+
+    /// A later kind decodes as `unknown`, through the flattened tag, so
+    /// the rest of the list still reads; it has no value and no choice.
+    #[test]
+    fn an_option_of_a_later_kind_decodes_as_unknown() {
+        let text = r#"[{"id":"temperature","name":"Temperature","category":"model_config","kind":"slider","min":0,"max":2,"current":1},
+                       {"id":"fast","name":"Fast","category":"other","kind":"toggle","on":true}]"#;
+        let options: Vec<SessionOption> = serde_json::from_str(text).unwrap();
+        assert_eq!(options.len(), 2);
+        let later = options.first().unwrap();
+        assert_eq!(later.kind, OptionKind::Unknown);
+        assert_eq!(later.id, OptionId::new("temperature"));
+        assert_eq!(later.current_name(), None);
+        assert_eq!(later.choice(), None);
+        assert_eq!(SessionOption::summary(&options), "Fast on");
+    }
+
+    #[test]
+    fn an_option_keeps_its_value_as_a_choice() {
+        assert_eq!(
+            model().choice(),
+            Some(OptionChoice {
+                id: OptionId::new("model"),
+                value: ChoiceValue::Select {
+                    value: OptionValueId::new("default"),
+                },
+            })
+        );
+        assert_eq!(model().current_name(), Some("Default"));
+        assert_eq!(SessionOption::summary(&[]), "none");
     }
 
     #[test]

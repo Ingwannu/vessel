@@ -24,6 +24,11 @@ use vessel_proto::{
 pub(crate) enum Update {
     /// A timeline event.
     Event(AgentEvent),
+    /// The agent's options changed (protocol 9): its config options, as
+    /// the full set.
+    ConfigOptions(Vec<acp::SessionConfigOption>),
+    /// The agent's mode changed (ACP's older modes, protocol 9).
+    Mode(acp::SessionModeId),
     /// Not part of Vessel's timeline (yet); logged and dropped.
     Skipped(Skipped),
 }
@@ -33,10 +38,6 @@ pub(crate) enum Update {
 pub(crate) enum Skipped {
     /// Slash commands the agent offers.
     AvailableCommands,
-    /// The agent's mode changed.
-    CurrentMode,
-    /// A session config option changed.
-    ConfigOption,
     /// Session metadata (title) changed.
     SessionInfo,
     /// Token or cost usage.
@@ -71,8 +72,8 @@ pub(crate) fn session_update(update: acp::SessionUpdate) -> Update {
             line: notice_line(&notice),
         },
         U::AvailableCommandsUpdate(_) => return Update::Skipped(Skipped::AvailableCommands),
-        U::CurrentModeUpdate(_) => return Update::Skipped(Skipped::CurrentMode),
-        U::ConfigOptionUpdate(_) => return Update::Skipped(Skipped::ConfigOption),
+        U::CurrentModeUpdate(update) => return Update::Mode(update.current_mode_id),
+        U::ConfigOptionUpdate(update) => return Update::ConfigOptions(update.config_options),
         U::SessionInfoUpdate(_) => return Update::Skipped(Skipped::SessionInfo),
         U::UsageUpdate(_) => return Update::Skipped(Skipped::Usage),
         U::CompactionUpdate(_) | U::CompactionSummaryChunk(_) => {

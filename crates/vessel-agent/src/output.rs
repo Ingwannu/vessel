@@ -1,7 +1,7 @@
 //! [`AgentOutput`] and [`AgentOutputs`]: what an agent session produces.
 
 use tokio::sync::mpsc;
-use vessel_proto::AgentEvent;
+use vessel_proto::{AgentEvent, SessionOption};
 
 use crate::error::Disconnect;
 
@@ -11,6 +11,12 @@ pub enum AgentOutput {
     /// A timeline event. `AgentEvent::Ready` marks the end of the
     /// handshake; prompts are accepted from then on.
     Event(AgentEvent),
+    /// The agent's config options are now these (protocol 9): once right
+    /// before `AgentEvent::Ready`, as they stand after the handshake's
+    /// choices (empty when the agent offers none), then whenever they
+    /// change (the agent's own report, or a client's change). Not a
+    /// timeline event: the session logs it as `options_changed`.
+    Options(Vec<SessionOption>),
     /// The ACP connection ended; the driver sends nothing after this.
     /// Harness log lines may still follow until the process's stderr ends.
     Disconnected(Disconnect),

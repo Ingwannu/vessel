@@ -7,7 +7,8 @@
 use vessel_proto::{
     Activity, AgentEvent, ContentBlock, DisplayStatus, ErrorCode, HarnessKind, HarnessSessionId,
     KanbanColumn, ModelId, PermissionOptionId, PermissionOutcome, SessionBoard, SessionEvent,
-    SessionInput, SessionMode, SessionSpec, SessionStatus, StopReason, TerminalInput, TerminalSize,
+    SessionInput, SessionMode, SessionOption, SessionSpec, SessionStatus, StopReason,
+    TerminalInput, TerminalSize,
 };
 
 use support::{Fixture, Follower, board_until, collect, within};
@@ -273,21 +274,34 @@ async fn status_follows_the_acp_handshake() {
             })
             .map(|record| record.event.clone())
             .collect();
+        // Protocol 9: the options as they stand after the handshake (the
+        // model it asked for already selected) come right before `Ready`,
+        // so a session seen running has its options in the log.
+        let [starting, options, ready, running] = first.as_slice() else {
+            panic!("four records before running: {first:?}");
+        };
         assert_eq!(
-            first,
-            [
-                SessionEvent::Status {
+            (starting, ready, running),
+            (
+                &SessionEvent::Status {
                     status: SessionStatus::Starting
                 },
-                SessionEvent::Agent {
+                &SessionEvent::Agent {
                     event: AgentEvent::Ready {
                         harness_session: HarnessSessionId::new("fake-session-1")
                     }
                 },
-                SessionEvent::Status {
+                &SessionEvent::Status {
                     status: SessionStatus::Running
                 },
-            ]
+            )
+        );
+        let SessionEvent::OptionsChanged { options } = options else {
+            panic!("the options before ready: {options:?}");
+        };
+        assert_eq!(
+            SessionOption::summary(options),
+            "Mode Default, Model Fake-large, Effort High, Fast off"
         );
         assert_eq!(
             handle.info().harness_session,

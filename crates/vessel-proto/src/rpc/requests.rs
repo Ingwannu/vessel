@@ -6,6 +6,7 @@ use crate::event::EventRecord;
 use crate::id::{EventSeq, SessionId, SubscriptionId};
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInfo, SessionInput, SessionSpec};
+use crate::title::SessionTitle;
 
 /// `node.info`: describe the node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,7 +67,7 @@ pub struct RenameSession {
     /// Which session.
     pub session: SessionId,
     /// The title.
-    pub title: String,
+    pub title: SessionTitle,
 }
 
 /// `session.read`: a page of a session's log. The authoritative way to fill

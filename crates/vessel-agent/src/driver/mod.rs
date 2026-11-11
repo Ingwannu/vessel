@@ -29,6 +29,11 @@
 //!   reading, and the agent blocks on its writes. (The SDK's own queues are
 //!   unbounded; `transport` is what bounds what reaches them.)
 //!
+//! - Option changes (protocol 9) wait on the agent's answer like a prompt,
+//!   so each runs as a task that reports into `inbound` (`OptionSet`);
+//!   the loop keeps the session's options (`options`) and reports them
+//!   whenever they differ from what it last reported.
+//!
 //! Layout: this module sets the connection up and runs the loop, which
 //! takes the client's commands (`commands`) and the agent's traffic
 //! (`agent`) in order; `close` settles what a closed connection leaves
@@ -46,12 +51,13 @@ use agent_client_protocol::v1::{ConnectionTo, Responder};
 use agent_client_protocol::{Agent, Client, Error};
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
-use vessel_proto::{AgentEvent, HarnessSessionId, ToolCallId};
+use vessel_proto::{AgentEvent, HarnessSessionId, OptionId, SessionOption, ToolCallId};
 
 use crate::error::Disconnect;
-use crate::handshake::{self, AgentSetup, HandshakeError};
-use crate::input::Command;
+use crate::handshake::{self, AgentSetup, HandshakeError, Started};
+use crate::input::{Command, OptionsReply};
 use crate::mapper;
+use crate::options::{Applied, Options};
 use crate::output::AgentOutput;
 use crate::permissions::Permissions;
 use crate::recent::Recent;
@@ -66,13 +72,19 @@ const AFTER_CLOSE: Duration = Duration::from_secs(2);
 
 /// Something that arrived from the agent, in arrival order.
 enum Inbound {
-    Started(Result<acp::SessionId, HandshakeError>),
+    Started(Result<Started, HandshakeError>),
     Update(acp::SessionNotification),
     Permission(
         acp::RequestPermissionRequest,
         Responder<acp::RequestPermissionResponse>,
     ),
     TurnDone(Result<acp::PromptResponse, Error>),
+    /// The agent answered an option change.
+    OptionSet {
+        id: OptionId,
+        result: Result<Applied, Error>,
+        reply: OptionsReply,
+    },
 }
 
 /// Drive the ACP connection over the agent's stdio until it ends, then
@@ -101,6 +113,8 @@ pub(crate) async fn run(
         permissions: Permissions::default(),
         tool_calls: Recent::default(),
         gate,
+        options: Options::default(),
+        reported: None,
     };
     let ended = Client
         .v1()
@@ -170,6 +184,11 @@ struct Driver {
     /// `transport`); each update and permission request taken from
     /// `inbound` returns its permit.
     gate: Gate,
+    /// The session's config options, as the agent last reported them.
+    options: Options,
+    /// What was last reported as [`AgentOutput::Options`]; `None` before
+    /// the handshake ends.
+    reported: Option<Vec<SessionOption>>,
 }
 
 impl Driver {
@@ -226,9 +245,14 @@ impl Driver {
     /// Apply one inbound item; `Some` ends the session.
     async fn handle(&mut self, item: Inbound) -> Option<Disconnect> {
         match item {
-            Inbound::Started(Ok(session)) => {
+            Inbound::Started(Ok(Started { session, options })) => {
                 let harness_session = HarnessSessionId::new(Arc::clone(&session.0));
                 self.session = Some(session);
+                self.options = options;
+                // Before `Ready`, always, even empty: whoever sees the
+                // session ready knows what it runs with, and "offers
+                // nothing" is told from "not known yet".
+                self.report_options().await;
                 self.emit(AgentEvent::Ready { harness_session }).await;
             }
             Inbound::Started(Err(error)) => {
@@ -258,8 +282,43 @@ impl Driver {
                 };
                 self.emit(event).await;
             }
+            Inbound::OptionSet { id, result, reply } => {
+                let answer = match result {
+                    Ok(applied) => {
+                        self.options.apply(applied);
+                        self.report_options().await;
+                        Ok(self.options.listed())
+                    }
+                    Err(error) => Err(crate::error::InputError::Refused {
+                        id,
+                        message: describe(&error),
+                    }),
+                };
+                // The caller may have stopped waiting; the change stands.
+                if reply.send(answer).is_err() {
+                    tracing::debug!("option change reply dropped");
+                }
+            }
         }
         None
+    }
+
+    /// Report the options if they differ from the last report (always the
+    /// first time).
+    pub(super) async fn report_options(&mut self) {
+        let listed = self.options.listed();
+        if self.reported.as_ref() == Some(&listed) {
+            return;
+        }
+        self.reported = Some(listed.clone());
+        if self
+            .outputs
+            .send(AgentOutput::Options(listed))
+            .await
+            .is_err()
+        {
+            tracing::debug!("agent outputs dropped");
+        }
     }
 
     /// `&mut self` rather than `&self`: the session holds permission

@@ -33,6 +33,12 @@ struct Case {
     expected: Option<AgentEvent>,
     #[serde(default)]
     skipped: Option<String>,
+    /// For an option report (protocol 9): the mode it names.
+    #[serde(default)]
+    mode: Option<String>,
+    /// For an option report (protocol 9): the config option ids, in order.
+    #[serde(default)]
+    config: Option<Vec<String>>,
 }
 
 #[test]
@@ -53,6 +59,16 @@ fn check(fixture: &str) {
             }
             (None, Some(kind), Update::Skipped(skipped)) => {
                 assert_eq!(&format!("{skipped:?}"), kind, "{}", case.name);
+            }
+            (None, None, Update::Mode(mode)) => {
+                assert_eq!(Some(&*mode.0), case.mode.as_deref(), "{}", case.name);
+            }
+            (None, None, Update::ConfigOptions(options)) => {
+                let ids: Vec<String> = options
+                    .iter()
+                    .map(|option| option.id.0.to_string())
+                    .collect();
+                assert_eq!(Some(ids), case.config, "{}", case.name);
             }
             (expected, skipped, mapped) => {
                 panic!(

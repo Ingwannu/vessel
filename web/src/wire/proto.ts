@@ -1777,7 +1777,7 @@ session: SessionId,
 /**
  * The title.
  */
-title: string, };
+title: SessionTitle, };
 
 /**
  * A successful response of any method, as sent on the wire.
@@ -1896,7 +1896,7 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: string, };
+title: SessionTitle, };
 
 /**
  * A session on a node. Unique across the fleet, so it can be used
@@ -1996,12 +1996,15 @@ model?: SessionModel | null,
  */
 board?: SessionBoard | null, 
 /**
- * What it is called now (protocol 9): `spec.title`, or the first line
- * of its first prompt, cut at 80 characters, until `session.rename`
- * changes it. Absent until it has one, and from older nodes; a client
- * then names it by its folder.
+ * What it is called now (protocol 9), the one truth for its current
+ * title: `spec.title` when one was asked for; otherwise, for a
+ * structured session, the first line of its first prompt with text
+ * (`SessionTitle::from_prompt`); and whatever `session.rename` gave it
+ * last. Every change is also a `renamed` event in its log, and the
+ * node's store keeps it across restarts. Absent until it has one, and
+ * from older nodes; a client then names it by its folder.
  */
-title?: string | null, };
+title?: SessionTitle | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.
@@ -2071,7 +2074,7 @@ values: Array<OptionValue>, } | { "kind": "toggle",
 /**
  * Whether it is on.
  */
-on: boolean, });
+on: boolean, } | { "kind": "unknown" });
 
 /**
  * Where a session came from, when another node of the fleet had a hand in
@@ -2133,10 +2136,11 @@ cwd?: string | null,
  */
 profile?: ProfileName | null, 
 /**
- * What to call it (protocol 9). Without one, a structured session
- * takes the first line of its first prompt (`SessionInfo.title`).
+ * What to call it, as asked at creation (protocol 9). The session's
+ * title now is `SessionInfo.title`, which starts as this and changes
+ * on its own; this stays what was asked.
  */
-title?: string | null, } & ({ "mode": "terminal", 
+title?: SessionTitle | null, } & ({ "mode": "terminal", 
 /**
  * Extra arguments passed verbatim to the harness binary.
  */
@@ -2177,6 +2181,11 @@ code: number | null, } | { "state": "failed",
  * Human-readable reason.
  */
 message: string, } | { "state": "interrupted" };
+
+/**
+ * A session's title: one line of text a person reads.
+ */
+export type SessionTitle = string;
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -2531,9 +2540,19 @@ harness_session: HarnessSessionId,
  */
 cwd: string, 
 /**
- * The session as its node reports it: harness, profile, creator.
+ * The session as its node reports it: harness, profile, creator,
+ * title.
  */
-info: SessionInfo, } | { "kind": "memory", 
+info: SessionInfo, 
+/**
+ * The agent's options as the session runs with them now
+ * (protocol 9): every select's current value and every toggle's
+ * state from its last `options_changed`, or before any, its
+ * spec's own choices. The importer applies them after the load,
+ * so the session continues in the mode it was in (a permissions
+ * mode above all) rather than the agent's default.
+ */
+options?: Array<OptionChoice>, } | { "kind": "memory", 
 /**
  * Which harness.
  */

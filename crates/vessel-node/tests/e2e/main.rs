@@ -29,6 +29,8 @@ mod lsp;
 #[cfg(test)]
 mod moving;
 #[cfg(test)]
+mod options;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 #[cfg(unix)]

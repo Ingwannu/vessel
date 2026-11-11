@@ -12,6 +12,10 @@
 //!   transcript as far as it is written (the turn goes on; nothing is
 //!   cancelled, unlike a move, since the source keeps running). An ended
 //!   session, live or stored, is exported as its files are.
+//! - The session's title travels in its info, and its agent options as
+//!   they stand (`Sessions::choices`) beside it (protocol 9): an import
+//!   applies them after the load, so the session goes on in the
+//!   permissions mode it was in, not the agent's default.
 //! - Terminal sessions are refused (`unsupported`): Vessel learns no
 //!   harness session id for them, and resuming one is a structured
 //!   session's `session/load`.
@@ -98,6 +102,9 @@ impl Exporter<'_> {
             .await
             .map_err(ServiceError::Task)??
         };
+        // What it runs with now goes along, so it continues in the same
+        // mode wherever it is imported (protocol 9).
+        let options = self.sessions.choices(request.session).await?;
         let transfer = self
             .transfers
             .commit(staged, holder, snapshot.files.values())?;
@@ -109,6 +116,7 @@ impl Exporter<'_> {
                 harness_session: session,
                 cwd,
                 info: Box::new(info),
+                options,
             },
         })
     }

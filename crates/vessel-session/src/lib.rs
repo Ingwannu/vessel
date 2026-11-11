@@ -69,6 +69,18 @@
 //!   into a lane and a phrase. The info watch wakes only when the lane,
 //!   the phrase or the activity changes; the time of the last activity
 //!   moves silently, as `next_seq` does, so output never wakes watchers.
+//! - What a session runs with (protocol 9, ADR 0022): the agent's option
+//!   reports become `options_changed` records (one before `Ready`, then
+//!   every change, also from an agent a move restarts); the publisher keeps
+//!   the last one for [`SessionHandle::choices`], which a move or an export
+//!   carries on so the session keeps its permissions mode. Options are read
+//!   and changed through the agent's input, as prompts are.
+//! - Titles (protocol 9): `SessionInfo::title` is the one truth. An
+//!   untitled structured session takes the first line of its first prompt
+//!   with text; [`SessionHandle::rename`] sends the actor a rename, which it
+//!   publishes as `renamed` in order with the log and answers once the info
+//!   has it. Only the actor publishes, so a title can never disagree with
+//!   the log the store rebuilds it from.
 //! - Lifetime: an ended session stays in the runtime, ring and all, until
 //!   its owner calls `SessionRuntime::remove` (the node does once the store
 //!   has its whole log). Eviction is the owner's call because only the

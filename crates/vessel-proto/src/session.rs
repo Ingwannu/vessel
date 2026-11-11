@@ -14,6 +14,7 @@ use crate::name::ProfileName;
 use crate::options::OptionChoice;
 use crate::profile::Creator;
 use crate::terminal::{TerminalInput, TerminalSize};
+use crate::title::SessionTitle;
 
 /// How a harness is driven.
 ///
@@ -58,6 +59,18 @@ pub enum SessionMode {
     },
 }
 
+impl SessionMode {
+    /// The agent options chosen at creation (protocol 9); none for a
+    /// terminal session, whose harness sets its own.
+    #[must_use]
+    pub fn options(&self) -> &[OptionChoice] {
+        match self {
+            Self::Structured { options, .. } => options,
+            Self::Terminal { .. } => &[],
+        }
+    }
+}
+
 /// What to run. Body of `session.create`.
 ///
 /// `#[non_exhaustive]` with a constructor (protocol 5): every field added
@@ -77,10 +90,11 @@ pub struct SessionSpec {
     /// harness's default, which is how every earlier session ran.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profile: Option<ProfileName>,
-    /// What to call it (protocol 9). Without one, a structured session
-    /// takes the first line of its first prompt (`SessionInfo.title`).
+    /// What to call it, as asked at creation (protocol 9). The session's
+    /// title now is `SessionInfo.title`, which starts as this and changes
+    /// on its own; this stays what was asked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub title: Option<SessionTitle>,
     /// How to drive it.
     #[serde(flatten)]
     pub mode: SessionMode,
@@ -116,8 +130,8 @@ impl SessionSpec {
 
     /// Called this.
     #[must_use]
-    pub fn with_title(mut self, title: impl Into<String>) -> Self {
-        self.title = Some(title.into());
+    pub fn with_title(mut self, title: SessionTitle) -> Self {
+        self.title = Some(title);
         self
     }
 }
@@ -207,12 +221,15 @@ pub struct SessionInfo {
     /// older nodes; a client then places it by `status`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub board: Option<SessionBoard>,
-    /// What it is called now (protocol 9): `spec.title`, or the first line
-    /// of its first prompt, cut at 80 characters, until `session.rename`
-    /// changes it. Absent until it has one, and from older nodes; a client
-    /// then names it by its folder.
+    /// What it is called now (protocol 9), the one truth for its current
+    /// title: `spec.title` when one was asked for; otherwise, for a
+    /// structured session, the first line of its first prompt with text
+    /// (`SessionTitle::from_prompt`); and whatever `session.rename` gave it
+    /// last. Every change is also a `renamed` event in its log, and the
+    /// node's store keeps it across restarts. Absent until it has one, and
+    /// from older nodes; a client then names it by its folder.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub title: Option<SessionTitle>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in

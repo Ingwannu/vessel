@@ -166,6 +166,21 @@ impl SessionBoard {
             last_activity_at,
         }
     }
+
+    /// An ended session's place: the archive, `terminated`, its agent
+    /// `exited`, last seen when it ended. The one definition of it: the
+    /// node's reducer gives every ended session this, and a node reading a
+    /// session back from its store builds it here, so the two cannot
+    /// drift apart.
+    #[must_use]
+    pub const fn archived(ended_at: DateTime<Utc>) -> Self {
+        Self::new(
+            KanbanColumn::Archive,
+            DisplayStatus::Terminated,
+            Activity::Exited,
+            ended_at,
+        )
+    }
 }
 
 #[cfg(test)]

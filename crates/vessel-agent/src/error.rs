@@ -2,7 +2,9 @@
 
 use std::fmt;
 
-use vessel_proto::{PermissionId, PermissionOptionId};
+use vessel_proto::{OptionId, PermissionId, PermissionOptionId};
+
+use crate::options::OptionError;
 
 /// The agent process could not be started.
 #[derive(Debug, thiserror::Error)]
@@ -37,6 +39,18 @@ pub enum InputError {
         id: PermissionId,
         /// The rejected option.
         option: PermissionOptionId,
+    },
+    /// A config option choice the agent does not offer (protocol 9);
+    /// nothing was sent to it.
+    #[error(transparent)]
+    Option(#[from] OptionError),
+    /// The agent refused a config option change (protocol 9).
+    #[error("the agent refused option `{id}`: {message}")]
+    Refused {
+        /// The option.
+        id: OptionId,
+        /// The agent's error, for people.
+        message: String,
     },
 }
 

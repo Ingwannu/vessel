@@ -89,6 +89,9 @@ pub enum NodeError {
     /// The data directory's MCP directory cannot be prepared.
     #[error("the MCP configuration directory is unusable")]
     McpDir(#[source] StoreError),
+    /// The directory agents are probed in (protocol 9) cannot be created.
+    #[error("the probe directory is unusable")]
+    ProbeDir(#[source] StoreError),
     /// The HTTP server failed.
     #[error("the server failed")]
     Serve(#[source] std::io::Error),
@@ -243,11 +246,6 @@ pub(crate) enum ServiceError {
     /// start).
     #[error("the node's model proxy is not listening")]
     ModelProxyDown,
-    /// A protocol 9 method whose contract exists and whose work is not
-    /// built yet (milestone 10, track C): refused, never answered with a
-    /// made-up success.
-    #[error("`{}` is not built on this node yet", .0.as_str())]
-    NotBuilt(vessel_proto::Method),
 }
 
 /// A route as a sentence names it.
@@ -284,7 +282,7 @@ impl ServiceError {
             | Self::UnknownProfile(_)
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
-            Self::MoveRoute { .. } | Self::NotBuilt(_) => ErrorCode::Unsupported,
+            Self::MoveRoute { .. } => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),

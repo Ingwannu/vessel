@@ -23,12 +23,15 @@
 //! (ended) session while it runs.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use tokio::sync::watch;
 use tokio_util::task::TaskTracker;
+use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventPage, EventRecord, EventSeq, SessionId, SessionInfo, SessionInput, SessionSpec,
+    EventPage, EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo,
+    SessionInput, SessionOption, SessionSpec, SessionTitle,
 };
 use vessel_session::{
     Created, FollowError, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime,
@@ -274,6 +277,68 @@ impl Sessions {
             }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
+    }
+
+    /// A live session's agent options as its agent last reported them
+    /// (protocol 9). An ended session has no agent to ask: its log's last
+    /// `options_changed` is what it ran with.
+    pub(crate) async fn options(&self, id: SessionId) -> Result<Vec<SessionOption>, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.options().await?),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Change one of a live session's agent options (protocol 9).
+    pub(crate) async fn set_option(
+        &self,
+        id: SessionId,
+        choice: OptionChoice,
+    ) -> Result<Vec<SessionOption>, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.set_option(choice).await?),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Give a live session a title (protocol 9). An ended session's log is
+    /// closed, and its title is the last one it had.
+    pub(crate) async fn rename(
+        &self,
+        id: SessionId,
+        title: SessionTitle,
+    ) -> Result<SessionInfo, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.rename(title).await?),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// The agent options a session runs (or ran) with, as choices
+    /// (protocol 9): its last options report's, from the runtime or the
+    /// store; before any report, its spec's own.
+    pub(crate) async fn choices(&self, id: SessionId) -> Result<Vec<OptionChoice>, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.choices()),
+            Found::Stored(info) => Ok(match self.store.choices(id).await? {
+                Some(choices) => choices,
+                None => info.spec.mode.options().to_vec(),
+            }),
+        }
+    }
+
+    /// What `harness`'s agent offers (`SessionRuntime::probe`).
+    pub(crate) async fn probe(
+        &self,
+        harness: HarnessKind,
+        profile: Profile,
+        proxy: Option<ModelProxy>,
+        dir: PathBuf,
+    ) -> Result<Vec<SessionOption>, ServiceError> {
+        Ok(self
+            .runtime
+            .probe(harness, Some(profile), proxy, dir)
+            .await?)
     }
 
     /// Stop a session. Killing one that already ended is a no-op.

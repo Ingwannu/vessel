@@ -27,6 +27,10 @@
 //! - A session imported into the very profile and directory it is in on
 //!   this node is refused: every file is already there, and a second
 //!   session resuming it would append to the same transcript as the first.
+//! - The session continues as it was (protocol 9): with its title, and
+//!   with the agent options the export carried applied after the load,
+//!   so a session in a restrictive permissions mode is not resumed in the
+//!   agent's default one.
 //! - Resuming (`start`) is the service's: it creates the session through
 //!   `session.create`'s own path (the agent limits apply), recording
 //!   `origin: imported { node, session }`.
@@ -245,6 +249,7 @@ impl Importer<'_> {
             harness_session,
             cwd: from_cwd,
             info,
+            options,
         } = detail
         else {
             return Err(to_wire(TransferError::WrongKind("memory")));
@@ -283,11 +288,16 @@ impl Importer<'_> {
             SessionMode::Structured {
                 model,
                 resume: Some(harness_session.clone()),
-                options: Vec::new(),
+                // Applied after the load, in order; one this node's agent
+                // does not offer fails the start, as a model it does not
+                // offer does, rather than run in the agent's default mode.
+                options,
             },
         )
         .with_cwd(to_cwd.clone());
         spec.profile.clone_from(&named_profile);
+        // It keeps its name.
+        spec.title.clone_from(&info.title);
         tracing::info!(%transfer, written = placed.written, same = placed.same, "session imported");
         Ok(SessionPlaced {
             imported: SessionImported {

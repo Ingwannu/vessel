@@ -5,8 +5,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
-    AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionEvent, SessionId,
-    SessionInfo, SessionStatus,
+    AgentEvent, EventRecord, EventSeq, HarnessSessionId, OptionChoice, ProfileName, SessionEvent,
+    SessionId, SessionInfo, SessionOption, SessionStatus, SessionTitle,
 };
 
 use crate::codec::{
@@ -18,8 +18,8 @@ use crate::error::StoreError;
 
 /// Store a new session with an empty log.
 ///
-/// Only the session's identity, spec, profile and creator come from
-/// `info`. Its status is
+/// Only the session's identity, spec, profile, creator, origin, model
+/// route and title come from `info`. Its status is
 /// stored as `Starting` and live, and everything else is derived from the
 /// records appended later: `info` is a snapshot the runtime took after the
 /// process started, and a session that ends within milliseconds would
@@ -33,8 +33,9 @@ pub(crate) fn create_session(
         .prepare_cached(
             "INSERT INTO sessions
                  (id, spec, status, live, created_at, ended_at, next_seq, first_seq,
-                  retained_bytes, harness_session, profile, created_by, via, origin, model)
-             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9)
+                  retained_bytes, harness_session, profile, created_by, via, origin, model,
+                  title)
+             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10)
              ON CONFLICT (id) DO NOTHING",
         )?
         .execute(params![
@@ -47,6 +48,7 @@ pub(crate) fn create_session(
             info.via.map(|node| node.to_string()),
             info.origin.as_ref().map(encode).transpose()?,
             info.model.as_ref().map(encode).transpose()?,
+            info.title.as_ref().map(SessionTitle::as_str),
         ])?;
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
@@ -79,6 +81,10 @@ struct Projection {
     harness_session: Option<HarnessSessionId>,
     /// The last profile change, if any.
     profile: ProfileMove,
+    /// The last rename, if any.
+    title: Option<SessionTitle>,
+    /// The choices of the last options report, if any.
+    choices: Option<Vec<OptionChoice>>,
     bytes: u64,
 }
 
@@ -99,11 +105,12 @@ impl Projection {
             SessionEvent::ProfileChanged { to, .. } => {
                 self.profile = ProfileMove::To(to.clone());
             }
-            SessionEvent::Agent { .. }
-            | SessionEvent::Terminal(_)
-            | SessionEvent::ModelCall(_)
-            | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => {}
+            SessionEvent::Renamed { title } => self.title = Some(title.clone()),
+            SessionEvent::OptionsChanged { options } => {
+                self.choices = Some(options.iter().filter_map(SessionOption::choice).collect());
+            }
+            SessionEvent::Agent { .. } | SessionEvent::Terminal(_) | SessionEvent::ModelCall(_) => {
+            }
         }
     }
 }
@@ -161,7 +168,9 @@ pub(crate) fn append<'a>(
                  live = COALESCE(?5, live),
                  ended_at = COALESCE(?6, ended_at),
                  harness_session = COALESCE(?7, harness_session),
-                 profile = CASE WHEN ?8 THEN ?9 ELSE profile END
+                 profile = CASE WHEN ?8 THEN ?9 ELSE profile END,
+                 title = COALESCE(?10, title),
+                 choices = COALESCE(?11, choices)
              WHERE id = ?1",
         )?
         .execute(params![
@@ -180,6 +189,8 @@ pub(crate) fn append<'a>(
                 ProfileMove::To(Some(name)) => Some(name.as_str()),
                 ProfileMove::To(None) | ProfileMove::Unchanged => None,
             },
+            projection.title.as_ref().map(SessionTitle::as_str),
+            projection.choices.as_ref().map(encode).transpose()?,
         ])?;
     Ok(Appended { ended })
 }

@@ -19,6 +19,14 @@ impl Driver {
                 }
                 self.emit(event).await;
             }
+            Update::ConfigOptions(config) => {
+                self.options.replace(config);
+                self.report_options().await;
+            }
+            Update::Mode(mode) => {
+                self.options.mode_is(mode);
+                self.report_options().await;
+            }
             Update::Skipped(kind) => tracing::trace!(?kind, "session update skipped"),
         }
     }

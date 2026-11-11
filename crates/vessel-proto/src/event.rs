@@ -42,9 +42,10 @@ use crate::id::EventSeq;
 use crate::model::ModelCall;
 use crate::name::ProfileName;
 use crate::node::ProtocolVersion;
-use crate::options::{OptionKind, SessionOption};
+use crate::options::SessionOption;
 use crate::session::SessionStatus;
 use crate::terminal::TerminalOutput;
+use crate::title::SessionTitle;
 
 /// Something that happened in a session.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,7 +90,7 @@ pub enum SessionEvent {
     /// by `session.rename`.
     Renamed {
         /// The title now.
-        title: String,
+        title: SessionTitle,
     },
 }
 
@@ -150,7 +151,7 @@ impl SessionEvent {
             }
             Self::OptionsChanged { options } => Some(Self::Agent {
                 event: AgentEvent::HarnessLog {
-                    line: options_line(options),
+                    line: format!("vessel: options: {}", SessionOption::summary(options)),
                 },
             }),
             Self::Renamed { title } => Some(Self::Agent {
@@ -160,31 +161,6 @@ impl SessionEvent {
             }),
         }
     }
-}
-
-/// `vessel: options: Model Haiku, Fast mode on`: each option's name and
-/// the name of its value now, for a client that cannot read the list.
-fn options_line(options: &[SessionOption]) -> String {
-    let mut line = String::from("vessel: options:");
-    if options.is_empty() {
-        line.push_str(" none");
-    }
-    for (index, option) in options.iter().enumerate() {
-        line.push_str(if index == 0 { " " } else { ", " });
-        line.push_str(&option.name);
-        line.push(' ');
-        line.push_str(match &option.kind {
-            // The value's name when the agent lists it; its id otherwise
-            // (an agent may report a current value it does not offer).
-            OptionKind::Select { current, values } => values
-                .iter()
-                .find(|value| value.id == *current)
-                .map_or_else(|| current.as_str(), |value| value.name.as_str()),
-            OptionKind::Toggle { on: true } => "on",
-            OptionKind::Toggle { on: false } => "off",
-        });
-    }
-    line
 }
 
 /// An event with its position and time; the unit of the session log.
