@@ -404,6 +404,210 @@ book, typed and versioned, and builds on it.
   prompt to several models, delivered files and HTML, a reviewing
   agent, spreading by load, updating and diagnostics from the page.
 
+## Track W: contract
+
+Track W adds no call to a node and does not change protocol 10 (or the
+protocol number). Everything below is between the page and `vessel ui`'s
+bridge (ADR 0017): ops and one pushed frame in `vessel-web`'s wire
+(`crates/vessel-web/src/wire/prefs.rs`), generated into
+`web/src/wire/bridge.ts`. The page and the bridge ship in one binary, and
+a restarted UI refuses old tabs (a new origin and new keys), so a page
+never meets a bridge of another version. The versions that can differ are
+those of two `vessel` binaries reading one file, and the rules for that
+are under "The file".
+
+The decisions that could have gone another way are ADR 0025 (0023 is
+track B's; 0024 is left for track A).
+
+### Where the preferences live
+
+`NodeSource` (the seam through which the CLI gives the bridge its nodes)
+gains one method:
+
+```rust
+/// The directory the page's preferences and drafts are kept in: the
+/// book's own. `Ok(None)` for a source that keeps nothing on disk.
+fn preferences(&self) -> Result<Option<PathBuf>, Self::Error> { Ok(None) }
+```
+
+`vessel-cli`'s `BookSource` answers `nodes::book_path(target)`'s
+directory, so `--config-dir` moves the preferences with the book. The
+bridge asks once when `vessel ui` starts:
+
+| Answer | Kept | The page says |
+| --- | --- | --- |
+| `Ok(Some(dir))`, the file absent or readable | in `dir/ui-preferences.json` and `dir/ui-drafts.json` | nothing |
+| `Ok(None)` | in the bridge's memory, for this launch | "Kept until vessel ui stops: this machine gives the page no place to keep them." |
+| `Err(error)` (no home directory, say) | in memory, for this launch; the reason logged once at start | "Kept until vessel ui stops: " and the error |
+| the file exists and cannot be read (too large, not JSON, not a file, unreadable) | in memory, for this launch; the file is not touched | "Kept until vessel ui stops: " and why the file could not be read |
+
+### The file
+
+- JSON, one object. `version` is 1. A missing `version` is read as 1;
+  a higher one is read the same way, and written back unchanged, so an
+  older `vessel` never lowers it.
+- **Unknown keys are kept.** At the top level and inside every section,
+  a key this bridge does not know is kept as it was (`RawJson`, opaque)
+  and written back in place. A known key whose value this bridge cannot
+  read (a value a newer page wrote) is kept the same way and the page
+  is given the default for it; a change to that setting replaces it.
+- At most 64 KiB, read and written. A change that would make it larger
+  fails (`failed`) and changes nothing.
+- Written as the book is: a temporary file in the same directory,
+  created owner-only (`0600` on Unix; the directory `0700` when the
+  bridge creates it), flushed, then renamed over the old name. The
+  rename replaces whatever is at the name, a link included, and never
+  writes through it.
+- No lock between processes, as the book has none: every change reads
+  the file right before it, applies itself, and renames. Two `vessel ui`
+  processes changing the same setting in the same instant can lose one
+  change; changes to different settings cannot, unless they interleave
+  inside one read-change-rename.
+
+### What the document holds (`Preferences`)
+
+Each section's fields have defaults; a missing section or field is its
+default.
+
+| Section | Field | Type and values | Default |
+| --- | --- | --- | --- |
+| `appearance` | `theme` | `system`, `light`, `dark` | `system` |
+| | `interface_size` | whole pixels, 12 to 20 | 14 |
+| | `code_size` | whole pixels, 10 to 18 | 12 |
+| | `content_width` | `comfortable` (768px), `wide` (1152px), `full` | `comfortable` |
+| | `conversation` | `full`, `collapse_tools` | `full` |
+| `layout` | `sidebar` | `shown`, `hidden` | `shown` |
+| | `inspector` | `shown`, `hidden` | `shown` |
+| `composer` | `send` | `enter`, `mod_enter` | `enter` |
+| `shortcuts` | (map) | `ActionId` to a list of at most 2 `KeyBinding`s; an empty list is "not set"; an absent action has its default. At most 128 actions | empty |
+| `notifications` | `alerts` | `off`, `system`, `sound`, `system_and_sound` | `off` |
+| | `title` | on or off: a count in the tab's title | on |
+| `sidebar` | `group` | `machine`, `status` | `machine` |
+| | `sort` | `created`, `activity` | `created` |
+| | `ended` | on or off: list ended sessions | off |
+| `defaults` | (map) | `NodeId` to `{ agent: HarnessKind?, agents: HarnessKind to at most 16 OptionChoice }`. At most 64 machines | empty |
+
+Types parsed where the frame is decoded:
+
+- `ActionId`: 1 to 48 characters of `a-z`, `0-9` and `-`, starting with
+  a letter. The page's own ids; the bridge does not know the set.
+- `KeyBinding`: one chord or two in sequence, separated by one space; at
+  most 32 bytes. A chord is modifiers then a key, joined by `+`. The
+  modifiers are `Mod` (Command on a Mac, Control elsewhere), `Ctrl`,
+  `Alt`, `Shift`, `Meta`, each at most once and in that order. The key
+  is one printable ASCII character other than space and `+` (a letter
+  in upper case), or one of `Enter`, `Escape`, `Tab`, `Space`,
+  `Backspace`, `Delete`, `Up`, `Down`, `Left`, `Right`, `Home`, `End`,
+  `PageUp`, `PageDown`, `Plus`, `F1` to `F12`. So `Mod+K`, `Alt+[`,
+  `G S`, `/` are bindings and `k`, `Shift+Mod+K`, `Mod+` are not.
+- `InterfaceSize`, `CodeSize`: integers in their ranges.
+- `NodeId`, `HarnessKind`, `OptionChoice`: the protocol's own.
+
+### Ops and the pushed frame
+
+| Op | Result | Failures |
+| --- | --- | --- |
+| `preferences` | `preferences { preferences: PreferencesState }`: the file read now | `busy` |
+| `prefer { change: PreferenceChange }` | `prefer { preferences: PreferencesState }`: the whole document after the change | `unreadable` (the change does not decode: a size out of range, a bad binding, too many entries); `failed` (the file could not be read again or written; a document over 64 KiB); `busy`. On a failure nothing is changed. |
+| `drafts` | `drafts { drafts: Vec<Draft> }`, oldest first | `busy` |
+| `draft { key: DraftKey, text: DraftText }` | `draft` | `unreadable` (over the bound, a bad key); `failed` (could not be written); `busy` |
+
+- `PreferencesState { kept: Kept, values: Preferences }`. `Kept` is
+  `on_disk { path }` or `this_launch { why: LaunchOnly }`, and
+  `LaunchOnly` is `no_place`, `no_path { message }` or
+  `unreadable { message }`, so the page tells the three apart without
+  reading words.
+- `PreferenceChange` (tagged `set`), each replacing one setting:
+  `theme`, `interface_size`, `code_size`, `content_width`,
+  `conversation`, `sidebar_panel`, `inspector_panel`, `send`,
+  `alerts`, `title_count`, `sidebar_group`, `sidebar_sort`,
+  `sidebar_ended`, each with its value; `shortcuts { edits }`, a list of
+  at most 16 `{ action, to }` where `to` is `bindings { keys }` or
+  `default`, applied together (a reassignment moves a key from one
+  action to another in one change); `reset_shortcuts` (every override,
+  unknown actions' included); `defaults { node, agent, choices }`
+  (the agent a new session on that machine starts with, and that
+  agent's choices); `forget_defaults { node }`.
+- `ServerFrame::Preferences { preferences: PreferencesState }`: after
+  every successful `prefer`, to every tab, the tab that asked included.
+  Kept as a `watch` (the latest value only): a tab that reads slowly
+  skips states it would have overwritten anyway. Sent once on
+  connecting, before any reply.
+- `DraftKey` (tagged `kind`): `new` (the new-session page, one) or
+  `session { node: NodeKey, session: SessionId }`. `DraftText`: at most
+  128 KiB of UTF-8 (agent-orchestrator's limit for a message); the empty
+  text removes the draft.
+- `Draft { key, text }`.
+
+**Two tabs.** Every change goes through one task in the bridge, in the
+order the changes arrive. Each change replaces only its own setting, on
+the document read right before it, so two tabs changing different
+settings both keep their changes, and the same setting ends as the
+later change set it. Every tab is then pushed the whole document. Drafts
+are not pushed: the page reads them all once when it connects and writes
+each through; two tabs typing into one session's draft end with the
+later write's text.
+
+### Drafts
+
+`ui-drafts.json`, beside the preferences, written the same way. At most
+64 drafts and 1 MiB: past either, the drafts written longest ago go
+first. The bridge does not write once per op: a write waiting while more
+`draft` ops are queued takes them all in one rename. In the page a
+draft is kept in memory on every key and sent at most once per 500 ms of
+typing, and at once when the page is hidden, the composer is left, or
+the text is sent (then emptied).
+
+### The first paint
+
+The page's origin is new on every launch (ADR 0017), so a theme kept in
+the browser is gone each time. The bridge writes the appearance into the
+index it serves, on `<html>`: `data-theme` (absent for `system`),
+`data-content-width`, and `style="--ui-size: 14px; --code-size: 12px"`.
+Every value comes from a closed set or a bounded integer, written by the
+bridge, never from text. The index is served before the tab proves its
+key, so these values can be read by anything on this machine that
+reaches the launch's address; they say nothing but how the page looks.
+The page reads them on boot, and the stylesheet draws them before any
+script runs.
+
+### What the page builds on it (no wire)
+
+- **Shortcuts.** One registry (`web/src/data/shortcuts/`), one listener.
+  Actions, groups and default keys (Mod is Command on a Mac):
+  General: open the command palette (`Mod+K`, `/`), new session (`N`),
+  open Settings (`Mod+,`). Navigation: the board (`G S`), Machines
+  (`G M`, `G F`), Sync (`G Y`), Devices (`G D`), previous and next
+  session (`Alt+[`, `Alt+]`), session 1 to 9 (`Alt+1` to `Alt+9`, fixed).
+  Session: find in the session (`Mod+F`), focus the composer (`Mod+L`).
+  Panels: the sidebar (`Mod+B`), the inspector (`Mod+Shift+B`).
+  Default keys avoid what a browser keeps for itself (`Mod+N`, `Mod+T`,
+  `Mod+W`, `Mod+1` to `Mod+9`), as Paseo's browser build does.
+- **Notices.** "Needs you" and "finished" are a pure function of two
+  polls of a machine's sessions (the board's placement, ADR 0019).
+- **Find** over `Timeline.entries`' prompts and messages, never the
+  document; the timeline exposes one seam to reveal an entry by key.
+- **Branded ids** (its own commits, after the rest): the generator
+  (`vessel-proto/src/ts.rs`) writes an opaque handle the node or the
+  bridge mints and the page only hands back as `string & { readonly
+  __brand: "SessionId" }`. Every alias of a primitive in the generated
+  files is classified in one table, branded or plain with its reason
+  (typed by a person, a quantity, a secret), and a test fails on one in
+  neither. The page gives a brand only through a checking function at
+  its two edges (route parameters, frames), and one helper for test
+  fixtures. No Rust wire type changes.
+
+### Bounded, and how
+
+| What | Bound | When reached |
+| --- | --- | --- |
+| The preferences file | 64 KiB | a change past it fails; a file past it is not read (this launch only) |
+| Shortcut overrides | 128 actions, 2 keys each, 16 edits per change | the change does not decode |
+| Defaults | 64 machines, 16 choices per agent | too many choices: the change does not decode; a 65th machine: the change fails, and that machine's sessions start as they would with none kept |
+| Drafts | 64, 128 KiB each, 1 MiB in all | a longer draft is refused (the page keeps it in memory only); past 64 or 1 MiB the oldest go |
+| Pushes to a tab | the latest document only (`watch`) | earlier ones are skipped |
+| Writes | one rename per change; drafts batched while queued | |
+
 ## Left open
 
 - The desktop and phone shells (ADR 0020, still proposed). All three
