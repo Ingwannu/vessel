@@ -3,7 +3,7 @@
 // that becomes its outcome; the prompt to answer it is docked over the
 // composer (permission-dock.tsx).
 
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 import { settled, settledLine } from "../../data/approval";
 import { when } from "../../data/format";
@@ -28,7 +28,19 @@ function Meta({
   );
 }
 
-export function TimelineItem({ entry }: { entry: Entry }) {
+/** One entry, drawn again only when its entry changes: the reducer keeps
+ * the object of every entry a batch does not touch (data/timeline.ts), so
+ * a batch re-renders the entries it changed, not the whole log
+ * (docs/PERFORMANCE.md). */
+export const TimelineItem = memo(function TimelineItem({
+  entry,
+}: {
+  entry: Entry;
+}) {
+  return <Item entry={entry} />;
+});
+
+function Item({ entry }: { entry: Entry }) {
   switch (entry.kind) {
     case "ready":
       return (
