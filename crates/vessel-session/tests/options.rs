@@ -224,7 +224,9 @@ mod support {
 /// replaces it; later prompts do not.
 #[tokio::test]
 async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
-    within(async {
+    // Boxed: it holds several session infos across awaits, and every field
+    // a protocol adds to them grows this future past clippy's bound.
+    within(Box::pin(async {
         let fixture = Fixture::new();
         let handle = fixture.start(structured(Vec::new())).await;
         assert_eq!(handle.info().title, None);
@@ -250,7 +252,7 @@ async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
         let _end = handle.ended().await;
         let error = handle.rename(title("Too late")).await.unwrap_err();
         assert!(matches!(error, SessionError::Ended), "{error:?}");
-    })
+    }))
     .await;
 }
 

@@ -284,7 +284,47 @@ impl Method {
             | Self::HarnessOptions
             | Self::SessionOptions
             | Self::SetSessionOption
-            | Self::RenameSession => true,
+            | Self::RenameSession
+            | Self::ListProjects
+            | Self::GetProject
+            | Self::AddProject
+            | Self::CloneProject
+            | Self::InitProject
+            | Self::RemoveProject
+            | Self::ProjectCommands
+            | Self::ApproveCommands
+            | Self::ListWorktrees
+            | Self::CreateWorktree
+            | Self::SetupOutput
+            | Self::RunSetup
+            | Self::RemoveWorktree
+            | Self::ListSnapshots
+            | Self::DropSnapshot
+            | Self::GitStatus
+            | Self::GitChanges
+            | Self::GitDiff
+            | Self::GitShow
+            | Self::GitBranches
+            | Self::GitLog
+            | Self::GitStashes
+            | Self::GitStage
+            | Self::GitUnstage
+            | Self::GitDiscard
+            | Self::GitCommit
+            | Self::GitFetch
+            | Self::GitPush
+            | Self::GitPull
+            | Self::GitSwitch
+            | Self::GitRenameBranch
+            | Self::GitStash
+            | Self::ListDir
+            | Self::ReadFile
+            | Self::WriteFile
+            | Self::CreateDir
+            | Self::RenamePath
+            | Self::DeletePath
+            | Self::FindFiles
+            | Self::SearchFiles => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

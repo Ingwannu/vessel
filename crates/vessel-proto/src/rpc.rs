@@ -356,6 +356,86 @@ rpc_methods! {
     SetSessionOption / set_session_option / "session.set_option" [Operate, 9]: SetSessionOption => Vec<SessionOption>;
     /// Give a session a title (protocol 9).
     RenameSession / rename_session / "session.rename" [Operate, 9]: RenameSession => SessionInfo;
+    /// The projects, and the git the node found (protocol 10).
+    ListProjects / list_projects / "project.list" [Read, 10]: crate::workspace::ListProjects => crate::workspace::ProjectList;
+    /// One project, or its next change (protocol 10).
+    GetProject / get_project / "project.get" [Read, 10]: crate::workspace::GetProject => crate::workspace::ProjectInfo;
+    /// Add a folder as a project (protocol 10).
+    AddProject / add_project / "project.add" [Operate, 10]: crate::workspace::AddProject => crate::workspace::ProjectInfo;
+    /// Clone a repository as a project (protocol 10).
+    CloneProject / clone_project / "project.clone" [Operate, 10]: crate::workspace::CloneProject => crate::workspace::ProjectInfo;
+    /// Start a new repository as a project (protocol 10).
+    InitProject / init_project / "project.init" [Operate, 10]: crate::workspace::InitProject => crate::workspace::ProjectInfo;
+    /// Forget a project (protocol 10).
+    RemoveProject / remove_project / "project.remove" [Operate, 10]: crate::workspace::RemoveProject => Ack;
+    /// What a project's file would run (protocol 10).
+    ProjectCommands / project_commands / "project.commands" [Read, 10]: crate::workspace::GetProjectCommands => crate::workspace::ProjectCommands;
+    /// Approve a project's commands (protocol 10).
+    ApproveCommands / approve_commands / "project.approve" [Operate, 10]: crate::workspace::ApproveCommands => crate::workspace::ProjectCommands;
+    /// The worktrees (protocol 10).
+    ListWorktrees / list_worktrees / "worktree.list" [Read, 10]: crate::workspace::ListWorktrees => crate::workspace::WorktreeList;
+    /// Make a worktree (protocol 10).
+    CreateWorktree / create_worktree / "worktree.create" [Operate, 10]: crate::workspace::CreateWorktree => crate::workspace::CreateWorktreeOutcome;
+    /// A page of a worktree's setup output (protocol 10).
+    SetupOutput / setup_output / "worktree.output" [Read, 10]: crate::workspace::ReadSetupOutput => crate::workspace::SetupOutput;
+    /// Run a worktree's setup again (protocol 10).
+    RunSetup / run_setup / "worktree.setup" [Operate, 10]: crate::workspace::RunSetup => crate::workspace::WorktreeInfo;
+    /// Remove a worktree (protocol 10).
+    RemoveWorktree / remove_worktree / "worktree.remove" [Operate, 10]: crate::workspace::RemoveWorktree => crate::workspace::RemoveWorktreeOutcome;
+    /// A project's worktree snapshots (protocol 10).
+    ListSnapshots / list_snapshots / "worktree.snapshots" [Read, 10]: crate::workspace::ListSnapshots => crate::workspace::SnapshotList;
+    /// Delete a worktree snapshot (protocol 10).
+    DropSnapshot / drop_snapshot / "worktree.drop_snapshot" [Operate, 10]: crate::workspace::DropSnapshot => Ack;
+    /// A root's git status (protocol 10).
+    GitStatus / git_status / "git.status" [Read, 10]: crate::workspace::GetStatus => crate::workspace::GitStatus;
+    /// The changed files of a diff scope (protocol 10).
+    GitChanges / git_changes / "git.changes" [Read, 10]: crate::workspace::GetChanges => crate::workspace::DiffSummary;
+    /// One file's diff (protocol 10).
+    GitDiff / git_diff / "git.diff" [Read, 10]: crate::workspace::GetFileDiff => crate::workspace::FileDiff;
+    /// A page of a file at a commit (protocol 10).
+    GitShow / git_show / "git.show" [Read, 10]: crate::workspace::ShowFile => crate::workspace::FileRead;
+    /// A root's branches (protocol 10).
+    GitBranches / git_branches / "git.branches" [Read, 10]: crate::workspace::ListBranches => crate::workspace::BranchList;
+    /// A page of history (protocol 10).
+    GitLog / git_log / "git.log" [Read, 10]: crate::workspace::ReadLog => crate::workspace::CommitPage;
+    /// The stash (protocol 10).
+    GitStashes / git_stashes / "git.stashes" [Read, 10]: crate::workspace::ListStashes => crate::workspace::StashList;
+    /// Stage files (protocol 10).
+    GitStage / git_stage / "git.stage" [Operate, 10]: crate::workspace::Stage => crate::workspace::GitStatus;
+    /// Unstage files (protocol 10).
+    GitUnstage / git_unstage / "git.unstage" [Operate, 10]: crate::workspace::Unstage => crate::workspace::GitStatus;
+    /// Drop local changes (protocol 10).
+    GitDiscard / git_discard / "git.discard" [Operate, 10]: crate::workspace::Discard => crate::workspace::GitStatus;
+    /// Commit (protocol 10).
+    GitCommit / git_commit / "git.commit" [Operate, 10]: crate::workspace::Commit => crate::workspace::CommitOutcome;
+    /// Fetch from a remote (protocol 10).
+    GitFetch / git_fetch / "git.fetch" [Operate, 10]: crate::workspace::Fetch => crate::workspace::FetchOutcome;
+    /// Push the current branch (protocol 10).
+    GitPush / git_push / "git.push" [Operate, 10]: crate::workspace::Push => crate::workspace::PushOutcome;
+    /// Fast-forward from the upstream (protocol 10).
+    GitPull / git_pull / "git.pull" [Operate, 10]: crate::workspace::Pull => crate::workspace::PullOutcome;
+    /// Switch to a branch (protocol 10).
+    GitSwitch / git_switch / "git.switch" [Operate, 10]: crate::workspace::Switch => crate::workspace::SwitchOutcome;
+    /// Rename a branch (protocol 10).
+    GitRenameBranch / git_rename_branch / "git.rename_branch" [Operate, 10]: crate::workspace::RenameBranch => crate::workspace::RenameOutcome;
+    /// Save, apply or drop a stash entry (protocol 10).
+    GitStash / git_stash / "git.stash" [Operate, 10]: crate::workspace::StashChanges => crate::workspace::StashOutcome;
+    /// A folder's entries (protocol 10).
+    ListDir / list_dir / "file.list" [Read, 10]: crate::workspace::ListDir => crate::workspace::DirListing;
+    /// A page of a file (protocol 10).
+    ReadFile / read_file / "file.read" [Read, 10]: crate::workspace::ReadFile => crate::workspace::FileRead;
+    /// Write a text file (protocol 10).
+    WriteFile / write_file / "file.write" [Operate, 10]: crate::workspace::WriteFile => crate::workspace::FileVersion;
+    /// Create a folder (protocol 10).
+    CreateDir / create_dir / "file.create_dir" [Operate, 10]: crate::workspace::CreateDir => Ack;
+    /// Move a file or folder (protocol 10).
+    RenamePath / rename_path / "file.rename" [Operate, 10]: crate::workspace::RenamePath => Ack;
+    /// Delete a file or folder (protocol 10).
+    DeletePath / delete_path / "file.delete" [Operate, 10]: crate::workspace::DeletePath => Ack;
+    /// Find files by name (protocol 10).
+    FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
+    /// Search inside files (protocol 10).
+    SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
 }
 
 impl Call {
@@ -365,6 +445,11 @@ impl Call {
     /// or invite a device with more scopes than asked), so the client checks
     /// this before sending. A request that gains a field adds a line here.
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per method, listed so that a new method must decide whether a \
+                  field of it needs a later version; the list is the point"
+    )]
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
@@ -377,7 +462,11 @@ impl Call {
                     SessionMode::Structured { options, .. } => !options.is_empty(),
                     SessionMode::Terminal { .. } => false,
                 };
-                if chooses || spec.title.is_some() {
+                if spec.place.is_some() {
+                    // A place came in 10: an older node would start the
+                    // session in its home folder instead.
+                    Some(10)
+                } else if chooses || spec.title.is_some() {
                     Some(9)
                 } else {
                     spec.profile.as_ref().map(|_| 5)
@@ -445,7 +534,47 @@ impl Call {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
-            | Self::RenameSession(_) => None,
+            | Self::RenameSession(_)
+            | Self::ListProjects(_)
+            | Self::GetProject(_)
+            | Self::AddProject(_)
+            | Self::CloneProject(_)
+            | Self::InitProject(_)
+            | Self::RemoveProject(_)
+            | Self::ProjectCommands(_)
+            | Self::ApproveCommands(_)
+            | Self::ListWorktrees(_)
+            | Self::CreateWorktree(_)
+            | Self::SetupOutput(_)
+            | Self::RunSetup(_)
+            | Self::RemoveWorktree(_)
+            | Self::ListSnapshots(_)
+            | Self::DropSnapshot(_)
+            | Self::GitStatus(_)
+            | Self::GitChanges(_)
+            | Self::GitDiff(_)
+            | Self::GitShow(_)
+            | Self::GitBranches(_)
+            | Self::GitLog(_)
+            | Self::GitStashes(_)
+            | Self::GitStage(_)
+            | Self::GitUnstage(_)
+            | Self::GitDiscard(_)
+            | Self::GitCommit(_)
+            | Self::GitFetch(_)
+            | Self::GitPush(_)
+            | Self::GitPull(_)
+            | Self::GitSwitch(_)
+            | Self::GitRenameBranch(_)
+            | Self::GitStash(_)
+            | Self::ListDir(_)
+            | Self::ReadFile(_)
+            | Self::WriteFile(_)
+            | Self::CreateDir(_)
+            | Self::RenamePath(_)
+            | Self::DeletePath(_)
+            | Self::FindFiles(_)
+            | Self::SearchFiles(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

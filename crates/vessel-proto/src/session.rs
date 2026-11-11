@@ -15,6 +15,7 @@ use crate::options::OptionChoice;
 use crate::profile::Creator;
 use crate::terminal::{TerminalInput, TerminalSize};
 use crate::title::SessionTitle;
+use crate::workspace::{SessionPlace, SessionWorkspace};
 
 /// How a harness is driven.
 ///
@@ -95,6 +96,14 @@ pub struct SessionSpec {
     /// on its own; this stays what was asked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// Where it runs (protocol 10, ADR 0024): a project's folder or a
+    /// worktree. With a place, `cwd` is left out by the client and filled
+    /// by the node with the folder the place resolves to, so a client that
+    /// predates places still sees where the session runs. Boxed: a spec is
+    /// held by every session's info and copied into its futures, and most
+    /// sessions have no place.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place: Option<Box<SessionPlace>>,
     /// How to drive it.
     #[serde(flatten)]
     pub mode: SessionMode,
@@ -110,8 +119,16 @@ impl SessionSpec {
             cwd: None,
             profile: None,
             title: None,
+            place: None,
             mode,
         }
+    }
+
+    /// Running in `place`.
+    #[must_use]
+    pub fn with_place(mut self, place: SessionPlace) -> Self {
+        self.place = Some(Box::new(place));
+        self
     }
 
     /// In this working directory.
@@ -230,6 +247,10 @@ pub struct SessionInfo {
     /// from older nodes; a client then names it by its folder.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// Its project, worktree and branch (protocol 10), when its spec named
+    /// a place. Absent from older nodes. Boxed, as `SessionSpec.place` is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<Box<SessionWorkspace>>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -290,6 +311,7 @@ impl SessionInfo {
             origin: None,
             model: None,
             board: None,
+            workspace: None,
         }
     }
 

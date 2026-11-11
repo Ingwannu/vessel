@@ -38,7 +38,11 @@ use crate::transfers::{Holder, Transfers};
 use crate::waits::{ConnectionWaits, Share, WaitSlot, Waiter, Waits};
 
 // Protocol 9's calls: what a session runs with, and titles.
+mod files;
+mod git;
 mod options;
+mod projects;
+mod worktrees;
 
 /// The node's protocol implementation.
 #[derive(Debug)]

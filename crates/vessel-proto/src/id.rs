@@ -161,6 +161,16 @@ uuid_id! {
     TransferId
 }
 
+uuid_id! {
+    /// A project: a folder the node works in (protocol 10, ADR 0024).
+    ProjectId
+}
+
+uuid_id! {
+    /// A worktree the node made for a project (protocol 10, ADR 0024).
+    WorktreeId
+}
+
 opaque_id! {
     /// The harness's own session id (an ACP `sessionId`). Kept so a
     /// structured session can be resumed by the harness after a node restart.

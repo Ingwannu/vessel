@@ -69,6 +69,7 @@ const V5: ProtocolVersion = ProtocolVersion::new(5);
 const V6: ProtocolVersion = ProtocolVersion::new(6);
 const V8: ProtocolVersion = ProtocolVersion::new(8);
 const V9: ProtocolVersion = ProtocolVersion::new(9);
+const V10: ProtocolVersion = ProtocolVersion::new(10);
 
 #[test]
 fn every_method_knows_its_first_version() {
@@ -114,6 +115,44 @@ fn every_method_knows_its_first_version() {
             ("session.rename", Scope::Operate),
         ]
     );
+    // Protocol 10, track B: projects, worktrees, git and files. Reads are
+    // `read`; everything that changes a folder or a repository is
+    // `operate`; nothing needs `admin`.
+    for method in Method::ALL {
+        let name = method.as_str();
+        let workspace = ["project.", "worktree.", "git.", "file."]
+            .iter()
+            .any(|prefix| name.starts_with(prefix));
+        if !workspace {
+            continue;
+        }
+        assert_eq!(method.since(), V10, "{method:?}");
+        let reads = [
+            "project.list",
+            "project.get",
+            "project.commands",
+            "worktree.list",
+            "worktree.output",
+            "worktree.snapshots",
+            "git.status",
+            "git.changes",
+            "git.diff",
+            "git.show",
+            "git.branches",
+            "git.log",
+            "git.stashes",
+            "file.list",
+            "file.read",
+            "file.find",
+            "file.grep",
+        ];
+        let expected = if reads.contains(&name) {
+            Scope::Read
+        } else {
+            Scope::Operate
+        };
+        assert_eq!(method.scope(), expected, "{method:?}");
+    }
 }
 
 #[test]
@@ -188,7 +227,47 @@ fn the_forwardable_set_is_pinned() {
             "harness.options",
             "session.options",
             "session.set_option",
-            "session.rename"
+            "session.rename",
+            "project.list",
+            "project.get",
+            "project.add",
+            "project.clone",
+            "project.init",
+            "project.remove",
+            "project.commands",
+            "project.approve",
+            "worktree.list",
+            "worktree.create",
+            "worktree.output",
+            "worktree.setup",
+            "worktree.remove",
+            "worktree.snapshots",
+            "worktree.drop_snapshot",
+            "git.status",
+            "git.changes",
+            "git.diff",
+            "git.show",
+            "git.branches",
+            "git.log",
+            "git.stashes",
+            "git.stage",
+            "git.unstage",
+            "git.discard",
+            "git.commit",
+            "git.fetch",
+            "git.push",
+            "git.pull",
+            "git.switch",
+            "git.rename_branch",
+            "git.stash",
+            "file.list",
+            "file.read",
+            "file.write",
+            "file.create_dir",
+            "file.rename",
+            "file.delete",
+            "file.find",
+            "file.grep"
         ]
     );
 }

@@ -121,6 +121,48 @@ impl Unary for vessel_proto::GetHarnessOptions {}
 impl Unary for vessel_proto::GetSessionOptions {}
 impl Unary for vessel_proto::SetSessionOption {}
 impl Unary for RenameSession {}
+// Protocol 10 (track B): every workspace call answers once; long polls
+// (`project.get`, `worktree.output`) are bounded waits, not streams.
+impl Unary for vessel_proto::workspace::ListProjects {}
+impl Unary for vessel_proto::workspace::GetProject {}
+impl Unary for vessel_proto::workspace::AddProject {}
+impl Unary for vessel_proto::workspace::CloneProject {}
+impl Unary for vessel_proto::workspace::InitProject {}
+impl Unary for vessel_proto::workspace::RemoveProject {}
+impl Unary for vessel_proto::workspace::GetProjectCommands {}
+impl Unary for vessel_proto::workspace::ApproveCommands {}
+impl Unary for vessel_proto::workspace::ListWorktrees {}
+impl Unary for vessel_proto::workspace::CreateWorktree {}
+impl Unary for vessel_proto::workspace::ReadSetupOutput {}
+impl Unary for vessel_proto::workspace::RunSetup {}
+impl Unary for vessel_proto::workspace::RemoveWorktree {}
+impl Unary for vessel_proto::workspace::ListSnapshots {}
+impl Unary for vessel_proto::workspace::DropSnapshot {}
+impl Unary for vessel_proto::workspace::GetStatus {}
+impl Unary for vessel_proto::workspace::GetChanges {}
+impl Unary for vessel_proto::workspace::GetFileDiff {}
+impl Unary for vessel_proto::workspace::ShowFile {}
+impl Unary for vessel_proto::workspace::ListBranches {}
+impl Unary for vessel_proto::workspace::ReadLog {}
+impl Unary for vessel_proto::workspace::ListStashes {}
+impl Unary for vessel_proto::workspace::Stage {}
+impl Unary for vessel_proto::workspace::Unstage {}
+impl Unary for vessel_proto::workspace::Discard {}
+impl Unary for vessel_proto::workspace::Commit {}
+impl Unary for vessel_proto::workspace::Fetch {}
+impl Unary for vessel_proto::workspace::Push {}
+impl Unary for vessel_proto::workspace::Pull {}
+impl Unary for vessel_proto::workspace::Switch {}
+impl Unary for vessel_proto::workspace::RenameBranch {}
+impl Unary for vessel_proto::workspace::StashChanges {}
+impl Unary for vessel_proto::workspace::ListDir {}
+impl Unary for vessel_proto::workspace::ReadFile {}
+impl Unary for vessel_proto::workspace::WriteFile {}
+impl Unary for vessel_proto::workspace::CreateDir {}
+impl Unary for vessel_proto::workspace::RenamePath {}
+impl Unary for vessel_proto::workspace::DeletePath {}
+impl Unary for vessel_proto::workspace::FindFiles {}
+impl Unary for vessel_proto::workspace::SearchFiles {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -214,7 +256,47 @@ const fn is_unary(method: Method) -> bool {
         | Method::HarnessOptions
         | Method::SessionOptions
         | Method::SetSessionOption
-        | Method::RenameSession => true,
+        | Method::RenameSession
+        | Method::ListProjects
+        | Method::GetProject
+        | Method::AddProject
+        | Method::CloneProject
+        | Method::InitProject
+        | Method::RemoveProject
+        | Method::ProjectCommands
+        | Method::ApproveCommands
+        | Method::ListWorktrees
+        | Method::CreateWorktree
+        | Method::SetupOutput
+        | Method::RunSetup
+        | Method::RemoveWorktree
+        | Method::ListSnapshots
+        | Method::DropSnapshot
+        | Method::GitStatus
+        | Method::GitChanges
+        | Method::GitDiff
+        | Method::GitShow
+        | Method::GitBranches
+        | Method::GitLog
+        | Method::GitStashes
+        | Method::GitStage
+        | Method::GitUnstage
+        | Method::GitDiscard
+        | Method::GitCommit
+        | Method::GitFetch
+        | Method::GitPush
+        | Method::GitPull
+        | Method::GitSwitch
+        | Method::GitRenameBranch
+        | Method::GitStash
+        | Method::ListDir
+        | Method::ReadFile
+        | Method::WriteFile
+        | Method::CreateDir
+        | Method::RenamePath
+        | Method::DeletePath
+        | Method::FindFiles
+        | Method::SearchFiles => true,
     }
 }
 

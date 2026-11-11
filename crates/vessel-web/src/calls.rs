@@ -113,7 +113,47 @@ const fn forwardable(method: Method) -> bool {
         | Method::HarnessOptions
         | Method::SessionOptions
         | Method::SetSessionOption
-        | Method::RenameSession => true,
+        | Method::RenameSession
+        | Method::ListProjects
+        | Method::GetProject
+        | Method::AddProject
+        | Method::CloneProject
+        | Method::InitProject
+        | Method::RemoveProject
+        | Method::ProjectCommands
+        | Method::ApproveCommands
+        | Method::ListWorktrees
+        | Method::CreateWorktree
+        | Method::SetupOutput
+        | Method::RunSetup
+        | Method::RemoveWorktree
+        | Method::ListSnapshots
+        | Method::DropSnapshot
+        | Method::GitStatus
+        | Method::GitChanges
+        | Method::GitDiff
+        | Method::GitShow
+        | Method::GitBranches
+        | Method::GitLog
+        | Method::GitStashes
+        | Method::GitStage
+        | Method::GitUnstage
+        | Method::GitDiscard
+        | Method::GitCommit
+        | Method::GitFetch
+        | Method::GitPush
+        | Method::GitPull
+        | Method::GitSwitch
+        | Method::GitRenameBranch
+        | Method::GitStash
+        | Method::ListDir
+        | Method::ReadFile
+        | Method::WriteFile
+        | Method::CreateDir
+        | Method::RenamePath
+        | Method::DeletePath
+        | Method::FindFiles
+        | Method::SearchFiles => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

@@ -38,6 +38,7 @@ mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
+pub mod workspace;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
@@ -64,7 +65,8 @@ pub use forward::{
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
     DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
-    PermissionOptionId, RequestId, SessionId, SubscriptionId, ToolCallId, TransferId,
+    PermissionOptionId, ProjectId, RequestId, SessionId, SubscriptionId, ToolCallId, TransferId,
+    WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{
