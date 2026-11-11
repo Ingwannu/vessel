@@ -200,14 +200,14 @@ export class Bridge {
     return reply.result;
   }
 
-  /** Ask the bridge itself. Rejects with an `Error` holding its message. */
+  /** Ask the bridge itself. Rejects with an `OpFailed` keeping its reason. */
   op(op: Op): Promise<OpResult> {
     const id = this.#id();
     return new Promise<OpResult>((resolve, reject) => {
       this.#ops.set(id, { resolve, reject });
       if (!this.#send({ type: "op", id, op })) {
         this.#ops.delete(id);
-        reject(new Error("Not connected to vessel ui."));
+        reject(frames.opLost("Not connected to vessel ui."));
       }
     });
   }
@@ -381,7 +381,7 @@ export class Bridge {
     }
     this.#calls.clear();
     for (const pending of this.#ops.values()) {
-      pending.reject(new Error("The connection to vessel ui closed."));
+      pending.reject(frames.opLost("The connection to vessel ui closed."));
     }
     this.#ops.clear();
   }
@@ -426,7 +426,7 @@ export class Bridge {
         if ("ok" in frame.outcome) {
           pending.resolve(frame.outcome.ok);
         } else {
-          pending.reject(new Error(frame.outcome.err.message));
+          pending.reject(frames.opFailed(frame.outcome.err));
         }
         return;
       }

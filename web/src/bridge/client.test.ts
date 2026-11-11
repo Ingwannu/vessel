@@ -199,3 +199,30 @@ test("a refusal is final: Retry does not redial", () => {
   bridge.retry();
   expect(Socket.all.length).toBe(1);
 });
+
+test("an op's failure keeps the bridge's reason, and a lost socket says so", async () => {
+  const { bridge, socket } = start();
+  socket.message(await answer(socket));
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  const busy = bridge.op({ op: "nodes" });
+  const frame: unknown = JSON.parse(socket.sent.at(-1) ?? "{}");
+  const id =
+    typeof frame === "object" && frame !== null && "id" in frame
+      ? frame.id
+      : null;
+  socket.message({
+    type: "op_reply",
+    id,
+    outcome: { err: { reason: "busy", message: "too many calls" } },
+  });
+  await expect(busy).rejects.toMatchObject({
+    name: "OpFailed",
+    reason: "busy",
+    message: "too many calls",
+  });
+  const lost = bridge.op({ op: "nodes" });
+  socket.cut();
+  await expect(lost).rejects.toMatchObject({ reason: "disconnected" });
+});

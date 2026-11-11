@@ -136,6 +136,38 @@ export class Fleet {
     }
   }
 
+  /** The book as an edit from the page left it (`forget`, `rename` and
+   * `default` answer with it, so no second round trip): what left the
+   * book is dropped from every map, so nothing keeps listing or polling
+   * a forgotten machine, and a name new to it (a renamed machine) is
+   * read, which connects it. */
+  async takeBook(nodes: readonly BookNode[]): Promise<void> {
+    const keys = new Set(nodes.map((node) => node.key));
+    const before = new Set((this.store.get().book ?? []).map((n) => n.key));
+    const kept = <V>(map: Readonly<Record<NodeKey, V>>) =>
+      Object.fromEntries(Object.entries(map).filter(([key]) => keys.has(key)));
+    this.store.update((state) => ({
+      ...state,
+      book: nodes,
+      bookError: null,
+      statuses: kept(state.statuses),
+      harnesses: kept(state.harnesses),
+      profiles: kept(state.profiles),
+      models: kept(state.models),
+      sessions: kept(state.sessions),
+      errors: kept(state.errors),
+      selected:
+        state.selected !== null && keys.has(state.selected)
+          ? state.selected
+          : null,
+    }));
+    await Promise.all(
+      nodes
+        .filter((node) => !before.has(node.key))
+        .map((node) => this.refresh(node.key)),
+    );
+  }
+
   /** Read what `node` reports. */
   async refresh(node: NodeKey): Promise<void> {
     try {
