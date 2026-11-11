@@ -29,6 +29,14 @@ The owner looked at milestone 9's page and said what is wrong with it:
    permissions with.
 5. Take more from agent-orchestrator; look at T3 Code, at Paseo and at
    GOAT for the composer, the settings and connecting a computer.
+6. Then, shown two captures (a machine card with a heavy dark edge; the
+   search pill with the input's own focus box inside it): take
+   agent-orchestrator's and GOAT's UI and design system and make it as
+   similar as it can be, and use nothing the browser draws by itself.
+
+So the sources are, in order: agent-orchestrator, then GOAT, then T3 Code
+where GOAT changed nothing. Where the first two differ on the same thing,
+agent-orchestrator's stands (its shell and board are already here).
 
 A capture of the page agrees: the new-session dialog's native selects
 overflow the dialog, it speaks of harnesses, profiles and ACP, and it has
@@ -175,8 +183,11 @@ Owns `web/`. Everything later stands on it.
    Select, Menu, Combobox (a field with suggestions), Popover, Dialog,
    Tooltip, Switch, Checkbox, Segmented, Tabs, Badge, Kbd, Spinner,
    EmptyState. Sizes, radii, borders, focus rings, the popup's surface and
-   its motion are agent-orchestrator's; where it has no such control, T3
-   Code's.
+   its motion are agent-orchestrator's; where it has no such control,
+   GOAT's. A field is one shell: the shell carries the border, the fill
+   and the focus ring, the input inside it draws nothing. A `Row` for
+   lists of machines, devices, agents and settings; selection is a wash,
+   never an edge.
 2. **No native control left.** Every `<select>`, and every `<input>` and
    `<textarea>` outside the kit, is replaced; `npm run lint` fails on a
    new one (a check beside `check-fonts.mjs`).
@@ -205,8 +216,8 @@ Owns `web/`. Everything later stands on it.
   `harness.options`); what an agent does not offer is not shown. Behind
   the box's "+": a profile, "Open as terminal" and its arguments. Send
   creates the session, sends the prompt and opens it.
-- **The session**: its title in the bar; the composer at the foot as T3
-  Code's (a raised box, the prompt, a row with permissions, model, effort
+- **The session**: its title in the bar; the composer at the foot as
+  GOAT's (a raised box, the prompt, a row with permissions, model, effort
   and Send or Stop) reading and setting the running session's options; one
   permission prompt, not two; the inspector as agent-orchestrator's
   summary.
