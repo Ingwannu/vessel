@@ -163,8 +163,10 @@ export function AgentMenu({
               <MenuSeparator />
               {/* The agent's other settings, apart from the three rows the
                   page names itself: its switches, then its other choices,
-                  each by the agent's own name (data/options.ts). */}
-              <MenuGroup label="More">
+                  each by the agent's own name (data/options.ts). The
+                  heading says whose they are: "More" did not, and what is
+                  listed here is the agent's, not Vessel's. */}
+              <MenuGroup label={`${agent.name} settings`}>
                 {controls.toggles.map((toggle) => (
                   <MenuSwitchItem
                     key={toggle.id}
