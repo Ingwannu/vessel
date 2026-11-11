@@ -102,6 +102,46 @@ test("terminal input reaches the session in the order it was typed", async ({
   expect(held).toBe(true);
 });
 
+test("every New leads to the new-session page, on the machine in view", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  const heading = page.getByRole("heading", {
+    name: "What do you want to work on?",
+  });
+  const machine = page.getByRole("combobox", { name: "Machine" });
+  // The title bar's New, from the board scoped to a machine.
+  await page.goto(`${origin}/sessions?node=gpu-box`);
+  await page.getByRole("button", { name: "New", exact: true }).click();
+  await expect(heading).toBeVisible();
+  await expect(page).toHaveURL(/\/new\?machine=gpu-box$/);
+  await expect(machine).toContainText("gpu-box");
+  // The sidebar's row, and the `n` key from a page that is not typing.
+  await page.goto(`${origin}/sessions?node=build-server`);
+  await page
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: /^New session/ })
+    .click();
+  await expect(machine).toContainText("build-server");
+  await page.goto(`${origin}/sessions?node=laptop`);
+  await page
+    .getByRole("group", { name: "Sessions by status" })
+    .or(page.getByText("No sessions"))
+    .first()
+    .waitFor();
+  await page.keyboard.press("n");
+  await expect(heading).toBeVisible();
+  await expect(machine).toContainText("laptop");
+  // The command palette's action.
+  await page.goto(`${origin}/sessions`);
+  await page.keyboard.press("Control+k");
+  await page
+    .getByRole("dialog", { name: "Command palette" })
+    .getByRole("option", { name: /^New session/ })
+    .click();
+  await expect(heading).toBeVisible();
+});
+
 test("a structured session runs a turn and answers its permission", async ({
   page,
 }) => {

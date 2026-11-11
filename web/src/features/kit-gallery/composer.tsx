@@ -6,6 +6,7 @@
 import { useState } from "react";
 
 import {
+  Avatar,
   Button,
   Collapsible,
   Combobox,
@@ -34,6 +35,10 @@ export function Composer() {
   const [folder, setFolder] = useState("");
   return (
     <Section title="Composer">
+      <Specimens caption="an agent's mark, as a card and a title bar show it">
+        <Avatar letter="C" label="Claude Code" />
+        <Avatar letter="X" label="Codex" />
+      </Specimens>
       <Specimens caption="quiet triggers (soft), Send and Stop (round), the add button">
         <IconButton label="Add" icon="plus" shape="round" />
         <Menu
