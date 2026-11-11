@@ -240,6 +240,40 @@ Owns `web/`. Everything later stands on it.
 - **Welcome**: with no machine connected, the page says so and offers the
   dialog, as Paseo's first screen does.
 
+## Structure (every web track)
+
+Milestones 7 to 9 left the page with one 2,600-line stylesheet, route
+files of 450 to 700 lines that fetch, decide and draw in one function, and
+calls to the bridge written inside components. This milestone adds screens
+on top of that, so the shape is fixed first and checked by `npm run lint`,
+not by review:
+
+- **Layers, one direction.** `wire/` (generated) <- `bridge/` (the socket)
+  <- `data/` (state, derived values, and every call to a node as a typed
+  function) <- `features/<area>/` (an area's components and its own
+  hooks) <- `routes/` (a route composes features and nothing else).
+  `ui/kit/` and `ui/styles/` import none of them. ESLint's
+  `no-restricted-imports` holds the directions.
+- **A component does not call a node.** It calls a function in `data/`
+  that does, and gets a typed result or a typed failure back.
+- **One component, one file, one stylesheet beside it** in the kit and in
+  features. A file over 300 lines of TypeScript, or 400 of CSS, fails the
+  check unless it is on the list of files still to be divided; that list
+  only shrinks.
+- **Decisions are data.** What a lane, a phrase or an option means is a
+  pure function with a unit test (`data/board.ts` is the pattern); a
+  component only draws its result.
+- **No cast at a call site.** A value from the DOM or the wire is narrowed
+  by a function that checks it; the casts left are at the two boundaries
+  that already have them (the socket's frames, xterm's internals).
+
+The Rust side keeps what `AGENTS.md` already enforces (the crate map and
+its one direction of dependency, `unwrap`, `expect` and `panic` denied by
+the workspace's lints, closed enums matched exhaustively). Three files
+there are over 900 lines (`vessel-node`'s model proxy, fleet links and
+service); a track that adds to one of them adds a module beside it
+instead.
+
 ## Gate
 
 Rust tracks: `cargo fmt --all`, `cargo clippy --workspace --all-targets --
