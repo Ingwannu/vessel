@@ -4,8 +4,11 @@
 //! from `vessel-pty`, or an ACP agent from `vessel-agent`), numbers every event (`EventSeq`, gap-free
 //! from zero), keeps a bounded in-memory ring of recent records, hands every
 //! record to the node through a bounded durable channel, and broadcasts it
-//! to live followers. Must not: persist anything (the node owns the store,
-//! ADR 0001), speak the RPC protocol, or know harness specifics (it asks
+//! to live followers. It also keeps each session's place on the board
+//! (`SessionInfo::board`, protocol 8, ADR 0019): [`board`] is the reducer,
+//! a port of agent-orchestrator's, and the actor feeds it what its agent is
+//! doing. Must not: persist anything (the node owns the store, ADR 0001),
+//! speak the RPC protocol, or know harness specifics (it asks
 //! `vessel-harness`).
 //!
 //! This API is the seam with the node (`docs/plans/backend-m1.md`, R6).
@@ -19,6 +22,8 @@
 //!
 //!   actor (owns the process): output -> seq -> durable channel (node)
 //!                                           -> ring + broadcast (followers)
+//!                                           -> activity -> board::derive
+//!                                              -> info.board (watch)
 //! ```
 //!
 //! [Decision Log]
@@ -53,12 +58,24 @@
 //!   `Running`; a session that never became ready ends `Failed` with the
 //!   reason, unless it was killed while starting: that ends `Exited`, as a
 //!   killed terminal session does.
+//! - The board: every record the actor commits also passes the session's
+//!   activity tracker (`activity`), so what the agent is doing is a
+//!   projection of its log, as the store's `sessions` row is: a turn
+//!   started is active, a permission asked is waiting on the owner, a turn
+//!   ended is idle, a cancelled one is interrupted until the next, any
+//!   final status is exited. A terminal has no turns: output is active,
+//!   and one resettable timer in the actor's loop turns it idle after a
+//!   quiet stretch (`terminal::QUIET`). [`board::derive()`] turns those facts
+//!   into a lane and a phrase. The info watch wakes only when the lane,
+//!   the phrase or the activity changes; the time of the last activity
+//!   moves silently, as `next_seq` does, so output never wakes watchers.
 //! - Lifetime: an ended session stays in the runtime, ring and all, until
 //!   its owner calls `SessionRuntime::remove` (the node does once the store
 //!   has its whole log). Eviction is the owner's call because only the
 //!   owner knows when the store is complete; a runtime-side timer would
 //!   either drop rings the store still lacks or keep them for nothing.
 
+mod activity;
 pub mod board;
 mod config;
 mod error;

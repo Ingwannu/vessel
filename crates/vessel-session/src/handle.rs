@@ -122,10 +122,13 @@ impl SessionHandle {
 
     /// A receiver of info changes.
     ///
-    /// It is notified when the status or the harness session id changes. The
-    /// value's `next_seq` is kept current too, but advancing it alone does
-    /// not wake watchers (it changes on every event). The sender closes once
-    /// the session has published its final status.
+    /// It is notified when the status, the harness session id, the profile
+    /// or the session's place on the board (its lane, phrase or activity)
+    /// changes. The value's `next_seq` and the board's `last_activity_at`
+    /// are kept current too, but advancing them alone does not wake
+    /// watchers (they change with every event, or every burst of terminal
+    /// output). The sender closes once the session has published its final
+    /// status.
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()

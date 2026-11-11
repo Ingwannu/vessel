@@ -9,8 +9,9 @@
 
 use vessel_harness::{HarnessError, Profile, SessionFilesError};
 use vessel_proto::{
-    ContentBlock, Creator, DeviceId, ErrorCode, HarnessKind, HarnessSessionId, NodeId, SessionId,
-    SessionInput, SessionOrigin, SessionStatus, StopReason,
+    Activity, ContentBlock, Creator, DeviceId, DisplayStatus, ErrorCode, HarnessKind,
+    HarnessSessionId, KanbanColumn, NodeId, SessionId, SessionInput, SessionOrigin, SessionStatus,
+    StopReason,
 };
 use vessel_session::{LaunchOptions, MoveError, ProfileMove, SessionError};
 
@@ -891,6 +892,17 @@ async fn a_move_mid_turn_needs_force() {
             .await
             .unwrap();
         assert_eq!(info.profile.as_ref(), Some(work.name()));
+        // The board shows the turn the move stopped, not one left running
+        // by the agent it replaced (ADR 0019).
+        let board = info.board.unwrap();
+        assert_eq!(
+            (board.column, board.display_status, board.activity),
+            (
+                KanbanColumn::Building,
+                DisplayStatus::Interrupted,
+                Activity::Idle
+            )
+        );
         reader.until_moved().await;
         assert_eq!(reader.stops, [StopReason::Cancelled]);
         let session = info.harness_session.unwrap();

@@ -1,7 +1,7 @@
 //! The board's brain: which lane a session is in and what its card says
 //! (protocol 8, ADR 0019).
 //!
-//! Owns: the facts a placement is derived from, typed, and [`derive`], a
+//! Owns: the facts a placement is derived from, typed, and [`derive()`], a
 //! pure function of them. Must not: gather facts (the session actor reads
 //! its own records; pull requests will come from the node), keep state, or
 //! read the clock (the caller passes `now`). None of these types is a wire
@@ -41,7 +41,7 @@
 //!      reference's zero value (no activity reported) reads as idle in all
 //!      its functions but one (`interruptedWhileIdle`), and none of its
 //!      cases is interrupted without an activity; here it is `idle`.
-//!   3. A pull request's lane is its own three-valued type ([`Lane`]), so
+//!   3. A pull request's lane is its own three-valued type (`Lane`), so
 //!      the reference's fall-through arms (a priority for "no lane", the
 //!      building phrase for a pull-request lane that cannot be building)
 //!      do not exist.
