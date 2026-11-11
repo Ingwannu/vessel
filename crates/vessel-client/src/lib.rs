@@ -17,7 +17,9 @@
 //! a node on this machine through its local socket, with the node's token
 //! or a session agent's credential (ADR 0013). Where a node is comes as a
 //! [`NodeAddress`]: a websocket URL or an [`SshTarget`], by name from the
-//! user's node [`book`].
+//! user's node [`book`]. [`compose`] builds what a conversation's calls
+//! send (an answer to a question, a waiting prompt's new text) from what a
+//! person types or an agent gives.
 //!
 //! No command-line parsing and no printing: the CLI, a web backend or an
 //! editor plugin all build on this the same way.
@@ -39,6 +41,7 @@ mod address;
 pub mod book;
 mod chunks;
 mod client;
+pub mod compose;
 mod connector;
 mod conversation;
 mod credential;

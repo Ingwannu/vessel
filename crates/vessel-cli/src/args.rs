@@ -11,6 +11,10 @@ use vessel_proto::{EventSeq, HarnessKind, NodeId, ProfileName, Scope, SecretName
 
 use crate::selector::SessionSelector;
 
+mod conversation;
+
+pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
+
 /// Vessel: drive agent harnesses on this and other machines.
 #[derive(Debug, Parser)]
 #[command(name = "vessel", version, about)]
@@ -95,12 +99,7 @@ pub(crate) enum Command {
         from: EventSeq,
     },
     /// Send a line (terminal session) or a prompt (structured session).
-    Send {
-        /// Session id, or a unique prefix of one.
-        session: SessionSelector,
-        /// What to send.
-        text: String,
-    },
+    Send(Send),
     /// Print a session's log.
     Log {
         /// Session id, or a unique prefix of one.
@@ -125,7 +124,8 @@ pub(crate) enum Command {
     /// server), with its endpoint and the session's credential in the
     /// environment; it is not run by hand.
     Mcp,
-    /// Change a session in place.
+    /// Change a session in place: its profile, its queue, answers to its
+    /// agent, marks; start it again, copy, move or delete it.
     Session {
         #[command(subcommand)]
         command: SessionCommand,
@@ -212,6 +212,8 @@ pub(crate) enum SessionCommand {
         #[command(flatten)]
         to: CopyTo,
     },
+    #[command(flatten)]
+    Conversation(ConversationCommand),
 }
 
 /// Where `vessel session copy|move` takes a conversation.

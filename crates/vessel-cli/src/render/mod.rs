@@ -5,7 +5,9 @@ use std::fmt::Write as _;
 
 mod conversation;
 
-pub(crate) use conversation::{commands, question, question_outcome, queue, usage};
+pub(crate) use conversation::{
+    commands, delivered, question, question_outcome, queue, queue_entries, usage,
+};
 
 use vessel_proto::{
     EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, ProfileInfo,
@@ -230,7 +232,7 @@ pub(crate) fn sessions(sessions: &[SessionInfo]) -> String {
     }
     let mut text = String::new();
     for session in sessions {
-        let _infallible = writeln!(
+        let _infallible = write!(
             text,
             "{}  {:<12} {:<18} {:<16} {}",
             session.id,
@@ -239,6 +241,11 @@ pub(crate) fn sessions(sessions: &[SessionInfo]) -> String {
             mode(&session.spec.mode),
             session.created_at.format("%Y-%m-%d %H:%M:%S"),
         );
+        let marks = conversation::marks(&session.marks);
+        if !marks.is_empty() {
+            let _infallible = write!(text, "  [{marks}]");
+        }
+        text.push('\n');
     }
     text
 }
@@ -393,5 +400,14 @@ mod tests {
         assert!(text.contains("terminal --full-auto"));
         assert!(text.ends_with("1970-01-01 00:00:00\n"));
         assert_eq!(sessions(&[]), "no sessions\n");
+
+        let mut marked = session;
+        marked.marks.pinned = true;
+        marked.marks.unread = true;
+        assert!(
+            sessions(std::slice::from_ref(&marked)).ends_with("00:00:00  [pinned, unread]\n"),
+            "{}",
+            sessions(&[marked])
+        );
     }
 }

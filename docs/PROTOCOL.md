@@ -114,7 +114,14 @@ worktrees, git, files); this entry is Track A's, the conversation.
   prompt naming one (`session.prompt`, a queue `edit`, `session.send`, and
   a queued prompt when it is sent) checked against the session's own
   records, the per-prompt bounds and what its agent takes then
-  (`invalid_request`).
+  (`invalid_request`); and every call from the command line (`vessel send
+  --queue|--steer|--interrupt|--attach`, `vessel session
+  queue|answer|resume|pin|unpin|archive|unarchive|read|unread|delete`)
+  and, but marks other than archiving, deletion and attachments, from the
+  agent tools (`send_input`'s `delivery`, `read_conversation`,
+  `change_queue`, `answer_question`, `resume_session`,
+  `archive_session`). A `vessel send` without a delivery or a file still
+  makes `session.send`, so it works with an older node.
 
 ## Version 9 (2026-11-11)
 

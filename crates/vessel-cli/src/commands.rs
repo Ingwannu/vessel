@@ -4,12 +4,10 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use bytes::Bytes;
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
 use vessel_proto::{
-    ContentBlock, EventSeq, HarnessKind, HarnessSessionId, ModelId, ProfileName, SessionInput,
-    SessionMode, SessionSpec, TerminalBytes, TerminalInput,
+    EventSeq, HarnessKind, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
 };
 
 use vessel_client::book::Resolved;
@@ -19,7 +17,7 @@ use crate::attach::{self, terminal};
 use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
 use crate::selector::SessionSelector;
-use crate::{devices, fleet, init, io, nodes, remote, render, transfer, ui};
+use crate::{conversation, devices, fleet, init, io, nodes, remote, render, transfer, ui};
 
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
@@ -86,7 +84,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             let info = session.resolve(&connected.client).await?;
             attach::attach(&connected, &info, from).await
         }
-        Command::Send { session, text } => send_text(target, &session, text).await,
+        Command::Send(send) => conversation::send(target, send).await,
         Command::Log { session, from } => log(target, &session, from).await,
         Command::Kill { session } => {
             let client = connect(target).await?.client;
@@ -103,21 +101,28 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             };
             Box::pin(init::run(data_dir(target)?, options)).await
         }
-        Command::Session {
-            command:
-                SessionCommand::MoveProfile {
-                    session,
-                    profile,
-                    force,
-                },
-        } => Box::pin(move_profile(target, &session, profile, force)).await,
-        Command::Session {
-            command: SessionCommand::Copy { to, start },
-        } => Box::pin(transfer::copy_session(target, to, start, false)).await,
-        Command::Session {
-            command: SessionCommand::Move { to },
-        } => Box::pin(transfer::copy_session(target, to, true, true)).await,
+        Command::Session { command } => Box::pin(session(target, command)).await,
         Command::Ui(args) => Box::pin(ui::ui(target, args)).await,
+    }
+}
+
+/// `vessel session ...`.
+async fn session(target: &Target, command: SessionCommand) -> Result<(), CliError> {
+    match command {
+        SessionCommand::MoveProfile {
+            session,
+            profile,
+            force,
+        } => Box::pin(move_profile(target, &session, profile, force)).await,
+        SessionCommand::Copy { to, start } => {
+            Box::pin(transfer::copy_session(target, to, start, false)).await
+        }
+        SessionCommand::Move { to } => {
+            Box::pin(transfer::copy_session(target, to, true, true)).await
+        }
+        SessionCommand::Conversation(command) => {
+            Box::pin(conversation::command(target, command)).await
+        }
     }
 }
 
@@ -263,29 +268,6 @@ fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
         });
     }
     Ok(std::path::absolute(&cwd)?)
-}
-
-/// A line for a terminal session (ended with Enter, `\r`, which a TUI in
-/// raw mode and a line-mode program both take as the end of a line), or a
-/// prompt for a structured one.
-async fn send_text(
-    target: &Target,
-    session: &SessionSelector,
-    text: String,
-) -> Result<(), CliError> {
-    let client = connect(target).await?.client;
-    let info = session.resolve(&client).await?;
-    let input = match info.spec.mode {
-        SessionMode::Terminal { .. } => SessionInput::Terminal {
-            input: TerminalInput::Data {
-                data: TerminalBytes::new(Bytes::from(format!("{text}\r"))),
-            },
-        },
-        SessionMode::Structured { .. } => SessionInput::Prompt {
-            content: vec![ContentBlock::Text { text }],
-        },
-    };
-    Ok(client.send(info.id, input).await?)
 }
 
 /// Print a session's log (see `log` for the order of stdout and stderr).

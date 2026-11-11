@@ -10,7 +10,8 @@ use vessel_proto::conversation::{
 };
 use vessel_proto::{
     AttachmentId, AttachmentName, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered,
-    Delivery, Mark, QueueChange, SessionId, SessionInfo, UploadId,
+    Delivery, Mark, QuestionAnswer, QuestionId, QueueChange, SessionId, SessionInfo, SessionInput,
+    UploadId,
 };
 use vessel_rpc::CallError;
 
@@ -63,6 +64,30 @@ impl NodeClient {
         change: QueueChange,
     ) -> Result<QueueChanged, CallError> {
         self.call(ChangeQueue { session, change }).await
+    }
+
+    /// `session.send`'s `answer_question` (protocol 10): answer a question
+    /// the session's agent asks; the first answer wins.
+    ///
+    /// # Errors
+    /// `invalid_request` for an answer that does not fit the question's
+    /// form; `not_found` for a question the session does not have waiting;
+    /// `conflict` once it is settled; `unsupported` from a node before
+    /// protocol 10; otherwise see [`CallError`].
+    pub async fn answer_question(
+        &self,
+        session: SessionId,
+        question: QuestionId,
+        answer: QuestionAnswer,
+    ) -> Result<(), CallError> {
+        self.send(
+            session,
+            SessionInput::AnswerQuestion {
+                id: question,
+                answer,
+            },
+        )
+        .await
     }
 
     /// `session.mark` (protocol 10): pin, archive (a live session is

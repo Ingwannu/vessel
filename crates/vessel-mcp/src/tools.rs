@@ -22,6 +22,7 @@
 //!   [`EARLY_PAUSE`] before the next, so that is a poll a second, not a
 //!   busy loop.
 
+mod conversation;
 mod lsp;
 
 use std::path::PathBuf;
@@ -95,6 +96,8 @@ impl VesselTools {
             "answer_permission" => self.answer_permission(args).await,
             "read_events" => self.read_events(args).await,
             "wait_turn" => self.wait_turn(args).await,
+            "read_conversation" | "change_queue" | "answer_question" | "resume_session"
+            | "archive_session" => self.conversation(name, args).await,
             "kill_session" => {
                 let node = self.target(args).await?;
                 let session = session(args)?;
@@ -225,6 +228,9 @@ impl VesselTools {
         let node = self.target(args).await?;
         let session = session(args)?;
         let text = required(args, "text")?;
+        if let Some(delivery) = conversation::delivery(args)? {
+            return self.deliver(node, session, text, delivery).await;
+        }
         let terminal = matches!(
             self.on(node, GetSession { session }).await?.spec.mode,
             SessionMode::Terminal { .. }
@@ -455,7 +461,8 @@ impl ServerHandler for VesselTools {
             .with_instructions(
                 "Vessel: start and drive other agent sessions, on this machine or another node \
                  of its fleet (`node`, from `list_nodes`). A session you start is yours: you \
-                 may send it input, wait for its turns, and stop it.",
+                 may send it input (queued or steered while it works), wait for its turns, \
+                 answer it, stop it, archive it and start it again.",
             )
     }
 
@@ -558,16 +565,20 @@ fn session(args: &JsonObject) -> Result<SessionId, ToolError> {
 
 /// Every tool with its input schema.
 fn tools() -> Vec<Tool> {
-    session_tools().into_iter().chain(lsp::tools()).collect()
-}
-
-fn session_tools() -> Vec<Tool> {
     let session = json!({ "type": "string", "description": "A session id." });
     let node = json!({
         "type": "string",
         "description": "A node of the fleet, by its id or its name in `list_nodes`; leave it \
                         out for this node."
     });
+    session_tools(&node, &session)
+        .into_iter()
+        .chain(conversation::tools(&node, &session))
+        .chain(lsp::tools())
+        .collect()
+}
+
+fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
     vec![
         tool(
             "list_nodes",
@@ -614,8 +625,13 @@ fn session_tools() -> Vec<Tool> {
         tool(
             "send_input",
             "Send a prompt to a structured session, or type a line into a terminal one. \
-             Returns `from`, for `wait_turn`.",
-            json!({ "node": node, "session": session, "text": { "type": "string" } }),
+             Returns `from`, for `wait_turn`, and with `delivery` what became of the prompt.",
+            json!({
+                "node": node,
+                "session": session,
+                "text": { "type": "string" },
+                "delivery": conversation::delivery_property()
+            }),
             &["session", "text"],
         ),
         tool(
@@ -644,8 +660,9 @@ fn session_tools() -> Vec<Tool> {
         tool(
             "wait_turn",
             "Wait, from record `from` (what `send_input` or `create_session` returned, or a \
-             previous `next`), until the session's turn ends, it asks for a permission, or it \
-             ends. Returns the outcome, the reply text, and `next` to go on from.",
+             previous `next`), until the session's turn ends, it asks for a permission or asks a \
+             question, or it ends. Returns the outcome, the reply text, and `next` to go on \
+             from.",
             json!({
                 "node": node,
                 "session": session,

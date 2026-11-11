@@ -80,6 +80,43 @@ cargo build --release
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 
+### A conversation: the queue, files, questions, marks
+
+A structured session's next message can go in while its agent still
+works, and the node keeps what waits, so every client sees the same queue
+(ADR 0024):
+
+```bash
+vessel send 3f2a "run the tests next" --queue   # waits its turn: prints `queued <entry>`
+vessel send 3f2a "use the staging config" --steer   # into the running turn (agents that take it)
+vessel send 3f2a "stop, do this instead" --interrupt   # cancels the turn, then starts this
+vessel send 3f2a "what is in these?" --attach shot.png --attach notes.md
+vessel session queue 3f2a                    # what waits, next first; held or not
+vessel session queue 3f2a edit 9c "run only the unit tests"   # its files stay
+vessel session queue 3f2a move 9c --before 7d   # or last without --before
+vessel session queue 3f2a send-now 9c --steer   # remove, hold, resume, clear too
+vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, by field
+vessel session answer 3f2a 8e allow-once     # a permission request, by option
+vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
+vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
+vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip)
+```
+
+- Without `--queue`, `--steer`, `--interrupt` or `--attach`, `send` starts
+  a turn as it always did, refused while one runs. Queued prompts start
+  one per turn; a person cancelling a turn, a failed turn, or the session
+  ending holds the queue until `vessel session queue ID resume`.
+- `--attach` uploads the file a piece at a time and keeps it with the
+  session (an image or audio up to 10 MiB, which the agent gets inline if
+  it takes them; any other file up to 50 MiB, which it reads by a link).
+- Entries, questions and requests are named by their id or a unique
+  prefix of it, as sessions are; `vessel attach` and `vessel log` show
+  them, and `queue` shows each entry's revision (`edit --revision`
+  refuses an edit made from an older one).
+- `vessel sessions` shows each session's marks. `archive` stops a live
+  session first; `resume` brings an archived one back; `delete` refuses
+  a live one.
+
 ### Another machine, over SSH
 
 Any machine you can `ssh` to with a key works (Linux or macOS,
@@ -435,9 +472,13 @@ reaches its home by.
 Every session's agent gets the `vessel` MCP server (`vessel mcp`, started
 by the node) with a credential of its own, ending with the session. Its
 tools: `list_nodes`, `list_sessions`, `create_session` (with a first
-prompt), `send_input`, `answer_permission`, `read_events`, `wait_turn`
-and `kill_session`; each but `list_nodes` takes `node`, so an agent can
-start a session on another machine and read its answer.
+prompt), `send_input` (with a `delivery`: `start`, `queue`, `steer` or
+`interrupt`), `answer_permission`, `read_events`, `wait_turn`,
+`kill_session`, `read_conversation` (the queue, the agent's commands and
+context, what waits on an answer), `change_queue`, `answer_question`,
+`resume_session` and `archive_session`; each but `list_nodes` takes
+`node`, so an agent can start a session on another machine and read its
+answer.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and
   operates only on sessions it started (and theirs).
@@ -445,6 +486,12 @@ start a session on another machine and read its answer.
   most 3 levels deep.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
+- Agents do not mark sessions read or unread (the node refuses: an agent
+  reading is not its owner seeing), pin them, delete them or attach
+  files. The node asks questions only in sessions a person or a device
+  started, and an agent operates only on its own, so `answer_question`
+  has nothing to answer until a profile can grant an agent more (ADR
+  0013).
 
 ## Models: every harness on every model
 

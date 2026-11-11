@@ -48,7 +48,7 @@ and 0013).
 | `vessel-session` | Session actors: owns the process, assigns `EventSeq`, keeps a ring cache, broadcasts, hands every record to the node for persistence; each session's place on the board (`board`, the reducer ported from agent-orchestrator, fed by `activity`, protocol 8); the agent's options logged as `options_changed`, titles (`renamed`, from the first prompt or a rename), the choices a session carries on, and probing an agent (protocol 9). | proto, harness, pty, agent |
 | `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `mcp/`, `uploads/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments, schema 8: retention's order, protocol 10), the `probe/` directory agents are probed in, `attachments/` (kept and read back without following a link, protocol 10), retention, restart recovery. | proto |
 | `vessel-node` | `vesseld`: config, auth, HTTP/websocket server, `Handler` implementation, persistence and subscription plumbing; devices, scopes and the secure gateway, and `vesseld relay` (milestone 3); harness profiles (`profiles`: `profiles.toml`, `profile.list`/`reload`, what `session.create` launches with, what `session.move_profile` moves to), agent principals (`agents`: a credential per session, grants, limits, ownership) and fleet sync (`fleet`: the home publishing `fleet.toml`'s sources and serving `fleet.*`, members joining, pulling, applying into every profile's home and reporting; this node's secrets) (milestone 4); transfers (`transfers`: `session.export`/`memory.export` snapshots held for whoever opened them, `transfer.read`/`close`, expiry, and `session.import`/`memory.import` pulling through a `Source`: this node, or another through the envelope as the caller) (protocol 6, F4); `envelope` and `fleet/links` (protocol 6, Track X): `fleet.forward`/`relay`/`deliver` with the delegated principal (the delivering device's scopes ∩ the origin's, ownership and agent limits applied to the origin), the mutual grant (`fleet.grant`, `fleet/granted.json` on a member, `fleet/grants/` and the binding record `fleet/bindings.json` on the home, `fleet.forget`, which withdraws the home's outstanding invitations, and `fleet.callback`, the home's relays and a relay ticket for a member with no route of its own, which `relays` links to: `fleet/links/callback.rs`), `fleet.peers`/`nodes`, and `session.read` waiting with its shares (`waits`). Model routing (`models`: `models.toml`, the loopback proxy, model tokens, limits, `ModelCall` records, `model.list`) (milestone 5, ADR 0015). Protocol 9 (ADR 0022): `service/options` (`harness.options`, `session.options`, `session.set_option`, `session.rename`) and `probes` (what each agent offers, probed once for concurrent callers and kept ten minutes). | proto, rpc, harness, session, store, secure, relay, fleet, client, lsp, llm |
-| `vessel-client` | Typed async client and gap-free session streams; the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6). | proto, rpc, secure, relay |
+| `vessel-client` | Typed async client and gap-free session streams; the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6); protocol 10's conversation calls, and `compose` (a question's answer from text, a queued prompt's new text) for the CLI and the agent tools (milestone 11). | proto, rpc, secure, relay |
 | `vessel-remote` | Remote nodes over SSH (milestone 2): the `ssh` runner, platform detection, installing `vesseld` by upload, `cleanup`; the SSH connector. | proto, rpc, client |
 | `vessel-secure` | End-to-end secure channel (milestone 3, ADR 0009): Noise NK through `snow`, the node key pair, routing ids and fingerprints, the record layer, `SecureChannel` (a frame transport over any binary-message carrier), the relay's possession proof. | proto |
 | `vessel-relay` | The relay (milestone 3, ADR 0009): `serve` (its own accept loop; registration with token or ticket and possession proof, splicing, limits counted per IPv4 address and per IPv6 `/64`, `/56` and `/48` (`address`, public: the node's direct route counts the same way, and reads a trusted proxy's header with the same `ClientAddress`), a share of sockets kept for those that authenticated, the client-address header believed only from trusted proxies, close codes), registration tickets (`ticket`: HMAC-SHA256 under the token, minted by a fleet's home for a member's key, protocol 6), which addresses a link may dial (`reach`: `Reach::Public` resolves the relay's host at dial time and connects only to public addresses, for relays a member's home named), the node's `NodeLink` (with the token, or tickets it renews), the client's `dial`/`connect`, websocket carriers (`WsCarrier`, `AxumCarrier`) and the node's `respond` (closing with `4401`), TLS for `wss://` (rustls with `ring`). | proto, secure |
@@ -691,8 +691,13 @@ In the crate table's order.
   attaches to every session as `vessel`. Tools: `list_nodes`,
   `list_sessions`, `create_session`, `send_input`, `answer_permission`,
   `read_events`, `wait_turn` (a long poll of `session.read` with `wait`),
-  `kill_session`; each but `list_nodes` takes `node` and goes through
-  `fleet.forward` for another node.
+  `kill_session`; milestone 11 (protocol 10, `tools/conversation.rs`):
+  `send_input`'s `delivery` (`session.prompt`), `read_conversation`,
+  `change_queue`, `answer_question` (values read by the question's field
+  kinds, `vessel_client::compose`), `resume_session`, `archive_session`;
+  no read/unread marks, pins, deletes or attachments for agents. Each but
+  `list_nodes` takes `node` and goes through `fleet.forward` for another
+  node.
 - `vessel-cli` (`vessel`): `node start`, `status`, `harnesses`,
   `sessions`, `run`, `attach`, `send`, `log`, `kill`; terminal attach in
   raw mode with `Ctrl-]` to detach (also under the kitty keyboard
@@ -713,7 +718,15 @@ In the crate table's order.
   never argv), `fleet memory copy`, `init` (idempotent steps: node
   identity, harnesses, install offers, profiles for other accounts' homes,
   login checks, `--service` as a systemd user unit or launchd agent,
-  `--join`), and `mcp`. The CLI reads `VESSEL_NODE`, `VESSEL_TOKEN`,
+  `--join`), and `mcp`. Milestone 11 (protocol 10, `conversation/`):
+  `send --queue|--steer|--interrupt|--attach FILE` (without them the old
+  `session.send`; files uploaded a piece at a time, typed by extension),
+  `session queue [edit|move|remove|send-now|hold|resume|clear]`, `session
+  answer` (a question's `field=value`s or a permission's option),
+  `session resume`, `session pin|unpin|archive|unarchive|read|unread`,
+  `session delete` (asks unless `--yes`), and each session's marks in
+  `sessions`; entries and requests named by an id prefix
+  (`selector::IdPrefix`). The CLI reads `VESSEL_NODE`, `VESSEL_TOKEN`,
   `VESSEL_DATA_DIR`, `VESSEL_CONFIG_DIR`, `VESSEL_SSH` and `VESSEL_GH`;
   tests set them so they never touch the user's book, `ssh` or GitHub.
   Tested through the binary (`tests/cli/`), including a test that plants

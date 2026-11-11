@@ -1204,5 +1204,73 @@ the same refusal an older node gives.
   turn it starts; the e2e test of the node-wide 16 and the 4 GiB is a unit
   test through a real store (`uploads::tests`), as is the idle drop. The
   CLI and the agent tools come with their slice.
-- Next: the CLI and the agent tools (`answer_question`, marks, delete,
-  start again and attachments there).
+- Slice 7, the CLI and the agent tools (contract item 8): every call of
+  protocol 10 from the command line, and the ones an agent should have as
+  tools.
+  - CLI (`vessel-cli`'s `conversation/`, arguments in `args/conversation.rs`):
+    `vessel send --queue|--steer|--interrupt` and `--attach FILE`
+    (repeatable), the outcome printed (`started`, `steered`, `queued
+    <entry>`); `vessel session queue ID` (each entry's place, id,
+    revision, who queued it, the start of its text and its files) with
+    `edit`, `move [--before]`, `remove`, `send-now [--steer|--interrupt]`,
+    `hold`, `resume`, `clear`, each printing the queue after; `vessel
+    session answer ID REQUEST [field=value ...] [--decline]`; `vessel
+    session resume|pin|unpin|archive|unarchive|read|unread ID`, each
+    printing the session's line with its marks, which `vessel sessions`
+    now shows too; `vessel session delete ID` (asks unless `--yes`, and
+    without a terminal refuses to ask, as `node update --now` does).
+    Entries, questions and requests are named by an id or a unique prefix
+    among the ones there are (`selector::IdPrefix`).
+  - Agent tools (`vessel-mcp`'s `tools/conversation.rs`): `send_input`
+    takes a `delivery` (`session.prompt`, answering `from` and
+    `delivered`), `read_conversation`, `change_queue`, `answer_question`
+    (values as JSON, a list for a field of several choices),
+    `resume_session`, `archive_session` (`unarchive` too).
+  - `vessel_client::compose`, shared by both: `fill` reads a question's
+    values from `(field, text)` pairs by each field's kind (bounds,
+    options and required fields stay the node's `Question::check`), and
+    `with_text` gives a waiting prompt new words, its attachments kept;
+    `NodeClient::answer_question`.
+  Decided here (the contract did not say):
+  - `vessel send` without a delivery or a file makes `session.send` as
+    before, so it still works with a node before protocol 10; with one,
+    `session.prompt`.
+  - A file is read and sent a piece at a time (at most the node's
+    `chunk`), its size fixed at `attachment.begin`; one that ends early is
+    refused (`changed while it was sent`). Its type comes from its
+    extension (the four inline image types, common audio, a few text and
+    document types, else `application/octet-stream`); no dependency for
+    guessing more.
+  - An `edit` keeps the entry's attachments and, without `--revision` (the
+    tool's `revision`), uses the entry's current revision, read from
+    `session.conversation` just before; `vessel session queue` shows the
+    revision so a person can pin it.
+  - `vessel session answer` reads what waits first: the id prefix names a
+    question or a permission request, a question's form says how to read
+    each value (`yes`/`no` for a boolean, decimal numbers, one pair per
+    chosen value), and a permission takes one option's id. `--decline`
+    on a permission sends `cancelled`, what the agent tool
+    `answer_permission` already did for "refuse". One no longer waiting
+    is an error naming the prefix, not a call.
+  - `read` marks seen what the session had logged when the CLI looked it
+    up (`SessionInfo.next_seq`): a record landing after stays unread.
+  - Not offered to agents: marking read or unread (the node forbids it),
+    pinning (a person's own lists), deleting (for good; an agent archives
+    instead), attachments (an agent names a file's path in the prompt and
+    the other agent reads it with its own tools). An agent operates only
+    on its own sessions and the node asks questions only in sessions a
+    person or a device started, so the agent's `answer_question` has
+    nothing to answer until profile grants (ADR 0013) exist; it is tested
+    with the same tools over the owner's connection for the answer, and
+    over the agent's for the refusal (`forbidden`).
+  - Tests: `crates/vessel-cli/tests/cli/conversation.rs` (each command
+    and its main refusal through the binary; the fixture gained `restart`
+    and `owner`), `crates/vessel-mcp/tests/conversation.rs` (the MCP
+    tests' support moved to `tests/support/mcp.rs`, shared by `#[path]`).
+  Known limits: an upload that fails half way stays open on the node
+  until its 10-minute idle drop (protocol 10 has no call to abandon one);
+  a file's type is its extension's (the node still checks an image's
+  first bytes); `vessel attach` keeps sending a typed line as a `start`
+  prompt and shows questions without answering them (`vessel session
+  answer` does); the CLI shows the agent's commands and context only as
+  `vessel attach` and `vessel log` print them.
