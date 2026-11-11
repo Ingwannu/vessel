@@ -16,8 +16,13 @@
 //! - The book's edits (pair, forget, rename, default) are the source's
 //!   too, so the book has one writer, the CLI's (`BookFile`), and the
 //!   page cannot do to the book what `vessel nodes` cannot.
+//! - Where the page's preferences and drafts are kept is the source's to
+//!   say too ([`NodeSource::preferences`], ADR 0025): only the CLI knows
+//!   `--config-dir`, `--data-dir` and where the book is, and a library
+//!   never works out the user's home itself (AGENTS.md section 8).
 
 use std::future::Future;
+use std::path::PathBuf;
 
 use vessel_client::Connector;
 use vessel_client::book::NodeName;
@@ -70,4 +75,27 @@ pub trait NodeSource: Send + Sync + 'static {
     /// [`NodeKey::Here`] clears the book's default (`--none`), which makes
     /// this machine's node the default.
     fn set_default(&self, node: &NodeKey) -> impl Future<Output = Result<(), Self::Error>> + Send;
+
+    /// Where the page's preferences and drafts are kept. A field that is
+    /// `None` is kept in memory for this launch. The default keeps both
+    /// in memory (a source with no disk, such as the bridge's tests).
+    /// Asked once, when `vessel ui` starts; an error is logged once and
+    /// both are kept in memory, the page saying why.
+    ///
+    /// # Errors
+    /// Where they would be kept cannot be worked out (no home directory,
+    /// say).
+    fn preferences(&self) -> Result<PageFiles, Self::Error> {
+        Ok(PageFiles::default())
+    }
+}
+
+/// Where the page's preferences and drafts are kept: full paths of the
+/// files, or `None` for memory only.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PageFiles {
+    /// The preferences (`vessel` keeps them beside the node book).
+    pub preferences: Option<PathBuf>,
+    /// The drafts (`vessel` keeps them in its local data directory).
+    pub drafts: Option<PathBuf>,
 }

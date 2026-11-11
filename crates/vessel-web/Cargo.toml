@@ -17,6 +17,9 @@ vessel-client.workspace = true
 vessel-proto.workspace = true
 
 axum.workspace = true
+# The time a draft was last saved (ADR 0025), as the protocol's own times
+# are typed (`vessel-proto` already depends on it).
+chrono.workspace = true
 futures-util.workspace = true
 # The per-launch token (ADR 0017); already in the workspace.
 getrandom.workspace = true

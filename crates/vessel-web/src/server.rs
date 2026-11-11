@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use axum::extract::State;
 use axum::http::header::AUTHORIZATION;
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse as _, Response};
 use axum::routing::get;
 use axum::{Json, Router, middleware};
@@ -18,7 +18,9 @@ use tokio_util::sync::CancellationToken;
 use vessel_client::Backoff;
 
 use crate::guard::{Allowed, guard};
-use crate::registry::Registry;
+use crate::keep::Keeper;
+use crate::paint::Paint;
+use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
 use crate::token::LaunchToken;
 use crate::wire::Status;
@@ -88,6 +90,8 @@ pub(crate) struct Ui<S> {
     pub(crate) shutdown: CancellationToken,
     pub(crate) hello_deadline: Duration,
     pub(crate) registry: Arc<Registry<S>>,
+    /// The page's preferences and drafts.
+    pub(crate) keeper: Keeper,
 }
 
 /// Serve the UI on `listener` until `shutdown`, bridging to the nodes
@@ -116,19 +120,29 @@ pub async fn serve<S: NodeSource>(
     let connections = shutdown.child_token();
     let _stop_connections = connections.clone().drop_guard();
     let allowed = Arc::new(Allowed::for_address(address, config.token.host()));
+    let auth = crate::auth::Auth::new(config.token)?;
+    // Asked once; the reason a source cannot say is logged here, once,
+    // and the page is told it with every state.
+    let files = source.preferences().map_err(|error| {
+        let message = chain(&error);
+        tracing::warn!(%message, "the page's preferences and drafts are kept until vessel ui stops");
+        message
+    });
+    let (keeper, kept) = Keeper::start(files, connections.child_token()).await;
     let ui = Arc::new(Ui {
-        auth: crate::auth::Auth::new(config.token)?,
+        auth,
         shutdown: connections.clone(),
         hello_deadline: config.hello_deadline,
         registry: Registry::new(source, config.backoff, connections),
+        keeper,
     });
     let app = Router::new()
         .route("/api/status", get(status::<S>))
         .route("/api/ws", get(socket::upgrade::<S>))
-        .fallback(files::serve)
+        .fallback(page::<S>)
         .with_state(ui)
         .layer(middleware::from_fn_with_state(allowed, guard));
-    crate::transport::serve(
+    let served = crate::transport::serve(
         listener,
         app,
         config.max_connections,
@@ -136,8 +150,23 @@ pub async fn serve<S: NodeSource>(
         config.header_deadline,
         shutdown,
     )
-    .await?;
+    .await;
+    // The drafts' last saves are written before `vessel ui` exits.
+    kept.finish().await;
+    served?;
     Ok(())
+}
+
+/// Anything else: the page's files, the index with the appearance kept
+/// for it.
+async fn page<S: NodeSource>(
+    State(ui): State<Arc<Ui<S>>>,
+    method: Method,
+    uri: Uri,
+    request: HeaderMap,
+) -> Response {
+    let paint = Paint::from(&ui.keeper.appearance());
+    files::serve(&method, &uri, &request, paint)
 }
 
 /// `GET /api/status`, with an issued session key as a bearer.

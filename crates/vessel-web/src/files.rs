@@ -70,16 +70,21 @@ const OTHER_CACHE: &str = "no-cache";
 include!(concat!(env!("OUT_DIR"), "/files.rs"));
 
 /// The file at `path`, if embedded (`FILES` is sorted by path).
-fn find(path: &str) -> Option<&'static File> {
+pub(crate) fn find(path: &str) -> Option<&'static File> {
     FILES
         .binary_search_by(|file| file.path.cmp(path))
         .ok()
         .and_then(|index| FILES.get(index))
 }
 
-/// Answer a request for a file.
-pub(crate) async fn serve(method: Method, uri: Uri, request: HeaderMap) -> Response {
-    if method != Method::GET && method != Method::HEAD {
+/// Answer a request for a file; the index carries `paint` (`paint`).
+pub(crate) fn serve(
+    method: &Method,
+    uri: &Uri,
+    request: &HeaderMap,
+    paint: crate::paint::Paint,
+) -> Response {
+    if *method != Method::GET && *method != Method::HEAD {
         return StatusCode::METHOD_NOT_ALLOWED.into_response();
     }
     let path = uri.path();
@@ -108,8 +113,10 @@ pub(crate) async fn serve(method: Method, uri: Uri, request: HeaderMap) -> Respo
             });
     let mut response = if unchanged {
         StatusCode::NOT_MODIFIED.into_response()
-    } else if method == Method::HEAD {
+    } else if *method == Method::HEAD {
         StatusCode::OK.into_response()
+    } else if index {
+        crate::paint::index(file.bytes, paint).into_response()
     } else {
         file.bytes.into_response()
     };
@@ -155,6 +162,7 @@ mod tests {
 #[cfg(test)]
 mod cache_tests {
     use super::*;
+    use crate::paint::Paint;
 
     /// Each file's `Cache-Control`, and its `ETag` answered with a `304`.
     /// Whether the table holds a hashed file depends on the bundle (the
@@ -163,7 +171,8 @@ mod cache_tests {
     #[tokio::test]
     async fn hashed_files_are_immutable_others_revalidate_and_index_is_never_stored() {
         for file in FILES.iter().filter(|file| file.path != "/index.html") {
-            let response = serve(Method::GET, file.path.parse().unwrap(), HeaderMap::new()).await;
+            let uri = file.path.parse().unwrap();
+            let response = serve(&Method::GET, &uri, &HeaderMap::new(), Paint::default());
             let expected = if file.hashed {
                 HASHED_CACHE
             } else {
@@ -178,7 +187,7 @@ mod cache_tests {
             assert_eq!(response.headers().get(ETAG).unwrap(), file.etag);
             let mut request = HeaderMap::new();
             let _previous = request.insert(IF_NONE_MATCH, HeaderValue::from_static(file.etag));
-            let response = serve(Method::GET, file.path.parse().unwrap(), request).await;
+            let response = serve(&Method::GET, &uri, &request, Paint::default());
             assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
         }
         let index = find("/index.html").unwrap();
@@ -186,7 +195,8 @@ mod cache_tests {
         let mut request = HeaderMap::new();
         let _previous = request.insert(IF_NONE_MATCH, HeaderValue::from_static(index.etag));
         for path in ["/", "/index.html", "/nodes/box/sessions"] {
-            let response = serve(Method::GET, path.parse().unwrap(), request.clone()).await;
+            let uri = path.parse().unwrap();
+            let response = serve(&Method::GET, &uri, &request, Paint::default());
             assert_eq!(response.status(), StatusCode::OK);
             assert_eq!(response.headers().get(CACHE_CONTROL).unwrap(), INDEX_CACHE);
             assert!(response.headers().get(ETAG).is_none());

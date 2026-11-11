@@ -22,6 +22,10 @@
 //!   book's edits);
 //! - `registry`: one connection per node, shared by every tab, with its
 //!   state pushed to them;
+//! - `keep`: the page's preferences and drafts, one task per file, kept
+//!   where the source says ([`PageFiles`], ADR 0025);
+//! - `paint`: the preferences' appearance written into the index, so the
+//!   first paint is already right;
 //! - [`NodeSource`]: the seam through which the CLI gives the nodes;
 //! - [`wire`]: the frames the browser and the server exchange.
 //!
@@ -35,7 +39,9 @@ mod files;
 mod guard;
 #[cfg(test)]
 mod hashed;
+mod keep;
 mod ops;
+mod paint;
 mod registry;
 mod server;
 mod socket;
@@ -46,5 +52,5 @@ mod transport;
 pub mod wire;
 
 pub use server::{ServeError, UiConfig, serve};
-pub use source::NodeSource;
+pub use source::{NodeSource, PageFiles};
 pub use token::{LaunchToken, MintError};

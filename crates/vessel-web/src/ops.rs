@@ -1,5 +1,8 @@
 //! The ops: what a tab asks the bridge itself rather than a node (the
 //! book's nodes, a retry, pairing, a QR code, and the book's edits).
+//! [`route`] sends the page's preferences and drafts elsewhere: they are
+//! `keep`'s, answered in order by the task that owns each file rather
+//! than as one of the tab's concurrent tasks (ADR 0025).
 //!
 //! [Decision Log] The book's edits from the page (`forget`, `rename`,
 //! `default`), milestone 10, track E
@@ -41,9 +44,10 @@ use std::sync::Arc;
 use vessel_proto::PairingLink;
 
 use crate::calls::failure_text;
+use crate::keep::{DraftsAsk, KeptOp, PrefsAsk};
 use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
-use crate::wire::{BookNode, Op, OpFailure, OpResult};
+use crate::wire::{BookName, BookNode, NodeKey, Op, OpFailure, OpResult, SecretText};
 
 /// The longest text drawn as a QR code (a pairing link is a few hundred
 /// bytes; the code's own limit is about 2900).
@@ -58,31 +62,84 @@ pub(crate) struct OpError {
 
 impl OpError {
     /// It was tried and did not work.
-    fn failed(message: String) -> Self {
+    pub(crate) const fn failed(message: String) -> Self {
         Self {
             reason: OpFailure::Failed,
             message,
         }
+    }
+
+    /// Too much at once; nothing was done.
+    pub(crate) fn busy() -> Self {
+        Self {
+            reason: OpFailure::Busy,
+            message: "too many requests at once".to_owned(),
+        }
+    }
+}
+
+/// Where an op is answered.
+#[derive(Debug)]
+pub(crate) enum Routed {
+    /// By the bridge, as a task of the tab's (within its `MAX_CALLS`).
+    Bridge(BridgeOp),
+    /// By the task that keeps the page's preferences or drafts, in the
+    /// order the tab sent them (`keep`).
+    Kept(KeptOp),
+}
+
+/// An op [`answer`] answers: the book's nodes and edits, pairing, QR
+/// codes ([`Op`]'s variants of the same names).
+#[derive(Debug)]
+pub(crate) enum BridgeOp {
+    Nodes,
+    Retry { node: NodeKey },
+    Inspect { link: SecretText },
+    Pair { name: BookName, link: SecretText },
+    Qr { text: SecretText },
+    Forget { node: BookName },
+    Rename { node: BookName, name: BookName },
+    Default { node: NodeKey },
+}
+
+/// Which way `op` goes. Exhaustive, so a new op must choose.
+pub(crate) fn route(op: Op) -> Routed {
+    let bridge = Routed::Bridge;
+    let kept = Routed::Kept;
+    match op {
+        Op::Preferences => kept(KeptOp::Preferences(PrefsAsk::Read)),
+        Op::Prefer { change } => kept(KeptOp::Preferences(PrefsAsk::Change(change))),
+        Op::Drafts => kept(KeptOp::Drafts(DraftsAsk::All)),
+        Op::Draft { key } => kept(KeptOp::Drafts(DraftsAsk::One(key))),
+        Op::SaveDraft { key, text } => kept(KeptOp::Drafts(DraftsAsk::Save(key, text))),
+        Op::Nodes => bridge(BridgeOp::Nodes),
+        Op::Retry { node } => bridge(BridgeOp::Retry { node }),
+        Op::Inspect { link } => bridge(BridgeOp::Inspect { link }),
+        Op::Pair { name, link } => bridge(BridgeOp::Pair { name, link }),
+        Op::Qr { text } => bridge(BridgeOp::Qr { text }),
+        Op::Forget { node } => bridge(BridgeOp::Forget { node }),
+        Op::Rename { node, name } => bridge(BridgeOp::Rename { node, name }),
+        Op::Default { node } => bridge(BridgeOp::Default { node }),
     }
 }
 
 /// Answer an op.
 pub(crate) async fn answer<S: NodeSource>(
     registry: &Arc<Registry<S>>,
-    op: Op,
+    op: BridgeOp,
 ) -> Result<OpResult, OpError> {
     let failed = |message| OpError::failed(message);
     let source = |error: S::Error| OpError::failed(chain(&error));
     match op {
-        Op::Nodes => book_now(registry)
+        BridgeOp::Nodes => book_now(registry)
             .await
             .map(|nodes| OpResult::Nodes { nodes }),
-        Op::Retry { node } => registry
+        BridgeOp::Retry { node } => registry
             .retry(&node)
             .await
             .map(|()| OpResult::Retry)
             .map_err(|failure| failed(failure_text(&failure))),
-        Op::Inspect { link } => {
+        BridgeOp::Inspect { link } => {
             let link: PairingLink = link
                 .expose()
                 .parse()
@@ -91,16 +148,16 @@ pub(crate) async fn answer<S: NodeSource>(
             let fingerprint = vessel_client::fingerprint(&offer.key);
             Ok(OpResult::Inspect { offer, fingerprint })
         }
-        Op::Pair { name, link } => registry
+        BridgeOp::Pair { name, link } => registry
             .source()
             .pair(name.name(), &link)
             .await
             .map(|node| OpResult::Pair { node })
             .map_err(source),
-        Op::Qr { text } => qr(text.expose())
+        BridgeOp::Qr { text } => qr(text.expose())
             .map(|svg| OpResult::Qr { svg })
             .map_err(failed),
-        Op::Forget { node } => {
+        BridgeOp::Forget { node } => {
             registry
                 .source()
                 .forget(node.name())
@@ -110,7 +167,7 @@ pub(crate) async fn answer<S: NodeSource>(
                 .await
                 .map(|nodes| OpResult::Forget { nodes })
         }
-        Op::Rename { node, name } => {
+        BridgeOp::Rename { node, name } => {
             registry
                 .source()
                 .rename(node.name(), name.name())
@@ -120,7 +177,7 @@ pub(crate) async fn answer<S: NodeSource>(
                 .await
                 .map(|nodes| OpResult::Rename { nodes })
         }
-        Op::Default { node } => {
+        BridgeOp::Default { node } => {
             registry.source().set_default(&node).await.map_err(source)?;
             book_now(registry)
                 .await

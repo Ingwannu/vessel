@@ -13,10 +13,12 @@
 //!   [`ServerFrame::Event`], the stream's ups and downs as
 //!   [`ServerFrame::Stream`];
 //! - asks the bridge itself ([`ClientFrame::Op`]) for what only this
-//!   machine knows: the book's nodes, pairing, QR codes, and the book's
-//!   edits (forget, rename, default).
+//!   machine knows: the book's nodes, pairing, QR codes, the book's edits
+//!   (forget, rename, default), and the page's own preferences and drafts
+//!   (`prefs`, ADR 0025).
 //!
-//! Every node's connection state is pushed as [`ServerFrame::Node`].
+//! Every node's connection state is pushed as [`ServerFrame::Node`], and
+//! every state of the preferences as [`ServerFrame::Preferences`].
 //!
 //! Ids (`CallId`, `StreamId`) are the browser's: the bridge only echoes
 //! them, so they need to be unique among one socket's open calls and
@@ -24,10 +26,21 @@
 
 mod auth;
 mod node;
+mod prefs;
 pub use auth::{AuthMode, InvalidAuthValue, LaunchId, Nonce};
 pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
+pub use prefs::{
+    ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, Bounded, ChoiceKey,
+    ChoiceKeyTooLong, Choices, ChoicesError, CodeSize, Composer, ContentWidth, Conversation, Draft,
+    DraftKey, DraftText, DraftTooLong, DraftsState, Grouping, InterfaceSize, InvalidActionId,
+    InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, Layout, MAX_ACTIONS, MAX_BINDINGS,
+    MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS, MAX_MACHINES, MachineDefaults,
+    Notifications, OutOfRange, Panel, PreferenceChange, Preferences, PreferencesState, Revision,
+    SendKey, SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget, SidebarView, Theme, TooMany,
+};
 
 use std::fmt;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
@@ -152,6 +165,15 @@ pub enum ServerFrame {
     Unreadable {
         /// Why.
         message: String,
+    },
+    /// The preferences as the bridge publishes them: once after the
+    /// welcome, then after every change (from any tab, or found in the
+    /// file). The latest only: a tab that reads slowly skips states it
+    /// would have overwritten anyway.
+    Preferences {
+        /// The state, with its revision.
+        #[cfg_attr(feature = "ts", ts(as = "PreferencesState"))]
+        preferences: Arc<PreferencesState>,
     },
 }
 
@@ -297,6 +319,29 @@ pub enum Op {
         /// The node.
         node: NodeKey,
     },
+    /// The preferences, read from where they are kept again (a change
+    /// another process made there is pushed to every tab).
+    Preferences,
+    /// Change one setting; the answer is the whole document after it.
+    Prefer {
+        /// The change.
+        change: PreferenceChange,
+    },
+    /// Every draft, read from where they are kept again.
+    Drafts,
+    /// One draft, read from where it is kept again.
+    Draft {
+        /// Whose.
+        key: DraftKey,
+    },
+    /// Keep a draft (the empty text removes it). Answered when queued; the
+    /// write follows, at most once a second.
+    SaveDraft {
+        /// Whose.
+        key: DraftKey,
+        /// The text.
+        text: DraftText,
+    },
 }
 
 /// An op's result.
@@ -345,6 +390,30 @@ pub enum OpResult {
         /// (the default moved: two entries changed).
         nodes: Vec<BookNode>,
     },
+    /// [`Op::Preferences`].
+    Preferences {
+        /// The state now.
+        #[cfg_attr(feature = "ts", ts(as = "PreferencesState"))]
+        preferences: Arc<PreferencesState>,
+    },
+    /// [`Op::Prefer`].
+    Prefer {
+        /// The state after the change (also pushed to every tab).
+        #[cfg_attr(feature = "ts", ts(as = "PreferencesState"))]
+        preferences: Arc<PreferencesState>,
+    },
+    /// [`Op::Drafts`].
+    Drafts {
+        /// Every draft.
+        drafts: DraftsState,
+    },
+    /// [`Op::Draft`].
+    Draft {
+        /// Its text; `None` when there is no such draft.
+        text: Option<DraftText>,
+    },
+    /// [`Op::SaveDraft`].
+    SaveDraft,
 }
 
 /// A node the UI lists.

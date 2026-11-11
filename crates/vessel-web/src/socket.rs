@@ -88,7 +88,7 @@ async fn run<S: NodeSource>(ui: Arc<Ui<S>>, mut socket: WebSocket, place: Arc<Co
         .max_frame_size(Some(MAX_FRAME));
     let socket =
         WebSocketStream::from_raw_socket(socket.into_inner(), Role::Server, Some(config)).await;
-    crate::bridge::run(Arc::clone(&ui.registry), socket).await;
+    crate::bridge::run(Arc::clone(&ui.registry), ui.keeper.clone(), socket).await;
 }
 
 async fn authenticate<S: NodeSource>(ui: &Ui<S>, socket: &mut WebSocket) -> bool {

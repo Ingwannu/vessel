@@ -14,6 +14,23 @@
 //!   ([`OUTBOX`]); a tab that reads slowly slows its own streams, nobody
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
+//!
+//! [Decision Log] The page's preferences and drafts (ADR 0025)
+//! - Purpose: two changes from one tab must apply, and be answered, in
+//!   the order the tab sent them; a draft saved as the page is hidden must
+//!   not be refused because node calls hold every permit.
+//! - Choice: those ops (`ops::route`) are handed, from the read loop and
+//!   in arrival order, to the task that keeps their file (`keep`), without
+//!   a permit; its full queue answers `busy` at once. Each answer comes
+//!   back on a oneshot, and one writer per tab ([`kept_replies`]) awaits
+//!   them in the order they were asked, so replies leave in that order
+//!   too. The preferences' published states reach the tab through a
+//!   `watch` ([`preferences`]): the current one after the welcome, then
+//!   each new one, the latest only.
+//! - Alternatives: spawning each as one of the tab's tasks, as the other
+//!   ops are (two changes could be applied out of order, and an older
+//!   reply could overtake a newer push); answering inside the read loop
+//!   (a slow disk would stop the tab reading).
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -22,18 +39,20 @@ use crate::socket::WebSocket;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
 use serde::Deserialize;
-use tokio::sync::{Semaphore, broadcast, mpsc};
+use tokio::sync::{Semaphore, broadcast, mpsc, oneshot, watch};
 use tokio::task::JoinSet;
 use tokio_tungstenite::tungstenite::Message;
 use vessel_proto::RawJson;
 
 use crate::calls;
+use crate::keep::{Answer, Keeper};
+use crate::ops::{BridgeOp, Routed};
 use crate::registry::{Cancelled, Change, Registry};
 use crate::source::NodeSource;
 use crate::streams::{Follows, Place};
 use crate::wire::{
-    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, ServerFrame,
-    StreamId, StreamState, StreamStop,
+    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, PreferencesState,
+    ServerFrame, StreamId, StreamState, StreamStop,
 };
 
 /// Calls and ops one tab may have in flight.
@@ -42,14 +61,73 @@ const MAX_CALLS: usize = 64;
 /// Frames waiting to be written to one tab.
 const OUTBOX: usize = 256;
 
+/// Answers of the preferences and drafts ops one tab waits for, in the
+/// order asked; past it the tab's read loop waits (its own frames only).
+const KEPT_REPLIES: usize = 128;
+
+/// An answer the tab waits for from `keep`, by the op's id.
+type Pending = (CallId, oneshot::Receiver<Answer>);
+
 /// Serve one tab until its socket closes.
-pub(crate) async fn run<S: NodeSource>(registry: Arc<Registry<S>>, socket: WebSocket) {
+pub(crate) async fn run<S: NodeSource>(
+    registry: Arc<Registry<S>>,
+    keeper: Keeper,
+    socket: WebSocket,
+) {
     let (sink, stream) = socket.split();
     let (out, outbox) = mpsc::channel(OUTBOX);
+    let (pending, waiting) = mpsc::channel(KEPT_REPLIES);
     tokio::select! {
         () = write(sink, outbox) => {}
         () = statuses(&registry, out.clone()) => {}
-        () = read(&registry, stream, out) => {}
+        () = preferences(keeper.states(), out.clone()) => {}
+        () = kept_replies(waiting, out.clone()) => {}
+        () = read(&registry, keeper, pending, stream, out) => {}
+    }
+}
+
+/// The preferences now, then every state published after it. Only the
+/// UI stopping ends the `watch`; the tab goes on without pushes then.
+async fn preferences(
+    mut states: watch::Receiver<Arc<PreferencesState>>,
+    out: mpsc::Sender<ServerFrame>,
+) {
+    loop {
+        let preferences = Arc::clone(&states.borrow_and_update());
+        if out
+            .send(ServerFrame::Preferences { preferences })
+            .await
+            .is_err()
+        {
+            return;
+        }
+        if states.changed().await.is_err() {
+            std::future::pending::<()>().await;
+        }
+    }
+}
+
+/// Write the answers from `keep` in the order they were asked.
+async fn kept_replies(mut waiting: mpsc::Receiver<Pending>, out: mpsc::Sender<ServerFrame>) {
+    while let Some((id, answer)) = waiting.recv().await {
+        let outcome = match answer.await {
+            Ok(Ok(result)) => OpOutcome::Ok(result),
+            Ok(Err(error)) => OpOutcome::Err {
+                reason: error.reason,
+                message: error.message,
+            },
+            Err(_dropped) => OpOutcome::Err {
+                reason: OpFailure::Failed,
+                message: Cancelled::Stopping.message().to_owned(),
+            },
+        };
+        if out
+            .send(ServerFrame::OpReply { id, outcome })
+            .await
+            .is_err()
+        {
+            return;
+        }
     }
 }
 
@@ -130,11 +208,15 @@ fn removed(node: NodeKey) -> ServerFrame {
 /// Dropping the tab's tasks on return stops everything it started.
 async fn read<S: NodeSource>(
     registry: &Arc<Registry<S>>,
+    keeper: Keeper,
+    pending: mpsc::Sender<Pending>,
     mut stream: SplitStream<WebSocket>,
     out: mpsc::Sender<ServerFrame>,
 ) {
     let mut tab = Tab {
         registry: Arc::clone(registry),
+        keeper,
+        pending,
         out,
         tasks: JoinSet::new(),
         follows: Follows::default(),
@@ -215,6 +297,10 @@ async fn refuse(out: &mpsc::Sender<ServerFrame>, text: &str, error: &serde_json:
 /// What one tab started.
 struct Tab<S> {
     registry: Arc<Registry<S>>,
+    /// The page's preferences and drafts.
+    keeper: Keeper,
+    /// Answers from `keep` this tab waits for, in order.
+    pending: mpsc::Sender<Pending>,
     out: mpsc::Sender<ServerFrame>,
     tasks: JoinSet<()>,
     follows: Follows,
@@ -263,10 +349,23 @@ impl<S: NodeSource> Tab<S> {
     }
 
     async fn op(&mut self, id: CallId, op: Op) {
+        match crate::ops::route(op) {
+            Routed::Bridge(op) => self.bridge_op(id, op).await,
+            Routed::Kept(op) => {
+                // Handed over now, in arrival order; awaited by
+                // `kept_replies`, so this loop never waits on the disk.
+                let answer = self.keeper.ask(op);
+                let _gone = self.pending.send((id, answer)).await;
+            }
+        }
+    }
+
+    async fn bridge_op(&mut self, id: CallId, op: BridgeOp) {
         let Ok(permit) = Arc::clone(&self.calls).try_acquire_owned() else {
+            let error = crate::ops::OpError::busy();
             let outcome = OpOutcome::Err {
-                reason: OpFailure::Busy,
-                message: "too many requests at once".to_owned(),
+                reason: error.reason,
+                message: error.message,
             };
             let _gone = self.out.send(ServerFrame::OpReply { id, outcome }).await;
             return;
