@@ -249,7 +249,7 @@ Gate, run in the worktree on the code as committed:
   no warnings.
 - `cargo test --workspace`: 80 test binaries, 995 passed, 0 failed, 7
   ignored (all existing: six need rust-analyzer on `PATH`, one is a
-  documented relay limit).
+  documented limit in `vessel-node`'s milestone 5 tests).
 
 Where this differs from the plan or the reference, and why:
 
