@@ -23,6 +23,9 @@ export function Outline({
   onJump: (key: string) => void;
 }) {
   const [seen, setSeen] = useState<ReadonlySet<string>>(new Set());
+  // The one card shown, for the mark hovered or focused: drawn only then,
+  // so a long session's outline is one button per prompt in the page.
+  const [shown, setShown] = useState<string | null>(null);
   useEffect(() => {
     if (scroller === null) {
       return undefined;
@@ -70,13 +73,27 @@ export function Outline({
               onClick={() => {
                 onJump(item.key);
               }}
+              onMouseEnter={() => {
+                setShown(item.key);
+              }}
+              onMouseLeave={() => {
+                setShown(null);
+              }}
+              onFocus={() => {
+                setShown(item.key);
+              }}
+              onBlur={() => {
+                setShown(null);
+              }}
             />
-            <div className="outline-card" aria-hidden="true">
-              <p className="outline-prompt">{item.prompt}</p>
-              {item.reply === null ? null : (
-                <p className="outline-reply">{item.reply}</p>
-              )}
-            </div>
+            {shown === item.key ? (
+              <div className="outline-card" aria-hidden="true">
+                <p className="outline-prompt">{item.prompt}</p>
+                {item.reply === null ? null : (
+                  <p className="outline-reply">{item.reply}</p>
+                )}
+              </div>
+            ) : null}
           </li>
         ))}
       </ol>

@@ -1,7 +1,7 @@
 /* The outline (GOAT's minimap): a rail centred on the conversation's
    left edge, 8px a mark; a mark is 24 by 2px at a quarter of the muted
    ink, darker while its prompt is on screen. Its card (320px, the popup
-   surface) opens to the right on hover or focus. Hidden below 1100px of
+   surface) is drawn to the right while the mark is hovered or focused. Hidden below 1100px of
    window: the centred column leaves no gutter there. */
 
 .outline {
@@ -76,16 +76,7 @@
   border: 1px solid var(--popup-edge);
   border-radius: var(--r-4);
   box-shadow: var(--popup-shadow);
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity var(--d-1) var(--ease);
   pointer-events: none;
-}
-
-.outline-mark:hover + .outline-card,
-.outline-mark:focus-visible + .outline-card {
-  visibility: visible;
-  opacity: 1;
 }
 
 .outline-prompt {
@@ -114,8 +105,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .outline-mark::before,
-  .outline-card {
+  .outline-mark::before {
     transition: none;
   }
 }

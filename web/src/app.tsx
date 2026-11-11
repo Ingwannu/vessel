@@ -163,6 +163,18 @@ export function App({ token }: { token: Credential | null }) {
       return undefined;
     }
     const unfollow = followPreferences(fleet);
+    // A draft typed in the last half second is saved as the page goes
+    // (hidden, or closed), not lost with it (data/drafts.ts).
+    const save = () => {
+      if (document.visibilityState === "hidden") {
+        fleet.drafts.flush();
+      }
+    };
+    const leaving = () => {
+      fleet.drafts.flush();
+    };
+    document.addEventListener("visibilitychange", save);
+    window.addEventListener("pagehide", leaving);
     const off = fleet.bridge.onLink((link) => {
       if (link.kind === "refused") {
         forgetToken();
@@ -171,6 +183,8 @@ export function App({ token }: { token: Credential | null }) {
     });
     fleet.start();
     return () => {
+      document.removeEventListener("visibilitychange", save);
+      window.removeEventListener("pagehide", leaving);
       unfollow();
       off();
       fleet.stop();
