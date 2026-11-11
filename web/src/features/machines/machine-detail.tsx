@@ -9,12 +9,7 @@ import { useFleet, useFleetState } from "../../context";
 import { agentHeadline, agentsOn } from "../../data/agent-status";
 import { agentName } from "../../data/agents";
 import { retryMachine } from "../../data/book";
-import {
-  isLive,
-  shortId,
-  statusWord,
-  when,
-} from "../../data/format";
+import { isLive, shortId, statusWord, when } from "../../data/format";
 import { isHere, machineState, platform, reachWord } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
 import { sessionName } from "../../data/titles";

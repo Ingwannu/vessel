@@ -41,9 +41,7 @@ export function sessionName(
   session: SessionInfo,
   renamed: string | null = null,
 ): string {
-  return (
-    renamed ?? session.title ?? folderName(session.spec.cwd) ?? UNTITLED
-  );
+  return renamed ?? session.title ?? folderName(session.spec.cwd) ?? UNTITLED;
 }
 
 /** Whether `session` has a title of its own (not its folder's name). */
