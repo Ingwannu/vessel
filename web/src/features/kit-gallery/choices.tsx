@@ -105,7 +105,7 @@ export function Choices() {
           onChange={setScope}
           options={[
             { value: "mine", label: "Mine", icon: "home" },
-            { value: "all", label: "All", icon: "sessions" },
+            { value: "all", label: "All", icon: "plan" },
             {
               value: "archived",
               label: "Archived",

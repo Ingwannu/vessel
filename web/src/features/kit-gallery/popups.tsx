@@ -41,9 +41,9 @@ const COMMANDS: readonly Command[] = [
     run: () => undefined,
   },
   {
-    id: "sessions",
-    label: "Sessions",
-    icon: "sessions",
+    id: "board",
+    label: "Board",
+    icon: "board",
     group: "Go to",
     run: () => undefined,
   },
@@ -92,7 +92,7 @@ export function Popups() {
           <MenuCheckboxItem checked={archived} onChange={setArchived}>
             Show archived
           </MenuCheckboxItem>
-          <MenuSubmenu label="Sort" icon="sessions">
+          <MenuSubmenu label="Sort" icon="plan">
             <MenuRadioGroup
               value={sort}
               onChange={setSort}
@@ -169,7 +169,7 @@ export function Popups() {
             </>
           }
         >
-          <Field label="Name" hint="Shown in the book and the sidebar.">
+          <Field label="Name" hint="How this page and the CLI call it.">
             <TextField value={name} onChange={setName} />
           </Field>
         </Dialog>

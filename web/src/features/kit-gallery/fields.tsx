@@ -30,10 +30,10 @@ export function Fields() {
   return (
     <Section title="Fields">
       <div className="kit-grid">
-        <Field label="Name" hint="Shown in the book and the sidebar.">
+        <Field label="Name" hint="How this page and the CLI call it.">
           <TextField value={name} onChange={setName} placeholder="laptop" />
         </Field>
-        <Field label="Working directory">
+        <Field label="Folder">
           <TextField mono value={path} onChange={setPath} />
         </Field>
         <Field label="Search, small, with an icon and a shortcut">
@@ -66,14 +66,14 @@ export function Fields() {
             value={folder}
             onChange={setFolder}
             suggestions={FOLDERS}
-            placeholder="the node's home directory"
+            placeholder="the machine's home folder"
           />
         </Field>
       </div>
       <Specimens caption="a command to run elsewhere, short and long">
         <div className="kit-wide">
           <CommandLine command="vessel node pair" />
-          <CommandLine command="vessel --node gpu-box fleet join --yes < link.txt && vessel node status" />
+          <CommandLine command="vessel node start && vessel node pair && vessel node status && vessel nodes list" />
         </div>
       </Specimens>
       <Specimens caption="a text area grows with its text, then scrolls">

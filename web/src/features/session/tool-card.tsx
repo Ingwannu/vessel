@@ -21,7 +21,7 @@ function toolIcon(kind: ToolKind): IconName {
     case "move":
       return "move";
     case "search":
-      return "search-kind";
+      return "search";
     case "execute":
       // The terminal's mark, not a run triangle: beside the card's
       // chevron a triangle reads as the browser's disclosure marker.

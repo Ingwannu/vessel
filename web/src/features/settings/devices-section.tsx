@@ -109,7 +109,7 @@ function DevicesOf({ machine, label }: { machine: NodeKey; label: string }) {
             {devices.map((device) => (
               <Row
                 key={device.id}
-                mark={{ icon: "devices" }}
+                mark={{ icon: "monitor" }}
                 title={device.label}
                 detail={{ facts: deviceLine(device) }}
                 control={

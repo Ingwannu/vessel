@@ -41,7 +41,10 @@
   width: 120px;
   height: 120px;
   padding: 4px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--r-2);
+  /* White in both themes: a QR code needs its light quiet zone to scan;
+     the hairline keeps the tile's edge on a white card. */
   background: #ffffff;
   color: #0a0a0a;
 }

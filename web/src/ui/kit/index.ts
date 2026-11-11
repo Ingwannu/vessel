@@ -22,7 +22,7 @@ export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { Field, FieldGroup } from "./field";
-export { Icon, type IconName, type IconSize } from "./icon";
+export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
 export {
   Menu,
