@@ -1,9 +1,13 @@
-/* The app's components, derived from the design draft's composition
-   (docs/design/web-ui/app.css): its component rules and class names, with
-   the mockup-only parts removed (dialogs opened by `:target`, the theme
-   checkbox) and the corrections agreed for M7 applied: detail panels are
-   a two-column grid, a tool call's path is cut from the left so the file
-   name stays visible, the prompt card is tighter. Tokens: tokens.css. */
+/* The app's components (DESIGN.md §6). Every colour, size and radius here
+   is a token from tokens.css: a literal value belongs in that file, with
+   one stated exception, the pairing QR code, which must stay dark on
+   light to scan.
+
+   White and black (ADR 0018): the chrome has no hue. Labels are sentence
+   case, never uppercased. A border separates durable regions (panes,
+   lanes, rows of one list); it is not put around something only because
+   it is rectangular. State colour appears as a dot or a word, not as a
+   filled chip. */
 
 *,
 *::before,
@@ -36,7 +40,7 @@ pre,
 }
 
 a {
-  color: var(--accent);
+  color: var(--text-primary);
   text-decoration: none;
 }
 
@@ -270,11 +274,10 @@ button {
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-strong);
+  background: var(--text-primary);
   display: grid;
   place-items: center;
-  color: var(--accent);
+  color: var(--bg-base);
 }
 
 .mark svg {
@@ -317,10 +320,15 @@ button {
   flex: 1;
   height: 28px;
   padding: 0 8px 0 10px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-2);
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--r-3);
   color: var(--text-tertiary);
+}
+
+.topbar-search:focus-within {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
 }
 
 .topbar-search input {
@@ -343,7 +351,7 @@ button {
   padding: 0 5px;
   border: 1px solid var(--border-subtle);
   border-radius: 3px;
-  background: var(--bg-elevated);
+  background: var(--bg-surface);
   color: var(--text-tertiary);
   font: var(--t-mono);
   font-size: 10px;
@@ -419,12 +427,8 @@ button {
   padding: var(--s-2);
 }
 
-.nav-kicker {
-  padding: 8px 10px 4px;
-  color: var(--text-tertiary);
-  font: var(--t-kicker);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.nav-block + .nav-block {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .nav-item {
@@ -476,6 +480,42 @@ button {
 
 .nav-item.node {
   padding-left: 28px;
+}
+
+/* A node's live sessions, under it: the same row, one step further in and
+   quieter, so the sidebar reads as fleet > node > session. (Not named
+   `.session`: that class is the session page's grid.) */
+.nav-item.sub {
+  height: 28px;
+  padding-left: 46px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.nav-item.sub .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item.sub .id {
+  margin-left: auto;
+  font: var(--t-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.nav-item.more {
+  height: 24px;
+  padding-left: 46px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.sidebar .nav-scroll {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .nav-foot {
@@ -571,7 +611,7 @@ button {
 
 .btn.danger.solid {
   background: var(--danger);
-  color: #f7f8fa;
+  color: var(--bg-base);
   border-color: var(--danger);
 }
 
@@ -647,9 +687,9 @@ textarea.input {
 .seg {
   display: flex;
   padding: 2px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-2);
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--r-3);
 }
 
 .seg a,
@@ -676,9 +716,9 @@ textarea.input {
 .seg a.active,
 .seg input:checked + span,
 .seg .active {
-  background: var(--bg-elevated);
+  background: var(--bg-base);
   color: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--border-subtle);
+  box-shadow: 0 0 0 1px var(--border-strong);
 }
 
 .seg input {
@@ -689,53 +729,72 @@ textarea.input {
 
 /* --- Badges --- */
 
+/* A badge is a quiet outlined word. State is a dot in front of the word,
+   never a tinted fill: on a white page, six pastel chips in a row read as
+   decoration and bury the one that matters. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   height: 18px;
   padding: 0 6px;
-  border-radius: var(--r-1);
-  font: 500 11px / 18px var(--font-sans);
-  letter-spacing: 0.01em;
-  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  font: 500 11px / 16px var(--font-sans);
+  background: transparent;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
-.badge.online,
-.badge.serving,
-.badge.running,
-.badge.applied {
-  color: var(--online);
-  background: color-mix(in srgb, var(--online) 14%, transparent);
+.badge.online::before,
+.badge.serving::before,
+.badge.running::before,
+.badge.applied::before,
+.badge.draining::before,
+.badge.starting::before,
+.badge.conflict::before,
+.badge.stale::before,
+.badge.pending::before,
+.badge.warn::before,
+.badge.failed::before,
+.badge.danger::before,
+.badge.interrupted::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--online);
+  flex: 0 0 6px;
 }
 
-.badge.draining,
-.badge.starting,
-.badge.conflict,
-.badge.stale,
-.badge.pending,
-.badge.warn {
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 14%, transparent);
+.badge.draining::before,
+.badge.starting::before,
+.badge.conflict::before,
+.badge.stale::before,
+.badge.pending::before,
+.badge.warn::before {
+  background: var(--warn);
+}
+
+.badge.failed::before,
+.badge.danger::before {
+  background: var(--danger);
+}
+
+.badge.interrupted::before {
+  background: var(--interrupt);
 }
 
 .badge.failed,
 .badge.danger {
   color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
-.badge.interrupted {
-  color: var(--interrupt);
-  background: color-mix(in srgb, var(--interrupt) 14%, transparent);
-}
-
+/* "home" and the selected kind: ink on the faintest wash, no hue. */
 .badge.home,
 .badge.accent {
-  color: var(--accent);
-  background: var(--accent-muted);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .badge.mono {
@@ -747,43 +806,24 @@ textarea.input {
 /* --- Summary strip & tables --- */
 
 .strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-3);
-  background: var(--bg-surface);
-  margin-bottom: var(--s-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s-5);
+  color: var(--text-secondary);
+  font: var(--t-meta);
 }
 
-.strip div {
-  padding: 12px 16px;
-  border-right: 1px solid var(--border-subtle);
-}
-
-.strip div:last-child {
-  border-right: 0;
-}
-
-.strip .k {
-  font: var(--t-kicker);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.strip .v {
-  margin-top: 4px;
-  font: var(--t-title);
-}
-
-.strip .v.mono {
-  font: 500 16px / 24px var(--font-mono);
+.strip strong {
+  font: 600 12px / 16px var(--font-mono);
+  color: var(--text-primary);
 }
 
 .strip .s {
-  margin-top: 2px;
-  font: var(--t-meta);
   color: var(--text-tertiary);
+}
+
+.strip .s::before {
+  content: " · ";
 }
 
 .table-wrap {
@@ -802,8 +842,6 @@ table.data {
 table.data th {
   text-align: left;
   font: var(--t-kicker);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-tertiary);
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-subtle);
@@ -882,42 +920,351 @@ tr:focus-within .row-actions,
   flex-wrap: wrap;
 }
 
-.filters {
-  display: flex;
+/* --- Board (Sessions, DESIGN.md §6.12) --- */
+
+/* The board's head is one row: the place and the node scope. The lanes
+   need the height more than a sentence of help does, and the one primary
+   action, New, is already in the topbar on every page. */
+.board-head {
   align-items: center;
-  gap: var(--s-2);
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-elevated);
+  justify-content: flex-start;
+  padding: 8px var(--s-4);
 }
 
-.filters .spacer {
+.board-head .seg a {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+/* Lanes are one continuous grid divided by shared hairlines, not four
+   rounded panels: the board is one surface. Each lane scrolls by itself,
+   so a long lane does not push the others' headings away. */
+.board {
   flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(var(--lane-min-w), 1fr));
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-/* --- Tree --- */
+.lane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border-subtle);
+}
 
-.tree-pad {
+.lane:last-child {
+  border-right: 0;
+}
+
+.lane-head {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
+  height: var(--lane-head-h);
+  padding: 0 var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.tree-pad.l1 {
-  padding-left: 18px;
+.lane-head h2 {
+  margin: 0;
+  font: var(--t-label);
+  color: var(--text-primary);
 }
 
-.tree-pad.l2 {
-  padding-left: 36px;
+.lane-head .count {
+  margin-left: auto;
+  font: var(--t-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
 }
 
-.tree-rail {
-  width: 12px;
-  height: 24px;
+.lane-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s-3);
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lane-more {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* A card is one session: the one place an object gets its own border,
+   because it is a bounded thing to open, not a row of a list. Its edge
+   stays quiet; state is the status line's dot and word, never a coloured
+   strip or a tinted card. */
+.card {
+  position: relative;
+  padding: 10px 12px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-4);
+  background: var(--bg-surface);
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+/* A session an agent started, under the one that started it (ADR 0013):
+   indented, with the connector the session tree has always drawn. */
+.card.in1 {
+  margin-left: 14px;
+}
+
+.card.in2 {
+  margin-left: 28px;
+}
+
+.card.in1::before,
+.card.in2::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: -11px;
+  width: 8px;
+  height: 30px;
   border-left: 1px solid var(--border-strong);
   border-bottom: 1px solid var(--border-strong);
-  margin: -8px 0 0 6px;
-  flex: 0 0 12px;
+  border-bottom-left-radius: 4px;
+}
+
+/* The card's link lies under its content. The content lets clicks
+   through, except its own links and buttons, so "open the session" is
+   the whole card without nesting a button inside an <a>. */
+.card-open {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.card > :not(.card-open) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.card a:not(.card-open),
+.card button {
+  pointer-events: auto;
+}
+
+.card-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.card-tag a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  color: var(--text-secondary);
+}
+
+.card-title .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--t-card);
+  color: var(--text-primary);
+}
+
+/* One action slot, shown on hover or focus without moving the title. */
+.card-action {
+  width: 24px;
+  height: 24px;
+  margin: 0 -6px 0 0;
+  opacity: 0;
+}
+
+.card:hover .card-action,
+.card:focus-within .card-action {
+  opacity: 1;
+}
+
+.card-action:hover {
+  color: var(--danger);
+}
+
+.card-where,
+.card-agent {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  /* Under the title's text, past its 14px icon and 8px gap. */
+  padding-left: 22px;
+  white-space: nowrap;
+}
+
+.card-where {
+  gap: 8px;
+  margin-top: 2px;
+  font: 400 11px / 16px var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.card-where .id {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.card-where .path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Cut from the left, so the end of the path stays; the path itself is
+     a left-to-right <bdi>, so its slashes do not move. */
+  direction: rtl;
+  text-align: left;
+}
+
+.card-where .path bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.card-agent {
+  gap: 6px;
+  margin-top: 6px;
+  overflow: hidden;
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.card-agent .sep {
+  color: var(--text-disabled);
+}
+
+.card-agent .model {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 10px -12px 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  font: var(--t-meta);
+}
+
+/* The one status line: a dot and the protocol's word. */
+.card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.card-status .dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--text-disabled);
+}
+
+.card-status.running {
+  color: var(--online);
+}
+
+.card-status.running .dot {
+  background: var(--online);
+}
+
+.card-status.warn {
+  color: var(--warn);
+}
+
+.card-status.warn .dot {
+  background: var(--warn);
+  animation: pulse 1.6s var(--ease) infinite;
+}
+
+.card-status.danger {
+  color: var(--danger);
+}
+
+.card-status.danger .dot {
+  background: var(--danger);
+}
+
+.card-status.interrupted .dot {
+  background: var(--interrupt);
+}
+
+.card-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.card-error {
+  margin: 0 -12px;
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--border-subtle);
+  font: var(--t-meta);
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+/* Narrow panes: the lanes stack and the page scrolls as one. */
+@media (max-width: 767px) {
+  .board {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .lane {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .lane-body {
+    overflow: visible;
+  }
 }
 
 /* --- Split session --- */
@@ -1012,10 +1359,8 @@ tr:focus-within .row-actions,
 
 .inspect h2 {
   margin: 0 0 8px;
-  font: var(--t-kicker);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
+  font: var(--t-label);
+  color: var(--text-primary);
 }
 
 .inspect section + section {
@@ -1150,8 +1495,8 @@ tr:focus-within .row-actions,
 }
 
 .prompt {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  border: 1px solid transparent;
   border-radius: var(--r-3);
   padding: 6px 10px;
   font: var(--t-mono-lg);
@@ -1185,7 +1530,7 @@ tr:focus-within .row-actions,
 
 .md code {
   font: var(--t-mono);
-  background: var(--bg-elevated);
+  background: var(--bg-hover);
   border: 1px solid var(--border-subtle);
   border-radius: 3px;
   padding: 0 4px;
@@ -1194,12 +1539,19 @@ tr:focus-within .row-actions,
 .md pre {
   margin: 8px 0;
   padding: 10px 12px;
-  background: var(--bg-elevated);
+  background: var(--bg-hover);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-2);
   overflow: auto;
   font: var(--t-mono);
   line-height: 1.6;
+}
+
+/* A link in running text is ink like the text around it, so it is
+   underlined: colour cannot mark it. */
+.md a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .md blockquote {
@@ -1292,8 +1644,6 @@ tr:focus-within .row-actions,
 
 .tool .io-label {
   font: var(--t-kicker);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--text-tertiary);
   margin: 8px 0 4px;
 }
@@ -1459,9 +1809,9 @@ tr:focus-within .row-actions,
 .term-frame {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--term-border);
   border-radius: var(--r-6);
-  background: #0d0e11;
+  background: var(--term-frame);
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -1470,7 +1820,7 @@ tr:focus-within .row-actions,
 .term-inner {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--term-border);
   border-radius: var(--r-5);
   background: var(--term-bg);
   display: flex;
@@ -1484,8 +1834,8 @@ tr:focus-within .row-actions,
   gap: 10px;
   height: 32px;
   padding: 0 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--term-border);
+  color: var(--term-dim);
   font: var(--t-mono);
   font-size: 11px;
 }
@@ -1495,42 +1845,7 @@ tr:focus-within .row-actions,
 }
 
 .term-chrome .calls {
-  color: var(--text-secondary);
-}
-
-.term {
-  flex: 1;
-  margin: 0;
-  padding: 12px 14px 16px;
-  overflow: auto;
-  font: var(--t-term);
   color: var(--term-fg);
-  background: var(--term-bg);
-  white-space: pre-wrap;
-}
-
-.term .dim {
-  color: #8a919c;
-}
-
-.term .ok {
-  color: #c3e88d;
-}
-
-.term .kw {
-  color: #82aaff;
-}
-
-.term .warn {
-  color: #ffcb6b;
-}
-
-.term .cursor {
-  display: inline-block;
-  width: 8px;
-  height: 16px;
-  background: var(--accent);
-  vertical-align: -2px;
 }
 
 /* --- Dialogs --- */
@@ -1606,11 +1921,13 @@ tr:focus-within .row-actions,
   align-items: start;
 }
 
+/* The one literal pair in this file: a QR code scans dark on light, so
+   it does not follow the theme. */
 .qr {
   width: 148px;
   height: 148px;
-  background: #e6e8eb;
-  color: #0a0b0d;
+  background: #ffffff;
+  color: #0a0a0a;
   border-radius: var(--r-3);
   padding: 10px;
 }
@@ -1778,7 +2095,8 @@ tr:focus-within .row-actions,
 
 @media (prefers-reduced-motion: reduce) {
   .skel,
-  .chip.reconnecting .pulse {
+  .chip.reconnecting .pulse,
+  .card-status.warn .dot {
     animation: none;
   }
 }
@@ -1806,7 +2124,9 @@ tr:focus-within .row-actions,
   .nav-item span.label,
   .nav-item .count,
   .nav-item .dash,
-  .nav-kicker {
+  /* The icon rail has no room for a node's sessions: the board has them. */
+  .nav-item.sub,
+  .nav-item.more {
     display: none;
   }
 
@@ -1820,10 +2140,6 @@ tr:focus-within .row-actions,
   .nav-item.node {
     padding-left: 0;
     justify-content: center;
-  }
-
-  .strip {
-    grid-template-columns: 1fr 1fr;
   }
 
   .two-col,
@@ -1989,10 +2305,18 @@ table.data .muted {
   overflow-wrap: anywhere;
 }
 
-/* The terminal: xterm fills the inner frame. */
-.term.xterm-host {
+/* The terminal: xterm fills the inner frame. Selected by `.xterm-host`
+   alone: `.term` is also the session page's modifier (`.session.term`),
+   and a rule on `.term` painted that whole page black and inset its
+   header. */
+.xterm-host {
+  flex: 1;
+  margin: 0;
   padding: var(--s-2);
   overflow: hidden;
+  font: var(--t-term);
+  color: var(--term-fg);
+  background: var(--term-bg);
 }
 
 .t-meta.error {
@@ -2026,8 +2350,7 @@ table.data .muted {
   grid-area: banner;
 }
 
-/* Segmented controls may hold buttons too; in a filter bar, segments
-   size to their text instead of sharing the width. */
+/* Segmented controls may hold buttons too. */
 .seg button {
   flex: 1;
   height: 28px;
@@ -2047,13 +2370,6 @@ table.data .muted {
   color: var(--text-primary);
 }
 
-.filters .seg a,
-.filters .seg button {
-  flex: none;
-  padding: 0 10px;
-  white-space: nowrap;
-}
-
 /* The QR code is an <img> of the bridge's SVG (no markup from the bridge
    is ever inserted into the page). It fills the light box, whose quiet
    zone the SVG already has. */
@@ -2071,7 +2387,7 @@ table.data .muted {
 }
 
 .qr .ico {
-  color: #5c6370;
+  color: #6b6b6b;
 }
 
 /* The link on one line, cut at the end; the copy button has all of it. */

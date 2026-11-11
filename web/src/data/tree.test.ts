@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Creator, SessionInfo, SessionStatus } from "../wire/proto";
 import type { FleetState } from "./fleet";
-import { liveOnly, tree } from "./tree";
+import { tree } from "./tree";
 
 function session(
   id: string,
@@ -30,7 +30,7 @@ const agentOf = (parent: string, node: string): Creator => ({
 });
 
 /** A person's session on laptop whose agent started one on gpu-box, which
- * started one on build-server (DESIGN.md §10), and an unrelated one. */
+ * started one on build-server (DESIGN.md §2.4), and an unrelated one. */
 function state(parentStatus: SessionStatus): FleetState {
   return {
     link: { kind: "open", version: "0.1.0" },
@@ -77,6 +77,13 @@ describe("the session tree", () => {
       ["c07e", 2, "build-server"],
     ]);
     expect(rows[2]?.parent?.id).toBe("3f2a");
+    // A child's parent may run on another node; the row says which.
+    expect(rows.map((row) => row.parentNode)).toEqual([
+      null,
+      null,
+      "laptop",
+      "gpu-box",
+    ]);
   });
 
   it("makes a session whose creator is not listed a root", () => {
@@ -85,13 +92,5 @@ describe("the session tree", () => {
       ["a91c", 0],
       ["c07e", 1],
     ]);
-  });
-
-  it("keeps an ended parent of a live child when showing live sessions", () => {
-    const rows = liveOnly(
-      tree(state(exited), ["laptop", "gpu-box", "build-server"]),
-    );
-    // 3f2a ended but its agent's a91c runs; c07e ended under it.
-    expect(rows.map((row) => row.session.id)).toEqual(["9aa0", "3f2a", "a91c"]);
   });
 });

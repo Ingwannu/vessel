@@ -17,7 +17,7 @@ import {
 
 import { openNewSession, useChrome, useFleet, useFleetState } from "../context";
 import type { FleetState } from "../data/fleet";
-import { isLive, nodeState, shortId } from "../data/format";
+import { isLive, nodeState, sessionTitle, shortId } from "../data/format";
 import { nodeLabel, selectedNode } from "../data/nodes";
 import { NewSessionDialog } from "../routes/new-session";
 import { Banner, Icon, StatusDot } from "./parts";
@@ -258,6 +258,11 @@ function Search() {
   );
 }
 
+/** How many of a node's live sessions the sidebar lists before it links
+ * to the board for the rest: the sidebar is a way to switch, not a second
+ * board. */
+const SIDEBAR_SESSIONS = 5;
+
 function Sidebar() {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
@@ -269,8 +274,7 @@ function Sidebar() {
   );
   return (
     <nav className="sidebar" role="navigation" aria-label="Fleet">
-      <div className="nav-block">
-        <div className="nav-kicker">Place</div>
+      <div className="nav-block nav-scroll">
         <Link
           className={path === "/fleet" ? "nav-item active" : "nav-item"}
           to="/fleet"
@@ -281,31 +285,58 @@ function Sidebar() {
         {(book ?? []).map((node) => {
           const status = statuses[node.key];
           const state = nodeState(status);
-          const count = sessions[node.key]?.filter(isLive).length;
+          const running = (sessions[node.key] ?? []).filter(isLive);
           const connected = status?.state === "connected";
-          const active =
-            path.startsWith(`/fleet/${node.key}`) ||
-            path.startsWith(`/sessions/${node.key}/`);
+          const active = path.startsWith(`/fleet/${node.key}`);
           return (
-            <Link
-              key={node.key}
-              className={`nav-item node${connected ? "" : " offline"}${active ? " active" : ""}`}
-              to="/fleet/$node"
-              params={{ node: node.key }}
-            >
-              <StatusDot tone={state.tone} label={state.word} />
-              <span className="label">{nodeLabel(node, status)}</span>
-              {connected && count !== undefined ? (
-                <span className="count">{count}</span>
-              ) : (
-                <span className="dash">—</span>
-              )}
-            </Link>
+            <Fragment key={node.key}>
+              <Link
+                className={`nav-item node${connected ? "" : " offline"}${active ? " active" : ""}`}
+                to="/fleet/$node"
+                params={{ node: node.key }}
+              >
+                <StatusDot tone={state.tone} label={state.word} />
+                <span className="label">{nodeLabel(node, status)}</span>
+                {connected ? (
+                  <span className="count">{running.length}</span>
+                ) : (
+                  <span className="dash">—</span>
+                )}
+              </Link>
+              {/* The node's live sessions, to switch between them from any
+                  page (the board has the ones that ended). */}
+              {running.slice(0, SIDEBAR_SESSIONS).map((session) => {
+                const to = `/sessions/${node.key}/${session.id}`;
+                return (
+                  <Link
+                    key={session.id}
+                    className={
+                      path === to ? "nav-item sub active" : "nav-item sub"
+                    }
+                    to="/sessions/$node/$id"
+                    params={{ node: node.key, id: session.id }}
+                  >
+                    <span className="label">
+                      {sessionTitle(session.spec.cwd)}
+                    </span>
+                    <span className="id">{shortId(session.id)}</span>
+                  </Link>
+                );
+              })}
+              {running.length > SIDEBAR_SESSIONS ? (
+                <Link
+                  className="nav-item more"
+                  to="/sessions"
+                  search={{ node: node.key }}
+                >
+                  {running.length - SIDEBAR_SESSIONS} more
+                </Link>
+              ) : null}
+            </Fragment>
           );
         })}
       </div>
       <div className="nav-block">
-        <div className="nav-kicker">Work</div>
         <Link
           className={path === "/sessions" ? "nav-item active" : "nav-item"}
           to="/sessions"

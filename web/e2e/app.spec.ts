@@ -126,6 +126,51 @@ test("a session is killed", async ({ page }) => {
   );
 });
 
+test("the board holds a session in its status's lane, and kills from its card", async ({
+  page,
+}) => {
+  await open(page);
+  await create(page, "build-server", "Terminal");
+  await expect(page.getByLabel("Session terminal")).toContainText("ready");
+  // The session's page is /sessions/<node>/<id>.
+  const id = new URL(page.url()).pathname.split("/").at(-1) ?? "";
+  expect(id).not.toBe("");
+
+  await page
+    .getByRole("navigation", { name: "Fleet" })
+    .getByRole("link", { name: /^Sessions/ })
+    .click();
+  const board = page.getByRole("group", { name: "Sessions by status" });
+  // Four lanes, in order, each a labelled region.
+  await expect(board.getByRole("region")).toHaveCount(4);
+  await expect(board.getByRole("heading", { level: 2 })).toHaveText([
+    "Running",
+    "Interrupted",
+    "Failed",
+    "Exited",
+  ]);
+  const card = board.locator(`[data-session="${id}"]`);
+  const running = board.getByRole("region", { name: "Running" });
+  await expect(running.locator(`[data-session="${id}"]`)).toBeVisible();
+  await expect(card).toContainText("running");
+  await expect(card).toContainText("build-server");
+
+  // Kill is the card's one action, and asks first.
+  await card.hover();
+  await card.getByRole("button", { name: /^Kill / }).click();
+  const confirm = page.getByRole("dialog");
+  await expect(confirm).toContainText("build-server");
+  await confirm.getByRole("button", { name: "Kill" }).click();
+  // The card leaves the running lane for the lane of how it ended.
+  await expect(running.locator(`[data-session="${id}"]`)).toHaveCount(0);
+  await expect(card).toHaveCount(1);
+  await expect(card).not.toContainText("running");
+
+  // The card itself opens the session.
+  await card.getByRole("link", { name: /^Open / }).click();
+  await expect(page).toHaveURL(new RegExp(`/sessions/[^/]+/${id}$`));
+});
+
 test("a device is invited, pairs, and is revoked", async ({ page }) => {
   const env = loadEnv();
   await open(page);

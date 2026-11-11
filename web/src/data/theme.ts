@@ -1,9 +1,11 @@
-// Dark is the design; light is a re-derived theme (DESIGN.md §4). The
-// operator's choice is kept in `localStorage`; until there is one, the
-// system's preference decides. Applied before the first paint, so the
-// page never flashes the other theme.
+// White and black is the design; dark is the same system inverted
+// (DESIGN.md §4, ADR 0018). The operator's choice is kept in
+// `localStorage`. Until there is one the page is light, whatever the
+// system prefers: the white canvas is the product's look, not one of two
+// equal skins, and a first visit should show it. Applied before the first
+// paint, so the page never flashes the other theme.
 
-export type Theme = "dark" | "light";
+export type Theme = "light" | "dark";
 
 const KEY = "vessel.theme";
 
@@ -13,12 +15,7 @@ export function storedTheme(): Theme | null {
 }
 
 export function currentTheme(): Theme {
-  return (
-    storedTheme() ??
-    (window.matchMedia("(prefers-color-scheme: light)").matches
-      ? "light"
-      : "dark")
-  );
+  return storedTheme() ?? "light";
 }
 
 export function applyTheme(theme: Theme = currentTheme()): void {

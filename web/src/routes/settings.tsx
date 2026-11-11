@@ -32,7 +32,7 @@ export function SettingsPage(): ReactElement {
           <h2>Theme</h2>
           <div className="pad">
             <div className="seg" role="radiogroup" aria-label="Theme">
-              {(["dark", "light"] as const).map((value) => (
+              {(["light", "dark"] as const).map((value) => (
                 <label
                   key={value}
                   className={theme === value ? "active" : undefined}

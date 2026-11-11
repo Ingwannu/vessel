@@ -1,17 +1,17 @@
 // Fleet (DESIGN.md §3.1): every node the book knows, with what each
 // daemon reports; a node's facts in the inspector.
 
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { openNewSession, useCrumbs, useFleet, useFleetState } from "../context";
+import { useCrumbs, useFleet, useFleetState } from "../context";
 import type { FleetState } from "../data/fleet";
 import { harnessName, isLive, nodeState, shortId, when } from "../data/format";
 import { apiName, routeLine } from "../data/models";
 import { nodeLabel } from "../data/nodes";
 import { useWhere } from "../data/where";
 import type { BookNode, NodeStatus } from "../wire/bridge";
-import { Badge, Banner, Empty, Icon, Skeleton, StatusDot } from "../ui/parts";
+import { Badge, Banner, Empty, Skeleton, StatusDot } from "../ui/parts";
 
 export function FleetPage(): ReactElement {
   const where = useWhere();
@@ -24,6 +24,14 @@ export function FleetPage(): ReactElement {
   const navigate = useNavigate();
   const nodes = book ?? [];
   const selected = nodes.find((node) => node.key === chosen) ?? null;
+  // The node in view is the selected node (DESIGN.md §2.5), however the
+  // page was reached: the topbar's New then opens on it. The page has no
+  // New button of its own, which would repeat the topbar's.
+  useEffect(() => {
+    if (chosen !== null) {
+      fleet.select(chosen);
+    }
+  }, [chosen, fleet]);
   useCrumbs(
     selected === null
       ? [{ label: "Fleet" }]
@@ -51,20 +59,32 @@ export function FleetPage(): ReactElement {
       <div className="page-head">
         <div>
           <h1>Fleet</h1>
-          <p>
-            {nodes.length === 1 ? "One node" : `${nodes.length} nodes`} in this
-            client&apos;s book. Live counts are starting or running sessions.
+          {/* One line of facts, not a row of tiles: the table below is the
+              fleet, and a number repeated in a large tile says nothing more. */}
+          <p className="strip" aria-label="Fleet summary">
+            <span>
+              <strong>{nodes.length}</strong>{" "}
+              {nodes.length === 1 ? "node" : "nodes"}
+              <span className="s">
+                {online} online, {nodes.length - online} not connected
+              </span>
+            </span>
+            <span>
+              <strong>{live.length}</strong> live{" "}
+              {live.length === 1 ? "session" : "sessions"}
+              <span className="s">
+                {byAgents === 0
+                  ? "all started by a person"
+                  : `${byAgents} started by agents`}
+              </span>
+            </span>
+            <span>
+              <strong>{harnessCount}</strong>{" "}
+              {harnessCount === 1 ? "harness" : "harnesses"}
+              <span className="s">installed across the fleet</span>
+            </span>
           </p>
         </div>
-        <button
-          className="btn"
-          type="button"
-          onClick={() => {
-            openNewSession(chosen);
-          }}
-        >
-          <Icon name="plus" size="sm" /> New session
-        </button>
       </div>
       <div className="page-body">
         {bookError === null ? null : (
@@ -83,34 +103,6 @@ export function FleetPage(): ReactElement {
             The node book could not be read: {bookError}
           </Banner>
         )}
-        <div className="strip" aria-label="Fleet summary">
-          <div>
-            <div className="k">Nodes</div>
-            <div className="v mono">{nodes.length}</div>
-            <div className="s">
-              {online} online · {nodes.length - online} not connected
-            </div>
-          </div>
-          <div>
-            <div className="k">Live sessions</div>
-            <div className="v mono">{live.length}</div>
-            <div className="s">
-              {byAgents === 0
-                ? "all started by a person"
-                : `${byAgents} of them agent-created`}
-            </div>
-          </div>
-          <div>
-            <div className="k">Harnesses</div>
-            <div className="v mono">{harnessCount}</div>
-            <div className="s">kinds installed across the fleet</div>
-          </div>
-          <div>
-            <div className="k">Reach</div>
-            <div className="v mono">{online}</div>
-            <div className="s">through vessel ui on this machine</div>
-          </div>
-        </div>
         {book === null ? (
           <Skeleton />
         ) : nodes.length === 0 ? (

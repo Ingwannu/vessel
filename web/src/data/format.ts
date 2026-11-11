@@ -45,6 +45,25 @@ export function isLive(session: SessionInfo): boolean {
   );
 }
 
+/** What a session's card is called: the last segment of its working
+ * directory, which is the project the agent works in; `~` when it runs in
+ * the node user's home (`cwd` unset). A session has no name of its own in
+ * the protocol, and its id says nothing to a person scanning a board. */
+export function sessionTitle(cwd: string | null | undefined): string {
+  if (cwd === null || cwd === undefined || cwd === "") {
+    return "~";
+  }
+  // Both separators: the node may be a Windows machine.
+  const segments = cwd.split(/[\\/]+/).filter((segment) => segment !== "");
+  return segments.at(-1) ?? cwd;
+}
+
+/** When a session's card last changed: its end if it ended, else its
+ * start. */
+export function sessionMoment(session: SessionInfo): string {
+  return session.ended_at ?? session.created_at;
+}
+
 /** A harness as the operator types it. */
 export function harnessName(kind: HarnessKind): string {
   switch (kind) {

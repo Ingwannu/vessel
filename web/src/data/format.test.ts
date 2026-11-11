@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ago, harnessName, shortId, statusWord } from "./format";
+import { ago, harnessName, sessionTitle, shortId, statusWord } from "./format";
 
 describe("formatting", () => {
   it("keeps the protocol's words", () => {
@@ -9,6 +9,15 @@ describe("formatting", () => {
     expect(statusWord({ state: "interrupted" })).toBe("interrupted");
     expect(harnessName("claude-code")).toBe("claude");
     expect(harnessName("open-code")).toBe("opencode");
+  });
+
+  it("titles a session by its working directory", () => {
+    expect(sessionTitle("/home/me/work/vessel")).toBe("vessel");
+    expect(sessionTitle("/home/me/work/vessel/")).toBe("vessel");
+    expect(sessionTitle("C:\\Users\\me\\proj")).toBe("proj");
+    expect(sessionTitle("/")).toBe("/");
+    expect(sessionTitle(null)).toBe("~");
+    expect(sessionTitle(undefined)).toBe("~");
   });
 
   it("shortens ids and times", () => {

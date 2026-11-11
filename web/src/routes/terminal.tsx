@@ -82,8 +82,10 @@ export function TerminalView({
       theme: {
         background: token("--term-bg"),
         foreground: token("--term-fg"),
-        cursor: token("--accent"),
-        selectionBackground: token("--accent-muted"),
+        // The terminal's own tokens, not the page's accent: the accent
+        // is black in the light theme and the terminal is black in both.
+        cursor: token("--term-cursor"),
+        selectionBackground: token("--term-selection"),
       },
     });
     const fit = new FitAddon();

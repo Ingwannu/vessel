@@ -18,7 +18,9 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
-    colorScheme: "dark",
+    // The page is light until the operator chooses (data/theme.ts); the
+    // system preference only reaches the no-bundle placeholder page.
+    colorScheme: "light",
     // WS frames and navigation URLs can contain credentials. Never record them.
     trace: "off",
     screenshot: "off",

@@ -203,13 +203,13 @@ test("every main screen", async ({ page }) => {
   await shot(page, "01-fleet");
 
   await page.goto(`${origin}/sessions`);
-  await expect(page.getByRole("table", { name: "Sessions" })).toBeVisible();
+  const board = page.getByRole("group", { name: "Sessions by status" });
+  await expect(board).toBeVisible();
   await shot(page, "02-sessions");
 
-  await page
-    .getByRole("table", { name: "Sessions" })
-    .getByRole("row")
-    .filter({ hasText: "gpu-box" })
+  // A card's link names the session, its status and its node.
+  await board
+    .getByRole("link", { name: /^Open .* on gpu-box$/ })
     .first()
     .click();
   await expect(page.getByLabel("Session terminal")).toContainText("args [");
@@ -270,17 +270,19 @@ test("every main screen", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await shot(page, "08-settings");
 
-  // The light theme, re-derived (DESIGN.md §4.2).
-  await page.locator(".seg label").filter({ hasText: "Light" }).click();
+  // The dark theme: the same system inverted (DESIGN.md §4.2).
+  await page.locator(".seg label").filter({ hasText: "Dark" }).click();
   await page.goto(`${origin}/fleet/laptop`);
   await expect(
     page.getByRole("complementary", { name: "laptop" }),
   ).toBeVisible();
-  await shot(page, "09-fleet-light");
+  await shot(page, "09-fleet-dark");
   await page.goto(structured);
   await expect(page.locator(".perm-sticky")).toBeVisible();
-  await shot(page, "10-session-structured-light");
+  await shot(page, "10-session-structured-dark");
   await page.goto(`${origin}/sessions`);
-  await expect(page.getByRole("table", { name: "Sessions" })).toBeVisible();
-  await shot(page, "11-sessions-light");
+  await expect(
+    page.getByRole("group", { name: "Sessions by status" }),
+  ).toBeVisible();
+  await shot(page, "11-sessions-dark");
 });
