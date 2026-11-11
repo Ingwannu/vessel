@@ -43,6 +43,7 @@ impl NodeService {
                 Ok(HarnessOptions {
                     options: Vec::new(),
                     probed_at: Utc::now(),
+                    abilities: None,
                 })
             }
             StructuredSupport::Available => {
@@ -73,10 +74,11 @@ impl NodeService {
         let dir = self.probes.dir().clone();
         let probed = self.sessions.probe(harness, profile, proxy, dir).await;
         self.models.retire(probe);
-        let options = probed.map_err(|error| wire(&error))?;
+        let probed = probed.map_err(|error| wire(&error))?;
         Ok(HarnessOptions {
-            options,
+            options: probed.options,
             probed_at: Utc::now(),
+            abilities: Some(probed.abilities),
         })
     }
 

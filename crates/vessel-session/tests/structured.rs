@@ -235,7 +235,10 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => None,
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => None,
     }
 }
 
@@ -265,11 +268,14 @@ async fn status_follows_the_acp_handshake() {
             .records
             .iter()
             .filter(|record| {
+                // The commands an agent announces come when it sends them,
+                // before or after its answer to `session/new` (Claude's
+                // adapter sends them after); they are not the handshake.
                 !matches!(
                     &record.event,
                     SessionEvent::Agent {
                         event: AgentEvent::HarnessLog { .. }
-                    }
+                    } | SessionEvent::CommandsChanged { .. }
                 )
             })
             .map(|record| record.event.clone())
@@ -288,7 +294,13 @@ async fn status_follows_the_acp_handshake() {
                 },
                 &SessionEvent::Agent {
                     event: AgentEvent::Ready {
-                        harness_session: HarnessSessionId::new("fake-session-1")
+                        harness_session: HarnessSessionId::new("fake-session-1"),
+                        abilities: Some(vessel_proto::AgentAbilities {
+                            steer: true,
+                            resume: true,
+                            image: true,
+                            audio: false,
+                        })
                     }
                 },
                 &SessionEvent::Status {
@@ -360,7 +372,8 @@ async fn a_turn_with_a_permission_round_trip() {
                 .await,
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
-                    reason: StopReason::EndTurn
+                    reason: StopReason::EndTurn,
+                    usage: None
                 }
             }
         );
@@ -568,7 +581,10 @@ async fn the_board_follows_turns_and_permissions() {
         handle.send(prompt("wait")).await.unwrap();
         let working = board_until(&mut watch, DisplayStatus::Working).await;
         assert_eq!(working.activity, Activity::Active);
-        handle.send(SessionInput::CancelTurn).await.unwrap();
+        handle
+            .send(SessionInput::CancelTurn { turn: None })
+            .await
+            .unwrap();
         let stopped = board_until(&mut watch, DisplayStatus::Interrupted).await;
         assert_eq!(
             (stopped.column, stopped.activity),

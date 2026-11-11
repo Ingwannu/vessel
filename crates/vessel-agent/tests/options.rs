@@ -112,7 +112,9 @@ mod support {
         pub(super) async fn until(&mut self, done: impl Fn(&Seen) -> bool) -> bool {
             while let Some(output) = self.outputs.next().await {
                 let seen = match output {
-                    AgentOutput::Event(AgentEvent::HarnessLog { .. }) => continue,
+                    AgentOutput::Event(AgentEvent::HarnessLog { .. })
+                    | AgentOutput::Commands(_)
+                    | AgentOutput::Usage(_) => continue,
                     AgentOutput::Event(event) => Seen::Event(event),
                     AgentOutput::Options(options) => Seen::Options(options),
                     AgentOutput::Disconnected(disconnect) => {
@@ -348,7 +350,8 @@ async fn the_agents_own_change_is_reported() {
             run.until(|seen| matches!(
                 seen,
                 Seen::Event(AgentEvent::TurnEnded {
-                    reason: StopReason::EndTurn
+                    reason: StopReason::EndTurn,
+                    usage: None
                 })
             ))
             .await
@@ -427,15 +430,19 @@ async fn a_resumed_session_gets_its_choices_after_the_load() {
 #[tokio::test]
 async fn a_probe_reads_what_the_agent_offers() {
     within(async {
-        let options = vessel_agent::probe(&fake(), setup(Vec::new()))
+        let probed = vessel_agent::probe(&fake(), setup(Vec::new()))
             .await
             .unwrap();
-        let ids: Vec<_> = options.iter().map(|option| option.id.as_str()).collect();
+        let ids: Vec<_> = probed
+            .options
+            .iter()
+            .map(|option| option.id.as_str())
+            .collect();
         assert_eq!(ids, ["mode", "model", "effort", "fast"]);
         let none = vessel_agent::probe(&fake().env("FAKE_ACP_OPTIONS", "none"), setup(Vec::new()))
             .await
             .unwrap();
-        assert!(none.is_empty());
+        assert!(none.options.is_empty());
     })
     .await;
 }

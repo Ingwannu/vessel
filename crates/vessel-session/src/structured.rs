@@ -113,6 +113,18 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::OptionsChanged { options })
                     .await;
             }
+            // Protocol 10: the driver reports each only when it differs
+            // from its last, so each is one record per change.
+            AgentOutput::Commands(commands) => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::CommandsChanged { commands })
+                    .await;
+            }
+            AgentOutput::Usage(usage) => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::UsageChanged { usage })
+                    .await;
+            }
             AgentOutput::Event(event) if self.move_state.replaying => {
                 // A restarted agent's replay: the log has it already. Its
                 // stderr still goes in; `Ready` ends the replay.
@@ -133,7 +145,10 @@ impl StructuredActor {
                     | AgentEvent::PermissionRequested(_)
                     | AgentEvent::PermissionResolved { .. }
                     | AgentEvent::TurnEnded { .. }
-                    | AgentEvent::TurnFailed { .. } => {}
+                    | AgentEvent::TurnFailed { .. }
+                    | AgentEvent::Steered { .. }
+                    | AgentEvent::QuestionAsked(_)
+                    | AgentEvent::QuestionResolved { .. } => {}
                 }
             }
             AgentOutput::Disconnected(disconnect) if self.move_state.active => {

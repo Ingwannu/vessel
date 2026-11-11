@@ -13,10 +13,17 @@
 
 use agent_client_protocol::v1::schema as acp;
 use serde::Serialize;
+
+use crate::error::InputError;
+
+mod report;
+
+pub(crate) use report::turn_usage;
 use vessel_proto::{
-    AgentEvent, ContentBlock, PermissionOption, PermissionOptionId, PermissionOptionKind,
-    PermissionOutcome, PlanEntry, PlanPriority, PlanStatus, RawJson, StopReason, ToolCall,
-    ToolCallContent, ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
+    AgentCommand, AgentEvent, ContentBlock, ContextUsage, PermissionOption, PermissionOptionId,
+    PermissionOptionKind, PermissionOutcome, PlanEntry, PlanPriority, PlanStatus, RawJson,
+    StopReason, ToolCall, ToolCallContent, ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind,
+    ToolLocation,
 };
 
 /// What a `session/update` becomes.
@@ -29,6 +36,10 @@ pub(crate) enum Update {
     ConfigOptions(Vec<acp::SessionConfigOption>),
     /// The agent's mode changed (ACP's older modes, protocol 9).
     Mode(acp::SessionModeId),
+    /// The commands the agent offers now (protocol 10), the whole list.
+    Commands(Vec<AgentCommand>),
+    /// How full the agent's context is (protocol 10).
+    Usage(ContextUsage),
     /// Not part of Vessel's timeline (yet); logged and dropped.
     Skipped(Skipped),
 }
@@ -36,12 +47,8 @@ pub(crate) enum Update {
 /// Kinds of `session/update` Vessel does not put on the timeline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Skipped {
-    /// Slash commands the agent offers.
-    AvailableCommands,
     /// Session metadata (title) changed.
     SessionInfo,
-    /// Token or cost usage.
-    Usage,
     /// Context compaction progress.
     Compaction,
     /// An update kind newer than the ACP version Vessel pins.
@@ -71,11 +78,11 @@ pub(crate) fn session_update(update: acp::SessionUpdate) -> Update {
         U::Notice(notice) => AgentEvent::HarnessLog {
             line: notice_line(&notice),
         },
-        U::AvailableCommandsUpdate(_) => return Update::Skipped(Skipped::AvailableCommands),
+        U::AvailableCommandsUpdate(update) => return Update::Commands(report::commands(update)),
         U::CurrentModeUpdate(update) => return Update::Mode(update.current_mode_id),
         U::ConfigOptionUpdate(update) => return Update::ConfigOptions(update.config_options),
         U::SessionInfoUpdate(_) => return Update::Skipped(Skipped::SessionInfo),
-        U::UsageUpdate(_) => return Update::Skipped(Skipped::Usage),
+        U::UsageUpdate(update) => return Update::Usage(report::usage(update)),
         U::CompactionUpdate(_) | U::CompactionSummaryChunk(_) => {
             return Update::Skipped(Skipped::Compaction);
         }
@@ -103,13 +110,18 @@ pub(crate) fn content(block: acp::ContentBlock) -> ContentBlock {
 
 /// A prompt block in ACP form. Opaque blocks must be ACP content already
 /// (they are what [`content`] forwarded), so they are parsed back.
-pub(crate) fn prompt_block(block: ContentBlock) -> Result<acp::ContentBlock, serde_json::Error> {
+pub(crate) fn prompt_block(block: ContentBlock) -> Result<acp::ContentBlock, InputError> {
     match block {
         ContentBlock::Text { text } => Ok(acp::ContentBlock::Text(acp::TextContent::new(text))),
         ContentBlock::ResourceLink { uri, name } => Ok(acp::ContentBlock::ResourceLink(
             acp::ResourceLink::new(name, uri),
         )),
-        ContentBlock::Opaque { raw } => serde_json::from_str(raw.as_text()),
+        ContentBlock::Opaque { raw } => {
+            serde_json::from_str(raw.as_text()).map_err(InputError::InvalidContent)
+        }
+        ContentBlock::Attachment { attachment } => {
+            Err(InputError::AttachmentNotLoaded(attachment.id))
+        }
     }
 }
 

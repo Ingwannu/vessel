@@ -40,6 +40,12 @@ pub enum Column {
     Title,
     /// `sessions.choices` (`OptionChoice`s, schema 6).
     Choices,
+    /// `sessions.abilities` (`AgentAbilities`, schema 7).
+    Abilities,
+    /// `sessions.usage` (`ContextUsage`, schema 7).
+    Usage,
+    /// `sessions.queue` (`PromptQueue`, schema 7).
+    Queue,
 }
 
 /// Anything that can go wrong in the store.

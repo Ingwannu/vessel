@@ -239,7 +239,11 @@ impl Method {
     ///   session there needs as much as the profiles, and protocol 9's
     ///   options and titles (`harness.options`, `session.options`,
     ///   `session.set_option`, `session.rename`), which starting and
-    ///   steering a session there needs.
+    ///   steering a session there needs, and protocol 10's conversation
+    ///   (`session.prompt`, `session.queue`, `session.conversation`,
+    ///   `session.resume`, `session.mark`, `session.delete`, and the
+    ///   `attachment.*` calls), which talking to a session there needs as
+    ///   much as `session.send` does.
     /// - Not forwardable, administration of a node done there: stopping it,
     ///   its devices, re-reading its profiles, deleting or copying its
     ///   secrets.
@@ -284,7 +288,17 @@ impl Method {
             | Self::HarnessOptions
             | Self::SessionOptions
             | Self::SetSessionOption
-            | Self::RenameSession => true,
+            | Self::RenameSession
+            | Self::PromptSession
+            | Self::ChangeQueue
+            | Self::GetConversation
+            | Self::ResumeSession
+            | Self::MarkSession
+            | Self::DeleteSession
+            | Self::BeginUpload
+            | Self::WriteUpload
+            | Self::FinishUpload
+            | Self::ReadAttachment => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

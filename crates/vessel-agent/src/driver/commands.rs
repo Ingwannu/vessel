@@ -94,8 +94,7 @@ impl Driver {
             .iter()
             .cloned()
             .map(mapper::prompt_block)
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(InputError::InvalidContent)?;
+            .collect::<Result<Vec<_>, _>>()?;
         let sent = cx.send_request(acp::PromptRequest::new(session.clone(), blocks));
         let inbound = self.inbound.clone();
         let spawned = cx.spawn(async move {

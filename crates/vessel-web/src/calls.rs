@@ -113,7 +113,17 @@ const fn forwardable(method: Method) -> bool {
         | Method::HarnessOptions
         | Method::SessionOptions
         | Method::SetSessionOption
-        | Method::RenameSession => true,
+        | Method::RenameSession
+        | Method::PromptSession
+        | Method::ChangeQueue
+        | Method::GetConversation
+        | Method::ResumeSession
+        | Method::MarkSession
+        | Method::DeleteSession
+        | Method::BeginUpload
+        | Method::WriteUpload
+        | Method::FinishUpload
+        | Method::ReadAttachment => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

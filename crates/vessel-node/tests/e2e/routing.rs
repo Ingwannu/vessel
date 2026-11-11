@@ -307,7 +307,10 @@ async fn calls(client: &NodeClient, id: SessionId) -> Vec<ModelCall> {
             | SessionEvent::Agent { .. }
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => None,
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => None,
         })
         .collect()
 }

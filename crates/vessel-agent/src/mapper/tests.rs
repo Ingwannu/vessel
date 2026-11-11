@@ -39,6 +39,12 @@ struct Case {
     /// For an option report (protocol 9): the config option ids, in order.
     #[serde(default)]
     config: Option<Vec<String>>,
+    /// For a commands report (protocol 10): the names, in order.
+    #[serde(default)]
+    commands: Option<Vec<String>>,
+    /// For a usage report (protocol 10): `[used, size]`.
+    #[serde(default)]
+    usage: Option<[u64; 2]>,
 }
 
 #[test]
@@ -69,6 +75,21 @@ fn check(fixture: &str) {
                     .map(|option| option.id.0.to_string())
                     .collect();
                 assert_eq!(Some(ids), case.config, "{}", case.name);
+            }
+            (None, None, Update::Commands(commands)) => {
+                let names: Vec<String> = commands
+                    .iter()
+                    .map(|command| command.name.to_string())
+                    .collect();
+                assert_eq!(Some(names), case.commands, "{}", case.name);
+            }
+            (None, None, Update::Usage(usage)) => {
+                assert_eq!(
+                    Some([usage.used.get(), usage.size.get()]),
+                    case.usage,
+                    "{}",
+                    case.name
+                );
             }
             (expected, skipped, mapped) => {
                 panic!(

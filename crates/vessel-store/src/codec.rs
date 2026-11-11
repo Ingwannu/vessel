@@ -51,7 +51,7 @@ pub(crate) fn encode<T: serde::Serialize>(value: &T) -> Result<String, StoreErro
     serde_json::to_string(value).map_err(StoreError::Encode)
 }
 
-fn decode<T: serde::de::DeserializeOwned>(
+pub(crate) fn decode<T: serde::de::DeserializeOwned>(
     session: SessionId,
     column: Column,
     text: &str,
@@ -65,7 +65,7 @@ fn decode<T: serde::de::DeserializeOwned>(
 
 /// The columns [`session_from_row`] expects, in order.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
-     via, origin, model, title";
+     via, origin, model, title, abilities";
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -129,6 +129,12 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
                 &serde_json::Value::String(title).to_string(),
             )
         })
+        .transpose()?;
+    // Schema 7: what the agent said it can do in its last handshake, so an
+    // ended session says whether it can start again.
+    info.abilities = row
+        .get::<_, Option<String>>(13)?
+        .map(|abilities| decode(id, Column::Abilities, &abilities))
         .transpose()?;
     info.board = stored_board(&info);
     Ok(info)

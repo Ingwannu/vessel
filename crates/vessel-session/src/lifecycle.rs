@@ -155,7 +155,9 @@ impl Lifecycle {
         }
         content.iter().find_map(|block| match block {
             ContentBlock::Text { text } => SessionTitle::from_prompt(text),
-            ContentBlock::ResourceLink { .. } | ContentBlock::Opaque { .. } => None,
+            ContentBlock::ResourceLink { .. }
+            | ContentBlock::Opaque { .. }
+            | ContentBlock::Attachment { .. } => None,
         })
     }
 

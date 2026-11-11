@@ -192,7 +192,10 @@ async fn exports(fixture: &Fixture, client: &NodeClient, alt: &Path, source: &mu
     );
     let forced = client.export_session(id, true).await.unwrap();
     client.close_transfer(forced.transfer).await.unwrap();
-    client.send(id, SessionInput::CancelTurn).await.unwrap();
+    client
+        .send(id, SessionInput::CancelTurn { turn: None })
+        .await
+        .unwrap();
     read_until(&mut source.stream, &mut source.seen, |record| {
         matches!(agent_of(record), Some(AgentEvent::TurnEnded { .. }))
     })

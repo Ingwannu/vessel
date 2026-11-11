@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use vessel_proto::{OptionId, PermissionId, PermissionOptionId};
+use vessel_proto::{AttachmentId, OptionId, PermissionId, PermissionOptionId};
 
 use crate::options::OptionError;
 
@@ -26,6 +26,10 @@ pub enum InputError {
     /// An opaque content block is not valid ACP content.
     #[error("the prompt contains content the agent protocol cannot carry")]
     InvalidContent(#[source] serde_json::Error),
+    /// The prompt names an attachment whose bytes the caller did not hand
+    /// over with it (protocol 10).
+    #[error("attachment {0} was not loaded for the prompt")]
+    AttachmentNotLoaded(AttachmentId),
     /// No such permission request was ever made in this session.
     #[error("permission request {0} does not exist")]
     PermissionNotFound(PermissionId),

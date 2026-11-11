@@ -1,6 +1,6 @@
 [
   {
-    "name": "recorded: available commands are skipped",
+    "name": "recorded: available commands are the agent's commands",
     "notification": {
       "sessionId": "s1",
       "update": {
@@ -16,7 +16,7 @@
         ]
       }
     },
-    "skipped": "AvailableCommands"
+    "commands": ["compact"]
   },
   {
     "name": "recorded: session title is skipped",
@@ -31,7 +31,7 @@
     "skipped": "SessionInfo"
   },
   {
-    "name": "recorded: usage update is skipped",
+    "name": "recorded: a usage update is the context's figure",
     "notification": {
       "sessionId": "s1",
       "update": {
@@ -40,7 +40,7 @@
         "size": 750000
       }
     },
-    "skipped": "Usage"
+    "usage": [25929, 750000]
   },
   {
     "name": "recorded: agent message chunk with a message id",

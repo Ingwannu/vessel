@@ -60,9 +60,9 @@
     "expected": {"event": "tool_call_update", "id": "toolu_05", "raw_input": {"command":"cargo test","timeout":120}}
   },
   {
-    "name": "available commands are skipped",
+    "name": "available commands are the agent's commands",
     "notification": {"sessionId": "s1", "update": {"sessionUpdate": "available_commands_update", "availableCommands": [{"name": "compact", "description": "Compact the conversation"}]}},
-    "skipped": "AvailableCommands"
+    "commands": ["compact"]
   },
   {
     "name": "a mode change is the agent's option report",

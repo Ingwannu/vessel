@@ -24,7 +24,7 @@ fn answer(id: PermissionId, option: &str) -> SessionInput {
 }
 
 fn turn_ended(reason: StopReason) -> impl Fn(&EventRecord) -> bool {
-    move |record| matches!(agent_of(record), Some(AgentEvent::TurnEnded { reason: got }) if *got == reason)
+    move |record| matches!(agent_of(record), Some(AgentEvent::TurnEnded { reason: got, .. }) if *got == reason)
 }
 
 fn running(record: &EventRecord) -> bool {
@@ -85,7 +85,9 @@ impl Shared {
             .seen
             .iter()
             .find_map(|record| match agent_of(record) {
-                Some(AgentEvent::Ready { harness_session }) => Some(harness_session.clone()),
+                Some(AgentEvent::Ready {
+                    harness_session, ..
+                }) => Some(harness_session.clone()),
                 _other => None,
             })
             .unwrap();
@@ -157,7 +159,7 @@ impl Shared {
         })
         .await;
         self.alice
-            .send(self.id, SessionInput::CancelTurn)
+            .send(self.id, SessionInput::CancelTurn { turn: None })
             .await
             .unwrap();
         let cancelled = turn_ended(StopReason::Cancelled);

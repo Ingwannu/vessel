@@ -84,14 +84,19 @@ impl Conversation {
                 self.line(format!("[options: {}]", render::options(options)))
             }
             SessionEvent::Renamed { title } => self.line(format!("[renamed: {title}]")),
+            SessionEvent::QueueChanged { queue } => self.line(render::queue(queue)),
+            SessionEvent::CommandsChanged { commands } => {
+                self.line(format!("[commands: {}]", render::commands(commands)))
+            }
+            SessionEvent::UsageChanged { usage } => self.line(render::usage(usage)),
         }
     }
 
     fn agent(&mut self, event: &AgentEvent) -> String {
         match event {
-            AgentEvent::Ready { harness_session } => {
-                self.line(format!("[ready: harness session {harness_session}]"))
-            }
+            AgentEvent::Ready {
+                harness_session, ..
+            } => self.line(format!("[ready: harness session {harness_session}]")),
             AgentEvent::TurnStarted { content } => self.line(format!("> {}", text(content))),
             AgentEvent::UserMessageChunk { content } => {
                 self.stream(Streaming::UserReplay, "> ", content)
@@ -152,11 +157,17 @@ impl Conversation {
                 };
                 self.line(format!("[permission {outcome}]"))
             }
-            AgentEvent::TurnEnded { reason } => {
+            AgentEvent::TurnEnded { reason, .. } => {
                 self.line(format!("[turn ended: {}]", stop_reason(*reason)))
             }
             AgentEvent::TurnFailed { message } => self.line(format!("[turn failed: {message}]")),
             AgentEvent::HarnessLog { line } => self.line(format!("[harness] {line}")),
+            AgentEvent::Steered { content } => self.line(format!(">> {}", text(content))),
+            AgentEvent::QuestionAsked(question) => self.line(render::question(question)),
+            AgentEvent::QuestionResolved { id, outcome } => self.line(format!(
+                "[question {id} {}]",
+                render::question_outcome(outcome)
+            )),
         }
     }
 
@@ -227,6 +238,7 @@ fn block(content: &ContentBlock) -> String {
         ContentBlock::Text { text } => text.clone(),
         ContentBlock::ResourceLink { uri, name } => format!("[{name}]({uri})"),
         ContentBlock::Opaque { .. } => "[attachment]".to_owned(),
+        ContentBlock::Attachment { attachment } => format!("[attachment: {}]", attachment.name),
     }
 }
 
@@ -298,6 +310,7 @@ mod tests {
         assert_eq!(view.show(&chunk("lo")), "lo");
         let ended = agent(AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
+            usage: None,
         });
         assert_eq!(view.show(&ended), "\n[turn ended: done]\n");
         assert_eq!(view.show(&ended), "[turn ended: done]\n");

@@ -275,7 +275,10 @@ pub(crate) fn output_of(records: &[EventRecord]) -> String {
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => None,
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => None,
         })
         .flatten()
         .collect();
@@ -322,7 +325,10 @@ pub(crate) fn status_of(record: &EventRecord) -> Option<&SessionStatus> {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => None,
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => None,
     }
 }
 
@@ -372,7 +378,10 @@ pub(crate) const fn agent_of(record: &EventRecord) -> Option<&AgentEvent> {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => None,
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => None,
     }
 }
 

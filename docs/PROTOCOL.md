@@ -4,6 +4,87 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## Version 10 (2026-11-11)
+
+Nodes speak 2..=10; version 10 adds ten methods, six events (with
+stand-ins for older clients) and optional fields. Milestone 11's plan
+(`docs/plans/backend-m11.md`, "Track A: contract" and its review) and
+ADRs 0024 to 0026. Track B adds its own part of version 10 (projects,
+worktrees, git, files); this entry is Track A's, the conversation.
+
+- Types (`vessel_proto::conversation`):
+  - `AgentAbilities { steer, resume, image, audio }`: what the agent's
+    ACP `initialize` answer says (`_meta.steering.supported`,
+    `loadSession`, `promptCapabilities`). In `AgentEvent::Ready.abilities?`,
+    `SessionInfo.abilities?` (kept by the store) and
+    `HarnessOptions.abilities?`.
+  - `ContentBlock::Attachment { attachment: AttachmentRef }`, `AttachmentRef
+    { id, name, kind, mime, size }`, `kind` `image`, `audio` or `file`:
+    only in what a client sends and its echo; the node replaces a
+    client's reference with its own record by id.
+  - The queue: `PromptQueue { entries, held? }`, `QueuedPrompt { id,
+    content, queued_at, revision, by }`, `QueueHold` (`cancelled`,
+    `failed`, `ended`, `asked`); `Delivery` (`start`, `queue`, `steer`,
+    `interrupt`) and `Delivered` (`started`, `steered`, `queued { entry
+    }`); `QueueChange` (`edit { entry, revision, content }`, `move {
+    entry, before? }`, `remove`, `send_now { entry, delivery }`, `hold`,
+    `resume`, `clear`).
+  - `AgentCommand { name, description, hint? }`, `CommandName` (no `/`,
+    no white space).
+  - Questions: `Question { id, message, tool_call?, fields }`, each field
+    `text`, `number`, `integer`, `boolean`, `choice` or `unknown`;
+    `QuestionAnswer` (`accept { values }`, `decline`); `QuestionOutcome`
+    (`answered`, `declined`, `cancelled`).
+  - `ContextUsage { used, size, cost? }`, `TurnUsage { total, input,
+    output, thought?, cached_read?, cached_write? }` in
+    `AgentEvent::TurnEnded.usage?`.
+  - `SessionMarks { pinned, archived_at?, unread }` in `SessionInfo.marks`
+    (left out when nothing is marked); `Mark` (`pin`, `unpin`, `archive`,
+    `unarchive`, `read { through }`, `unread`).
+  - `AttachmentLimits` (in `Conversation`), and `Conversation { queue,
+    commands, usage?, permissions, questions, abilities?, limits }`.
+- Input: `SessionInput::AnswerQuestion { id, answer }`; `SessionInput::
+  CancelTurn { turn? }`, the cancel naming the `turn_started` it means.
+- Events, each with the stand-in a version 2-9 client gets at the same
+  `seq`:
+  - `queue_changed { queue }`: `vessel: queue: N waiting (held: why)`;
+  - `commands_changed { commands }`: `vessel: commands: /a, /b and N
+    more`;
+  - `usage_changed { usage }`: `vessel: context: U of S tokens`;
+  - `agent { steered { content } }`: `vessel: steered: <first line>`;
+  - `agent { question_asked }`: `vessel: the agent asks: <message>`;
+  - `agent { question_resolved }`: `vessel: question answered`
+    (`declined`, `cancelled`);
+  - a `turn_started` naming an attachment: the same event, each
+    attachment a `resource_link` to `attachment:<id>`.
+  An agent event's version is read from its content as well as its kind
+  (`AgentEvent::since`).
+- Methods, all forwardable: `session.prompt` (operate), `session.queue`
+  (operate), `session.conversation` (read), `session.resume` (operate),
+  `session.mark` (operate), `session.delete` (operate),
+  `attachment.begin`, `attachment.write`, `attachment.finish` (operate),
+  `attachment.read` (read). The `operate` ones that name a session are
+  ownership-checked for agents; `attachment.write` and `attachment.finish`
+  belong to the caller that began the upload. Their failures and bounds
+  are the plan's contract.
+- A version 10 call, an `answer_question`, a prompt naming an attachment,
+  or a cancel naming its turn needs protocol 10 (`Call::since`).
+- What older peers get:
+  - Every reply is rewritten for the connection's version
+    (`Reply::for_protocol`), the fleet envelope's nested reply included:
+    before this, a `session.read` page passed back through
+    `fleet.forward`, `fleet.relay` or `fleet.deliver` reached an older
+    home unchanged.
+  - Ended sessions: from this version, an ended session that is not
+    archived is in `building` as `exited`, and only an archived one is in
+    `archive` (ADR 0026). A version 8-9 peer still gets every ended
+    session in the archive (`SessionInfo::for_protocol`).
+- Logs: a session's final `status` is the last record of a run, no longer
+  of the log: `session.resume` continues the same log after it.
+- Built in slices on the track's branch: a call whose slice has not
+  landed answers `unsupported` ("not built on this node yet"), as an
+  `answer_question` does.
+
 ## Version 9 (2026-11-11)
 
 Nodes speak 2..=9; version 9 adds four methods, two events (with

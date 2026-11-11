@@ -15,13 +15,14 @@ use vessel_agent::{AgentProcess, AgentSetup, CommandSpec};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
     Creator, EventRecord, HarnessKind, HarnessSessionId, ModelCall, ModelId, NodeId, OptionChoice,
-    ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionModel, SessionOption,
-    SessionOrigin, SessionSpec, TerminalSize,
+    ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionModel, SessionOrigin,
+    SessionSpec, TerminalSize,
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
 use crate::activity::Tracker;
 use crate::config::RuntimeConfig;
+use crate::conversation::Seen;
 use crate::error::{RemoveError, SessionError};
 use crate::handle::{Input, SessionHandle, Shared};
 use crate::lifecycle::{Lifecycle, Rename};
@@ -440,7 +441,7 @@ impl SessionRuntime {
         profile: Option<Profile>,
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
-    ) -> Result<Vec<SessionOption>, SessionError> {
+    ) -> Result<vessel_agent::Probed, SessionError> {
         if self.shutdown.is_cancelled() {
             return Err(SessionError::ShuttingDown);
         }
@@ -626,6 +627,7 @@ impl SessionRuntime {
             ended: AtomicBool::new(false),
             renames,
             reported: Mutex::new(None),
+            seen: Mutex::new(Seen::default()),
         });
         (info, kill, shared)
     }

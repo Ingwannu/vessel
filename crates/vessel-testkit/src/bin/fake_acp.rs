@@ -10,7 +10,11 @@
 //! - With `FAKE_ACP_HANG` set to `initialize` or `session/new`, that request
 //!   is never answered (an adapter stuck at start).
 //! - `initialize`: protocol v1, `loadSession` supported, HTTP MCP servers
-//!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set).
+//!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts,
+//!   and the steering extension (`_meta.steering.supported`; not with
+//!   `FAKE_ACP_NO_STEER` set).
+//! - Right after answering `session/new` or `session/load`, an
+//!   `available_commands_update`: `compact` (with a hint) and `review`.
 //! - `session/new`: session `fake-session-<n>`, with the options
 //!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
@@ -43,6 +47,9 @@
 //!   - `cwd`: one message chunk `cwd <path>`, the working directory of the
 //!     last `session/new` or `session/load`;
 //!   - `args`: one message chunk `args <JSON array of its arguments>`;
+//!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
+//!     message chunk `used`, then `end_turn` with the turn's tokens (30:
+//!     20 in, 10 out);
 //!   - `report <path>`: writes its arguments, its whole environment and
 //!     the MCP servers of the last `session/new` or `session/load` to that
 //!     file as JSON (`vessel_testkit::write_report`), then one message
@@ -66,15 +73,16 @@ use std::process::ExitCode;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use agent_client_protocol::v1::schema::{
-    AgentCapabilities, CancelNotification, Content, ContentBlock, ContentChunk, Implementation,
+    AgentCapabilities, AvailableCommand, AvailableCommandInput, AvailableCommandsUpdate,
+    CancelNotification, Content, ContentBlock, ContentChunk, Cost, Implementation,
     InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
     McpCapabilities, McpServer, NewSessionRequest, NewSessionResponse, PermissionOption,
-    PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptRequest,
-    PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionId,
+    PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities,
+    PromptRequest, PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionId,
     SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
     SetSessionConfigOptionResponse, SetSessionModeRequest, SetSessionModeResponse, StopReason,
     TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
-    ToolKind,
+    ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
 };
 use agent_client_protocol::{Agent, ByteStreams, Error};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
@@ -193,6 +201,21 @@ fn report(prompt: &str, state: &State) -> Option<String> {
     }
 }
 
+/// What the fake offers as commands, as Claude's adapter sends them.
+fn commands(session: SessionId) -> SessionNotification {
+    SessionNotification::new(
+        session,
+        SessionUpdate::AvailableCommandsUpdate(AvailableCommandsUpdate::new(vec![
+            AvailableCommand::new("compact", "Clear history but keep a summary").input(
+                AvailableCommandInput::Unstructured(UnstructuredCommandInput::new(
+                    "<optional instructions>",
+                )),
+            ),
+            AvailableCommand::new("review", "Review the changes"),
+        ])),
+    )
+}
+
 type Shared = Arc<Mutex<State>>;
 
 fn lock(state: &Shared) -> MutexGuard<'_, State> {
@@ -209,6 +232,7 @@ async fn serve() -> ExitCode {
     let hang_at_initialize = hang == "initialize";
     let hang_at_new = hang == "session/new";
     let http_mcp = std::env::var_os("FAKE_ACP_NO_HTTP_MCP").is_none();
+    let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -222,22 +246,27 @@ async fn serve() -> ExitCode {
                 if hang_at_initialize {
                     std::future::pending::<()>().await;
                 }
-                responder.respond(
-                    InitializeResponse::new(request.protocol_version)
-                        .agent_capabilities(
-                            AgentCapabilities::new()
-                                .load_session(true)
-                                .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
-                        )
-                        .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION"))),
-                )
+                let mut answer = InitializeResponse::new(request.protocol_version)
+                    .agent_capabilities(
+                        AgentCapabilities::new()
+                            .load_session(true)
+                            .prompt_capabilities(PromptCapabilities::new().image(true))
+                            .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
+                    )
+                    .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
+                if steer {
+                    answer.meta = serde_json::json!({ "steering": { "supported": true } })
+                        .as_object()
+                        .cloned();
+                }
+                responder.respond(answer)
             },
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(
             {
                 let state = Arc::clone(&state);
-                async move |request: NewSessionRequest, responder, _cx| {
+                async move |request: NewSessionRequest, responder, cx| {
                     if hang_at_new {
                         std::future::pending::<()>().await;
                     }
@@ -252,7 +281,9 @@ async fn serve() -> ExitCode {
                         response.modes = state.options.modes();
                         response
                     };
-                    responder.respond(response)
+                    let session = response.session_id.clone();
+                    responder.respond(response)?;
+                    cx.send_notification(commands(session))
                 }
             },
             agent_client_protocol::on_receive_request!(),
@@ -283,7 +314,8 @@ async fn serve() -> ExitCode {
                         response.modes = state.options.modes();
                         response
                     };
-                    responder.respond(response)
+                    responder.respond(response)?;
+                    cx.send_notification(commands(request.session_id.clone()))
                 }
             },
             agent_client_protocol::on_receive_request!(),
@@ -346,6 +378,21 @@ async fn serve() -> ExitCode {
                             )))),
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
+                    }
+                    if prompt == "usage" {
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::UsageUpdate(
+                                UsageUpdate::new(1200, 200_000).cost(Cost::new(0.5, "USD")),
+                            ),
+                        ))?;
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::AgentMessageChunk(ContentChunk::new(text("used"))),
+                        ))?;
+                        return responder.respond(
+                            PromptResponse::new(StopReason::EndTurn).usage(Usage::new(30, 20, 10)),
+                        );
                     }
                     if let Some(report) = report {
                         cx.send_notification(SessionNotification::new(

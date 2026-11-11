@@ -11,7 +11,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::id::{HarnessSessionId, PermissionId, PermissionOptionId, ToolCallId};
+use crate::conversation::{AgentAbilities, AttachmentRef, Question, QuestionOutcome, TurnUsage};
+use crate::id::{HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId};
 use crate::raw::RawJson;
 
 /// One entry in a structured session's timeline.
@@ -23,6 +24,10 @@ pub enum AgentEvent {
     Ready {
         /// The harness's session id.
         harness_session: HarnessSessionId,
+        /// What the agent said it can do in its handshake (protocol 10);
+        /// absent from older nodes.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        abilities: Option<AgentAbilities>,
     },
     /// A user turn began (echoes the prompt as the harness received it).
     TurnStarted {
@@ -69,6 +74,10 @@ pub enum AgentEvent {
     TurnEnded {
         /// Why it stopped.
         reason: StopReason,
+        /// The turn's tokens, when the agent reports them with its end
+        /// (protocol 10).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        usage: Option<TurnUsage>,
     },
     /// The turn failed (the harness returned an error for the prompt).
     TurnFailed {
@@ -80,6 +89,23 @@ pub enum AgentEvent {
     HarnessLog {
         /// The line, without its newline.
         line: String,
+    },
+    /// A message added to the running turn (protocol 10): a prompt
+    /// delivered `steer`, which the agent took into its turn.
+    Steered {
+        /// The message.
+        content: Vec<ContentBlock>,
+    },
+    /// The agent asks a person something (protocol 10), pending until a
+    /// client answers.
+    QuestionAsked(Question),
+    /// A question was settled (protocol 10): answered, declined, or
+    /// withdrawn by the turn or the session ending.
+    QuestionResolved {
+        /// Which question.
+        id: QuestionId,
+        /// How it was settled.
+        outcome: QuestionOutcome,
     },
 }
 
@@ -105,6 +131,13 @@ pub enum ContentBlock {
     Opaque {
         /// The block as the transport sent it.
         raw: RawJson,
+    },
+    /// A file sent with a prompt, kept by the node (protocol 10). Only in
+    /// what a client sends (a prompt, a steer, a queued prompt); what an
+    /// agent sends stays `opaque`.
+    Attachment {
+        /// Which, and what it is.
+        attachment: AttachmentRef,
     },
 }
 

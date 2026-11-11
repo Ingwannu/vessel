@@ -20,6 +20,12 @@ use std::future::Future;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::agent::ContentBlock;
+use crate::conversation::{
+    AttachmentRef, BeginUpload, ChangeQueue, Conversation, DeleteSession, Delivered, FinishUpload,
+    GetConversation, MarkSession, PromptSession, QueueChanged, ReadAttachment, ResumeSession,
+    Upload, WriteUpload, Written,
+};
 use crate::device::{DeviceInfo, Invitation, InviteDevice, ListDevices, RevokeDevice, Scope};
 use crate::error::WireError;
 use crate::fleet::{
@@ -39,13 +45,14 @@ use crate::options::{
 };
 use crate::profile::{ListProfiles, MoveProfile, ProfileInfo, ReloadProfiles};
 use crate::secret::{CopySecret, DeleteSecret, ListSecrets, SetSecret};
-use crate::session::{SessionInfo, SessionMode};
+use crate::session::{SessionInfo, SessionInput, SessionMode};
 use crate::transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MemoryImported,
     ReadTransfer, SessionImported, TransferManifest,
 };
 
 mod frames;
+mod older;
 mod requests;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
@@ -356,6 +363,26 @@ rpc_methods! {
     SetSessionOption / set_session_option / "session.set_option" [Operate, 9]: SetSessionOption => Vec<SessionOption>;
     /// Give a session a title (protocol 9).
     RenameSession / rename_session / "session.rename" [Operate, 9]: RenameSession => SessionInfo;
+    /// Send a prompt, delivered as asked (protocol 10).
+    PromptSession / prompt_session / "session.prompt" [Operate, 10]: PromptSession => Delivered;
+    /// Change a session's queue (protocol 10).
+    ChangeQueue / change_queue / "session.queue" [Operate, 10]: ChangeQueue => QueueChanged;
+    /// A session's conversation as it stands (protocol 10).
+    GetConversation / get_conversation / "session.conversation" [Read, 10]: GetConversation => Conversation;
+    /// Start an ended session again with its conversation (protocol 10).
+    ResumeSession / resume_session / "session.resume" [Operate, 10]: ResumeSession => SessionInfo;
+    /// Pin, archive or mark a session read (protocol 10).
+    MarkSession / mark_session / "session.mark" [Operate, 10]: MarkSession => SessionInfo;
+    /// Remove an ended session and everything kept with it (protocol 10).
+    DeleteSession / delete_session / "session.delete" [Operate, 10]: DeleteSession => Ack;
+    /// Declare a file to upload to a session (protocol 10).
+    BeginUpload / begin_upload / "attachment.begin" [Operate, 10]: BeginUpload => Upload;
+    /// The next piece of an upload (protocol 10).
+    WriteUpload / write_upload / "attachment.write" [Operate, 10]: WriteUpload => Written;
+    /// Check an upload and keep it with its session (protocol 10).
+    FinishUpload / finish_upload / "attachment.finish" [Operate, 10]: FinishUpload => AttachmentRef;
+    /// A piece of a session's attachment (protocol 10).
+    ReadAttachment / read_attachment / "attachment.read" [Read, 10]: ReadAttachment => BlobChunk;
 }
 
 impl Call {
@@ -392,11 +419,23 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
+            // An answer to a question, and a prompt naming an attachment,
+            // came in 10: an older node cannot decode either.
+            Self::SendInput(request) => match &request.input {
+                SessionInput::AnswerQuestion { .. } => Some(10),
+                SessionInput::Prompt { content } => content
+                    .iter()
+                    .any(|block| matches!(block, ContentBlock::Attachment { .. }))
+                    .then_some(10),
+                // A cancel naming its turn: an older node would cancel
+                // whatever runs, the next queued prompt included.
+                SessionInput::CancelTurn { turn } => turn.map(|_| 10),
+                SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
+            },
             Self::NodeInfo(_)
             | Self::ListHarnesses(_)
             | Self::ListSessions(_)
             | Self::GetSession(_)
-            | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Subscribe(_)
             | Self::Unsubscribe(_)
@@ -445,7 +484,17 @@ impl Call {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
-            | Self::RenameSession(_) => None,
+            | Self::RenameSession(_)
+            | Self::PromptSession(_)
+            | Self::ChangeQueue(_)
+            | Self::GetConversation(_)
+            | Self::ResumeSession(_)
+            | Self::MarkSession(_)
+            | Self::DeleteSession(_)
+            | Self::BeginUpload(_)
+            | Self::WriteUpload(_)
+            | Self::FinishUpload(_)
+            | Self::ReadAttachment(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }
@@ -469,3 +518,6 @@ pub enum Outcome {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod conversation_tests;

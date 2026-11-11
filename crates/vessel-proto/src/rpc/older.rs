@@ -1,0 +1,264 @@
+//! Replies as a peer speaking an older protocol reads them.
+//!
+//! [Decision Log]
+//! - Purpose: a node answers peers of every version it accepts. A reply
+//!   holding something newer than the peer's version (a record of a later
+//!   event, a scope it lacks, a board placement whose meaning changed) must
+//!   reach it in a form it decodes and reads correctly, or its connection
+//!   fails, or its page places a card where it never placed one before.
+//! - Constraint: until protocol 10 only top-level `session.read` pages and
+//!   `device.list` were rewritten. A page passed back through the fleet's
+//!   envelope (`fleet.forward`, `fleet.relay`, `fleet.deliver`, whose reply
+//!   nests the inner call's) reached an older home unchanged, and its
+//!   client failed to decode the record and dropped the connection.
+//! - Choice: one function per reply ([`Reply::for_protocol`]) that walks
+//!   into the envelope's nested reply too, applied where frames are
+//!   encoded for a connection (`ServerFrame::for_protocol`). It returns
+//!   `None` when nothing changes, so a current peer costs no copy.
+//! - Protocol 10 changes what an ended session's board place means: an
+//!   ended session that is not archived is in building as `exited` (ADR
+//!   0026), where protocol 8 and 9 put every ended session in the archive.
+//!   A version 8-9 peer gets the old placement, archived as of its end, so
+//!   cards it cannot start again or archive do not pile up in its building
+//!   lane.
+
+use super::Reply;
+use crate::board::{KanbanColumn, SessionBoard};
+use crate::device::Scope;
+use crate::forward::Forwarded;
+use crate::node::ProtocolVersion;
+use crate::session::SessionInfo;
+
+/// The first version whose ended sessions may sit outside the archive.
+const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
+
+impl Reply {
+    /// This reply as a peer speaking `protocol` reads it, or `None` when it
+    /// needs no change.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        let info = |info: &SessionInfo| info.for_protocol(protocol);
+        match self {
+            Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
+            Self::ListDevices(devices) => {
+                let newer = |scope: &Scope| scope.since() > protocol;
+                let changed = devices.iter().any(|device| device.scopes.iter().any(newer));
+                changed.then(|| {
+                    Self::ListDevices(
+                        devices
+                            .iter()
+                            .map(|device| {
+                                let mut device = device.clone();
+                                device.scopes.retain(|scope| !newer(scope));
+                                device
+                            })
+                            .collect(),
+                    )
+                })
+            }
+            Self::ListSessions(sessions) => {
+                let changed = sessions.iter().any(|session| info(session).is_some());
+                changed.then(|| {
+                    Self::ListSessions(
+                        sessions
+                            .iter()
+                            .map(|session| info(session).unwrap_or_else(|| session.clone()))
+                            .collect(),
+                    )
+                })
+            }
+            Self::GetSession(session) => info(session).map(Self::GetSession),
+            Self::CreateSession(session) => info(session).map(Self::CreateSession),
+            Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
+            Self::RenameSession(session) => info(session).map(Self::RenameSession),
+            Self::Subscribe(subscribed) => info(&subscribed.info).map(|info| {
+                let mut subscribed = subscribed.clone();
+                subscribed.info = info;
+                Self::Subscribe(subscribed)
+            }),
+            Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
+            Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
+            Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
+            // Replies of calls newer than every peer that can ask them, or
+            // holding nothing that changed meaning.
+            Self::NodeInfo(_)
+            | Self::ListHarnesses(_)
+            | Self::SendInput(_)
+            | Self::KillSession(_)
+            | Self::Unsubscribe(_)
+            | Self::StopNode(_)
+            | Self::InviteDevice(_)
+            | Self::RevokeDevice(_)
+            | Self::ListProfiles(_)
+            | Self::ReloadProfiles(_)
+            | Self::GetManifest(_)
+            | Self::ReadBlob(_)
+            | Self::WatchFleet(_)
+            | Self::ReportApplied(_)
+            | Self::ListMembers(_)
+            | Self::GrantHome(_)
+            | Self::GetCallback(_)
+            | Self::ListPeers(_)
+            | Self::ListNodes(_)
+            | Self::ForgetNode(_)
+            | Self::ExportSession(_)
+            | Self::ImportSession(_)
+            | Self::ExportMemory(_)
+            | Self::ImportMemory(_)
+            | Self::ReadTransfer(_)
+            | Self::CloseTransfer(_)
+            | Self::SetSecret(_)
+            | Self::ListSecrets(_)
+            | Self::DeleteSecret(_)
+            | Self::CopySecret(_)
+            | Self::LspWorkspaceSymbols(_)
+            | Self::LspDocumentSymbols(_)
+            | Self::LspDefinition(_)
+            | Self::LspReferences(_)
+            | Self::LspHover(_)
+            | Self::LspImplementations(_)
+            | Self::LspTypeDefinition(_)
+            | Self::LspIncomingCalls(_)
+            | Self::LspOutgoingCalls(_)
+            | Self::LspDiagnostics(_)
+            | Self::ListModels(_)
+            | Self::HarnessOptions(_)
+            | Self::SessionOptions(_)
+            | Self::SetSessionOption(_)
+            | Self::PromptSession(_)
+            | Self::ChangeQueue(_)
+            | Self::GetConversation(_)
+            | Self::ResumeSession(_)
+            | Self::MarkSession(_)
+            | Self::DeleteSession(_)
+            | Self::BeginUpload(_)
+            | Self::WriteUpload(_)
+            | Self::FinishUpload(_)
+            | Self::ReadAttachment(_) => None,
+        }
+    }
+}
+
+/// The envelope's inner reply, rewritten.
+fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<Forwarded> {
+    forwarded
+        .reply
+        .for_protocol(protocol)
+        .map(|reply| Forwarded {
+            reply: Box::new(reply),
+        })
+}
+
+impl SessionInfo {
+    /// This session as a peer speaking `protocol` reads it, or `None` when
+    /// it needs no change: for a version 8-9 peer, an ended session that is
+    /// not archived keeps protocol 8's place in the archive.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if protocol >= ENDED_OUTSIDE_THE_ARCHIVE || self.status.is_live() {
+            return None;
+        }
+        let board = self.board.as_ref()?;
+        if board.column == KanbanColumn::Archive {
+            return None;
+        }
+        let mut info = self.clone();
+        info.board = Some(SessionBoard::archived(
+            self.ended_at.unwrap_or(board.last_activity_at),
+        ));
+        Some(info)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::DateTime;
+
+    use super::*;
+    use crate::agent::AgentEvent;
+    use crate::board::{Activity, DisplayStatus};
+    use crate::event::{EventRecord, SessionEvent};
+    use crate::harness::HarnessKind;
+    use crate::id::{EventSeq, SessionId};
+    use crate::rpc::EventPage;
+    use crate::session::{SessionMode, SessionSpec, SessionStatus};
+
+    const V9: ProtocolVersion = ProtocolVersion::new(9);
+    const V10: ProtocolVersion = ProtocolVersion::new(10);
+
+    fn exited() -> SessionInfo {
+        let spec = SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        );
+        let mut info = SessionInfo::new(SessionId::random(), spec, DateTime::UNIX_EPOCH);
+        info.status = SessionStatus::Exited { code: Some(0) };
+        info.ended_at = Some(DateTime::UNIX_EPOCH);
+        info.board = Some(SessionBoard::new(
+            KanbanColumn::Building,
+            DisplayStatus::Exited,
+            Activity::Exited,
+            DateTime::UNIX_EPOCH,
+        ));
+        info
+    }
+
+    #[test]
+    fn an_older_peer_keeps_ended_sessions_in_the_archive() {
+        let info = exited();
+        assert_eq!(info.for_protocol(V10), None);
+        let older = info.for_protocol(V9).unwrap();
+        assert_eq!(
+            older.board,
+            Some(SessionBoard::archived(DateTime::UNIX_EPOCH))
+        );
+        let listed = Reply::ListSessions(vec![info.clone()]);
+        assert_eq!(
+            listed.for_protocol(V9),
+            Some(Reply::ListSessions(vec![older]))
+        );
+        let mut live = info;
+        live.status = SessionStatus::Running;
+        assert_eq!(live.for_protocol(V9), None);
+    }
+
+    #[test]
+    fn a_page_passed_through_the_envelope_is_rewritten_too() {
+        let page = EventPage {
+            records: vec![EventRecord {
+                seq: EventSeq::new(4),
+                at: DateTime::UNIX_EPOCH,
+                event: SessionEvent::UsageChanged {
+                    usage: crate::conversation::ContextUsage {
+                        used: crate::model::TokenCount::new(1),
+                        size: crate::model::TokenCount::new(2),
+                        cost: None,
+                    },
+                },
+            }],
+            next: EventSeq::new(5),
+            at_end: true,
+        };
+        let delivered = Reply::Deliver(Forwarded {
+            reply: Box::new(Reply::ReadEvents(page)),
+        });
+        assert_eq!(delivered.for_protocol(V10), None);
+        let Some(Reply::Deliver(Forwarded { reply })) = delivered.for_protocol(V9) else {
+            panic!("an envelope stays an envelope");
+        };
+        let Reply::ReadEvents(older) = *reply else {
+            panic!("its reply stays a page");
+        };
+        assert_eq!(older.records[0].seq, EventSeq::new(4));
+        assert!(matches!(
+            older.records[0].event,
+            SessionEvent::Agent {
+                event: AgentEvent::HarnessLog { .. }
+            }
+        ));
+    }
+}

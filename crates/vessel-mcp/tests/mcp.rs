@@ -238,7 +238,10 @@ mod support {
                 | SessionEvent::ProfileChanged { .. }
                 | SessionEvent::ModelCall(_)
                 | SessionEvent::OptionsChanged { .. }
-                | SessionEvent::Renamed { .. } => {}
+                | SessionEvent::Renamed { .. }
+                | SessionEvent::QueueChanged { .. }
+                | SessionEvent::CommandsChanged { .. }
+                | SessionEvent::UsageChanged { .. } => {}
             }
         }
         let servers: Value = serde_json::from_str(reply.strip_prefix("mcp ").unwrap()).unwrap();

@@ -24,6 +24,7 @@ import type {
   SessionStatus,
   ToolLocation,
 } from "../wire/proto";
+import * as conversation from "./conversation";
 import { addCall, type Usage } from "./models";
 import {
   type Base,
@@ -49,7 +50,8 @@ export function reduce(
   for (const record of fresh) {
     work.apply(record);
   }
-  return work.finish();
+  const folded = conversation.foldConversation(timeline.conversation, fresh);
+  return { ...work.finish(), conversation: folded };
 }
 
 /** One batch's mutable copy. */
@@ -78,7 +80,7 @@ class Work {
     this.next = timeline.next;
   }
 
-  finish(): Timeline {
+  finish(): Omit<Timeline, "conversation"> {
     const pending =
       this.entries.find(
         (entry): entry is Extract<Entry, { kind: "permission" }> =>
@@ -103,6 +105,7 @@ class Work {
     this.next = record.seq + 1;
     const base = { key: `r${record.seq}`, seq: record.seq, at: record.at };
     const event = record.event;
+    if (conversation.isConversationEvent(event)) return;
     switch (event.type) {
       case "status":
         this.status = event.status;
@@ -144,6 +147,7 @@ class Work {
   }
 
   agent(base: Base, event: AgentEvent): void {
+    if (conversation.isConversationAgentEvent(event)) return;
     switch (event.event) {
       case "ready":
         this.entries.push({
@@ -192,7 +196,7 @@ class Work {
         this.entries.push({ ...base, kind: "plan", entries: event.entries });
         return;
       case "permission_requested": {
-        const call = this.findTool(event.tool_call);
+        const call = findTool(this.entries, event.tool_call);
         this.entries.push({
           ...base,
           key: `p${event.id}`,
@@ -268,10 +272,6 @@ class Work {
     }
   }
 
-  findTool(id: string): Extract<Entry, { kind: "tool" }> | undefined {
-    return findTool(this.entries, id);
-  }
-
   tool(base: Base, tool: ToolState): void {
     this.touch(tool.locations);
     const index = this.entries.findIndex(
@@ -286,7 +286,7 @@ class Work {
   }
 
   update(base: Base, update: ToolUpdate): void {
-    this.tool(base, toolAfter(this.findTool(update.id)?.tool, update));
+    this.tool(base, toolAfter(findTool(this.entries, update.id)?.tool, update));
   }
 
   touch(locations: readonly ToolLocation[]): void {

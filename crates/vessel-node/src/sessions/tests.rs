@@ -179,7 +179,7 @@ async fn a_finished_session_is_handed_over_to_the_store() {
     let listed = fixture.sessions.list().await.unwrap();
     assert_eq!(listed.iter().map(|info| info.id).collect::<Vec<_>>(), [id]);
     assert!(matches!(
-        fixture.sessions.send(id, SessionInput::CancelTurn).await,
+        fixture.sessions.send(id, SessionInput::CancelTurn { turn: None }).await,
         Err(ServiceError::Ended(ended)) if ended == id
     ));
     fixture.stop().await;

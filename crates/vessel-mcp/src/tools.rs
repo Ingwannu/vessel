@@ -413,7 +413,7 @@ fn turn_outcome(page: &EventPage, reply: &mut String, next: &mut EventSeq) -> Op
                     },
             } => reply.push_str(text),
             SessionEvent::Agent {
-                event: AgentEvent::TurnEnded { reason },
+                event: AgentEvent::TurnEnded { reason, .. },
             } => return Some(json!({ "outcome": "ended", "reason": reason })),
             SessionEvent::Agent {
                 event: AgentEvent::TurnFailed { message },
@@ -422,6 +422,13 @@ fn turn_outcome(page: &EventPage, reply: &mut String, next: &mut EventSeq) -> Op
                 event: AgentEvent::PermissionRequested(request),
             } => {
                 return Some(json!({ "outcome": "permission_requested", "request": request }));
+            }
+            // Protocol 10: a question waits on an answer as a permission
+            // request does, so the waiting agent hears of it the same way.
+            SessionEvent::Agent {
+                event: AgentEvent::QuestionAsked(question),
+            } => {
+                return Some(json!({ "outcome": "question_asked", "question": question }));
             }
             SessionEvent::Status { status } if !status.is_live() => {
                 return Some(json!({ "outcome": "session_ended", "status": status }));
@@ -432,7 +439,10 @@ fn turn_outcome(page: &EventPage, reply: &mut String, next: &mut EventSeq) -> Op
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => {}
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => {}
         }
     }
     None

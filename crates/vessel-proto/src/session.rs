@@ -7,8 +7,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::agent::{ContentBlock, PermissionOutcome};
 use crate::board::SessionBoard;
+use crate::conversation::{AgentAbilities, QuestionAnswer, SessionMarks};
 use crate::harness::HarnessKind;
-use crate::id::{DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, SessionId};
+use crate::id::{
+    DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, QuestionId, SessionId,
+};
 use crate::model::SessionModel;
 use crate::name::ProfileName;
 use crate::options::OptionChoice;
@@ -230,6 +233,17 @@ pub struct SessionInfo {
     /// from older nodes; a client then names it by its folder.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// What a person marked on it: pinned, archived, unread (protocol 10,
+    /// ADR 0026). Kept by the node, so every client sees the same; left
+    /// out when nothing is marked, and absent from older nodes.
+    #[serde(default, skip_serializing_if = "SessionMarks::is_empty")]
+    pub marks: SessionMarks,
+    /// What its agent said it can do in its last handshake (protocol 10):
+    /// steer, start again, take images or audio. Kept by the store, so an
+    /// ended session says whether `session.resume` can work. Absent for a
+    /// terminal session, before the handshake, and from older nodes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abilities: Option<AgentAbilities>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -290,6 +304,8 @@ impl SessionInfo {
             origin: None,
             model: None,
             board: None,
+            marks: SessionMarks::default(),
+            abilities: None,
         }
     }
 
@@ -320,7 +336,15 @@ pub enum SessionInput {
         content: Vec<ContentBlock>,
     },
     /// Structured mode: cancel the turn in progress.
-    CancelTurn,
+    CancelTurn {
+        /// The turn meant: its `turn_started` record's `seq` (protocol 10).
+        /// When another turn runs by the time the cancel lands (the queue
+        /// started the next one as the first ended), that turn goes on
+        /// and only the queue is held. Absent: whatever turn runs, as
+        /// before protocol 10.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        turn: Option<EventSeq>,
+    },
     /// Structured mode: answer a pending permission request. The first answer
     /// wins; later answers fail with `ErrorCode::Conflict`.
     AnswerPermission {
@@ -328,5 +352,15 @@ pub enum SessionInput {
         id: PermissionId,
         /// The choice.
         outcome: PermissionOutcome,
+    },
+    /// Structured mode: answer a question the agent asks (protocol 10).
+    /// The first answer wins; later answers fail with
+    /// `ErrorCode::Conflict`, and one that does not fit the question's
+    /// form with `ErrorCode::InvalidRequest`.
+    AnswerQuestion {
+        /// Which question.
+        id: QuestionId,
+        /// The answer.
+        answer: QuestionAnswer,
     },
 }

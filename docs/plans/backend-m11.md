@@ -422,7 +422,7 @@ from what the agent sends, never from a table of Vessel's.
 | `usage_update` | `used`, `size`, `cost` at a turn's end | `used`, `size` | `used`, `size` at a turn's end | `used`, `size`, `cost` at a turn's end |
 | Questions (`elicitation/create`, form mode) | `AskUserQuestion`, only when the client advertises form elicitation (otherwise the tool is disabled) | yes | none (permissions only) | only when the client advertises form elicitation |
 | `loadSession` | yes | yes | yes | yes |
-| Per-turn tokens in the prompt's answer | no | yes | yes | no |
+| Per-turn tokens in the prompt's answer | yes | yes | yes | no |
 
 What follows from it:
 
@@ -443,8 +443,11 @@ What follows from it:
 - **Usage is `usage_update`** (context used and its size, and a cost
   when the agent says one), and the prompt's answer `usage` where the
   agent sends it (ACP's `unstable_end_turn_token_usage`, which Codex and
-  Gemini fill; read with ACP's own default-on-error rule, so an agent
-  that changes it costs only the figure).
+  Gemini fill and Claude's adapter too; read with ACP's own
+  default-on-error rule, so an agent that changes it costs only the
+  figure). This turns on the ACP crate's `unstable_end_turn_token_usage`
+  feature: no new dependency, one schema field; if ACP drops it, the
+  figure is absent and nothing else changes.
 - **Compacting is the agent's own `/compact` command** where it
   advertises one; there is no call of Vessel's for it (no ACP request
   exists, and two references send the text too).
@@ -487,17 +490,18 @@ A prompt's content:
 The queue:
 
 - `QueuedPrompt { id: QueueEntryId, content: ContentBlock[], queued_at,
-  by: Creator }`.
+  revision, by: Creator }`.
 - `PromptQueue { entries: QueuedPrompt[], held?: QueueHold }`; `held`
   absent means the queue moves on its own. `QueueHold`: `cancelled` (a
   person cancelled a turn), `failed` (a turn failed), `ended` (the
   session ended with prompts waiting), `asked` (`session.queue hold`).
 - `Delivery`: `start`, `queue`, `steer`, `interrupt`. `Delivered`:
   `started`, `steered`, `queued { entry }`.
-- `QueueChange` (tagged `change`): `edit { entry, content }`, `move {
-  entry, to }` (`to` an index into the queue as it is), `remove { entry
-  }`, `send_now { entry, delivery }` (`start`, `steer` or `interrupt`),
-  `hold`, `resume`, `clear`.
+- `QueueChange` (tagged `change`): `edit { entry, revision, content }`
+  (`revision` the one the edit was made from), `move { entry, before? }`
+  (before another entry, or last), `remove { entry }`, `send_now { entry,
+  delivery }` (`start`, `steer` or `interrupt`), `hold`, `resume`,
+  `clear`.
 - `QueueChanged { queue, delivered? }`: the reply to `session.queue`.
 
 The agent's commands:
@@ -512,9 +516,12 @@ Questions (an ACP form elicitation, typed):
   QuestionField[] }`.
 - `QuestionField { name: FieldName, title?, description?, required,
   kind }`, `kind` (tagged `kind`) one of:
-  - `text { min_length?, max_length?, format?, default? }`, `format`
-    one of `email`, `uri`, `date`, `date_time`;
-  - `number { integer, minimum?, maximum?, default? }`;
+  - `text { min_length?, max_length?, format?, pattern?, default? }`,
+    `format` one of `email`, `uri`, `date`, `date_time`; `pattern` is
+    passed on, not checked by the node;
+  - `number { minimum?, maximum?, default? }` and `integer { minimum?,
+    maximum?, default? }` (whole numbers, `i64`), apart so a bound or a
+    default cannot be fractional;
   - `boolean { default? }`;
   - `choice { options: ChoiceOption[], multiple, min_items?,
     max_items?, default? }`, `ChoiceOption { value, title,
@@ -523,8 +530,8 @@ Questions (an ACP form elicitation, typed):
   - `unknown`: a kind a newer ACP has; a client can only decline a
     question that has one.
 - `QuestionAnswer` (tagged `answer`): `accept { values }` (`values` a
-  map from field name to `AnswerValue`: `text`, `number`, `boolean`,
-  `choice` (one value) or `choices` (several)), `decline`.
+  map from field name to `AnswerValue`: `text`, `number`, `integer`,
+  `boolean`, `choice` (one value) or `choices` (several)), `decline`.
 - `QuestionOutcome` (tagged `outcome`): `answered { values }`,
   `declined`, `cancelled` (the turn or the session ended first).
 
@@ -553,19 +560,19 @@ A session's marks, kept by the node:
 
 - `SessionMarks { pinned, archived_at?, unread }`.
 - `Mark` (tagged `mark`): `pin`, `unpin`, `archive`, `unarchive`, `read
-  { through? }` (`through` the next record the reader has not seen;
-  absent is the log's end now), `unread`.
+  { through }` (`through` the next record the reader has not seen;
+  required), `unread`.
 
 Uploads:
 
-- `Upload { upload: UploadId, chunk }`; `Attachment` replies are an
-  `AttachmentRef`.
+- `Upload { upload: UploadId, chunk }`; `Written { received }` answers a
+  piece; `attachment.finish` answers an `AttachmentRef`.
 
 ### On existing types (the smallest additions)
 
 - `SessionInfo.marks: SessionMarks` (omitted when nothing is marked) and
-  `SessionInfo.agent?: AgentAbilities` (from the last handshake, kept by
-  the store, so an ended session says whether it can start again).
+  `SessionInfo.abilities?: AgentAbilities` (from the last handshake, kept
+  by the store, so an ended session says whether it can start again).
 - `HarnessOptions.abilities?: AgentAbilities`: the probe's, for a new
   session's composer.
 - `AgentEvent::Ready.abilities?` and `AgentEvent::TurnEnded.usage?:
@@ -573,6 +580,10 @@ Uploads:
 - `SessionInput::AnswerQuestion { id: QuestionId, answer }` (`session.send`,
   `ack`): first answer wins, as for permissions.
 - `SessionInput::Prompt` keeps meaning `start` (protocol 2's behaviour).
+- `SessionInput::CancelTurn { turn? }`: the `seq` of the `turn_started`
+  meant. A cancel that lands after that turn ended (the queue started
+  the next) holds the queue and cancels nothing. Absent: whatever runs,
+  as before; a cancel naming its turn needs protocol 10.
 
 ### Events
 
@@ -601,7 +612,7 @@ agent event now looks at its content (an attachment makes a
 | `session.mark` | operate | `{ session, mark: Mark }` | `SessionInfo` |
 | `session.delete` | operate | `{ session }` | `ack` |
 | `attachment.begin` | operate | `{ session, name, mime, size }` | `Upload` |
-| `attachment.write` | operate | `{ upload, offset, data }` (base64, at most `chunk` bytes) | `ack` |
+| `attachment.write` | operate | `{ upload, offset, data }` (base64, at most `chunk` bytes) | `Written` |
 | `attachment.finish` | operate | `{ upload }` | `AttachmentRef` |
 | `attachment.read` | read | `{ session, attachment, offset }` | `BlobChunk` |
 
@@ -650,10 +661,11 @@ session, of a kind its agent takes, within the per-prompt limits.
 - `resume` lets it move again and, between turns, starts its first
   entry; `hold` stops it; `clear` empties it.
 - `edit`, `move` and `remove` of an entry no longer queued (it was sent,
-  or removed) are `not_found`; `move` past the end is
-  `invalid_request`. `send_now` takes the entry out and delivers it as
+  or removed) are `not_found`; an `edit` from another revision is
+  `conflict`. `send_now` takes the entry out and delivers it as
   `session.prompt` would (`queue` is not a delivery here:
-  `invalid_request`), the reply's `delivered` saying how.
+  `invalid_request`), the reply's `delivered` saying how; when that
+  delivery fails, the entry goes back where it was.
 - The queue is the node's: every client sees it (`queue_changed`,
   `session.conversation`), the store keeps it (it survives a restart of
   the node), and it goes with the session.
@@ -713,10 +725,20 @@ agent-orchestrator says).
   10 minutes, or open at a restart, is dropped.
 - Given to the agent: an image as an ACP `image` block and audio as an
   `audio` block (the bytes, base64, in the prompt); a file as a
-  `resource_link` to the stored file (a path ending in its name), which
-  the agent reads with its own tools, as agent-orchestrator, GOAT and
-  Paseo all hand files over. The log keeps the reference, never the
-  bytes or the path.
+  `resource_link` to the stored file (`attachments/<session>/<id>/<name>`
+  under the node's data directory, so two `image.png` never collide and
+  the path ends in the file's name), which the agent reads with its own
+  tools, as GOAT and Paseo hand files over from their state directory
+  (agent-orchestrator copies them into the worktree instead). The log
+  keeps the reference, never the bytes or the path.
+- A prompt names an attachment by its id; the node replaces whatever
+  else the client sent (name, kind, type, size) with its own record, so
+  a client cannot relabel an image as a file to pass the inline limit.
+- The node reads an attachment back (for the agent or for
+  `attachment.read`) without following links, only as a regular file of
+  the size and SHA-256 it recorded at `finish`: the agent can replace
+  the file it was handed with a link to the node's token, and a device
+  with `read` must not then fetch the token.
 - `attachment.read`: a session's attachment in `BlobChunk`s, so another
   device shows what was sent.
 
@@ -758,8 +780,8 @@ agree in any order.
 
 | What | Bound | Beyond it |
 | --- | --- | --- |
-| Queue | 32 entries, 256 KiB of content in all | `conflict`, "the queue is full" |
-| Commands kept | 512, a description cut at 1 KiB, a hint at 256 bytes | the rest dropped, logged |
+| Queue | 32 entries (`conflict`), 128 KiB of content in all (`invalid_request`) | refused |
+| Commands kept | 512, a description cut at 1 KiB, a hint at 256 bytes; logged only when the list changes | the rest dropped, logged |
 | A question | 32 fields, 64 options a field, text cut at 4 KiB (message) and 1 KiB (titles, descriptions) | cut, logged; more fields than that: declined |
 | An answer's text value | 16 KiB | `invalid_request` |
 | Waiting permissions and questions a session tracks | 64 | the oldest answered `cancelled` |
@@ -767,7 +789,8 @@ agree in any order.
 | A file attachment | 50 MiB | `invalid_request` |
 | A prompt | 16 attachments, 25 MiB of images and audio | `invalid_request` |
 | A session's attachments | 100 MiB | `invalid_request` |
-| Open uploads on a node | 16, each dropped after 10 idle minutes | `unavailable` |
+| Open uploads on a node | 16, at most 4 per caller, each dropped after 10 idle minutes | `unavailable` |
+| A node's attachments | 4 GiB in all; a session's count includes its open uploads' declared sizes | `invalid_request` |
 | An upload chunk | 1 MiB (`BlobChunk::MAX_LEN`) | `invalid_request` |
 | Interrupt-and-send's wait | 10 s | `unavailable` |
 
@@ -786,8 +809,150 @@ Paseo's; none of the three bounds its queue, Vessel does.)
   0026 (ended, archived, started again; unread by sequence). 0023 is
   Track B's.
 
+### Track A: the contract's review (2026-11-11)
+
+An independent reviewer read the contract above against the references,
+the agents' ACP code and Vessel's wire, and found fourteen problems. What
+changed (the passages above are already amended where they said
+otherwise):
+
+1. **Older peers through the fleet.** Only top-level `session.read`
+   pages and `device.list` were rewritten for an older connection; a page
+   passed back through `fleet.forward`, `fleet.relay` or `fleet.deliver`
+   reached an older home unchanged and broke its connection (a hole since
+   protocol 9). Every reply is now rewritten by one function that walks
+   into the envelope's nested reply (`Reply::for_protocol`).
+2. **Starting again after a final status.** "A final `status` is the
+   last record" becomes "the last record of a run": `session.resume`
+   continues the log after it. The store's writer reopens the row
+   (`live`, no end) before anything is published, refusing one that
+   retention or `session.delete` removed, so retention never prunes a
+   session that is starting again. A subscription the node serves from
+   the store ends `lagged { resume_from }` (which every client already
+   resubscribes on) when the session was reopened while it was served,
+   and `session_ended` otherwise, so it neither misses the new run nor
+   loops.
+3. **Starting again, for whom.** The session's agent tools get a new
+   credential, granted as a session the caller creates would be (ADR
+   0013): under the owner for the owner or a device, under the calling
+   agent for an agent, which counts it against that agent's live
+   sessions. `created_by` stays the original creator. A refusal is the
+   same error as at `session.create`.
+4. **Questions nobody can answer.** Advertising form elicitation turns
+   Claude's `AskUserQuestion` on. A session an agent created (ADR 0013)
+   runs unwatched, and before this milestone such sessions never asked;
+   so the node advertises questions only for sessions the owner or a
+   device creates. The agent tool `wait_turn` returns `question_asked`,
+   and an agent tool answers one.
+5. **Questions the agent withdraws** (Claude cancels the request when a
+   hook answered or a subagent closed): the node watches the request's
+   cancellation and resolves it `cancelled`. The `harness.options` probe
+   never advertises questions.
+6. **Steering.** `startedNewTurn` (the agent ignored `promptRequired`
+   and started a turn Vessel did not send, so its end would never be
+   logged) is `internal`, with a log line. When the agent answers
+   `promptRequired`, the prompt starts a turn if none runs, and goes to
+   the head of the queue (`queued`) if the queue already started one.
+7. **Cancels, the queue and interrupts.** A cancel may name its turn
+   (`CancelTurn.turn`, above). An empty queue is never held, so messages
+   typed after a stop still start (agent-orchestrator's behaviour). Every
+   delivery, the queue's included, goes through the session's actor one
+   at a time, so an interrupt waiting for its cancel is not overtaken by
+   the queue's next entry, and a steer or interrupt sent meanwhile waits
+   its turn. `move` names the entry to go before; `edit` names its
+   revision. Prompts sent while the session starts wait for its
+   handshake, as `session.send` does. An entry is checked again when it
+   is sent (after a move or a start again the agent may take less); one
+   that no longer fits is not sent, the queue is held (`failed`) and a
+   log line says why. `session.queue` on an ended session is
+   `conflict`: the queue comes back with `session.resume`.
+8. **Attachment paths.** As amended above: stored per id, read back only
+   as the regular file recorded at `finish`, and the reference claim
+   about agent-orchestrator corrected.
+9. **Client-made references.** As amended above: the node's record wins.
+10. **Deletion, retention, uploads.** Retention's pruning also removes a
+    session's attachment files, and the node sweeps orphaned attachment
+    folders and unfinished uploads at start. Retention takes archived
+    sessions first, then ended ones, and pinned ones last. `session.delete`
+    while an ended session's log is still being written is `conflict`, as
+    is `attachment.finish` for a session that ended meanwhile. A node
+    keeps at most 4 GiB of attachments, a caller holds at most 4 of the 16
+    upload places, a session's size check counts its open uploads, and a
+    repeated piece is answered with `Written` instead of refused.
+11. **The board for older clients.** A version 8-9 peer gets every ended
+    session in the archive as before (`SessionInfo::for_protocol`).
+12. **The log's growth.** Commands are logged only when the list
+    changes; the queue holds at most 128 KiB.
+13. **Unread.** A permission or a question waiting on the owner also
+    asks for attention. `read.through` is required and only moves
+    forward. Agents may not mark read or unread (`forbidden`): an agent
+    reading a session is not its owner seeing it.
+14. **Types and claims.** Integer fields apart from numbers; `pattern`
+    carried; `SessionInfo.abilities`; Claude does report a turn's tokens
+    (the table is corrected). An agent's item that does not parse (a
+    command name, a cost unit, a field name) is left out and logged; a
+    question whose form names a required field it does not define is
+    declined. An agent's cost restarts at zero when its process does (a
+    start again, a move): the figure is the agent's. A session stored
+    before schema 7 has no recorded abilities, so `session.resume` tries
+    and the handshake's answer decides.
+
+Rejected, and why:
+
+- **Logging a steer before it is sent** (so the agent's answer to it can
+  never come first). The node would then log a message the agent may
+  refuse or never take. `steered` is logged when the agent says
+  `injected`, in the order the agent's own messages arrive; Claude's
+  adapter answers before the model reads the message.
+- **The queue logged as changes per entry** instead of whole. Whole
+  queues keep every reader's fold one line and the store's projection a
+  copy; the 128 KiB bound caps a record.
+- **An idempotency key on `session.prompt`.** No Vessel path retries a
+  call by itself; a forwarded call that may or may not have run says so
+  to its caller, who sees the queue and the log and decides.
+- **A separate input type for a prompt's attachments.** The node already
+  replaces a client's reference with its own record; a second content
+  type would double every place that reads a prompt.
+- **Agents marking read** and **devices with only `read` marking read**:
+  not given. A read-only device is an observer; its views do not clear
+  the owner's unread.
+
+Left as known limits:
+
+- A form's fields arrive in the order ACP's crate keeps them (by key), not
+  the order the agent wrote them.
+- A held queue and the marks stay on the node; a session moved to
+  another node (import, then stop) leaves them behind.
+- Track B: a session's worktree must be removed when the session is
+  deleted, not when it ends, or starting it again finds no folder. Said
+  to the coordinator in the report.
+
 ## Left open
 
 - The desktop and phone shells (ADR 0020, still proposed). All three
   references ship a phone app; Vessel's answer until the decision is the
   page on a phone plus push (track E).
+
+## Track A: progress
+
+Built in slices, each committed with its tests; a call whose slice is
+not built yet answers `unsupported` ("not built yet") so a client sees
+the same refusal an older node gives.
+
+- Wire (protocol 10): every type, event, call and stand-in of the
+  contract, the envelope's per-peer rewriting, the TypeScript, and the
+  page's model carrying the new events (`web/src/data/conversation.ts`,
+  stored, not drawn). Store schema 7 with every column and the
+  attachments table.
+- Slice 1, what the agent reports: abilities from `initialize`
+  (steering from `_meta.steering.supported`), commands, context usage
+  and a turn's tokens (`unstable_end_turn_token_usage`), deduplicated;
+  `session.conversation` from the session's projection while it runs
+  and from the store after; the CLI shows them. Agents send their
+  commands when they like, before or after their answer to
+  `session/new`, so nothing orders them against `Ready`.
+  A probe that fails now reads the agent's last stderr lines after the
+  disconnect (they are read apart and could come later; a test of
+  protocol 9 failed now and then on it).
+- Next: delivery and the queue; questions; marks, the board and delete;
+  start again; attachments; the CLI and the agent tools.

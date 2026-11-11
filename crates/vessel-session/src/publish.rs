@@ -13,6 +13,7 @@ use vessel_proto::{
 };
 
 use crate::activity::Tracker;
+use crate::conversation::Seen;
 use crate::handle::Shared;
 
 /// The actor's write side of a session.
@@ -100,6 +101,13 @@ impl Publisher {
                 .unwrap_or_else(PoisonError::into_inner) = Some(reported);
         }
         self.activity.observe(&event, at);
+        if Seen::cares(&event) {
+            self.shared
+                .seen
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .observe(&event);
+        }
         let board = self.activity.board(at);
         // The one allocation of this record; the store, the ring and every
         // follower share it.
@@ -181,7 +189,9 @@ impl InfoChange {
         match event {
             SessionEvent::Status { status } => Self::Status(status.clone()),
             SessionEvent::Agent {
-                event: AgentEvent::Ready { harness_session },
+                event: AgentEvent::Ready {
+                    harness_session, ..
+                },
             } => Self::HarnessSession(harness_session.clone()),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
             SessionEvent::Renamed { title } => Self::Title(title.clone()),
@@ -190,7 +200,10 @@ impl InfoChange {
             SessionEvent::Terminal(_)
             | SessionEvent::Agent { .. }
             | SessionEvent::ModelCall(_)
-            | SessionEvent::OptionsChanged { .. } => Self::None,
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => Self::None,
         }
     }
 

@@ -151,6 +151,7 @@ mod tests {
         HarnessOptions {
             options: Vec::new(),
             probed_at: DateTime::UNIX_EPOCH,
+            abilities: None,
         }
     }
 

@@ -39,6 +39,8 @@ use crate::waits::{ConnectionWaits, Share, WaitSlot, Waiter, Waits};
 
 // Protocol 9's calls: what a session runs with, and titles.
 mod options;
+// Protocol 10's calls (Track A): the conversation.
+mod conversation;
 
 /// The node's protocol implementation.
 #[derive(Debug)]

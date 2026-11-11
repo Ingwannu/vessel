@@ -447,6 +447,16 @@ impl Handler for Fake {
         session_options: vessel_proto::GetSessionOptions => Vec<vessel_proto::SessionOption>;
         set_session_option: vessel_proto::SetSessionOption => Vec<vessel_proto::SessionOption>;
         rename_session: vessel_proto::RenameSession => SessionInfo;
+        prompt_session: vessel_proto::conversation::PromptSession => vessel_proto::Delivered;
+        change_queue: vessel_proto::conversation::ChangeQueue => vessel_proto::conversation::QueueChanged;
+        get_conversation: vessel_proto::conversation::GetConversation => vessel_proto::Conversation;
+        resume_session: vessel_proto::conversation::ResumeSession => SessionInfo;
+        mark_session: vessel_proto::conversation::MarkSession => SessionInfo;
+        delete_session: vessel_proto::conversation::DeleteSession => Ack;
+        begin_upload: vessel_proto::conversation::BeginUpload => vessel_proto::conversation::Upload;
+        write_upload: vessel_proto::conversation::WriteUpload => vessel_proto::conversation::Written;
+        finish_upload: vessel_proto::conversation::FinishUpload => vessel_proto::AttachmentRef;
+        read_attachment: vessel_proto::conversation::ReadAttachment => BlobChunk;
     }
 }
 

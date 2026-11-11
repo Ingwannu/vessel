@@ -188,7 +188,17 @@ fn the_forwardable_set_is_pinned() {
             "harness.options",
             "session.options",
             "session.set_option",
-            "session.rename"
+            "session.rename",
+            "session.prompt",
+            "session.queue",
+            "session.conversation",
+            "session.resume",
+            "session.mark",
+            "session.delete",
+            "attachment.begin",
+            "attachment.write",
+            "attachment.finish",
+            "attachment.read"
         ]
     );
 }

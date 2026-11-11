@@ -10,15 +10,17 @@ use std::sync::{Mutex, PoisonError};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _, params};
 use vessel_proto::{
-    DeviceId, DeviceInfo, EventPage, EventSeq, OptionChoice, SessionId, SessionInfo,
+    AttachmentLimits, Conversation, DeviceId, DeviceInfo, EventPage, EventSeq, OptionChoice,
+    SessionId, SessionInfo,
 };
 
 use crate::codec::{
-    SESSION_COLUMNS, choices_from_sql, record_from_row, seq_from_sql, seq_to_sql, session_from_row,
+    SESSION_COLUMNS, choices_from_sql, decode, record_from_row, seq_from_sql, seq_to_sql,
+    session_from_row,
 };
 use crate::config::StoreConfig;
 use crate::devices::{self, StoredDevice};
-use crate::error::StoreError;
+use crate::error::{Column, StoreError};
 use crate::schema;
 
 /// The read half of a store.
@@ -86,6 +88,40 @@ impl Reader {
                 .query_row([id.to_string()], |row| row.get(0))
                 .optional()?;
             choices_from_sql(id, text.flatten())
+        })
+    }
+
+    /// An ended session's conversation as its log left it (protocol 10):
+    /// its queue (held), its last context report and its abilities; `None`
+    /// for an unknown session. Nothing waits on an ended session and it
+    /// offers no commands.
+    pub(crate) fn conversation(&self, id: SessionId) -> Result<Option<Conversation>, StoreError> {
+        self.with(|connection| {
+            let row: Option<(Option<String>, Option<String>, Option<String>)> = connection
+                .prepare_cached("SELECT queue, usage, abilities FROM sessions WHERE id = ?1")?
+                .query_row([id.to_string()], |row| {
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                })
+                .optional()?;
+            let Some((queue, usage, abilities)) = row else {
+                return Ok(None);
+            };
+            Ok(Some(Conversation {
+                queue: queue
+                    .map(|queue| decode(id, Column::Queue, &queue))
+                    .transpose()?
+                    .unwrap_or_default(),
+                commands: Vec::new(),
+                usage: usage
+                    .map(|usage| decode(id, Column::Usage, &usage))
+                    .transpose()?,
+                permissions: Vec::new(),
+                questions: Vec::new(),
+                abilities: abilities
+                    .map(|abilities| decode(id, Column::Abilities, &abilities))
+                    .transpose()?,
+                limits: AttachmentLimits::DEFAULT,
+            }))
         })
     }
 

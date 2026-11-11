@@ -1,7 +1,7 @@
 //! [`AgentOutput`] and [`AgentOutputs`]: what an agent session produces.
 
 use tokio::sync::mpsc;
-use vessel_proto::{AgentEvent, SessionOption};
+use vessel_proto::{AgentCommand, AgentEvent, ContextUsage, SessionOption};
 
 use crate::error::Disconnect;
 
@@ -17,6 +17,13 @@ pub enum AgentOutput {
     /// change (the agent's own report, or a client's change). Not a
     /// timeline event: the session logs it as `options_changed`.
     Options(Vec<SessionOption>),
+    /// The commands the agent offers now (protocol 10): the whole list,
+    /// each time it differs from the last. The session logs it as
+    /// `commands_changed`.
+    Commands(Vec<AgentCommand>),
+    /// How full the agent's context is (protocol 10), each time the
+    /// agent's report differs from its last. Logged as `usage_changed`.
+    Usage(ContextUsage),
     /// The ACP connection ended; the driver sends nothing after this.
     /// Harness log lines may still follow until the process's stderr ends.
     Disconnected(Disconnect),

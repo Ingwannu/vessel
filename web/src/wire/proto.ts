@@ -13,13 +13,70 @@ export type Ack = null;
 export type Activity = "active" | "idle" | "waiting_input" | "exited";
 
 /**
+ * What an agent can do, from its ACP `initialize` answer.
+ *
+ * [Decision Log]
+ * - Purpose: steering, starting again and attaching images are offered
+ *   only where the agent takes them, and a client must know before it
+ *   offers the control, not from a failure after.
+ * - Choice: read once per agent start (`initialize`), logged with the
+ *   session's `ready` and kept by the store, so an ended session still
+ *   says whether it can start again. Files are not here: every
+ *   structured agent takes a resource link, ACP's baseline content.
+ */
+export type AgentAbilities = { 
+/**
+ * A message can be added to a running turn: the agent's answer
+ * carries `_meta.steering.supported: true` (the ACP steering
+ * extension, `_session/steering`).
+ */
+steer: boolean, 
+/**
+ * An ended conversation can be loaded again (`loadSession`).
+ */
+resume: boolean, 
+/**
+ * A prompt may hold images (`promptCapabilities.image`).
+ */
+image: boolean, 
+/**
+ * A prompt may hold audio (`promptCapabilities.audio`).
+ */
+audio: boolean, };
+
+/**
+ * One command the agent offers (ACP `available_commands_update`). A
+ * client uses it by sending a prompt that starts with `/name`.
+ */
+export type AgentCommand = { 
+/**
+ * Its name, without the `/`.
+ */
+name: CommandName, 
+/**
+ * What it does, in the agent's words (cut at
+ * [`AgentCommand::MAX_DESCRIPTION`] bytes by the node).
+ */
+description: string, 
+/**
+ * What to type after it, when it takes input (cut at
+ * [`AgentCommand::MAX_HINT`] bytes).
+ */
+hint?: string | null, };
+
+/**
  * One entry in a structured session's timeline.
  */
 export type AgentEvent = { "event": "ready", 
 /**
  * The harness's session id.
  */
-harness_session: HarnessSessionId, } | { "event": "turn_started", 
+harness_session: HarnessSessionId, 
+/**
+ * What the agent said it can do in its handshake (protocol 10);
+ * absent from older nodes.
+ */
+abilities?: AgentAbilities | null, } | { "event": "turn_started", 
 /**
  * The prompt.
  */
@@ -51,7 +108,12 @@ outcome: PermissionOutcome, } | { "event": "turn_ended",
 /**
  * Why it stopped.
  */
-reason: StopReason, } | { "event": "turn_failed", 
+reason: StopReason, 
+/**
+ * The turn's tokens, when the agent reports them with its end
+ * (protocol 10).
+ */
+usage?: TurnUsage | null, } | { "event": "turn_failed", 
 /**
  * Human-readable reason.
  */
@@ -59,7 +121,24 @@ message: string, } | { "event": "harness_log",
 /**
  * The line, without its newline.
  */
-line: string, };
+line: string, } | { "event": "steered", 
+/**
+ * The message.
+ */
+content: Array<ContentBlock>, } | { "event": "question_asked" } & Question | { "event": "question_resolved", 
+/**
+ * Which question.
+ */
+id: QuestionId, 
+/**
+ * How it was settled.
+ */
+outcome: QuestionOutcome, };
+
+/**
+ * The value given for one field.
+ */
+export type AnswerValue = { "type": "text", "value": string } | { "type": "number", "value": FiniteNumber } | { "type": "integer", "value": number } | { "type": "boolean", "value": boolean } | { "type": "choice", "value": string } | { "type": "choices", "value": Array<string> };
 
 /**
  * Shared fields for a query at a saved source position.
@@ -81,6 +160,104 @@ position: Position,
  * Sorted result page (unused by hover).
  */
 page: PageRequest, };
+
+/**
+ * A file sent with a prompt, kept with its session (protocol 10).
+ */
+export type AttachmentId = string;
+
+/**
+ * What an attachment is to the agent.
+ */
+export type AttachmentKind = "image" | "audio" | "file";
+
+/**
+ * How large attachments may be, as a node enforces it; a client reads
+ * them (`session.conversation`) before it uploads.
+ */
+export type AttachmentLimits = { 
+/**
+ * Largest image, in bytes.
+ */
+image: number, 
+/**
+ * Largest audio file, in bytes.
+ */
+audio: number, 
+/**
+ * Largest other file, in bytes.
+ */
+file: number, 
+/**
+ * Most attachments one prompt names.
+ */
+per_prompt: number, 
+/**
+ * Most bytes of images and audio one prompt carries to the agent.
+ */
+inline_per_prompt: number, 
+/**
+ * Most bytes of attachments one session keeps.
+ */
+per_session: number, 
+/**
+ * Largest piece `attachment.write` takes, in bytes.
+ */
+chunk: number, };
+
+/**
+ * An attachment's file name as the person's file had it. The node
+ * stores the bytes under it (in a folder of the attachment's own id),
+ * so it is one path component on every platform.
+ */
+export type AttachmentName = string;
+
+/**
+ * An attachment a prompt names, as `attachment.finish` returned it.
+ */
+export type AttachmentRef = { 
+/**
+ * Its id within its session.
+ */
+id: AttachmentId, 
+/**
+ * Its file name.
+ */
+name: AttachmentName, 
+/**
+ * What it is to the agent.
+ */
+kind: AttachmentKind, 
+/**
+ * Its type.
+ */
+mime: MimeType, 
+/**
+ * Its size in bytes.
+ */
+size: number, };
+
+/**
+ * `attachment.begin`: declare a file to upload to a live structured
+ * session. Needs `operate`.
+ */
+export type BeginUpload = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The file's name.
+ */
+name: AttachmentName, 
+/**
+ * Its type.
+ */
+mime: MimeType, 
+/**
+ * Its size in bytes.
+ */
+size: number, };
 
 /**
  * Reply to `fleet.blob`.
@@ -130,7 +307,7 @@ export type BundlePath = string;
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment };
 
 /**
  * What `fleet.callback` answers.
@@ -148,6 +325,64 @@ relays: Array<RouteUrl>,
 ticket?: RelayTicket | null, };
 
 /**
+ * `session.queue`: change a session's queue. Needs `operate`.
+ */
+export type ChangeQueue = { 
+/**
+ * Which session.
+ */
+session: SessionId, } & ({ "change": "edit", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * The revision the edit was made from; another is `conflict`.
+ */
+revision: number, 
+/**
+ * Its new content.
+ */
+content: Array<ContentBlock>, } | { "change": "move", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * The entry it goes before; absent is the end.
+ */
+before?: QueueEntryId | null, } | { "change": "remove", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, } | { "change": "send_now", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * How: `start`, `steer` or `interrupt` (not `queue`).
+ */
+delivery: Delivery, } | { "change": "hold" } | { "change": "resume" } | { "change": "clear" });
+
+/**
+ * One option of a choice.
+ */
+export type ChoiceOption = { 
+/**
+ * What is sent back when it is chosen.
+ */
+value: string, 
+/**
+ * Its label.
+ */
+title: string, 
+/**
+ * A longer explanation.
+ */
+description?: string | null, };
+
+/**
  * `transfer.close` (protocol 6): drop the snapshot. Only the caller that
  * opened it may close it. Needs `read`.
  */
@@ -156,6 +391,13 @@ export type CloseTransfer = {
  * Which transfer.
  */
 transfer: TransferId, };
+
+/**
+ * A command the agent offers, without its `/` (`compact`, `review`).
+ * Sent back as the start of a prompt, `/name`, so it has no white
+ * space: what follows the first space is the command's input.
+ */
+export type CommandName = string;
 
 /**
  * A value in an MCP server definition: literal text, or the name of a
@@ -183,7 +425,11 @@ name: string, } | { "type": "opaque",
 /**
  * The block as the transport sent it.
  */
-raw: RawJson, };
+raw: RawJson, } | { "type": "attachment", 
+/**
+ * Which, and what it is.
+ */
+attachment: AttachmentRef, };
 
 /**
  * Scope and age of every answer, including empty answers.
@@ -212,6 +458,58 @@ freshness: Freshness,
 workspace_complete: boolean, };
 
 /**
+ * How full the session's context is, from the agent's last
+ * `usage_update`.
+ */
+export type ContextUsage = { 
+/**
+ * Tokens in the context now.
+ */
+used: TokenCount, 
+/**
+ * The context window's size.
+ */
+size: TokenCount, 
+/**
+ * What the session has cost so far, when the agent says.
+ */
+cost?: Cost | null, };
+
+/**
+ * A session's conversation as it stands (`session.conversation`): what
+ * its log says now, without reading the log.
+ */
+export type Conversation = { 
+/**
+ * The prompts waiting.
+ */
+queue: PromptQueue, 
+/**
+ * The commands the agent offers now (none for an ended session).
+ */
+commands: Array<AgentCommand>, 
+/**
+ * The agent's last report of its context.
+ */
+usage?: ContextUsage | null, 
+/**
+ * Permission requests waiting for an answer.
+ */
+permissions: Array<PermissionRequest>, 
+/**
+ * Questions waiting for an answer.
+ */
+questions: Array<Question>, 
+/**
+ * What the agent can do, once its handshake said.
+ */
+abilities?: AgentAbilities | null, 
+/**
+ * How large attachments may be.
+ */
+limits: AttachmentLimits, };
+
+/**
  * `secret.copy` (protocol 6): send this node's value for `name` to fleet
  * node `to`, which stores it under the same name. Needs `admin` here, and
  * the delivering grant on `to` must hold `admin` too.
@@ -225,6 +523,25 @@ name: SecretName,
  * The node to copy it to.
  */
 to: NodeId, };
+
+/**
+ * A cost, as the agent counts it.
+ */
+export type Cost = { 
+/**
+ * How much.
+ */
+amount: FiniteNumber, 
+/**
+ * In what.
+ */
+unit: CostUnit, };
+
+/**
+ * What a cost is counted in: an ISO 4217 code (`USD`) or the agent's
+ * own unit (`credits`).
+ */
+export type CostUnit = string;
 
 /**
  * `session.create`: start a harness.
@@ -268,6 +585,16 @@ export type DeleteSecret = {
 name: SecretName, };
 
 /**
+ * `session.delete`: remove an ended session, its log, its marks, its
+ * queue and its attachments. Needs `operate`.
+ */
+export type DeleteSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
+
+/**
  * `fleet.deliver` (protocol 6): the home asks a member to run a call for
  * `origin`. The last hop: a member never passes a delivered call on, and
  * accepts one only from its home's device (the one `fleet.grant` made).
@@ -283,6 +610,20 @@ call: Call,
  * Who it speaks for.
  */
 origin: Origin, };
+
+/**
+ * What became of a delivered prompt.
+ */
+export type Delivered = { "delivered": "started" } | { "delivered": "steered" } | { "delivered": "queued", 
+/**
+ * Its entry.
+ */
+entry: QueueEntryId, };
+
+/**
+ * How a prompt goes to a session (`session.prompt`).
+ */
+export type Delivery = "start" | "queue" | "steer" | "interrupt";
 
 /**
  * A paired device: one client machine holding its own credential for a
@@ -471,9 +812,31 @@ session: SessionId,
 force?: boolean, };
 
 /**
+ * The key of one field of a question's form, as the agent names it
+ * (`question_1`). Echoed back in an answer.
+ */
+export type FieldName = string;
+
+/**
  * A file under the authorized workspace, never an absolute path or URI.
  */
 export type FilePath = string;
+
+/**
+ * `attachment.finish`: check an upload and keep it with its session.
+ * Needs `operate`.
+ */
+export type FinishUpload = { 
+/**
+ * Which upload.
+ */
+upload: UploadId, };
+
+/**
+ * A JSON number that is finite: no NaN or infinity, so the types holding
+ * it compare as equal or not (`Eq`), and it always encodes as JSON.
+ */
+export type FiniteNumber = number;
 
 /**
  * A member as its home reports it.
@@ -594,6 +957,16 @@ node: NodeId,
 key: NodePublicKey, };
 
 /**
+ * `session.conversation`: a session's conversation as it stands. Needs
+ * `read`.
+ */
+export type GetConversation = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
+
+/**
  * `harness.options` (protocol 9): what a harness's agent offers before
  * any session of it exists, for a new-session form. The node starts the
  * agent as a structured session would (under `profile`, in a scratch
@@ -703,7 +1076,13 @@ options: Array<SessionOption>,
  * When the node asked the agent: the node answers from a recent probe
  * rather than start the agent for every caller.
  */
-probed_at: string, };
+probed_at: string, 
+/**
+ * What the agent said it can do (protocol 10): whether a new
+ * session's composer offers steering and images. Absent from older
+ * nodes, and for a harness without structured sessions here.
+ */
+abilities?: AgentAbilities | null, };
 
 /**
  * The harness's own session id (an ACP `sessionId`). Kept so a
@@ -972,6 +1351,19 @@ files: { [key in BundlePath]: BundleFile },
 mcp: { [key in McpServerName]: McpTransport<ConfigValue> }, };
 
 /**
+ * `session.mark`: set a mark. Needs `operate`.
+ */
+export type MarkSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, } & ({ "mark": "pin" } | { "mark": "unpin" } | { "mark": "archive" } | { "mark": "unarchive" } | { "mark": "read", 
+/**
+ * The next record the reader has not seen.
+ */
+through: EventSeq, } | { "mark": "unread" });
+
+/**
  * How a bounded hover text is represented.
  */
 export type Markup = "plain_text" | "markdown";
@@ -1045,7 +1437,13 @@ project?: string | null, };
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read";
+
+/**
+ * A media type without parameters, `type/subtype`, lower case
+ * (`image/png`, `application/pdf`).
+ */
+export type MimeType = string;
 
 /**
  * An API a provider or a harness speaks.
@@ -1567,6 +1965,36 @@ model?: ModelRouteName | null, };
 export type ProfileName = string;
 
 /**
+ * A session's queue.
+ */
+export type PromptQueue = { 
+/**
+ * The prompts waiting, next first.
+ */
+entries: Array<QueuedPrompt>, 
+/**
+ * Why it does not move on its own; absent while it does.
+ */
+held?: QueueHold | null, };
+
+/**
+ * `session.prompt`: send a prompt, delivered as asked. Needs `operate`.
+ */
+export type PromptSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The message.
+ */
+content: Array<ContentBlock>, 
+/**
+ * How it goes.
+ */
+delivery: Delivery, };
+
+/**
  * An inclusive range of protocol versions a peer can speak.
  *
  * [Decision Log]
@@ -1600,6 +2028,197 @@ export type ProtocolVersion = number;
 export type ProviderName = string;
 
 /**
+ * A question waiting for an answer.
+ */
+export type Question = { 
+/**
+ * Node-assigned id clients answer with.
+ */
+id: QuestionId, 
+/**
+ * What the agent asks (cut at [`Question::MAX_MESSAGE`] bytes).
+ */
+message: string, 
+/**
+ * The tool call it belongs to, when the agent says.
+ */
+tool_call?: ToolCallId | null, 
+/**
+ * The form, in the agent's order.
+ */
+fields: Array<QuestionField>, };
+
+/**
+ * An answer to a question (`session.send`'s `answer_question`).
+ */
+export type QuestionAnswer = { "answer": "accept", 
+/**
+ * Each answered field's value.
+ */
+values: { [key in FieldName]: AnswerValue }, } | { "answer": "decline" };
+
+/**
+ * One field of a question's form.
+ */
+export type QuestionField = { 
+/**
+ * Its key, echoed back in the answer.
+ */
+name: FieldName, 
+/**
+ * Its label.
+ */
+title?: string | null, 
+/**
+ * A longer explanation.
+ */
+description?: string | null, 
+/**
+ * Whether an accepting answer must give it.
+ */
+required: boolean, } & ({ "kind": "text", 
+/**
+ * Fewest characters.
+ */
+min_length?: number | null, 
+/**
+ * Most characters.
+ */
+max_length?: number | null, 
+/**
+ * A shape the text must have.
+ */
+format?: TextFormat | null, 
+/**
+ * A regular expression the text must match, as the agent wrote it.
+ * Passed on for a client to check; the node does not (it would
+ * need a regular-expression engine for one field kind), so the
+ * agent may still refuse an answer that misses it.
+ */
+pattern?: string | null, 
+/**
+ * What to start with.
+ */
+default?: string | null, } | { "kind": "number", 
+/**
+ * Smallest allowed.
+ */
+minimum?: FiniteNumber | null, 
+/**
+ * Largest allowed.
+ */
+maximum?: FiniteNumber | null, 
+/**
+ * What to start with.
+ */
+default?: FiniteNumber | null, } | { "kind": "integer", 
+/**
+ * Smallest allowed.
+ */
+minimum?: number | null, 
+/**
+ * Largest allowed.
+ */
+maximum?: number | null, 
+/**
+ * What to start with.
+ */
+default?: number | null, } | { "kind": "boolean", 
+/**
+ * What to start with.
+ */
+default?: boolean | null, } | { "kind": "choice", 
+/**
+ * The options, in the agent's order.
+ */
+options: Array<ChoiceOption>, 
+/**
+ * Several may be chosen.
+ */
+multiple: boolean, 
+/**
+ * Fewest to choose (several).
+ */
+min_items?: number | null, 
+/**
+ * Most to choose (several).
+ */
+max_items?: number | null, 
+/**
+ * What is chosen to start with: one value for a choice of one,
+ * any number for several.
+ */
+default?: Array<string>, } | { "kind": "unknown" });
+
+/**
+ * A question an agent asks (protocol 10). Minted by the node, as a
+ * permission request's id is, so many clients can answer and the first
+ * answer wins.
+ */
+export type QuestionId = string;
+
+/**
+ * How a question was settled.
+ */
+export type QuestionOutcome = { "outcome": "answered", 
+/**
+ * Each answered field's value.
+ */
+values: { [key in FieldName]: AnswerValue }, } | { "outcome": "declined" } | { "outcome": "cancelled" };
+
+/**
+ * Reply to `session.queue`.
+ */
+export type QueueChanged = { 
+/**
+ * The queue afterwards.
+ */
+queue: PromptQueue, 
+/**
+ * For `send_now` and `resume`: what became of the entry sent, if one
+ * was.
+ */
+delivered?: Delivered | null, };
+
+/**
+ * A prompt waiting in a session's queue (protocol 10), minted by the
+ * node when it is queued.
+ */
+export type QueueEntryId = string;
+
+/**
+ * Why the queue does not move on its own.
+ */
+export type QueueHold = "cancelled" | "failed" | "ended" | "asked";
+
+/**
+ * A prompt waiting for its turn.
+ */
+export type QueuedPrompt = { 
+/**
+ * The entry's id.
+ */
+id: QueueEntryId, 
+/**
+ * What will be sent.
+ */
+content: Array<ContentBlock>, 
+/**
+ * When it was queued (or last edited).
+ */
+queued_at: string, 
+/**
+ * Raised by each edit; an edit names the revision it was made from,
+ * so two people editing one entry cannot overwrite each other unseen
+ * (agent-orchestrator checks the same).
+ */
+revision: number, 
+/**
+ * Who queued it.
+ */
+by: Creator, };
+
+/**
  * An exclusive-end source range.
  */
 export type Range = { 
@@ -1620,6 +2239,24 @@ end: Position, };
  * to define a typed struct.
  */
 export type RawJson = unknown;
+
+/**
+ * `attachment.read`: a piece of a session's attachment, from `offset`
+ * (at most `BlobChunk::MAX_LEN` bytes). Needs `read`.
+ */
+export type ReadAttachment = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * Which attachment.
+ */
+attachment: AttachmentId, 
+/**
+ * Where to start.
+ */
+offset: number, };
 
 /**
  * `fleet.blob` (protocol 5): part of a blob, from `offset`. A member asks
@@ -1782,7 +2419,7 @@ title: SessionTitle, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": Ack } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk };
 
 /**
  * `fleet.report` (protocol 5): a member says what it applied and which
@@ -1797,6 +2434,16 @@ generation: Generation,
  * Files kept as edited, with the incoming version written beside them.
  */
 conflicts?: Array<BundlePath>, };
+
+/**
+ * `session.resume`: start an ended structured session again with its
+ * conversation. Needs `operate`.
+ */
+export type ResumeSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
 
 /**
  * `device.revoke` (protocol 4): revoke a device and close its connections.
@@ -1896,7 +2543,19 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: SessionTitle, };
+title: SessionTitle, } | { "type": "queue_changed", 
+/**
+ * The queue now.
+ */
+queue: PromptQueue, } | { "type": "commands_changed", 
+/**
+ * Every command, in the agent's order.
+ */
+commands: Array<AgentCommand>, } | { "type": "usage_changed", 
+/**
+ * The report.
+ */
+usage: ContextUsage, };
 
 /**
  * A session on a node. Unique across the fleet, so it can be used
@@ -2004,7 +2663,20 @@ board?: SessionBoard | null,
  * node's store keeps it across restarts. Absent until it has one, and
  * from older nodes; a client then names it by its folder.
  */
-title?: SessionTitle | null, };
+title?: SessionTitle | null, 
+/**
+ * What a person marked on it: pinned, archived, unread (protocol 10,
+ * ADR 0026). Kept by the node, so every client sees the same; left
+ * out when nothing is marked, and absent from older nodes.
+ */
+marks?: SessionMarks, 
+/**
+ * What its agent said it can do in its last handshake (protocol 10):
+ * steer, start again, take images or audio. Kept by the store, so an
+ * ended session says whether `session.resume` can work. Absent for a
+ * terminal session, before the handshake, and from older nodes.
+ */
+abilities?: AgentAbilities | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.
@@ -2020,7 +2692,15 @@ input: TerminalInput, } | { "type": "prompt",
 /**
  * The user's message.
  */
-content: Array<ContentBlock>, } | { "type": "cancel_turn" } | { "type": "answer_permission", 
+content: Array<ContentBlock>, } | { "type": "cancel_turn", 
+/**
+ * The turn meant: its `turn_started` record's `seq` (protocol 10).
+ * When another turn runs by the time the cancel lands (the queue
+ * started the next one as the first ended), that turn goes on
+ * and only the queue is held. Absent: whatever turn runs, as
+ * before protocol 10.
+ */
+turn?: EventSeq | null, } | { "type": "answer_permission", 
 /**
  * Which request.
  */
@@ -2028,7 +2708,33 @@ id: PermissionId,
 /**
  * The choice.
  */
-outcome: PermissionOutcome, };
+outcome: PermissionOutcome, } | { "type": "answer_question", 
+/**
+ * Which question.
+ */
+id: QuestionId, 
+/**
+ * The answer.
+ */
+answer: QuestionAnswer, };
+
+/**
+ * A session's marks, as `SessionInfo.marks`.
+ */
+export type SessionMarks = { 
+/**
+ * Kept at the top of lists.
+ */
+pinned?: boolean, 
+/**
+ * When it was put away (the board's archive lane). An archived
+ * session has ended.
+ */
+archived_at?: string | null, 
+/**
+ * Something happened that nobody has marked seen.
+ */
+unread?: boolean, };
 
 /**
  * The route a session was launched with (protocol 7).
@@ -2369,6 +3075,11 @@ cols: number,
 rows: number, };
 
 /**
+ * A shape free text must have.
+ */
+export type TextFormat = "email" | "uri" | "date" | "date_time";
+
+/**
  * A ticket's HMAC-SHA256 under the relay's token (`vessel_relay`
  * computes and checks it). Not printed: it is no use without the
  * ticket's node key, but nothing needs to see it.
@@ -2591,6 +3302,40 @@ files: { [key in BundlePath]: BundleFile },
 detail: TransferDetail, };
 
 /**
+ * One turn's tokens, as the agent reports them with the turn's end (the
+ * prompt's answer `usage`).
+ *
+ * Not [`TokenUsage`](crate::TokenUsage): that is the node proxy's own
+ * count, with defined cache rules; agents disagree on whether `input`
+ * counts cached tokens, so this keeps their words.
+ */
+export type TurnUsage = { 
+/**
+ * Every token of the turn.
+ */
+total: TokenCount, 
+/**
+ * Input tokens.
+ */
+input: TokenCount, 
+/**
+ * Output tokens.
+ */
+output: TokenCount, 
+/**
+ * Reasoning tokens, when counted apart.
+ */
+thought?: TokenCount | null, 
+/**
+ * Tokens read from a cache.
+ */
+cached_read?: TokenCount | null, 
+/**
+ * Tokens written to a cache.
+ */
+cached_write?: TokenCount | null, };
+
+/**
  * Type definitions at a saved source position.
  */
 export type TypeDefinition = AtPosition;
@@ -2603,6 +3348,25 @@ export type Unsubscribe = {
  * Which subscription.
  */
 subscription: SubscriptionId, };
+
+/**
+ * Reply to `attachment.begin`.
+ */
+export type Upload = { 
+/**
+ * The upload, for `attachment.write` and `attachment.finish`.
+ */
+upload: UploadId, 
+/**
+ * Largest piece a write takes, in bytes.
+ */
+chunk: number, };
+
+/**
+ * An upload in progress (protocol 10). Random, but not a secret: only
+ * the caller that began it may write to it or finish it.
+ */
+export type UploadId = string;
 
 /**
  * `fleet.watch` (protocol 5): wait for a generation newer than `after`.
@@ -2659,3 +3423,32 @@ query: string,
  * Sorted result page.
  */
 page: PageRequest, };
+
+/**
+ * `attachment.write`: the next piece of an upload. Only the caller that
+ * began it may write. Needs `operate`.
+ */
+export type WriteUpload = { 
+/**
+ * Which upload.
+ */
+upload: UploadId, 
+/**
+ * Where the piece starts: the bytes received so far.
+ */
+offset: number, 
+/**
+ * The piece, base64 on the wire.
+ */
+data: string, };
+
+/**
+ * Reply to `attachment.write`: how much of the file the node has. A
+ * piece repeated after a lost reply (it ends at or before this) is
+ * answered again without being written twice.
+ */
+export type Written = { 
+/**
+ * Bytes received so far; the next piece starts here.
+ */
+received: number, };

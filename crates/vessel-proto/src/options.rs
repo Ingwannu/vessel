@@ -249,6 +249,11 @@ pub struct HarnessOptions {
     /// When the node asked the agent: the node answers from a recent probe
     /// rather than start the agent for every caller.
     pub probed_at: DateTime<Utc>,
+    /// What the agent said it can do (protocol 10): whether a new
+    /// session's composer offers steering and images. Absent from older
+    /// nodes, and for a harness without structured sessions here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abilities: Option<crate::conversation::AgentAbilities>,
 }
 
 /// `session.options` (protocol 9): a structured session's options as its
@@ -426,6 +431,7 @@ mod tests {
         let probed = HarnessOptions {
             options: vec![model()],
             probed_at: DateTime::UNIX_EPOCH,
+            abilities: None,
         };
         let text = serde_json::to_string(&probed).unwrap();
         assert!(text.starts_with(r#"{"options":[{"id":"model""#), "{text}");

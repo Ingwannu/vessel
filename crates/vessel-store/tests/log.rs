@@ -13,6 +13,18 @@ use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
 /// Builders for sessions and records. A `cfg(test)` module so the lints'
 /// test allowances (`unwrap` and friends) apply to it.
+/// Undoes schema 7 (protocol 10), so a test can take a database further
+/// back: the conversation's columns and the attachments table.
+const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
+     ALTER TABLE sessions DROP COLUMN usage;
+     ALTER TABLE sessions DROP COLUMN queue;
+     ALTER TABLE sessions DROP COLUMN attention_seq;
+     ALTER TABLE sessions DROP COLUMN read_seq;
+     ALTER TABLE sessions DROP COLUMN marked_unread;
+     ALTER TABLE sessions DROP COLUMN pinned;
+     ALTER TABLE sessions DROP COLUMN archived_at;
+     DROP TABLE attachments;";
+
 #[cfg(test)]
 mod fixtures {
     use std::path::PathBuf;
@@ -226,6 +238,7 @@ async fn session_rows_follow_the_records() {
         SessionEvent::Agent {
             event: AgentEvent::Ready {
                 harness_session: harness_session.clone(),
+                abilities: None,
             },
         },
     );
@@ -679,6 +692,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection.execute_batch(UNDO_SCHEMA_7).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN via;
@@ -708,6 +722,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection.execute_batch(UNDO_SCHEMA_7).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN profile;
@@ -749,6 +764,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     drop(store);
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection.execute_batch(UNDO_SCHEMA_7).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN model;

@@ -15,6 +15,8 @@ mod agents;
 #[cfg(test)]
 mod callback;
 #[cfg(test)]
+mod conversation;
+#[cfg(test)]
 mod crowd;
 #[cfg(test)]
 mod fleet;

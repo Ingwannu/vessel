@@ -6,6 +6,18 @@ use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
 /// Builders. A `cfg(test)` module so the lints' test allowances (`unwrap`
 /// and friends) apply to it.
+/// Undoes schema 7 (protocol 10), so a test can take a database further
+/// back: the conversation's columns and the attachments table.
+const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
+     ALTER TABLE sessions DROP COLUMN usage;
+     ALTER TABLE sessions DROP COLUMN queue;
+     ALTER TABLE sessions DROP COLUMN attention_seq;
+     ALTER TABLE sessions DROP COLUMN read_seq;
+     ALTER TABLE sessions DROP COLUMN marked_unread;
+     ALTER TABLE sessions DROP COLUMN pinned;
+     ALTER TABLE sessions DROP COLUMN archived_at;
+     DROP TABLE attachments;";
+
 #[cfg(test)]
 mod fixtures {
     use chrono::{DateTime, Utc};
@@ -121,6 +133,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection.execute_batch(UNDO_SCHEMA_7).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).

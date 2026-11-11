@@ -30,11 +30,11 @@ use tokio::sync::watch;
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventPage, EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo,
-    SessionInput, SessionOption, SessionSpec, SessionTitle,
+    Conversation, EventPage, EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId,
+    SessionInfo, SessionInput, SessionMode, SessionOption, SessionSpec, SessionTitle,
 };
 use vessel_session::{
-    Created, FollowError, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime,
+    Created, FollowError, LaunchOptions, ProfileMove, SessionError, SessionHandle, SessionRuntime,
 };
 use vessel_store::Store;
 
@@ -289,6 +289,24 @@ impl Sessions {
         }
     }
 
+    /// A structured session's conversation as it stands (protocol 10): a
+    /// live one's from its runtime, an ended one's from the store.
+    pub(crate) async fn conversation(&self, id: SessionId) -> Result<Conversation, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.conversation()?),
+            Found::Stored(info) => match info.spec.mode {
+                SessionMode::Terminal { .. } => {
+                    Err(SessionError::Terminal("a conversation").into())
+                }
+                SessionMode::Structured { .. } => self
+                    .store
+                    .conversation(id)
+                    .await?
+                    .ok_or(ServiceError::NotFound(id)),
+            },
+        }
+    }
+
     /// Change one of a live session's agent options (protocol 9).
     pub(crate) async fn set_option(
         &self,
@@ -334,7 +352,7 @@ impl Sessions {
         profile: Profile,
         proxy: Option<ModelProxy>,
         dir: PathBuf,
-    ) -> Result<Vec<SessionOption>, ServiceError> {
+    ) -> Result<vessel_session::Probed, ServiceError> {
         Ok(self
             .runtime
             .probe(harness, Some(profile), proxy, dir)

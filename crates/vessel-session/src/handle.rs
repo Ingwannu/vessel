@@ -7,11 +7,12 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::AgentInput;
 use vessel_proto::{
-    EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionInput, SessionOption,
-    SessionTitle, TerminalInput,
+    Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionInput,
+    SessionOption, SessionTitle, TerminalInput,
 };
 use vessel_pty::{PtyInput, WindowSize};
 
+use crate::conversation::Seen;
 use crate::error::{InputKind, ModeKind, SessionError};
 use crate::lifecycle::Rename;
 use crate::moving::Control;
@@ -50,6 +51,10 @@ pub(crate) struct Shared {
     /// on. A `std` mutex held for one clone or one store, never across an
     /// `.await`.
     pub(crate) reported: Mutex<Option<Arc<[SessionOption]>>>,
+    /// The conversation as the log says it now (protocol 10), kept by the
+    /// publisher; what `session.conversation` answers. A `std` mutex held
+    /// for one update or one snapshot, never across an `.await`.
+    pub(crate) seen: Mutex<Seen>,
 }
 
 impl Shared {
@@ -143,6 +148,25 @@ impl SessionHandle {
         choice: OptionChoice,
     ) -> Result<Vec<SessionOption>, SessionError> {
         Ok(self.agent()?.set_option(choice).await?)
+    }
+
+    /// The conversation as the session's log says it now (protocol 10):
+    /// the queue, the agent's commands, context and abilities, and what
+    /// waits on an answer. Kept as the session publishes; no log is read.
+    ///
+    /// # Errors
+    /// [`SessionError::Terminal`] for a terminal session, whose harness
+    /// runs its own interface.
+    pub fn conversation(&self) -> Result<Conversation, SessionError> {
+        match &self.0.input {
+            Input::Terminal(_) => Err(SessionError::Terminal("a conversation")),
+            Input::Structured(_) => Ok(self
+                .0
+                .seen
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .conversation()),
+        }
     }
 
     /// Give the session `title` (protocol 9): a `renamed` record, in order
@@ -252,17 +276,21 @@ impl SessionHandle {
             (Input::Structured(route), SessionInput::Prompt { content }) => {
                 Ok(current(route)?.prompt(content).await?)
             }
-            (Input::Structured(route), SessionInput::CancelTurn) => {
+            (Input::Structured(route), SessionInput::CancelTurn { .. }) => {
                 Ok(current(route)?.cancel_turn().await?)
             }
             (Input::Structured(route), SessionInput::AnswerPermission { id, outcome }) => {
                 Ok(current(route)?.answer(id, outcome).await?)
             }
+            (Input::Structured(_), SessionInput::AnswerQuestion { .. }) => {
+                Err(SessionError::NotBuilt("answering a question"))
+            }
             (
                 input_path @ Input::Terminal(_),
                 input @ (SessionInput::Prompt { .. }
-                | SessionInput::CancelTurn
-                | SessionInput::AnswerPermission { .. }),
+                | SessionInput::CancelTurn { .. }
+                | SessionInput::AnswerPermission { .. }
+                | SessionInput::AnswerQuestion { .. }),
             )
             | (input_path @ Input::Structured(_), input @ SessionInput::Terminal { .. }) => {
                 Err(SessionError::Unsupported {

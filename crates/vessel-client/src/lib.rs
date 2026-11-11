@@ -40,6 +40,7 @@ pub mod book;
 mod chunks;
 mod client;
 mod connector;
+mod conversation;
 mod credential;
 mod error;
 mod local;

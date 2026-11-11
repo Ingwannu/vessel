@@ -34,6 +34,10 @@ pub enum SessionError {
     /// cannot carry).
     #[error(transparent)]
     Input(InputError),
+    /// Something only a structured session has (protocol 10's
+    /// conversation, queue, questions) was asked of a terminal session.
+    #[error("a terminal session has no {0}; its harness runs its own interface")]
+    Terminal(&'static str),
     /// Agent options were asked of a terminal session (protocol 9): its
     /// harness runs its own TUI, and Vessel sees no options there.
     #[error("a terminal session has no agent options; its harness's own interface sets them")]
@@ -69,6 +73,10 @@ pub enum SessionError {
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
+    /// Part of protocol 10 this build has the wire for and not the work
+    /// yet (milestone 11's Track A builds it in slices).
+    #[error("{0} is not built on this node yet")]
+    NotBuilt(&'static str),
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
@@ -96,7 +104,9 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. }) => ErrorCode::HarnessNotInstalled,
             Self::Launch(HarnessError::StructuredUnavailable { .. })
             | Self::Unsupported { .. }
-            | Self::NoOptions => ErrorCode::Unsupported,
+            | Self::NoOptions
+            | Self::Terminal(_)
+            | Self::NotBuilt(_) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -131,6 +141,8 @@ impl SessionError {
             // The node resolves `spec.profile`; another profile is its bug.
             Self::Internal(_)
             | Self::DuplicateId(_)
+            // The node loads a prompt's attachments before it sends it.
+            | Self::Input(InputError::AttachmentNotLoaded(_))
             | Self::Launch(
                 HarnessError::McpFile(_)
                 | HarnessError::ProfileNotRequested { .. }
@@ -180,7 +192,8 @@ impl From<InputError> for SessionError {
             | InputError::PermissionSettled(_)
             | InputError::UnknownOption { .. }
             | InputError::Option(_)
-            | InputError::Refused { .. }) => Self::Input(refused),
+            | InputError::Refused { .. }
+            | InputError::AttachmentNotLoaded(_)) => Self::Input(refused),
         }
     }
 }
@@ -214,6 +227,8 @@ pub enum InputKind {
     CancelTurn,
     /// A permission answer.
     AnswerPermission,
+    /// An answer to a question.
+    AnswerQuestion,
 }
 
 impl InputKind {
@@ -221,8 +236,9 @@ impl InputKind {
         match input {
             SessionInput::Terminal { .. } => Self::Terminal,
             SessionInput::Prompt { .. } => Self::Prompt,
-            SessionInput::CancelTurn => Self::CancelTurn,
+            SessionInput::CancelTurn { .. } => Self::CancelTurn,
             SessionInput::AnswerPermission { .. } => Self::AnswerPermission,
+            SessionInput::AnswerQuestion { .. } => Self::AnswerQuestion,
         }
     }
 }
@@ -234,6 +250,7 @@ impl fmt::Display for InputKind {
             Self::Prompt => "a prompt",
             Self::CancelTurn => "a turn cancellation",
             Self::AnswerPermission => "a permission answer",
+            Self::AnswerQuestion => "an answer to a question",
         })
     }
 }

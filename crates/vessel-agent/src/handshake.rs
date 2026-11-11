@@ -39,11 +39,13 @@ use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::v1::ConnectionTo;
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::{Agent, Error};
-use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers};
+use vessel_proto::{
+    AgentAbilities, HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers,
+};
 
-use crate::mcp;
 use crate::model::ModelError;
 use crate::options::{Applied, Change, OptionError, Options};
+use crate::{abilities, mcp};
 
 /// The default for [`AgentSetup::handshake_timeout`].
 pub const DEFAULT_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(60);
@@ -101,11 +103,13 @@ pub(crate) enum HandshakeError {
     TimedOut(Duration),
 }
 
-/// A session the agent accepted, and its options after the choices.
+/// A session the agent accepted, its options after the choices, and what
+/// the agent said it can do.
 #[derive(Debug)]
 pub(crate) struct Started {
     pub(crate) session: acp::SessionId,
     pub(crate) options: Options,
+    pub(crate) abilities: AgentAbilities,
 }
 
 /// [`run`], bounded by `setup.handshake_timeout`.
@@ -143,6 +147,7 @@ pub(crate) async fn run(
     if initialized.protocol_version != ProtocolVersion::V1 {
         return Err(HandshakeError::Version(initialized.protocol_version));
     }
+    let abilities = abilities::of(&initialized);
 
     let (servers, left_out) = mcp::to_acp(
         &setup.mcp_servers,
@@ -197,7 +202,11 @@ pub(crate) async fn run(
             options.apply(applied);
         }
     }
-    Ok(Started { session, options })
+    Ok(Started {
+        session,
+        options,
+        abilities,
+    })
 }
 
 /// Ask the agent to make `change`; its answer says what changed. Awaits

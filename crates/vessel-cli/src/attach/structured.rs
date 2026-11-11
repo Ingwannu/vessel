@@ -50,7 +50,10 @@ impl Turns {
                 | AgentEvent::Plan { .. }
                 | AgentEvent::PermissionRequested(_)
                 | AgentEvent::PermissionResolved { .. }
-                | AgentEvent::HarnessLog { .. } => {}
+                | AgentEvent::HarnessLog { .. }
+                | AgentEvent::Steered { .. }
+                | AgentEvent::QuestionAsked(_)
+                | AgentEvent::QuestionResolved { .. } => {}
             }
         }
     }
@@ -94,7 +97,7 @@ pub(super) async fn attach(mut stream: Stream, session: &SessionInfo) -> Result<
                     Action::Prompt(text) => SessionInput::Prompt {
                         content: vec![ContentBlock::Text { text }],
                     },
-                    Action::Cancel => SessionInput::CancelTurn,
+                    Action::Cancel => SessionInput::CancelTurn { turn: None },
                     Action::Answer { request, option } => SessionInput::AnswerPermission {
                         id: request,
                         outcome: PermissionOutcome::Selected { option },

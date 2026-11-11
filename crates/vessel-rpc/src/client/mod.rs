@@ -121,6 +121,17 @@ impl Unary for vessel_proto::GetHarnessOptions {}
 impl Unary for vessel_proto::GetSessionOptions {}
 impl Unary for vessel_proto::SetSessionOption {}
 impl Unary for RenameSession {}
+// Protocol 10 (Track A, the conversation).
+impl Unary for vessel_proto::conversation::PromptSession {}
+impl Unary for vessel_proto::conversation::ChangeQueue {}
+impl Unary for vessel_proto::conversation::GetConversation {}
+impl Unary for vessel_proto::conversation::ResumeSession {}
+impl Unary for vessel_proto::conversation::MarkSession {}
+impl Unary for vessel_proto::conversation::DeleteSession {}
+impl Unary for vessel_proto::conversation::BeginUpload {}
+impl Unary for vessel_proto::conversation::WriteUpload {}
+impl Unary for vessel_proto::conversation::FinishUpload {}
+impl Unary for vessel_proto::conversation::ReadAttachment {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -214,7 +225,17 @@ const fn is_unary(method: Method) -> bool {
         | Method::HarnessOptions
         | Method::SessionOptions
         | Method::SetSessionOption
-        | Method::RenameSession => true,
+        | Method::RenameSession
+        | Method::PromptSession
+        | Method::ChangeQueue
+        | Method::GetConversation
+        | Method::ResumeSession
+        | Method::MarkSession
+        | Method::DeleteSession
+        | Method::BeginUpload
+        | Method::WriteUpload
+        | Method::FinishUpload
+        | Method::ReadAttachment => true,
     }
 }
 

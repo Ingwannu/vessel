@@ -370,7 +370,7 @@ mod support {
                     self.text.push('\n');
                 }
                 SessionEvent::Agent {
-                    event: AgentEvent::TurnEnded { reason },
+                    event: AgentEvent::TurnEnded { reason, .. },
                 } => {
                     self.turns = self.turns.saturating_add(1);
                     self.stops.push(*reason);
@@ -385,7 +385,10 @@ mod support {
                 | SessionEvent::Status { .. }
                 | SessionEvent::ModelCall(_)
                 | SessionEvent::OptionsChanged { .. }
-                | SessionEvent::Renamed { .. } => {}
+                | SessionEvent::Renamed { .. }
+                | SessionEvent::QueueChanged { .. }
+                | SessionEvent::CommandsChanged { .. }
+                | SessionEvent::UsageChanged { .. } => {}
             }
             Some(record)
         }

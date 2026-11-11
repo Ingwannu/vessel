@@ -94,6 +94,8 @@ mod support {
         pub(super) log: Vec<String>,
         /// Every options report (protocol 9), in order.
         pub(super) options: Vec<Vec<vessel_proto::SessionOption>>,
+        /// Every commands and usage report (protocol 10), in order.
+        pub(super) reports: Vec<AgentOutput>,
         pub(super) disconnect: Option<Disconnect>,
     }
 
@@ -111,6 +113,7 @@ mod support {
                 events: Vec::new(),
                 log: Vec::new(),
                 options: Vec::new(),
+                reports: Vec::new(),
                 disconnect: None,
             }
         }
@@ -121,6 +124,9 @@ mod support {
                 match self.outputs.next().await? {
                     AgentOutput::Event(AgentEvent::HarnessLog { line }) => self.log.push(line),
                     AgentOutput::Options(options) => self.options.push(options),
+                    report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
+                        self.reports.push(report);
+                    }
                     AgentOutput::Event(event) => {
                         self.events.push(event.clone());
                         return Some(event);
@@ -159,6 +165,9 @@ mod support {
                 {
                     AgentOutput::Event(AgentEvent::HarnessLog { line }) => self.log.push(line),
                     AgentOutput::Options(options) => self.options.push(options),
+                    report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
+                        self.reports.push(report);
+                    }
                     AgentOutput::Event(event) => self.events.push(event),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect.clone());
@@ -196,7 +205,13 @@ async fn a_full_turn_with_a_permission_round_trip() {
         assert_eq!(
             agent.until(ready).await,
             AgentEvent::Ready {
-                harness_session: HarnessSessionId::new("fake-session-1")
+                harness_session: HarnessSessionId::new("fake-session-1"),
+                abilities: Some(vessel_proto::AgentAbilities {
+                    steer: true,
+                    resume: true,
+                    image: true,
+                    audio: false,
+                })
             }
         );
 
@@ -231,7 +246,8 @@ async fn a_full_turn_with_a_permission_round_trip() {
         assert_eq!(
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
-                reason: StopReason::EndTurn
+                reason: StopReason::EndTurn,
+                usage: None
             }
         );
 
@@ -300,6 +316,9 @@ fn kind(event: &AgentEvent) -> &'static str {
         AgentEvent::TurnEnded { .. } => "turn_ended",
         AgentEvent::TurnFailed { .. } => "turn_failed",
         AgentEvent::HarnessLog { .. } => "log",
+        AgentEvent::Steered { .. } => "steered",
+        AgentEvent::QuestionAsked(_) => "question_asked",
+        AgentEvent::QuestionResolved { .. } => "question_resolved",
     }
 }
 
@@ -389,7 +408,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
         assert_eq!(
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
-                reason: StopReason::Cancelled
+                reason: StopReason::Cancelled,
+                usage: None
             }
         );
 
@@ -399,7 +419,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
         assert_eq!(
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
-                reason: StopReason::Cancelled
+                reason: StopReason::Cancelled,
+                usage: None
             }
         );
         // Cancelling with no turn running is a no-op.
@@ -436,7 +457,13 @@ async fn resuming_loads_the_session_and_replays_its_history() {
         assert_eq!(
             agent.next().await,
             Some(AgentEvent::Ready {
-                harness_session: HarnessSessionId::new("fake-session-9")
+                harness_session: HarnessSessionId::new("fake-session-9"),
+                abilities: Some(vessel_proto::AgentAbilities {
+                    steer: true,
+                    resume: true,
+                    image: true,
+                    audio: false,
+                })
             })
         );
         agent.input.prompt(text("plain")).await.unwrap();
@@ -580,7 +607,8 @@ async fn cancel_gets_through_a_flood_of_updates() {
         assert_eq!(
             end,
             AgentEvent::TurnEnded {
-                reason: StopReason::Cancelled
+                reason: StopReason::Cancelled,
+                usage: None
             }
         );
         cancelled.await.unwrap().unwrap();
@@ -658,7 +686,8 @@ async fn a_permission_request_arriving_after_a_cancel_is_answered_cancelled() {
         assert_eq!(
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
-                reason: StopReason::Cancelled
+                reason: StopReason::Cancelled,
+                usage: None
             }
         );
         for event in &agent.events {

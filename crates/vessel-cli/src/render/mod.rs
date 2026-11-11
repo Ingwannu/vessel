@@ -3,6 +3,10 @@
 
 use std::fmt::Write as _;
 
+mod conversation;
+
+pub(crate) use conversation::{commands, question, question_outcome, queue, usage};
+
 use vessel_proto::{
     EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, ProfileInfo,
     ProfileName, SessionInfo, SessionMode, SessionOption, SessionStatus, StructuredSupport,

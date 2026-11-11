@@ -26,8 +26,9 @@
 //!   terminal actor's timer ([`Tracker::quiet`]).
 //! - Rules (the plan's): `starting` is active. Structured: `Ready` and the
 //!   end of a turn (`TurnEnded`, `TurnFailed`) make it idle; `TurnStarted`
-//!   makes it active; a permission request makes it `waiting_input` until
-//!   every request open is resolved, when the turn goes on (active). The
+//!   makes it active; a permission request or a question (protocol 10)
+//!   makes it `waiting_input` until every one open is resolved, when the
+//!   turn goes on (active). The
 //!   latest turn is interrupted when it ended `cancelled`, until the next
 //!   one starts. Terminal: output makes it active, quiet makes it idle. Any
 //!   final status makes it `exited` and the session terminated.
@@ -44,7 +45,9 @@
 use std::collections::HashSet;
 
 use chrono::{DateTime, Utc};
-use vessel_proto::{Activity, AgentEvent, PermissionId, SessionBoard, SessionEvent, StopReason};
+use vessel_proto::{
+    Activity, AgentEvent, PermissionId, QuestionId, SessionBoard, SessionEvent, StopReason,
+};
 
 use crate::board::{self, Policy, PullRequests, SessionFacts, WorkerFacts};
 
@@ -60,11 +63,18 @@ pub(crate) struct Tracker {
     seen: bool,
     /// The latest turn ended cancelled, and none has started since.
     interrupted: bool,
-    /// Permission requests asked and not yet resolved. Rarely more than
-    /// one; a set so a resolution matches its own request, whatever order
-    /// several are answered in.
-    pending: HashSet<PermissionId>,
+    /// Permission requests and questions asked and not yet resolved.
+    /// Rarely more than one; a set so a resolution matches its own request,
+    /// whatever order several are answered in.
+    pending: HashSet<Waiting>,
     terminated: bool,
+}
+
+/// Something the agent waits on its owner for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Waiting {
+    Permission(PermissionId),
+    Question(QuestionId),
 }
 
 impl Tracker {
@@ -97,7 +107,10 @@ impl Tracker {
             SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => {}
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => {}
         }
     }
 
@@ -111,24 +124,14 @@ impl Tracker {
                 self.set(Activity::Active, at);
             }
             AgentEvent::PermissionRequested(request) => {
-                let _new = self.pending.insert(request.id);
-                self.set(Activity::WaitingInput, at);
+                self.waits(Waiting::Permission(request.id), at);
             }
+            AgentEvent::QuestionAsked(question) => self.waits(Waiting::Question(question.id), at),
             AgentEvent::PermissionResolved { id, .. } => {
-                // A resolution after the turn ended (the agent's driver
-                // withdraws what a closed turn left open) changes nothing:
-                // not the activity, not when the agent was last seen.
-                if !self.pending.remove(id) {
-                    return;
-                }
-                // The turn goes on once nothing waits on the owner.
-                if self.pending.is_empty() && self.activity == Activity::WaitingInput {
-                    self.set(Activity::Active, at);
-                } else {
-                    self.touch(at);
-                }
+                self.resolved(Waiting::Permission(*id), at);
             }
-            AgentEvent::TurnEnded { reason } => {
+            AgentEvent::QuestionResolved { id, .. } => self.resolved(Waiting::Question(*id), at),
+            AgentEvent::TurnEnded { reason, .. } => {
                 // A turn's requests end with it, answered or not.
                 self.pending.clear();
                 self.interrupted = *reason == StopReason::Cancelled;
@@ -139,13 +142,37 @@ impl Tracker {
                 self.interrupted = false;
                 self.set(Activity::Idle, at);
             }
+            // A steer is the person adding to a turn already active.
             AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }
             | AgentEvent::ThoughtChunk { .. }
             | AgentEvent::ToolCall(_)
             | AgentEvent::ToolCallUpdate(_)
             | AgentEvent::Plan { .. }
-            | AgentEvent::HarnessLog { .. } => {}
+            | AgentEvent::HarnessLog { .. }
+            | AgentEvent::Steered { .. } => {}
+        }
+    }
+
+    /// The agent asks its owner something.
+    fn waits(&mut self, waiting: Waiting, at: DateTime<Utc>) {
+        let _new = self.pending.insert(waiting);
+        self.set(Activity::WaitingInput, at);
+    }
+
+    /// What it asked was answered (or withdrawn).
+    fn resolved(&mut self, waiting: Waiting, at: DateTime<Utc>) {
+        // A resolution after the turn ended (the agent's driver withdraws
+        // what a closed turn left open) changes nothing: not the activity,
+        // not when the agent was last seen.
+        if !self.pending.remove(&waiting) {
+            return;
+        }
+        // The turn goes on once nothing waits on the owner.
+        if self.pending.is_empty() && self.activity == Activity::WaitingInput {
+            self.set(Activity::Active, at);
+        } else {
+            self.touch(at);
         }
     }
 
@@ -236,7 +263,10 @@ mod tests {
     }
 
     fn ended(reason: StopReason) -> SessionEvent {
-        agent(AgentEvent::TurnEnded { reason })
+        agent(AgentEvent::TurnEnded {
+            reason,
+            usage: None,
+        })
     }
 
     fn started() -> SessionEvent {
@@ -275,6 +305,7 @@ mod tests {
                 status(SessionStatus::Starting),
                 agent(AgentEvent::Ready {
                     harness_session: vessel_proto::HarnessSessionId::new("s"),
+                    abilities: None
                 }),
                 status(SessionStatus::Running),
                 started(),

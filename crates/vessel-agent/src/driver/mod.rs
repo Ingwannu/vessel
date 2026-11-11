@@ -51,7 +51,10 @@ use agent_client_protocol::v1::{ConnectionTo, Responder};
 use agent_client_protocol::{Agent, Client, Error};
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
-use vessel_proto::{AgentEvent, HarnessSessionId, OptionId, SessionOption, ToolCallId};
+use vessel_proto::{
+    AgentAbilities, AgentCommand, AgentEvent, ContextUsage, HarnessSessionId, OptionId,
+    SessionOption, ToolCallId,
+};
 
 use crate::error::Disconnect;
 use crate::handshake::{self, AgentSetup, HandshakeError, Started};
@@ -115,6 +118,9 @@ pub(crate) async fn run(
         gate,
         options: Options::default(),
         reported: None,
+        abilities: AgentAbilities::default(),
+        last_commands: None,
+        last_usage: None,
     };
     let ended = Client
         .v1()
@@ -189,6 +195,12 @@ struct Driver {
     /// What was last reported as [`AgentOutput::Options`]; `None` before
     /// the handshake ends.
     reported: Option<Vec<SessionOption>>,
+    /// What the agent said it can do (protocol 10), once it has.
+    abilities: AgentAbilities,
+    /// The last commands and usage reported (protocol 10): an agent that
+    /// sends the same list again logs nothing.
+    last_commands: Option<Vec<AgentCommand>>,
+    last_usage: Option<ContextUsage>,
 }
 
 impl Driver {
@@ -245,15 +257,24 @@ impl Driver {
     /// Apply one inbound item; `Some` ends the session.
     async fn handle(&mut self, item: Inbound) -> Option<Disconnect> {
         match item {
-            Inbound::Started(Ok(Started { session, options })) => {
+            Inbound::Started(Ok(Started {
+                session,
+                options,
+                abilities,
+            })) => {
                 let harness_session = HarnessSessionId::new(Arc::clone(&session.0));
                 self.session = Some(session);
                 self.options = options;
+                self.abilities = abilities;
                 // Before `Ready`, always, even empty: whoever sees the
                 // session ready knows what it runs with, and "offers
                 // nothing" is told from "not known yet".
                 self.report_options().await;
-                self.emit(AgentEvent::Ready { harness_session }).await;
+                self.emit(AgentEvent::Ready {
+                    harness_session,
+                    abilities: Some(abilities),
+                })
+                .await;
             }
             Inbound::Started(Err(error)) => {
                 return Some(Disconnect::Handshake {
@@ -275,6 +296,7 @@ impl Driver {
                 let event = match result {
                     Ok(response) => AgentEvent::TurnEnded {
                         reason: mapper::stop_reason(response.stop_reason),
+                        usage: response.usage.as_ref().map(mapper::turn_usage),
                     },
                     Err(error) => AgentEvent::TurnFailed {
                         message: describe(&error),
@@ -317,6 +339,13 @@ impl Driver {
             .await
             .is_err()
         {
+            tracing::debug!("agent outputs dropped");
+        }
+    }
+
+    /// Hand an output other than a timeline event to the session.
+    pub(super) async fn output(&mut self, output: AgentOutput) {
+        if self.outputs.send(output).await.is_err() {
             tracing::debug!("agent outputs dropped");
         }
     }

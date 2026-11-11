@@ -42,6 +42,7 @@
 //! - Cost: the session state machine is written here (~300 lines), not
 //!   borrowed from the SDK.
 
+mod abilities;
 mod driver;
 mod error;
 mod handshake;
@@ -63,7 +64,7 @@ pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT};
 pub use input::AgentInput;
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
-pub use probe::{ProbeError, probe};
+pub use probe::{ProbeError, Probed, probe};
 pub use process::AgentProcess;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.

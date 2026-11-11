@@ -420,6 +420,36 @@ async fn run_here(
         Call::RenameSession(request) => {
             Reply::RenameSession(guard.rename_session(connection, request).await?)
         }
+        Call::PromptSession(request) => {
+            Reply::PromptSession(guard.prompt_session(connection, request).await?)
+        }
+        Call::ChangeQueue(request) => {
+            Reply::ChangeQueue(guard.change_queue(connection, request).await?)
+        }
+        Call::GetConversation(request) => {
+            Reply::GetConversation(guard.get_conversation(connection, request).await?)
+        }
+        Call::ResumeSession(request) => {
+            Reply::ResumeSession(guard.resume_session(connection, request).await?)
+        }
+        Call::MarkSession(request) => {
+            Reply::MarkSession(guard.mark_session(connection, request).await?)
+        }
+        Call::DeleteSession(request) => {
+            Reply::DeleteSession(guard.delete_session(connection, request).await?)
+        }
+        Call::BeginUpload(request) => {
+            Reply::BeginUpload(guard.begin_upload(connection, request).await?)
+        }
+        Call::WriteUpload(request) => {
+            Reply::WriteUpload(guard.write_upload(connection, request).await?)
+        }
+        Call::FinishUpload(request) => {
+            Reply::FinishUpload(guard.finish_upload(connection, request).await?)
+        }
+        Call::ReadAttachment(request) => {
+            Reply::ReadAttachment(guard.read_attachment(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

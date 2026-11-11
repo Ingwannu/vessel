@@ -29,15 +29,25 @@
 //!   that knows the connection's version.
 //! - Trade-off: an older client sees a stand-in, not the event: for
 //!   `ProfileChanged`, `ModelCall` (protocol 7), `OptionsChanged` and
-//!   `Renamed` (protocol 9), a `HarnessLog` line starting with `vessel:`.
-//!   A new
-//!   variant must add its stand-in here, or the exhaustive matches stop the
-//!   build.
+//!   `Renamed` (protocol 9), `QueueChanged`, `CommandsChanged`,
+//!   `UsageChanged`, and the agent events `Steered`, `QuestionAsked` and
+//!   `QuestionResolved` (protocol 10), a `HarnessLog` line starting with
+//!   `vessel:`. A new variant must add its stand-in here, or the
+//!   exhaustive matches stop the build.
+//! - Protocol 10 is the first to add to what an existing event holds: a
+//!   prompt (`TurnStarted`) may name an attachment, a content block a
+//!   version 9 client cannot decode. So an agent event's version is read
+//!   from its content too ([`AgentEvent::since`]), and its stand-in keeps
+//!   the event, each attachment shown as a `ResourceLink` to
+//!   `attachment:<id>`. Fields added as optional (`Ready.abilities`,
+//!   `TurnEnded.usage`) need none: older clients skip what they do not
+//!   know.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::agent::AgentEvent;
+use crate::agent::{AgentEvent, ContentBlock};
+use crate::conversation::{AgentCommand, ContextUsage, PromptQueue, QuestionOutcome, QueueHold};
 use crate::id::EventSeq;
 use crate::model::ModelCall;
 use crate::name::ProfileName;
@@ -53,7 +63,8 @@ use crate::title::SessionTitle;
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SessionEvent {
     /// The process changed state. A final `Status` is the last event of
-    /// every session.
+    /// every run of a session: `session.resume` (protocol 10) starts
+    /// another run, which continues the same log after it.
     Status {
         /// New state.
         status: SessionStatus,
@@ -92,17 +103,39 @@ pub enum SessionEvent {
         /// The title now.
         title: SessionTitle,
     },
+    /// The session's queue changed (protocol 10, ADR 0024): a prompt
+    /// queued, edited, moved, removed or started, or the queue held or let
+    /// go. Always the whole queue, so the latest one is the session's.
+    QueueChanged {
+        /// The queue now.
+        queue: PromptQueue,
+    },
+    /// The commands the agent offers (protocol 10), each time it sends
+    /// them; the whole list.
+    CommandsChanged {
+        /// Every command, in the agent's order.
+        commands: Vec<AgentCommand>,
+    },
+    /// The agent reported how full its context is (protocol 10).
+    UsageChanged {
+        /// The report.
+        usage: ContextUsage,
+    },
 }
 
 impl SessionEvent {
     /// The first protocol version that has this event.
     #[must_use]
-    pub const fn since(&self) -> ProtocolVersion {
+    pub fn since(&self) -> ProtocolVersion {
         match self {
-            Self::Status { .. } | Self::Terminal(_) | Self::Agent { .. } => ProtocolVersion::new(2),
+            Self::Status { .. } | Self::Terminal(_) => ProtocolVersion::new(2),
+            Self::Agent { event } => event.since(),
             Self::ProfileChanged { .. } => ProtocolVersion::new(5),
             Self::ModelCall(_) => ProtocolVersion::new(7),
             Self::OptionsChanged { .. } | Self::Renamed { .. } => ProtocolVersion::new(9),
+            Self::QueueChanged { .. }
+            | Self::CommandsChanged { .. }
+            | Self::UsageChanged { .. } => ProtocolVersion::new(10),
         }
     }
 
@@ -113,8 +146,16 @@ impl SessionEvent {
         if self.since() <= protocol {
             return None;
         }
+        let log = |line: String| {
+            Some(Self::Agent {
+                event: AgentEvent::HarnessLog { line },
+            })
+        };
         match self {
-            Self::Status { .. } | Self::Terminal(_) | Self::Agent { .. } => None,
+            Self::Status { .. } | Self::Terminal(_) => None,
+            Self::Agent { event } => event
+                .for_protocol(protocol)
+                .map(|event| Self::Agent { event }),
             Self::ProfileChanged { from, to } => {
                 let name = |profile: &Option<ProfileName>| {
                     profile
@@ -159,7 +200,160 @@ impl SessionEvent {
                     line: format!("vessel: renamed to {title}"),
                 },
             }),
+            Self::QueueChanged { queue } => log(queue_line(queue)),
+            Self::CommandsChanged { commands } => log(commands_line(commands)),
+            Self::UsageChanged { usage } => log(usage_line(usage)),
         }
+    }
+}
+
+impl AgentEvent {
+    /// The first protocol version that can decode this event: its
+    /// variant's, or 10 for a prompt holding an attachment.
+    #[must_use]
+    pub fn since(&self) -> ProtocolVersion {
+        match self {
+            Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
+                ProtocolVersion::new(10)
+            }
+            Self::TurnStarted { content } if content.iter().any(is_attachment) => {
+                ProtocolVersion::new(10)
+            }
+            Self::UserMessageChunk { content } if is_attachment(content) => {
+                ProtocolVersion::new(10)
+            }
+            Self::Ready { .. }
+            | Self::TurnStarted { .. }
+            | Self::UserMessageChunk { .. }
+            | Self::MessageChunk { .. }
+            | Self::ThoughtChunk { .. }
+            | Self::ToolCall(_)
+            | Self::ToolCallUpdate(_)
+            | Self::Plan { .. }
+            | Self::PermissionRequested(_)
+            | Self::PermissionResolved { .. }
+            | Self::TurnEnded { .. }
+            | Self::TurnFailed { .. }
+            | Self::HarnessLog { .. } => ProtocolVersion::new(2),
+        }
+    }
+
+    /// What a client speaking `protocol` receives instead, or `None` when
+    /// it can read this event as it is.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if self.since() <= protocol {
+            return None;
+        }
+        let log = |line: String| Some(Self::HarnessLog { line });
+        match self {
+            Self::Steered { content } => log(match first_line(content) {
+                Some(line) => format!("vessel: steered: {line}"),
+                None => "vessel: steered".to_owned(),
+            }),
+            Self::QuestionAsked(question) => log(format!(
+                "vessel: the agent asks: {}",
+                question.message.lines().next().unwrap_or_default()
+            )),
+            Self::QuestionResolved { outcome, .. } => log(match outcome {
+                QuestionOutcome::Answered { .. } => "vessel: question answered",
+                QuestionOutcome::Declined => "vessel: question declined",
+                QuestionOutcome::Cancelled => "vessel: question cancelled",
+            }
+            .to_owned()),
+            Self::TurnStarted { content } => Some(Self::TurnStarted {
+                content: content.iter().map(link_for_attachment).collect(),
+            }),
+            Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
+                content: link_for_attachment(content),
+            }),
+            Self::Ready { .. }
+            | Self::MessageChunk { .. }
+            | Self::ThoughtChunk { .. }
+            | Self::ToolCall(_)
+            | Self::ToolCallUpdate(_)
+            | Self::Plan { .. }
+            | Self::PermissionRequested(_)
+            | Self::PermissionResolved { .. }
+            | Self::TurnEnded { .. }
+            | Self::TurnFailed { .. }
+            | Self::HarnessLog { .. } => None,
+        }
+    }
+}
+
+const fn is_attachment(block: &ContentBlock) -> bool {
+    matches!(block, ContentBlock::Attachment { .. })
+}
+
+/// An attachment as a version 2-9 client can decode it: a link to
+/// `attachment:<id>`, named after its file. Other blocks as they are.
+fn link_for_attachment(block: &ContentBlock) -> ContentBlock {
+    match block {
+        ContentBlock::Attachment { attachment } => ContentBlock::ResourceLink {
+            uri: format!("attachment:{}", attachment.id),
+            name: attachment.name.to_string(),
+        },
+        ContentBlock::Text { .. }
+        | ContentBlock::ResourceLink { .. }
+        | ContentBlock::Opaque { .. } => block.clone(),
+    }
+}
+
+/// The first line of a message's first text, for a log line.
+fn first_line(content: &[ContentBlock]) -> Option<&str> {
+    content.iter().find_map(|block| match block {
+        ContentBlock::Text { text } => text.lines().map(str::trim).find(|line| !line.is_empty()),
+        ContentBlock::ResourceLink { .. }
+        | ContentBlock::Opaque { .. }
+        | ContentBlock::Attachment { .. } => None,
+    })
+}
+
+fn queue_line(queue: &PromptQueue) -> String {
+    let held = queue.held.map(|hold| match hold {
+        QueueHold::Cancelled => "cancelled",
+        QueueHold::Failed => "failed",
+        QueueHold::Ended => "ended",
+        QueueHold::Asked => "asked",
+    });
+    match held {
+        Some(why) => format!(
+            "vessel: queue: {} waiting (held: {why})",
+            queue.entries.len()
+        ),
+        None => format!("vessel: queue: {} waiting", queue.entries.len()),
+    }
+}
+
+/// The commands' names, the first ten of them.
+fn commands_line(commands: &[AgentCommand]) -> String {
+    const SHOWN: usize = 10;
+    if commands.is_empty() {
+        return "vessel: commands: none".to_owned();
+    }
+    let names: Vec<String> = commands
+        .iter()
+        .take(SHOWN)
+        .map(|command| format!("/{}", command.name))
+        .collect();
+    let rest = commands.len().saturating_sub(SHOWN);
+    if rest == 0 {
+        format!("vessel: commands: {}", names.join(", "))
+    } else {
+        format!("vessel: commands: {} and {rest} more", names.join(", "))
+    }
+}
+
+fn usage_line(usage: &ContextUsage) -> String {
+    let context = format!(
+        "vessel: context: {} of {} tokens",
+        usage.used.get(),
+        usage.size.get()
+    );
+    match &usage.cost {
+        Some(cost) => format!("{context}, cost {} {}", cost.amount.get(), cost.unit),
+        None => context,
     }
 }
 

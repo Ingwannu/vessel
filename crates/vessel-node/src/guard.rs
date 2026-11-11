@@ -126,6 +126,10 @@ macro_rules! untargeted {
 // that only to a session it started, like any other `operate` call on one.
 // Protocol 9: changing a session's options or its title steers it, like
 // sending it input.
+// Protocol 10: prompting, the queue, starting again, marks, deleting and
+// uploading to a session all act on it, as sending it input does. An
+// upload's later pieces name the upload, whose holder check keeps them to
+// the caller that began it (`uploads`).
 targets!(
     SendInput,
     KillSession,
@@ -133,6 +137,12 @@ targets!(
     ExportSession,
     SetSessionOption,
     RenameSession,
+    vessel_proto::conversation::PromptSession,
+    vessel_proto::conversation::ChangeQueue,
+    vessel_proto::conversation::ResumeSession,
+    vessel_proto::conversation::MarkSession,
+    vessel_proto::conversation::DeleteSession,
+    vessel_proto::conversation::BeginUpload,
 );
 
 // `session.create` is limited by `agents` instead (count and depth), and so
@@ -140,6 +150,10 @@ targets!(
 // agent; the envelope's rows carry a call whose own row is checked where it
 // runs (protocol 6, Track X); the rest are not `operate` calls.
 untargeted!(
+    vessel_proto::conversation::GetConversation,
+    vessel_proto::conversation::ReadAttachment,
+    vessel_proto::conversation::WriteUpload,
+    vessel_proto::conversation::FinishUpload,
     ListModels,
     vessel_proto::GetHarnessOptions,
     vessel_proto::GetSessionOptions,
@@ -234,6 +248,16 @@ guarded! {
     session_options: vessel_proto::GetSessionOptions => Vec<SessionOption>;
     set_session_option: SetSessionOption => Vec<SessionOption>;
     rename_session: RenameSession => SessionInfo;
+    prompt_session: vessel_proto::conversation::PromptSession => vessel_proto::Delivered;
+    change_queue: vessel_proto::conversation::ChangeQueue => vessel_proto::conversation::QueueChanged;
+    get_conversation: vessel_proto::conversation::GetConversation => vessel_proto::Conversation;
+    resume_session: vessel_proto::conversation::ResumeSession => SessionInfo;
+    mark_session: vessel_proto::conversation::MarkSession => SessionInfo;
+    delete_session: vessel_proto::conversation::DeleteSession => Ack;
+    begin_upload: vessel_proto::conversation::BeginUpload => vessel_proto::conversation::Upload;
+    write_upload: vessel_proto::conversation::WriteUpload => vessel_proto::conversation::Written;
+    finish_upload: vessel_proto::conversation::FinishUpload => vessel_proto::AttachmentRef;
+    read_attachment: vessel_proto::conversation::ReadAttachment => BlobChunk;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

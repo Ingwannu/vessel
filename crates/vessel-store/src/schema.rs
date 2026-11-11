@@ -113,9 +113,56 @@ ALTER TABLE sessions ADD COLUMN title TEXT;
 ALTER TABLE sessions ADD COLUMN choices TEXT;
 ";
 
+/// Version 7 (milestone 11, protocol 10, track A): the conversation and
+/// the marks a person puts on a session (ADRs 0024 to 0026).
+///
+/// - `abilities` (`AgentAbilities`), `usage` (`ContextUsage`) and `queue`
+///   (`PromptQueue`), each JSON: projections of the session's last
+///   `ready`, `usage_changed` and `queue_changed` records, so an ended
+///   session answers `session.conversation` and starts again with its
+///   queue without its log being read. `NULL` before the first.
+/// - `attention_seq`: the `seq` of the last record asking for attention
+///   (a turn's end or failure, a permission or a question asked, the
+///   session's end), a projection too; `read_seq` the `through` of the
+///   last `read` (only ever raised); `marked_unread` set by `unread`. A
+///   session is unread when `marked_unread`, or when `attention_seq` is at
+///   or after `read_seq` (none: never read).
+/// - `pinned`, `archived_at`: marks. Every session that had ended before
+///   this version is archived as of its end, so the board, which from
+///   this version keeps ended sessions out of the archive until they are
+///   archived, looks as it did.
+/// - `attachments`: the files sent with prompts (ADR 0025), each row the
+///   size and SHA-256 recorded when its upload finished; the bytes are
+///   under the data directory's `attachments/<session>/<id>/`. Deleted
+///   with their session.
+const V7: &str = "
+ALTER TABLE sessions ADD COLUMN abilities TEXT;
+ALTER TABLE sessions ADD COLUMN usage TEXT;
+ALTER TABLE sessions ADD COLUMN queue TEXT;
+ALTER TABLE sessions ADD COLUMN attention_seq INTEGER;
+ALTER TABLE sessions ADD COLUMN read_seq INTEGER;
+ALTER TABLE sessions ADD COLUMN marked_unread INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sessions ADD COLUMN archived_at INTEGER;
+UPDATE sessions SET archived_at = ended_at WHERE live = 0 AND ended_at IS NOT NULL;
+
+CREATE TABLE attachments (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    session_id TEXT    NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    kind       TEXT    NOT NULL,
+    mime       TEXT    NOT NULL,
+    size       INTEGER NOT NULL,
+    sha256     BLOB    NOT NULL,
+    created_at INTEGER NOT NULL
+) STRICT;
+
+CREATE INDEX attachments_session ON attachments (session_id);
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

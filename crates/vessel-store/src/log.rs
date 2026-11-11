@@ -5,8 +5,9 @@
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
-    AgentEvent, EventRecord, EventSeq, HarnessSessionId, OptionChoice, ProfileName, SessionEvent,
-    SessionId, SessionInfo, SessionOption, SessionStatus, SessionTitle,
+    AgentAbilities, AgentEvent, ContextUsage, EventRecord, EventSeq, HarnessSessionId,
+    OptionChoice, ProfileName, PromptQueue, SessionEvent, SessionId, SessionInfo, SessionOption,
+    SessionStatus, SessionTitle,
 };
 
 use crate::codec::{
@@ -85,6 +86,12 @@ struct Projection {
     title: Option<SessionTitle>,
     /// The choices of the last options report, if any.
     choices: Option<Vec<OptionChoice>>,
+    /// Protocol 10's projections (schema 7): the last abilities, context
+    /// report and queue, and the last record asking for attention.
+    abilities: Option<AgentAbilities>,
+    usage: Option<ContextUsage>,
+    queue: Option<PromptQueue>,
+    attention: Option<EventSeq>,
     bytes: u64,
 }
 
@@ -96,12 +103,31 @@ impl Projection {
             SessionEvent::Status { status } => {
                 if !status.is_live() {
                     self.ended_at = Some(record.at);
+                    self.attention = Some(record.seq);
                 }
                 self.status = Some(status.clone());
             }
             SessionEvent::Agent {
-                event: AgentEvent::Ready { harness_session },
-            } => self.harness_session = Some(harness_session.clone()),
+                event:
+                    AgentEvent::Ready {
+                        harness_session,
+                        abilities,
+                    },
+            } => {
+                self.harness_session = Some(harness_session.clone());
+                if abilities.is_some() {
+                    self.abilities = *abilities;
+                }
+            }
+            SessionEvent::Agent {
+                event:
+                    AgentEvent::TurnEnded { .. }
+                    | AgentEvent::TurnFailed { .. }
+                    | AgentEvent::PermissionRequested(_)
+                    | AgentEvent::QuestionAsked(_),
+            } => self.attention = Some(record.seq),
+            SessionEvent::UsageChanged { usage } => self.usage = Some(usage.clone()),
+            SessionEvent::QueueChanged { queue } => self.queue = Some(queue.clone()),
             SessionEvent::ProfileChanged { to, .. } => {
                 self.profile = ProfileMove::To(to.clone());
             }
@@ -109,8 +135,10 @@ impl Projection {
             SessionEvent::OptionsChanged { options } => {
                 self.choices = Some(options.iter().filter_map(SessionOption::choice).collect());
             }
-            SessionEvent::Agent { .. } | SessionEvent::Terminal(_) | SessionEvent::ModelCall(_) => {
-            }
+            SessionEvent::Agent { .. }
+            | SessionEvent::Terminal(_)
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::CommandsChanged { .. } => {}
         }
     }
 }
@@ -170,7 +198,11 @@ pub(crate) fn append<'a>(
                  harness_session = COALESCE(?7, harness_session),
                  profile = CASE WHEN ?8 THEN ?9 ELSE profile END,
                  title = COALESCE(?10, title),
-                 choices = COALESCE(?11, choices)
+                 choices = COALESCE(?11, choices),
+                 abilities = COALESCE(?12, abilities),
+                 usage = COALESCE(?13, usage),
+                 queue = COALESCE(?14, queue),
+                 attention_seq = COALESCE(?15, attention_seq)
              WHERE id = ?1",
         )?
         .execute(params![
@@ -191,6 +223,10 @@ pub(crate) fn append<'a>(
             },
             projection.title.as_ref().map(SessionTitle::as_str),
             projection.choices.as_ref().map(encode).transpose()?,
+            projection.abilities.as_ref().map(encode).transpose()?,
+            projection.usage.as_ref().map(encode).transpose()?,
+            projection.queue.as_ref().map(encode).transpose()?,
+            projection.attention.map(seq_to_sql).transpose()?,
         ])?;
     Ok(Appended { ended })
 }
