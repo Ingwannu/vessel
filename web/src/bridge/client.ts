@@ -1,36 +1,25 @@
-// The page's side of the bridge (ADR 0017): one websocket to `vessel ui`,
-// typed calls, followed sessions, node states.
+// The page's side of the bridge (ADR 0017): typed calls, ops, followed
+// sessions and node states, over the one socket `socket.ts` keeps open.
 //
 // [Decision Log]
 // - Purpose: every screen talks to nodes through this one socket. It
-//   must survive the socket dropping (a laptop sleeping) without losing
-//   or repeating a session's records, and never repeat a call that may
-//   have run.
+//   must survive the socket dropping without losing or repeating a
+//   session's records, and never repeat a call that may have run.
 // - Choice: calls are promises keyed by id; when the socket drops, every
 //   call in flight fails as `disconnected` (the node may have run it, so
 //   nothing retries it). Streams remember the next record they need and
-//   are followed again from it after each hello; the bridge's own streams
-//   are gap-free, so the stores just continue. Node states are kept as
-//   the bridge last pushed them, and pushed again in full after a hello.
-// - The socket redials with a capped backoff. Only a refusal ends the
-//   tab's credential: the bridge closing with 4401, a server that fails
-//   its proof, or a different launch (a restarted UI). Those are
-//   `refused`, and the app forgets the session key.
-// - A connection that keeps dropping (or never completes its handshake)
-//   is not a refusal: after `MAX_RETRIES` the tab stops redialling and
-//   says it is `disconnected`, keeping the key, so the Retry button or a
-//   reload resumes the same launch once it answers again. A restarted UI
-//   still fails the Host check or the proof, so stopping keeps every
-//   guarantee the refusal gave. (A tab once deleted a valid key after five
-//   transient closes, and nothing could recover it: verification finding
-//   1, M7.)
+//   are followed again from it after each welcome; the bridge's own
+//   streams are gap-free, so the stores just continue. Node states are
+//   kept as the bridge last pushed them, and pushed again in full after a
+//   welcome.
+// - The socket's lifecycle (dialling, the proof, redialling, refusals) is
+//   `socket.ts`; a call's failure and its words are `failure.ts`.
 
-import { Handshake } from "./auth";
-import { rememberSession, type Credential } from "./token";
+import { CallFailed } from "./failure";
 import * as frames from "./frames";
+import { BridgeSocket, type LinkState, socketUrl } from "./socket";
+import type { Credential } from "./token";
 import type {
-  ClientFrame,
-  Failure,
   NodeKey,
   NodeStatus,
   Op,
@@ -40,42 +29,8 @@ import type {
 } from "../wire/bridge";
 import type { EventRecord, Reply, SessionId } from "../wire/proto";
 
-/** Where the page's link to `vessel ui` is. */
-export type LinkState =
-  | { kind: "connecting"; attempt: number }
-  | { kind: "open"; version: string }
-  | { kind: "closed"; retryInMs: number; attempt: number }
-  /** Stopped redialling after repeated failures; the key is kept. */
-  | { kind: "disconnected"; attempts: number }
-  /** The bridge refused this tab, or a server failed to prove itself. */
-  | { kind: "refused" };
-
-/** A call that has no reply, with the bridge's reason. */
-export class CallFailed extends Error {
-  readonly failure: Failure;
-
-  constructor(failure: Failure) {
-    super(describeFailure(failure));
-    this.name = "CallFailed";
-    this.failure = failure;
-  }
-}
-
-/** A failure as one line for the operator. */
-export function describeFailure(failure: Failure): string {
-  switch (failure.kind) {
-    case "remote":
-      return failure.error.message;
-    case "not_in_protocol":
-      return `${failure.method} needs protocol ${failure.needs}; the node speaks ${failure.negotiated}`;
-    case "disconnected":
-      return "The connection closed before the node answered; it may or may not have run.";
-    case "unreachable":
-    case "refused":
-    case "failed":
-      return failure.message;
-  }
-}
+export { CallFailed, describeFailure } from "./failure";
+export type { LinkState } from "./socket";
 
 /** What a followed session's stream reports. */
 export interface StreamHandlers {
@@ -101,25 +56,9 @@ interface Followed {
   handlers: StreamHandlers;
 }
 
-const CLOSE_UNAUTHORIZED = 4401;
-const FIRST_RETRY_MS = 500;
-const MAX_RETRY_MS = 10_000;
-const MAX_RETRIES = 5;
-
-/** The websocket address of the page's own server. */
-function socketUrl(): string {
-  const scheme = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${scheme}//${window.location.host}/api/ws`;
-}
-
 export class Bridge {
-  #credential: Credential;
-  readonly #url: string;
-  #socket: WebSocket | null = null;
+  readonly #socket: BridgeSocket;
   #nextId = 1;
-  #attempt = 0;
-  #stopped = false;
-  #retry: ReturnType<typeof setTimeout> | null = null;
   readonly #calls = new Map<number, Pending>();
   readonly #ops = new Map<number, PendingOp>();
   readonly #streams = new Map<number, Followed>();
@@ -128,47 +67,38 @@ export class Bridge {
     (node: NodeKey, status: NodeStatus) => void
   >();
   readonly #linkListeners = new Set<(link: LinkState) => void>();
-  #link: LinkState = { kind: "connecting", attempt: 0 };
 
   constructor(token: Credential, url: string = socketUrl()) {
-    this.#credential = token;
-    this.#url = url;
+    this.#socket = new BridgeSocket(token, url, {
+      frame: (frame) => {
+        this.#receive(frame);
+      },
+      link: (link) => {
+        this.#linked(link);
+      },
+      lost: () => {
+        this.#lost();
+      },
+    });
   }
 
   get link(): LinkState {
-    return this.#link;
+    return this.#socket.link;
   }
 
   /** Open the socket (and keep it open). */
   start(): void {
-    this.#stopped = false;
-    this.#connect();
+    this.#socket.start();
   }
 
   /** Dial again now (after `disconnected`), with the credential kept. */
   retry(): void {
-    if (this.#link.kind === "refused") {
-      return;
-    }
-    if (this.#retry !== null) {
-      clearTimeout(this.#retry);
-      this.#retry = null;
-    }
-    this.#attempt = 0;
-    this.#stopped = false;
-    if (this.#socket === null) {
-      this.#connect();
-    }
+    this.#socket.retry();
   }
 
   /** Close for good. */
   stop(): void {
-    this.#stopped = true;
-    if (this.#retry !== null) {
-      clearTimeout(this.#retry);
-    }
-    this.#socket?.close();
-    this.#socket = null;
+    this.#socket.stop();
   }
 
   /** Call `method` on `node`. Rejects with `CallFailed`. */
@@ -181,7 +111,7 @@ export class Bridge {
     const reply = await new Promise<Reply>((resolve, reject) => {
       this.#calls.set(id, { resolve, reject });
       const call = frames.callOf(method, params);
-      if (!this.#send({ type: "call", id, node, call })) {
+      if (!this.#socket.send({ type: "call", id, node, call })) {
         this.#calls.delete(id);
         reject(
           new CallFailed({
@@ -205,7 +135,7 @@ export class Bridge {
     const id = this.#id();
     return new Promise<OpResult>((resolve, reject) => {
       this.#ops.set(id, { resolve, reject });
-      if (!this.#send({ type: "op", id, op })) {
+      if (!this.#socket.send({ type: "op", id, op })) {
         this.#ops.delete(id);
         reject(frames.opLost("Not connected to vessel ui."));
       }
@@ -221,10 +151,10 @@ export class Bridge {
   ): () => void {
     const stream = this.#id();
     this.#streams.set(stream, { node, session, next: from, handlers });
-    this.#send({ type: "follow", stream, node, session, from });
+    this.#socket.send({ type: "follow", stream, node, session, from });
     return () => {
       if (this.#streams.delete(stream)) {
-        this.#send({ type: "unfollow", stream });
+        this.#socket.send({ type: "unfollow", stream });
       }
     };
   }
@@ -250,128 +180,23 @@ export class Bridge {
     return id;
   }
 
-  #setLink(link: LinkState): void {
-    this.#link = link;
+  #linked(link: LinkState): void {
     for (const listener of this.#linkListeners) {
       listener(link);
     }
-  }
-
-  #send<M extends frames.Method>(
-    frame: ClientFrame | frames.CallFrame<M>,
-  ): boolean {
-    const socket = this.#socket;
-    if (socket?.readyState !== WebSocket.OPEN) {
-      return false;
-    }
-    // Before the welcome only the hello may go.
-    if (frame.type !== "hello" && this.#link.kind !== "open") {
-      return false;
-    }
-    socket.send(JSON.stringify(frame));
-    return true;
-  }
-
-  #connect(): void {
-    this.#setLink({ kind: "connecting", attempt: this.#attempt });
-    const socket = new WebSocket(this.#url);
-    this.#socket = socket;
-    const handshake = new Handshake(this.#credential);
-    let verified = false;
-    let messages = Promise.resolve();
-    // A handshake that never completes is a dropped connection, not a
-    // refusal: try again, keeping the key.
-    const deadline = setTimeout(() => {
-      if (this.#socket === socket && !verified) {
-        socket.close();
-        this.#dropped(socket);
-      }
-    }, 10_000);
-    socket.addEventListener("message", (event: MessageEvent<unknown>) => {
-      if (!this.#current(socket)) return;
-      const data = event.data;
-      messages = messages
-        .then(async () => {
-          if (!this.#current(socket)) return;
-          const frame = frames.parse(data);
-          if (!verified) {
-            if (frame.type === "challenge") {
-              const hello = await handshake.hello(frame);
-              if (this.#current(socket)) this.#send(hello);
-            } else if (frame.type === "welcome") {
-              const credential = await handshake.welcome(frame);
-              if (!this.#current(socket)) return;
-              this.#credential = credential;
-              rememberSession(credential);
-              verified = true;
-              clearTimeout(deadline);
-              this.#receive(frame);
-            } else {
-              throw new Error("Server has not proved its identity");
-            }
-          } else {
-            if (frame.type === "challenge" || frame.type === "welcome")
-              throw new Error("Repeated handshake");
-            this.#receive(frame);
-          }
-        })
-        .catch(() => {
-          if (this.#socket === socket) this.#refuse();
-        });
-    });
-    socket.addEventListener("close", (event) => {
-      clearTimeout(deadline);
-      if (this.#socket !== socket) {
-        return;
-      }
-      if (event.code === CLOSE_UNAUTHORIZED) {
-        this.#socket = null;
-        this.#lost();
-        this.#setLink({ kind: "refused" });
-        return;
-      }
-      this.#dropped(socket);
-    });
-  }
-
-  /** `socket` went without a refusal: redial with backoff, or, after
-   * `MAX_RETRIES`, stop and say so, keeping the credential. */
-  #dropped(socket: WebSocket): void {
-    if (this.#socket !== socket) {
+    if (link.kind !== "open") {
       return;
     }
-    this.#socket = null;
-    this.#lost();
-    if (this.#stopped) {
-      return;
+    // Every stream continues where it was.
+    for (const [stream, followed] of this.#streams) {
+      this.#socket.send({
+        type: "follow",
+        stream,
+        node: followed.node,
+        session: followed.session,
+        from: followed.next,
+      });
     }
-    this.#attempt += 1;
-    // A restarted process rejects this launch's old hostname at HTTP
-    // upgrade, where browsers hide the response status: those failures
-    // end here too, instead of redialling an obsolete tab forever.
-    if (this.#attempt >= MAX_RETRIES) {
-      this.#setLink({ kind: "disconnected", attempts: this.#attempt });
-      return;
-    }
-    const retryInMs = Math.min(
-      FIRST_RETRY_MS * 2 ** (this.#attempt - 1),
-      MAX_RETRY_MS,
-    );
-    this.#setLink({ kind: "closed", retryInMs, attempt: this.#attempt });
-    this.#retry = setTimeout(() => {
-      this.#retry = null;
-      this.#connect();
-    }, retryInMs);
-  }
-
-  #current(socket: WebSocket): boolean {
-    return this.#socket === socket && !this.#stopped;
-  }
-
-  #refuse(): void {
-    this.stop();
-    this.#lost();
-    this.#setLink({ kind: "refused" });
   }
 
   /** The socket went: calls in flight fail, never retried. */
@@ -389,20 +214,7 @@ export class Bridge {
   #receive(frame: ServerFrame): void {
     switch (frame.type) {
       case "challenge":
-        return;
       case "welcome":
-        this.#attempt = 0;
-        this.#setLink({ kind: "open", version: frame.version });
-        // Every stream continues where it was.
-        for (const [stream, followed] of this.#streams) {
-          this.#send({
-            type: "follow",
-            stream,
-            node: followed.node,
-            session: followed.session,
-            from: followed.next,
-          });
-        }
         return;
       case "reply": {
         const pending = this.#calls.get(frame.id);
