@@ -1013,5 +1013,58 @@ the same refusal an older node gives.
   permission request would; an older (2-9) client sees the stand-in
   line and cannot answer, so the turn waits until cancelled (as the
   contract says).
-- Next: marks, the board and delete; start again; attachments; the CLI
-  and the agent tools (`answer_question` there).
+- Slice 4, marks, the board's rule for ended sessions, unread, delete
+  and retention's order (contract: `session.mark`, `session.delete`,
+  "The board, and ended sessions", "Unread, without a race"; review items
+  2's store side, 10 and 11; ADR 0026, amended with what follows):
+  `Store::mark` (one `UPDATE .. RETURNING` per mark: `read` keeps the
+  furthest `through` and clears `unread`, `archive` keeps its first time)
+  and `Store::delete_session` (row, log, queue, marks, attachment rows by
+  cascade, then the session's `attachments/<session>/` folder once
+  committed; a row still live is refused). Every `SessionInfo` the store
+  builds carries its marks, `unread` derived by `KeptMarks::marks` from
+  the attention point (`SessionEvent::asks_for_attention`, now the one
+  rule the store's projection and the runtime share) and the last
+  `read`. The board: an ended session is `SessionBoard::exited` (building,
+  `exited`) until archived, `SessionBoard::archived` after, in the
+  runtime's tracker, the store's reader and the reducer's own test; the
+  version 8-9 rewrite (`SessionInfo::for_protocol`, from the wire commit)
+  now has a test through a real node. The node applies a mark in the
+  store first and hands the store's answer to a session the runtime still
+  has (`SessionHandle::set_marks`; `SessionHandle::info` adds the marks,
+  with the attention point the publisher reads off its records), so
+  `session.list`, `session.get`, a subscription's info and the mark's own
+  answer agree; `archive` on a live session stops it and answers once it
+  has ended; agents marking `read` or `unread` are `forbidden`.
+  `session.delete` answers `conflict` for a session the runtime still has
+  (live, or ended with its log on its way to the store). Retention keeps
+  pinned sessions longest and prunes archived ones first, through an
+  index (schema 8, which replaces schema 1's `sessions_ended`; a test
+  reads the query plan), and removes a pruned session's folder too.
+  Decided here (the contract did not say; ADR 0026's consequences):
+  - No `read` yet reads as a `read` through 0: every record asking for
+    attention is unread until the session is first read; sessions from
+    before protocol 10 have no attention point and are not unread.
+  - A `read` past the end of the log is `invalid_request` (it could never
+    be taken back); the end is the ring's for a live session, which a
+    follower's records never pass, and the row's for a stored one.
+  - Where a live session's marks are kept: the store, with the session
+    handle holding the store's last answer; marks on live sessions go
+    through one node lock from the store's write to the handle, so two
+    marks cannot land in different orders. The info watch carries no
+    marks (its sender is gone once the session ends, and an archive comes
+    after the end); `SessionHandle::info` adds them.
+  - `archive` answers when the final status is published, not when the
+    store has the whole log; the store does not check that an archived
+    row has ended (the node stops the session first).
+  - The web board's end-to-end test now finds a killed session in its
+    lane as `Exited`, not in the archive: the page has no archive action
+    yet (the page track's).
+  Known limits: a deleted session in the middle of an agent's chain of
+  sessions cuts the chain, so that agent can no longer operate on the
+  sessions beyond it (ownership follows `created_by` through the
+  sessions that exist); the folder removal on retention runs on the
+  store's writer and holds its next batch for a few unlinks; the CLI and
+  the agent tools for marks and delete come with their slice.
+- Next: start again; attachments; the CLI and the agent tools
+  (`answer_question`, marks and delete there).

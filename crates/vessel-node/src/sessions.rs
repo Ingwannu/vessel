@@ -73,6 +73,9 @@ pub(crate) struct Sessions {
     agents: Arc<Agents>,
     /// Model routes: a session's model token is retired when it ends.
     models: Arc<Models>,
+    /// Serializes marks on sessions the runtime has, from the store's
+    /// write to the handle's copy (`marks`).
+    marking: tokio::sync::Mutex<()>,
 }
 
 impl Sessions {
@@ -90,6 +93,7 @@ impl Sessions {
             tasks,
             agents,
             models,
+            marking: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -526,6 +530,9 @@ fn with_ring(page: EventPage, handle: &SessionHandle, from: EventSeq, limit: u32
         records,
     }
 }
+
+// Protocol 10's marks and deletion.
+mod marks;
 
 #[cfg(test)]
 mod tests;

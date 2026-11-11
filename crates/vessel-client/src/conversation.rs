@@ -3,8 +3,12 @@
 //! [`NodeClient::call`] with its request; they live here rather than in
 //! `client.rs`, which holds the calls of earlier protocols.
 
-use vessel_proto::conversation::{ChangeQueue, GetConversation, PromptSession, QueueChanged};
-use vessel_proto::{ContentBlock, Conversation, Delivered, Delivery, QueueChange, SessionId};
+use vessel_proto::conversation::{
+    ChangeQueue, DeleteSession, GetConversation, MarkSession, PromptSession, QueueChanged,
+};
+use vessel_proto::{
+    ContentBlock, Conversation, Delivered, Delivery, Mark, QueueChange, SessionId, SessionInfo,
+};
 use vessel_rpc::CallError;
 
 use crate::NodeClient;
@@ -56,5 +60,29 @@ impl NodeClient {
         change: QueueChange,
     ) -> Result<QueueChanged, CallError> {
         self.call(ChangeQueue { session, change }).await
+    }
+
+    /// `session.mark` (protocol 10): pin, archive (a live session is
+    /// stopped first, and the call answers once it has ended), mark read
+    /// or unread; the session's info after, with its marks.
+    ///
+    /// # Errors
+    /// `not_found` for an unknown session; `invalid_request` for a `read`
+    /// past the end of the log; `forbidden` for an agent marking read or
+    /// unread; `unsupported` from a node before protocol 10; otherwise see
+    /// [`CallError`].
+    pub async fn mark(&self, session: SessionId, mark: Mark) -> Result<SessionInfo, CallError> {
+        self.call(MarkSession { session, mark }).await
+    }
+
+    /// `session.delete` (protocol 10): remove an ended session, its log,
+    /// marks, queue and attachments.
+    ///
+    /// # Errors
+    /// `not_found` for an unknown session; `conflict` for a live one, or
+    /// one whose log is still being written (a retry works); `unsupported`
+    /// from a node before protocol 10; otherwise see [`CallError`].
+    pub async fn delete_session(&self, session: SessionId) -> Result<(), CallError> {
+        self.call(DeleteSession { session }).await.map(drop)
     }
 }

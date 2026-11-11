@@ -19,6 +19,8 @@
 //!                    directory's inherited ACL is relied on, see `files`)
 //!   mcp/             terminal sessions' MCP configuration files (ADR
 //!                    0012), one per live session, emptied at start
+//!   attachments/     files sent with prompts (ADR 0025), a folder per
+//!                    session (`<session>/`), removed with its session
 //! ```
 //!
 //! Every file is owner-only (0600 on Unix); see `files` for why and for
@@ -59,6 +61,8 @@ const MODELS_FILE: &str = "models.toml";
 const MCP_DIR: &str = "mcp";
 /// Where the node starts agents to ask what they offer (protocol 9).
 const PROBE_DIR: &str = "probe";
+/// Files sent with prompts, a folder per session (protocol 10, ADR 0025).
+const ATTACHMENTS_DIR: &str = "attachments";
 
 /// `profiles.toml` as read: its text, and whether other users can read it
 /// (it may hold secrets, so the node warns).
@@ -264,6 +268,14 @@ impl DataDir {
     #[must_use]
     pub fn probe_dir(&self) -> PathBuf {
         self.root.join(PROBE_DIR)
+    }
+
+    /// Where the files sent with prompts are kept (protocol 10, ADR
+    /// 0025): a folder per session, named by its id, which the store
+    /// removes when it removes the session.
+    #[must_use]
+    pub fn attachments_dir(&self) -> PathBuf {
+        self.root.join(ATTACHMENTS_DIR)
     }
 
     /// Create the probe directory owner-only. Returns it.

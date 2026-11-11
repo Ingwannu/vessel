@@ -6,8 +6,8 @@ use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::{
-    Conversation, DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, SessionId,
-    SessionInfo,
+    Conversation, DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, KeptMarks, Mark,
+    OptionChoice, SessionId, SessionInfo,
 };
 
 use crate::config::StoreConfig;
@@ -16,8 +16,8 @@ use crate::devices::{CredentialHash, StoredDevice};
 use crate::error::StoreError;
 use crate::log;
 use crate::reader::Reader;
-use crate::writer::{self, Done, Write, WriteOp};
-use crate::{files, recovery, schema};
+use crate::writer::{self, Done, Setup, Write, WriteOp};
+use crate::{attachments, files, recovery, schema};
 
 /// The session event log. Cheap to clone; every clone talks to the same
 /// writer thread and read pool.
@@ -40,7 +40,8 @@ pub struct Opened {
 impl Store {
     /// Open (or create) the event log in `dir`, migrate it, and recover from
     /// the previous run: every session that was still live is closed with a
-    /// final `Status{Interrupted}` record, then retention runs.
+    /// final `Status{Interrupted}` record, then retention runs (removing
+    /// the attachment folders of the sessions it prunes).
     ///
     /// # Errors
     /// The database cannot be opened or migrated (for example it was written
@@ -49,13 +50,17 @@ impl Store {
         let path = dir.database_path();
         let retention = config.retention;
         let opening = path.clone();
+        let folders = dir.attachments_dir();
         let (connection, interrupted) = tokio::task::spawn_blocking(move || {
             files::private_database(&opening).map_err(StoreError::io(&opening))?;
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
-            let _pruned = log::prune_ended(&connection, &retention)?;
+            // Outside a transaction: each deletion is committed as it runs.
+            for session in log::prune_ended(&connection, &retention)? {
+                attachments::remove_folder(&folders, session);
+            }
             Ok::<_, StoreError>((connection, interrupted))
         })
         .await
@@ -68,7 +73,11 @@ impl Store {
         }
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
-        writer::spawn(connection, ops, retention)?;
+        let setup = Setup {
+            retention,
+            attachments: dir.attachments_dir(),
+        };
+        writer::spawn(connection, ops, setup)?;
         let store = Self {
             writes,
             reader: Arc::new(Reader::new(path, config)),
@@ -154,6 +163,42 @@ impl Store {
         self.read(move |reader| reader.conversation(id)).await
     }
 
+    /// Set a mark on a session (protocol 10's `session.mark`, ADR 0026),
+    /// made at `at`; returns its marks after. `read` keeps the furthest
+    /// `through` and clears `unread`; `archive` keeps the first time.
+    /// Nothing checks that an archived session has ended: the node stops
+    /// a session before archiving it.
+    ///
+    /// # Errors
+    /// [`StoreError::UnknownSession`], or the write failed.
+    pub async fn mark(
+        &self,
+        session: SessionId,
+        mark: Mark,
+        at: DateTime<Utc>,
+    ) -> Result<KeptMarks, StoreError> {
+        let (done, committed) = oneshot::channel();
+        self.send(Write::Mark {
+            session,
+            mark,
+            at,
+            done,
+        })
+        .await?;
+        committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+
+    /// Delete an ended session (protocol 10's `session.delete`): its log,
+    /// its marks, its queue, its attachment rows, and its folder of
+    /// attachment files, which is gone when this returns.
+    ///
+    /// # Errors
+    /// [`StoreError::UnknownSession`], [`StoreError::SessionLive`] while
+    /// the store still shows it live, or the write failed.
+    pub async fn delete_session(&self, session: SessionId) -> Result<(), StoreError> {
+        self.write(|done| Write::Delete { session, done }).await
+    }
+
     /// Every stored session, newest first.
     ///
     /// # Errors
@@ -231,11 +276,16 @@ impl Store {
 
     async fn write(&self, write: impl FnOnce(Done) -> Write) -> Result<(), StoreError> {
         let (done, committed) = oneshot::channel();
-        self.writes
-            .send(WriteOp::Write(write(done)))
-            .await
-            .map_err(|_closed| StoreError::Closed)?;
+        self.send(write(done)).await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+
+    /// Queue `write` for the writer; its answer comes on its own channel.
+    async fn send(&self, write: Write) -> Result<(), StoreError> {
+        self.writes
+            .send(WriteOp::Write(write))
+            .await
+            .map_err(|_closed| StoreError::Closed)
     }
 
     async fn read<T: Send + 'static>(

@@ -11,11 +11,12 @@ use vessel_proto::{
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
-/// Builders for sessions and records. A `cfg(test)` module so the lints'
-/// test allowances (`unwrap` and friends) apply to it.
-/// Undoes schema 7 (protocol 10), so a test can take a database further
-/// back: the conversation's columns and the attachments table.
-const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
+/// Undoes schemas 8 and 7 (protocol 10), so a test can take a database
+/// further back: retention's index (schema 1's in its place), the
+/// conversation's columns and the attachments table.
+const UNDO_SCHEMA_7: &str = "DROP INDEX sessions_retention;
+     CREATE INDEX sessions_ended ON sessions (ended_at) WHERE live = 0;
+     ALTER TABLE sessions DROP COLUMN abilities;
      ALTER TABLE sessions DROP COLUMN usage;
      ALTER TABLE sessions DROP COLUMN queue;
      ALTER TABLE sessions DROP COLUMN attention_seq;
@@ -26,71 +27,8 @@ const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
      DROP TABLE attachments;";
 
 #[cfg(test)]
-mod fixtures {
-    use std::path::PathBuf;
-    use std::sync::Arc;
-
-    use bytes::Bytes;
-    use chrono::{DateTime, Utc};
-    use tempfile::TempDir;
-    use vessel_proto::{
-        EventRecord, EventSeq, HarnessKind, SessionEvent, SessionId, SessionInfo, SessionMode,
-        SessionSpec, SessionStatus, TerminalBytes, TerminalOutput, TerminalSize,
-    };
-    use vessel_store::{DataDir, Store, StoreConfig};
-
-    pub(crate) fn at(second: i64) -> DateTime<Utc> {
-        DateTime::from_timestamp(1_700_000_000_i64.saturating_add(second), 123_456_789).unwrap()
-    }
-
-    pub(crate) fn data_dir() -> (TempDir, DataDir) {
-        let temp = tempfile::tempdir().unwrap();
-        let dir = DataDir::new(temp.path());
-        dir.prepare().unwrap();
-        (temp, dir)
-    }
-
-    pub(crate) fn new_session(created: i64) -> SessionInfo {
-        SessionInfo::new(
-            SessionId::random(),
-            SessionSpec::new(
-                HarnessKind::Codex,
-                SessionMode::Terminal {
-                    args: Vec::new(),
-                    size: TerminalSize::default(),
-                },
-            )
-            .with_cwd(PathBuf::from("/work")),
-            at(created),
-        )
-    }
-
-    pub(crate) fn record(seq: u64, event: SessionEvent) -> Arc<EventRecord> {
-        Arc::new(EventRecord {
-            seq: EventSeq::new(seq),
-            at: at(i64::try_from(seq).unwrap()),
-            event,
-        })
-    }
-
-    pub(crate) fn status(seq: u64, status: SessionStatus) -> Arc<EventRecord> {
-        record(seq, SessionEvent::Status { status })
-    }
-
-    /// A terminal chunk of `len` bytes (stored as about `4/3 * len` + 40).
-    pub(crate) fn output(seq: u64, len: usize) -> Arc<EventRecord> {
-        let data = TerminalBytes::new(Bytes::from(vec![b'x'; len]));
-        record(seq, SessionEvent::Terminal(TerminalOutput { data }))
-    }
-
-    pub(crate) fn plain(records: &[Arc<EventRecord>]) -> Vec<EventRecord> {
-        records.iter().map(|record| (**record).clone()).collect()
-    }
-
-    pub(crate) async fn open(dir: &DataDir, config: StoreConfig) -> Store {
-        Store::open(dir, config).await.unwrap().store
-    }
-}
+#[path = "support/fixtures.rs"]
+mod fixtures;
 
 #[tokio::test]
 async fn appended_records_read_back_in_pages() {
@@ -263,12 +201,13 @@ async fn session_rows_follow_the_records() {
     assert_eq!(stored.next_seq, EventSeq::new(4));
     assert_eq!(stored.spec, session.spec);
     assert_eq!(stored.created_at, session.created_at);
-    // Where an ended session sits (protocol 8, ADR 0019): the archive, its
-    // last activity its end. Derived on reading, never stored.
+    // Where an ended session sits (protocol 10, ADR 0026): in building as
+    // exited until it is archived, its last activity its end. Derived on
+    // reading, never stored.
     assert_eq!(
         stored.board,
-        Some(SessionBoard::archived(exited.at)),
-        "ended: archived"
+        Some(SessionBoard::exited(exited.at)),
+        "ended, not archived: exited"
     );
 }
 
@@ -332,10 +271,10 @@ async fn restart_interrupts_sessions_that_were_live() {
     assert_eq!(interrupted.status, SessionStatus::Interrupted);
     assert_eq!(interrupted.next_seq, EventSeq::new(3));
     assert!(interrupted.ended_at.is_some());
-    // Read back after a restart, every session is ended, so archived.
+    // Read back after a restart, every session is ended; none is archived.
     assert_eq!(
         interrupted.board,
-        interrupted.ended_at.map(SessionBoard::archived),
+        interrupted.ended_at.map(SessionBoard::exited),
         "interrupted at the restart"
     );
 
@@ -376,11 +315,11 @@ async fn restart_interrupts_sessions_that_were_live() {
     assert_eq!(untouched.status, SessionStatus::Exited { code: Some(3) });
     // Both `None` would pass the comparisons: every one must have ended.
     let untouched_end = untouched.ended_at.expect("an exited session has its end");
-    assert_eq!(untouched.board, Some(SessionBoard::archived(untouched_end)));
+    assert_eq!(untouched.board, Some(SessionBoard::exited(untouched_end)));
     assert!(
         store.sessions().await.unwrap().iter().all(|info| info
             .ended_at
-            .is_some_and(|end| info.board == Some(SessionBoard::archived(end)))),
+            .is_some_and(|end| info.board == Some(SessionBoard::exited(end)))),
         "listed as read one by one"
     );
     assert_eq!(store.sessions().await.unwrap().len(), 2);

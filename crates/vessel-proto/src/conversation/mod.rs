@@ -22,7 +22,7 @@ pub use attachment::{
     AttachmentKind, AttachmentLimits, AttachmentRef, BeginUpload, FinishUpload, ReadAttachment,
     Upload, WriteUpload, Written,
 };
-pub use marks::{DeleteSession, Mark, MarkSession, ResumeSession, SessionMarks};
+pub use marks::{DeleteSession, KeptMarks, Mark, MarkSession, ResumeSession, SessionMarks};
 pub use question::{
     AnswerValue, ChoiceOption, FieldKind, InvalidAnswer, Question, QuestionAnswer, QuestionField,
     QuestionOutcome, TextFormat,

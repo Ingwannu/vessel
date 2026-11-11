@@ -160,9 +160,24 @@ CREATE TABLE attachments (
 CREATE INDEX attachments_session ON attachments (session_id);
 ";
 
+/// Version 8 (milestone 11, protocol 10, track A): the order retention
+/// prunes ended sessions in (ADR 0026).
+///
+/// - `sessions_retention` is that order: pinned ones kept longest, then
+///   those not archived, then archived ones, each by the newest end. The
+///   pruning query walks it backwards instead of sorting every ended
+///   session each time one ends. It replaces `sessions_ended` (schema 1),
+///   which served the old order (by end alone) and nothing else.
+const V8: &str = "
+DROP INDEX sessions_ended;
+CREATE INDEX sessions_retention
+    ON sessions (pinned, (archived_at IS NULL), ended_at, created_at)
+    WHERE live = 0 AND ended_at IS NOT NULL;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

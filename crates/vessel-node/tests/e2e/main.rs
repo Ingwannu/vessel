@@ -29,6 +29,8 @@ mod local;
 #[cfg(test)]
 mod lsp;
 #[cfg(test)]
+mod marks;
+#[cfg(test)]
 mod moving;
 #[cfg(test)]
 mod options;

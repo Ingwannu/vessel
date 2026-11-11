@@ -1,0 +1,126 @@
+//! A person's marks on a session, and deleting an ended one (protocol 10,
+//! ADR 0026): write-side operations run inside the writer's transaction,
+//! as `log`'s are, and decoding the marks' columns for every reader.
+//!
+//! Must not: derive `unread` itself (that is `KeptMarks::marks`, shared
+//! with the session runtime), or delete a session that is still live.
+//!
+//! [Decision Log]
+//! - Purpose: the marks are the same for every client and survive the
+//!   node, so the store keeps them in the session's row; `session.delete`
+//!   removes a session whole.
+//! - Each mark is one `UPDATE .. RETURNING` of the columns it changes: one
+//!   statement, so the marks it answers are the ones it left, even with
+//!   other writes in the same batch. `read` keeps the larger `through`
+//!   (`MAX`), so a `read` that arrives late never marks a seen record
+//!   unread again, and clears `marked_unread` whatever its `through`, as
+//!   "unread until the next read" says. `archive` keeps the first time.
+//! - Deleting checks `live` in the same transaction: a session the store
+//!   still shows as live (its log not complete) is `SessionLive`, never
+//!   deleted under its own appends. Its log, its queue and its attachment
+//!   rows go by the foreign keys' cascade; its folder once committed
+//!   (`attachments`).
+
+use chrono::{DateTime, Utc};
+use rusqlite::{Connection, OptionalExtension as _, Row, params};
+use vessel_proto::{EventSeq, KeptMarks, Mark, SessionId};
+
+use crate::codec::{seq_from_sql, seq_to_sql, time_from_sql, time_to_sql};
+use crate::error::StoreError;
+
+/// The columns [`StoredMarks::from_row`] reads, in order, from its first
+/// column on.
+pub(crate) const MARK_COLUMNS: &str = "pinned, archived_at, read_seq, marked_unread";
+
+/// Apply `mark` (made at `at`) to `session`'s row; returns its marks after.
+pub(crate) fn mark(
+    connection: &Connection,
+    session: SessionId,
+    mark: Mark,
+    at: DateTime<Utc>,
+) -> Result<KeptMarks, StoreError> {
+    // What the mark sets, and the value bound to `?2` where it takes one.
+    let (set, value) = match mark {
+        Mark::Pin => ("pinned = 1", None),
+        Mark::Unpin => ("pinned = 0", None),
+        Mark::Archive => (
+            "archived_at = COALESCE(archived_at, ?2)",
+            Some(time_to_sql(at)?),
+        ),
+        Mark::Unarchive => ("archived_at = NULL", None),
+        Mark::Read { through } => (
+            "read_seq = MAX(COALESCE(read_seq, 0), ?2), marked_unread = 0",
+            Some(seq_to_sql(through)?),
+        ),
+        Mark::Unread => ("marked_unread = 1", None),
+    };
+    let mut statement = connection.prepare_cached(&format!(
+        "UPDATE sessions SET {set} WHERE id = ?1 RETURNING {MARK_COLUMNS}"
+    ))?;
+    let id = session.to_string();
+    let read = |row: &Row<'_>| StoredMarks::from_row(row, 0);
+    let stored = match value {
+        Some(value) => statement.query_row(params![id, value], read),
+        None => statement.query_row([&id], read),
+    }
+    .optional()?;
+    stored.ok_or(StoreError::UnknownSession(session))?.kept()
+}
+
+/// Delete an ended session with its log, its marks, its queue and its
+/// attachment rows. The caller removes its attachment folder once this is
+/// committed.
+pub(crate) fn delete(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
+    let id = session.to_string();
+    let live: Option<bool> = connection
+        .prepare_cached("SELECT live FROM sessions WHERE id = ?1")?
+        .query_row([&id], |row| row.get(0))
+        .optional()?;
+    match live {
+        None => return Err(StoreError::UnknownSession(session)),
+        Some(true) => return Err(StoreError::SessionLive(session)),
+        Some(false) => {}
+    }
+    let _rows = connection
+        .prepare_cached("DELETE FROM sessions WHERE id = ?1 AND live = 0")?
+        .execute([&id])?;
+    tracing::debug!(%session, "deleted a session");
+    Ok(())
+}
+
+/// A row's [`MARK_COLUMNS`] as stored, before their numbers are checked.
+pub(crate) struct StoredMarks {
+    pinned: bool,
+    archived_at: Option<i64>,
+    read: Option<i64>,
+    marked_unread: bool,
+}
+
+impl StoredMarks {
+    /// The marks' columns of `row`, starting at column `first`.
+    pub(crate) fn from_row(row: &Row<'_>, first: usize) -> rusqlite::Result<Self> {
+        let column = |offset: usize| first.saturating_add(offset);
+        Ok(Self {
+            pinned: row.get(column(0))?,
+            archived_at: row.get(column(1))?,
+            read: row.get(column(2))?,
+            marked_unread: row.get(column(3))?,
+        })
+    }
+
+    /// The marks, their numbers checked.
+    pub(crate) fn kept(self) -> Result<KeptMarks, StoreError> {
+        Ok(KeptMarks {
+            pinned: self.pinned,
+            archived_at: self.archived_at.map(time_from_sql),
+            read: self.read.map(seq_from_sql).transpose()?,
+            marked_unread: self.marked_unread,
+        })
+    }
+}
+
+/// The `attention_seq` column (schema 7): the last record asking for
+/// attention, `None` before the first.
+pub(crate) fn attention_from_sql(value: Option<i64>) -> Result<Option<EventSeq>, StoreError> {
+    value.map(seq_from_sql).transpose()
+}

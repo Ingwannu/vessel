@@ -9,11 +9,12 @@ use vessel_proto::conversation::{
     Written,
 };
 use vessel_proto::{
-    Ack, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered, ErrorCode, SessionInfo,
-    WireError,
+    Ack, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered, ErrorCode, Mark,
+    SessionInfo, WireError,
 };
 
 use super::{Connection, NodeService, wire};
+use crate::error::ServiceError;
 use crate::profiles::launch::creator;
 
 /// What a call the wire has and this node does not do yet answers.
@@ -97,20 +98,39 @@ impl NodeService {
         Err(not_built("session.resume"))
     }
 
+    /// `session.mark`: pin, archive (stopping a live session first), mark
+    /// read or unread; the session's info after. Agents may not mark read
+    /// or unread: an agent reading a session is not its owner seeing it.
     pub(crate) async fn mark_session(
         &self,
-        _: &Connection,
-        _: MarkSession,
+        connection: &Connection,
+        request: MarkSession,
     ) -> Result<SessionInfo, WireError> {
-        Err(not_built("session.mark"))
+        let MarkSession { session, mark } = request;
+        let reading = match mark {
+            Mark::Read { .. } | Mark::Unread => true,
+            Mark::Pin | Mark::Unpin | Mark::Archive | Mark::Unarchive => false,
+        };
+        if reading && connection.principal().agent().is_some() {
+            return Err(wire(&ServiceError::AgentMarksRead));
+        }
+        self.sessions
+            .mark(session, mark)
+            .await
+            .map_err(|error| wire(&error))
     }
 
+    /// `session.delete`: remove an ended session whole.
     pub(crate) async fn delete_session(
         &self,
         _: &Connection,
-        _: DeleteSession,
+        request: DeleteSession,
     ) -> Result<Ack, WireError> {
-        Err(not_built("session.delete"))
+        self.sessions
+            .delete(request.session)
+            .await
+            .map(|()| Ack)
+            .map_err(|error| wire(&error))
     }
 
     pub(crate) async fn begin_upload(

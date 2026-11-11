@@ -90,7 +90,14 @@ worktrees, git, files); this entry is Track A's, the conversation.
   `question_resolved` and `session.send`'s `answer_question`
   (`invalid_request` for an answer that does not fit the form,
   `not_found` for an unknown question, `conflict` once it is settled),
-  offered only to the agent of a session the owner or a device created.
+  offered only to the agent of a session the owner or a device created;
+  marks and deletion: `SessionInfo.marks` everywhere a session's info is
+  read, `session.mark` (`archive` stops a live session and answers once it
+  has ended; a `read` past the end of the log is `invalid_request`; an
+  agent marking `read` or `unread` is `forbidden`), `session.delete`
+  (`conflict` for a live session and for one whose log is still being
+  written), the board's placement of ended sessions, and retention's
+  order (archived first, pinned last).
 
 ## Version 9 (2026-11-11)
 
@@ -217,7 +224,9 @@ reading an older node finds it absent. Milestone 9's plan
   - Any ended session (`exited`, `failed` or `interrupted`, live in this
     run or read back from the store) is `archive` / `terminated`, activity
     `exited`, its end as its last activity. The client shows the status
-    word on an archived card.
+    word on an archived card. (Version 10 changes this: an ended session
+    is `building` / `exited` until it is archived; a version 8-9 peer
+    still gets the placement above.)
   - No node gathers pull requests yet, so `validating`, `needs_review`,
     `ready`, `awaiting_pr` and the phrases of those columns are not sent;
     `no_signal` is not either (no Vessel session is expected to report on

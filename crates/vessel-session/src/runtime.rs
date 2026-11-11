@@ -27,6 +27,7 @@ use crate::delivery::Desk;
 use crate::error::{RemoveError, SessionError};
 use crate::handle::{Input, SessionHandle, Shared};
 use crate::lifecycle::{Lifecycle, Rename};
+use crate::marks::Marks;
 use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove};
 use crate::publish::Publisher;
 use crate::ring::Ring;
@@ -643,6 +644,9 @@ impl SessionRuntime {
             renames,
             reported: Mutex::new(None),
             seen: Mutex::new(Seen::default()),
+            // A new session has no marks; one started again (a later
+            // slice) takes the store's.
+            marks: Mutex::new(Marks::default()),
         });
         (info, kill, shared)
     }

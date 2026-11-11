@@ -112,6 +112,27 @@ pub(crate) enum ServiceError {
     /// not driven.
     #[error("session {0} has ended; its log can still be read")]
     Ended(SessionId),
+    /// A `read` mark's `through` is past the end of the session's log
+    /// (protocol 10).
+    #[error("session {session} has {end} records; cannot mark it read through {through}")]
+    ReadAhead {
+        /// The session.
+        session: SessionId,
+        /// The `read`'s point.
+        through: EventSeq,
+        /// The log's length.
+        end: EventSeq,
+    },
+    /// `session.delete` of a session that runs (protocol 10).
+    #[error("session {0} is live; archive it first, which stops it")]
+    Live(SessionId),
+    /// `session.delete` of a session that has ended while its log is still
+    /// being written to the store (protocol 10).
+    #[error("session {0} has just ended and its log is still being written; try again")]
+    LogWriting(SessionId),
+    /// An agent asked to mark a session read or unread (protocol 10).
+    #[error("an agent may not mark a session read or unread: only a person sees it")]
+    AgentMarksRead,
     /// `from` is past the end of the session's log.
     #[error("session {session} has {next} records; cannot start at {from}")]
     Ahead {
@@ -271,12 +292,16 @@ impl ServiceError {
             | Self::NotLoggedIn(_)
             | Self::AgentGone(_)
             | Self::MoveRunning(_)
+            | Self::Live(_)
+            | Self::LogWriting(_)
             | Self::Models(_) => ErrorCode::Conflict,
-            Self::AgentDepth { .. } | Self::AgentLimit { .. } | Self::NotOwned(_) => {
-                ErrorCode::Forbidden
-            }
+            Self::AgentDepth { .. }
+            | Self::AgentLimit { .. }
+            | Self::NotOwned(_)
+            | Self::AgentMarksRead => ErrorCode::Forbidden,
             Self::Draining | Self::TooManyInvitations => ErrorCode::Unavailable,
             Self::Ahead { .. }
+            | Self::ReadAhead { .. }
             | Self::InvalidTtl
             | Self::NoScopes
             | Self::UnknownProfile(_)

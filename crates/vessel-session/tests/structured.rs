@@ -6,8 +6,8 @@
 
 use vessel_proto::{
     Activity, AgentEvent, ContentBlock, DisplayStatus, ErrorCode, HarnessKind, HarnessSessionId,
-    KanbanColumn, ModelId, PermissionOptionId, PermissionOutcome, SessionBoard, SessionEvent,
-    SessionInput, SessionMode, SessionOption, SessionSpec, SessionStatus, StopReason,
+    KanbanColumn, KeptMarks, ModelId, PermissionOptionId, PermissionOutcome, SessionBoard,
+    SessionEvent, SessionInput, SessionMode, SessionOption, SessionSpec, SessionStatus, StopReason,
     TerminalInput, TerminalSize,
 };
 
@@ -525,8 +525,10 @@ async fn a_session_killed_while_starting_ends_exited() {
 
 /// The board follows the agent (protocol 8, ADR 0019): working while it
 /// starts, idle between turns, blocked on a permission, interrupted after
-/// a cancelled turn until the next one, and the archive once it has ended,
-/// with its end as its last activity.
+/// a cancelled turn until the next one, exited once it has ended and the
+/// archive once archived (ADR 0026), with its end as its last activity.
+/// Unread follows the records that ask for attention and the marks the
+/// node hands over (protocol 10).
 #[tokio::test]
 async fn the_board_follows_turns_and_permissions() {
     within(async {
@@ -543,12 +545,24 @@ async fn the_board_follows_turns_and_permissions() {
             (ready.column, ready.activity),
             (KanbanColumn::Building, Activity::Idle)
         );
+        assert!(!handle.info().marks.unread, "nothing asked yet");
 
         // The default prompt asks a permission and waits for the answer.
         handle.send(prompt("hello")).await.unwrap();
         let asked = board_until(&mut watch, DisplayStatus::Blocked).await;
         assert_eq!(asked.activity, Activity::WaitingInput);
         assert!(asked.last_activity_at > ready.last_activity_at);
+        assert!(
+            handle.info().marks.unread,
+            "a permission asks for attention"
+        );
+        // Read through everything published: seen.
+        let read = KeptMarks {
+            read: Some(handle.log_end()),
+            ..KeptMarks::default()
+        };
+        handle.set_marks(read);
+        assert!(!handle.info().marks.unread, "read");
         let request = handle
             .follow(vessel_proto::EventSeq::ZERO)
             .unwrap()
@@ -576,6 +590,7 @@ async fn the_board_follows_turns_and_permissions() {
             .unwrap();
         let done = board_until(&mut watch, DisplayStatus::Idle).await;
         assert_eq!(done.activity, Activity::Idle);
+        assert!(handle.info().marks.unread, "the turn's end, after the read");
 
         // A turn stopped before its end is interrupted ...
         handle.send(prompt("wait")).await.unwrap();
@@ -599,24 +614,35 @@ async fn the_board_follows_turns_and_permissions() {
 
         handle.kill();
         let end = handle.ended().await;
+        // ADR 0026: ended, and in building as exited until it is archived.
         assert_eq!(
             end.board,
             Some(SessionBoard::new(
-                KanbanColumn::Archive,
-                DisplayStatus::Terminated,
+                KanbanColumn::Building,
+                DisplayStatus::Exited,
                 Activity::Exited,
                 end.ended_at.unwrap(),
             ))
         );
+        // The node archives it in the store and hands the marks over; its
+        // info then places it in the archive and says so.
+        let archived_at = end.ended_at.unwrap();
+        handle.set_marks(KeptMarks {
+            archived_at: Some(archived_at),
+            ..KeptMarks::default()
+        });
+        let put_away = handle.info();
+        assert_eq!(put_away.board, Some(SessionBoard::archived(archived_at)));
+        assert_eq!(put_away.marks.archived_at, Some(archived_at));
         drop(stored.await.unwrap());
     })
     .await;
 }
 
-/// A session that never started is in the archive too: whatever its
-/// status, an ended session is.
+/// A session that never started is in building as exited too: whatever
+/// its status, an ended session is, until it is archived.
 #[tokio::test]
-async fn a_failed_session_is_archived() {
+async fn a_failed_session_is_exited() {
     within(async {
         let fixture = Fixture::new();
         let created = fixture
@@ -631,8 +657,8 @@ async fn a_failed_session_is_archived() {
         assert_eq!(
             (board.column, board.display_status, board.activity),
             (
-                KanbanColumn::Archive,
-                DisplayStatus::Terminated,
+                KanbanColumn::Building,
+                DisplayStatus::Exited,
                 Activity::Exited
             )
         );
@@ -663,8 +689,8 @@ async fn a_starting_session_is_working() {
         created.handle.kill();
         let end = created.handle.ended().await;
         assert_eq!(
-            end.board.map(|board| board.column),
-            Some(KanbanColumn::Archive)
+            end.board.map(|board| (board.column, board.display_status)),
+            Some((KanbanColumn::Building, DisplayStatus::Exited))
         );
         drop(stored.await.unwrap());
     })

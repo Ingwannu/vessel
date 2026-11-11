@@ -89,3 +89,35 @@ its board place, which is what the references' restore means.
   docs and the CLI read it so.
 - A resumed session's agent tools get a new credential, granted as a
   session the caller creates would be (ADR 0013); `created_by` stays.
+- Unread before any `read`: every record asking for attention is unread
+  (a `read` through 0), as a new message is; a session with no such
+  record, one stored before protocol 10 included, is not.
+- `read`'s `through` may not pass the end of the log as published
+  (`invalid_request`): `read` only moves forward, so a `through` past the
+  end could never be taken back. For a session the runtime has, the end
+  is its ring's, which a record a follower received never passes.
+- While the runtime has a session, its marks are the store's copy: a mark
+  is applied in the store first, and its answer handed to the session's
+  handle under one node lock, so the two cannot disagree. The info adds
+  them (`SessionHandle::info`) with the attention point the publisher
+  reads off the records it commits (the store's projection uses the same
+  rule, `SessionEvent::asks_for_attention`). The info watch carries no
+  marks: its sender closes with the session, and a session is archived
+  after its end.
+- The session runtime's reducer never sees an archived session (no record
+  says so, and archiving comes after the end), so its facts say
+  `is_terminated: false`; an archived session's info is placed in the
+  archive (`SessionBoard::archived`) where the marks are added, which is
+  what the reducer's first rule gives.
+- `archive` keeps the first time it was archived; any `read` clears a
+  marked `unread`, whatever its `through`. `archive` on a live session
+  answers once the session's final status is published, not once the
+  store has its whole log.
+- `session.delete` of a session whose final status is out but whose log
+  is still being written is `conflict` ("try again"), as the review said;
+  the store refuses a row it still shows live too.
+- Retention's order is an index (schema 8, `sessions_retention`, which
+  replaces schema 1's `sessions_ended`): the pruning walks it instead of
+  sorting every ended session each time one ends. A pruned or deleted
+  session's attachment folder is removed by the store's writer right
+  after the commit that removed its row.

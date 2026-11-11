@@ -63,7 +63,8 @@
 //!   projection of its log, as the store's `sessions` row is: a turn
 //!   started is active, a permission asked is waiting on the owner, a turn
 //!   ended is idle, a cancelled one is interrupted until the next, any
-//!   final status is exited. A terminal has no turns: output is active,
+//!   final status is exited (in building as `exited`, ADR 0026; an archived
+//!   session is in the archive). A terminal has no turns: output is active,
 //!   and one resettable timer in the actor's loop turns it idle after a
 //!   quiet stretch (`terminal::QUIET`). [`board::derive()`] turns those facts
 //!   into a lane and a phrase. The info watch wakes only when the lane,
@@ -81,6 +82,11 @@
 //!   publishes as `renamed` in order with the log and answers once the info
 //!   has it. Only the actor publishes, so a title can never disagree with
 //!   the log the store rebuilds it from.
+//! - Marks (protocol 10, ADR 0026, `marks`): the node applies a mark in the
+//!   store and hands the store's result to [`SessionHandle::set_marks`];
+//!   the publisher notes each record that asks for attention.
+//!   [`SessionHandle::info`] adds both to the info, so a session the
+//!   runtime has carries the marks the store would give it.
 //! - Lifetime: an ended session stays in the runtime, ring and all, until
 //!   its owner calls `SessionRuntime::remove` (the node does once the store
 //!   has its whole log). Eviction is the owner's call because only the
@@ -95,6 +101,7 @@ mod delivery;
 mod error;
 mod handle;
 mod lifecycle;
+mod marks;
 mod moving;
 mod publish;
 mod queue;

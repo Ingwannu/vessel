@@ -754,11 +754,12 @@ async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
 
         handle.kill();
         let end = handle.ended().await;
+        // ADR 0026: in building as exited until it is archived.
         assert_eq!(
             end.board,
             Some(SessionBoard::new(
-                KanbanColumn::Archive,
-                DisplayStatus::Terminated,
+                KanbanColumn::Building,
+                DisplayStatus::Exited,
                 Activity::Exited,
                 end.ended_at.unwrap(),
             ))

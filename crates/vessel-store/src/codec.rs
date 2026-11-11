@@ -10,6 +10,7 @@ use vessel_proto::{
 
 use crate::config::ByteCount;
 use crate::error::{Column, Quantity, StoreError};
+use crate::marks::{StoredMarks, attention_from_sql};
 
 pub(crate) fn seq_to_sql(seq: EventSeq) -> Result<i64, StoreError> {
     i64::try_from(seq.get()).map_err(|_too_big| StoreError::OutOfRange(Quantity::Seq))
@@ -63,9 +64,16 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(
     })
 }
 
-/// The columns [`session_from_row`] expects, in order.
+/// The columns [`session_from_row`] expects, in order: the marks'
+/// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then `attention_seq`.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
-     via, origin, model, title, abilities";
+     via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
+     attention_seq";
+
+/// Where the marks' columns start in [`SESSION_COLUMNS`].
+const FIRST_MARK: usize = 14;
+/// Where `attention_seq` is in [`SESSION_COLUMNS`].
+const ATTENTION: usize = 18;
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -136,7 +144,11 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         .get::<_, Option<String>>(13)?
         .map(|abilities| decode(id, Column::Abilities, &abilities))
         .transpose()?;
-    info.board = stored_board(&info);
+    // Schema 7: the marks, `unread` derived as the session runtime derives
+    // it (`KeptMarks::marks`).
+    let kept = StoredMarks::from_row(row, FIRST_MARK)?.kept()?;
+    info.marks = kept.marks(attention_from_sql(row.get(ATTENTION)?)?);
+    info.board = stored_board(&info, kept.is_archived());
     Ok(info)
 }
 
@@ -150,8 +162,8 @@ pub(crate) fn choices_from_sql(
         .transpose()
 }
 
-/// A stored session's place on the board (protocol 8, ADR 0019); derived
-/// here, never stored.
+/// A stored session's place on the board (protocol 8, ADR 0019; ended
+/// sessions as ADR 0026 amends it); derived here, never stored.
 ///
 /// [Decision Log]
 /// - Purpose: a session served from the store (every session of an earlier
@@ -160,23 +172,25 @@ pub(crate) fn choices_from_sql(
 /// - Constraint: the reducer lives in `vessel-session`, which this crate
 ///   must not depend on (ADR 0001's crate map), and the store has none of
 ///   the facts behind a live placement (turns, permissions, output).
-/// - Choice: a stored session that has ended is in the archive, its
-///   activity `exited`, its last activity its end:
-///   `SessionBoard::archived`, the one definition the session runtime uses
-///   for any ended session too, so what the session's own info showed at
-///   its end is what this gives. A stored session still live is
-///   one the node serves from its runtime; the store leaves its board out
-///   rather than guess, and a client would place it by its status.
-/// - Must stay true: an ended session's place is `SessionBoard::archived`
+/// - Choice: a stored session that has ended is in the archive once it is
+///   archived (`SessionBoard::archived`), and in building as `exited`
+///   until then (`SessionBoard::exited`), its last activity its end: the
+///   definitions the session runtime uses for an ended session too
+///   (`SessionBoard::ended`), so what the session's own info showed at its
+///   end is what this gives. A stored session still live is one the node
+///   serves from its runtime; the store leaves its board out rather than
+///   guess, and a client would place it by its status.
+/// - Must stay true: an ended session's place is `SessionBoard::ended`
 ///   wherever it is built.
-fn stored_board(info: &SessionInfo) -> Option<SessionBoard> {
+fn stored_board(info: &SessionInfo, archived: bool) -> Option<SessionBoard> {
     if info.status.is_live() {
         return None;
     }
     // An ended row always has its end time (the final status sets both);
     // the creation is a floor, should one ever lack it.
-    Some(SessionBoard::archived(
+    Some(SessionBoard::ended(
         info.ended_at.unwrap_or(info.created_at),
+        archived,
     ))
 }
 

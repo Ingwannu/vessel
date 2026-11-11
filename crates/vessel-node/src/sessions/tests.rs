@@ -185,11 +185,50 @@ async fn a_finished_session_is_handed_over_to_the_store() {
     fixture.stop().await;
 }
 
-/// Protocol 8, ADR 0019: a session keeps its place on the board across the
-/// hand-over: the store's and the session's both come from
-/// `SessionBoard::archived`.
+/// Protocol 8, ADR 0019 (ADR 0026 for ended sessions): a session keeps its
+/// place on the board across the hand-over: the store's and the session's
+/// both come from `SessionBoard::exited` until it is archived.
 fn the_store_places_it_as_the_session_did(live: &SessionInfo, stored: &SessionInfo) {
     let ended = stored.ended_at.expect("a stored ended session has its end");
-    assert_eq!(stored.board, Some(SessionBoard::archived(ended)));
+    assert_eq!(stored.board, Some(SessionBoard::exited(ended)));
     assert_eq!(live.board, stored.board, "the same place as at its end");
+}
+
+/// `session.delete` takes only what the store serves: a session the
+/// runtime has is live (`Live`), or has ended with its log still on its way
+/// to the store (`LogWriting`, a retry works).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_session_the_runtime_has_is_not_deleted() {
+    let fixture = Fixture::new().await;
+    let created = fixture.runtime.create(fixture.spec()).await.unwrap();
+    let id = created.handle.id();
+    // The node's entry, as `start` makes it, with no persistence behind
+    // it: its log never completes, so the node keeps serving it.
+    let (_durability, watching) = tokio::sync::watch::channel(crate::persist::Durability::Through(
+        vessel_proto::EventSeq::ZERO,
+    ));
+    drop(
+        fixture
+            .sessions
+            .durability
+            .write()
+            .unwrap()
+            .insert(id, watching),
+    );
+    assert!(matches!(
+        fixture.sessions.delete(id).await,
+        Err(ServiceError::Live(live)) if live == id
+    ));
+    created.handle.kill();
+    drop(created.durable);
+    let _final = created.handle.ended().await;
+    assert!(matches!(
+        fixture.sessions.delete(id).await,
+        Err(ServiceError::LogWriting(writing)) if writing == id
+    ));
+    assert!(
+        fixture.runtime.get(id).is_some(),
+        "refused: nothing was removed"
+    );
+    fixture.stop().await;
 }

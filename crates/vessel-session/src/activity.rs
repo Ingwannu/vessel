@@ -31,7 +31,13 @@
 //!   turn goes on (active). The
 //!   latest turn is interrupted when it ended `cancelled`, until the next
 //!   one starts. Terminal: output makes it active, quiet makes it idle. Any
-//!   final status makes it `exited` and the session terminated.
+//!   final status makes it `exited`: in building as `exited` (ADR 0026),
+//!   not in the archive, which is for archived sessions only.
+//! - Archived: the reducer's `is_terminated` (ADR 0026). No record says a
+//!   session is archived, and a session is archived only once its records
+//!   have ended (archiving a live one stops it first), so the facts here
+//!   never hold it; the session's marks place an archived one in the
+//!   archive when its info is read (`marks`), as the reducer would.
 //! - Last activity: the time of the record that showed the agent doing
 //!   something (the handshake done, a turn's start or end, a permission
 //!   asked or answered, terminal output, the end). Message and tool-call
@@ -67,7 +73,6 @@ pub(crate) struct Tracker {
     /// Rarely more than one; a set so a resolution matches its own request,
     /// whatever order several are answered in.
     pending: HashSet<Waiting>,
-    terminated: bool,
 }
 
 /// Something the agent waits on its owner for.
@@ -86,7 +91,6 @@ impl Tracker {
             seen: false,
             interrupted: false,
             pending: HashSet::new(),
-            terminated: false,
         }
     }
 
@@ -98,7 +102,6 @@ impl Tracker {
                 // nothing about turns; only the end changes the facts.
                 if !status.is_live() {
                     self.pending.clear();
-                    self.terminated = true;
                     self.set(Activity::Exited, at);
                 }
             }
@@ -190,21 +193,18 @@ impl Tracker {
     /// No Vessel node can see pull requests yet and no session has a fleet
     /// policy or an artifact, so those facts are fixed here; and nothing
     /// expects a signal (see [`WorkerFacts::signal_expected`]), so `now`
-    /// cannot change the result today and the board needs no timer.
+    /// cannot change the result today and the board needs no timer. An
+    /// ended session comes out as `SessionBoard::exited` at its end, the
+    /// place the store gives a stored one (the tests hold the two equal).
     pub(crate) fn board(&self, now: DateTime<Utc>) -> SessionBoard {
-        // An ended session's place has one definition, shared with the
-        // store's (`SessionBoard::archived`); the reducer agrees (its
-        // tests hold `derive` to the archive for every ended session).
-        if self.terminated {
-            return SessionBoard::archived(self.last_activity_at);
-        }
         let facts = SessionFacts {
             worker: WorkerFacts {
                 activity: self.activity,
                 last_activity_at: self.last_activity_at,
                 has_signal: self.seen,
                 signal_expected: false,
-                is_terminated: self.terminated,
+                // Never archived while it publishes (the module docs).
+                is_terminated: false,
             },
             interrupted: self.interrupted,
             has_artifact_output: false,
@@ -414,8 +414,11 @@ mod tests {
         );
     }
 
+    /// ADR 0026: an ended session is in building as `exited`, its end its
+    /// last activity, whatever it was doing and however it ended: the
+    /// place the store gives it (`SessionBoard::exited`).
     #[test]
-    fn every_end_is_the_archive() {
+    fn every_end_is_exited_in_building() {
         for end in [
             SessionStatus::Exited { code: Some(0) },
             SessionStatus::Failed {
@@ -428,19 +431,16 @@ mod tests {
             tracker.observe(&started(), at(1));
             tracker.observe(&requested(id), at(2));
             tracker.observe(&status(end.clone()), at(3));
-            assert_eq!(
-                tracker.board(at(9)),
-                SessionBoard::new(
-                    KanbanColumn::Archive,
-                    DisplayStatus::Terminated,
-                    Activity::Exited,
-                    at(3)
-                ),
-                "{end:?}"
-            );
+            assert_eq!(tracker.board(at(9)), SessionBoard::exited(at(3)), "{end:?}");
             // A quiet timer that fires late cannot revive it.
             tracker.quiet();
             assert_eq!(tracker.board(at(9)).activity, Activity::Exited);
         }
+        // Nor does a stop mid-turn speak once the agent is gone.
+        let mut tracker = Tracker::new(at(0));
+        tracker.observe(&started(), at(1));
+        tracker.observe(&ended(StopReason::Cancelled), at(2));
+        tracker.observe(&status(SessionStatus::Interrupted), at(3));
+        assert_eq!(tracker.board(at(9)), SessionBoard::exited(at(3)));
     }
 }

@@ -12,9 +12,10 @@ use crate::support::{
 };
 
 /// Protocol 8 over the wire (ADR 0019): a session is on the board from its
-/// creation, and read back from the store after a restart it is archived,
-/// its end as its last activity.
-fn placed_from_creation_to_archive(created: &SessionInfo, restored: &SessionInfo) {
+/// creation, and read back from the store after a restart it is in
+/// building as exited (ADR 0026: nobody archived it), its end as its last
+/// activity.
+fn placed_from_creation_to_exited(created: &SessionInfo, restored: &SessionInfo) {
     assert_eq!(
         created.board.as_ref().map(|board| board.column),
         Some(KanbanColumn::Building),
@@ -26,8 +27,8 @@ fn placed_from_creation_to_archive(created: &SessionInfo, restored: &SessionInfo
         .expect("a session read back after a restart has ended");
     assert_eq!(
         restored.board,
-        Some(SessionBoard::archived(ended)),
-        "archived after a restart"
+        Some(SessionBoard::exited(ended)),
+        "exited after a restart"
     );
 }
 
@@ -119,7 +120,7 @@ async fn a_terminal_session_survives_clients_and_a_node_restart() {
         let restored = listed.iter().find(|session| session.id == id).unwrap();
         assert_eq!(restored.status, SessionStatus::Interrupted);
         assert!(restored.ended_at.is_some());
-        placed_from_creation_to_archive(&info, restored);
+        placed_from_creation_to_exited(&info, restored);
 
         let log = read_all(&client, id).await;
         let expected: Vec<u64> = (0..u64::try_from(log.len()).unwrap()).collect();

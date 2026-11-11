@@ -4,11 +4,12 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
-/// Builders. A `cfg(test)` module so the lints' test allowances (`unwrap`
-/// and friends) apply to it.
-/// Undoes schema 7 (protocol 10), so a test can take a database further
-/// back: the conversation's columns and the attachments table.
-const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
+/// Undoes schemas 8 and 7 (protocol 10), so a test can take a database
+/// further back: retention's index (schema 1's in its place), the
+/// conversation's columns and the attachments table.
+const UNDO_SCHEMA_7: &str = "DROP INDEX sessions_retention;
+     CREATE INDEX sessions_ended ON sessions (ended_at) WHERE live = 0;
+     ALTER TABLE sessions DROP COLUMN abilities;
      ALTER TABLE sessions DROP COLUMN usage;
      ALTER TABLE sessions DROP COLUMN queue;
      ALTER TABLE sessions DROP COLUMN attention_seq;
@@ -18,6 +19,8 @@ const UNDO_SCHEMA_7: &str = "ALTER TABLE sessions DROP COLUMN abilities;
      ALTER TABLE sessions DROP COLUMN archived_at;
      DROP TABLE attachments;";
 
+/// Builders. A `cfg(test)` module so the lints' test allowances (`unwrap`
+/// and friends) apply to it.
 #[cfg(test)]
 mod fixtures {
     use chrono::{DateTime, Utc};

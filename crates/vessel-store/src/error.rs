@@ -179,6 +179,10 @@ pub enum StoreError {
     /// A session with this id is already stored.
     #[error("session {0} is already in the store")]
     SessionExists(SessionId),
+    /// The session is still live in the store (its log is not complete),
+    /// so it cannot be deleted.
+    #[error("session {0} is still live; it can be deleted once it has ended")]
+    SessionLive(SessionId),
     /// Records must be appended gap-free, in order.
     #[error("session {session}: expected record {expected}, got {got}")]
     OutOfOrder {
@@ -206,9 +210,10 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             Self::UnknownSession(_) | Self::UnknownDevice(_) => ErrorCode::NotFound,
-            Self::SessionExists(_) | Self::DeviceExists(_) | Self::OutOfOrder { .. } => {
-                ErrorCode::Conflict
-            }
+            Self::SessionExists(_)
+            | Self::SessionLive(_)
+            | Self::DeviceExists(_)
+            | Self::OutOfOrder { .. } => ErrorCode::Conflict,
             Self::Closed => ErrorCode::Unavailable,
             Self::Io { .. }
             | Self::NotPrivate { .. }

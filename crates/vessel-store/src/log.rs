@@ -99,11 +99,15 @@ impl Projection {
     fn observe(&mut self, record: &EventRecord, stored_bytes: usize) {
         let stored_bytes = u64::try_from(stored_bytes).unwrap_or(u64::MAX);
         self.bytes = self.bytes.saturating_add(stored_bytes);
+        // The session runtime reads the same rule off the same records, so
+        // a live session's unread and its stored row's agree.
+        if record.event.asks_for_attention() {
+            self.attention = Some(record.seq);
+        }
         match &record.event {
             SessionEvent::Status { status } => {
                 if !status.is_live() {
                     self.ended_at = Some(record.at);
-                    self.attention = Some(record.seq);
                 }
                 self.status = Some(status.clone());
             }
@@ -119,13 +123,6 @@ impl Projection {
                     self.abilities = *abilities;
                 }
             }
-            SessionEvent::Agent {
-                event:
-                    AgentEvent::TurnEnded { .. }
-                    | AgentEvent::TurnFailed { .. }
-                    | AgentEvent::PermissionRequested(_)
-                    | AgentEvent::QuestionAsked(_),
-            } => self.attention = Some(record.seq),
             SessionEvent::UsageChanged { usage } => self.usage = Some(usage.clone()),
             SessionEvent::QueueChanged { queue } => self.queue = Some(queue.clone()),
             SessionEvent::ProfileChanged { to, .. } => {
@@ -288,24 +285,41 @@ pub(crate) fn prune_session(
     Ok(())
 }
 
-/// Delete the ended sessions beyond the newest `max_ended_sessions`, with
-/// their logs. Returns how many were deleted. Only sessions with an end
-/// time count: every ended session has one (it comes from its final status
-/// record), and requiring it keeps a row in any other state out of reach.
+/// Which ended sessions retention keeps, best first: pinned ones, then
+/// those not archived, then archived ones, each newest end first (ADR
+/// 0026). Retention deletes from the other end. The order is exactly the
+/// `sessions_retention` index's (schema 8), read backwards, so it is a
+/// walk of that index, never a sort.
+const KEPT_FIRST: &str = "ORDER BY pinned DESC, (archived_at IS NULL) DESC, ended_at DESC, \
+                          created_at DESC";
+
+/// Delete the ended sessions beyond the `max_ended_sessions` retention
+/// keeps ([`KEPT_FIRST`]), with their logs and attachment rows. Returns
+/// the deleted sessions, whose attachment folders the caller removes once
+/// this is committed. Only sessions with an end time count: every ended
+/// session has one (it comes from its final status record), and requiring
+/// it keeps a row in any other state out of reach.
+///
+/// Bounded: it runs when a session ends, with at most the cap and the
+/// sessions that ended since the last run to walk.
 pub(crate) fn prune_ended(
     connection: &Connection,
     retention: &Retention,
-) -> Result<usize, StoreError> {
-    let deleted = connection
-        .prepare_cached(
-            "DELETE FROM sessions WHERE id IN (
-                 SELECT id FROM sessions WHERE live = 0 AND ended_at IS NOT NULL
-                 ORDER BY ended_at DESC, created_at DESC
-                 LIMIT -1 OFFSET ?1)",
-        )?
-        .execute([retention.max_ended_sessions])?;
-    if deleted > 0 {
-        tracing::debug!(deleted, "pruned ended sessions");
+) -> Result<Vec<SessionId>, StoreError> {
+    let mut statement = connection.prepare_cached(&format!(
+        "DELETE FROM sessions WHERE id IN (
+             SELECT id FROM sessions WHERE live = 0 AND ended_at IS NOT NULL
+             {KEPT_FIRST}
+             LIMIT -1 OFFSET ?1)
+         RETURNING id"
+    ))?;
+    let mut rows = statement.query([retention.max_ended_sessions])?;
+    let mut deleted = Vec::new();
+    while let Some(row) = rows.next()? {
+        deleted.push(session_id_from_sql(&row.get::<_, String>(0)?)?);
+    }
+    if !deleted.is_empty() {
+        tracing::debug!(deleted = deleted.len(), "pruned ended sessions");
     }
     Ok(deleted)
 }
@@ -323,4 +337,32 @@ pub(crate) fn live_sessions(
         live.push((id, seq_from_sql(row.get(1)?)?));
     }
     Ok(live)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::schema;
+
+    /// Retention's order is a walk of its index (schema 8), never a sort of
+    /// every ended session.
+    #[test]
+    fn retention_walks_its_index() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        schema::configure(&connection).unwrap();
+        schema::migrate(&mut connection).unwrap();
+        let plan: Vec<String> = connection
+            .prepare(&format!(
+                "EXPLAIN QUERY PLAN SELECT id FROM sessions
+                 WHERE live = 0 AND ended_at IS NOT NULL {KEPT_FIRST} LIMIT -1 OFFSET 3"
+            ))
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(3))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        let plan = plan.join("\n");
+        assert!(plan.contains("sessions_retention"), "{plan}");
+        assert!(!plan.contains("TEMP B-TREE"), "{plan}");
+    }
 }

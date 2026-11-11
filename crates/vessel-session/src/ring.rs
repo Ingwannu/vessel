@@ -60,6 +60,12 @@ impl Ring {
         self.live = None;
     }
 
+    /// The sequence number of the next record: the end of the log as
+    /// published.
+    pub(crate) const fn next(&self) -> EventSeq {
+        self.next
+    }
+
     /// Whether the session can publish no more records (its actor dropped
     /// the publisher, after the final status).
     pub(crate) const fn is_closed(&self) -> bool {

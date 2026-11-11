@@ -48,8 +48,8 @@ pub use agent::{
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
 pub use conversation::{
     AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,
-    ContextUsage, Conversation, Delivered, Delivery, Mark, PromptQueue, Question, QuestionAnswer,
-    QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
+    ContextUsage, Conversation, Delivered, Delivery, KeptMarks, Mark, PromptQueue, Question,
+    QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
 };
 pub use device::{
     DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,

@@ -536,8 +536,10 @@ browser on Unix (on Windows, open the printed address).
   the files it touched, its model calls and, under Details, its
   identifiers. A session opened as a terminal is the agent's own TUI.
 - **The board** shows every machine's sessions by title, one lane per
-  stage of delivery, a session an agent started named on its card; the
-  ended ones are in the archive under it. The sidebar lists each
+  stage of delivery, a session an agent started named on its card; an
+  ended one stays in its lane as exited until it is archived, and the
+  archived ones are in the archive under it (from a node before
+  protocol 10, every ended one is). The sidebar lists each
   machine's live sessions, marked while one works or waits on you.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
   sections): Machines (add, rename, make default, forget), Agents (what

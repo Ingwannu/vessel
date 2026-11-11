@@ -17,6 +17,7 @@ use crate::conversation::Seen;
 use crate::delivery::{Cancel, Change, Deliver};
 use crate::error::{DeliveryError, InputKind, ModeKind, SessionError};
 use crate::lifecycle::Rename;
+use crate::marks::Marks;
 use crate::moving::Control;
 use crate::ring::{Follow, FollowError, Ring};
 
@@ -57,6 +58,11 @@ pub(crate) struct Shared {
     /// publisher; what `session.conversation` answers. A `std` mutex held
     /// for one update or one snapshot, never across an `.await`.
     pub(crate) seen: Mutex<Seen>,
+    /// The session's marks (protocol 10, `marks`): the store's copy, set by
+    /// the node, and the attention point, set by the publisher. A `std`
+    /// mutex held for one assignment or one copy, never across an
+    /// `.await`.
+    pub(crate) marks: Mutex<Marks>,
 }
 
 impl Shared {
@@ -226,10 +232,16 @@ impl SessionHandle {
         }
     }
 
-    /// A snapshot of the session's info (one clone of the current value).
+    /// A snapshot of the session's info (one clone of the current value),
+    /// with its marks (protocol 10): the store's, and `unread` from the
+    /// records published so far; an archived session in the archive.
     #[must_use]
     pub fn info(&self) -> SessionInfo {
-        self.0.info.borrow().clone()
+        let mut info = self.0.info.borrow().clone();
+        // The watch's lock is released before the marks' is taken: neither
+        // is held while the other is.
+        self.0.marks().apply(&mut info);
+        info
     }
 
     /// A receiver of info changes.
@@ -240,7 +252,8 @@ impl SessionHandle {
     /// are kept current too, but advancing them alone does not wake
     /// watchers (they change with every event, or every burst of terminal
     /// output). The sender closes once the session has published its final
-    /// status.
+    /// status. Its values carry no marks, which change apart from the
+    /// session's records: [`info`](Self::info) adds them.
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()
@@ -425,7 +438,7 @@ impl SessionHandle {
         let mut info = self.0.info.clone();
         // `changed` fails only once the actor dropped the sender.
         while info.changed().await.is_ok() {}
-        info.borrow().clone()
+        self.info()
     }
 
     /// Whether the session can publish no more records.

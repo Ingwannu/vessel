@@ -1052,8 +1052,8 @@ fn a_node_that_cannot_see_pull_requests_says_idle() {
     let unseen = |session: &SessionFacts| derive(session, PullRequests::Unseen, at(3600), GRACE);
     let mut artifact = session();
     artifact.has_artifact_output = true;
-    let mut ended = session_at(Activity::Exited);
-    ended.worker.is_terminated = true;
+    let mut archived = session_at(Activity::Exited);
+    archived.worker.is_terminated = true;
     let cases = [
         (
             "idle",
@@ -1091,15 +1091,41 @@ fn a_node_that_cannot_see_pull_requests_says_idle() {
             KanbanColumn::Validating,
             DisplayStatus::NeedsReview,
         ),
+        // ADR 0026: ended is building as exited until it is archived.
         (
-            "ended",
-            ended,
+            "ended, not archived",
+            session_at(Activity::Exited),
+            KanbanColumn::Building,
+            DisplayStatus::Exited,
+        ),
+        (
+            "archived",
+            archived,
             KanbanColumn::Archive,
             DisplayStatus::Terminated,
         ),
     ];
     for (name, session, column, phrase) in cases {
         assert_eq!(unseen(&session), (column, phrase), "{name}");
+    }
+}
+
+/// The places an ended session has, from the reducer, are the ones the
+/// store and the session's marks build (`SessionBoard::ended`), so a
+/// session keeps its place when the store takes it over.
+#[test]
+fn an_ended_sessions_place_is_the_one_definition() {
+    let end = at(7);
+    for archived in [false, true] {
+        let mut ended = session_at(Activity::Exited);
+        ended.worker.last_activity_at = end;
+        ended.worker.is_terminated = archived;
+        let (column, phrase) = derive(&ended, PullRequests::Unseen, at(3600), GRACE);
+        assert_eq!(
+            vessel_proto::SessionBoard::new(column, phrase, Activity::Exited, end),
+            vessel_proto::SessionBoard::ended(end, archived),
+            "archived: {archived}"
+        );
     }
 }
 
