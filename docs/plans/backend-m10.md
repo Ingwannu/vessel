@@ -212,6 +212,12 @@ Owns `web/`. Everything later stands on it.
 
 ## Track W1: starting and running a session (`backend/m10-compose`)
 
+Owns `features/compose/`, `features/session/`, `features/shell/` (the
+frame and the sidebar, moved out of `ui/shell.tsx`), the old
+`routes/new-session.tsx`, `session.tsx`, `structured.tsx`, `terminal.tsx`
+and `sessions.tsx` (divided as they move), and the calls for options and
+titles in `data/`.
+
 - **New session** is agent-orchestrator's `/new` page: the heading "What
   do you want to work on?", a raised prompt box, and in its foot one
   control for agent, model and effort (a menu with a row for each), one
@@ -231,9 +237,19 @@ Owns `web/`. Everything later stands on it.
 
 ## Track W2: machines and settings (`backend/m10-settings`)
 
-- **Settings** as a page with its own section list: General, Appearance,
-  Machines, Agents, Models, Devices, Sync, About. Fleet, Sync and Devices
-  leave the sidebar and live here.
+Owns `features/settings/`, `features/machines/`, `features/welcome/`, the
+old `routes/settings.tsx`, `fleet.tsx`, `sync.tsx` and `devices.tsx`
+(divided as they move), and the settings routes. It does not edit the
+sidebar: track W1 draws the section list there from
+`data/settings.ts`.
+
+- **Settings** as a page with its own section list, at
+  `/settings/<section>`: Appearance; Agents, Models; Machines, Devices,
+  Sync; About (`web/src/data/settings.ts` is the one list). While it is
+  open the sidebar shows the sections in place of the machines, with a
+  way back, as agent-orchestrator and GOAT both do. Fleet, Sync and
+  Devices leave the sidebar and live here; their old addresses redirect.
+  No "General" section: nothing true would be in it yet.
 - **Add a machine**: a guided dialog over the existing ops. Run
   `vessel node pair` there (copy), paste the link here, compare the name
   and the key's fingerprint, connect, then see which agents it has.
