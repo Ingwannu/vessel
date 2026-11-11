@@ -9,50 +9,87 @@ an entry here. Additive, optional fields do not need a bump.
 Nodes speak 2..=9; version 9 adds four methods, two events (with
 stand-ins for older clients) and optional fields. Milestone 10's plan
 (`docs/plans/backend-m10.md`, "Contract (protocol 9)", track C) and ADR
-0022. The contract is in place; until track C builds each call, the four
-methods answer `unsupported` ("not built on this node yet"), and a
-`session.create` that chooses options is refused with `unsupported`
-rather than started without them.
+0022.
 
 - Types (`vessel_proto::options`): the agent's own session config
   options, passed on as the agent reports them; Vessel writes no list of
   models, efforts or modes of its own.
   - `OptionId`, `OptionValueId`: the agent's ids, opaque, echoed back.
   - `OptionCategory`: `mode`, `model`, `model_config`, `thought_level`,
-    `other` (ACP's categories; an unknown one, the agent's or a newer
-    node's, reads as `other`).
+    `other` (ACP's categories; none, a custom one, and one a newer node
+    sends read as `other`).
   - `SessionOption { id, name, description?, category, kind, .. }`,
     `kind` one of `select { current, values }` (each value `{ id, name,
     description?, group? }`, in the agent's order; `group` is the name of
-    the group the agent files it under) or `toggle { on }`.
+    the group the agent files it under), `toggle { on }`, or `unknown`: a
+    kind a newer node sends, which a client skips (without it, one such
+    option would fail the decode of the whole list).
+  - An agent with only ACP's older `modes` (and no option in the `mode`
+    category) gets a `mode` option made from them (`session_mode` if the
+    agent uses that id), set with `session/set_mode`.
   - `OptionChoice { id, kind, .. }`: what a client asks for, `select {
     value }` or `toggle { on }`.
+- `SessionTitle`: a string on the wire, parsed: trimmed, not empty, one
+  line without control characters, at most 120 characters. A bad one does
+  not decode. A title taken from a prompt is its first non-empty line, cut
+  at 80 characters.
 - `SessionMode::Structured.options?: OptionChoice[]`: set in order once
-  the session exists, after `model`; one the agent does not offer fails
-  the session, as an unknown model does.
-- `SessionSpec.title?` and `SessionInfo.title?`: a session's name. One
-  without a title takes the first line of its first prompt, cut at 80
-  characters.
+  the session exists (after `session/new` or `session/load`), after
+  `model`; one the agent does not offer, or refuses, fails the session
+  (`failed`, the reason in its message), as an unknown model does.
+- `SessionSpec.title?`: the title asked for at creation.
+  `SessionInfo.title?`: the session's title now, the one truth for it:
+  the spec's, otherwise (structured sessions) the first line of its first
+  prompt with text, then whatever `session.rename` gave it last. The node
+  keeps it across restarts. Absent until it has one, and from older nodes.
 - A `session.create` choosing options or naming a title needs protocol 9
   (`Call::since`): an older node would start the session in the agent's
   default mode, or unnamed, rather than refuse.
-- Events: `options_changed { options }`, the whole list whenever it
-  changes (after the handshake, after a set, when the agent reports a
-  change itself); `renamed { title }`. A version 2-8 client gets a
-  `harness_log` line in their place: `vessel: options: Model Haiku, Mode
-  plan, Fast mode off` (each option's name and its current value's name,
-  or its id when the agent does not list it; `none` for no options), and
-  `vessel: renamed to <title>`.
+- Events:
+  - `options_changed { options }`: the whole list. Every structured
+    session logs one right before its `ready`, as the options stand after
+    the handshake's choices, empty when the agent offers none (so
+    "nothing offered" is told from "not known yet"); then one whenever
+    they change (a `session.set_option`, or the agent's own report of a
+    change, also from the agent a profile move restarts).
+  - `renamed { title }`: from the first prompt or `session.rename`.
+  - A version 2-8 client gets a `harness_log` line in their place:
+    `vessel: options: Model Haiku, Mode plan, Fast mode off` (each
+    option's name and its current value's name, or its id when the agent
+    does not list it; options of an unknown kind left out; `none` for no
+    options), and `vessel: renamed to <title>`.
 - Methods, all forwardable:
   - `harness.options { harness, profile? }` (read) returns `{ options,
     probed_at }`: what a harness's agent offers before any session of it
-    exists.
-  - `session.options { session }` (read) returns `SessionOption[]`.
+    exists. The node starts the agent under the profile (no prompt is
+    sent), reads the handshake, and stops it; the answer is kept ten
+    minutes, or until the harness reports another version, and callers
+    asking meanwhile share one probe. A harness that cannot run
+    structured sessions on the node answers an empty list. Errors:
+    `harness_not_installed`; `spawn_failed` when the agent does not start
+    or complete its handshake (not signed in, for example; the message
+    has the agent's last lines), within the handshake timeout;
+    `invalid_request` for an unknown profile or one of another harness.
+  - `session.options { session }` (read) returns `SessionOption[]` as the
+    agent last reported them, waiting for the handshake of a starting
+    session. `unsupported` for a terminal session, `conflict` for an
+    ended one (its log's last `options_changed` is what it ran with).
   - `session.set_option { session, choice }` (operate, ownership-checked
-    like `session.send`) returns `SessionOption[]` after the change; the
-    agent's refusal is the call's error.
+    like `session.send`) returns `SessionOption[]` after the change, while
+    idle or mid-turn as the agent allows; a value in effect changes
+    nothing. `invalid_request` for a choice the agent does not offer
+    (nothing is sent to it), `conflict` for the agent's refusal (its
+    message in the error's), `unsupported` for a terminal session.
   - `session.rename { session, title }` (operate, ownership-checked)
-    returns the `SessionInfo`.
+    returns the `SessionInfo`; any live session, terminal ones included.
+    `conflict` for an ended one.
+- Sessions that continue elsewhere keep what they run with:
+  `TransferDetail::Session.options?` (`session.export`) carries the
+  session's choices as they stand (its last report's values; before any,
+  its spec's), and `session.import` applies them after the load, failing
+  where the agent there does not offer one; the title travels in the
+  exported info and is kept. A profile move applies them to the restarted
+  agent likewise.
 
 ## Version 8 (2026-11-11)
 
