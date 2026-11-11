@@ -99,8 +99,11 @@ impl Projection {
             SessionEvent::ProfileChanged { to, .. } => {
                 self.profile = ProfileMove::To(to.clone());
             }
-            SessionEvent::Agent { .. } | SessionEvent::Terminal(_) | SessionEvent::ModelCall(_) => {
-            }
+            SessionEvent::Agent { .. }
+            | SessionEvent::Terminal(_)
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => {}
         }
     }
 }

@@ -34,9 +34,12 @@ use crate::harness::Harness;
 use crate::model::{ListModels, ModelRoute};
 use crate::name::SecretName;
 use crate::node::{NodeInfo, ProtocolVersion};
+use crate::options::{
+    GetHarnessOptions, GetSessionOptions, HarnessOptions, SessionOption, SetSessionOption,
+};
 use crate::profile::{ListProfiles, MoveProfile, ProfileInfo, ReloadProfiles};
 use crate::secret::{CopySecret, DeleteSecret, ListSecrets, SetSecret};
-use crate::session::SessionInfo;
+use crate::session::{SessionInfo, SessionMode};
 use crate::transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MemoryImported,
     ReadTransfer, SessionImported, TransferManifest,
@@ -48,7 +51,7 @@ mod requests;
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
     Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
-    ReadEvents, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
+    ReadEvents, RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
 };
 
 /// A request type, bound to its response type and its method.
@@ -345,6 +348,14 @@ rpc_methods! {
     LspDiagnostics / lsp_diagnostics / "lsp.diagnostics" [Read, 7]: crate::lsp::Diagnostics => crate::lsp::Page<crate::lsp::Diagnostic>;
     /// The model routes this node offers (protocol 7).
     ListModels / list_models / "model.list" [Read, 7]: ListModels => Vec<ModelRoute>;
+    /// What a harness's agent offers before a session exists (protocol 9).
+    HarnessOptions / harness_options / "harness.options" [Read, 9]: GetHarnessOptions => HarnessOptions;
+    /// A structured session's config options (protocol 9).
+    SessionOptions / session_options / "session.options" [Read, 9]: GetSessionOptions => Vec<SessionOption>;
+    /// Change one of a running session's config options (protocol 9).
+    SetSessionOption / set_session_option / "session.set_option" [Operate, 9]: SetSessionOption => Vec<SessionOption>;
+    /// Give a session a title (protocol 9).
+    RenameSession / rename_session / "session.rename" [Operate, 9]: RenameSession => SessionInfo;
 }
 
 impl Call {
@@ -357,7 +368,21 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
-            Self::CreateSession(request) => request.spec.profile.as_ref().map(|_| 5),
+            // Options chosen at creation and a title came in 9: an older
+            // node would start the session in the agent's default mode (a
+            // permissions mode the caller did not ask for) and unnamed.
+            Self::CreateSession(request) => {
+                let spec = &request.spec;
+                let chooses = match &spec.mode {
+                    SessionMode::Structured { options, .. } => !options.is_empty(),
+                    SessionMode::Terminal { .. } => false,
+                };
+                if chooses || spec.title.is_some() {
+                    Some(9)
+                } else {
+                    spec.profile.as_ref().map(|_| 5)
+                }
+            }
             // `scopes` came in 5; a scope newer than that needs its own
             // version, or an older node would refuse the name it lacks.
             Self::InviteDevice(request) => request.scopes.as_ref().map(|scopes| {
@@ -416,7 +441,11 @@ impl Call {
             | Self::LspOutgoingCalls(_)
             | Self::LspDiagnostics(_)
             | Self::CopySecret(_)
-            | Self::ListModels(_) => None,
+            | Self::ListModels(_)
+            | Self::HarnessOptions(_)
+            | Self::SessionOptions(_)
+            | Self::SetSessionOption(_)
+            | Self::RenameSession(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

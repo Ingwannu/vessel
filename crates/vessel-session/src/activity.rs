@@ -94,7 +94,10 @@ impl Tracker {
             }
             SessionEvent::Terminal(_) => self.set(Activity::Active, at),
             SessionEvent::Agent { event } => self.agent(event, at),
-            SessionEvent::ProfileChanged { .. } | SessionEvent::ModelCall(_) => {}
+            SessionEvent::ProfileChanged { .. }
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => {}
         }
     }
 

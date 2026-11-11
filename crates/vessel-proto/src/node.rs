@@ -36,10 +36,11 @@ impl fmt::Display for ProtocolVersion {
 
 /// The protocol this build speaks. Bump on any breaking change to a wire type
 /// and record the change in `docs/PROTOCOL.md`.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(8);
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(9);
 
-/// The oldest protocol this build still accepts. Versions 3 to 8 only add
-/// methods and defaulted fields, so version 2 peers keep working.
+/// The oldest protocol this build still accepts. Versions 3 to 9 only add
+/// methods, events (with stand-ins for older peers) and defaulted fields,
+/// so version 2 peers keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);
 
 /// An inclusive range of protocol versions a peer can speak.

@@ -44,9 +44,9 @@ use vessel_proto::{
     GetSession, GrantHome, Hello, ImportMemory, ImportSession, InviteDevice, KillSession,
     ListDevices, ListHarnesses, ListMembers, ListModels, ListNodes, ListPeers, ListProfiles,
     ListSecrets, ListSessions, Method, MoveProfile, Outcome, ProtocolRange, ReadBlob, ReadEvents,
-    ReadTransfer, RelayCall, ReloadProfiles, Reply, ReportApplied, Request, RequestId,
-    RevokeDevice, SendInput, ServerFrame, SetSecret, StopNode, Subscribe, Unsubscribe, WatchFleet,
-    Welcome, WireError,
+    ReadTransfer, RelayCall, ReloadProfiles, RenameSession, Reply, ReportApplied, Request,
+    RequestId, RevokeDevice, SendInput, ServerFrame, SetSecret, StopNode, Subscribe, Unsubscribe,
+    WatchFleet, Welcome, WireError,
 };
 
 pub use subscription::{Subscription, SubscriptionItem};
@@ -115,6 +115,12 @@ impl Unary for vessel_proto::lsp::TypeDefinition {}
 impl Unary for vessel_proto::lsp::IncomingCalls {}
 impl Unary for vessel_proto::lsp::OutgoingCalls {}
 impl Unary for vessel_proto::lsp::Diagnostics {}
+// Protocol 9. `harness.options` may start an agent to ask it, and still
+// answers once.
+impl Unary for vessel_proto::GetHarnessOptions {}
+impl Unary for vessel_proto::GetSessionOptions {}
+impl Unary for vessel_proto::SetSessionOption {}
+impl Unary for RenameSession {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -204,7 +210,11 @@ const fn is_unary(method: Method) -> bool {
         | Method::LspIncomingCalls
         | Method::LspOutgoingCalls
         | Method::LspDiagnostics
-        | Method::ListModels => true,
+        | Method::ListModels
+        | Method::HarnessOptions
+        | Method::SessionOptions
+        | Method::SetSessionOption
+        | Method::RenameSession => true,
     }
 }
 

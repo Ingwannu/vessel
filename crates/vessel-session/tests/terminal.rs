@@ -232,7 +232,9 @@ mod support {
                 other @ (SessionEvent::Terminal(_)
                 | SessionEvent::Agent { .. }
                 | SessionEvent::ProfileChanged { .. }
-                | SessionEvent::ModelCall(_)) => {
+                | SessionEvent::ModelCall(_)
+                | SessionEvent::OptionsChanged { .. }
+                | SessionEvent::Renamed { .. }) => {
                     panic!("last record is not a status: {other:?}")
                 }
             }
@@ -562,6 +564,7 @@ async fn launch_problems_are_typed_errors() {
             SessionMode::Structured {
                 model: Some(ModelId::new("cheap")),
                 resume: None,
+                options: Vec::new(),
             },
         );
         let error = fixture.runtime.create(structured).await.unwrap_err();

@@ -221,6 +221,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
         SessionMode::Structured {
             model: run.model.map(ModelId::new),
             resume: run.resume.map(HarnessSessionId::new),
+            options: Vec::new(),
         }
     } else {
         SessionMode::Terminal {

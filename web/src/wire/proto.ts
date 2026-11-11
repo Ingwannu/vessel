@@ -130,7 +130,7 @@ export type BundlePath = string;
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession };
 
 /**
  * What `fleet.callback` answers.
@@ -594,6 +594,24 @@ node: NodeId,
 key: NodePublicKey, };
 
 /**
+ * `harness.options` (protocol 9): what a harness's agent offers before
+ * any session of it exists, for a new-session form. The node starts the
+ * agent as a structured session would (under `profile`, in a scratch
+ * directory), reads its options from the handshake, and ends it; no
+ * prompt is sent. Needs `read`.
+ */
+export type GetHarnessOptions = { 
+/**
+ * Which harness.
+ */
+harness: HarnessKind, 
+/**
+ * Under this profile; `None` is the harness's default. A profile can
+ * change what an agent offers (another account, another provider).
+ */
+profile?: ProfileName | null, };
+
+/**
  * Hover at a saved source position.
  */
 export type GetHover = AtPosition;
@@ -612,6 +630,16 @@ export type GetNode = null;
  * `session.get`: one session.
  */
 export type GetSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
+
+/**
+ * `session.options` (protocol 9): a structured session's options as its
+ * agent last reported them. Needs `read`.
+ */
+export type GetSessionOptions = { 
 /**
  * Which session.
  */
@@ -661,6 +689,21 @@ structured: StructuredSupport, };
  * module exists.
  */
 export type HarnessKind = "claude-code" | "codex" | "gemini" | "open-code";
+
+/**
+ * Reply to `harness.options`.
+ */
+export type HarnessOptions = { 
+/**
+ * What the agent offered, in its order. Empty for an agent that
+ * offers none.
+ */
+options: Array<SessionOption>, 
+/**
+ * When the node asked the agent: the node answers from a recent probe
+ * rather than start the agent for every caller.
+ */
+probed_at: string, };
 
 /**
  * The harness's own session id (an ACP `sessionId`). Kept so a
@@ -1002,7 +1045,7 @@ project?: string | null, };
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename";
 
 /**
  * An API a provider or a harness speaks.
@@ -1204,6 +1247,69 @@ export type OfferVersion = 1;
  * A best-effort offset into sorted results; edits may shift later pages.
  */
 export type Offset = number;
+
+/**
+ * What an option is about, as the agent labels it. For placing a control
+ * (the composer's model, effort and permissions), never for deciding what
+ * a value means: the values are the agent's.
+ */
+export type OptionCategory = "mode" | "model" | "model_config" | "thought_level" | "other";
+
+/**
+ * A client's choice for one option: at creation
+ * (`SessionMode::Structured.options`) or with `session.set_option`. A
+ * choice the agent does not offer (an unknown option, a value not in the
+ * list, a toggle for a select) fails, at creation the whole session, as an
+ * unknown model does.
+ */
+export type OptionChoice = { 
+/**
+ * Which option.
+ */
+id: OptionId, } & ({ "kind": "select", 
+/**
+ * The value.
+ */
+value: OptionValueId, } | { "kind": "toggle", 
+/**
+ * Whether to turn it on.
+ */
+on: boolean, });
+
+/**
+ * A session config option's id as the agent names it (ACP's
+ * `configId`, for example `model` or `mode`; protocol 9). Echoed back
+ * verbatim when a client changes the option.
+ */
+export type OptionId = string;
+
+/**
+ * One value a select option offers.
+ */
+export type OptionValue = { 
+/**
+ * The value's id, sent back in an [`OptionChoice`].
+ */
+id: OptionValueId, 
+/**
+ * Its label, in the agent's words.
+ */
+name: string, 
+/**
+ * A longer explanation, when the agent gives one.
+ */
+description?: string | null, 
+/**
+ * The name of the group the agent files it under, when it groups its
+ * values. Values of one group are adjacent.
+ */
+group?: string | null, };
+
+/**
+ * One value of a select option, as the agent names it (ACP's `value`;
+ * protocol 9). Echoed back verbatim when a client picks it.
+ */
+export type OptionValueId = string;
 
 /**
  * Who a forwarded call speaks for, as the node it started on vouches.
@@ -1659,9 +1765,24 @@ export type RemoteCreator = { "kind": "owner" } | { "kind": "device",
 id: DeviceId, };
 
 /**
+ * `session.rename` (protocol 9): give a session a title of its own. Every
+ * client sees the change as a `renamed` event and in `SessionInfo.title`;
+ * the reply is the session as it is now. Needs `operate`.
+ */
+export type RenameSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The title.
+ */
+title: string, };
+
+/**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo };
 
 /**
  * `fleet.report` (protocol 5): a member says what it applied and which
@@ -1767,7 +1888,15 @@ from?: ProfileName | null,
 /**
  * The profile now.
  */
-to?: ProfileName | null, } | { "type": "model_call" } & ModelCall;
+to?: ProfileName | null, } | { "type": "model_call" } & ModelCall | { "type": "options_changed", 
+/**
+ * Every option, as the agent reports them.
+ */
+options: Array<SessionOption>, } | { "type": "renamed", 
+/**
+ * The title now.
+ */
+title: string, };
 
 /**
  * A session on a node. Unique across the fleet, so it can be used
@@ -1865,7 +1994,14 @@ model?: SessionModel | null,
  * from what its agent is doing (protocol 8, ADR 0019). Absent from
  * older nodes; a client then places it by `status`.
  */
-board?: SessionBoard | null, };
+board?: SessionBoard | null, 
+/**
+ * What it is called now (protocol 9): `spec.title`, or the first line
+ * of its first prompt, cut at 80 characters, until `session.rename`
+ * changes it. Absent until it has one, and from older nodes; a client
+ * then names it by its folder.
+ */
+title?: string | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.
@@ -1903,6 +2039,39 @@ route: ModelRouteName,
  * The provider's model the harness is pinned to.
  */
 model: ModelId, };
+
+/**
+ * One of a session's config options, as the agent reports it.
+ */
+export type SessionOption = { 
+/**
+ * The option's id, sent back in an [`OptionChoice`].
+ */
+id: OptionId, 
+/**
+ * Its label, in the agent's words.
+ */
+name: string, 
+/**
+ * A longer explanation, when the agent gives one.
+ */
+description?: string | null, 
+/**
+ * What it is about.
+ */
+category: OptionCategory, } & ({ "kind": "select", 
+/**
+ * The value in effect.
+ */
+current: OptionValueId, 
+/**
+ * Every value offered, in the agent's order.
+ */
+values: Array<OptionValue>, } | { "kind": "toggle", 
+/**
+ * Whether it is on.
+ */
+on: boolean, });
 
 /**
  * Where a session came from, when another node of the fleet had a hand in
@@ -1962,7 +2131,12 @@ cwd?: string | null,
  * The profile to launch with (protocol 5, ADR 0011); `None` is the
  * harness's default, which is how every earlier session ran.
  */
-profile?: ProfileName | null, } & ({ "mode": "terminal", 
+profile?: ProfileName | null, 
+/**
+ * What to call it (protocol 9). Without one, a structured session
+ * takes the first line of its first prompt (`SessionInfo.title`).
+ */
+title?: string | null, } & ({ "mode": "terminal", 
 /**
  * Extra arguments passed verbatim to the harness binary.
  */
@@ -1978,7 +2152,14 @@ model?: ModelId | null,
 /**
  * Resume this harness session instead of starting a new one.
  */
-resume?: HarnessSessionId | null, });
+resume?: HarnessSessionId | null, 
+/**
+ * The agent's config options to set once the session exists, in
+ * order, after `model` (protocol 9, ADR 0022): a permissions mode,
+ * an effort, anything the agent offers. A choice the agent does
+ * not offer fails the session, as a model it does not offer does.
+ */
+options?: Array<OptionChoice>, });
 
 /**
  * Lifecycle of the harness process behind a session.
@@ -2010,6 +2191,22 @@ name: SecretName,
  * Its value.
  */
 value: SecretValue, };
+
+/**
+ * `session.set_option` (protocol 9): change one option of a running
+ * structured session. The reply is every option as the agent reports them
+ * after the change (one change can move others); the agent's refusal is
+ * the call's error. Needs `operate`.
+ */
+export type SetSessionOption = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The change.
+ */
+choice: OptionChoice, };
 
 /**
  * Diagnostic severity; absence is distinct from an error.

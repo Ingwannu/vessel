@@ -236,7 +236,10 @@ impl Method {
     ///   target that would refuse the value never receives it, and
     ///   `model.list` (protocol 7: route names, providers and model ids,
     ///   never a URL or a secret name), which a picker of profiles for a
-    ///   session there needs as much as the profiles.
+    ///   session there needs as much as the profiles, and protocol 9's
+    ///   options and titles (`harness.options`, `session.options`,
+    ///   `session.set_option`, `session.rename`), which starting and
+    ///   steering a session there needs.
     /// - Not forwardable, administration of a node done there: stopping it,
     ///   its devices, re-reading its profiles, deleting or copying its
     ///   secrets.
@@ -277,7 +280,11 @@ impl Method {
             | Self::LspOutgoingCalls
             | Self::LspDiagnostics
             | Self::ListSecrets
-            | Self::ListModels => true,
+            | Self::ListModels
+            | Self::HarnessOptions
+            | Self::SessionOptions
+            | Self::SetSessionOption
+            | Self::RenameSession => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

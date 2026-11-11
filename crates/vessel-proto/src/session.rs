@@ -11,6 +11,7 @@ use crate::harness::HarnessKind;
 use crate::id::{DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, SessionId};
 use crate::model::SessionModel;
 use crate::name::ProfileName;
+use crate::options::OptionChoice;
 use crate::profile::Creator;
 use crate::terminal::{TerminalInput, TerminalSize};
 
@@ -48,6 +49,12 @@ pub enum SessionMode {
         /// Resume this harness session instead of starting a new one.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         resume: Option<HarnessSessionId>,
+        /// The agent's config options to set once the session exists, in
+        /// order, after `model` (protocol 9, ADR 0022): a permissions mode,
+        /// an effort, anything the agent offers. A choice the agent does
+        /// not offer fails the session, as a model it does not offer does.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        options: Vec<OptionChoice>,
     },
 }
 
@@ -70,6 +77,10 @@ pub struct SessionSpec {
     /// harness's default, which is how every earlier session ran.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profile: Option<ProfileName>,
+    /// What to call it (protocol 9). Without one, a structured session
+    /// takes the first line of its first prompt (`SessionInfo.title`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     /// How to drive it.
     #[serde(flatten)]
     pub mode: SessionMode,
@@ -84,6 +95,7 @@ impl SessionSpec {
             harness,
             cwd: None,
             profile: None,
+            title: None,
             mode,
         }
     }
@@ -99,6 +111,13 @@ impl SessionSpec {
     #[must_use]
     pub fn with_profile(mut self, profile: ProfileName) -> Self {
         self.profile = Some(profile);
+        self
+    }
+
+    /// Called this.
+    #[must_use]
+    pub fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
         self
     }
 }
@@ -188,6 +207,12 @@ pub struct SessionInfo {
     /// older nodes; a client then places it by `status`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub board: Option<SessionBoard>,
+    /// What it is called now (protocol 9): `spec.title`, or the first line
+    /// of its first prompt, cut at 80 characters, until `session.rename`
+    /// changes it. Absent until it has one, and from older nodes; a client
+    /// then names it by its folder.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -230,12 +255,13 @@ pub enum RemoteCreator {
 
 impl SessionInfo {
     /// A session that is just starting: no events yet, running the profile
-    /// it asked for, created by the owner.
+    /// it asked for, called what it asked to be, created by the owner.
     #[must_use]
     pub fn new(id: SessionId, spec: SessionSpec, created_at: DateTime<Utc>) -> Self {
         Self {
             id,
             profile: spec.profile.clone(),
+            title: spec.title.clone(),
             spec,
             created_by: Creator::Owner,
             status: SessionStatus::Starting,

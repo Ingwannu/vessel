@@ -4,8 +4,9 @@
 use std::fmt::Write as _;
 
 use vessel_proto::{
-    EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, ProfileInfo,
-    ProfileName, SessionInfo, SessionMode, SessionStatus, StructuredSupport,
+    EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, OptionKind,
+    ProfileInfo, ProfileName, SessionInfo, SessionMode, SessionOption, SessionStatus,
+    StructuredSupport,
 };
 
 /// A session's status in a few words.
@@ -48,6 +49,31 @@ pub(crate) fn model_call(call: &ModelCall) -> String {
         usage.output.get(),
         call.duration_ms.as_duration()
     );
+    text
+}
+
+/// A session's options as its agent reports them (protocol 9): each
+/// option's name and the name of its value now, in the agent's words.
+pub(crate) fn options(options: &[SessionOption]) -> String {
+    if options.is_empty() {
+        return "none".to_owned();
+    }
+    let mut text = String::new();
+    for option in options {
+        if !text.is_empty() {
+            text.push_str(", ");
+        }
+        let value = match &option.kind {
+            // An agent may report a current value it does not list: its id.
+            OptionKind::Select { current, values } => values
+                .iter()
+                .find(|value| value.id == *current)
+                .map_or_else(|| current.as_str(), |value| value.name.as_str()),
+            OptionKind::Toggle { on: true } => "on",
+            OptionKind::Toggle { on: false } => "off",
+        };
+        let _infallible = write!(text, "{} {value}", option.name);
+    }
     text
 }
 
@@ -260,6 +286,20 @@ mod tests {
             model_call(&failed),
             "[model r m: 0 in, 0 out, failed: context_too_long, 40.0ms]"
         );
+    }
+
+    #[test]
+    fn options_show_each_value_by_its_name() {
+        let list: Vec<SessionOption> = serde_json::from_str(
+            r#"[{"id":"model","name":"Model","category":"model","kind":"select","current":"haiku",
+                 "values":[{"id":"haiku","name":"Haiku"}]},
+                {"id":"mode","name":"Mode","category":"mode","kind":"select","current":"plan",
+                 "values":[]},
+                {"id":"fast","name":"Fast","category":"other","kind":"toggle","on":true}]"#,
+        )
+        .unwrap();
+        assert_eq!(options(&list), "Model Haiku, Mode plan, Fast on");
+        assert_eq!(options(&[]), "none");
     }
 
     #[test]

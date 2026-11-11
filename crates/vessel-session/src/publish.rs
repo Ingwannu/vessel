@@ -175,9 +175,13 @@ impl InfoChange {
                 event: AgentEvent::Ready { harness_session },
             } => Self::HarnessSession(harness_session.clone()),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
-            SessionEvent::Terminal(_) | SessionEvent::Agent { .. } | SessionEvent::ModelCall(_) => {
-                Self::None
-            }
+            // Nothing publishes these yet (protocol 9's contract step);
+            // `Renamed` will set the title when titles are built.
+            SessionEvent::Terminal(_)
+            | SessionEvent::Agent { .. }
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => Self::None,
         }
     }
 

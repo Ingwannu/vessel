@@ -129,6 +129,7 @@ mod support {
             SessionMode::Structured {
                 model: None,
                 resume: None,
+                options: Vec::new(),
             },
         )
         .with_cwd(cwd)

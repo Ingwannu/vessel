@@ -368,7 +368,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::LspIncomingCalls
         | Method::LspOutgoingCalls
         | Method::LspDiagnostics
-        | Method::ListModels => true,
+        | Method::ListModels
+        | Method::HarnessOptions
+        | Method::SessionOptions
+        | Method::SetSessionOption
+        | Method::RenameSession => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

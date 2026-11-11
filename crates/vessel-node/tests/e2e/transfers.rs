@@ -476,6 +476,7 @@ async fn a_codex_rollout_keeps_its_place_and_resumes_in_the_new_directory() {
             SessionMode::Structured {
                 model: None,
                 resume: None,
+                options: Vec::new(),
             },
         )
         .with_cwd(fixture.cwd());

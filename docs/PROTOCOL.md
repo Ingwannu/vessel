@@ -4,6 +4,56 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## Version 9 (2026-11-11)
+
+Nodes speak 2..=9; version 9 adds four methods, two events (with
+stand-ins for older clients) and optional fields. Milestone 10's plan
+(`docs/plans/backend-m10.md`, "Contract (protocol 9)", track C) and ADR
+0022. The contract is in place; until track C builds each call, the four
+methods answer `unsupported` ("not built on this node yet"), and a
+`session.create` that chooses options is refused with `unsupported`
+rather than started without them.
+
+- Types (`vessel_proto::options`): the agent's own session config
+  options, passed on as the agent reports them; Vessel writes no list of
+  models, efforts or modes of its own.
+  - `OptionId`, `OptionValueId`: the agent's ids, opaque, echoed back.
+  - `OptionCategory`: `mode`, `model`, `model_config`, `thought_level`,
+    `other` (ACP's categories; an unknown one, the agent's or a newer
+    node's, reads as `other`).
+  - `SessionOption { id, name, description?, category, kind, .. }`,
+    `kind` one of `select { current, values }` (each value `{ id, name,
+    description?, group? }`, in the agent's order; `group` is the name of
+    the group the agent files it under) or `toggle { on }`.
+  - `OptionChoice { id, kind, .. }`: what a client asks for, `select {
+    value }` or `toggle { on }`.
+- `SessionMode::Structured.options?: OptionChoice[]`: set in order once
+  the session exists, after `model`; one the agent does not offer fails
+  the session, as an unknown model does.
+- `SessionSpec.title?` and `SessionInfo.title?`: a session's name. One
+  without a title takes the first line of its first prompt, cut at 80
+  characters.
+- A `session.create` choosing options or naming a title needs protocol 9
+  (`Call::since`): an older node would start the session in the agent's
+  default mode, or unnamed, rather than refuse.
+- Events: `options_changed { options }`, the whole list whenever it
+  changes (after the handshake, after a set, when the agent reports a
+  change itself); `renamed { title }`. A version 2-8 client gets a
+  `harness_log` line in their place: `vessel: options: Model Haiku, Mode
+  plan, Fast mode off` (each option's name and its current value's name,
+  or its id when the agent does not list it; `none` for no options), and
+  `vessel: renamed to <title>`.
+- Methods, all forwardable:
+  - `harness.options { harness, profile? }` (read) returns `{ options,
+    probed_at }`: what a harness's agent offers before any session of it
+    exists.
+  - `session.options { session }` (read) returns `SessionOption[]`.
+  - `session.set_option { session, choice }` (operate, ownership-checked
+    like `session.send`) returns `SessionOption[]` after the change; the
+    agent's refusal is the call's error.
+  - `session.rename { session, title }` (operate, ownership-checked)
+    returns the `SessionInfo`.
+
 ## Version 8 (2026-11-11)
 
 Nodes speak 2..=8; version 8 only adds one optional field, so there is

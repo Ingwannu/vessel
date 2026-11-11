@@ -243,7 +243,14 @@ impl SessionRuntime {
                 self.create_terminal(spec, size, (profile, model_proxy), mcp, record)
                     .await
             }
-            SessionMode::Structured { model, resume } => {
+            SessionMode::Structured {
+                model,
+                resume,
+                options,
+            } => {
+                if !options.is_empty() {
+                    return Err(SessionError::OptionsNotBuilt);
+                }
                 let start = AgentStart {
                     model,
                     resume,

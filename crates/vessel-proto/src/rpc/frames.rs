@@ -82,6 +82,12 @@ pub enum ClientFrame {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "a frame is built, encoded and dropped, as `Outcome` is (protocol 9's \
+              titles and options made `SessionInfo`, and so a response, tip the lint); \
+              boxing the outcome would add an allocation to every call to save a copy"
+)]
 pub enum ServerFrame {
     /// Handshake accepted.
     Welcome(Welcome),

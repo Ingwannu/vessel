@@ -283,6 +283,7 @@ impl Importer<'_> {
             SessionMode::Structured {
                 model,
                 resume: Some(harness_session.clone()),
+                options: Vec::new(),
             },
         )
         .with_cwd(to_cwd.clone());

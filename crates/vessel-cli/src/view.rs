@@ -80,6 +80,10 @@ impl Conversation {
                 render::profile(to.as_ref())
             )),
             SessionEvent::ModelCall(call) => self.line(render::model_call(call)),
+            SessionEvent::OptionsChanged { options } => {
+                self.line(format!("[options: {}]", render::options(options)))
+            }
+            SessionEvent::Renamed { title } => self.line(format!("[renamed: {title}]")),
         }
     }
 
