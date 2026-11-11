@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  type Binding,
   bindingText,
   bindingWords,
   chordCaps,
@@ -23,27 +24,36 @@ function press(key: string, extra: Partial<KeyPress> = {}): KeyPress {
   };
 }
 
+function binding(text: string): Binding {
+  const parsed = parseBinding(text);
+  if (parsed === null) throw new Error(text);
+  return parsed;
+}
+
 describe("the grammar the bridge keeps", () => {
   test("bindings that parse, and come back as written", () => {
-    for (const text of [
+    const accepted = [
       "Mod+K",
       "Alt+[",
       "G S",
       "/",
+      "Shift+/",
       "Mod+Shift+B",
       "Ctrl+Alt+Shift+Meta+F12",
-      "Mod+Plus",
-    ]) {
-      const binding = parseBinding(text);
-      expect(binding, text).not.toBeNull();
-      if (binding !== null) expect(bindingText(binding)).toBe(text);
+      "Mod+=",
+      "Mod+\\",
+    ];
+    for (const text of accepted) {
+      expect(bindingText(binding(text))).toBe(text);
     }
   });
 
   test("text that is not a binding", () => {
-    for (const text of [
+    const refused = [
       "",
       "k",
+      "?",
+      "Plus",
       "Shift+Mod+K",
       "Mod+",
       "Mod+Mod+K",
@@ -51,7 +61,8 @@ describe("the grammar the bridge keeps", () => {
       "Mod+K ",
       "Hyper+K",
       "x".repeat(40),
-    ]) {
+    ];
+    for (const text of refused) {
       expect(parseBinding(text), text).toBeNull();
     }
   });
@@ -59,56 +70,53 @@ describe("the grammar the bridge keeps", () => {
 
 describe("a key press as a chord", () => {
   test("Command is Mod on a Mac; Control is Mod elsewhere", () => {
-    expect(chordOf(press("k", { metaKey: true }), "mac")).toMatchObject({
+    const k = { code: "KeyK" };
+    expect(chordOf(press("k", { ...k, metaKey: true }), "mac")).toMatchObject({
       mod: true,
       key: "K",
     });
-    expect(chordOf(press("k", { ctrlKey: true }), "mac")).toMatchObject({
+    expect(chordOf(press("k", { ...k, ctrlKey: true }), "mac")).toMatchObject({
       mod: false,
       ctrl: true,
     });
-    expect(chordOf(press("k", { ctrlKey: true }), "other")).toMatchObject({
-      mod: true,
-      ctrl: false,
-    });
+    expect(chordOf(press("k", { ...k, ctrlKey: true }), "other")).toMatchObject(
+      { mod: true, ctrl: false },
+    );
   });
 
-  test("Option's character is not the key: its position is", () => {
+  test("the key is its position, whatever it types", () => {
+    const option = { altKey: true };
     expect(
-      chordOf(press("“", { altKey: true, code: "BracketLeft" }), "mac")?.key,
+      chordOf(press("“", { ...option, code: "BracketLeft" }), "mac")?.key,
     ).toBe("[");
-    expect(
-      chordOf(press("¡", { altKey: true, code: "Digit1" }), "mac")?.key,
-    ).toBe("1");
-    expect(
-      chordOf(press("å", { altKey: true, code: "KeyA" }), "mac")?.key,
-    ).toBe("A");
+    expect(chordOf(press("¡", { ...option, code: "Digit1" }), "mac")?.key).toBe(
+      "1",
+    );
+    expect(chordOf(press("Process", { code: "KeyN" }), "other")?.key).toBe("N");
+    expect(chordOf(press("ㅜ", { code: "KeyN" }), "other")?.key).toBe("N");
   });
 
-  test("a sign carries its Shift; a letter keeps it; a modifier alone is nothing", () => {
-    expect(chordOf(press("?", { shiftKey: true }), "other")).toMatchObject({
-      key: "?",
-      shift: false,
-    });
-    expect(chordOf(press("A", { shiftKey: true }), "other")).toMatchObject({
-      key: "A",
-      shift: true,
-    });
-    expect(chordOf(press("Shift", { shiftKey: true }), "other")).toBeNull();
-    expect(chordOf(press("ArrowUp"), "other")?.key).toBe("Up");
+  test("Shift is always written; a modifier alone is nothing", () => {
+    expect(
+      chordOf(press("?", { code: "Slash", shiftKey: true }), "other"),
+    ).toMatchObject({ key: "/", shift: true });
+    expect(
+      chordOf(press("Shift", { code: "ShiftLeft", shiftKey: true }), "other"),
+    ).toBeNull();
+    expect(chordOf(press("ArrowUp", { code: "ArrowUp" }), "other")?.key).toBe(
+      "Up",
+    );
+    expect(chordOf(press("n", { code: "" }), "other")?.key).toBe("N");
   });
 });
 
 describe("shown as each platform writes it", () => {
-  const binding = parseBinding("Mod+Shift+B");
   test("glyphs on a Mac, names elsewhere", () => {
-    if (binding === null) throw new Error("no binding");
-    expect(chordCaps(binding[0], "mac")).toEqual(["⇧", "⌘", "B"]);
-    expect(chordCaps(binding[0], "other")).toEqual(["Ctrl", "Shift", "B"]);
-    expect(bindingWords(binding, "other")).toBe("Ctrl+Shift+B");
-    const sequence = parseBinding("G S");
-    if (sequence === null) throw new Error("no sequence");
-    expect(bindingWords(sequence, "mac")).toBe("G then S");
+    const [chord] = binding("Mod+Shift+B");
+    expect(chordCaps(chord, "mac")).toEqual(["⇧", "⌘", "B"]);
+    expect(chordCaps(chord, "other")).toEqual(["Ctrl", "Shift", "B"]);
+    expect(bindingWords(binding("Mod+Shift+B"), "other")).toBe("Ctrl+Shift+B");
+    expect(bindingWords(binding("G S"), "mac")).toBe("G then S");
   });
 
   test("platforms", () => {
@@ -120,10 +128,12 @@ describe("shown as each platform writes it", () => {
 });
 
 test("a sequence overlaps the key it starts with", () => {
-  const g = parseBinding("G");
-  const gs = parseBinding("G S");
-  const gm = parseBinding("G M");
-  if (g === null || gs === null || gm === null) throw new Error("no binding");
-  expect(overlaps(g, gs)).toBe(true);
-  expect(overlaps(gs, gm)).toBe(false);
+  expect(overlaps(binding("G"), binding("G S"), "other")).toBe(true);
+  expect(overlaps(binding("G S"), binding("G M"), "other")).toBe(false);
+});
+
+test("Mod is resolved before comparing", () => {
+  expect(overlaps(binding("Mod+K"), binding("Ctrl+K"), "other")).toBe(true);
+  expect(overlaps(binding("Mod+K"), binding("Ctrl+K"), "mac")).toBe(false);
+  expect(overlaps(binding("Mod+K"), binding("Meta+K"), "mac")).toBe(true);
 });

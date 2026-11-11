@@ -36,23 +36,23 @@ describe("what a recorded key may be", () => {
 
 describe("clashes", () => {
   test("with another action, with a fixed one, with itself", () => {
-    expect(clashOf("find", binding("Mod+K"), {})).toEqual({
+    expect(clashOf("find", binding("Mod+K"), {}, "other")).toEqual({
       kind: "taken",
       action: "palette",
     });
-    expect(clashOf("find", binding("Alt+4"), {})).toEqual({
+    expect(clashOf("find", binding("Alt+4"), {}, "other")).toEqual({
       kind: "fixed",
       action: "jump-session",
     });
-    expect(clashOf("find", binding("Mod+F"), {})).toEqual({
+    expect(clashOf("find", binding("Mod+F"), {}, "other")).toEqual({
       kind: "same",
       action: "find",
     });
-    expect(clashOf("find", binding("G"), {})).toEqual({
+    expect(clashOf("find", binding("G"), {}, "other")).toEqual({
       kind: "taken",
       action: "go-board",
     });
-    expect(clashOf("find", binding("Mod+J"), {})).toBeNull();
+    expect(clashOf("find", binding("Mod+J"), {}, "other")).toBeNull();
   });
 
   test("the sentences", () => {
@@ -66,17 +66,21 @@ describe("clashes", () => {
 
 describe("edits", () => {
   test("a reassignment moves the key in one change", () => {
-    expect(assign("find", binding("Mod+K"), {}, 0, "palette")).toEqual([
-      { action: "find", to: { kind: "bindings", keys: ["Mod+K"] } },
-      { action: "palette", to: { kind: "bindings", keys: ["/"] } },
-    ]);
+    expect(assign("find", binding("Mod+K"), {}, 0, "palette", "other")).toEqual(
+      [
+        { action: "find", to: { kind: "bindings", keys: ["Mod+K"] } },
+        { action: "palette", to: { kind: "bindings", keys: ["/"] } },
+      ],
+    );
   });
 
   test("another key, at most two; removing one; the defaults again", () => {
-    expect(assign("find", binding("Mod+J"), {}, null, null)).toEqual([
+    expect(assign("find", binding("Mod+J"), {}, null, null, "other")).toEqual([
       { action: "find", to: { kind: "bindings", keys: ["Mod+F", "Mod+J"] } },
     ]);
-    expect(assign("palette", binding("Mod+J"), {}, null, null)[0]?.to).toEqual({
+    expect(
+      assign("palette", binding("Mod+J"), {}, null, null, "other")[0]?.to,
+    ).toEqual({
       kind: "bindings",
       keys: ["/", "Mod+J"],
     });

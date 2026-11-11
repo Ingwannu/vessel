@@ -6,6 +6,7 @@
 // event and runs what this answers.
 
 import { type Binding, type Chord, sameChord } from "./keys";
+import type { Platform } from "./platform";
 import {
   bindingsOf,
   jumpOf,
@@ -30,8 +31,16 @@ export type Matched =
   | { kind: "wait"; pending: Pending }
   | { kind: "none" };
 
+/** Every action's keys, the overridden actions' first: a key kept for an
+ * action wins over another's default that a newer page gave it. */
 function every(overrides: Overrides): [ShortcutAction, Binding][] {
-  return SHORTCUT_ACTIONS.flatMap((action) =>
+  const overridden = SHORTCUT_ACTIONS.filter(
+    (action) => overrides[action] !== undefined,
+  );
+  const others = SHORTCUT_ACTIONS.filter(
+    (action) => overrides[action] === undefined,
+  );
+  return [...overridden, ...others].flatMap((action) =>
     bindingsOf(action, overrides).map((binding): [ShortcutAction, Binding] => [
       action,
       binding,
@@ -39,21 +48,22 @@ function every(overrides: Overrides): [ShortcutAction, Binding][] {
   );
 }
 
-/** What pressing `chord` at `now` does, `pending` being the first key of a
- * sequence pressed before (or `null`). */
+/** What pressing `chord` at `now` on `platform` does, `pending` being the
+ * first key of a sequence pressed before (or `null`). */
 export function match(
   chord: Chord,
   pending: Pending | null,
   overrides: Overrides,
   now: number,
+  platform: Platform,
 ): Matched {
   const bound = every(overrides);
   if (pending !== null && now - pending.at <= SEQUENCE_MS) {
     for (const [action, binding] of bound) {
       if (
         binding.length === 2 &&
-        sameChord(binding[0], pending.chord) &&
-        sameChord(binding[1], chord)
+        sameChord(binding[0], pending.chord, platform) &&
+        sameChord(binding[1], chord, platform)
       ) {
         return { kind: "run", action, index: null };
       }
@@ -64,12 +74,13 @@ export function match(
     return { kind: "run", action: "jump-session", index: jump };
   }
   for (const [action, binding] of bound) {
-    if (binding.length === 1 && sameChord(binding[0], chord)) {
+    if (binding.length === 1 && sameChord(binding[0], chord, platform)) {
       return { kind: "run", action, index: null };
     }
   }
   const starts = bound.some(
-    ([, binding]) => binding.length === 2 && sameChord(binding[0], chord),
+    ([, binding]) =>
+      binding.length === 2 && sameChord(binding[0], chord, platform),
   );
   return starts
     ? { kind: "wait", pending: { chord, at: now } }

@@ -66,6 +66,7 @@ export function clashOf(
   action: ShortcutAction,
   binding: Binding,
   overrides: Overrides,
+  platform: Platform,
 ): Clash | null {
   if (binding.length === 1 && jumpOf(binding[0]) !== null) {
     return { kind: "fixed", action: "jump-session" };
@@ -75,7 +76,7 @@ export function clashOf(
       continue;
     }
     const held = bindingsOf(other, overrides).some((existing) =>
-      overlaps(existing, binding),
+      overlaps(existing, binding, platform),
     );
     if (held) {
       return { kind: other === action ? "same" : "taken", action: other };
@@ -128,6 +129,7 @@ export function assign(
   overrides: Overrides,
   replace: number | null,
   from: ShortcutAction | null,
+  platform: Platform,
 ): ShortcutEdit[] {
   const current = bindingsOf(action, overrides);
   const next =
@@ -139,7 +141,7 @@ export function assign(
   const edits = setKeys(action, next);
   if (from !== null && from !== action) {
     const left = bindingsOf(from, overrides).filter(
-      (existing) => !overlaps(existing, binding),
+      (existing) => !overlaps(existing, binding, platform),
     );
     edits.push(...setKeys(from, left));
   }

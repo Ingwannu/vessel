@@ -8,16 +8,20 @@
 //   Settings page's key caps, so the four cannot drift.
 // - Constraint: the page runs on a Mac and elsewhere; the same action is
 //   Command+K on one and Control+K on the other. A key's character
-//   depends on the layout and on Option (a Mac's Option+[ types "“").
-// - Choice: `Mod` names Command on a Mac and Control elsewhere
+//   depends on the layout, on Option (a Mac's Option+[ types "“") and on
+//   an input method (with Korean on, a letter key reports "Process").
+// - Choice: a key is its position (`KeyboardEvent.code`), written as a US
+//   keyboard shows it without Shift, so `Alt+[`, `Alt+1` and `N` work on
+//   a Mac, with an input method on and on any QWERTY-shaped layout, and
+//   each press has one spelling (`Shift+/`, never `?`). The cost: on a
+//   layout of another shape a shortcut is where the key is, not what it
+//   types (agent-orchestrator reads positions only for Alt and the
+//   brackets; the review of track W's contract chose positions always).
+//   `Mod` names Command on a Mac and Control elsewhere
 //   (agent-orchestrator's "primary", GOAT's `mod`); `Ctrl` and `Meta` name
-//   the physical keys when a binding means them. A letter, a digit, a
-//   bracket or a backquote is read from the key's position (`code`) when
-//   Alt is held or for the brackets and backquote (agent-orchestrator's
-//   rule), and from its character otherwise. A printable character that
-//   is not a letter or a digit carries its Shift in itself (`?`, not
-//   `Shift+/`), as Paseo shows it. A binding is one chord or two in
-//   sequence (`G S`, Vessel's own "go to" keys; Paseo's chords).
+//   the keys themselves, and chords are compared after Mod is resolved
+//   (`Mod+Ctrl` is one modifier off a Mac). A binding is one chord or two
+//   in sequence (`G S`, Vessel's "go to" keys; Paseo's chords).
 // - Display: a Mac's glyphs in Apple's order (⌃ ⌥ ⇧ ⌘) with no separator;
 //   elsewhere "Ctrl+Shift+K" (agent-orchestrator's `shortcutBindingKeys`).
 
@@ -54,7 +58,6 @@ const NAMED: ReadonlySet<string> = new Set([
   "End",
   "PageUp",
   "PageDown",
-  "Plus",
   ...Array.from({ length: 12 }, (_, index) => `F${String(index + 1)}`),
 ]);
 
@@ -64,16 +67,15 @@ const MODIFIERS = ["Mod", "Ctrl", "Alt", "Shift", "Meta"] as const;
 /** The longest binding the bridge keeps. */
 export const MAX_BINDING = 32;
 
+/** The printable keys, as a US keyboard shows them without Shift. */
+const SIGNS = "`-=[]\\;',./";
+
 function isKey(key: string): boolean {
-  if (NAMED.has(key)) {
-    return true;
-  }
-  if (key.length !== 1) {
-    return false;
-  }
-  const code = key.charCodeAt(0);
-  // Printable ASCII but space and "+"; letters in upper case only.
-  return code > 0x20 && code < 0x7f && key !== "+" && !/[a-z]/.test(key);
+  return (
+    NAMED.has(key) ||
+    /^[A-Z0-9]$/.test(key) ||
+    (key.length === 1 && SIGNS.includes(key))
+  );
 }
 
 function parseChord(text: string): Chord | null {
@@ -154,25 +156,29 @@ export function bindingText(binding: Binding): string {
   return binding.map(chordText).join(" ");
 }
 
-/** Whether two chords are the same keys. */
-export function sameChord(a: Chord, b: Chord): boolean {
-  return (
-    a.mod === b.mod &&
-    a.ctrl === b.ctrl &&
-    a.alt === b.alt &&
-    a.shift === b.shift &&
-    a.meta === b.meta &&
-    a.key === b.key
-  );
+/** The modifiers a chord holds on `platform`, Mod resolved: Command and
+ * Control on a Mac, Control and the Windows key elsewhere. */
+function held(chord: Chord, platform: Platform): string {
+  const command = platform === "mac" ? chord.mod || chord.meta : chord.meta;
+  const control = platform === "mac" ? chord.ctrl : chord.mod || chord.ctrl;
+  return [command, control, chord.alt, chord.shift]
+    .map((on) => (on ? "1" : "0"))
+    .join("");
 }
 
-/** Whether pressing one of the two would also start or be the other: the
- * same keys, or one a sequence that begins with the other. */
-export function overlaps(a: Binding, b: Binding): boolean {
-  return (
-    sameChord(a[0], b[0]) &&
-    (a.length === 1 || b.length === 1 || sameChord(a[1], b[1]))
-  );
+/** Whether two chords are the same keys on `platform`. */
+export function sameChord(a: Chord, b: Chord, platform: Platform): boolean {
+  return a.key === b.key && held(a, platform) === held(b, platform);
+}
+
+/** Whether pressing one of the two would also start or be the other on
+ * `platform`: the same keys, or one a sequence that begins with the
+ * other. */
+export function overlaps(a: Binding, b: Binding, platform: Platform): boolean {
+  if (!sameChord(a[0], b[0], platform)) {
+    return false;
+  }
+  return a.length === 1 || b.length === 1 || sameChord(a[1], b[1], platform);
 }
 
 /** Whether a chord holds a modifier that makes it a command rather than
@@ -191,62 +197,58 @@ export interface KeyPress {
   metaKey: boolean;
 }
 
-/** `event.key` names that differ from a binding's. */
-const RENAMED: Readonly<Record<string, string>> = {
+/** Positions (`code`) whose key is not their name's last letter. */
+const CODES: Readonly<Record<string, string>> = {
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
   ArrowUp: "Up",
   ArrowDown: "Down",
   ArrowLeft: "Left",
   ArrowRight: "Right",
-  " ": "Space",
-  "+": "Plus",
-  Esc: "Escape",
+  NumpadEnter: "Enter",
 };
 
-/** Positions read from `code`: brackets and the backquote always. */
-const POSITIONAL: Readonly<Record<string, string>> = {
-  BracketLeft: "[",
-  BracketRight: "]",
-  Backquote: "`",
-};
-
-/** The key of a press, or `null` for a modifier alone. */
-function keyOf(press: KeyPress): string | null {
-  const positional = POSITIONAL[press.code];
-  if (positional !== undefined) {
-    return positional;
+/** The key at a press's position; `null` for a modifier alone or a key
+ * no binding names. A press without a position (some virtual keyboards)
+ * falls back to its character when that is a letter or a digit. */
+export function keyOf(press: KeyPress): string | null {
+  const code = press.code;
+  const letter = /^Key([A-Z])$/.exec(code)?.[1];
+  const digit = /^Digit([0-9])$/.exec(code)?.[1];
+  const named = CODES[code] ?? (NAMED.has(code) ? code : undefined);
+  const found = letter ?? digit ?? named;
+  if (found !== undefined) {
+    return found;
   }
-  if (press.altKey) {
-    const letter = /^Key([A-Z])$/.exec(press.code)?.[1];
-    const digit = /^Digit([0-9])$/.exec(press.code)?.[1];
-    if (letter !== undefined || digit !== undefined) {
-      return letter ?? digit ?? null;
-    }
+  if (code === "") {
+    const typed = press.key.toUpperCase();
+    return /^[A-Z0-9]$/.test(typed) ? typed : null;
   }
-  const renamed = RENAMED[press.key] ?? press.key;
-  if (NAMED.has(renamed)) {
-    return renamed;
-  }
-  if (renamed.length !== 1) {
-    return null;
-  }
-  return renamed.toUpperCase();
+  return null;
 }
 
 /** A key press as a chord on `platform`; `null` for a modifier alone or a
  * key no binding can name. */
 export function chordOf(press: KeyPress, platform: Platform): Chord | null {
   const key = keyOf(press);
-  if (key === null || !isKey(key)) {
+  if (key === null) {
     return null;
   }
-  // A printable sign carries its Shift ("?" is Shift+/ on most layouts).
-  const sign = key.length === 1 && !/[A-Z0-9]/.test(key);
   const mac = platform === "mac";
   return {
     mod: mac ? press.metaKey : press.ctrlKey,
     ctrl: mac ? press.ctrlKey : false,
     alt: press.altKey,
-    shift: press.shiftKey && !sign,
+    shift: press.shiftKey,
     meta: mac ? false : press.metaKey,
     key,
   };
@@ -258,7 +260,6 @@ const SHOWN: Readonly<Record<string, string>> = {
   Down: "↓",
   Left: "←",
   Right: "→",
-  Plus: "+",
   Escape: "Esc",
 };
 
