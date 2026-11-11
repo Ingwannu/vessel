@@ -18,7 +18,9 @@ export function Timeline({ timeline }: { timeline: Log }) {
   const last = entries.at(-1);
   return (
     <div className="timeline" ref={scroller}>
-      <div className="timeline-column">
+      {/* A named region: the entries are found here, apart from the live
+          region below, which repeats the newest one's text. */}
+      <section className="timeline-column" aria-label="Timeline">
         <div className="t-space" style={{ height: span.before }} />
         {entries.slice(span.start, span.end).map((entry) => (
           <WindowRow
@@ -34,7 +36,7 @@ export function Timeline({ timeline }: { timeline: Log }) {
         {last === undefined ? (
           <p className="t-meta">Waiting for the session&apos;s first record…</p>
         ) : null}
-      </div>
+      </section>
       <p className="visually-hidden" aria-live="polite">
         {last === undefined ? "" : spoken(last)}
       </p>

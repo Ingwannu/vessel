@@ -8,7 +8,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { openUi } from "./open";
 import { loadEnv } from "./fleet";
-import { newSessionPage, startSession } from "./kit";
+import { newSessionPage, startSession, timeline } from "./kit";
 
 /** Whether a frame the page sent is a call of `session.send`. */
 function sendsInput(frame: unknown): boolean {
@@ -153,25 +153,27 @@ test("a structured session runs a turn and answers its permission", async ({
   // The prompt goes with the session: Send creates it, sends the prompt
   // and opens it.
   await startSession(page, "gpu-box", "Structured", "tidy the overview");
-  await expect(page.getByText("Agent ready")).toBeVisible();
-  await expect(page.getByText("Run fake tool").first()).toBeVisible();
+  await expect(timeline(page).getByText("Agent ready")).toBeVisible();
+  await expect(timeline(page).getByText("Run fake tool").first()).toBeVisible();
   // One prompt, docked over the composer; the timeline keeps a line.
   const prompt = page.getByRole("group", { name: "Permission request" });
   await expect(prompt).toContainText("Approval needed");
   await expect(prompt).toContainText("Run fake tool");
   await expect(
-    page.getByText("Waiting on permission · Run fake tool"),
+    timeline(page).getByText("Waiting on permission · Run fake tool"),
   ).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeDisabled();
   await prompt.getByRole("button", { name: "Allow" }).click();
   await expect(prompt).toBeHidden();
-  await expect(page.getByText(/Turn ended · end turn/)).toBeVisible();
-  await expect(page.getByText("Allowed · Run fake tool · Allow")).toBeVisible();
+  await expect(timeline(page).getByText(/Turn ended · end turn/)).toBeVisible();
+  await expect(
+    timeline(page).getByText("Allowed · Run fake tool · Allow"),
+  ).toBeVisible();
   // The next prompt goes from the session's own composer.
   const text = page.getByRole("textbox", { name: "Prompt" });
   await text.fill("plain");
   await text.press("Enter");
-  await expect(page.getByText("echo: plain")).toBeVisible();
+  await expect(timeline(page).getByText("echo: plain")).toBeVisible();
 });
 
 test("a session starts with the permissions chosen before it", async ({
@@ -190,7 +192,7 @@ test("a session starts with the permissions chosen before it", async ({
   await box.getByRole("button", { name: "Send" }).click();
   await expect(page).toHaveURL(/\/sessions\/gpu-box\/[^/]+$/);
   // The agent runs with it, and the session's composer says so.
-  await expect(page.getByText(/^options mode=plan /)).toBeVisible();
+  await expect(timeline(page).getByText(/^options mode=plan /)).toBeVisible();
   await expect(
     page
       .getByRole("form", { name: "Prompt" })
@@ -204,7 +206,7 @@ test("an option changes on a running session when the agent reports it", async (
   await open(page);
   await startSession(page, "laptop", "Structured", "options");
   await expect(
-    page.getByText(/^options mode=default .* effort=high/),
+    timeline(page).getByText(/^options mode=default .* effort=high/),
   ).toBeVisible();
   const box = page.getByRole("form", { name: "Prompt" });
   const agent = box.getByRole("button", { name: /^Agent, model and effort/ });
@@ -217,7 +219,7 @@ test("an option changes on a running session when the agent reports it", async (
   await text.fill("options");
   await text.press("Enter");
   await expect(
-    page.getByText(/^options mode=default .* effort=low/),
+    timeline(page).getByText(/^options mode=default .* effort=low/),
   ).toBeVisible();
   // One the agent refuses is said, and nothing changes.
   await box.getByRole("button", { name: /^Permissions:/ }).click();
