@@ -8,6 +8,11 @@
 export type Ack = null;
 
 /**
+ * The latest state of a session's agent, as the node observed it.
+ */
+export type Activity = "active" | "idle" | "waiting_input" | "exited";
+
+/**
  * One entry in a structured session's timeline.
  */
 export type AgentEvent = { "event": "ready", 
@@ -351,6 +356,13 @@ file: FilePath | null,
  * Sorted result page.
  */
 page: PageRequest, };
+
+/**
+ * What is happening right now in the lane a session already sits in. It
+ * changes with turns, permissions, checks and reviews while the lane stays
+ * put.
+ */
+export type DisplayStatus = "working" | "blocked" | "exited" | "no_signal" | "interrupted" | "awaiting_pr" | "idle" | "fixing_ci" | "addressing_comments" | "needs_review" | "review_scheduled" | "reviewing" | "review_failed" | "review_pending" | "draft" | "ci_failing" | "commented" | "changes_requested" | "needs_human_review" | "mergeable" | "approved" | "merged" | "closed" | "terminated";
 
 /**
  * Symbols in one saved file.
@@ -795,6 +807,12 @@ ttl_secs: number,
  * member is invited with `[sync]`.
  */
 scopes?: Array<Scope> | null, };
+
+/**
+ * The lane a session is in: where it sits between first prompt and merge,
+ * and which loop is turning it.
+ */
+export type KanbanColumn = "building" | "validating" | "needs_review" | "ready" | "archive";
 
 /**
  * `session.kill`: stop a session's process (and its process group).
@@ -1706,6 +1724,31 @@ session: SessionId,
 input: SessionInput, };
 
 /**
+ * A session's place on the board, derived by the node (protocol 8).
+ *
+ * `#[non_exhaustive]`: pull-request evidence joins it when a node can see
+ * pull requests; build one with [`SessionBoard::new`].
+ */
+export type SessionBoard = { 
+/**
+ * The lane.
+ */
+column: KanbanColumn, 
+/**
+ * The phrase for its card, derived inside `column`.
+ */
+display_status: DisplayStatus, 
+/**
+ * What the agent was last seen doing.
+ */
+activity: Activity, 
+/**
+ * When the node last saw the agent do something: a turn start or end,
+ * a permission asked or answered, terminal output.
+ */
+last_activity_at: string, };
+
+/**
  * Something that happened in a session.
  */
 export type SessionEvent = { "type": "status", 
@@ -1816,7 +1859,13 @@ origin?: SessionOrigin | null,
  * harness is pinned to (protocol 7). Absent for a session on its
  * harness's own provider, and from older nodes.
  */
-model?: SessionModel | null, };
+model?: SessionModel | null, 
+/**
+ * Its place on the board: the lane and the phrase the node derived
+ * from what its agent is doing (protocol 8, ADR 0019). Absent from
+ * older nodes; a client then places it by `status`.
+ */
+board?: SessionBoard | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.

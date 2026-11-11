@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::agent::{ContentBlock, PermissionOutcome};
+use crate::board::SessionBoard;
 use crate::harness::HarnessKind;
 use crate::id::{DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, SessionId};
 use crate::model::SessionModel;
@@ -182,6 +183,11 @@ pub struct SessionInfo {
     /// harness's own provider, and from older nodes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<SessionModel>,
+    /// Its place on the board: the lane and the phrase the node derived
+    /// from what its agent is doing (protocol 8, ADR 0019). Absent from
+    /// older nodes; a client then places it by `status`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub board: Option<SessionBoard>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -240,6 +246,7 @@ impl SessionInfo {
             via: None,
             origin: None,
             model: None,
+            board: None,
         }
     }
 

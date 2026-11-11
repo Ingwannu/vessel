@@ -11,6 +11,7 @@
 
 mod agent;
 mod base64_bytes;
+mod board;
 mod device;
 mod error;
 mod event;
@@ -41,6 +42,7 @@ pub use agent::{
     PermissionRequest, PlanEntry, PlanPriority, PlanStatus, StopReason, ToolCall, ToolCallContent,
     ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
 };
+pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
 pub use device::{
     DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
     PreambleReply, RefusalReason, RevokeDevice, Scope,
