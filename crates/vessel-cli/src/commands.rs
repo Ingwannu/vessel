@@ -19,8 +19,12 @@ use crate::attach::{self, terminal};
 use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
 use crate::selector::SessionSelector;
-use crate::{devices, fleet, init, io, nodes, remote, render, transfer, ui};
+use crate::{devices, fleet, init, io, nodes, remote, render, transfer, ui, workspace};
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "the dispatch: one arm per command, each a call into its module"
+)]
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
@@ -81,6 +85,8 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             Ok(io::out(text.as_bytes()).await?)
         }
         Command::Run(run) => run_session(target, run).await,
+        Command::Project { command } => workspace::project(target, command).await,
+        Command::Worktree { command } => workspace::worktree(target, command).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
@@ -234,6 +240,16 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     spec.cwd = run.cwd.map(|cwd| node_cwd(&resolved, cwd)).transpose()?;
     spec.profile = run.profile;
     let connected = connect_to(target, &resolved, &book).await?;
+    // A place (protocol 10): the node fills `cwd` with its folder.
+    spec.place = workspace::place(
+        &connected.client,
+        run.project.as_deref(),
+        run.dir.as_deref(),
+        run.new_worktree,
+        run.worktree.as_deref(),
+    )
+    .await?
+    .map(Box::new);
     let info = connected.client.create_session(spec).await?;
     if run.detach {
         return Ok(io::out(format!("{}\n", info.id).as_bytes()).await?);

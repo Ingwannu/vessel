@@ -165,6 +165,10 @@ pub(crate) enum CliError {
     Stream(#[from] StreamError),
     #[error("no session matches `{0}`")]
     NoSuchSession(String),
+    /// A project or worktree selector that names none, or more than one
+    /// (protocol 10).
+    #[error("{0}")]
+    Workspace(String),
     #[error("`{prefix}` matches {matches} sessions; type more of the id")]
     AmbiguousSession { prefix: String, matches: usize },
     #[error(transparent)]
