@@ -1,7 +1,10 @@
 //! [`AgentInput`]: the cloneable command side of an agent session.
 
 use tokio::sync::{mpsc, oneshot};
-use vessel_proto::{ContentBlock, OptionChoice, PermissionId, PermissionOutcome, SessionOption};
+use vessel_proto::{
+    ContentBlock, OptionChoice, PermissionId, PermissionOutcome, QuestionAnswer, QuestionId,
+    SessionOption,
+};
 
 use crate::error::InputError;
 
@@ -43,6 +46,11 @@ pub(crate) enum Command {
         outcome: PermissionOutcome,
         reply: Reply,
     },
+    AnswerQuestion {
+        id: QuestionId,
+        answer: QuestionAnswer,
+        reply: Reply,
+    },
     TurnRunning {
         reply: oneshot::Sender<bool>,
     },
@@ -55,7 +63,8 @@ pub(crate) enum Command {
     },
 }
 
-/// Sends prompts, cancellations and permission answers to an agent.
+/// Sends prompts, cancellations, and answers to permission requests and
+/// questions to an agent.
 ///
 /// Cheap to clone. Each call waits until the driver has applied it, so the
 /// caller learns about a conflict (a turn already running, a permission
@@ -127,6 +136,25 @@ impl AgentInput {
         outcome: PermissionOutcome,
     ) -> Result<(), InputError> {
         self.call(|reply| Command::Answer { id, outcome, reply })
+            .await
+    }
+
+    /// Answer a question the agent asked (protocol 10): checked against
+    /// its form, then given to the agent (accepted with the values, or
+    /// declined), and logged as `question_resolved`.
+    ///
+    /// # Errors
+    /// [`InputError::InvalidAnswer`] when the answer does not fit the form
+    /// (the question still waits), [`InputError::QuestionSettled`] when it
+    /// was already answered, declined or withdrawn,
+    /// [`InputError::QuestionNotFound`] for an unknown id,
+    /// [`InputError::Closed`] after the connection ended.
+    pub async fn answer_question(
+        &self,
+        id: QuestionId,
+        answer: QuestionAnswer,
+    ) -> Result<(), InputError> {
+        self.call(|reply| Command::AnswerQuestion { id, answer, reply })
             .await
     }
 

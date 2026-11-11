@@ -8,11 +8,15 @@
 //!   speaking ACP (a harness that fails at start). Otherwise it writes
 //!   `fake-acp starting` to stderr and serves ACP v1 until stdin closes.
 //! - With `FAKE_ACP_HANG` set to `initialize` or `session/new`, that request
-//!   is never answered (an adapter stuck at start).
+//!   is never answered (an adapter stuck at start); stuck at `session/new`,
+//!   it says so on stderr first (`fake-acp: stuck at session/new`), so a
+//!   test knows `initialize` went through.
 //! - `initialize`: protocol v1, `loadSession` supported, HTTP MCP servers
 //!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts,
 //!   and the steering extension (`_meta.steering.supported`; not with
-//!   `FAKE_ACP_NO_STEER` set).
+//!   `FAKE_ACP_NO_STEER` set). It remembers whether the client advertised
+//!   form elicitation, for `ask`, and when it did, writes `fake-acp: the
+//!   client takes questions` to stderr.
 //! - `_session/steering` (the steering extension, not with
 //!   `FAKE_ACP_NO_STEER` set: "method not found" then): during a `wait`
 //!   turn, `injected` and a message chunk `steered: <text>` (a steer
@@ -63,6 +67,13 @@
 //!   - `model <text>`: one model call through the node's proxy, as a
 //!     routed session's harness would make it (`vessel_testkit::model`),
 //!     then one message chunk `model <reply>` or `model error: <why>`;
+//!   - `ask`, `ask withdraw`: a question (protocol 10's `elicitation/create`
+//!     in form mode, `ask` module) when the client advertised form
+//!     elicitation, then one message chunk `answered: <action>` (with the
+//!     accepted content as JSON); `ask withdraw` cancels its own request
+//!     first (`$/cancel_request`). Without the capability, one message
+//!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
+//!     whatever the client advertised, reported the same way;
 //!   - `exit`, `garbage`: a message chunk and a permission request, then,
 //!     with both still open, the connection fails: `exit` exits with code
 //!     9, `garbage` writes a line that is not UTF-8 and stays up;
@@ -80,8 +91,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use agent_client_protocol::v1::schema::{
     AgentCapabilities, AvailableCommand, AvailableCommandInput, AvailableCommandsUpdate,
-    CancelNotification, Content, ContentBlock, ContentChunk, Cost, Implementation,
-    InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
+    CancelNotification, Content, ContentBlock, ContentChunk, Cost, ElicitationCapabilities,
+    Implementation, InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
     McpCapabilities, McpServer, NewSessionRequest, NewSessionResponse, PermissionOption,
     PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities,
     PromptRequest, PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionId,
@@ -94,6 +105,8 @@ use agent_client_protocol::{Agent, ByteStreams, Error, UntypedMessage};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 use tokio_util::sync::CancellationToken;
 
+#[path = "fake_acp/ask.rs"]
+mod ask;
 #[path = "fake_acp/options.rs"]
 mod options;
 
@@ -144,6 +157,8 @@ struct State {
     loaded: Option<String>,
     /// The working directory of the last `session/new` or `session/load`.
     cwd: Option<std::path::PathBuf>,
+    /// Whether the client advertised form elicitation (protocol 10).
+    questions: bool,
 }
 
 impl State {
@@ -156,6 +171,7 @@ impl State {
             mcp_servers: Vec::new(),
             loaded: None,
             cwd: None,
+            questions: false,
         }
     }
 }
@@ -252,24 +268,36 @@ async fn serve() -> ExitCode {
         .v1()
         .name("fake-acp")
         .on_receive_request(
-            async move |request: InitializeRequest, responder, _cx| {
-                if hang_at_initialize {
-                    std::future::pending::<()>().await;
+            {
+                let state = Arc::clone(&state);
+                async move |request: InitializeRequest, responder, _cx| {
+                    if hang_at_initialize {
+                        std::future::pending::<()>().await;
+                    }
+                    let questions = request
+                        .client_capabilities
+                        .elicitation
+                        .as_ref()
+                        .is_some_and(ElicitationCapabilities::supports_form);
+                    lock(&state).questions = questions;
+                    if questions {
+                        complain("fake-acp: the client takes questions");
+                    }
+                    let mut answer = InitializeResponse::new(request.protocol_version)
+                        .agent_capabilities(
+                            AgentCapabilities::new()
+                                .load_session(true)
+                                .prompt_capabilities(PromptCapabilities::new().image(true))
+                                .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
+                        )
+                        .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
+                    if steer {
+                        answer.meta = serde_json::json!({ "steering": { "supported": true } })
+                            .as_object()
+                            .cloned();
+                    }
+                    responder.respond(answer)
                 }
-                let mut answer = InitializeResponse::new(request.protocol_version)
-                    .agent_capabilities(
-                        AgentCapabilities::new()
-                            .load_session(true)
-                            .prompt_capabilities(PromptCapabilities::new().image(true))
-                            .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
-                    )
-                    .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
-                if steer {
-                    answer.meta = serde_json::json!({ "steering": { "supported": true } })
-                        .as_object()
-                        .cloned();
-                }
-                responder.respond(answer)
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -278,6 +306,7 @@ async fn serve() -> ExitCode {
                 let state = Arc::clone(&state);
                 async move |request: NewSessionRequest, responder, cx| {
                     if hang_at_new {
+                        complain("fake-acp: stuck at session/new");
                         std::future::pending::<()>().await;
                     }
                     let response = {
@@ -405,6 +434,19 @@ async fn serve() -> ExitCode {
                         return responder.respond(
                             PromptResponse::new(StopReason::EndTurn).usage(Usage::new(30, 20, 10)),
                         );
+                    }
+                    if let Some(asked) = ask::wanted(&prompt) {
+                        let form = lock(&state).questions;
+                        // The turn waits for the client's answer, so it
+                        // runs off the dispatch loop.
+                        return cx.spawn({
+                            let cx = cx.clone();
+                            async move {
+                                let reason =
+                                    ask::turn(&cx, &request.session_id, form, asked, &turn).await?;
+                                responder.respond(PromptResponse::new(reason))
+                            }
+                        });
                     }
                     if let Some(report) = report {
                         cx.send_notification(SessionNotification::new(

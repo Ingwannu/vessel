@@ -297,8 +297,10 @@ impl SessionHandle {
             (Input::Structured(route), SessionInput::AnswerPermission { id, outcome }) => {
                 Ok(current(route)?.answer(id, outcome).await?)
             }
-            (Input::Structured(_), SessionInput::AnswerQuestion { .. }) => {
-                Err(SessionError::NotBuilt("answering a question"))
+            // Protocol 10: straight to the agent, as a permission answer:
+            // it settles a request of the running turn, it starts nothing.
+            (Input::Structured(route), SessionInput::AnswerQuestion { id, answer }) => {
+                Ok(current(route)?.answer_question(id, answer).await?)
             }
             (
                 input_path @ Input::Terminal(_),

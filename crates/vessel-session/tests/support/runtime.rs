@@ -18,8 +18,8 @@ use vessel_proto::{
     SessionTitle, StopReason,
 };
 use vessel_session::{
-    DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, RuntimeConfig,
-    SessionHandle, SessionRuntime,
+    DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, LaunchOptions,
+    RuntimeConfig, SessionHandle, SessionRuntime,
 };
 use vessel_testkit::Fake;
 
@@ -79,7 +79,16 @@ impl Fixture {
 
     /// Start `spec`; its durable records are drained so it never stalls.
     pub(crate) async fn start(&self, spec: SessionSpec) -> SessionHandle {
-        let created = self.runtime.create(spec).await.unwrap();
+        self.start_with(spec, LaunchOptions::default()).await
+    }
+
+    /// [`start`](Self::start) with `options`.
+    pub(crate) async fn start_with(
+        &self,
+        spec: SessionSpec,
+        options: LaunchOptions,
+    ) -> SessionHandle {
+        let created = self.runtime.create_with(spec, options).await.unwrap();
         let mut durable = created.durable;
         drop(tokio::spawn(async move {
             while durable.recv().await.is_some() {}

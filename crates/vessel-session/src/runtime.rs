@@ -113,6 +113,11 @@ pub struct LaunchOptions {
     /// with the session's token (ADR 0015); given exactly when `profile`
     /// has a route, or the launch is refused. Its `Debug` hides the token.
     pub model_proxy: Option<ModelProxy>,
+    /// Whether a structured session's agent may ask questions (protocol
+    /// 10, `vessel_agent::AgentSetup::questions`): the node's choice, true
+    /// for a session someone watches. Off by default. Kept for the
+    /// session's life: an agent a move starts again asks as the first did.
+    pub questions: bool,
 }
 
 /// What a session records about its start besides its spec.
@@ -149,6 +154,7 @@ struct AgentStart {
     resume: Option<HarnessSessionId>,
     options: Vec<OptionChoice>,
     mcp_servers: ResolvedMcpServers,
+    questions: bool,
 }
 
 /// How many renames may wait for a session's actor; a caller waits for
@@ -234,6 +240,7 @@ impl SessionRuntime {
             via,
             model,
             model_proxy,
+            questions,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
         if self.get(id).is_some() {
@@ -267,6 +274,7 @@ impl SessionRuntime {
                     resume,
                     options,
                     mcp_servers,
+                    questions,
                 };
                 self.create_structured(spec, (profile, model_proxy), start, record)
                     .await
@@ -352,6 +360,7 @@ impl SessionRuntime {
             options: start.options,
             mcp_servers: start.mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
+            questions: start.questions,
         };
         // `fork`/`exec` on this thread, as `tokio::process` does.
         let (agent, input, outputs) =
@@ -465,6 +474,7 @@ impl SessionRuntime {
             options: Vec::new(),
             mcp_servers: ResolvedMcpServers::new(),
             handshake_timeout: self.config.agent_handshake_timeout,
+            questions: false,
         };
         Ok(vessel_agent::probe(&command, setup).await?)
     }
@@ -543,6 +553,9 @@ impl SessionRuntime {
             options,
             mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
+            // The session's own, which the actor keeps (`moving`): a move
+            // never changes whether the agent may ask.
+            questions: false,
         };
         let (reply, answer) = oneshot::channel();
         let order = MoveOrder {

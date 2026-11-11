@@ -72,6 +72,12 @@ pub struct AgentSetup {
     /// [`DEFAULT_HANDSHAKE_TIMEOUT`]); past it the connection ends with
     /// `Disconnect::Handshake`.
     pub handshake_timeout: Duration,
+    /// Whether the agent may ask the person questions (protocol 10): ACP's
+    /// form elicitation is advertised in `initialize` only then, and Claude's
+    /// adapter offers its question tool only to a client that advertises it.
+    /// False unless someone watches the session (the node's choice: a
+    /// session the owner or a device created); a probe never asks.
+    pub questions: bool,
 }
 
 /// Why the handshake failed.
@@ -125,17 +131,25 @@ pub(crate) async fn run_within(
 
 /// Run the handshake; returns the ACP session and its options.
 ///
-/// Client capabilities are deliberately empty: no `fs` and no `terminal`,
+/// Client capabilities are deliberately small: no `fs` and no `terminal`,
 /// so agents use their own tools (Vessel wraps harnesses; it does not
-/// re-implement their file and shell access, ADR 0003).
+/// re-implement their file and shell access, ADR 0003). Form elicitation
+/// only when `setup.questions` says so; never URL elicitation (a link the
+/// agent chose, opened from a page on another machine).
 pub(crate) async fn run(
     cx: &ConnectionTo<Agent>,
     setup: &AgentSetup,
 ) -> Result<Started, HandshakeError> {
+    let mut capabilities = acp::ClientCapabilities::new();
+    if setup.questions {
+        capabilities = capabilities.elicitation(
+            acp::ElicitationCapabilities::new().form(acp::ElicitationFormCapabilities::new()),
+        );
+    }
     let initialized = cx
         .send_request(
             acp::InitializeRequest::new(ProtocolVersion::V1)
-                .client_capabilities(acp::ClientCapabilities::new())
+                .client_capabilities(capabilities)
                 .client_info(acp::Implementation::new(
                     "vessel",
                     env!("CARGO_PKG_VERSION"),

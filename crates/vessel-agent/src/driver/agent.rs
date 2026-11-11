@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use agent_client_protocol::v1::Responder;
 use agent_client_protocol::v1::schema as acp;
-use vessel_proto::{AgentEvent, PermissionRequest, ToolCallId};
+use vessel_proto::{AgentEvent, PermissionOutcome, PermissionRequest, ToolCallId};
 
 use super::Driver;
 use crate::mapper::{self, Update};
@@ -56,7 +56,14 @@ impl Driver {
             self.emit(event).await;
         }
         let options = mapper::permission_options(request.options);
-        let id = self.permissions.open(responder, &options);
+        let (id, displaced) = self.permissions.open(responder, &options);
+        if let Some(oldest) = displaced {
+            self.emit(AgentEvent::PermissionResolved {
+                id: oldest,
+                outcome: PermissionOutcome::Cancelled,
+            })
+            .await;
+        }
         self.emit(AgentEvent::PermissionRequested(PermissionRequest {
             id,
             tool_call,

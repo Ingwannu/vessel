@@ -83,9 +83,14 @@ worktrees, git, files); this entry is Track A's, the conversation.
   of the log: `session.resume` continues the same log after it.
 - Built in slices on the track's branch: a call whose slice has not
   landed answers `unsupported` ("not built on this node yet"), as an
-  `answer_question` does. Built so far: `session.conversation`,
-  `session.prompt` and `session.queue` (a prompt holding an attachment
-  is refused so until attachments land), and `cancel_turn`'s `turn`.
+  `answer_question` did until questions landed. Built so far:
+  `session.conversation`, `session.prompt` and `session.queue` (a prompt
+  holding an attachment is refused so until attachments land),
+  `cancel_turn`'s `turn`, and questions: `question_asked`,
+  `question_resolved` and `session.send`'s `answer_question`
+  (`invalid_request` for an answer that does not fit the form,
+  `not_found` for an unknown question, `conflict` once it is settled),
+  offered only to the agent of a session the owner or a device created.
 
 ## Version 9 (2026-11-11)
 

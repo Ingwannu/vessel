@@ -31,8 +31,9 @@ pub enum SessionError {
     #[error("no working directory: the spec has none and the node user has no home directory")]
     NoWorkingDirectory,
     /// The agent refused structured input (a turn already running, a
-    /// permission already answered, an unknown option or id, content ACP
-    /// cannot carry).
+    /// permission or question already answered, an unknown option or id,
+    /// an answer that does not fit its question, content ACP cannot
+    /// carry).
     #[error(transparent)]
     Input(InputError),
     /// A change to the queue, or a prompt for it, was refused (protocol
@@ -81,10 +82,6 @@ pub enum SessionError {
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
-    /// Part of protocol 10 this build has the wire for and not the work
-    /// yet (milestone 11's Track A builds it in slices).
-    #[error("{0} is not built on this node yet")]
-    NotBuilt(&'static str),
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
@@ -126,7 +123,6 @@ impl SessionError {
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
-            | Self::NotBuilt(_)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
@@ -141,12 +137,13 @@ impl SessionError {
             | Self::Input(
                 InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
-                | InputError::Option(_),
+                | InputError::Option(_)
+                | InputError::InvalidAnswer { .. },
             ) => ErrorCode::InvalidRequest,
             Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
                 ErrorCode::SpawnFailed
             }
-            Self::Input(InputError::PermissionNotFound(_))
+            Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
             | Self::NotFound(_)
             | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended
@@ -157,6 +154,7 @@ impl SessionError {
                 InputError::Closed
                 | InputError::TurnInProgress
                 | InputError::PermissionSettled(_)
+                | InputError::QuestionSettled(_)
                 | InputError::Refused { .. }
                 | InputError::SteerRefused { .. },
             )
@@ -218,6 +216,9 @@ impl From<InputError> for SessionError {
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)
+            | InputError::QuestionNotFound(_)
+            | InputError::QuestionSettled(_)
+            | InputError::InvalidAnswer { .. }
             | InputError::UnknownOption { .. }
             | InputError::Option(_)
             | InputError::Refused { .. }

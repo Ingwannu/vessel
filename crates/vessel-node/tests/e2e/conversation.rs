@@ -1,14 +1,22 @@
 //! Protocol 10 over the wire (milestone 11, track A): a session's
 //! conversation as one call, live, from the store, and refused where there
-//! is none.
+//! is none; prompts and the queue; questions.
 
+use std::collections::BTreeMap;
+
+use vessel_proto::conversation::AnswerValue;
 use vessel_proto::{
-    AgentEvent, ContentBlock, Delivered, Delivery, ErrorCode, EventSeq, HarnessKind, QueueChange,
-    QueueHold, SessionEvent, SessionStatus,
+    AgentEvent, ContentBlock, Delivered, Delivery, ErrorCode, EventSeq, HarnessKind,
+    QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, SessionEvent, SessionInput,
+    SessionStatus,
 };
 use vessel_rpc::CallError;
 
-use crate::support::{Fixture, read_until, status_of, structured_spec, terminal_spec, within};
+use crate::agents::{as_agent, credential, structured, vessel_mcp};
+use crate::support::{
+    Fixture, agent_of, ask, prompt, read_all, read_until, status_of, structured_spec,
+    terminal_spec, within,
+};
 
 fn code<T: std::fmt::Debug>(result: Result<T, CallError>) -> ErrorCode {
     match result {
@@ -164,6 +172,102 @@ async fn prompts_wait_in_the_nodes_queue() {
             code(client.change_queue(id, QueueChange::Clear).await),
             ErrorCode::Conflict,
             "ended: its queue comes back with session.resume"
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// An owner's session takes questions: the agent asks, the owner answers
+/// with `session.send`'s `answer_question`, and the log keeps the outcome.
+/// A session an agent created runs unwatched and is never offered them.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_owners_session_asks_and_an_agents_does_not() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture
+            .start_with(|config| config.vessel_mcp = Some(vessel_mcp(&fixture)))
+            .await;
+        let owner = fixture.connect(&node).await;
+        let mut parent = structured(&owner, &fixture).await;
+        // Its agent's credential first: reading it takes a turn of its own.
+        let (_program, socket, auth) = credential(&owner, &mut parent).await;
+
+        owner.send(parent.id, prompt("ask")).await.unwrap();
+        let mut stream = owner.follow(parent.id, EventSeq::ZERO).await.unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut stream, &mut seen, |record| {
+            matches!(agent_of(record), Some(AgentEvent::QuestionAsked(_)))
+        })
+        .await;
+        // The stream starts at the log's start: the credential's turn too.
+        let asked_at = seen.len();
+        let waiting = owner.conversation(parent.id).await.unwrap().questions;
+        let [question] = waiting.as_slice() else {
+            panic!("one question waits: {waiting:?}");
+        };
+        let values = BTreeMap::from([(
+            "way".parse().unwrap(),
+            AnswerValue::Choice("left".to_owned()),
+        )]);
+        let answer = |answer| SessionInput::AnswerQuestion {
+            id: question.id,
+            answer,
+        };
+        owner
+            .send(
+                parent.id,
+                answer(QuestionAnswer::Accept {
+                    values: values.clone(),
+                }),
+            )
+            .await
+            .unwrap();
+        read_until(&mut stream, &mut seen, |record| {
+            matches!(agent_of(record), Some(AgentEvent::TurnEnded { .. }))
+        })
+        .await;
+        let said: String = seen[asked_at..]
+            .iter()
+            .filter_map(|record| match agent_of(record) {
+                Some(AgentEvent::MessageChunk {
+                    content: ContentBlock::Text { text },
+                }) => Some(text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(said, r#"answered: accept {"way":"left"}"#);
+        assert_eq!(
+            code(owner.send(parent.id, answer(QuestionAnswer::Decline)).await),
+            ErrorCode::Conflict,
+            "the first answer won"
+        );
+        let logged = read_all(&owner, parent.id).await;
+        assert!(
+            logged.iter().any(|record| matches!(
+                agent_of(record),
+                Some(AgentEvent::QuestionResolved { id, outcome: QuestionOutcome::Answered { values: given } })
+                    if *id == question.id && *given == values
+            )),
+            "the outcome is in the log"
+        );
+
+        // An agent's own session is not offered questions (review item 4).
+        let agent = as_agent(&socket, &auth).await;
+        let child = agent
+            .create_session(structured_spec(&fixture, None))
+            .await
+            .unwrap()
+            .id;
+        let mut stream = owner.follow(child, EventSeq::ZERO).await.unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut stream, &mut seen, |record| {
+            status_of(record) == Some(&SessionStatus::Running)
+        })
+        .await;
+        assert_eq!(
+            ask(&owner, &mut stream, &mut seen, child, "ask").await,
+            "no questions"
         );
         node.stop().await.unwrap();
     })

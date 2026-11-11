@@ -94,9 +94,13 @@ they started.
    plus a new subscription (`vessel-client`'s `SessionStream` does this).
    Nothing is skipped silently.
 5. `session.send` routes `SessionInput` to the actor: terminal bytes and
-   resizes, or prompts, cancels and permission answers. The first answer to a
-   permission request wins; the resolution is an event, so every client sees
-   it.
+   resizes, or prompts, cancels, permission answers and (protocol 10)
+   answers to questions. The first answer to a permission request or a
+   question wins; the resolution is an event, so every client sees it.
+   Questions are ACP form elicitations, advertised only to the agent of a
+   session the owner or a device created (an agent's runs unwatched);
+   `vessel-agent` checks an answer against the question's form before the
+   agent sees it.
 6. `session.move_profile` (ADR 0011) moves a structured session to another
    profile: the node resolves the target, finds both homes and runs the
    target's login check (`profiles::moving`); the session's actor holds

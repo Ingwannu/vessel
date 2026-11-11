@@ -4,6 +4,7 @@ use agent_client_protocol::v1::Responder;
 use agent_client_protocol::v1::schema as acp;
 use vessel_proto::{PermissionId, PermissionOption, PermissionOptionId, PermissionOutcome};
 
+use crate::MAX_WAITING;
 use crate::error::InputError;
 use crate::mapper;
 use crate::recent::Recent;
@@ -18,7 +19,9 @@ use crate::recent::Recent;
 #[derive(Debug, Default)]
 pub(crate) struct Permissions {
     /// In arrival order, so cancellation resolves them in a stable order.
-    /// A handful at most, so a list beats a map.
+    /// A handful in practice, at most [`MAX_WAITING`] (protocol 10's
+    /// bound: a newer request withdraws the oldest, as the session's
+    /// projection drops it), so a list beats a map.
     pending: Vec<Pending>,
     /// Bounded: a long session must not keep every id it ever settled.
     settled: Recent<PermissionId>,
@@ -32,19 +35,27 @@ struct Pending {
 }
 
 impl Permissions {
-    /// Hold a new request; returns its id.
+    /// Hold a new request; returns its id, and the oldest request's when
+    /// it was withdrawn (answered `cancelled`) to stay within
+    /// [`MAX_WAITING`].
     pub(crate) fn open(
         &mut self,
         responder: Responder<acp::RequestPermissionResponse>,
         options: &[PermissionOption],
-    ) -> PermissionId {
+    ) -> (PermissionId, Option<PermissionId>) {
+        let displaced = (self.pending.len() >= MAX_WAITING).then(|| {
+            let oldest = self.pending.remove(0);
+            respond(oldest.responder, &PermissionOutcome::Cancelled);
+            let _new = self.settled.insert(oldest.id);
+            oldest.id
+        });
         let id = PermissionId::random();
         self.pending.push(Pending {
             id,
             options: options.iter().map(|option| option.id.clone()).collect(),
             responder,
         });
-        id
+        (id, displaced)
     }
 
     /// Answer request `id` with `outcome`.

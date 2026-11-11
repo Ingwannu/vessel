@@ -965,5 +965,53 @@ the same refusal an older node gives.
   end holds it (an interrupt's excepted), a failed one too, and the
   session's end holds what waits before the final status. `fake-acp`
   steers its `wait` turn (`finish` ends it).
-- Next: questions; marks, the board and delete; start again;
-  attachments; the CLI and the agent tools.
+- Slice 3, questions (contract item "Questions", review items 4 and
+  5): form elicitation is advertised in `initialize` only when the
+  session asks for it (`AgentSetup::questions`, off by default; a probe
+  never does). The node turns it on for a session the owner or a device
+  creates (a delivered call of either too), never for an agent's, here
+  or delivered (`profiles::launch::watched`); the runtime keeps it for
+  the session's life, so an agent a move starts again asks as the first
+  did (the actor sets it from its own launch, not from the move's
+  request). The driver maps the form to a `Question` within the bounds
+  (`mapper::question`), holds the responder (`questions.rs`, at most 64,
+  the oldest withdrawn `cancel`), checks an answer with
+  `Question::check` before the agent sees it, and resolves a question
+  `cancelled` when the agent withdraws it (`$/cancel_request`: one small
+  task per question waits on the responder's cancellation marker or on
+  the question being settled, and reports through the loop's queue), or
+  when its turn is cancelled, ends, or the connection closes.
+  `session.send`'s `answer_question` goes straight to the agent, as a
+  permission answer does: `invalid_request` for an answer that does not
+  fit, `not_found` for an unknown id, `conflict` once settled.
+  `fake-acp` asks with `ask`, withdraws with `ask withdraw`, sends a
+  URL elicitation with `ask link`, and says on stderr when the client
+  takes questions.
+  Decided here (the contract did not say):
+  - A mode Vessel did not advertise (URL always; a form in a session
+    without questions) is answered with a JSON-RPC "invalid params"
+    error, MCP's answer to a mode the client did not declare, rather
+    than `decline` (nobody declined) or `cancel`. A form Vessel cannot
+    show whole (more than 32 fields, a required field it does not
+    define or whose name Vessel cannot carry) is answered `decline`, as
+    the contract says. Both leave a `vessel:` line in the session's log
+    saying why, never the URL (a sign-in link can carry a secret).
+  - An optional field whose name Vessel cannot carry is left out; a
+    default that is not one of a choice's options is dropped, so a
+    client never preselects an answer the node would refuse; option
+    values and defaults are never cut.
+  - The 64-request bound now holds for permission requests too (the
+    driver withdrew none before; the session's projection already
+    dropped the oldest): `vessel_agent::MAX_WAITING`, which the
+    projection now takes, so both drop the same one.
+  - `SessionError::NotBuilt` is gone: nothing in the session runtime is
+    unbuilt any more (the node answers its own unbuilt calls).
+  Known limits: the bound past 64 waiting requests is not covered by a
+  test (a responder cannot be built outside the SDK, and the fake asks
+  one question per turn); an agent that asks outside a turn keeps its
+  question until the next turn ends or the session does, as a
+  permission request would; an older (2-9) client sees the stand-in
+  line and cannot answer, so the turn waits until cancelled (as the
+  contract says).
+- Next: marks, the board and delete; start again; attachments; the CLI
+  and the agent tools (`answer_question` there).

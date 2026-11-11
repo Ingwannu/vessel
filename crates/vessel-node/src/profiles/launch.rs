@@ -201,11 +201,13 @@ impl Launcher {
             }
         };
         let (mcp_servers, notices) = self.mcp_servers(spec);
+        let created_by = creator(principal);
         Ok(LaunchOptions {
             profile,
             mcp_servers,
             mcp_dir: Some(self.mcp_dir.clone()),
-            created_by: creator(principal),
+            questions: watched(&created_by),
+            created_by,
             notices,
             id: None,
             // An import (F4) sets its own origin.
@@ -262,6 +264,27 @@ pub(crate) fn creator(principal: &Principal) -> Creator {
             },
             OriginBy::Owner | OriginBy::Device { .. } => Creator::Device { id: *device },
         },
+    }
+}
+
+/// Whether a session `creator` starts may ask questions (protocol 10,
+/// review item 4 of milestone 11's contract): only one a person watches.
+///
+/// [Decision Log]
+/// - Purpose: advertising questions turns on Claude's `AskUserQuestion`
+///   (its adapter disables the tool for a client without form
+///   elicitation). A session an agent created (ADR 0013) runs unwatched:
+///   a question there would wait for an answer nobody gives, and before
+///   protocol 10 such sessions never asked, they went on.
+/// - Choice: the owner's and a device's sessions (a delivered call of
+///   either too) ask; an agent's, here or delivered from another node,
+///   does not. Decided once, at creation: a move keeps it.
+/// - Cost: an agent that wants its child session to ask cannot; it reads
+///   the child's turns and answers in the next prompt instead.
+pub(crate) const fn watched(creator: &Creator) -> bool {
+    match creator {
+        Creator::Owner | Creator::Device { .. } => true,
+        Creator::Agent { .. } => false,
     }
 }
 
@@ -361,5 +384,41 @@ mod tests {
             .options(&profiles, &spec, &Principal::Owner)
             .unwrap();
         assert!(none.mcp_servers.is_empty() && none.notices.is_empty());
+        assert!(options.questions, "the owner watches its sessions");
+    }
+
+    /// Questions are offered where a person watches: the owner, a device,
+    /// either through another node; never an agent's session, here or
+    /// delivered.
+    #[test]
+    fn only_a_watched_session_asks() {
+        let node = NodeId::random();
+        let device = vessel_proto::DeviceId::random();
+        let session = SessionId::random();
+        let scopes = vessel_proto::Scope::ALL.to_vec();
+        let asks = |principal: &Principal| watched(&creator(principal));
+        let delivered = |by| Principal::Delegated {
+            device,
+            scopes: scopes.clone(),
+            origin: vessel_proto::Origin {
+                node,
+                by,
+                scopes: scopes.clone(),
+            },
+            via: node,
+        };
+        assert!(asks(&Principal::Owner));
+        assert!(asks(&Principal::Device {
+            id: device,
+            scopes: scopes.clone(),
+        }));
+        assert!(asks(&delivered(OriginBy::Owner)));
+        assert!(asks(&delivered(OriginBy::Device { id: device })));
+        assert!(!asks(&Principal::Agent {
+            node,
+            session,
+            scopes: scopes.clone(),
+        }));
+        assert!(!asks(&delivered(OriginBy::Agent { session, depth: 1 })));
     }
 }

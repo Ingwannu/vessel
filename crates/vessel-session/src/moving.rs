@@ -158,7 +158,7 @@ impl StructuredActor {
     pub(crate) async fn move_profile(&mut self, order: MoveOrder) {
         let MoveOrder {
             command,
-            setup,
+            mut setup,
             to,
             files,
             from_home,
@@ -167,6 +167,9 @@ impl StructuredActor {
             force,
             reply,
         } = order;
+        // Whether the agent may ask is the session's, decided at its
+        // creation (protocol 10): the new agent asks as the old one did.
+        setup.questions = self.launch.setup.questions;
         let _held = self.route.send_replace(None);
         self.move_state.active = true;
         let outcome = self

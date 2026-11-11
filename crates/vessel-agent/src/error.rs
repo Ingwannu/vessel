@@ -2,7 +2,8 @@
 
 use std::fmt;
 
-use vessel_proto::{AttachmentId, OptionId, PermissionId, PermissionOptionId};
+use vessel_proto::conversation::InvalidAnswer;
+use vessel_proto::{AttachmentId, OptionId, PermissionId, PermissionOptionId, QuestionId};
 
 use crate::options::OptionError;
 
@@ -43,6 +44,23 @@ pub enum InputError {
         id: PermissionId,
         /// The rejected option.
         option: PermissionOptionId,
+    },
+    /// No such question was ever asked in this session (protocol 10).
+    #[error("question {0} does not exist")]
+    QuestionNotFound(QuestionId),
+    /// The question was already settled: answered, declined or withdrawn
+    /// (protocol 10; the first answer wins).
+    #[error("question {0} was already settled")]
+    QuestionSettled(QuestionId),
+    /// The answer does not fit the question's form (protocol 10); nothing
+    /// was sent, and the question still waits.
+    #[error("the answer does not fit question {id}")]
+    InvalidAnswer {
+        /// The question.
+        id: QuestionId,
+        /// What does not fit.
+        #[source]
+        reason: InvalidAnswer,
     },
     /// A config option choice the agent does not offer (protocol 9);
     /// nothing was sent to it.

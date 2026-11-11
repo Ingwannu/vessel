@@ -36,8 +36,9 @@ pub(crate) struct Seen {
 }
 
 impl Seen {
-    /// The most waiting requests (permissions and questions each) kept.
-    pub(crate) const MAX_WAITING: usize = 64;
+    /// The most waiting requests (permissions and questions each) kept:
+    /// the agent driver's own bound, so both drop the same oldest one.
+    pub(crate) const MAX_WAITING: usize = vessel_agent::MAX_WAITING;
 
     /// Whether `event` changes what is kept: the publisher takes the lock
     /// for these only, so terminal output and message chunks, the bulk of

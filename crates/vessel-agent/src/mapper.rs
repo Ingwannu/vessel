@@ -16,8 +16,10 @@ use serde::Serialize;
 
 use crate::error::InputError;
 
+mod question;
 mod report;
 
+pub(crate) use question::{Refusal, elicitation_response, question};
 pub(crate) use report::turn_usage;
 use vessel_proto::{
     AgentCommand, AgentEvent, ContentBlock, ContextUsage, PermissionOption, PermissionOptionId,

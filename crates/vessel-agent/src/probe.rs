@@ -91,7 +91,8 @@ enum Unready {
 }
 
 /// Start `command` with `setup` (its `model`, `resume` and `options`
-/// should be empty: a probe asks what the agent offers by default), take
+/// should be empty: a probe asks what the agent offers by default; its
+/// `questions` is ignored, a probe never advertises them), take
 /// the options and abilities from the handshake and stop the agent.
 /// Bounded by `setup.handshake_timeout` plus twice [`STOP_GRACE`].
 ///
@@ -100,6 +101,12 @@ enum Unready {
 /// [`ProbeError::Disconnected`] or [`ProbeError::TimedOut`] when the
 /// handshake does not complete.
 pub async fn probe(command: &CommandSpec, setup: AgentSetup) -> Result<Probed, ProbeError> {
+    // Never questions, whatever the caller set: nobody watches a probe,
+    // and what the agent offers does not depend on it.
+    let setup = AgentSetup {
+        questions: false,
+        ..setup
+    };
     let limit = setup.handshake_timeout;
     let (mut agent, _input, mut outputs) =
         AgentProcess::spawn(command, setup).map_err(ProbeError::Spawn)?;

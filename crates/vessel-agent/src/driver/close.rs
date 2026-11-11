@@ -1,6 +1,8 @@
-//! The end of the connection: settling the turn and the permission
-//! requests it leaves open.
+//! The end of the connection: settling the turn, and the permission
+//! requests and questions it leaves open.
 
+use agent_client_protocol::Agent;
+use agent_client_protocol::v1::ConnectionTo;
 use vessel_proto::{AgentEvent, PermissionOutcome};
 
 use super::{AFTER_CLOSE, Driver};
@@ -16,7 +18,7 @@ impl Driver {
     /// "ended normally", if the agent answered and then exited) is on its
     /// way. So while a turn is open the loop keeps taking items, each
     /// within [`AFTER_CLOSE`], until the outcome arrives.
-    pub(super) async fn settle_after_close(&mut self) {
+    pub(super) async fn settle_after_close(&mut self, cx: &ConnectionTo<Agent>) {
         while self.turn {
             let Ok(Some(item)) =
                 tokio::time::timeout(AFTER_CLOSE, self.inbound_receiver.recv()).await
@@ -24,12 +26,12 @@ impl Driver {
                 tracing::debug!("no turn outcome after the connection closed");
                 break;
             };
-            if self.handle(item).await.is_some() {
+            if self.handle(cx, item).await.is_some() {
                 break;
             }
         }
         while let Ok(item) = self.inbound_receiver.try_recv() {
-            if self.handle(item).await.is_some() {
+            if self.handle(cx, item).await.is_some() {
                 break;
             }
         }
@@ -39,6 +41,7 @@ impl Driver {
     /// The connection ended: settle what is still open.
     pub(super) async fn abandon_turn(&mut self) {
         self.withdraw_permissions().await;
+        self.withdraw_questions().await;
         self.cancelling = false;
         if self.turn {
             self.turn = false;

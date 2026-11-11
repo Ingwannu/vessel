@@ -12,9 +12,10 @@
 //!   driver returns the permit when it takes the item from its queue. When
 //!   the driver stalls, the stream stops reading, the OS pipe fills, and
 //!   the agent blocks on write.
-//! - Which lines count: the agent's `session/update` notifications and
-//!   `session/request_permission` requests, each of which becomes exactly
-//!   one driver item. The stream parses their parameters into the same ACP
+//! - Which lines count: the agent's `session/update` notifications,
+//!   `session/request_permission` requests and (protocol 10)
+//!   `elicitation/create` requests, each of which becomes exactly one
+//!   driver item. The stream parses their parameters into the same ACP
 //!   types the SDK does, so a line it counts is one the SDK delivers to
 //!   the driver; a malformed one passes uncounted and cannot leak a permit.
 //! - What is left unbounded: responses to Vessel's own requests (as many
@@ -122,8 +123,8 @@ struct Envelope<'a> {
 }
 
 /// Whether the SDK will hand `line` to the driver as one queue item: a
-/// `session/update` notification or a `session/request_permission`
-/// request whose parameters parse.
+/// `session/update` notification, or a `session/request_permission` or
+/// `elicitation/create` request, whose parameters parse.
 fn counted(line: &str) -> bool {
     let Ok(envelope) = serde_json::from_str::<Envelope<'_>>(line) else {
         return false;
@@ -137,6 +138,9 @@ fn counted(line: &str) -> bool {
         }
         ("session/request_permission", true) => {
             serde_json::from_str::<acp::RequestPermissionRequest>(params.get()).is_ok()
+        }
+        ("elicitation/create", true) => {
+            serde_json::from_str::<acp::CreateElicitationRequest>(params.get()).is_ok()
         }
         _ => false,
     }
@@ -162,6 +166,8 @@ mod tests {
         assert!(counted(UPDATE));
         let permission = r#"{"jsonrpc":"2.0","id":9,"method":"session/request_permission","params":{"sessionId":"s","toolCall":{"toolCallId":"c"},"options":[]}}"#;
         assert!(counted(permission));
+        let question = r#"{"jsonrpc":"2.0","id":10,"method":"elicitation/create","params":{"mode":"form","sessionId":"s","message":"?","requestedSchema":{"properties":{}}}}"#;
+        assert!(counted(question));
         assert!(!counted(RESPONSE));
         assert!(!counted(UNKNOWN));
         assert!(!counted(MALFORMED), "the SDK would not deliver it");

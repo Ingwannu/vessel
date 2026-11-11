@@ -1,10 +1,10 @@
 //! The ACP connection driver: one task per agent session.
 //!
 //! Owns the ACP connection, the session state (ready or not, turn running
-//! or not, pending permissions, announced tool calls) and turns ACP traffic
-//! into [`AgentOutput`]s. Must not touch the process (the owner of
-//! [`AgentProcess`](crate::AgentProcess) stops it) or read ACP payloads
-//! (the `mapper` does).
+//! or not, pending permissions and questions, announced tool calls) and
+//! turns ACP traffic into [`AgentOutput`]s. Must not touch the process (the
+//! owner of [`AgentProcess`](crate::AgentProcess) stops it) or read ACP
+//! payloads (the `mapper` does).
 //!
 //! [Decision Log]
 //! - Purpose: ACP handlers run inside the SDK's dispatch loop, which is
@@ -34,14 +34,20 @@
 //!   the loop keeps the session's options (`options`) and reports them
 //!   whenever they differ from what it last reported.
 //!
+//! - Questions (protocol 10) are the agent's requests, like permission
+//!   requests; the agent may withdraw one, which a task per question
+//!   watches and reports into `inbound` (`Withdrawn`), as option changes
+//!   report back (`questions`).
+//!
 //! Layout: this module sets the connection up and runs the loop, which
 //! takes the client's commands (`commands`) and the agent's traffic
-//! (`agent`) in order; `close` settles what a closed connection leaves
-//! open. All of them share the one [`Driver`] state.
+//! (`agent`, `questions`) in order; `close` settles what a closed
+//! connection leaves open. All of them share the one [`Driver`] state.
 
 mod agent;
 mod close;
 mod commands;
+mod questions;
 mod steer;
 
 use std::sync::Arc;
@@ -54,7 +60,7 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::{
     AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId,
-    OptionId, SessionOption, ToolCallId,
+    OptionId, QuestionId, SessionOption, ToolCallId,
 };
 
 use crate::error::Disconnect;
@@ -64,6 +70,7 @@ use crate::mapper;
 use crate::options::{Applied, Options};
 use crate::output::AgentOutput;
 use crate::permissions::Permissions;
+use crate::questions::Questions;
 use crate::recent::Recent;
 use crate::transport::{self, Gate};
 
@@ -82,6 +89,13 @@ enum Inbound {
         acp::RequestPermissionRequest,
         Responder<acp::RequestPermissionResponse>,
     ),
+    /// The agent asks the person something (protocol 10).
+    Question(
+        acp::CreateElicitationRequest,
+        Responder<acp::CreateElicitationResponse>,
+    ),
+    /// The agent withdrew a question it asked (`$/cancel_request`).
+    Withdrawn(QuestionId),
     TurnDone(Result<acp::PromptResponse, Error>),
     /// The agent answered an option change.
     OptionSet {
@@ -107,6 +121,7 @@ pub(crate) async fn run(
     setup: AgentSetup,
 ) {
     let (inbound, inbound_receiver) = mpsc::channel(INBOUND);
+    let questions = Questions::new(setup.questions);
     let gate = Gate::new();
     let transport = transport::lines(stdin, stdout, gate.clone());
     // Outside the connection's closure, so it can still be settled when the
@@ -121,6 +136,7 @@ pub(crate) async fn run(
         turn: false,
         cancelling: false,
         permissions: Permissions::default(),
+        questions,
         tool_calls: Recent::default(),
         gate,
         options: Options::default(),
@@ -143,8 +159,18 @@ pub(crate) async fn run(
             agent_client_protocol::on_receive_notification!(),
         )
         .on_receive_request(
-            async move |request: acp::RequestPermissionRequest, responder, _cx| {
-                forward(&inbound, Inbound::Permission(request, responder)).await;
+            {
+                let inbound = inbound.clone();
+                async move |request: acp::RequestPermissionRequest, responder, _cx| {
+                    forward(&inbound, Inbound::Permission(request, responder)).await;
+                    Ok::<(), Error>(())
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: acp::CreateElicitationRequest, responder, _cx| {
+                forward(&inbound, Inbound::Question(request, responder)).await;
                 Ok::<(), Error>(())
             },
             agent_client_protocol::on_receive_request!(),
@@ -156,8 +182,8 @@ pub(crate) async fn run(
         Err(error) => {
             // The transport failed (for example the agent wrote bytes that
             // are not UTF-8): the loop was dropped without seeing a close,
-            // so the turn and the permission requests it left open are
-            // settled here, as on a close.
+            // so the turn, and the permission requests and questions it
+            // left open, are settled here, as on a close.
             driver.abandon_turn().await;
             Disconnect::Protocol {
                 message: describe(&error),
@@ -190,6 +216,7 @@ struct Driver {
     /// their way are answered `cancelled` as they arrive.
     cancelling: bool,
     permissions: Permissions,
+    questions: Questions,
     /// Tool calls already announced on the timeline.
     /// Recent ones only, so a long session does not keep them all.
     tool_calls: Recent<ToolCallId>,
@@ -249,12 +276,12 @@ impl Driver {
                     let Some(item) = item else {
                         return Ok(Disconnect::Closed);
                     };
-                    if let Some(end) = self.handle(item).await {
+                    if let Some(end) = self.handle(&cx, item).await {
                         return Ok(end);
                     }
                 }
                 () = cx.incoming_closed() => {
-                    self.settle_after_close().await;
+                    self.settle_after_close(&cx).await;
                     return Ok(Disconnect::Closed);
                 }
             }
@@ -262,7 +289,7 @@ impl Driver {
     }
 
     /// Apply one inbound item; `Some` ends the session.
-    async fn handle(&mut self, item: Inbound) -> Option<Disconnect> {
+    async fn handle(&mut self, cx: &ConnectionTo<Agent>, item: Inbound) -> Option<Disconnect> {
         match item {
             Inbound::Started(Ok(Started {
                 session,
@@ -296,10 +323,16 @@ impl Driver {
                 self.gate.release();
                 self.permission(request, responder).await;
             }
+            Inbound::Question(request, responder) => {
+                self.gate.release();
+                self.question(cx, request, responder).await;
+            }
+            Inbound::Withdrawn(id) => self.withdrawn(id).await,
             Inbound::TurnDone(result) => {
                 self.turn = false;
                 self.cancelling = false;
                 self.withdraw_permissions().await;
+                self.withdraw_questions().await;
                 let event = match result {
                     Ok(response) => AgentEvent::TurnEnded {
                         reason: mapper::stop_reason(response.stop_reason),

@@ -1,5 +1,6 @@
 //! The client's commands: prompt, cancel, steer (`steer`), answer a
-//! permission request, read and change the agent's options.
+//! permission request or a question (`questions`), read and change the
+//! agent's options.
 
 use agent_client_protocol::Agent;
 use agent_client_protocol::v1::ConnectionTo;
@@ -31,6 +32,10 @@ impl Driver {
                         .await;
                 }
                 answer(reply, result);
+            }
+            Command::AnswerQuestion { id, answer, reply } => {
+                let result = self.answer_question(id, answer).await;
+                self::answer(reply, result);
             }
             Command::TurnRunning { reply } => {
                 // The asker may have given up; nothing to do then.
@@ -127,10 +132,11 @@ impl Driver {
         }
         // ACP: after `session/cancel` the client answers every pending
         // permission request with `cancelled` (also those still on their
-        // way, see `permission`); the agent then ends the turn with the
-        // `cancelled` stop reason.
+        // way, see `permission`), and every question with `cancel`; the
+        // agent then ends the turn with the `cancelled` stop reason.
         self.cancelling = true;
         self.withdraw_permissions().await;
+        self.withdraw_questions().await;
         Ok(())
     }
 }
