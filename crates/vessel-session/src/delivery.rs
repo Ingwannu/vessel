@@ -24,6 +24,11 @@
 //!   agent ended a turn whose end is still on its way, a steer is handed
 //!   back (`promptRequired`) and starts a turn, and an interrupt finds the
 //!   end as it waits; neither is lost.
+//!
+//! Layout: this module carries out deliveries and cancels; `moves` the
+//! queue's changes and its moving after a turn.
+
+mod moves;
 
 use tokio::sync::oneshot;
 use vessel_agent::{Attachments, InputError, SteerOutcome};
@@ -34,7 +39,7 @@ use vessel_proto::{
 };
 
 use crate::error::{DeliveryError, SessionError};
-use crate::queue::{Applied, Queue};
+use crate::queue::Queue;
 use crate::structured::StructuredActor;
 
 /// `session.prompt` (and `session.send`'s prompt, which is `start`).
@@ -180,12 +185,6 @@ impl StructuredActor {
         let _gone = reply.send(result);
     }
 
-    /// Carry out a `session.queue` change and answer it.
-    pub(crate) async fn change_queue(&mut self, order: Change) {
-        let result = self.change(order.change).await;
-        let _gone = order.reply.send(result);
-    }
-
     /// A person's cancel: the queue is held (nothing waiting is sent after
     /// a stop), and the turn named, if it still runs, is cancelled.
     pub(crate) async fn cancel(&mut self, order: Cancel) {
@@ -204,35 +203,6 @@ impl StructuredActor {
             Ok(())
         };
         let _gone = reply.send(result);
-    }
-
-    /// After a turn's end was published: the queue moves, or is held.
-    pub(crate) async fn after_turn(&mut self) {
-        let Some(end) = self.desk.ended.take() else {
-            return;
-        };
-        match end {
-            TurnEnd::Done => {
-                let _started = self.advance().await;
-            }
-            TurnEnd::Cancelled => {
-                if self.desk.queue.hold(QueueHold::Cancelled) {
-                    self.publish_queue().await;
-                }
-            }
-            TurnEnd::Failed => {
-                if self.desk.queue.hold(QueueHold::Failed) {
-                    self.publish_queue().await;
-                }
-            }
-        }
-    }
-
-    /// The session ends: what waits is kept, held (`ended`).
-    pub(crate) async fn queue_at_end(&mut self) {
-        if self.desk.queue.end() {
-            self.publish_queue().await;
-        }
     }
 
     async fn send_as(
@@ -344,90 +314,5 @@ impl StructuredActor {
         self.until_turn_over()
             .await
             .map_err(|_stopped| SessionError::Ended)
-    }
-
-    async fn change(&mut self, change: QueueChange) -> Result<QueueChanged, SessionError> {
-        if let QueueChange::Edit { content, .. } = &change {
-            self.check_attachments(content)?;
-        }
-        let delivered = match self.desk.queue.apply(change)? {
-            Applied::Changed => None,
-            Applied::Resumed => {
-                self.publish_queue().await;
-                self.advance().await
-            }
-            Applied::Taken {
-                entry,
-                place,
-                delivery,
-            } => {
-                let sent = self
-                    .send_as(entry.content.clone(), delivery, entry.by.clone())
-                    .await;
-                match sent {
-                    Ok(delivered) => {
-                        self.desk.queue.settle();
-                        Some(delivered)
-                    }
-                    Err(error) => {
-                        // Back where it was; nothing was sent.
-                        if let Err(full) = self.desk.queue.insert(place, entry) {
-                            tracing::warn!(%full, "a prompt not sent could not go back to the queue");
-                        }
-                        return Err(error);
-                    }
-                }
-            }
-        };
-        self.publish_queue().await;
-        Ok(QueueChanged {
-            queue: self.desk.queue.get().clone(),
-            delivered,
-        })
-    }
-
-    /// Start the queue's first entry, when it moves and nothing runs.
-    async fn advance(&mut self) -> Option<Delivered> {
-        if self.desk.running() || !self.ready {
-            return None;
-        }
-        let entry = self.desk.queue.next()?;
-        match self.start(entry.content.clone()).await {
-            Ok(()) => {
-                self.desk.queue.settle();
-                self.publish_queue().await;
-                Some(Delivered::Started)
-            }
-            Err(error) => {
-                // It goes back first, the queue held: the agent may take
-                // less than when it was queued (after a move), or it is
-                // going away.
-                let line = format!(
-                    "vessel: the queue's next prompt was not sent ({error}); the queue is held"
-                );
-                if let Err(full) = self.desk.queue.insert(0, entry) {
-                    tracing::warn!(%full, "a prompt not sent could not go back to the queue");
-                }
-                let _held = self.desk.queue.hold(QueueHold::Failed);
-                self.publish_queue().await;
-                self.life.notices(&mut self.agent, vec![line]).await;
-                None
-            }
-        }
-    }
-
-    /// Publish the queue if it differs from what was last published.
-    pub(crate) async fn publish_queue(&mut self) {
-        if self.desk.published.get() == self.desk.queue.get() {
-            return;
-        }
-        let queue = self.desk.queue.get().clone();
-        self.desk.published = Queue::from(queue.clone());
-        self.life
-            .publish(
-                &mut self.agent,
-                vessel_proto::SessionEvent::QueueChanged { queue },
-            )
-            .await;
     }
 }

@@ -1274,3 +1274,23 @@ the same refusal an older node gives.
   prompt and shows questions without answering them (`vessel session
   answer` does); the CLI shows the agent's commands and context only as
   `vessel attach` and `vessel log` print them.
+- Files this track pushed past about 400 lines, divided by
+  responsibility (no behaviour change, the tests as they were):
+  `vessel-session`'s `runtime` (`launch`, `agent`, `parts`), `handle`
+  (`input`), `delivery` (`moves`); `vessel-agent`'s `driver`
+  (`connection`); `vessel-node`'s `sessions` (`conversation`, `read`);
+  `vessel-store`'s `store` (`conversation`, `attached`) and
+  `attachments::files` (its two platforms' halves in `files/unix.rs` and
+  `files/other.rs`); `vessel-proto`'s `conversation::question` (`check`).
+  Inline tests moved to a file of their own: `vessel-node`'s
+  `profiles::launch` and `attachments::uploads`, `vessel-session`'s
+  `activity`, `vessel-cli`'s `render`. Left as they are: files already
+  past the guideline before this track, which other tracks also edit
+  (`vessel-node`'s `service.rs` and `node.rs`, `vessel-proto`'s `rpc.rs`
+  and `options.rs`, `vessel-mcp`'s `tools.rs`, `vessel-cli`'s
+  `args.rs`, `vessel-rpc`'s `client`, `vessel-store`'s `data_dir.rs`,
+  `vessel-node`'s `envelope.rs`, `vessel-session`'s `board.rs`), where a
+  split now would cost every other track a conflict; `vessel-agent`'s
+  `mapper.rs` (402, its tests read the prompt side through the module);
+  the fake agent and the long test files, where a split would only move
+  helpers.

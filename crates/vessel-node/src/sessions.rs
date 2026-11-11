@@ -29,15 +29,11 @@ use std::sync::{Arc, PoisonError, RwLock};
 use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
-use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    ContentBlock, Conversation, Creator, Delivered, Delivery, EventPage, EventRecord, EventSeq,
-    HarnessKind, OptionChoice, QueueChange, SessionId, SessionInfo, SessionInput, SessionMode,
-    SessionOption, SessionSpec, SessionTitle,
+    EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo, SessionOption,
+    SessionSpec, SessionTitle,
 };
-use vessel_session::{
-    Created, FollowError, LaunchOptions, ProfileMove, SessionError, SessionHandle, SessionRuntime,
-};
+use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
 
 use crate::agents::Agents;
@@ -282,95 +278,6 @@ impl Sessions {
         })
     }
 
-    pub(crate) async fn send(
-        &self,
-        id: SessionId,
-        input: SessionInput,
-    ) -> Result<(), ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => {
-                let input = match input {
-                    SessionInput::Prompt { content } => SessionInput::Prompt {
-                        content: self.attached(&handle, content).await?,
-                    },
-                    other @ (SessionInput::Terminal { .. }
-                    | SessionInput::CancelTurn { .. }
-                    | SessionInput::AnswerPermission { .. }
-                    | SessionInput::AnswerQuestion { .. }) => other,
-                };
-                Ok(handle.send(input).await?)
-            }
-            Found::Stored(_) => Err(ServiceError::Ended(id)),
-        }
-    }
-
-    /// Deliver a prompt to a live structured session (protocol 10).
-    pub(crate) async fn prompt(
-        &self,
-        id: SessionId,
-        content: Vec<ContentBlock>,
-        delivery: Delivery,
-        by: Creator,
-    ) -> Result<Delivered, ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => {
-                let content = self.attached(&handle, content).await?;
-                Ok(handle.prompt(content, delivery, by).await?)
-            }
-            Found::Stored(_) => Err(ServiceError::Ended(id)),
-        }
-    }
-
-    /// Change a live structured session's queue (protocol 10). An ended
-    /// session's queue comes back with `session.resume`.
-    pub(crate) async fn change_queue(
-        &self,
-        id: SessionId,
-        change: QueueChange,
-    ) -> Result<QueueChanged, ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => {
-                let change = match change {
-                    QueueChange::Edit {
-                        entry,
-                        revision,
-                        content,
-                    } => QueueChange::Edit {
-                        entry,
-                        revision,
-                        content: self.attached(&handle, content).await?,
-                    },
-                    other @ (QueueChange::Move { .. }
-                    | QueueChange::Remove { .. }
-                    | QueueChange::SendNow { .. }
-                    | QueueChange::Hold
-                    | QueueChange::Resume
-                    | QueueChange::Clear) => other,
-                };
-                Ok(handle.change_queue(change).await?)
-            }
-            Found::Stored(_) => Err(ServiceError::Ended(id)),
-        }
-    }
-
-    /// A prompt for `handle`'s session with each attachment it names
-    /// replaced by the node's record (protocol 10, ADR 0025), so the
-    /// session, its queue and its log see only what the node kept. A
-    /// terminal session's prompt is left for the handle to refuse.
-    async fn attached(
-        &self,
-        handle: &SessionHandle,
-        content: Vec<ContentBlock>,
-    ) -> Result<Vec<ContentBlock>, ServiceError> {
-        let named = content
-            .iter()
-            .any(|block| matches!(block, ContentBlock::Attachment { .. }));
-        if !named || matches!(handle.info().spec.mode, SessionMode::Terminal { .. }) {
-            return Ok(content);
-        }
-        crate::attachments::load::resolve(&self.store, handle.id(), content).await
-    }
-
     /// Move a live session to another profile (`profiles::moving` plans it).
     pub(crate) async fn move_profile(
         &self,
@@ -393,24 +300,6 @@ impl Sessions {
         match self.find(id).await? {
             Found::Live { handle, .. } => Ok(handle.options().await?),
             Found::Stored(_) => Err(ServiceError::Ended(id)),
-        }
-    }
-
-    /// A structured session's conversation as it stands (protocol 10): a
-    /// live one's from its runtime, an ended one's from the store.
-    pub(crate) async fn conversation(&self, id: SessionId) -> Result<Conversation, ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.conversation()?),
-            Found::Stored(info) => match info.spec.mode {
-                SessionMode::Terminal { .. } => {
-                    Err(SessionError::Terminal("a conversation").into())
-                }
-                SessionMode::Structured { .. } => self
-                    .store
-                    .conversation(id)
-                    .await?
-                    .ok_or(ServiceError::NotFound(id)),
-            },
         }
     }
 
@@ -474,140 +363,14 @@ impl Sessions {
         }
         Ok(())
     }
-
-    /// A page of the log. For a live session, first waits until everything
-    /// the session had produced when the call arrived is committed, so the
-    /// page (and `at_end`) reflects the log as of the call, not the store's
-    /// lag; and records retention already pruned from the store but still
-    /// in the session's ring come from the ring (see [`with_ring`]).
-    pub(crate) async fn read(
-        &self,
-        id: SessionId,
-        from: EventSeq,
-        limit: u32,
-    ) -> Result<EventPage, ServiceError> {
-        match self.find(id).await? {
-            Found::Live {
-                handle,
-                mut durability,
-            } => {
-                let produced = handle.info().next_seq;
-                persist::wait_until(id, &mut durability, produced).await?;
-                let page = self.store.read_events(id, from, limit).await?;
-                Ok(with_ring(page, &handle, from, limit))
-            }
-            Found::Stored(_) => Ok(self.store.read_events(id, from, limit).await?),
-        }
-    }
-
-    /// [`read`](Self::read), but with nothing at `from` yet in a live
-    /// session, first wait up to `wait` for a record there or for the
-    /// session to end (`session.read` with `wait`, protocol 6).
-    ///
-    /// [Decision Log]
-    /// - Purpose: an agent waits for another node's session to finish a
-    ///   turn without a subscription across hops (ADR 0013: a long poll,
-    ///   as `fleet.watch`).
-    /// - Choice: follow the session's ring from `from` and wait for its
-    ///   first record there, or for the live stream to close (the session
-    ///   ended); then read as usual, so the page is the same as without
-    ///   waiting. Records already at `from`, an ended or stored session,
-    ///   and a `from` the read refuses all answer at once.
-    /// - Not the info watch: `next_seq` there moves with every record but
-    ///   does not notify (that would wake every info watcher on every
-    ///   event), so a wait on it slept through a turn's records until a
-    ///   status changed or the wait ran out.
-    /// - Bound: the caller caps `wait` ([`ReadEvents::MAX_WAIT`]), so a
-    ///   waiting call holds one of the connection's call slots for at most
-    ///   a minute.
-    ///
-    /// [`ReadEvents::MAX_WAIT`]: vessel_proto::ReadEvents::MAX_WAIT
-    pub(crate) async fn read_waiting(
-        &self,
-        id: SessionId,
-        from: EventSeq,
-        limit: u32,
-        wait: std::time::Duration,
-    ) -> Result<EventPage, ServiceError> {
-        if let Found::Live { handle, .. } = self.find(id).await?
-            && let Ok(follow) = handle.follow(from)
-            && follow.cached.is_empty()
-        {
-            // A record, a lag (records landed) or the end: read now.
-            let mut live = follow.live;
-            if tokio::time::timeout(wait, live.recv()).await.is_err() {
-                tracing::trace!(session = %id, "a waiting read found nothing new");
-            }
-        }
-        self.read(id, from, limit).await
-    }
 }
 
-/// `page`, read from the store for a live session, unless retention pruned
-/// records at its start that the session's ring still holds: then the page
-/// comes from the ring, starting at `from` or at the ring's oldest record.
-///
-/// [Decision Log]
-/// - Problem: a follower that lags catches up with `session.read`. When the
-///   retention budget is smaller than the ring (`max_session_bytes` under
-///   about 16 MiB with the default ring), the store can have dropped
-///   records the ring still has. A store-only page then jumped over them,
-///   and the follower reported them missing although the node had them. A
-///   test waiting for output in that range waited forever.
-/// - Alternatives: have the client resubscribe instead of reading (the
-///   subscription path already prefers the ring), but paging exists so a
-///   slow client catches up at its own pace without lagging the broadcast
-///   again; or forbid budgets under the ring size, which would make
-///   retention depend on a runtime setting.
-/// - Choice: the read prefers the ring whenever the store's page does not
-///   start at `from` and the ring reaches further back. Retention prunes a
-///   prefix and the ring holds the newest records, so either source alone
-///   is a gap-free suffix; no merge is needed.
-/// - Cost: one ring lookup per read of a live session whose store page has
-///   a gap, which only happens after pruning.
-fn with_ring(page: EventPage, handle: &SessionHandle, from: EventSeq, limit: u32) -> EventPage {
-    let stored_from = page.records.first().map(|record| record.seq);
-    if stored_from == Some(from) {
-        return page;
-    }
-    let follow = match handle.follow(from) {
-        Ok(follow) => follow,
-        Err(FollowError::Gap { oldest_cached }) => {
-            // The ring starts later than `from`: it helps only if it starts
-            // earlier than the store's page.
-            if stored_from.is_some_and(|stored| stored <= oldest_cached) {
-                return page;
-            }
-            match handle.follow(oldest_cached) {
-                Ok(follow) => follow,
-                // The ring moved on meanwhile; the store's page stands.
-                Err(FollowError::Gap { .. } | FollowError::Ahead { .. }) => return page,
-            }
-        }
-        Err(FollowError::Ahead { .. }) => return page,
-    };
-    let cached = follow.cached;
-    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
-    let records: Vec<EventRecord> = cached
-        .iter()
-        .take(limit)
-        .map(|record| EventRecord::clone(record))
-        .collect();
-    let Some(last) = records.last() else {
-        return page;
-    };
-    EventPage {
-        // `None` only for a log that is full; nothing follows its last
-        // record, so asking for it again is as good an answer as any.
-        next: last.seq.next().unwrap_or(last.seq),
-        at_end: cached.len() <= limit,
-        records,
-    }
-}
-
-// Protocol 10's marks and deletion, and starting an ended session again.
+// Protocol 10's marks and deletion, and starting an ended session again;
+// the conversation's input; reading the log.
 pub(crate) mod again;
+mod conversation;
 mod marks;
+mod read;
 
 #[cfg(test)]
 mod tests;

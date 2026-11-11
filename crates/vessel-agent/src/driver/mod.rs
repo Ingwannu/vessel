@@ -39,14 +39,16 @@
 //!   watches and reports into `inbound` (`Withdrawn`), as option changes
 //!   report back (`questions`).
 //!
-//! Layout: this module sets the connection up and runs the loop, which
-//! takes the client's commands (`commands`) and the agent's traffic
-//! (`agent`, `questions`) in order; `close` settles what a closed
-//! connection leaves open. All of them share the one [`Driver`] state.
+//! Layout: `connection` sets the connection up; this module runs the
+//! loop, which takes the client's commands (`commands`, `steer`) and the
+//! agent's traffic (`agent`, `questions`) in order; `close` settles what a
+//! closed connection leaves open. All of them share the one [`Driver`]
+//! state.
 
 mod agent;
 mod close;
 mod commands;
+mod connection;
 mod questions;
 mod steer;
 
@@ -55,8 +57,7 @@ use std::time::Duration;
 
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::v1::{ConnectionTo, Responder};
-use agent_client_protocol::{Agent, Client, Error};
-use tokio::process::{ChildStdin, ChildStdout};
+use agent_client_protocol::{Agent, Error};
 use tokio::sync::mpsc;
 use vessel_proto::{
     AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId,
@@ -72,7 +73,9 @@ use crate::output::AgentOutput;
 use crate::permissions::Permissions;
 use crate::questions::Questions;
 use crate::recent::Recent;
-use crate::transport::{self, Gate};
+use crate::transport::Gate;
+
+pub(crate) use connection::run;
 
 /// Bound of the inbound queue between the SDK's handlers and the loop.
 const INBOUND: usize = 64;
@@ -109,95 +112,6 @@ enum Inbound {
         result: Result<serde_json::Value, Error>,
         reply: SteerReply,
     },
-}
-
-/// Drive the ACP connection over the agent's stdio until it ends, then
-/// report why.
-pub(crate) async fn run(
-    stdin: ChildStdin,
-    stdout: ChildStdout,
-    commands: mpsc::Receiver<Command>,
-    outputs: mpsc::Sender<AgentOutput>,
-    setup: AgentSetup,
-) {
-    let (inbound, inbound_receiver) = mpsc::channel(INBOUND);
-    let questions = Questions::new(setup.questions);
-    let gate = Gate::new();
-    let transport = transport::lines(stdin, stdout, gate.clone());
-    // Outside the connection's closure, so it can still be settled when the
-    // connection fails rather than closes (see the end of this function).
-    let mut driver = Driver {
-        inbound: inbound.clone(),
-        inbound_receiver,
-        commands,
-        commands_open: true,
-        outputs: outputs.clone(),
-        session: None,
-        turn: false,
-        cancelling: false,
-        permissions: Permissions::default(),
-        questions,
-        tool_calls: Recent::default(),
-        gate,
-        options: Options::default(),
-        reported: None,
-        abilities: AgentAbilities::default(),
-        last_commands: None,
-        last_usage: None,
-    };
-    let ended = Client
-        .v1()
-        .name("vessel")
-        .on_receive_notification(
-            {
-                let inbound = inbound.clone();
-                async move |notification: acp::SessionNotification, _cx| {
-                    forward(&inbound, Inbound::Update(notification)).await;
-                    Ok::<(), Error>(())
-                }
-            },
-            agent_client_protocol::on_receive_notification!(),
-        )
-        .on_receive_request(
-            {
-                let inbound = inbound.clone();
-                async move |request: acp::RequestPermissionRequest, responder, _cx| {
-                    forward(&inbound, Inbound::Permission(request, responder)).await;
-                    Ok::<(), Error>(())
-                }
-            },
-            agent_client_protocol::on_receive_request!(),
-        )
-        .on_receive_request(
-            async move |request: acp::CreateElicitationRequest, responder, _cx| {
-                forward(&inbound, Inbound::Question(request, responder)).await;
-                Ok::<(), Error>(())
-            },
-            agent_client_protocol::on_receive_request!(),
-        )
-        .connect_with(transport, async |cx| driver.run(cx, setup).await)
-        .await;
-    let disconnect = match ended {
-        Ok(disconnect) => disconnect,
-        Err(error) => {
-            // The transport failed (for example the agent wrote bytes that
-            // are not UTF-8): the loop was dropped without seeing a close,
-            // so the turn, and the permission requests and questions it
-            // left open, are settled here, as on a close.
-            driver.abandon_turn().await;
-            Disconnect::Protocol {
-                message: describe(&error),
-            }
-        }
-    };
-    drop(driver);
-    if outputs
-        .send(AgentOutput::Disconnected(disconnect))
-        .await
-        .is_err()
-    {
-        tracing::debug!("agent outputs dropped before the disconnect");
-    }
 }
 
 /// Session state, owned by the driver loop.

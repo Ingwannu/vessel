@@ -1,4 +1,7 @@
-//! [`SessionHandle`]: the cheap, cloneable view of one session.
+//! [`SessionHandle`]: the cheap, cloneable view of one session. What it
+//! sends the session is `input`'s.
+
+mod input;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -6,16 +9,14 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::AgentInput;
-use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    ContentBlock, Conversation, Creator, Delivered, Delivery, EventSeq, ModelCall, OptionChoice,
-    QueueChange, SessionId, SessionInfo, SessionInput, SessionOption, SessionTitle, TerminalInput,
+    Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
+    SessionTitle,
 };
-use vessel_pty::{PtyInput, WindowSize};
+use vessel_pty::PtyInput;
 
 use crate::conversation::Seen;
-use crate::delivery::{Cancel, Change, Deliver};
-use crate::error::{DeliveryError, InputKind, ModeKind, SessionError};
+use crate::error::{ModeKind, SessionError};
 use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
@@ -257,173 +258,6 @@ impl SessionHandle {
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()
-    }
-
-    /// Send input to the session.
-    ///
-    /// Terminal input waits while the program's input queue is full.
-    /// Structured input waits until the agent has applied it (and, while the
-    /// ACP handshake runs, until it is ready).
-    ///
-    /// # Errors
-    /// [`SessionError::Unsupported`] when the input does not match the
-    /// session's mode, [`SessionError::Ended`] once the session has ended,
-    /// [`SessionError::Input`] when the agent refuses it (for example a
-    /// second answer to a permission request).
-    pub async fn send(&self, input: SessionInput) -> Result<(), SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
-        match (&self.0.input, input) {
-            (Input::Terminal(pty), SessionInput::Terminal { input }) => {
-                let sent = match input {
-                    TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
-                    TerminalInput::Resize { size } => {
-                        pty.resize(WindowSize {
-                            cols: size.cols,
-                            rows: size.rows,
-                        })
-                        .await
-                    }
-                };
-                sent.map_err(|vessel_pty::PtyClosed| SessionError::Ended)
-            }
-            // Protocol 10: prompts and cancels take the actor's turn, in
-            // order with the queue (`delivery`).
-            (Input::Structured(route), SessionInput::Prompt { content }) => {
-                let _started = self
-                    .order(route, |reply| {
-                        Control::Deliver(Deliver {
-                            content,
-                            delivery: Delivery::Start,
-                            by: Creator::Owner,
-                            reply,
-                        })
-                    })
-                    .await?;
-                Ok(())
-            }
-            (Input::Structured(route), SessionInput::CancelTurn { turn }) => {
-                self.order(route, |reply| Control::Cancel(Cancel { turn, reply }))
-                    .await
-            }
-            (Input::Structured(route), SessionInput::AnswerPermission { id, outcome }) => {
-                Ok(current(route)?.answer(id, outcome).await?)
-            }
-            // Protocol 10: straight to the agent, as a permission answer:
-            // it settles a request of the running turn, it starts nothing.
-            (Input::Structured(route), SessionInput::AnswerQuestion { id, answer }) => {
-                Ok(current(route)?.answer_question(id, answer).await?)
-            }
-            (
-                input_path @ Input::Terminal(_),
-                input @ (SessionInput::Prompt { .. }
-                | SessionInput::CancelTurn { .. }
-                | SessionInput::AnswerPermission { .. }
-                | SessionInput::AnswerQuestion { .. }),
-            )
-            | (input_path @ Input::Structured(_), input @ SessionInput::Terminal { .. }) => {
-                Err(SessionError::Unsupported {
-                    input: InputKind::of(&input),
-                    mode: input_path.mode(),
-                })
-            }
-        }
-    }
-
-    /// Deliver a prompt as asked (protocol 10's `session.prompt`); `by`
-    /// is who sent it, kept with it if it waits in the queue.
-    ///
-    /// # Errors
-    /// [`SessionError::Delivery`] for an empty prompt or an interrupt whose
-    /// turn did not end, [`SessionError::Queue`] when the queue is full,
-    /// [`SessionError::Input`] when the agent refuses it (a turn runs for
-    /// `start`, it cannot steer), [`SessionError::Terminal`],
-    /// [`SessionError::Moving`], [`SessionError::Ended`].
-    pub async fn prompt(
-        &self,
-        content: Vec<ContentBlock>,
-        delivery: Delivery,
-        by: Creator,
-    ) -> Result<Delivered, SessionError> {
-        if content.is_empty() {
-            return Err(DeliveryError::Empty.into());
-        }
-        let route = self.structured("a queue")?;
-        self.order(route, |reply| {
-            Control::Deliver(Deliver {
-                content,
-                delivery,
-                by,
-                reply,
-            })
-        })
-        .await
-    }
-
-    /// Change the queue (protocol 10's `session.queue`); the queue after,
-    /// and how an entry sent now was delivered.
-    ///
-    /// # Errors
-    /// [`SessionError::Queue`] for an entry no longer queued, an edit from
-    /// another revision, a full queue or `send_now` with `queue`; a
-    /// `send_now`'s delivery errors, as [`prompt`](Self::prompt);
-    /// [`SessionError::Terminal`], [`SessionError::Moving`],
-    /// [`SessionError::Ended`].
-    pub async fn change_queue(&self, change: QueueChange) -> Result<QueueChanged, SessionError> {
-        let route = self.structured("a queue")?;
-        self.order(route, |reply| Control::Queue(Change { change, reply }))
-            .await
-    }
-
-    /// The input route of a live structured session.
-    fn structured(
-        &self,
-        what: &'static str,
-    ) -> Result<&watch::Receiver<Option<AgentInput>>, SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
-        match &self.0.input {
-            Input::Terminal(_) => Err(SessionError::Terminal(what)),
-            Input::Structured(route) => Ok(route),
-        }
-    }
-
-    /// Hand an order to the actor and wait for its answer. Refused while
-    /// the session moves, as input always was; an order sent as a move
-    /// begins waits for it.
-    async fn order<T>(
-        &self,
-        route: &watch::Receiver<Option<AgentInput>>,
-        order: impl FnOnce(oneshot::Sender<Result<T, SessionError>>) -> Control,
-    ) -> Result<T, SessionError> {
-        if route.borrow().is_none() {
-            return Err(SessionError::Moving);
-        }
-        let control = self.0.control.as_ref().ok_or(SessionError::Ended)?;
-        let (reply, answer) = oneshot::channel();
-        control
-            .send(order(reply))
-            .await
-            .map_err(|_ended| SessionError::Ended)?;
-        answer.await.map_err(|_ended| SessionError::Ended)?
-    }
-
-    /// Whether the session's agent is in the middle of a turn (a prompt
-    /// already on its way counts); `false` for a terminal session, whose
-    /// turns Vessel cannot see. For copying a session's files away
-    /// (protocol 6's `session.export`): between turns its transcript is
-    /// complete, during one the harness is still appending to it.
-    ///
-    /// # Errors
-    /// [`SessionError::Moving`] while the session moves to another profile,
-    /// [`SessionError::Ended`] once its agent's connection has closed.
-    pub async fn turn_running(&self) -> Result<bool, SessionError> {
-        match &self.0.input {
-            Input::Terminal(_) => Ok(false),
-            Input::Structured(route) => Ok(current(route)?.turn_running().await?),
-        }
     }
 
     /// Wait until the session has ended, then return its final info.
