@@ -1,28 +1,24 @@
 // The chrome every page sits in (DESIGN.md §2.2): topbar, sidebar, main.
 
-import {
-  Link,
-  Outlet,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
-import {
-  Fragment,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Fragment, type ReactElement } from "react";
 
 import { openNewSession, useChrome, useFleet, useFleetState } from "../context";
-import type { FleetState } from "../data/fleet";
 import { isWorking, needsYou, placement } from "../data/board";
-import { isLive, nodeState, sessionTitle, shortId } from "../data/format";
+import {
+  isLive,
+  nodeState,
+  sessionTitle,
+  shortId,
+  type StateTone,
+} from "../data/format";
 import { nodeLabel, selectedNode } from "../data/nodes";
+import { SidebarSearch } from "../features/palette/palette";
+import { useGoShortcuts } from "../features/palette/shortcuts";
+import { ThemeMenu } from "../features/theme/theme";
 import { NewSessionDialog } from "../routes/new-session";
 import type { SessionInfo } from "../wire/proto";
-import { Banner, Icon, StatusDot } from "./parts";
+import { Banner, Button, Icon, IconButton, StatusDot, Tooltip } from "./kit";
 import { Toasts } from "./toasts";
 
 const MARK = (
@@ -45,7 +41,7 @@ const MARK = (
 
 export function Shell(): ReactElement {
   const newSession = useChrome((chrome) => chrome.newSession);
-  useShortcuts();
+  useGoShortcuts();
   return (
     <>
       <a className="skip" href="#main">
@@ -84,15 +80,14 @@ function Disconnected() {
     <Banner
       tone="error"
       action={
-        <button
-          className="btn sm"
-          type="button"
+        <Button
+          size="sm"
           onClick={() => {
             fleet.bridge.retry();
           }}
         >
           Retry
-        </button>
+        </Button>
       }
     >
       Disconnected — vessel ui may have restarted. If it did, open the address
@@ -108,9 +103,9 @@ function FrameTop() {
   const crumbs = useChrome((chrome) => chrome.crumbs);
   const link = useFleetState((state) => state.link);
   const selected = useFleetState((state) => selectedNode(state, undefined));
-  const chip =
+  const chip: { tone: StateTone; text: string } =
     link.kind === "open"
-      ? { tone: "running", text: "vessel ui · connected" }
+      ? { tone: "ok", text: "vessel ui · connected" }
       : link.kind === "refused"
         ? { tone: "danger", text: "vessel ui · refused" }
         : link.kind === "disconnected"
@@ -141,129 +136,22 @@ function FrameTop() {
         <Link
           className={link.kind === "open" ? "chip" : "chip reconnecting"}
           to="/settings"
-          title="This client"
         >
           <StatusDot tone={chip.tone} label={chip.text} />
           {chip.text}
         </Link>
-        <button
-          className="btn primary sm"
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
+          icon="plus"
           onClick={() => {
             openNewSession(selected);
           }}
         >
-          <Icon name="plus" size="sm" /> New
-        </button>
+          New
+        </Button>
       </div>
     </header>
-  );
-}
-
-interface Hit {
-  label: string;
-  detail: string;
-  to: string;
-}
-
-/** Nodes and sessions matching `query`. */
-function hits(state: FleetState, query: string): Hit[] {
-  const text = query.trim().toLowerCase();
-  if (text === "") {
-    return [];
-  }
-  const found: Hit[] = [];
-  for (const node of state.book ?? []) {
-    const label = nodeLabel(node, state.statuses[node.key]);
-    if (label.toLowerCase().includes(text)) {
-      found.push({ label, detail: "node", to: `/fleet/${node.key}` });
-    }
-  }
-  for (const [node, sessions] of Object.entries(state.sessions)) {
-    for (const session of sessions) {
-      const cwd = session.spec.cwd ?? "";
-      if (session.id.startsWith(text) || cwd.toLowerCase().includes(text)) {
-        found.push({
-          label: shortId(session.id),
-          detail: `${session.status.state} · ${cwd}`,
-          to: `/sessions/${node}/${session.id}`,
-        });
-      }
-    }
-  }
-  return found.slice(0, 8);
-}
-
-function Search() {
-  const [query, setQuery] = useState("");
-  const input = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
-  const found = useFleetState((state) => state);
-  const results = useMemo(() => hits(found, query), [found, query]);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const typing =
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement;
-      if (
-        (event.key === "k" && (event.metaKey || event.ctrlKey)) ||
-        (event.key === "/" && !typing)
-      ) {
-        event.preventDefault();
-        input.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, []);
-  return (
-    <div className="side-search-wrap">
-      <label className="side-search">
-        <Icon name="search" size="sm" />
-        <input
-          ref={input}
-          type="search"
-          placeholder="Search"
-          aria-label="Search"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-          }}
-          onKeyDown={(event) => {
-            const first = results[0];
-            if (event.key === "Enter" && first !== undefined) {
-              void navigate({ to: first.to });
-              setQuery("");
-              input.current?.blur();
-            }
-            if (event.key === "Escape") {
-              setQuery("");
-              input.current?.blur();
-            }
-          }}
-        />
-        <kbd className="kbd">⌘K</kbd>
-      </label>
-      {results.length === 0 ? null : (
-        <ul className="palette" role="listbox" aria-label="Results">
-          {results.map((hit) => (
-            <li key={hit.to} role="option" aria-selected="false">
-              <Link
-                to={hit.to}
-                onClick={() => {
-                  setQuery("");
-                }}
-              >
-                <span className="mono">{hit.label}</span>
-                <span className="muted">{hit.detail}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
@@ -309,39 +197,38 @@ function Sidebar() {
           <span>Vessel</span>
         </Link>
       </div>
-      <Search />
+      <SidebarSearch />
       <div className="side-list">
         <Link className={item(path === "/fleet")} to="/fleet">
-          <Icon name="fleet" size="sm" />
+          <Icon name="fleet" size={16} />
           <span className="label">Fleet</span>
         </Link>
         <Link className={item(path === "/sessions")} to="/sessions">
-          <Icon name="sessions" size="sm" />
+          <Icon name="sessions" size={16} />
           <span className="label">Sessions</span>
           <span className="count">{live}</span>
         </Link>
         <Link className={item(path === "/sync")} to="/sync">
-          <Icon name="sync" size="sm" />
+          <Icon name="sync" size={16} />
           <span className="label">Sync</span>
         </Link>
         <Link className={item(path === "/devices")} to="/devices">
-          <Icon name="devices" size="sm" />
+          <Icon name="devices" size={16} />
           <span className="label">Devices</span>
         </Link>
       </div>
       <div className="side-label">
         <span>Nodes</span>
-        <button
-          className="btn ghost xs icon-btn"
-          type="button"
-          aria-label="New session"
-          title="New session"
-          onClick={() => {
-            openNewSession(selected);
-          }}
-        >
-          <Icon name="plus" size="sm" />
-        </button>
+        <Tooltip label="New session">
+          <IconButton
+            label="New session"
+            icon="plus"
+            size="xs"
+            onClick={() => {
+              openNewSession(selected);
+            }}
+          />
+        </Tooltip>
       </div>
       <div className="side-scroll">
         {(book ?? []).map((node) => {
@@ -403,44 +290,11 @@ function Sidebar() {
       </div>
       <div className="side-foot">
         <Link className={item(path === "/settings")} to="/settings">
-          <Icon name="settings" size="sm" />
+          <Icon name="settings" size={16} />
           <span className="label">Settings</span>
         </Link>
+        <ThemeMenu />
       </div>
     </nav>
   );
-}
-
-/** `g f` / `g s` / `g y` / `g d` (DESIGN.md §7.1). */
-function useShortcuts(): void {
-  const navigate = useNavigate();
-  useEffect(() => {
-    let leader = false;
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        (target instanceof HTMLElement && target.closest(".xterm") !== null)
-      ) {
-        return;
-      }
-      if (leader) {
-        leader = false;
-        const to = { f: "/fleet", s: "/sessions", y: "/sync", d: "/devices" }[
-          event.key
-        ];
-        if (to !== undefined) {
-          void navigate({ to });
-        }
-        return;
-      }
-      leader = event.key === "g";
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [navigate]);
 }

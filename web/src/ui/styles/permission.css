@@ -1,0 +1,86 @@
+/* Permission prompts (DESIGN.md §6.7). */
+
+/* --- Permission --- */
+
+.perm-card {
+  border: 1px solid color-mix(in srgb, var(--warn) 50%, var(--border-subtle));
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg-surface));
+  border-radius: var(--r-3);
+  padding: 10px 12px;
+}
+
+.perm-card h3 {
+  margin: 0 0 4px;
+  font: var(--t-label);
+}
+
+.perm-card p {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.perm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.compose {
+  grid-area: compose;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  padding: 8px 12px 10px;
+}
+
+.compose .perm-sticky {
+  margin-bottom: 8px;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-4);
+  background: var(--bg-surface);
+  padding: 8px 8px 6px;
+}
+
+/* The composer is one box: its prompt (the kit's bare TextArea) draws no
+   edge, and the focus ring is the box's. */
+.composer:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -1px;
+}
+
+.composer .text-field.mono {
+  font: var(--t-mono-lg);
+}
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.composer-bar .model {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.composer-bar .btn {
+  margin-left: auto;
+}
+
+.status-line {
+  display: flex;
+  gap: 10px;
+  padding: 4px 4px 0;
+  color: var(--text-tertiary);
+  font: var(--t-mono);
+  font-size: 11px;
+}

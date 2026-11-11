@@ -11,15 +11,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build && node scripts/integrity.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint . && prettier --check . && node scripts/check-fonts.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p scripts/tsconfig.json",
+    "lint": "eslint . && prettier --check . && node scripts/check-fonts.mjs && node scripts/check-controls.mjs && node scripts/check-size.mjs",
     "format": "prettier --write .",
     "fonts": "node scripts/check-fonts.mjs",
     "test": "vitest run",
     "e2e": "playwright test --project=e2e",
-    "screens": "playwright test --project=screens"
+    "screens": "playwright test --project=screens",
+    "controls": "node scripts/check-controls.mjs",
+    "size": "node scripts/check-size.mjs"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
     "@tanstack/react-router": "1.170.46",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",

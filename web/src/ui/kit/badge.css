@@ -1,0 +1,58 @@
+/* Badge (kit/badge.tsx, DESIGN.md §6.4). A quiet outlined word; state is a
+   dot in front of the word, never a tinted fill: on a white page, six
+   pastel chips in a row read as decoration and bury the one that
+   matters. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  font: 500 11px / 16px var(--font-sans);
+  background: transparent;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.badge[class*="tone-"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 6px;
+}
+
+.badge.tone-ok::before {
+  background: var(--online);
+}
+
+.badge.tone-warn::before {
+  background: var(--warn);
+}
+
+.badge.tone-interrupt::before {
+  background: var(--interrupt);
+}
+
+/* Danger is the one state that also colours its word. */
+.badge.tone-danger {
+  color: var(--danger);
+}
+
+.badge.tone-danger::before {
+  background: var(--danger);
+}
+
+/* The fleet's home, a book's default: ink on no fill, a stronger edge. */
+.badge.accent {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.badge.mono {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}

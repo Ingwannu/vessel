@@ -13,17 +13,20 @@ import {
   statusTone,
   statusWord,
 } from "../data/format";
+import { moveOptions } from "../data/choices";
 import { labelOf } from "../data/nodes";
 import { useWhere } from "../data/where";
-import { Dialog } from "../ui/dialog";
 import {
   Badge,
   Banner,
-  CopyButton,
-  Icon,
+  Button,
+  Dialog,
+  Field,
+  Select,
   Skeleton,
   StatusDot,
-} from "../ui/parts";
+} from "../ui/kit";
+import { CopyButton } from "../ui/parts";
 import { toast } from "../ui/toasts";
 import type { SessionInfo } from "../wire/proto";
 import { StructuredView } from "./structured";
@@ -40,14 +43,11 @@ export function SessionPage(): ReactElement {
   );
   const [fetched, setFetched] = useState<SessionInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useCrumbs(
-    [
-      { label: "Fleet", to: "/fleet" },
-      { label, to: `/fleet/${node}` },
-      { label: shortId(id), mono: true },
-    ],
-    `${node}/${id}/${label}`,
-  );
+  useCrumbs([
+    { label: "Fleet", to: "/fleet" },
+    { label, to: `/fleet/${node}` },
+    { label: shortId(id), mono: true },
+  ]);
   useEffect(() => {
     let current = true;
     fleet.bridge.call(node, "session.get", { session: id }).then(
@@ -127,7 +127,7 @@ function SessionHead({
       <StatusDot tone={tone} label={statusWord(session.status)} />
       <span className="id">{shortId(session.id)}</span>
       <Badge tone={tone}>{statusWord(session.status)}</Badge>
-      <Badge tone={session.spec.mode === "structured" ? "accent" : ""}>
+      <Badge look={session.spec.mode === "structured" ? "accent" : "word"}>
         {session.spec.mode}
       </Badge>
       <span className="meta">
@@ -139,27 +139,28 @@ function SessionHead({
       </span>
       <div className="actions">
         {session.spec.mode === "structured" && live ? (
-          <button
-            className="btn sm"
-            type="button"
+          <Button
+            size="sm"
+            icon="move"
             onClick={() => {
               setDialog("profile");
             }}
           >
-            <Icon name="move" size="sm" /> Profile
-          </button>
+            Profile
+          </Button>
         ) : null}
         <CopyButton text={session.id} label="Copy session id" />
         {live ? (
-          <button
-            className="btn sm danger"
-            type="button"
+          <Button
+            variant="danger"
+            size="sm"
+            icon="kill"
             onClick={() => {
               setDialog("kill");
             }}
           >
-            <Icon name="kill" size="sm" /> Kill
-          </button>
+            Kill
+          </Button>
         ) : null}
       </div>
       {dialog === "kill" ? (
@@ -170,18 +171,16 @@ function SessionHead({
           }}
           footer={
             <>
-              <button
-                className="btn ghost"
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setDialog(null);
                 }}
               >
                 Cancel
-              </button>
-              <button
-                className="btn danger solid"
-                type="button"
+              </Button>
+              <Button
+                variant="danger-solid"
                 onClick={() => {
                   setDialog(null);
                   fleet.bridge
@@ -203,7 +202,7 @@ function SessionHead({
                 }}
               >
                 Kill
-              </button>
+              </Button>
             </>
           }
         >
@@ -271,12 +270,11 @@ function MoveProfile({
       onClose={close}
       footer={
         <>
-          <button className="btn ghost" type="button" onClick={close}>
+          <Button variant="ghost" onClick={close}>
             Cancel
-          </button>
-          <button
-            className="btn primary"
-            type="button"
+          </Button>
+          <Button
+            variant="primary"
             disabled={busy}
             onClick={() => {
               setBusy(true);
@@ -304,7 +302,7 @@ function MoveProfile({
             }}
           >
             Move
-          </button>
+          </Button>
         </>
       }
     >
@@ -315,32 +313,13 @@ function MoveProfile({
           ? "."
           : `, on route ${route}: a session keeps the route it started on.`}
       </p>
-      <label className="field">
-        <span>Profile</span>
-        <select
+      <Field label="Profile" error={error}>
+        <Select
           value={chosen}
-          onChange={(event) => {
-            setChosen(event.target.value);
-          }}
-        >
-          <option value="" disabled={route !== null}>
-            default
-          </option>
-          {choices.map((profile) => (
-            <option
-              key={profile.name}
-              value={profile.name}
-              disabled={(profile.model ?? null) !== route}
-            >
-              {profile.label ?? profile.name}
-              {profile.model === undefined || profile.model === null
-                ? ""
-                : ` · ${profile.model}`}
-            </option>
-          ))}
-        </select>
-      </label>
-      {error === null ? null : <p className="field-error">{error}</p>}
+          options={moveOptions(choices, route)}
+          onChange={setChosen}
+        />
+      </Field>
     </Dialog>
   );
 }

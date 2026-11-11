@@ -1,6 +1,7 @@
 // The web UI's build (ADR 0017): a static bundle in `dist/`, which
 // vessel-web's build script embeds in the `vessel` binary. Nothing here
-// reaches the network at run time; fonts are bundled from `pretendard`.
+// reaches the network at run time; fonts are bundled from `pretendard`
+// and `@fontsource-variable/geist{,-mono}` (ADR 0021).
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
@@ -18,7 +19,7 @@ function xtermFont(): Plugin {
       }
       return code.replaceAll(
         "font-family: monospace;",
-        'font-family: Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace;',
+        'font-family: "Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace;',
       );
     },
   };

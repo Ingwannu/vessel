@@ -4,16 +4,25 @@
 import { useState, type ReactElement } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../context";
-import { nodeState, when } from "../data/format";
+import { listOr, nodeState, when } from "../data/format";
 import { nodeLabel } from "../data/nodes";
-import { chooseTheme, currentTheme, type Theme } from "../data/theme";
-import { Badge, Empty, Icon } from "../ui/parts";
+import { chooseTheme, theme as themeStore } from "../data/theme";
+import { useStore } from "../data/store";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  Segmented,
+  TextField,
+} from "../ui/kit";
+import { THEMES } from "../features/theme/theme";
 import { toast } from "../ui/toasts";
 import type { PairingOffer } from "../wire/proto";
 
 export function SettingsPage(): ReactElement {
-  useCrumbs([{ label: "Settings" }], "settings");
-  const [theme, setTheme] = useState<Theme>(currentTheme);
+  useCrumbs([{ label: "Settings" }]);
+  const theme = useStore(themeStore, (value) => value);
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   return (
@@ -30,34 +39,21 @@ export function SettingsPage(): ReactElement {
         <div className="panel">
           <h2>Theme</h2>
           <div className="pad">
-            <div className="seg" role="radiogroup" aria-label="Theme">
-              {(["light", "dark"] as const).map((value) => (
-                <label
-                  key={value}
-                  className={theme === value ? "active" : undefined}
-                >
-                  <input
-                    type="radio"
-                    name="theme"
-                    checked={theme === value}
-                    onChange={() => {
-                      chooseTheme(value);
-                      setTheme(value);
-                    }}
-                  />
-                  <span>{value === "dark" ? "Dark" : "Light"}</span>
-                </label>
-              ))}
-            </div>
+            <Segmented
+              label="Theme"
+              value={theme}
+              onChange={chooseTheme}
+              options={THEMES}
+            />
           </div>
         </div>
         <div className="panel">
           <h2>Node book</h2>
           {book === null || book.length === 0 ? (
-            <Empty title="No nodes yet">
+            <EmptyState title="No nodes yet">
               Add one with <code>vessel nodes add NAME ADDRESS</code>, or pair
               one below.
-            </Empty>
+            </EmptyState>
           ) : (
             <table className="data book" aria-label="Node book">
               <thead>
@@ -76,12 +72,12 @@ export function SettingsPage(): ReactElement {
                       <td className="name">
                         {nodeLabel(node, statuses[node.key])}
                         {node.default ? (
-                          <Badge tone="accent">default</Badge>
+                          <Badge look="accent">default</Badge>
                         ) : null}
                       </td>
                       <td className="mono muted">{node.address}</td>
                       <td>
-                        <Badge tone="mono">{node.transport}</Badge>
+                        <Badge look="mono">{node.transport}</Badge>
                       </td>
                       <td>
                         <Badge tone={state.tone}>{state.word}</Badge>
@@ -154,27 +150,22 @@ function PairWithNode() {
           you confirm.
         </p>
         <div className="inline pair-new">
-          <label className="field grow">
-            <span>Pairing link</span>
-            <input
-              type="text"
-              spellCheck={false}
-              placeholder="vessel://pair#…"
-              value={link}
-              onChange={(event) => {
-                setLink(event.target.value);
-                setOffer(null);
-              }}
-            />
-          </label>
-          <button
-            className="btn"
-            type="button"
-            disabled={link.trim() === ""}
-            onClick={inspect}
-          >
-            <Icon name="link" size="sm" /> Check
-          </button>
+          <div className="grow">
+            <Field label="Pairing link">
+              <TextField
+                mono
+                placeholder="vessel://pair#…"
+                value={link}
+                onChange={(next) => {
+                  setLink(next);
+                  setOffer(null);
+                }}
+              />
+            </Field>
+          </div>
+          <Button icon="link" disabled={link.trim() === ""} onClick={inspect}>
+            Check
+          </Button>
         </div>
         {offer === null ? null : (
           <div className="offer">
@@ -184,32 +175,23 @@ function PairWithNode() {
               <dt>fingerprint</dt>
               <dd>{offer.fingerprint}</dd>
               <dt>direct</dt>
-              <dd>{offer.offer.direct.join(", ") || "none"}</dd>
+              <dd>{listOr(offer.offer.direct, "none")}</dd>
               <dt>relays</dt>
-              <dd>{offer.offer.relays.join(", ") || "none"}</dd>
+              <dd>{listOr(offer.offer.relays, "none")}</dd>
               <dt>expires</dt>
               <dd>{when(offer.offer.expires)}</dd>
             </dl>
             <div className="inline pair-new">
-              <label className="field">
-                <span>Name in the book</span>
-                <input
-                  type="text"
-                  spellCheck={false}
-                  value={name}
-                  onChange={(event) => {
-                    setName(event.target.value);
-                  }}
-                />
-              </label>
-              <button
-                className="btn primary"
-                type="button"
+              <Field label="Name in the book">
+                <TextField value={name} onChange={setName} />
+              </Field>
+              <Button
+                variant="primary"
                 disabled={busy || name.trim() === ""}
                 onClick={pair}
               >
                 {busy ? "Pairing…" : "Pair"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

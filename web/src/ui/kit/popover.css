@@ -1,0 +1,27 @@
+/* Popover (kit/popover.tsx): the shared popup surface with room inside.
+   agent-orchestrator sets no width or padding; GOAT's are 256, 320 and
+   384px wide with 16px inside. */
+
+.popover {
+  gap: 8px;
+  padding: 16px;
+  max-width: calc(100vw - 32px);
+}
+
+.popover.sm {
+  width: 256px;
+}
+
+.popover.md {
+  width: 320px;
+}
+
+.popover.lg {
+  width: 384px;
+}
+
+.popover-title {
+  margin: 0;
+  color: var(--text-primary);
+  font: 600 13px / 18px var(--font-sans);
+}

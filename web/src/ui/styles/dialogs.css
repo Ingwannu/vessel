@@ -1,0 +1,18 @@
+/* The forms screens put in a dialog (the dialog itself is the kit's,
+   kit/dialog.css): two fields to a row, the body's rhythm kept. */
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dialog-b > form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.dialog-b > form > .hint {
+  margin: 0;
+}

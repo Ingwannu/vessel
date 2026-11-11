@@ -1,0 +1,137 @@
+/* The command palette (kit/command.tsx), on the dialog's scrim and
+   surface. agent-orchestrator's palette, solid where its own is glass:
+   up to 720px wide and 14vh from the top, radius 14; a 16px search line;
+   14px rows 28px tall, inset 6px, radius 8, the highlighted one on a 9%
+   wash; at most 420px (half the window) of rows; a 34px foot of keys in
+   11px. */
+
+.palette-viewport {
+  align-items: flex-start;
+  padding-top: 14vh;
+}
+
+.dialog.palette {
+  width: min(720px, 100%);
+  border-radius: var(--r-palette);
+  overflow: hidden;
+}
+
+.palette-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.palette-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 16px / 24px var(--font-sans);
+}
+
+.palette-input:focus-visible {
+  outline: none;
+}
+
+.palette-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.palette-scroll {
+  max-height: min(420px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.palette-list {
+  padding: 6px 0;
+  outline: none;
+}
+
+.palette-group + .palette-group {
+  margin-top: 4px;
+}
+
+.palette-group .menu-label {
+  padding: 8px 16px 4px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  margin: 0 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-2);
+  color: var(--text-primary);
+  font: 400 14px / 20px var(--font-sans);
+  cursor: default;
+  user-select: none;
+}
+
+.palette-item .ico {
+  color: var(--text-secondary);
+}
+
+.palette-item[data-highlighted] {
+  background: var(--palette-hit);
+}
+
+.palette-item > .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-item > .detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.palette-empty {
+  padding: 20px 16px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.palette-empty:empty {
+  display: none;
+}
+
+.palette-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 16px;
+  height: 34px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font: 400 11px / 16px var(--font-sans);
+}
+
+.palette-foot .kbd.key {
+  margin-right: 4px;
+}

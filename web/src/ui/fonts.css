@@ -1,3 +1,14 @@
+/* The page's faces, all bundled; nothing is fetched from another origin.
+
+   Geist and Geist Mono (ADR 0021), agent-orchestrator's faces, from
+   `@fontsource-variable/*` (SIL Open Font License 1.1,
+   /licenses/Geist-OFL.txt and GeistMono-OFL.txt): one variable file per
+   script range, so a page in English loads the Latin one only. That file
+   is preloaded from index.html, so the first paint does not wait to find
+   it through this stylesheet. */
+@import "@fontsource-variable/geist/index.css";
+@import "@fontsource-variable/geist-mono/index.css";
+
 /* Pretendard, self-hosted (ADR 0017; the operator's font rule): the
    variable face, one file for every weight, bundled from the `pretendard`
    package (SIL Open Font License 1.1, /licenses/Pretendard-OFL.txt). One

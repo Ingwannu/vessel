@@ -11,11 +11,22 @@ import { useNavigate } from "@tanstack/react-router";
 import { type SyntheticEvent, useState } from "react";
 
 import { closeNewSession, useFleet, useFleetState } from "../context";
-import { harnessName, nodeState } from "../data/format";
-import { byProvider, profileOn } from "../data/models";
-import { nodeLabel } from "../data/nodes";
-import { Dialog } from "../ui/dialog";
-import { Icon } from "../ui/parts";
+import {
+  harnessOptions,
+  nodeOptions,
+  profileOptions,
+  routeOptions,
+} from "../data/choices";
+import { profileOn } from "../data/models";
+import {
+  Button,
+  Dialog,
+  Field,
+  FieldGroup,
+  Segmented,
+  Select,
+  TextField,
+} from "../ui/kit";
 import type { HarnessKind, SessionSpec } from "../wire/proto";
 
 type Mode = "structured" | "terminal";
@@ -110,24 +121,39 @@ export function NewSessionDialog({
     );
   };
 
+  const routeHint =
+    chosenRoute !== undefined
+      ? `Through profile ${profile}, pinned to ${chosenRoute.model}${
+          chosenRoute.small_model === undefined ||
+          chosenRoute.small_model === null
+            ? ""
+            : ` and ${chosenRoute.small_model}`
+        }.`
+      : route !== ""
+        ? `Profile ${profile} names route ${route}, which the node does not offer.`
+        : routes === null
+          ? "This node predates model routing."
+          : routes !== undefined && routes.length > 0
+            ? "A route runs the harness on another provider's model, through a profile naming it."
+            : "The node's models.toml defines model routes; it has none.";
   return (
     <Dialog
       title="New session"
-      wide
       onClose={closeNewSession}
       footer={
         <>
-          <button className="btn ghost" type="button" onClick={closeNewSession}>
+          <Button variant="ghost" onClick={closeNewSession}>
             Cancel
-          </button>
-          <button
-            className="btn primary"
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             form="new-session"
+            busy={busy}
             disabled={busy || chosenHarness === undefined}
           >
             {busy ? "Creating…" : "Create"}
-          </button>
+          </Button>
         </>
       }
     >
@@ -137,182 +163,80 @@ export function NewSessionDialog({
           sessions.
         </p>
         <div className="grid-2">
-          <label className="field">
-            <span>Node</span>
-            <select
-              aria-label="Node"
+          <Field label="Node">
+            <Select
               value={node}
-              onChange={(event) => {
-                setNode(event.target.value);
+              options={nodeOptions(nodes, statuses)}
+              onChange={(next) => {
+                setNode(next);
                 setHarness("");
                 setProfile("");
               }}
-            >
-              {nodes.map((candidate) => {
-                const status = statuses[candidate.key];
-                return (
-                  <option
-                    key={candidate.key}
-                    value={candidate.key}
-                    disabled={status?.state !== "connected"}
-                  >
-                    {nodeLabel(candidate, status)} · {nodeState(status).word}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label className="field">
-            <span>Harness</span>
-            <select
-              aria-label="Harness"
-              value={chosenHarness?.kind ?? ""}
-              onChange={(event) => {
-                setHarness(event.target.value as HarnessKind);
+            />
+          </Field>
+          <Field label="Harness">
+            <Select
+              value={chosenHarness?.kind ?? null}
+              options={harnessOptions(harnesses)}
+              placeholder="no harness found"
+              disabled={harnesses.length === 0}
+              onChange={(next) => {
+                setHarness(next);
                 setProfile("");
               }}
-            >
-              {harnesses.length === 0 ? (
-                <option value="">no harness found</option>
-              ) : null}
-              {harnesses.map((candidate) => (
-                <option key={candidate.kind} value={candidate.kind}>
-                  {harnessName(candidate.kind)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Profile</span>
-            <select
-              aria-label="Profile"
+            />
+          </Field>
+          <Field label="Profile">
+            <Select
               value={profile}
-              onChange={(event) => {
-                setProfile(event.target.value);
-              }}
-            >
-              <option value="">default</option>
-              {profiles.map((candidate) => (
-                <option key={candidate.name} value={candidate.name}>
-                  {candidate.label ?? candidate.name}
-                  {candidate.model === undefined || candidate.model === null
-                    ? ""
-                    : ` · ${candidate.model}`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Model</span>
-            <select
-              aria-label="Model"
+              options={profileOptions(profiles)}
+              onChange={setProfile}
+            />
+          </Field>
+          <Field label="Model" hint={routeHint}>
+            <Select
               value={route}
-              onChange={(event) => {
-                const next = event.target.value;
+              options={routeOptions(routes ?? [], profiles)}
+              onChange={(next) => {
                 setProfile(
                   next === "" ? "" : (profileOn(profiles, next)?.name ?? ""),
                 );
               }}
-            >
-              <optgroup label="The harness's own provider">
-                <option value="">harness default</option>
-              </optgroup>
-              {byProvider(routes ?? []).map(([provider, list]) => (
-                <optgroup key={provider} label={provider}>
-                  {list.map((candidate) => {
-                    const usable =
-                      profileOn(profiles, candidate.name) !== undefined;
-                    return (
-                      <option
-                        key={candidate.name}
-                        value={candidate.name}
-                        disabled={!usable}
-                      >
-                        {candidate.name} · {candidate.model}
-                        {usable ? "" : " · no profile"}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-              ))}
-            </select>
-            <span className="hint">
-              {chosenRoute !== undefined
-                ? `Through profile ${profile}, pinned to ${chosenRoute.model}${
-                    chosenRoute.small_model === undefined ||
-                    chosenRoute.small_model === null
-                      ? ""
-                      : ` and ${chosenRoute.small_model}`
-                  }.`
-                : route !== ""
-                  ? `Profile ${profile} names route ${route}, which the node does not offer.`
-                  : routes === null
-                    ? "This node predates model routing."
-                    : routes !== undefined && routes.length > 0
-                      ? "A route runs the harness on another provider's model, through a profile naming it."
-                      : "The node's models.toml defines model routes; it has none."}
-            </span>
-          </label>
+            />
+          </Field>
         </div>
-        <label className="field">
-          <span>Working directory</span>
-          <input
-            aria-label="Working directory"
-            type="text"
-            spellCheck={false}
+        <Field label="Working directory">
+          <TextField
+            mono
             placeholder="the node's home directory"
             value={cwd}
-            onChange={(event) => {
-              setCwd(event.target.value);
-            }}
+            onChange={setCwd}
           />
-        </label>
-        <div className="field">
-          <span>Mode</span>
-          <div className="seg" role="radiogroup" aria-label="Mode">
-            <label
-              className={effectiveMode === "structured" ? "active" : undefined}
-            >
-              <input
-                type="radio"
-                name="mode"
-                checked={effectiveMode === "structured"}
-                disabled={!structuredAvailable}
-                onChange={() => {
-                  setMode("structured");
-                }}
-              />
-              <span>
-                <Icon name="message" size="sm" /> Structured
-              </span>
-            </label>
-            <label
-              className={effectiveMode === "terminal" ? "active" : undefined}
-            >
-              <input
-                type="radio"
-                name="mode"
-                checked={effectiveMode === "terminal"}
-                onChange={() => {
-                  setMode("terminal");
-                }}
-              />
-              <span>
-                <Icon name="terminal" size="sm" /> Terminal
-              </span>
-            </label>
-          </div>
-          <p className="hint">
-            {chosenHarness?.structured.state === "unavailable"
+        </Field>
+        <FieldGroup
+          label="Mode"
+          hint={
+            chosenHarness?.structured.state === "unavailable"
               ? `Structured is unavailable: ${chosenHarness.structured.reason}`
-              : "Structured is a timeline (ACP). Terminal is the harness TUI in a PTY."}
-          </p>
-        </div>
-        {error === null ? null : (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
+              : "Structured is a timeline (ACP). Terminal is the harness TUI in a PTY."
+          }
+          error={error}
+        >
+          <Segmented
+            label="Mode"
+            value={effectiveMode}
+            onChange={setMode}
+            options={[
+              {
+                value: "structured",
+                label: "Structured",
+                icon: "message",
+                disabled: !structuredAvailable,
+              },
+              { value: "terminal", label: "Terminal", icon: "terminal" },
+            ]}
+          />
+        </FieldGroup>
       </form>
     </Dialog>
   );

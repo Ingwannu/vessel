@@ -1,0 +1,89 @@
+/* Menu (kit/menu.tsx): the parts the shared row (popup.css) does not
+   have. agent-orchestrator's action menu: shortcuts at the right in 10px
+   tracked text, a checkbox row's 16px box (radius 6), a radio row's check
+   in a 16px slot at the right, a submenu row's current value and chevron;
+   a 320px menu for rows with a description under them. */
+
+.menu-popup {
+  overflow-y: auto;
+  max-height: var(--available-height);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.menu-popup.wide {
+  width: 320px;
+  max-width: calc(100vw - 32px);
+}
+
+.menu-item.danger,
+.menu-item.danger .ico {
+  color: var(--danger);
+}
+
+.menu-item.danger[data-highlighted] {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.menu-item > .label.stacked {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+}
+
+.menu-item .description {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.menu-shortcut {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--text-tertiary);
+  font: 400 10px / 16px var(--font-sans);
+  letter-spacing: 0.08em;
+}
+
+.menu-value {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.menu-box {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  border-radius: 6px;
+}
+
+.menu-item[data-checked] .menu-box {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--popup-bg);
+}
+
+.menu-box-mark {
+  display: inline-flex;
+}
+
+.menu-check {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  flex: 0 0 16px;
+  margin-left: auto;
+  color: var(--text-primary);
+}
+
+.menu-check-mark {
+  display: inline-flex;
+}

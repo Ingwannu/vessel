@@ -1,0 +1,12 @@
+/* Combobox (kit/combobox.tsx): its suggestions are the shared popup's
+   rows, at least as wide as the field they belong to. */
+
+.combobox-popup {
+  min-width: var(--anchor-width);
+  max-width: min(480px, calc(100vw - 32px));
+}
+
+/* Nothing to suggest: no empty popup hangs under the field. */
+.combobox-popup:not(:has(.menu-item)) {
+  display: none;
+}

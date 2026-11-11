@@ -235,7 +235,7 @@ export function isWorking(placed: Placement): boolean {
   }
 }
 
-/** The colour class of a card's status line (`.tone-*` in app.css): the
+/** The colour class of a card's status line (`.tone-*` in styles/board.css): the
  * lane's own, except where the phrase says more than the lane does. */
 export type Tone =
   "lane" | "needs-you" | "ready" | "merged" | "danger" | "quiet";
@@ -325,10 +325,10 @@ export function board(rows: readonly Row[]): Board {
   const newest = (one: Card, two: Card) =>
     two.placed.at.localeCompare(one.placed.at);
   for (const lane of LANES) {
+    // Stable: needs-you first, each part still newest first.
+    lanes[lane].sort(newest);
     lanes[lane].sort(
-      (one, two) =>
-        Number(needsYou(two.placed)) - Number(needsYou(one.placed)) ||
-        newest(one, two),
+      (one, two) => Number(needsYou(two.placed)) - Number(needsYou(one.placed)),
     );
   }
   archive.sort(newest);

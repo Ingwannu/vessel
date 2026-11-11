@@ -6,7 +6,14 @@ import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { Markdown } from "../data/markdown";
 
 import { useFleet } from "../context";
-import { harnessName, isLive, shortId, when } from "../data/format";
+import {
+  answerEmphasis,
+  harnessName,
+  isLive,
+  shortId,
+  toolTone,
+  when,
+} from "../data/format";
 import {
   apiName,
   callParts,
@@ -22,16 +29,18 @@ import {
   type Timeline,
   type ToolState,
 } from "../data/timeline";
-import { Badge, Banner, Icon, type IconName } from "../ui/parts";
+import {
+  Badge,
+  Banner,
+  Button,
+  Icon,
+  type IconName,
+  TextArea,
+  Tooltip,
+} from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { StreamState } from "../wire/bridge";
-import type {
-  EventRecord,
-  PermissionOption,
-  SessionInfo,
-  ToolCallStatus,
-  ToolKind,
-} from "../wire/proto";
+import type { EventRecord, SessionInfo, ToolKind } from "../wire/proto";
 
 /** The session's timeline, following it from the start; records are
  * folded in once per frame, however fast they come. */
@@ -142,18 +151,6 @@ function toolIcon(kind: ToolKind): IconName {
   }
 }
 
-function toolTone(status: ToolCallStatus): string {
-  switch (status) {
-    case "pending":
-    case "in_progress":
-      return "warn";
-    case "completed":
-      return "applied";
-    case "failed":
-      return "danger";
-  }
-}
-
 function json(value: unknown): string {
   return typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
@@ -164,15 +161,17 @@ function ToolCard({ tool }: { tool: ToolState }) {
   return (
     <details className="tool" open={open}>
       <summary>
-        <Icon name={toolIcon(tool.kind)} size="sm" />
+        <Icon name={toolIcon(tool.kind)} size={14} />
         <span className="title">{tool.title}</span>
         <Badge tone={toolTone(tool.status)}>
           {tool.status.replace("_", " ")}
         </Badge>
         {path === undefined ? null : (
-          <span className="loc" title={path}>
-            <bdi>{path}</bdi>
-          </span>
+          <Tooltip label={path}>
+            <span className="loc">
+              <bdi>{path}</bdi>
+            </span>
+          </Tooltip>
         )}
       </summary>
       <div className="body">
@@ -227,13 +226,6 @@ function ToolCard({ tool }: { tool: ToolState }) {
   );
 }
 
-function answerTone(option: PermissionOption, first: boolean): string {
-  if (option.kind === "reject_always") {
-    return "btn sm danger";
-  }
-  return first ? "btn primary sm" : "btn sm";
-}
-
 /** Answer a permission request; the first answer from any follower wins. */
 function useAnswer(node: string, session: SessionInfo) {
   const fleet = useFleet();
@@ -283,16 +275,16 @@ function PermissionCard({
       {chosen === null ? (
         <div className="perm-actions">
           {entry.request.options.map((option, index) => (
-            <button
+            <Button
               key={option.id}
-              className={answerTone(option, index === 0)}
-              type="button"
+              size="sm"
+              variant={answerEmphasis(option.kind, index === 0)}
               onClick={() => {
                 answer(entry.request.id, option.id);
               }}
             >
               {option.name}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -343,7 +335,9 @@ function TimelineItem({
         <div className="t-item">
           <span className="glyph" aria-hidden="true" />
           <details className="thought">
-            <summary>Thought</summary>
+            <summary>
+              <Icon name="chevron" size={12} /> Thought
+            </summary>
             <p>{entry.text}</p>
           </details>
         </div>
@@ -425,14 +419,13 @@ function TimelineItem({
       return (
         <div className="t-item meta-item model-call">
           <span className="glyph" aria-hidden="true" />
-          <p
-            className={failed ? "t-meta error" : "t-meta"}
-            title={`${apiName(call.api)} · ${when(entry.at)}`}
-          >
-            Model call · <span className="mono">{call.route}</span> ·{" "}
-            <span className="mono">{call.model}</span> ·{" "}
-            {callParts(call).join(" · ")}
-          </p>
+          <Tooltip label={`${apiName(call.api)} · ${when(entry.at)}`}>
+            <p className={failed ? "t-meta error" : "t-meta"}>
+              Model call · <span className="mono">{call.route}</span> ·{" "}
+              <span className="mono">{call.model}</span> ·{" "}
+              {callParts(call).join(" · ")}
+            </p>
+          </Tooltip>
         </div>
       );
     }
@@ -521,10 +514,12 @@ function Inspector({
           <p className="hint">No files touched yet.</p>
         ) : (
           timeline.files.map((path) => (
-            <div key={path} className="file-row" title={path}>
-              <Icon name="read" size="sm" />
-              {path.split("/").at(-1)}
-            </div>
+            <Tooltip key={path} label={path}>
+              <div className="file-row">
+                <Icon name="read" size={14} />
+                {path.split("/").at(-1)}
+              </div>
+            </Tooltip>
           ))
         )}
       </section>
@@ -622,22 +617,25 @@ function Compose({
           <p>{pending.title} · answer above or here. The composer is paused.</p>
           <div className="perm-actions">
             {pending.request.options.map((option, index) => (
-              <button
+              <Button
                 key={option.id}
-                className={answerTone(option, index === 0)}
-                type="button"
+                size="sm"
+                variant={answerEmphasis(option.kind, index === 0)}
                 onClick={() => {
                   answer(pending.request.id, option.id);
                 }}
               >
                 {option.name}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
       )}
       <form className="composer" aria-label="Prompt" onSubmit={send}>
-        <textarea
+        <TextArea
+          look="bare"
+          mono
+          minRows={2}
           aria-label="Prompt"
           disabled={blocked}
           placeholder={
@@ -648,9 +646,7 @@ function Compose({
                 : "The session has ended"
           }
           value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-          }}
+          onChange={setText}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               send();
@@ -669,9 +665,8 @@ function Compose({
                 : "idle"}
           </span>
           {timeline.inTurn ? (
-            <button
-              className="btn sm"
-              type="button"
+            <Button
+              size="sm"
               onClick={() => {
                 void fleet.bridge.call(node, "session.send", {
                   session: session.id,
@@ -680,15 +675,17 @@ function Compose({
               }}
             >
               Stop
-            </button>
+            </Button>
           ) : null}
-          <button
-            className="btn primary sm"
+          <Button
+            variant="primary"
+            size="sm"
+
             type="submit"
             disabled={blocked || text.trim() === ""}
           >
             Send <kbd className="kbd">⌘↵</kbd>
-          </button>
+          </Button>
         </div>
       </form>
       <div className="status-line">

@@ -1,0 +1,66 @@
+/* Tabs (kit/tabs.tsx). agent-orchestrator's page tabs: 14px medium labels
+   36px tall and 20px apart over a hairline; the chosen one in the ink with
+   a 2px underline that slides to it. */
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tab-list {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 14px / 20px var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--d-2) var(--ease);
+}
+
+.tab:hover,
+.tab[data-active] {
+  color: var(--text-primary);
+}
+
+.tab[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: var(--active-tab-left);
+  width: var(--active-tab-width);
+  height: 2px;
+  background: var(--text-primary);
+  transition:
+    left 200ms var(--ease),
+    width 200ms var(--ease);
+}
+
+.tab-panel {
+  padding-top: 16px;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab-indicator {
+    transition: none;
+  }
+}

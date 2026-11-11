@@ -20,6 +20,7 @@ import { SessionPage } from "./routes/session";
 import { SessionsPage } from "./routes/sessions";
 import { SettingsPage } from "./routes/settings";
 import { SyncPage } from "./routes/sync";
+import { TooltipProvider } from "./ui/kit";
 import { Shell } from "./ui/shell";
 
 /** `?node=` on the pages scoped by node. */
@@ -133,7 +134,9 @@ export function App({ token }: { token: Credential | null }) {
   }
   return (
     <FleetContext.Provider value={fleet}>
-      <RouterProvider router={router} />
+      <TooltipProvider>
+        <RouterProvider router={router} />
+      </TooltipProvider>
     </FleetContext.Provider>
   );
 }

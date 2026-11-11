@@ -1,0 +1,59 @@
+/* Toasts, empty states, loading rows (DESIGN.md §6.10, §6.11). */
+
+/* --- Toasts / empty / skeleton --- */
+
+.toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.toast {
+  width: 320px;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow);
+  font: var(--t-meta);
+}
+
+.toast::before {
+  content: "";
+  width: 3px;
+  border-radius: 2px;
+  background: var(--online);
+}
+
+.toast.error::before {
+  background: var(--danger);
+}
+
+.conflict {
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border-subtle));
+  background: color-mix(in srgb, var(--warn) 7%, var(--bg-surface));
+  border-radius: var(--r-3);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.conflict h3 {
+  margin: 0 0 4px;
+  font: var(--t-label);
+}
+
+.conflict .path {
+  margin-bottom: 8px;
+  display: block;
+}
+
+.gen {
+  font: var(--t-mono);
+  color: var(--text-secondary);
+}

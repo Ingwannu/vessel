@@ -4,7 +4,8 @@ This file is the contract for `vessel ui`'s page: why it is shaped this
 way, how it maps onto the protocol, and what must not be improvised.
 
 - The tokens are `web/src/ui/tokens.css`, the components
-  `web/src/ui/app.css`. There is no other token file or stylesheet
+  `web/src/ui/styles/*.css`: one file per area, imported in a fixed order
+  from `styles/index.css` (ADR 0021). There is no other token file
   (ADR 0018).
 - The pictures are the app's own screens: `npm run screens` in `web/`
   captures every main screen in both themes.
@@ -280,7 +281,7 @@ focus for keyboard.
 
 All tokens live in `web/src/ui/tokens.css` as CSS custom properties on
 `:root` (light, the design) and `:root[data-theme="dark"]` (its
-inversion). `web/src/ui/app.css` uses tokens only; a literal colour there
+inversion). `web/src/ui/styles/` uses tokens only; a literal colour there
 is a defect, except the pairing QR code, which stays dark on light to
 scan.
 
@@ -505,7 +506,7 @@ use 600 for `h3`/`h4` equivalents; there is no `h1` inside a session.
 
 ## 6. Component inventory
 
-Every component below is in `web/src/ui/app.css` under the same class
+Every component below is in `web/src/ui/styles/` under the same class
 name. States
 to implement: default, hover, active, focus-visible, disabled,
 loading, error, empty.

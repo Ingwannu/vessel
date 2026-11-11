@@ -1,3 +1,4 @@
+// @ts-check
 // The operator's font rule for every site of ours, checked over the web
 // UI's sources and the placeholder page vessel-web embeds.
 //
@@ -17,6 +18,12 @@
 //   where the variable is defined.
 // - Cost: a stack assembled at run time from pieces would escape it; none
 //   is, and review keeps it so.
+// - Faces (2026-11-11, ADR 0021): a `font-family` inside `@font-face`
+//   names the face a file provides (Geist's, Pretendard's), not a stack,
+//   so it is held to the forbidden names only. A stack that names Geist,
+//   whose faces cover Latin, Cyrillic and Vietnamese but no Hangul, must
+//   also name Pretendard: the extension that keeps Korean text off the
+//   system's fallback.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,6 +32,7 @@ const web = fileURLToPath(new URL("..", import.meta.url));
 // Sources, the placeholder page, and the built CSS when there is a build
 // (third-party stylesheets end up there; their JavaScript only holds
 // defaults the app overrides, so it is not read).
+/** @type {readonly (readonly [string, readonly string[]])[]} */
 const roots = [
   [join(web, "src"), [".css", ".html", ".ts", ".tsx"]],
   [join(web, "index.html"), [".html"]],
@@ -56,7 +64,10 @@ const KEYWORDS = new Set([
 ]);
 const FORBIDDEN = /gulim|dotum|batang|굴림|돋움|바탕|ibm\s*plex/i;
 
-/** Every file under `path` with one of `extensions`. */
+/** Every file under `path` with one of `extensions`.
+ * @param {string} path
+ * @param {readonly string[]} extensions
+ * @returns {string[]} */
 function files(path, extensions) {
   const stat = statSync(path, { throwIfNoEntry: false });
   if (stat === undefined) {
@@ -72,9 +83,25 @@ function files(path, extensions) {
   );
 }
 
-/** The font stacks in `text`, with their line numbers. */
+/** The spans of `text` that are `@font-face` rules.
+ * @param {string} text
+ * @returns {[number, number][]} */
+function faceRules(text) {
+  return [...text.matchAll(/@font-face\s*\{[^}]*\}/g)].map((match) => [
+    match.index,
+    match.index + match[0].length,
+  ]);
+}
+
+/** The font stacks in `text`, with their line numbers; `face` marks a
+ * family named inside an `@font-face` rule.
+ * @param {string} text
+ * @param {string} path
+ * @returns {{ value: string, line: number, face: boolean }[]} */
 function stacks(text, path) {
+  /** @type {{ value: string, line: number, face: boolean }[]} */
   const found = [];
+  const faces = faceRules(text);
   const patterns =
     path.endsWith(".ts") || path.endsWith(".tsx")
       ? [
@@ -84,15 +111,20 @@ function stacks(text, path) {
       : [/(?:^|[\s;{])(?:font-family|--font-[\w-]+)\s*:\s*()([^;}]+)/g];
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {
-      const value = match[2].trim();
+      const value = (match[2] ?? "").trim();
       const line = text.slice(0, match.index).split("\n").length;
-      found.push({ value, line });
+      const face = faces.some(
+        ([start, end]) => match.index >= start && match.index < end,
+      );
+      found.push({ value, line, face });
     }
   }
   return found;
 }
 
-/** The families of a stack (a `font` shorthand keeps only its list). */
+/** The families of a stack (a `font` shorthand keeps only its list).
+ * @param {string} value
+ * @returns {string[]} */
 function families(value) {
   return value
     .split(",")
@@ -105,13 +137,23 @@ function families(value) {
     .filter((family) => family !== "");
 }
 
-/** What is wrong with `value`, if anything. */
-function problem(value) {
+/** What is wrong with `value`, if anything; `face` for a family named
+ * by an `@font-face` rule.
+ * @param {string} value
+ * @param {boolean} face
+ * @returns {string | null} */
+function problem(value, face) {
   if (value.includes("var(")) {
     return null;
   }
   const list = families(value);
-  if (list.length === 1 && KEYWORDS.has(list[0].toLowerCase())) {
+  if (face) {
+    const forbidden = list.find((family) => FORBIDDEN.test(family));
+    return forbidden === undefined
+      ? null
+      : `declares ${forbidden}, which is never used on our sites`;
+  }
+  if (list.length === 1 && KEYWORDS.has((list[0] ?? "").toLowerCase())) {
     return null;
   }
   const forbidden = list.find((family) => FORBIDDEN.test(family));
@@ -123,6 +165,9 @@ function problem(value) {
   const pretendard = lower.findIndex((family) =>
     family.startsWith("pretendard"),
   );
+  if (pretendard === -1 && lower.some((family) => family.startsWith("geist"))) {
+    return "names Geist without Pretendard, which Korean text needs";
+  }
   if (generic === -1) {
     return pretendard === -1 ? "has no Pretendard and no generic family" : null;
   }
@@ -136,6 +181,7 @@ function problem(value) {
   return null;
 }
 
+/** @type {string[]} */
 const problems = [];
 let checked = 0;
 for (const [root, extensions] of roots) {
@@ -144,9 +190,9 @@ for (const [root, extensions] of roots) {
       continue;
     }
     const text = readFileSync(path, "utf8");
-    for (const { value, line } of stacks(text, path)) {
+    for (const { value, line, face } of stacks(text, path)) {
       checked += 1;
-      const wrong = problem(value);
+      const wrong = problem(value, face);
       if (wrong !== null) {
         problems.push(
           `${relative(join(web, ".."), path)}:${line}: \`${value}\` ${wrong}`,

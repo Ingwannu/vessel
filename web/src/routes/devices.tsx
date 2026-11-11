@@ -7,8 +7,17 @@ import { useCrumbs, useFleet, useFleetState } from "../context";
 import { ago, when } from "../data/format";
 import { useWhere } from "../data/where";
 import { labelOf, selectedNode } from "../data/nodes";
-import { Dialog } from "../ui/dialog";
-import { Badge, CopyButton, Empty, Icon, Skeleton } from "../ui/parts";
+import {
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Icon,
+  Skeleton,
+  TextField,
+} from "../ui/kit";
+import { CopyButton } from "../ui/parts";
 import { toast } from "../ui/toasts";
 import type { DeviceInfo, Invitation } from "../wire/proto";
 
@@ -62,10 +71,7 @@ export function DevicesPage(): ReactElement {
   }, [showing]);
   const [name, setName] = useState("phone");
   const [revoking, setRevoking] = useState<DeviceInfo | null>(null);
-  useCrumbs(
-    [{ label: "Devices" }, ...(node === null ? [] : [{ label }])],
-    `${node ?? ""}${label}`,
-  );
+  useCrumbs([{ label: "Devices" }, ...(node === null ? [] : [{ label }])]);
 
   const load = useCallback(() => {
     if (node === null) {
@@ -153,13 +159,13 @@ export function DevicesPage(): ReactElement {
       </div>
       <div className="page-body">
         {node === null || !connected ? (
-          <Empty
+          <EmptyState
             title={
               node === null ? "No node selected" : `${label} is not connected`
             }
           >
             Devices are per node: pick a connected one in the sidebar.
-          </Empty>
+          </EmptyState>
         ) : (
           <>
             <div className="panel">
@@ -172,7 +178,7 @@ export function DevicesPage(): ReactElement {
                   }
                 >
                   {!showing ? (
-                    <Icon name="qr" size="lg" />
+                    <Icon name="qr" size={20} />
                   ) : (
                     <img
                       src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(pairing.svg)}`}
@@ -193,7 +199,7 @@ export function DevicesPage(): ReactElement {
                   {!showing ? null : (
                     <>
                       <div className="link-box">
-                        <Icon name="link" size="sm" />
+                        <Icon name="link" size={14} />
                         <span className="link-text">
                           {pairing.invitation.link}
                         </span>
@@ -213,49 +219,35 @@ export function DevicesPage(): ReactElement {
                     </>
                   )}
                   {pairing === null ? null : (
-                    <button
-                      className="btn"
-                      type="button"
+                    <Button
                       onClick={() => {
                         setRevealed(showing ? null : pairing);
                       }}
                     >
                       {showing ? "Hide pairing link" : "Show pairing link"}
-                    </button>
+                    </Button>
                   )}
                   <div className="inline pair-new">
-                    <label className="field">
-                      <span>Label</span>
-                      <input
-                        aria-label="Label"
-                        type="text"
-                        value={name}
-                        onChange={(event) => {
-                          setName(event.target.value);
-                        }}
-                      />
-                    </label>
-                    <button
-                      className="btn primary"
-                      type="button"
-                      onClick={() => void invite()}
-                    >
+                    <Field label="Label">
+                      <TextField value={name} onChange={setName} />
+                    </Field>
+                    <Button variant="primary" onClick={() => void invite()}>
                       New link
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
             {error !== null ? (
-              <Empty title={`Devices on ${label} cannot be listed`}>
+              <EmptyState title={`Devices on ${label} cannot be listed`}>
                 {error}
-              </Empty>
+              </EmptyState>
             ) : devices === null ? (
               <Skeleton />
             ) : live.length === 0 ? (
-              <Empty title={`No devices paired with ${label}`}>
+              <EmptyState title={`No devices paired with ${label}`}>
                 A device paired with a link above shows up here.
-              </Empty>
+              </EmptyState>
             ) : (
               <div className="table-wrap">
                 <table className="data" aria-label="Paired devices">
@@ -295,15 +287,15 @@ export function DevicesPage(): ReactElement {
                         <td className="mono muted">{ago(device.created_at)}</td>
                         <td>
                           <div className="row-actions">
-                            <button
-                              className="btn sm danger"
-                              type="button"
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={() => {
                                 setRevoking(device);
                               }}
                             >
                               Revoke
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -323,25 +315,23 @@ export function DevicesPage(): ReactElement {
           }}
           footer={
             <>
-              <button
-                className="btn ghost"
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setRevoking(null);
                 }}
               >
                 Cancel
-              </button>
-              <button
-                className="btn danger solid"
-                type="button"
+              </Button>
+              <Button
+                variant="danger-solid"
                 onClick={() => {
                   revoke(revoking);
                   setRevoking(null);
                 }}
               >
                 Revoke
-              </button>
+              </Button>
             </>
           }
         >

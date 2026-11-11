@@ -1,0 +1,26 @@
+/* StatusDot (kit/status-dot.tsx): an 8px dot in a state's colour. Its
+   word is always beside it or in its accessible name (DESIGN.md §4.3). */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--online);
+  flex: 0 0 8px;
+}
+
+.status-dot.warn {
+  background: var(--warn);
+}
+
+.status-dot.danger {
+  background: var(--danger);
+}
+
+.status-dot.offline {
+  background: var(--text-disabled);
+}
+
+.status-dot.interrupt {
+  background: var(--interrupt);
+}

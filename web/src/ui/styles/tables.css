@@ -1,0 +1,134 @@
+/* The summary strip and tables (DESIGN.md §6.3). */
+
+/* --- Summary strip & tables --- */
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s-5);
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.strip strong {
+  font: 600 12px / 16px var(--font-mono);
+  color: var(--text-primary);
+}
+
+.strip .s {
+  color: var(--text-tertiary);
+}
+
+.strip .s::before {
+  content: " · ";
+}
+
+.table-wrap {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  background: var(--bg-surface);
+  overflow: auto;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--t-body);
+}
+
+table.data th {
+  text-align: left;
+  font: var(--t-kicker);
+  color: var(--text-tertiary);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+table.data td {
+  padding: 0 12px;
+  height: var(--row-h);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+table.data tr:last-child td {
+  border-bottom: 0;
+}
+
+table.data tbody tr {
+  cursor: pointer;
+}
+
+table.data tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+table.data tbody tr.selected td {
+  background: var(--bg-active);
+}
+
+table.data tbody tr.selected td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+table.data .name {
+  font: var(--t-label);
+  color: var(--text-primary);
+}
+
+table.data .muted,
+.muted {
+  color: var(--text-tertiary);
+}
+
+table.data .path,
+.path {
+  font: var(--t-mono);
+  color: var(--text-secondary);
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  opacity: 0.35;
+}
+
+tr:hover .row-actions,
+tr:focus-within .row-actions,
+.row-actions:focus-within {
+  opacity: 1;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* A numeric table column (`.num` is the syntax colour for numbers). */
+table.data .right {
+  text-align: right;
+}
+
+/* Long facts in a table row stay on one line. */
+table.data .muted {
+  overflow-wrap: anywhere;
+}
+
+/* Settings as :target */
+
+.book td {
+  height: 36px;
+}

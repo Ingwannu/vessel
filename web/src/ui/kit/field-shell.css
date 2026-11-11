@@ -1,0 +1,111 @@
+/* The field shell, shared by TextField, TextArea and Combobox (kit/*.tsx).
+
+   One box: the shell has the edge, the fill and the focus ring; the input
+   inside has no border, no outline and no fill of its own. (The owner
+   pointed at the sidebar search, whose inner input drew a second box when
+   focused.) The ring is the shell's `:focus-within`, a 2px ring over its
+   edge, so a field focused by the mouse or the keyboard shows one box.
+
+   agent-orchestrator's settings input: a 4% fill inside an 8% hairline
+   (3% in dark), radius 8, 14px text, 32px tall (28 small); placeholder in
+   the tertiary colour; an invalid field's edge in the danger colour. */
+
+.text-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  height: var(--h-md);
+  padding: 0 10px;
+  background: var(--field-bg);
+  border: 1px solid var(--field-edge);
+  border-radius: var(--r-2);
+  color: var(--text-primary);
+  font: var(--t-control);
+  cursor: text;
+  transition: border-color var(--d-2) var(--ease);
+}
+
+.text-field > .ico {
+  color: var(--text-tertiary);
+}
+
+.text-field:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -1px;
+}
+
+.text-field-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.text-field-input:focus-visible {
+  outline: none;
+}
+
+.text-field-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.text-field.sm {
+  height: var(--h-sm);
+  padding: 0 8px;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.text-field.mono {
+  font: var(--t-mono);
+}
+
+.text-field.area {
+  height: auto;
+  align-items: stretch;
+  padding: 6px 12px;
+  cursor: text;
+}
+
+.text-field.area > .text-field-input {
+  resize: none;
+  height: auto;
+  line-height: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.text-field.area.mono > .text-field-input {
+  line-height: 22px;
+}
+
+/* No shell of its own: the box it sits in is the shell. */
+.text-field.area.bare {
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+}
+
+.text-field.area.bare:focus-within {
+  outline: none;
+}
+
+.field[data-invalid] .text-field,
+.text-field:has([aria-invalid="true"]) {
+  border-color: var(--danger);
+}
+
+.text-field[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}

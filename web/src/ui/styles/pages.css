@@ -1,0 +1,44 @@
+/* Page helpers: panels and two-column pages. */
+
+/* --- Page helpers --- */
+
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-4);
+  align-items: start;
+}
+
+.panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  background: var(--bg-surface);
+}
+
+.panel h2 {
+  margin: 0;
+  padding: 10px 12px;
+  font: var(--t-label);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel .pad {
+  padding: 12px;
+}
+
+.source-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font: var(--t-meta);
+}
+
+.source-row:last-child {
+  border-bottom: 0;
+}
+
+.source-row .k {
+  color: var(--text-tertiary);
+}

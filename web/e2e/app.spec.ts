@@ -8,6 +8,22 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { openUi } from "./open";
 import { loadEnv } from "./fleet";
+import { newSessionDialog } from "./kit";
+
+/** Whether a frame the page sent is a call of `session.send`. */
+function sendsInput(frame: unknown): boolean {
+  return (
+    typeof frame === "object" &&
+    frame !== null &&
+    "type" in frame &&
+    frame.type === "call" &&
+    "call" in frame &&
+    typeof frame.call === "object" &&
+    frame.call !== null &&
+    "method" in frame.call &&
+    frame.call.method === "session.send"
+  );
+}
 
 async function open(page: Page): Promise<void> {
   await openUi(page);
@@ -19,12 +35,7 @@ async function create(
   node: string,
   mode: "Structured" | "Terminal",
 ): Promise<void> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await dialog.getByLabel("Node").selectOption({ label: `${node} · serving` });
-  await dialog.getByLabel("Harness").selectOption("claude-code");
-  // The radio sits inside its segment's label, which is what a person clicks.
-  await dialog.locator(".seg label").filter({ hasText: mode }).click();
+  const dialog = await newSessionDialog(page, node, mode);
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(dialog).toBeHidden();
 }
@@ -33,17 +44,17 @@ test("the fleet lists the book's nodes with what they report", async ({
   page,
 }) => {
   await open(page);
-  const nodes = page.getByRole("table", { name: "Nodes" });
+  const nodes = page.getByRole("list", { name: "Nodes" });
   for (const name of ["laptop", "gpu-box", "build-server"]) {
     await expect(
-      nodes.getByRole("row", { name: new RegExp(name) }),
+      nodes.getByRole("listitem").filter({ hasText: name }),
     ).toContainText("serving");
   }
   // This machine's node has no token here: listed, not connected.
-  await expect(nodes.getByRole("row", { name: /this machine/ })).toContainText(
-    "offline",
-  );
-  await nodes.getByRole("row", { name: /gpu-box/ }).click();
+  await expect(
+    nodes.getByRole("listitem").filter({ hasText: "this machine" }),
+  ).toContainText("offline");
+  await nodes.getByRole("link", { name: "gpu-box" }).click();
   const panel = page.getByRole("complementary", { name: "gpu-box" });
   await expect(panel).toContainText("protocol");
   await expect(panel).toContainText("claude");
@@ -251,12 +262,7 @@ test("terminal replay cannot answer device queries, while keys and paste still w
         typeof event.payload === "string"
           ? event.payload
           : event.payload.toString("utf8");
-      const frame = JSON.parse(text) as {
-        type: string;
-        call?: { method: string };
-      };
-      if (frame.type === "call" && frame.call?.method === "session.send")
-        inputs += 1;
+      if (sendsInput(JSON.parse(text))) inputs += 1;
     });
   });
   await page.goto(sessionUrl);

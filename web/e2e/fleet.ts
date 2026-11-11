@@ -57,7 +57,15 @@ function targetDir(): string {
       encoding: "utf8",
     },
   );
-  const parsed = JSON.parse(metadata) as { target_directory: string };
+  const parsed: unknown = JSON.parse(metadata);
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("target_directory" in parsed) ||
+    typeof parsed.target_directory !== "string"
+  ) {
+    throw new Error("cargo metadata names no target directory");
+  }
   return parsed.target_directory;
 }
 
@@ -340,6 +348,29 @@ export function saveEnv(env: FleetEnv): void {
   writeFileSync(ENV_FILE, JSON.stringify(env), { mode: 0o600 });
 }
 
+/** Whether `value`, read back from ENV_FILE, is the fleet saveEnv wrote. */
+function isFleetEnv(value: unknown): value is FleetEnv {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "url" in value &&
+    typeof value.url === "string" &&
+    "root" in value &&
+    typeof value.root === "string" &&
+    "vessel" in value &&
+    typeof value.vessel === "string" &&
+    "pids" in value &&
+    Array.isArray(value.pids) &&
+    "nodes" in value &&
+    typeof value.nodes === "object" &&
+    value.nodes !== null
+  );
+}
+
 export function loadEnv(): FleetEnv {
-  return JSON.parse(readFileSync(ENV_FILE, "utf8")) as FleetEnv;
+  const env: unknown = JSON.parse(readFileSync(ENV_FILE, "utf8"));
+  if (!isFleetEnv(env)) {
+    throw new Error(`${ENV_FILE} is not a fleet; run the global setup`);
+  }
+  return env;
 }

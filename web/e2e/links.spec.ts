@@ -6,6 +6,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
+import { newSessionDialog } from "./kit";
 import { openUi } from "./open";
 
 const ESC = "\x1b";
@@ -71,11 +72,7 @@ test("terminal hyperlinks open only http(s), after a confirm, in an isolated tab
   });
 
   await openUi(page);
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await dialog.getByLabel("Node").selectOption({ label: "laptop · serving" });
-  await dialog.getByLabel("Harness").selectOption("claude-code");
-  await dialog.locator(".seg label").filter({ hasText: "Terminal" }).click();
+  const dialog = await newSessionDialog(page, "laptop", "Terminal");
   await dialog.getByRole("button", { name: "Create" }).click();
   const terminal = page.getByLabel("Session terminal");
   await expect(terminal).toContainText("ready");

@@ -203,7 +203,8 @@ web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, t
 web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal adapter
 web/src/routes/   the screens: fleet, sessions, session (structured / terminal), new session,
                   sync, devices, settings
-web/src/ui/       the shell, components, and the design's tokens and component CSS
+web/src/ui/       the shell, components, the design's tokens, and the CSS in styles/ (one file
+                  per area, imported in order from styles/index.css)
 web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
                   and `screens`
 ```

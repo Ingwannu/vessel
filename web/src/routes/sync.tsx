@@ -8,7 +8,7 @@ import { useCrumbs, useFleet, useFleetState } from "../context";
 import { ago } from "../data/format";
 import { useWhere } from "../data/where";
 import { labelOf, selectedNode } from "../data/nodes";
-import { Badge, Empty, Skeleton } from "../ui/parts";
+import { Badge, EmptyState, Skeleton } from "../ui/kit";
 import type { FleetMember, Manifest, SecretName } from "../wire/proto";
 
 interface Published {
@@ -52,10 +52,7 @@ export function SyncPage(): ReactElement {
   } | null>(null);
   const published = result?.node === node ? result.published : null;
   const error = result?.node === node ? result.error : null;
-  useCrumbs(
-    [{ label: "Sync" }, ...(node === null ? [] : [{ label }])],
-    `${node ?? ""}${label}`,
-  );
+  useCrumbs([{ label: "Sync" }, ...(node === null ? [] : [{ label }])]);
   useEffect(() => {
     if (node === null || !connected) {
       return undefined;
@@ -106,13 +103,13 @@ export function SyncPage(): ReactElement {
       <div className="page">
         {head}
         <div className="page-body">
-          <Empty
+          <EmptyState
             title={
               node === null ? "No node selected" : `${label} is not connected`
             }
           >
             Sync shows what the selected node publishes as a fleet home.
-          </Empty>
+          </EmptyState>
         </div>
       </div>
     );
@@ -122,10 +119,10 @@ export function SyncPage(): ReactElement {
       <div className="page">
         {head}
         <div className="page-body">
-          <Empty title={`${label} publishes no fleet configuration`}>
+          <EmptyState title={`${label} publishes no fleet configuration`}>
             {error}. Make it a home with <code>vessel fleet init</code>, or pick
             the home in the sidebar.
-          </Empty>
+          </EmptyState>
         </div>
       </div>
     );
@@ -230,10 +227,10 @@ export function SyncPage(): ReactElement {
           </div>
         ))}
         {members.length === 0 ? (
-          <Empty title={`No members have joined ${label}`}>
+          <EmptyState title={`No members have joined ${label}`}>
             Join one with <code>vessel fleet join</code> and a pairing link from
             this node.
-          </Empty>
+          </EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="data" aria-label="Members">
@@ -259,16 +256,16 @@ export function SyncPage(): ReactElement {
                         {behind === null ? (
                           <Badge>not yet</Badge>
                         ) : behind === 0 ? (
-                          <Badge tone="applied">current</Badge>
+                          <Badge tone="ok">current</Badge>
                         ) : (
-                          <Badge tone="stale">{behind} behind</Badge>
+                          <Badge tone="warn">{behind} behind</Badge>
                         )}
                       </td>
                       <td>
                         {(member.conflicts ?? []).length === 0 ? (
                           <span className="mono muted">0</span>
                         ) : (
-                          <Badge tone="conflict">
+                          <Badge tone="warn">
                             {(member.conflicts ?? []).length}
                           </Badge>
                         )}

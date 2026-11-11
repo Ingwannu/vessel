@@ -38,13 +38,28 @@ export interface Chrome {
 
 export const chrome = new Store<Chrome>({ crumbs: [], newSession: null });
 
-/** Set the breadcrumb while a page is shown. `key` changes when it does. */
-export function useCrumbs(crumbs: readonly Crumb[], key: string): void {
+/** Whether two breadcrumbs say the same. */
+function sameCrumbs(a: readonly Crumb[], b: readonly Crumb[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (crumb, index) =>
+        crumb.label === b[index]?.label &&
+        crumb.to === b[index].to &&
+        crumb.mono === b[index].mono,
+    )
+  );
+}
+
+/** Set the breadcrumb while a page is shown. A page rebuilds its crumbs
+ * on every render; they are stored only when they say something else, so
+ * the chrome does not redraw for each of the page's renders. */
+export function useCrumbs(crumbs: readonly Crumb[]): void {
   useEffect(() => {
-    chrome.update((state) => ({ ...state, crumbs }));
-    // `crumbs` is rebuilt every render; `key` says when it changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+    chrome.update((state) =>
+      sameCrumbs(state.crumbs, crumbs) ? state : { ...state, crumbs },
+    );
+  }, [crumbs]);
 }
 
 export function useChrome<S>(select: (state: Chrome) => S): S {
