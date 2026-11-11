@@ -5,15 +5,20 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { EventRecord } from "../wire/proto";
+import { isEventRecord } from "../bridge/frames";
 import recorded from "./fixtures/fake-acp-turn.json";
 import { EMPTY, reduce } from "./timeline";
 
-// JSON imports are typed loosely (strings, not the wire's literal unions);
-// the records are the wire's, as the Rust side wrote them.
-const records = recorded as unknown as EventRecord[];
+// JSON imports are typed loosely (strings, not the wire's literal unions):
+// the records are checked by the predicate the socket checks them with.
+const fixture: readonly unknown[] = recorded;
+const records = fixture.filter(isEventRecord);
 
 describe("the timeline over recorded records", () => {
+  it("reads every recorded record as one", () => {
+    expect(records).toHaveLength(fixture.length);
+  });
+
   it("folds a whole turn", () => {
     const timeline = reduce(EMPTY, records);
     expect(timeline.entries.map((entry) => entry.kind)).toEqual([

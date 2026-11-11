@@ -4,7 +4,7 @@
 import { useState, type ReactElement } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../context";
-import { nodeState, when } from "../data/format";
+import { listOr, nodeState, when } from "../data/format";
 import { nodeLabel } from "../data/nodes";
 import { chooseTheme, currentTheme, type Theme } from "../data/theme";
 import {
@@ -179,9 +179,9 @@ function PairWithNode() {
               <dt>fingerprint</dt>
               <dd>{offer.fingerprint}</dd>
               <dt>direct</dt>
-              <dd>{offer.offer.direct.join(", ") || "none"}</dd>
+              <dd>{listOr(offer.offer.direct, "none")}</dd>
               <dt>relays</dt>
-              <dd>{offer.offer.relays.join(", ") || "none"}</dd>
+              <dd>{listOr(offer.offer.relays, "none")}</dd>
               <dt>expires</dt>
               <dd>{when(offer.offer.expires)}</dd>
             </dl>

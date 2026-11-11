@@ -151,7 +151,7 @@ function NodeRow({
   return (
     <Row
       selected={selected}
-      lead={<StatusDot tone={state.tone} label={state.word} />}
+      mark={{ node: <StatusDot tone={state.tone} label={state.word} /> }}
       title={
         <Link
           to="/fleet/$node"
@@ -161,7 +161,7 @@ function NodeRow({
           {nodeLabel(node, status)}
         </Link>
       }
-      meta={nodeFacts(node, status, harnesses, sessions)}
+      detail={{ facts: nodeFacts(node, status, harnesses, sessions) }}
       control={<Badge tone={state.tone}>{state.word}</Badge>}
     />
   );

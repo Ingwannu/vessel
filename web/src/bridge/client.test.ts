@@ -53,16 +53,29 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** The page's hello, read back from what it sent. */
+function helloOf(text: string): { nonce: string; proof: string } {
+  const value: unknown = JSON.parse(text);
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("nonce" in value) ||
+    typeof value.nonce !== "string" ||
+    !("proof" in value) ||
+    typeof value.proof !== "string"
+  ) {
+    throw new Error(`Not a hello: ${text}`);
+  }
+  return { nonce: value.nonce, proof: value.proof };
+}
+
 async function answer(socket: Socket): Promise<ServerFrame> {
   const nonce = "c".repeat(64);
   socket.message({ type: "challenge", launch, nonce });
   await vi.waitFor(() => {
     expect(socket.sent.length).toBe(1);
   });
-  const hello = JSON.parse(socket.sent[0] ?? "{}") as {
-    nonce: string;
-    proof: string;
-  };
+  const hello = helloOf(socket.sent[0] ?? "{}");
   expect(socket.sent.join("").includes(key)).toBe(false);
   const version = "0.1.0";
   const proof = createHmac("sha256", key)

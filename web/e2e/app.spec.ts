@@ -10,6 +10,21 @@ import { openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { newSessionDialog } from "./kit";
 
+/** Whether a frame the page sent is a call of `session.send`. */
+function sendsInput(frame: unknown): boolean {
+  return (
+    typeof frame === "object" &&
+    frame !== null &&
+    "type" in frame &&
+    frame.type === "call" &&
+    "call" in frame &&
+    typeof frame.call === "object" &&
+    frame.call !== null &&
+    "method" in frame.call &&
+    frame.call.method === "session.send"
+  );
+}
+
 async function open(page: Page): Promise<void> {
   await openUi(page);
 }
@@ -247,12 +262,7 @@ test("terminal replay cannot answer device queries, while keys and paste still w
         typeof event.payload === "string"
           ? event.payload
           : event.payload.toString("utf8");
-      const frame = JSON.parse(text) as {
-        type: string;
-        call?: { method: string };
-      };
-      if (frame.type === "call" && frame.call?.method === "session.send")
-        inputs += 1;
+      if (sendsInput(JSON.parse(text))) inputs += 1;
     });
   });
   await page.goto(sessionUrl);

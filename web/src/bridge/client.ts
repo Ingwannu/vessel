@@ -27,7 +27,7 @@
 
 import { Handshake } from "./auth";
 import { rememberSession, type Credential } from "./token";
-import type { MethodName, ParamsOf, ResultOf } from "../wire/calls";
+import * as frames from "./frames";
 import type {
   ClientFrame,
   Failure,
@@ -38,7 +38,7 @@ import type {
   ServerFrame,
   StreamState,
 } from "../wire/bridge";
-import type { Call, EventRecord, Reply, SessionId } from "../wire/proto";
+import type { EventRecord, Reply, SessionId } from "../wire/proto";
 
 /** Where the page's link to `vessel ui` is. */
 export type LinkState =
@@ -172,17 +172,15 @@ export class Bridge {
   }
 
   /** Call `method` on `node`. Rejects with `CallFailed`. */
-  async call<M extends MethodName>(
+  async call<M extends frames.Method>(
     node: NodeKey,
     method: M,
-    params: ParamsOf<M>,
-  ): Promise<ResultOf<M>> {
+    params: frames.ParamsOf<M>,
+  ): Promise<frames.ResultOf<M>> {
     const id = this.#id();
-    // The pair is a member of the `Call` union by construction; TypeScript
-    // cannot see that through the generic.
-    const call = { method, params } as unknown as Call;
     const reply = await new Promise<Reply>((resolve, reject) => {
       this.#calls.set(id, { resolve, reject });
+      const call = frames.callOf(method, params);
       if (!this.#send({ type: "call", id, node, call })) {
         this.#calls.delete(id);
         reject(
@@ -193,13 +191,13 @@ export class Bridge {
         );
       }
     });
-    if (reply.method !== method) {
+    if (!frames.answers(reply, method)) {
       throw new CallFailed({
         kind: "failed",
         message: `The bridge answered ${reply.method} to ${method}.`,
       });
     }
-    return reply.result as ResultOf<M>;
+    return reply.result;
   }
 
   /** Ask the bridge itself. Rejects with an `Error` holding its message. */
@@ -259,7 +257,9 @@ export class Bridge {
     }
   }
 
-  #send(frame: ClientFrame): boolean {
+  #send<M extends frames.Method>(
+    frame: ClientFrame | frames.CallFrame<M>,
+  ): boolean {
     const socket = this.#socket;
     if (socket?.readyState !== WebSocket.OPEN) {
       return false;
@@ -293,8 +293,7 @@ export class Bridge {
       messages = messages
         .then(async () => {
           if (!this.#current(socket)) return;
-          if (typeof data !== "string") throw new Error("Not a frame");
-          const frame = JSON.parse(data) as ServerFrame;
+          const frame = frames.parse(data);
           if (!verified) {
             if (frame.type === "challenge") {
               const hello = await handshake.hello(frame);

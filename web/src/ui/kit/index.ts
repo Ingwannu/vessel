@@ -30,8 +30,8 @@ export {
   MenuSubmenu,
 } from "./menu";
 export { Popover } from "./popover";
-export { Row, RowList } from "./row";
-export { Segmented } from "./segmented";
+export { Row, type RowDetail, RowList, type RowMark } from "./row";
+export { Segmented, type SegmentedOptions } from "./segmented";
 export { Select } from "./select";
 export { Skeleton } from "./skeleton";
 export { Spinner } from "./spinner";

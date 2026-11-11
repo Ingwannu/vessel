@@ -32,19 +32,28 @@ export interface Crumb {
 
 export interface Chrome {
   crumbs: readonly Crumb[];
+  /** Which page the crumbs are for: a page rebuilds its crumbs on every
+   * render, and they are replaced only when this changes. */
+  crumbsKey: string;
   /** The new-session dialog, open with this node preselected. */
   newSession: { node: string | null } | null;
 }
 
-export const chrome = new Store<Chrome>({ crumbs: [], newSession: null });
+export const chrome = new Store<Chrome>({
+  crumbs: [],
+  crumbsKey: "",
+  newSession: null,
+});
 
 /** Set the breadcrumb while a page is shown. `key` changes when it does. */
 export function useCrumbs(crumbs: readonly Crumb[], key: string): void {
   useEffect(() => {
-    chrome.update((state) => ({ ...state, crumbs }));
-    // `crumbs` is rebuilt every render; `key` says when it changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+    // Unchanged state is not stored again (Store.set), so the chrome does
+    // not redraw for a page's every render.
+    chrome.update((state) =>
+      state.crumbsKey === key ? state : { ...state, crumbs, crumbsKey: key },
+    );
+  }, [crumbs, key]);
 }
 
 export function useChrome<S>(select: (state: Chrome) => S): S {

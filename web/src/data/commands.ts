@@ -93,11 +93,10 @@ export function paletteEntries(
   }));
   const sessions = Object.entries(state.sessions)
     .flatMap(([node, list]) => list.map((session) => ({ node, session })))
-    .sort(
-      (a, b) =>
-        Number(isLive(b.session)) - Number(isLive(a.session)) ||
-        b.session.created_at.localeCompare(a.session.created_at),
-    )
+    // Newest first, then live first: the sort is stable, so the live and
+    // the ended each stay newest first.
+    .sort((a, b) => b.session.created_at.localeCompare(a.session.created_at))
+    .sort((a, b) => Number(isLive(b.session)) - Number(isLive(a.session)))
     .map(({ node, session }): PaletteEntry => ({
       id: `session-${node}-${session.id}`,
       label: `${sessionTitle(session.spec.cwd)} ${shortId(session.id)}`,

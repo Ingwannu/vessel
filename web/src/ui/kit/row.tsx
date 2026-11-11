@@ -35,48 +35,59 @@ export function RowList({
   );
 }
 
+/** What leads a row: an icon, or something of its size (a status dot).
+ * One or the other, never both. */
+export type RowMark = { icon: IconName } | { node: ReactNode };
+
+/** What is under a row's title: a setting's description (13px), or a
+ * machine's facts (12px, joined with " · "). One or the other. */
+export type RowDetail =
+  { description: ReactNode } | { facts: readonly string[] };
+
+function Mark({ mark }: { mark: RowMark }) {
+  return "icon" in mark ? (
+    <span className="row-icon">
+      <Icon name={mark.icon} size={16} />
+    </span>
+  ) : (
+    mark.node
+  );
+}
+
+function Detail({ detail }: { detail: RowDetail }) {
+  if ("description" in detail) {
+    return <div className="row-description">{detail.description}</div>;
+  }
+  const facts = detail.facts.filter((fact) => fact !== "");
+  return facts.length === 0 ? null : (
+    <div className="row-meta">{facts.join(" · ")}</div>
+  );
+}
+
 export function Row({
-  icon,
-  lead,
+  mark,
   title,
-  description,
-  meta,
+  detail,
   control,
   menu,
   selected = false,
 }: {
-  icon?: IconName;
-  /** In place of the icon, something of its size: a status dot. */
-  lead?: ReactNode;
+  mark?: RowMark;
   /** Text, or a link to what the row is. */
   title: ReactNode;
-  /** One line under the title, 13px: what a setting does. */
-  description?: ReactNode;
-  /** Facts under the title, 12px, joined with " · ": a machine's. */
-  meta?: readonly string[];
+  detail?: RowDetail;
   /** The row's own controls: a switch, a select, a button. */
   control?: ReactNode;
   /** A kit Menu behind a "…" IconButton. */
   menu?: ReactNode;
   selected?: boolean;
 }) {
-  const facts = meta?.filter((fact) => fact !== "") ?? [];
   return (
-    <li className="row" data-selected={selected || undefined}>
-      {lead ??
-        (icon === undefined ? null : (
-          <span className="row-icon">
-            <Icon name={icon} size={16} />
-          </span>
-        ))}
+    <li className="row" data-selected={selected ? "" : undefined}>
+      {mark === undefined ? null : <Mark mark={mark} />}
       <div className="row-text">
         <div className="row-title">{title}</div>
-        {description === undefined ? null : (
-          <div className="row-description">{description}</div>
-        )}
-        {facts.length === 0 ? null : (
-          <div className="row-meta">{facts.join(" · ")}</div>
-        )}
+        {detail === undefined ? null : <Detail detail={detail} />}
       </div>
       {control === undefined && menu === undefined ? null : (
         <div className="row-controls">

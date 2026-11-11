@@ -325,10 +325,10 @@ export function board(rows: readonly Row[]): Board {
   const newest = (one: Card, two: Card) =>
     two.placed.at.localeCompare(one.placed.at);
   for (const lane of LANES) {
+    // Stable: needs-you first, each part still newest first.
+    lanes[lane].sort(newest);
     lanes[lane].sort(
-      (one, two) =>
-        Number(needsYou(two.placed)) - Number(needsYou(one.placed)) ||
-        newest(one, two),
+      (one, two) => Number(needsYou(two.placed)) - Number(needsYou(one.placed)),
     );
   }
   archive.sort(newest);

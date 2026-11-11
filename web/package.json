@@ -11,14 +11,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build && node scripts/integrity.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint . && prettier --check . && node scripts/check-fonts.mjs && node scripts/check-controls.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p scripts/tsconfig.json",
+    "lint": "eslint . && prettier --check . && node scripts/check-fonts.mjs && node scripts/check-controls.mjs && node scripts/check-size.mjs",
     "format": "prettier --write .",
     "fonts": "node scripts/check-fonts.mjs",
     "test": "vitest run",
     "e2e": "playwright test --project=e2e",
     "screens": "playwright test --project=screens",
-    "controls": "node scripts/check-controls.mjs"
+    "controls": "node scripts/check-controls.mjs",
+    "size": "node scripts/check-size.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

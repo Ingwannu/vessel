@@ -75,6 +75,11 @@ export function answerEmphasis(
   return first ? "primary" : "secondary";
 }
 
+/** `items` joined with commas, or `none` when there are none. */
+export function listOr(items: readonly string[], none: string): string {
+  return items.length === 0 ? none : items.join(", ");
+}
+
 /** Whether a session counts as live (the sidebar's count). */
 export function isLive(session: SessionInfo): boolean {
   return (

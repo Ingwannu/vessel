@@ -14,25 +14,25 @@ import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 
 import { type Choice, choiceOf } from "./choice";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
-export function Segmented<V extends string>({
-  label,
-  value,
-  onChange,
-  options,
-  size = "md",
-  iconsOnly = false,
-}: {
-  /** The group's name for a screen reader ("Theme"). */
-  label: string;
-  value: V;
-  onChange: (value: V) => void;
-  options: readonly Choice<V>[];
-  size?: "md" | "sm";
-  /** Icons alone, each named by its label (a toolbar's). */
-  iconsOnly?: boolean;
-}) {
+/** The choices: labelled, or (`iconsOnly`, a toolbar's) icons alone, each
+ * named by its label, in which case every option must have its icon. */
+export type SegmentedOptions<V extends string> =
+  | { iconsOnly?: false; options: readonly Choice<V>[] }
+  | { iconsOnly: true; options: readonly (Choice<V> & { icon: IconName })[] };
+
+export function Segmented<V extends string>(
+  props: {
+    /** The group's name for a screen reader ("Theme"). */
+    label: string;
+    value: V;
+    onChange: (value: V) => void;
+    size?: "md" | "sm";
+  } & SegmentedOptions<V>,
+) {
+  const { label, value, onChange, options, size = "md" } = props;
+  const iconsOnly = props.iconsOnly === true;
   return (
     <RadioGroup
       className={size === "sm" ? "segmented sm" : "segmented"}

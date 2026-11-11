@@ -1,3 +1,4 @@
+// @ts-check
 // The operator's font rule for every site of ours, checked over the web
 // UI's sources and the placeholder page vessel-web embeds.
 //
@@ -25,6 +26,7 @@ const web = fileURLToPath(new URL("..", import.meta.url));
 // Sources, the placeholder page, and the built CSS when there is a build
 // (third-party stylesheets end up there; their JavaScript only holds
 // defaults the app overrides, so it is not read).
+/** @type {readonly (readonly [string, readonly string[]])[]} */
 const roots = [
   [join(web, "src"), [".css", ".html", ".ts", ".tsx"]],
   [join(web, "index.html"), [".html"]],
@@ -56,7 +58,10 @@ const KEYWORDS = new Set([
 ]);
 const FORBIDDEN = /gulim|dotum|batang|굴림|돋움|바탕|ibm\s*plex/i;
 
-/** Every file under `path` with one of `extensions`. */
+/** Every file under `path` with one of `extensions`.
+ * @param {string} path
+ * @param {readonly string[]} extensions
+ * @returns {string[]} */
 function files(path, extensions) {
   const stat = statSync(path, { throwIfNoEntry: false });
   if (stat === undefined) {
@@ -72,8 +77,12 @@ function files(path, extensions) {
   );
 }
 
-/** The font stacks in `text`, with their line numbers. */
+/** The font stacks in `text`, with their line numbers.
+ * @param {string} text
+ * @param {string} path
+ * @returns {{ value: string, line: number }[]} */
 function stacks(text, path) {
+  /** @type {{ value: string, line: number }[]} */
   const found = [];
   const patterns =
     path.endsWith(".ts") || path.endsWith(".tsx")
@@ -84,7 +93,7 @@ function stacks(text, path) {
       : [/(?:^|[\s;{])(?:font-family|--font-[\w-]+)\s*:\s*()([^;}]+)/g];
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {
-      const value = match[2].trim();
+      const value = (match[2] ?? "").trim();
       const line = text.slice(0, match.index).split("\n").length;
       found.push({ value, line });
     }
@@ -92,7 +101,9 @@ function stacks(text, path) {
   return found;
 }
 
-/** The families of a stack (a `font` shorthand keeps only its list). */
+/** The families of a stack (a `font` shorthand keeps only its list).
+ * @param {string} value
+ * @returns {string[]} */
 function families(value) {
   return value
     .split(",")
@@ -105,13 +116,15 @@ function families(value) {
     .filter((family) => family !== "");
 }
 
-/** What is wrong with `value`, if anything. */
+/** What is wrong with `value`, if anything.
+ * @param {string} value
+ * @returns {string | null} */
 function problem(value) {
   if (value.includes("var(")) {
     return null;
   }
   const list = families(value);
-  if (list.length === 1 && KEYWORDS.has(list[0].toLowerCase())) {
+  if (list.length === 1 && KEYWORDS.has((list[0] ?? "").toLowerCase())) {
     return null;
   }
   const forbidden = list.find((family) => FORBIDDEN.test(family));
@@ -136,6 +149,7 @@ function problem(value) {
   return null;
 }
 
+/** @type {string[]} */
 const problems = [];
 let checked = 0;
 for (const [root, extensions] of roots) {

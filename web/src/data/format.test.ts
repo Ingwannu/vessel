@@ -4,6 +4,7 @@ import {
   ago,
   answerEmphasis,
   harnessName,
+  listOr,
   nodeState,
   sessionTitle,
   shortId,
@@ -52,5 +53,7 @@ describe("formatting", () => {
     expect(answerEmphasis("allow_once", true)).toBe("primary");
     expect(answerEmphasis("reject_once", false)).toBe("secondary");
     expect(answerEmphasis("reject_always", true)).toBe("danger");
+    expect(listOr([], "none")).toBe("none");
+    expect(listOr(["a", "b"], "none")).toBe("a, b");
   });
 });
