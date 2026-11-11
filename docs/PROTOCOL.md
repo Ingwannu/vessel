@@ -4,6 +4,58 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## Version 8 (2026-11-11)
+
+Nodes speak 2..=8; version 8 only adds one optional field, so there is
+no version gate: a version 2-7 client ignores it, and a version 8 client
+reading an older node finds it absent. Milestone 9's plan
+(`docs/plans/backend-m9.md`, track A) and ADR 0019.
+
+- `SessionInfo.board?`: a session's place on the board, derived by the
+  node and never sent by a client: `{ column, display_status, activity,
+  last_activity_at }`.
+  - `column`: `building`, `validating`, `needs_review`, `ready` or
+    `archive`. `archive` is not a lane: clients list those sessions
+    apart.
+  - `display_status`: the phrase for the card, derived inside `column`:
+    `working`, `blocked`, `exited`, `no_signal`, `interrupted`,
+    `awaiting_pr`, `idle` (building); `fixing_ci`, `addressing_comments`,
+    `needs_review`, `review_scheduled`, `reviewing`, `review_failed`,
+    `review_pending`, `draft` (validating); `ci_failing`, `commented`,
+    `changes_requested`, `needs_human_review` (in review); `mergeable`,
+    `approved`, `merged`, `closed` (ready); `terminated` (archive).
+  - `activity`: `active`, `idle`, `waiting_input` or `exited`, what the
+    agent was last seen doing.
+  - `last_activity_at`: when the node last saw the agent do something:
+    the handshake completing, a turn's start or end, a permission asked
+    or answered, terminal output, the session's end.
+- The model is agent-orchestrator's (`contract/kanban.go`), ported
+  (`vessel_session::board::derive`): the column first, from lifecycle
+  facts, then the phrase from what that column cares about.
+- What a node reports today:
+  - A live structured session is `building`: `working` while starting
+    and during a turn, `blocked` while a permission request waits,
+    `interrupted` after a cancelled turn until the next one starts, and
+    otherwise `idle`.
+  - A live terminal session is `building`: `working` while it prints,
+    `idle` once it has printed nothing for five seconds.
+  - Any ended session (`exited`, `failed` or `interrupted`, live in this
+    run or read back from the store) is `archive` / `terminated`, activity
+    `exited`, its end as its last activity. The client shows the status
+    word on an archived card.
+  - No node gathers pull requests yet, so `validating`, `needs_review`,
+    `ready`, `awaiting_pr` and the phrases of those columns are not sent;
+    `no_signal` is not either (no Vessel session is expected to report on
+    its own). They are in the contract so the next milestone adds facts,
+    not wire types.
+- Nothing new is pushed: `board` comes with every `SessionInfo` a node
+  already returns (`session.list`, `session.get`, `session.create`,
+  `session.move_profile`), current as of the call. Inside the node the
+  session's info watch wakes on a change of column, phrase or activity;
+  `last_activity_at` alone moves without waking it, as `next_seq` does.
+- A client talking to a node older than protocol 8 gets no `board` and
+  keeps the placement the session's status implies.
+
 ## Version 7 (2026-11-07)
 
 Nodes speak 2..=7; version 7 only adds: the LSP contract (milestone 6)
