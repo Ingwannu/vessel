@@ -133,7 +133,9 @@ test("history retains only a consumed code; reload keeps a tab session", async (
       0,
     );
     await page.goto(`${origin}/settings`);
-    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Appearance" }),
+    ).toBeVisible();
   } finally {
     await other.close();
   }

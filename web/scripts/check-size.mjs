@@ -35,9 +35,7 @@ const STILL_TO_DIVIDE = {
   "src/routes/sessions.tsx": 451,
   "src/data/timeline.ts": 406,
   "src/data/board.ts": 353,
-  "src/routes/devices.tsx": 349,
   "src/routes/session.tsx": 328,
-  "src/routes/fleet.tsx": 316,
 };
 
 /** @param {string} path @returns {string[]} */

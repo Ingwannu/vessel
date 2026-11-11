@@ -161,3 +161,17 @@ export function machineFor(
     null
   );
 }
+
+/** The machines as a picker's options (the kit's Choice shape): each
+ * named by the book, its state as the muted detail. */
+export function machineChoices(
+  book: readonly BookNode[],
+  statuses: Readonly<Record<NodeKey, NodeStatus>>,
+  label: (node: BookNode) => string,
+): { value: NodeKey; label: string; detail: string }[] {
+  return book.map((node) => ({
+    value: node.key,
+    label: label(node),
+    detail: machineState(statuses[node.key]).word,
+  }));
+}

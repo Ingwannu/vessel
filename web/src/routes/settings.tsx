@@ -1,206 +1,51 @@
-// Settings (DESIGN.md §2.1): this client — the theme, the node book, and
-// pairing this machine with a node from a link.
+// Settings (track W2): one route, `/settings/<section>`, composing the
+// section the address names. An unknown section goes to the default one;
+// the sections are `data/settings.ts`'s one list, which the sidebar draws
+// too.
 
-import { useState, type ReactElement } from "react";
+import { Navigate } from "@tanstack/react-router";
+import type { ReactElement } from "react";
 
-import { useCrumbs, useFleet, useFleetState } from "../context";
-import { listOr, nodeState, when } from "../data/format";
-import { nodeLabel } from "../data/nodes";
-import { chooseTheme, theme as themeStore } from "../data/theme";
-import { useStore } from "../data/store";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  Field,
-  Segmented,
-  TextField,
-} from "../ui/kit";
-import { THEMES } from "../features/theme/theme";
-import { toast } from "../ui/toasts";
-import type { PairingOffer } from "../wire/proto";
+import { useCrumbs } from "../context";
+import { settingsSectionLabel } from "../data/settings";
+import { useSettingsPlace } from "../data/settings-place";
+import { AgentsSection } from "../features/machines/agents-section";
+import { MachinesSection } from "../features/machines/machines-section";
+import { AboutSection } from "../features/settings/about";
+import { AppearanceSection } from "../features/settings/appearance";
+import { DevicesSection } from "../features/settings/devices-section";
+import { ModelsSection } from "../features/settings/models";
+import { SyncSection } from "../features/settings/sync-section";
 
 export function SettingsPage(): ReactElement {
-  useCrumbs([{ label: "Settings" }]);
-  const theme = useStore(themeStore, (value) => value);
-  const book = useFleetState((state) => state.book);
-  const statuses = useFleetState((state) => state.statuses);
-  return (
-    <div className="page">
-      <div className="page-head">
-        <div>
-          <p>
-            This client: how it looks, and the nodes it knows. The book is the
-            CLI&apos;s, shared with <code>vessel</code>.
-          </p>
-        </div>
-      </div>
-      <div className="page-body">
-        <div className="panel">
-          <h2>Theme</h2>
-          <div className="pad">
-            <Segmented
-              label="Theme"
-              value={theme}
-              onChange={chooseTheme}
-              options={THEMES}
-            />
-          </div>
-        </div>
-        <div className="panel">
-          <h2>Node book</h2>
-          {book === null || book.length === 0 ? (
-            <EmptyState title="No nodes yet">
-              Add one with <code>vessel nodes add NAME ADDRESS</code>, or pair
-              one below.
-            </EmptyState>
-          ) : (
-            <table className="data book" aria-label="Node book">
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Address</th>
-                  <th scope="col">Transport</th>
-                  <th scope="col">State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {book.map((node) => {
-                  const state = nodeState(statuses[node.key]);
-                  return (
-                    <tr key={node.key}>
-                      <td className="name">
-                        {nodeLabel(node, statuses[node.key])}
-                        {node.default ? (
-                          <Badge look="accent">default</Badge>
-                        ) : null}
-                      </td>
-                      <td className="mono muted">{node.address}</td>
-                      <td>
-                        <Badge look="mono">{node.transport}</Badge>
-                      </td>
-                      <td>
-                        <Badge tone={state.tone}>{state.word}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <PairWithNode />
-      </div>
-    </div>
-  );
-}
-
-/** Pair this machine with a node from its link (as `vessel nodes add
- * NAME --pair`): the link is checked here first, and nothing is sent
- * until the operator has compared the fingerprint and confirmed. */
-function PairWithNode() {
-  const fleet = useFleet();
-  const [link, setLink] = useState("");
-  const [offer, setOffer] = useState<{
-    offer: PairingOffer;
-    fingerprint: string;
-  } | null>(null);
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inspect = () => {
-    setError(null);
-    fleet.bridge.op({ op: "inspect", link: link.trim() }).then(
-      (result) => {
-        if (result.op === "inspect") {
-          setOffer({ offer: result.offer, fingerprint: result.fingerprint });
-        }
-      },
-      (failure: unknown) => {
-        setOffer(null);
-        setError(failure instanceof Error ? failure.message : String(failure));
-      },
+  const place = useSettingsPlace();
+  useCrumbs([
+    { label: "Settings", to: "/settings" },
+    { label: settingsSectionLabel(place.section) },
+  ]);
+  if (!place.exact) {
+    return (
+      <Navigate
+        to="/settings/$section"
+        params={{ section: place.section }}
+        replace
+      />
     );
-  };
-  const pair = () => {
-    setBusy(true);
-    fleet.bridge.op({ op: "pair", name: name.trim(), link: link.trim() }).then(
-      (result) => {
-        setBusy(false);
-        setOffer(null);
-        setLink("");
-        if (result.op === "pair") {
-          toast(`Paired with ${result.node.label}`);
-        }
-        void fleet.loadBook();
-      },
-      (failure: unknown) => {
-        setBusy(false);
-        setError(failure instanceof Error ? failure.message : String(failure));
-      },
-    );
-  };
-  return (
-    <div className="panel">
-      <h2>Pair with a node</h2>
-      <div className="pad">
-        <p className="hint">
-          Run <span className="mono">vessel node pair</span> on the node and
-          paste its link here. The link is single use; it is sent nowhere until
-          you confirm.
-        </p>
-        <div className="inline pair-new">
-          <div className="grow">
-            <Field label="Pairing link">
-              <TextField
-                mono
-                placeholder="vessel://pair#…"
-                value={link}
-                onChange={(next) => {
-                  setLink(next);
-                  setOffer(null);
-                }}
-              />
-            </Field>
-          </div>
-          <Button icon="link" disabled={link.trim() === ""} onClick={inspect}>
-            Check
-          </Button>
-        </div>
-        {offer === null ? null : (
-          <div className="offer">
-            <dl>
-              <dt>node</dt>
-              <dd>{offer.offer.node}</dd>
-              <dt>fingerprint</dt>
-              <dd>{offer.fingerprint}</dd>
-              <dt>direct</dt>
-              <dd>{listOr(offer.offer.direct, "none")}</dd>
-              <dt>relays</dt>
-              <dd>{listOr(offer.offer.relays, "none")}</dd>
-              <dt>expires</dt>
-              <dd>{when(offer.offer.expires)}</dd>
-            </dl>
-            <div className="inline pair-new">
-              <Field label="Name in the book">
-                <TextField value={name} onChange={setName} />
-              </Field>
-              <Button
-                variant="primary"
-                disabled={busy || name.trim() === ""}
-                onClick={pair}
-              >
-                {busy ? "Pairing…" : "Pair"}
-              </Button>
-            </div>
-          </div>
-        )}
-        {error === null ? null : (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  }
+  switch (place.section) {
+    case "appearance":
+      return <AppearanceSection />;
+    case "agents":
+      return <AgentsSection machine={place.machine} agent={place.agent} />;
+    case "models":
+      return <ModelsSection machine={place.machine} />;
+    case "machines":
+      return <MachinesSection machine={place.machine} />;
+    case "devices":
+      return <DevicesSection machine={place.machine} />;
+    case "sync":
+      return <SyncSection machine={place.machine} />;
+    case "about":
+      return <AboutSection />;
+  }
 }

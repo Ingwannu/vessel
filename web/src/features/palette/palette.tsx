@@ -12,6 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { openNewSession, useFleetState } from "../../context";
+import { openAddMachine } from "../../data/add-machine";
 import {
   type PaletteEntry,
   type PalettePlace,
@@ -48,6 +49,8 @@ function iconOf(place: PalettePlace): IconName {
       return "message";
     case "new":
       return "plus";
+    case "add-machine":
+      return "server";
     case "theme-system":
       return "monitor";
     case "theme-light":
@@ -92,6 +95,9 @@ export function SidebarSearch() {
                 return;
               case "new-session":
                 openNewSession(target.node);
+                return;
+              case "add-machine":
+                openAddMachine();
                 return;
               case "theme":
                 chooseTheme(target.preference);

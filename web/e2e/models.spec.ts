@@ -34,22 +34,27 @@ async function routed(
   await expect(dialog).toBeHidden();
 }
 
-test("a node's routes and its profiles' routes show in its panel", async ({
+test("a machine's routes and profiles show in Settings' Models", async ({
   page,
 }) => {
   const origin = await openUi(page);
-  await page.goto(`${origin}/fleet/laptop`);
-  const panel = page.getByRole("complementary", { name: "laptop" });
-  await expect(panel).toContainText("Model routes");
-  await expect(panel).toContainText("openrouter · qwen/qwen3-coder");
-  await expect(panel).toContainText("small qwen/qwen3-coder-flash");
-  await expect(panel).toContainText("ollama · gpt-oss:20b");
-  await expect(panel).toContainText("claude-qwen → qwen-coder");
-  // A node without routes has no such section.
-  await page.goto(`${origin}/fleet/gpu-box`);
+  await page.goto(`${origin}/settings/models?machine=laptop`);
+  const routes = page.getByRole("list", { name: "Model routes on laptop" });
+  const qwen = routes.getByRole("listitem").filter({ hasText: "qwen-coder" });
+  await expect(qwen).toContainText("openrouter · qwen/qwen3-coder");
+  await expect(qwen).toContainText("small: qwen/qwen3-coder-flash");
   await expect(
-    page.getByRole("complementary", { name: "gpu-box" }),
-  ).not.toContainText("Model routes");
+    routes.getByRole("listitem").filter({ hasText: "gpt-oss" }),
+  ).toContainText("ollama · gpt-oss:20b");
+  await expect(
+    page.getByRole("list", { name: "Profiles on laptop" }),
+  ).toContainText("Claude Code · models from qwen-coder");
+  // A machine without routes says so; the picker moves between machines.
+  await choose(page, page.getByLabel("Machine"), /^gpu-box\b/);
+  await expect(page).toHaveURL(/\/settings\/models\?machine=gpu-box$/);
+  await expect(
+    page.getByText("No routes: its agents use their own providers."),
+  ).toBeVisible();
 });
 
 test("a routed structured session lists its model calls", async ({ page }) => {

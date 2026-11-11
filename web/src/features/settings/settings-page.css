@@ -1,0 +1,148 @@
+/* The Settings frame (features/settings/settings-page.tsx): a centred
+   column of sections (agent-orchestrator's settings page at GOAT's
+   readable width). */
+
+.settings-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 896px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+/* The lead sits under the title bar's heading, 16px above the first
+   section rather than 40 (the reference's body gap). */
+.settings-lead {
+  margin: 0 0 -24px;
+  padding: 0 16px;
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 20px;
+  padding: 0 16px;
+}
+
+.settings-section-head h2 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font: 500 14px / 20px var(--font-sans);
+}
+
+.settings-section-action {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-right: -8px;
+}
+
+.fact-value {
+  overflow: hidden;
+  max-width: 60ch;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+}
+
+.fact-value.mono {
+  font: var(--t-mono);
+  font-variant-ligatures: none;
+}
+
+@media (width < 768px) {
+  .settings-column {
+    padding: 16px 12px 40px;
+  }
+}
+
+.fact-link {
+  margin-right: 8px;
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+
+.fact-link:hover {
+  color: var(--text-primary);
+}
+
+/* A quiet link at the right of a section's heading ("Open the board"). */
+.section-link {
+  padding: 2px 8px;
+  border-radius: var(--r-2);
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+  text-decoration: none;
+}
+
+.section-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.section-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -1px;
+}
+
+/* A section with nothing in it yet: one sentence where its card would
+   be, inset to the rows' text edge. */
+.settings-empty {
+  margin: 0;
+  padding: 0 16px;
+  color: var(--text-tertiary);
+  font: 400 13px / 18px var(--font-sans);
+}
+
+/* A muted fact at the right of a section's heading ("Asked 2m ago"). */
+.section-note {
+  padding-right: 8px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+/* A confirming dialog's one paragraph (revoke-dialog.tsx). */
+.dialog-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 13px / 19px var(--font-sans);
+}
+
+/* A row whose title is a literal (a shared file's path). */
+.mono-title {
+  font: 500 13px / 20px var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+.settings-empty code {
+  font: var(--t-mono);
+  font-variant-ligatures: none;
+}

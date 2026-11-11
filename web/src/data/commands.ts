@@ -15,6 +15,7 @@ export type PaletteGroup = "Go to" | "Nodes" | "Sessions" | "Actions" | "Theme";
 export type PaletteTarget =
   | { kind: "route"; to: string }
   | { kind: "new-session"; node: string | null }
+  | { kind: "add-machine" }
   | { kind: "theme"; preference: ThemePreference };
 
 /** The places a palette entry can name, for its icon. */
@@ -28,6 +29,7 @@ export type PalettePlace =
   | "terminal"
   | "structured"
   | "new"
+  | "add-machine"
   | "theme-system"
   | "theme-light"
   | "theme-dark";
@@ -130,6 +132,13 @@ export function paletteEntries(
       group: "Actions",
       place: "new",
       target: { kind: "new-session", node: selected },
+    },
+    {
+      id: "add-machine",
+      label: "Add a machine",
+      group: "Actions",
+      place: "add-machine",
+      target: { kind: "add-machine" },
     },
   ];
   return [...actions, ...PLACES, ...nodes, ...sessions, ...THEMES];

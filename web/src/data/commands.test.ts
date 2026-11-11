@@ -87,6 +87,17 @@ describe("paletteEntries", () => {
     expect(action?.target).toEqual({ kind: "new-session", node: "laptop" });
   });
 
+  it("offers to add a machine, wherever the palette is opened", () => {
+    const action = paletteEntries(state(), null).find(
+      (entry) => entry.id === "add-machine",
+    );
+    expect(action).toMatchObject({
+      label: "Add a machine",
+      group: "Actions",
+      target: { kind: "add-machine" },
+    });
+  });
+
   it("puts live sessions first, newest first, and ended ones after", () => {
     const sessions = paletteEntries(state(), null)
       .filter((entry) => entry.group === "Sessions")
