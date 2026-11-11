@@ -56,7 +56,7 @@ function shellClass(
   mono: boolean,
   look: "field" | "popup",
 ): string {
-  return `text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}${look === "popup" ? " popup" : ""}`;
+  return `text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}${look === "popup" ? " floating" : ""}`;
 }
 
 export function TextField({

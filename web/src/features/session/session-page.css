@@ -55,8 +55,10 @@
   }
 }
 
-/* The log with what floats over it (find, the outline). */
+/* The log with what floats over it (find, the outline), a container the
+   outline sizes itself by. */
 .session-log {
+  container: session-log / inline-size;
   position: relative;
   flex: 1;
   min-height: 0;

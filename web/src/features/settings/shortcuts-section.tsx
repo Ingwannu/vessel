@@ -128,90 +128,92 @@ export function ShortcutsSection() {
   return (
     <SettingsPage lead="Find your shortcuts, then choose Edit to record a new key combination.">
       <KeptNote />
-      <div className="shortcuts-toolbar">
-        <TextField
-          size="sm"
-          icon="search"
-          aria-label="Search commands or key combinations"
-          placeholder="Search commands or key combinations"
-          value={query}
-          onChange={setQuery}
-        />
-        <Segmented
-          label="Filter shortcuts"
-          size="sm"
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "all", label: "All commands" },
-            { value: "modified", label: `Modified ${String(changed)}` },
-          ]}
-        />
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={changed === 0}
-          onClick={() => {
-            setResetting(true);
-          }}
-        >
-          Reset all
-        </Button>
+      <div className="shortcuts-body">
+        <div className="shortcuts-toolbar">
+          <TextField
+            size="sm"
+            icon="search"
+            aria-label="Search commands or key combinations"
+            placeholder="Search commands or key combinations"
+            value={query}
+            onChange={setQuery}
+          />
+          <Segmented
+            label="Filter shortcuts"
+            size="sm"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: "all", label: "All commands" },
+              { value: "modified", label: `Modified ${String(changed)}` },
+            ]}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={changed === 0}
+            onClick={() => {
+              setResetting(true);
+            }}
+          >
+            Reset all
+          </Button>
+        </div>
+        {groups.length === 0 ? (
+          <p className="shortcuts-empty">
+            {filter === "modified" && query === ""
+              ? "No custom shortcuts yet."
+              : "No matching commands."}
+          </p>
+        ) : (
+          groups.map(({ group, rows }) => (
+            <section key={group} className="shortcuts-group" aria-label={group}>
+              <h2 className="shortcuts-group-head">{group}</h2>
+              <ul className="shortcuts-list">
+                {rows.map((row) => (
+                  <ShortcutRowView
+                    key={row.action}
+                    row={row}
+                    recorder={
+                      recording?.action === row.action ? (
+                        <ShortcutRecorder
+                          label={row.label}
+                          error={error}
+                          onChord={recorded}
+                          onCancel={cancel}
+                        />
+                      ) : null
+                    }
+                    onEdit={() => {
+                      setError(null);
+                      setRecording({
+                        action: row.action,
+                        replace: row.bindings.length > 0 ? 0 : null,
+                      });
+                    }}
+                    onAdd={() => {
+                      setError(null);
+                      setRecording({ action: row.action, replace: null });
+                    }}
+                    onRemove={(index) => {
+                      save(
+                        removeKey(row.action, index, overrides),
+                        `${row.label} no longer uses ${row.words[index] ?? "that key"}.`,
+                      );
+                    }}
+                    onRestore={() => {
+                      save(
+                        restore(row.action),
+                        `${row.label} now uses its original keys.`,
+                      );
+                    }}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
       </div>
-      {groups.length === 0 ? (
-        <p className="shortcuts-empty">
-          {filter === "modified" && query === ""
-            ? "No custom shortcuts yet."
-            : "No matching commands."}
-        </p>
-      ) : (
-        groups.map(({ group, rows }) => (
-          <section key={group} className="shortcuts-group" aria-label={group}>
-            <h2 className="shortcuts-group-head">{group}</h2>
-            <ul className="shortcuts-list">
-              {rows.map((row) => (
-                <ShortcutRowView
-                  key={row.action}
-                  row={row}
-                  recorder={
-                    recording?.action === row.action ? (
-                      <ShortcutRecorder
-                        label={row.label}
-                        error={error}
-                        onChord={recorded}
-                        onCancel={cancel}
-                      />
-                    ) : null
-                  }
-                  onEdit={() => {
-                    setError(null);
-                    setRecording({
-                      action: row.action,
-                      replace: row.bindings.length > 0 ? 0 : null,
-                    });
-                  }}
-                  onAdd={() => {
-                    setError(null);
-                    setRecording({ action: row.action, replace: null });
-                  }}
-                  onRemove={(index) => {
-                    save(
-                      removeKey(row.action, index, overrides),
-                      `${row.label} no longer uses ${row.words[index] ?? "that key"}.`,
-                    );
-                  }}
-                  onRestore={() => {
-                    save(
-                      restore(row.action),
-                      `${row.label} now uses its original keys.`,
-                    );
-                  }}
-                />
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
       {reassign === null ? null : (
         <Dialog
           title="Shortcut already in use"

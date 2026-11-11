@@ -104,6 +104,24 @@
   }
 }
 
+/* With the summary open the log's gutter is narrow: the rail moves to
+   the edge and its marks shorten, clear of the timeline's own marks
+   (GOAT shrinks its hit strip the same way). */
+@container session-log (width < 900px) {
+  .outline {
+    left: 2px;
+  }
+
+  .outline-mark {
+    width: 20px;
+    padding-inline: 2px;
+  }
+
+  .outline-mark::before {
+    width: 14px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .outline-mark::before {
     transition: none;
