@@ -27,7 +27,7 @@ use vessel_client::NodeAddress;
 use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook, NodeName, Origin, Resolved};
 use vessel_proto::{NodeId, PairingLink};
 use vessel_web::NodeSource;
-use vessel_web::wire::{BookNode, NodeKey, Transport};
+use vessel_web::wire::{BookNode, NodeKey, SecretText, Transport};
 
 use crate::args::Target;
 use crate::connect::{self, NodeConnector};
@@ -149,8 +149,9 @@ impl NodeSource for BookSource {
         }
     }
 
-    async fn pair(&self, name: &NodeName, link: &str) -> Result<BookNode, CliError> {
+    async fn pair(&self, name: &NodeName, link: &SecretText) -> Result<BookNode, CliError> {
         let offer = link
+            .expose()
             .trim()
             .parse::<PairingLink>()
             .and_then(|link| link.decode())

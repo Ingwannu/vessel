@@ -258,7 +258,7 @@ pub enum Op {
     /// sent anywhere.
     Inspect {
         /// The link (`vessel://pair#...`).
-        link: String,
+        link: SecretText,
     },
     /// Pair this machine with the node a link offers and add it to the
     /// book.
@@ -266,12 +266,12 @@ pub enum Op {
         /// The name to give it in the book.
         name: BookName,
         /// The link.
-        link: String,
+        link: SecretText,
     },
     /// Draw `text` as a QR code.
     Qr {
         /// What to encode (a pairing link).
-        text: String,
+        text: SecretText,
     },
     /// Remove a node from the book (`vessel nodes remove`) and close the
     /// bridge's connection to it; streams following it end as
@@ -528,6 +528,83 @@ impl PresentedToken {
 impl fmt::Debug for PresentedToken {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("PresentedToken(..)")
+    }
+}
+
+/// Text from the page that may be a credential: a pairing link (to
+/// inspect or pair with), or the text of a QR code (a pairing link to
+/// show). A link holds a single-use invitation until it is redeemed, so
+/// `Debug` never prints it (an `Op` or a `ClientFrame` in a log line, a
+/// test failure or a panic message shows a placeholder), and there is no
+/// `Display`. It is not checked here: explaining a bad link is
+/// `inspect`'s job, with the book's own parser.
+///
+/// [`SecretText::expose`] is called only where the text is parsed or
+/// drawn (`ops`: inspect, pair, qr; the source's pairing); nothing on
+/// those paths logs it.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct SecretText(String);
+
+impl SecretText {
+    /// The text as the page sent it.
+    #[must_use]
+    pub const fn new(text: String) -> Self {
+        Self(text)
+    }
+
+    /// The text, to parse or draw; never to log or format into a message.
+    #[must_use]
+    pub fn expose(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Debug for SecretText {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SecretText(<redacted>)")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A pairing link is a credential until redeemed: whatever formats an
+    /// op or a frame with `{:?}` (a log line, a failing test, a panic)
+    /// shows a placeholder, whether the frame was built or decoded.
+    #[test]
+    fn debug_never_prints_a_link_or_a_qr_text() {
+        const LINK: &str = "vessel://pair#c2VjcmV0LWludml0YXRpb24";
+        let pair = Op::Pair {
+            name: "lab".parse().unwrap(),
+            link: SecretText::new(LINK.to_owned()),
+        };
+        let frame = ClientFrame::Op {
+            id: CallId::new(1),
+            op: pair.clone(),
+        };
+        let decoded: ClientFrame = serde_json::from_str(&format!(
+            r#"{{"type":"op","id":2,"op":{{"op":"inspect","link":"{LINK}"}}}}"#
+        ))
+        .unwrap();
+        let qr = Op::Qr {
+            text: SecretText::new(LINK.to_owned()),
+        };
+        for text in [
+            format!("{pair:?}"),
+            format!("{frame:?}"),
+            format!("{decoded:?}"),
+            format!("{qr:?}"),
+            format!("{frame:#?}"),
+        ] {
+            assert!(!text.contains("c2VjcmV0"), "{text}");
+            assert!(text.contains("<redacted>"), "{text}");
+        }
+        // It still travels: the page's text, as sent.
+        let json = serde_json::to_string(&frame).unwrap();
+        assert!(json.contains(LINK), "{json}");
     }
 }
 

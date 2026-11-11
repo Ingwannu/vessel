@@ -23,7 +23,7 @@ use vessel_client::Connector;
 use vessel_client::book::NodeName;
 use vessel_proto::NodeId;
 
-use crate::wire::{BookNode, NodeKey};
+use crate::wire::{BookNode, NodeKey, SecretText};
 
 /// The nodes `vessel ui` offers, and how to reach each.
 pub trait NodeSource: Send + Sync + 'static {
@@ -47,11 +47,12 @@ pub trait NodeSource: Send + Sync + 'static {
     fn seen(&self, node: &NodeKey, id: NodeId) -> impl Future<Output = ()> + Send;
 
     /// Pair with the node `link` offers and add it to the book as `name`;
-    /// the node as the book has it then.
+    /// the node as the book has it then. The link is a credential until
+    /// redeemed: parse it, never log it or echo it in an error.
     fn pair(
         &self,
         name: &NodeName,
-        link: &str,
+        link: &SecretText,
     ) -> impl Future<Output = Result<BookNode, Self::Error>> + Send;
 
     /// Remove `node` from the book, as `vessel nodes remove` does.

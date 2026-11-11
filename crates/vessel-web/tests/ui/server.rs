@@ -239,7 +239,7 @@ async fn oversized_preauth_frame_is_rejected_from_its_header() {
         let mut tab = ui.tab().await;
         let id = tab
             .op(vessel_web::wire::Op::Inspect {
-                link: "x".repeat(8192),
+                link: vessel_web::wire::SecretText::new("x".repeat(8192)),
             })
             .await;
         tab.until(|frame| {

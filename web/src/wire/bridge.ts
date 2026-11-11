@@ -204,7 +204,7 @@ node: NodeKey, } | { "op": "inspect",
 /**
  * The link (`vessel://pair#...`).
  */
-link: string, } | { "op": "pair", 
+link: SecretText, } | { "op": "pair", 
 /**
  * The name to give it in the book.
  */
@@ -212,11 +212,11 @@ name: BookName,
 /**
  * The link.
  */
-link: string, } | { "op": "qr", 
+link: SecretText, } | { "op": "qr", 
 /**
  * What to encode (a pairing link).
  */
-text: string, } | { "op": "forget", 
+text: SecretText, } | { "op": "forget", 
 /**
  * The node.
  */
@@ -296,6 +296,21 @@ nodes: Array<BookNode>, };
  * A token as a browser presented it: not yet checked, never printed.
  */
 export type PresentedToken = string;
+
+/**
+ * Text from the page that may be a credential: a pairing link (to
+ * inspect or pair with), or the text of a QR code (a pairing link to
+ * show). A link holds a single-use invitation until it is redeemed, so
+ * `Debug` never prints it (an `Op` or a `ClientFrame` in a log line, a
+ * test failure or a panic message shows a placeholder), and there is no
+ * `Display`. It is not checked here: explaining a bad link is
+ * `inspect`'s job, with the book's own parser.
+ *
+ * [`SecretText::expose`] is called only where the text is parsed or
+ * drawn (`ops`: inspect, pair, qr; the source's pairing); nothing on
+ * those paths logs it.
+ */
+export type SecretText = string;
 
 /**
  * A frame to the browser.
