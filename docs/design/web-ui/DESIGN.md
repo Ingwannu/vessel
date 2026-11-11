@@ -367,8 +367,8 @@ sits on. A token change must re-measure its pairs in the same change.
 | dark lane colours and needs-you | ≥ 5.0 | ≥ 5.6 | |
 | dark `--danger` | 4.6 | 5.2 | 5.4 |
 | dark solid danger button, `#181818` on `--danger` | 5.2 | | |
-| terminal `--term-fg` on `--term-bg` | 15.9 | | |
-| terminal `--term-dim` on `--term-bg` / `--term-frame` | 5.8 | 5.2 | |
+| terminal `--term-fg` on `--term-bg` | 16.0 | | |
+| terminal `--term-dim` on `--term-bg` / `--term-frame` | 5.8 | 5.1 | |
 
 Lane colours are text only on a card and on the page (a lane's heading).
 Their own values for in review, ready and the passive grey are 3.2 to
