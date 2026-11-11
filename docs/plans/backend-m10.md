@@ -267,6 +267,38 @@ not by review:
   by a function that checks it; the casts left are at the two boundaries
   that already have them (the socket's frames, xterm's internals).
 
+### Types
+
+The owner's rule: no `any`, and types held as strictly as they can be, in
+TypeScript as in Rust. The compiler options and the ESLint presets were
+already at their strictest; what they still allowed is closed here, in
+`web/eslint.config.js`, so it fails `npm run lint` instead of waiting for
+a review:
+
+- No type assertion (`consistent-type-assertions: never`,
+  `no-unsafe-type-assertion`). A value from the socket or the DOM is
+  narrowed by a predicate that checks it. One file keeps an assertion
+  (xterm's private core), by a config override that names it.
+- No inline suppression (`noInlineConfig`); `@ts-expect-error` only with a
+  description.
+- No implicit truthiness (`strict-boolean-expressions`).
+- Explicit parameter and return types on every exported function of a
+  logic module.
+- In the kit: a generic control keeps its option's type (`Select<T>`
+  gives back `T`, not `string`); props that only make sense together are
+  one discriminated union.
+- The check scripts are type-checked too.
+
+Still open, for after the kit: the generated wire types alias every id to
+`string`, so a node's key can be passed where a session's id is wanted.
+Branding them in the generator (`vessel-proto/src/ts.rs`) and parsing at
+the two places a bare string enters (a route's parameters, a frame) is
+its own change across all of `web/src`.
+
+In Rust the title added by protocol 9 becomes `SessionTitle`, parsed on
+the way in (trimmed, not empty, bounded, no control characters), instead
+of the bare `String` the contract above first said.
+
 The Rust side keeps what `AGENTS.md` already enforces (the crate map and
 its one direction of dependency, `unwrap`, `expect` and `panic` denied by
 the workspace's lints, closed enums matched exhaustively). Three files
