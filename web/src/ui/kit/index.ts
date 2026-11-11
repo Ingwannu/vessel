@@ -14,6 +14,7 @@ export {
 export { Checkbox } from "./checkbox";
 export { type Choice } from "./choice";
 export { Combobox, type Suggestion } from "./combobox";
+export { CommandLine } from "./command-line";
 export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";

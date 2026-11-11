@@ -3,7 +3,14 @@
 
 import { useState } from "react";
 
-import { Combobox, Field, Kbd, TextArea, TextField } from "../../ui/kit";
+import {
+  Combobox,
+  CommandLine,
+  Field,
+  Kbd,
+  TextArea,
+  TextField,
+} from "../../ui/kit";
 import { Section, Specimens } from "./section";
 
 const FOLDERS = [
@@ -63,6 +70,12 @@ export function Fields() {
           />
         </Field>
       </div>
+      <Specimens caption="a command to run elsewhere, short and long">
+        <div className="kit-wide">
+          <CommandLine command="vessel node pair" />
+          <CommandLine command="vessel --node gpu-box fleet join --yes < link.txt && vessel node status" />
+        </div>
+      </Specimens>
       <Specimens caption="a text area grows with its text, then scrolls">
         <div className="kit-wide">
           <Field label="Prompt">

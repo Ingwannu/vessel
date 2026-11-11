@@ -42,7 +42,11 @@ export type IconName =
   | "dot"
   | "sun"
   | "moon"
-  | "monitor";
+  | "monitor"
+  | "server"
+  | "circle-check"
+  | "circle-x"
+  | "circle-dashed";
 
 /** The sizes the reference draws at: 12 and 13 in dense chrome, 14 in a
  * composer's controls, 15 in menus, 16 in buttons and tabs, 20 for an

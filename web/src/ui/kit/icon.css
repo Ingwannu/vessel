@@ -177,3 +177,22 @@
 .ico-monitor {
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='2' y='2.75' width='12' height='8.5' rx='1.5'/%3E%3Cpath d='M5.5 14h5M8 11.25V14'/%3E%3C/svg%3E");
 }
+
+/* A machine in a list of machines (GOAT's environment row leads with
+   one): a server's two units, a light on each. */
+.ico-server {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='2.5' y='2.5' width='11' height='4.5' rx='1.25'/%3E%3Crect x='2.5' y='9' width='11' height='4.5' rx='1.25'/%3E%3Cpath d='M5 4.75h.01M5 11.25h.01'/%3E%3C/svg%3E");
+}
+
+/* A checklist's states (GOAT's preflight: passed, failed, skipped). */
+.ico-circle-check {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m5.5 8.2 1.8 1.8 3.2-3.6'/%3E%3C/svg%3E");
+}
+
+.ico-circle-x {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m6 6 4 4M10 6l-4 4'/%3E%3C/svg%3E");
+}
+
+.ico-circle-dashed {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-dasharray='2.2 2.2' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3C/svg%3E");
+}
