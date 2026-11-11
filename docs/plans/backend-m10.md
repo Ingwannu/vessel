@@ -846,6 +846,24 @@ phone a Settings section is reached by its address only.
 `check-size` lists only `bridge/client.ts` (467 lines, at its ceiling;
 two op-failure helpers moved to `frames.ts` to keep it there).
 
+Gate on the merged tree, run in `web/` on the code as committed (the
+docs commit after it changes no code):
+
+- `npm ci`: 281 packages installed (npm's audit reports 10 moderate
+  advisories, unchanged by this track).
+- `npm run lint`: ESLint and Prettier clean; `fonts: 42 stacks follow the
+  rule`, `controls: nothing native outside the kit`, `size: within
+  budget, 1 files still to divide`.
+- `npm run typecheck`: no errors, the page and then `scripts/`.
+- `npm run test`: 33 files, 142 tests passed.
+- `npm run build`: built; the script 1,173.47 kB (347.75 kB gzipped), the
+  stylesheet 83.10 kB.
+- `npm run e2e`: 23 passed (W1's and this track's, with the new "every
+  way in" test).
+- `npm run screens`: 4 passed, 93 captures (the main screens, the kit,
+  the session and new-session flows, Settings and the welcome), each
+  looked at light and dark and at 390px.
+
 Differences from the references that remain: DESIGN.md §12, items 13
 to 16 (an 896px column; an agent's card as one list, not tabs; no on/off
 switch on a machine's row; the confirmation names the machine by its id).
