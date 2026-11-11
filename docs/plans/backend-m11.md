@@ -489,87 +489,131 @@ Ids (`id.rs`): `ProjectId`, `WorktreeId`, node-minted UUIDv4.
 Parsed on decode (a bad one does not decode, so nothing downstream holds
 an unchecked string):
 
-- `ProjectName`: trimmed, 1 to 80 characters, no control characters.
+- `ProjectName`: a display name, trimmed, 1 to 80 characters, no
+  control characters.
+- `FolderName`: one folder to create (a clone's): the bundle path rules
+  for one segment (`docs/PROTOCOL.md`, version 5: no `\ : * ? " < > |`,
+  no control character, not `.` or `..`, no trailing `.` or space, no
+  Windows device name or `NAME~1` short name), no `/`, no leading `-`, at
+  most 255 bytes.
 - `BranchName`: git's `check-ref-format --branch` rules, checked here:
   not empty, at most 255 bytes, no ASCII control or space, none of
-  `~ ^ : ? * [ \`, no `..`, no `@{`, not `@`, no component starting with
-  `.` or ending with `.lock`, no leading, trailing or doubled `/`, not
-  ending with `.`, and **no leading `-`** (it would read as an option).
-- `RefName`: the same rules; names a branch, a remote-tracking branch
-  (`origin/main`) or a tag, as a base or a starting point.
-- `CommitId`: 7 to 64 lowercase hexadecimal digits (SHA-1 or SHA-256).
-- `RemoteName`: `check-ref-format` rules for one component, no leading
-  `-`.
-- `RelPath`: a path inside a root, `/`-separated whatever the node's
-  platform: not absolute, no drive or UNC prefix, no backslash, no NUL,
-  no empty, `.` or `..` component, no component equal to `.git` (ASCII
-  case ignored), at most 4,096 bytes and 255 per component. The empty
-  path is the root itself (accepted only where a call says so).
+  `~ ^ : ? * [ \`, no `..`, no `@{`, not `@` or `HEAD`, no part starting
+  with `.` or ending with `.lock`, no leading, trailing or doubled `/`,
+  not ending with `.`, and **no leading `-`** (it would read as an
+  option).
+- `RefName`: the same rules (`HEAD` allowed); a branch, a
+  remote-tracking branch (`origin/main`) or a tag.
+- `CommitId`: 7 to 64 hexadecimal digits, kept in lower case. The node
+  resolves one with `rev-parse --verify --end-of-options <id>^{commit}`
+  and refuses it when the result does not start with the digits given
+  (a branch named like a commit id).
+- `RemoteName`: one part of the ref rules, no leading `-`.
+- `RelPath`: a path inside a root, `/`-separated on every platform: not
+  absolute, no drive (`C:`), no backslash, no control character, no
+  empty, `.` or `..` part, at most 4,096 bytes and 255 a part, and no
+  part that git itself refuses as `.git` (git's `verify_path`): `.git`
+  in any case, also with trailing dots or spaces, `git~1`, and with the
+  zero-width characters HFS+ ignores. The empty path is the root itself,
+  accepted only where a call says so. On a Windows node the node also
+  refuses a part with `:` (a data stream of another file), a device name
+  or a short name.
 - `CloneUrl`: `https://`, `http://`, `ssh://`, `git://`, or the scp form
-  `user@host:path`; no whitespace or control character, no leading `-`,
-  no `<transport>::` form (`ext::`, `fd::`), no `file://` and no local
-  path (a folder on the node is `project.add`), no password in an
-  `http(s)` URL (it would be written into `.git/config` and echoed in
-  errors).
-- `CommitMessage`: not empty once trimmed, at most 64 KiB, no NUL.
-- `ProjectCommand`: one shell command from the project's file, not empty,
-  at most 4 KiB, no NUL.
-- `CommandsDigest`: 64 lowercase hexadecimal digits.
-- `FindQuery` (1 to 256 characters), `GrepQuery` (1 to 1,000).
+  `[user@]host:path`; no white space or control character, no leading
+  `-` (on the URL, its user or its host), no `<transport>::` form, no
+  `file://` and no local path (a folder on the node is `project.add`),
+  no user information at all in an `http(s)` URL (a token is often the
+  user), no password in an `ssh` one.
+- `CommitMessage`: not blank, at most 64 KiB, no NUL.
+- `ProjectCommand`: one shell command from the project's file, not
+  blank, at most 4 KiB, no NUL.
+- `CommandsDigest`, `ContentHash`: 64 hexadecimal digits (SHA-256).
+- `FindQuery` (1 to 256 characters), `GrepQuery` (1 to 1,000), one line.
+- `SearchKey`: a client's number naming a search, so a newer one with
+  the same key replaces it.
+
+Every reply enum that will grow has an `unknown` variant a client skips
+or shows as such (protocol 9's rule for `OptionKind`): `ProjectState`,
+`CloneStage`, `CloneFailure`, `GitSupport`, `SetupState`,
+`SetupFailure`, `KeptReason`, `WorktreeRefusal`, `FileState`,
+`ChangeStatus`, `DiffContent`, `EntryKind`, `FileContent`,
+`GitRefusal`.
 
 Projects:
 
-- `ProjectInfo { id, name, root, git, state, created_at, revision }`.
-  `root` is the absolute folder on the node (the repository's top level
-  when the folder added is inside one); `git` says whether it is a git
-  repository (a folder that is not has files but no git and no
-  worktrees). `revision` grows by one at every change, for waiting.
+- `ProjectInfo { id, name, root, git, default_branch?, state,
+  created_at, revision }`. `root` is the absolute folder on the node (the
+  repository's top level when the folder added is inside one); `git`
+  says whether it is a git repository (a folder that is not has files
+  but no git and no worktrees); `default_branch` the branch new
+  worktrees start from (below). `revision` changes at every change, for
+  waiting.
 - `ProjectState`: `ready`; `cloning { stage, percent? }` with `stage`
   one of `connecting`, `counting`, `compressing`, `receiving`,
   `resolving`, `checking_out`; `clone_failed { reason, message }` with
   `reason` one of `needs_credential`, `not_found`, `network`,
-  `timed_out`, `other` (`message` has credentials removed).
-- `ProjectList { git, projects }`; `git` is `GitSupport`: `found {
-  version }`, `too_old { version, minimum }` or `missing`. This is where
-  the node reports the git it found, checked once at start.
-- `ProjectCommands`: `none` (no file, or a file naming no command),
-  `listed { setup, teardown, digest, approved }`, or `invalid { message
-  }` (the file does not parse; nothing in it runs).
+  `timed_out`, `other` (`message` git's last lines, credentials
+  removed); `missing` (the folder is gone).
+- `ProjectList { git, projects, more }`; `git` is `GitSupport`: `found {
+  version }`, `too_old { version, minimum }` (`minimum` 2.25.0) or
+  `missing`, checked once when the node starts.
+- `ProjectCommands`: `none`, `listed { setup, teardown, digest,
+  approved }`, or `invalid { message }` (the file does not parse;
+  nothing in it runs).
+- The default branch: the remote-tracking branch `origin/HEAD` points
+  at when there is one (`origin/main`), else the local `main`, else
+  `master`, else the branch checked out in the project's folder. Kept by
+  the node and found again by `git.fetch` and `project.get`.
 
 Worktrees:
 
+- `WorktreeBase`: `ref { name: RefName }` or `commit { id }`.
 - `WorktreeBranch`: `new { name?, base? }` (a new branch, named
-  `vessel/<8 hex>` when no name is given, from `base`: a `WorktreeBase`,
-  `ref { name: RefName }` or `commit { id }`, the project's default branch
-  when absent) or `existing { name }`.
+  `vessel/<8 hex>` when no name is given, from `base`, the default
+  branch when absent), `existing { name }`, or `snapshot { worktree,
+  name? }` (a new branch at the snapshot's `head`, with the snapshot's
+  files put back as uncommitted changes).
 - `SetupChoice`: `run` (the default) or `skip`.
-- `WorktreeInfo { id, project, path, branch?, created_branch, base?,
-  created_at, created_for?, sessions, setup, kept? }`: `branch` absent
-  when detached; `created_branch` says Vessel made it (only such a
-  branch is ever deleted); `created_for` the session it was created for;
-  `sessions` the live sessions in it; `kept` why tidying left it (below).
+- `WorktreeInfo { id, project, path, branch?, created_branch?, base?,
+  created_at, created_by, created_for?, sessions, setup, kept? }`:
+  `branch` what is checked out now (absent when detached);
+  `created_branch` the branch the node created for it, if it did (the
+  only branch ever deleted, and the one tidying checks); `base` the
+  commit and name it started from; `created_by` who asked (ADR 0013's
+  `Creator`); `created_for` a session it was made for; `sessions` the
+  live sessions whose folder is in it (a placed session, or one whose
+  `cwd` resolves inside); `kept` why tidying left it.
 - `SetupState`: `none` (nothing to run), `skipped`, `running {
   started_at }`, `succeeded { finished_at }`, `failed { failure,
-  finished_at }` with `failure` one of `exit { command, code? }` (the
-  index of the command that failed), `timed_out`, `spawn`.
-- `KeptReason`: `uncommitted { files }`, `unique_commits { commits }`,
-  `operation { operation }` (`merge`, `rebase`, `cherry_pick`,
-  `revert`, `bisect`), `inspection_failed`.
-- `SetupOutput { from, bytes, next, skipped, truncated, setup }`: a page
-  of the setup and teardown output (stdout and stderr together, as
-  `TerminalBytes`), `skipped` the bytes before `from` no longer kept,
-  `truncated` when the log reached its limit and stopped.
-- `Snapshot { worktree, branch?, commit, head, created_at }`: kept at
-  `refs/vessel/snapshots/<worktree id>` in the project's repository.
+  finished_at }` with `failure` one of `exit { command, code? }`,
+  `timed_out`, `spawn`.
+- `KeptReason`: `uncommitted { files }` (a count), `unique_commits {
+  commits }`, `operation { operation }` (`merge`, `rebase`,
+  `cherry_pick`, `revert`, `bisect`), `submodules`, `flagged_files`
+  (assume-unchanged or skip-worktree entries, whose changes `status`
+  does not show), `worktree_refs` (`refs/worktree/*`, `refs/bisect/*`),
+  `in_use`, `inspection_failed`.
+- `CreateWorktreeOutcome`: `created { worktree }`, `needs_approval {
+  commands }` (nothing was created), `refused { reason }`, with
+  `WorktreeRefusal` one of `not_git`, `not_ready`, `no_commit`,
+  `branch_exists`, `checked_out_elsewhere { path }`, `no_such_base`,
+  `no_such_branch`, `no_such_snapshot`, `limit` (too many worktrees).
+- `RemoveWorktreeOutcome`: `removed { snapshot? }`, `kept { reasons }`
+  (nothing was removed; `reasons` every `KeptReason` that applies).
+- `IfLost`: `keep` (the default), `snapshot`, `discard`.
+- `SetupOutput { from, bytes, next, truncated, setup }`: a page of the
+  setup and teardown output (stdout and stderr together, as
+  `TerminalBytes`).
+- `Snapshot { worktree, branch?, commit, head, created_at }`, kept at
+  `refs/vessel/snapshots/<worktree id>`.
 
 Sessions (the only shared types touched):
 
 - `SessionSpec.place?: SessionPlace`: `project { project, dir?: RelPath
-  }` (the folder as it is), `worktree { worktree }` (an existing one),
-  `new_worktree { project, branch, setup }`. With a place, `cwd` must be
-  absent; the node fills `spec.cwd` with the folder the place resolves
-  to, so a client that predates places still sees where the session
-  runs.
+  }` (the folder as it is) or `worktree { worktree }`. With a place,
+  `cwd` must be absent; the node fills `spec.cwd` with the folder the
+  place resolves to, so a client that predates places still sees where
+  the session runs.
 - `SessionInfo.workspace?: SessionWorkspace { project, worktree?,
   branch? }`.
 
@@ -577,106 +621,116 @@ Git (`WorkspaceRoot`: `project { project }` or `worktree { worktree }`;
 every git and file call names one):
 
 - `GitStatus { branch?, head?, upstream?, base?, operation?, files,
-  more }`: `upstream { name, ahead, behind }`; `base { name, ahead, behind
-  }` for a worktree, against the base it was made from; `files` each
-  `{ path, old_path?, index, worktree }` with `FileState` one of
+  more }`: `upstream` and `base` are `Distance { name, ahead, behind }`
+  (`base` for a worktree whose base is a ref); `files` each `StatusEntry
+  { path, old_path?, index, worktree }` with `FileState` one of
   `unmodified`, `modified`, `added`, `deleted`, `renamed`, `copied`,
-  `type_changed`, `untracked`, `ignored`, `conflicted`.
+  `type_changed`, `untracked`, `conflicted`.
 - `DiffScope`: `unstaged` (working tree against the index, untracked
   files as added), `staged` (index against `HEAD`), `uncommitted`
-  (working tree against `HEAD`, untracked as added), `base { base?:
-  WorktreeBase }` (working tree against the merge base of `HEAD` and the
-  base: committed and uncommitted together), `commit { id }` (against
-  its first parent).
-- `DiffSummary { from?, files, more }`: `from` the commit compared
-  against; each `FileChange { path, old_path?, status, additions?,
-  deletions?, binary }` (counts absent for binary files).
-- `FileDiff { path, old_path?, status, content, more_from? }`, `content`
-  one of `hunks { hunks }`, `binary`, `too_large { bytes }`. A `Hunk {
-  old_start, old_lines, new_start, new_lines, section?, lines }`; a
-  `DiffLine { kind, text, cut }`, `kind` one of `context`, `added`,
-  `removed`, `no_newline`. `more_from` is the index of the first hunk not
-  sent.
+  (working tree against `HEAD`, untracked as added), `base { base? }`
+  (working tree against the merge base of `HEAD` and the base, a
+  worktree's own or the default branch: committed and uncommitted
+  together), `commit { id }` (against its first parent). Every diff call
+  also takes `ignore_whitespace`.
+- `DiffSummary { from?, files, more }`, each `FileChange { path,
+  old_path?, status: ChangeStatus, additions?, deletions?, binary }`,
+  `ChangeStatus` one of `added`, `modified`, `deleted`, `renamed`,
+  `copied`, `type_changed`, `conflicted`.
+- `FileDiff { path, old_path?, status, mode?, content, more_from? }`:
+  `mode` `{ old, new }` when the file mode changed; `content` one of
+  `hunks { hunks }`, `binary`, `submodule { from?, to? }`, `too_large {
+  bytes }`, `unchanged`. A `Hunk { old_start, old_lines, new_start,
+  new_lines, section?, lines }`; a `DiffLine { kind, text, cut }`,
+  `kind` one of `context`, `added`, `removed`, `no_newline`.
 - `BranchList { branches, more }`, `Branch { name, remote?, current,
-  default, head, upstream?, worktree? }` (`worktree` the folder that has
-  it checked out). `CommitPage { commits, more }`, `CommitInfo { id,
-  parents, author, time, subject }`. `StashList { entries, more }`,
-  `StashEntry { index, message, branch?, commit }`.
-- `GitRefusal` (what a write expectedly refuses with, typed, so no
-  client reads git's text): `needs_credential`, `timed_out`,
-  `non_fast_forward`, `diverged`, `would_overwrite { paths }`,
-  `conflicts { paths }`, `nothing_to_commit`, `no_identity`,
-  `hook_failed { output }`, `no_upstream`, `detached`,
-  `checked_out_elsewhere { path }`, `nothing_to_stash`, `operation {
-  operation }`, `remote_failed { message }` (credentials removed), and
-  `unknown` for a kind a newer node sends.
-- Outcomes: `CommitOutcome` (`committed { commit }`, `refused { refusal
-  }`), `PushOutcome` (`pushed { remote, branch, upstream_set }`,
-  `refused`), `PullOutcome` (`pulled { from, to }`, `up_to_date`,
-  `refused`), `SwitchOutcome` (`switched { branch }`, `refused`),
-  `StashOutcome` (`done { entries }`, `refused`).
+  default, head, time, upstream?, worktree? }`. `CommitPage { commits,
+  more }`, `CommitInfo { id, parents, author, time, subject }`.
+  `StashList { entries, more }`, `StashEntry { index, commit, message,
+  time }`.
+- `GitRefusal`: `needs_credential`, `timed_out`, `non_fast_forward`,
+  `diverged`, `would_overwrite { paths }`, `conflicts { paths }` (at
+  most 100 paths each), `nothing_to_commit`, `no_identity`, `hook_failed
+  { output }` (at most 2 KiB), `no_upstream`, `detached`,
+  `checked_out_elsewhere { path }`, `nothing_to_stash`, `stash_moved`
+  (the entry at that index is not the commit named), `branch_exists`,
+  `no_such_ref`, `operation { operation }`, `remote_failed { message }`
+  (credentials removed), `unknown`.
+- Outcomes: `CommitOutcome` (`committed { commit }`, `refused`),
+  `PushOutcome` (`pushed { remote, branch, upstream_set }`, `refused`),
+  `PullOutcome` (`pulled { from, to }`, `up_to_date`, `refused`),
+  `FetchOutcome` (`fetched`, `refused`), `SwitchOutcome` (`switched {
+  branch }`, `refused`), `RenameOutcome` (`renamed { branch }`,
+  `refused`), `StashOutcome` (`done { stashes }`, `refused`), each
+  `refused { refusal: GitRefusal }`.
 - `PathSet`: `all` or `paths { paths }` (at most 1,000).
-- `CommitStage`: `staged` (what is staged), `tracked` (`add -u` first),
+- `CommitStage`: `staged` (the default), `tracked` (`add -u` first),
   `everything` (`add -A` first).
-- `StashAction`: `save { message?, untracked }`, `apply { index }`,
-  `pop { index }`, `drop { index }`.
+- `StashAction`: `save { message?, untracked }`, `apply { index, commit
+  }`, `pop { index, commit }`, `drop { index, commit }`: the entry must
+  still be that commit, since the stash is shared by every worktree of a
+  repository and its indexes move.
 
 Files:
 
 - `DirListing { entries, more }`, `DirEntry { name, kind, size?,
-  ignored }`, `kind` one of `file`, `dir`, `symlink`, `other`.
-- `FileVersion { size, modified }`, `modified` in nanoseconds since the
-  epoch: Paseo's revision. `FileRead { version, content }` with
-  `content` one of `text { text, next? }` (`next` the offset where the
-  rest starts) or `binary`.
-- `WriteExpect`: `absent` (create only), `version { version }`
-  (replace only that version), `any`.
-- `FoundFiles { matches, indexed, complete, superseded }`, each match `{
-  path, positions }` (the characters that matched, for highlighting).
-- `GrepMode`: `literal`, `regex` (extended); `GrepCase`: `sensitive`,
-  `insensitive`, `smart` (sensitive when the query has a capital).
-  `GrepResult { matches, more }`, each `{ path, line, column, text, cut
-  }`.
+  ignored }`, `EntryKind` one of `file`, `dir`, `symlink`, `other`.
+- `FileVersion { size, modified, hash? }`: `modified` in nanoseconds
+  since the epoch (Paseo's revision), `hash` the content's `ContentHash`
+  for a file of at most 8 MiB (a change within the same tick of a
+  coarse clock keeps the size and time; the hash still differs).
+- `FileRead { version, content }`, `FileContent` one of `text { text,
+  next? }` or `binary`.
+- `WriteExpect`: `absent` (create only), `version { version }`, `any`.
+- `FoundFiles { matches, indexed, complete, superseded }`, each
+  `FoundFile { path, positions }` (`positions` in Unicode scalar values).
+- `GrepMode` (`literal`, `regex`: extended), `GrepCase` (`sensitive`,
+  `insensitive`, `smart`). `GrepResult { matches, more }`, each
+  `GrepMatch { path, line, column, text, cut }`, `line` and `column`
+  from 1, `column` in Unicode scalar values.
 
 ### Calls
 
 Every method is protocol 10, forwardable through `fleet.forward`, and in
 `vessel-web`'s list. "Agents" says whether an agent principal (ADR 0013,
-a local one or one whose call was delivered) may call it; the guard
-refuses the others with `forbidden` before the call runs, since an agent
-already has its own file and git tools and only needs what orchestration
-needs.
+local or delivered) may call it; the guard refuses the others with
+`forbidden` before the call runs. An agent already has its own file and
+git tools, so it gets what orchestration needs: the projects, and a
+worktree for a session it starts.
 
 | Method | Scope | Agents | Request | Reply |
 |---|---|---|---|---|
 | `project.list` | read | yes | `ListProjects {}` | `ProjectList` |
-| `project.get` | read | yes | `GetProject { project, after? }` | `ProjectInfo` |
+| `project.get` | read | yes | `GetProject { project, changed_from? }` | `ProjectInfo` |
 | `project.add` | operate | no | `AddProject { path, name? }` | `ProjectInfo` |
-| `project.clone` | operate | no | `CloneProject { url, parent, name? }` | `ProjectInfo` |
+| `project.clone` | operate | no | `CloneProject { url, parent, folder?, name? }` | `ProjectInfo` |
 | `project.init` | operate | no | `InitProject { path, name? }` | `ProjectInfo` |
 | `project.remove` | operate | no | `RemoveProject { project }` | `Ack` |
-| `project.commands` | read | no | `GetProjectCommands { project, base? }` | `ProjectCommands` |
+| `project.commands` | read | yes | `GetProjectCommands { project, base? }` | `ProjectCommands` |
 | `project.approve` | operate | no | `ApproveCommands { project, digest, approved }` | `ProjectCommands` |
-| `worktree.list` | read | yes | `ListWorktrees { project? }` | `Vec<WorktreeInfo>` |
-| `worktree.create` | operate | no | `CreateWorktree { project, branch, setup }` | `WorktreeInfo` |
-| `worktree.output` | read | no | `ReadSetupOutput { worktree, from, wait? }` | `SetupOutput` |
+| `worktree.list` | read | yes | `ListWorktrees { project? }` | `WorktreeList` |
+| `worktree.create` | operate | yes | `CreateWorktree { project, branch, setup }` | `CreateWorktreeOutcome` |
+| `worktree.output` | read | yes | `ReadSetupOutput { worktree, from, wait? }` | `SetupOutput` |
 | `worktree.setup` | operate | no | `RunSetup { worktree }` | `WorktreeInfo` |
-| `worktree.remove` | operate | no | `RemoveWorktree { worktree, snapshot }` | `WorktreeRemoved { snapshot? }` |
-| `worktree.snapshots` | read | no | `ListSnapshots { project }` | `Vec<Snapshot>` |
+| `worktree.remove` | operate | no | `RemoveWorktree { worktree, if_lost }` | `RemoveWorktreeOutcome` |
+| `worktree.snapshots` | read | no | `ListSnapshots { project }` | `SnapshotList` |
 | `worktree.drop_snapshot` | operate | no | `DropSnapshot { project, worktree }` | `Ack` |
 | `git.status` | read | no | `GetStatus { root }` | `GitStatus` |
-| `git.changes` | read | no | `GetChanges { root, scope }` | `DiffSummary` |
-| `git.diff` | read | no | `GetFileDiff { root, scope, path, from_hunk? }` | `FileDiff` |
+| `git.changes` | read | no | `GetChanges { root, scope, ignore_whitespace }` | `DiffSummary` |
+| `git.diff` | read | no | `GetFileDiff { root, scope, path, ignore_whitespace, from_hunk? }` | `FileDiff` |
+| `git.show` | read | no | `ShowFile { root, at, path, offset, limit? }` | `FileRead` |
 | `git.branches` | read | no | `ListBranches { root }` | `BranchList` |
-| `git.log` | read | no | `ReadLog { root, from?: RefName, skip, limit }` | `CommitPage` |
+| `git.log` | read | no | `ReadLog { root, from?, skip, limit? }` | `CommitPage` |
 | `git.stashes` | read | no | `ListStashes { root }` | `StashList` |
 | `git.stage` | operate | no | `Stage { root, paths }` | `GitStatus` |
 | `git.unstage` | operate | no | `Unstage { root, paths }` | `GitStatus` |
 | `git.discard` | operate | no | `Discard { root, paths, untracked }` | `GitStatus` |
 | `git.commit` | operate | no | `Commit { root, message, stage }` | `CommitOutcome` |
+| `git.fetch` | operate | no | `Fetch { root, remote? }` | `FetchOutcome` |
 | `git.push` | operate | no | `Push { root, remote?, set_upstream }` | `PushOutcome` |
 | `git.pull` | operate | no | `Pull { root }` | `PullOutcome` |
 | `git.switch` | operate | no | `Switch { root, branch, create? }` | `SwitchOutcome` |
+| `git.rename_branch` | operate | no | `RenameBranch { root, from?, to }` | `RenameOutcome` |
 | `git.stash` | operate | no | `StashChanges { root, action }` | `StashOutcome` |
 | `file.list` | read | no | `ListDir { root, dir, ignored }` | `DirListing` |
 | `file.read` | read | no | `ReadFile { root, path, offset, limit? }` | `FileRead` |
@@ -684,165 +738,199 @@ needs.
 | `file.create_dir` | operate | no | `CreateDir { root, path }` | `Ack` |
 | `file.rename` | operate | no | `RenamePath { root, from, to }` | `Ack` |
 | `file.delete` | operate | no | `DeletePath { root, path, recursive }` | `Ack` |
-| `file.find` | read | no | `FindFiles { root, query, limit? }` | `FoundFiles` |
+| `file.find` | read | no | `FindFiles { root, query, key?, limit? }` | `FoundFiles` |
 | `file.grep` | read | no | `SearchFiles { root, query, mode, case, dir?, limit? }` | `GrepResult` |
 
-`session.create` takes a `place` (above) from agents too: `project` and
-`new_worktree` on any project, `worktree` only on a worktree created for
-the agent's own session or a session it may operate (ADR 0013's
-ownership). A session started by an agent in a new worktree runs setup
-only if a person approved the commands; an agent cannot approve.
+`session.create` takes a `place` from agents too: `project` on any
+project, `worktree` only on a worktree the agent created or one created
+for a session it may operate (ADR 0013's ownership). An agent may have
+at most 8 worktrees it created. It cannot approve commands, so a
+worktree it creates runs setup only when a person approved the set.
 
 What each call does, and its failures. Every call can also answer
 `forbidden` (scope or agent), `not_found` for a project, worktree or
 snapshot the node does not have, `unsupported` when the node has no
-usable git and the call needs it (`missing` or `too_old`), and
-`internal`.
+usable git and the call needs it, `unavailable` when the node's git
+queue is full (below), and `internal`.
 
-- `project.list`: every project, oldest first.
-- `project.get`: one; with `after`, waits (at most 30 s) until its
-  `revision` is past `after`, then answers it as it is (as `session.read`
-  waits).
+- `project.list`: every project, oldest first (at most 1,000; a node
+  refuses to add more).
+- `project.get`: one; with `changed_from`, waits (at most 30 s, counted
+  in the connection's and the origin's waits as `session.read` waits
+  are, and answered at once when the call was forwarded) until its
+  `revision` differs from it.
 - `project.add`: `path` absolute and an existing folder. Inside a git
-  repository the project's root is the repository's top level. A root
-  already known answers that project (adding twice is opening).
-  `invalid_request` for a relative path or one that is not a folder.
+  repository the root is the repository's top level. A root already
+  known answers that project. `invalid_request` for a relative path, one
+  that is not a folder, and a root that is a file system's root, the
+  node's home folder, or contains the node's data folder (a read-only
+  device could otherwise read the node's token and become its owner).
 - `project.clone`: answers at once with the project `cloning`; the clone
-  runs in the node (it continues when the caller goes away), into
-  `<parent>/.<name>.vessel-clone-<8 hex>`, renamed to `<parent>/<name>`
-  when it succeeds (`name` defaults to the URL's last component without
-  `.git`). `invalid_request` for a `parent` that is not an existing
-  absolute folder; `conflict` when `<parent>/<name>` exists. A failure
-  leaves the project `clone_failed` and removes the temporary folder.
-- `project.init`: creates the folder if needed (it must be absent or
-  empty: `conflict` otherwise) and runs `git init`.
+  runs in the node (it continues when the caller goes away) as `git clone
+  --no-recurse-submodules --progress -- <url> <temporary folder>` with
+  `GIT_ALLOW_PROTOCOL` limited to `https:http:ssh:git`, into
+  `<parent>/.<folder>.vessel-clone-<8 hex>`, renamed to
+  `<parent>/<folder>` when it succeeds (`folder` defaults to the URL's
+  repository name, which must make a `FolderName`). `invalid_request` for
+  a `parent` that is not an existing absolute folder, or a default folder
+  name the URL does not give; `conflict` when `<parent>/<folder>` exists.
+  A failure leaves the project `clone_failed` and removes the temporary
+  folder.
+- `project.init`: creates the folder if needed (`conflict` when it is
+  not empty) and runs `git init`; the same root rules as `project.add`.
 - `project.remove`: forgets the project; never deletes its files.
   `conflict` while it has worktrees or live sessions. A project still
   cloning is cancelled: git is stopped and its temporary folder removed.
-- `project.commands`: the commands the project's file names, at `base`
-  (a `WorktreeBase`, read with `git show`) or in the project's folder as
-  it is, with whether that set is approved. Read by a client to show a
-  person what would run before asking to approve it.
+- `project.commands`: the commands the project's file names at `base`
+  (the blob read with `git cat-file`, never a checkout) or in the
+  project's folder as it is, with whether that set is approved.
 - `project.approve`: records (or, with `approved: false`, withdraws) the
-  approval of the set whose digest is `digest`, for this project, and
-  answers the commands of the project's folder with their approval. A
-  digest is approved as given, not looked up: the set it names may be on
-  a branch the folder does not have checked out. Approving a digest that
-  no file has runs nothing.
-- `worktree.list`: every worktree, or a project's.
-- `worktree.create`: `git worktree add` into
-  `<data dir>/worktrees/<project folder name>/<8 hex>`, then setup in the
-  background (it continues when the caller goes away). `unsupported` for
-  a project without git; `conflict` when the project is not `ready`, has
-  no commit yet, the new branch exists, the existing branch is checked
-  out in another worktree, or `setup` is `run` and the base's commands
-  are listed but not approved (nothing is created then: the client asks
-  `project.commands` with that base, a person approves, the client asks
-  again); `invalid_request` for a base that does not resolve to a
-  commit or an existing branch that does not exist.
+  approval of the set whose digest is `digest`, and answers the folder's
+  commands. A digest is approved as given, not looked up, since the set
+  may be on a branch the folder does not have checked out.
+- `worktree.list`: every worktree, or a project's (at most 1,000).
+- `worktree.create`: answers at once. `needs_approval` when `setup` is
+  `run` and the base's commands are listed but not approved (nothing is
+  created); otherwise `git worktree add` (hooks off) into `<data
+  folder>/worktrees/<project id>/<8 hex>`, then setup in the background
+  (it continues when the caller goes away), reading the commands from
+  the blob at the base, never from the checkout.
 - `worktree.output`: a page of at most 64 KiB from `from`; with `wait`
-  (seconds, at most 30), waits for more output or the end of setup.
+  (seconds, at most 30, counted like `project.get`'s), waits for more
+  output or the end of setup.
 - `worktree.setup`: runs setup again (after an approval, a failure, or
-  `skip`). `conflict` while setup or teardown runs, or when the commands
-  are not approved.
-- `worktree.remove`: removes the worktree, its setup log, and its branch
-  when Vessel created it, if nothing would be lost (the rule below);
-  otherwise, with `snapshot: true`, keeps a snapshot first and removes it
-  anyway; without, `conflict` with what would be lost. Teardown runs
-  first when its commands are approved. `conflict` while a live session
-  runs in it or setup runs.
-- `worktree.snapshots`, `worktree.drop_snapshot`: a project's snapshots;
-  deleting one deletes its ref. A snapshot is restored by
-  `worktree.create` with `base: commit { id: snapshot.commit }`.
-- `git.status`, `git.changes`, `git.diff`, `git.branches`, `git.log`,
-  `git.stashes`: `unsupported` for a project without git;
-  `invalid_request` for a path the rules refuse; `git.diff` answers
-  `not_found` for a path with no change in that scope.
+  `skip`), with the commands of the worktree's file as it is now.
+  `conflict` while setup or teardown runs, or when that set is not
+  approved.
+- `worktree.remove`: removes the worktree by the rule below. With
+  `if_lost: keep`, a worktree where something would be lost answers
+  `kept`; with `snapshot`, a snapshot is kept first (`kept` when the
+  snapshot is refused); with `discard`, it is removed anyway and its
+  branch deleted. `kept` with `in_use` while a live session is in it or
+  setup runs.
+- `worktree.snapshots`, `worktree.drop_snapshot`: a project's snapshots
+  (at most 1,000); dropping one deletes its ref. A snapshot is restored
+  by `worktree.create` with `branch: snapshot { worktree }`.
+- `git.status`, `git.changes`, `git.diff`, `git.show`, `git.branches`,
+  `git.log`, `git.stashes`: `unsupported` for a project without git;
+  `invalid_request` for a base, ref or commit that does not resolve.
+  `git.show` pages a file at a commit or ref as `file.read` pages one on
+  disk (the old side of a diff).
 - `git.stage`, `git.unstage`, `git.discard`: answer the status after.
-  `discard` restores tracked paths from `HEAD` (both index and working
-  tree) and, only with `untracked: true`, deletes the untracked ones it
-  names (never ignored files). `unavailable` when another git process
-  holds the index lock.
-- `git.commit`: in the root's repository with its configured identity
-  (`no_identity` when it has none); hooks run as they would for the
-  user. `git.push`: the current branch to its upstream, or to `remote`
-  (default `origin`) with `set_upstream`; never forced. `git.pull`:
+  `discard` restores tracked paths from `HEAD` (index and working tree)
+  and, only with `untracked: true`, deletes the untracked ones it names
+  (never ignored files). `unavailable` when another git holds the index
+  lock.
+- `git.commit` with the repository's configured identity
+  (`user.useConfigOnly`, so `no_identity` rather than a guessed one);
+  the repository's hooks run, as they would for the user. `git.fetch`:
+  the remote (default: the branch's, else `origin`), pruning nothing.
+  `git.push`: the current branch to its upstream, or to `remote` with
+  `set_upstream`; never forced; `pre-push` runs. `git.pull`:
   fast-forward only (`diverged` otherwise). `git.switch`: an existing
-  branch, or a new one from `create`; a worktree's `branch` follows.
-  `git.stash`: as named. Every refusal in `GitRefusal` is an outcome,
-  not an error.
-- `file.list`: one folder's entries, sorted folders first, then by name;
-  `.git` left out; `ignored` marks entries git ignores (asked with `git
-  check-ignore`), listed only when `ignored` is asked. `invalid_request`
-  for a path that is not a folder.
+  branch, or a new one from `create` (a start point). `git.rename_branch`:
+  `from` (the current branch when absent) to `to`; a worktree's
+  `created_branch` follows. `git.stash`: as named.
+- `file.list`: one folder's entries, folders first, then by name; `.git`
+  left out; `ignored` marks what git ignores (asked with `git
+  check-ignore --stdin -z`), listed only when `ignored` is asked.
 - `file.read`: a page of at most 1 MiB (256 KiB by default) from
   `offset`, cut back to a character boundary; `binary` when the first
-  8 KiB hold a NUL byte or the page is not UTF-8. `invalid_request` for a
-  folder.
-- `file.write`: at most 1 MiB of text, written to a temporary file
-  beside the target and renamed over it (keeping the old file's
-  permissions); never through a symbolic link. `conflict` when `expect`
-  does not hold; `not_found` when the parent folder is missing.
+  8 KiB hold a NUL byte or the page is not UTF-8.
+- `file.write`: at most 1 MiB of text, written to a temporary file in the
+  same folder and renamed over the target (keeping its permissions). A
+  target that is a symbolic link is written where the link points when
+  that is inside the root (an editor saving `CLAUDE.md` that links to
+  `AGENTS.md`), never replacing the link. `conflict` when `expect` does
+  not hold.
 - `file.create_dir`, `file.rename` (never over an existing path:
   `conflict`), `file.delete` (a folder only when empty, unless
-  `recursive`; never the root; a symbolic link is removed, not what it
-  points to).
-- `file.find`: by name over an index of the root's files (below);
-  `superseded: true` with no matches when a newer `file.find` from the
-  same connection replaced it before it finished.
-- `file.grep`: `git grep` over tracked and untracked files that are not
-  ignored (`--no-index` for a folder without git), binary files left out.
+  `recursive`; never the root; a link is removed, not what it points to).
+- `file.find`: by name over an index of the root's files: `git ls-files
+  --cached --others --exclude-standard -z` for a repository, a walk
+  otherwise; built on the first search, kept while used and rebuilt in
+  the background when older than 10 s. A newer `file.find` with the same
+  `key` from the same principal replaces one still running (`superseded:
+  true`, no matches).
+- `file.grep`: `git grep -e <query>` over tracked and untracked files that
+  are not ignored (`--no-index` for a folder without git), binary files
+  left out.
 
 **Every path is checked.** A `RelPath` that decodes cannot be absolute
-or climb; the node then joins it to the root, resolves the result with
-symbolic links followed (for a target that does not exist yet, its
-parent), and refuses (`invalid_request`) a result outside the root's
-resolved folder, or inside its `.git`. A write, rename or delete never
-follows a symbolic link in the last component. These are checks inside
-the node, not a sandbox: a process of the same user can still race them
-(as ADR 0016 says for the language servers).
+or climb; the node joins it to the root part by part, resolves the
+result with links followed (for a target that does not exist yet, its
+parent), and refuses a result outside the root's resolved folder, under
+any `.git` below the root, or inside the node's data folder (except a
+worktree's own folder). A path that leads out and a path that is not
+there get one answer, `not_found` ("no such path in this folder"), so a
+caller cannot learn what exists outside. These are checks inside the
+node, not a sandbox: a process of the same user can still race them (as
+ADR 0016 says for the language servers).
+
+**How git runs** (ADR 0023): the `git` program, never through a shell,
+arguments after `--end-of-options` or `--` where they could read as
+options or paths, with `GIT_LITERAL_PATHSPECS=1` (no `*` or `:(magic)`
+in a path), `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`,
+`GIT_ASKPASS=` and `SSH_ASKPASS_REQUIRE=never` (a credential helper
+that needs no person still works), `GIT_NO_LAZY_FETCH=1`, standard input
+closed, its own process group, and `-c core.fsmonitor=false -c
+core.hooksPath=<an empty folder of the node's> -c diff.external= -c
+log.showSignature=false` (and `--no-ext-diff --no-textconv` on diffs):
+no read and no worktree creation runs a program the repository's
+configuration names. Only `git.commit` and `git.push` run the
+repository's hooks, as they would for the user. Limits per run: 30 s
+(local), 120 s (fetch, push, pull), 1 h (clone); 16 MiB of standard
+output (a call that reads less says so); the last 64 KiB of standard
+error. Two pools: 8 local runs and 4 network runs at once, each with at
+most 64 waiting; past that, `unavailable`.
 
 ### Where a session runs, and tidying
 
-- `session.create` with a `place`: `project` runs in the project's folder
-  (or `dir` inside it); `worktree` in that worktree; `new_worktree`
-  creates one as `worktree.create` does. When the worktree's setup is
-  running, the call waits for it (at most the setup limit); when setup
-  failed, or the commands need approval, it fails with `conflict` (the
-  worktree stays, for `worktree.setup`). The session's log starts with
-  `vessel:` notices: the folder, the branch and base, and setup's
-  result.
-- **Tidying.** When the last live session in a worktree ends (exited,
-  failed or killed; not interrupted by the node stopping, which a
-  restart may resume), teardown runs if its commands are approved, and
-  then the worktree is removed only when nothing would be lost:
-  1. no merge, rebase, cherry-pick, revert or bisect in progress;
-  2. no uncommitted change: `git status --porcelain --untracked-files=all`
-     prints nothing (ignored files, such as build output, are not
-     counted: they are what the ignore files say can be made again);
-  3. no commit reachable from `HEAD` that is on no other branch, no
-     remote-tracking branch and no tag: when Vessel created the branch it
-     is deleted with the worktree, so its commits must be elsewhere.
-     A branch Vessel did not create is never deleted, so this step only
-     applies to Vessel's own branches.
-  Otherwise the worktree stays, with `kept` saying why, until a person
-  removes it (`worktree.remove`, with a snapshot or after committing and
-  pushing).
+- `session.create` with a `place` resolves it and starts at once: never
+  waiting for setup. In a worktree whose setup is `running`, it fails
+  with `conflict` (wait on `worktree.output` first); one whose setup
+  failed or was skipped starts, and says so. The session's log starts
+  with `vessel:` notices: the folder, the branch and its base, and
+  setup's result with its last lines.
+- To start in a new worktree a client calls `worktree.create`, follows
+  `worktree.output` until setup ends, then `session.create { place:
+  worktree }`; the CLI and the agent tool do these three steps for their
+  callers.
+- **Tidying** applies to a worktree created for a session, when that
+  session is archived or deleted (track A's calls) or its log is
+  dropped by the node's retention, and no other live session is in it.
+  It is the `if_lost: keep` removal:
+  1. inspect: no operation in progress; `git status --porcelain
+     --untracked-files=all --ignore-submodules=none` prints nothing; no
+     submodule; no assume-unchanged or skip-worktree entry; no
+     `refs/worktree/*` or `refs/bisect/*`; and no commit reachable from
+     `HEAD` or `created_branch` that no other branch, remote-tracking
+     branch, tag or Vessel snapshot has (`rev-list --not --exclude=<own>
+     --branches --remotes --tags --glob=refs/vessel/*`);
+  2. teardown, when its commands are approved;
+  3. inspect again;
+  4. `git worktree remove` without `--force` (git refuses a changed
+     worktree itself, the last word), then `git branch -D` of
+     `created_branch`.
+  Ignored files (build output, dependencies) are not counted: they are
+  what setup makes again. Otherwise the worktree stays, `kept` saying
+  why, until a person removes it.
 - A **snapshot** is one commit whose parent is `HEAD` and whose tree is
   the working tree as `git add -A` would stage it (untracked files
-  included, ignored ones not), made through a temporary index so the
-  worktree's own index is untouched, and kept at
-  `refs/vessel/snapshots/<worktree id>`. The ref also keeps every commit
-  the branch had. Refused (`conflict`) above 100 MiB for one changed file
-  or 256 MiB in all, and while an operation is in progress. The index's
-  staged-but-different state is not kept apart.
+  included, ignored ones not), made through a temporary index (the
+  worktree's own is untouched), by a fixed identity (`Vessel`), and kept
+  at `refs/vessel/snapshots/<worktree id>`; the ref also keeps every
+  commit the branch had. Refused, so the worktree is kept, above 100 MiB
+  for one changed file or 256 MiB in all, with an operation in progress,
+  and when the working tree holds a nested repository (it would become a
+  bare gitlink and its files would be lost). Staged and unstaged changes
+  are not told apart in it.
 
 ### The project's file and its trust
 
 - `vessel.toml` at the repository's root (the folder's, for a project
   without git). TOML, as the node's other files are (`profiles.toml`,
-  the node book), and comments are allowed. Only `[worktree]` is read
-  now:
+  the node book), with comments. Only `[worktree]` is read now:
 
   ```toml
   [worktree]
@@ -856,26 +944,30 @@ the node, not a sandbox: a process of the same user can still race them
 - Commands run in order, in the worktree, through the platform's shell
   (`/bin/sh -c` on Unix; on Windows `cmd.exe /d /c` on a temporary `.cmd`
   file holding the command, so no quoting is involved), with the node's
-  environment plus `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE` and
-  `VESSEL_BRANCH`, standard input closed, as a process group stopped
-  together. The first failing setup command stops setup. Limits: 30
-  minutes for a setup, 5 for a teardown.
+  environment (as a terminal the user opens) plus `VESSEL_PROJECT_ROOT`,
+  `VESSEL_WORKTREE` and `VESSEL_BRANCH`, standard input closed, as a
+  process group stopped together. The first failing setup command stops
+  setup. Limits: 30 minutes for a setup, 5 for a teardown; the output
+  log 1 MiB per worktree.
 - **Trust.** A repository's commands are someone else's code. They run
-  only when a person has approved that exact set for that project: the
-  digest is SHA-256 over the setup and teardown lists, so any change to
-  either (a new branch, a pull, an agent editing the file in its
-  worktree) is a new set, asked again. Teardown reads the worktree's
-  file as it is at teardown and runs only an approved set; otherwise it
-  is skipped with a notice. `project.approve` needs `operate` and is
-  refused to agents; a read-only device cannot approve. Nothing runs
-  before an approval.
+  only when a person has approved that exact set for that project. The
+  digest is SHA-256 over `vessel.toml worktree commands 1\n`, then for
+  each of `setup` and `teardown` its name, its count and each command,
+  every count and length as 8 bytes little-endian: any change to a
+  command, its order or its list is another set, asked again (a new
+  branch, a pull, an agent editing the file in its worktree). The
+  commands that run are the ones parsed from the blob that matched the
+  approved digest, never a re-read. `project.approve` needs `operate`
+  and is refused to agents. What an approval cannot cover: a command
+  that runs a script of the repository (`./setup.sh`, `npm ci` running
+  package scripts) runs whatever that script says on that branch.
 
 ### What an older client and an older node see
 
 - A client asks no protocol 10 method of a node that speaks 9 or less:
-  it fails with `NotInProtocol` before sending, as every newer method
-  does. A `session.create` with a `place` needs 10 (`Call::since`): an
-  older node would start the session in its home folder instead.
+  it fails with `NotInProtocol` before sending. A `session.create` with
+  a `place` needs 10 (`Call::since`): an older node would start the
+  session in its home folder instead.
 - A protocol 9 client reading a protocol 10 node sees sessions with a
   `cwd` (the node filled it) and ignores `place` and `workspace`.
 - No event is added, so no stand-in is needed.
@@ -884,31 +976,101 @@ the node, not a sandbox: a process of the same user can still race them
 
 | What | Bound | Beyond it |
 |---|---|---|
-| Every git run | 30 s (local), 120 s (push, pull), 1 h (clone); 16 MiB of stdout, 64 KiB of stderr | killed as a group; `timed_out`, or `internal` naming the limit |
-| git processes at once | 8 per node | the next waits for a slot |
+| A git run | 30 s, 120 s (network), 1 h (clone); 16 MiB of stdout, the last 64 KiB of stderr | killed as a group; `timed_out` or `internal` |
+| git runs at once | 8 local, 4 network, 64 waiting each | `unavailable` |
+| Projects; worktrees; snapshots | 1,000 each; 8 worktrees per agent | refused; `more: true` |
 | Status entries, files in a summary | 5,000 | `more: true` |
-| A file's diff | 5,000 lines per call; 4 KiB per line; 4 MiB of git output per file | `more_from`; `cut`; `too_large` |
+| A file's diff | 5,000 lines per call; 4 KiB a line; 4 MiB of git output | `more_from`; `cut`; `too_large` |
 | Branches; a log page; stashes | 1,000; 200 commits; 100 | `more: true` |
+| Paths in a refusal; a hook's output | 100; 2 KiB | cut |
 | Folder listing | 5,000 entries | `more: true` |
-| File read; write | 1 MiB a page; 1 MiB | `next`; `invalid_request` |
-| Find by name | 200 results; an index of 500,000 paths per root, 8 roots, idle ones dropped after 5 minutes | `complete: false` |
+| File read; git.show; write | 1 MiB a page; 1 MiB | `next`; `invalid_request` |
+| Find by name | 200 results; 500,000 paths per index, 8 indexes, idle ones dropped after 5 minutes | `complete: false` |
 | Search in files | 500 matches; 512 characters a line; 4 MiB of git output | `more: true`; `cut` |
-| Setup and teardown output | 1 MiB per worktree on disk; 64 KiB a page | `truncated` |
-| A long poll (`project.get`, `worktree.output`) | 30 s | answers as it is |
+| Setup and teardown | 30 and 5 minutes; 1 MiB of output per worktree; 64 KiB a page | `failed { timed_out }`; `truncated` |
+| A long poll (`project.get`, `worktree.output`) | 30 s, inside the node's wait shares | answers as it is |
 
-Store: schema 7 adds `projects`, `worktrees` and `approvals` (the
-next free number; the coordinator renumbers if track A takes it too).
+Store: schema 7 adds `projects`, `worktrees` and `approvals` (the next
+free number; the coordinator renumbers if track A takes it too).
 
 ### Not in this track (wave 2), and the doors left open
 
-- A forge (pull requests): `WorktreeInfo` and `GitStatus` gain fields;
-  nothing here assumes there is none.
+- A forge (pull requests): `WorktreeInfo` and `GitStatus` gain fields.
 - Checkpoints per turn: snapshots are built the way a checkpoint would
   be (a commit through a temporary index under a Vessel ref).
 - Carrying a worktree when a session moves to another machine: the
   session's `workspace` names what to carry.
-- Scripts and services: `vessel.toml` keeps every key it does not read,
-  and the approval digest grows with what runs.
+- Scripts and services: `vessel.toml` keeps every key it does not read;
+  the digest's version line changes when more of the file runs.
+
+### Review (2026-11-11)
+
+An independent reviewer read the first version against the references
+and Vessel's wire. Taken, with the change above: git's hardened
+invocation (hooks, `fsmonitor`, external diffs, text conversion,
+signatures and lazy fetches off; hooks only on commit and push; the
+project's file read as a blob); roots that would expose the node's
+token refused; `FolderName` for a clone's folder; literal pathspecs and
+`-e` for grep; `session.create` never waits for setup (the three-step
+start, `new_worktree` removed from `SessionPlace`); tidying on archive
+or deletion of the session a worktree was created for, not on its
+process ending (track A's "start again" resumes in it), counting every
+live session inside it; the inspection widened (submodules, flagged
+files, per-worktree refs, the created branch rather than `HEAD`) and
+run again after teardown, with git's own non-forced removal last;
+snapshots refused over nested repositories, made by a fixed identity,
+restorable as uncommitted changes, and `if_lost: discard` for when one
+is refused; typed outcomes for `worktree.create` and `worktree.remove`;
+`unknown` on every reply enum that will grow, and `missing` for a
+project whose folder is gone; stash entries named by index and commit;
+`GIT_ASKPASS=` and `user.useConfigOnly`; any user information refused in
+`http(s)` URLs, clones without submodules and with the protocols
+limited; git's `verify_path` rules for `.git`, any `.git` refused after
+resolution, one answer for missing and escaping paths; `git.fetch`,
+`default_branch`, `git.rename_branch`, `git.show` and
+`ignore_whitespace`; a content hash in `FileVersion`; writes through an
+inside link; search keys instead of "per connection"; a network pool,
+bounded queues, waits inside the node's shares and answered at once
+when forwarded, "differs" rather than "past", every list bounded, eight
+worktrees per agent; the digest's encoding and the limit of what an
+approval covers stated; units for positions and columns; `unchanged`,
+`submodule` and mode changes in a file's diff; the worktree folder
+keyed by project id.
+
+Not taken, and why:
+
+- *Not forwardable `project.add`, `clone`, `init` and `approve`.* A call
+  delivered from another node holds at most what this node's owner
+  granted that node's devices (ADR 0013's intersection), and a fleet is
+  one person's machines; GOAT and Paseo manage projects across machines.
+  The roots that would widen a reader's reach are refused for every
+  caller instead (above).
+- *Recording a repository's executable configuration at `project.add`
+  and asking again when it changes.* `.git/config` is written by git on
+  a clone and by the user otherwise; it is not repository content. The
+  reads Vessel makes switch off every configured program they do not
+  need (above), which is what agent-orchestrator does. Filter drivers
+  (`git lfs`) still run on status, as they do for the user's own `git
+  status`; ADR 0023 says to add only folders one would run git in.
+- *A new session per git process (`setsid`)*: it needs `unsafe`
+  `pre_exec` or a new crate. On a node started from a terminal, an ssh
+  or gpg prompt opened on `/dev/tty` stops the process (a background
+  group reading its terminal), and the time limit ends it; a node run
+  as a service has no terminal.
+- *A filtered environment for setup commands.* They are the user's
+  approved commands and need the user's tools (`PATH`, version
+  managers), as a terminal the user opens has; harnesses get the same
+  environment.
+- *Counting new ignored files as something lost* (GOAT's
+  `any-local-files`, off by default there too): `node_modules`,
+  `target` and the like would keep every worktree forever. Stated
+  instead: what must survive must not be ignored.
+- *Merging from the base* (Paseo only) and *snapshot expiry* (deleting
+  data without a person): later, if asked for.
+- *Keeping setup's output in the session's log*: the session's log
+  gets setup's result and last lines as notices; the whole output stays
+  with the worktree, which outlives a session and is shared by the
+  sessions in it.
 
 ## Left open
 
