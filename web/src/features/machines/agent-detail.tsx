@@ -122,7 +122,7 @@ function Offer({
       </SettingsSection>
     );
   }
-  const rows = offerRows(controlsOf(answer.value.options));
+  const rows = offerRows(controlsOf(answer.value.options, name));
   return (
     <SettingsSection
       title="What it offers"

@@ -29,7 +29,7 @@ import type {
   SessionOption,
   SessionSpec,
 } from "../wire/proto";
-import { runsTimeline } from "./agents";
+import { agentName, runsTimeline } from "./agents";
 import { type ControlsState, controlsOf } from "./options";
 import { choicesFor, type Picks, withPicks } from "./picks";
 import { titleFromPrompt } from "./titles";
@@ -181,7 +181,10 @@ export function draftControls(
     case "ready":
       return {
         kind: "ready",
-        controls: controlsOf(withPicks(options.options, draft.picks)),
+        controls: controlsOf(
+          withPicks(options.options, draft.picks),
+          agentName(harness.kind),
+        ),
       };
   }
 }

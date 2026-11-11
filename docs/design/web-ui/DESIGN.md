@@ -1015,10 +1015,19 @@ approval (§6.7):
   models…" with a spinner while the machine asks the agent. Its menu,
   256px, opens upward: Agent, Model and Effort rows, each with its
   current value and a submenu of the agent's values (under their groups'
-  headings), then the agent's on/off settings as switch rows, then any
-  other choice it offers as its own submenu. A row the agent does not
-  offer is not there. A failure is said in the menu and under the box,
-  and the session starts on the agent's defaults.
+  headings); then, under a rule and the heading "More", the agent's
+  on/off settings as switch rows and any other choice it offers as its
+  own submenu. A row the agent does not offer is not there. A failure is
+  said in the menu and under the box, and the session starts on the
+  agent's defaults.
+
+  The options under "More" keep the agent's own names, with one
+  exception: a name the page already uses for a row of its own (Agent,
+  Model, Effort, Permissions) is said with whose it is. Claude Code calls
+  one of its options "Agent" (which of its own agent definitions runs the
+  session); beside the page's "Agent" row (which program runs it) it
+  reads "Claude Code agent". Only the name shown changes, and an agent's
+  card in Settings shows the same name (`ownName` in `data/options.ts`).
 - **The permissions control**: a quiet trigger led by a shield, the
   mode's name and a caret (the one control in the row that reads as a
   select); its 320px menu opens upward, aligned to its right edge, a row

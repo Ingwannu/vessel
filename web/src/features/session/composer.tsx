@@ -46,8 +46,12 @@ export function Composer({
     const status = state.statuses[node];
     return status?.state === "connected" ? status.protocol : null;
   });
-  const controls = reportedControls(timeline.options, protocol);
   const harness = session.spec.harness;
+  const controls = reportedControls(
+    timeline.options,
+    protocol,
+    agentName(harness),
+  );
 
   const send = () => {
     const prompt = text.trim();

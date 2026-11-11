@@ -81,7 +81,7 @@ describe("what an agent offers", () => {
   ];
 
   it("lists them as models, effort, permissions, then the rest, in the page's words", () => {
-    expect(offerRows(controlsOf(options))).toEqual([
+    expect(offerRows(controlsOf(options, "Fake"))).toEqual([
       {
         id: "model",
         label: "Model",
@@ -115,11 +115,11 @@ describe("what an agent offers", () => {
       values: [{ id: "a", name: "A" }],
     });
     const two = [select("model", "Model"), select("fallback", "Fallback")];
-    expect(offerRows(controlsOf(two)).map((row) => row.label)).toEqual([
+    expect(offerRows(controlsOf(two, "Fake")).map((row) => row.label)).toEqual([
       "Model",
       "Fallback",
     ]);
-    expect(offerRows(controlsOf([]))).toEqual([]);
+    expect(offerRows(controlsOf([], "Fake"))).toEqual([]);
   });
 
   it("says when the machine asked", () => {

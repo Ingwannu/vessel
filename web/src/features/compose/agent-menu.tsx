@@ -11,6 +11,7 @@
 import type { OptionChoice } from "../../wire/proto";
 import type { AgentChoice } from "../../data/agent-choices";
 import {
+  AGENT_LABEL,
   type ControlsState,
   currentName,
   pickerLabel,
@@ -23,6 +24,7 @@ import {
 import {
   Button,
   Menu,
+  MenuGroup,
   MenuNote,
   MenuRadioGroup,
   MenuSeparator,
@@ -133,7 +135,7 @@ export function AgentMenu({
         </Button>
       }
     >
-      <MenuSubmenu label="Agent" value={agent.name}>
+      <MenuSubmenu label={AGENT_LABEL} value={agent.name}>
         <MenuRadioGroup
           value={agent.value}
           onChange={agent.onChange}
@@ -156,27 +158,35 @@ export function AgentMenu({
               onChoose={onChoose}
             />
           )}
-          {controls.toggles.length === 0 ? null : <MenuSeparator />}
-          {controls.toggles.map((toggle) => (
-            <MenuSwitchItem
-              key={toggle.id}
-              checked={toggle.on}
-              onChange={(on) => {
-                onChoose(toggleChoice(toggle, on));
-              }}
-            >
-              {toggle.name}
-            </MenuSwitchItem>
-          ))}
-          {controls.selects.length === 0 ? null : <MenuSeparator />}
-          {controls.selects.map((select) => (
-            <SelectRow
-              key={select.id}
-              control={select}
-              label={select.name}
-              onChoose={onChoose}
-            />
-          ))}
+          {controls.toggles.length + controls.selects.length === 0 ? null : (
+            <>
+              <MenuSeparator />
+              {/* The agent's other settings, apart from the three rows the
+                  page names itself: its switches, then its other choices,
+                  each by the agent's own name (data/options.ts). */}
+              <MenuGroup label="More">
+                {controls.toggles.map((toggle) => (
+                  <MenuSwitchItem
+                    key={toggle.id}
+                    checked={toggle.on}
+                    onChange={(on) => {
+                      onChoose(toggleChoice(toggle, on));
+                    }}
+                  >
+                    {toggle.name}
+                  </MenuSwitchItem>
+                ))}
+                {controls.selects.map((select) => (
+                  <SelectRow
+                    key={select.id}
+                    control={select}
+                    label={select.name}
+                    onChoose={onChoose}
+                  />
+                ))}
+              </MenuGroup>
+            </>
+          )}
         </>
       )}
       <AgentNote state={state} />

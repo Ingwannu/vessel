@@ -11,6 +11,7 @@ import {
   currentName,
   NO_CONTROLS,
   offersAnything,
+  ownName,
   pickerLabel,
   pickerName,
   reportedControls,
@@ -112,7 +113,7 @@ const OPENCODE: SessionOption[] = [
 
 describe("controlsOf", () => {
   it("puts each of Claude's options where the page shows it", () => {
-    const controls = controlsOf(CLAUDE);
+    const controls = controlsOf(CLAUDE, "Claude Code");
     expect(controls.permissions?.id).toBe("mode");
     expect(controls.model?.id).toBe("model");
     expect(controls.effort?.id).toBe("effort");
@@ -125,7 +126,7 @@ describe("controlsOf", () => {
   });
 
   it("keeps the agent's words, descriptions and groups", () => {
-    const controls = controlsOf(CLAUDE);
+    const controls = controlsOf(CLAUDE, "Claude Code");
     expect(controls.permissions?.values[1]).toEqual({
       id: "acceptEdits",
       name: "Accept Edits",
@@ -139,7 +140,7 @@ describe("controlsOf", () => {
   });
 
   it("offers no effort for an agent without one", () => {
-    const controls = controlsOf(OPENCODE);
+    const controls = controlsOf(OPENCODE, "OpenCode");
     expect(controls.model?.id).toBe("model");
     expect(controls.permissions?.id).toBe("mode");
     expect(controls.effort).toBeNull();
@@ -148,8 +149,8 @@ describe("controlsOf", () => {
   });
 
   it("offers nothing for an agent that offers nothing", () => {
-    expect(controlsOf([])).toEqual(NO_CONTROLS);
-    expect(offersAnything(controlsOf([]))).toBe(false);
+    expect(controlsOf([], "Claude Code")).toEqual(NO_CONTROLS);
+    expect(offersAnything(controlsOf([], "Claude Code"))).toBe(false);
   });
 
   it("files a second option of one category with the other choices", () => {
@@ -161,7 +162,7 @@ describe("controlsOf", () => {
       current: "haiku",
       values: [{ id: "haiku", name: "Haiku" }],
     };
-    const controls = controlsOf([...CLAUDE, second]);
+    const controls = controlsOf([...CLAUDE, second], "Claude Code");
     expect(controls.model?.id).toBe("model");
     expect(controls.selects.map((select) => select.id)).toEqual([
       "fast",
@@ -172,31 +173,36 @@ describe("controlsOf", () => {
 
 describe("names", () => {
   it("name the value in effect, or its id when the agent does not list it", () => {
-    const controls = controlsOf(CLAUDE);
+    const controls = controlsOf(CLAUDE, "Claude Code");
     expect(controls.model === null ? "" : currentName(controls.model)).toBe(
       "Default (recommended)",
     );
-    const odd = controlsOf([
-      {
-        id: "model",
-        name: "Model",
-        category: "model",
-        kind: "select",
-        current: "local/llama",
-        values: [{ id: "anthropic/claude", name: "Claude" }],
-      },
-    ]);
+    const odd = controlsOf(
+      [
+        {
+          id: "model",
+          name: "Model",
+          category: "model",
+          kind: "select",
+          current: "local/llama",
+          values: [{ id: "anthropic/claude", name: "Claude" }],
+        },
+      ],
+      "Claude Code",
+    );
     expect(odd.model === null ? "" : currentName(odd.model)).toBe(
       "local/llama",
     );
   });
 
   it("read the model then the effort, or the agent with no model", () => {
-    expect(pickerLabel(controlsOf(CLAUDE), "Claude Code")).toEqual({
+    expect(
+      pickerLabel(controlsOf(CLAUDE, "Claude Code"), "Claude Code"),
+    ).toEqual({
       main: "Default (recommended)",
       effort: "High",
     });
-    expect(pickerLabel(controlsOf(OPENCODE), "OpenCode")).toEqual({
+    expect(pickerLabel(controlsOf(OPENCODE, "OpenCode"), "OpenCode")).toEqual({
       main: "Claude",
       effort: null,
     });
@@ -209,7 +215,7 @@ describe("names", () => {
 
 describe("picks", () => {
   it("show what the session will start with, and send only changes", () => {
-    const controls = controlsOf(CLAUDE);
+    const controls = controlsOf(CLAUDE, "Claude Code");
     const thinking = controls.toggles[0];
     if (
       controls.permissions === null ||
@@ -222,7 +228,7 @@ describe("picks", () => {
     // The effort the agent already has is no change.
     picks = pick(picks, selectChoice(controls.effort, "high"));
     picks = pick(picks, toggleChoice(thinking, false));
-    const shown = controlsOf(withPicks(CLAUDE, picks));
+    const shown = controlsOf(withPicks(CLAUDE, picks), "Claude Code");
     expect(shown.permissions?.current).toBe("plan");
     expect(shown.toggles[0]?.on).toBe(false);
     expect(choicesFor(CLAUDE, picks)).toEqual([
@@ -253,16 +259,90 @@ describe("picks", () => {
   });
 });
 
+describe("ownName", () => {
+  it("says whose an option is when the page already uses its name", () => {
+    // Claude Code calls one of its options "Agent"; the menu already has a
+    // row the page calls "Agent" (which program runs the session).
+    expect(ownName("Agent", "Claude Code")).toBe("Claude Code agent");
+    expect(ownName(" agent ", "Claude Code")).toBe("Claude Code agent");
+    expect(ownName("Model", "OpenCode")).toBe("OpenCode model");
+    expect(ownName("EFFORT", "Codex")).toBe("Codex effort");
+    expect(ownName("Permissions", "Codex")).toBe("Codex permissions");
+  });
+
+  it("keeps every other name exactly as the agent gave it", () => {
+    expect(ownName("Fast mode", "Claude Code")).toBe("Fast mode");
+    expect(ownName("Agents", "Claude Code")).toBe("Agents");
+    expect(ownName("Sub-agent", "Claude Code")).toBe("Sub-agent");
+    expect(ownName("", "Claude Code")).toBe("");
+  });
+
+  it("names an agent's other options through it, and leaves the slots alone", () => {
+    const agent: SessionOption = {
+      id: "agent",
+      name: "Agent",
+      category: "other",
+      kind: "select",
+      current: "default",
+      values: [
+        { id: "default", name: "Default" },
+        { id: "reviewer", name: "reviewer" },
+      ],
+    };
+    const secondModel: SessionOption = {
+      id: "small_model",
+      name: "Model",
+      category: "model",
+      kind: "select",
+      current: "haiku",
+      values: [{ id: "haiku", name: "Haiku" }],
+    };
+    const toggle: SessionOption = {
+      id: "effort_toggle",
+      name: "Effort",
+      category: "other",
+      kind: "toggle",
+      on: true,
+    };
+    const controls = controlsOf(
+      [...CLAUDE, agent, secondModel, toggle],
+      "Claude Code",
+    );
+    // The first model is in the page's slot; its own name is not shown.
+    expect(controls.model?.id).toBe("model");
+    expect(
+      controls.selects
+        .filter((select) => select.id !== "fast")
+        .map((select) => [select.id, select.name]),
+    ).toEqual([
+      ["agent", "Claude Code agent"],
+      ["small_model", "Claude Code model"],
+    ]);
+    expect(
+      controls.toggles.find((found) => found.id === "effort_toggle")?.name,
+    ).toBe("Claude Code effort");
+    // Only the name shown changes: the choice is still the agent's option.
+    const shown = controls.selects.find((select) => select.id === "agent");
+    expect(
+      shown === undefined ? null : selectChoice(shown, "reviewer"),
+    ).toEqual({ id: "agent", kind: "select", value: "reviewer" });
+  });
+});
+
 describe("reportedControls", () => {
   it("loads until the log reports, unless the node never will", () => {
-    expect(reportedControls(null, 9)).toEqual({ kind: "loading" });
-    expect(reportedControls(null, null)).toEqual({ kind: "loading" });
-    expect(reportedControls(null, 8).kind).toBe("failed");
-    const ready = reportedControls(OPENCODE, 9);
+    expect(reportedControls(null, 9, "Claude Code")).toEqual({
+      kind: "loading",
+    });
+    expect(reportedControls(null, null, "Claude Code")).toEqual({
+      kind: "loading",
+    });
+    expect(reportedControls(null, 8, "Claude Code").kind).toBe("failed");
+    const ready = reportedControls(OPENCODE, 9, "OpenCode");
     expect(ready.kind === "ready" ? ready.controls.model?.id : null).toBe(
       "model",
     );
-    expect(reportedControls([], 9)).toEqual({
+    expect(reportedControls([], 9, "Claude Code")).toEqual({
       kind: "ready",
       controls: NO_CONTROLS,
     });
@@ -273,7 +353,7 @@ describe("pickerName", () => {
   it("names the control and what it shows", () => {
     expect(
       pickerName(
-        { kind: "ready", controls: controlsOf(CLAUDE) },
+        { kind: "ready", controls: controlsOf(CLAUDE, "Claude Code") },
         "Claude Code",
       ),
     ).toBe("Agent, model and effort: Claude Code, Default (recommended), High");

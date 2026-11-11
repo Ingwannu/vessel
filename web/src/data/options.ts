@@ -22,6 +22,18 @@
 //   `model_config`, `other`) is a submenu under them. An option of a kind
 //   this page does not know (`unknown`) is skipped. Names, descriptions
 //   and groups are passed through as the agent gave them.
+// - One exception to "as the agent gave them" (`ownName`): Claude Code
+//   offers an option it calls "Agent" (which of its own agent definitions
+//   runs the session), and the menu already has a row the page calls
+//   "Agent" (which program runs it). Two rows with one name cannot be
+//   told apart, so an option whose name is one the page uses for a row of
+//   its own is said with whose it is: "Claude Code agent". Only the name
+//   shown changes; the option's id, values and choice are the agent's.
+//   Alternatives: hiding such an option (it is a real choice); renaming
+//   the page's own row (it would differ from every other agent's menu); a
+//   table of known option ids (the per-agent knowledge ADR 0022 keeps
+//   out). Done here and not in a component, so the composer's menu and an
+//   agent's card in Settings cannot name the same option differently.
 // - Choices made before a session exists ("picks") are data/picks.ts's.
 
 import type { OptionChoice, OptionValue, SessionOption } from "../wire/proto";
@@ -65,6 +77,9 @@ export const NO_CONTROLS: Controls = {
   selects: [],
 };
 
+/** What the page calls the row that chooses which agent runs a session. */
+export const AGENT_LABEL = "Agent";
+
 /** Where one select goes. */
 type Slot = "model" | "effort" | "permissions" | "other";
 
@@ -87,6 +102,27 @@ export function slotLabel(slot: NamedSlot): string {
   }
 }
 
+/** The names the page gives rows of its own, beside which an agent's
+ * options are listed. */
+function pageNames(): readonly string[] {
+  return [
+    AGENT_LABEL,
+    slotLabel("model"),
+    slotLabel("effort"),
+    slotLabel("permissions"),
+  ];
+}
+
+/** What the page calls an option the agent named `name`: the agent's own
+ * word, unless the page already uses that word for a row of its own, when
+ * it says whose the option is ("Claude Code agent"). */
+export function ownName(name: string, agent: string): string {
+  const said = name.trim().toLowerCase();
+  return pageNames().some((mine) => mine.toLowerCase() === said)
+    ? `${agent} ${said}`
+    : name;
+}
+
 function slotOf(option: SessionOption): Slot {
   switch (option.category) {
     case "model":
@@ -101,8 +137,13 @@ function slotOf(option: SessionOption): Slot {
   }
 }
 
-/** `options` laid out as the page's controls. */
-export function controlsOf(options: readonly SessionOption[]): Controls {
+/** `options` laid out as the page's controls. `agent` is what the page
+ * calls the agent offering them, for an option whose name needs it
+ * (`ownName`). */
+export function controlsOf(
+  options: readonly SessionOption[],
+  agent: string,
+): Controls {
   const out: {
     model: SelectControl | null;
     effort: SelectControl | null;
@@ -124,7 +165,7 @@ export function controlsOf(options: readonly SessionOption[]): Controls {
       case "toggle":
         out.toggles.push({
           id: option.id,
-          name: option.name,
+          name: ownName(option.name, agent),
           description,
           on: option.on,
         });
@@ -138,10 +179,15 @@ export function controlsOf(options: readonly SessionOption[]): Controls {
           values: option.values,
         };
         const slot = slotOf(option);
+        // A named slot is called by the page's word, so its own name is
+        // not shown; every other select is, and must not repeat one.
         if (slot !== "other" && out[slot] === null) {
           out[slot] = control;
         } else {
-          out.selects.push(control);
+          out.selects.push({
+            ...control,
+            name: ownName(control.name, agent),
+          });
         }
         break;
       }
@@ -218,9 +264,10 @@ export const OPTIONS_PROTOCOL = 9;
 export function reportedControls(
   options: readonly SessionOption[] | null,
   protocol: number | null,
+  agent: string,
 ): ControlsState {
   if (options !== null) {
-    return { kind: "ready", controls: controlsOf(options) };
+    return { kind: "ready", controls: controlsOf(options, agent) };
   }
   return protocol !== null && protocol < OPTIONS_PROTOCOL
     ? {
