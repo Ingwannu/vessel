@@ -84,11 +84,17 @@ Automated, on Linux (2026-11-11):
   from its card after the confirmation, and the card opens the session.
 - `npm run screens`: every main screen in both themes.
 - The Rust gate (`cargo fmt --all --check`, `cargo clippy --workspace
-  --all-targets -- -D warnings`, `cargo test --workspace`): no crate
-  changed; run because `vessel-web` embeds the bundle.
+  --all-targets -- -D warnings`, `cargo test --workspace`): 968 passed,
+  7 ignored. No crate changed; run because `vessel-web` embeds the
+  bundle.
 
 By eye, from the screens: Fleet, the board (light and dark), a structured
 session with a pending permission, a terminal session, Devices.
+
+On a running UI with a real node: the board with a real ended session
+(`exited 129` in the Exited lane); the board at 1000px (the lanes keep
+256px and the board scrolls sideways, the sidebar is the icon rail) and at
+700px (the lanes stack, no sideways overflow).
 
 Not checked:
 
@@ -96,7 +102,8 @@ Not checked:
   this branch.
 - A board with Interrupted, Failed and many Exited cards from real use.
   The test fleet produces Running and Exited.
-- Widths under 1280px (the icon rail and the stacked lanes) by eye.
+- The other pages at widths under 1280px. Only the board was looked at
+  there.
 - A screen reader.
 
 ## Left open
