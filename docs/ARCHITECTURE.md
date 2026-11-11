@@ -213,9 +213,11 @@ not the tab's session key. `auth` and `socket` verify role-separated HMAC
 proofs and fresh nonces before starting `bridge`; `transport` counts sockets
 from TCP accept through upgrades and enforces HTTP deadlines. The browser
 keeps the issued session key in `sessionStorage` for reloads. A changed
-launch or bad proof stops the tab. `files` serves content ETags; the web
-build's `scripts/integrity.mjs` closes the script/stylesheet SRI graph.
-`registry` validates the current book before
+launch or bad proof stops the tab. `files` serves content ETags, and
+content-hashed `assets/` files as immutable for a year (milestone 10;
+`index.html` is `no-store`); the web build's `scripts/integrity.mjs`
+closes the script/stylesheet SRI graph, which is what keeps a poisoned
+cache from running. `registry` validates the current book before
 allocating entries and cancels removed nodes. Pairing deliberately dials
 the supplied link before adding its entry. The page's `forget`, `rename`
 and `default` ops are `vessel nodes remove|rename|default` through
