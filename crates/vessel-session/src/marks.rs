@@ -47,6 +47,16 @@ pub(crate) struct Marks {
 }
 
 impl Marks {
+    /// A session started again (protocol 10): `attention` is the last
+    /// record of its stored log that asked for attention; the store's
+    /// marks follow once its row is reopened ([`SessionHandle::set_marks`]).
+    pub(crate) fn after(attention: Option<EventSeq>) -> Self {
+        Self {
+            kept: KeptMarks::default(),
+            attention,
+        }
+    }
+
     /// The record `seq`, about to be published, asks for attention
     /// (`SessionEvent::asks_for_attention`).
     pub(crate) const fn asked(&mut self, seq: EventSeq) {

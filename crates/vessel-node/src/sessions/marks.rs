@@ -19,6 +19,11 @@
 //!   costs nothing, and it is a tokio lock because it is held across the
 //!   store's write. That part runs as a task of the node's, so a cancelled
 //!   call cannot stop it between the two.
+//! - A stored session's mark takes the same lock and looks the session up
+//!   again under it: a session started again becomes visible and has its
+//!   row reopened under it (`again`), so a mark is either in the store
+//!   before the reopening, whose answer carries it, or applied to the
+//!   running session after.
 //! - `archive` on a live session stops it first and answers once it has
 //!   ended, as agent-orchestrator's and Paseo's archive do: an archived
 //!   session has ended (`SessionMarks::archived_at`'s promise). The wait
@@ -37,54 +42,72 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use vessel_proto::{EventSeq, Mark, SessionId, SessionInfo};
-use vessel_session::RemoveError;
+use vessel_session::{RemoveError, SessionHandle};
 
 use super::{Found, Sessions};
 use crate::error::ServiceError;
 
 impl Sessions {
     /// Set `mark` on a session, live or stored; its info after.
-    ///
-    /// For a session the runtime has, the work runs as a task of its own:
-    /// a caller that goes away (a cancelled call) must not leave the store
-    /// marked and the handle not, or a session stopped for an archive that
-    /// never came.
     pub(crate) async fn mark(
         self: &Arc<Self>,
         id: SessionId,
         mark: Mark,
     ) -> Result<SessionInfo, ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => {
-                if let Mark::Read { through } = mark {
-                    within_log(id, through, handle.log_end())?;
-                }
-                let sessions = Arc::clone(self);
-                self.tasks
-                    .spawn(async move {
-                        if matches!(mark, Mark::Archive) {
-                            handle.kill();
-                            let _final = handle.ended().await;
-                        }
-                        let _order = sessions.marking.lock().await;
-                        let kept = sessions.store.mark(id, mark, Utc::now()).await?;
-                        handle.set_marks(kept);
-                        Ok(handle.info())
-                    })
-                    .await
-                    .map_err(ServiceError::Task)?
-            }
-            Found::Stored(info) => {
-                if let Mark::Read { through } = mark {
-                    within_log(id, through, info.next_seq)?;
-                }
-                let _kept = self.store.mark(id, mark, Utc::now()).await?;
-                self.store
-                    .session(id)
-                    .await?
-                    .ok_or(ServiceError::NotFound(id))
-            }
+        if let Found::Live { handle, .. } = self.find(id).await? {
+            return self.mark_live(handle, mark).await;
         }
+        // A session starting again becomes visible and has its row
+        // reopened under this lock (`again`): looked up again under it, a
+        // stored session stays stored until its mark is written, so the
+        // reopening's answer carries the mark.
+        let order = self.marking.lock().await;
+        let info = match self.find(id).await? {
+            Found::Live { handle, .. } => {
+                drop(order);
+                return self.mark_live(handle, mark).await;
+            }
+            Found::Stored(info) => info,
+        };
+        if let Mark::Read { through } = mark {
+            within_log(id, through, info.next_seq)?;
+        }
+        let _kept = self.store.mark(id, mark, Utc::now()).await?;
+        drop(order);
+        self.store
+            .session(id)
+            .await?
+            .ok_or(ServiceError::NotFound(id))
+    }
+
+    /// [`mark`](Self::mark) for a session the runtime has.
+    ///
+    /// The work runs as a task of its own: a caller that goes away (a
+    /// cancelled call) must not leave the store marked and the handle not,
+    /// or a session stopped for an archive that never came.
+    async fn mark_live(
+        self: &Arc<Self>,
+        handle: SessionHandle,
+        mark: Mark,
+    ) -> Result<SessionInfo, ServiceError> {
+        let id = handle.id();
+        if let Mark::Read { through } = mark {
+            within_log(id, through, handle.log_end())?;
+        }
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                if matches!(mark, Mark::Archive) {
+                    handle.kill();
+                    let _final = handle.ended().await;
+                }
+                let _order = sessions.marking.lock().await;
+                let kept = sessions.store.mark(id, mark, Utc::now()).await?;
+                handle.set_marks(kept);
+                Ok(handle.info())
+            })
+            .await
+            .map_err(ServiceError::Task)?
     }
 
     /// Delete an ended session whole: its log, marks, queue and

@@ -9,7 +9,11 @@
 //!   committed everything up to the ring's oldest record, because a record
 //!   can leave the ring before the store has it;
 //! - the store alone, for ended sessions the store serves (from earlier
-//!   runs, or handed over once their log was complete).
+//!   runs, or handed over once their log was complete). Once it has sent
+//!   everything, such a subscription ends `Lagged` if the session was
+//!   started again meanwhile (protocol 10, `sessions::again`: the client
+//!   resubscribes and follows the new run), reads on if its log grew, and
+//!   ends `SessionEnded` otherwise.
 //!
 //! A forwarder never buffers. When the client is slow, sending waits on the
 //! connection's outbound queue; meanwhile the live broadcast moves on, and
@@ -25,10 +29,10 @@ use tokio_util::task::TaskTracker;
 use vessel_proto::{EventRecord, EventSeq, SessionId, Subscribe, Subscribed, SubscriptionEnd};
 use vessel_rpc::{Outbound, SubscriptionSink};
 use vessel_session::{Follow, FollowError, SessionHandle};
-use vessel_store::Store;
 
 use crate::error::ServiceError;
 use crate::persist::{self, Durability};
+use crate::sessions::again::StoredEnd;
 use crate::sessions::{Found, Sessions};
 
 /// Records read from the store per page while filling a gap.
@@ -53,7 +57,7 @@ struct Closed;
 /// is checked before the subscription is opened, so a failed call leaves
 /// nothing behind.
 pub(crate) async fn open(
-    sessions: &Sessions,
+    sessions: &Arc<Sessions>,
     outbound: &Outbound,
     forwarders: &TaskTracker,
     request: Subscribe,
@@ -89,7 +93,7 @@ pub(crate) async fn open(
     let sink = outbound.open_subscription(from).await?;
     let subscription = sink.id();
     let forwarder = Forwarder {
-        store: sessions.store().clone(),
+        sessions: Arc::clone(sessions),
         session,
         cursor: from,
         sink,
@@ -101,7 +105,8 @@ pub(crate) async fn open(
 }
 
 struct Forwarder {
-    store: Store,
+    /// The store, and (for a stored session) whether it started again.
+    sessions: Arc<Sessions>,
     session: SessionId,
     /// The next sequence number to send.
     cursor: EventSeq,
@@ -213,14 +218,20 @@ impl Forwarder {
         Ok(true)
     }
 
-    /// A session the store serves: everything stored, then the end.
+    /// A session the store serves: everything stored, then the end, or
+    /// `Lagged` if it started again meanwhile (`sessions::again`). Bounded:
+    /// the log grows again only while a run of it starts and ends.
     async fn stored(&mut self) -> Result<SubscriptionEnd, Closed> {
         loop {
             let Some(records) = self.page().await else {
                 return Ok(self.lagged());
             };
             if records.is_empty() {
-                return Ok(SubscriptionEnd::SessionEnded);
+                match self.sessions.stored_end(self.session, self.cursor).await {
+                    StoredEnd::Ended => return Ok(SubscriptionEnd::SessionEnded),
+                    StoredEnd::Reopened => return Ok(self.lagged()),
+                    StoredEnd::Grew => continue,
+                }
             }
             for record in records {
                 self.send(Arc::new(record)).await?;
@@ -232,7 +243,8 @@ impl Forwarder {
     /// failed.
     async fn page(&self) -> Option<Vec<EventRecord>> {
         match self
-            .store
+            .sessions
+            .store()
             .read_events(self.session, self.cursor, PAGE)
             .await
         {

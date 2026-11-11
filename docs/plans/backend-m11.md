@@ -1066,5 +1066,76 @@ the same refusal an older node gives.
   sessions that exist); the folder removal on retention runs on the
   store's writer and holds its next batch for a few unlinks; the CLI and
   the agent tools for marks and delete come with their slice.
-- Next: start again; attachments; the CLI and the agent tools
-  (`answer_question`, marks and delete there).
+- Slice 5, start again (contract: `session.resume`; review items 2 and
+  3; ADR 0026, amended with what follows): `session.resume` starts an
+  ended structured session's agent again under its current profile with
+  `session/load`. The store reopens the row first (`Store::reopen`: one
+  `UPDATE .. RETURNING`, `live`, `starting`, no end, out of the archive,
+  only for an ended row whose log ends where the caller read it;
+  `not_found` once retention or `session.delete` took it), so retention
+  never prunes a session that is starting again and its log continues
+  after its final status (`Store::ended_session` reads what the run
+  continues from in one read transaction). The runtime
+  (`SessionRuntime::start_again`, `vessel-session`'s `again`) reuses a new
+  session's launch (`run_structured`) and the move's replay dropping
+  (`MoveState::replaying`), publishing this run's `ready` and `running`:
+  the ring and the publisher start at the stored `next_seq`, the
+  conversation's projection from the stored queue, context report and
+  abilities, the attention point from the stored one; title, choices and
+  creator are the session's. The node (`sessions::again`,
+  `service::again`): draining is `unavailable`; one start again per session
+  (a claim, `conflict`); a session the runtime has is `conflict` (live, or
+  its log still on its way to the store); terminal, an agent whose
+  recorded `resume` is false, or no conversation to load is `unsupported`
+  (`vessel_session::resumable`, read from the stored row before anything
+  starts); a profile no longer defined is `invalid_request`; the agent's
+  `vessel` server gets a new credential from `Agents::reserve` with the
+  caller's principal, as `session.create` grants it, `created_by`
+  unchanged; questions as for a new session of its creator; a routed
+  session keeps its route (`unsupported` if its profile's changed, as a
+  move). The call answers once the status leaves `starting`: `running`,
+  or `spawn_failed` with the reason the log ends with (`starting`, then
+  `failed`; the session stays ended). A subscription the store served ends
+  `lagged` from its cursor if the runtime has the session again, reads on
+  if its stored log grew, and ends `session_ended` otherwise
+  (`Sessions::stored_end`). `fake-acp` refuses `session/load` with
+  `FAKE_ACP_LOAD_FAILS` and offers no `loadSession` with
+  `FAKE_ACP_NO_LOAD`.
+  Decided here (the contract did not say):
+  - The queue comes back held `ended` (`Desk::continuing`): it stays so,
+    or becomes so when the node stopped before the session's end could
+    hold it, whatever held it before, as a session's end does; a person
+    lets it move with `session.queue resume`.
+  - The order, so readers find the session in one place throughout: the
+    runtime registers the session with its agent already starting, but it
+    publishes nothing until a gate opens (`vessel_session::Gate`); under
+    the marks' lock the node makes it visible, reopens the row and hands
+    the handle the store's marks; then the gate opens. A row the store
+    will not reopen drops the gate: the session ends without a record and
+    its hand-over frees its places. Reopening first would leave a moment
+    where the store shows a live row the runtime does not have, which a
+    stored subscription cannot tell from a row a failed store left live.
+  - An agent that cannot even be executed (its `spawn` fails) is refused
+    before the row is reopened, so that attempt leaves no record; one that
+    starts and fails its handshake or `session/load` leaves `starting`,
+    then `failed`.
+  - A stored session's mark now takes the marks' lock and looks the
+    session up again under it, so a mark never lands in the store for a
+    row its running session's handle does not know of.
+  - The agent's credential and model token are retired in the hand-over
+    (they already refused once the end was visible), no longer by a task
+    of their own: that task could run after a start again and take the
+    new run's places.
+  - A live session's info now carries the abilities of its agent's
+    `ready`, as the store's row does; a session started again keeps its
+    stored ones until its new `ready`.
+  Known limits: the e2e test of a subscription the store was serving
+  cannot order the start again before that subscription's end (the node
+  reads a short log in one page), so it accepts either end and checks the
+  client reaches the new run; the `lagged` decision is pinned by a unit
+  test through `Sessions` (`sessions::tests`). Starting again after a
+  move uses the moved-to profile; the
+  session's files must still be in that profile's home. The CLI and the
+  agent tool for it come with their slice.
+- Next: attachments; the CLI and the agent tools (`answer_question`,
+  marks, delete and start again there).

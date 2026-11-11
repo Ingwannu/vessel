@@ -42,9 +42,10 @@ use std::sync::Arc;
 
 use vessel_proto::{
     AgentSecret, Creator, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
-    ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionOrigin, SessionSpec,
+    ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionInfo, SessionOrigin,
+    SessionSpec,
 };
-use vessel_session::LaunchOptions;
+use vessel_session::{LaunchOptions, Relaunch};
 
 use super::NodeProfiles;
 use crate::error::ServiceError;
@@ -220,6 +221,49 @@ impl Launcher {
             // session's id is known (`Models::launch`).
             model: None,
             model_proxy: None,
+        })
+    }
+
+    /// What starting `info`'s ended session again runs with (protocol 10's
+    /// `session.resume`, ADR 0026): its current profile (a move may have
+    /// changed it), the fleet's MCP servers, and questions as for a new
+    /// session of its creator, whose `created_by` stays. The `vessel`
+    /// server and a routed profile's proxy are the caller's to add, once
+    /// a credential and a token are minted for the new run.
+    ///
+    /// # Errors
+    /// Its profile is no longer defined, or is now another harness's.
+    pub(crate) fn again(
+        &self,
+        profiles: &NodeProfiles,
+        info: &SessionInfo,
+    ) -> Result<Relaunch, ServiceError> {
+        let profile = match &info.profile {
+            None => None,
+            Some(name) => {
+                let profile = profiles
+                    .get(name)
+                    .ok_or_else(|| ServiceError::ProfileRemoved {
+                        session: info.id,
+                        profile: name.clone(),
+                    })?;
+                if profile.harness() != info.spec.harness {
+                    return Err(ServiceError::ProfileHarness {
+                        profile: name.clone(),
+                        profile_harness: profile.harness(),
+                        harness: info.spec.harness,
+                    });
+                }
+                Some(profile)
+            }
+        };
+        let (mcp_servers, notices) = self.mcp_servers(&info.spec);
+        Ok(Relaunch {
+            profile,
+            mcp_servers,
+            notices,
+            model_proxy: None,
+            questions: watched(&info.created_by),
         })
     }
 

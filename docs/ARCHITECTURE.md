@@ -387,7 +387,11 @@ In the crate table's order.
   publishes `renamed` through the actor (terminal sessions too),
   `SessionHandle::choices` is what a move or an export carries on (the
   last report's values, or the spec's), and `SessionRuntime::probe` asks
-  an agent what it offers.
+  an agent what it offers. Protocol 10 (ADR 0026, `again`):
+  `SessionRuntime::start_again` runs an ended structured session's agent
+  again with `session/load` (a new session's launch, the move's replay
+  dropping), its ring and publisher starting at the stored `next_seq`; it
+  publishes nothing until the node opens its `Gate`.
 - `vessel-store`: an owner-only data directory (Unix: 0700, an existing
   one tightened or refused if another user's; secrets 0600), the SQLite
   event log with a batching writer thread, paged reads, restart recovery
@@ -407,7 +411,10 @@ In the crate table's order.
   `Store::mark`, `unread` derived from the last record asking for
   attention and the last `read`, `KeptMarks::marks`), and
   `Store::delete_session`; 8 retention's order (archived ended sessions
-  pruned first, pinned last) as an index the pruning walks. A deleted or
+  pruned first, pinned last) as an index the pruning walks.
+  `Store::ended_session` and `Store::reopen` start an ended session again
+  (protocol 10): the row is live again, without an end and out of the
+  archive, before its next run writes, so retention never takes it. A deleted or
   pruned session's folder under `DataDir::attachments_dir` goes once its
   deletion is committed. `DataDir::probe_dir` is where the node probes
   agents. `models.toml` is read with whether other users
@@ -426,7 +433,13 @@ In the crate table's order.
     (`SessionHandle::set_marks`, which `SessionHandle::info` adds), under
     one lock so the two never disagree; `archive` stops a live session
     and answers once it has ended. `session.delete` takes only a session
-    the store serves.
+    the store serves. Starting again (`sessions::again`,
+    `service::again`): one call per session, the session started gated,
+    made visible and its row reopened under the marks' lock, then
+    published and persisted; the call answers once its agent is ready. A
+    subscription the store serves ends `Lagged` when its session started
+    again meanwhile. A session's agent credential and model token are
+    retired in its hand-over to the store.
   - Transports: the local socket (Unix socket 0600, or a named pipe on
     Windows) whose first frame is the token or an agent's credential;
     `--bind none`; `vesseld attach`, the byte-pumping proxy SSH runs,

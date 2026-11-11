@@ -40,6 +40,24 @@ impl Seen {
     /// the agent driver's own bound, so both drop the same oldest one.
     pub(crate) const MAX_WAITING: usize = vessel_agent::MAX_WAITING;
 
+    /// What a session started again (protocol 10) continues from: the
+    /// queue, the last context report and the abilities its stored log
+    /// left. Nothing waits, and the agent offers its commands again.
+    pub(crate) const fn continuing(
+        queue: PromptQueue,
+        usage: Option<ContextUsage>,
+        abilities: Option<AgentAbilities>,
+    ) -> Self {
+        Self {
+            queue,
+            commands: Vec::new(),
+            usage,
+            abilities,
+            permissions: Vec::new(),
+            questions: Vec::new(),
+        }
+    }
+
     /// Whether `event` changes what is kept: the publisher takes the lock
     /// for these only, so terminal output and message chunks, the bulk of
     /// a log, cost nothing here.

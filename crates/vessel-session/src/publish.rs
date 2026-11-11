@@ -8,8 +8,8 @@ use std::sync::{Arc, PoisonError};
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
-    AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionBoard, SessionEvent,
-    SessionInfo, SessionOption, SessionStatus, SessionTitle,
+    AgentAbilities, AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionBoard,
+    SessionEvent, SessionInfo, SessionOption, SessionStatus, SessionTitle,
 };
 
 use crate::activity::Tracker;
@@ -45,18 +45,21 @@ pub(crate) enum Slot {
 
 impl Publisher {
     /// `activity` must be the tracker `info`'s first board came from, so
-    /// the board changes only with what the session publishes.
-    pub(crate) const fn new(
+    /// the board changes only with what the session publishes. The first
+    /// record is numbered `info`'s `next_seq`: zero for a new session, the
+    /// record after its stored log for one started again (protocol 10).
+    pub(crate) fn new(
         shared: Arc<Shared>,
         durable: mpsc::Sender<Arc<EventRecord>>,
         info: watch::Sender<SessionInfo>,
         activity: Tracker,
     ) -> Self {
+        let next = info.borrow().next_seq;
         Self {
             shared,
             durable: Some(durable),
             info,
-            next: EventSeq::ZERO,
+            next,
             activity,
         }
     }
@@ -189,7 +192,9 @@ impl Drop for Publisher {
 enum InfoChange {
     None,
     Status(SessionStatus),
-    HarnessSession(HarnessSessionId),
+    /// The agent is ready: its session id, and (protocol 10) what it says
+    /// it can do, which the info carries as the store's row does.
+    Ready(HarnessSessionId, Option<AgentAbilities>),
     Profile(Option<ProfileName>),
     Title(SessionTitle),
 }
@@ -199,10 +204,12 @@ impl InfoChange {
         match event {
             SessionEvent::Status { status } => Self::Status(status.clone()),
             SessionEvent::Agent {
-                event: AgentEvent::Ready {
-                    harness_session, ..
-                },
-            } => Self::HarnessSession(harness_session.clone()),
+                event:
+                    AgentEvent::Ready {
+                        harness_session,
+                        abilities,
+                    },
+            } => Self::Ready(harness_session.clone(), *abilities),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
             SessionEvent::Renamed { title } => Self::Title(title.clone()),
             // Options are not part of the info: a client reads them from
@@ -228,8 +235,11 @@ impl InfoChange {
                 info.status = status;
                 true
             }
-            Self::HarnessSession(id) => {
+            Self::Ready(id, abilities) => {
                 info.harness_session = Some(id);
+                if abilities.is_some() {
+                    info.abilities = abilities;
+                }
                 true
             }
             Self::Profile(profile) => {

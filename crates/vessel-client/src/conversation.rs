@@ -5,6 +5,7 @@
 
 use vessel_proto::conversation::{
     ChangeQueue, DeleteSession, GetConversation, MarkSession, PromptSession, QueueChanged,
+    ResumeSession,
 };
 use vessel_proto::{
     ContentBlock, Conversation, Delivered, Delivery, Mark, QueueChange, SessionId, SessionInfo,
@@ -73,6 +74,24 @@ impl NodeClient {
     /// [`CallError`].
     pub async fn mark(&self, session: SessionId, mark: Mark) -> Result<SessionInfo, CallError> {
         self.call(MarkSession { session, mark }).await
+    }
+
+    /// `session.resume` (protocol 10): start an ended structured session
+    /// again, its log continued after its final status, its queue back
+    /// held, out of the archive; its info once its agent is ready.
+    ///
+    /// # Errors
+    /// `not_found` for an unknown session; `conflict` while it is live, or
+    /// while its log is still being written (a retry works);
+    /// `unsupported` for a terminal session, an agent that cannot resume,
+    /// a session that never had a conversation to resume, or a node
+    /// before protocol 10; `invalid_request` when its profile is gone;
+    /// `harness_not_installed`; `spawn_failed` when the agent did not
+    /// start or could not load the conversation (its log says why);
+    /// `unavailable` while the node drains; `forbidden` past an agent's
+    /// limits; otherwise see [`CallError`].
+    pub async fn resume_session(&self, session: SessionId) -> Result<SessionInfo, CallError> {
+        self.call(ResumeSession { session }).await
     }
 
     /// `session.delete` (protocol 10): remove an ended session, its log,

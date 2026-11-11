@@ -29,8 +29,8 @@ use tokio::sync::oneshot;
 use vessel_agent::{InputError, SteerOutcome};
 use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    AgentAbilities, AgentEvent, ContentBlock, Creator, Delivered, Delivery, EventSeq, QueueChange,
-    QueueHold, StopReason,
+    AgentAbilities, AgentEvent, ContentBlock, Creator, Delivered, Delivery, EventSeq, PromptQueue,
+    QueueChange, QueueHold, StopReason,
 };
 
 use crate::error::{DeliveryError, SessionError};
@@ -95,6 +95,22 @@ pub(crate) struct Desk {
 }
 
 impl Desk {
+    /// A session started again (protocol 10, ADR 0026): the queue its
+    /// stored log left comes back held `ended` when anything waits, as the
+    /// session's end leaves it (also when the node stopped before the end
+    /// could say so). `published` is the log's, so the actor publishes the
+    /// queue again only if this changed it.
+    pub(crate) fn continuing(queue: PromptQueue) -> Self {
+        let published = Queue::from(queue.clone());
+        let mut queue = Queue::from(queue);
+        let _held = queue.end();
+        Self {
+            queue,
+            published,
+            ..Self::default()
+        }
+    }
+
     /// Take in an agent event about to be published as record `seq`.
     pub(crate) fn observe(&mut self, event: &AgentEvent, seq: EventSeq) {
         match event {
@@ -377,7 +393,7 @@ impl StructuredActor {
     }
 
     /// Publish the queue if it differs from what was last published.
-    async fn publish_queue(&mut self) {
+    pub(crate) async fn publish_queue(&mut self) {
         if self.desk.published.get() == self.desk.queue.get() {
             return;
         }

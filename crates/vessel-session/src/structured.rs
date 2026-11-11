@@ -1,6 +1,6 @@
 //! The structured-mode session actor: an ACP agent's outputs become events.
 
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionStatus};
 
@@ -42,6 +42,9 @@ pub(crate) struct StructuredActor {
     pub(crate) move_state: MoveState,
     /// Deliveries and the queue (protocol 10, `delivery`).
     pub(crate) desk: Desk,
+    /// A session started again (protocol 10, `again`) publishes nothing
+    /// until its row is reopened: answered then, dropped if it is not.
+    pub(crate) gate: Option<oneshot::Receiver<()>>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -62,7 +65,19 @@ pub(crate) struct MoveState {
 impl StructuredActor {
     /// Run until the agent has exited and the final status is published.
     pub(crate) async fn run(mut self) {
+        // A session started again waits for its row to be reopened. If it
+        // is not, it ends without a record, and its agent goes with it
+        // (dropping the process kills its group).
+        if let Some(gate) = self.gate.take()
+            && gate.await.is_err()
+        {
+            tracing::debug!("not started again: its row was not reopened");
+            return;
+        }
         self.life.starting(&mut self.agent).await;
+        // The queue a session started again brought back, held (protocol
+        // 10); nothing for a new session.
+        self.publish_queue().await;
 
         let mut control_open = true;
         let code = loop {
@@ -115,6 +130,16 @@ impl StructuredActor {
     }
 
     pub(crate) async fn output(&mut self, output: AgentOutput) {
+        // A session started again drops its agent's replay of the
+        // conversation until `ready`, as a move does (`session/load`); that
+        // `ready` is its run's first, so it is published as a new
+        // session's is, and the session runs.
+        if self.move_state.replaying
+            && !self.ready
+            && matches!(output, AgentOutput::Event(AgentEvent::Ready { .. }))
+        {
+            self.move_state.replaying = false;
+        }
         match output {
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.

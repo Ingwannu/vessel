@@ -90,12 +90,16 @@ impl NodeService {
             .map_err(|error| wire(&error))
     }
 
+    /// `session.resume`: start an ended structured session again, its log
+    /// continued; answers once its agent is ready (`again`).
     pub(crate) async fn resume_session(
         &self,
-        _: &Connection,
-        _: ResumeSession,
+        connection: &Connection,
+        request: ResumeSession,
     ) -> Result<SessionInfo, WireError> {
-        Err(not_built("session.resume"))
+        self.start_again(connection, request.session)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `session.mark`: pin, archive (stopping a live session first), mark

@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
 
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::conversation::QueueChanged;
@@ -73,9 +73,12 @@ pub(crate) struct Sessions {
     agents: Arc<Agents>,
     /// Model routes: a session's model token is retired when it ends.
     models: Arc<Models>,
-    /// Serializes marks on sessions the runtime has, from the store's
-    /// write to the handle's copy (`marks`).
+    /// Serializes marks, from the store's write to the handle's copy
+    /// (`marks`), and a session's start again from its becoming visible to
+    /// its handle taking the store's marks (`again`).
     marking: tokio::sync::Mutex<()>,
+    /// Sessions being started again (`again`), one call each.
+    claims: again::Claims,
 }
 
 impl Sessions {
@@ -94,6 +97,7 @@ impl Sessions {
             agents,
             models,
             marking: tokio::sync::Mutex::new(()),
+            claims: again::Claims::default(),
         }
     }
 
@@ -125,29 +129,9 @@ impl Sessions {
     ) -> Result<SessionInfo, ServiceError> {
         let Created { handle, durable } = self.runtime.create_with(spec, options).await?;
         let id = handle.id();
-        self.agents.started(id, handle.clone());
-        self.models.started(id, handle.clone());
-        // The agent's credential dies with the session (ADR 0013), and so
-        // does its model token (ADR 0015).
-        let ending = handle.clone();
-        let agents = Arc::clone(&self.agents);
-        let models = Arc::clone(&self.models);
-        drop(self.tasks.spawn(async move {
-            let _final = ending.ended().await;
-            agents.retire(id);
-            models.retire(id);
-        }));
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
-        let (durability, watching) = watch::channel(Durability::Through(EventSeq::ZERO));
-        let previous = self
-            .durability
-            .write()
-            .unwrap_or_else(PoisonError::into_inner)
-            .insert(id, watching);
-        if previous.is_some() {
-            tracing::error!(session = %id, "session id created twice");
-        }
+        let durability = self.track(&handle, EventSeq::ZERO);
         if let Err(error) = self.store.create_session(handle.info()).await {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
@@ -166,13 +150,44 @@ impl Sessions {
             return Err(error.into());
         }
         let info = handle.info();
+        self.persist(handle, durable, durability);
+        Ok(info)
+    }
+
+    /// Make a session the runtime has just started (or started again)
+    /// visible: its agent's and its model token's places take its handle,
+    /// and its durability entry says every record before `stored` is
+    /// committed (none for a new session, its stored log for one started
+    /// again).
+    fn track(&self, handle: &SessionHandle, stored: EventSeq) -> watch::Sender<Durability> {
+        let id = handle.id();
+        self.agents.started(id, handle.clone());
+        self.models.started(id, handle.clone());
+        let (durability, watching) = watch::channel(Durability::Through(stored));
+        let previous = self
+            .durability
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(id, watching);
+        if previous.is_some() {
+            tracing::error!(session = %id, "session id created twice");
+        }
+        durability
+    }
+
+    /// Drain the session's records into the store, then hand it over.
+    fn persist(
+        self: &Arc<Self>,
+        handle: SessionHandle,
+        durable: mpsc::Receiver<Arc<EventRecord>>,
+        durability: watch::Sender<Durability>,
+    ) {
         let sessions = Arc::clone(self);
         let store = self.store.clone();
         drop(self.tasks.spawn(async move {
             let persisted = persist::run(store, handle.clone(), durable, durability).await;
             sessions.hand_over(handle, persisted).await;
         }));
-        Ok(info)
     }
 
     /// The session's log is complete in the store (or never will be): let
@@ -182,11 +197,19 @@ impl Sessions {
     /// the session has ended and `remove` accepts it. Otherwise persistence
     /// stopped early and killed the session; it is removed once it has
     /// ended.
+    ///
+    /// The agent's credential dies with the session (ADR 0013), and so
+    /// does its model token (ADR 0015): both already refuse once its end is
+    /// visible (`SessionHandle::has_ended`), and are removed here, before
+    /// the store serves the session, so a run that starts it again
+    /// (`again`) never has its own places taken by this run's end.
     async fn hand_over(&self, handle: SessionHandle, persisted: Persisted) {
         let id = handle.id();
         if persisted == Persisted::Incomplete {
             let _final = handle.ended().await;
         }
+        self.agents.retire(id);
+        self.models.retire(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }
@@ -531,7 +554,8 @@ fn with_ring(page: EventPage, handle: &SessionHandle, from: EventSeq, limit: u32
     }
 }
 
-// Protocol 10's marks and deletion.
+// Protocol 10's marks and deletion, and starting an ended session again.
+pub(crate) mod again;
 mod marks;
 
 #[cfg(test)]

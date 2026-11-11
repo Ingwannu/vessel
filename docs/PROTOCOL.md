@@ -97,7 +97,13 @@ worktrees, git, files); this entry is Track A's, the conversation.
   agent marking `read` or `unread` is `forbidden`), `session.delete`
   (`conflict` for a live session and for one whose log is still being
   written), the board's placement of ended sessions, and retention's
-  order (archived first, pinned last).
+  order (archived first, pinned last); starting again: `session.resume`
+  (the row reopened before the new run writes, the log continued after
+  the final status, the title, choices and creator kept, the queue back
+  held `ended`, out of the archive, a new agent credential; it answers
+  once the agent is ready, `spawn_failed` with the reason the log ends
+  with otherwise), and a subscription the store was serving ends
+  `lagged` when its session started again meanwhile.
 
 ## Version 9 (2026-11-11)
 

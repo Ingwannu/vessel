@@ -126,13 +126,42 @@ pub(crate) enum ServiceError {
     /// `session.delete` of a session that runs (protocol 10).
     #[error("session {0} is live; archive it first, which stops it")]
     Live(SessionId),
-    /// `session.delete` of a session that has ended while its log is still
-    /// being written to the store (protocol 10).
+    /// `session.delete` or `session.resume` of a session that has ended
+    /// while its log is still being written to the store (protocol 10).
     #[error("session {0} has just ended and its log is still being written; try again")]
     LogWriting(SessionId),
     /// An agent asked to mark a session read or unread (protocol 10).
     #[error("an agent may not mark a session read or unread: only a person sees it")]
     AgentMarksRead,
+    /// `session.resume` of a session that runs (protocol 10).
+    #[error("session {0} is live already")]
+    AlreadyLive(SessionId),
+    /// `session.resume` of a session another call is starting again
+    /// (protocol 10).
+    #[error("session {0} is being started again already")]
+    StartingAgain(SessionId),
+    /// `session.resume` of a session whose profile `profiles.toml` no
+    /// longer defines (protocol 10).
+    #[error(
+        "session {session} ran under profile `{profile}`, which this node no longer defines \
+         (see `profile.list`)"
+    )]
+    ProfileRemoved {
+        /// The session.
+        session: SessionId,
+        /// Its profile.
+        profile: ProfileName,
+    },
+    /// `session.resume`: the agent did not start, or `session/load` failed
+    /// (protocol 10); the attempt is in the session's log, which ends with
+    /// it, and the session stays ended.
+    #[error("session {session} did not start again: {why}")]
+    DidNotStart {
+        /// The session.
+        session: SessionId,
+        /// Why, as its log's final status says.
+        why: String,
+    },
     /// `from` is past the end of the session's log.
     #[error("session {session} has {next} records; cannot start at {from}")]
     Ahead {
@@ -294,6 +323,8 @@ impl ServiceError {
             | Self::MoveRunning(_)
             | Self::Live(_)
             | Self::LogWriting(_)
+            | Self::AlreadyLive(_)
+            | Self::StartingAgain(_)
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }
@@ -305,8 +336,10 @@ impl ServiceError {
             | Self::InvalidTtl
             | Self::NoScopes
             | Self::UnknownProfile(_)
+            | Self::ProfileRemoved { .. }
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
+            Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
             Self::MoveRoute { .. } => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),

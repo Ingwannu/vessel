@@ -144,7 +144,13 @@ pub(crate) struct Log {
 
 impl Log {
     pub(crate) fn of(handle: &SessionHandle) -> Self {
-        let follow = handle.follow(EventSeq::ZERO).unwrap();
+        Self::from(handle, EventSeq::ZERO)
+    }
+
+    /// From record `from` on (a session started again holds only its new
+    /// run's records).
+    pub(crate) fn from(handle: &SessionHandle, from: EventSeq) -> Self {
+        let follow = handle.follow(from).unwrap();
         Self {
             records: follow.cached.clone(),
             live: follow.live,

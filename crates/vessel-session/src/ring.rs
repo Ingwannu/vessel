@@ -28,13 +28,16 @@ pub(crate) struct Ring {
 }
 
 impl Ring {
-    /// An empty ring.
-    pub(crate) fn new(capacity: NonZeroUsize) -> Self {
+    /// An empty ring whose first record is `next`: zero for a new session,
+    /// the record after its stored log for one started again (protocol
+    /// 10), whose earlier records a follower then reads from the store
+    /// ([`FollowError::Gap`]).
+    pub(crate) fn new(capacity: NonZeroUsize, next: EventSeq) -> Self {
         let (live, _) = broadcast::channel(capacity.get());
         Self {
             records: VecDeque::with_capacity(capacity.get()),
             capacity,
-            next: EventSeq::ZERO,
+            next,
             live: Some(live),
         }
     }
@@ -138,7 +141,7 @@ mod tests {
     use super::*;
 
     fn ring(capacity: usize) -> Ring {
-        Ring::new(NonZeroUsize::new(capacity).unwrap())
+        Ring::new(NonZeroUsize::new(capacity).unwrap(), EventSeq::ZERO)
     }
 
     fn record(seq: u64) -> Arc<EventRecord> {
@@ -224,6 +227,23 @@ mod tests {
                 next: EventSeq::new(1)
             }
         );
+    }
+
+    /// A session started again continues after its stored log: the ring
+    /// starts there, and anything before is the store's.
+    #[test]
+    fn a_ring_can_start_after_a_stored_log() {
+        let mut ring = Ring::new(NonZeroUsize::new(4).unwrap(), EventSeq::new(7));
+        assert!(ring.follow(EventSeq::new(7)).unwrap().cached.is_empty());
+        assert_eq!(
+            ring.follow(EventSeq::new(3)).unwrap_err(),
+            FollowError::Gap {
+                oldest_cached: EventSeq::new(7)
+            }
+        );
+        ring.append(record(7));
+        assert_eq!(seqs(&ring.follow(EventSeq::new(7)).unwrap().cached), [7]);
+        assert_eq!(ring.next(), EventSeq::new(8));
     }
 
     #[test]

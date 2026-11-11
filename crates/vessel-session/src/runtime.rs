@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, PoisonError, RwLock};
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -14,9 +14,9 @@ use tracing::Instrument as _;
 use vessel_agent::{AgentProcess, AgentSetup, CommandSpec};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
-    Creator, EventRecord, HarnessKind, HarnessSessionId, ModelCall, ModelId, NodeId, OptionChoice,
-    ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionModel, SessionOrigin,
-    SessionSpec, TerminalSize,
+    Creator, EventRecord, EventSeq, HarnessKind, HarnessSessionId, ModelCall, ModelId, NodeId,
+    OptionChoice, ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionModel,
+    SessionOrigin, SessionSpec, TerminalSize,
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
@@ -131,6 +131,60 @@ struct Record {
     notices: Vec<String>,
 }
 
+impl Record {
+    /// A new session of `spec`'s first info, created now, and its notices.
+    fn begin(self, spec: SessionSpec) -> (Begin, Vec<String>) {
+        let Self {
+            id,
+            created_by,
+            origin,
+            via,
+            model,
+            notices,
+        } = self;
+        let mut info = SessionInfo::new(id, spec, Utc::now()).with_creator(created_by);
+        info.origin = origin;
+        info.via = via;
+        info.model = model;
+        let since = info.created_at;
+        (Begin::new(info, since), notices)
+    }
+}
+
+/// Where a session's records start: its info as its run begins (status
+/// `starting`, `next_seq` the first record's number), when its activity
+/// begins, and what its conversation's projection and attention point
+/// start from. A new session starts from nothing; one started again from
+/// what its stored log left (`again`).
+pub(crate) struct Begin {
+    pub(crate) info: SessionInfo,
+    pub(crate) since: DateTime<Utc>,
+    pub(crate) seen: Seen,
+    pub(crate) attention: Option<EventSeq>,
+}
+
+impl Begin {
+    /// A new session's beginning.
+    pub(crate) fn new(info: SessionInfo, since: DateTime<Utc>) -> Self {
+        Self {
+            info,
+            since,
+            seen: Seen::default(),
+            attention: None,
+        }
+    }
+}
+
+/// How a structured session's actor starts beyond its launch and its
+/// records: a new session's from nothing; one started again with its
+/// queue, its agent's replay dropped until it is ready, and a gate.
+#[derive(Default)]
+pub(crate) struct ActorStart {
+    pub(crate) desk: Desk,
+    pub(crate) replaying: bool,
+    pub(crate) gate: Option<oneshot::Receiver<()>>,
+}
+
 /// How many model calls may wait for a session's actor to record them; a
 /// call that finds the queue full is dropped with a warning (the proxy is
 /// never held up by the log).
@@ -163,9 +217,9 @@ struct AgentStart {
 const RENAME_CAPACITY: usize = 8;
 
 /// A structured session's agent command and the directory ACP is given.
-struct AgentCommand {
-    command: CommandSpec,
-    cwd: PathBuf,
+pub(crate) struct AgentCommand {
+    pub(crate) command: CommandSpec,
+    pub(crate) cwd: PathBuf,
 }
 
 /// A session that was just started.
@@ -191,6 +245,22 @@ impl SessionRuntime {
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
         }
+    }
+
+    /// A token that keeps [`shutdown`](Self::shutdown) waiting while a
+    /// session is being started.
+    pub(crate) fn tasks_token(&self) -> tokio_util::task::task_tracker::TaskTrackerToken {
+        self.tasks.token()
+    }
+
+    /// Whether shutdown began: no session starts any more.
+    pub(crate) fn is_shutting_down(&self) -> bool {
+        self.shutdown.is_cancelled()
+    }
+
+    /// How long an agent's handshake may take.
+    pub(crate) const fn handshake_timeout(&self) -> std::time::Duration {
+        self.config.agent_handshake_timeout
     }
 
     /// Start a session. Status events are part of the stream: the first
@@ -335,7 +405,8 @@ impl SessionRuntime {
             return Err(SessionError::ShuttingDown);
         }
 
-        let parts = self.parts(spec, record, Input::Terminal(pty.input()), None);
+        let (begin, notices) = record.begin(spec);
+        let parts = self.parts(begin, notices, Input::Terminal(pty.input()), None);
         let actor = TerminalActor {
             pty,
             output,
@@ -363,20 +434,43 @@ impl SessionRuntime {
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: start.questions,
         };
+        let (begin, notices) = record.begin(spec);
+        self.run_structured(
+            Launch { command, setup },
+            begin,
+            notices,
+            ActorStart::default(),
+        )
+    }
+
+    /// Spawn a structured session's agent and its actor (a new session's,
+    /// or one started again, `again`), and register it.
+    pub(crate) fn run_structured(
+        &self,
+        launch: Launch,
+        begin: Begin,
+        notices: Vec<String>,
+        actor: ActorStart,
+    ) -> Result<Created, SessionError> {
         // `fork`/`exec` on this thread, as `tokio::process` does.
-        let (agent, input, outputs) =
-            AgentProcess::spawn(&command, setup.clone()).map_err(SessionError::StartAgent)?;
+        let (agent, input, outputs) = AgentProcess::spawn(&launch.command, launch.setup.clone())
+            .map_err(SessionError::StartAgent)?;
         if self.shutdown.is_cancelled() {
             // Dropping the agent kills its process group.
             drop(agent);
             return Err(SessionError::ShuttingDown);
         }
 
-        let profile = spec.profile.clone();
+        let profile = begin.info.profile.clone();
         let (route, routed) = watch::channel(Some(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
-        let parts = self.parts(spec, record, Input::Structured(routed), Some(control));
+        let parts = self.parts(begin, notices, Input::Structured(routed), Some(control));
+        let ActorStart {
+            desk,
+            replaying,
+            gate,
+        } = actor;
         let actor = StructuredActor {
             agent,
             outputs,
@@ -384,21 +478,25 @@ impl SessionRuntime {
             input,
             route,
             control: orders,
-            launch: Launch { command, setup },
+            launch,
             profile,
             life: parts.life,
             ready: false,
             disconnect: None,
             failed_before_kill: false,
-            move_state: MoveState::default(),
-            desk: Desk::default(),
+            move_state: MoveState {
+                replaying,
+                ..MoveState::default()
+            },
+            desk,
+            gate,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
 
     /// The command that starts `spec`'s agent under `profile`, and the
     /// directory ACP is given.
-    async fn agent_command(
+    pub(crate) async fn agent_command(
         &self,
         spec: SessionSpec,
         profile: Profile,
@@ -577,35 +675,29 @@ impl SessionRuntime {
         Ok(handle.info())
     }
 
-    /// Everything a new session needs besides its process.
+    /// Everything a session needs besides its process.
     fn parts(
         &self,
-        spec: SessionSpec,
-        record: Record,
+        begin: Begin,
+        notices: Vec<String>,
         input: Input,
         control: Option<mpsc::Sender<Control>>,
     ) -> Parts {
-        let Record {
-            id,
-            created_by,
-            origin,
-            via,
-            model,
-            notices,
-        } = record;
-        let created_at = Utc::now();
-        let mut info = SessionInfo::new(id, spec, created_at).with_creator(created_by);
-        info.origin = origin;
-        info.via = via;
-        info.model = model;
+        let Begin {
+            mut info,
+            since,
+            seen,
+            attention,
+        } = begin;
         // On the board from the start (starting is active), so no reader
         // of a live session ever sees it without a place.
-        let activity = Tracker::new(created_at);
-        info.board = Some(activity.board(created_at));
+        let activity = Tracker::new(since);
+        info.board = Some(activity.board(since));
         let titled = info.title.is_some();
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
-        let (info, kill, shared) = self.shared(info, input, control, (model_calls, renames));
+        let state = (seen, Marks::after(attention));
+        let (info, kill, shared) = self.shared(info, input, control, (model_calls, renames), state);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -628,14 +720,16 @@ impl SessionRuntime {
         input: Input,
         control: Option<mpsc::Sender<Control>>,
         (model_calls, renames): (mpsc::Sender<ModelCall>, mpsc::Sender<Rename>),
+        (seen, marks): (Seen, Marks),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
+        let next = info.next_seq;
         let (info, info_receiver) = watch::channel(info);
         let kill = self.shutdown.child_token();
         let shared = Arc::new(Shared {
             id,
             info: info_receiver,
-            ring: Mutex::new(Ring::new(self.config.ring_capacity)),
+            ring: Mutex::new(Ring::new(self.config.ring_capacity, next)),
             input,
             kill: kill.clone(),
             control,
@@ -643,16 +737,16 @@ impl SessionRuntime {
             ended: AtomicBool::new(false),
             renames,
             reported: Mutex::new(None),
-            seen: Mutex::new(Seen::default()),
-            // A new session has no marks; one started again (a later
-            // slice) takes the store's.
-            marks: Mutex::new(Marks::default()),
+            seen: Mutex::new(seen),
+            // A new session has no marks; one started again takes the
+            // store's once its row is reopened.
+            marks: Mutex::new(marks),
         });
         (info, kill, shared)
     }
 
     /// Spawn the actor, register the handle, and hand both ends out.
-    fn start(
+    pub(crate) fn start(
         &self,
         shared: Arc<Shared>,
         actor: impl Future<Output = ()> + Send + 'static,

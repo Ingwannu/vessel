@@ -133,6 +133,14 @@ impl Fixture {
         })
     }
 
+    /// Also Gemini: fake-acp as `gemini`, which speaks ACP itself.
+    pub(crate) fn with_gemini() -> Self {
+        Self::with_adapter(|bin, acp| {
+            drop(install(bin, HarnessKind::ClaudeCode, Role::Structured, acp).unwrap());
+            drop(install(bin, HarnessKind::Gemini, Role::Structured, acp).unwrap());
+        })
+    }
+
     /// Also Codex for terminals only: fake-tui as `codex`, and no
     /// `codex-acp`, so Codex cannot run structured sessions here.
     pub(crate) fn with_codex_terminal_only() -> Self {

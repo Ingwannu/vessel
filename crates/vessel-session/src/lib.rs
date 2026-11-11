@@ -87,6 +87,12 @@
 //!   the publisher notes each record that asks for attention.
 //!   [`SessionHandle::info`] adds both to the info, so a session the
 //!   runtime has carries the marks the store would give it.
+//! - Starting again (protocol 10, ADR 0026, `again`):
+//!   [`SessionRuntime::start_again`] runs an ended structured session's
+//!   agent again with `session/load`, as a profile move does, its log
+//!   continuing at its stored `next_seq`; the session publishes nothing
+//!   until the node, having reopened its row in the store, opens its
+//!   [`Gate`].
 //! - Lifetime: an ended session stays in the runtime, ring and all, until
 //!   its owner calls `SessionRuntime::remove` (the node does once the store
 //!   has its whole log). Eviction is the owner's call because only the
@@ -94,6 +100,7 @@
 //!   either drop rings the store still lacks or keep them for nothing.
 
 mod activity;
+mod again;
 pub mod board;
 mod config;
 mod conversation;
@@ -111,6 +118,7 @@ mod stop;
 mod structured;
 mod terminal;
 
+pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
 pub use error::{DeliveryError, InputKind, ModeKind, RemoveError, SessionError};
 pub use handle::SessionHandle;

@@ -121,3 +121,44 @@ its board place, which is what the references' restore means.
   sorting every ended session each time one ends. A pruned or deleted
   session's attachment folder is removed by the store's writer right
   after the commit that removed its row.
+
+## As built: starting again (slice 5, 2026-11-11)
+
+The decision stands; these refine it where it said nothing.
+
+- **Order.** The runtime registers the session, its agent already
+  starting, and publishes nothing until a gate opens
+  (`vessel_session::Gate`); under the marks' lock the node makes it
+  visible, the store reopens its row (`Store::reopen`: `live`, `starting`,
+  no end, out of the archive, only for an ended row whose log ends where
+  it was read) and the handle takes the store's marks; then the gate
+  opens. A row the store will not reopen (deleted or pruned meanwhile)
+  drops the gate, and the session ends without a record. Reopening first
+  would leave a moment where the store shows a live row the runtime does
+  not have, which a subscription the store serves cannot tell from a row
+  a failed store left live.
+- **What leaves a record.** An agent that cannot be executed (its spawn
+  fails) is refused before the row is reopened, so that attempt is not in
+  the log; one that starts and fails its handshake or `session/load`
+  leaves `starting`, then `failed` with the reason, and the call answers
+  `spawn_failed` with that reason.
+- **The queue** comes back held `ended`, also when the node stopped
+  before the session's end could hold it, whatever held it before (as a
+  session's end does); `session.queue resume` lets it move.
+- **One at a time.** A start again claims its session for the call; a
+  second is `conflict`. The agent's credential and model token are now
+  retired in the hand-over to the store (they already refused once the
+  end was visible), so the end of one run never takes the places of the
+  next.
+- **Marks.** A stored session's mark takes the marks' lock and looks the
+  session up again under it, so it lands either before the reopening,
+  whose answer carries it, or on the running session after.
+- **Subscriptions** the store serves end `lagged` from their cursor when
+  the runtime has the session again, read on when its stored log grew (a
+  run started and ended meanwhile), and end `session_ended` otherwise.
+- **Abilities.** A live session's info now carries the abilities of its
+  agent's last `ready`, as the store's row does; a session started again
+  shows its stored ones until its new `ready`.
+- **Routes.** A routed session keeps its route (ADR 0015), as a move
+  does: if its profile's route changed since, starting it again is
+  `unsupported`.

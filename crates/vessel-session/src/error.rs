@@ -5,6 +5,7 @@ use std::fmt;
 use vessel_agent::InputError;
 use vessel_harness::{LinkError, SessionFilesError};
 
+use crate::again::NotResumable;
 use crate::moving::MoveError;
 use crate::queue::QueueError;
 use vessel_harness::HarnessError;
@@ -79,6 +80,10 @@ pub enum SessionError {
     /// The session has ended and accepts no more input.
     #[error("the session has ended")]
     Ended,
+    /// An ended session cannot start again (protocol 10's
+    /// `session.resume`).
+    #[error("the session cannot start again: {0}")]
+    NotResumable(#[from] NotResumable),
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
@@ -123,6 +128,7 @@ impl SessionError {
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
+            | Self::NotResumable(_)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }

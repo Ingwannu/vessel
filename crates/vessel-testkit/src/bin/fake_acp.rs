@@ -11,7 +11,8 @@
 //!   is never answered (an adapter stuck at start); stuck at `session/new`,
 //!   it says so on stderr first (`fake-acp: stuck at session/new`), so a
 //!   test knows `initialize` went through.
-//! - `initialize`: protocol v1, `loadSession` supported, HTTP MCP servers
+//! - `initialize`: protocol v1, `loadSession` supported (not with
+//!   `FAKE_ACP_NO_LOAD` set: an agent that cannot resume), HTTP MCP servers
 //!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts,
 //!   and the steering extension (`_meta.steering.supported`; not with
 //!   `FAKE_ACP_NO_STEER` set). It remembers whether the client advertised
@@ -30,7 +31,9 @@
 //!   `effort` and `fast`.
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` and an agent message chunk `replayed <id>`, then
-//!   answers with the same options as `session/new`, as they stand.
+//!   answers with the same options as `session/new`, as they stand. With
+//!   `FAKE_ACP_LOAD_FAILS` set it replays nothing and answers an error
+//!   (`no such session: <id>`), as an agent whose transcript is gone does.
 //! - Both remember the MCP servers they were given, and `session/load` the
 //!   session id it loaded.
 //! - `session/set_config_option`: sets an option to a value it offers
@@ -259,6 +262,8 @@ async fn serve() -> ExitCode {
     let hang_at_new = hang == "session/new";
     let http_mcp = std::env::var_os("FAKE_ACP_NO_HTTP_MCP").is_none();
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
+    let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
+    let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -286,7 +291,7 @@ async fn serve() -> ExitCode {
                     let mut answer = InitializeResponse::new(request.protocol_version)
                         .agent_capabilities(
                             AgentCapabilities::new()
-                                .load_session(true)
+                                .load_session(loads)
                                 .prompt_capabilities(PromptCapabilities::new().image(true))
                                 .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
                         )
@@ -331,6 +336,12 @@ async fn serve() -> ExitCode {
             {
                 let state = Arc::clone(&state);
                 async move |request: LoadSessionRequest, responder, cx| {
+                    if load_fails {
+                        return responder.respond_with_error(
+                            Error::invalid_params()
+                                .data(format!("no such session: {}", request.session_id.0)),
+                        );
+                    }
                     let say = |update| {
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),

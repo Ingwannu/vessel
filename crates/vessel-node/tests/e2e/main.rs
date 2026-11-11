@@ -40,6 +40,8 @@ mod profiles;
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]
+mod resume;
+#[cfg(test)]
 mod routing;
 #[cfg(test)]
 mod secrets_across;

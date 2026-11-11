@@ -14,11 +14,12 @@ use vessel_proto::{
 };
 use vessel_session::{
     DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, LaunchOptions,
-    RuntimeConfig, SessionRuntime,
+    Relaunch, RuntimeConfig, SessionRuntime,
 };
 use vessel_store::{DataDir, Store, StoreConfig};
 use vessel_testkit::Fake;
 
+use super::again::{StoredEnd, ready};
 use super::{Found, Sessions};
 use crate::error::ServiceError;
 
@@ -38,6 +39,8 @@ impl Fixture {
         let bin = tempfile::tempdir().unwrap();
         let tui = Fake::Tui.path().unwrap();
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Terminal, &tui).unwrap());
+        let acp = Fake::Acp.path().unwrap();
+        drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
         let runtime = Arc::new(SessionRuntime::new(
             RuntimeConfig {
                 harness_lookup: Lookup::new([bin.path().to_path_buf()]),
@@ -76,6 +79,18 @@ impl Fixture {
             SessionMode::Terminal {
                 args: Vec::new(),
                 size: TerminalSize::default(),
+            },
+        )
+        .with_cwd(self.data.path().to_path_buf())
+    }
+
+    fn structured(&self) -> SessionSpec {
+        SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
             },
         )
         .with_cwd(self.data.path().to_path_buf())
@@ -229,6 +244,66 @@ async fn a_session_the_runtime_has_is_not_deleted() {
     assert!(
         fixture.runtime.get(id).is_some(),
         "refused: nothing was removed"
+    );
+    fixture.stop().await;
+}
+
+/// Starting a stored session again (protocol 10): one call at a time
+/// claims it; once the runtime has it again, a subscription the store
+/// served ends `lagged`; once that run is handed over too, one that stopped
+/// at the old end reads on, and one at the new end ends (review item 2).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_stored_subscription_finds_a_session_started_again() {
+    let fixture = Fixture::new().await;
+    let id = fixture
+        .sessions
+        .create(fixture.structured(), LaunchOptions::default())
+        .await
+        .unwrap()
+        .id;
+    let Found::Live { handle, .. } = fixture.sessions.find(id).await.unwrap() else {
+        panic!("a new session is live");
+    };
+    let _running = ready(&handle).await.unwrap();
+    handle.kill();
+    fixture.settle().await;
+    let end = fixture.sessions.get(id).await.unwrap().next_seq;
+    assert_eq!(fixture.sessions.stored_end(id, end).await, StoredEnd::Ended);
+
+    let claim = fixture.sessions.claim(id).unwrap();
+    assert!(matches!(
+        fixture.sessions.claim(id),
+        Err(ServiceError::StartingAgain(claimed)) if claimed == id
+    ));
+    let ended = fixture.sessions.ended(id).await.unwrap();
+    let handle = fixture
+        .sessions
+        .start_again(ended, Relaunch::default(), claim)
+        .await
+        .unwrap();
+    assert_eq!(
+        fixture.sessions.stored_end(id, end).await,
+        StoredEnd::Reopened
+    );
+    assert!(matches!(
+        fixture.sessions.ended(id).await,
+        Err(ServiceError::AlreadyLive(live)) if live == id
+    ));
+    let again = ready(&handle).await.unwrap();
+    assert_eq!(again.status, SessionStatus::Running);
+    assert!(again.next_seq > end);
+
+    handle.kill();
+    fixture.settle().await;
+    assert_eq!(
+        fixture.sessions.stored_end(id, end).await,
+        StoredEnd::Grew,
+        "a run started and ended meanwhile"
+    );
+    let after = fixture.sessions.get(id).await.unwrap().next_seq;
+    assert_eq!(
+        fixture.sessions.stored_end(id, after).await,
+        StoredEnd::Ended
     );
     fixture.stop().await;
 }
