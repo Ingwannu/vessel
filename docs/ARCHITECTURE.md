@@ -223,9 +223,12 @@ the supplied link before adding its entry. The page's `forget`, `rename`
 and `default` ops are `vessel nodes remove|rename|default` through
 `NodeSource`: the book is opened right before each edit, then read again
 by the registry, which closes a removed node's connection and ends its
-streams as `removed`. This machine's node is not a book entry and is
-refused for `forget` and `rename`. See ADR 0017 for transcripts, bounds
-and platform tradeoffs.
+streams as `removed`. Node names are parsed when a frame is decoded
+(`wire::NodeKey`, `wire::BookName`, the book's `NodeName` inside), so
+this machine's node, which is not a book entry, cannot be forgotten or
+renamed, and a frame that does not decode is still answered by its id.
+The ops live in `ops`, beside `bridge`. See ADR 0017 for transcripts,
+bounds and platform tradeoffs.
 
 
 ### By crate

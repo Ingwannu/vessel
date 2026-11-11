@@ -16,6 +16,8 @@
 //! - `socket`: the browser's websocket: the hello within a deadline, then
 //!   the bridge;
 //! - `bridge`: one tab's calls, streams and ops;
+//! - `ops`: the ops' answers (the book's nodes, pairing, QR codes, the
+//!   book's edits);
 //! - `registry`: one connection per node, shared by every tab, with its
 //!   state pushed to them;
 //! - [`NodeSource`]: the seam through which the CLI gives the nodes;
@@ -30,6 +32,7 @@ mod files;
 mod guard;
 #[cfg(test)]
 mod hashed;
+mod ops;
 mod registry;
 mod server;
 mod socket;

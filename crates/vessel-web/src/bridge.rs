@@ -18,39 +18,7 @@
 //!   ([`OUTBOX`]); a tab that reads slowly slows its own streams, nobody
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
-//!
-//! [Decision Log] The book's edits from the page (`forget`, `rename`,
-//! `default`), milestone 10, track E
-//! - Purpose: the page could add a machine (`pair`) and had no way back
-//!   out, nor to rename one or make it the default; a one-way door.
-//! - Constraints: the book is the CLI's file, written by `BookFile` and
-//!   nothing else; a change made with `vessel nodes` while the page is
-//!   open must survive the page's next edit; a forgotten node must not
-//!   keep a connection (or an `ssh` process) alive.
-//! - Alternatives: the bridge editing the book itself (a second writer
-//!   and a dependency on the book's format here); keeping a copy of the
-//!   book in the registry and writing it back (a CLI edit made meanwhile
-//!   would be overwritten); one `edit` op carrying a closed enum of edits
-//!   (no simpler for the page, and the replies differ).
-//! - Choice: three ops on the [`NodeSource`] seam, which the CLI
-//!   implements with `BookFile`'s own `remove`, `rename` and
-//!   `set_default`: each opens the file right before the edit, so nothing
-//!   is written from a stale copy. Then the registry reads the book again
-//!   ([`Registry::nodes`]), which cancels every entry no longer in it:
-//!   its supervisor stops, its connection closes, and streams following
-//!   it end as [`StreamStop::Removed`]. The reply is the book as it is
-//!   then, so the page needs no second `nodes` round trip.
-//! - Refusals: an op reaches these edits exactly where it reaches `pair`
-//!   (after the socket's mutual proof, within the tab's [`MAX_CALLS`]).
-//!   This machine's node is refused for `forget` and `rename`
-//!   ([`not_in_book`] says why); unknown nodes and invalid names are the
-//!   book's own errors.
-//! - Costs: a rename ends the node's connection and streams under the old
-//!   name, as a forget does, and the page follows again under the new
-//!   one. Moving a live entry between keys would have to re-key a running
-//!   supervisor and every stream's view of it, for a rare edit. Two
-//!   processes editing the book in the same instant can still lose one
-//!   edit (`BookFile` has no lock, by its own decision).
+//! - The ops (what the tab asks the bridge itself) are `ops`'s.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -58,16 +26,17 @@ use std::sync::Arc;
 use crate::socket::WebSocket;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
+use serde::Deserialize;
 use tokio::sync::{Semaphore, broadcast, mpsc};
 use tokio::task::{AbortHandle, JoinSet};
 use tokio_tungstenite::tungstenite::Message;
 use vessel_client::{CallError, StreamError, UnaryCall, follow_resuming};
-use vessel_proto::{Call, EventSeq, Method, PairingLink, RawJson, SessionId};
+use vessel_proto::{Call, EventSeq, Method, RawJson, SessionId};
 
-use crate::registry::{Change, Registry, Shared, chain};
+use crate::registry::{Cancelled, Change, Registry, Shared, chain};
 use crate::source::NodeSource;
 use crate::wire::{
-    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpOutcome, OpResult, ServerFrame,
+    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, ServerFrame,
     StreamId, StreamState, StreamStop,
 };
 
@@ -79,10 +48,6 @@ const MAX_FOLLOWS: usize = 64;
 
 /// Frames waiting to be written to one tab.
 const OUTBOX: usize = 256;
-
-/// The longest text drawn as a QR code (a pairing link is a few hundred
-/// bytes; the code's own limit is about 2900).
-const MAX_QR_TEXT: usize = 2048;
 
 /// Serve one tab until its socket closes.
 pub(crate) async fn run<S: NodeSource>(registry: Arc<Registry<S>>, socket: WebSocket) {
@@ -163,7 +128,7 @@ fn removed(node: NodeKey) -> ServerFrame {
     ServerFrame::Node {
         node,
         status: crate::wire::NodeStatus::Failed {
-            message: "the node was removed from the book".to_owned(),
+            message: Cancelled::Removed.message().to_owned(),
         },
     }
 }
@@ -198,9 +163,60 @@ async fn read<S: NodeSource>(
         };
         match serde_json::from_str::<ClientFrame>(&text) {
             Ok(frame) => tab.handle(frame).await,
-            Err(error) => unreadable(&tab.out, format!("not a frame: {error}")).await,
+            Err(error) => refuse(&tab.out, &text, &error).await,
         }
     }
+}
+
+/// What a frame that did not decode still says: its kind and the id to
+/// answer by.
+///
+/// Names in a frame are parsed as it is decoded (`wire::NodeKey`,
+/// `wire::BookName`), so a call, op or follow naming a node badly fails
+/// the whole frame. The page waits for an answer by id; this reads just
+/// enough to give one, typed, instead of an `unreadable` it cannot match
+/// to what it sent. Anything else is unreadable.
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum Addressed {
+    Call {
+        id: CallId,
+    },
+    Op {
+        id: CallId,
+    },
+    Follow {
+        stream: StreamId,
+    },
+    #[serde(other)]
+    Other,
+}
+
+/// Answer a frame that did not decode, by its id when it has one.
+async fn refuse(out: &mpsc::Sender<ServerFrame>, text: &str, error: &serde_json::Error) {
+    let message = format!("not a frame this bridge reads: {error}");
+    let frame = match serde_json::from_str::<Addressed>(text) {
+        Ok(Addressed::Call { id }) => ServerFrame::Reply {
+            id,
+            outcome: CallOutcome::Err(Failure::Refused { message }),
+        },
+        Ok(Addressed::Op { id }) => ServerFrame::OpReply {
+            id,
+            outcome: OpOutcome::Err {
+                reason: OpFailure::Unreadable,
+                message,
+            },
+        },
+        Ok(Addressed::Follow { stream }) => ServerFrame::Stream {
+            stream,
+            state: StreamState::Failed {
+                message,
+                reason: StreamStop::Error,
+            },
+        },
+        Ok(Addressed::Other) | Err(_) => ServerFrame::Unreadable { message },
+    };
+    let _gone = out.send(frame).await;
 }
 
 /// What one tab started.
@@ -287,6 +303,7 @@ impl<S: NodeSource> Tab<S> {
     async fn op(&mut self, id: CallId, op: Op) {
         let Ok(permit) = Arc::clone(&self.calls).try_acquire_owned() else {
             let outcome = OpOutcome::Err {
+                reason: OpFailure::Busy,
                 message: "too many requests at once".to_owned(),
             };
             let _gone = self.out.send(ServerFrame::OpReply { id, outcome }).await;
@@ -295,9 +312,12 @@ impl<S: NodeSource> Tab<S> {
         let registry = Arc::clone(&self.registry);
         let out = self.out.clone();
         let _op = self.tasks.spawn(async move {
-            let outcome = match answer(&registry, op).await {
+            let outcome = match crate::ops::answer(&registry, op).await {
                 Ok(result) => OpOutcome::Ok(result),
-                Err(message) => OpOutcome::Err { message },
+                Err(error) => OpOutcome::Err {
+                    reason: error.reason,
+                    message: error.message,
+                },
             };
             let _gone = out.send(ServerFrame::OpReply { id, outcome }).await;
             drop(permit);
@@ -499,20 +519,12 @@ async fn follow<S: NodeSource>(
     }
 }
 
-/// A stream's last notice when its node's entry was cancelled: the UI
-/// stopping cancels every entry, anything else is the node leaving the
-/// book.
+/// A stream's last notice when its node's entry was cancelled.
 fn cut_off<S: NodeSource>(registry: &Registry<S>) -> StreamState {
-    if registry.stopping() {
-        StreamState::Failed {
-            message: "the UI is stopping".to_owned(),
-            reason: StreamStop::Stopping,
-        }
-    } else {
-        StreamState::Failed {
-            message: "the node was removed from the book".to_owned(),
-            reason: StreamStop::Removed,
-        }
+    let cancelled = registry.cancelled();
+    StreamState::Failed {
+        message: cancelled.message().to_owned(),
+        reason: cancelled.reason(),
     }
 }
 
@@ -543,7 +555,8 @@ fn stream_state(error: StreamError) -> (StreamState, bool) {
     }
 }
 
-fn failure_text(failure: &Failure) -> String {
+/// A failure as one line, for a stream notice or an op's answer.
+pub(crate) fn failure_text(failure: &Failure) -> String {
     match failure {
         Failure::Remote { error } => error.to_string(),
         Failure::NotInProtocol { method, .. } => {
@@ -554,112 +567,6 @@ fn failure_text(failure: &Failure) -> String {
         | Failure::Refused { message }
         | Failure::Failed { message } => message.clone(),
     }
-}
-
-/// Answer an op.
-async fn answer<S: NodeSource>(registry: &Arc<Registry<S>>, op: Op) -> Result<OpResult, String> {
-    match op {
-        Op::Nodes => registry
-            .nodes()
-            .await
-            .map(|nodes| OpResult::Nodes { nodes })
-            .map_err(|failure| failure_text(&failure)),
-        Op::Retry { node } => registry
-            .retry(&node)
-            .await
-            .map(|()| OpResult::Retry)
-            .map_err(|failure| failure_text(&failure)),
-        Op::Inspect { link } => {
-            let link: PairingLink = link.parse().map_err(|error| chain(&error))?;
-            let offer = link.decode().map_err(|error| chain(&error))?;
-            let fingerprint = vessel_client::fingerprint(&offer.key);
-            Ok(OpResult::Inspect { offer, fingerprint })
-        }
-        Op::Pair { name, link } => registry
-            .source()
-            .pair(&name, &link)
-            .await
-            .map(|node| OpResult::Pair { node })
-            .map_err(|error| chain(&error)),
-        Op::Qr { text } => qr(&text).map(|svg| OpResult::Qr { svg }),
-        Op::Forget { node } => {
-            not_in_book(&node, "forgotten")?;
-            registry
-                .source()
-                .forget(&node)
-                .await
-                .map_err(|error| chain(&error))?;
-            book_now(registry)
-                .await
-                .map(|nodes| OpResult::Forget { nodes })
-        }
-        Op::Rename { node, name } => {
-            not_in_book(&node, "renamed")?;
-            registry
-                .source()
-                .rename(&node, &name)
-                .await
-                .map_err(|error| chain(&error))?;
-            book_now(registry)
-                .await
-                .map(|nodes| OpResult::Rename { nodes })
-        }
-        Op::Default { node } => {
-            registry
-                .source()
-                .set_default(&node)
-                .await
-                .map_err(|error| chain(&error))?;
-            book_now(registry)
-                .await
-                .map(|nodes| OpResult::Default { nodes })
-        }
-    }
-}
-
-/// Refuse to forget or rename this machine's node.
-///
-/// Why: it is not a book entry. `vessel ui`, like every `vessel` command,
-/// reaches it when nothing else is named, at the local address and with
-/// the local token, without the book ([`NodeKey::HERE`]); there is no
-/// entry to remove and no name to change, and it is the node the page
-/// falls back on with an empty book. A book entry that happens to point
-/// at this machine is an ordinary entry, forgotten like any other: the
-/// page keeps reaching the node as [`NodeKey::HERE`].
-fn not_in_book(node: &NodeKey, what: &str) -> Result<(), String> {
-    if node.is_here() {
-        return Err(format!(
-            "this machine's node is not in the book, so it cannot be {what}"
-        ));
-    }
-    Ok(())
-}
-
-/// The book after an edit; reading it is also what releases the entries
-/// of nodes no longer in it (their connections and streams).
-async fn book_now<S: NodeSource>(
-    registry: &Registry<S>,
-) -> Result<Vec<crate::wire::BookNode>, String> {
-    registry
-        .nodes()
-        .await
-        .map_err(|failure| failure_text(&failure))
-}
-
-/// `text` as a QR code, an SVG document.
-fn qr(text: &str) -> Result<String, String> {
-    if text.len() > MAX_QR_TEXT {
-        return Err(format!(
-            "too long for a QR code ({} bytes; at most {MAX_QR_TEXT})",
-            text.len()
-        ));
-    }
-    let code = qrcode::QrCode::new(text.as_bytes()).map_err(|error| error.to_string())?;
-    Ok(code
-        .render::<qrcode::render::svg::Color<'_>>()
-        .min_dimensions(240, 240)
-        .quiet_zone(true)
-        .build())
 }
 
 #[cfg(test)]
@@ -704,12 +611,5 @@ mod tests {
                 "{refused}"
             );
         }
-    }
-
-    #[test]
-    fn a_qr_code_is_an_svg_and_long_text_is_refused() {
-        let svg = qr("vessel://pair#abc").unwrap();
-        assert!(svg.starts_with("<?xml") && svg.contains("<svg"), "{svg}");
-        assert!(qr(&"x".repeat(MAX_QR_TEXT + 1)).is_err());
     }
 }

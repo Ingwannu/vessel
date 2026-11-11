@@ -106,57 +106,57 @@ impl NodeSource for BookSource {
     }
 
     async fn connector(&self, node: &NodeKey) -> Result<NodeConnector, CliError> {
-        let resolved = if node.is_here() {
-            Resolved {
+        let resolved = match node {
+            NodeKey::Here => Resolved {
                 name: None,
                 address: NodeAddress::Ws(nodes::local_node()?),
                 token: None,
                 credential: None,
                 pinned: None,
                 origin: Origin::Default,
-            }
-        } else {
-            let (book, _path) = self.book().await?;
-            let (name, entry) = book
-                .get(node.as_str())
-                .ok_or_else(|| CliError::NotInBook(node.to_string()))?;
-            Resolved {
-                name: Some(name.clone()),
-                address: entry.address.clone(),
-                token: entry.token.clone(),
-                credential: entry.credential.clone(),
-                pinned: entry.id,
-                origin: Origin::Named,
+            },
+            NodeKey::Book(name) => {
+                let (book, _path) = self.book().await?;
+                let entry = book
+                    .nodes
+                    .get(name)
+                    .ok_or_else(|| CliError::NotInBook(name.to_string()))?;
+                Resolved {
+                    name: Some(name.clone()),
+                    address: entry.address.clone(),
+                    token: entry.token.clone(),
+                    credential: entry.credential.clone(),
+                    pinned: entry.id,
+                    origin: Origin::Named,
+                }
             }
         };
         connect::connector(&self.target, &resolved).await
     }
 
     async fn seen(&self, node: &NodeKey, id: NodeId) {
-        if node.is_here() {
-            return;
-        }
+        let name = match node {
+            NodeKey::Here => return,
+            NodeKey::Book(name) => name,
+        };
         // Pinned once, on first contact, as the CLI does.
         let Ok((book, path)) = self.book().await else {
             return;
         };
-        if let Some((name, entry)) = book.get(node.as_str())
-            && entry.id.is_none()
-        {
+        if book.nodes.get(name).is_some_and(|entry| entry.id.is_none()) {
             let _turn = self.edits.lock().await;
             nodes::pin(&path, name, id).await;
         }
     }
 
-    async fn pair(&self, name: &str, link: &str) -> Result<BookNode, CliError> {
-        let name: NodeName = name.parse()?;
+    async fn pair(&self, name: &NodeName, link: &str) -> Result<BookNode, CliError> {
         let offer = link
             .trim()
             .parse::<PairingLink>()
             .and_then(|link| link.decode())
             .map_err(CliError::PairingLink)?;
         let turn = self.edits.lock().await;
-        let _joined = pair::with_offer(&self.target, &name, &offer, false).await?;
+        let _joined = pair::with_offer(&self.target, name, &offer, false).await?;
         drop(turn);
         let (book, _path) = self.book().await?;
         let (name, entry) = book
@@ -165,22 +165,24 @@ impl NodeSource for BookSource {
         Ok(listed_node(name, entry, &book))
     }
 
-    async fn forget(&self, node: &NodeKey) -> Result<(), CliError> {
-        let name = node.as_str().to_owned();
-        self.edit(move |file| file.remove(&name)).await
+    async fn forget(&self, node: &NodeName) -> Result<(), CliError> {
+        let name = node.clone();
+        self.edit(move |file| file.remove(name.as_str())).await
     }
 
-    async fn rename(&self, node: &NodeKey, name: &str) -> Result<(), CliError> {
-        let to: NodeName = name.parse()?;
-        let from = node.as_str().to_owned();
-        self.edit(move |file| file.rename(&from, &to)).await
+    async fn rename(&self, node: &NodeName, to: &NodeName) -> Result<(), CliError> {
+        let (from, to) = (node.clone(), to.clone());
+        self.edit(move |file| file.rename(from.as_str(), &to)).await
     }
 
     async fn set_default(&self, node: &NodeKey) -> Result<(), CliError> {
         // This machine's node is the default exactly when the book names
         // none (`nodes` lists it so), as `vessel nodes default --none`.
-        let name = (!node.is_here()).then(|| node.as_str().to_owned());
-        self.edit(move |file| file.set_default(name.as_deref()))
+        let name = match node {
+            NodeKey::Here => None,
+            NodeKey::Book(name) => Some(name.clone()),
+        };
+        self.edit(move |file| file.set_default(name.as_ref().map(NodeName::as_str)))
             .await
     }
 }
@@ -196,7 +198,7 @@ fn listed_node(name: &NodeName, entry: &BookEntry, book: &NodeBook) -> BookNode 
         ),
     };
     BookNode {
-        key: NodeKey::new(name.as_str()),
+        key: NodeKey::from(name.clone()),
         label: name.to_string(),
         address,
         transport,
@@ -210,7 +212,7 @@ mod tests {
     use std::path::Path;
 
     use vessel_client::NodeAddress;
-    use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook};
+    use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook, NodeName};
     use vessel_web::NodeSource as _;
     use vessel_web::wire::NodeKey;
 
@@ -252,6 +254,14 @@ ssh = "me@lab"
         }
     }
 
+    fn name(text: &str) -> NodeName {
+        text.parse().unwrap()
+    }
+
+    fn key(text: &str) -> NodeKey {
+        text.parse().unwrap()
+    }
+
     #[tokio::test]
     async fn the_pages_edits_are_the_books_and_keep_what_the_cli_wrote_meanwhile() {
         let dir = tempfile::tempdir().unwrap();
@@ -261,32 +271,42 @@ ssh = "me@lab"
         // reads the file again and keeps it.
         BookFile::open(&path)
             .unwrap()
-            .add(&"desk".parse().unwrap(), &ssh("me@desk"))
+            .add(&name("desk"), &ssh("me@desk"))
             .unwrap();
-        source.rename(&NodeKey::new("box"), "big").await.unwrap();
+        source.rename(&name("box"), &name("big")).await.unwrap();
         let book = BookFile::open(&path).unwrap();
         let names: Vec<_> = book.book().nodes.keys().map(ToString::to_string).collect();
         assert_eq!(names, ["big", "desk", "lab"]);
-        assert_eq!(book.book().default_node, Some("big".parse().unwrap()));
+        assert_eq!(book.book().default_node, Some(name("big")));
         let text = std::fs::read_to_string(&path).unwrap();
         assert!(
             text.contains("# Mine.") && text.contains("# the big one"),
             "{text}"
         );
 
-        source.set_default(&NodeKey::new("lab")).await.unwrap();
+        source.set_default(&key("lab")).await.unwrap();
         let book = BookFile::open(&path).unwrap();
-        assert_eq!(book.book().default_node, Some("lab".parse().unwrap()));
+        assert_eq!(book.book().default_node, Some(name("lab")));
         source.set_default(&NodeKey::here()).await.unwrap();
         let book = BookFile::open(&path).unwrap();
         assert_eq!(book.book().default_node, None);
         let listed = source.nodes().await.unwrap();
         assert!(listed.iter().any(|node| node.key.is_here() && node.default));
 
-        source.forget(&NodeKey::new("desk")).await.unwrap();
+        source.forget(&name("desk")).await.unwrap();
         let book = BookFile::open(&path).unwrap();
         assert!(book.book().get("desk").is_none());
         assert!(book.book().get("big").is_some());
+    }
+
+    /// `vessel nodes rename a a`, and the page saving a name it did not
+    /// change: nothing to do, so it succeeds and the file is not written.
+    #[tokio::test]
+    async fn renaming_a_node_to_its_own_name_changes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (source, path) = source(dir.path());
+        source.rename(&name("box"), &name("box")).await.unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), BOOK);
     }
 
     #[tokio::test]
@@ -294,26 +314,21 @@ ssh = "me@lab"
         let dir = tempfile::tempdir().unwrap();
         let (source, path) = source(dir.path());
         assert!(matches!(
-            source.forget(&NodeKey::new("ghost")).await,
+            source.forget(&name("ghost")).await,
             Err(CliError::Book(BookError::Missing { .. }))
         ));
         assert!(matches!(
-            source.set_default(&NodeKey::new("ghost")).await,
+            source.set_default(&key("ghost")).await,
             Err(CliError::Book(BookError::Missing { .. }))
         ));
         assert!(matches!(
-            source.rename(&NodeKey::new("box"), "lab").await,
+            source.rename(&name("ghost"), &name("spirit")).await,
+            Err(CliError::Book(BookError::Missing { .. }))
+        ));
+        assert!(matches!(
+            source.rename(&name("box"), &name("lab")).await,
             Err(CliError::Book(BookError::Exists { .. }))
         ));
-        for name in ["", "two words", "_here", "a/b"] {
-            assert!(
-                matches!(
-                    source.rename(&NodeKey::new("box"), name).await,
-                    Err(CliError::NodeName(_))
-                ),
-                "{name:?}"
-            );
-        }
         assert_eq!(std::fs::read_to_string(&path).unwrap(), BOOK);
     }
 }

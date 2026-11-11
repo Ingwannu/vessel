@@ -35,7 +35,7 @@ use vessel_client::{Backoff, Connector, NodeClient};
 use vessel_proto::ClientInfo;
 
 use crate::source::NodeSource;
-use crate::wire::{BookNode, Failure, NodeKey, NodeStatus};
+use crate::wire::{BookNode, Failure, NodeKey, NodeStatus, StreamStop};
 
 /// The most nodes the bridge keeps connections for; a browser naming more
 /// is refused (each entry is a task and, for SSH, a process).
@@ -94,6 +94,35 @@ pub(crate) struct Entry {
     /// Wakes a supervisor waiting to dial again.
     retry: Notify,
     supervisor: Mutex<Option<JoinHandle<()>>>,
+}
+
+/// Why a node's entry was cancelled: the only two ways its `stop` fires.
+/// Each reason's words live here, so the node's state, its streams' last
+/// notice and the registry's own errors say the same thing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Cancelled {
+    /// The node left the book ([`Registry::nodes`] found it gone).
+    Removed,
+    /// `vessel ui` is stopping (every entry is a child of its shutdown).
+    Stopping,
+}
+
+impl Cancelled {
+    /// The words for it.
+    pub(crate) const fn message(self) -> &'static str {
+        match self {
+            Self::Removed => "the node was removed from the book",
+            Self::Stopping => "the UI is stopping",
+        }
+    }
+
+    /// The reason a stream gives the page.
+    pub(crate) const fn reason(self) -> StreamStop {
+        match self {
+            Self::Removed => StreamStop::Removed,
+            Self::Stopping => StreamStop::Stopping,
+        }
+    }
 }
 
 /// State travels with the notification: removed entries cannot be looked
@@ -162,7 +191,7 @@ impl<S: NodeSource> Registry<S> {
             }
             entry.stop.cancel();
             let _old = entry.link.send_replace(Link::Failed {
-                message: "the node was removed from the book".to_owned(),
+                message: Cancelled::Removed.message().to_owned(),
             });
             let _listeners = self.changes.send(Change::Removed { node: key.clone() });
             false
@@ -174,10 +203,14 @@ impl<S: NodeSource> Registry<S> {
         &self.source
     }
 
-    /// Whether the UI is stopping (every entry's `stop` is then cancelled
-    /// too, so this tells a stop from a removal).
-    pub(crate) fn stopping(&self) -> bool {
-        self.shutdown.is_cancelled()
+    /// Why an entry whose `stop` fired was cancelled: the UI stopping
+    /// cancels every entry, so anything else is a removal.
+    pub(crate) fn cancelled(&self) -> Cancelled {
+        if self.shutdown.is_cancelled() {
+            Cancelled::Stopping
+        } else {
+            Cancelled::Removed
+        }
     }
 
     pub(crate) const fn client_info(&self) -> &ClientInfo {
@@ -304,16 +337,15 @@ impl<S: NodeSource> Registry<S> {
             () = self.keep_connected(&key, &entry) => {}
             () = shutdown.cancelled() => {}
         }
-        if shutdown.is_cancelled() {
+        // Only the UI stopping is written here. A removal takes the entry
+        // out of the map before cancelling it (`snapshot`), and `set` lets
+        // only the current entry write, so its state was already said.
+        if self.shutdown.is_cancelled() {
             self.set(
                 &key,
                 &entry,
                 Link::Failed {
-                    message: if self.shutdown.is_cancelled() {
-                        "the UI is stopping".to_owned()
-                    } else {
-                        "the node was removed from the book".to_owned()
-                    },
+                    message: Cancelled::Stopping.message().to_owned(),
                 },
             );
         }
@@ -405,7 +437,7 @@ pub(crate) enum SharedError {
     #[error("{0}")]
     Failed(String),
     /// The UI is stopping.
-    #[error("the UI is stopping")]
+    #[error("{}", Cancelled::Stopping.message())]
     Stopping,
 }
 
@@ -442,7 +474,7 @@ impl Connector for Shared {
 
 fn stopping() -> Failure {
     Failure::Unreachable {
-        message: "the UI is stopping".to_owned(),
+        message: Cancelled::Stopping.message().to_owned(),
     }
 }
 
