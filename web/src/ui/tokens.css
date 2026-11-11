@@ -9,11 +9,9 @@
    the CSS colour scheme of the element that uses it. The page follows
    the system's scheme (`color-scheme: light dark` below) with no script,
    live; `data-theme="light"` or `"dark"` on <html> pins one (set from
-   the stored choice before React's first render, data/theme.ts). A
-   subtree can take a scheme of its own with `color-scheme`, which is how
-   the /kit gallery shows both themes side by side. Script that needs a
-   colour reads a resolved one (data/theme.ts `cssColor`), never this
-   file's text.
+   the stored choice before React's first render, data/theme.ts). Script
+   that needs a colour reads a resolved one (data/theme.ts `cssColor`),
+   never this file's text.
 
    Where a value differs from theirs it is for one of two reasons, and the
    comment beside it says which:
@@ -119,7 +117,7 @@
     "Geist Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   /* Geist Mono, then the real monospace faces the systems ship, then
-     Pretendard, then \`monospace\`: without a real one a terminal grid
+     Pretendard, then `monospace`: without a real one a terminal grid
      would fall back to a proportional face. */
   --font-mono:
     "Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono",

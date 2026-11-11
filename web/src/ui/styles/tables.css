@@ -117,7 +117,7 @@ tr:focus-within .row-actions,
   flex-wrap: wrap;
 }
 
-/* A numeric table column (\`.num\` is the syntax colour for numbers). */
+/* A numeric table column (`.num` is the syntax colour for numbers). */
 table.data .right {
   text-align: right;
 }

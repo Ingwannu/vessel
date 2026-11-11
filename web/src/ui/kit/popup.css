@@ -33,6 +33,14 @@
     scale 150ms var(--ease);
 }
 
+/* A popup takes focus itself when it holds nothing focusable (a popover
+   of text): it is not a control, and its open surface already shows
+   where focus is, so the page's ring is not drawn around it. */
+.popup:focus-visible,
+.popup-positioner:focus-visible {
+  outline: none;
+}
+
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
@@ -71,6 +79,14 @@
   cursor: default;
   user-select: none;
   outline: none;
+}
+
+/* A row reached from the keyboard keeps the page's focus ring (the
+   deliberate difference from the reference, DESIGN.md §8), drawn inside
+   the row so it does not run into its neighbours or the popup's edge. */
+.menu-item:focus-visible {
+  outline: var(--focus);
+  outline-offset: -2px;
 }
 
 .menu-item .ico {
@@ -120,6 +136,12 @@
 .menu-item.mono > .label {
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+/* A mono row's detail is words ("yesterday"), not machine text, so it
+   stays in the sans face the global `.mono` would otherwise give away. */
+.menu-item.mono > .detail {
+  font-family: var(--font-sans);
 }
 
 /* A heading over a group of rows: 10px, tracked; the tertiary text colour
