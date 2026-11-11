@@ -288,7 +288,18 @@ impl Sessions {
         input: SessionInput,
     ) -> Result<(), ServiceError> {
         match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.send(input).await?),
+            Found::Live { handle, .. } => {
+                let input = match input {
+                    SessionInput::Prompt { content } => SessionInput::Prompt {
+                        content: self.attached(&handle, content).await?,
+                    },
+                    other @ (SessionInput::Terminal { .. }
+                    | SessionInput::CancelTurn { .. }
+                    | SessionInput::AnswerPermission { .. }
+                    | SessionInput::AnswerQuestion { .. }) => other,
+                };
+                Ok(handle.send(input).await?)
+            }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
     }
@@ -302,7 +313,10 @@ impl Sessions {
         by: Creator,
     ) -> Result<Delivered, ServiceError> {
         match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.prompt(content, delivery, by).await?),
+            Found::Live { handle, .. } => {
+                let content = self.attached(&handle, content).await?;
+                Ok(handle.prompt(content, delivery, by).await?)
+            }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
     }
@@ -315,9 +329,46 @@ impl Sessions {
         change: QueueChange,
     ) -> Result<QueueChanged, ServiceError> {
         match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.change_queue(change).await?),
+            Found::Live { handle, .. } => {
+                let change = match change {
+                    QueueChange::Edit {
+                        entry,
+                        revision,
+                        content,
+                    } => QueueChange::Edit {
+                        entry,
+                        revision,
+                        content: self.attached(&handle, content).await?,
+                    },
+                    other @ (QueueChange::Move { .. }
+                    | QueueChange::Remove { .. }
+                    | QueueChange::SendNow { .. }
+                    | QueueChange::Hold
+                    | QueueChange::Resume
+                    | QueueChange::Clear) => other,
+                };
+                Ok(handle.change_queue(change).await?)
+            }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
+    }
+
+    /// A prompt for `handle`'s session with each attachment it names
+    /// replaced by the node's record (protocol 10, ADR 0025), so the
+    /// session, its queue and its log see only what the node kept. A
+    /// terminal session's prompt is left for the handle to refuse.
+    async fn attached(
+        &self,
+        handle: &SessionHandle,
+        content: Vec<ContentBlock>,
+    ) -> Result<Vec<ContentBlock>, ServiceError> {
+        let named = content
+            .iter()
+            .any(|block| matches!(block, ContentBlock::Attachment { .. }));
+        if !named || matches!(handle.info().spec.mode, SessionMode::Terminal { .. }) {
+            return Ok(content);
+        }
+        crate::attachments::load::resolve(&self.store, handle.id(), content).await
     }
 
     /// Move a live session to another profile (`profiles::moving` plans it).

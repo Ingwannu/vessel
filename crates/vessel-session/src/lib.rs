@@ -87,6 +87,12 @@
 //!   the publisher notes each record that asks for attention.
 //!   [`SessionHandle::info`] adds both to the info, so a session the
 //!   runtime has carries the marks the store would give it.
+//! - Attachments (protocol 10, ADR 0025, `attachments`): a structured
+//!   session checks a prompt's attachments before it queues or sends it
+//!   and, right before it sends it, asks the node's loader
+//!   ([`AttachmentLoader`], given with [`SessionRuntime::with_attachments`])
+//!   for their bodies, awaiting the answer as it awaits the agent, so it
+//!   never blocks on file I/O; the log keeps the references only.
 //! - Starting again (protocol 10, ADR 0026, `again`):
 //!   [`SessionRuntime::start_again`] runs an ended structured session's
 //!   agent again with `session/load`, as a profile move does, its log
@@ -101,6 +107,7 @@
 
 mod activity;
 mod again;
+mod attachments;
 pub mod board;
 mod config;
 mod conversation;
@@ -119,6 +126,7 @@ mod structured;
 mod terminal;
 
 pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
+pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
 pub use error::{DeliveryError, InputKind, ModeKind, RemoveError, SessionError};
 pub use handle::SessionHandle;
@@ -131,3 +139,6 @@ pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
 /// What `SessionRuntime::probe` learned (re-exported so the node needs no
 /// edge to `vessel-agent`).
 pub use vessel_agent::Probed;
+/// What a loader answers with (`LoadAttachments`), re-exported for the
+/// same reason.
+pub use vessel_agent::{AttachmentBody, Attachments};

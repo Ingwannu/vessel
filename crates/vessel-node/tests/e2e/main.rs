@@ -13,6 +13,10 @@ mod across;
 #[cfg(test)]
 mod agents;
 #[cfg(test)]
+mod attachments;
+#[cfg(test)]
+mod attachments_sent;
+#[cfg(test)]
 mod callback;
 #[cfg(test)]
 mod conversation;

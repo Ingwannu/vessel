@@ -14,6 +14,7 @@
 use agent_client_protocol::v1::schema as acp;
 use serde::Serialize;
 
+use crate::attached::{AttachmentBody, Attachments};
 use crate::error::InputError;
 
 mod question;
@@ -22,10 +23,10 @@ mod report;
 pub(crate) use question::{Refusal, elicitation_response, question};
 pub(crate) use report::turn_usage;
 use vessel_proto::{
-    AgentCommand, AgentEvent, ContentBlock, ContextUsage, PermissionOption, PermissionOptionId,
-    PermissionOptionKind, PermissionOutcome, PlanEntry, PlanPriority, PlanStatus, RawJson,
-    StopReason, ToolCall, ToolCallContent, ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind,
-    ToolLocation,
+    AgentAbilities, AgentCommand, AgentEvent, AttachmentKind, AttachmentRef, ContentBlock,
+    ContextUsage, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
+    PlanEntry, PlanPriority, PlanStatus, RawJson, StopReason, ToolCall, ToolCallContent,
+    ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
 };
 
 /// What a `session/update` becomes.
@@ -111,8 +112,15 @@ pub(crate) fn content(block: acp::ContentBlock) -> ContentBlock {
 }
 
 /// A prompt block in ACP form. Opaque blocks must be ACP content already
-/// (they are what [`content`] forwarded), so they are parsed back.
-pub(crate) fn prompt_block(block: ContentBlock) -> Result<acp::ContentBlock, InputError> {
+/// (they are what [`content`] forwarded), so they are parsed back. An
+/// attachment takes its body from `attachments` (protocol 10): an image or
+/// audio inline, a file as a link, each only if the agent said in its
+/// handshake (`abilities`) that it takes that kind; files it always takes.
+pub(crate) fn prompt_block(
+    block: ContentBlock,
+    attachments: &mut Attachments,
+    abilities: AgentAbilities,
+) -> Result<acp::ContentBlock, InputError> {
     match block {
         ContentBlock::Text { text } => Ok(acp::ContentBlock::Text(acp::TextContent::new(text))),
         ContentBlock::ResourceLink { uri, name } => Ok(acp::ContentBlock::ResourceLink(
@@ -121,9 +129,51 @@ pub(crate) fn prompt_block(block: ContentBlock) -> Result<acp::ContentBlock, Inp
         ContentBlock::Opaque { raw } => {
             serde_json::from_str(raw.as_text()).map_err(InputError::InvalidContent)
         }
-        ContentBlock::Attachment { attachment } => {
-            Err(InputError::AttachmentNotLoaded(attachment.id))
+        ContentBlock::Attachment { attachment } => attached(attachment, attachments, abilities),
+    }
+}
+
+/// An attachment as the agent takes it: an `image` or `audio` block with
+/// its bytes, or a `resource_link` to its file.
+fn attached(
+    attachment: AttachmentRef,
+    attachments: &mut Attachments,
+    abilities: AgentAbilities,
+) -> Result<acp::ContentBlock, InputError> {
+    let AttachmentRef {
+        id,
+        name,
+        kind,
+        mime,
+        size,
+    } = attachment;
+    let taken = match kind {
+        AttachmentKind::Image => abilities.image,
+        AttachmentKind::Audio => abilities.audio,
+        AttachmentKind::File => true,
+    };
+    if !taken {
+        return Err(InputError::AttachmentNotTaken { id, kind });
+    }
+    let mime = mime.as_str().to_owned();
+    match (kind, attachments.take(id)) {
+        (AttachmentKind::Image, Some(AttachmentBody::Inline(data))) => {
+            Ok(acp::ContentBlock::Image(acp::ImageContent::new(data, mime)))
         }
+        (AttachmentKind::Audio, Some(AttachmentBody::Inline(data))) => {
+            Ok(acp::ContentBlock::Audio(acp::AudioContent::new(data, mime)))
+        }
+        (AttachmentKind::File, Some(AttachmentBody::Link(uri))) => {
+            Ok(acp::ContentBlock::ResourceLink(
+                acp::ResourceLink::new(name.as_str(), uri)
+                    .mime_type(mime)
+                    .size(i64::try_from(size).ok()),
+            ))
+        }
+        (
+            AttachmentKind::Image | AttachmentKind::Audio | AttachmentKind::File,
+            Some(AttachmentBody::Inline(_) | AttachmentBody::Link(_)) | None,
+        ) => Err(InputError::AttachmentNotLoaded(id)),
     }
 }
 

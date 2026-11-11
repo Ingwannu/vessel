@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{AgentEvent, ContentBlock};
 
 use super::{Driver, Inbound, describe, forward};
+use crate::attached::Attachments;
 use crate::error::InputError;
 use crate::input::{SteerOutcome, SteerReply};
 use crate::mapper;
@@ -76,6 +77,7 @@ impl Driver {
         &self,
         cx: &ConnectionTo<Agent>,
         content: Vec<ContentBlock>,
+        mut attachments: Attachments,
         reply: SteerReply,
     ) {
         if !self.abilities.steer {
@@ -93,7 +95,7 @@ impl Driver {
         let prompt = match content
             .iter()
             .cloned()
-            .map(mapper::prompt_block)
+            .map(|block| mapper::prompt_block(block, &mut attachments, self.abilities))
             .collect::<Result<Vec<_>, _>>()
         {
             Ok(prompt) => prompt,

@@ -13,8 +13,8 @@
 //!   test knows `initialize` went through.
 //! - `initialize`: protocol v1, `loadSession` supported (not with
 //!   `FAKE_ACP_NO_LOAD` set: an agent that cannot resume), HTTP MCP servers
-//!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts,
-//!   and the steering extension (`_meta.steering.supported`; not with
+//!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts
+//!   (audio too with `FAKE_ACP_AUDIO` set), and the steering extension (`_meta.steering.supported`; not with
 //!   `FAKE_ACP_NO_STEER` set). It remembers whether the client advertised
 //!   form elicitation, for `ask`, and when it did, writes `fake-acp: the
 //!   client takes questions` to stderr.
@@ -60,6 +60,12 @@
 //!   - `cwd`: one message chunk `cwd <path>`, the working directory of the
 //!     last `session/new` or `session/load`;
 //!   - `args`: one message chunk `args <JSON array of its arguments>`;
+//!   - `describe` (with whatever else the prompt holds): one message chunk
+//!     saying each block of the prompt, `; `-separated (`describe`
+//!     module): `text <len>`, `image <type> <n> bytes` and `audio <type>
+//!     <n> bytes` (the base64 decoded), `link <name> <type> <size> read
+//!     <n>` (the bytes of the file its `file:` URI names, or
+//!     `unreadable`), then `end_turn`;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
 //!     20 in, 10 out);
@@ -110,6 +116,8 @@ use tokio_util::sync::CancellationToken;
 
 #[path = "fake_acp/ask.rs"]
 mod ask;
+#[path = "fake_acp/describe.rs"]
+mod describe;
 #[path = "fake_acp/options.rs"]
 mod options;
 
@@ -263,6 +271,7 @@ async fn serve() -> ExitCode {
     let http_mcp = std::env::var_os("FAKE_ACP_NO_HTTP_MCP").is_none();
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
+    let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
@@ -292,7 +301,9 @@ async fn serve() -> ExitCode {
                         .agent_capabilities(
                             AgentCapabilities::new()
                                 .load_session(loads)
-                                .prompt_capabilities(PromptCapabilities::new().image(true))
+                                .prompt_capabilities(
+                                    PromptCapabilities::new().image(true).audio(hears),
+                                )
                                 .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
@@ -445,6 +456,14 @@ async fn serve() -> ExitCode {
                         return responder.respond(
                             PromptResponse::new(StopReason::EndTurn).usage(Usage::new(30, 20, 10)),
                         );
+                    }
+                    if prompt == "describe" {
+                        let described = describe::blocks(&request.prompt);
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::AgentMessageChunk(ContentChunk::new(text(&described))),
+                        ))?;
+                        return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
                     if let Some(asked) = ask::wanted(&prompt) {
                         let form = lock(&state).questions;

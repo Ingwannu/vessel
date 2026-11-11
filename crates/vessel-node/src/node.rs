@@ -17,10 +17,13 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
+use crate::attachments::staging;
+use crate::attachments::uploads::{self, Uploads};
+use crate::attachments::{Attachments, Verified, load};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
@@ -350,16 +353,9 @@ fn core(
     setup: SessionSetup,
 ) -> Core {
     let key = keypair.public();
-    let runtime = Arc::new(SessionRuntime::new(
-        RuntimeConfig {
-            harness_lookup: config.harness_lookup.clone(),
-            harness_env: config.harness_env.clone(),
-            ring_capacity: config.ring_capacity,
-            durable_capacity: config.durable_capacity,
-            agent_handshake_timeout: config.agent_handshake_timeout,
-        },
-        CancellationToken::new(),
-    ));
+    // Sessions ask the node for their prompts' attachments (protocol 10).
+    let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
+    let runtime = runtime(config, loader);
     let stop = CancellationToken::new();
     let lifecycle = Lifecycle::new(
         identity::node_info(id, config.name.clone(), *key),
@@ -375,6 +371,7 @@ fn core(
         Arc::clone(&agents),
         Arc::clone(&setup.models),
     ));
+    let attachments = attachments(config, store, &sessions, loads, (&tasks, &stop));
     let forwarders = TaskTracker::new();
     let devices = Arc::new(Devices::new(
         store.clone(),
@@ -440,6 +437,7 @@ fn core(
         fleet,
         links,
         transfers,
+        attachments,
         probes: Probes::new(setup.probe_dir),
     })));
     Core {
@@ -453,6 +451,49 @@ fn core(
         service,
         relays,
     }
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader`.
+fn runtime(config: &Config, loader: AttachmentLoader) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader),
+    )
+}
+
+/// How many prompts' attachment loads may wait for the node's loader; a
+/// session finding no room waits (each has at most one in flight).
+const ATTACHMENT_LOADS: usize = 16;
+
+/// The node's attachments (protocol 10): its uploads and their idle sweep,
+/// and the loader that answers the sessions' `loads`.
+fn attachments(
+    config: &Config,
+    store: &Store,
+    sessions: &Arc<Sessions>,
+    loads: tokio::sync::mpsc::Receiver<vessel_session::LoadAttachments>,
+    (tasks, stop): (&TaskTracker, &CancellationToken),
+) -> Arc<Attachments> {
+    let verified = Arc::new(Verified::default());
+    load::serve(store.clone(), Arc::clone(&verified), loads, tasks, stop);
+    let uploads = Arc::new(Uploads::new(staging::root(&config.data_dir), uploads::IDLE));
+    uploads.sweep(tasks, stop);
+    Arc::new(Attachments::new(
+        store.clone(),
+        Arc::clone(sessions),
+        uploads,
+        verified,
+    ))
 }
 
 /// Bind the local socket, and the TCP address if the config has one.
@@ -519,9 +560,10 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
     // owning the data directory may do.
     let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;
     let probe_dir = dir.prepare_probe_dir().map_err(NodeError::ProbeDir)?;
-    // Transfers expire at restart (protocol 6); same reason to wait for the
-    // lock.
+    // Transfers expire at restart (protocol 6), and so do uploads (protocol
+    // 10); same reason to wait for the lock.
     transfers::clear(dir);
+    staging::clear(dir);
     let profiles = NodeProfiles::load(dir.clone(), env).map_err(NodeError::Profiles)?;
     let models = Models::load(dir.clone(), FleetFiles::new(dir), model_client()?)
         .map_err(NodeError::Models)?;

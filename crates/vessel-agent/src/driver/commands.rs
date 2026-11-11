@@ -8,6 +8,7 @@ use agent_client_protocol::v1::schema as acp;
 use vessel_proto::{AgentEvent, ContentBlock, OptionChoice};
 
 use super::{Driver, Inbound, forward};
+use crate::attached::Attachments;
 use crate::error::InputError;
 use crate::handshake;
 use crate::input::{Command, OptionsReply, Reply};
@@ -16,15 +17,23 @@ use crate::mapper;
 impl Driver {
     pub(super) async fn command(&mut self, cx: &ConnectionTo<Agent>, command: Command) {
         match command {
-            Command::Prompt { content, reply } => {
-                let result = self.prompt(cx, content).await;
+            Command::Prompt {
+                content,
+                attachments,
+                reply,
+            } => {
+                let result = self.prompt(cx, content, attachments).await;
                 answer(reply, result);
             }
             Command::CancelTurn { reply } => {
                 let result = self.cancel(cx).await;
                 answer(reply, result);
             }
-            Command::Steer { content, reply } => self.steer(cx, content, reply),
+            Command::Steer {
+                content,
+                attachments,
+                reply,
+            } => self.steer(cx, content, attachments, reply),
             Command::Answer { id, outcome, reply } => {
                 let result = self.permissions.answer(id, &outcome);
                 if result.is_ok() {
@@ -89,6 +98,7 @@ impl Driver {
         &mut self,
         cx: &ConnectionTo<Agent>,
         content: Vec<ContentBlock>,
+        mut attachments: Attachments,
     ) -> Result<(), InputError> {
         if self.turn {
             return Err(InputError::TurnInProgress);
@@ -99,7 +109,7 @@ impl Driver {
         let blocks = content
             .iter()
             .cloned()
-            .map(mapper::prompt_block)
+            .map(|block| mapper::prompt_block(block, &mut attachments, self.abilities))
             .collect::<Result<Vec<_>, _>>()?;
         let sent = cx.send_request(acp::PromptRequest::new(session.clone(), blocks));
         let inbound = self.inbound.clone();

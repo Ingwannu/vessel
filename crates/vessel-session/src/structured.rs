@@ -4,6 +4,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionStatus};
 
+use crate::attachments::AttachmentLoader;
 use crate::delivery::Desk;
 use crate::lifecycle::{Lifecycle, drain_deadline};
 use crate::moving::{Control, Launch};
@@ -45,6 +46,9 @@ pub(crate) struct StructuredActor {
     /// A session started again (protocol 10, `again`) publishes nothing
     /// until its row is reopened: answered then, dropped if it is not.
     pub(crate) gate: Option<oneshot::Receiver<()>>,
+    /// Where a prompt's attachments are loaded (protocol 10,
+    /// `attachments`); `None` in a runtime that keeps none.
+    pub(crate) loader: Option<AttachmentLoader>,
 }
 
 /// A structured session's move state (see `moving`).

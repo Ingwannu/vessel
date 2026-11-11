@@ -271,6 +271,9 @@ pub(crate) enum ServiceError {
     /// 6).
     #[error(transparent)]
     Transfer(#[from] crate::transfers::TransferError),
+    /// An upload or a read of an attachment was refused (protocol 10).
+    #[error(transparent)]
+    Upload(#[from] crate::attachments::UploadError),
     /// A profile names a model route this node's `models.toml` does not
     /// have (ADR 0015).
     #[error("{}model route `{route}` is not in this node's models.toml (see `model.list`)", profile.as_ref().map_or_else(String::new, |profile| format!("profile `{profile}`: ")))]
@@ -343,6 +346,7 @@ impl ServiceError {
             Self::MoveRoute { .. } => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
+            Self::Upload(error) => error.code(),
             Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),
             Self::Outbound(error) => error.code(),
             Self::Unpersisted(_)

@@ -80,3 +80,64 @@ fetches it.
   reads a file attachment (Claude asks a permission), or decline it.
 - Attachments count against no event retention; their own bounds do.
 - A session moved to another node does not take its attachments.
+
+## As built (slice 6, 2026-11-11)
+
+What the contract left open, decided while building it:
+
+- **Who reads the bytes for the agent.** The node, never the session's
+  actor. The runtime holds a sender to the node's loader
+  (`vessel_session::AttachmentLoader`, a bounded channel of 16 requests;
+  an actor finding no room waits); right before a session sends a prompt
+  naming an attachment (a delivery, a queue's `send_now`, the queue
+  moving), its actor asks the loader through `pump`, so the agent's
+  output keeps being published while the node reads on its blocking
+  pool. Loading before the prompt is handed over was rejected: a queued
+  prompt would hold its bytes while it waits (25 MiB, 32 entries), and
+  the queue's own sends would need the node anyway. The actor first
+  checks what it can alone (16 attachments, 25 MiB inline, each named
+  once, a kind its agent said it does not take), so nothing is read for
+  a prompt refused anyway; the agent's driver checks the kind again
+  against its own handshake, which covers a prompt sent while the agent
+  starts.
+- **Where the node's record replaces the client's.** Where a prompt
+  enters the node: `session.prompt`, a queue `edit` and `session.send`.
+  What waits in the queue, and what the store keeps of it, is therefore
+  the node's record; the loader looks each one up again when it is sent.
+- **Reading back.** The store owns the files' place and the read-back
+  (it owns the data directory). On Unix every folder is opened relative
+  to the one before with `O_NOFOLLOW | O_DIRECTORY` and the file with
+  `O_NOFOLLOW`, through `rustix` (already in the tree for `vessel-fleet`);
+  on Windows the path is checked with `symlink_metadata` before it is
+  opened. Then the size and the SHA-256. A download's later pieces of an
+  unchanged file are not hashed again: the caller passes the identity it
+  verified (device, inode, size, modification and change times) and a
+  file that still has it is read as is; replacing the file changes its
+  inode, writing into it its change time. The node remembers 256 such
+  identities. A file whose identity cannot be known (Windows) is hashed
+  every time.
+- **A file for the agent** is checked the same way (no hash once its
+  identity was verified) and given as a `file:` URI, percent-encoded, to
+  where it is kept; the node's data directory must be an absolute path.
+- **A repeated piece.** A piece that ends at or before what the node has
+  (sent again after a lost reply) is answered with how much it has and
+  not written; one that starts anywhere else (a gap, or an overlap) is
+  `invalid_request`.
+- **An agent that has not said yet** (still starting) takes files only:
+  `attachment.begin` of an image or audio is `unsupported` until its
+  `ready`, so no image waits for a handshake that may refuse it.
+- **Codes.** A kept file that was changed on disk is `conflict`, for
+  `attachment.read` and for a prompt naming it; a row whose file is gone
+  is `not_found` for `attachment.read` and `conflict` for a prompt. An
+  image whose first bytes are not its type's is `invalid_request`, and
+  its upload is dropped (it cannot become right). A prompt naming one
+  attachment twice is `invalid_request`.
+- **Staging.** An upload's bytes go to an owner-only file under the
+  data directory's `uploads/`, hashed as they come, and are moved into
+  place by `finish`; the staging directory is emptied at every start. A
+  declared size counts against its session and the node from `begin`
+  until its row is in the store.
+- **Finishing for a session that ended.** The node checks the session is
+  live, and the store records the row only for a live session in the
+  same transaction (`StoreError::SessionEnded`); a refused row takes its
+  file back.

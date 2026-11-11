@@ -11,6 +11,7 @@
 use serde::Deserialize;
 
 use super::*;
+use vessel_proto::AttachmentId;
 
 const SESSION_UPDATES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -148,29 +149,128 @@ fn unmodelled_content_is_forwarded_and_survives_the_round_trip() {
         "{}",
         raw.as_text()
     );
-    let back = prompt_block(ContentBlock::Opaque { raw }).unwrap();
+    let back = prompt_block(
+        ContentBlock::Opaque { raw },
+        &mut Attachments::new(),
+        takes(),
+    )
+    .unwrap();
     assert_eq!(back, image);
 }
 
 #[test]
 fn prompts_map_to_acp_content() {
     assert_eq!(
-        prompt_block(ContentBlock::Text {
-            text: "hi".to_owned()
-        })
+        prompt_block(
+            ContentBlock::Text {
+                text: "hi".to_owned()
+            },
+            &mut Attachments::new(),
+            takes()
+        )
         .unwrap(),
         acp::ContentBlock::Text(acp::TextContent::new("hi"))
     );
     assert_eq!(
-        prompt_block(ContentBlock::ResourceLink {
-            uri: "file:///a".to_owned(),
-            name: "a".to_owned()
-        })
+        prompt_block(
+            ContentBlock::ResourceLink {
+                uri: "file:///a".to_owned(),
+                name: "a".to_owned()
+            },
+            &mut Attachments::new(),
+            takes()
+        )
         .unwrap(),
         acp::ContentBlock::ResourceLink(acp::ResourceLink::new("a", "file:///a"))
     );
     let not_acp = RawJson::from_text(r#"{"type":"hologram"}"#).unwrap();
-    assert!(prompt_block(ContentBlock::Opaque { raw: not_acp }).is_err());
+    assert!(
+        prompt_block(
+            ContentBlock::Opaque { raw: not_acp },
+            &mut Attachments::new(),
+            takes()
+        )
+        .is_err()
+    );
+}
+
+/// What a handshake that takes images and not audio says.
+fn takes() -> AgentAbilities {
+    AgentAbilities {
+        steer: false,
+        resume: false,
+        image: true,
+        audio: false,
+    }
+}
+
+fn attachment(kind: AttachmentKind, name: &str, mime: &str, size: u64) -> AttachmentRef {
+    AttachmentRef {
+        id: AttachmentId::random(),
+        name: name.parse().unwrap(),
+        kind,
+        mime: mime.parse().unwrap(),
+        size,
+    }
+}
+
+/// Protocol 10: an image goes inline, a file as a link to where it is
+/// kept; each body is the one loaded for it, and nothing goes without one.
+#[test]
+fn attachments_take_their_loaded_bodies() {
+    let image = attachment(AttachmentKind::Image, "shot.png", "image/png", 5);
+    let file = attachment(AttachmentKind::File, "notes.txt", "text/plain", 12);
+    let mut loaded = Attachments::new();
+    loaded.insert(image.id, AttachmentBody::Inline("aGVsbG8=".to_owned()));
+    loaded.insert(
+        file.id,
+        AttachmentBody::Link("file:///kept/notes.txt".to_owned()),
+    );
+    let block = |attachment: &AttachmentRef| ContentBlock::Attachment {
+        attachment: attachment.clone(),
+    };
+    assert_eq!(
+        prompt_block(block(&image), &mut loaded, takes()).unwrap(),
+        acp::ContentBlock::Image(acp::ImageContent::new("aGVsbG8=", "image/png"))
+    );
+    assert_eq!(
+        prompt_block(block(&file), &mut loaded, takes()).unwrap(),
+        acp::ContentBlock::ResourceLink(
+            acp::ResourceLink::new("notes.txt", "file:///kept/notes.txt")
+                .mime_type("text/plain".to_owned())
+                .size(12_i64)
+        )
+    );
+    assert!(loaded.is_empty(), "each body is sent once");
+    assert!(matches!(
+        prompt_block(block(&image), &mut loaded, takes()),
+        Err(InputError::AttachmentNotLoaded(id)) if id == image.id
+    ));
+
+    let audio = attachment(AttachmentKind::Audio, "note.wav", "audio/wav", 4);
+    loaded.insert(audio.id, AttachmentBody::Inline("AAAA".to_owned()));
+    assert!(matches!(
+        prompt_block(block(&audio), &mut loaded, takes()),
+        Err(InputError::AttachmentNotTaken {
+            kind: AttachmentKind::Audio,
+            ..
+        })
+    ));
+    let hears = AgentAbilities {
+        audio: true,
+        ..takes()
+    };
+    assert_eq!(
+        prompt_block(block(&audio), &mut loaded, hears).unwrap(),
+        acp::ContentBlock::Audio(acp::AudioContent::new("AAAA", "audio/wav"))
+    );
+
+    // A body of the wrong form is not used.
+    loaded.insert(image.id, AttachmentBody::Link("file:///x".to_owned()));
+    assert!(matches!(
+        prompt_block(block(&image), &mut loaded, takes()),
+        Err(InputError::AttachmentNotLoaded(_))
+    ));
 }
 
 #[test]

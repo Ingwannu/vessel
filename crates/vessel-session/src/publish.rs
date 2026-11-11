@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
     AgentAbilities, AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionBoard,
-    SessionEvent, SessionInfo, SessionOption, SessionStatus, SessionTitle,
+    SessionEvent, SessionId, SessionInfo, SessionOption, SessionStatus, SessionTitle,
 };
 
 use crate::activity::Tracker;
@@ -80,6 +80,11 @@ impl Publisher {
     /// The sequence number the next record committed gets.
     pub(crate) const fn next_seq(&self) -> EventSeq {
         self.next
+    }
+
+    /// The session it publishes for.
+    pub(crate) fn session(&self) -> SessionId {
+        self.shared.id
     }
 
     /// Number `event`, hand it to the store, append it to the ring,

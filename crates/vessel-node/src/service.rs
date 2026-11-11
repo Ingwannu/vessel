@@ -20,6 +20,7 @@ use vessel_proto::{
 use vessel_rpc::{Outbound, Peer};
 
 use crate::agents::{Agents, MAX_DEPTH};
+use crate::attachments::Attachments;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -70,6 +71,8 @@ pub(crate) struct NodeService {
     pub(crate) links: Arc<Links>,
     /// Open transfers (protocol 6).
     transfers: Arc<Transfers>,
+    /// Uploads and attachments (protocol 10).
+    attachments: Arc<Attachments>,
     /// Waiting reads by origin (`waits`).
     waits: Arc<Waits>,
     /// What agents offer, probed and kept (protocol 9, `probes`).
@@ -92,6 +95,7 @@ pub(crate) struct Parts {
     pub(crate) fleet: Arc<Home>,
     pub(crate) links: Arc<Links>,
     pub(crate) transfers: Arc<Transfers>,
+    pub(crate) attachments: Arc<Attachments>,
     pub(crate) probes: Probes,
 }
 
@@ -112,6 +116,7 @@ impl NodeService {
             fleet,
             links,
             transfers,
+            attachments,
             probes,
         } = parts;
         Self {
@@ -129,6 +134,7 @@ impl NodeService {
             fleet,
             links,
             transfers,
+            attachments,
             waits: Arc::default(),
             probes,
         }

@@ -3,7 +3,9 @@
 use std::fmt;
 
 use vessel_proto::conversation::InvalidAnswer;
-use vessel_proto::{AttachmentId, OptionId, PermissionId, PermissionOptionId, QuestionId};
+use vessel_proto::{
+    AttachmentId, AttachmentKind, OptionId, PermissionId, PermissionOptionId, QuestionId,
+};
 
 use crate::options::OptionError;
 
@@ -31,6 +33,15 @@ pub enum InputError {
     /// over with it (protocol 10).
     #[error("attachment {0} was not loaded for the prompt")]
     AttachmentNotLoaded(AttachmentId),
+    /// The prompt names an attachment of a kind the agent did not say it
+    /// takes (protocol 10); nothing was sent.
+    #[error("this agent does not take {} attachments (attachment {id})", noun(*.kind))]
+    AttachmentNotTaken {
+        /// The attachment.
+        id: AttachmentId,
+        /// Its kind.
+        kind: AttachmentKind,
+    },
     /// No such permission request was ever made in this session.
     #[error("permission request {0} does not exist")]
     PermissionNotFound(PermissionId),
@@ -88,6 +99,15 @@ pub enum InputError {
         /// The agent's error, for people.
         message: String,
     },
+}
+
+/// An attachment kind in a sentence.
+const fn noun(kind: AttachmentKind) -> &'static str {
+    match kind {
+        AttachmentKind::Image => "image",
+        AttachmentKind::Audio => "audio",
+        AttachmentKind::File => "file",
+    }
 }
 
 /// Why the ACP connection ended. Always the last output of an agent.

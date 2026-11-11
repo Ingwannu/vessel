@@ -716,8 +716,9 @@ agent-orchestrator says).
   the limit and the size); at most 16 uploads are open on a node
   (`unavailable` beyond).
 - `attachment.write`: `offset` is what has been received so far (a
-  repeat or a gap is `invalid_request`), the data at most `chunk`
-  bytes, never past `size`.
+  piece that ends at or before it, sent again after a lost reply, is
+  answered with it; a gap or an overlap is `invalid_request`), the data
+  at most `chunk` bytes, never past `size`.
 - `attachment.finish`: all `size` bytes are there (`invalid_request`
   otherwise); an image's first bytes must be its declared type's
   (`invalid_request`). The bytes are then the session's, under the
@@ -1137,5 +1138,71 @@ the same refusal an older node gives.
   move uses the moved-to profile; the
   session's files must still be in that profile's home. The CLI and the
   agent tool for it come with their slice.
-- Next: attachments; the CLI and the agent tools (`answer_question`,
-  marks, delete and start again there).
+- Slice 6, attachments (contract: "Attachments", the bounds; review
+  items 8, 9 and 10; ADR 0025, amended with what follows):
+  `attachment.begin`, `.write`, `.finish` and `.read`, and prompts naming
+  attachments. The node's `attachments` module: uploads (`uploads`,
+  `staging`) held by whoever began them (`transfers::Holder`; anyone else
+  gets `not_found`), 16 open on a node and 4 a caller (`unavailable`), a
+  declared size counted against its session's 100 MiB and the node's
+  4 GiB with what the store keeps until its row is in (`invalid_request`),
+  each staged in an owner-only file under `uploads/` that a piece is
+  appended to and hashed into on the blocking pool, dropped after 10 idle
+  minutes and at every start; `finish` checks every byte came, an image's
+  first bytes (png, jpeg, gif, webp), and that the session still runs,
+  then `Store::keep_attachment` moves the file to
+  `attachments/<session>/<id>/<name>` without following a link, checks
+  its size and SHA-256 and records the row for a live session only.
+  `Store::read_attachment` reads one back only as that regular file of
+  the recorded size and SHA-256 (Unix: folders opened relative to each
+  other with `O_NOFOLLOW`; a file of an unchanged identity is not hashed
+  again), for `attachment.read` (a piece at a time) and for the agent.
+  Folders no row names are swept when the store opens; delete and
+  retention already removed a session's folder (slice 4). A prompt's
+  references become the store's records where the prompt enters the node
+  (`session.prompt`, a queue `edit`, `session.send`: an attachment not the
+  session's is `invalid_request`); the session's actor checks the
+  per-prompt bounds and the kinds its agent said it takes before it
+  queues or sends a prompt, and right before it sends one asks the node's
+  loader (`vessel_session::AttachmentLoader`, `attachments::load`) for the
+  bodies, which the agent's driver puts in the prompt (`image` and
+  `audio` blocks, base64; a file as a `resource_link` with its `file:`
+  URI), while the log keeps the references. A queued prompt is checked
+  again when it is sent; one that no longer fits holds the queue
+  (`failed`) with a line saying why. `fake-acp` says what a prompt held
+  (`describe`) and takes audio with `FAKE_ACP_AUDIO`. Client calls:
+  `begin_upload`, `write_upload`, `finish_upload`, `attach` (all three),
+  `read_attachment`.
+  Decided here (the contract did not say; ADR 0025's "As built"):
+  - The node reads the bytes, never the session's actor: a bounded
+    channel to the node's loader, awaited through `pump`; loading before
+    the prompt is handed over would make a queued prompt hold its bytes.
+  - A piece that ends at or before what has come is answered with it; a
+    gap or an overlap is `invalid_request` (the contract's line said "a
+    repeat is `invalid_request`", review item 10 said otherwise; the
+    review wins, and the contract's line is amended).
+  - An agent still starting takes files only (images and audio are
+    `unsupported` at `begin` until its `ready`).
+  - A file changed on disk is `conflict` (for `attachment.read` and a
+    prompt); an image that fails its first bytes is `invalid_request` and
+    its upload dropped; one attachment named twice in a prompt is
+    `invalid_request`.
+  - Dependencies, none new to the tree: `rustix` with `fs` for
+    `vessel-store` (Unix; `vessel-fleet` already builds it so), `base64`
+    and `url` for `vessel-node` (an inline body, a `file:` URI), `bytes`
+    for `vessel-client` (a piece), `base64` and `url` for
+    `vessel-testkit`'s `describe`.
+  Known limits: on Windows the read-back checks the path with
+  `symlink_metadata` before opening it (no stable relative open there),
+  the window `vessel-fleet` accepts too, and hashes every read; a file in
+  place may be written into within one timestamp tick of its last
+  verification without being hashed again (the bytes are then the
+  writer's own, never another file's); the node's 4 GiB is checked
+  against declared sizes when an upload begins, so finishing several at
+  once never passes it but a store edited by hand could; a steer the
+  agent hands back (`promptRequired`) loads its attachments again for the
+  turn it starts; the e2e test of the node-wide 16 and the 4 GiB is a unit
+  test through a real store (`uploads::tests`), as is the idle drop. The
+  CLI and the agent tools come with their slice.
+- Next: the CLI and the agent tools (`answer_question`, marks, delete,
+  start again and attachments there).

@@ -3,12 +3,14 @@
 //! [`NodeClient::call`] with its request; they live here rather than in
 //! `client.rs`, which holds the calls of earlier protocols.
 
+use bytes::Bytes;
 use vessel_proto::conversation::{
-    ChangeQueue, DeleteSession, GetConversation, MarkSession, PromptSession, QueueChanged,
-    ResumeSession,
+    BeginUpload, ChangeQueue, DeleteSession, FinishUpload, GetConversation, MarkSession, MimeType,
+    PromptSession, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload, Written,
 };
 use vessel_proto::{
-    ContentBlock, Conversation, Delivered, Delivery, Mark, QueueChange, SessionId, SessionInfo,
+    AttachmentId, AttachmentName, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered,
+    Delivery, Mark, QueueChange, SessionId, SessionInfo, UploadId,
 };
 use vessel_rpc::CallError;
 
@@ -103,5 +105,117 @@ impl NodeClient {
     /// from a node before protocol 10; otherwise see [`CallError`].
     pub async fn delete_session(&self, session: SessionId) -> Result<(), CallError> {
         self.call(DeleteSession { session }).await.map(drop)
+    }
+
+    /// `attachment.begin` (protocol 10): declare a file of `size` bytes
+    /// for a live structured session; the upload, and the largest piece
+    /// [`write_upload`](Self::write_upload) takes.
+    ///
+    /// # Errors
+    /// `not_found` for an unknown session; `unsupported` for a terminal
+    /// session, a kind its agent does not take, or a node before protocol
+    /// 10; `conflict` once it ended; `invalid_request` past a size limit;
+    /// `unavailable` while too many uploads are open; otherwise see
+    /// [`CallError`].
+    pub async fn begin_upload(
+        &self,
+        session: SessionId,
+        name: AttachmentName,
+        mime: MimeType,
+        size: u64,
+    ) -> Result<Upload, CallError> {
+        self.call(BeginUpload {
+            session,
+            name,
+            mime,
+            size,
+        })
+        .await
+    }
+
+    /// `attachment.write` (protocol 10): the piece of `upload` at `offset`
+    /// (what was received so far); how much the node has after it. A
+    /// piece sent again after a lost reply is answered without being
+    /// written twice.
+    ///
+    /// # Errors
+    /// `not_found` for an upload this caller did not begin (or one that
+    /// was dropped); `invalid_request` for a piece out of order, too large
+    /// or past the declared size; otherwise see [`CallError`].
+    pub async fn write_upload(
+        &self,
+        upload: UploadId,
+        offset: u64,
+        data: Bytes,
+    ) -> Result<Written, CallError> {
+        self.call(WriteUpload {
+            upload,
+            offset,
+            data,
+        })
+        .await
+    }
+
+    /// `attachment.finish` (protocol 10): keep `upload` with its session;
+    /// the reference a prompt names it by.
+    ///
+    /// # Errors
+    /// `not_found` as for [`write_upload`](Self::write_upload);
+    /// `invalid_request` when bytes are missing or an image does not start
+    /// as its type does; `conflict` once the session ended; otherwise see
+    /// [`CallError`].
+    pub async fn finish_upload(&self, upload: UploadId) -> Result<AttachmentRef, CallError> {
+        self.call(FinishUpload { upload }).await
+    }
+
+    /// Upload `data` as an attachment of `session`: begin, every piece in
+    /// order, finish.
+    ///
+    /// # Errors
+    /// As [`begin_upload`](Self::begin_upload),
+    /// [`write_upload`](Self::write_upload) and
+    /// [`finish_upload`](Self::finish_upload).
+    pub async fn attach(
+        &self,
+        session: SessionId,
+        name: AttachmentName,
+        mime: MimeType,
+        data: Bytes,
+    ) -> Result<AttachmentRef, CallError> {
+        let size = u64::try_from(data.len()).unwrap_or(u64::MAX);
+        let Upload { upload, chunk } = self.begin_upload(session, name, mime, size).await?;
+        let chunk = usize::try_from(chunk).unwrap_or(usize::MAX).max(1);
+        let mut offset = 0_usize;
+        while offset < data.len() {
+            let end = offset.saturating_add(chunk).min(data.len());
+            let at = u64::try_from(offset).unwrap_or(u64::MAX);
+            let _written = self
+                .write_upload(upload, at, data.slice(offset..end))
+                .await?;
+            offset = end;
+        }
+        self.finish_upload(upload).await
+    }
+
+    /// `attachment.read` (protocol 10): a piece of one of `session`'s
+    /// attachments from `offset`, with its whole size.
+    ///
+    /// # Errors
+    /// `not_found` for an unknown session or attachment; `invalid_request`
+    /// past its end; `conflict` when its file was changed on the node;
+    /// `unsupported` for a terminal session or a node before protocol 10;
+    /// otherwise see [`CallError`].
+    pub async fn read_attachment(
+        &self,
+        session: SessionId,
+        attachment: AttachmentId,
+        offset: u64,
+    ) -> Result<BlobChunk, CallError> {
+        self.call(ReadAttachment {
+            session,
+            attachment,
+            offset,
+        })
+        .await
     }
 }

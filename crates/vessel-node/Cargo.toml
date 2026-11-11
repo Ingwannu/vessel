@@ -29,6 +29,10 @@ vessel-session.workspace = true
 vessel-store.workspace = true
 
 axum.workspace = true
+# An image's or audio attachment's bytes for the agent's prompt (protocol
+# 10, ADR 0025): base64, as ACP carries them; already in the workspace
+# (vessel-proto's wire bytes).
+base64.workspace = true
 # The model proxy's own accept loop (`models::listen`): HTTP/1 with a
 # header-read deadline and a bounded number of connections, which
 # `axum::serve` cannot give (the M5 security review, finding 4). Already
@@ -67,6 +71,10 @@ toml_edit.workspace = true
 tokio-util = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
+# A file attachment's `file:` URI for the agent (protocol 10, ADR 0025),
+# percent-encoded and right for Windows drive letters; already in the
+# workspace (vessel-lsp).
+url.workspace = true
 
 [dev-dependencies]
 # Moving a device's pairing time back in a home's database (e2e

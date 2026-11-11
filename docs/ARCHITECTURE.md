@@ -46,7 +46,7 @@ and 0013).
 | `vessel-pty` | Runs a command in a PTY; byte I/O and resize; on Windows, answers the pseudo console's startup cursor query. | proc |
 | `vessel-agent` | ACP client: drives a harness or adapter over stdio and maps ACP updates to `AgentEvent`s; gives MCP servers in `session/new` and `session/load` (milestone 4); the agent's config options (`options`: reported once before ready and on every change, choices applied in the handshake, changes on a running session, ACP's older modes as a mode option) and `probe`, what an agent offers without a session (protocol 9). | proto, proc |
 | `vessel-session` | Session actors: owns the process, assigns `EventSeq`, keeps a ring cache, broadcasts, hands every record to the node for persistence; each session's place on the board (`board`, the reducer ported from agent-orchestrator, fed by `activity`, protocol 8); the agent's options logged as `options_changed`, titles (`renamed`, from the first prompt or a rename), the choices a session carries on, and probing an agent (protocol 9). | proto, harness, pty, agent |
-| `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `mcp/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments, schema 8: retention's order, protocol 10), the `probe/` directory agents are probed in, `attachments/`, retention, restart recovery. | proto |
+| `vessel-store` | Data directory (`node.id`, `token`, `node.key`, `vessel.db`, `profiles.toml`, `mcp/`, `uploads/`) and its locks, SQLite event log (schema 2: paired devices; schema 3: sessions' current profile and creator; schema 4: where a session came from, `origin` and `via`, protocol 6; schema 5: a session's model route; schema 6: a session's current title and the choices of its last options report, protocol 9; schema 7: the conversation's projections, the marks and attachments, schema 8: retention's order, protocol 10), the `probe/` directory agents are probed in, `attachments/` (kept and read back without following a link, protocol 10), retention, restart recovery. | proto |
 | `vessel-node` | `vesseld`: config, auth, HTTP/websocket server, `Handler` implementation, persistence and subscription plumbing; devices, scopes and the secure gateway, and `vesseld relay` (milestone 3); harness profiles (`profiles`: `profiles.toml`, `profile.list`/`reload`, what `session.create` launches with, what `session.move_profile` moves to), agent principals (`agents`: a credential per session, grants, limits, ownership) and fleet sync (`fleet`: the home publishing `fleet.toml`'s sources and serving `fleet.*`, members joining, pulling, applying into every profile's home and reporting; this node's secrets) (milestone 4); transfers (`transfers`: `session.export`/`memory.export` snapshots held for whoever opened them, `transfer.read`/`close`, expiry, and `session.import`/`memory.import` pulling through a `Source`: this node, or another through the envelope as the caller) (protocol 6, F4); `envelope` and `fleet/links` (protocol 6, Track X): `fleet.forward`/`relay`/`deliver` with the delegated principal (the delivering device's scopes ∩ the origin's, ownership and agent limits applied to the origin), the mutual grant (`fleet.grant`, `fleet/granted.json` on a member, `fleet/grants/` and the binding record `fleet/bindings.json` on the home, `fleet.forget`, which withdraws the home's outstanding invitations, and `fleet.callback`, the home's relays and a relay ticket for a member with no route of its own, which `relays` links to: `fleet/links/callback.rs`), `fleet.peers`/`nodes`, and `session.read` waiting with its shares (`waits`). Model routing (`models`: `models.toml`, the loopback proxy, model tokens, limits, `ModelCall` records, `model.list`) (milestone 5, ADR 0015). Protocol 9 (ADR 0022): `service/options` (`harness.options`, `session.options`, `session.set_option`, `session.rename`) and `probes` (what each agent offers, probed once for concurrent callers and kept ten minutes). | proto, rpc, harness, session, store, secure, relay, fleet, client, lsp, llm |
 | `vessel-client` | Typed async client and gap-free session streams; the node book; pairing and secure connections over direct and relay routes (milestone 3); the local socket with the token or an agent's credential (milestone 4); fetching a file chunk by chunk into a caller's `ChunkSink` (`fetch_chunks`, protocol 6). | proto, rpc, secure, relay |
 | `vessel-remote` | Remote nodes over SSH (milestone 2): the `ssh` runner, platform detection, installing `vesseld` by upload, `cleanup`; the SSH connector. | proto, rpc, client |
@@ -391,7 +391,16 @@ In the crate table's order.
   `SessionRuntime::start_again` runs an ended structured session's agent
   again with `session/load` (a new session's launch, the move's replay
   dropping), its ring and publisher starting at the stored `next_seq`; it
-  publishes nothing until the node opens its `Gate`.
+  publishes nothing until the node opens its `Gate`. Attachments (ADR
+  0025, `attachments`): the actor checks a prompt's attachments (the
+  per-prompt bounds, a kind its agent said it does not take) before it
+  queues or sends it and, right before it sends it, asks the node's
+  loader (`AttachmentLoader`, a bounded channel given with
+  `SessionRuntime::with_attachments`) for their bodies through `pump`, so
+  it never blocks on file I/O; the agent's driver checks the kind again
+  against its own handshake and puts each body where its reference is
+  (`vessel_agent::Attachments`: an image or audio inline, a file as a
+  `resource_link`), while the log keeps the reference.
 - `vessel-store`: an owner-only data directory (Unix: 0700, an existing
   one tightened or refused if another user's; secrets 0600), the SQLite
   event log with a batching writer thread, paged reads, restart recovery
@@ -416,7 +425,16 @@ In the crate table's order.
   (protocol 10): the row is live again, without an end and out of the
   archive, before its next run writes, so retention never takes it. A deleted or
   pruned session's folder under `DataDir::attachments_dir` goes once its
-  deletion is committed. `DataDir::probe_dir` is where the node probes
+  deletion is committed. Attachments (protocol 10, ADR 0025,
+  `attachments`): `Store::keep_attachment` moves a finished upload to
+  `attachments/<session>/<id>/<name>` without following a link (Unix:
+  folders opened relative to each other with `O_NOFOLLOW`, through
+  `rustix`), checks its size and SHA-256, then records the row for a live
+  session only (a refused row takes the file back);
+  `Store::read_attachment` reads one back only as the regular file of the
+  recorded size and SHA-256, hashing it again only when its identity
+  (device, inode, size, times) changed since the caller last verified it;
+  at open, every folder no row names is removed. `DataDir::probe_dir` is where the node probes
   agents. `models.toml` is read with whether other users
   can read it (`DataDir::read_models`), which the node refuses.
 - `vessel-node` (`vesseld`):
@@ -440,6 +458,20 @@ In the crate table's order.
     subscription the store serves ends `Lagged` when its session started
     again meanwhile. A session's agent credential and model token are
     retired in its hand-over to the store.
+  - Attachments (protocol 10, ADR 0025, `attachments`): uploads
+    (`uploads`, `staging`: one owner-only staging file each under
+    `uploads/`, appended and hashed piece by piece, held by whoever began
+    it, 16 on a node and 4 a caller, a declared size counted against its
+    session's 100 MiB and the node's 4 GiB until kept, dropped after 10
+    idle minutes and at every start), `attachment.finish` (all bytes, an
+    image's first bytes, the session still live, then the store keeps
+    it), `attachment.read` (the store's read-back, a piece at a time,
+    `Verified` remembering what was hashed), a prompt's references made
+    the store's records where a prompt enters the node (`load::resolve`:
+    `session.prompt`, a queue `edit`, `session.send`), and the loader
+    sessions ask for a prompt's bodies (`load::serve`: base64 for images
+    and audio, a `file:` URI for a file, each read back on the blocking
+    pool).
   - Transports: the local socket (Unix socket 0600, or a named pipe on
     Windows) whose first frame is the token or an agent's credential;
     `--bind none`; `vesseld attach`, the byte-pumping proxy SSH runs,

@@ -5,43 +5,17 @@
 
 use vessel_proto::conversation::{
     BeginUpload, ChangeQueue, DeleteSession, FinishUpload, GetConversation, MarkSession,
-    PromptSession, QueueChange, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload,
-    Written,
+    PromptSession, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload, Written,
 };
 use vessel_proto::{
-    Ack, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered, ErrorCode, Mark,
-    SessionInfo, WireError,
+    Ack, AttachmentRef, BlobChunk, Conversation, Delivered, Mark, SessionInfo, WireError,
 };
 
 use super::{Connection, NodeService, wire};
 use crate::error::ServiceError;
 use crate::profiles::launch::creator;
+use crate::transfers::Holder;
 
-/// What a call the wire has and this node does not do yet answers.
-fn not_built(what: &str) -> WireError {
-    WireError::new(
-        ErrorCode::Unsupported,
-        format!("{what} is not built on this node yet"),
-    )
-}
-
-/// Attachments come with their slice of the track; until then a prompt
-/// holding one is refused before anything is sent.
-fn no_attachments(content: &[ContentBlock]) -> Result<(), WireError> {
-    let attached = content
-        .iter()
-        .any(|block| matches!(block, ContentBlock::Attachment { .. }));
-    if attached {
-        return Err(not_built("attachments"));
-    }
-    Ok(())
-}
-
-#[expect(
-    clippy::unused_async,
-    reason = "the guard awaits every handler; these answer at once until \
-              their slices of the track fill them"
-)]
 impl NodeService {
     /// `session.prompt`: deliver a prompt as asked; who sent it is kept
     /// with it if it waits in the queue.
@@ -50,7 +24,6 @@ impl NodeService {
         connection: &Connection,
         request: PromptSession,
     ) -> Result<Delivered, WireError> {
-        no_attachments(&request.content)?;
         self.sessions
             .prompt(
                 request.session,
@@ -68,9 +41,6 @@ impl NodeService {
         _: &Connection,
         request: ChangeQueue,
     ) -> Result<QueueChanged, WireError> {
-        if let QueueChange::Edit { content, .. } = &request.change {
-            no_attachments(content)?;
-        }
         self.sessions
             .change_queue(request.session, request.change)
             .await
@@ -137,35 +107,52 @@ impl NodeService {
             .map_err(|error| wire(&error))
     }
 
+    /// `attachment.begin`: declare a file for a live structured session;
+    /// the upload is the caller's.
     pub(crate) async fn begin_upload(
         &self,
-        _: &Connection,
-        _: BeginUpload,
+        connection: &Connection,
+        request: BeginUpload,
     ) -> Result<Upload, WireError> {
-        Err(not_built("attachment.begin"))
+        self.attachments
+            .begin(Holder::of(connection.principal()), request)
+            .await
+            .map_err(|error| wire(&error))
     }
 
+    /// `attachment.write`: the next piece of the caller's upload.
     pub(crate) async fn write_upload(
         &self,
-        _: &Connection,
-        _: WriteUpload,
+        connection: &Connection,
+        request: WriteUpload,
     ) -> Result<Written, WireError> {
-        Err(not_built("attachment.write"))
+        self.attachments
+            .write(Holder::of(connection.principal()), request)
+            .await
+            .map_err(|error| wire(&error))
     }
 
+    /// `attachment.finish`: keep the caller's upload with its session.
     pub(crate) async fn finish_upload(
         &self,
-        _: &Connection,
-        _: FinishUpload,
+        connection: &Connection,
+        request: FinishUpload,
     ) -> Result<AttachmentRef, WireError> {
-        Err(not_built("attachment.finish"))
+        self.attachments
+            .finish(Holder::of(connection.principal()), request.upload)
+            .await
+            .map_err(|error| wire(&error))
     }
 
+    /// `attachment.read`: a piece of a session's attachment.
     pub(crate) async fn read_attachment(
         &self,
         _: &Connection,
-        _: ReadAttachment,
+        request: ReadAttachment,
     ) -> Result<BlobChunk, WireError> {
-        Err(not_built("attachment.read"))
+        self.attachments
+            .read(request)
+            .await
+            .map_err(|error| wire(&error))
     }
 }

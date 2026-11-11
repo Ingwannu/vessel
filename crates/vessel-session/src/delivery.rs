@@ -26,7 +26,7 @@
 //!   end as it waits; neither is lost.
 
 use tokio::sync::oneshot;
-use vessel_agent::{InputError, SteerOutcome};
+use vessel_agent::{Attachments, InputError, SteerOutcome};
 use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
     AgentAbilities, AgentEvent, ContentBlock, Creator, Delivered, Delivery, EventSeq, PromptQueue,
@@ -148,6 +148,11 @@ impl Desk {
         }
     }
 
+    /// What the agent said it takes (all false before it said).
+    pub(crate) const fn abilities(&self) -> AgentAbilities {
+        self.abilities
+    }
+
     /// Whether a turn runs.
     pub(crate) const fn running(&self) -> bool {
         self.started > self.ended_turns
@@ -243,6 +248,7 @@ impl StructuredActor {
                 if idle && !self.desk.queue.is_held() {
                     return self.start(content).await.map(|()| Delivered::Started);
                 }
+                self.check_attachments(&content)?;
                 let entry = self.desk.queue.push(content, by)?;
                 self.publish_queue().await;
                 Ok(Delivered::Queued { entry })
@@ -252,9 +258,19 @@ impl StructuredActor {
         }
     }
 
+    /// Start a turn with `content`, its attachments loaded first.
     async fn start(&mut self, content: Vec<ContentBlock>) -> Result<(), SessionError> {
+        let attachments = self.load_attachments(&content).await?;
+        self.start_loaded(content, attachments).await
+    }
+
+    async fn start_loaded(
+        &mut self,
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+    ) -> Result<(), SessionError> {
         let input = self.input.clone();
-        self.pump(async move { input.prompt(content).await })
+        self.pump(async move { input.prompt_with(content, attachments).await })
             .await
             .map_err(|_stopped| SessionError::Ended)??;
         self.desk.started = self.desk.started.saturating_add(1);
@@ -274,10 +290,11 @@ impl StructuredActor {
         if !self.desk.abilities.steer {
             return Err(InputError::CannotSteer.into());
         }
+        let attachments = self.load_attachments(&content).await?;
         let input = self.input.clone();
         let sent = content.clone();
         let outcome = self
-            .pump(async move { input.steer(sent).await })
+            .pump(async move { input.steer_with(sent, attachments).await })
             .await
             .map_err(|_stopped| SessionError::Ended)??;
         match outcome {
@@ -297,8 +314,10 @@ impl StructuredActor {
     }
 
     /// Cancel the running turn, wait (bounded) for its end, then start
-    /// `content`. The queue is not held by this cancel.
+    /// `content`. The queue is not held by this cancel. Its attachments are
+    /// loaded first, so a prompt refused for them cancels nothing.
     async fn interrupt(&mut self, content: Vec<ContentBlock>) -> Result<Delivered, SessionError> {
+        let attachments = self.load_attachments(&content).await?;
         if self.desk.running() {
             self.desk.interrupting = true;
             let over = self.cancel_and_wait().await;
@@ -307,7 +326,9 @@ impl StructuredActor {
                 return Err(DeliveryError::TurnDidNotEnd.into());
             }
         }
-        self.start(content).await.map(|()| Delivered::Started)
+        self.start_loaded(content, attachments)
+            .await
+            .map(|()| Delivered::Started)
     }
 
     /// Whether the running turn ended after a cancel.
@@ -326,6 +347,9 @@ impl StructuredActor {
     }
 
     async fn change(&mut self, change: QueueChange) -> Result<QueueChanged, SessionError> {
+        if let QueueChange::Edit { content, .. } = &change {
+            self.check_attachments(content)?;
+        }
         let delivered = match self.desk.queue.apply(change)? {
             Applied::Changed => None,
             Applied::Resumed => {

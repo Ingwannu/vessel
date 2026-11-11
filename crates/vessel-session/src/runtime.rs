@@ -21,6 +21,7 @@ use vessel_proto::{
 use vessel_pty::{PtyProcess, WindowSize};
 
 use crate::activity::Tracker;
+use crate::attachments::AttachmentLoader;
 use crate::config::RuntimeConfig;
 use crate::conversation::Seen;
 use crate::delivery::Desk;
@@ -59,6 +60,9 @@ pub struct SessionRuntime {
     shutdown: CancellationToken,
     tasks: TaskTracker,
     sessions: RwLock<HashMap<SessionId, SessionHandle>>,
+    /// The node's attachment loader (protocol 10), which every structured
+    /// session asks for its prompts' attachments.
+    attachments: Option<AttachmentLoader>,
 }
 
 /// How a session is launched beyond its spec: the node decides these
@@ -244,7 +248,17 @@ impl SessionRuntime {
             shutdown,
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
+            attachments: None,
         }
+    }
+
+    /// Structured sessions load their prompts' attachments through
+    /// `loader` (protocol 10, ADR 0025). Without one, a prompt naming an
+    /// attachment is refused.
+    #[must_use]
+    pub fn with_attachments(mut self, loader: AttachmentLoader) -> Self {
+        self.attachments = Some(loader);
+        self
     }
 
     /// A token that keeps [`shutdown`](Self::shutdown) waiting while a
@@ -490,6 +504,7 @@ impl SessionRuntime {
             },
             desk,
             gate,
+            loader: self.attachments.clone(),
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }

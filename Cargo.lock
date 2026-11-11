@@ -3305,6 +3305,7 @@ name = "vessel-node"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64 0.23.1",
  "bytes",
  "chrono",
  "clap",
@@ -3329,6 +3330,7 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+ "url",
  "vessel-client",
  "vessel-fleet",
  "vessel-harness",
@@ -3511,6 +3513,7 @@ version = "0.1.0"
 dependencies = [
  "agent-client-protocol",
  "axum",
+ "base64 0.23.1",
  "futures-util",
  "rustix",
  "serde",
@@ -3519,6 +3522,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
+ "url",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ use vessel_proto::{
     SessionOption,
 };
 
+use crate::attached::Attachments;
 use crate::error::InputError;
 
 /// Where a command's result goes.
@@ -32,6 +33,7 @@ pub enum SteerOutcome {
 pub(crate) enum Command {
     Prompt {
         content: Vec<ContentBlock>,
+        attachments: Attachments,
         reply: Reply,
     },
     CancelTurn {
@@ -39,6 +41,7 @@ pub(crate) enum Command {
     },
     Steer {
         content: Vec<ContentBlock>,
+        attachments: Attachments,
         reply: SteerReply,
     },
     Answer {
@@ -88,7 +91,29 @@ impl AgentInput {
     /// [`InputError::InvalidContent`] for opaque blocks that are not ACP
     /// content, [`InputError::Closed`] after the connection ended.
     pub async fn prompt(&self, content: Vec<ContentBlock>) -> Result<(), InputError> {
-        self.call(|reply| Command::Prompt { content, reply }).await
+        self.prompt_with(content, Attachments::new()).await
+    }
+
+    /// [`prompt`](Self::prompt), with the bodies of the attachments the
+    /// content names (protocol 10): each goes to the agent in its place,
+    /// while the turn's record keeps the reference.
+    ///
+    /// # Errors
+    /// As [`prompt`](Self::prompt), and
+    /// [`InputError::AttachmentNotTaken`] for a kind the agent did not say
+    /// it takes, [`InputError::AttachmentNotLoaded`] for one without its
+    /// body; nothing is sent then.
+    pub async fn prompt_with(
+        &self,
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+    ) -> Result<(), InputError> {
+        self.call(|reply| Command::Prompt {
+            content,
+            attachments,
+            reply,
+        })
+        .await
     }
 
     /// Cancel the turn in progress (a no-op when there is none). Pending
@@ -111,13 +136,26 @@ impl AgentInput {
     /// [`InputError::InvalidContent`] for content ACP cannot carry,
     /// [`InputError::Closed`] after the connection ended.
     pub async fn steer(&self, content: Vec<ContentBlock>) -> Result<SteerOutcome, InputError> {
+        self.steer_with(content, Attachments::new()).await
+    }
+
+    /// [`steer`](Self::steer), with the bodies of the attachments the
+    /// content names, as [`prompt_with`](Self::prompt_with).
+    ///
+    /// # Errors
+    /// As [`steer`](Self::steer) and [`prompt_with`](Self::prompt_with).
+    pub async fn steer_with(
+        &self,
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+    ) -> Result<SteerOutcome, InputError> {
         let (reply, result) = oneshot::channel();
-        if self
-            .commands
-            .send(Command::Steer { content, reply })
-            .await
-            .is_err()
-        {
+        let steer = Command::Steer {
+            content,
+            attachments,
+            reply,
+        };
+        if self.commands.send(steer).await.is_err() {
             return Err(InputError::Closed);
         }
         result.await.unwrap_or(Err(InputError::Closed))

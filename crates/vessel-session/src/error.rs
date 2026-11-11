@@ -6,6 +6,7 @@ use vessel_agent::InputError;
 use vessel_harness::{LinkError, SessionFilesError};
 
 use crate::again::NotResumable;
+use crate::attachments::AttachmentError;
 use crate::moving::MoveError;
 use crate::queue::QueueError;
 use vessel_harness::HarnessError;
@@ -44,6 +45,10 @@ pub enum SessionError {
     /// A prompt was not delivered as asked (protocol 10).
     #[error(transparent)]
     Delivery(#[from] DeliveryError),
+    /// A prompt's attachments were refused or could not be loaded
+    /// (protocol 10).
+    #[error(transparent)]
+    Attachment(#[from] AttachmentError),
     /// Something only a structured session has (protocol 10's
     /// conversation, queue, questions) was asked of a terminal session.
     #[error("a terminal session has no {0}; its harness runs its own interface")]
@@ -129,6 +134,7 @@ impl SessionError {
             | Self::NoOptions
             | Self::Terminal(_)
             | Self::NotResumable(_)
+            | Self::Attachment(AttachmentError::NoLoader)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
@@ -144,7 +150,15 @@ impl SessionError {
                 InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
                 | InputError::Option(_)
-                | InputError::InvalidAnswer { .. },
+                | InputError::InvalidAnswer { .. }
+                | InputError::AttachmentNotTaken { .. },
+            )
+            | Self::Attachment(
+                AttachmentError::TooMany { .. }
+                | AttachmentError::TooLarge { .. }
+                | AttachmentError::Twice(_)
+                | AttachmentError::NotTaken { .. }
+                | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
             Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
                 ErrorCode::SpawnFailed
@@ -164,7 +178,9 @@ impl SessionError {
                 | InputError::Refused { .. }
                 | InputError::SteerRefused { .. },
             )
-            | Self::Queue(QueueError::Full | QueueError::Stale { .. }) => ErrorCode::Conflict,
+            | Self::Queue(QueueError::Full | QueueError::Stale { .. })
+            // The file is not the one kept: the node's state changed.
+            | Self::Attachment(AttachmentError::Changed(_)) => ErrorCode::Conflict,
             Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
                 ErrorCode::Unavailable
             }
@@ -172,7 +188,8 @@ impl SessionError {
             // The node resolves `spec.profile`; another profile is its bug.
             Self::Internal(_)
             | Self::DuplicateId(_)
-            // The node loads a prompt's attachments before it sends it;
+            | Self::Attachment(AttachmentError::Failed(_))
+            // The actor loads a prompt's attachments before it sends it;
             // the agent broke the steering extension's terms.
             | Self::Input(InputError::AttachmentNotLoaded(_) | InputError::Steering(_))
             | Self::Launch(
@@ -229,6 +246,7 @@ impl From<InputError> for SessionError {
             | InputError::Option(_)
             | InputError::Refused { .. }
             | InputError::AttachmentNotLoaded(_)
+            | InputError::AttachmentNotTaken { .. }
             | InputError::CannotSteer
             | InputError::SteerRefused { .. }
             | InputError::Steering(_)) => Self::Input(refused),

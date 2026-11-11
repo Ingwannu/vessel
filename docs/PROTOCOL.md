@@ -84,8 +84,7 @@ worktrees, git, files); this entry is Track A's, the conversation.
 - Built in slices on the track's branch: a call whose slice has not
   landed answers `unsupported` ("not built on this node yet"), as an
   `answer_question` did until questions landed. Built so far:
-  `session.conversation`, `session.prompt` and `session.queue` (a prompt
-  holding an attachment is refused so until attachments land),
+  `session.conversation`, `session.prompt` and `session.queue`,
   `cancel_turn`'s `turn`, and questions: `question_asked`,
   `question_resolved` and `session.send`'s `answer_question`
   (`invalid_request` for an answer that does not fit the form,
@@ -103,7 +102,19 @@ worktrees, git, files); this entry is Track A's, the conversation.
   held `ended`, out of the archive, a new agent credential; it answers
   once the agent is ready, `spawn_failed` with the reason the log ends
   with otherwise), and a subscription the store was serving ends
-  `lagged` when its session started again meanwhile.
+  `lagged` when its session started again meanwhile; attachments:
+  `attachment.begin`, `.write`, `.finish` and `.read` (an upload is its
+  caller's, `not_found` to anyone else; an image or audio only to an
+  agent that said it takes them, `unsupported` otherwise and while it has
+  not said; a piece that ends at or before what the node has is answered
+  with it, one that starts elsewhere is `invalid_request`; an image that
+  does not start as its type does is `invalid_request` and its upload
+  dropped; `conflict` once the session ended, and for a kept file that
+  was changed on disk; uploads open at a restart are dropped), and every
+  prompt naming one (`session.prompt`, a queue `edit`, `session.send`, and
+  a queued prompt when it is sent) checked against the session's own
+  records, the per-prompt bounds and what its agent takes then
+  (`invalid_request`).
 
 ## Version 9 (2026-11-11)
 
