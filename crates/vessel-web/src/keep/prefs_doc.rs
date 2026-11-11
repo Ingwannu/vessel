@@ -23,14 +23,15 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::{ChoiceValue, HarnessKind, NodeId, ProfileName, RawJson};
+use vessel_proto::{NodeId, RawJson};
 
+use self::sections::{
+    AppearanceFile, ComposerFile, LayoutFile, MachineFile, NotificationsFile, SidebarFile,
+    StoredAgent,
+};
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
-    ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, ChoiceKey, Choices, CodeSize,
-    Composer, ContentWidth, Conversation, Grouping, InterfaceSize, Layout, MachineDefaults,
-    Notifications, Panel, PreferenceChange, Preferences, SendKey, SessionSort, ShortcutTarget,
-    SidebarView, Theme,
+    ActionId, AgentDefaults, AgentKind, Bindings, PreferenceChange, Preferences, ShortcutTarget,
 };
 
 /// The file's format.
@@ -39,140 +40,6 @@ pub(crate) const VERSION: u32 = 1;
 /// The largest file read or written, in bytes. The bounds on the settings
 /// keep every known one far under it (under 100 KiB in all).
 pub(crate) const MAX_FILE: u64 = 256 * 1024;
-
-/// Declares a section of plain settings: each a [`Field`], the section's
-/// unknown keys kept in `rest`, and its values for the page.
-macro_rules! section {
-    ($(#[$meta:meta])* $name:ident => $wire:ident { $($field:ident: $ty:ty),* $(,)? }) => {
-        $(#[$meta])*
-        #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-        #[serde(default)]
-        struct $name {
-            $(
-                #[serde(skip_serializing_if = "Field::is_absent")]
-                $field: Field<$ty>,
-            )*
-            #[serde(flatten)]
-            rest: BTreeMap<String, RawJson>,
-        }
-
-        impl $name {
-            /// The values, a default for each that is not read.
-            fn values(&self) -> $wire {
-                let defaults = $wire::default();
-                $wire { $($field: self.$field.value_or(defaults.$field),)* }
-            }
-        }
-
-        impl Blank for $name {
-            fn is_blank(&self) -> bool {
-                $(self.$field.is_absent() &&)* self.rest.is_empty()
-            }
-        }
-    };
-}
-
-section! {
-    /// `appearance`.
-    AppearanceFile => Appearance {
-        theme: Theme,
-        interface_size: InterfaceSize,
-        code_size: CodeSize,
-        content_width: ContentWidth,
-        conversation: Conversation,
-    }
-}
-
-section! {
-    /// `layout`.
-    LayoutFile => Layout { sidebar: Panel, inspector: Panel }
-}
-
-section! {
-    /// `composer`.
-    ComposerFile => Composer { send: SendKey }
-}
-
-section! {
-    /// `notifications`.
-    NotificationsFile => Notifications { alerts: Alerts, title: bool }
-}
-
-section! {
-    /// `sidebar`.
-    SidebarFile => SidebarView { group: Grouping, sort: SessionSort, ended: bool }
-}
-
-/// One machine's defaults in the file.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
-struct MachineFile {
-    #[serde(skip_serializing_if = "Field::is_absent")]
-    agent: Field<Option<HarnessKind>>,
-    #[serde(skip_serializing_if = "Field::is_blank")]
-    agents: Field<Entries<AgentKind, StoredAgent>>,
-    #[serde(flatten)]
-    rest: BTreeMap<String, RawJson>,
-}
-
-impl MachineFile {
-    fn values(&self) -> MachineDefaults {
-        MachineDefaults {
-            agent: self.agent.read().copied().flatten(),
-            agents: self
-                .agents
-                .read()
-                .map(|agents| {
-                    agents
-                        .read()
-                        .iter()
-                        .map(|(kind, stored)| (*kind, stored.0.clone()))
-                        .collect()
-                })
-                .unwrap_or_default(),
-        }
-    }
-}
-
-impl Blank for MachineFile {
-    fn is_blank(&self) -> bool {
-        self.agent.is_absent() && self.agents.is_blank() && self.rest.is_empty()
-    }
-}
-
-/// One agent's defaults in the file: read whole or kept whole. Anything
-/// it does not know (a field, a choice of an unknown kind, a value past
-/// the bounds) keeps the entry as it was, so a newer page's entry is not
-/// cut down to what this build understands.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(try_from = "AgentRecord")]
-struct StoredAgent(AgentDefaults);
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentRecord {
-    #[serde(default)]
-    profile: Option<ProfileName>,
-    #[serde(default)]
-    choices: BTreeMap<ChoiceKey, ChoiceValue>,
-}
-
-impl TryFrom<AgentRecord> for StoredAgent {
-    type Error = crate::wire::ChoicesError;
-
-    fn try_from(record: AgentRecord) -> Result<Self, Self::Error> {
-        Ok(Self(AgentDefaults {
-            profile: record.profile,
-            choices: Choices::strict(record.choices)?,
-        }))
-    }
-}
-
-impl Serialize for StoredAgent {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0.serialize(serializer)
-    }
-}
 
 /// The file's sections, as this build reads them.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -438,5 +305,6 @@ impl PrefsDoc {
     }
 }
 
+mod sections;
 #[cfg(test)]
 mod tests;

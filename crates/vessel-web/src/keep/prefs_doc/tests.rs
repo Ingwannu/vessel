@@ -1,7 +1,10 @@
 use vessel_proto::HarnessKind;
 
 use super::*;
-use crate::wire::{KeyBinding, ShortcutEdit, ShortcutEdits};
+use crate::wire::{
+    Choices, InterfaceSize, KeyBinding, Notifications, Panel, SendKey, ShortcutEdit, ShortcutEdits,
+    Theme,
+};
 
 fn read(text: &str) -> PrefsDoc {
     match PrefsDoc::decode(text.as_bytes()).unwrap() {
