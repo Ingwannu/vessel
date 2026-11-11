@@ -321,3 +321,33 @@ at, in both themes, beside the references' own.
 
 - Whether the page's words (machine, agent) should reach the CLI.
 - Plugins and the shells.
+
+## Track E: done (2026-11-11)
+
+Built, merged into `backend/m10`:
+
+- The bridge's ops `forget`, `rename` and `default`, each answering with
+  the book as it stands; `vessel nodes rename`, on the book's one writer
+  (`BookFile::rename`). The machine this page was opened from is not a
+  book entry and is neither forgotten nor renamed.
+- Whatever names a node on the bridge's wire is parsed where the frame is
+  decoded (`wire/node.rs`: `NodeKey`, `BookName`); a frame that does not
+  decode is still answered by its id, with a typed reason.
+- A pairing link and the text of a QR code are `SecretText`: `Debug`
+  prints a placeholder, and the content is read in three places only.
+- Content-hashed assets are served as immutable (ADR 0017's amendment
+  says why the poisoned-cache defence does not depend on revalidating
+  them).
+- `bridge.rs` divided: the tab's socket (292 lines), `streams.rs`,
+  `calls.rs`, `ops.rs`.
+
+Checked by the track: the three Rust gates (1,015 tests), and the web
+side's typecheck, lint, unit and end-to-end tests against the regenerated
+`bridge.ts`. An independent review's four findings in this area are
+fixed.
+
+Left as it is: two concurrent `vessel` processes writing the book at the
+same instant can still lose one edit (the book has no lock; it had none
+before); a forgotten paired machine's credential file stays on disk, as
+`vessel nodes remove` leaves it; `wire.rs` (653 lines) and `registry.rs`
+(494) each have a seam and were not divided.
