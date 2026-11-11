@@ -263,7 +263,7 @@ Sync) names it in its heading and offers a ghost select of the machines;
 the choice is the address's `?machine=`, so it survives a reload and a
 move between sections. Below 768px the column's padding is 12px.
 
-- **Machines**: a row per machine (a server icon, its name, one line:
+- **Machines**: a row per machine (a machine icon, its name, one line:
   platform, how it is reached, its state, live sessions; "This machine"
   and "Default" badges; a "…" menu of Rename…, Make default and, apart
   and in the danger colour, Forget…). This machine (the node `vessel ui`
@@ -965,7 +965,12 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 Icons are the kit's inline set at the reference's stroke and sizes: its
 1.5 on a 24-unit grid is 1 on this set's 16-unit grid (about a pixel at
 16px); 16px in buttons and tabs, 15 in menus, 14 in the composer and the
-densest buttons.
+densest buttons. One name per drawing, named after what it draws where a
+purpose would fit two uses (`monitor` is the System theme and a device;
+`search` is the palette's field and a search tool call; `plan` is a plan,
+a thought and the Models section). `ICON_NAMES` lists them once; the type,
+the gallery and a test that each has its drawing, and no drawing two
+names, all read that list.
 
 **The gallery.** `/kit` shows every control in each state and size, with
 long and Korean text. It needs no token and nothing links to it;

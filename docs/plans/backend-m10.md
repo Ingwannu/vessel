@@ -514,8 +514,8 @@ Files still to divide (`check-size.mjs`; the ceiling, then the size now):
 | `src/routes/session.tsx` | 328 | 325 |
 | `src/routes/fleet.tsx` | 316 | 314 |
 
-Gate, run in `web/` on the code as committed (the docs commit after it
-changes no code):
+Gate before the merge with track W1, run in `web/` on the code as
+committed (the merged gate is under "Merged with track W1" below):
 
 - `npm ci`: added 281 packages, audited 282. `npm audit` reports 10
   moderate, all `minimatch` under ESLint and typescript-eslint, which this
@@ -684,7 +684,7 @@ What was built:
   at GOAT's readable width: a centred 896px column, one lead sentence,
   sections 40px apart, a 14px heading over a card of the kit's rows.
   Literal values (addresses, ids, paths) only in detail rows.
-- **Machines**: GOAT's environment rows (a server icon, the name, one
+- **Machines**: GOAT's environment rows (a machine icon, the name, one
   line of platform, reach, state and live sessions; "This machine" and
   "Default" badges; a "…" menu of Rename…, Make default, Forget…). Forget
   and Rename ask first, in dialogs that say what they do and do not do;
@@ -703,7 +703,7 @@ What was built:
 - **Agents**: per machine, every agent Vessel drives as GOAT's provider
   rows (Available, Needs attention with the machine's reason, Not found);
   an agent's card asks `harness.options` only when opened and lists what
-  it offers in the plan's words (Models, Effort, Permissions, then the
+  it offers in the plan's words (Model, Effort, Permissions, then the
   agent's own).
 - **Models, Devices, Sync, Appearance, About** on rows and the kit, their
   actions kept (invite with a hidden-until-asked link and QR code,
@@ -718,11 +718,11 @@ What was built:
   `data/outcome.ts`'s `attempt` turns every call and op into an
   `Outcome`, so what a screen says next is a switch on the reason.
 - **Kit**: `CommandLine` (GOAT's setup command, copying and saying so on
-  itself) and four icons (server, and a checklist's passed, failed and
-  skipped), in the gallery.
+  itself) and three icons (a checklist's passed, failed and skipped), in
+  the gallery.
 - **Structure**: `routes/fleet.tsx`, `devices.tsx` and `sync.tsx` are gone
-  and off the list of files still to divide (6 left); `routes/settings.tsx`
-  only composes. Every decision is a pure function with a test
+  and off the list of files still to divide (6 left then, 1 after the
+  merge); `routes/settings.tsx` only composes. Every decision is a pure function with a test
   (`data/machines`, `pairing`, `agents`, `devices`, `sync`, `welcome`,
   `settings-place`, `model-rows`, `about`, `outcome`); every call is a
   typed function in `data/` (`book`, `agents`, `devices`, `sync`). The
@@ -743,8 +743,8 @@ Checked:
   dark, the busiest at 390px, and the welcome from a UI with an empty
   book; each looked at.
 
-Gate, run in `web/` on the code as committed (the docs commit after it
-changes no code):
+Gate before the merge with track W1, run in `web/` on the code as
+committed (the merged gate is under "Merged with track W1" below):
 
 - `npm run lint`: ESLint and Prettier clean; `fonts: 47 stacks follow the
   rule`, `controls: nothing native outside the kit`, `size: within
@@ -772,19 +772,82 @@ coordinator):
   token before the node has run); the welcome retries it on focus and on
   "Check again" rather than claim it connects by itself.
 
-For the merge with track W1:
+Merged with track W1 (2026-11-11, `git merge backend/m10`, no rebase):
+the ten conflicts resolved by keeping W1's shell, sidebar, `/new` and
+board and putting Settings, adding a machine and the welcome inside them.
 
-- "Start a session there" calls `openNewSession(machine)`; when W1's
-  `/new` replaces the dialog, that function is the one place to change.
-- The sidebar here still has Fleet, Sync and Devices (they redirect) and
-  no section list; no in-page section list was added. The palette's
-  places likewise still name Fleet, Sync and Devices.
-- `e2e/open.ts` waits for the sidebar's "Fleet" navigation; `screens.ts`
-  lost its Fleet, Sync, Devices and Settings captures (they are in
-  `settings-screens.ts`) and imports the sync setup from `fleet-home.ts`.
+One module for one thing. Each duplicate found, and the copy kept:
 
-Differences from the references that remain: DESIGN.md §12, items 6 to
-9 (an 896px column; an agent's card as one list, not tabs; no on/off
+- `agentName` (in both `agents.ts`): one, in `data/agents.ts`.
+  `data/agents.ts` split by responsibility: `agents` (the kinds, name,
+  mark, `agentKindOf`), `agent-choices` (the composer's agent, profile
+  and move lists; `choices.ts`'s `moveOptions` became `moveChoices`, its
+  other lists were dead and went), `agent-status` (the Settings card's
+  status, headline and offer rows).
+- An agent's offers: the card grouped `SessionOption`s itself
+  (`offerGroupOf`); it now reads W1's `controlsOf` (`data/options.ts`),
+  and the slot's word comes from one `slotLabel` the composer's menus use
+  too (Model, Effort, Permissions).
+- `harness.options`: the card's `loadOffer` went; W1's `probeOptions` is
+  the one wrapper. `Outcome`/`attempt`: `calls.ts` had its own; both now
+  use `data/outcome.ts`, whose failures carry a reason.
+- The machine a screen is about: `startingMachine` (new session),
+  `machineFor` (Settings) and `selectedNode` (the shell) were three
+  rules; `machineMeant` in `data/nodes.ts` is the one, each caller saying
+  which machines it accepts. `machineChoices` (new session and Settings'
+  picker) is one, in `data/machines.ts`.
+- State words: `nodeState` (Online, Offline…) and `machineState`
+  (Connected, Offline…): `machineState`, everywhere, the sidebar too.
+- `sessionModel` and `startedModel`: `startedModel`. `harnessMark` and
+  `harnessName`: `agentMark` in `data/agents.ts`; the card's own
+  `.agent-mark` gave way to the kit's `Avatar`.
+- Icons: `server` and `machine` drew the same thing (`machine` kept);
+  `search-kind` was `search`, `devices` was `monitor`, and `fleet` and
+  `sessions` were used only by the gallery (gone). `ICON_NAMES` is now the
+  one list the type and the gallery read, and a test checks each name
+  has its drawing and no drawing has two names; the gallery showed eight
+  icons fewer than the set had.
+- `queryValue` (in `settings-place.ts` and `where.ts`): `where.ts`, which
+  now also reads `agent`. `reach` and `reachWord`: `reachWord`.
+  `sectionIcon` moved to `features/settings/section-icon.ts` so the
+  sidebar and the palette share it without an import cycle.
+
+Every entry point, before this merge's changes and after:
+
+- Add a machine: Settings' Machines header and the welcome worked; the
+  palette's action worked; the sidebar's Machines heading had no "+"
+  (added, with a tooltip).
+- A machine in the sidebar opened the board filtered to it; it opens its
+  Settings detail now (`/settings/machines?machine=`), marked while shown.
+- The welcome as the index: W1 sent `/` to `/fleet`; the index is the
+  board once a machine is connected and the welcome until then.
+- Settings' sections: reachable from W1's sidebar list through an
+  untyped link; typed links now, the current one marked. No in-page
+  section list exists.
+- "n" or New from Settings: the machine in view was lost and the page
+  went to Appearance (Settings re-rendered at `/new` and redirected);
+  Settings now renders nothing outside `/settings`, and the machine
+  shown in Settings is the one New starts on.
+- The palette: places were Fleet, Sync and Devices and its machines went
+  to `/fleet/<machine>` with a `ws://` detail; it now lists Board, each
+  Settings section, each machine (state and reach), each session by its
+  name, the theme, and "Add a machine", once each. `g m`, `g y`, `g d`
+  go to their sections.
+- Old addresses (`/fleet`, `/fleet/<machine>`, `/sync`, `/devices`):
+  worked, and still do; each redirect now checks it is still at its own
+  address, as the first run caught one overwriting the next page's.
+- Protocol words: the kit's gallery still said node, book and online in
+  its specimens; it says machine and the page's state words now.
+
+Left as W1 left it: below 768px the sidebar is hidden and there is no
+other way to it (the phone shell is ADR 0020, out of scope), so on a
+phone a Settings section is reached by its address only.
+
+`check-size` lists only `bridge/client.ts` (467 lines, at its ceiling;
+two op-failure helpers moved to `frames.ts` to keep it there).
+
+Differences from the references that remain: DESIGN.md §12, items 13
+to 16 (an 896px column; an agent's card as one list, not tabs; no on/off
 switch on a machine's row; the confirmation names the machine by its id).
 
 Not verified: browsers other than Chromium; an agent's card against a
