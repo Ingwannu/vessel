@@ -257,3 +257,19 @@ opt-level = 3
 
 [profile.dev.package.curve25519-dalek]
 opt-level = 3
+
+# The release build (milestone 11, track P; docs/PERFORMANCE.md has the
+# figures). Measured against cargo's defaults (thin-local LTO, 16 codegen
+# units): fat link-time optimisation with one codegen unit made the
+# CPU-bound hot paths 5 to 12% faster (a frame's encode and decode, the
+# bridge's work per record, a terminal's fan-out) and `vesseld` a third
+# smaller (42.6 to 28.5 MB, which an SSH install uploads), for a clean
+# release build about 3.6 times as long. Thin LTO moved nothing beyond the
+# noise. Symbols are kept (`strip` would save 14% more) so a panic's
+# backtrace in a node's log still names its functions; and panics still
+# unwind (the default): one node process carries every session, and a
+# task that panics must end alone, not take the process with it.
+# Development builds are unchanged.
+[profile.release]
+lto = "fat"
+codegen-units = 1
