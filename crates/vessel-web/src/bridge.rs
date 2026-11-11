@@ -32,7 +32,7 @@ use tokio_tungstenite::tungstenite::Message;
 use vessel_client::{CallError, StreamError, UnaryCall, follow_resuming};
 use vessel_proto::{Call, EventSeq, Method, RawJson, SessionId};
 
-use crate::registry::{Change, Registry, Shared, chain};
+use crate::registry::{Cancelled, Change, Registry, Shared, chain};
 use crate::source::NodeSource;
 use crate::wire::{
     CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpOutcome, ServerFrame, StreamId,
@@ -127,7 +127,7 @@ fn removed(node: NodeKey) -> ServerFrame {
     ServerFrame::Node {
         node,
         status: crate::wire::NodeStatus::Failed {
-            message: "the node was removed from the book".to_owned(),
+            message: Cancelled::Removed.message().to_owned(),
         },
     }
 }
@@ -463,20 +463,12 @@ async fn follow<S: NodeSource>(
     }
 }
 
-/// A stream's last notice when its node's entry was cancelled: the UI
-/// stopping cancels every entry, anything else is the node leaving the
-/// book.
+/// A stream's last notice when its node's entry was cancelled.
 fn cut_off<S: NodeSource>(registry: &Registry<S>) -> StreamState {
-    if registry.stopping() {
-        StreamState::Failed {
-            message: "the UI is stopping".to_owned(),
-            reason: StreamStop::Stopping,
-        }
-    } else {
-        StreamState::Failed {
-            message: "the node was removed from the book".to_owned(),
-            reason: StreamStop::Removed,
-        }
+    let cancelled = registry.cancelled();
+    StreamState::Failed {
+        message: cancelled.message().to_owned(),
+        reason: cancelled.reason(),
     }
 }
 
