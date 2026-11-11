@@ -15,7 +15,10 @@ use crate::support::{Source, Ui, within};
 
 /// A plain HTTP/1.1 exchange: the status code, the headers (lower case),
 /// the body.
-async fn http(address: SocketAddr, request: &str) -> (u16, Vec<(String, String)>, String) {
+pub(crate) async fn http(
+    address: SocketAddr,
+    request: &str,
+) -> (u16, Vec<(String, String)>, String) {
     let mut stream = within(TcpStream::connect(address)).await.unwrap();
     within(stream.write_all(request.as_bytes())).await.unwrap();
     let mut said = Vec::new();
@@ -38,7 +41,7 @@ async fn http(address: SocketAddr, request: &str) -> (u16, Vec<(String, String)>
     (code, headers, body.to_owned())
 }
 
-fn get(path: &str, host: &str, extra: &str) -> String {
+pub(crate) fn get(path: &str, host: &str, extra: &str) -> String {
     format!("GET {path} HTTP/1.1\r\nHost: {host}\r\n{extra}Connection: close\r\n\r\n")
 }
 

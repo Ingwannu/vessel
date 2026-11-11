@@ -3,6 +3,7 @@
 //! node that a test can cut.
 
 use std::net::{Ipv4Addr, SocketAddr};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -24,7 +25,7 @@ use vessel_web::wire::{
     AuthMode, BookNode, CallId, ClientFrame, NodeKey, Nonce, Op, PresentedToken, SecretText,
     ServerFrame, Transport,
 };
-use vessel_web::{LaunchToken, NodeSource, UiConfig};
+use vessel_web::{LaunchToken, NodeSource, PageFiles, UiConfig};
 
 /// Only turns a hang into a failure.
 pub(crate) const SAFETY: Duration = Duration::from_secs(60);
@@ -309,7 +310,7 @@ impl TestNode {
         self.node.info().id
     }
 
-    pub(crate) fn dir(&self) -> &std::path::Path {
+    pub(crate) fn dir(&self) -> &Path {
         self.data.path()
     }
 
@@ -383,6 +384,21 @@ async fn pipe(mut inbound: TcpStream, upstream: SocketAddr, cut: CancellationTok
 pub(crate) struct Source {
     dir: Arc<TempDir>,
     dials: Arc<AtomicUsize>,
+    files: Files,
+}
+
+/// Where the tests' source says the page's preferences and drafts go.
+#[derive(Clone)]
+enum Files {
+    /// Nowhere: the trait's default (memory, for this launch).
+    Default,
+    /// In these files.
+    At {
+        preferences: PathBuf,
+        drafts: PathBuf,
+    },
+    /// It cannot say (as a CLI without a home directory).
+    Unknown,
 }
 
 impl Default for Source {
@@ -390,11 +406,40 @@ impl Default for Source {
         Self {
             dir: Arc::new(tempfile::tempdir().unwrap()),
             dials: Arc::new(AtomicUsize::new(0)),
+            files: Files::Default,
         }
     }
 }
 
 impl Source {
+    /// Keep the page's files in `dir` (`config/vessel/ui-preferences.json`
+    /// and `data/ui-drafts.json`, neither directory made yet).
+    pub(crate) fn keeping_in(mut self, dir: &Path) -> Self {
+        self.files = Files::At {
+            preferences: Self::preferences_in(dir),
+            drafts: Self::drafts_in(dir),
+        };
+        self
+    }
+
+    /// Answer the page's files with an error.
+    pub(crate) fn not_knowing_where(mut self) -> Self {
+        self.files = Files::Unknown;
+        self
+    }
+
+    /// Where [`Source::keeping_in`] keeps the preferences.
+    pub(crate) fn preferences_in(dir: &Path) -> PathBuf {
+        dir.join("config")
+            .join("vessel")
+            .join("ui-preferences.json")
+    }
+
+    /// Where [`Source::keeping_in`] keeps the drafts.
+    pub(crate) fn drafts_in(dir: &Path) -> PathBuf {
+        dir.join("data").join("ui-drafts.json")
+    }
+
     /// Offer the node at `address` as `name`, with `token` in a file.
     pub(crate) fn with(self, name: &str, address: SocketAddr, token: &BearerToken) -> Self {
         let tokens = self.dir.path().join("tokens");
@@ -422,7 +467,7 @@ impl Source {
     }
 
     /// The book's file.
-    pub(crate) fn path(&self) -> std::path::PathBuf {
+    pub(crate) fn path(&self) -> PathBuf {
         self.dir.path().join("nodes.toml")
     }
 
@@ -441,6 +486,8 @@ pub(crate) enum Refused {
     Missing(NodeKey),
     #[error("the tests' book holds websocket nodes with token files only")]
     NotWebsocket,
+    #[error("no home directory (the tests' source)")]
+    NoHome,
 }
 
 impl NodeSource for Source {
@@ -504,6 +551,20 @@ impl NodeSource for Source {
             NodeKey::Book(name) => Some(name.as_str()),
         };
         Ok(self.file().set_default(name)?)
+    }
+
+    fn preferences(&self) -> Result<PageFiles, Refused> {
+        match &self.files {
+            Files::Default => Ok(PageFiles::default()),
+            Files::At {
+                preferences,
+                drafts,
+            } => Ok(PageFiles {
+                preferences: Some(preferences.clone()),
+                drafts: Some(drafts.clone()),
+            }),
+            Files::Unknown => Err(Refused::NoHome),
+        }
     }
 }
 
