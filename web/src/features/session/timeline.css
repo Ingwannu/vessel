@@ -201,3 +201,35 @@
 .t-meta.error {
   color: var(--danger);
 }
+
+/* A run of tool calls folded into one row ("Collapse tool calls"):
+   Paseo's summary line, a chevron that turns when the run is open. */
+.fold-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: var(--t-meta);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.fold-row:hover {
+  color: var(--text-primary);
+}
+
+.fold-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.fold-row .ico {
+  transition: transform var(--d-1) var(--ease);
+}
+
+.fold-row[aria-expanded="true"] .ico {
+  transform: rotate(90deg);
+}

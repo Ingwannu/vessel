@@ -17,6 +17,7 @@ import { Banner } from "../../ui/kit";
 import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
 import { FindBar } from "./find-bar";
+import { FoldProvider } from "./folds";
 import { Inspector } from "./inspector";
 import { Outline } from "./outline";
 import { clearMarks, type Reveal } from "./reveal";
@@ -91,11 +92,13 @@ export function StructuredSession({
           <Banner tone="error">The stream stopped: {stream.message}</Banner>
         ) : null}
         <div className="session-log">
-          <Timeline
-            timeline={timeline}
-            reveal={reveal}
-            scrollerRef={setScroller}
-          />
+          <FoldProvider entries={timeline.entries}>
+            <Timeline
+              timeline={timeline}
+              reveal={reveal}
+              scrollerRef={setScroller}
+            />
+          </FoldProvider>
           <Outline
             items={items}
             scroller={scroller}

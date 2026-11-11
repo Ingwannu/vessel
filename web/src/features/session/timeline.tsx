@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { Timeline as Log } from "../../data/timeline-model";
 import { type Reveal, revealEntry } from "./reveal";
-import { TimelineItem } from "./timeline-item";
+import { TimelineEntry } from "./folds";
 
 /** How close to the end counts as reading the end, in pixels. */
 const NEAR_END = 48;
@@ -64,7 +64,7 @@ export function Timeline({
     >
       <div className="timeline-column" aria-live="polite" ref={column}>
         {timeline.entries.map((entry) => (
-          <TimelineItem key={entry.key} entry={entry} />
+          <TimelineEntry key={entry.key} entry={entry} />
         ))}
         {count === 0 ? (
           <p className="t-meta">Waiting for the session&apos;s first record…</p>
