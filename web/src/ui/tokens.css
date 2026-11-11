@@ -61,7 +61,8 @@
   --danger: #9d0006;
   --interrupt: var(--text-tertiary);
 
-  --overlay: rgb(18 18 18 / 32%);
+  /* The dialog scrim: agent-orchestrator's, the ink at 45%. */
+  --overlay: rgb(18 18 18 / 45%);
   --shadow: 0 4px 12px -4px rgb(18 18 18 / 12%), 0 0 0 1px var(--border-subtle);
   /* A filled button's only depth: a lit top edge and a shaded bottom
      edge, inside it. No outer shadow anywhere. */
@@ -158,6 +159,44 @@
   --d-3: 280ms;
 
   --focus: 2px solid var(--ring);
+
+  /* --- Controls (the kit, ADR 0021; DESIGN.md §6.13) ---
+     agent-orchestrator's control heights: 24, 28 and 32 (the form
+     control). */
+  --h-xs: 24px;
+  --h-sm: 28px;
+  --h-md: 32px;
+  /* A field: its settings-input pair, a 4% fill inside an 8% hairline. */
+  --field-bg: rgb(18 18 18 / 4%);
+  --field-edge: rgb(0 0 0 / 8%);
+  /* The popup surface (menus, selects, popovers, tooltips, dialogs): its
+     `--popover`, an edge at 2% of the ink and a shadow at 5%. */
+  --popup-bg: #ffffff;
+  --popup-edge: rgb(18 18 18 / 2%);
+  --popup-shadow: 0 4px 12px -4px rgb(18 18 18 / 5%);
+  /* A segmented control's chosen segment (GOAT's: the page's white on
+     the track, lifted by a hairline). */
+  --segment-thumb: #ffffff;
+  --segment-edge: rgb(0 0 0 / 8%);
+  /* The switch: off is the ink's thumb on the 4% track, on is the
+     primary button's fill with its own text colour as the thumb. */
+  --switch-track: rgb(18 18 18 / 4%);
+  --switch-track-on: var(--btn-primary-bg);
+  --switch-thumb: var(--text-primary);
+  --switch-thumb-on: var(--btn-primary-fg);
+  /* The switch's inset shading (agent-orchestrator's), track then thumb. */
+  --switch-shade:
+    inset 0 1px 2px rgb(0 0 0 / 18%), inset 0 -0.5px 0 rgb(255 255 255 / 8%);
+  --switch-shade-pressed: inset 0 1px 3px rgb(0 0 0 / 24%);
+  --switch-thumb-shade:
+    inset 0 1px 0 rgb(255 255 255 / 18%), inset 0 -1px 0 rgb(0 0 0 / 12%);
+  /* The command palette's radius and its highlighted row (the ink at 9%,
+     10% in dark). */
+  --r-palette: 14px;
+  --palette-hit: rgb(18 18 18 / 9%);
+  /* Selected text and a popup's scrollbar: drawn, not the browser's. */
+  --selection: rgb(18 18 18 / 12%);
+  --scrollbar: rgb(0 0 0 / 16%);
 }
 
 :root[data-theme="dark"] {
@@ -188,7 +227,8 @@
   --st-merged: #c084fc;
   --danger: #fb4934;
 
-  --overlay: rgb(0 0 0 / 56%);
+  /* Its dark scrim: the page's own black at 85%. */
+  --overlay: rgb(24 24 24 / 85%);
   --shadow: 0 4px 12px -4px rgb(0 0 0 / 40%), 0 0 0 1px var(--border-subtle);
   --btn-primary-bg: #dedede;
   --btn-primary-bg-hover: #d0d0d0;
@@ -210,6 +250,18 @@
 
   --term-bg: #0c0c0c;
   --term-frame: #1a1a1a;
+
+  --field-bg: rgb(255 255 255 / 4%);
+  --field-edge: rgb(255 255 255 / 3%);
+  --popup-bg: #2e2e2e;
+  --popup-edge: rgb(245 245 245 / 2%);
+  --popup-shadow: 0 4px 12px -4px rgb(0 0 0 / 14%);
+  --segment-thumb: rgb(255 255 255 / 10%);
+  --segment-edge: rgb(255 255 255 / 6%);
+  --switch-track: rgb(255 255 255 / 4%);
+  --palette-hit: rgb(245 245 245 / 10%);
+  --selection: rgb(245 245 245 / 16%);
+  --scrollbar: rgb(255 255 255 / 14%);
 }
 
 @media (prefers-reduced-motion: reduce) {

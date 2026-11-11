@@ -20,7 +20,7 @@ import { openExternal } from "../data/links";
 import { addCall, type Usage, usageLine } from "../data/models";
 import { decodeBytes } from "../data/terminal";
 import { TerminalSender } from "../data/terminal-sender";
-import { Banner } from "../ui/parts";
+import { Banner } from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { StreamState } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";

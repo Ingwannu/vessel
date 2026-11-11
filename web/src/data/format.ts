@@ -2,7 +2,12 @@
 // (DESIGN.md §1.1). Statuses keep their protocol names.
 
 import type { NodeStatus } from "../wire/bridge";
-import type { HarnessKind, SessionInfo, SessionStatus } from "../wire/proto";
+import type {
+  HarnessKind,
+  SessionInfo,
+  SessionStatus,
+  ToolCallStatus,
+} from "../wire/proto";
 
 /** The first four characters of an id: what the chrome shows. */
 export function shortId(id: string): string {
@@ -22,19 +27,37 @@ export function statusWord(status: SessionStatus): string {
   }
 }
 
-/** The badge class for a session's status (DESIGN.md §6.4). */
-export function statusTone(status: SessionStatus): string {
+/** The colour a state is drawn in (DESIGN.md §4.1): ok is the ready
+ * lane's green, warn the review lane's amber, danger red, interrupt the
+ * tertiary grey, neutral none. The kit's Badge takes the same union. */
+export type StateTone = "neutral" | "ok" | "warn" | "danger" | "interrupt";
+
+/** The tone of a session's status (DESIGN.md §6.4). */
+export function statusTone(status: SessionStatus): StateTone {
   switch (status.state) {
     case "starting":
       return "warn";
     case "running":
-      return "running";
+      return "ok";
     case "failed":
       return "danger";
     case "interrupted":
-      return "interrupted";
+      return "interrupt";
     case "exited":
-      return "";
+      return "neutral";
+  }
+}
+
+/** The tone of a tool call's status: working is warn, done is ok. */
+export function toolTone(status: ToolCallStatus): StateTone {
+  switch (status) {
+    case "pending":
+    case "in_progress":
+      return "warn";
+    case "completed":
+      return "ok";
+    case "failed":
+      return "danger";
   }
 }
 
@@ -122,7 +145,7 @@ export function when(iso: string): string {
 /** The word and tone for a node's link, as the sidebar and badges show it. */
 export function nodeState(status: NodeStatus | undefined): {
   word: string;
-  tone: string;
+  tone: StateTone;
 } {
   switch (status?.state) {
     case undefined:
@@ -132,10 +155,10 @@ export function nodeState(status: NodeStatus | undefined): {
     case "connected":
       return status.node.state === "draining"
         ? { word: "draining", tone: "warn" }
-        : { word: "serving", tone: "running" };
+        : { word: "serving", tone: "ok" };
     case "reconnecting":
       return { word: "reconnecting", tone: "warn" };
     case "failed":
-      return { word: "offline", tone: "" };
+      return { word: "offline", tone: "neutral" };
   }
 }

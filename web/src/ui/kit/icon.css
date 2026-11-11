@@ -1,7 +1,6 @@
-/* Icons: one stroke drawing per name, drawn as a CSS mask in the current
-   text colour, so an icon takes its row's colour and state. */
-
-/* --- Icons (mask, currentColor) --- */
+/* Icons (kit/icon.tsx): one stroke drawing per name, drawn as a CSS mask
+   in the current text colour, so an icon takes its row's colour and
+   state. */
 
 .ico {
   display: inline-block;
@@ -13,13 +12,33 @@
   mask: var(--ico) center / contain no-repeat;
 }
 
-.ico.sm {
+/* The reference's sizes: 12 and 13 in dense chrome, 14 in a composer's
+   controls, 15 in menus, 16 in buttons and tabs, 20 for an empty state. */
+.ico.s12 {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
+}
+
+.ico.s13 {
+  width: 13px;
+  height: 13px;
+  flex-basis: 13px;
+}
+
+.ico.s14 {
   width: 14px;
   height: 14px;
   flex-basis: 14px;
 }
 
-.ico.lg {
+.ico.s15 {
+  width: 15px;
+  height: 15px;
+  flex-basis: 15px;
+}
+
+.ico.s20 {
   width: 20px;
   height: 20px;
   flex-basis: 20px;
@@ -135,4 +154,22 @@
 
 .ico-dot {
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%23000'/%3E%3C/svg%3E");
+}
+
+/* The kit's own (ADR 0021): a chevron up for a select that opens upward,
+   and the theme's three choices. */
+.ico-chevron-up {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='m4 10 4-4 4 4'/%3E%3C/svg%3E");
+}
+
+.ico-sun {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='2.75'/%3E%3Cpath d='M8 1.5v1.25M8 13.25v1.25M1.5 8h1.25M13.25 8h1.25M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9'/%3E%3C/svg%3E");
+}
+
+.ico-moon {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M13.5 9.6A5.5 5.5 0 0 1 6.4 2.5a5.5 5.5 0 1 0 7.1 7.1Z'/%3E%3C/svg%3E");
+}
+
+.ico-monitor {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='2' y='2.75' width='12' height='8.5' rx='1.5'/%3E%3Cpath d='M5.5 14h5M8 11.25V14'/%3E%3C/svg%3E");
 }

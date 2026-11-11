@@ -11,7 +11,7 @@ import { apiName, routeLine } from "../data/models";
 import { nodeLabel } from "../data/nodes";
 import { useWhere } from "../data/where";
 import type { BookNode, NodeStatus } from "../wire/bridge";
-import { Badge, Banner, Empty, Skeleton, StatusDot } from "../ui/parts";
+import { Badge, Banner, EmptyState, Skeleton, StatusDot } from "../ui/kit";
 
 export function FleetPage(): ReactElement {
   const where = useWhere();
@@ -105,10 +105,10 @@ export function FleetPage(): ReactElement {
         {book === null ? (
           <Skeleton />
         ) : nodes.length === 0 ? (
-          <Empty title="No nodes in the book">
+          <EmptyState title="No nodes in the book">
             Add one with <code>vessel nodes add NAME ADDRESS</code>, or pair one
             in Settings.
-          </Empty>
+          </EmptyState>
         ) : (
           <div className={selected === null ? "" : "two-col"}>
             <div className="table-wrap">
@@ -206,7 +206,7 @@ function NodeRow({
         <Badge tone={state.tone}>{state.word}</Badge>
       </td>
       <td>
-        <Badge tone="mono">{reach(node)}</Badge>
+        <Badge look="mono">{reach(node)}</Badge>
       </td>
       <td className="mono muted">
         {harnesses === undefined
@@ -301,8 +301,8 @@ function NodePanel({ node }: { node: BookNode }) {
                     <Badge
                       tone={
                         harness.structured.state === "available"
-                          ? "running"
-                          : ""
+                          ? "ok"
+                          : "neutral"
                       }
                     >
                       {harnessName(harness.kind)}
@@ -329,7 +329,7 @@ function NodePanel({ node }: { node: BookNode }) {
                   key={route.name}
                   title={apiName(route.api)}
                 >
-                  <Badge tone="accent">{route.name}</Badge>
+                  <Badge look="accent">{route.name}</Badge>
                   <span className="muted">
                     {routeLine(route)}
                     {route.small_model === undefined ||

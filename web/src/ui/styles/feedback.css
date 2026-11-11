@@ -35,39 +35,6 @@
   background: var(--danger);
 }
 
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: var(--s-7) 8px;
-  color: var(--text-secondary);
-}
-
-.empty h2 {
-  margin: 0;
-  font: var(--t-title);
-  color: var(--text-primary);
-}
-
-.empty p {
-  margin: 0;
-  max-width: 46ch;
-}
-
-.skel {
-  height: 12px;
-  border-radius: 4px;
-  background: var(--bg-hover);
-  animation: pulse 1.2s var(--ease) infinite;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.45;
-  }
-}
-
 .conflict {
   border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border-subtle));
   background: color-mix(in srgb, var(--warn) 7%, var(--bg-surface));

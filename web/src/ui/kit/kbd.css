@@ -1,0 +1,21 @@
+/* Kbd (kit/kbd.tsx). As text (the reference's sidebar search: the keys
+   written in 11px, tertiary), or as GOAT's key chip: 20px tall, radius 4,
+   12px medium on a 7% wash. */
+
+.kbd {
+  color: var(--text-tertiary);
+  font: 400 11px / 16px var(--font-sans);
+  white-space: nowrap;
+}
+
+.kbd.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: var(--r-1);
+  background: var(--bg-active);
+  font: 500 12px / 16px var(--font-sans);
+}

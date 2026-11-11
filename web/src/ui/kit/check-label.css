@@ -1,0 +1,17 @@
+/* A switch's or a checkbox's visible label beside it (kit/switch.tsx,
+   kit/checkbox.tsx): clicking the words toggles the control. */
+
+.check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font: var(--t-control);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-label[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+}

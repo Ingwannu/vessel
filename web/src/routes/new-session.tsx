@@ -14,8 +14,7 @@ import { closeNewSession, useFleet, useFleetState } from "../context";
 import { harnessName, nodeState } from "../data/format";
 import { byProvider, profileOn } from "../data/models";
 import { nodeLabel } from "../data/nodes";
-import { Dialog } from "../ui/dialog";
-import { Icon } from "../ui/parts";
+import { Dialog, Icon } from "../ui/kit";
 import type { HarnessKind, SessionSpec } from "../wire/proto";
 
 type Mode = "structured" | "terminal";
@@ -113,7 +112,6 @@ export function NewSessionDialog({
   return (
     <Dialog
       title="New session"
-      wide
       onClose={closeNewSession}
       footer={
         <>
@@ -283,7 +281,7 @@ export function NewSessionDialog({
                 }}
               />
               <span>
-                <Icon name="message" size="sm" /> Structured
+                <Icon name="message" size={14} /> Structured
               </span>
             </label>
             <label
@@ -298,7 +296,7 @@ export function NewSessionDialog({
                 }}
               />
               <span>
-                <Icon name="terminal" size="sm" /> Terminal
+                <Icon name="terminal" size={14} /> Terminal
               </span>
             </label>
           </div>

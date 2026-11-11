@@ -1,0 +1,36 @@
+/* The sidebar's search row (features/palette/palette.tsx): the
+   reference's filled pill, 32px, radius 10, a 4% wash; one box, since it
+   is a button that opens the palette, not a field. */
+
+.side-search-wrap {
+  flex: none;
+  margin: 0 8px 4px;
+}
+
+.side-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--nav-h);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-4);
+  background: var(--bg-well);
+  color: var(--text-secondary);
+  font: var(--t-control);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--d-2) var(--ease),
+    color var(--d-2) var(--ease);
+}
+
+.side-search:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.side-search .label {
+  flex: 1;
+}

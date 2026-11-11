@@ -7,8 +7,8 @@ import { useCrumbs, useFleet, useFleetState } from "../context";
 import { ago, when } from "../data/format";
 import { useWhere } from "../data/where";
 import { labelOf, selectedNode } from "../data/nodes";
-import { Dialog } from "../ui/dialog";
-import { Badge, CopyButton, Empty, Icon, Skeleton } from "../ui/parts";
+import { Badge, Dialog, EmptyState, Icon, Skeleton } from "../ui/kit";
+import { CopyButton } from "../ui/parts";
 import { toast } from "../ui/toasts";
 import type { DeviceInfo, Invitation } from "../wire/proto";
 
@@ -153,13 +153,13 @@ export function DevicesPage(): ReactElement {
       </div>
       <div className="page-body">
         {node === null || !connected ? (
-          <Empty
+          <EmptyState
             title={
               node === null ? "No node selected" : `${label} is not connected`
             }
           >
             Devices are per node: pick a connected one in the sidebar.
-          </Empty>
+          </EmptyState>
         ) : (
           <>
             <div className="panel">
@@ -172,7 +172,7 @@ export function DevicesPage(): ReactElement {
                   }
                 >
                   {!showing ? (
-                    <Icon name="qr" size="lg" />
+                    <Icon name="qr" size={20} />
                   ) : (
                     <img
                       src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(pairing.svg)}`}
@@ -193,7 +193,7 @@ export function DevicesPage(): ReactElement {
                   {!showing ? null : (
                     <>
                       <div className="link-box">
-                        <Icon name="link" size="sm" />
+                        <Icon name="link" size={14} />
                         <span className="link-text">
                           {pairing.invitation.link}
                         </span>
@@ -247,15 +247,15 @@ export function DevicesPage(): ReactElement {
               </div>
             </div>
             {error !== null ? (
-              <Empty title={`Devices on ${label} cannot be listed`}>
+              <EmptyState title={`Devices on ${label} cannot be listed`}>
                 {error}
-              </Empty>
+              </EmptyState>
             ) : devices === null ? (
               <Skeleton />
             ) : live.length === 0 ? (
-              <Empty title={`No devices paired with ${label}`}>
+              <EmptyState title={`No devices paired with ${label}`}>
                 A device paired with a link above shows up here.
-              </Empty>
+              </EmptyState>
             ) : (
               <div className="table-wrap">
                 <table className="data" aria-label="Paired devices">

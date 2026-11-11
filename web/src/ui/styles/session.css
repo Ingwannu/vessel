@@ -54,29 +54,6 @@
   gap: 4px;
 }
 
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  padding: 0 16px;
-  font: var(--t-meta);
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 10%, var(--bg-elevated));
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--warn) 35%, var(--border-subtle));
-}
-
-.banner.error {
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 10%, var(--bg-elevated));
-  border-bottom-color: color-mix(
-    in srgb,
-    var(--danger) 35%,
-    var(--border-subtle)
-  );
-}
-
 .timeline {
   grid-area: timeline;
   overflow: auto;

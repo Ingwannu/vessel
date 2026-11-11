@@ -15,15 +15,8 @@ import {
 } from "../data/format";
 import { labelOf } from "../data/nodes";
 import { useWhere } from "../data/where";
-import { Dialog } from "../ui/dialog";
-import {
-  Badge,
-  Banner,
-  CopyButton,
-  Icon,
-  Skeleton,
-  StatusDot,
-} from "../ui/parts";
+import { Badge, Banner, Dialog, Icon, Skeleton, StatusDot } from "../ui/kit";
+import { CopyButton } from "../ui/parts";
 import { toast } from "../ui/toasts";
 import type { SessionInfo } from "../wire/proto";
 import { StructuredView } from "./structured";
@@ -127,7 +120,7 @@ function SessionHead({
       <StatusDot tone={tone} label={statusWord(session.status)} />
       <span className="id">{shortId(session.id)}</span>
       <Badge tone={tone}>{statusWord(session.status)}</Badge>
-      <Badge tone={session.spec.mode === "structured" ? "accent" : ""}>
+      <Badge look={session.spec.mode === "structured" ? "accent" : "word"}>
         {session.spec.mode}
       </Badge>
       <span className="meta">
@@ -146,7 +139,7 @@ function SessionHead({
               setDialog("profile");
             }}
           >
-            <Icon name="move" size="sm" /> Profile
+            <Icon name="move" size={14} /> Profile
           </button>
         ) : null}
         <CopyButton text={session.id} label="Copy session id" />
@@ -158,7 +151,7 @@ function SessionHead({
               setDialog("kill");
             }}
           >
-            <Icon name="kill" size="sm" /> Kill
+            <Icon name="kill" size={14} /> Kill
           </button>
         ) : null}
       </div>

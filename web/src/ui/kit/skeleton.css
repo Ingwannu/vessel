@@ -1,0 +1,27 @@
+/* Skeleton (kit/skeleton.tsx, DESIGN.md §6.11): three 12px rows on the
+   hover wash, breathing over 1.2s; still under reduced motion. */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skel {
+  height: 12px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  animation: skel-pulse 1.2s var(--ease) infinite;
+}
+
+@keyframes skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+  }
+}

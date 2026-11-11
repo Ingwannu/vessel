@@ -1,0 +1,117 @@
+/* Select (kit/select.tsx). The trigger is agent-orchestrator's settings
+   option trigger: the secondary button's raised surface (its fill, an
+   edge 5% darker, the inset bevel), 13px, the value first and a 13px
+   chevron that turns over 300ms while open; hover deepens the fill by 7%,
+   open by 14%. The ghost look is its composer pill: no fill until hover. */
+
+.select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  height: var(--h-md);
+  padding: 0 8px 0 10px;
+  border: 1px solid color-mix(in srgb, var(--btn-secondary-bg) 95%, black);
+  border-radius: var(--r-2);
+  background: var(--btn-secondary-bg);
+  box-shadow: var(--shadow-control);
+  color: var(--text-primary);
+  font: 400 13px / 20px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease);
+}
+
+.select-trigger:hover {
+  background: color-mix(in srgb, var(--btn-secondary-bg) 93%, black);
+}
+
+.select-trigger[data-popup-open] {
+  background: color-mix(in srgb, var(--btn-secondary-bg) 86%, black);
+}
+
+.select-trigger.sm {
+  height: var(--h-sm);
+  padding: 0 6px 0 8px;
+}
+
+.select-trigger.fill {
+  width: 100%;
+}
+
+.select-trigger.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+.select-trigger.ghost:hover,
+.select-trigger.ghost[data-popup-open] {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.select-trigger[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+
+.field[data-invalid] .select-trigger {
+  border-color: var(--danger);
+}
+
+.select-value {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.select-value > .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-value > .detail {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.select-chevron {
+  display: inline-flex;
+  color: var(--text-secondary);
+  transition: rotate 300ms var(--ease);
+}
+
+.select-trigger[data-popup-open] .select-chevron {
+  rotate: 180deg;
+}
+
+/* The list: at least 144px, and as wide as a form's trigger. */
+.select-popup {
+  min-width: 144px;
+}
+
+.select-popup.fill {
+  min-width: var(--anchor-width);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-chevron {
+    transition: none;
+  }
+}

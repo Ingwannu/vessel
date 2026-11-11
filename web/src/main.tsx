@@ -2,6 +2,9 @@
 // then the app (ADR 0017).
 import "./ui/fonts.css";
 import "./ui/tokens.css";
+// The kit's stylesheets (beside its components) before the areas', so an
+// area may place a control where it sits without out-ranking its look.
+import "./ui/kit";
 import "./ui/styles/index.css";
 
 import { StrictMode } from "react";

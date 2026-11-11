@@ -1,0 +1,66 @@
+/* Segmented (kit/segmented.tsx). agent-orchestrator's settings segment: a
+   track on the field fill and edge with 2px inside and 2px between,
+   13px segments 32px tall at radius 10 (the track's 12 less its inset),
+   at rest in the secondary colour. The chosen one is GOAT's thumb: the
+   surface lifted by a hairline. `sm` is GOAT's 24px toolbar size. */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--field-edge);
+  border-radius: 12px;
+  background: var(--field-bg);
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--h-md);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 13px / 1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color var(--d-2) var(--ease),
+    background-color var(--d-2) var(--ease);
+}
+
+.segment:hover {
+  color: var(--text-primary);
+}
+
+.segment[data-checked] {
+  background: var(--segment-thumb);
+  box-shadow: 0 0 0 1px var(--segment-edge);
+  color: var(--text-primary);
+}
+
+.segment[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.segment:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 0;
+}
+
+.segmented.sm {
+  border-radius: var(--r-2);
+}
+
+.segmented.sm .segment {
+  height: var(--h-xs);
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}

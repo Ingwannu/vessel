@@ -3,9 +3,7 @@
 /* --- Reduced motion --- */
 
 @media (prefers-reduced-motion: reduce) {
-  .skel,
-  .chip.reconnecting .status-dot,
-  .spinner {
+  .chip.reconnecting .status-dot {
     animation: none;
   }
 
@@ -15,8 +13,7 @@
     opacity: 0.5;
   }
 
-  .nav-item::before,
-  .btn.ghost::before {
+  .nav-item::before {
     transition: none;
   }
 }

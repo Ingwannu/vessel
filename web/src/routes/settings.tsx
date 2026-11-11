@@ -7,7 +7,7 @@ import { useCrumbs, useFleet, useFleetState } from "../context";
 import { nodeState, when } from "../data/format";
 import { nodeLabel } from "../data/nodes";
 import { chooseTheme, currentTheme, type Theme } from "../data/theme";
-import { Badge, Empty, Icon } from "../ui/parts";
+import { Badge, EmptyState, Icon } from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { PairingOffer } from "../wire/proto";
 
@@ -54,10 +54,10 @@ export function SettingsPage(): ReactElement {
         <div className="panel">
           <h2>Node book</h2>
           {book === null || book.length === 0 ? (
-            <Empty title="No nodes yet">
+            <EmptyState title="No nodes yet">
               Add one with <code>vessel nodes add NAME ADDRESS</code>, or pair
               one below.
-            </Empty>
+            </EmptyState>
           ) : (
             <table className="data book" aria-label="Node book">
               <thead>
@@ -76,12 +76,12 @@ export function SettingsPage(): ReactElement {
                       <td className="name">
                         {nodeLabel(node, statuses[node.key])}
                         {node.default ? (
-                          <Badge tone="accent">default</Badge>
+                          <Badge look="accent">default</Badge>
                         ) : null}
                       </td>
                       <td className="mono muted">{node.address}</td>
                       <td>
-                        <Badge tone="mono">{node.transport}</Badge>
+                        <Badge look="mono">{node.transport}</Badge>
                       </td>
                       <td>
                         <Badge tone={state.tone}>{state.word}</Badge>
@@ -173,7 +173,7 @@ function PairWithNode() {
             disabled={link.trim() === ""}
             onClick={inspect}
           >
-            <Icon name="link" size="sm" /> Check
+            <Icon name="link" size={14} /> Check
           </button>
         </div>
         {offer === null ? null : (

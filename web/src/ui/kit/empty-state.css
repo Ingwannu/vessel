@@ -1,0 +1,22 @@
+/* EmptyState (kit/empty-state.tsx, DESIGN.md §6.11): 48px above, a 16px
+   mark, the title, one sentence, one action. */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: var(--s-7) 8px;
+  color: var(--text-secondary);
+}
+
+.empty h2 {
+  margin: 0;
+  font: var(--t-title);
+  color: var(--text-primary);
+}
+
+.empty p {
+  margin: 0;
+  max-width: 46ch;
+}

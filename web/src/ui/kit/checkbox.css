@@ -1,0 +1,39 @@
+/* Checkbox (kit/checkbox.tsx). agent-orchestrator's: 16px, radius 6, the
+   strong hairline on the field fill; checked, the primary fill and edge
+   with a 12px check in its text colour; hover takes the edge toward the
+   primary. */
+
+.checkbox {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--btn-primary-fg);
+  cursor: pointer;
+  transition:
+    background-color var(--d-1) var(--ease),
+    border-color var(--d-1) var(--ease);
+}
+
+.checkbox:hover:not([data-disabled]) {
+  border-color: color-mix(in srgb, var(--btn-primary-bg) 70%, transparent);
+}
+
+.checkbox[data-checked] {
+  border-color: var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+}
+
+.checkbox[data-disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.checkbox-mark {
+  display: inline-flex;
+}

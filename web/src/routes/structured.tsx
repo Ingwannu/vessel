@@ -6,7 +6,7 @@ import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { Markdown } from "../data/markdown";
 
 import { useFleet } from "../context";
-import { harnessName, isLive, shortId, when } from "../data/format";
+import { harnessName, isLive, shortId, toolTone, when } from "../data/format";
 import {
   apiName,
   callParts,
@@ -22,14 +22,13 @@ import {
   type Timeline,
   type ToolState,
 } from "../data/timeline";
-import { Badge, Banner, Icon, type IconName } from "../ui/parts";
+import { Badge, Banner, Icon, type IconName } from "../ui/kit";
 import { toast } from "../ui/toasts";
 import type { StreamState } from "../wire/bridge";
 import type {
   EventRecord,
   PermissionOption,
   SessionInfo,
-  ToolCallStatus,
   ToolKind,
 } from "../wire/proto";
 
@@ -142,18 +141,6 @@ function toolIcon(kind: ToolKind): IconName {
   }
 }
 
-function toolTone(status: ToolCallStatus): string {
-  switch (status) {
-    case "pending":
-    case "in_progress":
-      return "warn";
-    case "completed":
-      return "applied";
-    case "failed":
-      return "danger";
-  }
-}
-
 function json(value: unknown): string {
   return typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
@@ -164,7 +151,7 @@ function ToolCard({ tool }: { tool: ToolState }) {
   return (
     <details className="tool" open={open}>
       <summary>
-        <Icon name={toolIcon(tool.kind)} size="sm" />
+        <Icon name={toolIcon(tool.kind)} size={14} />
         <span className="title">{tool.title}</span>
         <Badge tone={toolTone(tool.status)}>
           {tool.status.replace("_", " ")}
@@ -522,7 +509,7 @@ function Inspector({
         ) : (
           timeline.files.map((path) => (
             <div key={path} className="file-row" title={path}>
-              <Icon name="read" size="sm" />
+              <Icon name="read" size={14} />
               {path.split("/").at(-1)}
             </div>
           ))

@@ -31,8 +31,7 @@ import {
 import { labelOf, nodeLabel } from "../data/nodes";
 import { tree } from "../data/tree";
 import { useWhere } from "../data/where";
-import { Dialog } from "../ui/dialog";
-import { Empty, Icon } from "../ui/parts";
+import { Dialog, EmptyState, Icon } from "../ui/kit";
 import { toast } from "../ui/toasts";
 
 /** How many archived cards the archive shows before "Show more": a node
@@ -104,7 +103,7 @@ export function SessionsPage(): ReactElement {
       ) : null}
       {rows.length === 0 ? (
         <div className="page-body">
-          <Empty
+          <EmptyState
             title={
               scopeLabel === null
                 ? "No sessions yet"
@@ -123,7 +122,7 @@ export function SessionsPage(): ReactElement {
             }
           >
             Start one and it appears here, in the lane of what it is doing.
-          </Empty>
+          </EmptyState>
         </div>
       ) : (
         <>
@@ -150,7 +149,7 @@ export function SessionsPage(): ReactElement {
                 setArchiveOpen(true);
               }}
             >
-              <Icon name="archive" size="sm" /> Archive
+              <Icon name="archive" size={14} /> Archive
               <span className="count">{dealt.archive.length}</span>
             </button>
           </div>
@@ -273,7 +272,7 @@ function Archive({
         );
   const rest = found.length - shown;
   return (
-    <Dialog title="Archive" wide onClose={onClose}>
+    <Dialog title="Archive" size="lg" onClose={onClose}>
       <label className="field">
         <span className="visually-hidden">Search the archive</span>
         <input
@@ -411,14 +410,14 @@ function SessionCard({
                 onKill(card);
               }}
             >
-              <Icon name="kill" size="sm" />
+              <Icon name="kill" size={14} />
             </button>
           ) : null}
         </div>
         <div className="card-line">
           <Icon
             name={spec.mode === "terminal" ? "terminal" : "message"}
-            size="sm"
+            size={14}
           />
           {/* Cut from the left: the end of a path is what tells two apart. */}
           <span className="path">

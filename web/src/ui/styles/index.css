@@ -18,10 +18,8 @@
    rule between files, check what its new place puts after it. */
 
 @import "./base.css";
-@import "./icons.css";
 @import "./shell.css";
 @import "./controls.css";
-@import "./badges.css";
 @import "./tables.css";
 @import "./board.css";
 @import "./session.css";

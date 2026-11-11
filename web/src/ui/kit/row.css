@@ -1,0 +1,102 @@
+/* Row and RowList (kit/row.tsx, DESIGN.md §6.14).
+   The list is agent-orchestrator's settings card: radius 8 on the card
+   fill, no border, 4px above and below, rows divided by hairlines. A row
+   is GOAT's machine row at the reference's settings padding (10px by
+   16px): a 16px icon, the title at 14px medium, a 13px description or a
+   12px line of facts, the controls at the right. Chosen: the 7% wash.
+   Never an edge. */
+
+.row-list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: var(--r-2);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 16px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.row[data-selected] {
+  background: var(--bg-active);
+}
+
+.row:has(.row-title a):hover:not([data-selected]) {
+  background: var(--bg-hover);
+}
+
+.row-icon {
+  display: inline-flex;
+  color: var(--text-secondary);
+}
+
+.row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font: 500 14px / 20px var(--font-sans);
+}
+
+/* A title that is a link opens the row: the link's box stretches over the
+   whole row, under the controls. */
+.row-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.row-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.row-title a:focus-visible {
+  outline: none;
+}
+
+.row-title a:focus-visible::after {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.row-description {
+  color: var(--text-secondary);
+  font: 400 13px / 18px var(--font-sans);
+}
+
+.row-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.row-controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}

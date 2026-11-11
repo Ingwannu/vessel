@@ -57,48 +57,6 @@
 }
 
 /* Search: a filled row, the first thing in the sidebar. */
-.side-search-wrap {
-  flex: none;
-  position: relative;
-  margin: 0 8px 4px;
-}
-
-.side-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: var(--nav-h);
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--r-4);
-  background: var(--bg-well);
-  color: var(--text-secondary);
-}
-
-.side-search:focus-within {
-  border-color: var(--border-strong);
-  background: var(--bg-surface);
-}
-
-.side-search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: var(--t-control);
-}
-
-.side-search input::placeholder {
-  color: var(--text-secondary);
-}
-
-/* The shortcut is a hint, written as text, not drawn as a key. */
-.kbd {
-  font: 400 11px / 16px var(--font-sans);
-  color: var(--text-tertiary);
-}
-
 .side-list {
   flex: none;
   display: flex;
@@ -260,48 +218,6 @@
   background: var(--st-needs-you);
 }
 
-.spinner {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  flex: 0 0 12px;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--online);
-  flex: 0 0 8px;
-}
-
-.status-dot.warn {
-  background: var(--warn);
-}
-
-.status-dot.danger {
-  background: var(--danger);
-}
-
-.status-dot.idle,
-.status-dot.offline {
-  background: var(--text-disabled);
-}
-
-.status-dot.interrupt {
-  background: var(--interrupt);
-}
-
 /* The framed page: inset from the window on three sides and flush with
    the sidebar on the fourth. */
 .frame-wrap {
@@ -396,6 +312,12 @@
   color: var(--text-primary);
 }
 
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 .chip.reconnecting .status-dot {
   animation: pulse 1.6s var(--ease) infinite;
 }
@@ -441,35 +363,4 @@
 
 .page-body.flush {
   padding: 0;
-}
-
-/* The search's results (the command palette), under its row and wide
-   enough to read: it may overlap the page. */
-.palette {
-  position: absolute;
-  top: 36px;
-  left: 0;
-  width: 320px;
-  margin: 0;
-  padding: var(--s-1);
-  list-style: none;
-  background: var(--bg-elevated);
-  border-radius: var(--r-4);
-  box-shadow: var(--shadow);
-  z-index: 40;
-}
-
-.palette a {
-  display: flex;
-  gap: var(--s-2);
-  align-items: baseline;
-  padding: 6px 8px;
-  border-radius: var(--r-2);
-  color: var(--text-primary);
-  text-decoration: none;
-}
-
-.palette a:hover,
-.palette a:focus-visible {
-  background: var(--bg-hover);
 }

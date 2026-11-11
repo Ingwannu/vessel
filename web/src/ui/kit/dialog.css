@@ -1,0 +1,99 @@
+/* Dialog (kit/dialog.tsx, DESIGN.md §6.9), and the scrim and viewport the
+   command palette shares (kit/command.tsx).
+
+   agent-orchestrator's base dialog: centred, 512px, the popup surface
+   (radius 10, its edge and shadow), 16px inside, a 15px semibold title,
+   the close button at the top right, the actions at the right of the
+   foot. Its scrim is the ink at 45% (the page at 85% in dark). In: the
+   scrim over 80ms, the dialog over 120ms from opacity 0 and a scale of
+   .95. */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--overlay);
+  transition: opacity 80ms var(--ease);
+}
+
+.dialog-backdrop[data-starting-style],
+.dialog-backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.dialog-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(512px, 100%);
+  max-height: 100%;
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-edge);
+  border-radius: var(--r-4);
+  box-shadow: var(--popup-shadow);
+  color: var(--text-primary);
+  outline: none;
+  transition:
+    opacity 120ms var(--ease),
+    scale 120ms var(--ease);
+}
+
+.dialog[data-starting-style],
+.dialog[data-ending-style] {
+  opacity: 0;
+  scale: 0.95;
+}
+
+.dialog.lg {
+  width: min(640px, 100%);
+}
+
+.dialog-h {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 0 16px;
+}
+
+.dialog-title {
+  margin: 0;
+  font: 600 15px / 20px var(--font-sans);
+  letter-spacing: var(--tracking-tight);
+}
+
+.dialog-b {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.dialog-f {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .dialog-backdrop {
+    transition: none;
+  }
+}

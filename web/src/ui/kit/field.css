@@ -1,0 +1,31 @@
+/* Field (kit/field.tsx, DESIGN.md §6.2): a label over the control, a hint
+   or an error under it. agent-orchestrator's field label (13px medium)
+   and helper line (12px, muted). */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-label {
+  color: var(--text-primary);
+  font: 500 13px / 16px var(--font-sans);
+}
+
+.field[data-disabled] .field-label {
+  color: var(--text-disabled);
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font: var(--t-meta);
+}
