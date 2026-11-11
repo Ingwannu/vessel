@@ -18,7 +18,13 @@
   background: var(--border-subtle);
 }
 
-.t-item:last-child::before {
+/* A drawn row of the windowed list (use-window.ts): a block formatting
+   context, so a paragraph's margin stays inside the height measured. */
+.t-row {
+  display: flow-root;
+}
+
+.t-row[data-last] > .t-item::before {
   display: none;
 }
 

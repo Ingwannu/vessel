@@ -37,7 +37,9 @@ export function StructuredSession({
         ) : stream?.state === "failed" ? (
           <Banner tone="error">The stream stopped: {stream.message}</Banner>
         ) : null}
-        <Timeline timeline={timeline} />
+        {/* Keyed by the session: the window's measured heights are by
+            entry key, and keys repeat between sessions. */}
+        <Timeline key={session.id} timeline={timeline} />
         <div className="session-dock">
           <div className="session-dock-column">
             <Composer node={node} session={session} timeline={timeline} />
