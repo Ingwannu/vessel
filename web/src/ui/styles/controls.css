@@ -1,0 +1,240 @@
+/* Buttons, fields and segmented controls (DESIGN.md §6.1, §6.2). */
+
+/* --- Buttons & fields --- */
+
+/* Buttons are filled, not outlined. The default is the quiet grey fill;
+   the primary is the ink, with an inset lit top edge and shaded bottom
+   edge as its only depth. Pressing deepens the fill; nothing moves. */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  background: var(--btn-secondary-bg);
+  color: var(--text-primary);
+  font: var(--t-control);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--d-2) ease-out,
+    color var(--d-2) ease-out;
+}
+
+.btn:hover {
+  background: var(--btn-secondary-bg-hover);
+  text-decoration: none;
+}
+
+.btn.primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-weight: 500;
+  box-shadow: var(--shadow-control);
+}
+
+.btn.primary:hover {
+  background: var(--btn-primary-bg-hover);
+}
+
+.btn.danger {
+  background: transparent;
+  color: var(--danger);
+}
+
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.btn.danger.solid {
+  background: var(--danger);
+  color: var(--btn-danger-fg);
+  box-shadow: var(--shadow-control);
+}
+
+.btn.danger.solid:hover {
+  background: color-mix(in srgb, var(--danger) 88%, black);
+}
+
+/* A ghost has no fill at rest; on hover the sidebar's pill grows in it. */
+.btn.ghost {
+  isolation: isolate;
+  background: transparent;
+  color: var(--text-secondary);
+  padding-inline: 8px;
+}
+
+.btn.ghost::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bg-hover);
+  opacity: 0;
+  transition: inset var(--d-2) var(--ease);
+}
+
+.btn.ghost:hover {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.btn.ghost:hover::before,
+.btn.ghost:focus-visible::before {
+  inset: 0;
+  opacity: 1;
+}
+
+.btn.sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.btn.xs {
+  height: 24px;
+  padding: 0 8px;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.icon-btn.xs {
+  width: 24px;
+  height: 24px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > span,
+.field > label {
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.field input,
+.field select,
+.field textarea,
+.input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: var(--t-body);
+}
+
+.field textarea,
+textarea.input {
+  height: auto;
+  padding: 8px 10px;
+  resize: vertical;
+  font: var(--t-mono-lg);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.seg {
+  display: flex;
+  padding: 2px;
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--r-3);
+}
+
+.seg a,
+.seg label {
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font: var(--t-label);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.seg a:hover,
+.seg label:hover {
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.seg a.active,
+.seg input:checked + span,
+.seg .active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+
+.seg input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A form error under its fields. */
+.field-error {
+  margin: var(--s-2) 0 0;
+  color: var(--danger);
+  font: var(--t-meta);
+}
+
+/* Segmented controls may hold buttons too. */
+.seg button {
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--text-secondary);
+  font: var(--t-label);
+  cursor: pointer;
+}
+
+.seg button:hover {
+  color: var(--text-primary);
+}

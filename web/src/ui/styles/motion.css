@@ -1,0 +1,22 @@
+/* Reduced motion (DESIGN.md §8): what stops moving. */
+
+/* --- Reduced motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .skel,
+  .chip.reconnecting .status-dot,
+  .spinner {
+    animation: none;
+  }
+
+  /* The needs-you card keeps its tint, held still. */
+  .card.attention::after {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .nav-item::before,
+  .btn.ghost::before {
+    transition: none;
+  }
+}

@@ -235,7 +235,7 @@ export function isWorking(placed: Placement): boolean {
   }
 }
 
-/** The colour class of a card's status line (`.tone-*` in app.css): the
+/** The colour class of a card's status line (`.tone-*` in styles/board.css): the
  * lane's own, except where the phrase says more than the lane does. */
 export type Tone =
   "lane" | "needs-you" | "ready" | "merged" | "danger" | "quiet";

@@ -1,0 +1,78 @@
+/* Badges (DESIGN.md §6.4): a quiet outlined word, state as a dot in
+   front of it. */
+
+/* --- Badges --- */
+
+/* A badge is a quiet outlined word. State is a dot in front of the word,
+   never a tinted fill: on a white page, six pastel chips in a row read as
+   decoration and bury the one that matters. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  font: 500 11px / 16px var(--font-sans);
+  background: transparent;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.badge.online::before,
+.badge.serving::before,
+.badge.running::before,
+.badge.applied::before,
+.badge.draining::before,
+.badge.starting::before,
+.badge.conflict::before,
+.badge.stale::before,
+.badge.pending::before,
+.badge.warn::before,
+.badge.failed::before,
+.badge.danger::before,
+.badge.interrupted::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--online);
+  flex: 0 0 6px;
+}
+
+.badge.draining::before,
+.badge.starting::before,
+.badge.conflict::before,
+.badge.stale::before,
+.badge.pending::before,
+.badge.warn::before {
+  background: var(--warn);
+}
+
+.badge.failed::before,
+.badge.danger::before {
+  background: var(--danger);
+}
+
+.badge.interrupted::before {
+  background: var(--interrupt);
+}
+
+.badge.failed,
+.badge.danger {
+  color: var(--danger);
+}
+
+/* "home" and the selected kind: ink on the faintest wash, no hue. */
+.badge.home,
+.badge.accent {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.badge.mono {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 11px;
+}

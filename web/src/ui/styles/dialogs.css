@@ -1,0 +1,70 @@
+/* Dialogs (DESIGN.md §6.9) and the forms inside them. */
+
+/* --- Dialogs --- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8vh 16px 16px;
+}
+
+.dialog {
+  width: min(560px, 100%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-4);
+  box-shadow: var(--shadow);
+  border-top-color: color-mix(in srgb, var(--inset) 40%, var(--border-strong));
+}
+
+.dialog.narrow {
+  width: min(480px, 100%);
+}
+
+.dialog-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 0;
+}
+
+.dialog-h h1 {
+  margin: 0;
+  font: var(--t-title);
+}
+
+.dialog-b {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-f {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* A dialog's form keeps the dialog body's rhythm. */
+.dialog-b > form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.dialog-b > form > .hint {
+  margin: 0;
+}

@@ -2,7 +2,7 @@
 // then the app (ADR 0017).
 import "./ui/fonts.css";
 import "./ui/tokens.css";
-import "./ui/app.css";
+import "./ui/styles/index.css";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

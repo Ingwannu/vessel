@@ -1,0 +1,114 @@
+/* Pairing: the link, its QR code, the offer a link makes. */
+
+/* --- Pairing / QR --- */
+
+.pair {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* The one literal pair in this file: a QR code scans dark on light, so
+   it does not follow the theme. */
+.qr {
+  width: 148px;
+  height: 148px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border-radius: var(--r-3);
+  padding: 10px;
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.link-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  font: var(--t-mono);
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.hint {
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+  margin: 0;
+}
+
+/* Pairing: the label field beside its button. */
+.pair-new {
+  margin-top: var(--s-3);
+  align-items: flex-end;
+}
+
+.field.grow {
+  flex: 1;
+}
+
+.offer {
+  margin-top: var(--s-3);
+}
+
+.offer dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 6px 12px;
+  font: var(--t-meta);
+}
+
+.offer dt {
+  color: var(--text-tertiary);
+}
+
+.offer dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* The QR code is an <img> of the bridge's SVG (no markup from the bridge
+   is ever inserted into the page). It fills the light box, whose quiet
+   zone the SVG already has. */
+.qr img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.qr {
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr .ico {
+  color: #6b6b6b;
+}
+
+/* The link on one line, cut at the end; the copy button has all of it. */
+.link-box .link-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+/* The pairing text column may shrink below its longest line. */
+.pair > div {
+  min-width: 0;
+}
