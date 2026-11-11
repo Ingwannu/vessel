@@ -12,6 +12,7 @@
 import { Navigate } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 
+import { nodeKeyOf } from "../bridge/ids";
 import { DEFAULT_SETTINGS_SECTION } from "../data/settings";
 import { useWhere } from "../data/where";
 
@@ -32,7 +33,7 @@ export function FleetRedirect(): ReactElement | null {
   if (where.segments[0] !== "fleet") {
     return null;
   }
-  const machine = where.segments[1];
+  const machine = nodeKeyOf(where.segments[1] ?? "") ?? undefined;
   return (
     <Navigate
       to="/settings/$section"

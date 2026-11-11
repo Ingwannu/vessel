@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Creator, SessionInfo, SessionStatus } from "../wire/proto";
 import type { FleetState } from "./fleet";
 import { tree } from "./tree";
+import { fixtureId } from "../testing/ids";
 
 function session(
   id: string,
@@ -11,7 +12,7 @@ function session(
   created_by: Creator,
 ): SessionInfo {
   return {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured" },
     created_by,
     status,
@@ -25,8 +26,8 @@ const exited: SessionStatus = { state: "exited", code: 0 };
 const owner: Creator = { kind: "owner" };
 const agentOf = (parent: string, node: string): Creator => ({
   kind: "agent",
-  node,
-  session: parent,
+  node: fixtureId("NodeId", node),
+  session: fixtureId("SessionId", parent),
 });
 
 /** A person's session on laptop whose agent started one on gpu-box, which
@@ -43,11 +44,11 @@ function state(parentStatus: SessionStatus): FleetState {
     errors: {},
     selected: null,
     sessions: {
-      laptop: [
+      [fixtureId("NodeKey", "laptop")]: [
         session("3f2a", "2026-11-07T10:00:00Z", parentStatus, owner),
         session("9aa0", "2026-11-07T11:00:00Z", running, owner),
       ],
-      "gpu-box": [
+      [fixtureId("NodeKey", "gpu-box")]: [
         session(
           "a91c",
           "2026-11-07T10:01:00Z",
@@ -55,7 +56,7 @@ function state(parentStatus: SessionStatus): FleetState {
           agentOf("3f2a", "n-laptop"),
         ),
       ],
-      "build-server": [
+      [fixtureId("NodeKey", "build-server")]: [
         session(
           "c07e",
           "2026-11-07T10:02:00Z",
@@ -69,7 +70,11 @@ function state(parentStatus: SessionStatus): FleetState {
 
 describe("the session tree", () => {
   it("nests agent-started sessions under their creator, across nodes", () => {
-    const rows = tree(state(running), ["laptop", "gpu-box", "build-server"]);
+    const rows = tree(state(running), [
+      fixtureId("NodeKey", "laptop"),
+      fixtureId("NodeKey", "gpu-box"),
+      fixtureId("NodeKey", "build-server"),
+    ]);
     expect(rows.map((row) => [row.session.id, row.depth, row.node])).toEqual([
       ["9aa0", 0, "laptop"],
       ["3f2a", 0, "laptop"],
@@ -87,7 +92,10 @@ describe("the session tree", () => {
   });
 
   it("makes a session whose creator is not listed a root", () => {
-    const rows = tree(state(running), ["gpu-box", "build-server"]);
+    const rows = tree(state(running), [
+      fixtureId("NodeKey", "gpu-box"),
+      fixtureId("NodeKey", "build-server"),
+    ]);
     expect(rows.map((row) => [row.session.id, row.depth])).toEqual([
       ["a91c", 0],
       ["c07e", 1],

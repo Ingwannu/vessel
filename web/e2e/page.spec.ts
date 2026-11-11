@@ -176,3 +176,13 @@ test("on a phone, Settings' sections open from the title bar's menu", async ({
   await expect(page).toHaveURL(/\/settings\/notifications$/);
   await expect(page.getByText("Session notifications")).toBeVisible();
 });
+
+test("an address that names no session says so, before any call", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  await page.goto(`${origin}/sessions/laptop/not-a-session`);
+  await expect(page.getByText("No session has this address.")).toBeVisible();
+  await page.goto(`${origin}/sessions/..%2Fsettings/${"0".repeat(8)}`);
+  await expect(page.getByText("No session has this address.")).toBeVisible();
+});

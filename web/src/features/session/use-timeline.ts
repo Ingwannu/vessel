@@ -8,12 +8,12 @@ import { useFleet } from "../../context";
 import { followSession } from "../../data/calls";
 import { EMPTY, type Timeline } from "../../data/timeline-model";
 import { reduce } from "../../data/timeline";
-import type { StreamState } from "../../wire/bridge";
-import type { EventRecord } from "../../wire/proto";
+import type { NodeKey, StreamState } from "../../wire/bridge";
+import type { EventRecord, SessionId } from "../../wire/proto";
 
 export function useTimeline(
-  node: string,
-  session: string,
+  node: NodeKey,
+  session: SessionId,
 ): { timeline: Timeline; stream: StreamState | null } {
   const fleet = useFleet();
   const [timeline, setTimeline] = useState<Timeline>(EMPTY);

@@ -26,7 +26,7 @@ import { SettingsPage, SettingsSection } from "./settings-page";
 const LEAD =
   "Phones and computers that can use a machine. Pair one with a link; revoke one to close its connections.";
 
-export function DevicesSection({ machine }: { machine: string | undefined }) {
+export function DevicesSection({ machine }: { machine: NodeKey | undefined }) {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   const selected = useFleetState((state) => state.selected);

@@ -3,10 +3,11 @@
 
 import type { BookNode, NodeStatus } from "../../wire/bridge";
 import type { Harness, SessionInfo } from "../../wire/proto";
+import { fixtureId } from "../../testing/ids";
 
 export function bookNode(key: string, extra: Partial<BookNode> = {}): BookNode {
   return {
-    key,
+    key: fixtureId("NodeKey", key),
     label: key,
     address: "ws://127.0.0.1:7002/rpc",
     transport: "ws",
@@ -21,7 +22,7 @@ export function connectedAs(name: string, os = "linux"): NodeStatus {
     state: "connected",
     protocol: 9,
     node: {
-      id: `id-${name}`,
+      id: fixtureId("NodeId", `id-${name}`),
       name,
       hostname: name,
       os,
@@ -49,7 +50,7 @@ export const codexTerminalOnly: Harness = {
 };
 
 export const liveSession: SessionInfo = {
-  id: "aaaa",
+  id: fixtureId("SessionId", "aaaa"),
   spec: { harness: "claude-code", mode: "structured" },
   created_by: { kind: "owner" },
   status: { state: "running" },

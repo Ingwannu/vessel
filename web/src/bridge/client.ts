@@ -17,15 +17,18 @@
 
 import { CallFailed } from "./failure";
 import * as frames from "./frames";
+import { callIdOf, streamIdOf } from "./ids";
 import { BridgeSocket, type LinkState, socketUrl } from "./socket";
 import type { Credential } from "./token";
 import type {
+  CallId,
   NodeKey,
   NodeStatus,
   Op,
   OpResult,
   PreferencesState,
   ServerFrame,
+  StreamId,
   StreamState,
 } from "../wire/bridge";
 import type { EventRecord, Reply, SessionId } from "../wire/proto";
@@ -60,9 +63,9 @@ interface Followed {
 export class Bridge {
   readonly #socket: BridgeSocket;
   #nextId = 1;
-  readonly #calls = new Map<number, Pending>();
-  readonly #ops = new Map<number, PendingOp>();
-  readonly #streams = new Map<number, Followed>();
+  readonly #calls = new Map<CallId, Pending>();
+  readonly #ops = new Map<CallId, PendingOp>();
+  readonly #streams = new Map<StreamId, Followed>();
   readonly #statuses = new Map<NodeKey, NodeStatus>();
   readonly #nodeListeners = new Set<
     (node: NodeKey, status: NodeStatus) => void
@@ -109,7 +112,7 @@ export class Bridge {
     method: M,
     params: frames.ParamsOf<M>,
   ): Promise<frames.ResultOf<M>> {
-    const id = this.#id();
+    const id = callIdOf(this.#id());
     const reply = await new Promise<Reply>((resolve, reject) => {
       this.#calls.set(id, { resolve, reject });
       const call = frames.callOf(method, params);
@@ -134,7 +137,7 @@ export class Bridge {
 
   /** Ask the bridge itself. Rejects with an `OpFailed` keeping its reason. */
   op(op: Op): Promise<OpResult> {
-    const id = this.#id();
+    const id = callIdOf(this.#id());
     return new Promise<OpResult>((resolve, reject) => {
       this.#ops.set(id, { resolve, reject });
       if (!this.#socket.send({ type: "op", id, op })) {
@@ -151,7 +154,7 @@ export class Bridge {
     from: number,
     handlers: StreamHandlers,
   ): () => void {
-    const stream = this.#id();
+    const stream = streamIdOf(this.#id());
     this.#streams.set(stream, { node, session, next: from, handlers });
     this.#socket.send({ type: "follow", stream, node, session, from });
     return () => {

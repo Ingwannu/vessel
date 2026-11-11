@@ -2,12 +2,29 @@ import { describe, expect, it } from "vitest";
 
 import type { PermissionOption } from "../wire/proto";
 import { answersOf, settled, settledLine } from "./approval";
+import { fixtureId } from "../testing/ids";
 
 const ALL: PermissionOption[] = [
-  { id: "always", name: "Always allow", kind: "allow_always" },
-  { id: "allow", name: "Allow", kind: "allow_once" },
-  { id: "reject", name: "Reject", kind: "reject_once" },
-  { id: "never", name: "Never", kind: "reject_always" },
+  {
+    id: fixtureId("PermissionOptionId", "always"),
+    name: "Always allow",
+    kind: "allow_always",
+  },
+  {
+    id: fixtureId("PermissionOptionId", "allow"),
+    name: "Allow",
+    kind: "allow_once",
+  },
+  {
+    id: fixtureId("PermissionOptionId", "reject"),
+    name: "Reject",
+    kind: "reject_once",
+  },
+  {
+    id: fixtureId("PermissionOptionId", "never"),
+    name: "Never",
+    kind: "reject_always",
+  },
 ];
 
 describe("answersOf", () => {
@@ -23,8 +40,16 @@ describe("answersOf", () => {
 
   it("falls back to any allow or reject, and to none", () => {
     const answers = answersOf([
-      { id: "always", name: "Always allow", kind: "allow_always" },
-      { id: "never", name: "Never", kind: "reject_always" },
+      {
+        id: fixtureId("PermissionOptionId", "always"),
+        name: "Always allow",
+        kind: "allow_always",
+      },
+      {
+        id: fixtureId("PermissionOptionId", "never"),
+        name: "Never",
+        kind: "reject_always",
+      },
     ]);
     expect(answers.approve?.name).toBe("Always allow");
     expect(answers.decline?.name).toBe("Never");
@@ -36,11 +61,21 @@ describe("answersOf", () => {
 describe("settled", () => {
   it("says how a request ended, in the agent's words", () => {
     expect(settled(ALL, null)).toEqual({ state: "pending" });
-    expect(settled(ALL, { outcome: "selected", option: "allow" })).toEqual({
+    expect(
+      settled(ALL, {
+        outcome: "selected",
+        option: fixtureId("PermissionOptionId", "allow"),
+      }),
+    ).toEqual({
       state: "allowed",
       option: "Allow",
     });
-    expect(settled(ALL, { outcome: "selected", option: "never" })).toEqual({
+    expect(
+      settled(ALL, {
+        outcome: "selected",
+        option: fixtureId("PermissionOptionId", "never"),
+      }),
+    ).toEqual({
       state: "declined",
       option: "Never",
     });
@@ -50,7 +85,10 @@ describe("settled", () => {
     expect(
       settledLine(
         "Run fake tool",
-        settled(ALL, { outcome: "selected", option: "allow" }),
+        settled(ALL, {
+          outcome: "selected",
+          option: fixtureId("PermissionOptionId", "allow"),
+        }),
       ),
     ).toBe("Allowed · Run fake tool · Allow");
     expect(settledLine("Run fake tool", { state: "pending" })).toBe(

@@ -25,6 +25,8 @@ import type {
   HarnessKind,
   HarnessOptions,
   OptionChoice,
+  PermissionId,
+  PermissionOptionId,
   SessionId,
   SessionInfo,
   SessionOption,
@@ -87,8 +89,8 @@ export function answerPermission(
   fleet: Fleet,
   node: NodeKey,
   session: SessionId,
-  permission: string,
-  option: string,
+  permission: PermissionId,
+  option: PermissionOptionId,
 ): Promise<Outcome<null>> {
   return attempt(() =>
     fleet.bridge.call(node, "session.send", {

@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { SessionInfo } from "../wire/proto";
 import { folderSuggestions, MAX_FOLDERS } from "./folders";
+import { fixtureId } from "../testing/ids";
 
 function session(cwd: string | null, at: string): SessionInfo {
   return {
-    id: `${cwd ?? "home"}-${at}`,
+    id: fixtureId("SessionId", `${cwd ?? "home"}-${at}`),
     spec: {
       harness: "codex",
       mode: "terminal",

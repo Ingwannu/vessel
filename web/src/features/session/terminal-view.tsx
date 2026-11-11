@@ -27,7 +27,7 @@ import { cssColor, onSchemeChange } from "../../data/theme";
 import { TerminalSender } from "../../data/terminal-sender";
 import { Banner, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
-import type { StreamState } from "../../wire/bridge";
+import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
 import { SessionBar } from "./session-bar";
 
@@ -54,7 +54,7 @@ export function TerminalView({
   label,
   session,
 }: {
-  node: string;
+  node: NodeKey;
   label: string;
   session: SessionInfo;
 }) {

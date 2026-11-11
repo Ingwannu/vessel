@@ -11,7 +11,7 @@ import { openAddMachine } from "../../data/add-machine";
 import { makeDefault } from "../../data/book";
 import { nodeLabel } from "../../data/nodes";
 import { nextStep } from "../../data/outcome";
-import type { BookNode } from "../../wire/bridge";
+import type { BookNode, NodeKey } from "../../wire/bridge";
 import { Banner, Button, EmptyState, RowList, Skeleton } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import { SettingsPage, SettingsSection } from "../settings/settings-page";
@@ -23,7 +23,7 @@ import { RenameDialog } from "./rename-dialog";
 
 type Asking = { kind: "rename" | "forget"; node: BookNode } | null;
 
-export function MachinesSection({ machine }: { machine: string | undefined }) {
+export function MachinesSection({ machine }: { machine: NodeKey | undefined }) {
   const fleet = useFleet();
   const navigate = useNavigate();
   const book = useFleetState((state) => state.book);

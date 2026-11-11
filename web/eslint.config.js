@@ -14,28 +14,45 @@ const BASE_UI = {
     "Controls come from the kit (src/ui/kit), not from Base UI (ADR 0021).",
 };
 
+/** The one helper that brands a handle without checking its shape
+ * (src/testing/ids.ts) is for tests and their fixtures; the page's
+ * handles are branded by src/bridge/ids.ts alone. */
+const TESTING = {
+  regex: "^(\\.{1,2}/)+testing(/|$)",
+  message:
+    "src/testing is for tests and their fixtures; the page brands a handle with src/bridge/ids.ts.",
+};
+
+/** Tests and the fixtures they share. */
+const TESTS = ["**/*.test.ts", "**/*.test.tsx", "src/data/fixtures/**"];
+
 /** `no-restricted-imports` for the files `files`: none of `below` (the
- * layers it may not reach, by their first path segment under src/). A
- * block replaces the rule's options of an earlier one, so each repeats
- * the Base UI pattern, except the kit's, which is where Base UI lives. */
+ * layers it may not reach, by their first path segment under src/), and
+ * outside tests nothing of src/testing. A block replaces the rule's
+ * options of an earlier one, so each repeats the Base UI pattern, except
+ * the kit's, which is where Base UI lives. */
 function layer(files, below) {
   const segments = below.join("|");
   const kit = files === "src/ui/kit/**";
+  const patterns = [
+    ...(kit ? [] : [BASE_UI]),
+    {
+      regex: `^(\\.{1,2}/)+(ui/)?(${segments})(/|$)`,
+      message: `${files.replace("/**", "")} may not import ${below.join(", ")} (one direction: wire <- bridge <- data <- features <- routes; the kit imports none of them).`,
+    },
+  ];
   return [
     {
       files: [files],
+      rules: { "no-restricted-imports": ["error", { patterns }] },
+    },
+    {
+      files: [files],
+      ignores: TESTS,
       rules: {
         "no-restricted-imports": [
           "error",
-          {
-            patterns: [
-              ...(kit ? [] : [BASE_UI]),
-              {
-                regex: `^(\\.{1,2}/)+(ui/)?(${segments})(/|$)`,
-                message: `${files.replace("/**", "")} may not import ${below.join(", ")} (one direction: wire <- bridge <- data <- features <- routes; the kit imports none of them).`,
-              },
-            ],
-          },
+          { patterns: [...patterns, TESTING] },
         ],
       },
     },
@@ -143,6 +160,13 @@ export default defineConfig(
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],
     rules: { "no-restricted-imports": ["error", { patterns: [BASE_UI] }] },
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    ignores: TESTS,
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [BASE_UI, TESTING] }],
+    },
   },
   ...layer("src/wire/**", [
     "bridge",

@@ -20,13 +20,14 @@ import {
 import { toast } from "../../ui/toasts";
 import type { SessionInfo } from "../../wire/proto";
 import { MoveProfile } from "./move-profile";
+import type { NodeKey } from "../../wire/bridge";
 
 export function SessionActions({
   node,
   label,
   session,
 }: {
-  node: string;
+  node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;

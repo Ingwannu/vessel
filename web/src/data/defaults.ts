@@ -23,8 +23,15 @@ import type {
   Preferences,
   PreferenceChange,
 } from "../wire/bridge";
-import type { Harness, HarnessKind, NodeId, OptionChoice } from "../wire/proto";
+import type {
+  Harness,
+  HarnessKind,
+  NodeId,
+  OptionChoice,
+  OptionId,
+} from "../wire/proto";
 import type { Picks } from "./picks";
+import { entriesOf } from "./records";
 
 /** The most choices kept for an agent. */
 export const MAX_CHOICES = 8;
@@ -59,8 +66,8 @@ export function rememberedPicks(
   if (kept === undefined) {
     return null;
   }
-  const picks: Record<string, OptionChoice> = {};
-  for (const [id, value] of Object.entries(kept.choices)) {
+  const picks: Record<OptionId, OptionChoice> = {};
+  for (const [id, value] of entriesOf(kept.choices)) {
     picks[id] = { id, ...value };
   }
   return { profile: kept.profile ?? "", picks };

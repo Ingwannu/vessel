@@ -9,6 +9,7 @@ import type {
   Preferences,
   ShortcutEdit,
 } from "../wire/bridge";
+import type { NodeId } from "../wire/proto";
 
 /** What every setting is before anyone chose: the bridge's defaults. */
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -48,7 +49,7 @@ function shortcutsAfter(
 
 function withMachine(
   defaults: Preferences["defaults"],
-  node: string,
+  node: NodeId,
   change: (machine: MachineDefaults) => MachineDefaults,
 ): Preferences["defaults"] {
   const before = defaults[node] ?? { agent: null, agents: {} };

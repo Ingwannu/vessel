@@ -10,6 +10,7 @@ import {
   sidebarStatuses,
   stepSession,
 } from "./sidebar";
+import { fixtureId } from "../testing/ids";
 
 function session(
   id: string,
@@ -17,7 +18,7 @@ function session(
   extra: Partial<SessionInfo> = {},
 ): SessionInfo {
   return {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured", cwd: `/work/${id}` },
     created_by: { kind: "owner" },
     status: { state: "running" },
@@ -31,7 +32,7 @@ const STATE: FleetState = {
   link: { kind: "open", version: "0.1.0" },
   book: [
     {
-      key: "laptop",
+      key: fixtureId("NodeKey", "laptop"),
       label: "laptop",
       address: "ws://laptop",
       transport: "ws",
@@ -39,7 +40,7 @@ const STATE: FleetState = {
       id: null,
     },
     {
-      key: "gpu-box",
+      key: fixtureId("NodeKey", "gpu-box"),
       label: "gpu-box",
       address: "ws://gpu-box",
       transport: "ws",
@@ -49,11 +50,11 @@ const STATE: FleetState = {
   ],
   bookError: null,
   statuses: {
-    laptop: {
+    [fixtureId("NodeKey", "laptop")]: {
       state: "connected",
       protocol: 9,
       node: {
-        id: "n-1",
+        id: fixtureId("NodeId", "n-1"),
         name: "laptop",
         hostname: "laptop",
         os: "linux",
@@ -69,7 +70,7 @@ const STATE: FleetState = {
   profiles: {},
   models: {},
   sessions: {
-    laptop: [
+    [fixtureId("NodeKey", "laptop")]: [
       session("aaaa", "2026-11-11T08:00:00Z", { title: "Fix the overview" }),
       session("bbbb", "2026-11-11T09:00:00Z"),
       session("cccc", "2026-11-11T07:00:00Z", {

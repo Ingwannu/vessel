@@ -1,6 +1,7 @@
 // Mutual proof over role-separated transcripts. Fresh nonces bind every
 // welcome to this socket, so replaying a previous welcome cannot open it.
 import type { ClientFrame, ServerFrame } from "../wire/bridge";
+import { nonceOf } from "./ids";
 import type { Credential } from "./token";
 
 const HEX = /^[0-9a-f]{64}$/;
@@ -29,7 +30,7 @@ type Challenge = Extract<ServerFrame, { type: "challenge" }>;
 type Welcome = Extract<ServerFrame, { type: "welcome" }>;
 export class Handshake {
   readonly #credential: Credential;
-  readonly #client = hex(crypto.getRandomValues(new Uint8Array(32)));
+  readonly #client = nonceOf(hex(crypto.getRandomValues(new Uint8Array(32))));
   #challenge: Challenge | null = null;
   constructor(credential: Credential) {
     this.#credential = credential;

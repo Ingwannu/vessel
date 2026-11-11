@@ -62,7 +62,7 @@ const EMPTY_DRAFT: Draft = {
 
 const NO_CRUMBS: readonly never[] = [];
 
-export function NewSession({ wanted }: { wanted: string | null }) {
+export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const fleet = useFleet();
   const navigate = useNavigate();
   const state = useFleetState((value) => value);

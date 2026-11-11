@@ -10,6 +10,7 @@ import type {
 } from "../wire/proto";
 import { reduce } from "./timeline";
 import { EMPTY } from "./timeline-model";
+import { fixtureId } from "../testing/ids";
 
 let seq = 0;
 const at = "2026-11-07T12:00:00Z";
@@ -66,7 +67,10 @@ function turn(): EventRecord[] {
   seq = 0;
   return [
     status({ state: "running" }),
-    agent({ event: "ready", harness_session: "fake-session-1" }),
+    agent({
+      event: "ready",
+      harness_session: fixtureId("HarnessSessionId", "fake-session-1"),
+    }),
     agent({
       event: "turn_started",
       content: [{ type: "text", text: "fix it" }],
@@ -85,7 +89,7 @@ function turn(): EventRecord[] {
     }),
     agent({
       event: "tool_call",
-      id: "call-1",
+      id: fixtureId("ToolCallId", "call-1"),
       title: "Read status.rs",
       kind: "read",
       status: "pending",
@@ -99,14 +103,26 @@ function turn(): EventRecord[] {
         { content: "Read the code", priority: "high", status: "in_progress" },
       ],
     }),
-    agent({ event: "tool_call_update", id: "call-1", status: "in_progress" }),
+    agent({
+      event: "tool_call_update",
+      id: fixtureId("ToolCallId", "call-1"),
+      status: "in_progress",
+    }),
     agent({
       event: "permission_requested",
-      id: "perm-1",
-      tool_call: "call-1",
+      id: fixtureId("PermissionId", "perm-1"),
+      tool_call: fixtureId("ToolCallId", "call-1"),
       options: [
-        { id: "allow-once", name: "Allow once", kind: "allow_once" },
-        { id: "reject-once", name: "Reject once", kind: "reject_once" },
+        {
+          id: fixtureId("PermissionOptionId", "allow-once"),
+          name: "Allow once",
+          kind: "allow_once",
+        },
+        {
+          id: fixtureId("PermissionOptionId", "reject-once"),
+          name: "Reject once",
+          kind: "reject_once",
+        },
       ],
     }),
   ];
@@ -145,12 +161,15 @@ describe("the timeline", () => {
     const second = reduce(first, [
       agent({
         event: "permission_resolved",
-        id: "perm-1",
-        outcome: { outcome: "selected", option: "allow-once" },
+        id: fixtureId("PermissionId", "perm-1"),
+        outcome: {
+          outcome: "selected",
+          option: fixtureId("PermissionOptionId", "allow-once"),
+        },
       }),
       agent({
         event: "tool_call_update",
-        id: "call-1",
+        id: fixtureId("ToolCallId", "call-1"),
         status: "completed",
         raw_output: { ok: true },
       }),
@@ -253,18 +272,18 @@ describe("the timeline", () => {
 
   it("keeps what the session runs with and its title as state, not entries", () => {
     const model: SessionOption = {
-      id: "model",
+      id: fixtureId("OptionId", "model"),
       name: "Model",
       category: "model",
       kind: "select",
-      current: "opus",
+      current: fixtureId("OptionValueId", "opus"),
       values: [
-        { id: "opus", name: "Opus" },
-        { id: "haiku", name: "Haiku" },
+        { id: fixtureId("OptionValueId", "opus"), name: "Opus" },
+        { id: fixtureId("OptionValueId", "haiku"), name: "Haiku" },
       ],
     };
     const fast: SessionOption = {
-      id: "fast",
+      id: fixtureId("OptionId", "fast"),
       name: "Fast mode",
       category: "other",
       kind: "toggle",
@@ -282,7 +301,7 @@ describe("the timeline", () => {
     const second = reduce(first, [
       record({
         type: "options_changed",
-        options: [{ ...model, current: "haiku" }],
+        options: [{ ...model, current: fixtureId("OptionValueId", "haiku") }],
       }),
     ]);
     expect(second.options).toEqual([{ ...model, current: "haiku" }]);

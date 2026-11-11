@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { DisplayStatus, SessionInfo } from "../wire/proto";
 import { notices, noticeTitle, titleWith } from "./notices";
+import { fixtureId } from "../testing/ids";
 
 function session(
   id: string,
@@ -9,7 +10,7 @@ function session(
   live = true,
 ): SessionInfo {
   return {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured", cwd: `/work/${id}` },
     created_by: { kind: "owner" },
     status: live ? { state: "running" } : { state: "exited", code: 0 },
@@ -31,7 +32,7 @@ function session(
 describe("what is worth telling", () => {
   test("a session starts to need you", () => {
     const found = notices(
-      "lab",
+      fixtureId("NodeKey", "lab"),
       [session("a", "working")],
       [session("a", "blocked")],
     );
@@ -40,12 +41,15 @@ describe("what is worth telling", () => {
 
   test("a working session goes idle or exits: finished", () => {
     expect(
-      notices("lab", [session("a", "working")], [session("a", "idle")])[0]
-        ?.kind,
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", "working")],
+        [session("a", "idle")],
+      )[0]?.kind,
     ).toBe("finished");
     expect(
       notices(
-        "lab",
+        fixtureId("NodeKey", "lab"),
         [session("a", "working")],
         [session("a", "exited", false)],
       )[0]?.kind,
@@ -54,27 +58,48 @@ describe("what is worth telling", () => {
 
   test("nothing new: still waiting, still working, idle again, a first sighting", () => {
     expect(
-      notices("lab", [session("a", "blocked")], [session("a", "blocked")]),
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", "blocked")],
+        [session("a", "blocked")],
+      ),
     ).toEqual([]);
     expect(
-      notices("lab", [session("a", "working")], [session("a", "working")]),
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", "working")],
+        [session("a", "working")],
+      ),
     ).toEqual([]);
     expect(
-      notices("lab", [session("a", "idle")], [session("a", "idle")]),
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", "idle")],
+        [session("a", "idle")],
+      ),
     ).toEqual([]);
-    expect(notices("lab", [], [session("b", "blocked")])).toEqual([]);
+    expect(
+      notices(fixtureId("NodeKey", "lab"), [], [session("b", "blocked")]),
+    ).toEqual([]);
   });
 
   test("an answered permission that goes back to work says nothing", () => {
     expect(
-      notices("lab", [session("a", "blocked")], [session("a", "working")]),
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", "blocked")],
+        [session("a", "working")],
+      ),
     ).toEqual([]);
   });
 
   test("an older node's session finishes when it ends", () => {
     expect(
-      notices("lab", [session("a", null)], [session("a", null, false)])[0]
-        ?.kind,
+      notices(
+        fixtureId("NodeKey", "lab"),
+        [session("a", null)],
+        [session("a", null, false)],
+      )[0]?.kind,
     ).toBe("finished");
   });
 });

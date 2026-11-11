@@ -9,8 +9,9 @@ import { nodeLabel } from "../../data/nodes";
 import { Row, RowList, Skeleton } from "../../ui/kit";
 import { MachinePicker } from "../machines/machine-picker";
 import { SettingsPage, SettingsSection } from "./settings-page";
+import type { NodeKey } from "../../wire/bridge";
 
-export function ModelsSection({ machine }: { machine: string | undefined }) {
+export function ModelsSection({ machine }: { machine: NodeKey | undefined }) {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   const allRoutes = useFleetState((state) => state.models);

@@ -29,7 +29,7 @@ const LEAD =
 /** Files listed before "and N more". */
 const FILES_SHOWN = 12;
 
-export function SyncSection({ machine }: { machine: string | undefined }) {
+export function SyncSection({ machine }: { machine: NodeKey | undefined }) {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   const selected = useFleetState((state) => state.selected);

@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { DeviceInfo } from "../wire/proto";
 import { deviceLine, pairedDevices } from "./devices";
+import { fixtureId } from "../testing/ids";
 
 const phone: DeviceInfo = {
-  id: "d-1",
+  id: fixtureId("DeviceId", "d-1"),
   label: "phone",
   created_at: "2026-11-11T05:00:00Z",
   last_seen: "2026-11-11T06:57:00Z",
@@ -25,7 +26,11 @@ describe("a paired device's row", () => {
   });
 
   it("lists only the devices that still have access", () => {
-    const revoked = { ...phone, id: "d-2", revoked_at: "2026-11-11T06:00:00Z" };
+    const revoked = {
+      ...phone,
+      id: fixtureId("DeviceId", "d-2"),
+      revoked_at: "2026-11-11T06:00:00Z",
+    };
     expect(pairedDevices([phone, revoked])).toEqual([phone]);
   });
 });

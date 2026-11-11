@@ -23,6 +23,7 @@ import {
 import { prefs } from "../../data/prefs";
 import { sessionName } from "../../data/titles";
 import { playNotice, unlockSound } from "./sound";
+import { entriesOf } from "../../data/records";
 
 function away(): boolean {
   return document.visibilityState !== "visible" || !document.hasFocus();
@@ -66,7 +67,7 @@ export function useNotices(): void {
       if (after === before) {
         return;
       }
-      const found = Object.entries(after).flatMap(([node, list]) => {
+      const found = entriesOf(after).flatMap(([node, list]) => {
         const previous = before[node];
         return previous === undefined ? [] : notices(node, previous, list);
       });

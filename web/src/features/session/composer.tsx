@@ -32,13 +32,14 @@ import { SendButton } from "../compose/send-button";
 import { useDraft } from "../compose/use-draft";
 import { useShortcut } from "../shortcuts/handlers";
 import { PermissionDock } from "./permission-dock";
+import type { NodeKey } from "../../wire/bridge";
 
 export function Composer({
   node,
   session,
   timeline,
 }: {
-  node: string;
+  node: NodeKey;
   session: SessionInfo;
   timeline: Timeline;
 }) {

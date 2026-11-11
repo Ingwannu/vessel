@@ -1,10 +1,13 @@
 import { expect, test } from "vitest";
 
 import { draftId, fits, MAX_DRAFT_BYTES, wellFormed } from "./drafts";
+import { fixtureId } from "../testing/ids";
 
 test("a draft's key as text", () => {
   expect(draftId({ kind: "new" })).toBe("new");
-  expect(draftId({ kind: "session", session: "s-1" })).toBe("session:s-1");
+  expect(
+    draftId({ kind: "session", session: fixtureId("SessionId", "s-1") }),
+  ).toBe("session:s-1");
 });
 
 test("the bound is UTF-8 bytes: Hangul is three each", () => {

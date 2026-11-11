@@ -6,10 +6,10 @@
 // a choice the agent does not offer fails the session (ADR 0022), so a
 // pick made for another agent or profile is dropped rather than sent.
 
-import type { OptionChoice, SessionOption } from "../wire/proto";
+import type { OptionChoice, OptionId, SessionOption } from "../wire/proto";
 
 /** Choices made before a session exists, by option id. */
-export type Picks = Readonly<Record<string, OptionChoice>>;
+export type Picks = Readonly<Record<OptionId, OptionChoice>>;
 
 /** Whether the agent would take `choice` for `option`. */
 function offered(option: SessionOption, choice: OptionChoice): boolean {

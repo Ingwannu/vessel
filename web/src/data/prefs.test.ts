@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { PreferencesState } from "../wire/bridge";
 import { firstPaint, keptNote, prefs, takePreferences } from "./prefs";
 import { applyChange, DEFAULT_PREFERENCES } from "./prefs-change";
+import { fixtureId } from "../testing/ids";
 
 describe("the first paint", () => {
   test("the attributes the bridge wrote, and the defaults for the rest", () => {
@@ -60,18 +61,23 @@ describe("a change applied as the bridge applies it", () => {
   test("a machine's defaults, and forgetting them", () => {
     const agent = applyChange(DEFAULT_PREFERENCES, {
       set: "default_agent",
-      value: { node: "n-1", agent: "codex" },
+      value: { node: fixtureId("NodeId", "n-1"), agent: "codex" },
     });
     const choices = applyChange(agent, {
       set: "agent_defaults",
       value: {
-        node: "n-1",
+        node: fixtureId("NodeId", "n-1"),
         agent: "codex",
         profile: null,
-        choices: { model: { kind: "select", value: "gpt" } },
+        choices: {
+          [fixtureId("OptionId", "model")]: {
+            kind: "select",
+            value: fixtureId("OptionValueId", "gpt"),
+          },
+        },
       },
     });
-    expect(choices.defaults["n-1"]).toEqual({
+    expect(choices.defaults[fixtureId("NodeId", "n-1")]).toEqual({
       agent: "codex",
       agents: {
         codex: {
@@ -81,8 +87,10 @@ describe("a change applied as the bridge applies it", () => {
       },
     });
     expect(
-      applyChange(choices, { set: "forget_defaults", value: { node: "n-1" } })
-        .defaults,
+      applyChange(choices, {
+        set: "forget_defaults",
+        value: { node: fixtureId("NodeId", "n-1") },
+      }).defaults,
     ).toEqual({});
   });
 });

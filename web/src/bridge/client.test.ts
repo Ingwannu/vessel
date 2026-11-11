@@ -2,11 +2,12 @@
 import { createHmac } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
 import { Bridge } from "./client";
+import { fixtureId } from "../testing/ids";
 import type { ServerFrame } from "../wire/bridge";
 
 vi.mock("./token", () => ({ rememberSession: vi.fn() }));
 const key = "a".repeat(64);
-const launch = "b".repeat(64);
+const launch = fixtureId("LaunchId", "b".repeat(64));
 class Socket extends EventTarget {
   static OPEN = 1;
   static all: Socket[] = [];

@@ -24,13 +24,14 @@ import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
 import { useTimeline } from "./use-timeline";
+import type { NodeKey } from "../../wire/bridge";
 
 export function StructuredSession({
   node,
   label,
   session,
 }: {
-  node: string;
+  node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;

@@ -47,7 +47,7 @@ export function machineMeant(
  * chosen, else the default, else the first. */
 export function selectedNode(
   state: FleetState,
-  fromUrl: string | undefined,
+  fromUrl: NodeKey | undefined,
 ): NodeKey | null {
   return machineMeant(state.book ?? [], [fromUrl, state.selected]);
 }

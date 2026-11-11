@@ -21,6 +21,7 @@ import type {
 import { wantsNotices } from "./alerts";
 import { Drafts } from "./drafts";
 import { prefs } from "./prefs";
+import { entriesOf } from "./records";
 import { Store } from "./store";
 
 const SESSIONS_EVERY_MS = 2000;
@@ -159,7 +160,7 @@ export class Fleet {
     const keys = new Set(nodes.map((node) => node.key));
     const before = new Set((this.store.get().book ?? []).map((n) => n.key));
     const kept = <V>(map: Readonly<Record<NodeKey, V>>) =>
-      Object.fromEntries(Object.entries(map).filter(([key]) => keys.has(key)));
+      Object.fromEntries(entriesOf(map).filter(([key]) => keys.has(key)));
     this.store.update((state) => ({
       ...state,
       book: nodes,
@@ -247,7 +248,7 @@ export class Fleet {
   }
 
   #pollSessions(): void {
-    for (const [node, status] of Object.entries(this.store.get().statuses)) {
+    for (const [node, status] of entriesOf(this.store.get().statuses)) {
       if (status.state === "connected") {
         void this.refreshSessions(node);
       }

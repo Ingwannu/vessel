@@ -10,11 +10,12 @@ import { useFleet } from "../../context";
 import { probeOptions } from "../../data/calls";
 import type { OptionsState } from "../../data/new-session";
 import type { HarnessKind } from "../../wire/proto";
+import type { NodeKey } from "../../wire/bridge";
 
 /** The options of `agent` under `profile` on `machine`; `wanted` is false
  * when nothing needs them (a terminal, no agent). */
 export function useAgentOptions(
-  machine: string | null,
+  machine: NodeKey | null,
   agent: HarnessKind | null,
   profile: string,
   wanted: boolean,

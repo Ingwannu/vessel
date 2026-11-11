@@ -19,94 +19,107 @@ import {
   toggleChoice,
 } from "./options";
 import { choicesFor, pick, withPicks } from "./picks";
+import { fixtureId } from "../testing/ids";
 
 const CLAUDE: SessionOption[] = [
   {
-    id: "mode",
+    id: fixtureId("OptionId", "mode"),
     name: "Mode",
     category: "mode",
     kind: "select",
-    current: "default",
+    current: fixtureId("OptionValueId", "default"),
     values: [
       {
-        id: "default",
+        id: fixtureId("OptionValueId", "default"),
         name: "Default",
         description: "Standard behavior, prompts for dangerous operations",
       },
       {
-        id: "acceptEdits",
+        id: fixtureId("OptionValueId", "acceptEdits"),
         name: "Accept Edits",
         description: "Auto-accept file edit operations",
       },
-      { id: "plan", name: "Plan Mode", description: "Planning mode" },
+      {
+        id: fixtureId("OptionValueId", "plan"),
+        name: "Plan Mode",
+        description: "Planning mode",
+      },
     ],
   },
   {
-    id: "model",
+    id: fixtureId("OptionId", "model"),
     name: "Model",
     category: "model",
     kind: "select",
-    current: "default",
+    current: fixtureId("OptionValueId", "default"),
     values: [
-      { id: "default", name: "Default (recommended)" },
-      { id: "opus", name: "Opus" },
-      { id: "haiku", name: "Haiku" },
+      {
+        id: fixtureId("OptionValueId", "default"),
+        name: "Default (recommended)",
+      },
+      { id: fixtureId("OptionValueId", "opus"), name: "Opus" },
+      { id: fixtureId("OptionValueId", "haiku"), name: "Haiku" },
     ],
   },
   {
-    id: "effort",
+    id: fixtureId("OptionId", "effort"),
     name: "Effort",
     category: "thought_level",
     kind: "select",
-    current: "high",
+    current: fixtureId("OptionValueId", "high"),
     values: [
-      { id: "low", name: "Low", group: "Quick" },
-      { id: "high", name: "High", group: "Deep" },
-      { id: "max", name: "Max", group: "Deep" },
+      { id: fixtureId("OptionValueId", "low"), name: "Low", group: "Quick" },
+      { id: fixtureId("OptionValueId", "high"), name: "High", group: "Deep" },
+      { id: fixtureId("OptionValueId", "max"), name: "Max", group: "Deep" },
     ],
   },
   {
-    id: "fast",
+    id: fixtureId("OptionId", "fast"),
     name: "Fast mode",
     category: "model_config",
     kind: "select",
-    current: "off",
+    current: fixtureId("OptionValueId", "off"),
     values: [
-      { id: "off", name: "Off" },
-      { id: "on", name: "On" },
+      { id: fixtureId("OptionValueId", "off"), name: "Off" },
+      { id: fixtureId("OptionValueId", "on"), name: "On" },
     ],
   },
   {
-    id: "thinking",
+    id: fixtureId("OptionId", "thinking"),
     name: "Thinking",
     category: "model_config",
     kind: "toggle",
     on: true,
   },
-  { id: "subagents", name: "Agents", category: "other", kind: "unknown" },
+  {
+    id: fixtureId("OptionId", "subagents"),
+    name: "Agents",
+    category: "other",
+    kind: "unknown",
+  },
 ];
 
 const OPENCODE: SessionOption[] = [
   {
-    id: "model",
+    id: fixtureId("OptionId", "model"),
     name: "Model",
     category: "model",
     kind: "select",
-    current: "anthropic/claude",
+    current: fixtureId("OptionValueId", "anthropic/claude"),
     values: [
-      { id: "anthropic/claude", name: "Claude" },
-      { id: "openai/gpt", name: "GPT" },
+      { id: fixtureId("OptionValueId", "anthropic/claude"), name: "Claude" },
+      { id: fixtureId("OptionValueId", "openai/gpt"), name: "GPT" },
     ],
   },
   {
-    id: "mode",
+    id: fixtureId("OptionId", "mode"),
     name: "Mode",
     category: "mode",
     kind: "select",
-    current: "build",
+    current: fixtureId("OptionValueId", "build"),
     values: [
-      { id: "build", name: "build" },
-      { id: "plan", name: "plan" },
+      { id: fixtureId("OptionValueId", "build"), name: "build" },
+      { id: fixtureId("OptionValueId", "plan"), name: "plan" },
     ],
   },
 ];
@@ -155,12 +168,12 @@ describe("controlsOf", () => {
 
   it("files a second option of one category with the other choices", () => {
     const second: SessionOption = {
-      id: "small-model",
+      id: fixtureId("OptionId", "small-model"),
       name: "Small model",
       category: "model",
       kind: "select",
-      current: "haiku",
-      values: [{ id: "haiku", name: "Haiku" }],
+      current: fixtureId("OptionValueId", "haiku"),
+      values: [{ id: fixtureId("OptionValueId", "haiku"), name: "Haiku" }],
     };
     const controls = controlsOf([...CLAUDE, second], "Claude Code");
     expect(controls.model?.id).toBe("model");
@@ -180,12 +193,17 @@ describe("names", () => {
     const odd = controlsOf(
       [
         {
-          id: "model",
+          id: fixtureId("OptionId", "model"),
           name: "Model",
           category: "model",
           kind: "select",
-          current: "local/llama",
-          values: [{ id: "anthropic/claude", name: "Claude" }],
+          current: fixtureId("OptionValueId", "local/llama"),
+          values: [
+            {
+              id: fixtureId("OptionValueId", "anthropic/claude"),
+              name: "Claude",
+            },
+          ],
         },
       ],
       "Claude Code",
@@ -224,9 +242,15 @@ describe("picks", () => {
     ) {
       throw new Error("Claude offers all three");
     }
-    let picks = pick({}, selectChoice(controls.permissions, "plan"));
+    let picks = pick(
+      {},
+      selectChoice(controls.permissions, fixtureId("OptionValueId", "plan")),
+    );
     // The effort the agent already has is no change.
-    picks = pick(picks, selectChoice(controls.effort, "high"));
+    picks = pick(
+      picks,
+      selectChoice(controls.effort, fixtureId("OptionValueId", "high")),
+    );
     picks = pick(picks, toggleChoice(thinking, false));
     const shown = controlsOf(withPicks(CLAUDE, picks), "Claude Code");
     expect(shown.permissions?.current).toBe("plan");
@@ -240,8 +264,19 @@ describe("picks", () => {
   it("drop a pick the agent does not offer", () => {
     // Made for Claude, then the agent changed to OpenCode.
     const picks = pick(
-      pick({}, { id: "mode", kind: "select", value: "acceptEdits" }),
-      { id: "effort", kind: "select", value: "max" },
+      pick(
+        {},
+        {
+          id: fixtureId("OptionId", "mode"),
+          kind: "select",
+          value: fixtureId("OptionValueId", "acceptEdits"),
+        },
+      ),
+      {
+        id: fixtureId("OptionId", "effort"),
+        kind: "select",
+        value: fixtureId("OptionValueId", "max"),
+      },
     );
     expect(choicesFor(OPENCODE, picks)).toEqual([]);
     expect(withPicks(OPENCODE, picks)).toEqual(OPENCODE);
@@ -249,8 +284,19 @@ describe("picks", () => {
 
   it("keep the agent's order, not the order they were made in", () => {
     const picks = pick(
-      pick({}, { id: "model", kind: "select", value: "openai/gpt" }),
-      { id: "mode", kind: "select", value: "plan" },
+      pick(
+        {},
+        {
+          id: fixtureId("OptionId", "model"),
+          kind: "select",
+          value: fixtureId("OptionValueId", "openai/gpt"),
+        },
+      ),
+      {
+        id: fixtureId("OptionId", "mode"),
+        kind: "select",
+        value: fixtureId("OptionValueId", "plan"),
+      },
     );
     expect(choicesFor(OPENCODE, picks).map((choice) => choice.id)).toEqual([
       "model",
@@ -279,26 +325,26 @@ describe("ownName", () => {
 
   it("names an agent's other options through it, and leaves the slots alone", () => {
     const agent: SessionOption = {
-      id: "agent",
+      id: fixtureId("OptionId", "agent"),
       name: "Agent",
       category: "other",
       kind: "select",
-      current: "default",
+      current: fixtureId("OptionValueId", "default"),
       values: [
-        { id: "default", name: "Default" },
-        { id: "reviewer", name: "reviewer" },
+        { id: fixtureId("OptionValueId", "default"), name: "Default" },
+        { id: fixtureId("OptionValueId", "reviewer"), name: "reviewer" },
       ],
     };
     const secondModel: SessionOption = {
-      id: "small_model",
+      id: fixtureId("OptionId", "small_model"),
       name: "Model",
       category: "model",
       kind: "select",
-      current: "haiku",
-      values: [{ id: "haiku", name: "Haiku" }],
+      current: fixtureId("OptionValueId", "haiku"),
+      values: [{ id: fixtureId("OptionValueId", "haiku"), name: "Haiku" }],
     };
     const toggle: SessionOption = {
-      id: "effort_toggle",
+      id: fixtureId("OptionId", "effort_toggle"),
       name: "Effort",
       category: "other",
       kind: "toggle",
@@ -324,7 +370,9 @@ describe("ownName", () => {
     // Only the name shown changes: the choice is still the agent's option.
     const shown = controls.selects.find((select) => select.id === "agent");
     expect(
-      shown === undefined ? null : selectChoice(shown, "reviewer"),
+      shown === undefined
+        ? null
+        : selectChoice(shown, fixtureId("OptionValueId", "reviewer")),
     ).toEqual({ id: "agent", kind: "select", value: "reviewer" });
   });
 });

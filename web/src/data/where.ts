@@ -6,18 +6,31 @@
 // TanStack Router's loose (`strict: false`) params and search come out as
 // `any`, which the lint rules (no `any`) refuse. The pathname and the
 // query string are plain strings either way.
+//
+// A machine named in the query is a `NodeKey` only when it has a key's
+// shape (`bridge/ids.ts`, the page's one place for brands); anything else
+// is as if none were given.
 
 import { useRouterState } from "@tanstack/react-router";
+
+import { nodeKeyOf } from "../bridge/ids";
+import type { NodeKey } from "../wire/bridge";
 
 export interface Where {
   /** The path's segments, decoded (`/sessions/box/3f2a` → sessions, box, 3f2a). */
   segments: readonly string[];
   /** `?node=`, when given. */
-  node: string | undefined;
+  node: NodeKey | undefined;
   /** `?machine=` (the new-session page's and Settings'), when given. */
-  machine: string | undefined;
+  machine: NodeKey | undefined;
   /** `?agent=` (Settings' Agents: the open card), when given. */
   agent: string | undefined;
+}
+
+/** A machine's key from a query value, when it is one. */
+function machineValue(raw: string | null): NodeKey | undefined {
+  const text = queryValue(raw);
+  return text === undefined ? undefined : (nodeKeyOf(text) ?? undefined);
 }
 
 /** A query value as the router writes it: plain text, or JSON text. */
@@ -45,8 +58,8 @@ export function useWhere(): Where {
   const params = new URLSearchParams(query);
   return {
     segments,
-    node: queryValue(params.get("node")),
-    machine: queryValue(params.get("machine")),
+    node: machineValue(params.get("node")),
+    machine: machineValue(params.get("machine")),
     agent: queryValue(params.get("agent")),
   };
 }

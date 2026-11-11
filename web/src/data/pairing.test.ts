@@ -11,11 +11,12 @@ import {
   pairingChecks,
   START_COMMAND,
 } from "./pairing";
+import { fixtureId } from "../testing/ids";
 
 const offer: PairingOffer = {
   v: 1,
-  node: "node-id",
-  key: "key",
+  node: fixtureId("NodeId", "node-id"),
+  key: fixtureId("NodePublicKey", "key"),
   relays: ["wss://relay.example/v1"],
   direct: ["ws://127.0.0.1:7077"],
   invite: "invite",

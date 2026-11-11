@@ -4,10 +4,11 @@ import type { SessionInfo } from "../wire/proto";
 import { searchArchive } from "./archive";
 import { type Card, placement } from "./board";
 import type { FleetState } from "./fleet";
+import { fixtureId } from "../testing/ids";
 
 function card(node: string, id: string, cwd: string): Card {
   const session: SessionInfo = {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured", cwd },
     created_by: { kind: "owner" },
     status: { state: "exited", code: 0 },
@@ -15,7 +16,7 @@ function card(node: string, id: string, cwd: string): Card {
     next_seq: 0,
   };
   return {
-    node,
+    node: fixtureId("NodeKey", node),
     session,
     depth: 0,
     parent: null,
@@ -28,7 +29,7 @@ const state: FleetState = {
   link: { kind: "open", version: "0.1.0" },
   book: [
     {
-      key: "gpu",
+      key: fixtureId("NodeKey", "gpu"),
       label: "gpu-box",
       address: "x",
       transport: "ws",
