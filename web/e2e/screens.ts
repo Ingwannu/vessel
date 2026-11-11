@@ -1,35 +1,18 @@
 // `npm run screens`: every main screen, captured into artifacts/screens/
 // (untracked) from a real fleet with some work on it, for review. Not a
 // test of behaviour (app.spec.ts is); each step only waits for what the
-// picture needs.
+// picture needs. The kit's gallery is captured by kit-screens.ts.
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { hostname } from "node:os";
 
 import { expect, type Page, test } from "@playwright/test";
 
 import { choose, newSessionDialog } from "./kit";
 import { openUi } from "./open";
 import { type FleetEnv, loadEnv } from "./fleet";
-
-const OUT =
-  process.env["VESSEL_SCREEN_DIR"] ??
-  join(import.meta.dirname, "..", "artifacts", "screens");
-
-async function shot(page: Page, name: string): Promise<void> {
-  mkdirSync(OUT, { recursive: true });
-  // Let fonts and the last frames settle.
-  await page.evaluate(async () => document.fonts.ready);
-  await page.waitForTimeout(400);
-  // Fleet join currently labels its device with the host name. Do not
-  // publish the build machine's identity in otherwise synthetic fixtures.
-  await page.screenshot({
-    path: join(OUT, `${name}.png`),
-    mask: [page.getByText(hostname(), { exact: true })],
-  });
-}
+import { shot } from "./shot";
 
 /** Run `vessel` as the user of this fleet would; `data` is the local data
  * directory (a node's own, for the commands that act on this machine's

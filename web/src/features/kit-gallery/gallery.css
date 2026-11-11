@@ -1,0 +1,109 @@
+/* The kit's gallery (/kit): a single column of sections, each a heading
+   and rows of specimens with a caption over each row. Only layout lives
+   here; every look is the kit's. */
+
+.kit-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 32px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.kit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kit-head h1 {
+  margin: 0 0 4px;
+  font: var(--t-title);
+  letter-spacing: var(--tracking-tight);
+}
+
+.kit-theme {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.kit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kit-section > h2 {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  font: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+.kit-specimens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kit-caption {
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.kit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.kit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px 24px;
+}
+
+.kit-wide {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Pushes what follows to the row's right end: the select there opens at
+   the window's edge. */
+.kit-push {
+  flex: 1;
+}
+
+.kit-note {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--text-secondary);
+}
+
+.kit-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-secondary);
+}
+
+@media (width <= 640px) {
+  .kit-page {
+    padding: 20px 16px 64px;
+  }
+
+  .kit-head {
+    flex-direction: column;
+  }
+}

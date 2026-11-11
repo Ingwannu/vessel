@@ -13,14 +13,20 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app";
 import { takeToken } from "./bridge/token";
 import { applyTheme } from "./data/theme";
+import { Gallery, isGallery } from "./features/kit-gallery/gallery";
 
 applyTheme();
-const token = takeToken();
 const root = document.getElementById("root");
 if (root !== null) {
+  // The kit's gallery holds no data: it opens without a token, and leaves
+  // one in the address for the app (features/kit-gallery/gallery.tsx).
   createRoot(root).render(
     <StrictMode>
-      <App token={token} />
+      {isGallery(window.location.pathname) ? (
+        <Gallery />
+      ) : (
+        <App token={takeToken()} />
+      )}
     </StrictMode>,
   );
 }
