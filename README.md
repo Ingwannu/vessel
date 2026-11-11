@@ -511,10 +511,13 @@ vessel log 3f2a                              # model calls: route, model, tokens
 ## Web UI
 
 `vessel ui` serves Vessel's web UI on this machine and opens it in the
-browser on Unix (on Windows, open the printed address): the fleet, every node's sessions (a session an agent started
-sits under the one that started it), a session as a terminal or as a
-structured timeline with its prompt box and permission answers, new
-sessions, fleet sync, devices and pairing with a QR code, and settings.
+browser on Unix (on Windows, open the printed address): the fleet; every
+node's sessions as a board, one lane per status (running, interrupted,
+failed, exited), a session an agent started named on its card and set
+under the one that started it; a session as a terminal or as a structured
+timeline with its prompt box and permission answers; new sessions, fleet
+sync, devices and pairing with a QR code, and settings. The page is white
+and black, with a dark theme in Settings.
 
 ```bash
 vessel ui            # serves on 127.0.0.1:7079 (any free port if taken), opens the browser

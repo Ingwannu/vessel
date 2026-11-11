@@ -128,5 +128,11 @@ order. Milestone 4 left these follow-ups, none scheduled:
   --web` (a node serving the page itself); Safari, which does not resolve
   the per-launch `vessel-<id>.localhost` origins (revisit with a signed
   bootstrap page or Safari's `localhost` port isolation; ADR 0017).
+- [x] Web UI design: white and black, one design system, Sessions as a
+  board of status lanes (milestone 8, `docs/plans/backend-m8.md`,
+  ADR 0018). Follow-ups, not scheduled: lanes by attention (working, needs
+  you, idle), which need the node to report each session's turn and
+  pending permission (a field on `SessionInfo` and a protocol version);
+  an archive for ended sessions.
 - [ ] Zed / VS Code integration.
 - [ ] Native editor (only if the above is not enough).

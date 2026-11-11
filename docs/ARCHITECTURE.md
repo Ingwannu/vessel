@@ -180,6 +180,12 @@ they started.
   TypeScript types generated from the wire (`web/src/wire/`). Checked in
   CI by Playwright against real nodes with the fake harnesses, which also
   captures every main screen.
+- **Milestone 8** (the web UI's design; `docs/plans/backend-m8.md`,
+  ADR 0018): built on `backend/m8-board`, in `web/` and the docs only.
+  White and black, one token file and one stylesheet
+  (`web/src/ui/tokens.css`, `app.css`), and Sessions as a board whose
+  lanes are the protocol's session statuses (`web/src/data/board.ts`).
+  No crate and no wire type changed.
 
 ### The web UI (`web/`)
 

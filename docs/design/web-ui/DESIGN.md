@@ -1,22 +1,22 @@
 # Vessel web UI — design
 
-Track M7 implements this. The mockups in this directory are the visual
-source of truth; this file is the contract: why the UI is shaped this way,
-how it maps onto the protocol, and what must not be improvised.
+This file is the contract for `vessel ui`'s page: why it is shaped this
+way, how it maps onto the protocol, and what must not be improvised.
+
+- The tokens are `web/src/ui/tokens.css`, the components
+  `web/src/ui/app.css`. There is no other token file or stylesheet
+  (ADR 0018).
+- The pictures are the app's own screens: `npm run screens` in `web/`
+  captures every main screen in both themes.
+- Milestone 7 built the first version from a dark, blue-accented draft
+  with static mockups. Milestone 8 (ADR 0018) made it white and black, one
+  design system, with sessions as a board. The draft's mockups are in the
+  history, not in the tree.
 
 The product is an **Agentic Development Environment**: one seat driving
 AI coding harnesses (Claude Code, Codex, Gemini, OpenCode) as sessions on
 several of the operator's machines (nodes). It is a control room, not a
 marketing site and not a chat app with a sidebar bolted on.
-
-Mockups: `fleet.html`, `sessions.html`, `session-structured.html`,
-`session-terminal.html`, `new-session.html`, `fleet-sync.html`,
-`devices.html`. Shared: `tokens.css` (the token contract), `app.css`
-(mockup composition — do not copy it wholesale into the app).
-
-Settings (node book, theme) is a dialog on every screen (`#settings`),
-not a seventh route. The TypeScript app may give it its own route; the
-information architecture below says where it lives.
 
 ---
 
@@ -29,12 +29,14 @@ information architecture below says where it lives.
 2. **Calm density.** Zed's restraint, Linear's clarity. Information is
    close together because the operator is comparing nodes, not browsing a
    landing page. Padding is a 4px grid, not a marketing 80px section.
-3. **Dark is the design.** Light is a re-derived second theme, never an
-   inversion of the dark canvas. Depth is layered near-blacks and 1px
-   hairlines, not drop shadows.
-4. **One accent.** Function blue (`--accent`) is the only colour that
-   means "this is selected / this is a link / this has focus". Status
-   greens, ambers and reds are reserved for process and reach state.
+3. **White and black is the design.** A white canvas and near-black
+   ink. Dark is the same system inverted (black canvas, white ink), not a
+   second palette. Depth is hairlines and one step of grey, not drop
+   shadows.
+4. **The accent is the ink.** Selected, focused and primary are black on
+   white: a grey row with a black bar, a black ring, a black button. No
+   hue lives in the chrome, so the only coloured thing on a page is a
+   state: running green, starting amber, failed red, as a dot and a word.
    Syntax colours appear inside code, diffs and the terminal, not as
    decorative chips.
 5. **Monospace is a material.** It marks things a machine produced or a
@@ -52,6 +54,15 @@ information architecture below says where it lives.
 8. **Taste over chrome.** No gradients, no glows, no card grids of
    identical feature tiles, no 3D device frames, no looping typing
    animation. If a control is not needed this minute, it is in a menu.
+9. **Sentence case, and words that earn their place.** Labels, headings,
+   buttons and column headers are sentence case; nothing is uppercased
+   for effect. A line of help that only restates the control next to it
+   is removed, and a view has one primary action: New is in the topbar on
+   every page, so no page repeats it in its own head.
+10. **Borders are structure.** A hairline separates durable regions:
+    panes, lanes, the rows of one list. A thing does not get an outline
+    for being rectangular. The one object with a border of its own is a
+    board card, because it is a bounded thing to open.
 
 ### Why this, not a chat shell
 
@@ -70,7 +81,7 @@ conversation; the rest of the app must feel like an IDE's debug console.
 | Place | What it is | Primary objects |
 | --- | --- | --- |
 | **Fleet** | Every node the book knows, plus live facts from each daemon | node, reach, role, harnesses, profiles, live count |
-| **Sessions** | Live and recent sessions, one node or all | session, creator tree, status, mode |
+| **Sessions** | Every session, one node or all, as a board | session card, status lane, creator |
 | **Session** | One session, terminal or structured | timeline or PTY, actions |
 | **New session** | Create dialog | node, harness, profile, model, cwd, mode |
 | **Sync** | Fleet configuration as the home publishes it | generation, members, conflicts, MCP, secrets (names only) |
@@ -83,14 +94,16 @@ There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
 
 ```
 ┌─ topbar 40px ─────────────────────────────────────────────────────────┐
-│ mark  Vessel    breadcrumb                 search     New    device   │
+│ mark  Vessel    breadcrumb                 search     New    client   │
 ├─ sidebar 240px ─┬─────────────────────────────────────────────────────┤
 │ Fleet           │                                                     │
-│   laptop   3    │  main                                               │
-│   gpu-box  2    │                                                     │
-│   build-server 1│                                                     │
-│   studio   —    │                                                     │
-│ Sessions        │                                                     │
+│   laptop      3 │  main                                               │
+│     vessel 3f2a │                                                     │
+│     docs   9aa0 │                                                     │
+│   gpu-box     2 │                                                     │
+│   studio      — │                                                     │
+│ ─────────────── │                                                     │
+│ Sessions      5 │                                                     │
 │ Sync            │                                                     │
 │ Devices         │                                                     │
 │ ─────────────── │                                                     │
@@ -100,68 +113,68 @@ There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
 
 - **Sidebar, not a top-tab app.** Nodes are a hierarchy the operator
   lives in. Putting them in a top bar forces a second click every time.
-  Zed and Linear both keep the collection on the left.
 - **Nodes are children of Fleet**, not a separate "Machines" app. Clicking
-  **Fleet** shows every node. Clicking a node name scopes the main pane
-  to that node (its detail on Fleet, its sessions on Sessions, its
-  devices on Devices, its applied generation on Sync).
-- **Sessions in the sidebar is "all nodes".** It is the unscoped list.
-  A node row in the sidebar is a scope, not a different product area.
+  **Fleet** shows every node. Clicking a node name opens that node.
+- **A node's live sessions are its children**: up to five, by the title
+  their cards have (§6.12) and their id, then "N more" to the board scoped
+  to that node. The sidebar is how the operator switches session from any
+  page; it is not a second board, so ended sessions are not listed.
+- **No section labels.** The groups are separated by a rule; "Place" and
+  "Work" over four links said nothing.
+- **Sessions in the sidebar is "all nodes".** Its count is the live
+  sessions of the whole fleet.
 - **Badge on a node row** is live session count (`SessionStatus` starting
   or running). Offline nodes show an em dash, not `0`, so they do not
   look idle-but-fine.
-- **Topbar breadcrumb** repeats the scope: `Fleet / gpu-box / 3f2a`. It
-  is the only place a session id appears in the chrome, so the operator
-  can copy it without digging.
-- **Search** (`/` or `⌘K`) is a command palette over nodes, sessions,
-  commands. The mockups show the field; they do not implement results
-  (no JS). The app should.
-- **New** always opens the create dialog with the current node
-  preselected (all-nodes → the book's default node).
-- **Device chip** in the topbar is *this client*: its label, and a
-  reach summary (`direct` / `ssh` / `relay`). It is not the Devices
-  page. Clicking it opens Settings.
+- **Topbar breadcrumb** repeats the scope: `Fleet / gpu-box / 3f2a`.
+- **Search** (`/` or `⌘K`) is a palette over nodes and sessions.
+- **New** always opens the create dialog with the selected node
+  preselected (§2.5). It is the one primary action, on every page.
+- **Client chip** in the topbar is *this client*: its link to `vessel ui`.
+  It is not the Devices page. Clicking it opens Settings.
 
-### 2.3 Routes (for the implementer)
+### 2.3 Routes
 
-Suggested hash-free routes. Names are UI, ids are protocol.
+Names are UI, ids are protocol.
 
 ```
 /                         → /fleet
 /fleet                    all nodes
-/fleet/:node              one node (book name or NodeId)
-/sessions                 all nodes
-/sessions?node=:node      scoped
-/sessions/:id             redirect to the right view
-/sessions/:id/structured
-/sessions/:id/terminal
+/fleet/:node              one node (its book key)
+/sessions                 the board, all nodes
+/sessions?node=:node      the board, one node
+/sessions/:node/:id       one session, structured or terminal by its mode
 /sync
 /sync?node=:node
-/devices                  default: the selected or default node
+/devices
 /devices?node=:node
-/settings                 optional; mockups use #settings
+/settings
 ```
 
-Creating a session is a modal over the current route, query
-`?new=1`, not a dead-end page. `new-session.html` exists so the dialog
-can be opened on its own in a browser.
+Creating a session is a dialog over the current route, not a page.
 
 ### 2.4 Session hierarchy
 
 `SessionInfo.created_by` (protocol 5) is either the owner/device or an
-agent `{ node, session }`. The Sessions list is a **tree**:
+agent `{ node, session }`. Sessions are a **tree** (`data/tree.ts`):
 
-- Root rows: created by a person (this device, or another paired device).
-- Child rows: created by that session's agent, on any node.
-- Depth is at most 3 (ADR 0013). Indent 16px per level, with a 1px
-  connector in `--border-subtle`.
-- A child can live on a different node than its parent. The node column
-  is therefore always shown, even inside a scoped list, whenever any
-  visible row's node differs from the scope.
-- Collapsing a parent hides descendants. Default: expanded if any
-  descendant is live.
+- Roots: created by a person (this device, or another paired device),
+  newest first.
+- Children: created by that session's agent, on any node.
+- Depth is at most 3 (ADR 0013).
+- A child can live on a different node than its parent.
 
-Do not flatten this into a "Created by" column with a raw id. The tree
+On the board (§6.12) the tree is kept two ways, because a parent and its
+child need not share a status:
+
+- A card an agent started carries a line "agent of `3f2a`", linking to
+  that session, and "on gpu-box" when the parent runs on another node. It
+  is there whatever lanes the two are in.
+- Inside a lane the tree's order is kept, so a child whose parent is in
+  the same lane sits right under it, indented 14px a level (two levels at
+  most) with a connector.
+
+Do not flatten this into a card field with a raw id and no link. The tree
 *is* the point of a fleet.
 
 ### 2.5 Which node is "the" node
@@ -169,7 +182,7 @@ Do not flatten this into a "Created by" column with a raw id. The tree
 Devices, pairing, drain/stop, and the node book entry are per node.
 Sync conflicts are per member. The selected node is:
 
-1. the node in the URL, else
+1. the node in the URL (opening a node's page selects it), else
 2. the last node the operator selected this session, else
 3. the book's `default_node`, else
 4. the local node if the book has one.
@@ -195,12 +208,17 @@ the pane, not a centred 720px reading column — this is an app.
 
 ### 3.1 Common page frames
 
-**Fleet.** Main is one column: a 32px summary strip, then a full-width
-node table. Selecting a row opens a 320px inspector (`col` 10–12 on
-wide screens) with harnesses, profiles, reach, last error.
+**Fleet.** Main is one column: the title over one line of summary facts
+(nodes, live sessions, harnesses), then a full-width node table. Selecting
+a row opens a 320px inspector with harnesses, profiles, reach, last
+error. The summary is a sentence of numbers, not tiles: the table under
+it is the fleet.
 
-**Sessions.** Filter bar 40px, then a table. No inspector; a row click
-opens the session.
+**Sessions.** One 44px row (the title and the node scope), then the board
+fills the pane: four lanes, each a 44px heading over its own scrolling
+column of cards. No inspector; a card opens the session. Below 1024px of
+pane the board scrolls sideways (lanes keep 256px); below 768px the lanes
+stack.
 
 **Structured session.**
 
@@ -221,9 +239,9 @@ The inspector hides below 1100px (toggle `⌘I`). The composer is sticky.
 **Terminal session.** Header 40px, reconnecting banner if needed, then
 the terminal consumes all remaining height. No inspector.
 
-**Dialogs** (new session, settings, pair, confirm revoke): 480px wide,
-centred, 16px padding, dimmer `--overlay` at 48% black (dark) / 32%
-(light). New session can grow to 560px because of the model list.
+**Dialogs** (new session, pair, confirm kill or revoke): 480px wide,
+centred, 16px padding, dimmer `--overlay` at 32% black (light) / 56%
+(dark). New session can grow to 560px because of the model list.
 
 **Sync.** Two stacked sections, not tabs: Sources (home) then Members.
 Conflicts, when any exist, pin to the top of Members as a list, not a
@@ -250,107 +268,131 @@ focus for keyboard.
 
 ## 4. Design tokens
 
-All tokens live in `tokens.css` as CSS custom properties on `:root`
-(dark) and `:root[data-theme="light"]` (light). The mockups also honour
-`#theme-light:checked` via `:has()`, so the Settings toggle works
-without JavaScript.
+All tokens live in `web/src/ui/tokens.css` as CSS custom properties on
+`:root` (light, the design) and `:root[data-theme="dark"]` (its
+inversion). `web/src/ui/app.css` uses tokens only; a literal colour there
+is a defect, except the pairing QR code, which stays dark on light to
+scan.
 
-Do not introduce a third palette. Status and syntax draw from the
-tables below.
+Do not introduce a third palette, and do not add a hue to the chrome.
+Status and syntax draw from the tables below.
 
-### 4.1 Colour — dark (primary)
-
-| Token | Hex | Role |
-| --- | --- | --- |
-| `--bg-base` | `#0A0B0D` | app canvas |
-| `--bg-sidebar` | `#0C0D10` | sidebar, slightly lifted so the rail is a layer |
-| `--bg-surface` | `#101216` | tables, timeline, inputs |
-| `--bg-elevated` | `#16181D` | popovers, dialogs, inspector, topbar |
-| `--bg-hover` | `#1A1D24` | row hover |
-| `--bg-active` | `#1E2430` | selected row (tinted toward accent) |
-| `--border-subtle` | `#1E2127` | default hairline |
-| `--border-strong` | `#2A2E37` | focused well, emphasised split |
-| `--text-primary` | `#E6E8EB` | titles, primary copy, input text |
-| `--text-secondary` | `#9BA1AC` | body, descriptions |
-| `--text-tertiary` | `#8A919C` | meta, timestamps, column headers |
-| `--text-disabled` | `#5C6370` | disabled controls (not small running text) |
-| `--accent` | `#82AAFF` | selection, links, focus, "this" |
-| `--accent-muted` | `#82AAFF22` | selected row wash, badge fill |
-| `--online` | `#3ECF8E` | serving, running, applied |
-| `--warn` | `#E0A066` | draining, pending permission, conflict, starting |
-| `--danger` | `#F07178` | failed, revoke, kill |
-| `--interrupt` | `#A8B0C0` | interrupted (neutral, not an error) |
-
-Never `#000000` or `#FFFFFF` on large surfaces.
-
-### 4.2 Colour — light (re-derived)
+### 4.1 Colour — light (the design)
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `--bg-base` | `#F3F4F6` | canvas |
-| `--bg-sidebar` | `#EEF0F3` | sidebar |
-| `--bg-surface` | `#F7F8FA` | tables, timeline |
-| `--bg-elevated` | `#FBFBFC` | dialogs, topbar, inspector |
-| `--bg-hover` | `#EBEEF2` | row hover |
-| `--bg-active` | `#E4EAF8` | selected row |
-| `--border-subtle` | `#E2E5EA` | hairline |
-| `--border-strong` | `#C9CED6` | focus well |
-| `--text-primary` | `#1A1C20` | titles |
-| `--text-secondary` | `#4E5560` | body |
-| `--text-tertiary` | `#5E6570` | meta (12px+) |
-| `--text-disabled` | `#8A919C` | disabled |
-| `--accent` | `#2F62D4` | same role as dark, darker so it passes on light |
-| `--accent-muted` | `#2F62D41A` | selected wash |
-| `--online` | `#1F7A4D` | |
-| `--warn` | `#9A5B12` | |
-| `--danger` | `#C03948` | |
-| `--interrupt` | `#5E6570` | |
+| `--bg-base` | `#FFFFFF` | app canvas, the board |
+| `--bg-sidebar` | `#FAFAFA` | sidebar, one step off the canvas |
+| `--bg-surface` | `#FFFFFF` | cards, tables, inputs |
+| `--bg-elevated` | `#FFFFFF` | dialogs, menus, topbar, inspector (dialogs and menus add `--shadow`) |
+| `--bg-hover` | `#F5F5F5` | hover; the fill of a search well, a segmented track, a prompt, code |
+| `--bg-active` | `#EDEDED` | selected row |
+| `--border-subtle` | `#EBEBEB` | default hairline |
+| `--border-strong` | `#D4D4D4` | button edge, focused well, a hovered card |
+| `--text-primary` | `#0A0A0A` | titles, primary copy, input text |
+| `--text-secondary` | `#525252` | body, descriptions |
+| `--text-tertiary` | `#6B6B6B` | meta, timestamps, column headers |
+| `--text-disabled` | `#A3A3A3` | disabled controls (not running text) |
+| `--accent` | `#0A0A0A` | selection bar, focus ring: the ink |
+| `--accent-muted` | `#0A0A0A0F` | the faintest wash of the ink |
+| `--online` | `#166534` | serving, running, applied |
+| `--warn` | `#92400E` | draining, pending permission, conflict, starting |
+| `--danger` | `#B91C1C` | failed, revoke, kill |
+| `--interrupt` | `#6B6B6B` | interrupted (neutral, not an error) |
 
-### 4.3 Contrast (WCAG AA, verified)
+The surfaces are deliberately the same white: a white page is flat, and
+its structure is hairlines, not three near-identical tints.
 
-Text smaller than 18px needs 4.5:1. All running text in this UI is 12px
-or 13px, so every pair below is measured at that bar.
+### 4.2 Colour — dark (the inversion)
 
-| Pair | Ratio | Notes |
+| Token | Hex | Role |
 | --- | --- | --- |
-| dark `--text-primary` on `--bg-base` | 16.0 | |
-| dark `--text-secondary` on `--bg-base` | 7.6 | |
-| dark `--text-tertiary` on `--bg-base` | 6.2 | `#8A919C`, not `#6B7280` (4.07, fails) |
-| dark `--text-tertiary` on `--bg-surface` | 5.9 | |
-| dark `--accent` on `--bg-surface` | 8.2 | |
-| dark `--online` on `--bg-surface` | 9.4 | |
-| dark `--danger` on `--bg-surface` | 6.6 | |
-| dark `--warn` on `--bg-surface` | 8.4 | |
-| dark code comment `#7A8190` on `--bg-surface` | 4.8 | `#5C6370` fails at 3.1 |
-| light `--text-primary` on `--bg-base` | 15.5 | |
-| light `--text-secondary` on `--bg-base` | 6.9 | |
-| light `--text-tertiary` on `--bg-base` | 5.4 | |
-| light `--accent` on `--bg-base` | 5.0 | |
-| light `--online` / `--danger` / `--warn` on `--bg-base` | ≥ 4.9 | |
+| `--bg-base` | `#0A0A0A` | canvas |
+| `--bg-sidebar` | `#0F0F0F` | sidebar |
+| `--bg-surface` | `#111111` | cards, tables |
+| `--bg-elevated` | `#171717` | dialogs, topbar, inspector |
+| `--bg-hover` | `#1C1C1C` | hover and fills |
+| `--bg-active` | `#262626` | selected row |
+| `--border-subtle` | `#222222` | hairline |
+| `--border-strong` | `#333333` | button edge, focus well |
+| `--text-primary` | `#FAFAFA` | titles |
+| `--text-secondary` | `#A3A3A3` | body |
+| `--text-tertiary` | `#8F8F8F` | meta |
+| `--text-disabled` | `#5C5C5C` | disabled |
+| `--accent` | `#FAFAFA` | the ink, inverted |
+| `--accent-muted` | `#FAFAFA14` | |
+| `--online` | `#4ADE80` | |
+| `--warn` | `#FBBF24` | |
+| `--danger` | `#F87171` | |
+| `--interrupt` | `#A3A3A3` | |
 
-Do not use `--text-disabled` for timestamps or column headers. Disabled
-is for controls that cannot be used.
+Dark keeps a step between its surfaces, because a hairline alone is too
+faint on black.
 
-Status is never colour alone: every badge has a word (`running`,
-`relay`, `conflict`). Dots in the sidebar repeat the word in
-`aria-label`.
+### 4.3 Contrast (WCAG AA, measured)
 
-### 4.4 Syntax (code, diffs, terminal)
+Text smaller than 18px needs 4.5:1. All running text in this UI is 11px
+to 13px, so every pair below is measured at that bar, on the lightest and
+the darkest surface it can sit on. A token change must re-measure its
+pairs in the same change.
 
-Used inside tool-call JSON, markdown code, diffs and the terminal. Not
-as UI decoration.
+| Pair | On canvas | On selected row | Notes |
+| --- | --- | --- | --- |
+| light `--text-primary` | 19.8 | 16.9 | |
+| light `--text-secondary` | 7.8 | 6.7 | |
+| light `--text-tertiary` | 5.3 | 4.6 | `#6B6B6B` |
+| light `--online` | 7.1 | 6.1 | `#166534`; `#15803D` fails on `--bg-active` (4.3) |
+| light `--warn` | 7.1 | 6.1 | `#92400E`; `#B45309` fails on `--bg-active` (4.3) |
+| light `--danger` | 6.5 | 5.5 | |
+| light primary button, white on `#0A0A0A` | 19.8 | | |
+| light solid danger button, white on `--danger` | 6.5 | | |
+| light code: keyword / string / func / number / const on `--bg-hover` | ≥ 5.0 | | lowest is number, 5.0 |
+| dark `--text-primary` | 19.0 | 14.5 | |
+| dark `--text-secondary` | 7.8 | 6.0 | |
+| dark `--text-tertiary` | 6.1 | 4.7 | |
+| dark `--online` / `--warn` / `--danger` | ≥ 7.2 | ≥ 5.5 | |
+| dark solid danger button, `#0A0A0A` on `--danger` | 7.2 | | |
+| terminal `--term-fg` on `--term-bg` | 16.9 | | both themes |
+| terminal `--term-dim` on `--term-bg` / `--term-frame` | 6.1 | 5.5 | the frame's chrome line |
 
-| Token | Dark | Light |
+Do not use `--text-disabled` (2.5 on white) for timestamps or column
+headers. Disabled is for controls that cannot be used.
+
+Status is never colour alone: every badge and every card's status line
+has a word (`running`, `relay`, `conflict`). Dots in the sidebar repeat
+the word in `aria-label`.
+
+### 4.4 Syntax and terminal
+
+Syntax is used inside tool-call JSON, markdown code and diffs. Not as UI
+decoration.
+
+| Token | Light | Dark |
 | --- | --- | --- |
-| `--syn-keyword` | `#C792EA` | `#7A3DB3` |
-| `--syn-string` | `#C3E88D` | `#3B6D11` |
-| `--syn-func` | `#82AAFF` | `#2F62D4` |
-| `--syn-number` | `#F78C6C` | `#B5471C` |
-| `--syn-comment` | `#7A8190` | `#5E6570` |
-| `--syn-const` | `#FFCB6B` | `#8A5A00` |
-| `--syn-error` | `#F07178` | `#C03948` |
-| `--diff-add-bg` | `#3ECF8E18` | `#1F7A4D14` |
-| `--diff-del-bg` | `#F0717818` | `#C0394814` |
+| `--syn-keyword` | `#7A3DB3` | `#C792EA` |
+| `--syn-string` | `#3B6D11` | `#C3E88D` |
+| `--syn-func` | `#1D4ED8` | `#93B4FF` |
+| `--syn-number` | `#B5471C` | `#F78C6C` |
+| `--syn-comment` | `#6B6B6B` | `#8F8F8F` |
+| `--syn-const` | `#8A5A00` | `#FFCB6B` |
+| `--syn-error` | `#B91C1C` | `#F87171` |
+| `--diff-add-bg` | `#16653414` | `#4ADE8018` |
+| `--diff-del-bg` | `#B91C1C14` | `#F8717118` |
+
+The terminal is black in both themes: harness TUIs draw for a dark
+terminal, and a black panel on a white page is the look itself. Because
+the page's accent is black in the light theme, the terminal has tokens of
+its own and never uses the page's.
+
+| Token | Light | Dark | Role |
+| --- | --- | --- | --- |
+| `--term-bg` | `#0A0A0A` | `#000000` | the PTY's background |
+| `--term-frame` | `#171717` | `#111111` | the outer frame |
+| `--term-fg` | `#EDEDED` | same | text |
+| `--term-dim` | `#8F8F8F` | same | the frame's chrome line |
+| `--term-border` | white at 12% | same | the frame's hairlines |
+| `--term-cursor` | `#EDEDED` | same | cursor |
+| `--term-selection` | `#EDEDED` at 24% | same | selection |
 
 ### 4.5 Radii
 
@@ -369,15 +411,14 @@ timelines are not cards-inside-cards.
 
 ### 4.6 Elevation
 
+Light: a single shadow on dialogs and menus, the only things that float,
+`0 8px 24px rgba(10, 10, 10, 0.08), 0 0 0 1px var(--border-subtle)`.
+Cards, rows and tables use hairlines, never shadows.
+
 Dark: no shadows. A raised surface is `--bg-elevated` plus
-`--border-subtle`. An optional `inset` highlight `rgba(255,255,255,0.04)`
-on the top edge of dialogs only.
+`--border-subtle`.
 
-Light: a single shadow on dialogs and menus,
-`0 8px 24px rgba(26, 28, 32, 0.08), 0 0 0 1px var(--border-subtle)`.
-Rows and tables still use hairlines, not shadows.
-
-`--overlay`: `rgba(0,0,0,0.48)` dark, `rgba(26,28,32,0.32)` light.
+`--overlay`: `rgba(10,10,10,0.32)` light, `rgba(0,0,0,0.56)` dark.
 
 ### 4.7 Motion
 
@@ -414,10 +455,8 @@ the pulse is opacity 1 → 0.45 → 1 over 1.6s, stopped under
 - Never put a bare `monospace` or `serif` first.
 - Never use Gulim, Dotum, Batang, or any family that renders as a pixel
   font on Korean Windows Chrome.
-- Mockups load Pretendard from the jsDelivr CDN
-  (`pretendard@v1.3.9` static). **The app must self-host Pretendard**
-  (woff2, `font-display: swap`, subset Korean + Latin). Do not keep the
-  CDN in production.
+- **The app self-hosts Pretendard** (woff2, `font-display: swap`). No
+  font is loaded from a CDN.
 
 Two families only. No display serif, no third mono.
 
@@ -435,7 +474,8 @@ paths and flags do not turn into unfamiliar glyphs.
 | `--t-mono` | 12px / 20 / 400 | mono | ids, paths, models, versions |
 | `--t-mono-lg` | 13px / 22 / 400 | mono | composer, tool I/O |
 | `--t-term` | 13px / 20.8 (1.6) / 400 | mono | terminal |
-| `--t-kicker` | 11px / 16 / 500 | sans | column headers, overlines (uppercase + 0.06em) |
+| `--t-kicker` | 11px / 16 / 500 | sans | column headers and small labels, sentence case (never uppercase) |
+| `--t-card` | 13px / 18 / 600 | sans | a board card's title |
 
 Headlines heavier than 600 are forbidden. Markdown in the timeline may
 use 600 for `h3`/`h4` equivalents; there is no `h1` inside a session.
@@ -447,7 +487,8 @@ not the 12px chrome.
 
 ## 6. Component inventory
 
-Every component below is in `app.css` under the same class name. States
+Every component below is in `web/src/ui/app.css` under the same class
+name. States
 to implement: default, hover, active, focus-visible, disabled,
 loading, error, empty.
 
@@ -456,13 +497,13 @@ loading, error, empty.
 | Class | Look | Use |
 | --- | --- | --- |
 | `.btn` | hairline, `--text-primary`, transparent | default |
-| `.btn.primary` | `--text-primary` inverted onto a light fill (`#E6E8EB` dark / `#1A1C20` light) | one primary per view (Create, Send, Pair) |
-| `.btn.danger` | `--danger` hairline and text; solid `--danger` with light text only on the confirm step | Kill, Revoke |
+| `.btn.primary` | the ink as a fill: black with white text (light), white with black text (dark) | one primary per view (New, Create, Send, Pair) |
+| `.btn.danger` | `--danger` hairline and text; solid `--danger` with the canvas colour as text only on the confirm step | Kill, Revoke |
 | `.btn.ghost` | no border, tertiary text | icon buttons in headers |
 | `.btn.sm` | 28px tall, 12px type | table row actions |
 
-Primary is **not** filled with `--accent`. A solid accent rectangle
-would steal the colour from selection and focus (see Principles).
+The primary button is the one large black shape on a white page; that is
+why there is one per view.
 
 Icon + label. Icon-only buttons need `aria-label`. Gap 6px. Radius
 `--r-2`. Disabled at 40% opacity, `pointer-events: none`.
@@ -470,7 +511,9 @@ Icon + label. Icon-only buttons need `aria-label`. Gap 6px. Radius
 ### 6.2 Inputs
 
 Text fields, selects, the composer. Surface fill, 1px `--border-subtle`,
-focus: 1px `--accent` (not a glow). Height 32px. Placeholder
+focus: 1px `--accent` (the ink, not a glow). A search well and a segmented
+control's track are filled `--bg-hover` with no edge; the chosen segment
+is a white (black, in dark) thumb with a `--border-strong` ring. Height 32px. Placeholder
 `--text-tertiary`. Labels sit above, `--t-meta`, never inside.
 
 Selects use the native control styled; the app may replace with a
@@ -481,22 +524,27 @@ Checkbox / radio: 14px square/circle, accent when on.
 
 ### 6.3 List rows and tables
 
-`.table` is a CSS grid or `<table>` with hairline row borders, no
-vertical rules, no zebra. Hover `--bg-hover`. Selected `--bg-active`
-plus a 2px accent bar on the left.
+`.table` is a `<table>` with hairline row borders, no vertical rules, no
+zebra. Column headers are sentence case in `--t-kicker`. Hover
+`--bg-hover`. Selected `--bg-active` plus a 2px ink bar on the left.
 
 Columns align: status (dot + word), name (sans), machine facts (mono),
 counts (mono, right). Primary click target is the row. Row actions
 appear on hover and always in the accessibility tree.
 
 Sidebar `.nav-item`: 32px, 12px label, live count in mono on the right.
-Current item: `--bg-active` and accent bar.
+Current item: `--bg-active` and the ink bar. A node's session rows
+(`.nav-item.sub`) are 28px, one step further in, tertiary, with the id in
+mono on the right.
 
 ### 6.4 Status badges
 
-`.badge` + modifier. Height 18px, padding 0 6px, radius `--r-1`,
-12px / 500, background 12% of the status colour, text the status
-colour. Word always present.
+`.badge` + modifier. Height 18px, padding 0 6px, radius `--r-2`,
+11px / 500, a `--border-subtle` outline and no fill, text
+`--text-secondary`. A status badge puts a 6px dot of the status colour in
+front of its word; only `failed` also colours the word. Word always
+present. Tinted chips are not used: on a white page a row of pastel fills
+reads as decoration and buries the one that matters.
 
 | Badge | Colour | Protocol |
 | --- | --- | --- |
@@ -508,7 +556,7 @@ colour. Word always present.
 | `exited` | `--text-tertiary` | `Exited` (include code if any) |
 | `failed` | `--danger` | `Failed` |
 | `interrupted` | `--interrupt` | `Interrupted` |
-| `home` | `--accent` | fleet role |
+| `home` | ink, `--border-strong` outline | fleet role |
 | `member` | `--text-secondary` | fleet role |
 | `direct` / `ssh` / `relay` | secondary, mono | how this client reaches it |
 | `conflict` | `--warn` | member has `.vessel-incoming` |
@@ -580,24 +628,23 @@ screen.
 
 ### 6.8 Terminal frame
 
-Outer `.term-frame` radius 16, inner `.term` radius 12, 4px gap, both
-hairlines, inner `--bg-base`. Chrome 32px: node · session prefix ·
-cols×rows · encoding. The PTY itself is full-bleed inside the inner
-frame.
+Outer `.term-frame` radius 16, inner `.term-inner` radius 12, 4px gap,
+both `--term-border` hairlines, `--term-frame` outside and `--term-bg`
+inside: black in both themes (§4.4). Chrome 32px in `--term-dim`: node ·
+session prefix · cols×rows · encoding. The PTY itself is full-bleed
+inside the inner frame.
 
-Font: `--font-mono` at 13px / 1.6. Cursor a 2px box in `--accent`.
-Selection `--accent-muted`. Do not paint the whole screen green.
-
-The mockup is a `<pre>` with a few coloured spans. The app uses
-xterm.js (or equivalent) with the token colours as its theme.
+Font: `--font-mono` at 13px. Cursor `--term-cursor`, selection
+`--term-selection`: the terminal's own tokens, since the page's accent is
+black in the light theme. xterm.js takes them as its theme.
 
 ### 6.9 Dialogs
 
 `.dialog` 480–560px, `--bg-elevated`, radius `--r-4`, padding `--s-4`.
 Header 13px / 600, close ghost button. Footer right-aligned, ghost
 Cancel then primary. `role="dialog"` `aria-modal="true"`
-`aria-labelledby`. Focus trapped in the app; mockups only set
-autofocus on the first field.
+`aria-labelledby`. Focus moves in on open and back to the opener on
+close.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.
@@ -606,8 +653,7 @@ uncopied — then confirm.
 
 Bottom-right, 320px, stack up. 4s for success, stay for error until
 dismissed. `--bg-elevated` + hairline + 3px status bar on the left.
-`role="status"` for success, `role="alert"` for error. One toast in
-the devices mockup (device revoked).
+`role="status"` for success, `role="alert"` for error.
 
 ### 6.11 Empty, loading, error
 
@@ -621,6 +667,72 @@ the devices mockup (device revoked).
 
 Empty copy is specific ("No sessions on studio") not generic
 ("Nothing here yet").
+
+### 6.12 The board (Sessions)
+
+The Sessions page is a board (ADR 0018). Its structure and the rules that
+keep it calm follow agent-orchestrator's board; the lanes and the card's
+fields are Vessel's own, from the protocol.
+
+**Lanes.** One per reason a session is where it is, left to right:
+
+| Lane | `SessionStatus` | Dot |
+| --- | --- | --- |
+| Running | `starting`, `running` | `--online` |
+| Interrupted | `interrupted` | `--interrupt` |
+| Failed | `failed` | `--danger` |
+| Exited | `exited` | `--text-disabled` |
+
+- `data/board.ts` `laneOf` is the only place a status becomes a lane, and
+  it matches exhaustively: a new status does not compile until it has one.
+- `starting` has no lane of its own: it lasts seconds. Its card says
+  `starting`, in `--warn`, with the dot pulsing.
+- The lanes are one grid divided by vertical hairlines, with one hairline
+  under the headings. They are not four rounded panels.
+- A lane's heading is 44px: the dot, the name, the count at the right in
+  mono. No other controls.
+- Each lane scrolls by itself and shows 20 cards, then "Show 20 more".
+  The node keeps every ended session, so Exited grows without bound.
+- An empty lane is empty: no placeholder. When there is no session at all
+  the page shows one empty state with New session.
+
+These are lanes by status because status is what the node reports. Lanes
+by attention (working, needs you, idle) need the node to report turn and
+permission state per session (ADR 0018, follow-up).
+
+**Card.** One session. In order:
+
+1. *Origin*, only when it was not started with the owner token: "agent of
+   `3f2a`" (a link; "on gpu-box" when the parent runs elsewhere), or
+   "device `ab12cd`".
+2. *Title row*: the mode's icon (terminal or message), then the title, the
+   last segment of the working directory, 13px / 600; `~` when the session
+   runs in the home directory. A session has no name in the protocol, and
+   its id says nothing to a person scanning a board; the directory is the
+   project.
+3. *Where*: the id's first four characters, then the working directory,
+   both mono 11px, the path cut from the left so its end stays.
+4. *Who*: the profile (or the harness, when it runs on the default), the
+   mode, and the model when the session has one.
+5. *Status line*, over a hairline: a dot and the protocol's word
+   (`running`, `exited 1`, `failed`, `interrupted`) at the left; the node
+   (omitted when the board is scoped to one) and the age at the right. The
+   age counts from the end for an ended session, from the start for a live
+   one.
+6. *Failure*, only for `failed`: the node's message, in `--danger`.
+
+- The card is the one object with a border of its own (principle 10):
+  `--border-subtle`, radius `--r-4`, `--bg-surface`. Hover and focus-within
+  turn the edge `--border-strong` and the fill `--bg-hover`. No shadow, no
+  coloured strip, no tinted card: state is the status line.
+- The whole card opens the session. Its link lies under its content, so
+  the origin link and the action stay separate targets and nothing
+  interactive is nested in an `<a>`.
+- One action slot at the end of the title row, shown on hover or focus
+  without moving the title: Kill, for a live session. It opens the same
+  confirmation the session's header does.
+- A child card in its parent's lane is indented 14px a level, two at
+  most, with the connector (§2.4).
 
 ---
 
@@ -698,7 +810,7 @@ the list row:
 | Move profile | structured only, between turns; list profiles of the same harness that are logged in |
 | Copy to node | `session.export` / `import`; pick node, profile, cwd; optional start |
 | Copy id | |
-| Open log | future; not in mockups |
+| Open log | future |
 
 Move and copy are dialogs, not inline selects, because they have
 consequences (the conversation continues elsewhere).
@@ -739,9 +851,9 @@ not only as a toast.
 - **Landmarks.** `role="banner"` topbar, `role="navigation"` sidebar,
   `role="main"`, inspector `role="complementary"`, composer is a
   `form`. Skip link "Skip to sessions" is the first focusable node.
-- **Lists.** Session tree is `role="tree"` / `treeitem` with
-  `aria-level`, `aria-expanded`. Flat tables stay `<table>` with
-  `th scope="col"`.
+- **Lists.** The board is a group of four labelled regions (the lanes),
+  each a list of cards; a card's link names the session, its title, its
+  status and its node. Tables stay `<table>` with `th scope="col"`.
 - **Live regions.** Reconnecting banner and incoming permission:
   `aria-live="assertive"`. New log lines in the timeline:
   `aria-live="polite"` on the list, not on every chunk (or the reader
@@ -750,9 +862,9 @@ not only as a toast.
 - **Reduced motion.** `prefers-reduced-motion: reduce` disables the
   starting/reconnecting pulse, skeleton shimmer, dialog rise (opacity
   only), and any type-in. Instant state, no delay.
-- **Theme.** Honour `prefers-color-scheme` on first run if the
-  operator has not chosen. The Settings toggle writes the preference.
-  Do not flash dark-then-light: set the class before paint.
+- **Theme.** Light on first run, whatever the system prefers: white is
+  the product's look (ADR 0018). The Settings toggle writes the choice.
+  Do not flash one theme then the other: set the attribute before paint.
 - **Language.** UI copy is English, matching the CLI. `lang="en"` on
   `<html>`. Pretendard still covers Korean in session markdown and
   paths.
@@ -796,46 +908,28 @@ So M7 does not have to guess names.
 | Kill / move / copy | `session.kill`, `session.move_profile`, export/import |
 
 Secret values never appear in the UI. Sync may list secret *names*.
-Pairing links in the mockup are fake; the app renders a real QR of
-the returned link and expires it in the same 10 minutes as the CLI.
+The app renders a QR of the returned pairing link and expires it in the
+same 10 minutes as the CLI.
 
 ---
 
-## 10. Sample data used in the mockups
+## 10. Sample data in the screens
 
-Generic, no real hostnames.
+`npm run screens` runs a small fleet of real nodes with fake harnesses
+(`web/e2e/fleet.ts`). Generic names, no real hostnames.
 
-| Node | Role | Reach | State | Live |
-| --- | --- | --- | --- | --- |
-| `laptop` | home | direct | serving | 3 |
-| `gpu-box` | member, gen 48 | relay | serving | 2 |
-| `build-server` | member, gen 47 (stale) | ssh | draining | 1 |
-| `studio` | member, gen 48 | direct | offline | — |
+| Node | Role |
+| --- | --- |
+| `laptop` | home |
+| `gpu-box` | member |
+| `build-server` | member |
 
-Profiles: `claude` (default), `claude-work`, `codex`, `gemini`,
-`opencode`. Models shown as routed ids (`anthropic/claude-sonnet-4.5`,
-`local/qwen2.5-coder-32b` on gpu-box).
-
-A three-deep agent tree on Sessions: a person on laptop starts
-`3f2a`, its agent starts `a91c` on gpu-box, that agent starts `c07e`
-on build-server.
+A three-deep agent tree: a person on laptop starts a session, its agent
+starts one on gpu-box, that agent starts one on build-server.
 
 ---
 
-## 11. What the mockups will not do
-
-- No JavaScript. Disclosure is `<details>`, theme is a checkbox,
-  dialogs are either a dedicated page or `:target`.
-- No real xterm, markdown renderer, or QR encoder.
-- No command-palette results.
-- Settings is a dialog, not a route.
-
-M7 should replace those with the real controls, keeping the tokens,
-density, and vocabulary.
-
----
-
-## 12. Decisions worth keeping
+## 11. Decisions worth keeping
 
 - **Purpose and intent:** a control room for a personal fleet of
   harnesses, readable in a glance, operable from the keyboard, honest
@@ -844,11 +938,17 @@ density, and vocabulary.
   not rename statuses, scopes, or fleet conflict behaviour. Pretendard
   first is a host-wide font rule.
 - **Alternatives considered:** a chat-first shell (hides the fleet); a
-  card-grid node dashboard (too marketing, too little data); filling
-  primary buttons with the accent (kills the accent's quiet jobs);
-  a top-tab layout (nodes are a hierarchy, they belong on the left).
-- **Chosen:** dark-first, sidebar-scoped, tree of sessions, syntax as
-  the status palette, concentric frame only on the terminal.
+  card-grid node dashboard (too marketing, too little data); a dark,
+  blue-accented palette with tinted status chips (milestone 7's: the
+  accent and the chips competed with state); sessions as a table (every
+  row's status had to be read); lanes by attention (the node does not
+  report it yet); a top-tab layout (nodes are a hierarchy, they belong on
+  the left).
+- **Chosen:** white and black with the ink as the accent, sidebar-scoped,
+  sessions as a board of status lanes that keeps the creator tree, state
+  as a dot and a word, concentric frame only on the terminal (ADR 0018).
 - **Trade-offs:** denser than consumer chat, so new users will need
-  the empty states to be plain-spoken. Light theme is real work, not
-  a filter, because comment/meta greys fail if inverted.
+  the empty states to be plain-spoken. With no hue in the chrome,
+  structure rests on hairlines and type weight alone, so a careless extra
+  border or a second bold shows at once. Status lanes say what a session
+  is, not whether it waits on the operator.
