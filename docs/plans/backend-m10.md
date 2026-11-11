@@ -563,3 +563,108 @@ Left open:
   Types).
 - This section and track E's both end this file, so merging the two
   joins them by hand.
+
+## Track W1: progress (2026-11-11)
+
+Built on `backend/m10-compose`, from `backend/m10` as it stood after
+tracks C, E and W0. No crate and no wire type changed: the fake agents
+already offer a permissions mode (with a value they refuse), a model, an
+effort in two groups and an on/off setting, which is what the screens
+and their tests needed.
+
+What was built:
+
+- **Calls and decisions as data.** `data/calls.ts`: every call the
+  session screens make, each answering a typed result or the bridge's
+  typed failure (`harness.options`, `session.create`, prompt, permission
+  answer, cancel, kill, move, `session.set_option`, `session.rename`, the
+  stream). Pure modules with tests: `options.ts` (an agent's options laid
+  out by category only, in its words; what the controls show while
+  loading, failed or for a terminal; an older node), `picks.ts` (choices
+  made before a session exists, sent only when they change something, in
+  the agent's order), `titles.ts`, `folders.ts`, `approval.ts` (Approve,
+  Decline and "More" from the agent's option kinds; the timeline's line),
+  `agents.ts` (agents by name, profiles with their routes),
+  `new-session.ts` (the starting machine and agent, the spec Send
+  creates, a terminal's arguments split as a shell would), `sidebar.ts`.
+- **New session** at `/new` (`features/compose/`), agent-orchestrator's
+  new-task page: the heading, the raised box, its foot row ("+" with a
+  profile and "Open as terminal" with its arguments; one control for
+  agent, model and effort; the permissions control; Send), the tray with
+  the machine and a folder field suggesting where sessions ran. The
+  options load in the trigger ("Loading models…") without blocking the
+  page; a failure is said in the menu and under the box, and the session
+  starts on the agent's defaults. The old dialog is gone; every New (the
+  title bar, the sidebar, an empty Building lane, the palette, `n`) leads
+  here with the machine in view.
+- **The session** (`features/session/`): its title in the frame's bar,
+  renamed in place; the composer (the same box and controls, reading
+  `Timeline.options`, setting with `session.set_option`, Send or Stop);
+  one permission prompt docked over the composer (GOAT's approval row)
+  and one line in the timeline that becomes the outcome; the summary as
+  agent-orchestrator's inspector, collapsible sections with the
+  identifiers behind Details; the log and composer in a 768px column; a
+  menu of the session's actions. The terminal keeps its frame under the
+  same title bar.
+- **The shell** (`features/shell/`): the frame and the sidebar out of
+  `ui/shell.tsx` (removed), the sidebar agent-orchestrator's (brand,
+  Search, New session, Board, Machines with their sessions by title,
+  Settings and the theme at the foot; Settings' sections and Back while
+  under `/settings`, from `data/settings.ts`, which this track did not
+  edit). A page can draw into the title bar (`TitleBar`).
+- **The board** (`features/board/`): cards titled by the session's
+  title, the agent by name, the machine in the page's words.
+- **The kit**: Avatar, Collapsible, a 256px menu, grouped radio values,
+  switch rows and notes in menus, button shapes (10px quiet triggers, a
+  round Send and Stop as a primary icon button), a quiet Combobox,
+  TextField's `onBlur`, eight icons; all in the gallery.
+- **Divided and off the list**: `routes/structured.tsx`, `session.tsx`,
+  `sessions.tsx` (and `terminal.tsx`, which was not listed);
+  `data/board.ts` (its phrases are `data/phrase.ts`) and
+  `data/timeline.ts` (its shapes are `data/timeline-model.ts`). Three
+  files are left on the list: `bridge/client.ts`, `routes/devices.tsx`
+  and `routes/fleet.tsx`. The stylesheets of the session, the timeline,
+  the permission prompt, the terminal, the board, its cards and its
+  archive, and the shell moved beside their components;
+  `ui/styles/motion.css` is gone (its last rule is the card's).
+
+Checked, in `web/`, on the code as committed:
+
+- `npm run lint`: ESLint and Prettier clean; `fonts: 44 stacks follow the
+  rule`, `controls: nothing native outside the kit`, `size: within
+  budget, 3 files still to divide`.
+- `npm run typecheck`: no errors.
+- `npm run test`: 22 files, 106 tests passed.
+- `npm run build`: the script 1,151.13 kB (341.23 kB gzipped), the
+  stylesheet 78.98 kB.
+- `npm run e2e`: 20 passed. Rewritten for `/new`: every test that drove
+  the old dialog, the routed-model tests (the profile under "+"), the
+  sidebar's name. New: every New leads to `/new` on the machine in view;
+  a session starts with permissions chosen before it (`Plan`) and runs
+  with them; an option changed on a running session shows once the agent
+  reports it, and one the agent refuses is said and changes nothing; a
+  title renamed in place reaches the sidebar.
+- `npm run screens`: 3 passed, 56 captures; `e2e/session-screens.ts`
+  adds the new-session page and each of its menus, the session waiting on
+  a permission, its Details, actions and rename, the board and the
+  Settings sidebar, light and dark, and at 390px. Each was looked at
+  beside agent-orchestrator's and GOAT's.
+
+Not built:
+
+- The "Back" row returns to the board, not to the page Settings was
+  opened from.
+- The summary does not toggle (`⌘I`); it leaves below 1280px of window.
+- Files cannot be attached to a prompt (the reference's "+" attaches
+  files; Vessel's prompts carry text only).
+
+Differences from the references that remain, and why (DESIGN.md §12,
+items 6 to 12): the permissions rows share one shield and the agent's
+own wording (no per-agent knowledge, ADR 0022); no prompt chips under the
+heading; no search or favourites in the agent menu; "+" is a popover
+holding a text field; terminal or timeline is chosen once; the summary
+has one view and is 340px wide; the session is named in the title bar
+rather than a strip of tabs.
+
+Not verified: only Chromium was exercised; a real agent's options were
+not read through these screens (the fakes stood in, at no cost).
