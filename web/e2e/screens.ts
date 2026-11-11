@@ -159,4 +159,9 @@ test("every main screen", async ({ page }) => {
     page.getByRole("group", { name: "Sessions by status" }),
   ).toBeVisible();
   await shot(page, "11-sessions-dark");
+  // The bridge keeps the choice for every later page of the run (ADR
+  // 0025), so the other screen files would be dark too: put it back.
+  await page.goto(`${origin}/settings/appearance`);
+  await page.getByRole("radio", { name: "System" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
 });
