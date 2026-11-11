@@ -85,13 +85,17 @@ trap, scroll lock, inert background).
 **Controls: option 3, Base UI**, version 1.9.0, pinned exactly as
 `package.json` pins everything.
 
-- The kit lives in `web/src/ui/kit/`, one module per control, each typed
-  strictly (variants are unions, matched exhaustively). Screens import
-  controls from the kit, never from `@base-ui/react`.
-- The look is plain CSS on tokens in `web/src/ui/styles/kit.css`. The kit
-  sets no inline colour and no utility classes; Base UI's data attributes
-  (`data-open`, `data-highlighted`, `data-checked`, `data-starting-style`)
-  are the hooks the CSS uses.
+- The kit lives in `web/src/ui/kit/`, one component per file, each typed
+  strictly (variants are unions, matched exhaustively), exported from one
+  `index.ts`. Screens import controls from the kit, never from
+  `@base-ui/react`; ESLint's `no-restricted-imports` holds that.
+- The look is plain CSS on tokens, in the stylesheet beside each
+  component (`kit/select.css` beside `kit/select.tsx`); the parts several
+  controls share are written once (`popup.css`: the popup surface and the
+  option row; `field-shell.css`: the one-box field; `check-label.css`).
+  The kit sets no inline colour and no utility classes; Base UI's data
+  attributes (`data-popup-open`, `data-highlighted`, `data-checked`,
+  `data-starting-style`) are the hooks the CSS uses.
 - Values are agent-orchestrator's (control heights 24/28/32, radius 8 for
   controls and 10 for popups, its popup surface, rows and motion); where
   it has no such control, GOAT's; where neither has it, T3 Code's.
@@ -139,8 +143,9 @@ their licences are served beside Pretendard's under `/licenses/`.
 - **`light-dark()`** writes each colour once, side by side, so a token
   cannot exist in one theme only and the dark values are not a second
   copy to keep in step. It is supported by the browsers ADR 0017 requires
-  (Chrome and Edge 123, Firefox 120). A subtree can take a scheme of its
-  own with `color-scheme`, which is how `/kit` shows both themes.
+  (Chrome and Edge 123, Firefox 120). With no stored choice the page
+  follows the system, so `npm run screens` captures `/kit` in each theme
+  by emulating the system's scheme.
 
 ## Consequences
 
@@ -163,4 +168,7 @@ their licences are served beside Pretendard's under `/licenses/`.
   inline styles (`style-src 'self' 'unsafe-inline'`, for xterm.js); it
   allows no inline script, and Base UI needs none.
 - A new control is added to the kit, with its states in the `/kit`
-  gallery, before a screen uses it.
+  gallery, before a screen uses it. The gallery ships in the one bundle
+  (main.tsx renders it for `/kit` before reading the token): the screens
+  capture the built page `vessel ui` serves, and a second entry or a lazy
+  chunk would be a second graph for `scripts/integrity.mjs` to pin.
