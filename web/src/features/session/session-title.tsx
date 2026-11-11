@@ -4,7 +4,7 @@
 // The rules are the node's (data/titles.ts checks them first); the bar
 // shows the node's answer.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import { renameSession } from "../../data/calls";
@@ -30,6 +30,17 @@ export function SessionTitle({
   // Set once Enter or Escape ended the edit, so the blur that follows
   // (the field leaving the page) does not save a second time.
   const ended = useRef(false);
+  // Focus goes back to the title once the field leaves, as a dialog
+  // returns it to its opener.
+  const title = useRef<HTMLButtonElement>(null);
+  const editing = draft !== null;
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (wasEditing.current && !editing) {
+      title.current?.focus();
+    }
+    wasEditing.current = editing;
+  }, [editing]);
   const [saved, setSaved] = useState<{ from: string; to: string } | null>(null);
   // The node's answer shows at once; the session's own report replaces it.
   const shown = saved !== null && saved.from === name ? saved.to : name;
@@ -93,6 +104,7 @@ export function SessionTitle({
       {canRename ? (
         <Tooltip label="Rename">
           <button
+            ref={title}
             type="button"
             className="session-title-button"
             onClick={start}

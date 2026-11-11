@@ -14,6 +14,7 @@ import {
   offersAnything,
   pick,
   pickerLabel,
+  pickerName,
   reportedControls,
   selectChoice,
   toggleChoice,
@@ -267,5 +268,22 @@ describe("reportedControls", () => {
       kind: "ready",
       controls: NO_CONTROLS,
     });
+  });
+});
+
+describe("pickerName", () => {
+  it("names the control and what it shows", () => {
+    expect(
+      pickerName(
+        { kind: "ready", controls: controlsOf(CLAUDE) },
+        "Claude Code",
+      ),
+    ).toBe("Agent, model and effort: Claude Code, Default (recommended), High");
+    expect(pickerName({ kind: "ready", controls: NO_CONTROLS }, "Codex")).toBe(
+      "Agent, model and effort: Codex",
+    );
+    expect(pickerName({ kind: "loading" }, "Codex")).toBe(
+      "Agent, model and effort: Codex, loading models",
+    );
   });
 });

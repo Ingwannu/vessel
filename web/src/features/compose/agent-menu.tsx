@@ -14,6 +14,7 @@ import {
   type ControlsState,
   currentName,
   pickerLabel,
+  pickerName,
   type SelectControl,
   selectChoice,
   toggleChoice,
@@ -125,7 +126,7 @@ export function AgentMenu({
           size="sm"
           shape="soft"
           disabled={disabled}
-          aria-label={`Agent, model and effort: ${agent.name}`}
+          aria-label={pickerName(state, agent.name)}
         >
           <TriggerLabel state={state} name={agent.name} />
         </Button>

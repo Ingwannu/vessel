@@ -287,3 +287,24 @@ export function reportedControls(
       }
     : { kind: "loading" };
 }
+
+/** The agent/model/effort control's accessible name: what it is for,
+ * then what it shows, which its visible text alone does not say. */
+export function pickerName(state: ControlsState, agent: string): string {
+  switch (state.kind) {
+    case "loading":
+      return `Agent, model and effort: ${agent}, loading models`;
+    case "failed":
+    case "terminal":
+      return `Agent, model and effort: ${agent}`;
+    case "ready": {
+      const label = pickerLabel(state.controls, agent);
+      const parts = [
+        agent,
+        ...(label.main === agent ? [] : [label.main]),
+        ...(label.effort === null ? [] : [label.effort]),
+      ];
+      return `Agent, model and effort: ${parts.join(", ")}`;
+    }
+  }
+}
