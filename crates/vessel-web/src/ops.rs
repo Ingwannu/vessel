@@ -40,7 +40,7 @@ use std::sync::Arc;
 
 use vessel_proto::PairingLink;
 
-use crate::bridge::failure_text;
+use crate::calls::failure_text;
 use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
 use crate::wire::{BookNode, Op, OpFailure, OpResult};

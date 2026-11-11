@@ -15,7 +15,7 @@ use tokio::task::{AbortHandle, JoinSet};
 use vessel_client::{StreamError, follow_resuming};
 use vessel_proto::{EventSeq, SessionId};
 
-use crate::bridge::failure_text;
+use crate::calls::failure_text;
 use crate::registry::{Registry, Shared, chain};
 use crate::source::NodeSource;
 use crate::wire::{NodeKey, ServerFrame, StreamId, StreamState, StreamStop};
