@@ -25,8 +25,33 @@ function xtermFont(): Plugin {
   };
 }
 
+/** Pretendard's unicode-range subsets name their face "Pretendard
+ * Variable"; every stack of ours names it "Pretendard" (ADR 0017's font
+ * rule, scripts/check-fonts.mjs), so the face takes our name. The
+ * subsets themselves are the package's, unchanged. The stylesheet must be
+ * imported from a module (src/main.tsx) for this to see it. */
+function pretendardName(): Plugin {
+  return {
+    name: "vessel-pretendard-name",
+    enforce: "pre",
+    transform(code, id) {
+      if (
+        !id.endsWith(
+          "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css",
+        )
+      ) {
+        return null;
+      }
+      return code.replaceAll(
+        "font-family: 'Pretendard Variable';",
+        "font-family: Pretendard;",
+      );
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [xtermFont(), react()],
+  plugins: [xtermFont(), pretendardName(), react()],
   build: {
     outDir: "dist",
     assetsDir: "assets",

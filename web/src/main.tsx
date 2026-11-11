@@ -1,6 +1,8 @@
 // The web UI's entry: the launch token, the theme before first paint,
 // then the app (ADR 0017).
 import "./ui/fonts.css";
+// Pretendard's unicode-range subsets (fonts.css says why it is here).
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./ui/tokens.css";
 // The kit's stylesheets (beside its components) before the areas', so an
 // area may place a control where it sits without out-ranking its look.

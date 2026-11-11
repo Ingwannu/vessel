@@ -407,3 +407,36 @@ test("terminal replay cannot answer device queries, while keys and paste still w
   await expect(terminal).toContainText("echo: 한글 pasted");
   expect(inputs).toBeGreaterThan(0);
 });
+
+test("Hangul is drawn with Pretendard, fetching only its subsets", async ({
+  page,
+}) => {
+  // The page names Pretendard in every stack; the face comes from the
+  // package's unicode-range subsets (src/main.tsx, vite.config.ts), which
+  // must carry that name, and only the subsets of the characters drawn
+  // are fetched (docs/PERFORMANCE.md).
+  const fonts: string[] = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "font") {
+      fonts.push(new URL(request.url()).pathname);
+    }
+  });
+  await open(page);
+  await page.evaluate(async () => {
+    const probe = document.createElement("p");
+    probe.textContent = "한글 미리보기";
+    probe.style.fontFamily = "Pretendard";
+    document.body.append(probe);
+    await document.fonts.load('16px "Pretendard"', "한글 미리보기");
+  });
+  const drawn = await page.evaluate(() =>
+    [...document.fonts].some(
+      (face) => face.family === "Pretendard" && face.status === "loaded",
+    ),
+  );
+  expect(drawn).toBe(true);
+  const subsets = fonts.filter((path) => path.includes("PretendardVariable"));
+  expect(subsets.length).toBeGreaterThan(0);
+  expect(subsets.every((path) => path.includes(".subset."))).toBe(true);
+  expect(subsets.length).toBeLessThan(10);
+});
