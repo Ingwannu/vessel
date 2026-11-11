@@ -56,6 +56,41 @@
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' viewBox='0 0 16 16'%3E%3Cpath d='M3 4h10M3 8h10M3 12h7'/%3E%3C/svg%3E");
 }
 
+/* Milestone 10's composer and shell: Send and Stop, the permissions'
+   shield, a folder, a machine, the board, a new session, back. */
+
+.ico-arrow-up {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M8 13V3'/%3E%3Cpath d='M4 7l4-4 4 4'/%3E%3C/svg%3E");
+}
+
+.ico-back {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M13 8H3'/%3E%3Cpath d='M7 4 3 8l4 4'/%3E%3C/svg%3E");
+}
+
+.ico-stop {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='4.5' y='4.5' width='7' height='7' rx='1.5' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.ico-shield {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 3 4v3.8c0 2.9 2.1 5.3 5 6.2 2.9-.9 5-3.3 5-6.2V4z'/%3E%3C/svg%3E");
+}
+
+.ico-folder {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M2 4.5A1.5 1.5 0 0 1 3.5 3h2.3l1.5 1.5h5.2A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z'/%3E%3C/svg%3E");
+}
+
+.ico-machine {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='2.5' y='3' width='11' height='7.5' rx='1'/%3E%3Cpath d='M1.5 13h13'/%3E%3C/svg%3E");
+}
+
+.ico-board {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Crect x='2' y='2.5' width='3.5' height='11' rx='1'/%3E%3Crect x='6.25' y='2.5' width='3.5' height='7' rx='1'/%3E%3Crect x='10.5' y='2.5' width='3.5' height='9' rx='1'/%3E%3C/svg%3E");
+}
+
+.ico-compose {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M7.5 3H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8.5'/%3E%3Cpath d='M11.6 2.4a1.4 1.4 0 0 1 2 2L8.2 9.8 6 10.3l.5-2.2z'/%3E%3C/svg%3E");
+}
+
 .ico-sync {
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M13 8A5 5 0 0 0 5.2 4.1L4 5.5'/%3E%3Cpath d='M4 2.5v3h3'/%3E%3Cpath d='M3 8a5 5 0 0 0 7.8 3.9L12 10.5'/%3E%3Cpath d='M12 13.5v-3h-3'/%3E%3C/svg%3E");
 }
