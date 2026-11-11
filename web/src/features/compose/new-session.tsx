@@ -35,6 +35,7 @@ import { AgentMenu } from "./agent-menu";
 import { PermissionsMenu } from "./permissions-menu";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
+import { useDraft } from "./use-draft";
 import { useAgentOptions } from "./use-agent-options";
 import { WhereTray } from "./where-tray";
 
@@ -56,6 +57,9 @@ export function NewSession({ wanted }: { wanted: string | null }) {
   const navigate = useNavigate();
   const state = useFleetState((value) => value);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  // The prompt is the new-session page's draft, kept by the bridge: it
+  // comes back after leaving the page, a reload or a new launch.
+  const saved = useDraft(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
@@ -78,7 +82,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
     startingAgent(harnesses);
   const harness =
     harnesses.find((candidate) => candidate.kind === agent) ?? null;
-  const effective: Draft = { ...draft, machine, agent };
+  const effective: Draft = { ...draft, machine, agent, prompt: saved.text };
   const terminal = harness !== null && startsTerminal(effective, harness);
   const options = useAgentOptions(machine, agent, draft.profile, !terminal);
   const controls =
@@ -121,6 +125,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
           );
         }
       }
+      saved.clear();
       fleet.select(machine);
       void fleet.refreshSessions(machine);
       void navigate({
@@ -137,10 +142,16 @@ export function NewSession({ wanted }: { wanted: string | null }) {
         <h1>What do you want to work on?</h1>
         <PromptBox
           label="Prompt"
-          value={draft.prompt}
+          value={saved.text}
           onChange={(prompt) => {
-            change({ prompt });
+            setError(null);
+            saved.setText(prompt);
           }}
+          note={
+            saved.note === "too-long"
+              ? "This draft is too long to keep; it stays in this tab until it is sent."
+              : undefined
+          }
           placeholder={
             terminal
               ? "A title for the terminal (optional)"

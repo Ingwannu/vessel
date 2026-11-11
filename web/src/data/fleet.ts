@@ -3,8 +3,12 @@
 // (harnesses, profiles, model routes, sessions).
 //
 // Sessions have no list subscription in the protocol, so each connected
-// node's list is read again every few seconds while the page is visible;
-// rows patch in place because unchanged sessions keep their objects.
+// node's list is read again every few seconds while the page is visible,
+// and while it is hidden too when notices are on (Settings ›
+// Notifications: a hidden page is the one they are for; the browser
+// slows a hidden tab's timers, to about once a minute after five
+// minutes). Rows patch in place because unchanged sessions keep their
+// objects.
 
 import { Bridge, CallFailed, type LinkState } from "../bridge/client";
 import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
@@ -14,6 +18,9 @@ import type {
   ProfileInfo,
   SessionInfo,
 } from "../wire/proto";
+import { wantsNotices } from "./alerts";
+import { Drafts } from "./drafts";
+import { prefs } from "./prefs";
 import { Store } from "./store";
 
 const SESSIONS_EVERY_MS = 2000;
@@ -74,14 +81,18 @@ function message(error: unknown): string {
 export class Fleet {
   readonly bridge: Bridge;
   readonly store = new Store<FleetState>(INITIAL);
+  /** The composers' drafts, kept by the bridge (data/drafts.ts). */
+  readonly drafts: Drafts;
   #timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(bridge: Bridge) {
     this.bridge = bridge;
+    this.drafts = new Drafts(this);
     bridge.onLink((link) => {
       this.store.update((state) => ({ ...state, link }));
       if (link.kind === "open") {
         void this.loadBook();
+        void this.drafts.readAll();
       }
     });
     bridge.onNode((node, status) => {
@@ -99,7 +110,10 @@ export class Fleet {
   start(): void {
     this.bridge.start();
     this.#timer = setInterval(() => {
-      if (document.visibilityState === "visible") {
+      if (
+        document.visibilityState === "visible" ||
+        wantsNotices(prefs.get().values.notifications)
+      ) {
         this.#pollSessions();
       }
     }, SESSIONS_EVERY_MS);

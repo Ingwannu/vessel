@@ -3,10 +3,11 @@
 // left and Send at the right; a panel may be docked over its top edge (a
 // permission prompt) and a tray hung under it (where the session runs).
 //
-// Enter sends and Shift+Enter starts a line, as in both references; ⌘ or
-// Ctrl with Enter sends too, as milestone 9 did. A key that ends an input
-// method's composition does not send. A click on the box's padding puts
-// the caret in the text, as the reference's does.
+// The send key is the person's (Settings › General, data/compose-keys.ts):
+// Enter or Mod+Enter, Shift+Enter always a new line, never while an input
+// method composes. Up and Down are offered to `onArrow` first (recalling
+// sent prompts, data/recall.ts) and move the caret otherwise. A click on
+// the box's padding puts the caret in the text, as the reference's does.
 
 import "./prompt-box.css";
 
@@ -17,6 +18,10 @@ import {
   useRef,
 } from "react";
 
+import { sends } from "../../data/compose-keys";
+import { prefs } from "../../data/prefs";
+import type { Caret } from "../../data/recall";
+import { useStore } from "../../data/store";
 import { TextArea } from "../../ui/kit";
 
 export interface PromptBoxProps {
@@ -37,14 +42,31 @@ export interface PromptBoxProps {
   /** Hung under the box. */
   tray?: ReactNode;
   textAreaRef?: RefObject<HTMLTextAreaElement | null>;
+  /** An arrow pressed with no modifier: true when it was used (a recalled
+   * prompt shown), so the caret does not move. */
+  onArrow?: (key: "up" | "down", caret: Caret) => boolean;
+  /** A quiet line under the box (a draft too long to keep). */
+  note?: ReactNode;
 }
 
-/** Whether `event` asks to send. */
-function sends(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
-  if (event.key !== "Enter" || event.nativeEvent.isComposing) {
-    return false;
+/** The arrow `event` is, when it is a plain one. */
+function arrowOf(
+  event: KeyboardEvent<HTMLTextAreaElement>,
+): "up" | "down" | null {
+  if (
+    event.nativeEvent.isComposing ||
+    event.shiftKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.ctrlKey
+  ) {
+    return null;
   }
-  return event.metaKey || event.ctrlKey || !(event.shiftKey || event.altKey);
+  return event.key === "ArrowUp"
+    ? "up"
+    : event.key === "ArrowDown"
+      ? "down"
+      : null;
 }
 
 export function PromptBox({
@@ -59,8 +81,11 @@ export function PromptBox({
   above,
   tray,
   textAreaRef,
+  onArrow,
+  note,
 }: PromptBoxProps) {
   const own = useRef<HTMLTextAreaElement>(null);
+  const mode = useStore(prefs, (state) => state.values.composer.send);
   const text = textAreaRef ?? own;
   return (
     <div className={tray === undefined ? "prompt-dock" : "prompt-dock trayed"}>
@@ -90,9 +115,27 @@ export function PromptBox({
           onChange={onChange}
           textAreaRef={text}
           onKeyDown={(event) => {
-            if (sends(event)) {
+            if (
+              sends(
+                { ...event, isComposing: event.nativeEvent.isComposing },
+                mode,
+              )
+            ) {
               event.preventDefault();
               onSend();
+              return;
+            }
+            const arrow = arrowOf(event);
+            const area = event.currentTarget;
+            if (
+              arrow !== null &&
+              onArrow?.(arrow, {
+                text: area.value,
+                start: area.selectionStart,
+                end: area.selectionEnd,
+              }) === true
+            ) {
+              event.preventDefault();
             }
           }}
         />
@@ -108,6 +151,7 @@ export function PromptBox({
         </div>
       </form>
       {tray === undefined ? null : <div className="prompt-tray">{tray}</div>}
+      {note === undefined ? null : <p className="prompt-note">{note}</p>}
     </div>
   );
 }
