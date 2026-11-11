@@ -23,7 +23,7 @@ use vessel_web::wire::{
 use crate::support::{Proxy, Source, Tab, TestNode, Ui, within};
 
 /// The answer to call `id`.
-async fn reply(tab: &mut Tab, id: CallId) -> CallOutcome {
+pub(crate) async fn reply(tab: &mut Tab, id: CallId) -> CallOutcome {
     tab.until(|frame| match frame {
         ServerFrame::Reply {
             id: replied,
@@ -35,7 +35,7 @@ async fn reply(tab: &mut Tab, id: CallId) -> CallOutcome {
 }
 
 /// The answer to op `id`.
-async fn op_reply(tab: &mut Tab, id: CallId) -> OpOutcome {
+pub(crate) async fn op_reply(tab: &mut Tab, id: CallId) -> OpOutcome {
     tab.until(|frame| match frame {
         ServerFrame::OpReply {
             id: replied,

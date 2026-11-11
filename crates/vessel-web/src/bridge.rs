@@ -18,6 +18,39 @@
 //!   ([`OUTBOX`]); a tab that reads slowly slows its own streams, nobody
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
+//!
+//! [Decision Log] The book's edits from the page (`forget`, `rename`,
+//! `default`), milestone 10, track E
+//! - Purpose: the page could add a machine (`pair`) and had no way back
+//!   out, nor to rename one or make it the default; a one-way door.
+//! - Constraints: the book is the CLI's file, written by `BookFile` and
+//!   nothing else; a change made with `vessel nodes` while the page is
+//!   open must survive the page's next edit; a forgotten node must not
+//!   keep a connection (or an `ssh` process) alive.
+//! - Alternatives: the bridge editing the book itself (a second writer
+//!   and a dependency on the book's format here); keeping a copy of the
+//!   book in the registry and writing it back (a CLI edit made meanwhile
+//!   would be overwritten); one `edit` op carrying a closed enum of edits
+//!   (no simpler for the page, and the replies differ).
+//! - Choice: three ops on the [`NodeSource`] seam, which the CLI
+//!   implements with `BookFile`'s own `remove`, `rename` and
+//!   `set_default`: each opens the file right before the edit, so nothing
+//!   is written from a stale copy. Then the registry reads the book again
+//!   ([`Registry::nodes`]), which cancels every entry no longer in it:
+//!   its supervisor stops, its connection closes, and streams following
+//!   it end as [`StreamStop::Removed`]. The reply is the book as it is
+//!   then, so the page needs no second `nodes` round trip.
+//! - Refusals: an op reaches these edits exactly where it reaches `pair`
+//!   (after the socket's mutual proof, within the tab's [`MAX_CALLS`]).
+//!   This machine's node is refused for `forget` and `rename`
+//!   ([`not_in_book`] says why); unknown nodes and invalid names are the
+//!   book's own errors.
+//! - Costs: a rename ends the node's connection and streams under the old
+//!   name, as a forget does, and the page follows again under the new
+//!   one. Moving a live entry between keys would have to re-key a running
+//!   supervisor and every stream's view of it, for a rare edit. Two
+//!   processes editing the book in the same instant can still lose one
+//!   edit (`BookFile` has no lock, by its own decision).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -35,7 +68,7 @@ use crate::registry::{Change, Registry, Shared, chain};
 use crate::source::NodeSource;
 use crate::wire::{
     CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpOutcome, OpResult, ServerFrame,
-    StreamId, StreamState,
+    StreamId, StreamState, StreamStop,
 };
 
 /// Calls and ops one tab may have in flight.
@@ -235,6 +268,7 @@ impl<S: NodeSource> Tab<S> {
         if let Some(message) = refusal {
             let state = StreamState::Failed {
                 message: message.to_owned(),
+                reason: StreamStop::Error,
             };
             let _gone = self.out.send(ServerFrame::Stream { stream, state }).await;
             return;
@@ -414,6 +448,7 @@ async fn follow<S: NodeSource>(
         Err(failure) => {
             let state = StreamState::Failed {
                 message: failure_text(&failure),
+                reason: StreamStop::Error,
             };
             let _gone = out.send(ServerFrame::Stream { stream, state }).await;
             return;
@@ -427,7 +462,8 @@ async fn follow<S: NodeSource>(
             record = records.next() => record,
             () = removed.cancelled() => {
                 drop(records);
-                let _gone = out.send(ServerFrame::Stream { stream, state: StreamState::Failed { message: "the node was removed or the UI stopped".to_owned() } }).await;
+                let state = cut_off(&registry);
+                let _gone = out.send(ServerFrame::Stream { stream, state }).await;
                 return;
             }
         } {
@@ -439,6 +475,15 @@ async fn follow<S: NodeSource>(
                 true,
             ),
             Some(Ok(record)) => (ServerFrame::Event { stream, record }, false),
+            // The stream can see the closed connection before this task
+            // sees the cancellation: say why it was cut off, not how.
+            Some(Err(_error)) if removed.is_cancelled() => (
+                ServerFrame::Stream {
+                    stream,
+                    state: cut_off(&registry),
+                },
+                true,
+            ),
             Some(Err(error)) => {
                 let (state, last) = stream_state(error);
                 (ServerFrame::Stream { stream, state }, last)
@@ -446,6 +491,23 @@ async fn follow<S: NodeSource>(
         };
         if out.send(frame).await.is_err() || last {
             return;
+        }
+    }
+}
+
+/// A stream's last notice when its node's entry was cancelled: the UI
+/// stopping cancels every entry, anything else is the node leaving the
+/// book.
+fn cut_off<S: NodeSource>(registry: &Registry<S>) -> StreamState {
+    if registry.stopping() {
+        StreamState::Failed {
+            message: "the UI is stopping".to_owned(),
+            reason: StreamStop::Stopping,
+        }
+    } else {
+        StreamState::Failed {
+            message: "the node was removed from the book".to_owned(),
+            reason: StreamStop::Removed,
         }
     }
 }
@@ -470,6 +532,7 @@ fn stream_state(error: StreamError) -> (StreamState, bool) {
         StreamError::Call(_) | StreamError::Unsubscribed | StreamError::Unreachable { .. } => (
             StreamState::Failed {
                 message: chain(&error),
+                reason: StreamStop::Error,
             },
             true,
         ),
@@ -515,7 +578,68 @@ async fn answer<S: NodeSource>(registry: &Arc<Registry<S>>, op: Op) -> Result<Op
             .map(|node| OpResult::Pair { node })
             .map_err(|error| chain(&error)),
         Op::Qr { text } => qr(&text).map(|svg| OpResult::Qr { svg }),
+        Op::Forget { node } => {
+            not_in_book(&node, "forgotten")?;
+            registry
+                .source()
+                .forget(&node)
+                .await
+                .map_err(|error| chain(&error))?;
+            book_now(registry)
+                .await
+                .map(|nodes| OpResult::Forget { nodes })
+        }
+        Op::Rename { node, name } => {
+            not_in_book(&node, "renamed")?;
+            registry
+                .source()
+                .rename(&node, &name)
+                .await
+                .map_err(|error| chain(&error))?;
+            book_now(registry)
+                .await
+                .map(|nodes| OpResult::Rename { nodes })
+        }
+        Op::Default { node } => {
+            registry
+                .source()
+                .set_default(&node)
+                .await
+                .map_err(|error| chain(&error))?;
+            book_now(registry)
+                .await
+                .map(|nodes| OpResult::Default { nodes })
+        }
     }
+}
+
+/// Refuse to forget or rename this machine's node.
+///
+/// Why: it is not a book entry. `vessel ui`, like every `vessel` command,
+/// reaches it when nothing else is named, at the local address and with
+/// the local token, without the book ([`NodeKey::HERE`]); there is no
+/// entry to remove and no name to change, and it is the node the page
+/// falls back on with an empty book. A book entry that happens to point
+/// at this machine is an ordinary entry, forgotten like any other: the
+/// page keeps reaching the node as [`NodeKey::HERE`].
+fn not_in_book(node: &NodeKey, what: &str) -> Result<(), String> {
+    if node.is_here() {
+        return Err(format!(
+            "this machine's node is not in the book, so it cannot be {what}"
+        ));
+    }
+    Ok(())
+}
+
+/// The book after an edit; reading it is also what releases the entries
+/// of nodes no longer in it (their connections and streams).
+async fn book_now<S: NodeSource>(
+    registry: &Registry<S>,
+) -> Result<Vec<crate::wire::BookNode>, String> {
+    registry
+        .nodes()
+        .await
+        .map_err(|failure| failure_text(&failure))
 }
 
 /// `text` as a QR code, an SVG document.

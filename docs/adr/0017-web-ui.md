@@ -178,6 +178,16 @@ Option 3.
   **`Op::Pair` is the deliberate exception:** the user supplies a pairing
   link, inspects its fingerprint, then pairs; the connector dials the address
   from that link before the new entry exists in the book.
+- The book's other edits from the page (milestone 10): `Op::Forget`,
+  `Op::Rename` and `Op::Default` are `vessel nodes remove`, `rename` and
+  `default`, made by the CLI's `BookFile` through `NodeSource` on a book
+  opened right before the edit, so a change made with the CLI while the
+  page is open is kept. They dial nothing. They stand where `Op::Pair`
+  stands: behind the socket's mutual proof, with no further gate (a
+  launch has one session key, and every welcomed tab holds it). This
+  machine's node is not a book entry and cannot be forgotten or renamed.
+  A forgotten or renamed node's connection is closed and its streams end
+  with `reason: removed`.
 
 **Front end.**
 - React 19 with TanStack Router (typed routes), Vite, TypeScript strict,

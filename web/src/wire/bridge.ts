@@ -211,7 +211,23 @@ link: string, } | { "op": "qr",
 /**
  * What to encode (a pairing link).
  */
-text: string, };
+text: string, } | { "op": "forget", 
+/**
+ * The node.
+ */
+node: NodeKey, } | { "op": "rename", 
+/**
+ * The node.
+ */
+node: NodeKey, 
+/**
+ * Its new name, checked as the book checks names.
+ */
+name: string, } | { "op": "default", 
+/**
+ * The node.
+ */
+node: NodeKey, };
 
 /**
  * An op's answer.
@@ -246,7 +262,20 @@ node: BookNode, } | { "op": "qr",
 /**
  * The code as an SVG document.
  */
-svg: string, };
+svg: string, } | { "op": "forget", 
+/**
+ * The nodes as the book has them now, in the order to show them.
+ */
+nodes: Array<BookNode>, } | { "op": "rename", 
+/**
+ * The nodes as the book has them now, in the order to show them.
+ */
+nodes: Array<BookNode>, } | { "op": "default", 
+/**
+ * The nodes as the book has them now, in the order to show them
+ * (the default moved: two entries changed).
+ */
+nodes: Array<BookNode>, };
 
 /**
  * A token as a browser presented it: not yet checked, never printed.
@@ -367,7 +396,17 @@ at: EventSeq, } | { "state": "ended" } | { "state": "failed",
 /**
  * Why.
  */
-message: string, };
+message: string, 
+/**
+ * Which kind of stop, for the page to act on without reading
+ * `message`.
+ */
+reason: StreamStop, };
+
+/**
+ * Why a followed session's stream stopped for good.
+ */
+export type StreamStop = "removed" | "stopping" | "error";
 
 /**
  * How a node is reached.
