@@ -57,6 +57,8 @@ const LOG_DIR: &str = "logs";
 const PROFILES_FILE: &str = "profiles.toml";
 const MODELS_FILE: &str = "models.toml";
 const MCP_DIR: &str = "mcp";
+/// Where the node starts agents to ask what they offer (protocol 9).
+const PROBE_DIR: &str = "probe";
 
 /// `profiles.toml` as read: its text, and whether other users can read it
 /// (it may hold secrets, so the node warns).
@@ -252,6 +254,25 @@ impl DataDir {
                 tracing::warn!(path = %path.display(), %error, "could not remove a stale MCP configuration file");
             }
         }
+        Ok(dir)
+    }
+
+    /// Where the node starts an agent to ask what it offers
+    /// (`harness.options`, protocol 9): the working directory of every
+    /// probe, one directory so the trace a probe may leave in a harness's
+    /// home (a project entry for it) is always the same one.
+    #[must_use]
+    pub fn probe_dir(&self) -> PathBuf {
+        self.root.join(PROBE_DIR)
+    }
+
+    /// Create the probe directory owner-only. Returns it.
+    ///
+    /// # Errors
+    /// The directory cannot be created.
+    pub fn prepare_probe_dir(&self) -> Result<PathBuf, StoreError> {
+        let dir = self.probe_dir();
+        files::create_private_dir(&dir).map_err(StoreError::io(&dir))?;
         Ok(dir)
     }
 

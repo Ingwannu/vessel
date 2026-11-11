@@ -13,10 +13,10 @@ use vessel_client::{ChunkSink, NodeClient, SessionStream};
 use vessel_fleet::{BlobStore, BlobWriter};
 use vessel_harness::fakes::claude_project;
 use vessel_proto::{
-    AgentEvent, BundlePath, ContentBlock, ErrorCode, EventRecord, EventSeq, HarnessKind,
-    HarnessSessionId, ImportMemory, ImportSession, MemoryRef, NodeId, ProfileName, SessionId,
-    SessionInput, SessionMode, SessionOrigin, SessionRef, SessionSpec, SessionStatus,
-    TransferDetail,
+    AgentEvent, BundlePath, ChoiceValue, ContentBlock, ErrorCode, EventRecord, EventSeq,
+    HarnessKind, HarnessSessionId, ImportMemory, ImportSession, MemoryRef, NodeId, OptionChoice,
+    OptionId, OptionValueId, ProfileName, SessionId, SessionInput, SessionMode, SessionOrigin,
+    SessionRef, SessionSpec, SessionStatus, SessionTitle, TransferDetail,
 };
 use vessel_rpc::CallError;
 
@@ -69,6 +69,10 @@ impl ChunkSink for Blob {
 
 fn name(text: &str) -> ProfileName {
     text.parse().unwrap()
+}
+
+fn moved_title() -> SessionTitle {
+    "A conversation that moves".parse().unwrap()
 }
 
 fn profiles_toml(homes: &Path) -> String {
@@ -146,6 +150,16 @@ impl Source {
             status_of(record) == Some(&SessionStatus::Running)
         })
         .await;
+        // Protocol 9: set to a mode other than the agent's default while it
+        // runs, and named; both must go with it.
+        let plan = OptionChoice {
+            id: OptionId::new("mode"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("plan"),
+            },
+        };
+        drop(client.set_option(id, plan).await.unwrap());
+        drop(client.rename(id, moved_title()).await.unwrap());
         let session = client.session(id).await.unwrap().harness_session.unwrap();
         let project = claude_project(alt, &fixture.cwd()).unwrap();
         let slug = project.file_name().unwrap().to_str().unwrap().to_owned();
@@ -198,10 +212,23 @@ async fn exports(fixture: &Fixture, client: &NodeClient, alt: &Path, source: &mu
         harness_session,
         cwd,
         info,
+        options,
     } = &manifest.detail
     else {
         panic!("a session's transfer: {:?}", manifest.detail);
     };
+    // What it runs with now: the mode set on it, beside the agent's other
+    // values as they stand.
+    assert!(
+        options.contains(&OptionChoice {
+            id: OptionId::new("mode"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("plan"),
+            },
+        }),
+        "{options:?}"
+    );
+    assert_eq!(info.title, Some(moved_title()));
     assert_eq!((harness_session, cwd), (&source.session, &fixture.cwd()));
     assert_eq!(info.id, id);
     // Streamed into a blob store, each file checked against its hash.
@@ -265,6 +292,7 @@ async fn resumed(
     assert_eq!(imported.profile, Some(name("claude-work")));
     let copy = imported.session.unwrap();
     assert_eq!(copy.profile, Some(name("claude-work")));
+    assert_eq!(copy.title, Some(moved_title()), "it keeps its name");
     assert_eq!(
         copy.origin,
         Some(SessionOrigin::Imported {
@@ -286,6 +314,27 @@ async fn resumed(
     assert_eq!(
         ask(client, &mut stream, &mut seen, copy.id, "loaded").await,
         format!("loaded {session}")
+    );
+    // It goes on in the mode it was in, not the agent's default: reported
+    // so, and the agent runs so.
+    let first = seen.iter().find_map(|record| {
+        if let vessel_proto::SessionEvent::OptionsChanged { options } = &record.event {
+            Some(options.clone())
+        } else {
+            None
+        }
+    });
+    let mode = first.as_deref().and_then(|options| {
+        options
+            .iter()
+            .find(|option| option.id.as_str() == "mode")
+            .and_then(vessel_proto::SessionOption::current_name)
+    });
+    assert_eq!(mode, Some("Plan"));
+    assert!(
+        ask(client, &mut stream, &mut seen, copy.id, "options")
+            .await
+            .contains("mode=plan")
     );
     let placed = claude_project(work, &fixture.cwd()).unwrap();
     assert_eq!(
@@ -488,6 +537,16 @@ async fn a_codex_rollout_keeps_its_place_and_resumes_in_the_new_directory() {
             status_of(record) == Some(&SessionStatus::Running)
         })
         .await;
+        // Protocol 9: set to a mode other than the agent's default while it
+        // runs, and named; both must go with it.
+        let plan = OptionChoice {
+            id: OptionId::new("mode"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("plan"),
+            },
+        };
+        drop(client.set_option(id, plan).await.unwrap());
+        drop(client.rename(id, moved_title()).await.unwrap());
         let session = client.session(id).await.unwrap().harness_session.unwrap();
         let rollout = format!("sessions/2026/11/06/rollout-2026-11-06T10-00-00-{session}.jsonl");
         write(&homes.path().join("a").join(&rollout), "{}\n");

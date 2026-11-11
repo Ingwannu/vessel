@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 use fixtures::{at, data_dir, new_session, open, output, plain, record, status};
 use vessel_proto::{
-    Activity, AgentEvent, Creator, DeviceId, DisplayStatus, EventRecord, EventSeq,
-    HarnessSessionId, KanbanColumn, NodeId, ProfileName, RemoteCreator, SessionBoard, SessionEvent,
-    SessionId, SessionInfo, SessionOrigin, SessionStatus,
+    AgentEvent, Creator, DeviceId, EventRecord, EventSeq, HarnessSessionId, NodeId, ProfileName,
+    RemoteCreator, SessionBoard, SessionEvent, SessionId, SessionInfo, SessionOrigin,
+    SessionStatus,
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
@@ -250,18 +250,13 @@ async fn session_rows_follow_the_records() {
     assert_eq!(stored.next_seq, EventSeq::new(4));
     assert_eq!(stored.spec, session.spec);
     assert_eq!(stored.created_at, session.created_at);
-    assert_eq!(stored.board, Some(archived(exited.at)), "ended: archived");
-}
-
-/// Where an ended session sits on the board (protocol 8, ADR 0019): the
-/// archive, its last activity its end. Derived on reading, never stored.
-fn archived(end: chrono::DateTime<chrono::Utc>) -> SessionBoard {
-    SessionBoard::new(
-        KanbanColumn::Archive,
-        DisplayStatus::Terminated,
-        Activity::Exited,
-        end,
-    )
+    // Where an ended session sits (protocol 8, ADR 0019): the archive, its
+    // last activity its end. Derived on reading, never stored.
+    assert_eq!(
+        stored.board,
+        Some(SessionBoard::archived(exited.at)),
+        "ended: archived"
+    );
 }
 
 /// A stored session that is still live has no board from the store: the
@@ -327,7 +322,7 @@ async fn restart_interrupts_sessions_that_were_live() {
     // Read back after a restart, every session is ended, so archived.
     assert_eq!(
         interrupted.board,
-        interrupted.ended_at.map(archived),
+        interrupted.ended_at.map(SessionBoard::archived),
         "interrupted at the restart"
     );
 
@@ -366,14 +361,13 @@ async fn restart_interrupts_sessions_that_were_live() {
     );
     let untouched = store.session(ended.id).await.unwrap().unwrap();
     assert_eq!(untouched.status, SessionStatus::Exited { code: Some(3) });
-    assert_eq!(untouched.board, untouched.ended_at.map(archived));
+    // Both `None` would pass the comparisons: every one must have ended.
+    let untouched_end = untouched.ended_at.expect("an exited session has its end");
+    assert_eq!(untouched.board, Some(SessionBoard::archived(untouched_end)));
     assert!(
-        store
-            .sessions()
-            .await
-            .unwrap()
-            .iter()
-            .all(|info| info.board == info.ended_at.map(archived)),
+        store.sessions().await.unwrap().iter().all(|info| info
+            .ended_at
+            .is_some_and(|end| info.board == Some(SessionBoard::archived(end)))),
         "listed as read one by one"
     );
     assert_eq!(store.sessions().await.unwrap().len(), 2);
@@ -689,7 +683,9 @@ async fn sessions_from_schema_3_have_no_origin() {
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN via;
              ALTER TABLE sessions DROP COLUMN origin;
-             ALTER TABLE sessions DROP COLUMN model;",
+             ALTER TABLE sessions DROP COLUMN model;
+             ALTER TABLE sessions DROP COLUMN title;
+             ALTER TABLE sessions DROP COLUMN choices;",
         )
         .unwrap();
     connection.pragma_update(None, "user_version", 3).unwrap();
@@ -718,7 +714,9 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
              ALTER TABLE sessions DROP COLUMN created_by;
              ALTER TABLE sessions DROP COLUMN via;
              ALTER TABLE sessions DROP COLUMN origin;
-             ALTER TABLE sessions DROP COLUMN model;",
+             ALTER TABLE sessions DROP COLUMN model;
+             ALTER TABLE sessions DROP COLUMN title;
+             ALTER TABLE sessions DROP COLUMN choices;",
         )
         .unwrap();
     connection.pragma_update(None, "user_version", 2).unwrap();
@@ -752,10 +750,101 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("ALTER TABLE sessions DROP COLUMN model;")
+        .execute_batch(
+            "ALTER TABLE sessions DROP COLUMN model;
+             ALTER TABLE sessions DROP COLUMN title;
+             ALTER TABLE sessions DROP COLUMN choices;",
+        )
         .unwrap();
     connection.pragma_update(None, "user_version", 4).unwrap();
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;
     assert_eq!(store.session(routed.id).await.unwrap().unwrap().model, None);
+}
+
+/// Protocol 9, schema 6: a stored session reads back with its current
+/// title (the spec's, then each rename's) and the choices of its last
+/// options report, after the store is opened again; nothing reverts to the
+/// spec's.
+#[tokio::test]
+async fn a_sessions_title_and_choices_follow_its_records_across_a_reopen() {
+    use vessel_proto::{
+        ChoiceValue, OptionCategory, OptionChoice, OptionId, OptionKind, OptionValueId,
+        SessionOption, SessionTitle,
+    };
+
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let named: SessionTitle = "Asked for".parse().unwrap();
+    let mut session = new_session(0);
+    session.spec = session.spec.clone().with_title(named.clone());
+    session.title = Some(named.clone());
+    store.create_session(session.clone()).await.unwrap();
+    assert_eq!(
+        store.session(session.id).await.unwrap().unwrap().title,
+        Some(named)
+    );
+    assert_eq!(
+        store.choices(session.id).await.unwrap(),
+        None,
+        "no report yet"
+    );
+
+    let mode = |current: &str| SessionOption {
+        id: OptionId::new("mode"),
+        name: "Mode".to_owned(),
+        description: None,
+        category: OptionCategory::Mode,
+        kind: OptionKind::Select {
+            current: OptionValueId::new(current),
+            values: Vec::new(),
+        },
+    };
+    let renamed: SessionTitle = "Renamed".parse().unwrap();
+    store
+        .append(
+            session.id,
+            vec![
+                status(0, SessionStatus::Starting),
+                record(
+                    1,
+                    SessionEvent::OptionsChanged {
+                        options: vec![mode("default")],
+                    },
+                ),
+                record(
+                    2,
+                    SessionEvent::Renamed {
+                        title: renamed.clone(),
+                    },
+                ),
+                record(
+                    3,
+                    SessionEvent::OptionsChanged {
+                        options: vec![mode("plan")],
+                    },
+                ),
+            ],
+        )
+        .await
+        .unwrap();
+    store.close().await;
+    drop(store);
+
+    let store = open(&dir, StoreConfig::default()).await;
+    let stored = store.session(session.id).await.unwrap().unwrap();
+    assert_eq!(stored.title, Some(renamed), "the rename, not the spec's");
+    assert_eq!(
+        stored.spec.title, session.spec.title,
+        "the spec stays what was asked"
+    );
+    assert_eq!(
+        store.choices(session.id).await.unwrap(),
+        Some(vec![OptionChoice {
+            id: OptionId::new("mode"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("plan"),
+            },
+        }])
+    );
 }

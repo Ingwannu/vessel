@@ -761,3 +761,52 @@ async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
     })
     .await;
 }
+
+/// Output keeps arriving and is in the log, and info watchers are not
+/// woken by it: only a new lane, phrase or activity wakes them (ADR 0019),
+/// or the watch would be an output stream. At the actor, not only on the
+/// publisher's pure `place`.
+#[tokio::test]
+async fn output_alone_does_not_wake_info_watchers() {
+    within(async {
+        let fixture = Fixture::new(DEFAULT_RING_CAPACITY, DEFAULT_DURABLE_CAPACITY);
+        let created = fixture
+            .runtime
+            .create(support::terminal(HarnessKind::ClaudeCode))
+            .await
+            .unwrap();
+        let stored = collect(created.durable);
+        let handle = created.handle;
+        let mut follower = Follower::new(&handle, EventSeq::ZERO);
+        follower.until_text("> ").await;
+        let mut watch = handle.watch_info();
+        // Running, printing: what the watcher has seen from here on.
+        let seen = watch
+            .wait_for(|info| {
+                info.status == SessionStatus::Running
+                    && info.board.as_ref().map(|board| board.activity) == Some(Activity::Active)
+            })
+            .await
+            .unwrap()
+            .next_seq;
+        drop(watch.borrow_and_update());
+        for line in ["one\r", "two\r", "three\r"] {
+            handle.send(keys(line)).await.unwrap();
+        }
+        follower.until_text("echo: three").await;
+        assert!(
+            handle.info().next_seq > seen,
+            "the output is in the log and the info"
+        );
+        assert!(
+            !watch.has_changed().unwrap(),
+            "and woke no watcher: {:?}",
+            handle.info().board
+        );
+
+        handle.kill();
+        let _end = handle.ended().await;
+        drop(stored.await.unwrap());
+    })
+    .await;
+}

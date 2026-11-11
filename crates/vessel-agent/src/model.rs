@@ -14,18 +14,16 @@
 //! - Failure is loud: a model the agent does not offer fails the session
 //!   instead of silently running the default (which may be a far more
 //!   expensive model than the one asked for).
+//! - Since protocol 9 a client may also choose the model option by its id
+//!   and value (`options`); this name match stays for
+//!   `SessionMode::Structured.model`, which names a model as people do.
 
 use std::fmt;
 
 use agent_client_protocol::v1::schema as acp;
 use vessel_proto::ModelId;
 
-/// The config change that selects a model.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ModelChoice {
-    pub(crate) config: acp::SessionConfigId,
-    pub(crate) value: acp::SessionConfigValueId,
-}
+use crate::options::{Change, flatten};
 
 /// Why the requested model cannot be selected.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -48,7 +46,7 @@ pub(crate) enum ModelError {
 pub(crate) fn choose(
     options: &[acp::SessionConfigOption],
     wanted: &ModelId,
-) -> Result<Option<ModelChoice>, ModelError> {
+) -> Result<Option<Change>, ModelError> {
     let Some((config, select)) = options.iter().find_map(|option| {
         let is_model = matches!(
             option.category,
@@ -63,7 +61,10 @@ pub(crate) fn choose(
             wanted: wanted.clone(),
         });
     };
-    let choices = flatten(&select.options);
+    let choices: Vec<&acp::SessionConfigSelectOption> = flatten(&select.options)
+        .into_iter()
+        .map(|(choice, _group)| choice)
+        .collect();
     let name = wanted.as_str();
     let found = choices
         .iter()
@@ -82,21 +83,10 @@ pub(crate) fn choose(
     if found.value == select.current_value {
         return Ok(None);
     }
-    Ok(Some(ModelChoice {
+    Ok(Some(Change::Config {
         config: config.clone(),
-        value: found.value.clone(),
+        value: acp::SessionConfigOptionValue::value_id(found.value.clone()),
     }))
-}
-
-fn flatten(options: &acp::SessionConfigSelectOptions) -> Vec<&acp::SessionConfigSelectOption> {
-    match options {
-        acp::SessionConfigSelectOptions::Ungrouped(options) => options.iter().collect(),
-        acp::SessionConfigSelectOptions::Grouped(groups) => groups
-            .iter()
-            .flat_map(|group| group.options.iter())
-            .collect(),
-        _ => Vec::new(),
-    }
 }
 
 /// Offered values, comma-separated, for the error message.
@@ -117,6 +107,13 @@ impl fmt::Display for Offered<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn set(config: &str, value: &str) -> Change {
+        Change::Config {
+            config: acp::SessionConfigId::new(config),
+            value: acp::SessionConfigOptionValue::value_id(acp::SessionConfigValueId::new(value)),
+        }
+    }
 
     fn models(current: &str) -> Vec<acp::SessionConfigOption> {
         vec![
@@ -143,15 +140,9 @@ mod tests {
     #[test]
     fn picks_the_model_option_by_value_then_by_name() {
         let choice = choose(&models("default"), &ModelId::new("haiku")).unwrap();
-        assert_eq!(
-            choice,
-            Some(ModelChoice {
-                config: "model".into(),
-                value: "haiku".into(),
-            })
-        );
+        assert_eq!(choice, Some(set("model", "haiku")));
         let by_name = choose(&models("default"), &ModelId::new("HAIKU")).unwrap();
-        assert_eq!(by_name.map(|choice| choice.value), Some("haiku".into()));
+        assert_eq!(by_name, Some(set("model", "haiku")));
     }
 
     /// The model option `claude-agent-acp` 0.100.0 offered in a recorded
@@ -165,9 +156,14 @@ mod tests {
     fn selects_models_from_the_recorded_claude_adapter_option() {
         let options: Vec<acp::SessionConfigOption> = serde_json::from_str(RECORDED_CLAUDE).unwrap();
         for wanted in ["haiku", "claude-haiku-4-5-20251001", "Sonnet"] {
-            let choice = choose(&options, &ModelId::new(wanted)).unwrap().unwrap();
-            assert_eq!(&*choice.config.0, "model");
-            assert!(choice.value.0.eq_ignore_ascii_case(wanted), "{wanted}");
+            let Some(Change::Config { config, value }) =
+                choose(&options, &ModelId::new(wanted)).unwrap()
+            else {
+                panic!("{wanted} selects a config value");
+            };
+            assert_eq!(&*config.0, "model");
+            let value = value.as_value_id().unwrap();
+            assert!(value.0.eq_ignore_ascii_case(wanted), "{wanted}");
         }
         assert_eq!(choose(&options, &ModelId::new("default")), Ok(None));
         assert!(matches!(

@@ -9,9 +9,13 @@ use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _, params};
-use vessel_proto::{DeviceId, DeviceInfo, EventPage, EventSeq, SessionId, SessionInfo};
+use vessel_proto::{
+    DeviceId, DeviceInfo, EventPage, EventSeq, OptionChoice, SessionId, SessionInfo,
+};
 
-use crate::codec::{SESSION_COLUMNS, record_from_row, seq_from_sql, seq_to_sql, session_from_row};
+use crate::codec::{
+    SESSION_COLUMNS, choices_from_sql, record_from_row, seq_from_sql, seq_to_sql, session_from_row,
+};
 use crate::config::StoreConfig;
 use crate::devices::{self, StoredDevice};
 use crate::error::StoreError;
@@ -71,6 +75,18 @@ impl Reader {
     /// One session, if stored.
     pub(crate) fn session(&self, id: SessionId) -> Result<Option<SessionInfo>, StoreError> {
         self.with(|connection| select_session(connection, id))
+    }
+
+    /// The choices of a session's last options report (schema 6); `None`
+    /// before its first report, and for an unknown session.
+    pub(crate) fn choices(&self, id: SessionId) -> Result<Option<Vec<OptionChoice>>, StoreError> {
+        self.with(|connection| {
+            let text: Option<Option<String>> = connection
+                .prepare_cached("SELECT choices FROM sessions WHERE id = ?1")?
+                .query_row([id.to_string()], |row| row.get(0))
+                .optional()?;
+            choices_from_sql(id, text.flatten())
+        })
     }
 
     /// Every paired device, oldest first.

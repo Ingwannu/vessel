@@ -131,7 +131,9 @@ async fn a_version_1_database_gains_the_devices_table() {
              ALTER TABLE sessions DROP COLUMN created_by;
              ALTER TABLE sessions DROP COLUMN via;
              ALTER TABLE sessions DROP COLUMN origin;
-             ALTER TABLE sessions DROP COLUMN model;",
+             ALTER TABLE sessions DROP COLUMN model;
+             ALTER TABLE sessions DROP COLUMN title;
+             ALTER TABLE sessions DROP COLUMN choices;",
         )
         .unwrap();
     connection.pragma_update(None, "user_version", 1).unwrap();

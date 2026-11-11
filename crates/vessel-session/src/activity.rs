@@ -115,10 +115,13 @@ impl Tracker {
                 self.set(Activity::WaitingInput, at);
             }
             AgentEvent::PermissionResolved { id, .. } => {
-                let _was_open = self.pending.remove(id);
-                // The turn goes on once nothing waits on the owner. A
-                // resolution after the turn ended (the agent's driver
-                // withdraws what a closed turn left open) changes nothing.
+                // A resolution after the turn ended (the agent's driver
+                // withdraws what a closed turn left open) changes nothing:
+                // not the activity, not when the agent was last seen.
+                if !self.pending.remove(id) {
+                    return;
+                }
+                // The turn goes on once nothing waits on the owner.
                 if self.pending.is_empty() && self.activity == Activity::WaitingInput {
                     self.set(Activity::Active, at);
                 } else {
@@ -162,6 +165,12 @@ impl Tracker {
     /// expects a signal (see [`WorkerFacts::signal_expected`]), so `now`
     /// cannot change the result today and the board needs no timer.
     pub(crate) fn board(&self, now: DateTime<Utc>) -> SessionBoard {
+        // An ended session's place has one definition, shared with the
+        // store's (`SessionBoard::archived`); the reducer agrees (its
+        // tests hold `derive` to the archive for every ended session).
+        if self.terminated {
+            return SessionBoard::archived(self.last_activity_at);
+        }
         let facts = SessionFacts {
             worker: WorkerFacts {
                 activity: self.activity,
@@ -337,13 +346,15 @@ mod tests {
             ended(StopReason::Cancelled),
             resolved(id),
         ]);
+        // The withdrawal of a request the turn's end already closed is no
+        // activity: the agent was last seen ending the turn (3), not 4.
         assert_eq!(
             last.last(),
             Some(&(
                 KanbanColumn::Building,
                 DisplayStatus::Interrupted,
                 Activity::Idle,
-                4
+                3
             ))
         );
     }

@@ -36,6 +36,10 @@ pub enum Column {
     Origin,
     /// `sessions.model` (a `SessionModel`, schema 5).
     Model,
+    /// `sessions.title` (a `SessionTitle`, schema 6).
+    Title,
+    /// `sessions.choices` (`OptionChoice`s, schema 6).
+    Choices,
 }
 
 /// Anything that can go wrong in the store.

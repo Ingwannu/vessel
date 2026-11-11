@@ -34,6 +34,7 @@ mod rpc;
 mod secret;
 mod session;
 mod terminal;
+mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
@@ -103,6 +104,7 @@ pub use session::{
     SessionStatus,
 };
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
+pub use title::{InvalidTitle, SessionTitle};
 pub use transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MAX_TRANSFER_FILE,
     MAX_TRANSFER_TOTAL, MemoryImported, MemoryRef, ReadTransfer, SessionImported, SessionRef,

@@ -211,8 +211,10 @@ impl StructuredActor {
         self.stop_agent().await?;
         // The previous command resumes the same conversation if it has to
         // start again (it may have started a new one the first time).
+        // With the session's choices as they stand, as the new one gets.
         let mut previous = self.launch.clone();
         previous.setup.resume.clone_from(&launch.setup.resume);
+        previous.setup.options.clone_from(&launch.setup.options);
         match self.start_agent(&launch).await? {
             Ok(()) => {
                 let from = std::mem::replace(&mut self.profile, to.clone());

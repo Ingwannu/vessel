@@ -13,9 +13,14 @@
 //!   (handshake, prompt, cancel, permission round trip);
 //! - `transport`: the agent's stdio as the SDK's line transport, holding
 //!   lines back while the driver is behind (backpressure);
-//! - `handshake`: `initialize`, `session/new` or `session/load`, model;
+//! - `handshake`: `initialize`, `session/new` or `session/load`, model,
+//!   option choices;
 //! - `mcp`: Vessel's MCP server definitions as ACP's, for those requests;
 //! - `model`: picking the requested model among ACP config options;
+//! - `options`: the agent's config options (and ACP's older modes), shown
+//!   as Vessel's and changed by a client's choice (protocol 9);
+//! - `probe`: asking an agent what it offers without a session (protocol
+//!   9's `harness.options`);
 //! - `permissions`: pending permission requests, first answer wins;
 //! - `mapper`: pure ACP-to-Vessel conversions, tested with fixtures;
 //! - `stderr`: harness stderr lines as `HarnessLog` events;
@@ -44,8 +49,10 @@ mod input;
 mod mapper;
 mod mcp;
 mod model;
+mod options;
 mod output;
 mod permissions;
+mod probe;
 mod process;
 mod recent;
 mod stderr;
@@ -54,7 +61,9 @@ mod transport;
 pub use error::{AgentError, Disconnect, InputError};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT};
 pub use input::AgentInput;
+pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
+pub use probe::{ProbeError, probe};
 pub use process::AgentProcess;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.

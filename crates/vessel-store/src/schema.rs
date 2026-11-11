@@ -97,9 +97,25 @@ const V5: &str = "
 ALTER TABLE sessions ADD COLUMN model TEXT;
 ";
 
+/// Version 6 (milestone 10, protocol 9): what a session is called and
+/// what it runs with (ADR 0022).
+///
+/// - `title` is the session's current title, a `SessionTitle` as its bare
+///   text: the spec's when it asked for one, then each `renamed` record's.
+///   It is the title a stored session reads back with; `NULL` is none (and
+///   every session stored before this version, which had none).
+/// - `choices` is a `Vec<OptionChoice>` as JSON: the agent's options of
+///   the session's last `options_changed` record, as choices (each
+///   select's value, each toggle's state), which an export carries on.
+///   `NULL` before the first report.
+const V6: &str = "
+ALTER TABLE sessions ADD COLUMN title TEXT;
+ALTER TABLE sessions ADD COLUMN choices TEXT;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

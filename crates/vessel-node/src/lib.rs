@@ -74,6 +74,7 @@ mod models;
 mod node;
 mod persist;
 mod principal;
+mod probes;
 mod profiles;
 mod relays;
 mod secret_copy;

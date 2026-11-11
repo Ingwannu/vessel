@@ -4,9 +4,8 @@
 use std::fmt::Write as _;
 
 use vessel_proto::{
-    EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, OptionKind,
-    ProfileInfo, ProfileName, SessionInfo, SessionMode, SessionOption, SessionStatus,
-    StructuredSupport,
+    EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, ProfileInfo,
+    ProfileName, SessionInfo, SessionMode, SessionOption, SessionStatus, StructuredSupport,
 };
 
 /// A session's status in a few words.
@@ -52,29 +51,10 @@ pub(crate) fn model_call(call: &ModelCall) -> String {
     text
 }
 
-/// A session's options as its agent reports them (protocol 9): each
-/// option's name and the name of its value now, in the agent's words.
+/// A session's options as its agent reports them (protocol 9), in one
+/// line: the protocol's own summary, which an older client also reads.
 pub(crate) fn options(options: &[SessionOption]) -> String {
-    if options.is_empty() {
-        return "none".to_owned();
-    }
-    let mut text = String::new();
-    for option in options {
-        if !text.is_empty() {
-            text.push_str(", ");
-        }
-        let value = match &option.kind {
-            // An agent may report a current value it does not list: its id.
-            OptionKind::Select { current, values } => values
-                .iter()
-                .find(|value| value.id == *current)
-                .map_or_else(|| current.as_str(), |value| value.name.as_str()),
-            OptionKind::Toggle { on: true } => "on",
-            OptionKind::Toggle { on: false } => "off",
-        };
-        let _infallible = write!(text, "{} {value}", option.name);
-    }
-    text
+    SessionOption::summary(options)
 }
 
 const fn stop(stop: ModelStop) -> &'static str {

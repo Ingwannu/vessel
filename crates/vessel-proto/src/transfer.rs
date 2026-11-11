@@ -32,6 +32,7 @@ use crate::fleet::{BlobHash, BundleFile, BundlePath};
 use crate::harness::HarnessKind;
 use crate::id::{HarnessSessionId, NodeId, SessionId, TransferId};
 use crate::name::ProfileName;
+use crate::options::OptionChoice;
 use crate::session::SessionInfo;
 
 /// The largest file a transfer carries: 256 MiB.
@@ -93,8 +94,17 @@ pub enum TransferDetail {
         harness_session: HarnessSessionId,
         /// The directory it ran in (the files are named after it).
         cwd: PathBuf,
-        /// The session as its node reports it: harness, profile, creator.
+        /// The session as its node reports it: harness, profile, creator,
+        /// title.
         info: Box<SessionInfo>,
+        /// The agent's options as the session runs with them now
+        /// (protocol 9): every select's current value and every toggle's
+        /// state from its last `options_changed`, or before any, its
+        /// spec's own choices. The importer applies them after the load,
+        /// so the session continues in the mode it was in (a permissions
+        /// mode above all) rather than the agent's default.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        options: Vec<OptionChoice>,
     },
     /// A profile's memory.
     Memory {

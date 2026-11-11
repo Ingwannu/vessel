@@ -2,14 +2,14 @@
 //! followers, and keeps the session's info current, its place on the board
 //! included. Used only by the session actor.
 
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, PoisonError};
 
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
     AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionBoard, SessionEvent,
-    SessionInfo, SessionStatus,
+    SessionInfo, SessionOption, SessionStatus, SessionTitle,
 };
 
 use crate::activity::Tracker;
@@ -91,6 +91,14 @@ impl Publisher {
         };
         let at = Utc::now();
         let change = InfoChange::of(&event);
+        if let SessionEvent::OptionsChanged { options } = &event {
+            let reported: Arc<[SessionOption]> = Arc::from(options.as_slice());
+            *self
+                .shared
+                .reported
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner) = Some(reported);
+        }
         self.activity.observe(&event, at);
         let board = self.activity.board(at);
         // The one allocation of this record; the store, the ring and every
@@ -165,6 +173,7 @@ enum InfoChange {
     Status(SessionStatus),
     HarnessSession(HarnessSessionId),
     Profile(Option<ProfileName>),
+    Title(SessionTitle),
 }
 
 impl InfoChange {
@@ -175,13 +184,13 @@ impl InfoChange {
                 event: AgentEvent::Ready { harness_session },
             } => Self::HarnessSession(harness_session.clone()),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
-            // Nothing publishes these yet (protocol 9's contract step);
-            // `Renamed` will set the title when titles are built.
+            SessionEvent::Renamed { title } => Self::Title(title.clone()),
+            // Options are not part of the info: a client reads them from
+            // the log, or asks `session.options`.
             SessionEvent::Terminal(_)
             | SessionEvent::Agent { .. }
             | SessionEvent::ModelCall(_)
-            | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => Self::None,
+            | SessionEvent::OptionsChanged { .. } => Self::None,
         }
     }
 
@@ -202,6 +211,10 @@ impl InfoChange {
             }
             Self::Profile(profile) => {
                 info.profile = profile;
+                true
+            }
+            Self::Title(title) => {
+                info.title = Some(title);
                 true
             }
         }

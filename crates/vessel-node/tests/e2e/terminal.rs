@@ -2,9 +2,8 @@
 
 use vessel_client::{CallError, ClientConfig, NodeClient, SessionStream};
 use vessel_proto::{
-    Activity, ContentBlock, DisplayStatus, ErrorCode, EventRecord, EventSeq, HarnessKind,
-    KanbanColumn, SessionBoard, SessionInfo, SessionInput, SessionStatus, TerminalInput,
-    TerminalSize,
+    ContentBlock, ErrorCode, EventRecord, EventSeq, HarnessKind, KanbanColumn, SessionBoard,
+    SessionInfo, SessionInput, SessionStatus, TerminalInput, TerminalSize,
 };
 
 use crate::support::{
@@ -21,14 +20,13 @@ fn placed_from_creation_to_archive(created: &SessionInfo, restored: &SessionInfo
         Some(KanbanColumn::Building),
         "placed from its creation"
     );
+    // Both `None` would pass the comparison below: the end must be there.
+    let ended = restored
+        .ended_at
+        .expect("a session read back after a restart has ended");
     assert_eq!(
         restored.board,
-        restored.ended_at.map(|end| SessionBoard::new(
-            KanbanColumn::Archive,
-            DisplayStatus::Terminated,
-            Activity::Exited,
-            end
-        )),
+        Some(SessionBoard::archived(ended)),
         "archived after a restart"
     );
 }

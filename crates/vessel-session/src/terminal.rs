@@ -59,6 +59,9 @@ impl TerminalActor {
                 Some(call) = self.life.model_calls.recv() => {
                     self.life.publish(&mut self.pty, SessionEvent::ModelCall(call)).await;
                 }
+                Some(rename) = self.life.renames.recv() => {
+                    self.life.renamed(&mut self.pty, rename).await;
+                }
                 () = quiet.elapsed() => self.life.out.quiet(),
             }
         };

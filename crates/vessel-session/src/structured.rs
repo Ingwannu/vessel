@@ -77,6 +77,9 @@ impl StructuredActor {
                 Some(call) = self.life.model_calls.recv() => {
                     self.life.publish(&mut self.agent, SessionEvent::ModelCall(call)).await;
                 }
+                Some(rename) = self.life.renames.recv() => {
+                    self.life.renamed(&mut self.agent, rename).await;
+                }
             }
         };
         if self.outputs_open {
@@ -103,6 +106,13 @@ impl StructuredActor {
 
     pub(crate) async fn output(&mut self, output: AgentOutput) {
         match output {
+            // Also from an agent a move restarts: under another profile it
+            // may offer other options, and its report is the session's now.
+            AgentOutput::Options(options) => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::OptionsChanged { options })
+                    .await;
+            }
             AgentOutput::Event(event) if self.move_state.replaying => {
                 // A restarted agent's replay: the log has it already. Its
                 // stderr still goes in; `Ready` ends the replay.
@@ -140,9 +150,17 @@ impl StructuredActor {
                     self.move_state.turn_over = true;
                 }
                 let became_ready = !self.ready && matches!(event, AgentEvent::Ready { .. });
+                let title = if let AgentEvent::TurnStarted { content } = &event {
+                    self.life.title_from(content)
+                } else {
+                    None
+                };
                 self.life
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
+                if let Some(title) = title {
+                    self.life.rename(&mut self.agent, title).await;
+                }
                 if became_ready {
                     self.ready = true;
                     self.life

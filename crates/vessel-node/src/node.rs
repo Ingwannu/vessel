@@ -31,6 +31,7 @@ use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
+use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::{AgentTools, Launcher, McpSource};
 use crate::relays::{self, Relays};
@@ -72,6 +73,8 @@ struct Prepared {
     models: Models,
     /// Owner-only, emptied of a previous run's files (ADR 0012).
     mcp_dir: PathBuf,
+    /// Where agents are probed (protocol 9).
+    probe_dir: PathBuf,
 }
 
 impl Node {
@@ -97,10 +100,12 @@ impl Node {
             profiles,
             models,
             mcp_dir,
+            probe_dir,
         } = prepare_off_thread(&config).await?;
         let store = open_store(&config).await?;
         let (models, proxy) = model_proxy(models).await?;
-        let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), mcp_dir);
+        let dirs = SetupDirs { mcp_dir, probe_dir };
+        let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
         let Core {
             runtime,
@@ -287,6 +292,14 @@ struct SessionSetup {
     /// The fleet's MCP servers, which the fleet loop keeps current and the
     /// launcher asks for.
     fleet_mcp: Arc<FleetMcp>,
+    /// Where agents are probed (`DataDir::probe_dir`, protocol 9).
+    probe_dir: PathBuf,
+}
+
+/// The directories sessions and probes use, prepared under the lock.
+struct SetupDirs {
+    mcp_dir: PathBuf,
+    probe_dir: PathBuf,
 }
 
 impl SessionSetup {
@@ -295,7 +308,7 @@ impl SessionSetup {
         id: NodeId,
         profiles: NodeProfiles,
         models: Arc<Models>,
-        mcp_dir: PathBuf,
+        SetupDirs { mcp_dir, probe_dir }: SetupDirs,
     ) -> Self {
         let tools = config.vessel_mcp.clone().map(|mcp| AgentTools {
             program: mcp.program,
@@ -309,6 +322,7 @@ impl SessionSetup {
             models,
             launcher: Launcher::new(mcp_dir, source, tools),
             fleet_mcp,
+            probe_dir,
         }
     }
 }
@@ -426,6 +440,7 @@ fn core(
         fleet,
         links,
         transfers,
+        probes: Probes::new(setup.probe_dir),
     })));
     Core {
         runtime,
@@ -503,6 +518,7 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
     // After the lock: the MCP directory is emptied, which only the node
     // owning the data directory may do.
     let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;
+    let probe_dir = dir.prepare_probe_dir().map_err(NodeError::ProbeDir)?;
     // Transfers expire at restart (protocol 6); same reason to wait for the
     // lock.
     transfers::clear(dir);
@@ -520,6 +536,7 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
         profiles,
         models,
         mcp_dir,
+        probe_dir,
     })
 }
 

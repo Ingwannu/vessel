@@ -9,12 +9,12 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_harness::fakes::{Role, install};
 use vessel_proto::{
-    HarnessKind, SessionId, SessionInfo, SessionInput, SessionMode, SessionSpec, SessionStatus,
-    TerminalSize,
+    HarnessKind, SessionBoard, SessionId, SessionInfo, SessionInput, SessionMode, SessionSpec,
+    SessionStatus, TerminalSize,
 };
 use vessel_session::{
     DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, LaunchOptions,
-    RuntimeConfig, SessionRuntime, board,
+    RuntimeConfig, SessionRuntime,
 };
 use vessel_store::{DataDir, Store, StoreConfig};
 use vessel_testkit::Fake;
@@ -186,40 +186,10 @@ async fn a_finished_session_is_handed_over_to_the_store() {
 }
 
 /// Protocol 8, ADR 0019: a session keeps its place on the board across the
-/// hand-over. The store writes the rule for ended sessions itself (it may
-/// not depend on `vessel-session`), so this holds it to the session's own
-/// last board and to the reducer.
+/// hand-over: the store's and the session's both come from
+/// `SessionBoard::archived`.
 fn the_store_places_it_as_the_session_did(live: &SessionInfo, stored: &SessionInfo) {
-    let board = stored
-        .board
-        .clone()
-        .expect("a stored ended session is placed");
-    assert_eq!(
-        live.board.as_ref(),
-        Some(&board),
-        "the same place as at its end"
-    );
-    assert_eq!(Some(board.last_activity_at), stored.ended_at);
-    let ended = board::SessionFacts {
-        worker: board::WorkerFacts {
-            activity: board.activity,
-            last_activity_at: board.last_activity_at,
-            has_signal: true,
-            signal_expected: false,
-            is_terminated: true,
-        },
-        interrupted: false,
-        has_artifact_output: false,
-        policy: board::Policy::default(),
-    };
-    assert_eq!(
-        board::derive(
-            &ended,
-            board::PullRequests::Unseen,
-            board.last_activity_at,
-            board::NO_SIGNAL_GRACE
-        ),
-        (board.column, board.display_status),
-        "what the reducer gives an ended session"
-    );
+    let ended = stored.ended_at.expect("a stored ended session has its end");
+    assert_eq!(stored.board, Some(SessionBoard::archived(ended)));
+    assert_eq!(live.board, stored.board, "the same place as at its end");
 }

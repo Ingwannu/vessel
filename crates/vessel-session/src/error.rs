@@ -34,11 +34,14 @@ pub enum SessionError {
     /// cannot carry).
     #[error(transparent)]
     Input(InputError),
-    /// The spec chooses agent options (protocol 9), which this runtime
-    /// cannot apply yet. Refused rather than ignored: ignoring would start
-    /// the agent in a mode (a permissions mode) nobody asked for.
-    #[error("choosing an agent's options when a session starts is not built on this node yet")]
-    OptionsNotBuilt,
+    /// Agent options were asked of a terminal session (protocol 9): its
+    /// harness runs its own TUI, and Vessel sees no options there.
+    #[error("a terminal session has no agent options; its harness's own interface sets them")]
+    NoOptions,
+    /// An agent could not be asked what it offers (`SessionRuntime::probe`,
+    /// protocol 9).
+    #[error(transparent)]
+    Probe(#[from] vessel_agent::ProbeError),
     /// The input does not apply to this session's mode.
     #[error("{input} cannot be sent to a {mode} session")]
     Unsupported {
@@ -93,7 +96,7 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. }) => ErrorCode::HarnessNotInstalled,
             Self::Launch(HarnessError::StructuredUnavailable { .. })
             | Self::Unsupported { .. }
-            | Self::OptionsNotBuilt => ErrorCode::Unsupported,
+            | Self::NoOptions => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -102,17 +105,26 @@ impl SessionError {
                 | HarnessError::Mcp(_),
             )
             | Self::NoWorkingDirectory
-            | Self::Input(InputError::InvalidContent(_) | InputError::UnknownOption { .. }) => {
-                ErrorCode::InvalidRequest
+            | Self::Input(
+                InputError::InvalidContent(_)
+                | InputError::UnknownOption { .. }
+                | InputError::Option(_),
+            ) => ErrorCode::InvalidRequest,
+            Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
+                ErrorCode::SpawnFailed
             }
-            Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_)) | Self::NotFound(_) => {
                 ErrorCode::NotFound
             }
             Self::Ended
             | Self::Moving
+            // The agent's refusal of an option change: the session is in a
+            // state where it does not take it.
             | Self::Input(
-                InputError::Closed | InputError::TurnInProgress | InputError::PermissionSettled(_),
+                InputError::Closed
+                | InputError::TurnInProgress
+                | InputError::PermissionSettled(_)
+                | InputError::Refused { .. },
             ) => ErrorCode::Conflict,
             Self::ShuttingDown => ErrorCode::Unavailable,
             Self::Move(error) => move_code(error),
@@ -166,7 +178,9 @@ impl From<InputError> for SessionError {
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)
-            | InputError::UnknownOption { .. }) => Self::Input(refused),
+            | InputError::UnknownOption { .. }
+            | InputError::Option(_)
+            | InputError::Refused { .. }) => Self::Input(refused),
         }
     }
 }

@@ -3,13 +3,17 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::AgentInput;
-use vessel_proto::{EventSeq, ModelCall, SessionId, SessionInfo, SessionInput, TerminalInput};
+use vessel_proto::{
+    EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionInput, SessionOption,
+    SessionTitle, TerminalInput,
+};
 use vessel_pty::{PtyInput, WindowSize};
 
 use crate::error::{InputKind, ModeKind, SessionError};
+use crate::lifecycle::Rename;
 use crate::moving::Control;
 use crate::ring::{Follow, FollowError, Ring};
 
@@ -38,6 +42,14 @@ pub(crate) struct Shared {
     /// Set just before the final status is published (`Publisher::commit`),
     /// so whoever sees that record finds it set ([`SessionHandle::has_ended`]).
     pub(crate) ended: AtomicBool,
+    /// Renames for the actor to publish (protocol 9). Bounded; a caller
+    /// waits for room, then for the rename to be in the log.
+    pub(crate) renames: mpsc::Sender<Rename>,
+    /// The options of the last `options_changed` the session published
+    /// (protocol 9), set by the publisher; what a move or an export carries
+    /// on. A `std` mutex held for one clone or one store, never across an
+    /// `.await`.
+    pub(crate) reported: Mutex<Option<Arc<[SessionOption]>>>,
 }
 
 impl Shared {
@@ -87,6 +99,80 @@ impl SessionHandle {
     #[must_use]
     pub fn id(&self) -> SessionId {
         self.0.id
+    }
+
+    /// The choices the session runs with now (protocol 9): every select's
+    /// current value and every toggle's state from its last
+    /// `options_changed`; before any, its spec's own choices; none for a
+    /// terminal session. What a session continuing elsewhere (another
+    /// profile, another node) applies after it is resumed, so it keeps its
+    /// mode rather than taking the agent's default.
+    #[must_use]
+    pub fn choices(&self) -> Vec<OptionChoice> {
+        let reported = self
+            .0
+            .reported
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        match reported {
+            Some(options) => options.iter().filter_map(SessionOption::choice).collect(),
+            None => self.0.info.borrow().spec.mode.options().to_vec(),
+        }
+    }
+
+    /// The agent's options as it last reported them (protocol 9). Waits
+    /// for the handshake while the session starts.
+    ///
+    /// # Errors
+    /// [`SessionError::NoOptions`] for a terminal session,
+    /// [`SessionError::Moving`] during a move, [`SessionError::Ended`] once
+    /// the session has ended.
+    pub async fn options(&self) -> Result<Vec<SessionOption>, SessionError> {
+        Ok(self.agent()?.options().await?)
+    }
+
+    /// Change one of the agent's options (protocol 9); answers every option
+    /// once the agent has. The change is in the log as `options_changed`.
+    ///
+    /// # Errors
+    /// As [`options`](Self::options), and [`SessionError::Input`] with the
+    /// choice the agent does not offer or its refusal.
+    pub async fn set_option(
+        &self,
+        choice: OptionChoice,
+    ) -> Result<Vec<SessionOption>, SessionError> {
+        Ok(self.agent()?.set_option(choice).await?)
+    }
+
+    /// Give the session `title` (protocol 9): a `renamed` record, in order
+    /// with the rest of its log, then the info as it is with it.
+    ///
+    /// # Errors
+    /// [`SessionError::Ended`] once the session has ended.
+    pub async fn rename(&self, title: SessionTitle) -> Result<SessionInfo, SessionError> {
+        if !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        let (done, renamed) = oneshot::channel();
+        self.0
+            .renames
+            .send(Rename { title, done })
+            .await
+            .map_err(|_ended| SessionError::Ended)?;
+        renamed.await.map_err(|_ended| SessionError::Ended)?;
+        Ok(self.info())
+    }
+
+    /// The live agent's input, for the option calls.
+    fn agent(&self) -> Result<AgentInput, SessionError> {
+        if !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        match &self.0.input {
+            Input::Terminal(_) => Err(SessionError::NoOptions),
+            Input::Structured(route) => current(route),
+        }
     }
 
     /// Whether the session has ended: true from just before its final

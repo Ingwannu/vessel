@@ -11,8 +11,9 @@ use vessel_proto::{
     MemoryImported, ModelRoute, MoveProfile, NodeId, NodeInfo, OptionChoice, ProfileInfo,
     ProfileName, ProtocolVersion, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
     RenameSession, Reply, ReportApplied, RevokeDevice, Scope, SecretName, SecretValue, SendInput,
-    SessionId, SessionImported, SessionInfo, SessionInput, SessionOption, SessionSpec, SetSecret,
-    SetSessionOption, StopNode, StopWhen, Subscribe, TransferId, TransferManifest, WatchFleet,
+    SessionId, SessionImported, SessionInfo, SessionInput, SessionOption, SessionSpec,
+    SessionTitle, SetSecret, SetSessionOption, StopNode, StopWhen, Subscribe, TransferId,
+    TransferManifest, WatchFleet,
 };
 use vessel_rpc::{
     CallError, ClientConfig, Connection, FrameTransport, Subscription, Unary, UnaryCall,
@@ -377,14 +378,9 @@ impl NodeClient {
     pub async fn rename(
         &self,
         session: SessionId,
-        title: impl Into<String>,
+        title: SessionTitle,
     ) -> Result<SessionInfo, CallError> {
-        self.connection
-            .call(RenameSession {
-                session,
-                title: title.into(),
-            })
-            .await
+        self.connection.call(RenameSession { session, title }).await
     }
 
     /// `profile.reload`: the node reads `profiles.toml` again and answers

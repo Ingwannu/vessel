@@ -133,6 +133,16 @@ impl Fixture {
         })
     }
 
+    /// Also Codex for terminals only: fake-tui as `codex`, and no
+    /// `codex-acp`, so Codex cannot run structured sessions here.
+    pub(crate) fn with_codex_terminal_only() -> Self {
+        Self::with_adapter(|bin, acp| {
+            drop(install(bin, HarnessKind::ClaudeCode, Role::Structured, acp).unwrap());
+            let tui = Fake::Tui.path().unwrap();
+            drop(install(bin, HarnessKind::Codex, Role::Terminal, &tui).unwrap());
+        })
+    }
+
     /// Claude's ACP adapter never answers `initialize`: fake-acp with
     /// `FAKE_ACP_HANG`, behind a wrapper that sets it. (Written instead of
     /// the usual install, which on Unix is a symlink to the shared fake.)
