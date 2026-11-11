@@ -20,8 +20,8 @@
    - AA: this UI's running text is 10.5px to 14px, and DESIGN.md §4.3
      holds every text pair to WCAG AA (4.5:1). Their passive grey and
      their amber and green fall short of it on white.
-   - Font: Pretendard first is the owner's rule for every site of ours
-     (their faces are Geist and the system's). The sizes are theirs.
+   - AA also keeps the menus' small labels and shortcuts in the tertiary
+     text colour where theirs use a lighter passive grey.
 
    When changing a value: re-measure its pairs and update DESIGN.md §4.3
    in the same change. */
@@ -111,16 +111,20 @@
   --term-cursor: #ededed;
   --term-selection: rgb(237 237 237 / 24%);
 
-  /* Font: Pretendard first (the owner's rule), then the system's. */
+  /* The type (ADR 0021): agent-orchestrator's faces, Geist and Geist
+     Mono, bundled; then Pretendard for the scripts Geist lacks (Hangul
+     first of all), ahead of any generic family, which is the owner's rule
+     (scripts/check-fonts.mjs); then the system's faces. */
   --font-sans:
-    Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Real monospace faces (the ones macOS and Linux ship included), then
+    "Geist Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  /* Geist Mono, then the real monospace faces the systems ship, then
      Pretendard, then \`monospace\`: without a real one a terminal grid
      would fall back to a proportional face. */
   --font-mono:
-    Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono",
-    "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard,
-    monospace;
+    "Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono",
+    "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono",
+    Pretendard, monospace;
 
   /* Their scale: 10.5 (card footers), 11 (labels), 11.5 (card titles),
      12 (secondary chrome), 14 (body and controls), 16 (a page's title). */

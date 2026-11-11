@@ -26,10 +26,11 @@ import { toast } from "../ui/toasts";
 import type { StreamState } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
 
-/** Code and terminal stack: real monospace faces, then Pretendard, then
- * `monospace` (the operator's font rule). */
+/** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
+ * monospace faces, then Pretendard, then `monospace` (the operator's font
+ * rule). xterm.js measures its cell from it, so it is written out. */
 const TERMINAL_FONT =
-  'Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
+  '"Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
 
 /** xterm's theme from the terminal's own tokens, resolved for the scheme
  * the page shows now; not the page's accent, which is black in the light
