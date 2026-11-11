@@ -12,15 +12,15 @@
 //!   `disconnected` and is never repeated (a `session.send` must not run
 //!   twice).
 //! - Streams: `follow_resuming` over the node's shared connection, so a
-//!   stream survives the node's connection dropping, gap-free.
+//!   stream survives the node's connection dropping, gap-free (`streams`).
 //! - Limits per tab: [`MAX_CALLS`] calls and ops at once and
-//!   [`MAX_FOLLOWS`] streams. Frames out go through one bounded queue
+//!   `streams::MAX_FOLLOWS` streams. Frames out go through one bounded queue
 //!   ([`OUTBOX`]); a tab that reads slowly slows its own streams, nobody
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
 //! - The ops (what the tab asks the bridge itself) are `ops`'s.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::socket::WebSocket;
@@ -28,13 +28,14 @@ use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
 use serde::Deserialize;
 use tokio::sync::{Semaphore, broadcast, mpsc};
-use tokio::task::{AbortHandle, JoinSet};
+use tokio::task::JoinSet;
 use tokio_tungstenite::tungstenite::Message;
-use vessel_client::{CallError, StreamError, UnaryCall, follow_resuming};
-use vessel_proto::{Call, EventSeq, Method, RawJson, SessionId};
+use vessel_client::{CallError, UnaryCall};
+use vessel_proto::{Call, Method, RawJson};
 
-use crate::registry::{Cancelled, Change, Registry, Shared, chain};
+use crate::registry::{Cancelled, Change, Registry};
 use crate::source::NodeSource;
+use crate::streams::{Follows, Place};
 use crate::wire::{
     CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, ServerFrame,
     StreamId, StreamState, StreamStop,
@@ -42,9 +43,6 @@ use crate::wire::{
 
 /// Calls and ops one tab may have in flight.
 const MAX_CALLS: usize = 64;
-
-/// Sessions one tab may follow at once.
-const MAX_FOLLOWS: usize = 64;
 
 /// Frames waiting to be written to one tab.
 const OUTBOX: usize = 256;
@@ -144,7 +142,7 @@ async fn read<S: NodeSource>(
         registry: Arc::clone(registry),
         out,
         tasks: JoinSet::new(),
-        follows: HashMap::new(),
+        follows: Follows::default(),
         calls: Arc::new(Semaphore::new(MAX_CALLS)),
     };
     loop {
@@ -224,7 +222,7 @@ struct Tab<S> {
     registry: Arc<Registry<S>>,
     out: mpsc::Sender<ServerFrame>,
     tasks: JoinSet<()>,
-    follows: HashMap<StreamId, AbortHandle>,
+    follows: Follows,
     /// Permits for calls and ops in flight.
     calls: Arc<Semaphore>,
 }
@@ -241,12 +239,15 @@ impl<S: NodeSource> Tab<S> {
                 node,
                 session,
                 from,
-            } => self.follow(stream, node, session, from).await,
-            ClientFrame::Unfollow { stream } => {
-                if let Some(task) = self.follows.remove(&stream) {
-                    task.abort();
-                }
+            } => {
+                let place = Place {
+                    tasks: &mut self.tasks,
+                    registry: &self.registry,
+                    out: &self.out,
+                };
+                self.follows.start(place, stream, node, session, from).await;
             }
+            ClientFrame::Unfollow { stream } => self.follows.stop(stream),
             ClientFrame::Op { id, op } => self.op(id, op).await,
         }
     }
@@ -264,40 +265,6 @@ impl<S: NodeSource> Tab<S> {
             let _gone = out.send(ServerFrame::Reply { id, outcome }).await;
             drop(permit);
         });
-    }
-
-    async fn follow(
-        &mut self,
-        stream: StreamId,
-        node: NodeKey,
-        session: SessionId,
-        from: EventSeq,
-    ) {
-        self.follows.retain(|_stream, task| !task.is_finished());
-        let refusal = if self.follows.contains_key(&stream) {
-            Some("this stream id is in use")
-        } else if self.follows.len() >= MAX_FOLLOWS {
-            Some("too many sessions followed at once")
-        } else {
-            None
-        };
-        if let Some(message) = refusal {
-            let state = StreamState::Failed {
-                message: message.to_owned(),
-                reason: StreamStop::Error,
-            };
-            let _gone = self.out.send(ServerFrame::Stream { stream, state }).await;
-            return;
-        }
-        let task = self.tasks.spawn(follow(
-            Arc::clone(&self.registry),
-            self.out.clone(),
-            stream,
-            node,
-            session,
-            from,
-        ));
-        let _previous = self.follows.insert(stream, task);
     }
 
     async fn op(&mut self, id: CallId, op: Op) {
@@ -454,104 +421,6 @@ fn failure(error: CallError) -> Failure {
         CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
             message: error.to_string(),
         },
-    }
-}
-
-/// Follow `session` on `node` from `from`, forwarding until it ends, it
-/// fails, or the tab stops it.
-async fn follow<S: NodeSource>(
-    registry: Arc<Registry<S>>,
-    out: mpsc::Sender<ServerFrame>,
-    stream: StreamId,
-    node: NodeKey,
-    session: SessionId,
-    from: EventSeq,
-) {
-    let entry = match registry.ensure(&node).await {
-        Ok(entry) => entry,
-        Err(failure) => {
-            let state = StreamState::Failed {
-                message: failure_text(&failure),
-                reason: StreamStop::Error,
-            };
-            let _gone = out.send(ServerFrame::Stream { stream, state }).await;
-            return;
-        }
-    };
-    let client = registry.client_info().clone();
-    let removed = entry.stop.clone();
-    let mut records = follow_resuming(Shared::new(entry), client, session, from);
-    loop {
-        let (frame, last) = match tokio::select! {
-            record = records.next() => record,
-            () = removed.cancelled() => {
-                drop(records);
-                let state = cut_off(&registry);
-                let _gone = out.send(ServerFrame::Stream { stream, state }).await;
-                return;
-            }
-        } {
-            None => (
-                ServerFrame::Stream {
-                    stream,
-                    state: StreamState::Ended,
-                },
-                true,
-            ),
-            Some(Ok(record)) => (ServerFrame::Event { stream, record }, false),
-            // The stream can see the closed connection before this task
-            // sees the cancellation: say why it was cut off, not how.
-            Some(Err(_error)) if removed.is_cancelled() => (
-                ServerFrame::Stream {
-                    stream,
-                    state: cut_off(&registry),
-                },
-                true,
-            ),
-            Some(Err(error)) => {
-                let (state, last) = stream_state(error);
-                (ServerFrame::Stream { stream, state }, last)
-            }
-        };
-        if out.send(frame).await.is_err() || last {
-            return;
-        }
-    }
-}
-
-/// A stream's last notice when its node's entry was cancelled.
-fn cut_off<S: NodeSource>(registry: &Registry<S>) -> StreamState {
-    let cancelled = registry.cancelled();
-    StreamState::Failed {
-        message: cancelled.message().to_owned(),
-        reason: cancelled.reason(),
-    }
-}
-
-/// A stream notice as the browser sees it, and whether it is the last.
-fn stream_state(error: StreamError) -> (StreamState, bool) {
-    match error {
-        StreamError::Missing {
-            expected,
-            resumed_at,
-        } => (
-            StreamState::Missing {
-                expected,
-                resumed_at,
-            },
-            false,
-        ),
-        StreamError::Reconnecting { reason, .. } => {
-            (StreamState::Reconnecting { message: reason }, false)
-        }
-        StreamError::Resumed { at } => (StreamState::Resumed { at }, false),
-        StreamError::Call(_) | StreamError::Unsubscribed | StreamError::Unreachable { .. } => (
-            StreamState::Failed {
-                message: chain(&error),
-                reason: StreamStop::Error,
-            },
-            true,
-        ),
     }
 }
 
