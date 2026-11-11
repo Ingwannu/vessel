@@ -98,7 +98,7 @@ id: NodeId | null, };
 /**
  * The browser's id for a call or an op.
  */
-export type CallId = number;
+export type CallId = number & { readonly __brand: "CallId" };
 
 /**
  * A call's answer.
@@ -330,7 +330,7 @@ export type KeyBinding = string;
 /**
  *The public identity of one UI process launch.
  */
-export type LaunchId = string;
+export type LaunchId = string & { readonly __brand: "LaunchId" };
 
 /**
  * Why something is kept for this launch only, for the page to say
@@ -390,7 +390,7 @@ agents: { [key in HarnessKind]?: AgentDefaults }, };
  * ([`NodeKey::HERE`] on the wire). Book names start with a letter or a
  * digit, so the two never meet.
  */
-export type NodeKey = string;
+export type NodeKey = string & { readonly __brand: "NodeKey" };
 
 /**
  * Where a node's connection is.
@@ -424,7 +424,7 @@ message: string, };
 /**
  *A fresh 256-bit connection challenge.
  */
-export type Nonce = string;
+export type Nonce = string & { readonly __brand: "Nonce" };
 
 /**
  * How the page tells about sessions.
@@ -835,7 +835,7 @@ bundled: boolean, };
 /**
  * The browser's id for a followed session.
  */
-export type StreamId = number;
+export type StreamId = number & { readonly __brand: "StreamId" };
 
 /**
  * What happened to a followed session's stream.

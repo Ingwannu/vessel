@@ -705,9 +705,33 @@ pub mod ts {
     mod tests {
         use std::path::Path;
 
-        use vessel_proto::ts::{check_file, check_strict};
+        use vessel_proto::ts::{ALIASES, check_file, check_strict};
 
         use super::*;
+
+        #[test]
+        fn every_primitive_alias_is_classified_and_every_entry_still_declared() {
+            let proto = Declarations::wire().unwrap();
+            let mut bridge = Declarations::new();
+            bridge.add::<ClientFrame>().unwrap();
+            bridge.add::<ServerFrame>().unwrap();
+            bridge.add::<Status>().unwrap();
+            let unclassified: Vec<&str> = bridge.unclassified().collect();
+            assert!(
+                unclassified.is_empty(),
+                "classify these in vessel-proto's ts/aliases.rs: {unclassified:?}"
+            );
+            let declared: Vec<&str> = proto.aliases().chain(bridge.aliases()).collect();
+            let stale: Vec<&str> = ALIASES
+                .iter()
+                .map(|(name, _alias)| *name)
+                .filter(|name| !declared.contains(name))
+                .collect();
+            assert!(
+                stale.is_empty(),
+                "no longer declared, remove from ts/aliases.rs: {stale:?}"
+            );
+        }
 
         #[test]
         fn typescript_declarations_are_current() {

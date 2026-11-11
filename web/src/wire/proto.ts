@@ -99,7 +99,7 @@ total: number, };
  * The SHA-256 of a blob, lowercase hex on the wire. Blobs are fetched and
  * stored by it, so equal content is fetched once.
  */
-export type BlobHash = string;
+export type BlobHash = string & { readonly __brand: "BlobHash" };
 
 /**
  * A file in a bundle.
@@ -288,7 +288,7 @@ origin: Origin, };
  * A paired device: one client machine holding its own credential for a
  * node (ADR 0010). Minted by the node at pairing.
  */
-export type DeviceId = string;
+export type DeviceId = string & { readonly __brand: "DeviceId" };
 
 /**
  * A paired device as the node reports it.
@@ -709,7 +709,7 @@ probed_at: string, };
  * The harness's own session id (an ACP `sessionId`). Kept so a
  * structured session can be resumed by the harness after a node restart.
  */
-export type HarnessSessionId = string;
+export type HarnessSessionId = string & { readonly __brand: "HarnessSessionId" };
 
 /**
  * An HTTP header field name.
@@ -1178,7 +1178,7 @@ withdrawn: number, };
 /**
  * Identity of a Vessel node; one per machine, stable across restarts.
  */
-export type NodeId = string;
+export type NodeId = string & { readonly __brand: "NodeId" };
 
 /**
  * Facts about a node.
@@ -1230,7 +1230,7 @@ public_key?: NodePublicKey | null, };
  * A node's static X25519 public key: the identity a client pins at pairing
  * and checks on every secure handshake.
  */
-export type NodePublicKey = string;
+export type NodePublicKey = string & { readonly __brand: "NodePublicKey" };
 
 /**
  * Whether a node is taking new work.
@@ -1281,7 +1281,7 @@ on: boolean, });
  * `configId`, for example `model` or `mode`; protocol 9). Echoed back
  * verbatim when a client changes the option.
  */
-export type OptionId = string;
+export type OptionId = string & { readonly __brand: "OptionId" };
 
 /**
  * One value a select option offers.
@@ -1309,7 +1309,7 @@ group?: string | null, };
  * One value of a select option, as the agent names it (ACP's `value`;
  * protocol 9). Echoed back verbatim when a client picks it.
  */
-export type OptionValueId = string;
+export type OptionValueId = string & { readonly __brand: "OptionValueId" };
 
 /**
  * Who a forwarded call speaks for, as the node it started on vouches.
@@ -1435,7 +1435,7 @@ expires: string, };
  * node (not the harness) so many clients can answer the same request and
  * the first answer wins.
  */
-export type PermissionId = string;
+export type PermissionId = string & { readonly __brand: "PermissionId" };
 
 /**
  * One choice offered by a permission request.
@@ -1458,7 +1458,7 @@ kind: PermissionOptionKind, };
  * A permission option id offered by the harness (for example
  * `allow-once`). Echoed back verbatim when a client picks it.
  */
-export type PermissionOptionId = string;
+export type PermissionOptionId = string & { readonly __brand: "PermissionOptionId" };
 
 /**
  * What choosing an option means.
@@ -1902,7 +1902,7 @@ title: SessionTitle, };
  * A session on a node. Unique across the fleet, so it can be used
  * without the node id once peers exist.
  */
-export type SessionId = string;
+export type SessionId = string & { readonly __brand: "SessionId" };
 
 /**
  * Reply to `session.import`: where the conversation is now.
@@ -2289,7 +2289,7 @@ resume_from: EventSeq, };
 /**
  * Node-assigned id of one event subscription; unique per connection.
  */
-export type SubscriptionId = number;
+export type SubscriptionId = number & { readonly __brand: "SubscriptionId" };
 
 /**
  * A symbol in saved source. Nested document symbols are flattened.
@@ -2462,7 +2462,7 @@ new_text: string, };
 /**
  * A tool call id assigned by the harness.
  */
-export type ToolCallId = string;
+export type ToolCallId = string & { readonly __brand: "ToolCallId" };
 
 /**
  * Progress of a tool call.
@@ -2571,7 +2571,7 @@ project?: string | null, };
  * it (protocol 6). Random, but not a secret: the node also checks that
  * the caller reading or closing it is the one that opened it.
  */
-export type TransferId = string;
+export type TransferId = string & { readonly __brand: "TransferId" };
 
 /**
  * Reply to `session.export` and `memory.export`.

@@ -25,14 +25,20 @@
 //!   with a hand-written serde impl, or a field with `serde(with)`, needs a
 //!   `ts(type = "...")` override beside it, since ts-rs cannot see what the
 //!   impl writes; the generated file's diff shows such a change in review.
+//! - Handles are branded and every primitive alias is classified
+//!   (`aliases`, with its own Decision Log).
+
+mod aliases;
 
 use std::any::TypeId;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use ts_rs::{Config, TS, TypeVisitor};
 
 use crate::{Call, EventRecord, Method, PairingOffer, Reply, SubscriptionEnd, WireError};
+
+pub use aliases::{ALIASES, Alias, classify};
 
 /// Where the web UI keeps the declarations, from the workspace's root.
 pub const PROTO_FILE: &str = "web/src/wire/proto.ts";
@@ -49,6 +55,8 @@ pub const NOTE: &str = "\
 pub struct Declarations {
     config: Config,
     types: BTreeMap<String, Declared>,
+    /// The primitive aliases met, classified or not.
+    aliases: BTreeSet<String>,
 }
 
 /// One declaration and the type it came from.
@@ -99,6 +107,7 @@ impl Declarations {
         Self {
             config: Config::new().with_large_int("number"),
             types: BTreeMap::new(),
+            aliases: BTreeSet::new(),
         }
     }
 
@@ -142,6 +151,18 @@ impl Declarations {
     /// The declared names, in order.
     pub fn names(&self) -> impl Iterator<Item = &str> {
         self.types.keys().map(String::as_str)
+    }
+
+    /// The primitive aliases declared (`type Name = string;` or
+    /// `number`), in order.
+    pub fn aliases(&self) -> impl Iterator<Item = &str> {
+        self.aliases.iter().map(String::as_str)
+    }
+
+    /// The primitive aliases declared that `ALIASES` does not classify:
+    /// each is to be classified there before the file is generated.
+    pub fn unclassified(&self) -> impl Iterator<Item = &str> {
+        self.aliases().filter(|name| classify(name).is_none())
     }
 
     /// A TypeScript module: `NOTE`, then `import type { .. } from "<from>"`
@@ -240,7 +261,18 @@ impl TypeVisitor for Visit<'_> {
         let id = TypeId::of::<T>();
         let mut text = T::docs().unwrap_or_default();
         text.push_str("export ");
-        text.push_str(&T::decl(&self.declarations.config));
+        let decl = T::decl(&self.declarations.config);
+        match aliases::primitive(&decl, &name) {
+            Some(base) => {
+                let _new = self.declarations.aliases.insert(name.clone());
+                if classify(&name) == Some(Alias::Handle) {
+                    text.push_str(&aliases::branded(&name, base));
+                } else {
+                    text.push_str(&decl);
+                }
+            }
+            None => text.push_str(&decl),
+        }
         if let Some(declared) = self.declarations.types.get(&name) {
             // Instantiations of one generic type (`Page<Symbol>`,
             // `Page<Location>`) are different Rust types with one
@@ -321,7 +353,13 @@ mod tests {
 
     #[test]
     fn typescript_declarations_are_current() {
-        let generated = Declarations::wire().unwrap().render(None);
+        let declarations = Declarations::wire().unwrap();
+        let unclassified: Vec<&str> = declarations.unclassified().collect();
+        assert!(
+            unclassified.is_empty(),
+            "classify these in ts/aliases.rs: {unclassified:?}"
+        );
+        let generated = declarations.render(None);
         check_strict(&generated).unwrap();
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
