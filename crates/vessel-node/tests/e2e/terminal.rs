@@ -2,14 +2,36 @@
 
 use vessel_client::{CallError, ClientConfig, NodeClient, SessionStream};
 use vessel_proto::{
-    ContentBlock, ErrorCode, EventRecord, EventSeq, HarnessKind, SessionInput, SessionStatus,
-    TerminalInput, TerminalSize,
+    Activity, ContentBlock, DisplayStatus, ErrorCode, EventRecord, EventSeq, HarnessKind,
+    KanbanColumn, SessionBoard, SessionInfo, SessionInput, SessionStatus, TerminalInput,
+    TerminalSize,
 };
 
 use crate::support::{
     Fixture, client as client_info, collect_until, keys, output_of, read_all, seqs, status_of,
     terminal_spec, url, within,
 };
+
+/// Protocol 8 over the wire (ADR 0019): a session is on the board from its
+/// creation, and read back from the store after a restart it is archived,
+/// its end as its last activity.
+fn placed_from_creation_to_archive(created: &SessionInfo, restored: &SessionInfo) {
+    assert_eq!(
+        created.board.as_ref().map(|board| board.column),
+        Some(KanbanColumn::Building),
+        "placed from its creation"
+    );
+    assert_eq!(
+        restored.board,
+        restored.ended_at.map(|end| SessionBoard::new(
+            KanbanColumn::Archive,
+            DisplayStatus::Terminated,
+            Activity::Exited,
+            end
+        )),
+        "archived after a restart"
+    );
+}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_terminal_session_survives_clients_and_a_node_restart() {
@@ -99,6 +121,7 @@ async fn a_terminal_session_survives_clients_and_a_node_restart() {
         let restored = listed.iter().find(|session| session.id == id).unwrap();
         assert_eq!(restored.status, SessionStatus::Interrupted);
         assert!(restored.ended_at.is_some());
+        placed_from_creation_to_archive(&info, restored);
 
         let log = read_all(&client, id).await;
         let expected: Vec<u64> = (0..u64::try_from(log.len()).unwrap()).collect();
