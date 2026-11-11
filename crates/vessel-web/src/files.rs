@@ -39,10 +39,22 @@
 //! - Cost: a hashed file served wrong by a broken build stays cached for
 //!   that origin; a new build gives new names, and each launch a new
 //!   origin, so it cannot outlive the build.
+//!
+//! Compressed responses (milestone 11, `docs/PERFORMANCE.md`): a text
+//! file the build compressed is answered in the encoding `encoding`
+//! chooses from the request's `Accept-Encoding`, with `Content-Encoding`,
+//! `Vary: Accept-Encoding` on every answer for it (so a cache never hands
+//! one client's encoding to another), and an entity tag of its own per
+//! encoding (`"<sha256>-br"`): a strong tag names one representation's
+//! bytes, and a `304` must only confirm the bytes the client holds.
 
-use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE, ETAG, IF_NONE_MATCH};
+use axum::http::header::{
+    ACCEPT_ENCODING, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE, ETAG, IF_NONE_MATCH, VARY,
+};
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use axum::response::{IntoResponse as _, Response};
+
+use crate::encoding::{self, Encoding};
 
 /// One embedded file.
 #[derive(Debug)]
@@ -58,6 +70,33 @@ pub(crate) struct File {
     /// Whether its name carries its content's hash, so a changed file
     /// never comes under the same path (`build.rs`'s `hashed`).
     pub(crate) hashed: bool,
+    /// Its gzip form, when the build made one.
+    pub(crate) gzip: Option<Variant>,
+    /// Its brotli form, when the build made one.
+    pub(crate) brotli: Option<Variant>,
+}
+
+/// A compressed form of a file.
+#[derive(Debug)]
+pub(crate) struct Variant {
+    /// The compressed bytes.
+    pub(crate) bytes: &'static [u8],
+    /// Its entity tag: the file's, marked with the encoding.
+    pub(crate) etag: &'static str,
+}
+
+impl File {
+    /// The bytes and entity tag to send in `encoding`.
+    fn form(&self, encoding: Encoding) -> (&'static [u8], &'static str) {
+        let variant = match encoding {
+            Encoding::Identity => None,
+            Encoding::Gzip => self.gzip.as_ref(),
+            Encoding::Brotli => self.brotli.as_ref(),
+        };
+        variant.map_or((self.bytes, self.etag), |variant| {
+            (variant.bytes, variant.etag)
+        })
+    }
 }
 
 /// `index.html`: never stored, so a new build is used at once.
@@ -95,8 +134,18 @@ pub(crate) async fn serve(method: Method, uri: Uri, request: HeaderMap) -> Respo
         },
         None => return StatusCode::NOT_FOUND.into_response(),
     };
+    respond(file, &method, &request)
+}
+
+/// `file` as the answer to a `GET` or `HEAD` with `request`'s headers.
+fn respond(file: &File, method: &Method, request: &HeaderMap) -> Response {
     let index = file.path == "/index.html";
     let cache = cache_control(file);
+    let accept = request
+        .get(ACCEPT_ENCODING)
+        .and_then(|value| value.to_str().ok());
+    let encoding = encoding::choose(accept, file.gzip.is_some(), file.brotli.is_some());
+    let (bytes, etag) = file.form(encoding);
     let unchanged = !index
         && request
             .get(IF_NONE_MATCH)
@@ -104,20 +153,26 @@ pub(crate) async fn serve(method: Method, uri: Uri, request: HeaderMap) -> Respo
             .is_some_and(|value| {
                 value
                     .split(',')
-                    .any(|tag| tag.trim().trim_start_matches("W/") == file.etag)
+                    .any(|tag| tag.trim().trim_start_matches("W/") == etag)
             });
     let mut response = if unchanged {
         StatusCode::NOT_MODIFIED.into_response()
     } else if method == Method::HEAD {
         StatusCode::OK.into_response()
     } else {
-        file.bytes.into_response()
+        bytes.into_response()
     };
     let headers = response.headers_mut();
     let _previous = headers.insert(CONTENT_TYPE, HeaderValue::from_static(file.kind));
     let _previous = headers.insert(CACHE_CONTROL, HeaderValue::from_static(cache));
     if !index {
-        let _previous = headers.insert(ETAG, HeaderValue::from_static(file.etag));
+        let _previous = headers.insert(ETAG, HeaderValue::from_static(etag));
+    }
+    if file.gzip.is_some() || file.brotli.is_some() {
+        let _previous = headers.insert(VARY, HeaderValue::from_static("accept-encoding"));
+    }
+    if let Some(token) = encoding.token() {
+        let _previous = headers.insert(CONTENT_ENCODING, HeaderValue::from_static(token));
     }
     response
 }
@@ -202,6 +257,8 @@ mod cache_tests {
             etag: "\"0\"",
             bytes: b"",
             hashed,
+            gzip: None,
+            brotli: None,
         };
         assert_eq!(
             cache_control(&file("/assets/index-B3kq_x9Z.js", true)),
@@ -209,5 +266,115 @@ mod cache_tests {
         );
         assert_eq!(cache_control(&file("/licenses/a.txt", false)), "no-cache");
         assert_eq!(cache_control(&file("/index.html", false)), "no-store");
+    }
+}
+
+#[cfg(test)]
+mod encoding_tests {
+    use super::*;
+
+    /// A text file with both compressed forms, as the web build makes them.
+    static SCRIPT: File = File {
+        path: "/assets/index-B3kq_x9Z.js",
+        kind: "text/javascript; charset=utf-8",
+        etag: "\"abc\"",
+        bytes: b"plain",
+        hashed: true,
+        gzip: Some(Variant {
+            bytes: b"gz",
+            etag: "\"abc-gz\"",
+        }),
+        brotli: Some(Variant {
+            bytes: b"br",
+            etag: "\"abc-br\"",
+        }),
+    };
+
+    fn ask(file: &File, accept: Option<&'static str>, tag: Option<&'static str>) -> Response {
+        let mut request = HeaderMap::new();
+        if let Some(accept) = accept {
+            let _previous = request.insert(ACCEPT_ENCODING, HeaderValue::from_static(accept));
+        }
+        if let Some(tag) = tag {
+            let _previous = request.insert(IF_NONE_MATCH, HeaderValue::from_static(tag));
+        }
+        respond(file, &Method::GET, &request)
+    }
+
+    async fn body(response: Response) -> Vec<u8> {
+        axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .unwrap()
+            .to_vec()
+    }
+
+    /// Each encoding is its own representation: its bytes, its
+    /// `Content-Encoding`, its entity tag; every answer varies by
+    /// `Accept-Encoding`.
+    #[tokio::test]
+    async fn a_request_gets_the_form_it_accepts_with_its_own_tag() {
+        for (accept, encoding, tag, bytes) in [
+            (
+                Some("gzip, deflate, br, zstd"),
+                Some("br"),
+                "\"abc-br\"",
+                &b"br"[..],
+            ),
+            (Some("gzip"), Some("gzip"), "\"abc-gz\"", &b"gz"[..]),
+            (None, None, "\"abc\"", &b"plain"[..]),
+        ] {
+            let response = ask(&SCRIPT, accept, None);
+            assert_eq!(response.status(), StatusCode::OK);
+            let headers = response.headers();
+            assert_eq!(
+                headers
+                    .get(CONTENT_ENCODING)
+                    .map(|value| value.to_str().unwrap()),
+                encoding
+            );
+            assert_eq!(headers.get(ETAG).unwrap(), tag);
+            assert_eq!(headers.get(VARY).unwrap(), "accept-encoding");
+            assert_eq!(body(response).await, bytes);
+        }
+    }
+
+    /// A `304` confirms only the representation the client holds.
+    #[tokio::test]
+    async fn not_modified_only_for_the_tag_of_the_form_asked_for() {
+        let brotli = Some("br");
+        assert_eq!(
+            ask(&SCRIPT, brotli, Some("\"abc-br\"")).status(),
+            StatusCode::NOT_MODIFIED
+        );
+        assert_eq!(
+            ask(&SCRIPT, brotli, Some("\"abc\"")).status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            ask(&SCRIPT, None, Some("\"abc-br\"")).status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            ask(&SCRIPT, None, Some("W/\"abc\"")).status(),
+            StatusCode::NOT_MODIFIED
+        );
+    }
+
+    /// A file the build did not compress is served as it is, with no
+    /// `Vary` (it has one representation).
+    #[test]
+    fn a_file_without_forms_has_one_representation() {
+        let font = File {
+            path: "/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            kind: "font/woff2",
+            etag: "\"f\"",
+            bytes: b"font",
+            hashed: true,
+            gzip: None,
+            brotli: None,
+        };
+        let response = ask(&font, Some("br, gzip"), None);
+        assert!(response.headers().get(CONTENT_ENCODING).is_none());
+        assert!(response.headers().get(VARY).is_none());
     }
 }

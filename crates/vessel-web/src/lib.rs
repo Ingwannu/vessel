@@ -12,7 +12,8 @@
 //! - `guard`: the `Host` and `Origin` checks and the security headers on
 //!   every response;
 //! - `files`: the embedded files, with the app's routes falling back to
-//!   `index.html`, and their caching (`hashed`: which are content-hashed);
+//!   `index.html`, and their caching (`hashed`: which are content-hashed)
+//!   and encodings (`encoding`: which compressed form a request gets);
 //! - `socket`: the browser's websocket: the hello within a deadline, then
 //!   the bridge;
 //! - `bridge`: one tab's calls, streams and ops;
@@ -31,6 +32,7 @@
 mod auth;
 mod bridge;
 mod calls;
+mod encoding;
 mod files;
 mod guard;
 #[cfg(test)]
