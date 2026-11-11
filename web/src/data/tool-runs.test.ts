@@ -33,7 +33,7 @@ test("Paseo's sentence", () => {
   expect(runSummary([], 2)).toBe("Thought");
 });
 
-test("runs of two or more are folded; a message ends a run", () => {
+test("every run with a tool call is folded; a message ends a run", () => {
   const folds = toolRuns([
     tool(1, "read"),
     tool(2, "edit"),
@@ -42,6 +42,6 @@ test("runs of two or more are folded; a message ends a run", () => {
   ]);
   expect(folds.get("t1")?.members).toEqual(["t1", "t2"]);
   expect(folds.get("t2")?.lead).toBe("t1");
-  expect(folds.has("t4")).toBe(false);
+  expect(folds.get("t4")?.summary).toBe("Ran 1 command");
   expect(folds.has("m3")).toBe(false);
 });

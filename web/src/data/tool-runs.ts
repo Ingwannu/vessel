@@ -85,13 +85,15 @@ export function runSummary(
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
-/** The runs of `entries` worth folding (two entries or more), by every
- * member's key. */
+/** The runs of `entries` worth folding, by every member's key: every run
+ * with a tool call in it, a single one included (Paseo's overview rows
+ * summarise one call as they do ten); a lone thought stays as it is, a
+ * disclosure already. */
 export function toolRuns(entries: readonly Entry[]): Folds {
   const folds = new Map<string, ToolRun>();
   let run: Entry[] = [];
   const close = () => {
-    if (run.length >= 2) {
+    if (run.some((entry) => entry.kind === "tool")) {
       const kinds = run.flatMap((entry) =>
         entry.kind === "tool" ? [entry.tool.kind] : [],
       );
