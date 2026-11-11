@@ -1,0 +1,9 @@
+/* The box's "+" panel (features/compose/add-menu.tsx): the kit's popover
+   with its fields 12px apart, as a dialog's body spaces them. */
+
+.add-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}

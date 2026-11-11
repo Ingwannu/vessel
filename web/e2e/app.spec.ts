@@ -8,7 +8,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { openUi } from "./open";
 import { loadEnv } from "./fleet";
-import { newSessionDialog } from "./kit";
+import { newSessionPage, startSession } from "./kit";
 
 /** Whether a frame the page sent is a call of `session.send`. */
 function sendsInput(frame: unknown): boolean {
@@ -29,15 +29,9 @@ async function open(page: Page): Promise<void> {
   await openUi(page);
 }
 
-/** Create a session from the New session dialog. */
-async function create(
-  page: Page,
-  node: string,
-  mode: "Structured" | "Terminal",
-): Promise<void> {
-  const dialog = await newSessionDialog(page, node, mode);
-  await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(dialog).toBeHidden();
+/** Open a terminal session from the new-session page. */
+async function create(page: Page, node: string): Promise<void> {
+  await startSession(page, node, "Terminal");
 }
 
 test("the fleet lists the book's nodes with what they report", async ({
@@ -62,7 +56,7 @@ test("the fleet lists the book's nodes with what they report", async ({
 
 test("a terminal session runs and echoes keys", async ({ page }) => {
   await open(page);
-  await create(page, "laptop", "Terminal");
+  await create(page, "laptop");
   const terminal = page.getByLabel("Session terminal");
   await expect(terminal).toContainText("ready");
   await terminal.click();
@@ -94,7 +88,7 @@ test("terminal input reaches the session in the order it was typed", async ({
     });
   });
   await open(page);
-  await create(page, "gpu-box", "Terminal");
+  await create(page, "gpu-box");
   const terminal = page.getByLabel("Session terminal");
   await expect(terminal).toContainText("ready");
   await terminal.click();
@@ -108,31 +102,160 @@ test("terminal input reaches the session in the order it was typed", async ({
   expect(held).toBe(true);
 });
 
+test("every New leads to the new-session page, on the machine in view", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  const heading = page.getByRole("heading", {
+    name: "What do you want to work on?",
+  });
+  const machine = page.getByRole("combobox", { name: "Machine" });
+  // The title bar's New, from the board scoped to a machine.
+  await page.goto(`${origin}/sessions?node=gpu-box`);
+  await page.getByRole("button", { name: "New", exact: true }).click();
+  await expect(heading).toBeVisible();
+  await expect(page).toHaveURL(/\/new\?machine=gpu-box$/);
+  await expect(machine).toContainText("gpu-box");
+  // The sidebar's row, and the `n` key from a page that is not typing.
+  await page.goto(`${origin}/sessions?node=build-server`);
+  await page
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: /^New session/ })
+    .click();
+  await expect(machine).toContainText("build-server");
+  await page.goto(`${origin}/sessions?node=laptop`);
+  await page
+    .getByRole("group", { name: "Sessions by status" })
+    .or(page.getByText("No sessions"))
+    .first()
+    .waitFor();
+  await page.keyboard.press("n");
+  await expect(heading).toBeVisible();
+  await expect(machine).toContainText("laptop");
+  // The command palette's action.
+  await page.goto(`${origin}/sessions`);
+  await page.keyboard.press("Control+k");
+  await page
+    .getByRole("dialog", { name: "Command palette" })
+    .getByRole("option", { name: /^New session/ })
+    .click();
+  await expect(heading).toBeVisible();
+});
+
 test("a structured session runs a turn and answers its permission", async ({
   page,
 }) => {
   await open(page);
-  await create(page, "gpu-box", "Structured");
-  await expect(page.getByText(/Ready · harness session/)).toBeVisible();
-  const prompt = page.getByRole("textbox", { name: "Prompt" });
-  await prompt.fill("tidy the overview");
-  await prompt.press("Control+Enter");
+  // The prompt goes with the session: Send creates it, sends the prompt
+  // and opens it.
+  await startSession(page, "gpu-box", "Structured", "tidy the overview");
+  await expect(page.getByText("Agent ready")).toBeVisible();
   await expect(page.getByText("Run fake tool").first()).toBeVisible();
-  const waiting = page.locator(".perm-sticky");
-  await expect(waiting).toContainText("Waiting on permission");
-  await waiting.getByRole("button", { name: "Allow" }).click();
-  await expect(waiting).toBeHidden();
+  // One prompt, docked over the composer; the timeline keeps a line.
+  const prompt = page.getByRole("group", { name: "Permission request" });
+  await expect(prompt).toContainText("Approval needed");
+  await expect(prompt).toContainText("Run fake tool");
+  await expect(
+    page.getByText("Waiting on permission · Run fake tool"),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeDisabled();
+  await prompt.getByRole("button", { name: "Allow" }).click();
+  await expect(prompt).toBeHidden();
   await expect(page.getByText(/Turn ended · end turn/)).toBeVisible();
-  await expect(page.getByText("Permission · Allow")).toBeVisible();
+  await expect(page.getByText("Allowed · Run fake tool · Allow")).toBeVisible();
+  // The next prompt goes from the session's own composer.
+  const text = page.getByRole("textbox", { name: "Prompt" });
+  await text.fill("plain");
+  await text.press("Enter");
+  await expect(page.getByText("echo: plain")).toBeVisible();
+});
+
+test("a session starts with the permissions chosen before it", async ({
+  page,
+}) => {
+  await open(page);
+  const box = await newSessionPage(page, "gpu-box", "Structured");
+  // The machine asks the agent what it offers; the agent's own default
+  // shows once it answers.
+  const permissions = box.getByRole("button", { name: /^Permissions:/ });
+  await expect(permissions).toHaveAccessibleName("Permissions: Default");
+  await permissions.click();
+  await page.getByRole("menuitemradio", { name: "Plan" }).click();
+  await expect(permissions).toHaveAccessibleName("Permissions: Plan");
+  await box.getByRole("textbox", { name: "Prompt" }).fill("options");
+  await box.getByRole("button", { name: "Send" }).click();
+  await expect(page).toHaveURL(/\/sessions\/gpu-box\/[^/]+$/);
+  // The agent runs with it, and the session's composer says so.
+  await expect(page.getByText(/^options mode=plan /)).toBeVisible();
+  await expect(
+    page
+      .getByRole("form", { name: "Prompt" })
+      .getByRole("button", { name: /^Permissions:/ }),
+  ).toHaveAccessibleName("Permissions: Plan");
+});
+
+test("an option changes on a running session when the agent reports it", async ({
+  page,
+}) => {
+  await open(page);
+  await startSession(page, "laptop", "Structured", "options");
+  await expect(
+    page.getByText(/^options mode=default .* effort=high/),
+  ).toBeVisible();
+  const box = page.getByRole("form", { name: "Prompt" });
+  const agent = box.getByRole("button", { name: /^Agent, model and effort/ });
+  await expect(agent).toContainText("High");
+  await agent.click();
+  await page.getByRole("menuitem", { name: /^Effort/ }).click();
+  await page.getByRole("menuitemradio", { name: "Low" }).click();
+  await expect(agent).toContainText("Low");
+  const text = box.getByRole("textbox", { name: "Prompt" });
+  await text.fill("options");
+  await text.press("Enter");
+  await expect(
+    page.getByText(/^options mode=default .* effort=low/),
+  ).toBeVisible();
+  // One the agent refuses is said, and nothing changes.
+  await box.getByRole("button", { name: /^Permissions:/ }).click();
+  await page.getByRole("menuitemradio", { name: "Locked" }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: /locked/ }),
+  ).toBeVisible();
+  await expect(
+    box.getByRole("button", { name: /^Permissions:/ }),
+  ).toHaveAccessibleName("Permissions: Default");
+});
+
+test("a session is renamed in place", async ({ page }) => {
+  await open(page);
+  await startSession(page, "build-server", "Structured", "plain");
+  const bar = page.getByRole("banner");
+  // Untitled, it takes the first line of its first prompt.
+  await expect(bar.getByRole("heading", { level: 1 })).toHaveText("plain");
+  await bar.getByRole("button", { name: "plain" }).click();
+  const field = bar.getByRole("textbox", { name: "Title" });
+  await field.fill("Release notes");
+  await field.press("Enter");
+  await expect(bar.getByRole("heading", { level: 1 })).toHaveText(
+    "Release notes",
+  );
+  await expect(
+    page
+      .getByRole("navigation", { name: "Sidebar" })
+      .getByRole("link", { name: "Release notes" }),
+  ).toBeVisible();
 });
 
 test("a session is killed", async ({ page }) => {
   await open(page);
-  await create(page, "build-server", "Terminal");
+  await create(page, "build-server");
   await expect(page.getByLabel("Session terminal")).toContainText("ready");
-  await page.getByRole("button", { name: "Kill" }).click();
+  await page.getByRole("button", { name: "Session actions" }).click();
+  await page.getByRole("menuitem", { name: "Kill" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Kill" }).click();
-  await expect(page.locator(".session-head .badge").first()).not.toHaveText(
+  // A session that is not running says what it is, beside its title.
+  await expect(page.getByRole("banner").locator(".badge")).toBeVisible();
+  await expect(page.getByRole("banner").locator(".badge")).not.toHaveText(
     "running",
   );
 });
@@ -141,15 +264,15 @@ test("the board holds a live session in a lane, and the archive the ended", asyn
   page,
 }) => {
   await open(page);
-  await create(page, "build-server", "Terminal");
+  await create(page, "build-server");
   await expect(page.getByLabel("Session terminal")).toContainText("ready");
   // The session's page is /sessions/<node>/<id>.
   const id = new URL(page.url()).pathname.split("/").at(-1) ?? "";
   expect(id).not.toBe("");
 
   await page
-    .getByRole("navigation", { name: "Fleet" })
-    .getByRole("link", { name: /^Sessions/ })
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: /^Board/ })
     .click();
   const board = page.getByRole("group", { name: "Sessions by status" });
   // Four lanes, in delivery order, each a labelled region.
@@ -237,7 +360,7 @@ test("terminal replay cannot answer device queries, while keys and paste still w
 }) => {
   const env = loadEnv();
   await open(page);
-  await create(page, "laptop", "Terminal");
+  await create(page, "laptop");
   await expect(page.getByLabel("Session terminal")).toContainText("ready");
   const sessionUrl = page.url();
   const session = new URL(sessionUrl).pathname.split("/").at(-1);

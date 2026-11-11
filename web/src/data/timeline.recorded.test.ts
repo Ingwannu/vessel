@@ -7,7 +7,8 @@ import { describe, expect, it } from "vitest";
 
 import { isEventRecord } from "../bridge/frames";
 import recorded from "./fixtures/fake-acp-turn.json";
-import { EMPTY, reduce } from "./timeline";
+import { reduce } from "./timeline";
+import { EMPTY } from "./timeline-model";
 
 // JSON imports are typed loosely (strings, not the wire's literal unions):
 // the records are checked by the predicate the socket checks them with.

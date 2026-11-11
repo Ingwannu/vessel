@@ -1,0 +1,47 @@
+/* The shell around every page (features/shell/shell.tsx, DESIGN.md
+   §2.2): one grey surface holding the sidebar and the framed page. */
+
+/* The sidebar and the margin around the page are one surface, so the
+   sidebar has no edge; the page is a framed surface set into it. */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  height: 100vh;
+  background: var(--bg-shell);
+}
+
+/* The framed page: inset from the window on three sides and flush with
+   the sidebar on the fourth. */
+.frame-wrap {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--panel-inset-y) var(--panel-inset-x) var(--panel-inset-y) 0;
+}
+
+.frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--r-5);
+  background: var(--bg-base);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 767px) {
+  /* With no sidebar beside it the frame is inset on every side. */
+  .frame-wrap {
+    padding: 8px;
+  }
+}

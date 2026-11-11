@@ -10,3 +10,24 @@
 .combobox-popup:not(:has(.menu-item)) {
   display: none;
 }
+
+/* `ghost`: a composer's quiet field. No fill or edge at rest, the 4% wash
+   on hover, the field's shell (and its ring) while focused, so it reads
+   as one of the tray's quiet pills until it is typed in. */
+.text-field.ghost {
+  border-color: transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.text-field.ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.text-field.ghost:focus-within {
+  border-color: var(--field-edge);
+  background: var(--field-bg);
+  color: var(--text-primary);
+}

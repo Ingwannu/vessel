@@ -129,6 +129,16 @@
   line-height: 16px;
 }
 
+/* Corners (kit/button.tsx, ButtonShape): a composer's quiet triggers are
+   10px, its Send and "+" round. */
+.btn.soft {
+  border-radius: var(--r-4);
+}
+
+.btn.round {
+  border-radius: 999px;
+}
+
 .btn:disabled {
   opacity: 0.5;
   pointer-events: none;

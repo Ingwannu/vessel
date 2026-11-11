@@ -1,0 +1,71 @@
+/* The new-session page (features/compose/new-session.tsx), agent-
+   orchestrator's empty chat: one column at most 672px wide, centred in
+   the frame; the heading 30px (24 when narrow), regular weight, tracked
+   tight, 20px over the box. */
+
+.new-session {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 16px 48px;
+}
+
+.new-session-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 672px;
+  margin: 0 auto;
+}
+
+.new-session h1 {
+  margin: 0 0 20px;
+  color: var(--text-primary);
+  font: 400 30px / 36px var(--font-sans);
+  letter-spacing: var(--tracking-tight);
+  text-align: center;
+}
+
+/* The tray's two parts: the machine as wide as its name, the folder the
+   rest. */
+.where-machine {
+  flex: none;
+  max-width: 45%;
+}
+
+.where-folder {
+  flex: 1;
+  min-width: 0;
+}
+
+.new-session-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 20px;
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.new-session-notes p {
+  margin: 0;
+  font: var(--t-meta);
+}
+
+.new-session-note {
+  color: var(--text-tertiary);
+}
+
+.new-session-error {
+  color: var(--danger);
+}
+
+@media (max-width: 767px) {
+  .new-session h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+}

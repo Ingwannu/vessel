@@ -1,0 +1,14 @@
+/* Avatar (kit/avatar.tsx): a letter in a faint 18px tile, radius 5, the
+   well's fill, 11px semibold in the secondary colour. */
+
+.avatar {
+  display: grid;
+  flex: 0 0 18px;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--bg-well);
+  color: var(--text-secondary);
+  font: 600 11px / 1 var(--font-sans);
+}

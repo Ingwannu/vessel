@@ -93,19 +93,6 @@
   gap: 10px;
 }
 
-/* The agent's mark: a letter in a faint 18px tile. */
-.avatar {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  display: grid;
-  place-items: center;
-  border-radius: 5px;
-  background: var(--bg-well);
-  font: 700 11px / 1 var(--font-sans);
-  color: var(--text-secondary);
-}
-
 .card-title .title {
   flex: 1;
   min-width: 0;
@@ -241,4 +228,12 @@
   font: var(--t-2xs);
   color: var(--danger);
   overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The needs-you card keeps its tint, held still. */
+  .card.attention::after {
+    animation: none;
+    opacity: 0.5;
+  }
 }

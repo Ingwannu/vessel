@@ -164,7 +164,7 @@
      sidebar's side, so the two read as one shell. */
   --panel-inset-y: 14px;
   --panel-inset-x: 16px;
-  --inspect-w: 320px;
+  --inspect-w: 340px;
   --row-h: 40px;
   --nav-h: 32px;
   --lane-head-h: 48px;
@@ -215,6 +215,18 @@
   /* Selected text and a popup's scrollbar: drawn, not the browser's. */
   --selection: light-dark(rgb(18 18 18 / 12%), rgb(245 245 245 / 16%));
   --scrollbar: light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 14%));
+  /* The composer (agent-orchestrator's `.cursor-chat-composer`): radius
+     20; in light the white popup surface held up by a hairline (the ink
+     at 8%) and a soft shadow (4% near, 10% far); in dark the card's fill
+     with neither. The tray hung under it: white with a 6% hairline in
+     light, the ink at 3% in dark. */
+  --r-composer: 20px;
+  --composer-bg: light-dark(#ffffff, #222222);
+  --composer-edge: light-dark(rgb(18 18 18 / 8%), transparent);
+  --composer-near: light-dark(rgb(18 18 18 / 4%), transparent);
+  --composer-far: light-dark(rgb(18 18 18 / 10%), transparent);
+  --composer-tray: light-dark(#ffffff, rgb(245 245 245 / 3%));
+  --composer-tray-edge: light-dark(rgb(18 18 18 / 6%), transparent);
 }
 
 :root[data-theme="light"] {

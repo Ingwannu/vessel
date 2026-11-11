@@ -54,9 +54,9 @@ next):
    agents symbols, references, hover, call hierarchy and diagnostics as MCP
    tools, without running repository code by default (below).
 7. **A web UI.** `vessel ui` serves the fleet in a browser on this
-   machine: nodes, sessions (structured and terminal), new sessions on any
-   route, sync, devices and settings, with the session's model calls
-   ("Web UI" below).
+   machine: a board of every machine's sessions, new sessions with the
+   agent's own model, effort and permissions, a session's timeline or
+   terminal with its model calls, and settings ("Web UI" below).
 
 ## Try it
 
@@ -515,13 +515,31 @@ vessel log 3f2a                              # model calls: route, model, tokens
 ## Web UI
 
 `vessel ui` serves Vessel's web UI on this machine and opens it in the
-browser on Unix (on Windows, open the printed address): the fleet; every
-node's sessions as a board, one lane per status (running, interrupted,
-failed, exited), a session an agent started named on its card and set
-under the one that started it; a session as a terminal or as a structured
-timeline with its prompt box and permission answers; new sessions, fleet
-sync, devices and pairing with a QR code, and settings. The page is white
-and black, with a dark theme in Settings.
+browser on Unix (on Windows, open the printed address).
+
+- **New session** (the sidebar, the title bar's New, the command palette,
+  or `n`) asks what you want to work on. Under the box choose the agent
+  and, from what that agent itself offers on that machine, its model, its
+  effort, its on/off settings and its permissions; under the "+" a profile
+  and "Open as terminal"; under the box the machine and the folder (it
+  suggests the folders sessions already ran in there). Send starts the
+  session with those choices, sends the prompt and opens it. Reading what
+  an agent offers takes the machine a few seconds the first time (it
+  starts the agent to ask); until then, or if the agent cannot say, the
+  session starts on the agent's own defaults.
+- **A session** is named by its title (the first line of its first prompt
+  until you rename it, in place, in the title bar), shows its timeline
+  and a composer that changes the same choices while it runs, and asks
+  each permission once, over the composer. Its summary holds the plan,
+  the files it touched, its model calls and, under Details, its
+  identifiers. A session opened as a terminal is the agent's own TUI.
+- **The board** shows every machine's sessions by title, one lane per
+  stage of delivery, a session an agent started named on its card; the
+  ended ones are in the archive under it. The sidebar lists each
+  machine's live sessions, marked while one works or waits on you.
+- Machines, devices and pairing with a QR code, sync and the page's look
+  are in Settings. The page follows the system's light or dark theme
+  until you choose one.
 
 ```bash
 vessel ui            # serves on 127.0.0.1:7079 (any free port if taken), opens the browser
@@ -560,11 +578,12 @@ vessel ui --no-open  # prints the address instead
   printed address works and no handoff file is created.
 - Device pairing links and QR codes start hidden. Use **Show pairing link**;
   copying, leaving the page, or 30 seconds passing hides them again.
-- New session's Model field lists the node's model routes by provider;
-  picking one picks the profile on it (a route reaches a session only
-  through a profile). A routed session shows its route, and each model
-  call (route, model, tokens, how it ended, how long; never content) in
-  its timeline, summed in the inspector or the terminal's frame.
+- A session reaches a model route through a profile naming it: choose
+  the profile under the new-session box's "+", where each says its
+  route. A routed session shows its route in its summary's Details, and
+  each model call (route, model, tokens, how it ended, how long; never
+  content) in its timeline, summed in its summary or the terminal's
+  frame.
 - One connection per node is shared by every tab. A session's stream
   survives the node's connection dropping and resumes where it was.
 - Release builds of `vessel` embed the page. A build from source embeds it

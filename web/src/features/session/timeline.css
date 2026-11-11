@@ -1,7 +1,7 @@
-/* A structured session's timeline (DESIGN.md §6.5, §6.6): items, the
-   markdown inside them, model calls, tool cards. */
-
-/* --- Timeline items --- */
+/* A session's timeline (features/session/timeline-item.tsx, DESIGN.md
+   §6.5): a log on a 1px rail, each item with its glyph; the prompt, the
+   agent's markdown, thoughts, quiet meta lines (a permission's among
+   them, in the review colour while it waits), model calls. */
 
 .t-item {
   position: relative;
@@ -42,11 +42,25 @@
   border-color: var(--text-tertiary);
 }
 
+/* A permission's line: a diamond in the review colour while it waits,
+   hollow once it is answered. */
 .t-item.perm .glyph {
   border-radius: 1px;
-  transform: rotate(45deg) scale(0.85);
+  transform: rotate(45deg);
   border-color: var(--warn);
+}
+
+.t-item.perm.pending .glyph {
   background: var(--warn);
+}
+
+.t-item.perm.pending .t-meta {
+  color: var(--warn);
+}
+
+.t-item.perm.declined .glyph,
+.t-item.perm.cancelled .glyph {
+  border-color: var(--text-tertiary);
 }
 
 .t-item.meta-item .glyph {
@@ -170,107 +184,6 @@
 
 .t-item.model-call .mono {
   color: var(--text-secondary);
-}
-
-/* --- Tool cards --- */
-
-.tool {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-3);
-  background: var(--bg-surface);
-}
-
-.tool > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 10px;
-  cursor: pointer;
-}
-
-.tool .title {
-  font: var(--t-label);
-  color: var(--text-primary);
-}
-
-.tool .loc {
-  margin-left: auto;
-  font: var(--t-mono);
-  color: var(--text-tertiary);
-  max-width: 42%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  /* Cut from the left, so the file name stays; the path itself is a
-	   left-to-right <bdi>, so its slashes do not move. */
-  direction: rtl;
-  text-align: left;
-}
-
-.tool .loc bdi {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-.tool .body {
-  border-top: 1px solid var(--border-subtle);
-  padding: 8px 10px 10px;
-}
-
-.tool .io-label {
-  font: var(--t-kicker);
-  color: var(--text-tertiary);
-  margin: 8px 0 4px;
-}
-
-.tool pre {
-  margin: 0;
-  padding: 8px 10px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-2);
-  overflow: auto;
-  font: var(--t-mono);
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.diff {
-  margin: 0;
-  padding: 0;
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-2);
-  overflow: auto;
-  font: var(--t-mono);
-  line-height: 1.6;
-}
-
-.diff .ln {
-  display: grid;
-  grid-template-columns: 36px 36px 1fr;
-}
-
-.diff .n {
-  padding: 0 8px;
-  color: var(--text-disabled);
-  text-align: right;
-  user-select: none;
-  border-right: 1px solid var(--border-subtle);
-}
-
-.diff .add {
-  background: var(--diff-add-bg);
-}
-
-.diff .del {
-  background: var(--diff-del-bg);
-}
-
-.diff .tx {
-  padding: 0 10px;
-  white-space: pre;
 }
 
 .key {

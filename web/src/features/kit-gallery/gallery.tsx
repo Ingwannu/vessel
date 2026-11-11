@@ -28,6 +28,7 @@ import { Segmented, TooltipProvider } from "../../ui/kit";
 import { THEMES, ThemeMenu } from "../theme/theme";
 import { Buttons } from "./buttons";
 import { Choices } from "./choices";
+import { Composer } from "./composer";
 import { Display } from "./display";
 import { Fields } from "./fields";
 import { Popups } from "./popups";
@@ -66,6 +67,7 @@ export function Gallery() {
         <Fields />
         <Choices />
         <Popups />
+        <Composer />
         <Display />
       </main>
     </TooltipProvider>

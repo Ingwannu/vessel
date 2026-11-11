@@ -1,4 +1,5 @@
-// A terminal session (DESIGN.md §6.8): xterm.js in the design's frame.
+// A terminal session (DESIGN.md §6.8): xterm.js in the design's frame,
+// under the same title bar as a session with a timeline.
 //
 // The view replays the session's terminal records from the start, as
 // `vessel attach` does, then follows live. Keys go to the session as
@@ -9,22 +10,25 @@
 // chrome; the records hold metadata only.
 
 import "@xterm/xterm/css/xterm.css";
+import "./terminal-view.css";
 
 import { FitAddon } from "@xterm/addon-fit";
 import { type ITheme, Terminal } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 
-import { useFleet } from "../context";
-import { userInput } from "../data/terminal-input";
-import { openExternal } from "../data/links";
-import { addCall, type Usage, usageLine } from "../data/models";
-import { decodeBytes } from "../data/terminal";
-import { cssColor, onSchemeChange } from "../data/theme";
-import { TerminalSender } from "../data/terminal-sender";
-import { Banner, Tooltip } from "../ui/kit";
-import { toast } from "../ui/toasts";
-import type { StreamState } from "../wire/bridge";
-import type { SessionInfo } from "../wire/proto";
+import { useFleet } from "../../context";
+import { followSession, sendTerminal } from "../../data/calls";
+import { userInput } from "../../data/terminal-input";
+import { openExternal } from "../../data/links";
+import { addCall, type Usage, usageLine } from "../../data/models";
+import { decodeBytes } from "../../data/terminal";
+import { cssColor, onSchemeChange } from "../../data/theme";
+import { TerminalSender } from "../../data/terminal-sender";
+import { Banner, Tooltip } from "../../ui/kit";
+import { toast } from "../../ui/toasts";
+import type { StreamState } from "../../wire/bridge";
+import type { SessionInfo } from "../../wire/proto";
+import { SessionBar } from "./session-bar";
 
 /** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
  * monospace faces, then Pretendard, then `monospace` (the operator's font
@@ -99,11 +103,7 @@ export function TerminalView({
     setSize({ cols: terminal.cols, rows: terminal.rows });
     // One send in flight, in typing order (data/terminal-sender.ts).
     const sender = new TerminalSender(
-      (terminalInput) =>
-        fleet.bridge.call(node, "session.send", {
-          session: session.id,
-          input: { type: "terminal", input: terminalInput },
-        }),
+      (terminalInput) => sendTerminal(fleet, node, session.id, terminalInput),
       () => {
         toast("Keys dropped: the session is not reading its input", "error");
       },
@@ -129,7 +129,7 @@ export function TerminalView({
       sendSize();
     });
     observer.observe(element);
-    const stop = fleet.bridge.follow(node, session.id, 0, {
+    const stop = followSession(fleet, node, session.id, 0, {
       record: (record) => {
         const event = record.event;
         if (event.type === "terminal") {
@@ -163,6 +163,7 @@ export function TerminalView({
   const calls = usage?.id === session.id ? usage.usage : null;
   return (
     <>
+      <SessionBar node={node} label={label} session={session} renamed={null} />
       {stream?.state === "reconnecting" ? (
         <Banner>
           Reconnecting to {label} · {stream.message} · the terminal is frozen
@@ -175,9 +176,11 @@ export function TerminalView({
           <div className="term-inner">
             <div className="term-chrome">
               <span>{label}</span>
-              <span>{session.id.slice(0, 4)}</span>
-              <span>{size === null ? "" : `${size.cols}×${size.rows}`}</span>
-              <span>utf-8</span>
+              <span>
+                {size === null
+                  ? ""
+                  : `${String(size.cols)}×${String(size.rows)}`}
+              </span>
               {calls === null ? null : (
                 <Tooltip label={calls.models.join(", ")}>
                   <span className="calls">{usageLine(calls)}</span>
@@ -185,10 +188,10 @@ export function TerminalView({
               )}
               <span className="live">
                 {frozen
-                  ? "PTY · frozen"
+                  ? "frozen"
                   : stream?.state === "ended"
-                    ? "PTY · ended"
-                    : "PTY · live"}
+                    ? "ended"
+                    : "live"}
               </span>
             </div>
             <div

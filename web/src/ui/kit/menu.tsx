@@ -19,7 +19,7 @@ import "./menu.css";
 import { Menu as Base } from "@base-ui/react/menu";
 import type { ReactElement, ReactNode } from "react";
 
-import { type Choice, choiceOf } from "./choice";
+import { type Choice, choiceOf, runs } from "./choice";
 import { Icon, type IconName } from "./icon";
 
 export interface MenuProps {
@@ -29,8 +29,20 @@ export interface MenuProps {
   children: ReactNode;
   side?: "bottom" | "top" | "right" | "left";
   align?: "start" | "center" | "end";
-  /** Wider menus hold a description under each row. */
-  width?: "auto" | "wide";
+  /** `narrow` is a composer's agent menu (256px, agent-orchestrator's
+   * `w-64`); `wide` holds a description under each row (320px). */
+  width?: "auto" | "narrow" | "wide";
+}
+
+function widthClass(width: "auto" | "narrow" | "wide"): string {
+  switch (width) {
+    case "auto":
+      return "popup menu-popup";
+    case "narrow":
+      return "popup menu-popup narrow";
+    case "wide":
+      return "popup menu-popup wide";
+  }
 }
 
 export function Menu({
@@ -51,13 +63,7 @@ export function Menu({
           sideOffset={6}
           collisionPadding={8}
         >
-          <Base.Popup
-            className={
-              width === "wide" ? "popup menu-popup wide" : "popup menu-popup"
-            }
-          >
-            {children}
-          </Base.Popup>
+          <Base.Popup className={widthClass(width)}>{children}</Base.Popup>
         </Base.Positioner>
       </Base.Portal>
     </Base.Root>
@@ -163,7 +169,8 @@ export function MenuCheckboxItem({
   );
 }
 
-/** One choice among `options`, the chosen one checked at the right. */
+/** One choice among `options`, the chosen one checked at the right;
+ * options that share a `group` sit under its heading. */
 export function MenuRadioGroup<V extends string>({
   value,
   onChange,
@@ -183,29 +190,47 @@ export function MenuRadioGroup<V extends string>({
         }
       }}
     >
-      {options.map((option) => (
-        <Base.RadioItem
-          key={option.value}
-          className="menu-item"
-          value={option.value}
-          disabled={option.disabled}
-          closeOnClick={true}
-        >
-          <RowContent
-            icon={option.icon}
-            description={option.detail}
-            shortcut={undefined}
-          >
-            {option.label}
-          </RowContent>
-          <span className="menu-check" aria-hidden="true">
-            <Base.RadioItemIndicator className="menu-check-mark">
-              <Icon name="check" size={14} />
-            </Base.RadioItemIndicator>
-          </span>
-        </Base.RadioItem>
-      ))}
+      {runs(options).map((run, index) =>
+        run.group === undefined ? (
+          run.options.map((option) => (
+            <RadioRow key={option.value} option={option} />
+          ))
+        ) : (
+          <Base.Group key={`${run.group}-${String(index)}`}>
+            <Base.GroupLabel className="menu-label">
+              {run.group}
+            </Base.GroupLabel>
+            {run.options.map((option) => (
+              <RadioRow key={option.value} option={option} />
+            ))}
+          </Base.Group>
+        ),
+      )}
     </Base.RadioGroup>
+  );
+}
+
+function RadioRow<V extends string>({ option }: { option: Choice<V> }) {
+  return (
+    <Base.RadioItem
+      className="menu-item"
+      value={option.value}
+      disabled={option.disabled}
+      closeOnClick={true}
+    >
+      <RowContent
+        icon={option.icon}
+        description={option.detail}
+        shortcut={undefined}
+      >
+        {option.label}
+      </RowContent>
+      <span className="menu-check" aria-hidden="true">
+        <Base.RadioItemIndicator className="menu-check-mark">
+          <Icon name="check" size={14} />
+        </Base.RadioItemIndicator>
+      </span>
+    </Base.RadioItem>
   );
 }
 

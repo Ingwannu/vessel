@@ -18,113 +18,23 @@
 
 import type {
   AgentEvent,
-  ContentBlock,
   EventRecord,
-  ModelCall,
-  PermissionOutcome,
-  PermissionRequest,
   PlanEntry,
   SessionOption,
   SessionStatus,
-  StopReason,
-  ToolCallContent,
-  ToolCallStatus,
-  ToolKind,
   ToolLocation,
 } from "../wire/proto";
 import { addCall, type Usage } from "./models";
-
-/** A tool call as it stands after its updates. */
-export interface ToolState {
-  id: string;
-  title: string;
-  kind: ToolKind;
-  status: ToolCallStatus;
-  content: ToolCallContent[];
-  locations: ToolLocation[];
-  input: unknown;
-  output: unknown;
-}
-
-interface Base {
-  key: string;
-  seq: number;
-  at: string;
-}
-
-export type Entry =
-  | (Base & { kind: "ready"; harnessSession: string })
-  | (Base & { kind: "prompt"; text: string; replayed: boolean; turn: number })
-  | (Base & { kind: "message"; text: string })
-  | (Base & { kind: "thought"; text: string })
-  | (Base & { kind: "tool"; tool: ToolState })
-  | (Base & { kind: "plan"; entries: PlanEntry[] })
-  | (Base & {
-      kind: "permission";
-      request: PermissionRequest;
-      title: string;
-      outcome: PermissionOutcome | null;
-    })
-  | (Base & { kind: "turn_ended"; reason: StopReason })
-  | (Base & { kind: "turn_failed"; message: string })
-  | (Base & { kind: "log"; line: string })
-  | (Base & { kind: "status"; status: SessionStatus })
-  | (Base & { kind: "profile"; from: string | null; to: string | null })
-  | (Base & { kind: "model"; call: ModelCall });
-
-export interface Timeline {
-  entries: readonly Entry[];
-  /** The latest plan. */
-  plan: readonly PlanEntry[] | null;
-  /** Turns started so far. */
-  turns: number;
-  /** Whether a turn is running. */
-  inTurn: boolean;
-  /** The first permission request still unanswered. */
-  pending: Extract<Entry, { kind: "permission" }> | null;
-  /** Paths the session's tool calls touched, in first-touched order. */
-  files: readonly string[];
-  /** The session's status, as its records last said. */
-  status: SessionStatus | null;
-  /** Its model calls so far; `null` before the first. */
-  usage: Usage | null;
-  /** What the session runs with, as the agent last reported it (protocol
-   * 9): its model, permissions, effort and whatever else it offers.
-   * `null` until the node says, which a node older than protocol 9 never
-   * does. Not an entry: the composer shows it, the timeline does not. */
-  options: readonly SessionOption[] | null;
-  /** The session's title when it changed in this log; `null` when it has
-   * not (the session's `SessionInfo.title` is then the one to show). */
-  title: string | null;
-  /** The next record expected. */
-  next: number;
-}
-
-export const EMPTY: Timeline = {
-  entries: [],
-  plan: null,
-  turns: 0,
-  inTurn: false,
-  pending: null,
-  files: [],
-  status: null,
-  usage: null,
-  options: null,
-  title: null,
-  next: 0,
-};
-
-/** A content block as text. */
-export function blockText(block: ContentBlock): string {
-  switch (block.type) {
-    case "text":
-      return block.text;
-    case "resource_link":
-      return `[${block.name}](${block.uri})`;
-    case "opaque":
-      return "";
-  }
-}
+import {
+  type Base,
+  blockText,
+  type Entry,
+  findTool,
+  type Timeline,
+  toolAfter,
+  type ToolState,
+  type ToolUpdate,
+} from "./timeline-model";
 
 /** `timeline` with `records` applied (records already seen are skipped). */
 export function reduce(
@@ -359,10 +269,7 @@ class Work {
   }
 
   findTool(id: string): Extract<Entry, { kind: "tool" }> | undefined {
-    return this.entries.find(
-      (entry): entry is Extract<Entry, { kind: "tool" }> =>
-        entry.kind === "tool" && entry.tool.id === id,
-    );
+    return findTool(this.entries, id);
   }
 
   tool(base: Base, tool: ToolState): void {
@@ -378,22 +285,8 @@ class Work {
     this.entries.push({ ...base, key: `t${tool.id}`, kind: "tool", tool });
   }
 
-  update(
-    base: Base,
-    update: Extract<AgentEvent, { event: "tool_call_update" }>,
-  ): void {
-    const existing = this.findTool(update.id)?.tool;
-    const tool: ToolState = {
-      id: update.id,
-      title: update.title ?? existing?.title ?? "Tool call",
-      kind: update.kind ?? existing?.kind ?? "other",
-      status: update.status ?? existing?.status ?? "pending",
-      content: update.content ?? existing?.content ?? [],
-      locations: update.locations ?? existing?.locations ?? [],
-      input: update.raw_input ?? existing?.input ?? null,
-      output: update.raw_output ?? existing?.output ?? null,
-    };
-    this.tool(base, tool);
+  update(base: Base, update: ToolUpdate): void {
+    this.tool(base, toolAfter(this.findTool(update.id)?.tool, update));
   }
 
   touch(locations: readonly ToolLocation[]): void {

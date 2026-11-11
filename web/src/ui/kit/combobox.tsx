@@ -31,6 +31,10 @@ export interface ComboboxProps {
   /** For paths, links and ids (DESIGN.md §1, principle 5). */
   mono?: boolean;
   size?: "md" | "sm";
+  /** `field` is a form's shell; `ghost` a composer's quiet field, with no
+   * fill or edge until hovered or focused (agent-orchestrator's tray holds
+   * only quiet pills). */
+  look?: "field" | "ghost";
   icon?: IconName;
   "aria-label"?: string;
   disabled?: boolean;
@@ -43,6 +47,7 @@ export function Combobox({
   placeholder,
   mono = false,
   size = "md",
+  look = "field",
   icon,
   disabled,
   "aria-label": ariaLabel,
@@ -60,7 +65,7 @@ export function Combobox({
       disabled={disabled}
     >
       <Autocomplete.InputGroup
-        className={`text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}`}
+        className={`text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}${look === "ghost" ? " ghost" : ""}`}
       >
         {icon === undefined ? null : (
           <Icon name={icon} size={size === "sm" ? 14 : 16} />
