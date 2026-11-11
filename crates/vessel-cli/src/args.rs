@@ -602,6 +602,13 @@ pub(crate) enum NodesCommand {
         /// Its name.
         name: String,
     },
+    /// Give a node in the book another name (the default follows it).
+    Rename {
+        /// Its name now.
+        name: String,
+        /// The new name.
+        to: NodeName,
+    },
     /// Set (or with `--none`, clear) the default node.
     Default {
         /// The node.

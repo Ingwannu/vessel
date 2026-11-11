@@ -361,6 +361,51 @@ fn edits_refuse_what_does_not_fit() {
 }
 
 #[test]
+fn a_rename_moves_the_whole_entry_and_the_default_follows() {
+    let (_dir, path) = book_with(EXAMPLE);
+    let mut file = BookFile::open(&path).unwrap();
+    let before = file.book().get("gpu-box").unwrap().1.clone();
+    file.rename("gpu-box", &name("big")).unwrap();
+    assert!(file.book().get("gpu-box").is_none());
+    assert_eq!(file.book().get("big").unwrap().1, &before);
+    assert_eq!(file.book().default_node, Some(name("big")));
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("# My machines."), "{text}");
+    assert!(text.contains("[nodes.big]"), "{text}");
+    assert!(text.contains("# the big one"), "{text}");
+    assert!(text.contains("default_node = \"big\""), "{text}");
+    // The table stays where it was in the file.
+    assert!(
+        text.find("[nodes.big]") < text.find("[nodes.lab]"),
+        "{text}"
+    );
+    assert_eq!(BookFile::open(&path).unwrap().book(), file.book());
+
+    // A node that is not the default leaves the default alone; its own
+    // name is no change at all.
+    file.rename("lab", &name("lab2")).unwrap();
+    assert_eq!(file.book().default_node, Some(name("big")));
+    file.rename("lab2", &name("lab2")).unwrap();
+    assert!(matches!(
+        file.rename("big", &name("lab2")),
+        Err(BookError::Exists { .. })
+    ));
+    assert!(matches!(
+        file.rename("ghost", &name("spirit")),
+        Err(BookError::Missing { .. })
+    ));
+
+    // An inline table is renamed in place too.
+    let (_inline, path) = book_with("nodes = { a = { ssh = \"a\" } }\ndefault_node = \"a\"\n");
+    let mut file = BookFile::open(&path).unwrap();
+    file.rename("a", &name("b")).unwrap();
+    let reread = BookFile::open(&path).unwrap();
+    assert!(reread.book().get("a").is_none());
+    assert!(reread.book().get("b").is_some());
+    assert_eq!(reread.book().default_node, Some(name("b")));
+}
+
+#[test]
 fn an_inline_nodes_table_is_edited_in_place() {
     let (_dir, path) = book_with("nodes = { a = { ssh = \"a\" } }\n");
     let mut file = BookFile::open(&path).unwrap();

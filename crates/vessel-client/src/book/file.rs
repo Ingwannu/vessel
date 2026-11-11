@@ -10,7 +10,10 @@
 //!
 //! Two `vessel` processes editing at once: each reads, edits and renames;
 //! the later rename wins and the other edit is lost. Edits are rare and by
-//! hand (`vessel nodes add`) or once per node (the pinned id), so no lock.
+//! hand (`vessel nodes add`, or the same edits from `vessel ui`'s page)
+//! or once per node (the pinned id), so no lock. What every editor must
+//! keep true instead: open the file right before an edit and never write
+//! from a copy read earlier, so the window is one read-edit-rename.
 
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -135,27 +138,77 @@ impl BookFile {
                         name: name.to_owned(),
                     });
                 };
-                let name = name.as_str();
-                match self.document.get_mut("default_node") {
-                    // Replace only the value, so the comments around the key
-                    // (often the file's opening comment) stay.
-                    Some(item) => {
-                        let decor = item.as_value().map(|old| old.decor().clone());
-                        *item = value(name);
-                        if let (Some(decor), Some(new)) = (decor, item.as_value_mut()) {
-                            *new.decor_mut() = decor;
-                        }
-                    }
-                    None => {
-                        let _absent = self.document.insert("default_node", value(name));
-                    }
-                }
+                let name = name.clone();
+                self.write_default(&name);
             }
             None => {
                 let _default = self.document.remove("default_node");
             }
         }
         self.save()
+    }
+
+    /// Give the node `from` the name `to` and write the file. Its entry
+    /// moves whole (address, token or credential file, pinned id, and the
+    /// comments in its table), and `default_node` follows it. Renaming a
+    /// node to its own name changes nothing.
+    ///
+    /// What it does not follow: a project's `.vessel/config.toml` naming
+    /// `from` (Vessel does not know where the user's projects are; `vessel`
+    /// in that project then says the node is not in the book). A paired
+    /// node's credential file is named by the node's id, not by its book
+    /// name, so it needs no move.
+    ///
+    /// # Errors
+    /// No node `from`, `to` is taken, or the file cannot be written.
+    pub fn rename(&mut self, from: &str, to: &NodeName) -> Result<(), BookError> {
+        let Some((from, _entry)) = self.book.get(from) else {
+            return Err(BookError::Missing {
+                path: self.path.clone(),
+                name: from.to_owned(),
+            });
+        };
+        if from == to {
+            return Ok(());
+        }
+        if self.book.nodes.contains_key(to) {
+            return Err(BookError::Exists {
+                path: self.path.clone(),
+                name: to.clone(),
+            });
+        }
+        let from = from.clone();
+        let default = self.book.default_node.as_ref() == Some(&from);
+        let nodes = self.nodes_table()?;
+        // A `[nodes.<name>]` table keeps its place in the file through its
+        // own position, and its leading comments through its own decor, so
+        // moving the item under the new key keeps both; an entry of an
+        // inline table goes to the end of it.
+        if let Some(item) = nodes.remove(from.as_str()) {
+            let _absent = nodes.insert(to.as_str(), item);
+        }
+        if default {
+            self.write_default(to);
+        }
+        self.save()
+    }
+
+    /// Set `default_node` to `name` in the document, replacing only the
+    /// value, so the comments around the key (often the file's opening
+    /// comment) stay.
+    fn write_default(&mut self, name: &NodeName) {
+        match self.document.get_mut("default_node") {
+            Some(item) => {
+                let decor = item.as_value().map(|old| old.decor().clone());
+                *item = value(name.as_str());
+                if let (Some(decor), Some(new)) = (decor, item.as_value_mut()) {
+                    *new.decor_mut() = decor;
+                }
+            }
+            None => {
+                let _absent = self.document.insert("default_node", value(name.as_str()));
+            }
+        }
     }
 
     /// Record `id` as the id of `name`, seen on first contact, and write
