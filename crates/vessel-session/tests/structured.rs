@@ -5,12 +5,12 @@
 //! a failure.
 
 use vessel_proto::{
-    AgentEvent, ContentBlock, ErrorCode, HarnessKind, HarnessSessionId, ModelId,
-    PermissionOptionId, PermissionOutcome, SessionEvent, SessionInput, SessionMode, SessionSpec,
-    SessionStatus, StopReason, TerminalInput, TerminalSize,
+    Activity, AgentEvent, ContentBlock, DisplayStatus, ErrorCode, HarnessKind, HarnessSessionId,
+    KanbanColumn, ModelId, PermissionOptionId, PermissionOutcome, SessionBoard, SessionEvent,
+    SessionInput, SessionMode, SessionSpec, SessionStatus, StopReason, TerminalInput, TerminalSize,
 };
 
-use support::{Fixture, Follower, collect, within};
+use support::{Fixture, Follower, board_until, collect, within};
 
 #[cfg(test)]
 mod support {
@@ -27,7 +27,10 @@ mod support {
     use tokio_util::sync::CancellationToken;
     use vessel_harness::Lookup;
     use vessel_harness::fakes::{Role, install};
-    use vessel_proto::{EventRecord, EventSeq, HarnessKind, SessionEvent, SessionStatus};
+    use vessel_proto::{
+        DisplayStatus, EventRecord, EventSeq, HarnessKind, SessionBoard, SessionEvent, SessionInfo,
+        SessionStatus,
+    };
     use vessel_session::{
         DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, Follow,
         RuntimeConfig, SessionHandle, SessionRuntime,
@@ -127,6 +130,19 @@ mod support {
             }
             records
         })
+    }
+
+    /// Wait on the info watch until the board shows `phrase`, and return that
+    /// board. Waits on the session's own notifications, never on a clock.
+    pub(super) async fn board_until(
+        watch: &mut tokio::sync::watch::Receiver<SessionInfo>,
+        phrase: DisplayStatus,
+    ) -> SessionBoard {
+        let info = watch
+            .wait_for(|info| info.board.as_ref().map(|board| board.display_status) == Some(phrase))
+            .await
+            .unwrap_or_else(|_closed| panic!("the session ended before {phrase:?}"));
+        info.board.clone().unwrap()
     }
 
     /// Reads one session's records from the start.
@@ -472,6 +488,151 @@ async fn a_session_killed_while_starting_ends_exited() {
         let end = follower.until_end().await;
         assert!(matches!(end, SessionStatus::Exited { .. }), "{end:?}");
         assert_eq!(stored.await.unwrap(), follower.records);
+    })
+    .await;
+}
+
+/// The board follows the agent (protocol 8, ADR 0019): working while it
+/// starts, idle between turns, blocked on a permission, interrupted after
+/// a cancelled turn until the next one, and the archive once it has ended,
+/// with its end as its last activity.
+#[tokio::test]
+async fn the_board_follows_turns_and_permissions() {
+    within(async {
+        let fixture = Fixture::new();
+        let created = fixture.runtime.create(structured(None)).await.unwrap();
+        let stored = collect(created.durable);
+        let handle = created.handle;
+        let mut watch = handle.watch_info();
+
+        // The handshake done, no turn yet: between turns. No node sees
+        // pull requests, so not "awaiting PR".
+        let ready = board_until(&mut watch, DisplayStatus::Idle).await;
+        assert_eq!(
+            (ready.column, ready.activity),
+            (KanbanColumn::Building, Activity::Idle)
+        );
+
+        // The default prompt asks a permission and waits for the answer.
+        handle.send(prompt("hello")).await.unwrap();
+        let asked = board_until(&mut watch, DisplayStatus::Blocked).await;
+        assert_eq!(asked.activity, Activity::WaitingInput);
+        assert!(asked.last_activity_at > ready.last_activity_at);
+        let request = handle
+            .follow(vessel_proto::EventSeq::ZERO)
+            .unwrap()
+            .cached
+            .iter()
+            .find_map(|record| {
+                if let SessionEvent::Agent {
+                    event: AgentEvent::PermissionRequested(request),
+                } = &record.event
+                {
+                    Some(request.id)
+                } else {
+                    None
+                }
+            })
+            .unwrap();
+        handle
+            .send(SessionInput::AnswerPermission {
+                id: request,
+                outcome: PermissionOutcome::Selected {
+                    option: PermissionOptionId::new("allow-once"),
+                },
+            })
+            .await
+            .unwrap();
+        let done = board_until(&mut watch, DisplayStatus::Idle).await;
+        assert_eq!(done.activity, Activity::Idle);
+
+        // A turn stopped before its end is interrupted ...
+        handle.send(prompt("wait")).await.unwrap();
+        let working = board_until(&mut watch, DisplayStatus::Working).await;
+        assert_eq!(working.activity, Activity::Active);
+        handle.send(SessionInput::CancelTurn).await.unwrap();
+        let stopped = board_until(&mut watch, DisplayStatus::Interrupted).await;
+        assert_eq!(
+            (stopped.column, stopped.activity),
+            (KanbanColumn::Building, Activity::Idle)
+        );
+        // ... until the next turn.
+        handle.send(prompt("plain")).await.unwrap();
+        assert_eq!(
+            board_until(&mut watch, DisplayStatus::Idle).await.activity,
+            Activity::Idle
+        );
+
+        handle.kill();
+        let end = handle.ended().await;
+        assert_eq!(
+            end.board,
+            Some(SessionBoard::new(
+                KanbanColumn::Archive,
+                DisplayStatus::Terminated,
+                Activity::Exited,
+                end.ended_at.unwrap(),
+            ))
+        );
+        drop(stored.await.unwrap());
+    })
+    .await;
+}
+
+/// A session that never started is in the archive too: whatever its
+/// status, an ended session is.
+#[tokio::test]
+async fn a_failed_session_is_archived() {
+    within(async {
+        let fixture = Fixture::new();
+        let created = fixture
+            .runtime
+            .create(structured(Some("gpt-imaginary")))
+            .await
+            .unwrap();
+        let stored = collect(created.durable);
+        let end = created.handle.ended().await;
+        assert!(matches!(end.status, SessionStatus::Failed { .. }));
+        let board = end.board.unwrap();
+        assert_eq!(
+            (board.column, board.display_status, board.activity),
+            (
+                KanbanColumn::Archive,
+                DisplayStatus::Terminated,
+                Activity::Exited
+            )
+        );
+        assert_eq!(Some(board.last_activity_at), end.ended_at);
+        drop(stored.await.unwrap());
+    })
+    .await;
+}
+
+/// A session still starting (its adapter never answers) is working: on
+/// the board from its creation, its last activity its creation.
+#[tokio::test]
+async fn a_starting_session_is_working() {
+    within(async {
+        let fixture = Fixture::with_stuck_adapter();
+        let created = fixture.runtime.create(structured(None)).await.unwrap();
+        let stored = collect(created.durable);
+        let info = created.handle.info();
+        assert_eq!(
+            info.board,
+            Some(SessionBoard::new(
+                KanbanColumn::Building,
+                DisplayStatus::Working,
+                Activity::Active,
+                info.created_at,
+            ))
+        );
+        created.handle.kill();
+        let end = created.handle.ended().await;
+        assert_eq!(
+            end.board.map(|board| board.column),
+            Some(KanbanColumn::Archive)
+        );
+        drop(stored.await.unwrap());
     })
     .await;
 }

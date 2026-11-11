@@ -7,8 +7,9 @@
 use std::num::NonZeroUsize;
 
 use vessel_proto::{
-    ErrorCode, EventSeq, HarnessKind, ModelCall, ModelId, SessionEvent, SessionInput, SessionMode,
-    SessionSpec, SessionStatus, TerminalInput, TerminalSize,
+    Activity, DisplayStatus, ErrorCode, EventSeq, HarnessKind, KanbanColumn, ModelCall, ModelId,
+    SessionBoard, SessionEvent, SessionInput, SessionMode, SessionSpec, SessionStatus,
+    TerminalInput, TerminalSize,
 };
 use vessel_session::{
     DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, FollowError, RemoveError, SessionError,
@@ -666,6 +667,94 @@ async fn a_process_that_escaped_the_group_does_not_keep_the_session_open() {
             .status()
             .unwrap();
         assert!(killed.success(), "the escaped process should still run");
+    })
+    .await;
+}
+
+/// The board follows a terminal by its output (protocol 8, ADR 0019):
+/// working while it prints, idle once it has been quiet for a few seconds
+/// (the actor's quiet timer, which a unit test checks on a paused clock;
+/// here it runs for real, about five seconds, waited for on the info watch
+/// and not on a clock), working again on output, and the archive once it
+/// has ended.
+#[tokio::test]
+async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
+    within(async {
+        let fixture = Fixture::new(DEFAULT_RING_CAPACITY, DEFAULT_DURABLE_CAPACITY);
+        let created = fixture
+            .runtime
+            .create(support::terminal(HarnessKind::ClaudeCode))
+            .await
+            .unwrap();
+        let stored = collect(created.durable);
+        let handle = created.handle;
+        let mut watch = handle.watch_info();
+        let mut follower = Follower::new(&handle, EventSeq::ZERO);
+        follower.until_text("> ").await;
+        let printing = handle.info().board.unwrap();
+        assert_eq!(
+            (printing.column, printing.display_status, printing.activity),
+            (
+                KanbanColumn::Building,
+                DisplayStatus::Working,
+                Activity::Active
+            )
+        );
+
+        let activity = |wanted: Activity| {
+            move |info: &vessel_proto::SessionInfo| {
+                info.board.as_ref().map(|board| board.activity) == Some(wanted)
+            }
+        };
+        let quiet = watch
+            .wait_for(activity(Activity::Idle))
+            .await
+            .unwrap()
+            .board
+            .clone()
+            .unwrap();
+        assert_eq!(
+            (quiet.column, quiet.display_status),
+            (KanbanColumn::Building, DisplayStatus::Idle)
+        );
+        // Nothing printed since: the ring's last output is the last.
+        let last_output = handle
+            .follow(EventSeq::ZERO)
+            .unwrap()
+            .cached
+            .iter()
+            .rev()
+            .find(|record| matches!(record.event, SessionEvent::Terminal(_)))
+            .unwrap()
+            .at;
+        assert_eq!(
+            quiet.last_activity_at, last_output,
+            "quiet is not activity: the last activity is the last output"
+        );
+
+        handle.send(keys("hello\r")).await.unwrap();
+        let busy = watch
+            .wait_for(activity(Activity::Active))
+            .await
+            .unwrap()
+            .board
+            .clone()
+            .unwrap();
+        assert_eq!(busy.display_status, DisplayStatus::Working);
+        assert!(busy.last_activity_at > quiet.last_activity_at);
+
+        handle.kill();
+        let end = handle.ended().await;
+        assert_eq!(
+            end.board,
+            Some(SessionBoard::new(
+                KanbanColumn::Archive,
+                DisplayStatus::Terminated,
+                Activity::Exited,
+                end.ended_at.unwrap(),
+            ))
+        );
+        drop(stored.await.unwrap());
     })
     .await;
 }

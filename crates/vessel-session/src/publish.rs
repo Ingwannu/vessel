@@ -1,5 +1,6 @@
 //! [`Publisher`]: numbers events and delivers them to the store and to
-//! followers. Used only by the session actor.
+//! followers, and keeps the session's info current, its place on the board
+//! included. Used only by the session actor.
 
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -7,10 +8,11 @@ use std::sync::atomic::Ordering;
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
-    AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionEvent, SessionInfo,
-    SessionStatus,
+    AgentEvent, EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionBoard, SessionEvent,
+    SessionInfo, SessionStatus,
 };
 
+use crate::activity::Tracker;
 use crate::handle::Shared;
 
 /// The actor's write side of a session.
@@ -27,6 +29,9 @@ pub(crate) struct Publisher {
     durable: Option<mpsc::Sender<Arc<EventRecord>>>,
     info: watch::Sender<SessionInfo>,
     next: EventSeq,
+    /// What the agent is doing, read off every committed record; the
+    /// source of `SessionInfo::board`.
+    activity: Tracker,
 }
 
 /// Room for one record in the durable channel.
@@ -38,16 +43,20 @@ pub(crate) enum Slot {
 }
 
 impl Publisher {
+    /// `activity` must be the tracker `info`'s first board came from, so
+    /// the board changes only with what the session publishes.
     pub(crate) const fn new(
         shared: Arc<Shared>,
         durable: mpsc::Sender<Arc<EventRecord>>,
         info: watch::Sender<SessionInfo>,
+        activity: Tracker,
     ) -> Self {
         Self {
             shared,
             durable: Some(durable),
             info,
             next: EventSeq::ZERO,
+            activity,
         }
     }
 
@@ -68,7 +77,9 @@ impl Publisher {
     /// broadcast it, and update the session info, in that order.
     ///
     /// The info is updated last, so a reader that sees `next_seq = N` can
-    /// always `follow` up to `N`.
+    /// always `follow` up to `N`. Its board is derived again from the
+    /// record (no allocation: the reducer reads a few flags); watchers are
+    /// woken only if that moved the lane, the phrase or the activity.
     pub(crate) fn commit(&mut self, slot: Slot, event: SessionEvent) {
         let seq = self.next;
         // The last `u64` is never handed out, so `next_seq` stays
@@ -80,6 +91,8 @@ impl Publisher {
         };
         let at = Utc::now();
         let change = InfoChange::of(&event);
+        self.activity.observe(&event, at);
+        let board = self.activity.board(at);
         // The one allocation of this record; the store, the ring and every
         // follower share it.
         // Before the record is anywhere: whoever sees the end finds it.
@@ -104,9 +117,37 @@ impl Publisher {
         self.next = next;
         let _notified = self.info.send_if_modified(|info| {
             info.next_seq = next;
-            change.apply(info, at)
+            // Both run: neither may skip the other.
+            let changed = change.apply(info, at);
+            let moved = place(info, board);
+            changed || moved
         });
     }
+
+    /// A terminal's output has been quiet (`terminal::QUIET`): the session
+    /// is idle now. Not a record: the log has no event for the absence of
+    /// output, so only the info changes.
+    pub(crate) fn quiet(&mut self) {
+        self.activity.quiet();
+        let board = self.activity.board(Utc::now());
+        let _notified = self.info.send_if_modified(|info| place(info, board));
+    }
+}
+
+/// Put `board` in `info`; returns whether watchers should be woken.
+///
+/// Only a new lane, phrase or activity wakes them. The time of the last
+/// activity alone moves silently, as `next_seq` does: it changes with every
+/// burst of terminal output, and waking every watcher for it would turn
+/// the info watch into an output stream.
+fn place(info: &mut SessionInfo, board: SessionBoard) -> bool {
+    let wake = info.board.as_ref().is_none_or(|current| {
+        current.column != board.column
+            || current.display_status != board.display_status
+            || current.activity != board.activity
+    });
+    info.board = Some(board);
+    wake
 }
 
 /// The session is over once its actor drops the publisher: live followers
@@ -160,5 +201,77 @@ impl InfoChange {
                 true
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_proto::{
+        Activity, DisplayStatus, HarnessKind, KanbanColumn, SessionId, SessionMode, SessionSpec,
+        TerminalSize,
+    };
+
+    use super::*;
+
+    fn at(seconds: i64) -> DateTime<Utc> {
+        DateTime::from_timestamp(seconds, 0).unwrap()
+    }
+
+    fn board(display_status: DisplayStatus, activity: Activity, seconds: i64) -> SessionBoard {
+        SessionBoard::new(
+            KanbanColumn::Building,
+            display_status,
+            activity,
+            at(seconds),
+        )
+    }
+
+    /// Only a new lane, phrase or activity wakes watchers; a later last
+    /// activity alone is kept without waking them.
+    #[test]
+    fn only_a_new_place_wakes_watchers() {
+        let spec = SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Terminal {
+                args: Vec::new(),
+                size: TerminalSize::default(),
+            },
+        );
+        let mut info = SessionInfo::new(SessionId::random(), spec, at(0));
+        assert!(
+            place(
+                &mut info,
+                board(DisplayStatus::Working, Activity::Active, 0)
+            ),
+            "the first board"
+        );
+        assert!(
+            !place(
+                &mut info,
+                board(DisplayStatus::Working, Activity::Active, 5)
+            ),
+            "more output"
+        );
+        assert_eq!(
+            info.board.as_ref().map(|board| board.last_activity_at),
+            Some(at(5)),
+            "kept, silently"
+        );
+        assert!(
+            place(&mut info, board(DisplayStatus::Idle, Activity::Idle, 5)),
+            "quiet"
+        );
+        assert!(
+            place(
+                &mut info,
+                SessionBoard::new(
+                    KanbanColumn::Archive,
+                    DisplayStatus::Terminated,
+                    Activity::Exited,
+                    at(9)
+                )
+            ),
+            "the end"
+        );
     }
 }

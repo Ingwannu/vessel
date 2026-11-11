@@ -22,7 +22,8 @@ tracing.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+# `test-util`: the quiet timer is checked on a paused clock.
+tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-testkit.workspace = true
 

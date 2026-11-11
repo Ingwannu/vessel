@@ -29,6 +29,10 @@
 //! - The `sessions` row is a projection of the log: status, end time and
 //!   the harness session id are derived from the records as they are
 //!   appended, so the summary can never disagree with the history.
+//! - A stored session's place on the board (`SessionInfo::board`, protocol
+//!   8, ADR 0019) is derived when its row is read, never stored: an ended
+//!   session is in the archive, its last activity its end; a live one has
+//!   none from the store (the node serves it from its runtime).
 //! - Cost: a C build step (bundled `SQLite`), and writes are acknowledged per
 //!   batch commit rather than immediately.
 //!

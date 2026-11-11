@@ -19,6 +19,7 @@ use vessel_proto::{
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
+use crate::activity::Tracker;
 use crate::config::RuntimeConfig;
 use crate::error::{RemoveError, SessionError};
 use crate::handle::{Input, SessionHandle, Shared};
@@ -496,16 +497,21 @@ impl SessionRuntime {
             model,
             notices,
         } = record;
-        let mut info = SessionInfo::new(id, spec, Utc::now()).with_creator(created_by);
+        let created_at = Utc::now();
+        let mut info = SessionInfo::new(id, spec, created_at).with_creator(created_by);
         info.origin = origin;
         info.via = via;
         info.model = model;
+        // On the board from the start (starting is active), so no reader
+        // of a live session ever sees it without a place.
+        let activity = Tracker::new(created_at);
+        info.board = Some(activity.board(created_at));
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (info, kill, shared) = self.shared(info, input, control, model_calls);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
-                out: Publisher::new(Arc::clone(&shared), durable_sender, info),
+                out: Publisher::new(Arc::clone(&shared), durable_sender, info, activity),
                 stop: Stopper::new(kill, self.shutdown.clone()),
                 notices,
                 model_calls: recorded,

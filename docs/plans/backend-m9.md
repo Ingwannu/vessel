@@ -197,6 +197,96 @@ alternative, an Expo rewrite as Paseo did).
   one.
 - **The shells** (ADR 0020).
 
+## Track A: progress (2026-11-11)
+
+Built on `backend/m9-brain`, in `vessel-session`, `vessel-store`,
+`vessel-node` (tests only) and the docs this track owns. `vessel-proto`
+is untouched: the contract held as written.
+
+What was built:
+
+- `vessel-session/src/board.rs` and `board/facts.rs`: the typed facts
+  (`SessionFacts` with `WorkerFacts` and `Policy`; `PullRequestFacts` with
+  `CiState`, `ReviewDecision`, `Mergeability`, `ReviewRunFacts`,
+  `ExternalReviewFacts`, `PullRequestUrl`) and `derive(session,
+  pull_requests, now, no_signal_grace) -> (KanbanColumn, DisplayStatus)`,
+  the port of `DeriveKanbanPresentation` with its per-pull-request lane
+  rule, its ranking and its phrase functions. `NO_SIGNAL_GRACE` is 90 s.
+  Public (`vessel_session::board`) so the next milestone's node can feed
+  it, and so a node test can hold the store to it.
+- `board/tests.rs`: every case of `kanban_test.go`, under its own name,
+  plus Vessel's own: the `Unseen` cases, the silence boundary, and the
+  whole ranking (ready over in review over validating), which the
+  reference's table never exercises. A few mutations of the reducer (the
+  ranking, the tie breaks, the live-pool filter, the phrase order, the own
+  approval rule) were each caught.
+- `vessel-session/src/activity.rs`: the activity tracker, a projection of
+  the records the publisher commits (the plan's rules), and
+  `publish.rs`: the board re-derived on every commit and published in
+  the same `send_if_modified` as the status, waking watchers only on a new
+  lane, phrase or activity. The runtime sets the first board at creation.
+- `vessel-session/src/terminal.rs`: the quiet timer (`QUIET`, 5 s), one
+  `Sleep` pushed back on output and disarmed once it fires, in the
+  actor's `select!`; unit-tested on tokio's paused clock (`test-util`, a
+  dev-dependency feature other crates already enable).
+- `vessel-store/src/codec.rs`: a stored session that has ended reads back
+  `archive` / `terminated`, `exited`, its end as last activity; a stored
+  row still live gets no board.
+- Tests through the real fakes: a structured session through Ready, a
+  permission round trip, a cancelled turn and the next turn, the end; a
+  starting session; a failed one; a forced move (the board shows the
+  cancelled turn, not one left running); a terminal printing, going quiet
+  (waited for on the info watch, about 5 s of real time) and printing
+  again; the node's hand-over (stored board equal to the session's own
+  last board and to the reducer); a node restart over the wire.
+- Docs: `docs/PROTOCOL.md` version 8, ADR 0019, the session and store
+  crates' module docs.
+
+Gate, run in the worktree on the code as committed:
+
+- `cargo fmt --all`: no changes.
+- `cargo clippy --workspace --all-targets -- -D warnings`: `Finished`,
+  no warnings.
+- `cargo test --workspace`: 80 test binaries, 995 passed, 0 failed, 7
+  ignored (all existing: six need rust-analyzer on `PATH`, one is a
+  documented limit in `vessel-node`'s milestone 5 tests).
+
+Where this differs from the plan or the reference, and why:
+
+- The plan's "the node passes `false` and an empty slice" became
+  `PullRequests::Unseen`, a value of its own rather than an empty slice
+  plus a flag: "none" and "cannot tell" stay apart in the type, and the
+  `AwaitingPr` / `Idle` difference reads off it.
+- The reference's `blocked` activity has no Vessel counterpart; its
+  phrase functions treat it exactly as `waiting_input`, and its cases that
+  use it are ported with `waiting_input`. Its zero activity (none
+  reported) is `idle` here; no reference case tells the two apart.
+- A pull request's lane is a three-valued internal type, so the
+  reference's fall-through arms (a priority for no lane, the building
+  phrase for a pull-request lane) are gone. Same results.
+- `last_activity_at` moves on the handshake (`Ready`) and on the end as
+  well as on the contract's list (turns, permissions, terminal output);
+  message and tool-call chunks inside a turn do not move it.
+- The activity is tracked in the publisher, which both actors already
+  own through `Lifecycle`, rather than in each actor's loop: one copy of
+  the rules, and exactly the records the log holds. The terminal's timer
+  is the one piece in the actor, as the plan says.
+
+Left open:
+
+- `docs/ARCHITECTURE.md` is not in this track's list and was not edited.
+  Its `vessel-session` paragraph does not yet mention the board, and the
+  milestone list has no milestone 9 line; nothing in it is wrong.
+- `DisplayStatus::Exited` (a worker gone while its session lives on) and
+  `NoSignal` are reachable only in the reducer's tests: a Vessel session
+  ends with its process, and none is expected to report on its own.
+- A time-based change of the board (`NoSignal` after the grace) would
+  need a timer to derive it again; none is needed while
+  `signal_expected` is false.
+- A stored row that is still live (only this run's sessions, which the
+  node serves from its runtime; a `session.list` racing a hand-over could
+  see one) has no board, and a client places it by status.
+
 ## Track B: progress (2026-11-11)
 
 Built, on `backend/m9`:

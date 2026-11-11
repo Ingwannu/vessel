@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Row;
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessSessionId, ProfileName, SessionEvent, SessionId, SessionInfo,
-    SessionSpec, SessionStatus,
+    Activity, DisplayStatus, EventRecord, EventSeq, HarnessSessionId, KanbanColumn, ProfileName,
+    SessionBoard, SessionEvent, SessionId, SessionInfo, SessionSpec, SessionStatus,
 };
 
 use crate::config::ByteCount;
@@ -116,7 +116,42 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         .get::<_, Option<String>>(11)?
         .map(|model| decode(id, Column::Model, &model))
         .transpose()?;
+    info.board = stored_board(&info);
     Ok(info)
+}
+
+/// A stored session's place on the board (protocol 8, ADR 0019); derived
+/// here, never stored.
+///
+/// [Decision Log]
+/// - Purpose: a session served from the store (every session of an earlier
+///   run, and this run's once the node handed it over) must be on the
+///   board like a live one, in the same place it had when it ended.
+/// - Constraint: the reducer lives in `vessel-session`, which this crate
+///   must not depend on (ADR 0001's crate map), and the store has none of
+///   the facts behind a live placement (turns, permissions, output).
+/// - Choice: a stored session that has ended is in the archive, its
+///   activity `exited`, its last activity its end: exactly what the
+///   reducer gives any ended session (an ended session is the archive
+///   whatever else is true), and what the session's own info showed at its
+///   end. A node test holds the two equal. A stored session still live is
+///   one the node serves from its runtime; the store leaves its board out
+///   rather than guess, and a client would place it by its status.
+/// - Must stay true: if the reducer ever places an ended session elsewhere,
+///   this changes with it.
+fn stored_board(info: &SessionInfo) -> Option<SessionBoard> {
+    if info.status.is_live() {
+        return None;
+    }
+    // An ended row always has its end time (the final status sets both);
+    // the creation is a floor, should one ever lack it.
+    let ended = info.ended_at.unwrap_or(info.created_at);
+    Some(SessionBoard::new(
+        KanbanColumn::Archive,
+        DisplayStatus::Terminated,
+        Activity::Exited,
+        ended,
+    ))
 }
 
 /// A stored record and its stored size; the size counts toward page and
