@@ -76,7 +76,12 @@ test("a persistent poisoned asset cache cannot execute under the real index", as
       );
     expect(integrity).toBe(true);
     const asset = await fetch(`${origin}${script}`);
-    expect(asset.headers.get("cache-control")).toBe("no-cache");
+    // A content-hashed file never changes under its name, so it is cached
+    // for good (ADR 0017's amendment); the index, which names the files
+    // and pins their hashes, is the part that is never stored.
+    expect(asset.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
     const etag = asset.headers.get("etag");
     expect(etag).not.toBeNull();
     const revalidated = await fetch(`${origin}${script}`, {
