@@ -351,3 +351,81 @@ same instant can still lose one edit (the book has no lock; it had none
 before); a forgotten paired machine's credential file stays on disk, as
 `vessel nodes remove` leaves it; `wire.rs` (653 lines) and `registry.rs`
 (494) each have a seam and were not divided.
+
+## Track C: done (2026-11-11)
+
+Built, merged into `backend/m10` (ADR 0022, `docs/PROTOCOL.md` version 9):
+
+- **Probing an agent** (`harness.options`): the agent is started as a
+  session would start it, its options read from the handshake, and it is
+  ended; cached per harness and profile, one probe shared by concurrent
+  callers, bounded by the handshake timeout. An agent that is not
+  installed or cannot start answers a typed error with its last lines; a
+  harness with no structured mode answers an empty list.
+- **Choices** at creation, on a running session (`session.set_option`),
+  and reported by the agent itself: each ends as one `OptionsChanged`
+  carrying the whole set. Every structured session logs one just before
+  it is ready, an empty one when its agent offers nothing, so a client
+  tells "nothing offered" from "not known yet".
+- **Titles**: `SessionTitle`, parsed on the way in (trimmed, not empty,
+  no control characters, 120 characters typed or 80 taken from the first
+  prompt that has text). `SessionInfo.title` is the current title;
+  `spec.title` only what creation asked for. A rename survives a restart
+  (the store's schema 6).
+- **A moved session keeps both**: export carries the title and the
+  choices as they stand, import and a move between profiles apply them
+  after the load, and fail loudly when the destination's agent does not
+  offer one.
+- `OptionKind` takes a kind it does not know (`unknown`); clients skip
+  such an option.
+
+What the installed agents returned from a handshake (no prompt sent):
+
+| Agent | Options |
+| --- | --- |
+| Claude Code (through its ACP adapter) | permissions mode (five), model, effort (six levels), two model toggles, and its own sub-agent list |
+| OpenCode | model, mode (two) |
+| Codex | nothing here: its ACP adapter is not installed on the machine that was checked |
+| Gemini | not installed there |
+
+Checked by the track: the three Rust gates (1,035 tests), with the fake
+harnesses offering options. An independent review's eight findings in
+this area are fixed.
+
+Not checked: Vessel's own probe against a real agent (the table above
+came from a separate handshake script, and the mapping is tested on its
+recorded answers); setting an option on a real agent.
+
+## Track W0: progress (2026-11-11)
+
+Built, merged into `backend/m10` (ADR 0021, `DESIGN.md` sections 4, 5,
+6.2 and 6.13):
+
+- The kit (`web/src/ui/kit/`, 24 component files on Base UI), and no
+  native control left in `src/`.
+- The theme: system, light or dark, system by default, decided in CSS
+  (`light-dark()`), with a switch in the sidebar's foot, in Settings and
+  in the command palette.
+- Geist and Geist Mono, then Pretendard, in every stack.
+- The stylesheet in parts (`web/src/ui/styles/`, one file per area).
+- The machine list on the kit's `Row` (the card with a heavy edge is
+  gone), and a field as one shell (no box inside the search pill).
+- `npm run lint` now also holds: the import directions, the file budget
+  (eight files still to divide, none may grow), no native control, no
+  type assertion, no inline suppression, no implicit truthiness, and
+  explicit types on every exported function of a logic module.
+- The gallery at `/kit`, captured in both themes.
+
+Checked on the merged branch: lint, typecheck (the check scripts
+included), 64 unit tests, the build, 16 end-to-end tests, the screens.
+
+The track's worker stopped at its account's limit after the gallery and
+before its documentation and report; the coordinator wrote the design
+document's sections from the kit's source and checked each value against
+it. Not known, because the worker did not report it: how many findings
+each new lint rule had before it was satisfied.
+
+Still to divide (lines): `routes/structured.tsx` 700, `bridge/client.ts`
+467, `routes/sessions.tsx` 451, `data/timeline.ts` 406, `data/board.ts`
+353, `routes/devices.tsx` 349, `routes/session.tsx` 328,
+`routes/fleet.tsx` 316.

@@ -280,10 +280,19 @@ focus for keyboard.
 ## 4. Design tokens
 
 All tokens live in `web/src/ui/tokens.css` as CSS custom properties on
-`:root` (light, the design) and `:root[data-theme="dark"]` (its
-inversion). `web/src/ui/styles/` uses tokens only; a literal colour there
-is a defect, except the pairing QR code, which stays dark on light to
-scan.
+`:root`. Every colour is one `light-dark(light, dark)` value, and `:root`
+is `color-scheme: light dark`, so the page follows the system from its
+first paint with no script (the content security policy allows none
+inline). The operator's choice is system, light or dark, system by
+default, as agent-orchestrator and GOAT both have it; choosing light or
+dark sets `data-theme` on `<html>`, which pins `color-scheme`
+(`web/src/data/theme.ts`, ADR 0021). The switch is in three places: the
+sidebar's foot, Settings, and the command palette. The terminal is dark
+in both.
+
+`web/src/ui/styles/` and `web/src/ui/kit/` use tokens only; a literal
+colour there is a defect, except the pairing QR code, which stays dark on
+light to scan.
 
 Do not introduce a third palette, and do not add a hue to the chrome.
 Status and syntax draw from the tables below.
@@ -461,22 +470,32 @@ the pulse is opacity 1 → 0.45 → 1 over 1.6s, stopped under
 ### 5.1 Families
 
 ```css
---font-sans: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
-             sans-serif;
---font-mono: Consolas, "JetBrains Mono", "Cascadia Mono", Pretendard, monospace;
+--font-sans: "Geist Variable", Pretendard, -apple-system,
+             BlinkMacSystemFont, "Segoe UI", sans-serif;
+--font-mono: "Geist Mono Variable", Consolas, "SF Mono", Menlo,
+             "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono",
+             "Liberation Mono", "Noto Sans Mono", Pretendard, monospace;
 ```
 
-**Mandatory host rule, applied everywhere:**
+Geist and Geist Mono are agent-orchestrator's faces (ADR 0021), bundled
+from their packages under the SIL Open Font License as it bundles them.
+Geist has no Hangul, so Pretendard follows it and draws every Korean
+glyph.
 
-- Pretendard is first in every `font-family`, including the mono stack
-  (after the real monospace faces, before the generic `monospace`).
+**Mandatory host rule, applied everywhere** (`scripts/check-fonts.mjs`
+fails `npm run lint` on a stack that breaks it):
+
+- Pretendard comes before any generic family in every `font-family`,
+  including the mono stack (after the real monospace faces, before the
+  generic `monospace`).
 - Never put a bare `monospace` or `serif` first.
 - Never use Gulim, Dotum, Batang, or any family that renders as a pixel
   font on Korean Windows Chrome.
-- **The app self-hosts Pretendard** (woff2, `font-display: swap`). No
-  font is loaded from a CDN.
+- **Every face is self-hosted** (woff2, `font-display: swap`). No font is
+  loaded from another origin.
 
-Two families only. No display serif, no third mono.
+Weights 400, 500 and 600. `-webkit-font-smoothing: antialiased`. Times
+and counts use tabular figures.
 
 Ligatures off on `--font-mono` (`font-variant-ligatures: none`) so
 paths and flags do not turn into unfamiliar glyphs.
@@ -506,10 +525,11 @@ use 600 for `h3`/`h4` equivalents; there is no `h1` inside a session.
 
 ## 6. Component inventory
 
-Every component below is in `web/src/ui/styles/` under the same class
-name. States
-to implement: default, hover, active, focus-visible, disabled,
-loading, error, empty.
+Controls are the kit's (`web/src/ui/kit/`, section 6.13): a screen
+imports a component from there and never draws a control of its own.
+What belongs to one area of the page (the shell, the board, the timeline)
+is in `web/src/ui/styles/`, one file per area. States to implement:
+default, hover, active, focus-visible, disabled, loading, error, empty.
 
 ### 6.1 Buttons
 
@@ -532,17 +552,16 @@ Icon + label. Icon-only buttons need `aria-label`. Gap 6px. Radius
 
 ### 6.2 Inputs
 
-Text fields, selects, the composer. Surface fill, 1px `--border-subtle`,
-focus: 1px `--accent` (the ink, not a glow). A search well and a segmented
-control's track are filled `--bg-hover` with no edge; the chosen segment
-is a white (black, in dark) thumb with a `--border-strong` ring. Height 32px. Placeholder
-`--text-tertiary`. Labels sit above, `--t-meta`, never inside.
+Nothing here is the browser's own control (section 6.13 has each
+one's values). A field is one shell: the shell carries the fill
+(`--field-bg`, the ink at 4%), the hairline (`--field-edge`) and the focus
+ring; the input inside it draws no border, no outline and no fill. Height
+32px (28px small). Placeholder `--text-tertiary`. Labels sit above, never
+inside.
 
-Selects use the native control styled; the app may replace with a
-listbox later. Model picker is a listbox grouped by provider, not a
-flat 40-item `<select>` once routing exists.
-
-Checkbox / radio: 14px square/circle, accent when on.
+A choice among a few is a Segmented; among many, a Select (a listbox in a
+popup, with groups and a second line of detail per option); a field that
+suggests but takes anything is a Combobox.
 
 ### 6.3 List rows and tables
 
@@ -766,6 +785,59 @@ the agent is doing.
   interactive is nested in an `<a>`.
 - One action slot at the end of the title row, shown on hover or focus
   without moving the title: Kill, for a live session. It asks first.
+
+### 6.13 The kit
+
+`web/src/ui/kit/`, one component per file with its stylesheet beside it,
+one entry (`index.ts`). Behaviour (focus, typeahead, placement against
+the window's edge, dismissal, portals) is Base UI's, an unstyled library
+(ADR 0021); the look is plain CSS on tokens. Only the kit imports the
+library, and nothing outside the kit may use a native form element:
+`scripts/check-controls.mjs` fails `npm run lint` on a `<select>`, an
+`<input>`, a `<textarea>` or a `title` tooltip there. The timeline's
+disclosures keep `<details>` for its keyboard behaviour, with the
+browser's triangle replaced by the kit's chevron.
+
+The values are agent-orchestrator's; where it has no such control,
+GOAT's.
+
+| Component | Values |
+| --- | --- |
+| Button, IconButton | 32 / 28 / 24px tall, radius 8, gap 6, padding 12 / 10 / 8. Primary: the ink as a fill with the inset edge (`--shadow-control`). Secondary: a quiet grey fill. Ghost: no fill, a pill that grows on hover. Danger: text, solid only on a confirm step. Busy shows a spinner in place of the icon. |
+| TextField, TextArea | the field shell above; 32px (28px small); the area grows with its text to a limit, then scrolls. An invalid field's edge and message are `--danger`. |
+| Select | a trigger filled as a secondary button, 13px, a 14px chevron; a ghost look for toolbars. The popup below. The chosen option carries a check. Generic over its option's type: it gives back the type it was given, not `string`. |
+| Combobox | a field with suggestions under it that also takes free text. |
+| Menu | items, checkbox and radio items, labels, separators, shortcuts, submenus (offset 9, aligned −5). A destructive item is `--danger`. |
+| Popover | the popup surface with no padding or width of its own. |
+| Popup surface (shared) | `--popup-bg` (white; `#2E2E2E` dark), radius 10, padding 4, `--popup-shadow` (`0 4px 12px -4px`), min width 160, max 320, 6px from its trigger. Rows: min height 32, padding 6 by 8, radius 8, 13px; hover is the ink at 4%, chosen at 7%; a label is 10px, tracked. In over 150ms on `cubic-bezier(0.23, 1, 0.32, 1)` from opacity 0 and scale .98; out over 100ms. |
+| Dialog | centred, 512px, radius 10 on the popup surface, a scrim over the page; in over 120ms. Focus is trapped and returns to what opened it. |
+| Command palette | 720px wide, radius 14, a 48px input at 16px, rows as a popup's. |
+| Tooltip | 12px on the popup surface, radius 8, 6 by 12, an arrow, after 400ms; keyboard focus shows it too. It names an icon-only control; it is never the only place a fact lives. |
+| Switch | a 32 by 16 track, a 14px thumb; on is the primary button's fill. |
+| Checkbox | 16px, radius 6; checked is the primary button's fill with a check. |
+| Segmented | a track of the field fill, radius 12, padding 2; segments 32px (24px small), the chosen one a raised thumb. |
+| Tabs | 36px, 14px medium, 20px apart, a 2px ink underline that slides. |
+| Row, RowList | lists of machines, devices, agents and settings: a card of radius 8 on the surface, rows of 10 by 16 divided by hairlines, a mark (a status dot or a 16px icon), a label at 14 medium, one muted line of details joined with " · ", controls at the right. The selected row is the ink at 7%, never an edge. |
+| Badge, StatusDot, Kbd, Spinner, Skeleton, Banner, EmptyState | as sections 6.4 and 6.11 describe them. |
+
+Three deliberate differences from agent-orchestrator, each for a stated
+reason:
+
+- **Keyboard focus stays visible.** It turns every focus ring off. Here a
+  control focused by the keyboard shows a 2px `--ring` ring
+  (`:focus-visible`), and a field shows it on its shell
+  (`:focus-within`), so there is one box and never a box inside a box.
+- **Text pairs meet WCAG AA** (section 4.3): its passive grey, amber and
+  green are darkened on white.
+- **Pretendard follows Geist** in every stack (section 5.1).
+
+No glass and no blur: GOAT's popups are translucent; these are opaque, as
+agent-orchestrator's are.
+
+The gallery at `/kit` (not linked from the navigation) shows every
+control in every state and size, with long and Korean text;
+`npm run screens` captures it in both themes, opened at the window's edge
+and at 390px wide.
 
 ---
 
