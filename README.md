@@ -535,16 +535,48 @@ browser on Unix (on Windows, open the printed address).
   each permission once, over the composer. Its summary holds the plan,
   the files it touched, its model calls and, under Details, its
   identifiers. A session opened as a terminal is the agent's own TUI.
+  What you type is the session's draft until you send it: it survives
+  leaving the session, a reload and a new launch. In an empty composer
+  Up and Down bring back the prompts you sent. Find in the session
+  (`Ctrl+F`, `⌘F` on a Mac) searches its prompts and messages and counts
+  the matches; the outline at the conversation's left edge, one mark per
+  prompt, shows each prompt and the reply to it and jumps there.
 - **The board** shows every machine's sessions by title, one lane per
   stage of delivery, a session an agent started named on its card; the
   ended ones are in the archive under it. The sidebar lists each
-  machine's live sessions, marked while one works or waits on you.
+  machine's live sessions, marked while one works or waits on you; its
+  Display menu groups them by status instead, sorts them by last
+  activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
+  it opens from the title bar's menu button.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
-  sections): Machines (add, rename, make default, forget), Agents (what
-  each agent on a machine offers: model, effort, permissions), Models,
-  Devices (pairing a phone with a QR code), Sync, Appearance and About. A
-  machine in the sidebar opens it there. The page follows the system's
-  light or dark theme until you choose one in Appearance.
+  sections): General (whether Enter or `Ctrl+Enter` sends), Appearance
+  (theme, interface and code font sizes, the conversation's width, and
+  whether tool calls are collapsed), Shortcuts (every key, searchable,
+  each rebound by pressing the new one; a key another command holds is
+  offered to move), Notifications, Machines (add, rename, make default,
+  forget), Agents (what each agent on a machine offers: model, effort,
+  permissions), Models, Devices (pairing a phone with a QR code), Sync
+  and About. A machine in the sidebar opens it there. The page follows
+  the system's light or dark theme until you choose one.
+- **What you choose is kept by `vessel ui`, not the browser** (ADR
+  0025): each launch opens at a new address, which would start a
+  browser's own storage empty. The preferences are
+  `ui-preferences.json` beside the node book (`--config-dir` moves both),
+  the drafts `ui-drafts.json` in the data directory (`~/.vessel`, or
+  `--data-dir`), both written by this user only (0600, replaced whole).
+  Every open tab sees a change at once; when two tabs change one thing,
+  the later change wins. Settings › General says where they are kept,
+  and says so when they are kept for this launch only (no place to keep
+  them, a file it cannot read, or one written by a newer Vessel, which
+  is left as it is). A new session on a machine starts with the agent,
+  profile and options its last one had there.
+- **Notifications** (Settings › Notifications, off until chosen): a
+  browser notification, a sound, or both, when a session starts to need
+  you or finishes its work while the page is open but not in front, and
+  a count in the tab's title. The browser grants notifications per
+  address, and each launch has a new one: allow them again after each
+  start of `vessel ui` (the section has the button and says what the
+  browser answered).
 - With no machine connected, the page opens on a welcome that offers to
   add one; once one is connected, on the board.
 

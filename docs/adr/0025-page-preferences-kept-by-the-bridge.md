@@ -74,6 +74,13 @@ Questions:
   `~/.vessel` by default) for the drafts. The default answer is memory
   only. A `None` is kept in memory for the launch (`no_place`); an error
   is logged once and kept in memory (`no_path`); the page says which.
+  The CLI's answer is `crates/vessel-cli/src/ui/source.rs`, the one change
+  outside `vessel-web` this decision needs: it returns the error rather
+  than folding it into `None`, and its tests check that `--config-dir`
+  moves the file with the book and that a place it cannot work out is an
+  error. The file is written as the book is: owner-only, a temporary
+  file in its directory renamed over the name, so a link at the name is
+  replaced, never followed.
 - **Lenient by keeping (3).** Each file is `{ "version": 1, ... }`. A key
   this build does not know, or a value it cannot read (one a newer page
   wrote), is kept as opaque `RawJson` and written back; the page is given

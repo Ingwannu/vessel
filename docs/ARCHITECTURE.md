@@ -55,7 +55,7 @@ and 0013).
 | `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal. | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Nothing about sessions, nodes or harnesses. | proto |
-| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
+| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0025). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
 | `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7). | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). | - |
 
@@ -200,27 +200,38 @@ they started.
 ```
 web/src/wire/     generated from the Rust types (proto.ts, bridge.ts) and typed call helpers
 web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, typed calls, resumed
-                  follows; frames narrowed by predicates (frames.ts), replies by their method
+                  follows; frames narrowed by predicates (frames.ts), replies by their method; the
+                  socket's lifecycle (socket.ts) apart from the frames (client.ts); ids.ts, the one
+                  place a plain string or number becomes a branded handle
 web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal
                   adapter, the theme, the palette's entries and the forms' choices as pure functions;
                   every call a screen makes as a typed function giving one `Outcome` (outcome.ts:
                   calls.ts for sessions, book.ts for the book's edits); what /new chooses
                   (new-session, agent-choices, options, picks) and what Settings decides
-                  (machines, pairing, agent-status, devices, sync, welcome), each decision once
+                  (machines, pairing, agent-status, devices, sync, welcome), each decision once;
+                  milestone 11's track W: the preferences the bridge keeps (prefs, prefs-change,
+                  theme) and the drafts (drafts), the shortcuts' registry, matcher and edits
+                  (shortcuts/), find and the outline (find, outline), recall, notices and alerts,
+                  the sidebar's view (sidebar), a machine's remembered start (defaults), and
+                  records keyed by a handle walked with their keys' type (records)
 web/src/features/ an area's components and hooks, each stylesheet beside its component: the shell
                   (frame, sidebar), compose (/new, the composer), session, board, settings/ (the
-                  frame and its sections), machines/ (Machines, Agents, the add-machine dialog),
-                  welcome/, the command palette, the theme switch, the kit's gallery at /kit
+                  frame and its sections, General, Appearance, Shortcuts with its recorder,
+                  Notifications), machines/ (Machines, Agents, the add-machine dialog),
+                  welcome/, shortcuts/ (the one keydown listener and each action's handler),
+                  notifications/ (notices, the tone), the command palette, the theme switch, the
+                  kit's gallery at /kit
 web/src/routes/   the screens, each composing features: home (welcome or board), the board, a
                   session, new session, settings (/settings/<section>), the old addresses'
                   redirects
 web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
 web/src/ui/       the design's tokens, the fonts, the toasts, and the older areas' CSS in styles/
                   (one file per area, imported in order from styles/index.css)
+web/src/testing/  tests' helper that names a fixture's handle without a guard (tests and fixtures only)
 web/scripts/      the build's integrity pass and lint's checks (fonts, controls, file size)
 web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
                   and `screens` (the main screens, the session's states, Settings and the
-                  welcome, and /kit, in both themes)
+                  welcome, track W's screens, and /kit, in both themes)
 ```
 
 The layers import one way: `wire` <- `bridge` <- `data` <- `features` <-
@@ -231,7 +242,52 @@ assertion outside xterm's adapter, no inline suppression, no implicit
 truthiness), `check-controls.mjs` (no native select, input, textarea or
 `title` outside the kit), `check-fonts.mjs` and `check-size.mjs` (300
 lines of TypeScript, 400 of CSS, except a list of files still to divide
-that may only shrink). Milestone 10's plan has the rules and the list.
+that may only shrink; the list is empty since milestone 11). Milestone
+10's plan has the rules. `src/testing/` may be imported only by tests
+and `src/data/fixtures/`, which lint also holds.
+
+**Branded handles.** The generated declarations brand every handle a
+node, the bridge, a harness or the page's bridge client mints:
+`SessionId` is `string & { readonly __brand: "SessionId" }`, so a
+session's id cannot be passed where a machine's key is wanted, as in
+Rust. The brand exists only in the type; the wire is unchanged. What a
+person types or names (a book name, a profile, a path, a title, a URL,
+a key binding), quantities, secrets and content stay plain.
+`vessel-proto`'s `ts/aliases.rs` classifies every primitive alias in one
+table, with the rule; the generator fails its test on an alias in no
+class and on an entry no file declares any more, so a new alias is
+classified in the change that adds it (PROTOCOL.md, "TypeScript
+declarations"). On the page a frame's handles come typed with the frame
+(`isServerFrame`); anything else becomes a handle only through a guard
+of its shape in `bridge/ids.ts` (a session's UUID, a book name or
+`_here`, 32 bytes of hex, a positive counter): the address bar's
+segments (`routes/session.tsx`, `data/where.ts`), the tab's stored
+session, the client's counters. Features may not import `bridge/`, so
+no component mints one.
+
+**What the bridge keeps for the page** (milestone 11, ADR 0025). The
+page's origin is new on every launch, so its own storage starts empty;
+the bridge keeps its preferences and drafts instead. `NodeSource::
+preferences` says where (`PageFiles`): the CLI puts
+`ui-preferences.json` beside the node book (`--config-dir` moves both)
+and `ui-drafts.json` in the data directory; an error finding the place
+is not folded into "nowhere", and the page says the choices are kept
+for this launch only. `keep` runs one task per file, owning its state:
+a tab's `preferences`, `prefer`, `drafts`, `draft` and `save_draft` ops
+go to that task's bounded queue from the tab's read loop, in order; a
+change reads the file right before it and replaces it whole (0600 in a
+0700 directory, a temporary file renamed over it, never through a link
+at the name), keeping unknown keys and values it cannot read; a file
+from a newer Vessel is left alone. Every state of the preferences is
+published with a rising revision on a `watch` and pushed to every tab
+as a `preferences` frame (the latest only), which is also how two tabs
+agree: the later change wins, and the page replaces its guess with what
+the bridge answers. `paint` writes the kept theme, sizes and width on
+the served index's `<html>` from that memory, so the first paint is
+right with no inline script (the CSP allows none). Drafts are saved at
+most once a second, merged meanwhile; the page saves one half a second
+after typing stops and when it is hidden. `chrono` (already the
+protocol's) times a draft's last save.
 
 The page talks only to `vessel ui`'s `/api/ws`: `call` frames carry the
 protocol's own `Call` to a node, `follow` frames stream a session's

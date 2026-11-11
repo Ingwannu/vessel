@@ -1,8 +1,9 @@
 /* The outline (GOAT's minimap): a rail centred on the conversation's
    left edge, 8px a mark; a mark is 24 by 2px at a quarter of the muted
    ink, darker while its prompt is on screen. Its card (320px, the popup
-   surface) is drawn to the right while the mark is hovered or focused. Hidden below 1100px of
-   window: the centred column leaves no gutter there. */
+   surface) is drawn to the right while the mark is hovered or focused.
+   Hidden below 1100px of window: the centred column leaves no gutter
+   there. */
 
 .outline {
   position: absolute;

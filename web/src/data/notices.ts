@@ -1,5 +1,5 @@
 // When the page tells the person about a session it is not showing
-// (DESIGN.md §7.6): a session starts to need them, or finishes its work.
+// (DESIGN.md §7.7): a session starts to need them, or finishes its work.
 //
 // [Decision Log]
 // - Purpose: the owner asked for the browser's notification, a sound and

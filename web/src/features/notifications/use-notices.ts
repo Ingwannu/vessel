@@ -1,5 +1,5 @@
 // Telling the person about sessions they are not looking at (DESIGN.md
-// §7.6): between two polls of a machine's sessions, what started to need
+// §7.7): between two polls of a machine's sessions, what started to need
 // them or finished (data/notices.ts) becomes, while the page is not in
 // front, the browser's notification, a sound and a count in the tab's
 // title, as Settings › Notifications says.

@@ -18,7 +18,12 @@ way, how it maps onto the protocol, and what must not be improvised.
   0020) took the rest from agent-orchestrator, the product the owner wants
   this one to resemble: its shell, its values, its lanes, and the node
   deciding each session's lane. The draft's mockups are in the history,
-  not in the tree.
+  not in the tree. Milestone 11's track W added what the three references
+  have and the page lacked: Settings' General, Appearance, Shortcuts and
+  Notifications (Paseo is the reference for settings), drafts and recall
+  in the composer, find and the outline in a session, the sidebar's
+  Display menu and its sheet on a phone, all kept by the bridge (ADR
+  0025).
 - **The reference is agent-orchestrator** (Apache-2.0): its `DESIGN.md`,
   its token file, its board view and its controls. Where this file gives a
   number, it is theirs unless it says otherwise. Where it has no such
@@ -99,7 +104,7 @@ conversation; the rest of the app must feel like an IDE's debug console.
 | **Board** | Every session, one machine or all, as a board | session card, status lane, creator |
 | **Session** | One session: its timeline and composer, or its terminal | title, timeline, options, permission, summary |
 | **New session** | A page, `/new` (§7.5) | prompt, agent, model, effort, permissions, machine, folder |
-| **Settings** | Sections, each a page (§3.1): Appearance; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | theme; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
+| **Settings** | Sections, each a page (§3.1): General, Appearance, Shortcuts, Notifications; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | the send key and where choices are kept; theme, font sizes, the conversation's width and display; every shortcut; notifications; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
 | **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog (§7.6), this machine's start command |
 
 There is no home dashboard: the index is the board once any machine is
@@ -141,9 +146,18 @@ Devices are sections there too (milestone 10, track W2).
   reconnecting", "disconnected", "refused").
 - **The sidebar, top to bottom** (agent-orchestrator's): the brand; Search
   (a filled row with its shortcut as text); New session (with its key,
-  `N`); Board, with the live count; "Machines" with a "+" that adds one
-  (§7.6), each machine with its live sessions under it; Settings and the
-  theme switch at the foot.
+  `N`); Board, with the live count; "Machines" with Display (a sliders
+  icon) and a "+" that adds one (§7.6), each machine with its live
+  sessions under it; Settings and the theme switch at the foot. The
+  sidebar hides with its shortcut (`⌘B`) or the title bar's button, and
+  stays hidden across launches (ADR 0025).
+- **Display** (Paseo's sidebar menu, in agent-orchestrator's menu):
+  Grouping (Machine, Status), Sort (Created, Last activity, newest first
+  either way) and a "Show ended sessions" switch. Grouping by status
+  heads the list "Sessions" and lists Needs you, Working, Idle and Ended
+  (a group with none is left out), up to ten sessions each, every row
+  naming its machine at the right. The order the sidebar shows is the
+  one "next session", "previous session" and "session 1–9" walk (§7.1).
   While the address is under `/settings`, a Back row and Settings'
   sections (from `data/settings.ts`, under their headings, the current
   one marked) take the machines' place.
@@ -157,9 +171,15 @@ Devices are sections there too (milestone 10, track W2).
   Settings › Machines, which links to the board scoped to it.
 - **A session's row** leads with a mark: a spinner while its agent works,
   a filled needs-you dot while it waits on its owner, else a hollow dot;
-  then its title (§7.4). Up to five per machine, newest first, then "N
-  more" to the board scoped to that machine. Ended sessions are not
-  listed.
+  then its title (§7.4): a session with no title is named by its
+  folder, and one with neither (its folder the home) is "Untitled
+  session", never `~`. Up to five per machine, newest first, then "N
+  more" to the board scoped to that machine. Ended sessions are listed
+  only when Display asks for them.
+- **Below 768px** the sidebar is a sheet (the kit's `Sheet`, GOAT's
+  phone sidebar) from the title bar's menu button, over a scrim, so
+  Settings' sections are reachable on a phone; picking a row closes
+  it.
 - **Search** (`/` or `⌘K`) opens the command palette (§6.13): New
   session and Add a machine; the board and each Settings section; the
   machines (each opening its detail); the sessions by title; the theme.
@@ -178,8 +198,10 @@ Names are UI, ids are protocol.
 /new?machine=:node        a new session, starting on that machine
 /sessions                 the board, all machines
 /sessions?node=:node      the board, one machine
-/sessions/:node/:id       one session, its timeline or its terminal
-/settings                 → /settings/appearance
+/sessions/:node/:id       one session, its timeline or its terminal; a segment
+                          that is not a machine's key or a session's id says
+                          "No session has this address." before any call
+/settings                 → /settings/general
 /settings/:section        one section; an unknown one → the default
 /settings/:section?machine=:node            the machine a section is about
 /settings/agents?machine=:node&agent=:kind  an agent's card open
@@ -291,7 +313,38 @@ move between sections. Below 768px the column's padding is 12px.
   (up to date, behind, not yet) with any kept edit as a warning above
   them. A machine that shares nothing says how to make it the one that
   does.
-- **Appearance**: the colour scheme (system, light, dark).
+- **General**: Composer (the send shortcut: Enter, or ⌘/Ctrl+Enter with
+  Enter starting a line; agent-orchestrator's "Chat send key"), then
+  Kept: where the bridge keeps the preferences (the file's path) and the
+  drafts, or why they are kept for this launch only.
+- **Appearance** (GOAT's and Paseo's): Theme (the colour scheme: system,
+  light, dark); Typography (the interface's text size, 12–20px, 14 by
+  default, and code's, 10–18px, 12 by default: every type token scales
+  with them); Conversation (its width: Comfortable 768px, Wide 1152px,
+  Full; its display: Full, or "Collapse tool calls", Paseo's overview,
+  which folds each run of tool calls, a single one included, into one
+  row saying what ran).
+- **Shortcuts** (agent-orchestrator's "Keyboard shortcuts"): a search
+  over commands and keys, All commands / Modified, Reset all; then a
+  card per group (General, Navigation, Session, Panels), its heading a
+  band on the well's fill, a 44px row per command: its name and a
+  "Modified" badge, its keys as this platform writes them ("or" between
+  two), Edit and a menu (Add another, Remove a key, Restore default). A
+  fixed key says "Fixed". Edit turns the keys into the recorder, "Press
+  shortcut · Esc to cancel": the first chord held with ⌘, Ctrl, Alt or
+  Meta is taken, refused in place when it needs a modifier, when the
+  browser keeps it or when text editing uses it. A key another command
+  holds opens "Shortcut already in use" (Reassign or Cancel); a clash
+  found in what is kept is said on both rows. Below 768px the search
+  takes its own row.
+- **Notifications**: Sessions (Session notifications: Off,
+  Notifications only, Sound only, Notifications and sound; Count in the
+  tab's title), then This launch (the browser's permission, with Allow
+  while it has not been asked; Test notification). See §7.7.
+
+Each of these four is a preference the bridge keeps (ADR 0025), so it
+holds across launches and in every tab, with Settings › General's note
+when it is kept for this launch only.
 - **About**: this page's version and licence, each machine's version and
   the protocol it speaks with the page, and every package the page
   bundles with its licence (checked against `package.json` by a test).
@@ -326,9 +379,12 @@ title bar 36px (the frame's): mark · title (rename in place) · state · ⋯
 ```
 
 The log and the composer share one column, at most 768px and centred
-(agent-orchestrator's transcript); the composer's dock is 16px in and
-12px off the frame's foot. The summary (§6.7, inspector) is 340px, the
-reference's narrowest, and leaves below 1280px of window.
+(agent-orchestrator's transcript; Appearance's Wide is 1152px and Full
+the frame's width); the composer's dock is 16px in and 12px off the
+frame's foot. The summary (§6.7, inspector) is 340px, the reference's
+narrowest, leaves below 1280px of window, and hides with its shortcut
+(`⌘⇧B`). Over the log: the find bar at its top right and the outline
+on its left edge (§6.16).
 
 **Terminal session.** The same title bar, a reconnecting banner if
 needed, then the terminal consumes all remaining height. No summary.
@@ -960,6 +1016,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
 | CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
 | EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
+| Sheet | §6.17: a dialog from the left edge, the sidebar's on a phone |
+| TextField `look="popup"` | the field shell on the popup surface, its edge and shadow (the find bar's, §6.16) |
 | Command palette | a dialog (§6.9) up to 720px wide, 14vh from the top, radius 14, solid where the reference's is glass: a 16px search line, 14px rows 28px tall inset 6px, the highlighted one on a 9% wash, at most 420px of rows in groups, a foot of keys. `⌘K` or `/` (not while typing) |
 
 Icons are the kit's inline set at the reference's stroke and sizes: its
@@ -1004,7 +1062,17 @@ approval (§6.7):
 - **The prompt**: 14px sans on a 22px line, three lines at rest, growing
   to seven, then scrolling; no shell of its own (the box is the shell).
   Enter sends, Shift+Enter starts a line, ⌘ or Ctrl with Enter sends too;
-  the key that ends an input method's composition does not send.
+  with Settings › General's ⌘/Ctrl+Enter, Enter starts a line and only
+  ⌘/Ctrl+Enter sends. The key that ends an input method's composition
+  never sends. What is typed is a draft the bridge keeps, one per
+  session and one for the new-session page, saved half a second after
+  typing stops and when the tab is hidden: leaving, a reload or a new
+  launch brings it back; sending clears it. In an empty composer Up
+  recalls the prompts sent in the session, newest first, Down walks
+  back and past the newest empties it; within a recalled prompt of
+  several lines the arrows move the caret until its first or last line,
+  and editing it ends the walk (Paseo's and GOAT's rules). The
+  new-session page has no history.
 - **The row**, 28px: on the left the "+" (new session only: a round ghost
   button opening "Start with": a profile, when the machine has one for
   the agent, and "Open as terminal" with its arguments), the agent
@@ -1047,7 +1115,43 @@ approval (§6.7):
   light, the ink at 3% in dark. It holds the machine (a ghost select,
   only connected machines enabled) and the folder (a ghost combobox
   suggesting the folders sessions ran in on that machine, newest first,
-  taking anything typed; empty is the machine's home).
+  taking anything typed; empty is the machine's home). On a machine
+  where a session was started before, the page starts with the agent,
+  profile and options that one had (kept per machine with the bridge;
+  Paseo remembers the same).
+
+### 6.16 Find in a session, and the outline
+
+`features/session/find-bar.tsx` and `outline.tsx`, over the session's
+model (`data/find.ts`, `data/outline.ts`), reaching the timeline only
+through its one seam (`reveal.ts`).
+
+- **The find bar** (agent-orchestrator's): `⌘F` in a session, over the
+  log's top right, 12px in, 320px wide; one field on the popup surface
+  holding a search icon, the query, the count ("3/12"), a divider and
+  three 24px buttons (previous, next, close). Enter goes to the next
+  match and Shift+Enter to the previous, wrapping (said to a screen
+  reader); Escape closes and gives focus back. It searches the prompts'
+  and messages' text, folded for case, never the page's DOM, so a match
+  scrolled out of a long log is still found; the search settles 100ms
+  after typing, runs in slices that give the page back every 200
+  entries, and runs again 300ms after the session grows. The match is
+  marked with the CSS Custom Highlight API in the reference's colours
+  (yellow, the current one orange) and scrolled to the middle.
+- **The outline** (GOAT's minimap, Paseo's outline): from two prompts
+  on, a rail on the log's left edge, a 24 by 2px mark per prompt, darker
+  while that prompt is on screen. Hovering or focusing a mark shows a
+  320px card with the prompt and the start of the reply to it; choosing
+  it brings the prompt into view. With the summary open the rail moves
+  to the edge and its marks shorten; below 1100px of window it is not
+  drawn.
+
+### 6.17 The sheet
+
+The kit's `Sheet`: a dialog from the left edge, full height, the window
+less 12px and at most 320px wide, on the sidebar's surface over the
+dialog scrim, sliding in over 200ms (none under reduced motion); Escape
+or the scrim closes it. The sidebar uses it below 768px (§2.2).
 
 ---
 
@@ -1057,25 +1161,34 @@ approval (§6.7):
 
 The operator is in this UI for hours. Shortcuts are first-class.
 
-| Keys | Action |
-| --- | --- |
-| `⌘K` or `/` | command palette (focus search) |
-| `n` | new session, on the machine in view (not while typing; `⌘N` is the browser's) |
-| `Enter` | send the prompt; `Shift+Enter` a new line; `⌘Enter` sends too |
-| `Escape` | close dialog, blur composer, collapse palette |
-| `j` / `k` | next / previous row (when not in an input) |
-| `Enter` | open the selected row |
-| `⌘.` | kill the open session (confirm if running) |
-| `⌘⇧C` | copy session id |
-| `⌘I` | toggle inspector |
-| `⌘B` | toggle sidebar |
-| `[` / `]` | collapse / expand tool calls in view |
-| `g s` | Board |
-| `g m` (or `g f`) | Settings › Machines |
-| `g y` | Settings › Sync |
-| `g d` | Settings › Devices |
-| `1`–`9` | select nth node in the sidebar |
-| `⌘1` / `⌘2` | structured composer vs (future) editor pane — reserved |
+One registry (`data/shortcuts/`) and one listener hold every key; Settings
+› Shortcuts (§3.1) lists and rebinds them, kept with the bridge. ⌘ is
+Ctrl off a Mac, and every key is shown as the platform writes it.
+
+| Keys | Action | Group |
+| --- | --- | --- |
+| `⌘K` or `/` | command palette | General |
+| `N` | new session, on the machine in view (`⌘N` is the browser's) | General |
+| `⌘,` | Settings | General |
+| `G S` | Board | Navigation |
+| `G M` or `G F` | Settings › Machines | Navigation |
+| `G Y` | Settings › Sync | Navigation |
+| `G D` | Settings › Devices | Navigation |
+| `Alt+[` / `Alt+]` | previous / next session, in the sidebar's order | Navigation |
+| `Alt+1`–`Alt+9` | the sidebar's first to ninth session (fixed) | Navigation |
+| `⌘F` | find in the session (§6.16) | Session |
+| `⌘L` | focus the composer | Session |
+| `⌘B` | show or hide the sidebar | Panels |
+| `⌘⇧B` | show or hide the summary | Panels |
+| `Enter` | send the prompt; `Shift+Enter` a new line (§6.15) | composer |
+| `Escape` | close a dialog, the find bar or the palette | — |
+
+A key held with ⌘, Ctrl, Alt or Meta works while typing in a field; one
+without (`N`, `/`, `G S`) stands down there. Nothing fires while an input
+method composes, nor in a terminal off a Mac (the terminal owns Ctrl). A
+sequence's second key comes within 1.5s. Keys are matched by their place
+on the keyboard (`KeyboardEvent.code`), so a layout that moves letters
+keeps the keys where a US keyboard has them.
 
 Show the shortcut in menus and as a `kbd` hint on empty states. Do not
 show a cheatsheet overlay on first run.
@@ -1196,6 +1309,25 @@ goes to `inspect` and `pair`, and is never put in an address, a log, a
 toast or a test's failure message.
 
 ---
+
+### 7.7 Notifications
+
+What the page tells the person about a session they are not looking at
+(`data/notices.ts`, `features/notifications/`): a session that starts to
+need them (a permission or a question waits: the board's `blocked`
+family, ADR 0019) or finishes its work (it was working and is now
+neither working nor waiting). A change between two polls of a machine's
+sessions is news; a session already waiting when the page first sees it
+is not. While the page is not in front, by Settings › Notifications: the
+browser's notification (titled with the session's name and why, tagged
+per session and kind so two tabs show it once; clicking it opens the
+session), a short tone made by the page (after its first click or key:
+browsers allow no sound before), and a count in the tab's title, cleared
+when the page is in front again. While notices are on, a hidden page
+keeps polling; browsers slow a hidden tab's timers, so a notice can come
+up to about a minute late. The browser grants notifications per address,
+and each launch has a new one, so permission is asked again every launch,
+from the section's button; the section says what the browser answered.
 
 ## 8. Accessibility
 
@@ -1392,3 +1524,17 @@ control, GOAT), on purpose:
     this host?" shows the host's name; a Vessel pairing link carries the
     node's id and key but not its name, which the checklist shows once the
     machine has connected.
+17. **Preferences live with `vessel ui`, not the browser** (ADR 0025).
+    The references keep them in the app or the browser's storage; a
+    Vessel launch has a new origin each time, so the bridge keeps them in
+    a file and every tab follows it.
+18. **No notifications inbox.** GOAT lists past notifications; this page
+    tells about a change once (the browser's own list keeps it), and the
+    board is where a waiting session is found.
+19. **Shortcuts are physical keys.** agent-orchestrator records the
+    character typed; Vessel records the key's place (`code`), so `Alt+[`
+    and `G S` stay where they are on any layout, and shows them as a US
+    keyboard prints them.
+20. **One page-wide width for the conversation** (Comfortable, Wide,
+    Full) where GOAT has a slider: three widths cover its range and keep
+    the composer and the log aligned.

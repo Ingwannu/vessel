@@ -786,3 +786,143 @@ Not taken, and why:
 - The desktop and phone shells (ADR 0020, still proposed). All three
   references ship a phone app; Vessel's answer until the decision is the
   page on a phone plus push (track E).
+
+## Track W: progress
+
+Branch `backend/m11-page`. The contract above (reviewed) holds, with the
+deviations listed below. ADR 0025 is taken.
+
+### Built
+
+- **Preferences kept by the bridge** (ADR 0025): `vessel_web::keep`
+  (one task per file, bounded queues, a `watch` with a rising revision
+  pushed to every tab as a `preferences` frame), the lenient codec that
+  keeps unknown keys and unreadable values, `paint` (the theme, sizes
+  and width written on the served index's `<html>` from memory), the
+  ops and frames in `wire/prefs`. The page: `data/prefs.ts` (the store,
+  `prefer` applying a change at once and putting back the bridge's
+  answer), `prefs-change.ts` (the same change rules as the bridge),
+  the theme on it with no flash at first paint.
+- **Drafts**: per session and one for the new-session page, kept by the
+  bridge (`ui-drafts.json`); the page saves 500 ms after typing stops
+  and when the tab is hidden, never per keystroke; Up/Down recall
+  (`data/recall.ts`); the send key chosen in Settings › General.
+- **Shortcuts**: one registry and matcher (`data/shortcuts/`), one
+  listener (`features/shortcuts/`), Settings › Shortcuts with search,
+  the Modified filter, the recorder, Reassign, Restore and Reset all.
+  `palette/shortcuts.ts` is gone.
+- **Find and the outline** over the session's model (`data/find.ts`,
+  `data/outline.ts`), through one seam the timeline exposes
+  (`reveal.ts`: `Timeline` takes `reveal` and `scrollerRef`, and its
+  items carry `data-entry`).
+- **Notices**: `data/notices.ts` (a pure function of two polls, ADR
+  0019's placement), the browser notification, a tone, the tab's title,
+  Settings › Notifications.
+- **Sidebar and Appearance**: Display (group by machine or status, sort
+  by created or last activity, show ended), hiding, the phone sheet;
+  interface and code sizes, content width, "Collapse tool calls"; a new
+  session on a machine starts as its last one did (`data/defaults.ts`,
+  kept per machine id).
+- **Milestone 10's leftovers**: an untitled session without a folder is
+  "Untitled session"; Settings is reachable below 768px (the sheet);
+  `bridge/client.ts` divided (`socket.ts`, `failure.ts`) and
+  `check-size.mjs`'s list is empty; branded ids (below).
+
+### The coordinator's conditions
+
+- `NodeSource::preferences` and its override in
+  `crates/vessel-cli/src/ui/source.rs`: an error working out the place
+  is returned, not folded into "nowhere" (`a_place_that_cannot_be_worked_out_is_an_error`),
+  and the bridge keeps the choices for this launch and says so in both
+  cases (`without_a_place_they_are_kept_for_this_launch`: no place, and
+  an error). The file sits beside the book and is written as the book
+  is: owner-only (0600, its directory 0700), a temporary file in that
+  directory renamed over the name, so a link at the name is replaced,
+  never followed; `--config-dir` moves it with the book
+  (`the_pages_files_follow_the_book_and_the_data_directory`).
+- Branded ids (`dbfa8e2`, after the page's `0d0e042`, both after the
+  preferences work): the rule, the numeric handles, one table and its
+  tests, secrets plain, guards only at the edges, as PROTOCOL.md's
+  "TypeScript declarations" says.
+  - Rule: a handle minted by a node, the bridge, a harness or the page's
+    bridge client is branded (`SessionId`, `NodeId`, `NodeKey`,
+    `DeviceId`, `ToolCallId`, `PermissionId`, `PermissionOptionId`,
+    `OptionId`, `OptionValueId`, `TransferId`, `HarnessSessionId`,
+    `BlobHash`, `NodePublicKey`, `LaunchId`, `Nonce`).
+  - Numeric handles are branded (`CallId`, `StreamId`,
+    `SubscriptionId`): the first two come from one counter in the
+    client and are looked up in different maps, which is the mistake a
+    brand stops; minting them costs one guard where the counter is read.
+  - The classification is `vessel-proto/src/ts/aliases.rs` (ts.rs is 384
+    lines); vessel-proto's test fails on an unclassified alias of its
+    own, vessel-web's on one of the bridge's and on an entry neither
+    file declares any more.
+  - Page: `bridge/ids.ts` is the only place a brand is given (features
+    may not import `bridge/`); a frame's handles come typed with the
+    frame's guard (`isServerFrame` checks the frame's kind, not each id:
+    the bridge is authenticated and generated from the same types);
+    route segments and `?machine=`/`?node=` go through `nodeKeyOf` and
+    `sessionIdOf`. Tests use `src/testing/ids.ts`'s `fixtureId`, which
+    lint allows only in tests and `data/fixtures/`.
+  - Typed-by-person values (`ProfileName`, `SecretName`, `SessionTitle`,
+    `FilePath`, `EnvName`, `HttpUrl`, `BookName`) are not branded: see
+    "Not built".
+
+### Checked, and how
+
+- Rust: `vessel-web`'s `tests/ui/prefs.rs` (ordering, two tabs, two
+  bridges, a change from another process, no place, an error, an
+  unreadable or newer file never written, drafts merged across two
+  bridges and bounded, the index's first paint), the keep modules' unit
+  tests, the CLI's two tests above, the alias tests.
+- Web: vitest over every data module named above; Playwright's
+  `e2e/page.spec.ts` against the test fleet's real `vessel ui` (the
+  theme painted on the index before any script, a draft surviving a
+  reload, Up recall, find's count, rebinding with a clash and Reset all,
+  `Ctrl+Enter` mode, the sidebar's status grouping, Settings from the
+  phone sheet, an address naming no session).
+- Screens: `e2e/page-screens.ts` captures General, Appearance,
+  Shortcuts (recording, reassign), Notifications, the find bar, the
+  outline's card, collapsed tool calls, the Display menu and status
+  grouping, and at 390px the sheet and Shortcuts, light and dark.
+- Find, 5,000 entries (`VESSEL_FIND_TIMINGS=1 npx vitest run
+  src/data/find.speed.test.ts`, three runs on the development machine):
+  the first search 92.7–95.4 ms in all, given back to the page every 200
+  entries, the longest stretch without a yield 6.9–7.6 ms; a repeated
+  search (the session growing) median 4.2–4.4 ms; 20,000 matches.
+
+### Not built, and why
+
+- **Brands for values a person types.** A book name, a profile, a path,
+  a title or a URL is text from a form; branding it would put a guard on
+  every field and say nothing a validator does not. Each is checked where
+  it is typed (the book's name rule on the page, the rest by the node).
+- **A notifications inbox** (GOAT's list): the browser keeps its own
+  list; a waiting session is on the board.
+- **Editing a machine's remembered start in Settings**: the page
+  remembers what the last session on a machine started with (Paseo's
+  behaviour); `forget_defaults` is on the wire but has no button yet.
+- **Firefox and Safari**: only Chromium runs the end-to-end tests;
+  notification permission and the Custom Highlight API were not checked
+  in other browsers (Safari cannot open `vessel ui` at all).
+
+### Deviations from the references
+
+DESIGN.md §12, 17–20: preferences kept by `vessel ui`; no inbox;
+shortcuts as physical keys (`code`), shown as a US keyboard prints them;
+three content widths instead of GOAT's slider. "Collapse tool calls"
+folds a single call too (Paseo's overview does).
+
+### For the page track (Track P)
+
+- `timeline.tsx` maps `TimelineEntry` (from `folds.tsx`'s
+  `FoldProvider`) and takes `reveal` and `scrollerRef`; a windowed
+  timeline must keep `data-entry` on prompts and messages and scroll a
+  revealed key into view even when it is not rendered (find and the
+  outline hand it a key, never a node).
+- `files.rs` splices the first paint's attributes after the index's one
+  `<html lang="en"`; a change to how the index is served keeps that.
+- Drafts are read once when the link opens and written by the `Drafts`
+  owner in `data/drafts.ts`; a composer never writes per keystroke.
+- A `preferences` frame may skip revisions (the bridge pushes the latest
+  only); compare by revision, never count frames.
