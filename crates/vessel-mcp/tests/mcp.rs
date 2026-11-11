@@ -291,7 +291,12 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
             ]
         );
 
-        assert_eq!(names.len(), 18);
+        // Then the project and worktree tools (protocol 10), then LSP's.
+        assert_eq!(
+            &names[8..11],
+            ["list_projects", "list_worktrees", "create_worktree"]
+        );
+        assert_eq!(names.len(), 21);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.
