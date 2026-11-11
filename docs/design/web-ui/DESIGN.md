@@ -3,12 +3,15 @@
 This file is the contract for `vessel ui`'s page: why it is shaped this
 way, how it maps onto the protocol, and what must not be improvised.
 
-- The tokens are `web/src/ui/tokens.css`, the components
+- The tokens are `web/src/ui/tokens.css`. The controls are the kit,
+  `web/src/ui/kit/` (§6.13): one component per file, its stylesheet beside
+  it, on Base UI for behaviour (ADR 0021). The areas' styles are
   `web/src/ui/styles/*.css`: one file per area, imported in a fixed order
-  from `styles/index.css` (ADR 0021). There is no other token file
-  (ADR 0018).
+  from `styles/index.css`. There is no other token file (ADR 0018).
 - The pictures are the app's own screens: `npm run screens` in `web/`
-  captures every main screen in both themes.
+  captures every main screen in both themes, and the kit's gallery at
+  `/kit` (every control in each state and size) light and dark, at full
+  width and at 390px.
 - Milestone 7 built the first version from a dark, blue-accented draft
   with static mockups. Milestone 8 (ADR 0018) made it white and black, one
   design system, with sessions as a board. Milestone 9 (ADRs 0019 and
@@ -17,10 +20,13 @@ way, how it maps onto the protocol, and what must not be improvised.
   deciding each session's lane. The draft's mockups are in the history,
   not in the tree.
 - **The reference is agent-orchestrator** (Apache-2.0): its `DESIGN.md`,
-  its token file and its board view. Where this file gives a number, it is
-  theirs unless it says otherwise. Two things differ on purpose: text
-  colours that fall short of WCAG AA on white are darkened, and the face
-  is Pretendard (the owner's font rule), at their sizes.
+  its token file, its board view and its controls. Where this file gives a
+  number, it is theirs unless it says otherwise. Where it has no such
+  control, the second source is
+  [GOAT](https://github.com/goat-si/goat) (MIT); agent-orchestrator wins
+  where the two differ. The deliberate differences are listed once, in
+  §12: keyboard focus always visible, text held to WCAG AA, Pretendard
+  after Geist for Hangul, and no glass or blur.
 
 The product is an **Agentic Development Environment**: one seat driving
 AI coding harnesses (Claude Code, Codex, Gemini, OpenCode) as sessions on
@@ -51,7 +57,8 @@ marketing site and not a chat app with a sidebar bolted on.
 5. **Monospace is a material.** It marks things a machine produced or a
    person could type: ids, paths, models, versions, generations, prompts,
    code, the terminal. Human sentences — navigation, button labels, empty
-   states, explanations — are Pretendard.
+   states, explanations — are the sans face (Geist, with Pretendard for
+   Hangul).
 6. **Attribution is visible.** A session created by a person and a
    session created by an agent on another node are not the same row with
    a different icon. Agent-created sessions nest under their creator.
@@ -129,7 +136,8 @@ There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
 - **The sidebar, top to bottom**: the brand; Search (a filled row with its
   shortcut as text); the places (Fleet, Sessions with the fleet's live
   count, Sync, Devices); "Nodes" with a + that starts a session; each node
-  with its live sessions under it; Settings at the foot.
+  with its live sessions under it; Settings and the theme switch at the
+  foot.
 - **A row** is 32px, 10px radius, 14px medium, secondary text. Its fill is
   a pill that grows from 4px inside the row on hover (150ms) and stays, at
   7% instead of 4%, on the current row. No bar marks the current row.
@@ -139,8 +147,8 @@ There is no "home dashboard" distinct from Fleet. Fleet *is* the home.
   a filled needs-you dot while it waits on its owner, else a hollow dot;
   then its title and its id. Up to five per node, then "N more" to the
   board scoped to that node. Ended sessions are not listed.
-- **Search** (`/` or `⌘K`) is a palette over nodes and sessions, opening
-  under its row.
+- **Search** (`/` or `⌘K`) opens the command palette (§6.13): actions,
+  places, nodes, sessions and the theme.
 - **New** is the one primary action, in the title bar on every page, and
   opens the create dialog on the selected node (§2.5).
 
@@ -280,10 +288,12 @@ focus for keyboard.
 ## 4. Design tokens
 
 All tokens live in `web/src/ui/tokens.css` as CSS custom properties on
-`:root` (light, the design) and `:root[data-theme="dark"]` (its
-inversion). `web/src/ui/styles/` uses tokens only; a literal colour there
-is a defect, except the pairing QR code, which stays dark on light to
-scan.
+`:root`. Every colour is one `light-dark(<light>, <dark>)` value (ADR
+0021), so the two tables below are the two halves of the same
+declarations, and a token cannot exist in one theme only. Which half is
+used is the CSS colour scheme (§8, Theme). `web/src/ui/kit/` and
+`web/src/ui/styles/` use tokens only; a literal colour there is a defect,
+except the pairing QR code, which stays dark on light to scan.
 
 Do not introduce a third palette, and do not add a hue to the chrome.
 Status and syntax draw from the tables below.
@@ -419,8 +429,8 @@ its own and never uses the page's.
 | Token | px | Use |
 | --- | --- | --- |
 | `--r-1` | 4 | badges, small chips |
-| `--r-2`, `--r-3` | 8 | buttons, inputs, menus |
-| `--r-4` | 10 | sidebar rows, board cards |
+| `--r-2`, `--r-3` | 8 | buttons, fields, option rows, tooltips |
+| `--r-4` | 10 | sidebar rows, board cards, popups and dialogs |
 | `--r-5` | 12 | the frame; the terminal's inner frame |
 | `--r-6` | 16 | the terminal's outer frame |
 
@@ -429,25 +439,33 @@ The terminal uses the concentric pair 16 / 12 with a 4px gap
 
 ### 4.6 Elevation
 
-Shadows are for what floats: dialogs and menus,
-`0 4px 12px -4px` of the ink at 12% (black at 40% in dark) over a hairline.
-Cards, rows and tables use hairlines, never shadows.
+Shadows are for what floats. Every popup (menus, selects, popovers,
+tooltips, dialogs, the palette) is the reference's popup surface:
+`--popup-bg` (white; `#2E2E2E` in dark), an edge of the ink at 2%
+(`--popup-edge`), and `--popup-shadow`, `0 4px 12px -4px` of the ink at
+5% (black at 14% in dark). Toasts keep `--shadow` (the same offset at
+12%, 40% in dark, over a hairline). Cards, rows and tables use hairlines,
+never shadows.
 
 A filled button's only depth is inside it (`--shadow-control`): a top edge
 lit at 6% and a bottom edge shaded at 10%. No outer shadow, no glow.
 
-`--overlay`: the ink at 32% light, black at 56% dark.
+`--overlay` (a dialog's scrim): the ink at 45% light, the page's own
+black at 85% dark: the reference's. No blur behind it.
 
 ### 4.7 Motion
 
 | Token | Value |
 | --- | --- |
-| `--ease` | `cubic-bezier(0.16, 1, 0.3, 1)` |
+| `--ease` | `cubic-bezier(0.23, 1, 0.32, 1)` (the reference's ease-out) |
 | `--d-1` | `120ms` |
-| `--d-2` | `180ms` |
-| `--d-3` | `240ms` |
+| `--d-2` | `150ms` |
+| `--d-3` | `280ms` |
 
-Animate `opacity` and `transform` only. Dialogs: fade + 8px rise.
+Animate `opacity` and `transform` only. A popup comes in over 150ms on
+`--ease` from opacity 0 and a scale of .98 around its anchor, and goes
+over 100ms. A tooltip grows from .95 over 150ms. A dialog: its scrim over
+80ms, the dialog over 120ms from opacity 0 and .95.
 Inspector and sidebar: width, not a bounce. Tool-call expand: the
 `<details>` disclosure, no extra animation. Live status dots do not
 pulse unless the state is `starting` or `reconnecting`, and even then
@@ -461,22 +479,40 @@ the pulse is opacity 1 → 0.45 → 1 over 1.6s, stopped under
 ### 5.1 Families
 
 ```css
---font-sans: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
-             sans-serif;
---font-mono: Consolas, "JetBrains Mono", "Cascadia Mono", Pretendard, monospace;
+--font-sans: "Geist Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+             "Segoe UI", sans-serif;
+--font-mono: "Geist Mono Variable", Consolas, "SF Mono", Menlo,
+             "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono",
+             "Liberation Mono", "Noto Sans Mono", Pretendard, monospace;
 ```
 
-**Mandatory host rule, applied everywhere:**
+The reference's faces, Geist and Geist Mono (SIL Open Font License 1.1),
+bundled from `@fontsource-variable/geist` and `geist-mono` as it bundles
+them (ADR 0021); then Pretendard for the scripts Geist lacks, Hangul
+first of all; then the system's faces. xterm.js takes the mono stack.
 
-- Pretendard is first in every `font-family`, including the mono stack
-  (after the real monospace faces, before the generic `monospace`).
+**Mandatory host rule, applied everywhere** (`scripts/check-fonts.mjs`
+fails `npm run lint` on a stack that breaks it):
+
+- Pretendard is in every `font-family` and canvas font, ahead of any
+  generic family (`monospace`, `ui-monospace`, `serif`); in the mono
+  stack, after the real monospace faces. A stack that names Geist names
+  Pretendard after it.
 - Never put a bare `monospace` or `serif` first.
-- Never use Gulim, Dotum, Batang, or any family that renders as a pixel
-  font on Korean Windows Chrome.
-- **The app self-hosts Pretendard** (woff2, `font-display: swap`). No
-  font is loaded from a CDN.
+- Never use Gulim, Dotum, Batang, IBM Plex Mono, or any family that
+  renders as a pixel font on Korean Windows Chrome.
+- **Bundled only.** Geist, Geist Mono and Pretendard are served from the
+  page's own origin (woff2, `font-display: swap`); no font is loaded from
+  a CDN. The Latin Geist file is preloaded from `index.html` (Vite gives
+  the preload the same hashed name the stylesheet uses), so the first
+  paint does not wait on finding it through the CSS.
 
-Two families only. No display serif, no third mono.
+Two faces and their fallback: no display serif, no third mono.
+
+Weights 400, 500 and 600 only. Text is antialiased
+(`-webkit-font-smoothing: antialiased`), titles track −0.01em
+(`--tracking-tight`), and numbers that line up in columns or count
+(counts, ids, times) are tabular (`font-variant-numeric: tabular-nums`).
 
 Ligatures off on `--font-mono` (`font-variant-ligatures: none`) so
 paths and flags do not turn into unfamiliar glyphs.
@@ -506,10 +542,11 @@ use 600 for `h3`/`h4` equivalents; there is no `h1` inside a session.
 
 ## 6. Component inventory
 
-Every component below is in `web/src/ui/styles/` under the same class
-name. States
-to implement: default, hover, active, focus-visible, disabled,
-loading, error, empty.
+A control is a kit component (`web/src/ui/kit/`, §6.13), its look in the
+stylesheet beside it; the areas' pieces (cards, timeline, terminal) are in
+`web/src/ui/styles/` under the class names below. States to implement:
+default, hover, active, focus-visible, disabled, loading, error, empty.
+Every state of every control is on `/kit`.
 
 ### 6.1 Buttons
 
@@ -527,28 +564,42 @@ deepens the fill; nothing scales or moves.
 The primary button is the one dark shape on the page; that is why there
 is one per view.
 
-Icon + label. Icon-only buttons need `aria-label`. Gap 6px. Radius
-`--r-2`. Disabled at 50% opacity, `pointer-events: none`.
+Icon + label. Icon-only buttons (`IconButton`) take a `label`, which is
+their accessible name and, where the meaning is not obvious, a tooltip's
+text. Gap 6px. Radius `--r-2`. Icons are 16px in 32px and 28px buttons,
+14px in 24px ones. Busy: a spinner in place of the icon, the width kept,
+`aria-busy`. Disabled at 50% opacity, `pointer-events: none`.
 
 ### 6.2 Inputs
 
-Text fields, selects, the composer. Surface fill, 1px `--border-subtle`,
-focus: 1px `--accent` (the ink, not a glow). A search well and a segmented
-control's track are filled `--bg-hover` with no edge; the chosen segment
-is a white (black, in dark) thumb with a `--border-strong` ring. Height 32px. Placeholder
-`--text-tertiary`. Labels sit above, `--t-meta`, never inside.
+Text fields, text areas, the composer's box, a combobox. **A field is
+one shell**: the shell has the edge, the fill and the focus ring, and the
+input inside it draws nothing (no border, outline or fill). The values are
+the reference's settings input: `--field-bg` (the ink at 4%) inside
+`--field-edge` (black at 8%; white at 3% in dark), radius 8, 14px text,
+32px tall (28 small); placeholder `--text-tertiary`; an invalid field's
+edge in `--danger`, its message under it. Focus, by mouse or keyboard,
+is the shell's `:focus-within`: a 2px `--ring` over its edge (offset
+−1px), so a focused field is one box. A text area grows with its text up
+to `maxRows`, then scrolls.
 
-Selects use the native control styled; the app may replace with a
-listbox later. Model picker is a listbox grouped by provider, not a
-flat 40-item `<select>` once routing exists.
+Labels sit above, 13px medium in the primary colour, never inside; a
+hint (tertiary) or an error (`--danger`) under the control in `--t-meta`
+(kit `Field`). A group of choices is a
+`FieldGroup` (`role="group"` named by its label, so each radio keeps its
+own name).
 
-Checkbox / radio: 14px square/circle, accent when on.
+Selects, segmented controls, switches and checkboxes: §6.13. None is the
+browser's.
 
 ### 6.3 List rows and tables
 
 `.table` is a `<table>` with hairline row borders, no vertical rules, no
 zebra. Column headers are sentence case in `--t-kicker`. Hover
 `--bg-hover`. Selected `--bg-active` plus a 2px ink bar on the left.
+A list of things with settings or facts (machines, devices, agents) is
+not a table: it is the kit's `Row` (§6.14), whose selection is a wash
+only.
 
 Columns align: status (dot + word), name (sans), machine facts (mono),
 counts (mono, right). Primary click target is the row. Row actions
@@ -606,7 +657,7 @@ item is a row with a 8px glyph on the rail:
 User and agent are not two chat bubbles on opposite sides. This is a
 log, left-aligned, like an editor's output channel.
 
-Markdown: Pretendard, 13/20. Inline code and fences use `--font-mono`
+Markdown: the sans face, 13/20. Inline code and fences use `--font-mono`
 on `--bg-elevated` with a hairline. Headings inside a turn start at
 the `h3` equivalent (14px / 600). Lists and blockquotes get a 1px
 accent-left only for blockquotes.
@@ -660,11 +711,14 @@ black in the light theme. xterm.js takes them as its theme.
 
 ### 6.9 Dialogs
 
-`.dialog` 480–560px, `--bg-elevated`, radius `--r-4`, padding `--s-4`.
-Header 13px / 600, close ghost button. Footer right-aligned, ghost
-Cancel then primary. `role="dialog"` `aria-modal="true"`
-`aria-labelledby`. Focus moves in on open and back to the opener on
-close.
+The kit's `Dialog`, the reference's base dialog: centred, 512px (`lg`,
+640px), the popup surface (§4.6) at radius 10, 16px inside. Title 15px /
+600; a ghost close button at the top right. Footer right-aligned, ghost
+Cancel then one primary. The scrim is `--overlay`, no blur. Base UI
+gives `role="dialog"`, `aria-modal`, the label, the focus trap, the
+scroll lock and the inert page. Focus moves in on open (the first field
+in the body, else the last footer button) and back to the opener on
+close. The command palette (§6.13) is a dialog on the same scrim.
 
 Dimmer click and Escape cancel, unless a pairing invite is live and
 uncopied — then confirm.
@@ -766,6 +820,68 @@ the agent is doing.
   interactive is nested in an `<a>`.
 - One action slot at the end of the title row, shown on hover or focus
   without moving the title: Kill, for a live session. It asks first.
+
+### 6.13 Controls (the kit)
+
+`web/src/ui/kit/`, exported from its `index.ts`. Behaviour (focus,
+typeahead, placement, dismissal, ARIA) is Base UI's; the look is the CSS
+beside each component, from tokens only. Screens import controls from
+the kit and never from `@base-ui/react` (lint holds both). Props are
+closed unions: a variant, a size, a choice's value type `V` that comes
+back typed, and props that only make sense together as one discriminated
+union.
+
+**Nothing the browser draws.** No `<select>`, `<input>` or `<textarea>`
+outside the kit, and no `title` attribute (the browser's tooltip):
+`scripts/check-controls.mjs` fails `npm run lint` on one. The rest is
+CSS: no disclosure triangle on `<details>` (a chevron icon turns
+instead), selected text in `--selection`, scrollbars in `--scrollbar`
+(thin inside popups), no default checkbox or radio glyph, and focus as
+the design's ring (§8).
+
+Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
+`--h-sm`, `--h-xs`), radius 8 for controls and 10 for popups.
+
+| Part | Anatomy and values |
+| --- | --- |
+| Popup surface | shared by Select, Menu, Combobox, Popover, Tooltip: `--popup-bg`, radius 10, 4px padding, `--popup-edge`, `--popup-shadow`; at most 320px wide and the window less 32px; long lists scroll inside under a thin bar; motion §4.7. Placed below its trigger 6px away, flipped and shifted at the window's edge (8px from it) |
+| Option row | 13px / 1.5 (about 32px), 8px by 6px, radius 8; secondary text at rest; highlighted on the 4% wash in the primary colour; chosen or open on the 7% wash; a muted detail at the right (12px, tertiary, cut first); a group's heading 10px, tracked, tertiary. A row reached from the keyboard also takes the ring, inside it |
+| Select | trigger: the secondary button's raised surface (an edge 5% darker, the inset bevel), 13px, the value then its detail, a chevron that turns over 300ms while open; `ghost`: no fill until hover. `md` 32px, `sm` 28px; `fill` or `fit` width. The list is at least the trigger's width, below it, not over it |
+| Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px menu), checkbox rows (16px box, radius 6), radio groups (a check at the right), submenus (the current value and a chevron), separators, a danger row |
+| Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text |
+| Popover | the popup surface with 16px inside, 256, 320 or 384px wide (GOAT's), a 13px semibold title |
+| Tooltip | 12px on the popup fill, no edge, 6px by 12px, radius 8, a 10px arrow; after 400ms of hover or on keyboard focus; a shortcut after the words. Never takes the pointer |
+| Switch | a 32 by 16 track, inset shading only, a 14px thumb sliding 16px; off: the ink's thumb on the 4% track; on: the primary fill and a thumb in its text colour. A hit area 12px past each side |
+| Checkbox | 16px, radius 6, the strong hairline on the field fill; checked: the primary fill with a 12px check |
+| Segmented | a radio group: a track on the field fill and edge, 2px inside and between, radius 12; 13px segments 32px tall at radius 10 (`sm`: 24px); the chosen one is GOAT's thumb, the surface lifted by a hairline. Icons alone only with every option's icon (its label is the name) |
+| Tabs | 14px medium labels 36px tall and 20px apart over a hairline; the chosen one in the ink over a 2px underline that slides to it |
+| Badge | §6.4; `word`, `accent` or `mono` |
+| Kbd | as text (11px, tertiary, the sidebar search's), or a key chip: 20px, radius 4, 12px medium on the 7% wash |
+| Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
+| EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
+| Command palette | a dialog (§6.9) up to 720px wide, 14vh from the top, radius 14, solid where the reference's is glass: a 16px search line, 14px rows 28px tall inset 6px, the highlighted one on a 9% wash, at most 420px of rows in groups, a foot of keys. `⌘K` or `/` (not while typing) |
+
+Icons are the kit's inline set at the reference's stroke and sizes: its
+1.5 on a 24-unit grid is 1 on this set's 16-unit grid (about a pixel at
+16px); 16px in buttons and tabs, 15 in menus, 14 in the composer and the
+densest buttons.
+
+**The gallery.** `/kit` shows every control in each state and size, with
+long and Korean text. It needs no token and nothing links to it;
+`npm run screens` captures it light and dark, at full width and at 390px,
+with each popup open from the keyboard. A new control goes into the kit,
+with its states on `/kit`, before a screen uses it.
+
+### 6.14 Rows
+
+The kit's `RowList` and `Row`, for machines, devices, agents and settings:
+agent-orchestrator's settings card with GOAT's machine row inside it. The
+list: radius 8 on the card fill, no border, 4px above and below, rows
+divided by hairlines. A row, 10px by 16px: a mark (a 16px icon, or a
+state dot), the title at 14px medium, under it a 13px description or a
+12px line of facts joined by " · ", then the control (a switch, a badge)
+and a menu at the right. **Chosen is the 7% wash, never an edge or a
+bar.** Fleet's machines are rows.
 
 ---
 
@@ -876,9 +992,12 @@ not only as a toast.
 
 ## 8. Accessibility
 
-- **Focus.** `:focus-visible` is a 2px `--accent` ring, offset 2px,
-  on every control. Do not remove outlines. Mouse click does not
-  leave a ring (`:focus-visible` only).
+- **Focus.** `:focus-visible` is a 2px `--ring` ring, offset 2px, on
+  every control (the reference shows none; §12). A field draws it on its
+  shell (`:focus-within`, over the edge); an option row reached from the
+  keyboard draws it inside itself; a popup's own surface does not draw
+  it. Do not remove outlines. A mouse click on a button does not leave a
+  ring (`:focus-visible` only).
 - **Hit targets.** 32px desktop, 44px below 768px for the primary
   controls (nav, composer send, dialog buttons).
 - **Landmarks.** `role="banner"` topbar, `role="navigation"` sidebar,
@@ -897,9 +1016,18 @@ not only as a toast.
 - **Reduced motion.** `prefers-reduced-motion: reduce` disables the
   starting/reconnecting pulse, skeleton shimmer, dialog rise (opacity
   only), and any type-in. Instant state, no delay.
-- **Theme.** Light on first run, whatever the system prefers: white is
-  the product's look (ADR 0018). The Settings toggle writes the choice.
-  Do not flash one theme then the other: set the attribute before paint.
+- **Theme.** System, light or dark; system by default, as the references
+  have it (ADR 0021, replacing ADR 0018's light on first run). CSS
+  decides: `:root` is `color-scheme: light dark`, so with no choice stored
+  the page follows the system from its first paint, and live, with no
+  script (the content security policy forbids an inline one). A stored
+  choice sets `data-theme="light"` or `"dark"` on `<html>` before React's
+  first render, which pins the scheme. The switch is in three places:
+  Settings (a segmented control), the sidebar's foot (an icon button
+  showing the scheme in use, with a menu), and the command palette
+  ("Theme: system / light / dark"). The terminal stays dark in both
+  (§4.4); xterm.js gets resolved colours and takes them again when the
+  scheme changes.
 - **Language.** UI copy is English, matching the CLI. `lang="en"` on
   `<html>`. Pretendard still covers Korean in session markdown and
   paths.
@@ -983,8 +1111,32 @@ starts one on gpu-box, that agent starts one on build-server.
   in a grey shell, the ink as the accent, one colour per lane, the node
   deciding each session's lane and phrase, the archive apart from the
   lanes (ADRs 0018, 0019, 0020).
+- **Controls (milestone 10, ADR 0021):** Base UI for behaviour, the look
+  ours; Geist then Pretendard; the system's theme by default.
 - **Trade-offs:** denser than consumer chat, so new users will need
   the empty states to be plain-spoken. With no hue in the chrome,
   structure rests on hairlines and type weight alone, so a careless extra
   border or a second bold shows at once. Three of the four lanes stay
   empty until a node can see pull requests.
+
+---
+
+## 12. Deliberate differences from the references
+
+Where this page is not agent-orchestrator (or, where it has no such
+control, GOAT), on purpose:
+
+1. **Keyboard focus is always visible**: a 2px `--ring` on
+   `:focus-visible`, on the field's shell, inside an option row reached
+   from the keyboard. The reference removes focus outlines.
+2. **Text meets WCAG AA** (4.5:1) at this UI's sizes: the tertiary grey
+   and the in-review and ready colours are darkened (§4.3), and the
+   menus' small labels and shortcuts use the tertiary colour where the
+   reference uses a lighter grey.
+3. **Pretendard after Geist** in every stack, ahead of any generic
+   family: Geist has no Hangul, and the owner's font rule (§5.1).
+4. **No glass, no blur.** The command palette and the scrims are solid
+   where the reference's palette is translucent and blurred.
+5. **A segmented control's chosen segment** is GOAT's lifted thumb: the
+   reference's (its menu's 7% fill on the field fill) cannot be told
+   apart on a white card.

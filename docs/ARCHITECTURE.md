@@ -191,15 +191,31 @@ they started.
 
 ```
 web/src/wire/     generated from the Rust types (proto.ts, bridge.ts) and typed call helpers
-web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, typed calls, resumed follows
-web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal adapter
+web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, typed calls, resumed
+                  follows; frames narrowed by predicates (frames.ts), replies by their method
+web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal
+                  adapter, the theme, the palette's entries and the forms' choices as pure functions
+web/src/features/ an area's components and hooks: the command palette, the theme switch, the
+                  kit's gallery at /kit
 web/src/routes/   the screens: fleet, sessions, session (structured / terminal), new session,
                   sync, devices, settings
-web/src/ui/       the shell, components, the design's tokens, and the CSS in styles/ (one file
-                  per area, imported in order from styles/index.css)
+web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
+web/src/ui/       the shell, the design's tokens, the fonts, and the areas' CSS in styles/ (one
+                  file per area, imported in order from styles/index.css)
+web/scripts/      the build's integrity pass and lint's checks (fonts, controls, file size)
 web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
-                  and `screens`
+                  and `screens` (the main screens, and /kit in both themes)
 ```
+
+The layers import one way: `wire` <- `bridge` <- `data` <- `features` <-
+`routes`, and `ui/kit` and `ui/styles` import none of them; only the kit
+imports `@base-ui/react`. ESLint's `no-restricted-imports` holds the
+directions, and `npm run lint` also runs the strict type rules (no type
+assertion outside xterm's adapter, no inline suppression, no implicit
+truthiness), `check-controls.mjs` (no native select, input, textarea or
+`title` outside the kit), `check-fonts.mjs` and `check-size.mjs` (300
+lines of TypeScript, 400 of CSS, except a list of files still to divide
+that may only shrink). Milestone 10's plan has the rules and the list.
 
 The page talks only to `vessel ui`'s `/api/ws`: `call` frames carry the
 protocol's own `Call` to a node, `follow` frames stream a session's

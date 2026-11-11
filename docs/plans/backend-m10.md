@@ -240,3 +240,155 @@ at, in both themes, beside the references' own.
 
 - Whether the page's words (machine, agent) should reach the CLI.
 - Plugins and the shells.
+
+## Track W0: progress (2026-11-11)
+
+Built on `backend/m10` as it stood before track E's merge, in `web/` and
+the docs this track owns (`docs/design/web-ui/DESIGN.md`, ADR 0021, the
+web UI section of `docs/ARCHITECTURE.md`). No crate and no wire type
+changed.
+
+What was built:
+
+- **Dependencies** (ADR 0021): `@base-ui/react` 1.9.0,
+  `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`
+  5.3.0, pinned exactly; the Geist licences served beside Pretendard's.
+- **The stylesheet in parts.** `app.css` is `web/src/ui/styles/*.css`,
+  one file per area, imported in a fixed order from `styles/index.css`.
+  Shown to be the same stylesheet before anything changed: the built CSS
+  held the same 420 rules in the same cascade, and the screens differed
+  only in text that changes per run (ports, ids, times).
+- **The kit**, `web/src/ui/kit/`: Button and IconButton, TextField,
+  TextArea (grows with its text), Select, Menu (checkbox and radio rows,
+  submenus), Combobox, Popover, Dialog, Tooltip, Switch, Checkbox,
+  Segmented, Tabs, Badge, Kbd, Spinner, EmptyState, Field and FieldGroup,
+  Row and RowList, the command palette, and Icon, Banner, Skeleton and
+  StatusDot moved in from the screens. One component per file, its CSS
+  beside it; the popup surface and option row, the field shell and the
+  check label written once. The values are DESIGN.md §6.13 and §6.14.
+- **No native control left.** Every select, input and textarea outside
+  the kit is the kit's (the new-session and move dialogs, Settings,
+  Devices, the archive's search, the composer), every `title` tooltip is
+  a kit Tooltip, `ui/dialog.tsx` is gone (every dialog and the palette are
+  on the kit's Dialog), the sidebar's search is one shell, and Fleet's
+  machines are rows.
+- **The theme.** Every colour token is `light-dark()`; `data/theme.ts`
+  keeps the choice and pins it on `<html>` before the first render. The
+  switch is in Settings, at the sidebar's foot and in the palette. The
+  terminal takes resolved colours again when the scheme changes.
+- **Type.** Geist and Geist Mono, then Pretendard, in every stack and in
+  xterm's; the Latin Geist file preloaded from `index.html` (the build
+  gives the preload the stylesheet's own hashed name, so `integrity.mjs`
+  is untouched).
+- **Icons** at the reference's stroke and sizes, with check, chevrons,
+  search, close, sun, moon, monitor and plus.
+- **Structure and types.** The layer rules, the file budget and the
+  strict type rules below. The bridge's frames are narrowed by
+  predicates (`bridge/frames.ts`), a call is typed by its method and its
+  reply narrowed by that method; the e2e fixture is checked by the
+  socket's own predicate. What the screens decided in place moved to
+  `data/` with tests (`commands`, `choices`, `archive`, `nodes`,
+  `format`), so no listed screen grew.
+- **The gallery** at `/kit` (`features/kit-gallery/`), captured by
+  `e2e/kit-screens.ts` light and dark, at 1440 and 390px wide, with a
+  select at the window's right edge holding a long Korean option, a menu
+  and its submenu, a tooltip with the focus ring, a popover, a
+  combobox, a dialog and the palette, each opened from the keyboard.
+
+The checks `npm run lint` runs:
+
+- ESLint: `strictTypeChecked` and `stylisticTypeChecked`, React hooks,
+  the rules below, and `no-restricted-imports` for the layers (`wire` <-
+  `bridge` <- `data` <- `features` <- `routes`; the kit imports none of
+  them; only the kit imports `@base-ui/react`).
+- Prettier.
+- `scripts/check-fonts.mjs`, extended: a stack that names Geist names
+  Pretendard after it; `@font-face` families are checked against the
+  forbidden faces only.
+- `scripts/check-controls.mjs` (new): a `<select>`, `<input>` or
+  `<textarea>`, or a `title` on an element or a `Link`, outside
+  `src/ui/kit/`.
+- `scripts/check-size.mjs` (new): 300 lines of TypeScript, 400 of CSS;
+  tests and the generated wire types not counted.
+
+`npm run typecheck` also checks `web/scripts/` (`checkJs`, each script
+`// @ts-check`), and `tsconfig.json` has `noUncheckedSideEffectImports`.
+
+The rules this track turned on, and what each found before it was fixed:
+
+| Rule | Findings |
+| --- | --- |
+| `consistent-type-assertions` (`never`) | 11 |
+| `no-unsafe-type-assertion` | 9 |
+| `strict-boolean-expressions` (booleans and nullable objects only) | 4 |
+| `noInlineConfig` (the one inline disable, in `context.ts`) | 1, and the `react-hooks/exhaustive-deps` finding it had hidden: 1 |
+| `reportUnusedDisableDirectives` | 0 |
+| `explicit-module-boundary-types` (`*.ts`) | 0 |
+| `no-non-null-assertion`, `prefer-readonly`, `no-unnecessary-condition`, `no-unnecessary-type-parameters`, `method-signature-style` | 0 each |
+| `ban-ts-comment` (`@ts-expect-error` with a description only) | 0 |
+
+The one assertion left is xterm's private core in
+`data/terminal-input.ts`, by an override that names the file.
+
+Files still to divide (`check-size.mjs`; the ceiling, then the size now):
+
+| File | Ceiling | Now |
+| --- | --- | --- |
+| `src/routes/structured.tsx` | 700 | 697 |
+| `src/bridge/client.ts` | 467 | 467 |
+| `src/routes/sessions.tsx` | 451 | 450 |
+| `src/data/timeline.ts` | 406 | 382 (406 with track E) |
+| `src/data/board.ts` | 353 | 353 |
+| `src/routes/devices.tsx` | 349 | 346 |
+| `src/routes/session.tsx` | 328 | 325 |
+| `src/routes/fleet.tsx` | 316 | 314 |
+
+Gate, run in `web/` on the code as committed (the docs commit after it
+changes no code):
+
+- `npm ci`: added 281 packages, audited 282. `npm audit` reports 10
+  moderate, all `minimatch` under ESLint and typescript-eslint, which this
+  track did not change.
+- `npm run lint`: ESLint and Prettier clean; `fonts: 48 stacks follow the
+  rule`, `controls: nothing native outside the kit`, `size: within
+  budget, 8 files still to divide`.
+- `npm run typecheck`: no errors, the page and then `scripts/`.
+- `npm run test`: 15 files, 63 tests passed.
+- `npm run build`: built; the script 1,124.59 kB (333.41 kB gzipped), the
+  stylesheet 70.43 kB.
+- `npm run e2e`: 16 passed.
+- `npm run screens`: 2 passed (every main screen; the kit), 31 captures,
+  each looked at in both themes.
+
+Merged with `backend/m10` as it now stands (track E) in a trial merge
+that was not kept: ESLint, Prettier, the checks, `tsc` and the unit tests
+pass.
+
+Where this differs from the plan or the reference, and why:
+
+- The gallery ships in every build, not in development builds only: the
+  screens capture the built page `vessel ui` serves, and a second entry
+  or a lazy chunk would be a second graph for `integrity.mjs` to pin. It
+  holds no data, needs no token, and nothing links to it.
+- Caching hashed assets as immutable is `vessel-web`'s, under `crates/`,
+  outside this track; track E did it on `backend/m10`.
+- The plan named T3 Code for the controls agent-orchestrator lacks; the
+  coordinator made GOAT the second source. GOAT's are the segmented
+  control's thumb, the popover's widths, the key chip, the machine row
+  and the 24px toolbar sizes.
+- The deliberate differences from the references are DESIGN.md §12.
+- A radio group is a `FieldGroup`, not a `Field`: Base UI's field gives
+  its label to every control inside it, so each radio was named "Mode".
+- `data/timeline.ts` is listed at 406 lines, its size once track E's
+  title events are merged, so the merge of the two tracks passes.
+
+Left open:
+
+- Only Chromium was exercised (the one browser Playwright has here);
+  the page was not looked at in Firefox or Safari.
+- The Combobox is used only by the gallery; track W1's folder field is
+  its first screen.
+- The generated wire types still alias every id to `string` (Structure,
+  Types).
+- This section and track E's both end this file, so merging the two
+  joins them by hand.
