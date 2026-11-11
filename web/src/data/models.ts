@@ -124,15 +124,16 @@ export function routeLine(route: ModelRoute): string {
   return `${route.provider} · ${route.model}`;
 }
 
-/** The model a session runs on: its route's (it is pinned to it), the
- * one it asked for, or its harness's default. */
-export function sessionModel(session: SessionInfo): string {
+/** The model a session was started on, when Vessel knows it: its route's
+ * pinned model (protocol 7), else one asked for at creation; `null` when
+ * the agent chose (its options then say which). */
+export function startedModel(session: SessionInfo): string | null {
   if (session.model !== undefined && session.model !== null) {
     return session.model.model;
   }
   return session.spec.mode === "structured"
-    ? (session.spec.model ?? "harness default")
-    : "harness default";
+    ? (session.spec.model ?? null)
+    : null;
 }
 
 /** `routes` grouped by provider, in the order the node lists them (the

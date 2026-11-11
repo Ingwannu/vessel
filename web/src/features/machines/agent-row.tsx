@@ -7,10 +7,10 @@ import "./agent-row.css";
 
 import { Link } from "@tanstack/react-router";
 
-import { agentHeadline, agentName, type AgentStatus } from "../../data/agents";
-import { harnessMark } from "../../data/format";
+import { agentHeadline, type AgentStatus } from "../../data/agent-status";
+import { agentMark, agentName } from "../../data/agents";
 import type { HarnessKind } from "../../wire/proto";
-import { Row, StatusDot } from "../../ui/kit";
+import { Avatar, Row, StatusDot } from "../../ui/kit";
 
 export function AgentRow({
   machine,
@@ -29,11 +29,7 @@ export function AgentRow({
     <Row
       selected={selected}
       mark={{
-        node: (
-          <span className="agent-mark" aria-hidden="true">
-            {harnessMark(kind)}
-          </span>
-        ),
+        node: <Avatar letter={agentMark(kind)} label={agentName(kind)} />,
       }}
       title={
         <span className="agent-title">

@@ -9,12 +9,13 @@ import { useEffect, useState } from "react";
 import { useFleet } from "../../context";
 import {
   agentHeadline,
-  agentName,
   type AgentStatus,
   askedWhen,
-  loadOffer,
   offerRows,
-} from "../../data/agents";
+} from "../../data/agent-status";
+import { agentName } from "../../data/agents";
+import { probeOptions } from "../../data/calls";
+import { controlsOf } from "../../data/options";
 import { nextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import type { HarnessKind, HarnessOptions } from "../../wire/proto";
@@ -90,7 +91,7 @@ function Offer({
   const [answer, setAnswer] = useState<Outcome<HarnessOptions> | null>(null);
   useEffect(() => {
     let current = true;
-    void loadOffer(fleet, machine, kind).then((outcome) => {
+    void probeOptions(fleet, machine, kind, null).then((outcome) => {
       if (current) {
         setAnswer(outcome);
       }
@@ -121,7 +122,7 @@ function Offer({
       </SettingsSection>
     );
   }
-  const rows = offerRows(answer.value.options);
+  const rows = offerRows(controlsOf(answer.value.options));
   return (
     <SettingsSection
       title="What it offers"

@@ -1,55 +1,12 @@
-/* Narrow windows (DESIGN.md §3): the sidebar becomes a rail of icons,
-   then leaves. */
-
-/* Narrow windows: the sidebar becomes a rail of icons, then leaves. */
+/* Narrow windows (DESIGN.md §3): forms and two-column pages stack. The
+   sidebar's rail and drawer are features/shell's. */
 @media (max-width: 1099px) {
-  .app {
-    grid-template-columns: 52px minmax(0, 1fr);
-  }
-
-  .brand span,
-  .side-search-wrap,
-  .side-label,
-  .nav-item span.label,
-  .nav-item .count,
-  .nav-item .dash,
-  /* The rail has no room for a node's sessions: the board has them. */
-  .nav-item.sub,
-  .nav-item.more {
-    display: none;
-  }
-
-  .side-head {
-    padding-inline: 0;
-    display: grid;
-    place-items: center;
-  }
-
-  .nav-item,
-  .nav-item.node {
-    padding: 0;
-    justify-content: center;
-  }
-
   .grid-2 {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 767px) {
-  .app {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sidebar {
-    display: none;
-  }
-
-  /* With no sidebar beside it the frame is inset on every side. */
-  .frame-wrap {
-    padding: 8px;
-  }
-
   .page-body {
     padding: 12px;
   }

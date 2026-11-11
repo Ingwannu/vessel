@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ago,
   answerEmphasis,
-  harnessName,
   listOr,
-  nodeState,
   sessionTitle,
   shortId,
   statusTone,
@@ -18,8 +16,6 @@ describe("formatting", () => {
     expect(statusWord({ state: "exited", code: 3 })).toBe("exited 3");
     expect(statusWord({ state: "exited", code: null })).toBe("exited");
     expect(statusWord({ state: "interrupted" })).toBe("interrupted");
-    expect(harnessName("claude-code")).toBe("claude");
-    expect(harnessName("open-code")).toBe("opencode");
   });
 
   it("titles a session by its working directory", () => {
@@ -49,7 +45,6 @@ describe("formatting", () => {
     expect(toolTone("in_progress")).toBe("warn");
     expect(toolTone("completed")).toBe("ok");
     expect(toolTone("failed")).toBe("danger");
-    expect(nodeState(undefined)).toEqual({ word: "connecting", tone: "warn" });
     expect(answerEmphasis("allow_once", true)).toBe("primary");
     expect(answerEmphasis("reject_once", false)).toBe("secondary");
     expect(answerEmphasis("reject_always", true)).toBe("danger");

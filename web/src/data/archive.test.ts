@@ -65,4 +65,18 @@ describe("searchArchive", () => {
     expect(ids("GPU-BOX")).toEqual(["3f2a99"]);
     expect(ids("laptop")).toEqual(["9aa000"]);
   });
+
+  it("matches a piece of a title", () => {
+    const [first, second] = cards;
+    if (first === undefined || second === undefined) {
+      throw new Error("two cards");
+    }
+    const titled = [
+      first,
+      { ...second, session: { ...second.session, title: "Release notes" } },
+    ];
+    expect(
+      searchArchive(titled, state, "release").map((found) => found.session.id),
+    ).toEqual(["9aa000"]);
+  });
 });

@@ -32,14 +32,14 @@ const MODELS: readonly Choice<Model>[] = [
   { value: "gone", label: "Retired route", disabled: true, group: "Gateway" },
 ];
 
-type Mode = "structured" | "terminal";
+type Mode = "timeline" | "terminal";
 type Scope = "mine" | "all" | "archived";
-type Pane = "general" | "harnesses" | "korean";
+type Pane = "general" | "agents" | "korean";
 
 export function Choices() {
   const [model, setModel] = useState<Model | null>("opus");
   const [none, setNone] = useState<Model | null>(null);
-  const [mode, setMode] = useState<Mode>("structured");
+  const [mode, setMode] = useState<Mode>("timeline");
   const [scope, setScope] = useState<Scope>("all");
   const [on, setOn] = useState(true);
   const [off, setOff] = useState(false);
@@ -93,7 +93,7 @@ export function Choices() {
             value={mode}
             onChange={setMode}
             options={[
-              { value: "structured", label: "Structured" },
+              { value: "timeline", label: "Timeline" },
               { value: "terminal", label: "터미널" },
             ]}
           />
@@ -148,10 +148,10 @@ export function Choices() {
             panel: <p className="kit-note">General settings go here.</p>,
           },
           {
-            value: "harnesses",
-            label: "Harnesses",
+            value: "agents",
+            label: "Agents",
             icon: "terminal",
-            panel: <p className="kit-note">Harness settings go here.</p>,
+            panel: <p className="kit-note">Agent settings go here.</p>,
           },
           {
             value: "korean",

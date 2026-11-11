@@ -42,6 +42,8 @@ export interface TextFieldProps {
   autoFocus?: boolean;
   spellCheck?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  /** Focus left the field (an edit in place saves then). */
+  onBlur?: () => void;
   inputRef?: Ref<HTMLInputElement>;
 }
 
@@ -63,6 +65,7 @@ export function TextField({
   autoFocus,
   spellCheck = false,
   onKeyDown,
+  onBlur,
   inputRef,
   role,
   "aria-label": ariaLabel,
@@ -90,6 +93,7 @@ export function TextField({
         spellCheck={spellCheck}
         autoComplete="off"
         onKeyDown={onKeyDown}
+        onBlur={onBlur}
         role={role}
         aria-label={ariaLabel}
       />

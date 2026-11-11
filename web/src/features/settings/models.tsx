@@ -15,7 +15,8 @@ export function ModelsSection({ machine }: { machine: string | undefined }) {
   const statuses = useFleetState((state) => state.statuses);
   const allRoutes = useFleetState((state) => state.models);
   const allProfiles = useFleetState((state) => state.profiles);
-  const node = machineFor(book ?? [], statuses, machine);
+  const selected = useFleetState((state) => state.selected);
+  const node = machineFor(book ?? [], machine, selected);
   const lead =
     "Where each machine's agents get their models. Written in that machine's models.toml and profiles.toml.";
   if (node === null) {

@@ -41,7 +41,7 @@ export function AboutSection() {
             return (
               <Row
                 key={node.key}
-                mark={{ icon: "server" }}
+                mark={{ icon: "machine" }}
                 title={nodeLabel(node, status)}
                 detail={{
                   facts:

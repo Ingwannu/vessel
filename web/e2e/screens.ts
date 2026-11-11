@@ -7,27 +7,44 @@ import { join } from "node:path";
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, newSessionDialog } from "./kit";
+import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { fleetHome } from "./fleet-home";
 import { shot } from "./shot";
 
+/** Start a session from the new-session page, in `cwd`, under the
+ * profile named `profile` (one on a model route) when given. */
 async function newSession(
   page: Page,
   node: string,
   mode: "Structured" | "Terminal",
   cwd: string,
-  route = "",
+  { profile = "", prompt = "" }: { profile?: string; prompt?: string } = {},
 ): Promise<void> {
-  const dialog = await newSessionDialog(page, node, mode);
-  if (route !== "") {
-    // Picks the profile on the route (e2e/fleet.ts: claude-qwen).
-    await choose(page, dialog.getByLabel("Model"), new RegExp(`^${route}\\b`));
+  const box = await newSessionPage(page, node, mode);
+  if (profile !== "") {
+    await box.getByRole("button", { name: "Add" }).click();
+    await choose(
+      page,
+      page
+        .getByRole("dialog", { name: "Start with" })
+        .getByRole("combobox", { name: "Profile" }),
+      new RegExp(`^${profile}\\b`),
+    );
+    await page.keyboard.press("Escape");
   }
-  await dialog.getByLabel("Working directory").fill(cwd);
-  await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(dialog).toBeHidden();
+  await page.getByRole("combobox", { name: "Folder" }).fill(cwd);
+  await page.keyboard.press("Escape");
+  if (prompt !== "") {
+    await box.getByRole("textbox", { name: "Prompt" }).fill(prompt);
+  }
+  await box
+    .getByRole("button", {
+      name: mode === "Terminal" ? "Open the terminal" : "Send",
+    })
+    .click();
+  await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
 }
 
 test("every main screen", async ({ page }) => {
@@ -65,26 +82,33 @@ test("every main screen", async ({ page }) => {
     "Terminal",
     join(env.root, "build-server-home"),
   );
-  await newSession(page, "laptop", "Structured", project, "qwen-coder");
-  const prompt = page.getByRole("textbox", { name: "Prompt" });
-  await expect(page.getByText(/Ready · harness session/)).toBeVisible();
   // `model <text>` is one call through laptop's proxy to fake-provider.
-  for (const question of [
+  const questions = [
     "What does the fleet overview's generation column mean?",
     "Which member reported last?",
-  ]) {
-    await prompt.fill(`model ${question}`);
-    await prompt.press("Control+Enter");
-    await expect(
-      page.getByText(`model fake reply to: ${question}`),
-    ).toBeVisible();
-  }
+  ];
+  await newSession(page, "laptop", "Structured", project, {
+    profile: "Claude Code on Qwen",
+    prompt: `model ${questions[0] ?? ""}`,
+  });
+  const prompt = page.getByRole("textbox", { name: "Prompt" });
+  await expect(page.getByText("Agent ready")).toBeVisible();
+  await expect(
+    page.getByText(`model fake reply to: ${questions[0] ?? ""}`),
+  ).toBeVisible();
+  await prompt.fill(`model ${questions[1] ?? ""}`);
+  await prompt.press("Enter");
+  await expect(
+    page.getByText(`model fake reply to: ${questions[1] ?? ""}`),
+  ).toBeVisible();
   await expect(page.locator(".t-item.model-call")).toHaveCount(2);
   await prompt.fill(
     "The fleet overview draws stale generation numbers. Check how members report what they applied, then fix the display.",
   );
-  await prompt.press("Control+Enter");
-  await expect(page.locator(".perm-sticky")).toBeVisible();
+  await prompt.press("Enter");
+  await expect(
+    page.getByRole("group", { name: "Permission request" }),
+  ).toBeVisible();
   await shot(page, "03-session-structured");
   const structured = page.url();
   // The same session scrolled back to its model calls.
@@ -109,13 +133,15 @@ test("every main screen", async ({ page }) => {
   await expect(page.getByLabel("Session terminal")).toContainText("args [");
   await shot(page, "04-session-terminal");
 
-  const dialog = await newSessionDialog(page, "laptop", "Structured");
-  await choose(page, dialog.getByLabel("Model"), /^qwen-coder\b/);
-  await expect(dialog.getByLabel("Profile")).toContainText(
-    "Claude Code on Qwen",
-  );
+  // The new-session page, its options read from the agent.
+  const box = await newSessionPage(page, "laptop", "Structured");
+  await expect(
+    box.getByRole("button", { name: /^Permissions:/ }),
+  ).toBeVisible();
+  await box
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Check how members report what they applied, then fix the display.");
   await shot(page, "05-new-session");
-  await page.keyboard.press("Escape");
 
   // Settings (Machines, Agents, Models, Devices, Sync, Appearance, About)
   // and the welcome are captured by settings-screens.ts.
@@ -124,7 +150,9 @@ test("every main screen", async ({ page }) => {
   await page.goto(`${origin}/settings/appearance`);
   await page.getByRole("radio", { name: "Dark" }).click();
   await page.goto(structured);
-  await expect(page.locator(".perm-sticky")).toBeVisible();
+  await expect(
+    page.getByRole("group", { name: "Permission request" }),
+  ).toBeVisible();
   await shot(page, "10-session-structured-dark");
   await page.goto(`${origin}/sessions`);
   await expect(

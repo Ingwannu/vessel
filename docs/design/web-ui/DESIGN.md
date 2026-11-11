@@ -96,11 +96,11 @@ conversation; the rest of the app must feel like an IDE's debug console.
 
 | Place | What it is | Primary objects |
 | --- | --- | --- |
-| **Sessions** | Every session, one node or all, as a board | session card, status lane, creator |
-| **Session** | One session, terminal or structured | timeline or PTY, actions |
-| **New session** | Create dialog | node, harness, profile, model, cwd, mode |
+| **Board** | Every session, one machine or all, as a board | session card, status lane, creator |
+| **Session** | One session: its timeline and composer, or its terminal | title, timeline, options, permission, summary |
+| **New session** | A page, `/new` (§7.5) | prompt, agent, model, effort, permissions, machine, folder |
 | **Settings** | Sections, each a page (§3.1): Appearance; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | theme; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
-| **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog, this machine's start command |
+| **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog (§7.6), this machine's start command |
 
 There is no home dashboard: the index is the board once any machine is
 connected, and the welcome until then. What was the Fleet page (the
@@ -113,18 +113,17 @@ Devices are sections there too (milestone 10, track W2).
 ```
 ┌─ shell (grey) ────────────────────────────────────────────────────────┐
 │ ▲ Vessel        ┌─ frame (the page, 12px radius, a hairline) ───────┐ │
-│ ⌕ Search    ⌘K  │ Sessions                    client · connected New │ │
-│ Fleet           ├────────────────────────────────────────────────────┤ │
-│ Sessions      5 │                                                    │ │
-│ Sync            │  main                                              │ │
-│ Devices         │                                                    │ │
-│ Nodes         + │                                                    │ │
+│ ⌕ Search    ⌘K  │ Board                                          New │ │
+│ ✎ New session N ├────────────────────────────────────────────────────┤ │
+│ ▥ Board       5 │                                                    │ │
+│                 │                                                    │ │
+│ Machines        │                                                    │ │
 │ ● laptop      3 │                                                    │ │
-│   ○ vessel 3f2a │                                                    │ │
-│   ◌ docs   9aa0 │                                                    │ │
+│   ◌ Fix the ov… │                                                    │ │
+│   ● Release no… │                                                    │ │
 │ ● gpu-box     2 │                                                    │ │
 │ ─────────────── │                                                    │ │
-│ Settings        └────────────────────────────────────────────────────┘ │
+│ Settings      ◐ └────────────────────────────────────────────────────┘ │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -132,27 +131,42 @@ Devices are sections there too (milestone 10, track W2).
   page are one grey surface, so the sidebar has no edge. The page is a
   framed surface set into it: 12px radius, a 4% hairline, inset 14px top
   and bottom and 16px on the right, flush with the sidebar on the left.
+  `features/shell/` draws both.
 - **The title bar is inside the frame**: 36px, the page's one heading
-  (16px semibold) after its crumbs, then this client's link and New. There
-  is no bar across the window.
-- **The sidebar, top to bottom**: the brand; Search (a filled row with its
-  shortcut as text); the places (Fleet, Sessions with the fleet's live
-  count, Sync, Devices); "Nodes" with a + that starts a session; each node
-  with its live sessions under it; Settings and the theme switch at the
-  foot.
+  (16px semibold) after its crumbs, then New. A page that names itself
+  draws into the bar instead (`TitleBar`, a portal into its slot): a
+  session's title, renamed in place (§7.4). On the new-session page the
+  bar is bare chrome, without its hairline, as agent-orchestrator's is.
+  The link to `vessel ui` shows only when it is not up ("vessel ui ·
+  reconnecting", "disconnected", "refused").
+- **The sidebar, top to bottom** (agent-orchestrator's): the brand; Search
+  (a filled row with its shortcut as text); New session (with its key,
+  `N`); Board, with the live count; "Machines" with a "+" that adds one
+  (§7.6), each machine with its live sessions under it; Settings and the
+  theme switch at the foot.
+  While the address is under `/settings`, a Back row and Settings'
+  sections (from `data/settings.ts`, under their headings, the current
+  one marked) take the machines' place.
 - **A row** is 32px, 10px radius, 14px medium, secondary text. Its fill is
   a pill that grows from 4px inside the row on hover (150ms) and stays, at
   7% instead of 4%, on the current row. No bar marks the current row.
-- **A node's row** leads with its state dot and ends with its live count
-  (an em dash when offline, so it does not look idle-but-fine).
+- **A machine's row** leads with its state dot and ends with its live
+  count (an em dash when offline, so it does not look idle-but-fine); its
+  dot's word is the machine's state ("Connected", "Offline", the same
+  words as Settings, `machineState`). It opens the machine's detail in
+  Settings › Machines, which links to the board scoped to it.
 - **A session's row** leads with a mark: a spinner while its agent works,
   a filled needs-you dot while it waits on its owner, else a hollow dot;
-  then its title and its id. Up to five per node, then "N more" to the
-  board scoped to that node. Ended sessions are not listed.
-- **Search** (`/` or `⌘K`) opens the command palette (§6.13): actions,
-  places, nodes, sessions and the theme.
-- **New** is the one primary action, in the title bar on every page, and
-  opens the create dialog on the selected node (§2.5).
+  then its title (§7.4). Up to five per machine, newest first, then "N
+  more" to the board scoped to that machine. Ended sessions are not
+  listed.
+- **Search** (`/` or `⌘K`) opens the command palette (§6.13): New
+  session and Add a machine; the board and each Settings section; the
+  machines (each opening its detail); the sessions by title; the theme.
+- **New** is the one primary action, in the title bar on every page but
+  the new-session page itself, and opens `/new` on the machine in view
+  (§2.5): the session's, the one a Settings section is about, or the one
+  the board is scoped to.
 
 ### 2.3 Routes
 
@@ -160,9 +174,11 @@ Names are UI, ids are protocol.
 
 ```
 /                         the board once a machine is connected; the welcome before
-/sessions                 the board, all nodes
-/sessions?node=:node      the board, one node
-/sessions/:node/:id       one session, structured or terminal by its mode
+/new                      a new session (§7.5)
+/new?machine=:node        a new session, starting on that machine
+/sessions                 the board, all machines
+/sessions?node=:node      the board, one machine
+/sessions/:node/:id       one session, its timeline or its terminal
 /settings                 → /settings/appearance
 /settings/:section        one section; an unknown one → the default
 /settings/:section?machine=:node            the machine a section is about
@@ -172,7 +188,8 @@ Names are UI, ids are protocol.
 /sync?node=, /devices?node=  → /settings/sync, /settings/devices (?machine=)
 ```
 
-Creating a session is a dialog over the current route, not a page.
+Creating a session is a page, `/new` (agent-orchestrator's new-task
+page): the chat before it has a session. Every "New" leads there.
 
 ### 2.4 Session hierarchy
 
@@ -200,17 +217,20 @@ Do not flatten this into a card field with a raw id and no link. The tree
 
 ### 2.5 Which node is "the" node
 
-Devices, pairing, drain/stop, and the node book entry are per node.
-Sync conflicts are per member. The selected node is:
+Devices, pairing, drain/stop, and the book entry are per machine. Sync
+conflicts are per member. The machine meant is one rule,
+`data/nodes.ts`' `machineMeant`, for every page:
 
-1. the node in the URL (opening a machine's detail in Settings selects
-   it), else
-2. the last node the operator selected this session, else
+1. the machine in the address (`?machine=`, a session's, the board's
+   scope; opening a machine's detail in Settings selects it), else
+2. the last machine the operator selected this session, else
 3. the book's `default_node`, else
-4. the local node if the book has one.
+4. the first in the book (this machine's when the book names none).
 
-The sidebar highlights that node. Switching it does not leave the
-current place (Sync stays Sync).
+Each page says which machines it accepts: a new session only a
+connected one; a Settings section one in the book. The sidebar marks
+the machine whose detail is open. Switching it in a section's picker
+does not leave the section (Sync stays Sync).
 
 ---
 
@@ -291,28 +311,36 @@ row above the lanes scopes the board to one. No inspector; a card opens
 the session. Below 1024px of pane the board scrolls sideways (lanes keep
 256px); below 768px the lanes stack.
 
-**Structured session.**
+**Session with a timeline.**
 
 ```
-header 40px
-┌───────────────  minmax(0, 1fr)  ──────────────┬─ 320px ─┐
-│ timeline                                      │ inspect │
-│                                               │ plan    │
-│                                               │ files   │
-│                                               │ meta    │
-├───────────────────────────────────────────────┤         │
-│ permission (if any), then composer 88–120px   │         │
-└───────────────────────────────────────────────┴─────────┘
+title bar 36px (the frame's): mark · title (rename in place) · state · ⋯
+┌──────────  minmax(0, 1fr)  ───────────┬── 340px ──┐
+│      timeline, a column ≤ 768px       │ Summary   │
+│                                       │ ▸ Plan    │
+│                                       │ ▸ Files   │
+│  ┌ permission, docked over the box ┐  │ ▸ Model … │
+│  ┌ composer ──────────────────────┐   │ ▸ Details │
+│  └────────────────────────────────┘   │           │
+└───────────────────────────────────────┴───────────┘
 ```
 
-The inspector hides below 1100px (toggle `⌘I`). The composer is sticky.
+The log and the composer share one column, at most 768px and centred
+(agent-orchestrator's transcript); the composer's dock is 16px in and
+12px off the frame's foot. The summary (§6.7, inspector) is 340px, the
+reference's narrowest, and leaves below 1280px of window.
 
-**Terminal session.** Header 40px, reconnecting banner if needed, then
-the terminal consumes all remaining height. No inspector.
+**Terminal session.** The same title bar, a reconnecting banner if
+needed, then the terminal consumes all remaining height. No summary.
 
-**Dialogs** (new session, add a machine, confirm kill, revoke or forget): 480px wide,
-centred, 16px padding, dimmer `--overlay` at 32% black (light) / 56%
-(dark). New session can grow to 560px because of the model list.
+**New session.** A bare title bar, then one column at most 672px wide,
+centred in the frame: the heading "What do you want to work on?" (30px,
+regular, tracked tight; 24px when narrow), 20px over the composer with
+its tray (§6.15), and under them the page's notes (why Send waits, the
+node's failure).
+
+**Dialogs** (add a machine, move a session, confirm kill, revoke or
+forget): the kit's (§6.9).
 
 ### 3.2 Spacing scale
 
@@ -580,7 +608,8 @@ Theirs: 10.5, 11, 11.5, 12, 14 and 16px, body at 14.
 | `--t-card` | 11.5px / 14.4 / 600 | sans | a board card's title (tracking −0.01em, two lines) |
 | `--t-2xs` | 10.5px / 14 / 400 | sans | a card's lines and footer |
 | `--t-mono` | 12px / 20 / 400 | mono | ids, paths, models, versions |
-| `--t-mono-lg` | 13px / 22 / 400 | mono | composer, tool I/O |
+| `--t-mono-lg` | 13px / 22 / 400 | mono | a prompt in the timeline, tool I/O |
+| (composer) | 14px / 22 / 400 | sans | the prompt being written (agent-orchestrator's composer, §6.15) |
 | `--t-term` | 13px / 20.8 (1.6) / 400 | mono | terminal |
 
 Headlines heavier than 600 are forbidden. Markdown in the timeline may
@@ -607,7 +636,10 @@ Every state of every control is on `/kit`.
 | `.btn.sm`, `.btn.xs` | 28px and 24px tall, 12px type | row actions, small controls |
 
 Buttons are filled, not outlined, 32px tall with an 8px radius. Hover
-deepens the fill; nothing scales or moves.
+deepens the fill; nothing scales or moves. `shape`: `rect` (8px), `soft`
+(10px, a composer's quiet triggers), `round` (a pill, or a circle for an
+icon: a composer's Send, Stop and "+"). An `IconButton` may be `primary`
+only as a view's one primary action drawn as an icon (Send).
 
 The primary button is the one dark shape on the page; that is why there
 is one per view.
@@ -696,14 +728,16 @@ item is a row with a 8px glyph on the rail:
 | `ToolCall` | square by `ToolKind` | `.tool` card, §6.6 |
 | `ToolCallUpdate` | (same card, in place) | do not append a second card |
 | `Plan` | checklist | inspector, and a compact strip in-timeline |
-| `PermissionRequested` | amber diamond | §6.7; also sticky above composer |
-| `PermissionResolved` | check or x | one line under the request |
+| `PermissionRequested` | amber diamond | one line, "Waiting on permission · <tool>", in the review colour; the prompt itself is docked over the composer (§6.7) |
+| `PermissionResolved` | the diamond, hollow | the same line, in place: "Allowed · <tool> · <option>", "Declined · …" or "Permission cancelled · …" |
 | `TurnEnded` / `TurnFailed` | rule | reason in meta |
-| `Ready` | meta | harness session id, mono |
+| `Ready` | meta | "Agent ready"; the agent's own session id is in the summary's Details |
 | `HarnessLog` | meta | stderr, mono, tertiary; error colour if it looks like a login failure |
 
 User and agent are not two chat bubbles on opposite sides. This is a
-log, left-aligned, like an editor's output channel.
+log, left-aligned, like an editor's output channel, in a column at most
+768px wide and centred (agent-orchestrator's transcript width), so a
+wide window does not stretch a line past reading.
 
 Markdown: the sans face, 13/20. Inline code and fences use `--font-mono`
 on `--bg-elevated` with a hairline. Headings inside a turn start at
@@ -713,7 +747,10 @@ accent-left only for blockquotes.
 ### 6.6 Tool-call cards
 
 `<details class="tool">`. Summary: kind icon, title, status badge,
-location path (mono, truncated from the left). Body: input then output,
+location path (mono, truncated from the left), then a chevron that turns
+while open; the browser's triangle is not drawn. (A command's icon is the
+terminal's mark, not a run triangle: beside the chevron a triangle read
+as a disclosure marker.) Body: input then output,
 each a labelled `<pre>`. Default **collapsed** when `completed` or
 `failed`; **open** when `pending` or `in_progress`.
 
@@ -732,17 +769,27 @@ plain is acceptable in v1. Copy button on the summary, `aria-label="Copy tool ou
 ### 6.7 Permission prompts
 
 A pending `PermissionRequested` is the most important thing on the
-screen.
+screen, and it is asked once. (Milestone 9 drew it twice, a card in the
+timeline and a bar over the composer, each with every option as a
+button; the owner asked for one.)
 
-- In-timeline card, `--warn` hairline, listing the tool title and the
-  harness's options in order (`AllowOnce`, `AllowAlways`, `RejectOnce`,
-  `RejectAlways` — use the harness labels, not our own).
-- Sticky bar above the composer, same actions, so it cannot scroll off.
-- First answer wins (protocol). After `PermissionResolved`, both copies
-  freeze showing the chosen option and who (this device / another
-  follower). Later clicks error with conflict — show a toast, do not
-  hide the history.
-- Composer `disabled` while a permission is pending, with helper text
+- **Docked over the composer's top edge**, GOAT's approval drawer: 12px
+  narrower than the box on each side, its top corners 16px, an edge of
+  the review colour at 28% and a tint of it at 8%; the box covers its
+  bottom 16px, so it reads as tucked under it. In it: a 16px shield in
+  the review colour; "Approval needed" (11px medium, that colour); what is
+  asked, the tool call's title, in 12px mono, and the file it touches;
+  then Decline and Approve, `xs`, Approve the primary.
+- **The agent's words.** The buttons carry the agent's own names for its
+  options. Approve is its first allow-once option, else its first allow;
+  Decline its first reject-once, else its first reject; any other answer
+  is under "More" (`data/approval.ts`).
+- **One line in the timeline**, in the review colour while it waits, that
+  becomes the outcome once answered (§6.5).
+- First answer wins (protocol). Another follower's answer clears the
+  prompt here too, and the line says how it ended. A later click errors
+  with conflict: a toast says so, the history stays.
+- The composer under it is disabled while it waits, its placeholder
   "Answer the permission to continue".
 
 ### 6.8 Terminal frame
@@ -835,13 +882,14 @@ the agent is doing.
    `3f2a`" (a link; "on gpu-box" when the parent runs elsewhere), or
    "device `ab12cd`".
 2. *Title row*: the agent's mark (a letter in an 18px tile: C for Claude
-   Code, X for Codex, G, O), then the title, 11.5px semibold, two lines at
-   most. The title is the last segment of the working directory; a session
-   has no name in the protocol yet.
+   Code, X for Codex, G, O; the kit's Avatar), then the title, 11.5px
+   semibold, two lines at most: the session's own (protocol 9,
+   `SessionInfo.title`: asked for, the first line of its first prompt, or
+   renamed), else the last segment of its working directory.
 3. *Where*: the mode's icon and the working directory, mono 10.5px, cut
    from the left so its end stays.
 4. *Who*: the id's first four characters, then the profile (or the
-   harness) and the model when there is one.
+   agent's name) and the model when there is one.
 5. *Status line*, over an 8% hairline: the phrase in the lane's colour
    (10.5px medium), with a spinner while work is turning; at the right the
    node (omitted when the board is scoped to one) and how long ago
@@ -868,6 +916,8 @@ the agent is doing.
   interactive is nested in an `<a>`.
 - One action slot at the end of the title row, shown on hover or focus
   without moving the title: Kill, for a live session. It asks first.
+- An empty Building lane, where a new session lands, offers "New
+  session" (a quiet button) to `/new`.
 
 ### 6.13 Controls (the kit)
 
@@ -895,8 +945,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Popup surface | shared by Select, Menu, Combobox, Popover, Tooltip: `--popup-bg`, radius 10, 4px padding, `--popup-edge`, `--popup-shadow`; at most 320px wide and the window less 32px; long lists scroll inside under a thin bar; motion §4.7. Placed below its trigger 6px away, flipped and shifted at the window's edge (8px from it) |
 | Option row | 13px / 1.5 (about 32px), 8px by 6px, radius 8; secondary text at rest; highlighted on the 4% wash in the primary colour; chosen or open on the 7% wash; a muted detail at the right (12px, tertiary, cut first); a group's heading 10px, tracked, tertiary. A row reached from the keyboard also takes the ring, inside it |
 | Select | trigger: the secondary button's raised surface (an edge 5% darker, the inset bevel), 13px, the value then its detail, a chevron that turns over 300ms while open; `ghost`: no fill until hover. `md` 32px, `sm` 28px; `fill` or `fit` width. The list is at least the trigger's width, below it, not over it |
-| Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px menu), checkbox rows (16px box, radius 6), radio groups (a check at the right), submenus (the current value and a chevron), separators, a danger row |
-| Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text |
+| Menu | the option rows with a 15px icon, a shortcut at the right (10px, tracked), a description under the label (320px, `wide`), checkbox rows (16px box, radius 6), radio groups (a check at the right; values that share a group under its heading), submenus (the current value and a chevron), separators, a danger row; `narrow` is 256px (a composer's agent menu). `MenuSwitchItem`: a setting's row with a switch at the right, 12px text, 8px by 12px, keeping the menu open; `MenuNote`: a line of tertiary text that is not a choice |
+| Combobox | a field shell (§6.2) whose suggestions are option rows, at least the field's width; it takes any text. `ghost`: no fill or edge at rest, the 4% wash on hover, the shell while focused (a composer's tray) |
 | Popover | the popup surface with 16px inside, 256, 320 or 384px wide (GOAT's), a 13px semibold title |
 | Tooltip | 12px on the popup fill, no edge, 6px by 12px, radius 8, a 10px arrow; after 400ms of hover or on keyboard focus; a shortcut after the words. Never takes the pointer |
 | Switch | a 32 by 16 track, inset shading only, a 14px thumb sliding 16px; off: the ink's thumb on the 4% track; on: the primary fill and a thumb in its text colour. A hit area 12px past each side |
@@ -904,6 +954,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Segmented | a radio group: a track on the field fill and edge, 2px inside and between, radius 12; 13px segments 32px tall at radius 10 (`sm`: 24px); the chosen one is GOAT's thumb, the surface lifted by a hairline. Icons alone only with every option's icon (its label is the name) |
 | Tabs | 14px medium labels 36px tall and 20px apart over a hairline; the chosen one in the ink over a 2px underline that slides to it |
 | Badge | §6.4; `word`, `accent` or `mono` |
+| Avatar | an agent's mark: a letter in an 18px tile, radius 5, the well's fill, 11px semibold |
+| Collapsible | agent-orchestrator's inspector section: a 14px title in the muted colour with an optional count, a 12px chevron that turns while open, the sidebar row's growing pill (radius 10); the body 12px in, grows over 220ms (none under reduced motion) |
 | Kbd | as text (11px, tertiary, the sidebar search's), or a key chip: 20px, radius 4, 12px medium on the 7% wash |
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
 | CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
@@ -932,6 +984,57 @@ state dot), the title at 14px medium, under it a 13px description or a
 and a menu at the right. **Chosen is the 7% wash, never an edge or a
 bar.** Settings' machines, agents, devices and facts are rows.
 
+### 6.15 The composer
+
+`features/compose/prompt-box.tsx`, the same box on the new-session page
+and under a running session's timeline. agent-orchestrator's
+`.cursor-chat-composer` and `TurnSettingsBar`, with GOAT's docked
+approval (§6.7):
+
+- **The box**: radius 20, 12px inside, 6px between the text and its row
+  of controls. Light: the white surface held up by a hairline (the ink at
+  8%) and a soft shadow (`0 1px 2px` at 4%, `0 8px 24px -10px` at 10%);
+  dark: the card's fill (`#222`) with neither. A click on its padding
+  puts the caret in the text.
+- **The prompt**: 14px sans on a 22px line, three lines at rest, growing
+  to seven, then scrolling; no shell of its own (the box is the shell).
+  Enter sends, Shift+Enter starts a line, ⌘ or Ctrl with Enter sends too;
+  the key that ends an input method's composition does not send.
+- **The row**, 28px: on the left the "+" (new session only: a round ghost
+  button opening "Start with": a profile, when the machine has one for
+  the agent, and "Open as terminal" with its arguments), the agent
+  control, the permissions control; at the right Send (a 28px round
+  primary button with an arrow), or Stop (a square) while a turn runs.
+- **The agent control** (`AgentModelPicker`): a quiet trigger (28px, radius
+  10, 12px) reading the model's name and, muted, the effort's; "Loading
+  models…" with a spinner while the machine asks the agent. Its menu,
+  256px, opens upward: Agent, Model and Effort rows, each with its
+  current value and a submenu of the agent's values (under their groups'
+  headings), then the agent's on/off settings as switch rows, then any
+  other choice it offers as its own submenu. A row the agent does not
+  offer is not there. A failure is said in the menu and under the box,
+  and the session starts on the agent's defaults.
+- **The permissions control**: a quiet trigger led by a shield, the
+  mode's name and a caret (the one control in the row that reads as a
+  select); its 320px menu opens upward, aligned to its right edge, a row
+  per mode with a shield, the agent's name for it, its description, and a
+  check on the one in effect.
+- **What the controls show** is the agent's own, by category
+  (`data/options.ts`): `model` the model, `thought_level` the effort,
+  `mode` the permissions; toggles are switches; anything else a submenu;
+  an option of a kind the page does not know is skipped. On a new
+  session they show the agent's values with the person's picks applied,
+  and only picks that change something are sent. On a running session
+  they show what its log last reported (`options_changed`): a change
+  shows when the node reports it, not when it is asked; a refusal is a
+  toast and nothing moves.
+- **The tray** (new session only), hung under the box, 16px in from each
+  side, 6px inside, its bottom corners 16px: white on a 6% hairline in
+  light, the ink at 3% in dark. It holds the machine (a ghost select,
+  only connected machines enabled) and the folder (a ghost combobox
+  suggesting the folders sessions ran in on that machine, newest first,
+  taking anything typed; empty is the machine's home).
+
 ---
 
 ## 7. Interaction details
@@ -943,8 +1046,8 @@ The operator is in this UI for hours. Shortcuts are first-class.
 | Keys | Action |
 | --- | --- |
 | `⌘K` or `/` | command palette (focus search) |
-| `⌘N` | new session |
-| `⌘Enter` | send prompt (structured) |
+| `n` | new session, on the machine in view (not while typing; `⌘N` is the browser's) |
+| `Enter` | send the prompt; `Shift+Enter` a new line; `⌘Enter` sends too |
 | `Escape` | close dialog, blur composer, collapse palette |
 | `j` / `k` | next / previous row (when not in an input) |
 | `Enter` | open the selected row |
@@ -953,10 +1056,10 @@ The operator is in this UI for hours. Shortcuts are first-class.
 | `⌘I` | toggle inspector |
 | `⌘B` | toggle sidebar |
 | `[` / `]` | collapse / expand tool calls in view |
-| `g f` | Fleet |
-| `g s` | Sessions |
-| `g y` | Sync |
-| `g d` | Devices |
+| `g s` | Board |
+| `g m` (or `g f`) | Settings › Machines |
+| `g y` | Settings › Sync |
+| `g d` | Settings › Devices |
 | `1`–`9` | select nth node in the sidebar |
 | `⌘1` / `⌘2` | structured composer vs (future) editor pane — reserved |
 
@@ -999,43 +1102,50 @@ attempts, unless the operator opens the node inspector.
 
 ### 7.4 Session actions
 
-Available on both modes, from the session header overflow and from
-the list row:
+A session's title is its name in the title bar, the page's heading. A
+click on it (or Enter) turns it into a field: Enter or leaving it saves
+(`session.rename`; `data/titles.ts` checks the node's rules first: one
+line, at most 120 characters), Escape keeps the old title, and focus
+returns to the title. An ended session's title is not renamed.
+
+The rest is in a menu at the bar's end, "Session actions":
 
 | Action | Notes |
 | --- | --- |
-| Kill | confirm; `session.kill` |
-| Move profile | structured only, between turns; list profiles of the same harness that are logged in |
-| Copy to node | `session.export` / `import`; pick node, profile, cwd; optional start |
-| Copy id | |
-| Open log | future |
+| Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
+| Copy session id | |
+| Kill | live only, apart under a separator; confirm; `session.kill` |
 
-Move and copy are dialogs, not inline selects, because they have
-consequences (the conversation continues elsewhere).
+A board card's one action is Kill, also confirmed. Moving has
+consequences (the conversation continues under another account), so it
+is a dialog, not an inline select.
 
 ### 7.5 New session
 
-Fields in order, because each one filters the next:
+`/new`, agent-orchestrator's new-task page (`NewChatPage`): the chat
+before it has a session. Every "New" leads here (the title bar, the
+sidebar's row, an empty Building lane, the palette, `n`), carrying the
+machine in view.
 
-1. **Node** — book names, with online/offline. Offline nodes disabled.
-2. **Harness** — those the node discovered. If structured is
-   unavailable, the mode toggle still shows structured but disabled
-   with the install hint from `StructuredSupport::Unavailable`.
-3. **Profile** — that harness's profiles on that node (`claude`,
-   `claude-work`, …). Default profile labelled.
-4. **Model** — "harness default", then the node's routes
-   (`model.list`) grouped by provider. A route reaches a session only
-   through a profile naming it, so picking a route picks that harness's
-   profile on it, and picking a routed profile shows its route; a route
-   no profile of the harness names is listed disabled. (Built 2026-11-07
-   with milestone 5, ADR 0017.)
-5. **Working directory** — text, placeholder the node's home, with a
-   recent list.
-6. **Mode** — structured (default when available) or terminal.
+1. **Where it runs**, in the tray: the machine named in the address, else
+   the one last chosen, else the book's default, else the first; only a
+   connected one. The folder field suggests where sessions already ran.
+2. **The agent**: the machine's first that runs with a timeline, else its
+   first; chosen in the agent control's Agent submenu.
+3. **What it runs with**: the machine asks the agent (`harness.options`,
+   under the chosen profile); the controls fill in as it answers, without
+   blocking the page (§6.15).
+4. **"+"**: a profile (an account, or a model route, ADR 0015: each says
+   its route) and "Open as terminal" with the arguments the agent's
+   command gets (split as a shell would, not expanded). An agent that
+   runs only in a terminal on that machine is opened as one.
+5. **Send** creates the session with the choices (`session.create`, the
+   options in the spec), sends the prompt (`session.send`), and opens it.
+   A terminal takes no prompt: the box's first line becomes its title.
+   A refusal is said under the box, in the danger colour; the page keeps
+   what was typed.
 
-Create is the only primary button. The dialog does not close until
-the RPC returns; the button shows a spinner. Failure sits inline,
-not only as a toast.
+The decisions are `data/new-session.ts`'s; the page draws them.
 
 ### 7.6 Adding a machine
 
@@ -1127,7 +1237,7 @@ So M7 does not have to guess names.
 
 | UI | Protocol / store |
 | --- | --- |
-| Node name | `NodeInfo.name` (book name if it differs, book wins for display) |
+| Machine name | `NodeInfo.name` (book name if it differs, book wins for display) |
 | Node id (inspector) | `NodeInfo.id` |
 | Version | `NodeInfo.version` |
 | OS / arch | `NodeInfo.os` `arch` |
@@ -1137,7 +1247,9 @@ So M7 does not have to guess names.
 | Home / member | fleet membership; home is the node that publishes |
 | Sync generation | fleet manifest generation the home is on; member's applied generation from `fleet.status` |
 | Conflict | local file kept, incoming at `<name>.vessel-incoming` |
-| Harness | `HarnessKind` |
+| Agent | `HarnessKind`, by its product name (`data/agents.ts`) |
+| Title | `SessionInfo.title` (protocol 9), a `renamed` record when it changes; `session.rename` |
+| Model, effort, permissions, settings | the agent's options (`SessionOption`, by category): `harness.options` before a session, `options_changed` in its log, `session.set_option` |
 | Profile | `ProfileName`; current is `SessionInfo.profile` |
 | Mode | `SessionMode` |
 | Model | `SessionInfo.model` (route and pinned model, protocol 7), else `SessionMode::Structured.model` |
@@ -1148,7 +1260,7 @@ So M7 does not have to guess names.
 | Created | `SessionInfo.created_at` |
 | Creator | `SessionInfo.created_by` / `origin` / `via` |
 | Timeline | `AgentEvent` in `EventSeq` order |
-| Permission | `PermissionId` + `PermissionOption` |
+| Permission | `PermissionId` + `PermissionOption`; Approve and Decline by `PermissionOptionKind` |
 | Devices | `device.list`; scopes `read`, `operate`, `admin` |
 | Pairing link | `vessel://pair#…` (fragment; never sent to a server) |
 | Add a machine | bridge ops `inspect` (reads the link), `pair` (book entry and credential), then `nodes`, `harness.list` |
@@ -1227,16 +1339,42 @@ control, GOAT), on purpose:
 5. **A segmented control's chosen segment** is GOAT's lifted thumb: the
    reference's (its menu's 7% fill on the field fill) cannot be told
    apart on a white card.
-6. **Settings is a column, not the full pane.** agent-orchestrator's
-   settings body is up to 1152px wide; this one is GOAT's 896px reading
-   width, so a row's control stays near its label on a wide window.
-7. **An agent's card is a list, not tabs.** agent-orchestrator's harness
-   page has Account, Models and Health tabs; Vessel shows what the agent
-   offers in one list, since the node reports no account or health of
-   its own for an agent.
-8. **No machine switch on the row.** GOAT's machine row carries an
-   on/off switch; a book entry has no such state, so the row has none.
-9. **The confirmation names the machine by its id.** Paseo's "Connect to
-   this host?" shows the host's name; a Vessel pairing link carries the
-   node's id and key but not its name, which the checklist shows once the
-   machine has connected.
+6. **The permissions menu's rows share one shield.** agent-orchestrator
+   maps the modes of the agents it knows to four icons and its own
+   wording ("Accept edits", "Bypass permissions", in the warning colour).
+   Vessel keeps no knowledge per agent (ADR 0022): the rows carry the
+   agent's own names and descriptions under one icon.
+7. **No prompt chips under the new-session heading** ("Review my
+   changes", "Add tests"…): they assume a project and a git worktree the
+   page knows nothing about, and would put words in a prompt for an agent
+   Vessel cannot vouch for.
+8. **No search or favourite setups in the agent menu.** The reference
+   searches across every agent's model catalogue and keeps starred
+   setups; an agent here offers a handful of values, in its own submenu,
+   and the page keeps no favourites store.
+9. **The "+" opens a popover, not a menu**: it holds the terminal's
+   arguments, a text field a menu's typeahead would fight. The reference's
+   "+" attaches files, which Vessel's prompts do not carry yet.
+10. **Terminal or timeline is chosen once, at creation** ("Open as
+    terminal"). The reference switches a session's interface later; a
+    Vessel session's mode is fixed by the protocol.
+11. **The summary has one view.** The reference's inspector has tabs
+    (Summary, Files, Reviews, Browser, …); Vessel has the summary's
+    sections alone, so it heads them with "Summary" and draws no tab
+    strip. It is 340px, the reference's narrowest, not its 500px default:
+    the timeline's column keeps 768px beside it at 1440px.
+12. **A session is named in the frame's title bar**, as the page's
+    heading, where the reference has a strip of session tabs.
+13. **Settings is a column, not the full pane.** agent-orchestrator's
+    settings body is up to 1152px wide; this one is GOAT's 896px reading
+    width, so a row's control stays near its label on a wide window.
+14. **An agent's card is a list, not tabs.** agent-orchestrator's harness
+    page has Account, Models and Health tabs; Vessel shows what the agent
+    offers in one list, since the node reports no account or health of
+    its own for an agent.
+15. **No machine switch on the row.** GOAT's machine row carries an
+    on/off switch; a book entry has no such state, so the row has none.
+16. **The confirmation names the machine by its id.** Paseo's "Connect to
+    this host?" shows the host's name; a Vessel pairing link carries the
+    node's id and key but not its name, which the checklist shows once the
+    machine has connected.

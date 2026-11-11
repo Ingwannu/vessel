@@ -34,9 +34,9 @@ const COMMANDS: readonly Command[] = [
     run: () => undefined,
   },
   {
-    id: "fleet",
-    label: "Fleet",
-    icon: "fleet",
+    id: "machines",
+    label: "Machines",
+    icon: "machine",
     group: "Go to",
     run: () => undefined,
   },
@@ -80,7 +80,7 @@ export function Popups() {
             <MenuItem
               icon="move"
               onSelect={() => undefined}
-              description="To another node"
+              description="To another machine"
             >
               Move
             </MenuItem>
@@ -144,7 +144,7 @@ export function Popups() {
       </Specimens>
       {dialog ? (
         <Dialog
-          title="Rename node"
+          title="Rename machine"
           onClose={() => {
             setDialog(false);
           }}

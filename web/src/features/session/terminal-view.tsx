@@ -1,0 +1,207 @@
+// A terminal session (DESIGN.md §6.8): xterm.js in the design's frame,
+// under the same title bar as a session with a timeline.
+//
+// The view replays the session's terminal records from the start, as
+// `vessel attach` does, then follows live. Keys go to the session as
+// input. The size is sent only by a tab that has focus and has typed, so
+// a tab that only watches never resizes the harness (Paseo's rule). Keys
+// and sizes go out one send at a time, in order (data/terminal-sender.ts).
+// A routed session's model calls (protocol 7) are summed into the frame's
+// chrome; the records hold metadata only.
+
+import "@xterm/xterm/css/xterm.css";
+import "./terminal-view.css";
+
+import { FitAddon } from "@xterm/addon-fit";
+import { type ITheme, Terminal } from "@xterm/xterm";
+import { useEffect, useRef, useState } from "react";
+
+import { useFleet } from "../../context";
+import { followSession, sendTerminal } from "../../data/calls";
+import { userInput } from "../../data/terminal-input";
+import { openExternal } from "../../data/links";
+import { addCall, type Usage, usageLine } from "../../data/models";
+import { decodeBytes } from "../../data/terminal";
+import { cssColor, onSchemeChange } from "../../data/theme";
+import { TerminalSender } from "../../data/terminal-sender";
+import { Banner, Tooltip } from "../../ui/kit";
+import { toast } from "../../ui/toasts";
+import type { StreamState } from "../../wire/bridge";
+import type { SessionInfo } from "../../wire/proto";
+import { SessionBar } from "./session-bar";
+
+/** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
+ * monospace faces, then Pretendard, then `monospace` (the operator's font
+ * rule). xterm.js measures its cell from it, so it is written out. */
+const TERMINAL_FONT =
+  '"Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
+
+/** xterm's theme from the terminal's own tokens, resolved for the scheme
+ * the page shows now; not the page's accent, which is black in the light
+ * theme while the terminal is black in both. */
+function terminalTheme(): ITheme {
+  return {
+    background: cssColor("--term-bg"),
+    foreground: cssColor("--term-fg"),
+    cursor: cssColor("--term-cursor"),
+    selectionBackground: cssColor("--term-selection"),
+  };
+}
+
+export function TerminalView({
+  node,
+  label,
+  session,
+}: {
+  node: string;
+  label: string;
+  session: SessionInfo;
+}) {
+  const fleet = useFleet();
+  const host = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ cols: number; rows: number } | null>(null);
+  const [stream, setStream] = useState<StreamState | null>(null);
+  // Kept with the session and the next record it expects, so a follow
+  // that starts again from the first record counts no call twice.
+  const [usage, setUsage] = useState<{
+    id: string;
+    next: number;
+    usage: Usage;
+  } | null>(null);
+  useEffect(() => {
+    const element = host.current;
+    if (element === null) {
+      return undefined;
+    }
+    const terminal = new Terminal({
+      fontFamily: TERMINAL_FONT,
+      fontSize: 13,
+      lineHeight: 1.25,
+      cursorBlink: true,
+      cursorStyle: "block",
+      convertEol: false,
+      scrollback: 5000,
+      // OSC 8 hyperlinks from the session follow the timeline's link
+      // policy (data/links.ts): http(s) only, after a confirm showing the
+      // URL, in a new isolated tab; the UI tab is never navigated.
+      linkHandler: {
+        activate: (_event, uri) => {
+          openExternal(uri);
+        },
+        allowNonHttpProtocols: false,
+      },
+      theme: terminalTheme(),
+    });
+    // The terminal's tokens differ a shade between the schemes.
+    const stopScheme = onSchemeChange(() => {
+      terminal.options.theme = terminalTheme();
+    });
+    const fit = new FitAddon();
+    terminal.loadAddon(fit);
+    terminal.open(element);
+    fit.fit();
+    setSize({ cols: terminal.cols, rows: terminal.rows });
+    // One send in flight, in typing order (data/terminal-sender.ts).
+    const sender = new TerminalSender(
+      (terminalInput) => sendTerminal(fleet, node, session.id, terminalInput),
+      () => {
+        toast("Keys dropped: the session is not reading its input", "error");
+      },
+    );
+    let typed = false;
+    const sendSize = () => {
+      if (!typed || !element.contains(document.activeElement)) {
+        return;
+      }
+      sender.resize(terminal.cols, terminal.rows);
+    };
+    const input = userInput(terminal, (data) => {
+      const first = !typed;
+      typed = true;
+      if (first) {
+        sendSize();
+      }
+      sender.keys(data);
+    });
+    const observer = new ResizeObserver(() => {
+      fit.fit();
+      setSize({ cols: terminal.cols, rows: terminal.rows });
+      sendSize();
+    });
+    observer.observe(element);
+    const stop = followSession(fleet, node, session.id, 0, {
+      record: (record) => {
+        const event = record.event;
+        if (event.type === "terminal") {
+          terminal.write(decodeBytes(event.data));
+        } else if (event.type === "model_call") {
+          setUsage((current) => {
+            const mine = current?.id === session.id ? current : null;
+            if (mine !== null && record.seq < mine.next) {
+              return current;
+            }
+            return {
+              id: session.id,
+              next: record.seq + 1,
+              usage: addCall(mine?.usage ?? null, event),
+            };
+          });
+        }
+      },
+      state: setStream,
+    });
+    return () => {
+      stop();
+      stopScheme();
+      observer.disconnect();
+      input.dispose();
+      sender.close();
+      terminal.dispose();
+    };
+  }, [fleet, node, session.id]);
+  const frozen = stream?.state === "reconnecting" || stream?.state === "failed";
+  const calls = usage?.id === session.id ? usage.usage : null;
+  return (
+    <>
+      <SessionBar node={node} label={label} session={session} renamed={null} />
+      {stream?.state === "reconnecting" ? (
+        <Banner>
+          Reconnecting to {label} · {stream.message} · the terminal is frozen
+        </Banner>
+      ) : stream?.state === "failed" ? (
+        <Banner tone="error">The stream stopped: {stream.message}</Banner>
+      ) : null}
+      <div className="term-wrap">
+        <div className="term-frame">
+          <div className="term-inner">
+            <div className="term-chrome">
+              <span>{label}</span>
+              <span>
+                {size === null
+                  ? ""
+                  : `${String(size.cols)}×${String(size.rows)}`}
+              </span>
+              {calls === null ? null : (
+                <Tooltip label={calls.models.join(", ")}>
+                  <span className="calls">{usageLine(calls)}</span>
+                </Tooltip>
+              )}
+              <span className="live">
+                {frozen
+                  ? "frozen"
+                  : stream?.state === "ended"
+                    ? "ended"
+                    : "live"}
+              </span>
+            </div>
+            <div
+              className="term xterm-host"
+              ref={host}
+              aria-label="Session terminal"
+            />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

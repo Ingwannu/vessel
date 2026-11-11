@@ -1,17 +1,5 @@
-/* An agent's row (agent-row.tsx): GOAT's provider row. The letter tile
-   is the board card's agent mark at a row's size. */
-
-.agent-mark {
-  display: grid;
-  flex: 0 0 20px;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: var(--bg-well);
-  color: var(--text-secondary);
-  font: 600 11px / 1 var(--font-sans);
-}
+/* An agent's row (agent-row.tsx): GOAT's provider row, led by the kit's
+   Avatar (the board card's agent mark). */
 
 .agent-title {
   display: flex;

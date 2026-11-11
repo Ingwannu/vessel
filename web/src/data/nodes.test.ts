@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { BookNode } from "../wire/bridge";
-import { reach } from "./nodes";
+import { machineMeant } from "./nodes";
 
 const box: BookNode = {
   key: "gpu-box",
@@ -12,9 +12,24 @@ const box: BookNode = {
   id: null,
 };
 
-describe("how a node is reached", () => {
-  it("names the route in the page's words", () => {
-    expect(reach(box)).toBe("direct");
-    expect(reach({ ...box, transport: "paired" })).toBe("relay");
+describe("the machine meant", () => {
+  const book = [
+    box,
+    { ...box, key: "laptop", default: true },
+    { ...box, key: "nas" },
+  ];
+
+  it("is the one asked for, else the last chosen, else the default, else the first", () => {
+    expect(machineMeant(book, ["nas", "gpu-box"])).toBe("nas");
+    expect(machineMeant(book, [undefined, "gpu-box"])).toBe("gpu-box");
+    expect(machineMeant(book, [undefined, null])).toBe("laptop");
+    expect(machineMeant([box], [])).toBe("gpu-box");
+    expect(machineMeant([], [])).toBeNull();
+  });
+
+  it("is only one that is accepted (a new session needs a connected one)", () => {
+    const connected = (key: string) => key === "nas";
+    expect(machineMeant(book, ["gpu-box", "laptop"], connected)).toBe("nas");
+    expect(machineMeant(book, [], () => false)).toBeNull();
   });
 });

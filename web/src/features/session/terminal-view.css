@@ -1,0 +1,70 @@
+/* The terminal frame (features/session/terminal-view.tsx, DESIGN.md
+   §6.8) and xterm.js inside it: the concentric 16 / 12 frames, black in
+   both themes, a 32px chrome line in the dim colour. */
+
+.term-wrap {
+  flex: 1;
+  padding: 12px;
+  min-height: 0;
+  display: flex;
+}
+
+.term-frame {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--term-border);
+  border-radius: var(--r-6);
+  background: var(--term-frame);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.term-inner {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--term-border);
+  border-radius: var(--r-5);
+  background: var(--term-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.term-chrome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--term-border);
+  color: var(--term-dim);
+  font: var(--t-mono);
+  font-size: 11px;
+}
+
+.term-chrome .live {
+  margin-left: auto;
+}
+
+.term-chrome .calls {
+  color: var(--term-fg);
+}
+
+/* The terminal: xterm fills the inner frame. Selected by `.xterm-host`
+   alone: `.term` is also the session page's modifier (`.session.term`),
+   and a rule on `.term` painted that whole page black and inset its
+   header. */
+.xterm-host {
+  flex: 1;
+  margin: 0;
+  padding: var(--s-2);
+  overflow: hidden;
+  font: var(--t-term);
+  color: var(--term-fg);
+  background: var(--term-bg);
+}
+
+.xterm .xterm-accessibility-tree {
+  font-family: var(--font-mono);
+}

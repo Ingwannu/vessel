@@ -4,6 +4,7 @@ import { bookNode, connectedAs, liveSession } from "./fixtures/machines";
 import {
   HERE,
   machineActions,
+  machineChoices,
   machineFor,
   machineLine,
   machineState,
@@ -79,17 +80,33 @@ describe("the machine a section is about", () => {
     bookNode("build-server"),
   ];
 
-  it("is the address's, else the default, else a connected one", () => {
-    expect(machineFor(book, {}, "laptop")?.key).toBe("laptop");
-    expect(machineFor(book, {}, "missing")?.key).toBe("gpu-box");
-    const noDefault = book.map((node) => ({ ...node, default: false }));
-    expect(
-      machineFor(
-        noDefault,
-        { "build-server": connectedAs("build-server") },
-        undefined,
-      )?.key,
-    ).toBe("build-server");
-    expect(machineFor([], {}, undefined)).toBeNull();
+  it("is the address's, else the last chosen, else the default, in the book", () => {
+    expect(machineFor(book, "laptop", "build-server")?.key).toBe("laptop");
+    expect(machineFor(book, undefined, "build-server")?.key).toBe(
+      "build-server",
+    );
+    expect(machineFor(book, "missing", null)?.key).toBe("gpu-box");
+    expect(machineFor([], undefined, null)).toBeNull();
+  });
+});
+
+describe("machines to choose from", () => {
+  const book = [bookNode("laptop"), bookNode("build-server")];
+  const statuses = { laptop: connectedAs("laptop") };
+
+  it("are offered by name, the unconnected one saying why", () => {
+    expect(machineChoices(book, statuses, false)).toEqual([
+      { value: "laptop", label: "laptop" },
+      { value: "build-server", label: "build-server", detail: "Connecting" },
+    ]);
+  });
+
+  it("are off when not connected, for a new session", () => {
+    expect(machineChoices(book, statuses, true)[1]).toEqual({
+      value: "build-server",
+      label: "build-server",
+      detail: "Connecting",
+      disabled: true,
+    });
   });
 });

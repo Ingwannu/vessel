@@ -1,0 +1,55 @@
+/* A session's page (features/session/session-page.tsx, DESIGN.md §3.1):
+   the log and the composer in one column, the summary beside them; the
+   summary leaves below 1280px of window. The terminal takes the whole
+   page. */
+
+.session {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) var(--inspect-w);
+  min-height: 0;
+}
+
+.session.term {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The log scrolls; its column is agent-orchestrator's transcript, at most
+   768px, centred. */
+.timeline {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s-5) 16px 24px;
+}
+
+.timeline-column,
+.session-dock-column {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+/* The composer's dock under the log: 16px in, 12px off the frame's foot. */
+.session-dock {
+  flex: none;
+  padding: 0 16px 12px;
+}
+
+@media (max-width: 1279px) {
+  .session {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .session .inspector {
+    display: none;
+  }
+}

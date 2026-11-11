@@ -16,15 +16,17 @@ export function typing(target: EventTarget | null): boolean {
   );
 }
 
-/** Where `g` then `key` goes. */
+/** Where `g` then `key` goes: the board, and Settings' machines, sync
+ * and devices (the letters the Fleet, Sync and Devices pages had). */
 const PLACES: Readonly<Record<string, string>> = {
-  f: "/fleet",
   s: "/sessions",
-  y: "/sync",
-  d: "/devices",
+  m: "/settings/machines",
+  f: "/settings/machines",
+  y: "/settings/sync",
+  d: "/settings/devices",
 };
 
-/** `g f`, `g s`, `g y`, `g d`. */
+/** `g s`, `g m` (or `g f`), `g y`, `g d`. */
 export function useGoShortcuts(): void {
   const navigate = useNavigate();
   useEffect(() => {

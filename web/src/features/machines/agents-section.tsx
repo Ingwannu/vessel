@@ -4,7 +4,8 @@
 // default (`machineFor`); a picker at the heading changes it.
 
 import { useFleetState } from "../../context";
-import { agentKindOf, agentsOn } from "../../data/agents";
+import { agentsOn } from "../../data/agent-status";
+import { agentKindOf } from "../../data/agents";
 import { machineFor, machineState } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
 import { RowList, Skeleton } from "../../ui/kit";
@@ -23,7 +24,8 @@ export function AgentsSection({
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   const harnessLists = useFleetState((state) => state.harnesses);
-  const node = machineFor(book ?? [], statuses, machine);
+  const selected = useFleetState((state) => state.selected);
+  const node = machineFor(book ?? [], machine, selected);
   const lead =
     "The agents each machine can run, and what they offer: models, effort and permissions.";
   if (node === null) {

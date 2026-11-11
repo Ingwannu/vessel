@@ -105,7 +105,7 @@ test("the kit, light and dark", async ({ page }) => {
     await section(page, "Popups")
       .getByRole("button", { name: "Dialog", exact: true })
       .press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Rename node" });
+    const dialog = page.getByRole("dialog", { name: "Rename machine" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel("Name")).toBeFocused();
     await shot(page, `24-kit-${scheme}-dialog`);

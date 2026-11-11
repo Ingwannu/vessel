@@ -26,17 +26,23 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
       await socket.close();
     }
   };
-  const connected = page.getByText("vessel ui · connected");
+  // The title bar names the link to `vessel ui` only while it is not up;
+  // connected, the bar is quiet and the sidebar's machines serve again.
+  const linkChip = page.getByRole("banner").getByText(/^vessel ui · /);
+  const serving = page
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("img", { name: "Connected" })
+    .first();
+  const connected = async () => {
+    await expect(linkChip).toHaveCount(0);
+    await expect(serving).toBeVisible();
+  };
   const disconnected = page.getByText(
     /Disconnected — vessel ui may have restarted/,
   );
 
-  const origin = await openUi(page);
-  // Connected first: the tab keeps its session key once welcomed, so a
-  // navigation before that would leave it without one.
-  await expect(connected).toBeVisible();
-  await page.goto(`${origin}/settings/machines`);
-  await expect(connected).toBeVisible();
+  await openUi(page);
+  await connected();
 
   // Five failed dials (about 7.5 s of backoff), then it stops and says so.
   await drop();
@@ -44,15 +50,13 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   await expect(page.getByText("vessel ui · disconnected")).toBeVisible();
   failing = false;
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(connected).toBeVisible();
+  await connected();
   await expect(disconnected).toBeHidden();
-  await expect(page.getByRole("list", { name: "Machines" })).toBeVisible();
 
   // Again, and this time a reload: the key in this tab survived.
   await drop();
   await expect(disconnected).toBeVisible({ timeout: 30_000 });
   failing = false;
   await page.reload();
-  await expect(connected).toBeVisible();
-  await expect(page.getByRole("list", { name: "Machines" })).toBeVisible();
+  await connected();
 });

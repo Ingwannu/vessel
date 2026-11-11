@@ -25,17 +25,10 @@ const BUDGET = { ".ts": 300, ".tsx": 300, ".css": 400 };
 
 /** Files still to be divided, with the lines each had when it was listed
  * (2026-11-11, milestone 10's track W0). Each may shrink, never grow.
- * `data/timeline.ts` is listed as track E left it on `backend/m10` (382
- * lines on this track's base, 406 with track E's title events), so the
- * merge of the two tracks passes. */
+ */
 /** @type {Readonly<Record<string, number>>} */
 const STILL_TO_DIVIDE = {
-  "src/routes/structured.tsx": 700,
   "src/bridge/client.ts": 467,
-  "src/routes/sessions.tsx": 451,
-  "src/data/timeline.ts": 406,
-  "src/data/board.ts": 353,
-  "src/routes/session.tsx": 328,
 };
 
 /** @param {string} path @returns {string[]} */

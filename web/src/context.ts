@@ -1,5 +1,6 @@
 // The fleet controller, shared through React context, and the page-level
-// UI state the chrome needs (the breadcrumb, the new-session dialog).
+// UI state the chrome needs (the breadcrumb, a request for the
+// new-session page).
 
 import { createContext, useContext, useEffect } from "react";
 
@@ -32,7 +33,10 @@ export interface Crumb {
 
 export interface Chrome {
   crumbs: readonly Crumb[];
-  /** The new-session dialog, open with this node preselected. */
+  /** A request for the new-session page on this node (`null`: the page
+   * picks), from code outside the router's tree, such as the palette's
+   * commands. The shell turns it into the page and clears it
+   * (features/shell/use-new-session.ts). */
   newSession: { node: string | null } | null;
 }
 

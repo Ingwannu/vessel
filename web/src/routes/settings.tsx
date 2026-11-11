@@ -17,12 +17,19 @@ import { DevicesSection } from "../features/settings/devices-section";
 import { ModelsSection } from "../features/settings/models";
 import { SyncSection } from "../features/settings/sync-section";
 
-export function SettingsPage(): ReactElement {
+export function SettingsPage(): ReactElement | null {
   const place = useSettingsPlace();
-  useCrumbs([
-    { label: "Settings", to: "/settings" },
-    { label: settingsSectionLabel(place.section) },
-  ]);
+  useCrumbs(
+    place === null
+      ? []
+      : [
+          { label: "Settings", to: "/settings" },
+          { label: settingsSectionLabel(place.section) },
+        ],
+  );
+  if (place === null) {
+    return null;
+  }
   if (!place.exact) {
     return (
       <Navigate

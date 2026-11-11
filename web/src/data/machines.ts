@@ -11,6 +11,7 @@ import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
 import type { StateTone } from "./format";
 import { isLive } from "./format";
+import { machineMeant, nodeLabel } from "./nodes";
 
 /** The key the bridge gives this machine's own node (`NodeKey::HERE`). */
 export const HERE: NodeKey = "_here";
@@ -143,35 +144,48 @@ export function nameProblem(
   return taken ? `There is already a machine called ${text}.` : null;
 }
 
-/** The machine a section is about: the one in its address, else the
- * book's default, else the first connected, else the first. */
+/** The machine a Settings section is about (DESIGN.md §2.5): the
+ * address's, else the one last chosen, else the default, else the first;
+ * always one in the book. */
 export function machineFor(
   book: readonly BookNode[],
-  statuses: Readonly<Record<NodeKey, NodeStatus>>,
   asked: string | undefined,
+  selected: NodeKey | null,
 ): BookNode | null {
-  const named = book.find((node) => node.key === asked);
-  if (named !== undefined) {
-    return named;
-  }
-  return (
-    book.find((node) => node.default) ??
-    book.find((node) => statuses[node.key]?.state === "connected") ??
-    book[0] ??
-    null
+  const key = machineMeant(book, [asked, selected], (candidate) =>
+    book.some((node) => node.key === candidate),
   );
+  return book.find((node) => node.key === key) ?? null;
 }
 
-/** The machines as a picker's options (the kit's Choice shape): each
- * named by the book, its state as the muted detail. */
+/** One machine to choose, in the kit's choice shape. */
+export interface MachineChoice {
+  value: NodeKey;
+  label: string;
+  detail?: string;
+  disabled?: boolean;
+}
+
+/** The book's machines to choose from, by name. Only a connected one can
+ * take a session, so with `connectedOnly` (the new-session page) one that
+ * is not is off; either way it says its state in a word. */
 export function machineChoices(
   book: readonly BookNode[],
   statuses: Readonly<Record<NodeKey, NodeStatus>>,
-  label: (node: BookNode) => string,
-): { value: NodeKey; label: string; detail: string }[] {
-  return book.map((node) => ({
-    value: node.key,
-    label: label(node),
-    detail: machineState(statuses[node.key]).word,
-  }));
+  connectedOnly: boolean,
+): MachineChoice[] {
+  return book.map((node) => {
+    const status = statuses[node.key];
+    const connected = status?.state === "connected";
+    return {
+      value: node.key,
+      label: nodeLabel(node, status),
+      ...(connected
+        ? {}
+        : {
+            detail: machineState(status).word,
+            ...(connectedOnly ? { disabled: true } : {}),
+          }),
+    };
+  });
 }

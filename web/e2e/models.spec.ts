@@ -4,34 +4,37 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, newSessionDialog, optionOf } from "./kit";
+import { choose, newSessionPage, optionOf } from "./kit";
 import { openUi } from "./open";
 
-/** Open New session on laptop with Claude Code on route `qwen-coder`. */
+/** Start a session on laptop with Claude Code under profile
+ * `claude-qwen`, which runs it on route `qwen-coder`. */
 async function routed(
   page: Page,
   mode: "Structured" | "Terminal",
+  prompt = "",
 ): Promise<void> {
-  const dialog = await newSessionDialog(page, "laptop", mode);
-  const model = dialog.getByLabel("Model");
-  const profile = dialog.getByLabel("Profile");
-  // A route no profile of this harness names is listed, not offered.
+  const box = await newSessionPage(page, "laptop", mode);
+  await box.getByRole("button", { name: "Add", exact: true }).click();
+  const start = page.getByRole("dialog", { name: "Start with" });
+  const profile = start.getByRole("combobox", { name: "Profile" });
+  // A profile on a model route says which.
   await expect(
-    await optionOf(page, model, /gpt-oss .* no profile/),
-  ).toHaveAttribute("aria-disabled", "true");
+    await optionOf(page, profile, /^Claude Code on Qwen/),
+  ).toContainText("qwen-coder");
   await page.keyboard.press("Escape");
-  await choose(page, model, /^qwen-coder\b/);
-  // Picking the route picks the profile on it, and the other way round.
-  await expect(profile).toContainText("Claude Code on Qwen");
-  await expect(dialog).toContainText(
-    "Through profile claude-qwen, pinned to qwen/qwen3-coder and qwen/qwen3-coder-flash.",
-  );
-  await choose(page, profile, /^default$/);
-  await expect(model).toContainText("harness default");
   await choose(page, profile, /^Claude Code on Qwen/);
-  await expect(model).toContainText("qwen-coder");
-  await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(dialog).toBeHidden();
+  await expect(profile).toContainText("Claude Code on Qwen");
+  await page.keyboard.press("Escape");
+  if (prompt !== "") {
+    await box.getByRole("textbox", { name: "Prompt" }).fill(prompt);
+  }
+  await box
+    .getByRole("button", {
+      name: mode === "Terminal" ? "Open the terminal" : "Send",
+    })
+    .click();
+  await expect(page).toHaveURL(/\/sessions\/laptop\/[^/]+$/);
 }
 
 test("a machine's routes and profiles show in Settings' Models", async ({
@@ -50,7 +53,11 @@ test("a machine's routes and profiles show in Settings' Models", async ({
     page.getByRole("list", { name: "Profiles on laptop" }),
   ).toContainText("Claude Code · models from qwen-coder");
   // A machine without routes says so; the picker moves between machines.
-  await choose(page, page.getByLabel("Machine"), /^gpu-box\b/);
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Machine" }),
+    /^gpu-box\b/,
+  );
   await expect(page).toHaveURL(/\/settings\/models\?machine=gpu-box$/);
   await expect(
     page.getByText("No routes: its agents use their own providers."),
@@ -59,14 +66,7 @@ test("a machine's routes and profiles show in Settings' Models", async ({
 
 test("a routed structured session lists its model calls", async ({ page }) => {
   await openUi(page);
-  await routed(page, "Structured");
-  await expect(page.locator(".session-head .meta")).toContainText(
-    "claude-qwen · qwen-coder (qwen/qwen3-coder)",
-  );
-  await expect(page.getByText(/Ready · harness session/)).toBeVisible();
-  const prompt = page.getByRole("textbox", { name: "Prompt" });
-  await prompt.fill("model what is a vessel?");
-  await prompt.press("Control+Enter");
+  await routed(page, "Structured", "model what is a vessel?");
   await expect(
     page.getByText("model fake reply to: what is a vessel?"),
   ).toBeVisible();
@@ -76,15 +76,16 @@ test("a routed structured session lists its model calls", async ({ page }) => {
   await expect(call).toContainText(
     /Model call · qwen-coder · qwen\/qwen3-coder · 12 in · 5 out · end turn · \d+ ms/,
   );
-  const inspector = page.getByRole("complementary", {
-    name: "Session inspector",
-  });
-  await expect(inspector).toContainText("Model calls");
-  await expect(inspector).toContainText("calls1");
-  await expect(inspector).toContainText("routeqwen-coder");
-  await expect(page.locator(".composer-bar .model")).toHaveText(
-    "qwen/qwen3-coder",
-  );
+  const summary = page.getByRole("complementary", { name: "Session summary" });
+  await expect(
+    summary.getByRole("button", { name: /^Model calls/ }),
+  ).toContainText("1");
+  await expect(summary).toContainText("qwen/qwen3-coder");
+  // The identifiers are behind Details.
+  await summary.getByRole("button", { name: "Details" }).click();
+  await expect(summary).toContainText("Model route");
+  await expect(summary).toContainText("qwen-coder");
+  await expect(summary).toContainText("claude-qwen");
 });
 
 test("a routed terminal session counts its model calls", async ({ page }) => {

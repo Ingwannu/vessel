@@ -32,7 +32,8 @@ const FILES_SHOWN = 12;
 export function SyncSection({ machine }: { machine: string | undefined }) {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
-  const node = machineFor(book ?? [], statuses, machine);
+  const selected = useFleetState((state) => state.selected);
+  const node = machineFor(book ?? [], machine, selected);
   if (node === null) {
     return (
       <SettingsPage lead={LEAD}>
@@ -194,7 +195,7 @@ function SharedBy({ machine, label }: { machine: NodeKey; label: string }) {
               return (
                 <Row
                   key={member.device}
-                  mark={{ icon: "server" }}
+                  mark={{ icon: "machine" }}
                   title={member.label}
                   detail={{ facts: memberLine(member, ago) }}
                   control={<Badge tone={state.tone}>{state.word}</Badge>}

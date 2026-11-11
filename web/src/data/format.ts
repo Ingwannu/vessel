@@ -1,9 +1,7 @@
 // How the UI writes protocol values: one vocabulary, the wire's
 // (DESIGN.md §1.1). Statuses keep their protocol names.
 
-import type { NodeStatus } from "../wire/bridge";
 import type {
-  HarnessKind,
   PermissionOptionKind,
   SessionInfo,
   SessionStatus,
@@ -100,36 +98,6 @@ export function sessionTitle(cwd: string | null | undefined): string {
   return segments.at(-1) ?? cwd;
 }
 
-/** A harness as the operator types it. */
-export function harnessName(kind: HarnessKind): string {
-  switch (kind) {
-    case "claude-code":
-      return "claude";
-    case "codex":
-      return "codex";
-    case "gemini":
-      return "gemini";
-    case "open-code":
-      return "opencode";
-  }
-}
-
-/** The one letter a card's avatar shows for a harness. A letter, not the
- * vendor's logo: the logos are theirs, and a board needs only to tell the
- * four apart at a glance. (Claude Code and Codex both start with C.) */
-export function harnessMark(kind: HarnessKind): string {
-  switch (kind) {
-    case "claude-code":
-      return "C";
-    case "codex":
-      return "X";
-    case "gemini":
-      return "G";
-    case "open-code":
-      return "O";
-  }
-}
-
 /** "3m", "2h", "5d" since `iso`, at `now`. */
 export function ago(iso: string, now: number = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
@@ -159,25 +127,4 @@ export function when(iso: string): string {
     return `today ${time}`;
   }
   return `${date.toLocaleDateString("en-CA")} ${time}`;
-}
-
-/** The word and tone for a node's link, as the sidebar and badges show it. */
-export function nodeState(status: NodeStatus | undefined): {
-  word: string;
-  tone: StateTone;
-} {
-  switch (status?.state) {
-    case undefined:
-    case "idle":
-    case "connecting":
-      return { word: "connecting", tone: "warn" };
-    case "connected":
-      return status.node.state === "draining"
-        ? { word: "draining", tone: "warn" }
-        : { word: "serving", tone: "ok" };
-    case "reconnecting":
-      return { word: "reconnecting", tone: "warn" };
-    case "failed":
-      return { word: "offline", tone: "neutral" };
-  }
 }

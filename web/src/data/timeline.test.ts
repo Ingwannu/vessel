@@ -8,7 +8,8 @@ import type {
   SessionOption,
   SessionStatus,
 } from "../wire/proto";
-import { EMPTY, reduce } from "./timeline";
+import { reduce } from "./timeline";
+import { EMPTY } from "./timeline-model";
 
 let seq = 0;
 const at = "2026-11-07T12:00:00Z";

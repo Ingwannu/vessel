@@ -88,11 +88,11 @@ async function addMachine(
   await page.getByRole("button", { name: "Add machine" }).click();
   const add = page.getByRole("dialog", { name: "Add a machine" });
   await expect(add).toBeVisible();
-  await capture(page, `40-add-link-${scheme}`);
+  await capture(page, `70-add-link-${scheme}`);
   await add.getByLabel("Paste the link it printed").fill("not a link");
   await add.getByRole("button", { name: "Continue" }).click();
   await expect(add).toContainText("This is not a pairing link");
-  await capture(page, `40b-add-link-unreadable-${scheme}`);
+  await capture(page, `70b-add-link-unreadable-${scheme}`);
   const link = pairingLink(env);
   await paste(page, link);
   await add.getByRole("button", { name: "Continue" }).click();
@@ -100,11 +100,11 @@ async function addMachine(
     name: "Connect to this machine?",
   });
   await confirm.getByLabel("Name it").fill(name);
-  await capture(page, `41-add-confirm-${scheme}`);
+  await capture(page, `71-add-confirm-${scheme}`);
   await confirm.getByRole("button", { name: "Connect" }).click();
   const done = page.getByRole("dialog", { name: `${name} is ready` });
   await expect(done).toBeVisible({ timeout: 30_000 });
-  await capture(page, `42-add-ready-${scheme}`);
+  await capture(page, `72-add-ready-${scheme}`);
   await done.getByRole("button", { name: "Close" }).last().click();
   return link;
 }
@@ -125,7 +125,7 @@ async function addRefused(
   await confirm.getByRole("button", { name: "Connect" }).click();
   const refused = page.getByRole("dialog", { name: "studio-b is not ready" });
   await expect(refused).toBeVisible({ timeout: 30_000 });
-  await capture(page, `43-add-refused-${scheme}`);
+  await capture(page, `73-add-refused-${scheme}`);
   await refused.getByRole("button", { name: "Close" }).last().click();
 }
 
@@ -142,13 +142,13 @@ async function sections(
   await expect(
     machines.getByRole("listitem").filter({ hasText: "laptop" }),
   ).toContainText("Connected");
-  await capture(page, `30-machines-${scheme}`);
+  await capture(page, `61-machines-${scheme}`);
 
   await machines.getByRole("link", { name: "laptop" }).click();
   await expect(
     page.getByRole("list", { name: "Agents on laptop" }),
   ).toBeVisible();
-  await capture(page, `31-machine-open-${scheme}`, 1500);
+  await capture(page, `62-machine-open-${scheme}`, 1500);
 
   // The dialogs over the plain list, as they are first met.
   await page.goto(`${origin}/settings/machines`);
@@ -156,16 +156,16 @@ async function sections(
   const link = await addMachine(page, env, scheme, "studio");
   await page.getByRole("button", { name: "Actions for studio" }).click();
   await expect(page.getByRole("menuitem", { name: "Forget…" })).toBeVisible();
-  await capture(page, `44-machine-menu-${scheme}`);
+  await capture(page, `74-machine-menu-${scheme}`);
   await page.getByRole("menuitem", { name: "Rename…" }).click();
   const rename = page.getByRole("dialog", { name: "Rename studio" });
   await rename.getByLabel("Name").fill("studio two");
-  await capture(page, `45-rename-${scheme}`);
+  await capture(page, `75-rename-${scheme}`);
   await rename.getByRole("button", { name: "Cancel" }).click();
   await page.getByRole("button", { name: "Actions for studio" }).click();
   await page.getByRole("menuitem", { name: "Forget…" }).click();
   const forget = page.getByRole("dialog", { name: "Forget studio?" });
-  await capture(page, `46-forget-${scheme}`);
+  await capture(page, `76-forget-${scheme}`);
   await forget.getByRole("button", { name: "Forget" }).click();
   await expect(forget).toBeHidden();
   await addRefused(page, scheme, link);
@@ -176,13 +176,13 @@ async function sections(
   await expect(
     page.getByRole("list", { name: "What Claude Code offers" }),
   ).toBeVisible({ timeout: 30_000 });
-  await capture(page, `32-agents-${scheme}`, 1150);
+  await capture(page, `63-agents-${scheme}`, 1150);
 
   await page.goto(`${origin}/settings/models?machine=laptop`);
   await expect(
     page.getByRole("list", { name: "Model routes on laptop" }),
   ).toBeVisible();
-  await capture(page, `33-models-${scheme}`);
+  await capture(page, `64-models-${scheme}`);
 
   await page.goto(`${origin}/settings/devices?machine=laptop`);
   await expect(
@@ -193,7 +193,7 @@ async function sections(
   await expect(
     page.getByRole("button", { name: "Show pairing link" }),
   ).toBeVisible();
-  await capture(page, `34-devices-${scheme}`);
+  await capture(page, `65-devices-${scheme}`);
 
   await page.goto(`${origin}/settings/sync?machine=laptop`);
   // Members report what they applied once they have pulled it.
@@ -204,15 +204,15 @@ async function sections(
     await page.waitForTimeout(1000);
     await page.reload();
   }
-  await capture(page, `35-sync-${scheme}`);
+  await capture(page, `66-sync-${scheme}`);
 
   await page.goto(`${origin}/settings/appearance`);
   await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
-  await capture(page, `36-appearance-${scheme}`);
+  await capture(page, `67-appearance-${scheme}`);
 
   await page.goto(`${origin}/settings/about`);
   await expect(page.getByRole("list", { name: "Licences" })).toBeVisible();
-  await capture(page, `37-about-${scheme}`, 1300);
+  await capture(page, `68-about-${scheme}`, 1300);
 }
 
 test("Settings and the first screen, light and dark, wide and narrow", async ({
@@ -239,20 +239,20 @@ test("Settings and the first screen, light and dark, wide and narrow", async ({
     await expect(
       page.getByRole("list", { name: "About laptop" }),
     ).toBeVisible();
-    await capture(page, `50-machines-390-${scheme}`, 1700);
+    await capture(page, `80-machines-390-${scheme}`, 1700);
     await page.goto(
       `${origin}/settings/agents?machine=gpu-box&agent=claude-code`,
     );
     await expect(
       page.getByRole("list", { name: "What Claude Code offers" }),
     ).toBeVisible({ timeout: 30_000 });
-    await capture(page, `51-agents-390-${scheme}`, 1400);
+    await capture(page, `81-agents-390-${scheme}`, 1400);
     await page.goto(`${origin}/settings/machines`);
     await page.getByRole("button", { name: "Add machine" }).click();
     await expect(
       page.getByRole("dialog", { name: "Add a machine" }),
     ).toBeVisible();
-    await capture(page, `52-add-390-${scheme}`);
+    await capture(page, `82-add-390-${scheme}`);
     await page.keyboard.press("Escape");
   }
 
@@ -276,7 +276,7 @@ test("Settings and the first screen, light and dark, wide and narrow", async ({
       await expect(
         page.getByRole("heading", { name: "Welcome to Vessel" }),
       ).toBeVisible();
-      await capture(page, `29-welcome-${String(width)}-${scheme}`);
+      await capture(page, `60-welcome-${String(width)}-${scheme}`);
     }
   }
 });

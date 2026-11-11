@@ -2,16 +2,19 @@
 // Screens import from here, never from `@base-ui/react`, so behaviour and
 // look stay in one place.
 
+export { Avatar } from "./avatar";
 export { Badge, type BadgeLook, type Tone } from "./badge";
 export { Banner } from "./banner";
 export {
   Button,
   type ButtonProps,
+  type ButtonShape,
   type ButtonSize,
   type ButtonVariant,
   IconButton,
 } from "./button";
 export { Checkbox } from "./checkbox";
+export { Collapsible } from "./collapsible";
 export { type Choice } from "./choice";
 export { Combobox, type Suggestion } from "./combobox";
 export { CommandLine } from "./command-line";
@@ -30,6 +33,7 @@ export {
   MenuSeparator,
   MenuSubmenu,
 } from "./menu";
+export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { Popover } from "./popover";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";

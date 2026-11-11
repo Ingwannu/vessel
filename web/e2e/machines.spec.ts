@@ -172,12 +172,63 @@ test("an agent's card says what the fake agent offers", async ({ page }) => {
   const offers = page.getByRole("list", { name: "What Claude Code offers" });
   const row = (label: string) =>
     offers.getByRole("listitem").filter({ hasText: label });
-  await expect(row("Models")).toContainText("Fake-small, Fake-large", {
+  await expect(row("Model")).toContainText("Fake-small, Fake-large", {
     timeout: 30_000,
   });
-  await expect(row("Models")).toContainText("Now Fake-small");
+  await expect(row("Model")).toContainText("Now Fake-small");
   await expect(row("Effort")).toContainText("Low, High");
   // The agent's "Mode" is the page's permissions.
   await expect(row("Permissions")).toContainText("Default, Plan, Locked");
   await expect(row("Fast")).toContainText("On, Off");
+});
+
+test("every way in: the sidebar, the palette, Settings and the old addresses", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  const sidebar = page.getByRole("navigation", { name: "Sidebar" });
+  const add = page.getByRole("dialog", { name: "Add a machine" });
+
+  // The "+" on the sidebar's Machines heading.
+  await sidebar.getByRole("button", { name: "Add machine" }).click();
+  await expect(add).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(add).toBeHidden();
+
+  // The palette's action.
+  await page.keyboard.press("Control+k");
+  await page.getByRole("option", { name: /Add a machine/ }).click();
+  await expect(add).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // A machine in the sidebar opens its detail in Settings, marked there.
+  await sidebar
+    .getByRole("link", { name: /gpu-box/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/settings\/machines\?machine=gpu-box$/);
+  await expect(page.getByRole("list", { name: "About gpu-box" })).toBeVisible();
+  // Inside Settings the sidebar lists its sections, the current one marked.
+  await expect(
+    sidebar.getByRole("link", { name: "Machines", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await sidebar.getByRole("link", { name: "Agents", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/agents/);
+  await expect(
+    sidebar.getByRole("link", { name: "Agents", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+
+  // New from a machine's detail starts on that machine.
+  await page.goto(`${origin}/settings/machines?machine=build-server`);
+  await expect(
+    page.getByRole("list", { name: "About build-server" }),
+  ).toBeVisible();
+  await page.keyboard.press("n");
+  await expect(page).toHaveURL(/\/new\?machine=build-server$/);
+
+  // The old addresses lead to Settings.
+  await page.goto(`${origin}/fleet/laptop`);
+  await expect(page).toHaveURL(/\/settings\/machines\?machine=laptop$/);
+  await page.goto(`${origin}/sync?node=laptop`);
+  await expect(page).toHaveURL(/\/settings\/sync\?machine=laptop$/);
 });

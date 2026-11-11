@@ -6,7 +6,8 @@
 import { Link } from "@tanstack/react-router";
 
 import { useFleet, useFleetState } from "../../context";
-import { agentHeadline, agentName, agentsOn } from "../../data/agents";
+import { agentHeadline, agentsOn } from "../../data/agent-status";
+import { agentName } from "../../data/agents";
 import { retryMachine } from "../../data/book";
 import {
   isLive,

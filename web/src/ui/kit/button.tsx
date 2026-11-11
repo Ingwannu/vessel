@@ -30,6 +30,11 @@ export type ButtonVariant =
 /** 32px (a form's), 28px (a row's or a toolbar's), 24px (dense rows). */
 export type ButtonSize = "md" | "sm" | "xs";
 
+/** Its corners: a control's 8px; `soft`, the 10px of a composer's quiet
+ * triggers (agent-orchestrator's `rounded-lg`); `round`, a pill, or a
+ * circle for an icon (its Send and "+"). */
+export type ButtonShape = "rect" | "soft" | "round";
+
 type NativeButton = Omit<
   ComponentProps<"button">,
   "className" | "style" | "type" | "children"
@@ -47,6 +52,17 @@ function variantClass(variant: ButtonVariant): string {
       return " danger";
     case "danger-solid":
       return " danger solid";
+  }
+}
+
+function shapeClass(shape: ButtonShape): string {
+  switch (shape) {
+    case "rect":
+      return "";
+    case "soft":
+      return " soft";
+    case "round":
+      return " round";
   }
 }
 
@@ -76,6 +92,7 @@ function iconSize(size: ButtonSize): 16 | 14 {
 export interface ButtonProps extends NativeButton {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  shape?: ButtonShape;
   /** `submit` only inside a form that handles its own submit event. */
   type?: "button" | "submit";
   /** An icon before the label. */
@@ -91,6 +108,7 @@ export interface ButtonProps extends NativeButton {
 export function Button({
   variant = "secondary",
   size = "md",
+  shape = "rect",
   type = "button",
   icon,
   end,
@@ -103,7 +121,7 @@ export function Button({
       {...rest}
       type={type}
       aria-busy={busy || undefined}
-      className={`btn${variantClass(variant)}${sizeClass(size)}`}
+      className={`btn${variantClass(variant)}${sizeClass(size)}${shapeClass(shape)}`}
     >
       {busy ? (
         <Spinner size={iconSize(size) === 16 ? 14 : 12} />
@@ -121,8 +139,13 @@ export interface IconButtonProps extends NativeButton {
    * where the caller wraps it in one. */
   label: string;
   icon: IconName;
-  variant?: Exclude<ButtonVariant, "primary" | "danger-solid">;
+  /** `primary` only for a view's one primary action drawn as an icon (a
+   * composer's Send). */
+  variant?: Exclude<ButtonVariant, "danger-solid">;
   size?: ButtonSize;
+  shape?: ButtonShape;
+  /** `submit` only inside a form that handles its own submit event. */
+  type?: "button" | "submit";
 }
 
 /** A square button with only an icon. It must have a name (`label`):
@@ -133,14 +156,16 @@ export function IconButton({
   icon,
   variant = "ghost",
   size = "sm",
+  shape = "rect",
+  type = "button",
   ...rest
 }: IconButtonProps) {
   return (
     <button
       {...rest}
-      type="button"
+      type={type}
       aria-label={label}
-      className={`btn icon-btn${variantClass(variant)}${sizeClass(size)}`}
+      className={`btn icon-btn${variantClass(variant)}${sizeClass(size)}${shapeClass(shape)}`}
     >
       <Icon name={icon} size={iconSize(size)} />
     </button>

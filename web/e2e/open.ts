@@ -62,6 +62,6 @@ export async function openUi(page: Page): Promise<string> {
   } catch {
     throw new Error("Could not open the UI");
   }
-  await expect(page.getByRole("navigation", { name: "Fleet" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
   return origin;
 }

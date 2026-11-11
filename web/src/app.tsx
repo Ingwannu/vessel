@@ -14,7 +14,9 @@ import { forgetToken, type Credential } from "./bridge/token";
 import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
 import { AddMachineHost } from "./features/machines/add-machine";
+import { Shell } from "./features/shell/shell";
 import { HomePage } from "./routes/home";
+import { NewSessionPage } from "./routes/new-session";
 import {
   DevicesRedirect,
   FleetRedirect,
@@ -25,7 +27,6 @@ import { SessionPage } from "./routes/session";
 import { SessionsPage } from "./routes/sessions";
 import { SettingsPage } from "./routes/settings";
 import { TooltipProvider } from "./ui/kit";
-import { Shell } from "./ui/shell";
 
 /** `?node=` on the pages scoped by node. */
 function nodeSearch(search: Record<string, unknown>): { node?: string } {
@@ -39,11 +40,17 @@ function settingsSearch(search: Record<string, unknown>): {
   agent?: string;
 } {
   return {
-    ...(typeof search["machine"] === "string"
-      ? { machine: search["machine"] }
-      : {}),
+    ...machineSearch(search),
     ...(typeof search["agent"] === "string" ? { agent: search["agent"] } : {}),
   };
+}
+
+/** `?machine=` on the new-session page and on Settings: the machine in
+ * view. */
+function machineSearch(search: Record<string, unknown>): { machine?: string } {
+  return typeof search["machine"] === "string"
+    ? { machine: search["machine"] }
+    : {};
 }
 
 /** The frame, and the add-machine dialog, which Settings, the welcome
@@ -77,6 +84,12 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/fleet/$node",
     component: FleetRedirect,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/new",
+    validateSearch: machineSearch,
+    component: NewSessionPage,
   }),
   createRoute({
     getParentRoute: () => rootRoute,

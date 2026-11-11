@@ -29,7 +29,8 @@ const LEAD =
 export function DevicesSection({ machine }: { machine: string | undefined }) {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
-  const node = machineFor(book ?? [], statuses, machine);
+  const selected = useFleetState((state) => state.selected);
+  const node = machineFor(book ?? [], machine, selected);
   if (node === null) {
     return (
       <SettingsPage lead={LEAD}>

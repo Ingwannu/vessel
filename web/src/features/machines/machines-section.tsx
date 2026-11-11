@@ -91,7 +91,7 @@ export function MachinesSection({ machine }: { machine: string | undefined }) {
         ) : book.length === 0 ? (
           <EmptyState
             title="No machines yet"
-            icon="server"
+            icon="machine"
             action={
               <Button variant="primary" icon="plus" onClick={openAddMachine}>
                 Add a machine

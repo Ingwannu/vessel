@@ -64,7 +64,6 @@ const ICONS: readonly IconName[] = [
   "sun",
   "moon",
   "monitor",
-  "server",
   "circle-check",
   "circle-x",
   "circle-dashed",

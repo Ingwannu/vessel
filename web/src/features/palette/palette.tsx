@@ -27,22 +27,20 @@ import {
   type IconName,
   Kbd,
 } from "../../ui/kit";
+import { sectionIcon } from "../settings/section-icon";
 import { typing } from "./shortcuts";
 
 function iconOf(place: PalettePlace): IconName {
+  if (typeof place === "object") {
+    return sectionIcon(place.section);
+  }
   switch (place) {
-    case "fleet":
-      return "fleet";
-    case "sessions":
-      return "sessions";
-    case "sync":
-      return "sync";
-    case "devices":
-      return "devices";
+    case "board":
+      return "board";
     case "settings":
       return "settings";
-    case "node":
-      return "home";
+    case "machine":
+      return "machine";
     case "terminal":
       return "terminal";
     case "structured":
@@ -50,7 +48,7 @@ function iconOf(place: PalettePlace): IconName {
     case "new":
       return "plus";
     case "add-machine":
-      return "server";
+      return "machine";
     case "theme-system":
       return "monitor";
     case "theme-light":

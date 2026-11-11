@@ -7,7 +7,6 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { useFleetState } from "../../context";
 import { machineChoices } from "../../data/machines";
-import { nodeLabel } from "../../data/nodes";
 import type { SettingsSection } from "../../data/settings";
 import { Select } from "../../ui/kit";
 
@@ -21,9 +20,7 @@ export function MachinePicker({
   const navigate = useNavigate();
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
-  const options = machineChoices(book ?? [], statuses, (node) =>
-    nodeLabel(node, statuses[node.key]),
-  );
+  const options = machineChoices(book ?? [], statuses, false);
   return (
     <Select
       aria-label="Machine"

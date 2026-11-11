@@ -28,7 +28,7 @@ export function MachineRow({
   return (
     <Row
       selected={selected}
-      mark={{ icon: "server" }}
+      mark={{ icon: "machine" }}
       title={
         <Link
           to="/settings/$section"
