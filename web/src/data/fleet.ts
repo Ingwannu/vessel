@@ -4,7 +4,10 @@
 //
 // Sessions have no list subscription in the protocol, so each connected
 // node's list is read again every few seconds while the page is visible;
-// rows patch in place because unchanged sessions keep their objects.
+// rows patch in place because unchanged sessions keep their objects, and
+// a list with no change leaves the state as it was, so nothing is drawn
+// again (milestone 11, docs/PERFORMANCE.md; the cards' clock is
+// clock.ts).
 
 import { Bridge, CallFailed, type LinkState } from "../bridge/client";
 import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
@@ -54,17 +57,21 @@ const INITIAL: FleetState = {
 function keep(
   previous: readonly SessionInfo[] | undefined,
   next: SessionInfo[],
-): SessionInfo[] {
+): readonly SessionInfo[] {
   if (previous === undefined) {
     return next;
   }
   const byId = new Map(previous.map((session) => [session.id, session]));
-  return next.map((session) => {
+  const kept = next.map((session) => {
     const old = byId.get(session.id);
     return old !== undefined && JSON.stringify(old) === JSON.stringify(session)
       ? old
       : session;
   });
+  const same =
+    kept.length === previous.length &&
+    kept.every((session, index) => session === previous[index]);
+  return same ? previous : kept;
 }
 
 function message(error: unknown): string {
@@ -220,13 +227,13 @@ export class Fleet {
   async refreshSessions(node: NodeKey): Promise<void> {
     try {
       const sessions = await this.bridge.call(node, "session.list", null);
-      this.store.update((state) => ({
-        ...state,
-        sessions: {
-          ...state.sessions,
-          [node]: keep(state.sessions[node], sessions),
-        },
-      }));
+      this.store.update((state) => {
+        const before = state.sessions[node];
+        const after = keep(before, sessions);
+        return after === before
+          ? state
+          : { ...state, sessions: { ...state.sessions, [node]: after } };
+      });
     } catch {
       // The node's state says why; the list stays as it was.
     }
