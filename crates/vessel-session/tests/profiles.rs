@@ -299,6 +299,7 @@ mod support {
             SessionMode::Structured {
                 model: None,
                 resume: resume.map(HarnessSessionId::new),
+                options: Vec::new(),
             },
         )
         .with_cwd(std::env::temp_dir())
@@ -382,7 +383,9 @@ mod support {
                 } if line.starts_with("vessel:") => self.logs.push(line.clone()),
                 SessionEvent::Agent { .. }
                 | SessionEvent::Status { .. }
-                | SessionEvent::ModelCall(_) => {}
+                | SessionEvent::ModelCall(_)
+                | SessionEvent::OptionsChanged { .. }
+                | SessionEvent::Renamed { .. } => {}
             }
             Some(record)
         }

@@ -34,6 +34,11 @@ pub enum SessionError {
     /// cannot carry).
     #[error(transparent)]
     Input(InputError),
+    /// The spec chooses agent options (protocol 9), which this runtime
+    /// cannot apply yet. Refused rather than ignored: ignoring would start
+    /// the agent in a mode (a permissions mode) nobody asked for.
+    #[error("choosing an agent's options when a session starts is not built on this node yet")]
+    OptionsNotBuilt,
     /// The input does not apply to this session's mode.
     #[error("{input} cannot be sent to a {mode} session")]
     Unsupported {
@@ -86,9 +91,9 @@ impl SessionError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             Self::Launch(HarnessError::NotInstalled { .. }) => ErrorCode::HarnessNotInstalled,
-            Self::Launch(HarnessError::StructuredUnavailable { .. }) | Self::Unsupported { .. } => {
-                ErrorCode::Unsupported
-            }
+            Self::Launch(HarnessError::StructuredUnavailable { .. })
+            | Self::Unsupported { .. }
+            | Self::OptionsNotBuilt => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }

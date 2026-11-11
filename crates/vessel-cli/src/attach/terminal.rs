@@ -89,7 +89,9 @@ pub(super) async fn attach(mut stream: Stream, session: SessionId) -> Result<End
                     // bookkeeping (`vessel log` shows it), not output.
                     SessionEvent::Agent { .. }
                     | SessionEvent::ProfileChanged { .. }
-                    | SessionEvent::ModelCall(_) => {}
+                    | SessionEvent::ModelCall(_)
+                    | SessionEvent::OptionsChanged { .. }
+                    | SessionEvent::Renamed { .. } => {}
                 },
                 Some(Err(error)) if !error.is_fatal() => notice(&error, "\r\n").await?,
                 Some(Err(error)) => return Err(error.into()),

@@ -85,6 +85,7 @@ async fn running(owner: &NodeClient, cwd: &str) -> (SessionId, HarnessSessionId)
         SessionMode::Structured {
             model: None,
             resume: None,
+            options: Vec::new(),
         },
     )
     .with_cwd(PathBuf::from(cwd));

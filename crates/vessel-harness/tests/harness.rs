@@ -88,6 +88,7 @@ fn structured(harness: HarnessKind, cwd: Option<PathBuf>) -> SessionSpec {
             SessionMode::Structured {
                 model: Some(ModelId::new("cheap")),
                 resume: None,
+                options: Vec::new(),
             },
         );
         spec.cwd = cwd;

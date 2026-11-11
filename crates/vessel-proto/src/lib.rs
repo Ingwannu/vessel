@@ -24,6 +24,7 @@ pub mod lsp;
 mod model;
 mod name;
 mod node;
+mod options;
 mod pairing;
 mod profile;
 mod proxy;
@@ -61,8 +62,8 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, PermissionOptionId,
-    RequestId, SessionId, SubscriptionId, ToolCallId, TransferId,
+    DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
+    PermissionOptionId, RequestId, SessionId, SubscriptionId, ToolCallId, TransferId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{
@@ -76,6 +77,10 @@ pub use name::{
 pub use node::{
     MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange, ProtocolVersion,
 };
+pub use options::{
+    ChoiceValue, GetHarnessOptions, GetSessionOptions, HarnessOptions, OptionCategory,
+    OptionChoice, OptionKind, OptionValue, SessionOption, SetSessionOption,
+};
 pub use pairing::{InvalidRoute, LinkError, OfferVersion, PairingLink, PairingOffer, RouteUrl};
 pub use profile::{
     AgentAuth, AgentSecret, Creator, ListProfiles, MoveProfile, ProfileInfo, ReloadProfiles,
@@ -88,9 +93,9 @@ pub use relay::{
 };
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
-    Hello, KillSession, ListHarnesses, ListSessions, Method, Outcome, ReadEvents, Reply, Request,
-    SendInput, ServerFrame, StopNode, StopWhen, Subscribe, Subscribed, SubscriptionEnd,
-    UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    Hello, KillSession, ListHarnesses, ListSessions, Method, Outcome, ReadEvents, RenameSession,
+    Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe, Subscribed,
+    SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
@@ -120,6 +125,7 @@ mod tests {
             SessionMode::Structured {
                 model: Some(ModelId::new("opus")),
                 resume: None,
+                options: Vec::new(),
             },
         )
         .with_cwd(PathBuf::from("/work"));

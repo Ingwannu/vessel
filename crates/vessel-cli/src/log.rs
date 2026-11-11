@@ -100,7 +100,9 @@ fn render(
             SessionEvent::Terminal(output) => push(Stream::Out, output.data.bytes()),
             SessionEvent::Status { .. }
             | SessionEvent::ProfileChanged { .. }
-            | SessionEvent::ModelCall(_) => {
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => {
                 push(Stream::Note, conversation.show(record).as_bytes());
             }
             SessionEvent::Agent { .. } => push(Stream::Out, conversation.show(record).as_bytes()),

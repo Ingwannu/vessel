@@ -4,14 +4,15 @@ use std::path::PathBuf;
 use vessel_proto::{
     BlobChunk, BlobHash, BundleFile, BundlePath, ClientInfo, CloseTransfer, CopySecret,
     CreateSession, DeleteSecret, DeviceId, DeviceInfo, EventPage, EventSeq, ExportMemory,
-    ExportSession, FleetMember, Forward, Generation, GetManifest, GetNode, GetSession, Harness,
-    HarnessKind, ImportMemory, ImportSession, Invitation, InviteDevice, KillSession, ListDevices,
-    ListHarnesses, ListMembers, ListModels, ListProfiles, ListSecrets, ListSessions,
-    MAX_TRANSFER_FILE, Manifest, MemoryImported, ModelRoute, MoveProfile, NodeId, NodeInfo,
-    ProfileInfo, ProfileName, ProtocolVersion, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
-    Reply, ReportApplied, RevokeDevice, Scope, SecretName, SecretValue, SendInput, SessionId,
-    SessionImported, SessionInfo, SessionInput, SessionSpec, SetSecret, StopNode, StopWhen,
-    Subscribe, TransferId, TransferManifest, WatchFleet,
+    ExportSession, FleetMember, Forward, Generation, GetHarnessOptions, GetManifest, GetNode,
+    GetSession, GetSessionOptions, Harness, HarnessKind, HarnessOptions, ImportMemory,
+    ImportSession, Invitation, InviteDevice, KillSession, ListDevices, ListHarnesses, ListMembers,
+    ListModels, ListProfiles, ListSecrets, ListSessions, MAX_TRANSFER_FILE, Manifest,
+    MemoryImported, ModelRoute, MoveProfile, NodeId, NodeInfo, OptionChoice, ProfileInfo,
+    ProfileName, ProtocolVersion, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
+    RenameSession, Reply, ReportApplied, RevokeDevice, Scope, SecretName, SecretValue, SendInput,
+    SessionId, SessionImported, SessionInfo, SessionInput, SessionOption, SessionSpec, SetSecret,
+    SetSessionOption, StopNode, StopWhen, Subscribe, TransferId, TransferManifest, WatchFleet,
 };
 use vessel_rpc::{
     CallError, ClientConfig, Connection, FrameTransport, Subscription, Unary, UnaryCall,
@@ -318,6 +319,72 @@ impl NodeClient {
     /// [`CallError`].
     pub async fn models(&self) -> Result<Vec<ModelRoute>, CallError> {
         self.connection.call(ListModels).await
+    }
+
+    /// `harness.options` (protocol 9): what `harness`'s agent offers before
+    /// any session of it exists (its models, efforts, permissions modes),
+    /// under `profile` or the harness's default. The node may answer from
+    /// a recent probe (`probed_at` says when it asked).
+    ///
+    /// # Errors
+    /// `Unsupported` on a node before protocol 9; otherwise see
+    /// [`CallError`].
+    pub async fn harness_options(
+        &self,
+        harness: HarnessKind,
+        profile: Option<ProfileName>,
+    ) -> Result<HarnessOptions, CallError> {
+        self.connection
+            .call(GetHarnessOptions { harness, profile })
+            .await
+    }
+
+    /// `session.options` (protocol 9): a structured session's options as
+    /// its agent last reported them.
+    ///
+    /// # Errors
+    /// `NotFound` for an unknown session; `Unsupported` on a node before
+    /// protocol 9; otherwise see [`CallError`].
+    pub async fn session_options(
+        &self,
+        session: SessionId,
+    ) -> Result<Vec<SessionOption>, CallError> {
+        self.connection.call(GetSessionOptions { session }).await
+    }
+
+    /// `session.set_option` (protocol 9): change one of a running
+    /// session's options; the answer is every option after the change.
+    ///
+    /// # Errors
+    /// The agent's refusal; `NotFound` for an unknown session;
+    /// `Unsupported` on a node before protocol 9; otherwise see
+    /// [`CallError`].
+    pub async fn set_option(
+        &self,
+        session: SessionId,
+        choice: OptionChoice,
+    ) -> Result<Vec<SessionOption>, CallError> {
+        self.connection
+            .call(SetSessionOption { session, choice })
+            .await
+    }
+
+    /// `session.rename` (protocol 9): give a session a title.
+    ///
+    /// # Errors
+    /// `NotFound` for an unknown session; `Unsupported` on a node before
+    /// protocol 9; otherwise see [`CallError`].
+    pub async fn rename(
+        &self,
+        session: SessionId,
+        title: impl Into<String>,
+    ) -> Result<SessionInfo, CallError> {
+        self.connection
+            .call(RenameSession {
+                session,
+                title: title.into(),
+            })
+            .await
     }
 
     /// `profile.reload`: the node reads `profiles.toml` again and answers

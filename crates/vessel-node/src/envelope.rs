@@ -408,6 +408,18 @@ async fn run_here(
         Call::ListModels(request) => {
             Reply::ListModels(guard.list_models(connection, request).await?)
         }
+        Call::HarnessOptions(request) => {
+            Reply::HarnessOptions(guard.harness_options(connection, request).await?)
+        }
+        Call::SessionOptions(request) => {
+            Reply::SessionOptions(guard.session_options(connection, request).await?)
+        }
+        Call::SetSessionOption(request) => {
+            Reply::SetSessionOption(guard.set_session_option(connection, request).await?)
+        }
+        Call::RenameSession(request) => {
+            Reply::RenameSession(guard.rename_session(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

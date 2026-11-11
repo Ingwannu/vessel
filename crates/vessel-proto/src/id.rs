@@ -184,6 +184,19 @@ opaque_id! {
     ModelId
 }
 
+opaque_id! {
+    /// A session config option's id as the agent names it (ACP's
+    /// `configId`, for example `model` or `mode`; protocol 9). Echoed back
+    /// verbatim when a client changes the option.
+    OptionId
+}
+
+opaque_id! {
+    /// One value of a select option, as the agent names it (ACP's `value`;
+    /// protocol 9). Echoed back verbatim when a client picks it.
+    OptionValueId
+}
+
 counter_id! {
     /// Client-assigned id correlating a request with its response; unique
     /// per connection.

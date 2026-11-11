@@ -209,7 +209,9 @@ fn printed(record: &EventRecord) -> String {
         SessionEvent::Status { .. }
         | SessionEvent::Agent { .. }
         | SessionEvent::ProfileChanged { .. }
-        | SessionEvent::ModelCall(_) => String::new(),
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::Renamed { .. } => String::new(),
     }
 }
 
@@ -402,6 +404,7 @@ async fn a_structured_turn_with_a_permission_reaches_the_page() {
             SessionMode::Structured {
                 model: None,
                 resume: None,
+                options: Vec::new(),
             },
         );
         spec.cwd = Some(node.dir().to_path_buf());

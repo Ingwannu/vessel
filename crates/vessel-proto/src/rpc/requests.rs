@@ -57,6 +57,18 @@ pub struct KillSession {
     pub session: SessionId,
 }
 
+/// `session.rename` (protocol 9): give a session a title of its own. Every
+/// client sees the change as a `renamed` event and in `SessionInfo.title`;
+/// the reply is the session as it is now. Needs `operate`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct RenameSession {
+    /// Which session.
+    pub session: SessionId,
+    /// The title.
+    pub title: String,
+}
+
 /// `session.read`: a page of a session's log. The authoritative way to fill
 /// gaps; live subscriptions are an optimisation on top of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

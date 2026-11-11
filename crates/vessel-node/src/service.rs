@@ -9,13 +9,15 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_proto::{
     Ack, BlobChunk, CloseTransfer, CopySecret, CreateSession, Creator, DeleteSecret, DeviceInfo,
-    ErrorCode, EventPage, ExportMemory, ExportSession, FleetMember, Generation, GetManifest,
-    GetNode, GetSession, Harness, ImportMemory, ImportSession, Invitation, InviteDevice,
-    KillSession, ListDevices, ListHarnesses, ListMembers, ListModels, ListProfiles, ListSecrets,
-    ListSessions, Manifest, MemoryImported, ModelRoute, MoveProfile, NodeInfo, ProfileInfo,
-    ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles, ReportApplied, RevokeDevice, SecretName,
-    SendInput, SessionId, SessionImported, SessionInfo, SessionOrigin, SessionSpec, SetSecret,
-    StopNode, Subscribe, Subscribed, TransferManifest, Unsubscribe, WatchFleet, WireError,
+    ErrorCode, EventPage, ExportMemory, ExportSession, FleetMember, Generation, GetHarnessOptions,
+    GetManifest, GetNode, GetSession, GetSessionOptions, Harness, HarnessOptions, ImportMemory,
+    ImportSession, Invitation, InviteDevice, KillSession, ListDevices, ListHarnesses, ListMembers,
+    ListModels, ListProfiles, ListSecrets, ListSessions, Manifest, MemoryImported, ModelRoute,
+    MoveProfile, NodeInfo, ProfileInfo, ReadBlob, ReadEvents, ReadTransfer, ReloadProfiles,
+    RenameSession, ReportApplied, Request, RevokeDevice, SecretName, SendInput, SessionId,
+    SessionImported, SessionInfo, SessionOption, SessionOrigin, SessionSpec, SetSecret,
+    SetSessionOption, StopNode, Subscribe, Subscribed, TransferManifest, Unsubscribe, WatchFleet,
+    WireError,
 };
 use vessel_rpc::{Outbound, Peer};
 
@@ -445,6 +447,72 @@ impl NodeService {
         _: ListModels,
     ) -> Result<Vec<ModelRoute>, WireError> {
         Ok(self.models.list())
+    }
+}
+
+/// What a session runs with, and titles (protocol 9, milestone 10, ADR
+/// 0022). The contract exists; until each call is built it answers
+/// `unsupported`, after the scope and ownership checks like every call.
+impl NodeService {
+    /// `harness.options`: what a harness's agent offers before a session.
+    #[expect(
+        clippy::unused_async,
+        reason = "every call has the same async shape, so the guard's rows are uniform"
+    )]
+    pub(crate) async fn harness_options(
+        &self,
+        _: &Connection,
+        _: GetHarnessOptions,
+    ) -> Result<HarnessOptions, WireError> {
+        Err(wire(&ServiceError::NotBuilt(
+            <GetHarnessOptions as Request>::METHOD,
+        )))
+    }
+
+    /// `session.options`: a session's options as its agent last reported
+    /// them.
+    #[expect(
+        clippy::unused_async,
+        reason = "every call has the same async shape, so the guard's rows are uniform"
+    )]
+    pub(crate) async fn session_options(
+        &self,
+        _: &Connection,
+        _: GetSessionOptions,
+    ) -> Result<Vec<SessionOption>, WireError> {
+        Err(wire(&ServiceError::NotBuilt(
+            <GetSessionOptions as Request>::METHOD,
+        )))
+    }
+
+    /// `session.set_option`: change one option of a running session.
+    #[expect(
+        clippy::unused_async,
+        reason = "every call has the same async shape, so the guard's rows are uniform"
+    )]
+    pub(crate) async fn set_session_option(
+        &self,
+        _: &Connection,
+        _: SetSessionOption,
+    ) -> Result<Vec<SessionOption>, WireError> {
+        Err(wire(&ServiceError::NotBuilt(
+            <SetSessionOption as Request>::METHOD,
+        )))
+    }
+
+    /// `session.rename`: give a session a title.
+    #[expect(
+        clippy::unused_async,
+        reason = "every call has the same async shape, so the guard's rows are uniform"
+    )]
+    pub(crate) async fn rename_session(
+        &self,
+        _: &Connection,
+        _: RenameSession,
+    ) -> Result<SessionInfo, WireError> {
+        Err(wire(&ServiceError::NotBuilt(
+            <RenameSession as Request>::METHOD,
+        )))
     }
 }
 

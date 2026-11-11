@@ -67,6 +67,8 @@ fn replies_bind_to_their_request() {
 const V4: ProtocolVersion = ProtocolVersion::new(4);
 const V5: ProtocolVersion = ProtocolVersion::new(5);
 const V6: ProtocolVersion = ProtocolVersion::new(6);
+const V8: ProtocolVersion = ProtocolVersion::new(8);
+const V9: ProtocolVersion = ProtocolVersion::new(9);
 
 #[test]
 fn every_method_knows_its_first_version() {
@@ -97,6 +99,21 @@ fn every_method_knows_its_first_version() {
             "{method:?}"
         );
     }
+    // Protocol 9: what a session runs with, and titles.
+    let v9: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == V9)
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(
+        v9,
+        [
+            ("harness.options", Scope::Read),
+            ("session.options", Scope::Read),
+            ("session.set_option", Scope::Operate),
+            ("session.rename", Scope::Operate),
+        ]
+    );
 }
 
 #[test]
@@ -167,7 +184,11 @@ fn the_forwardable_set_is_pinned() {
             "lsp.incoming_calls",
             "lsp.outgoing_calls",
             "lsp.diagnostics",
-            "model.list"
+            "model.list",
+            "harness.options",
+            "session.options",
+            "session.set_option",
+            "session.rename"
         ]
     );
 }
@@ -238,6 +259,195 @@ fn a_new_field_raises_what_a_call_needs() {
     };
     assert_eq!(read(None).since(), ProtocolVersion::new(2));
     assert_eq!(read(Some(30)).since(), V6);
+
+    // Protocol 9: an older node would start the session in the agent's
+    // default mode, or unnamed, rather than refuse.
+    let structured = |options| SessionMode::Structured {
+        model: None,
+        resume: None,
+        options,
+    };
+    let chosen = vec![crate::options::OptionChoice {
+        id: crate::id::OptionId::new("mode"),
+        value: crate::options::ChoiceValue::Select {
+            value: crate::id::OptionValueId::new("plan"),
+        },
+    }];
+    let plain = SessionSpec::new(HarnessKind::ClaudeCode, structured(Vec::new()));
+    assert_eq!(create(plain.clone()).since(), ProtocolVersion::new(2));
+    assert_eq!(
+        create(plain.clone().with_title("Fix the build")).since(),
+        V9
+    );
+    let choosing = SessionSpec::new(HarnessKind::ClaudeCode, structured(chosen))
+        .with_profile("alt".parse().unwrap());
+    assert_eq!(create(choosing).since(), V9);
+}
+
+#[test]
+fn options_and_titles_read_as_their_wire_form() {
+    let spec = SessionSpec::new(
+        HarnessKind::ClaudeCode,
+        SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: vec![crate::options::OptionChoice {
+                id: crate::id::OptionId::new("mode"),
+                value: crate::options::ChoiceValue::Select {
+                    value: crate::id::OptionValueId::new("plan"),
+                },
+            }],
+        },
+    )
+    .with_title("Fix the build");
+    let text = serde_json::to_string(&CreateSession { spec: spec.clone() }.into_call()).unwrap();
+    assert_eq!(
+        text,
+        r#"{"method":"session.create","params":{"spec":{"harness":"claude-code","title":"Fix the build","mode":"structured","options":[{"id":"mode","kind":"select","value":"plan"}]}}}"#
+    );
+    assert_eq!(
+        serde_json::from_str::<Call>(&text).unwrap(),
+        CreateSession { spec: spec.clone() }.into_call()
+    );
+
+    // A session that has none says nothing of either, as in protocol 8.
+    let bare = SessionSpec::new(
+        HarnessKind::ClaudeCode,
+        SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        },
+    );
+    let info = SessionInfo::new(crate::id::SessionId::random(), bare, DateTime::UNIX_EPOCH);
+    let text = serde_json::to_string(&info).unwrap();
+    assert!(
+        !text.contains("title") && !text.contains("options"),
+        "{text}"
+    );
+    // A spec's title is the session's until something renames it.
+    let named = SessionInfo::new(crate::id::SessionId::random(), spec, DateTime::UNIX_EPOCH);
+    assert_eq!(named.title.as_deref(), Some("Fix the build"));
+
+    let session = crate::id::SessionId::random();
+    let rename = RenameSession {
+        session,
+        title: "Release notes".to_owned(),
+    }
+    .into_call();
+    let text = serde_json::to_string(&rename).unwrap();
+    assert_eq!(
+        text,
+        format!(
+            r#"{{"method":"session.rename","params":{{"session":"{session}","title":"Release notes"}}}}"#
+        )
+    );
+    assert_eq!(serde_json::from_str::<Call>(&text).unwrap(), rename);
+    let set = SetSessionOption {
+        session,
+        choice: crate::options::OptionChoice {
+            id: crate::id::OptionId::new("fast"),
+            value: crate::options::ChoiceValue::Toggle { on: true },
+        },
+    }
+    .into_call();
+    let text = serde_json::to_string(&set).unwrap();
+    assert_eq!(
+        text,
+        format!(
+            r#"{{"method":"session.set_option","params":{{"session":"{session}","choice":{{"id":"fast","kind":"toggle","on":true}}}}}}"#
+        )
+    );
+    assert_eq!(serde_json::from_str::<Call>(&text).unwrap(), set);
+}
+
+/// Protocol 9's events: a protocol 8 client gets a line in their place,
+/// at the same position.
+#[test]
+fn options_and_renames_reach_older_clients_as_lines() {
+    use crate::options::{OptionCategory, OptionKind, OptionValue, SessionOption};
+    let options = vec![
+        SessionOption {
+            id: crate::id::OptionId::new("model"),
+            name: "Model".to_owned(),
+            description: None,
+            category: OptionCategory::Model,
+            kind: OptionKind::Select {
+                current: crate::id::OptionValueId::new("haiku"),
+                values: vec![OptionValue {
+                    id: crate::id::OptionValueId::new("haiku"),
+                    name: "Haiku".to_owned(),
+                    description: None,
+                    group: None,
+                }],
+            },
+        },
+        SessionOption {
+            id: crate::id::OptionId::new("mode"),
+            name: "Mode".to_owned(),
+            description: None,
+            category: OptionCategory::Mode,
+            // A current value the agent does not list shows as its id.
+            kind: OptionKind::Select {
+                current: crate::id::OptionValueId::new("plan"),
+                values: Vec::new(),
+            },
+        },
+        SessionOption {
+            id: crate::id::OptionId::new("fast"),
+            name: "Fast mode".to_owned(),
+            description: None,
+            category: OptionCategory::Other,
+            kind: OptionKind::Toggle { on: false },
+        },
+    ];
+    let line = |line: &str| {
+        Some(SessionEvent::Agent {
+            event: AgentEvent::HarnessLog {
+                line: line.to_owned(),
+            },
+        })
+    };
+    let changed = SessionEvent::OptionsChanged { options };
+    assert_eq!(changed.since(), V9);
+    assert_eq!(changed.for_protocol(V9), None);
+    assert_eq!(
+        changed.for_protocol(V8),
+        line("vessel: options: Model Haiku, Mode plan, Fast mode off")
+    );
+    let none = SessionEvent::OptionsChanged {
+        options: Vec::new(),
+    };
+    assert_eq!(none.for_protocol(V8), line("vessel: options: none"));
+    let text = serde_json::to_string(&none).unwrap();
+    assert_eq!(text, r#"{"type":"options_changed","options":[]}"#);
+
+    let renamed = SessionEvent::Renamed {
+        title: "Fix the build".to_owned(),
+    };
+    assert_eq!(renamed.since(), V9);
+    assert_eq!(
+        renamed.for_protocol(V4),
+        line("vessel: renamed to Fix the build")
+    );
+    let text = serde_json::to_string(&renamed).unwrap();
+    assert_eq!(text, r#"{"type":"renamed","title":"Fix the build"}"#);
+    assert_eq!(
+        serde_json::from_str::<SessionEvent>(&text).unwrap(),
+        renamed
+    );
+
+    let frame = ServerFrame::Event {
+        subscription: SubscriptionId::new(1),
+        record: record(4, renamed),
+    };
+    let Some(ServerFrame::Event {
+        record: stand_in, ..
+    }) = frame.for_protocol(V8)
+    else {
+        panic!("an event frame stays an event frame");
+    };
+    assert_eq!(stand_in.seq, EventSeq::new(4));
 }
 
 fn record(seq: u64, event: SessionEvent) -> EventRecord {
@@ -393,6 +603,7 @@ fn where_a_session_came_from_is_optional_and_tagged() {
         SessionMode::Structured {
             model: None,
             resume: None,
+            options: Vec::new(),
         },
     );
     let mut info = SessionInfo::new(crate::id::SessionId::random(), spec, DateTime::UNIX_EPOCH);

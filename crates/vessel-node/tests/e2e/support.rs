@@ -263,7 +263,9 @@ pub(crate) fn output_of(records: &[EventRecord]) -> String {
             SessionEvent::Status { .. }
             | SessionEvent::Agent { .. }
             | SessionEvent::ProfileChanged { .. }
-            | SessionEvent::ModelCall(_) => None,
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => None,
         })
         .flatten()
         .collect();
@@ -308,7 +310,9 @@ pub(crate) fn status_of(record: &EventRecord) -> Option<&SessionStatus> {
         SessionEvent::Terminal(_)
         | SessionEvent::Agent { .. }
         | SessionEvent::ProfileChanged { .. }
-        | SessionEvent::ModelCall(_) => None,
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::Renamed { .. } => None,
     }
 }
 
@@ -332,7 +336,11 @@ pub(crate) fn structured_spec(fixture: &Fixture, resume: Option<HarnessSessionId
     let model = resume.is_none().then(|| ModelId::new("fake-large"));
     SessionSpec::new(
         HarnessKind::ClaudeCode,
-        SessionMode::Structured { model, resume },
+        SessionMode::Structured {
+            model,
+            resume,
+            options: Vec::new(),
+        },
     )
     .with_cwd(fixture.cwd())
 }
@@ -352,7 +360,9 @@ pub(crate) const fn agent_of(record: &EventRecord) -> Option<&AgentEvent> {
         SessionEvent::Status { .. }
         | SessionEvent::Terminal(_)
         | SessionEvent::ProfileChanged { .. }
-        | SessionEvent::ModelCall(_) => None,
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::Renamed { .. } => None,
     }
 }
 

@@ -243,6 +243,11 @@ pub(crate) enum ServiceError {
     /// start).
     #[error("the node's model proxy is not listening")]
     ModelProxyDown,
+    /// A protocol 9 method whose contract exists and whose work is not
+    /// built yet (milestone 10, track C): refused, never answered with a
+    /// made-up success.
+    #[error("`{}` is not built on this node yet", .0.as_str())]
+    NotBuilt(vessel_proto::Method),
 }
 
 /// A route as a sentence names it.
@@ -279,7 +284,7 @@ impl ServiceError {
             | Self::UnknownProfile(_)
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
-            Self::MoveRoute { .. } => ErrorCode::Unsupported,
+            Self::MoveRoute { .. } | Self::NotBuilt(_) => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),

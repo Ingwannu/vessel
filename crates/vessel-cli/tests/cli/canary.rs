@@ -939,6 +939,7 @@ async fn transfers(
         vessel_proto::SessionMode::Structured {
             model: None,
             resume: None,
+            options: Vec::new(),
         },
     )
     .with_cwd(PathBuf::from(member.cwd()));

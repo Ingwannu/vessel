@@ -142,6 +142,7 @@ impl VesselTools {
             SessionMode::Structured {
                 model: text(args, "model")?.map(ModelId::new),
                 resume: None,
+                options: Vec::new(),
             }
         };
         let mut spec = SessionSpec::new(harness, mode);
@@ -429,7 +430,9 @@ fn turn_outcome(page: &EventPage, reply: &mut String, next: &mut EventSeq) -> Op
             | SessionEvent::Status { .. }
             | SessionEvent::Terminal(_)
             | SessionEvent::ProfileChanged { .. }
-            | SessionEvent::ModelCall(_) => {}
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. } => {}
         }
     }
     None

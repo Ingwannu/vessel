@@ -28,8 +28,9 @@
 //!   `seq`. `vessel-rpc` applies it where it encodes frames, the one place
 //!   that knows the connection's version.
 //! - Trade-off: an older client sees a stand-in, not the event: for
-//!   `ProfileChanged` and `ModelCall` (protocol 7), a `HarnessLog` line
-//!   starting with `vessel:`. A new
+//!   `ProfileChanged`, `ModelCall` (protocol 7), `OptionsChanged` and
+//!   `Renamed` (protocol 9), a `HarnessLog` line starting with `vessel:`.
+//!   A new
 //!   variant must add its stand-in here, or the exhaustive matches stop the
 //!   build.
 
@@ -41,6 +42,7 @@ use crate::id::EventSeq;
 use crate::model::ModelCall;
 use crate::name::ProfileName;
 use crate::node::ProtocolVersion;
+use crate::options::{OptionKind, SessionOption};
 use crate::session::SessionStatus;
 use crate::terminal::TerminalOutput;
 
@@ -75,6 +77,20 @@ pub enum SessionEvent {
     /// The session's harness called a model through the node's proxy
     /// (protocol 7): one per upstream call, metadata only.
     ModelCall(ModelCall),
+    /// The agent's config options are now these (protocol 9, ADR 0022):
+    /// after the handshake, after a `session.set_option`, and whenever the
+    /// agent reports a change itself. Always the whole list, so the latest
+    /// one is the session's state.
+    OptionsChanged {
+        /// Every option, as the agent reports them.
+        options: Vec<SessionOption>,
+    },
+    /// The session's title changed (protocol 9): from its first prompt, or
+    /// by `session.rename`.
+    Renamed {
+        /// The title now.
+        title: String,
+    },
 }
 
 impl SessionEvent {
@@ -85,6 +101,7 @@ impl SessionEvent {
             Self::Status { .. } | Self::Terminal(_) | Self::Agent { .. } => ProtocolVersion::new(2),
             Self::ProfileChanged { .. } => ProtocolVersion::new(5),
             Self::ModelCall(_) => ProtocolVersion::new(7),
+            Self::OptionsChanged { .. } | Self::Renamed { .. } => ProtocolVersion::new(9),
         }
     }
 
@@ -131,8 +148,43 @@ impl SessionEvent {
                     event: AgentEvent::HarnessLog { line },
                 })
             }
+            Self::OptionsChanged { options } => Some(Self::Agent {
+                event: AgentEvent::HarnessLog {
+                    line: options_line(options),
+                },
+            }),
+            Self::Renamed { title } => Some(Self::Agent {
+                event: AgentEvent::HarnessLog {
+                    line: format!("vessel: renamed to {title}"),
+                },
+            }),
         }
     }
+}
+
+/// `vessel: options: Model Haiku, Fast mode on`: each option's name and
+/// the name of its value now, for a client that cannot read the list.
+fn options_line(options: &[SessionOption]) -> String {
+    let mut line = String::from("vessel: options:");
+    if options.is_empty() {
+        line.push_str(" none");
+    }
+    for (index, option) in options.iter().enumerate() {
+        line.push_str(if index == 0 { " " } else { ", " });
+        line.push_str(&option.name);
+        line.push(' ');
+        line.push_str(match &option.kind {
+            // The value's name when the agent lists it; its id otherwise
+            // (an agent may report a current value it does not offer).
+            OptionKind::Select { current, values } => values
+                .iter()
+                .find(|value| value.id == *current)
+                .map_or_else(|| current.as_str(), |value| value.name.as_str()),
+            OptionKind::Toggle { on: true } => "on",
+            OptionKind::Toggle { on: false } => "off",
+        });
+    }
+    line
 }
 
 /// An event with its position and time; the unit of the session log.

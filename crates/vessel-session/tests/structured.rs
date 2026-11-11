@@ -208,6 +208,7 @@ fn structured(model: Option<&str>) -> SessionSpec {
         SessionMode::Structured {
             model: model.map(ModelId::new),
             resume: None,
+            options: Vec::new(),
         },
     )
     .with_cwd(std::env::temp_dir())
@@ -231,7 +232,9 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         SessionEvent::Terminal(_)
         | SessionEvent::Agent { .. }
         | SessionEvent::ProfileChanged { .. }
-        | SessionEvent::ModelCall(_) => None,
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::Renamed { .. } => None,
     }
 }
 
@@ -440,6 +443,7 @@ async fn resuming_replays_history_before_the_session_runs() {
         spec.mode = SessionMode::Structured {
             model: None,
             resume: Some(HarnessSessionId::new("fake-session-7")),
+            options: Vec::new(),
         };
         let created = fixture.runtime.create(spec).await.unwrap();
         let stored = collect(created.durable);

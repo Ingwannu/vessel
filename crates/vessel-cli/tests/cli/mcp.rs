@@ -44,6 +44,7 @@ async fn vessel_server_env(fixture: &Fixture) -> Vec<(String, String)> {
         SessionMode::Structured {
             model: None,
             resume: None,
+            options: Vec::new(),
         },
     )
     .with_cwd(PathBuf::from(fixture.cwd()));

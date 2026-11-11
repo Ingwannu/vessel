@@ -202,6 +202,7 @@ mod support {
             SessionMode::Structured {
                 model: Some(ModelId::new("fake-small")),
                 resume: None,
+                options: Vec::new(),
             },
         )
         .with_cwd(std::env::temp_dir());
@@ -235,7 +236,9 @@ mod support {
                 | SessionEvent::Terminal(_)
                 | SessionEvent::Agent { .. }
                 | SessionEvent::ProfileChanged { .. }
-                | SessionEvent::ModelCall(_) => {}
+                | SessionEvent::ModelCall(_)
+                | SessionEvent::OptionsChanged { .. }
+                | SessionEvent::Renamed { .. } => {}
             }
         }
         let servers: Value = serde_json::from_str(reply.strip_prefix("mcp ").unwrap()).unwrap();

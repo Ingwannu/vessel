@@ -38,9 +38,9 @@ use vessel_proto::{
     ListDevices, ListHarnesses, ListMembers, ListModels, ListNodes, ListPeers, ListProfiles,
     ListSecrets, ListSessions, Manifest, MemoryImported, ModelRoute, MoveProfile, NodeForgotten,
     NodeInfo, ProfileInfo, ReadBlob, ReadEvents, ReadTransfer, RelayCall, ReloadProfiles,
-    ReportApplied, Request, RevokeDevice, SecretName, SendInput, SessionId, SessionImported,
-    SessionInfo, SetSecret, StopNode, Subscribe, Subscribed, TransferManifest, Unsubscribe,
-    WatchFleet, WireError,
+    RenameSession, ReportApplied, Request, RevokeDevice, SecretName, SendInput, SessionId,
+    SessionImported, SessionInfo, SessionOption, SetSecret, SetSessionOption, StopNode, Subscribe,
+    Subscribed, TransferManifest, Unsubscribe, WatchFleet, WireError,
 };
 
 use crate::service::{Connection, NodeService};
@@ -124,7 +124,16 @@ macro_rules! untargeted {
 
 // `session.export` copies a session's conversation away: an agent may do
 // that only to a session it started, like any other `operate` call on one.
-targets!(SendInput, KillSession, MoveProfile, ExportSession);
+// Protocol 9: changing a session's options or its title steers it, like
+// sending it input.
+targets!(
+    SendInput,
+    KillSession,
+    MoveProfile,
+    ExportSession,
+    SetSessionOption,
+    RenameSession,
+);
 
 // `session.create` is limited by `agents` instead (count and depth), and so
 // is `session.import`, which creates one; the reads are open to every
@@ -132,6 +141,8 @@ targets!(SendInput, KillSession, MoveProfile, ExportSession);
 // runs (protocol 6, Track X); the rest are not `operate` calls.
 untargeted!(
     ListModels,
+    vessel_proto::GetHarnessOptions,
+    vessel_proto::GetSessionOptions,
     GetNode,
     ListHarnesses,
     ListSessions,
@@ -219,6 +230,10 @@ guarded! {
     delete_secret: DeleteSecret => Ack;
     copy_secret: CopySecret => Ack;
     list_models: ListModels => Vec<ModelRoute>;
+    harness_options: vessel_proto::GetHarnessOptions => vessel_proto::HarnessOptions;
+    session_options: vessel_proto::GetSessionOptions => Vec<SessionOption>;
+    set_session_option: SetSessionOption => Vec<SessionOption>;
+    rename_session: RenameSession => SessionInfo;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;
