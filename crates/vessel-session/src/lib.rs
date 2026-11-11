@@ -59,6 +59,7 @@
 //!   owner knows when the store is complete; a runtime-side timer would
 //!   either drop rings the store still lacks or keep them for nothing.
 
+pub mod board;
 mod config;
 mod error;
 mod handle;
