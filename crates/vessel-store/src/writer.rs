@@ -23,6 +23,8 @@ use vessel_proto::{
     DeviceId, DeviceInfo, EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo,
 };
 
+use crate::attachments::KeptAttachment;
+use crate::codec::time_to_sql;
 use crate::config::Retention;
 use crate::devices::{self, CredentialHash};
 use crate::error::StoreError;
@@ -93,6 +95,13 @@ pub(crate) enum Write {
         session: SessionId,
         next: EventSeq,
         done: Done<KeptMarks>,
+    },
+    /// Record an attachment whose file is in place and checked (protocol
+    /// 10), kept at `at`. Boxed for the queue's slots, as `Create` is.
+    Attach {
+        kept: Box<KeptAttachment>,
+        at: DateTime<Utc>,
+        done: Done,
     },
 }
 
@@ -297,6 +306,12 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
                 again::reopen(connection, session, next)
             });
             Answer::Marked(done, applied)
+        }
+        Write::Attach { kept, at, done } => {
+            let applied = isolated(transaction, |connection| {
+                attachments::insert(connection, &kept, time_to_sql(at)?)
+            });
+            Answer::Done(done, applied)
         }
     }
 }

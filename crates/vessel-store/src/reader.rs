@@ -10,11 +10,12 @@ use std::sync::{Mutex, PoisonError};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _, params};
 use vessel_proto::{
-    AttachmentLimits, Conversation, DeviceId, DeviceInfo, EventPage, EventSeq, OptionChoice,
-    SessionId, SessionInfo,
+    AttachmentId, AttachmentLimits, Conversation, DeviceId, DeviceInfo, EventPage, EventSeq,
+    OptionChoice, SessionId, SessionInfo,
 };
 
 use crate::again::{self, EndedSession};
+use crate::attachments::{self, AttachmentUsage, KeptAttachment};
 use crate::codec::{
     SESSION_COLUMNS, choices_from_sql, decode, record_from_row, seq_from_sql, seq_to_sql,
     session_from_row,
@@ -130,6 +131,23 @@ impl Reader {
     /// (protocol 10's `session.resume`).
     pub(crate) fn ended_session(&self, id: SessionId) -> Result<Option<EndedSession>, StoreError> {
         self.with(|connection| again::ended_session(connection, id))
+    }
+
+    /// `session`'s attachment `id` (protocol 10).
+    pub(crate) fn attachment(
+        &self,
+        session: SessionId,
+        id: AttachmentId,
+    ) -> Result<Option<KeptAttachment>, StoreError> {
+        self.with(|connection| attachments::select(connection, session, id))
+    }
+
+    /// The bytes of attachments kept, on the node and for `session`.
+    pub(crate) fn attachment_usage(
+        &self,
+        session: SessionId,
+    ) -> Result<AttachmentUsage, StoreError> {
+        self.with(|connection| attachments::usage(connection, session))
     }
 
     /// Every paired device, oldest first.

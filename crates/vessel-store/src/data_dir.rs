@@ -20,7 +20,10 @@
 //!   mcp/             terminal sessions' MCP configuration files (ADR
 //!                    0012), one per live session, emptied at start
 //!   attachments/     files sent with prompts (ADR 0025), a folder per
-//!                    session (`<session>/`), removed with its session
+//!                    session (`<session>/<id>/<name>`), removed with its
+//!                    session; folders no row names are swept at start
+//!   uploads/         attachments being uploaded, one file each, emptied
+//!                    at start
 //! ```
 //!
 //! Every file is owner-only (0600 on Unix); see `files` for why and for
@@ -63,6 +66,8 @@ const MCP_DIR: &str = "mcp";
 const PROBE_DIR: &str = "probe";
 /// Files sent with prompts, a folder per session (protocol 10, ADR 0025).
 const ATTACHMENTS_DIR: &str = "attachments";
+/// Attachments being uploaded (protocol 10, ADR 0025).
+const UPLOADS_DIR: &str = "uploads";
 
 /// `profiles.toml` as read: its text, and whether other users can read it
 /// (it may hold secrets, so the node warns).
@@ -276,6 +281,14 @@ impl DataDir {
     #[must_use]
     pub fn attachments_dir(&self) -> PathBuf {
         self.root.join(ATTACHMENTS_DIR)
+    }
+
+    /// Where attachments being uploaded are staged (protocol 10, ADR
+    /// 0025), one file each until it is kept; the node empties it at
+    /// start, which drops every upload a previous run left open.
+    #[must_use]
+    pub fn uploads_dir(&self) -> PathBuf {
+        self.root.join(UPLOADS_DIR)
     }
 
     /// Create the probe directory owner-only. Returns it.

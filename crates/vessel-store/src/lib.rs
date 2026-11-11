@@ -39,6 +39,10 @@
 //!   attention (a projection of the log) and the last `read`. Deleting a
 //!   session, or retention pruning it, removes its attachment folder once
 //!   the deletion is committed.
+//! - Attachments (protocol 10, ADR 0025): a row each and the bytes under
+//!   `attachments/<session>/<id>/<name>`, put there and read back only as
+//!   the regular file of the recorded size and SHA-256, never through a
+//!   link (`attachments::files`); folders no row names are swept at open.
 //! - Cost: a C build step (bundled `SQLite`), and writes are acknowledged per
 //!   batch commit rather than immediately.
 //!
@@ -64,6 +68,8 @@ mod token;
 mod writer;
 
 pub use again::EndedSession;
+pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
+pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, StoredDevice};

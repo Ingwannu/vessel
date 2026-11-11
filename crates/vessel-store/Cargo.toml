@@ -17,7 +17,8 @@ getrandom.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-# SHA-256 of device credentials (ADR 0010); already used by vessel-remote.
+# SHA-256 of device credentials (ADR 0010), and of attachments (ADR
+# 0025); already used by vessel-remote.
 sha2.workspace = true
 subtle.workspace = true
 thiserror.workspace = true
@@ -25,6 +26,14 @@ tokio.workspace = true
 tracing.workspace = true
 # Wipes the store's copy of `node.key` from memory (ADR 0009).
 zeroize.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+# Attachments (protocol 10, ADR 0025): folders opened relative to the one
+# before with `O_NOFOLLOW | O_DIRECTORY`, files with `O_NOFOLLOW`, an upload
+# moved in with `renameat`, so nothing below `attachments/` is reached
+# through a link. Safe wrappers, already in the tree with this feature
+# (vessel-fleet's `dir`), so no new crate is built.
+rustix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
 bytes.workspace = true
