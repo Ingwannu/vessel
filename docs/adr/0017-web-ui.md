@@ -223,6 +223,10 @@ Option 3.
   blur/visibility change and a 30 s deadline hide them. CI uploads only
   deliberate screenshots of the hidden state; no traces, videos, HTML
   reports or automatic failure screenshots, and tests never log links.
+  On the bridge a link (and a QR code's text) is a `SecretText` (milestone
+  10): its `Debug` is a placeholder, it has no `Display`, and it is read
+  only where it is parsed or drawn, so a logged op or frame cannot leak
+  it; the errors that explain a bad link do not repeat it.
 - npm.
 
 **Model routing (milestone 5, merged 2026-11-07).**

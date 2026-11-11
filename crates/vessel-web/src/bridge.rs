@@ -4,23 +4,18 @@
 //! [Decision Log]
 //! - Purpose: route the browser's frames to the nodes' shared connections
 //!   ([`Registry`]) and back, without interpreting the protocol.
-//! - Calls: the browser's `Call` is decoded into the typed `Call` (never an
-//!   untyped tree), checked against [`forwardable`] and sent with
-//!   `NodeClient::call_any`, whose protocol-version gate is the typed
-//!   calls'. What a browser may do on a node is the node's to decide, as
-//!   for the CLI. A call in flight when the connection drops fails as
-//!   `disconnected` and is never repeated (a `session.send` must not run
-//!   twice).
-//! - Streams: `follow_resuming` over the node's shared connection, so a
-//!   stream survives the node's connection dropping, gap-free.
+//! - Calls are decoded into the protocol's typed `Call`, checked and
+//!   forwarded over the node's shared connection (`calls`).
+//! - Streams follow sessions over the node's shared connection, gap-free
+//!   across drops (`streams`).
+//! - Ops are what the tab asks the bridge itself (`ops`).
 //! - Limits per tab: [`MAX_CALLS`] calls and ops at once and
-//!   [`MAX_FOLLOWS`] streams. Frames out go through one bounded queue
+//!   `streams::MAX_FOLLOWS` streams. Frames out go through one bounded queue
 //!   ([`OUTBOX`]); a tab that reads slowly slows its own streams, nobody
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
-//! - The ops (what the tab asks the bridge itself) are `ops`'s.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::socket::WebSocket;
@@ -28,13 +23,14 @@ use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
 use serde::Deserialize;
 use tokio::sync::{Semaphore, broadcast, mpsc};
-use tokio::task::{AbortHandle, JoinSet};
+use tokio::task::JoinSet;
 use tokio_tungstenite::tungstenite::Message;
-use vessel_client::{CallError, StreamError, UnaryCall, follow_resuming};
-use vessel_proto::{Call, EventSeq, Method, RawJson, SessionId};
+use vessel_proto::RawJson;
 
-use crate::registry::{Cancelled, Change, Registry, Shared, chain};
+use crate::calls;
+use crate::registry::{Cancelled, Change, Registry};
 use crate::source::NodeSource;
+use crate::streams::{Follows, Place};
 use crate::wire::{
     CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, ServerFrame,
     StreamId, StreamState, StreamStop,
@@ -42,9 +38,6 @@ use crate::wire::{
 
 /// Calls and ops one tab may have in flight.
 const MAX_CALLS: usize = 64;
-
-/// Sessions one tab may follow at once.
-const MAX_FOLLOWS: usize = 64;
 
 /// Frames waiting to be written to one tab.
 const OUTBOX: usize = 256;
@@ -144,7 +137,7 @@ async fn read<S: NodeSource>(
         registry: Arc::clone(registry),
         out,
         tasks: JoinSet::new(),
-        follows: HashMap::new(),
+        follows: Follows::default(),
         calls: Arc::new(Semaphore::new(MAX_CALLS)),
     };
     loop {
@@ -224,7 +217,7 @@ struct Tab<S> {
     registry: Arc<Registry<S>>,
     out: mpsc::Sender<ServerFrame>,
     tasks: JoinSet<()>,
-    follows: HashMap<StreamId, AbortHandle>,
+    follows: Follows,
     /// Permits for calls and ops in flight.
     calls: Arc<Semaphore>,
 }
@@ -241,63 +234,32 @@ impl<S: NodeSource> Tab<S> {
                 node,
                 session,
                 from,
-            } => self.follow(stream, node, session, from).await,
-            ClientFrame::Unfollow { stream } => {
-                if let Some(task) = self.follows.remove(&stream) {
-                    task.abort();
-                }
+            } => {
+                let place = Place {
+                    tasks: &mut self.tasks,
+                    registry: &self.registry,
+                    out: &self.out,
+                };
+                self.follows.start(place, stream, node, session, from).await;
             }
+            ClientFrame::Unfollow { stream } => self.follows.stop(stream),
             ClientFrame::Op { id, op } => self.op(id, op).await,
         }
     }
 
     async fn call(&mut self, id: CallId, node: NodeKey, call: RawJson) {
         let Ok(permit) = Arc::clone(&self.calls).try_acquire_owned() else {
-            let outcome = CallOutcome::Err(busy());
+            let outcome = CallOutcome::Err(calls::busy());
             let _gone = self.out.send(ServerFrame::Reply { id, outcome }).await;
             return;
         };
         let registry = Arc::clone(&self.registry);
         let out = self.out.clone();
         let _call = self.tasks.spawn(async move {
-            let outcome = forward(&registry, &node, call).await;
+            let outcome = calls::forward(&registry, &node, call).await;
             let _gone = out.send(ServerFrame::Reply { id, outcome }).await;
             drop(permit);
         });
-    }
-
-    async fn follow(
-        &mut self,
-        stream: StreamId,
-        node: NodeKey,
-        session: SessionId,
-        from: EventSeq,
-    ) {
-        self.follows.retain(|_stream, task| !task.is_finished());
-        let refusal = if self.follows.contains_key(&stream) {
-            Some("this stream id is in use")
-        } else if self.follows.len() >= MAX_FOLLOWS {
-            Some("too many sessions followed at once")
-        } else {
-            None
-        };
-        if let Some(message) = refusal {
-            let state = StreamState::Failed {
-                message: message.to_owned(),
-                reason: StreamStop::Error,
-            };
-            let _gone = self.out.send(ServerFrame::Stream { stream, state }).await;
-            return;
-        }
-        let task = self.tasks.spawn(follow(
-            Arc::clone(&self.registry),
-            self.out.clone(),
-            stream,
-            node,
-            session,
-            from,
-        ));
-        let _previous = self.follows.insert(stream, task);
     }
 
     async fn op(&mut self, id: CallId, op: Op) {
@@ -327,289 +289,4 @@ impl<S: NodeSource> Tab<S> {
 
 async fn unreadable(out: &mpsc::Sender<ServerFrame>, message: String) {
     let _gone = out.send(ServerFrame::Unreadable { message }).await;
-}
-
-fn busy() -> Failure {
-    Failure::Refused {
-        message: "too many calls at once".to_owned(),
-    }
-}
-
-/// Decode `call`, pass it to `node`, and say how it went.
-async fn forward<S: NodeSource>(
-    registry: &Arc<Registry<S>>,
-    node: &NodeKey,
-    call: RawJson,
-) -> CallOutcome {
-    let call = match decode(&call) {
-        Ok(call) => call,
-        Err(failure) => return CallOutcome::Err(failure),
-    };
-    let client = match registry.client(node).await {
-        Ok(client) => client,
-        Err(failure) => return CallOutcome::Err(failure),
-    };
-    match client.call_any(call).await {
-        Ok(reply) => CallOutcome::Ok(Box::new(reply)),
-        Err(error) => CallOutcome::Err(failure(error)),
-    }
-}
-
-/// The browser's call, typed and checked.
-fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
-    let call: Call = serde_json::from_str(call.as_text()).map_err(|error| Failure::Refused {
-        message: format!("not a call this vessel knows: {error}"),
-    })?;
-    let method = call.method();
-    if !forwardable(method) {
-        return Err(Failure::Refused {
-            message: format!("`{}` is not for browsers", method.as_str()),
-        });
-    }
-    UnaryCall::try_from(call).map_err(|error| Failure::Refused {
-        message: error.to_string(),
-    })
-}
-
-/// Whether a browser may call `method` through the bridge (ADR 0017: one
-/// line per method, decided here when the method is added).
-///
-/// Refused: the connection-scoped subscription methods (streams have their
-/// own frames), and the fleet's node-to-node machinery, which only nodes
-/// and relays call. Everything else passes, and the node checks scopes as
-/// for any client.
-const fn forwardable(method: Method) -> bool {
-    match method {
-        Method::NodeInfo
-        | Method::ListHarnesses
-        | Method::ListSessions
-        | Method::GetSession
-        | Method::CreateSession
-        | Method::SendInput
-        | Method::KillSession
-        | Method::ReadEvents
-        | Method::StopNode
-        | Method::InviteDevice
-        | Method::ListDevices
-        | Method::RevokeDevice
-        | Method::ListProfiles
-        | Method::ReloadProfiles
-        | Method::MoveProfile
-        | Method::GetManifest
-        | Method::ReadBlob
-        | Method::WatchFleet
-        | Method::ListMembers
-        | Method::Forward
-        | Method::ListNodes
-        | Method::ForgetNode
-        | Method::ExportSession
-        | Method::ImportSession
-        | Method::ExportMemory
-        | Method::ImportMemory
-        | Method::ReadTransfer
-        | Method::CloseTransfer
-        | Method::SetSecret
-        | Method::ListSecrets
-        | Method::DeleteSecret
-        | Method::CopySecret
-        | Method::LspWorkspaceSymbols
-        | Method::LspDocumentSymbols
-        | Method::LspDefinition
-        | Method::LspReferences
-        | Method::LspHover
-        | Method::LspImplementations
-        | Method::LspTypeDefinition
-        | Method::LspIncomingCalls
-        | Method::LspOutgoingCalls
-        | Method::LspDiagnostics
-        | Method::ListModels
-        | Method::HarnessOptions
-        | Method::SessionOptions
-        | Method::SetSessionOption
-        | Method::RenameSession => true,
-        Method::Subscribe
-        | Method::Unsubscribe
-        | Method::ReportApplied
-        | Method::Relay
-        | Method::Deliver
-        | Method::GrantHome
-        | Method::GetCallback
-        | Method::ListPeers => false,
-    }
-}
-
-fn failure(error: CallError) -> Failure {
-    match error {
-        CallError::Remote(error) => Failure::Remote { error },
-        CallError::NotInProtocol {
-            method,
-            needs,
-            negotiated,
-        } => Failure::NotInProtocol {
-            method,
-            needs,
-            negotiated,
-        },
-        CallError::Disconnected => Failure::Disconnected,
-        CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => Failure::Failed {
-            message: error.to_string(),
-        },
-    }
-}
-
-/// Follow `session` on `node` from `from`, forwarding until it ends, it
-/// fails, or the tab stops it.
-async fn follow<S: NodeSource>(
-    registry: Arc<Registry<S>>,
-    out: mpsc::Sender<ServerFrame>,
-    stream: StreamId,
-    node: NodeKey,
-    session: SessionId,
-    from: EventSeq,
-) {
-    let entry = match registry.ensure(&node).await {
-        Ok(entry) => entry,
-        Err(failure) => {
-            let state = StreamState::Failed {
-                message: failure_text(&failure),
-                reason: StreamStop::Error,
-            };
-            let _gone = out.send(ServerFrame::Stream { stream, state }).await;
-            return;
-        }
-    };
-    let client = registry.client_info().clone();
-    let removed = entry.stop.clone();
-    let mut records = follow_resuming(Shared::new(entry), client, session, from);
-    loop {
-        let (frame, last) = match tokio::select! {
-            record = records.next() => record,
-            () = removed.cancelled() => {
-                drop(records);
-                let state = cut_off(&registry);
-                let _gone = out.send(ServerFrame::Stream { stream, state }).await;
-                return;
-            }
-        } {
-            None => (
-                ServerFrame::Stream {
-                    stream,
-                    state: StreamState::Ended,
-                },
-                true,
-            ),
-            Some(Ok(record)) => (ServerFrame::Event { stream, record }, false),
-            // The stream can see the closed connection before this task
-            // sees the cancellation: say why it was cut off, not how.
-            Some(Err(_error)) if removed.is_cancelled() => (
-                ServerFrame::Stream {
-                    stream,
-                    state: cut_off(&registry),
-                },
-                true,
-            ),
-            Some(Err(error)) => {
-                let (state, last) = stream_state(error);
-                (ServerFrame::Stream { stream, state }, last)
-            }
-        };
-        if out.send(frame).await.is_err() || last {
-            return;
-        }
-    }
-}
-
-/// A stream's last notice when its node's entry was cancelled.
-fn cut_off<S: NodeSource>(registry: &Registry<S>) -> StreamState {
-    let cancelled = registry.cancelled();
-    StreamState::Failed {
-        message: cancelled.message().to_owned(),
-        reason: cancelled.reason(),
-    }
-}
-
-/// A stream notice as the browser sees it, and whether it is the last.
-fn stream_state(error: StreamError) -> (StreamState, bool) {
-    match error {
-        StreamError::Missing {
-            expected,
-            resumed_at,
-        } => (
-            StreamState::Missing {
-                expected,
-                resumed_at,
-            },
-            false,
-        ),
-        StreamError::Reconnecting { reason, .. } => {
-            (StreamState::Reconnecting { message: reason }, false)
-        }
-        StreamError::Resumed { at } => (StreamState::Resumed { at }, false),
-        StreamError::Call(_) | StreamError::Unsubscribed | StreamError::Unreachable { .. } => (
-            StreamState::Failed {
-                message: chain(&error),
-                reason: StreamStop::Error,
-            },
-            true,
-        ),
-    }
-}
-
-/// A failure as one line, for a stream notice or an op's answer.
-pub(crate) fn failure_text(failure: &Failure) -> String {
-    match failure {
-        Failure::Remote { error } => error.to_string(),
-        Failure::NotInProtocol { method, .. } => {
-            format!("`{}` is newer than the node", method.as_str())
-        }
-        Failure::Disconnected => "the connection closed".to_owned(),
-        Failure::Unreachable { message }
-        | Failure::Refused { message }
-        | Failure::Failed { message } => message.clone(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn subscriptions_and_node_machinery_are_not_forwarded() {
-        let refused: Vec<_> = Method::ALL
-            .iter()
-            .filter(|method| !forwardable(**method))
-            .map(|method| method.as_str())
-            .collect();
-        assert_eq!(
-            refused,
-            [
-                "session.subscribe",
-                "session.unsubscribe",
-                "fleet.report",
-                "fleet.relay",
-                "fleet.deliver",
-                "fleet.grant",
-                "fleet.callback",
-                "fleet.peers",
-            ]
-        );
-    }
-
-    #[test]
-    fn a_call_is_decoded_typed_or_refused() {
-        let call = RawJson::from_text(r#"{"method":"session.list","params":null}"#).unwrap();
-        assert_eq!(decode(&call).unwrap().method(), Method::ListSessions);
-        for refused in [
-            r#"{"method":"session.subscribe","params":{"session":"00000000-0000-0000-0000-000000000000","from":0}}"#,
-            r#"{"method":"no.such","params":null}"#,
-            r#"{"method":"session.get","params":{"nope":1}}"#,
-            "[1,2]",
-        ] {
-            let call = RawJson::from_text(refused).unwrap();
-            assert!(
-                matches!(decode(&call), Err(Failure::Refused { .. })),
-                "{refused}"
-            );
-        }
-    }
 }

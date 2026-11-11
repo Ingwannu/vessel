@@ -21,8 +21,8 @@ use vessel_node::{Config, DataDir, Node};
 use vessel_proto::{Call, ClientInfo, HarnessKind, NodeId, RawJson};
 use vessel_testkit::Fake;
 use vessel_web::wire::{
-    AuthMode, BookNode, CallId, ClientFrame, NodeKey, Nonce, Op, PresentedToken, ServerFrame,
-    Transport,
+    AuthMode, BookNode, CallId, ClientFrame, NodeKey, Nonce, Op, PresentedToken, SecretText,
+    ServerFrame, Transport,
 };
 use vessel_web::{LaunchToken, NodeSource, UiConfig};
 
@@ -486,7 +486,7 @@ impl NodeSource for Source {
 
     async fn seen(&self, _node: &NodeKey, _id: NodeId) {}
 
-    async fn pair(&self, name: &NodeName, _link: &str) -> Result<BookNode, Refused> {
+    async fn pair(&self, name: &NodeName, _link: &SecretText) -> Result<BookNode, Refused> {
         Err(Refused::Missing(NodeKey::from(name.clone())))
     }
 

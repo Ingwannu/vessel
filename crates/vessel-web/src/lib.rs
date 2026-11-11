@@ -16,6 +16,8 @@
 //! - `socket`: the browser's websocket: the hello within a deadline, then
 //!   the bridge;
 //! - `bridge`: one tab's calls, streams and ops;
+//! - `calls`: a browser's call to a node, typed, checked and forwarded;
+//! - `streams`: one tab's followed sessions and how each ends;
 //! - `ops`: the ops' answers (the book's nodes, pairing, QR codes, the
 //!   book's edits);
 //! - `registry`: one connection per node, shared by every tab, with its
@@ -28,6 +30,7 @@
 
 mod auth;
 mod bridge;
+mod calls;
 mod files;
 mod guard;
 #[cfg(test)]
@@ -37,6 +40,7 @@ mod registry;
 mod server;
 mod socket;
 mod source;
+mod streams;
 mod token;
 mod transport;
 pub mod wire;

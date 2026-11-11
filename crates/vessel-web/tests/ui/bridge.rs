@@ -16,8 +16,8 @@ use vessel_proto::{
     TerminalBytes, TerminalInput, TerminalOutput, TerminalSize,
 };
 use vessel_web::wire::{
-    CallId, CallOutcome, ClientFrame, Failure, NodeStatus, Op, OpOutcome, OpResult, ServerFrame,
-    StreamId, StreamState,
+    CallId, CallOutcome, ClientFrame, Failure, NodeStatus, Op, OpOutcome, OpResult, SecretText,
+    ServerFrame, StreamId, StreamState,
 };
 
 use crate::support::{Proxy, Source, Tab, TestNode, Ui, within};
@@ -171,7 +171,7 @@ async fn ops_are_answered_by_the_bridge() {
         }
         let id = tab
             .op(Op::Qr {
-                text: "vessel://pair#offer".to_owned(),
+                text: SecretText::new("vessel://pair#offer".to_owned()),
             })
             .await;
         match op_reply(&mut tab, id).await {
@@ -180,13 +180,16 @@ async fn ops_are_answered_by_the_bridge() {
         }
         let id = tab
             .op(Op::Inspect {
-                link: "not a link".to_owned(),
+                link: SecretText::new("not a link".to_owned()),
             })
             .await;
-        assert!(matches!(
-            op_reply(&mut tab, id).await,
-            OpOutcome::Err { .. }
-        ));
+        match op_reply(&mut tab, id).await {
+            // Says what is wrong without repeating the text it was given.
+            OpOutcome::Err { message, .. } => {
+                assert!(!message.contains("not a link"), "{message}");
+            }
+            other @ OpOutcome::Ok(_) => panic!("{other:?}"),
+        }
         let id = tab
             .op(Op::Retry {
                 node: "box".parse().unwrap(),

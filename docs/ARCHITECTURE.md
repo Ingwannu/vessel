@@ -227,7 +227,10 @@ streams as `removed`. Node names are parsed when a frame is decoded
 (`wire::NodeKey`, `wire::BookName`, the book's `NodeName` inside), so
 this machine's node, which is not a book entry, cannot be forgotten or
 renamed, and a frame that does not decode is still answered by its id.
-The ops live in `ops`, beside `bridge`. See ADR 0017 for transcripts,
+`bridge` keeps the tab (its socket, the frames it reads and writes,
+node states); a call's forwarding is `calls`, its followed sessions
+`streams`, its ops `ops`. A pairing link on the wire is a `SecretText`,
+never printed by `Debug`. See ADR 0017 for transcripts,
 bounds and platform tradeoffs.
 
 

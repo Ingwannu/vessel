@@ -40,7 +40,7 @@ use std::sync::Arc;
 
 use vessel_proto::PairingLink;
 
-use crate::bridge::failure_text;
+use crate::calls::failure_text;
 use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
 use crate::wire::{BookNode, Op, OpFailure, OpResult};
@@ -83,7 +83,10 @@ pub(crate) async fn answer<S: NodeSource>(
             .map(|()| OpResult::Retry)
             .map_err(|failure| failed(failure_text(&failure))),
         Op::Inspect { link } => {
-            let link: PairingLink = link.parse().map_err(|error| failed(chain(&error)))?;
+            let link: PairingLink = link
+                .expose()
+                .parse()
+                .map_err(|error| failed(chain(&error)))?;
             let offer = link.decode().map_err(|error| failed(chain(&error)))?;
             let fingerprint = vessel_client::fingerprint(&offer.key);
             Ok(OpResult::Inspect { offer, fingerprint })
@@ -94,7 +97,9 @@ pub(crate) async fn answer<S: NodeSource>(
             .await
             .map(|node| OpResult::Pair { node })
             .map_err(source),
-        Op::Qr { text } => qr(&text).map(|svg| OpResult::Qr { svg }).map_err(failed),
+        Op::Qr { text } => qr(text.expose())
+            .map(|svg| OpResult::Qr { svg })
+            .map_err(failed),
         Op::Forget { node } => {
             registry
                 .source()
