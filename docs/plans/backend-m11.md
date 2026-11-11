@@ -404,6 +404,388 @@ book, typed and versioned, and builds on it.
   prompt to several models, delivered files and HTML, a reviewing
   agent, spreading by load, updating and diagnostics from the page.
 
+## Track A: contract
+
+Protocol 10, this track's half of it (Track B adds its own; the rules
+above). Written 2026-11-11 from the three references and the agents'
+own ACP code; every "the agent says" below is read from the handshake or
+from what the agent sends, never from a table of Vessel's.
+
+### What the agents do (read from their ACP code, no prompt sent)
+
+| | Claude (`claude-agent-acp` 0.100) | Codex (`codex-acp`) | Gemini (`--experimental-acp`) | OpenCode (`acp`) |
+| --- | --- | --- | --- | --- |
+| Prompt during a turn | queued by the adapter | queued | cancels the running turn | refused |
+| Steering (`_meta.steering.supported`, `_session/steering`) | yes | yes | no | yes |
+| `promptCapabilities` | image, embedded context | image, embedded context | image, audio, embedded context | image, embedded context |
+| `available_commands_update` | yes, `{name, description, input.hint}` | yes | yes, name and description | not found |
+| `usage_update` | `used`, `size`, `cost` at a turn's end | `used`, `size` | `used`, `size` at a turn's end | `used`, `size`, `cost` at a turn's end |
+| Questions (`elicitation/create`, form mode) | `AskUserQuestion`, only when the client advertises form elicitation (otherwise the tool is disabled) | yes | none (permissions only) | only when the client advertises form elicitation |
+| `loadSession` | yes | yes | yes | yes |
+| Per-turn tokens in the prompt's answer | no | yes | yes | no |
+
+What follows from it:
+
+- **Vessel never sends `session/prompt` during a turn.** The adapters
+  disagree on what it means (queued, cancelling, refused), so the node
+  keeps the queue itself and sends a prompt only between turns.
+- **Steering is the ACP steering extension, nothing else.** An agent
+  whose `initialize` answer carries `_meta.steering.supported: true`
+  can steer; Vessel sends `_session/steering` with `idleBehavior:
+  promptRequired` (agent-orchestrator's use of it). Gemini cannot steer,
+  so it is not offered there; "interrupt and send" is offered to every
+  agent as what it is.
+- **Questions are ACP form elicitations.** Vessel starts advertising
+  `elicitation: { form: {} }`. URL elicitation (used for an MCP server's
+  sign-in) is not advertised: the node would be asking a person to open
+  a link the agent chose, from a page on another machine; the agents
+  then do without, as they do today.
+- **Usage is `usage_update`** (context used and its size, and a cost
+  when the agent says one), and the prompt's answer `usage` where the
+  agent sends it (ACP's `unstable_end_turn_token_usage`, which Codex and
+  Gemini fill; read with ACP's own default-on-error rule, so an agent
+  that changes it costs only the figure).
+- **Compacting is the agent's own `/compact` command** where it
+  advertises one; there is no call of Vessel's for it (no ACP request
+  exists, and two references send the text too).
+
+### Types (`vessel_proto::conversation`, new module)
+
+Ids, node-minted UUIDv4 (`id.rs`): `QueueEntryId`, `QuestionId`,
+`AttachmentId`, `UploadId`.
+
+Bounded values, parsed where a frame is decoded (a bad one does not
+decode):
+
+- `CommandName`: 1 to 128 characters, no whitespace, no leading `/`.
+- `AttachmentName`: a file name: 1 to 255 bytes, one path component
+  (no `/`, `\`, NUL or control character), not `.` or `..`, no leading
+  or trailing space or dot, not a Windows device name. Used for display
+  and as the stored file's name; never joined to a path a client chose.
+- `MimeType`: `type/subtype`, lowercase ASCII token characters, at most
+  127 bytes, no parameters.
+- `CostUnit`: 1 to 16 letters, digits or `_` (`USD`, `credits`).
+- `FieldName`: 1 to 128 characters (an elicitation property's key).
+- `FiniteNumber`: a JSON number that is finite (no NaN or infinity), so
+  types holding it stay `Eq`.
+
+What an agent can do, from its `initialize` answer:
+
+- `AgentAbilities { steer, resume, image, audio }`, each a bool:
+  `steer` is `_meta.steering.supported`, `resume` is
+  `agentCapabilities.loadSession`, `image` and `audio` are
+  `promptCapabilities`. Files are offered to every structured agent (a
+  resource link, ACP's baseline content).
+
+A prompt's content:
+
+- `ContentBlock::Attachment { attachment: AttachmentRef }` (new variant):
+  `AttachmentRef { id, name, kind, mime, size }`, `kind` one of `image`,
+  `audio`, `file`. In a prompt, a steer and a queue entry; never from an
+  agent (what an agent sends stays `opaque`, as now).
+
+The queue:
+
+- `QueuedPrompt { id: QueueEntryId, content: ContentBlock[], queued_at,
+  by: Creator }`.
+- `PromptQueue { entries: QueuedPrompt[], held?: QueueHold }`; `held`
+  absent means the queue moves on its own. `QueueHold`: `cancelled` (a
+  person cancelled a turn), `failed` (a turn failed), `ended` (the
+  session ended with prompts waiting), `asked` (`session.queue hold`).
+- `Delivery`: `start`, `queue`, `steer`, `interrupt`. `Delivered`:
+  `started`, `steered`, `queued { entry }`.
+- `QueueChange` (tagged `change`): `edit { entry, content }`, `move {
+  entry, to }` (`to` an index into the queue as it is), `remove { entry
+  }`, `send_now { entry, delivery }` (`start`, `steer` or `interrupt`),
+  `hold`, `resume`, `clear`.
+- `QueueChanged { queue, delivered? }`: the reply to `session.queue`.
+
+The agent's commands:
+
+- `AgentCommand { name: CommandName, description, hint? }`, as
+  `available_commands_update` lists them (`hint` from `input.hint`). A
+  command is used by sending a prompt that starts with `/name`.
+
+Questions (an ACP form elicitation, typed):
+
+- `Question { id, message, tool_call?: ToolCallId, fields:
+  QuestionField[] }`.
+- `QuestionField { name: FieldName, title?, description?, required,
+  kind }`, `kind` (tagged `kind`) one of:
+  - `text { min_length?, max_length?, format?, default? }`, `format`
+    one of `email`, `uri`, `date`, `date_time`;
+  - `number { integer, minimum?, maximum?, default? }`;
+  - `boolean { default? }`;
+  - `choice { options: ChoiceOption[], multiple, min_items?,
+    max_items?, default? }`, `ChoiceOption { value, title,
+    description? }` (ACP's `enum`, `oneOf` and multi-select, in the
+    agent's order);
+  - `unknown`: a kind a newer ACP has; a client can only decline a
+    question that has one.
+- `QuestionAnswer` (tagged `answer`): `accept { values }` (`values` a
+  map from field name to `AnswerValue`: `text`, `number`, `boolean`,
+  `choice` (one value) or `choices` (several)), `decline`.
+- `QuestionOutcome` (tagged `outcome`): `answered { values }`,
+  `declined`, `cancelled` (the turn or the session ended first).
+
+Usage:
+
+- `ContextUsage { used: TokenCount, size: TokenCount, cost?: Cost }`,
+  `Cost { amount: FiniteNumber, unit: CostUnit }`: the agent's last
+  `usage_update`, cost as the agent's running total for the session.
+- `TurnUsage { total, input, output, thought?, cached_read?,
+  cached_write? }` (each a `TokenCount`): a turn's tokens as the agent
+  reports them in the prompt's answer. Not `TokenUsage` (protocol 7):
+  that one is the node proxy's own accounting with defined cache rules,
+  and agents do not agree on whether `input` counts cached tokens.
+
+The whole conversation as it stands:
+
+- `Conversation { queue: PromptQueue, commands: AgentCommand[], usage?:
+  ContextUsage, permissions: PermissionRequest[], questions:
+  Question[], abilities?: AgentAbilities, limits: AttachmentLimits }`:
+  `permissions` and `questions` are the ones still waiting.
+- `AttachmentLimits { image, audio, file, per_prompt, inline_per_prompt,
+  per_session, chunk }`, sizes in bytes, `per_prompt` a count (the
+  values in "Bounds").
+
+A session's marks, kept by the node:
+
+- `SessionMarks { pinned, archived_at?, unread }`.
+- `Mark` (tagged `mark`): `pin`, `unpin`, `archive`, `unarchive`, `read
+  { through? }` (`through` the next record the reader has not seen;
+  absent is the log's end now), `unread`.
+
+Uploads:
+
+- `Upload { upload: UploadId, chunk }`; `Attachment` replies are an
+  `AttachmentRef`.
+
+### On existing types (the smallest additions)
+
+- `SessionInfo.marks: SessionMarks` (omitted when nothing is marked) and
+  `SessionInfo.agent?: AgentAbilities` (from the last handshake, kept by
+  the store, so an ended session says whether it can start again).
+- `HarnessOptions.abilities?: AgentAbilities`: the probe's, for a new
+  session's composer.
+- `AgentEvent::Ready.abilities?` and `AgentEvent::TurnEnded.usage?:
+  TurnUsage`, optional, so older clients ignore them.
+- `SessionInput::AnswerQuestion { id: QuestionId, answer }` (`session.send`,
+  `ack`): first answer wins, as for permissions.
+- `SessionInput::Prompt` keeps meaning `start` (protocol 2's behaviour).
+
+### Events
+
+| Event | Since | What it is | A version 2-9 client gets |
+| --- | --- | --- | --- |
+| `queue_changed { queue }` | 10 | the whole queue after any change (sent, dispatched, edited, held) | `vessel: queue: 2 waiting (held: cancelled)` |
+| `commands_changed { commands }` | 10 | the whole list, each time the agent sends one | `vessel: commands: /compact, /review and 12 more` |
+| `usage_changed { usage }` | 10 | each `usage_update` | `vessel: context: 41,200 of 200,000 tokens` |
+| `agent { steered { content } }` | 10 | a message added to the running turn | `vessel: steered: <first line>` |
+| `agent { question_asked { .. } }` | 10 | a question waiting for an answer | `vessel: the agent asks: <message>` |
+| `agent { question_resolved { id, outcome } }` | 10 | answered, declined or withdrawn | `vessel: question answered` (declined, cancelled) |
+| a `turn_started` or `steered` holding an attachment | 10 | the prompt as sent | the same event, each attachment as `resource_link { uri: "attachment:<id>", name }` |
+
+The stand-ins keep the record's `seq`, as protocol 5's do; `since` for an
+agent event now looks at its content (an attachment makes a
+`turn_started` a version 10 record).
+
+### Calls
+
+| Method | Scope | Request | Reply |
+| --- | --- | --- | --- |
+| `session.prompt` | operate | `{ session, content, delivery }` | `Delivered` |
+| `session.queue` | operate | `{ session, change: QueueChange }` | `QueueChanged` |
+| `session.conversation` | read | `{ session }` | `Conversation` |
+| `session.resume` | operate | `{ session }` | `SessionInfo` |
+| `session.mark` | operate | `{ session, mark: Mark }` | `SessionInfo` |
+| `session.delete` | operate | `{ session }` | `ack` |
+| `attachment.begin` | operate | `{ session, name, mime, size }` | `Upload` |
+| `attachment.write` | operate | `{ upload, offset, data }` (base64, at most `chunk` bytes) | `ack` |
+| `attachment.finish` | operate | `{ upload }` | `AttachmentRef` |
+| `attachment.read` | read | `{ session, attachment, offset }` | `BlobChunk` |
+
+All are forwardable. The `operate` calls naming a session are
+ownership-checked for agents (ADR 0013); `attachment.write` and
+`attachment.finish` belong to the caller that began the upload (another
+gets `not_found`, as for transfers). Every call answers `not_found` for
+an unknown session, `unsupported` for a terminal session (except
+`session.mark` and `session.delete`, which every session takes).
+
+**`session.prompt`**: `content` not empty; each attachment of this
+session, of a kind its agent takes, within the per-prompt limits.
+
+- `start`: starts a turn. `conflict` while one runs (the call
+  `session.send` makes today).
+- `queue`: starts a turn when nothing runs, nothing waits and the queue
+  is not held; otherwise appends (`queued`), held or not.
+- `steer`: during a turn, sends `_session/steering`; `injected` is
+  `steered` (logged as `steered`). When the agent answers
+  `promptRequired` (the turn ended first) or no turn runs, the prompt
+  starts a turn (`started`), as GOAT, Paseo and agent-orchestrator's
+  steer-or-send do. `unsupported` for an agent without `steer`, before
+  anything is sent; an agent that answers "method not found" anyway is
+  `unsupported` too.
+- `interrupt`: cancels the running turn, waits for it to end (at most 10
+  s), then starts this prompt. The queue is not held by it. `unavailable`
+  when the turn does not end in time (it was cancelled; nothing is
+  sent).
+- Failures: `invalid_request` (empty content, an attachment not of this
+  session, a kind the agent does not take, over a limit), `conflict`
+  (ended, moving to another profile, a turn runs for `start`, the queue
+  is full), `unsupported` (as above).
+
+**The queue moves** (decided in the session's actor, ADR 0024):
+
+- After a turn ends (`turn_ended` with any reason but `cancelled`) and
+  the queue is not held, its first entry starts, one per turn (GOAT's
+  order; agent-orchestrator merges every waiting entry into one turn,
+  which loses where one prompt ends).
+- A turn a person cancels (`session.send cancel_turn`) holds it
+  (`cancelled`); a failed turn holds it (`failed`); a session that ends
+  with entries keeps them, held (`ended`), and `session.resume` brings
+  them back held. GOAT holds in all three cases;
+  agent-orchestrator drops them at a cancel. Nothing waiting is ever
+  sent after a person said stop.
+- `resume` lets it move again and, between turns, starts its first
+  entry; `hold` stops it; `clear` empties it.
+- `edit`, `move` and `remove` of an entry no longer queued (it was sent,
+  or removed) are `not_found`; `move` past the end is
+  `invalid_request`. `send_now` takes the entry out and delivers it as
+  `session.prompt` would (`queue` is not a delivery here:
+  `invalid_request`), the reply's `delivered` saying how.
+- The queue is the node's: every client sees it (`queue_changed`,
+  `session.conversation`), the store keeps it (it survives a restart of
+  the node), and it goes with the session.
+
+**`session.conversation`**: for a live structured session, what its
+log says now, kept by the session as it publishes (no log read): the
+queue, the last commands and usage, the permissions and questions still
+waiting, the abilities. For an ended one, from the store: its queue
+(held), its last usage and abilities; no commands, nothing waiting.
+
+**`session.resume`** (start again, ADR 0026): an ended structured
+session's agent is started again under its current profile with
+`session/load`, the way `session.move_profile` restarts one (ADR 0011):
+same id, same log (it continues after the final status with `starting`,
+the agent's replay dropped), same title and choices; its queue comes
+back held. The call answers once the agent is ready (bounded by the
+handshake timeout). An archived session is brought back too.
+`unsupported` when the agent cannot resume (its recorded `resume` is
+false) or the session never had a harness session; `conflict` while it
+is live, or while its log is still being written after its end (a retry
+works); `invalid_request` for a profile that no longer exists;
+`harness_not_installed`; `spawn_failed` when the agent does not start or
+`session/load` fails: the attempt is in the log (`starting`, then
+`failed` with the reason) and the session stays ended.
+`unavailable` while the node drains. An agent's limits (ADR 0013) count
+it as a live session again.
+
+**`session.mark`**: `pin`, `unpin`, `unarchive` change only the mark.
+`archive` on a live session stops it first (agent-orchestrator and
+Paseo do) and answers once it has ended. `read { through }` marks every
+record before `through` seen; `unread` marks the session unread until
+the next `read`. Every mark is kept by the store and is the same for
+every client. Idempotent.
+
+**`session.delete`**: removes an ended session: its log, its marks, its
+queue and its attachments (files included). The agent's own transcript
+in its home is not touched (it is the agent's history, which a later
+import can read). `conflict` for a live session (archive it first, as
+agent-orchestrator says).
+
+**Attachments** (ADR 0025):
+
+- `attachment.begin`: the session is live and structured; the kind
+  follows the type (`image/png`, `image/jpeg`, `image/gif`,
+  `image/webp` are images, `audio/*` is audio, anything else a file)
+  and must be one its agent takes (`unsupported` otherwise); `size` is
+  within the kind's limit and the session's (`invalid_request`, naming
+  the limit and the size); at most 16 uploads are open on a node
+  (`unavailable` beyond).
+- `attachment.write`: `offset` is what has been received so far (a
+  repeat or a gap is `invalid_request`), the data at most `chunk`
+  bytes, never past `size`.
+- `attachment.finish`: all `size` bytes are there (`invalid_request`
+  otherwise); an image's first bytes must be its declared type's
+  (`invalid_request`). The bytes are then the session's, under the
+  node's data directory, and the store records them. An upload idle for
+  10 minutes, or open at a restart, is dropped.
+- Given to the agent: an image as an ACP `image` block and audio as an
+  `audio` block (the bytes, base64, in the prompt); a file as a
+  `resource_link` to the stored file (a path ending in its name), which
+  the agent reads with its own tools, as agent-orchestrator, GOAT and
+  Paseo all hand files over. The log keeps the reference, never the
+  bytes or the path.
+- `attachment.read`: a session's attachment in `BlobChunk`s, so another
+  device shows what was sent.
+
+### The board, and ended sessions (ADR 0026, changing ADR 0019's rule)
+
+Ended no longer means put away: an ended session can start again. As in
+agent-orchestrator, whose reducer Vessel ported, a session is in the
+archive lane (`terminated`) when it is archived; an ended session that
+is not is in building with the phrase `exited` (its activity `exited`),
+until it is archived or started again. The schema migration archives
+every session that had ended before it (`archived_at` = its end), so the
+lanes look as they did. `SessionFacts.worker.is_terminated` now reads
+"archived".
+
+### Unread, without a race
+
+`unread` is derived: the session is unread when it was marked so, or
+when a record that asks for attention (a turn's end or failure, the
+session's end) has a `seq` at or after the last `read`'s `through`. The
+store keeps the attention point as a projection of the log and the
+`read` point as a mark, so a `read` and a turn ending at the same moment
+agree in any order.
+
+### Old clients, old nodes
+
+- A client sends none of the new calls, an `answer_question`, or a
+  prompt holding an attachment (`session.send`) to a node older than 10
+  (`Call::since`); a node refuses them on an older connection
+  (`unsupported`, "needs protocol 10").
+- A version 2-9 client reading a version 10 node gets the stand-ins
+  above; `marks`, `agent`, `abilities` and `usage` fields it ignores. It
+  sees ended sessions in building as `exited` (a phrase it has had since
+  protocol 8) until they are archived.
+- A question waits for an answer only a version 10 client can give; an
+  older client sees the log line, and the turn waits as it waits on a
+  permission nobody answers (cancel ends it).
+
+### Bounds
+
+| What | Bound | Beyond it |
+| --- | --- | --- |
+| Queue | 32 entries, 256 KiB of content in all | `conflict`, "the queue is full" |
+| Commands kept | 512, a description cut at 1 KiB, a hint at 256 bytes | the rest dropped, logged |
+| A question | 32 fields, 64 options a field, text cut at 4 KiB (message) and 1 KiB (titles, descriptions) | cut, logged; more fields than that: declined |
+| An answer's text value | 16 KiB | `invalid_request` |
+| Waiting permissions and questions a session tracks | 64 | the oldest answered `cancelled` |
+| An image or audio attachment | 10 MiB | `invalid_request` |
+| A file attachment | 50 MiB | `invalid_request` |
+| A prompt | 16 attachments, 25 MiB of images and audio | `invalid_request` |
+| A session's attachments | 100 MiB | `invalid_request` |
+| Open uploads on a node | 16, each dropped after 10 idle minutes | `unavailable` |
+| An upload chunk | 1 MiB (`BlobChunk::MAX_LEN`) | `invalid_request` |
+| Interrupt-and-send's wait | 10 s | `unavailable` |
+
+(Image sizes are agent-orchestrator's and GOAT's, files GOAT's and
+Paseo's; none of the three bounds its queue, Vessel does.)
+
+### Store and numbers
+
+- Schema version 7 (the next free one on this branch; the coordinator
+  renumbers at merge if Track B took it): on `sessions`, `pinned`,
+  `archived_at`, `read_seq`, `attention_seq`, `marked_unread`, `queue`
+  (JSON), `abilities` (JSON), `usage` (JSON); a table `attachments`
+  (session, id, name, kind, mime, size, created_at), deleted with its
+  session; the bytes under the data directory's `attachments/<session>/`.
+- ADRs: 0024 (the queue, delivery and steering), 0025 (attachments),
+  0026 (ended, archived, started again; unread by sequence). 0023 is
+  Track B's.
+
 ## Left open
 
 - The desktop and phone shells (ADR 0020, still proposed). All three
