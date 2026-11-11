@@ -1,5 +1,5 @@
-// The web UI's entry: the launch token, the theme before first paint,
-// then the app (ADR 0017).
+// The web UI's entry: the launch token, the preferences the bridge painted
+// on the index (ADR 0025), then the app (ADR 0017).
 import "./ui/fonts.css";
 import "./ui/tokens.css";
 // The kit's stylesheets (beside its components) before the areas', so an
@@ -12,10 +12,10 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./app";
 import { takeToken } from "./bridge/token";
-import { applyTheme } from "./data/theme";
+import { startPreferences } from "./data/prefs";
 import { Gallery, isGallery } from "./features/kit-gallery/gallery";
 
-applyTheme();
+startPreferences();
 const root = document.getElementById("root");
 if (root !== null) {
   // The kit's gallery holds no data: it opens without a token, and leaves

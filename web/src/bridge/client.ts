@@ -24,6 +24,7 @@ import type {
   NodeStatus,
   Op,
   OpResult,
+  PreferencesState,
   ServerFrame,
   StreamState,
 } from "../wire/bridge";
@@ -67,6 +68,7 @@ export class Bridge {
     (node: NodeKey, status: NodeStatus) => void
   >();
   readonly #linkListeners = new Set<(link: LinkState) => void>();
+  readonly #preferenceListeners = new Set<(state: PreferencesState) => void>();
 
   constructor(token: Credential, url: string = socketUrl()) {
     this.#socket = new BridgeSocket(token, url, {
@@ -174,6 +176,13 @@ export class Bridge {
     return () => this.#linkListeners.delete(listener);
   }
 
+  /** Every preferences state the bridge pushes (ADR 0025): once after
+   * each welcome, then after every change from any tab. */
+  onPreferences(listener: (state: PreferencesState) => void): () => void {
+    this.#preferenceListeners.add(listener);
+    return () => this.#preferenceListeners.delete(listener);
+  }
+
   #id(): number {
     const id = this.#nextId;
     this.#nextId += 1;
@@ -271,6 +280,11 @@ export class Bridge {
         followed.handlers.state(frame.state);
         return;
       }
+      case "preferences":
+        for (const listener of this.#preferenceListeners) {
+          listener(frame.preferences);
+        }
+        return;
       case "unreadable":
         console.warn(`vessel ui could not read a frame: ${frame.message}`);
         return;

@@ -20,6 +20,7 @@
    one in its own area stays after it in that area's file. When moving a
    rule between files, check what its new place puts after it. */
 
+@import "./appearance.css";
 @import "./base.css";
 @import "./shell.css";
 @import "./tables.css";

@@ -22,6 +22,7 @@ import { userInput } from "../../data/terminal-input";
 import { openExternal } from "../../data/links";
 import { addCall, type Usage, usageLine } from "../../data/models";
 import { decodeBytes } from "../../data/terminal";
+import { prefs } from "../../data/prefs";
 import { cssColor, onSchemeChange } from "../../data/theme";
 import { TerminalSender } from "../../data/terminal-sender";
 import { Banner, Tooltip } from "../../ui/kit";
@@ -75,7 +76,8 @@ export function TerminalView({
     }
     const terminal = new Terminal({
       fontFamily: TERMINAL_FONT,
-      fontSize: 13,
+      // Appearance's code font, a pixel up, as the terminal token is.
+      fontSize: prefs.get().values.appearance.code_size + 1,
       lineHeight: 1.25,
       cursorBlink: true,
       cursorStyle: "block",
@@ -97,6 +99,15 @@ export function TerminalView({
       terminal.options.theme = terminalTheme();
     });
     const fit = new FitAddon();
+    let codeSize = prefs.get().values.appearance.code_size;
+    const stopSize = prefs.subscribe(() => {
+      const next = prefs.get().values.appearance.code_size;
+      if (next !== codeSize) {
+        codeSize = next;
+        terminal.options.fontSize = next + 1;
+        fit.fit();
+      }
+    });
     terminal.loadAddon(fit);
     terminal.open(element);
     fit.fit();
@@ -153,6 +164,7 @@ export function TerminalView({
     return () => {
       stop();
       stopScheme();
+      stopSize();
       observer.disconnect();
       input.dispose();
       sender.close();

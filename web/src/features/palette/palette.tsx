@@ -11,7 +11,7 @@ import "./palette.css";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
-import { openNewSession, useFleetState } from "../../context";
+import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
 import {
   type PaletteEntry,
@@ -61,7 +61,8 @@ function iconOf(place: PalettePlace): IconName {
 export function SidebarSearch() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const state = useFleetState((fleet) => fleet);
+  const fleet = useFleet();
+  const state = useFleetState((value) => value);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const chord = event.key === "k" && (event.metaKey || event.ctrlKey);
@@ -98,13 +99,13 @@ export function SidebarSearch() {
                 openAddMachine();
                 return;
               case "theme":
-                chooseTheme(target.preference);
+                void chooseTheme(fleet, target.preference);
                 return;
             }
           },
         }),
       ),
-    [state, navigate],
+    [state, navigate, fleet],
   );
   return (
     <div className="side-search-wrap">

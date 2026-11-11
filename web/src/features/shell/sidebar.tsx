@@ -7,9 +7,10 @@ import "./sidebar.css";
 
 import { Link } from "@tanstack/react-router";
 
-import { useFleetState } from "../../context";
+import { useFleet, useFleetState } from "../../context";
 import { isLive } from "../../data/format";
 import { selectedNode } from "../../data/nodes";
+import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
 import { Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
@@ -42,6 +43,7 @@ export function rowClass(active: boolean, extra = ""): string {
 }
 
 export function Sidebar() {
+  const fleet = useFleet();
   const where = useWhere();
   const [place] = where.segments;
   const selected = useFleetState((state) => selectedNode(state, undefined));
@@ -102,7 +104,11 @@ export function Sidebar() {
           <Icon name="settings" size={16} />
           <span className="label">Settings</span>
         </Link>
-        <ThemeMenu />
+        <ThemeMenu
+          choose={(preference) => {
+            void chooseTheme(fleet, preference);
+          }}
+        />
       </div>
     </nav>
   );

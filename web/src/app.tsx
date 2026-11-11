@@ -13,6 +13,7 @@ import { Bridge } from "./bridge/client";
 import { forgetToken, type Credential } from "./bridge/token";
 import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
+import { followPreferences } from "./data/prefs";
 import { AddMachineHost } from "./features/machines/add-machine";
 import { Shell } from "./features/shell/shell";
 import { HomePage } from "./routes/home";
@@ -161,6 +162,7 @@ export function App({ token }: { token: Credential | null }) {
     if (fleet === null) {
       return undefined;
     }
+    const unfollow = followPreferences(fleet);
     const off = fleet.bridge.onLink((link) => {
       if (link.kind === "refused") {
         forgetToken();
@@ -169,6 +171,7 @@ export function App({ token }: { token: Credential | null }) {
     });
     fleet.start();
     return () => {
+      unfollow();
       off();
       fleet.stop();
     };

@@ -22,10 +22,9 @@
 
 import "./gallery.css";
 
-import { chooseTheme, theme } from "../../data/theme";
-import { useStore } from "../../data/store";
+import { showTheme } from "../../data/theme";
 import { Segmented, TooltipProvider } from "../../ui/kit";
-import { THEMES, ThemeMenu } from "../theme/theme";
+import { THEMES, ThemeMenu, useTheme } from "../theme/theme";
 import { Buttons } from "./buttons";
 import { Choices } from "./choices";
 import { Composer } from "./composer";
@@ -39,7 +38,7 @@ export function isGallery(path: string): boolean {
 }
 
 export function Gallery() {
-  const preference = useStore(theme, (value) => value);
+  const preference = useTheme();
   return (
     <TooltipProvider>
       <main className="kit-page">
@@ -57,10 +56,10 @@ export function Gallery() {
               size="sm"
               iconsOnly
               value={preference}
-              onChange={chooseTheme}
+              onChange={showTheme}
               options={THEMES}
             />
-            <ThemeMenu />
+            <ThemeMenu choose={showTheme} />
           </div>
         </header>
         <Buttons />
