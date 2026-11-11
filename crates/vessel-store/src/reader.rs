@@ -14,6 +14,7 @@ use vessel_proto::{
     SessionId, SessionInfo,
 };
 
+use crate::again::{self, EndedSession};
 use crate::codec::{
     SESSION_COLUMNS, choices_from_sql, decode, record_from_row, seq_from_sql, seq_to_sql,
     session_from_row,
@@ -123,6 +124,12 @@ impl Reader {
                 limits: AttachmentLimits::DEFAULT,
             }))
         })
+    }
+
+    /// A stored session with what a new run of it continues from
+    /// (protocol 10's `session.resume`).
+    pub(crate) fn ended_session(&self, id: SessionId) -> Result<Option<EndedSession>, StoreError> {
+        self.with(|connection| again::ended_session(connection, id))
     }
 
     /// Every paired device, oldest first.

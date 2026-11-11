@@ -19,13 +19,15 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Transaction};
 use tokio::sync::{mpsc, oneshot};
-use vessel_proto::{DeviceId, DeviceInfo, EventRecord, KeptMarks, Mark, SessionId, SessionInfo};
+use vessel_proto::{
+    DeviceId, DeviceInfo, EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo,
+};
 
 use crate::config::Retention;
 use crate::devices::{self, CredentialHash};
 use crate::error::StoreError;
 use crate::log::{self, Appended};
-use crate::{attachments, marks};
+use crate::{again, attachments, marks};
 
 /// Most operations committed in one transaction. Bounds how long one
 /// commit takes (and so the latency of the first operation in it).
@@ -85,6 +87,13 @@ pub(crate) enum Write {
     },
     /// Delete an ended session whole (protocol 10).
     Delete { session: SessionId, done: Done },
+    /// Reopen an ended session's row for a run starting at record `next`
+    /// (protocol 10's `session.resume`); answers with its marks after.
+    Reopen {
+        session: SessionId,
+        next: EventSeq,
+        done: Done<KeptMarks>,
+    },
 }
 
 /// What the writer needs besides its connection and its queue.
@@ -278,6 +287,16 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
                 effects.removed.push(session);
             }
             Answer::Done(done, applied)
+        }
+        Write::Reopen {
+            session,
+            next,
+            done,
+        } => {
+            let applied = isolated(transaction, |connection| {
+                again::reopen(connection, session, next)
+            });
+            Answer::Marked(done, applied)
         }
     }
 }

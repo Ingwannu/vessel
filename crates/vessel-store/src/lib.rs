@@ -44,6 +44,7 @@
 //!
 //! [`EventRecord`]: vessel_proto::EventRecord
 
+mod again;
 mod attachments;
 mod codec;
 mod config;
@@ -62,6 +63,7 @@ mod store;
 mod token;
 mod writer;
 
+pub use again::EndedSession;
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, StoredDevice};

@@ -180,8 +180,8 @@ pub enum StoreError {
     #[error("session {0} is already in the store")]
     SessionExists(SessionId),
     /// The session is still live in the store (its log is not complete),
-    /// so it cannot be deleted.
-    #[error("session {0} is still live; it can be deleted once it has ended")]
+    /// so it can neither be deleted nor started again.
+    #[error("session {0} is still live (its log is not complete)")]
     SessionLive(SessionId),
     /// Records must be appended gap-free, in order.
     #[error("session {session}: expected record {expected}, got {got}")]
