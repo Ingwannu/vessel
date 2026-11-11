@@ -169,18 +169,15 @@ test("an agent's card says what the fake agent offers", async ({ page }) => {
 
   await agents.getByRole("link", { name: "Claude Code" }).click();
   await expect(page).toHaveURL(/agent=claude-code/);
-  const models = page.getByRole("list", { name: "Claude Code: Models" });
-  await expect(models).toContainText("Fake-small, Fake-large", {
+  const offers = page.getByRole("list", { name: "What Claude Code offers" });
+  const row = (label: string) =>
+    offers.getByRole("listitem").filter({ hasText: label });
+  await expect(row("Models")).toContainText("Fake-small, Fake-large", {
     timeout: 30_000,
   });
-  await expect(models).toContainText("Now Fake-small");
-  await expect(
-    page.getByRole("list", { name: "Claude Code: Effort" }),
-  ).toContainText("Low, High");
-  await expect(
-    page.getByRole("list", { name: "Claude Code: Permissions" }),
-  ).toContainText("Default, Plan, Locked");
-  await expect(
-    page.getByRole("list", { name: "Claude Code: Other options" }),
-  ).toContainText("Fast");
+  await expect(row("Models")).toContainText("Now Fake-small");
+  await expect(row("Effort")).toContainText("Low, High");
+  // The agent's "Mode" is the page's permissions.
+  await expect(row("Permissions")).toContainText("Default, Plan, Locked");
+  await expect(row("Fast")).toContainText("On, Off");
 });

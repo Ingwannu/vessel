@@ -184,9 +184,15 @@ function AddMachineDialog({ onClose }: { onClose: () => void }) {
           onClose={onClose}
           footer={
             <>
+              <Button
+                variant={where === "running" ? "secondary" : "ghost"}
+                onClick={onClose}
+              >
+                Close
+              </Button>
               {refused ? (
                 <Button
-                  variant="ghost"
+                  variant="primary"
                   onClick={() => {
                     setLink("");
                     setStage({ stage: "link", checking: false, error: null });
@@ -195,12 +201,6 @@ function AddMachineDialog({ onClose }: { onClose: () => void }) {
                   Use another link
                 </Button>
               ) : null}
-              <Button
-                variant={where === "done" ? "ghost" : "secondary"}
-                onClick={onClose}
-              >
-                Close
-              </Button>
               {where === "done" && key !== null ? (
                 <Button
                   variant="primary"

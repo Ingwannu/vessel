@@ -125,7 +125,15 @@ export function MachineDetail({ node }: { node: BookNode }) {
               return (
                 <Row
                   key={kind}
-                  title={agentName(kind)}
+                  title={
+                    <Link
+                      to="/settings/$section"
+                      params={{ section: "agents" }}
+                      search={{ machine: node.key, agent: kind }}
+                    >
+                      {agentName(kind)}
+                    </Link>
+                  }
                   detail={{
                     facts: [
                       agent.kind === "not-found"

@@ -11,11 +11,10 @@ import {
   agentHeadline,
   agentName,
   type AgentStatus,
+  askedWhen,
   loadOffer,
-  offerGroupLabel,
-  offerGroups,
+  offerRows,
 } from "../../data/agents";
-import { ago } from "../../data/format";
 import { nextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import type { HarnessKind, HarnessOptions } from "../../wire/proto";
@@ -122,44 +121,32 @@ function Offer({
       </SettingsSection>
     );
   }
-  const groups = offerGroups(answer.value.options);
-  if (groups.length === 0) {
-    return (
-      <SettingsSection title="What it offers">
+  const rows = offerRows(answer.value.options);
+  return (
+    <SettingsSection
+      title="What it offers"
+      action={
+        <span className="section-note">
+          {askedWhen(answer.value.probed_at)}
+        </span>
+      }
+    >
+      {rows.length === 0 ? (
         <p className="settings-empty">
           {name} offers no choices of model, effort or permissions.
         </p>
-      </SettingsSection>
-    );
-  }
-  return (
-    <>
-      {groups.map(({ group, rows }, index) => (
-        <SettingsSection
-          key={group}
-          title={offerGroupLabel(group)}
-          {...(index === 0
-            ? {
-                action: (
-                  <span className="section-note">
-                    Asked {ago(answer.value.probed_at)} ago
-                  </span>
-                ),
-              }
-            : {})}
-        >
-          <RowList label={`${name}: ${offerGroupLabel(group)}`}>
-            {rows.map((row) => (
-              <Row
-                key={row.id}
-                title={row.name}
-                detail={{ facts: [row.values.join(", ")] }}
-                control={<FactValue>Now {row.current}</FactValue>}
-              />
-            ))}
-          </RowList>
-        </SettingsSection>
-      ))}
-    </>
+      ) : (
+        <RowList label={`What ${name} offers`}>
+          {rows.map((row) => (
+            <Row
+              key={row.id}
+              title={row.label}
+              detail={{ facts: [row.values.join(", ")] }}
+              control={<FactValue>Now {row.current}</FactValue>}
+            />
+          ))}
+        </RowList>
+      )}
+    </SettingsSection>
   );
 }

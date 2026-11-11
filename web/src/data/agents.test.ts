@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { SessionOption } from "../wire/proto";
-import { agentHeadline, agentsOn, agentStatus, offerGroups } from "./agents";
+import {
+  agentHeadline,
+  agentsOn,
+  agentStatus,
+  askedWhen,
+  offerRows,
+} from "./agents";
 import { claude, codexTerminalOnly } from "./fixtures/machines";
 
 describe("an agent's status on a machine", () => {
@@ -73,32 +79,52 @@ describe("what an agent offers", () => {
     { id: "later", name: "Later", category: "other", kind: "unknown" },
   ];
 
-  it("groups them as models, effort, permissions, then the rest", () => {
-    const groups = offerGroups(options);
-    expect(groups.map((entry) => entry.group)).toEqual([
-      "models",
-      "effort",
-      "permissions",
-      "other",
-    ]);
-    expect(groups[0]?.rows).toEqual([
+  it("lists them as models, effort, permissions, then the rest, in the page's words", () => {
+    expect(offerRows(options)).toEqual([
       {
         id: "model",
-        name: "Model",
+        label: "Models",
         values: ["Fake small", "Fake large"],
         current: "Fake small",
       },
-    ]);
-    // A toggle reads as on/off; a kind the page does not know is skipped.
-    expect(groups[3]?.rows).toEqual([
-      { id: "fast", name: "Fast", values: ["On", "Off"], current: "Off" },
+      {
+        id: "effort",
+        label: "Effort",
+        values: ["Low", "High"],
+        current: "High",
+      },
+      {
+        id: "mode",
+        label: "Permissions",
+        values: ["Default", "Plan"],
+        current: "Default",
+      },
+      // A toggle reads as on/off; a kind the page does not know is skipped.
+      { id: "fast", label: "Fast", values: ["On", "Off"], current: "Off" },
     ]);
   });
 
-  it("shows no group the agent offers nothing in", () => {
-    expect(offerGroups([])).toEqual([]);
-    expect(
-      offerGroups(options.slice(1, 2)).map((entry) => entry.group),
-    ).toEqual(["models"]);
+  it("keeps each option's own name where a group holds several", () => {
+    const two: SessionOption[] = [
+      { id: "a", name: "Model", category: "model", kind: "toggle", on: true },
+      {
+        id: "b",
+        name: "Fallback",
+        category: "model",
+        kind: "toggle",
+        on: false,
+      },
+    ];
+    expect(offerRows(two).map((row) => row.label)).toEqual([
+      "Model",
+      "Fallback",
+    ]);
+    expect(offerRows([])).toEqual([]);
+  });
+
+  it("says when the machine asked", () => {
+    const now = Date.parse("2026-11-11T07:00:00Z");
+    expect(askedWhen("2026-11-11T06:59:30Z", now)).toBe("Asked just now");
+    expect(askedWhen("2026-11-11T06:57:00Z", now)).toBe("Asked 3m ago");
   });
 });

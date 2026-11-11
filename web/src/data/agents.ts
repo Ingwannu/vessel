@@ -25,7 +25,7 @@ import type {
   OptionCategory,
   SessionOption,
 } from "../wire/proto";
-import type { StateTone } from "./format";
+import { ago, type StateTone } from "./format";
 import type { Fleet } from "./fleet";
 import { attempt, type Outcome } from "./outcome";
 
@@ -137,8 +137,10 @@ export function offerGroupOf(category: OptionCategory): OfferGroup {
   }
 }
 
-/** What a group is called on the page. */
-export function offerGroupLabel(group: OfferGroup): string {
+/** What a group's one option is called on the page: the plan's words
+ * for ACP's categories ("Words on the page"); the rest keep the agent's
+ * own name. */
+function groupWord(group: OfferGroup): string | null {
   switch (group) {
     case "models":
       return "Models";
@@ -147,26 +149,27 @@ export function offerGroupLabel(group: OfferGroup): string {
     case "permissions":
       return "Permissions";
     case "other":
-      return "Other options";
+      return null;
   }
 }
 
-/** One option as a row: its name, its values (or on/off), and the one in
- * use now. An option of a kind this page does not know is left out, as
- * ADR 0022 asks of a client. */
+/** One option as a row: what the page calls it, its values (or on/off),
+ * and the one in use now. */
 export interface OfferRow {
   id: string;
-  name: string;
+  label: string;
   values: string[];
   current: string;
 }
 
-function offerRow(option: SessionOption): OfferRow | null {
+/** `option` as a row called `label`; `null` for a kind this page does
+ * not know, which ADR 0022 asks a client to leave out. */
+function offerRow(option: SessionOption, label: string): OfferRow | null {
   switch (option.kind) {
     case "select":
       return {
         id: option.id,
-        name: option.name,
+        label,
         values: option.values.map((value) => value.name),
         current:
           option.values.find((value) => value.id === option.current)?.name ??
@@ -175,7 +178,7 @@ function offerRow(option: SessionOption): OfferRow | null {
     case "toggle":
       return {
         id: option.id,
-        name: option.name,
+        label,
         values: ["On", "Off"],
         current: option.on ? "On" : "Off",
       };
@@ -184,26 +187,40 @@ function offerRow(option: SessionOption): OfferRow | null {
   }
 }
 
-/** What an agent offers, by group in the page's order; groups it offers
- * nothing in are left out. */
-export function offerGroups(
-  options: readonly SessionOption[],
-): { group: OfferGroup; rows: OfferRow[] }[] {
+/** What an agent offers, as one list in the page's order: models,
+ * effort, permissions, then the rest in the agent's order. A group's
+ * only option takes the group's word ("Permissions" for Claude Code's
+ * "Mode"); where a group holds several, each keeps its own name so they
+ * can be told apart. */
+export function offerRows(options: readonly SessionOption[]): OfferRow[] {
   const order: readonly OfferGroup[] = [
     "models",
     "effort",
     "permissions",
     "other",
   ];
-  return order
-    .map((group) => ({
-      group,
-      rows: options
-        .filter((option) => offerGroupOf(option.category) === group)
-        .map(offerRow)
-        .filter((row) => row !== null),
-    }))
-    .filter((entry) => entry.rows.length > 0);
+  return order.flatMap((group) => {
+    const inGroup = options.filter(
+      (option) => offerGroupOf(option.category) === group,
+    );
+    const word = groupWord(group);
+    return inGroup
+      .map((option) =>
+        offerRow(
+          option,
+          word !== null && inGroup.length === 1 ? word : option.name,
+        ),
+      )
+      .filter((row) => row !== null);
+  });
+}
+
+/** When the machine asked the agent, as the card's note says it. */
+export function askedWhen(probedAt: string, now: number = Date.now()): string {
+  const seconds = (now - Date.parse(probedAt)) / 1000;
+  return Number.isNaN(seconds) || seconds < 60
+    ? "Asked just now"
+    : `Asked ${ago(probedAt, now)} ago`;
 }
 
 /** Ask `node` what `kind` offers. The machine starts the agent to ask
