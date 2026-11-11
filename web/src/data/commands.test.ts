@@ -67,7 +67,7 @@ function state(): FleetState {
 }
 
 describe("paletteEntries", () => {
-  it("lists the action, the places, the nodes, then the sessions", () => {
+  it("lists the action, the places, the nodes, the sessions, the theme", () => {
     const groups = paletteEntries(state(), "laptop").map(
       (entry) => entry.group,
     );
@@ -76,6 +76,7 @@ describe("paletteEntries", () => {
       "Go to",
       "Nodes",
       "Sessions",
+      "Theme",
     ]);
   });
 
@@ -112,5 +113,16 @@ describe("paletteEntries", () => {
       label: "laptop",
       target: { kind: "route", to: "/fleet/laptop" },
     });
+  });
+
+  it("switches the theme three ways", () => {
+    const themes = paletteEntries(state(), null).filter(
+      (entry) => entry.group === "Theme",
+    );
+    expect(themes.map((entry) => [entry.label, entry.target])).toEqual([
+      ["Theme: system", { kind: "theme", preference: "system" }],
+      ["Theme: light", { kind: "theme", preference: "light" }],
+      ["Theme: dark", { kind: "theme", preference: "dark" }],
+    ]);
   });
 });

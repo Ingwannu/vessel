@@ -18,6 +18,7 @@ import {
   paletteEntries,
 } from "../../data/commands";
 import { selectedNode } from "../../data/nodes";
+import { chooseTheme } from "../../data/theme";
 import {
   type Command,
   CommandPalette,
@@ -25,6 +26,7 @@ import {
   type IconName,
   Kbd,
 } from "../../ui/kit";
+import { typing } from "./shortcuts";
 
 function iconOf(place: PalettePlace): IconName {
   switch (place) {
@@ -46,17 +48,13 @@ function iconOf(place: PalettePlace): IconName {
       return "message";
     case "new":
       return "plus";
+    case "theme-system":
+      return "monitor";
+    case "theme-light":
+      return "sun";
+    case "theme-dark":
+      return "moon";
   }
-}
-
-/** Whether `target` takes typed text, where `/` must stay a character. */
-function typing(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    (target instanceof HTMLElement &&
-      (target.isContentEditable || target.closest(".xterm") !== null))
-  );
 }
 
 export function SidebarSearch() {
@@ -94,6 +92,9 @@ export function SidebarSearch() {
                 return;
               case "new-session":
                 openNewSession(target.node);
+                return;
+              case "theme":
+                chooseTheme(target.preference);
                 return;
             }
           },

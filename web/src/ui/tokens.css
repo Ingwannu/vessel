@@ -3,8 +3,17 @@
    resolved from its token file, because the owner wants the UI to be as
    close to that product as it can be: a near-white page framed inside a
    slightly grey shell, near-black ink, hairlines as black at 8% and 4%,
-   and one colour per board lane. Light is the design; dark is selected by
-   `data-theme="dark"` on <html> (set before first paint in main.tsx).
+   and one colour per board lane.
+
+   Every colour is `light-dark(<light>, <dark>)` (ADR 0021), resolved by
+   the CSS colour scheme of the element that uses it. The page follows
+   the system's scheme (`color-scheme: light dark` below) with no script,
+   live; `data-theme="light"` or `"dark"` on <html> pins one (set from
+   the stored choice before React's first render, data/theme.ts). A
+   subtree can take a scheme of its own with `color-scheme`, which is how
+   the /kit gallery shows both themes side by side. Script that needs a
+   colour reads a resolved one (data/theme.ts `cssColor`), never this
+   file's text.
 
    Where a value differs from theirs it is for one of two reasons, and the
    comment beside it says which:
@@ -18,78 +27,84 @@
    in the same change. */
 
 :root {
+  color-scheme: light dark;
+
   /* The shell is what shows around the framed page: the sidebar and the
      margin the page sits in share it, so the sidebar has no edge. */
-  --bg-shell: #f4f4f4;
-  --bg-sidebar: #f4f4f4;
-  --bg-base: #fafafa;
-  --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
+  --bg-shell: light-dark(#f4f4f4, #121212);
+  --bg-sidebar: light-dark(#f4f4f4, #121212);
+  --bg-base: light-dark(#fafafa, #181818);
+  --bg-surface: light-dark(#ffffff, #222222);
+  --bg-elevated: light-dark(#ffffff, #2e2e2e);
   /* Hover and selection are the ink at 4% and 7%, laid over whatever
      surface they sit on, so one value works on the shell, the page and a
      card. */
-  --bg-hover: rgb(18 18 18 / 4%);
-  --bg-active: rgb(18 18 18 / 7%);
-  --bg-well: rgb(18 18 18 / 4%);
+  --bg-hover: light-dark(rgb(18 18 18 / 4%), rgb(245 245 245 / 4%));
+  --bg-active: light-dark(rgb(18 18 18 / 7%), rgb(245 245 245 / 7%));
+  --bg-well: light-dark(rgb(18 18 18 / 4%), rgb(255 255 255 / 4%));
   /* Hairlines are overlays too: 8% around a card and between its parts,
      4% for the page's frame and the lanes' dividers. */
-  --border-subtle: rgb(0 0 0 / 8%);
-  --border-faint: rgb(0 0 0 / 4%);
-  --border-strong: rgb(0 0 0 / 16%);
-  --text-primary: #121212;
-  --text-secondary: #5d5d5d;
+  --border-subtle: light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 7%));
+  --border-faint: light-dark(rgb(0 0 0 / 4%), rgb(255 255 255 / 4%));
+  --border-strong: light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 14%));
+  --text-primary: light-dark(#121212, #f5f5f5);
+  --text-secondary: light-dark(#5d5d5d, #a4a4a4);
   /* AA: theirs is #868686 (3.6:1 on white). */
-  --text-tertiary: #666666;
-  --text-disabled: #a3a3a3;
+  --text-tertiary: light-dark(#666666, #8f8f8f);
+  --text-disabled: light-dark(#a3a3a3, #5c5c5c);
   /* The accent is the ink: selection, focus and the primary button. */
-  --accent: #121212;
-  --accent-muted: rgb(18 18 18 / 7%);
-  --ring: #8c8c8c;
+  --accent: light-dark(#121212, #f5f5f5);
+  --accent-muted: light-dark(rgb(18 18 18 / 7%), rgb(245 245 245 / 7%));
+  --ring: light-dark(#8c8c8c, #868686);
 
   /* One colour per lane, and one for "needs you". */
-  --st-building: #2563eb;
-  --st-validating: #9b4871;
+  --st-building: light-dark(#2563eb, #60a5fa);
+  --st-validating: light-dark(#9b4871, #e58bb5);
   /* AA: theirs are #d97706 (3.2:1) and #16a34a (3.3:1). */
-  --st-review: #b45309;
-  --st-ready: #15803d;
-  --st-needs-you: #c2412d;
-  --st-merged: #9333ea;
+  --st-review: light-dark(#b45309, #f59e0b);
+  --st-ready: light-dark(#15803d, #4ade80);
+  --st-needs-you: light-dark(#c2412d, #f06445);
+  --st-merged: light-dark(#9333ea, #c084fc);
 
   /* A node's and a process's state, in the lanes' hues. */
   --online: var(--st-ready);
   --warn: var(--st-review);
-  --danger: #9d0006;
+  --danger: light-dark(#9d0006, #fb4934);
   --interrupt: var(--text-tertiary);
 
-  /* The dialog scrim: agent-orchestrator's, the ink at 45%. */
-  --overlay: rgb(18 18 18 / 45%);
-  --shadow: 0 4px 12px -4px rgb(18 18 18 / 12%), 0 0 0 1px var(--border-subtle);
+  /* The dialog scrim: agent-orchestrator's, the ink at 45%; in dark, the
+     page's own black at 85%. */
+  --overlay: light-dark(rgb(18 18 18 / 45%), rgb(24 24 24 / 85%));
+  --shadow:
+    0 4px 12px -4px light-dark(rgb(18 18 18 / 12%), rgb(0 0 0 / 40%)),
+    0 0 0 1px var(--border-subtle);
   /* A filled button's only depth: a lit top edge and a shaded bottom
      edge, inside it. No outer shadow anywhere. */
   --shadow-control:
     inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 -1px 0 rgb(0 0 0 / 10%);
-  --btn-primary-bg: #1f1f1f;
-  --btn-primary-bg-hover: #1b1b1b;
-  --btn-primary-fg: #ffffff;
-  --btn-secondary-bg: #f0f0f0;
-  --btn-secondary-bg-hover: #e4e4e4;
-  --btn-danger-fg: #ffffff;
+  --btn-primary-bg: light-dark(#1f1f1f, #dedede);
+  --btn-primary-bg-hover: light-dark(#1b1b1b, #d0d0d0);
+  --btn-primary-fg: light-dark(#ffffff, #181818);
+  --btn-secondary-bg: light-dark(#f0f0f0, #2c2c2c);
+  --btn-secondary-bg-hover: light-dark(#e4e4e4, #363636);
+  /* In dark, white on their red is 3.4:1; the dark ink is 5.2:1. */
+  --btn-danger-fg: light-dark(#ffffff, #181818);
 
-  --syn-keyword: #7a3db3;
-  --syn-string: #3b6d11;
-  --syn-func: #1d4ed8;
-  --syn-number: #b5471c;
-  --syn-comment: #666666;
-  --syn-const: #8a5a00;
-  --syn-error: #9d0006;
-  --diff-add-bg: rgb(21 128 61 / 8%);
-  --diff-del-bg: rgb(157 0 6 / 8%);
+  --syn-keyword: light-dark(#7a3db3, #c792ea);
+  --syn-string: light-dark(#3b6d11, #c3e88d);
+  --syn-func: light-dark(#1d4ed8, #93b4ff);
+  --syn-number: light-dark(#b5471c, #f78c6c);
+  --syn-comment: light-dark(#666666, #8f8f8f);
+  --syn-const: light-dark(#8a5a00, #ffcb6b);
+  --syn-error: light-dark(#9d0006, #fb4934);
+  --diff-add-bg: light-dark(rgb(21 128 61 / 8%), rgb(74 222 128 / 10%));
+  --diff-del-bg: light-dark(rgb(157 0 6 / 8%), rgb(251 73 52 / 10%));
 
   /* The terminal is dark in both themes: harness TUIs draw for a dark
      terminal. It has tokens of its own because the page's accent is
      near-black in the light theme. */
-  --term-bg: #121212;
-  --term-frame: #1f1f1f;
+  --term-bg: light-dark(#121212, #0c0c0c);
+  --term-frame: light-dark(#1f1f1f, #1a1a1a);
   --term-fg: #ededed;
   --term-dim: #8f8f8f;
   --term-border: rgb(255 255 255 / 12%);
@@ -167,20 +182,21 @@
   --h-sm: 28px;
   --h-md: 32px;
   /* A field: its settings-input pair, a 4% fill inside an 8% hairline. */
-  --field-bg: rgb(18 18 18 / 4%);
-  --field-edge: rgb(0 0 0 / 8%);
+  --field-bg: light-dark(rgb(18 18 18 / 4%), rgb(255 255 255 / 4%));
+  --field-edge: light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 3%));
   /* The popup surface (menus, selects, popovers, tooltips, dialogs): its
      `--popover`, an edge at 2% of the ink and a shadow at 5%. */
-  --popup-bg: #ffffff;
-  --popup-edge: rgb(18 18 18 / 2%);
-  --popup-shadow: 0 4px 12px -4px rgb(18 18 18 / 5%);
+  --popup-bg: light-dark(#ffffff, #2e2e2e);
+  --popup-edge: light-dark(rgb(18 18 18 / 2%), rgb(245 245 245 / 2%));
+  --popup-shadow: 0 4px 12px -4px
+    light-dark(rgb(18 18 18 / 5%), rgb(0 0 0 / 14%));
   /* A segmented control's chosen segment (GOAT's: the page's white on
      the track, lifted by a hairline). */
-  --segment-thumb: #ffffff;
-  --segment-edge: rgb(0 0 0 / 8%);
+  --segment-thumb: light-dark(#ffffff, rgb(255 255 255 / 10%));
+  --segment-edge: light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 6%));
   /* The switch: off is the ink's thumb on the 4% track, on is the
      primary button's fill with its own text colour as the thumb. */
-  --switch-track: rgb(18 18 18 / 4%);
+  --switch-track: light-dark(rgb(18 18 18 / 4%), rgb(255 255 255 / 4%));
   --switch-track-on: var(--btn-primary-bg);
   --switch-thumb: var(--text-primary);
   --switch-thumb-on: var(--btn-primary-fg);
@@ -193,75 +209,18 @@
   /* The command palette's radius and its highlighted row (the ink at 9%,
      10% in dark). */
   --r-palette: 14px;
-  --palette-hit: rgb(18 18 18 / 9%);
+  --palette-hit: light-dark(rgb(18 18 18 / 9%), rgb(245 245 245 / 10%));
   /* Selected text and a popup's scrollbar: drawn, not the browser's. */
-  --selection: rgb(18 18 18 / 12%);
-  --scrollbar: rgb(0 0 0 / 16%);
+  --selection: light-dark(rgb(18 18 18 / 12%), rgb(245 245 245 / 16%));
+  --scrollbar: light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 14%));
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --bg-shell: #121212;
-  --bg-sidebar: #121212;
-  --bg-base: #181818;
-  --bg-surface: #222222;
-  --bg-elevated: #2e2e2e;
-  --bg-hover: rgb(245 245 245 / 4%);
-  --bg-active: rgb(245 245 245 / 7%);
-  --bg-well: rgb(255 255 255 / 4%);
-  --border-subtle: rgb(255 255 255 / 7%);
-  --border-faint: rgb(255 255 255 / 4%);
-  --border-strong: rgb(255 255 255 / 14%);
-  --text-primary: #f5f5f5;
-  --text-secondary: #a4a4a4;
-  --text-tertiary: #8f8f8f;
-  --text-disabled: #5c5c5c;
-  --accent: #f5f5f5;
-  --accent-muted: rgb(245 245 245 / 7%);
-  --ring: #868686;
-
-  --st-building: #60a5fa;
-  --st-validating: #e58bb5;
-  --st-review: #f59e0b;
-  --st-ready: #4ade80;
-  --st-needs-you: #f06445;
-  --st-merged: #c084fc;
-  --danger: #fb4934;
-
-  /* Its dark scrim: the page's own black at 85%. */
-  --overlay: rgb(24 24 24 / 85%);
-  --shadow: 0 4px 12px -4px rgb(0 0 0 / 40%), 0 0 0 1px var(--border-subtle);
-  --btn-primary-bg: #dedede;
-  --btn-primary-bg-hover: #d0d0d0;
-  --btn-primary-fg: #181818;
-  --btn-secondary-bg: #2c2c2c;
-  --btn-secondary-bg-hover: #363636;
-  /* White on their dark red is 3.4:1; the dark ink is 5.2:1. */
-  --btn-danger-fg: #181818;
-
-  --syn-keyword: #c792ea;
-  --syn-string: #c3e88d;
-  --syn-func: #93b4ff;
-  --syn-number: #f78c6c;
-  --syn-comment: #8f8f8f;
-  --syn-const: #ffcb6b;
-  --syn-error: #fb4934;
-  --diff-add-bg: rgb(74 222 128 / 10%);
-  --diff-del-bg: rgb(251 73 52 / 10%);
-
-  --term-bg: #0c0c0c;
-  --term-frame: #1a1a1a;
-
-  --field-bg: rgb(255 255 255 / 4%);
-  --field-edge: rgb(255 255 255 / 3%);
-  --popup-bg: #2e2e2e;
-  --popup-edge: rgb(245 245 245 / 2%);
-  --popup-shadow: 0 4px 12px -4px rgb(0 0 0 / 14%);
-  --segment-thumb: rgb(255 255 255 / 10%);
-  --segment-edge: rgb(255 255 255 / 6%);
-  --switch-track: rgb(255 255 255 / 4%);
-  --palette-hit: rgb(245 245 245 / 10%);
-  --selection: rgb(245 245 245 / 16%);
-  --scrollbar: rgb(255 255 255 / 14%);
+  color-scheme: dark;
 }
 
 @media (prefers-reduced-motion: reduce) {

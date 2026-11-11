@@ -90,11 +90,20 @@
   padding: 0 8px 8px;
 }
 
+/* Settings, and the theme's switch beside it (features/theme). */
 .side-foot {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-top: auto;
   padding: 8px;
   border-top: 1px solid var(--border-faint);
+}
+
+.side-foot > .nav-item {
+  flex: 1;
+  min-width: 0;
 }
 
 /* A sidebar row. Its fill is a pill that grows from just inside the row

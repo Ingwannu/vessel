@@ -19,12 +19,17 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
   return <Base.Provider delay={400}>{children}</Base.Provider>;
 }
 
+/** Other props reach the trigger: a Menu or a Popover can render its
+ * trigger as a Tooltip around a button (`trigger={<Tooltip …><IconButton
+ * …/></Tooltip>}`), and its handlers, ARIA and ref pass through to the
+ * button. */
 export function Tooltip({
   label,
   shortcut,
   side = "top",
   children,
-}: {
+  ...trigger
+}: Omit<Base.Trigger.Props, "render" | "children"> & {
   label: string;
   /** The keys, written as the platform shows them: "⌘K". */
   shortcut?: string;
@@ -34,7 +39,7 @@ export function Tooltip({
 }) {
   return (
     <Base.Root disableHoverablePopup>
-      <Base.Trigger render={children} />
+      <Base.Trigger {...trigger} render={children} />
       <Base.Portal>
         <Base.Positioner
           className="popup-positioner"

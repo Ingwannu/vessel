@@ -33,7 +33,6 @@ const STILL_TO_DIVIDE = {
   "src/data/timeline.ts": 382,
   "src/data/board.ts": 353,
   "src/routes/devices.tsx": 349,
-  "src/ui/shell.tsx": 337,
   "src/routes/session.tsx": 328,
   "src/routes/fleet.tsx": 316,
 };

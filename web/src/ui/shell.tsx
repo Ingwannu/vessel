@@ -1,12 +1,7 @@
 // The chrome every page sits in (DESIGN.md §2.2): topbar, sidebar, main.
 
-import {
-  Link,
-  Outlet,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
-import { Fragment, useEffect, type ReactElement } from "react";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Fragment, type ReactElement } from "react";
 
 import { openNewSession, useChrome, useFleet, useFleetState } from "../context";
 import { isWorking, needsYou, placement } from "../data/board";
@@ -19,6 +14,8 @@ import {
 } from "../data/format";
 import { nodeLabel, selectedNode } from "../data/nodes";
 import { SidebarSearch } from "../features/palette/palette";
+import { useGoShortcuts } from "../features/palette/shortcuts";
+import { ThemeMenu } from "../features/theme/theme";
 import { NewSessionDialog } from "../routes/new-session";
 import type { SessionInfo } from "../wire/proto";
 import { Banner, Button, Icon, IconButton, StatusDot, Tooltip } from "./kit";
@@ -44,7 +41,7 @@ const MARK = (
 
 export function Shell(): ReactElement {
   const newSession = useChrome((chrome) => chrome.newSession);
-  useShortcuts();
+  useGoShortcuts();
   return (
     <>
       <a className="skip" href="#main">
@@ -296,41 +293,8 @@ function Sidebar() {
           <Icon name="settings" size={14} />
           <span className="label">Settings</span>
         </Link>
+        <ThemeMenu />
       </div>
     </nav>
   );
-}
-
-/** `g f` / `g s` / `g y` / `g d` (DESIGN.md §7.1). */
-function useShortcuts(): void {
-  const navigate = useNavigate();
-  useEffect(() => {
-    let leader = false;
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        (target instanceof HTMLElement && target.closest(".xterm") !== null)
-      ) {
-        return;
-      }
-      if (leader) {
-        leader = false;
-        const to = { f: "/fleet", s: "/sessions", y: "/sync", d: "/devices" }[
-          event.key
-        ];
-        if (to !== undefined) {
-          void navigate({ to });
-        }
-        return;
-      }
-      leader = event.key === "g";
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [navigate]);
 }

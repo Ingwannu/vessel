@@ -53,6 +53,16 @@ button {
   cursor: pointer;
 }
 
+/* Selected text and scrollbars are drawn from tokens, not left to the
+   browser (its blue selection is the one hue the chrome would show). */
+::selection {
+  background: var(--selection);
+}
+
+html {
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
 :focus {
   outline: none;
 }

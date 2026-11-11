@@ -4,15 +4,18 @@
 // offers is decided here and tested, and the palette only draws it.
 
 import type { FleetState } from "./fleet";
+import type { ThemePreference } from "./theme";
 import { isLive, sessionTitle, shortId, statusWord } from "./format";
 import { nodeLabel } from "./nodes";
 
 /** The palette's groups, in the order it lists them. */
-export type PaletteGroup = "Go to" | "Nodes" | "Sessions" | "Actions";
+export type PaletteGroup = "Go to" | "Nodes" | "Sessions" | "Actions" | "Theme";
 
 /** What choosing an entry does. */
 export type PaletteTarget =
-  { kind: "route"; to: string } | { kind: "new-session"; node: string | null };
+  | { kind: "route"; to: string }
+  | { kind: "new-session"; node: string | null }
+  | { kind: "theme"; preference: ThemePreference };
 
 /** The places a palette entry can name, for its icon. */
 export type PalettePlace =
@@ -24,7 +27,10 @@ export type PalettePlace =
   | "node"
   | "terminal"
   | "structured"
-  | "new";
+  | "new"
+  | "theme-system"
+  | "theme-light"
+  | "theme-dark";
 
 export interface PaletteEntry {
   /** Unique in one listing. */
@@ -76,6 +82,17 @@ const PLACES: readonly PaletteEntry[] = [
   },
 ];
 
+/** "Theme: system", "Theme: light", "Theme: dark". */
+const THEMES: readonly PaletteEntry[] = (
+  ["system", "light", "dark"] as const
+).map((preference) => ({
+  id: `theme-${preference}`,
+  label: `Theme: ${preference}`,
+  group: "Theme",
+  place: `theme-${preference}`,
+  target: { kind: "theme", preference },
+}));
+
 /** Everything the palette lists for `state`, `selected` being the node a
  * new session starts on. Live sessions come before ended ones, each
  * newest first, so the one being worked on is near the top. */
@@ -115,5 +132,5 @@ export function paletteEntries(
       target: { kind: "new-session", node: selected },
     },
   ];
-  return [...actions, ...PLACES, ...nodes, ...sessions];
+  return [...actions, ...PLACES, ...nodes, ...sessions, ...THEMES];
 }

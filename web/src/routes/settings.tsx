@@ -6,7 +6,8 @@ import { useState, type ReactElement } from "react";
 import { useCrumbs, useFleet, useFleetState } from "../context";
 import { listOr, nodeState, when } from "../data/format";
 import { nodeLabel } from "../data/nodes";
-import { chooseTheme, currentTheme, type Theme } from "../data/theme";
+import { chooseTheme, theme as themeStore } from "../data/theme";
+import { useStore } from "../data/store";
 import {
   Badge,
   Button,
@@ -15,12 +16,13 @@ import {
   Segmented,
   TextField,
 } from "../ui/kit";
+import { THEMES } from "../features/theme/theme";
 import { toast } from "../ui/toasts";
 import type { PairingOffer } from "../wire/proto";
 
 export function SettingsPage(): ReactElement {
   useCrumbs([{ label: "Settings" }], "settings");
-  const [theme, setTheme] = useState<Theme>(currentTheme);
+  const theme = useStore(themeStore, (value) => value);
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   return (
@@ -40,14 +42,8 @@ export function SettingsPage(): ReactElement {
             <Segmented
               label="Theme"
               value={theme}
-              onChange={(value) => {
-                chooseTheme(value);
-                setTheme(value);
-              }}
-              options={[
-                { value: "light", label: "Light", icon: "sun" },
-                { value: "dark", label: "Dark", icon: "moon" },
-              ]}
+              onChange={chooseTheme}
+              options={THEMES}
             />
           </div>
         </div>

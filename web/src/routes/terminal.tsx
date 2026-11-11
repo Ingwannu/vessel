@@ -11,7 +11,7 @@
 import "@xterm/xterm/css/xterm.css";
 
 import { FitAddon } from "@xterm/addon-fit";
-import { Terminal } from "@xterm/xterm";
+import { type ITheme, Terminal } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../context";
@@ -19,6 +19,7 @@ import { userInput } from "../data/terminal-input";
 import { openExternal } from "../data/links";
 import { addCall, type Usage, usageLine } from "../data/models";
 import { decodeBytes } from "../data/terminal";
+import { cssColor, onSchemeChange } from "../data/theme";
 import { TerminalSender } from "../data/terminal-sender";
 import { Banner, Tooltip } from "../ui/kit";
 import { toast } from "../ui/toasts";
@@ -30,11 +31,16 @@ import type { SessionInfo } from "../wire/proto";
 const TERMINAL_FONT =
   'Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
 
-/** A design token's value, for xterm's theme. */
-function token(name: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
+/** xterm's theme from the terminal's own tokens, resolved for the scheme
+ * the page shows now; not the page's accent, which is black in the light
+ * theme while the terminal is black in both. */
+function terminalTheme(): ITheme {
+  return {
+    background: cssColor("--term-bg"),
+    foreground: cssColor("--term-fg"),
+    cursor: cssColor("--term-cursor"),
+    selectionBackground: cssColor("--term-selection"),
+  };
 }
 
 export function TerminalView({
@@ -79,14 +85,11 @@ export function TerminalView({
         },
         allowNonHttpProtocols: false,
       },
-      theme: {
-        background: token("--term-bg"),
-        foreground: token("--term-fg"),
-        // The terminal's own tokens, not the page's accent: the accent
-        // is black in the light theme and the terminal is black in both.
-        cursor: token("--term-cursor"),
-        selectionBackground: token("--term-selection"),
-      },
+      theme: terminalTheme(),
+    });
+    // The terminal's tokens differ a shade between the schemes.
+    const stopScheme = onSchemeChange(() => {
+      terminal.options.theme = terminalTheme();
     });
     const fit = new FitAddon();
     terminal.loadAddon(fit);
@@ -148,6 +151,7 @@ export function TerminalView({
     });
     return () => {
       stop();
+      stopScheme();
       observer.disconnect();
       input.dispose();
       sender.close();
