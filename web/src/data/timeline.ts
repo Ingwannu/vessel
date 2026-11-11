@@ -24,6 +24,7 @@ import type {
   PermissionOutcome,
   PermissionRequest,
   PlanEntry,
+  SessionOption,
   SessionStatus,
   StopReason,
   ToolCallContent,
@@ -87,6 +88,14 @@ export interface Timeline {
   status: SessionStatus | null;
   /** Its model calls so far; `null` before the first. */
   usage: Usage | null;
+  /** What the session runs with, as the agent last reported it (protocol
+   * 9): its model, permissions, effort and whatever else it offers.
+   * `null` until the node says, which a node older than protocol 9 never
+   * does. Not an entry: the composer shows it, the timeline does not. */
+  options: readonly SessionOption[] | null;
+  /** The session's title when it changed in this log; `null` when it has
+   * not (the session's `SessionInfo.title` is then the one to show). */
+  title: string | null;
   /** The next record expected. */
   next: number;
 }
@@ -100,6 +109,8 @@ export const EMPTY: Timeline = {
   files: [],
   status: null,
   usage: null,
+  options: null,
+  title: null,
   next: 0,
 };
 
@@ -140,6 +151,8 @@ class Work {
   readonly files: string[];
   status: SessionStatus | null;
   usage: Usage | null;
+  options: readonly SessionOption[] | null;
+  title: string | null;
   next: number;
 
   constructor(timeline: Timeline) {
@@ -150,6 +163,8 @@ class Work {
     this.files = [...timeline.files];
     this.status = timeline.status;
     this.usage = timeline.usage;
+    this.options = timeline.options;
+    this.title = timeline.title;
     this.next = timeline.next;
   }
 
@@ -168,6 +183,8 @@ class Work {
       files: this.files,
       status: this.status,
       usage: this.usage,
+      options: this.options,
+      title: this.title,
       next: this.next,
     };
   }
@@ -205,6 +222,13 @@ class Work {
         // how it ended, how long).
         this.entries.push({ ...base, kind: "model", call: event });
         this.usage = addCall(this.usage, event);
+        return;
+      case "options_changed":
+        // The whole set each time, so the last one is the truth.
+        this.options = event.options;
+        return;
+      case "renamed":
+        this.title = event.title;
         return;
     }
   }

@@ -4,6 +4,8 @@ import type {
   AgentEvent,
   EventRecord,
   ModelCall,
+  SessionEvent,
+  SessionOption,
   SessionStatus,
 } from "../wire/proto";
 import { EMPTY, reduce } from "./timeline";
@@ -25,6 +27,12 @@ function model(call: ModelCall): EventRecord {
   };
   seq += 1;
   return record;
+}
+
+function record(event: SessionEvent): EventRecord {
+  const made: EventRecord = { seq, at, event };
+  seq += 1;
+  return made;
 }
 
 const QWEN: ModelCall = {
@@ -240,5 +248,43 @@ describe("the timeline", () => {
       models: ["qwen/qwen3-coder", "qwen/qwen3-coder-flash"],
     });
     expect(reduce(EMPTY, turn()).usage).toBeNull();
+  });
+
+  it("keeps what the session runs with and its title as state, not entries", () => {
+    const model: SessionOption = {
+      id: "model",
+      name: "Model",
+      category: "model",
+      kind: "select",
+      current: "opus",
+      values: [
+        { id: "opus", name: "Opus" },
+        { id: "haiku", name: "Haiku" },
+      ],
+    };
+    const fast: SessionOption = {
+      id: "fast",
+      name: "Fast mode",
+      category: "other",
+      kind: "toggle",
+      on: false,
+    };
+    const first = reduce(EMPTY, [
+      record({ type: "options_changed", options: [model, fast] }),
+      record({ type: "renamed", title: "Fix the flaky test" }),
+    ]);
+    expect(first.entries).toEqual([]);
+    expect(first.options).toEqual([model, fast]);
+    expect(first.title).toBe("Fix the flaky test");
+
+    // Each report carries the whole set: the last one replaces the rest.
+    const second = reduce(first, [
+      record({
+        type: "options_changed",
+        options: [{ ...model, current: "haiku" }],
+      }),
+    ]);
+    expect(second.options).toEqual([{ ...model, current: "haiku" }]);
+    expect(second.title).toBe("Fix the flaky test");
   });
 });
