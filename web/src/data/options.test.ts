@@ -14,6 +14,7 @@ import {
   offersAnything,
   pick,
   pickerLabel,
+  reportedControls,
   selectChoice,
   toggleChoice,
   withPicks,
@@ -250,5 +251,21 @@ describe("picks", () => {
       "model",
       "mode",
     ]);
+  });
+});
+
+describe("reportedControls", () => {
+  it("loads until the log reports, unless the node never will", () => {
+    expect(reportedControls(null, 9)).toEqual({ kind: "loading" });
+    expect(reportedControls(null, null)).toEqual({ kind: "loading" });
+    expect(reportedControls(null, 8).kind).toBe("failed");
+    const ready = reportedControls(OPENCODE, 9);
+    expect(ready.kind === "ready" ? ready.controls.model?.id : null).toBe(
+      "model",
+    );
+    expect(reportedControls([], 9)).toEqual({
+      kind: "ready",
+      controls: NO_CONTROLS,
+    });
   });
 });

@@ -106,7 +106,7 @@ test("history retains only a consumed code; reload keeps a tab session", async (
   } catch {
     throw new Error("UI navigation failed");
   }
-  await expect(page.getByRole("navigation", { name: "Fleet" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
   expect(new URL(page.url()).hash === "").toBe(true);
   expect(
     await page.evaluate(() => localStorage.getItem("vessel.token") === null),
@@ -117,7 +117,7 @@ test("history retains only a consumed code; reload keeps a tab session", async (
     ),
   ).toBe(true);
   await page.reload();
-  await expect(page.getByRole("navigation", { name: "Fleet" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
   const other = await browser.newContext();
   try {
     const replay = await other.newPage();
@@ -129,9 +129,9 @@ test("history retains only a consumed code; reload keeps a tab session", async (
     await expect(
       replay.getByRole("heading", { name: /UI was restarted/ }),
     ).toBeVisible();
-    await expect(replay.getByRole("navigation", { name: "Fleet" })).toHaveCount(
-      0,
-    );
+    await expect(
+      replay.getByRole("navigation", { name: "Sidebar" }),
+    ).toHaveCount(0);
     await page.goto(`${origin}/settings`);
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   } finally {
@@ -205,7 +205,7 @@ test("a new launch escapes cached HTML and a previous origin's service worker", 
     }
     await expect(clean.locator("html")).not.toHaveAttribute("data-poisoned");
     await expect(
-      clean.getByRole("navigation", { name: "Fleet" }),
+      clean.getByRole("navigation", { name: "Sidebar" }),
     ).toBeVisible();
     expect(new URL(fresh.origin).hostname !== old.hostname).toBe(true);
     expect(

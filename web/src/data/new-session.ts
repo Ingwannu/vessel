@@ -30,7 +30,15 @@ import type {
   SessionSpec,
 } from "../wire/proto";
 import { runsTimeline } from "./agents";
-import { choicesFor, type Picks } from "./options";
+import { nodeState } from "./format";
+import { nodeLabel } from "./nodes";
+import {
+  choicesFor,
+  type ControlsState,
+  controlsOf,
+  type Picks,
+  withPicks,
+} from "./options";
 import { titleFromPrompt } from "./titles";
 
 /** What the person has chosen so far. */
@@ -180,4 +188,52 @@ export function sendable(
     return { ok: false, reason: null };
   }
   return { ok: true };
+}
+
+/** The controls the new-session page shows: the agent's options with the
+ * person's picks applied, or why there are none. */
+export function draftControls(
+  draft: Draft,
+  harness: Harness,
+  options: OptionsState,
+): ControlsState {
+  if (startsTerminal(draft, harness)) {
+    return { kind: "terminal" };
+  }
+  switch (options.kind) {
+    case "loading":
+      return { kind: "loading" };
+    case "failed":
+      return { kind: "failed", message: options.message };
+    case "ready":
+      return {
+        kind: "ready",
+        controls: controlsOf(withPicks(options.options, draft.picks)),
+      };
+  }
+}
+
+/** One machine to choose. */
+export interface MachineChoice {
+  value: NodeKey;
+  label: string;
+  detail?: string;
+  disabled?: boolean;
+}
+
+/** The book's machines; only a connected one can take a session, and one
+ * that is not says why in a word. */
+export function machineChoices(
+  book: readonly BookNode[],
+  statuses: Readonly<Record<NodeKey, NodeStatus>>,
+): MachineChoice[] {
+  return book.map((node) => {
+    const status = statuses[node.key];
+    const connected = status?.state === "connected";
+    return {
+      value: node.key,
+      label: nodeLabel(node, status),
+      ...(connected ? {} : { detail: nodeState(status).word, disabled: true }),
+    };
+  });
 }

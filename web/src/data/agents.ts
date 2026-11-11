@@ -2,7 +2,12 @@
 // protocol's harness is the agent a person chose, called by its product
 // name, not the command that starts it.
 
-import type { Harness, HarnessKind, ProfileInfo } from "../wire/proto";
+import type {
+  Harness,
+  HarnessKind,
+  ProfileInfo,
+  SessionInfo,
+} from "../wire/proto";
 
 /** What the page calls an agent. */
 export function agentName(kind: HarnessKind): string {
@@ -83,4 +88,16 @@ export function profileChoices(
         };
       }),
   ];
+}
+
+/** The model a session was started on, when Vessel knows it: its route's
+ * pinned model (protocol 7), else one asked for at creation; `null` when
+ * the agent chose (its options then say which). */
+export function startedModel(session: SessionInfo): string | null {
+  if (session.model !== undefined && session.model !== null) {
+    return session.model.model;
+  }
+  return session.spec.mode === "structured"
+    ? (session.spec.model ?? null)
+    : null;
 }

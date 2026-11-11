@@ -2,6 +2,7 @@
 // Screens import from here, never from `@base-ui/react`, so behaviour and
 // look stay in one place.
 
+export { Avatar } from "./avatar";
 export { Badge, type BadgeLook, type Tone } from "./badge";
 export { Banner } from "./banner";
 export {

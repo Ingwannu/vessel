@@ -1,5 +1,6 @@
 // The archive's search (DESIGN.md §6.12): by the start of a session's id,
-// a piece of its folder, or its node's name, ignoring case.
+// a piece of its title or its folder, or its machine's name, ignoring
+// case.
 
 import type { Card } from "./board";
 import type { FleetState } from "./fleet";
@@ -18,6 +19,7 @@ export function searchArchive(
   return cards.filter(
     (card) =>
       card.session.id.startsWith(text) ||
+      (card.session.title ?? "").toLowerCase().includes(text) ||
       (card.session.spec.cwd ?? "~").toLowerCase().includes(text) ||
       labelOf(state, card.node).toLowerCase().includes(text),
   );

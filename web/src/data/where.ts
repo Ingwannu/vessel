@@ -13,6 +13,8 @@ export interface Where {
   segments: readonly string[];
   /** `?node=`, when given. */
   node: string | undefined;
+  /** `?machine=` (the new-session page's), when given. */
+  machine: string | undefined;
 }
 
 /** A query value as the router writes it: plain text, or JSON text. */
@@ -37,5 +39,10 @@ export function useWhere(): Where {
     .split("/")
     .filter((segment) => segment !== "")
     .map((segment) => decodeURIComponent(segment));
-  return { segments, node: queryValue(new URLSearchParams(query).get("node")) };
+  const params = new URLSearchParams(query);
+  return {
+    segments,
+    node: queryValue(params.get("node")),
+    machine: queryValue(params.get("machine")),
+  };
 }

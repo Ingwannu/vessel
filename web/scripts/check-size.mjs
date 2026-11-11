@@ -30,13 +30,10 @@ const BUDGET = { ".ts": 300, ".tsx": 300, ".css": 400 };
  * merge of the two tracks passes. */
 /** @type {Readonly<Record<string, number>>} */
 const STILL_TO_DIVIDE = {
-  "src/routes/structured.tsx": 700,
   "src/bridge/client.ts": 467,
-  "src/routes/sessions.tsx": 451,
   "src/data/timeline.ts": 406,
   "src/data/board.ts": 353,
   "src/routes/devices.tsx": 349,
-  "src/routes/session.tsx": 328,
   "src/routes/fleet.tsx": 316,
 };
 

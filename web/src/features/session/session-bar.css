@@ -1,0 +1,49 @@
+/* A session's title bar (features/session/session-bar.tsx): the agent's
+   18px mark, the title as the page's heading (16px semibold, cut with an
+   ellipsis), a badge when the session is not running, its actions at the
+   end. Renaming swaps the title for a 28px field in place. */
+
+.session-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font: var(--t-title);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+.session-title-button,
+.session-title-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-title-button {
+  cursor: text;
+}
+
+.session-title-button:hover {
+  background: var(--bg-hover);
+}
+
+.session-title-field {
+  flex: 1;
+  max-width: 480px;
+}
+
+.session-bar-end {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}

@@ -14,18 +14,27 @@ import { Bridge } from "./bridge/client";
 import { forgetToken, type Credential } from "./bridge/token";
 import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
+import { Shell } from "./features/shell/shell";
 import { DevicesPage } from "./routes/devices";
 import { FleetPage } from "./routes/fleet";
+import { NewSessionPage } from "./routes/new-session";
 import { SessionPage } from "./routes/session";
 import { SessionsPage } from "./routes/sessions";
 import { SettingsPage } from "./routes/settings";
 import { SyncPage } from "./routes/sync";
 import { TooltipProvider } from "./ui/kit";
-import { Shell } from "./ui/shell";
 
 /** `?node=` on the pages scoped by node. */
 function nodeSearch(search: Record<string, unknown>): { node?: string } {
   return typeof search["node"] === "string" ? { node: search["node"] } : {};
+}
+
+/** `?machine=` on the new-session page: the machine in view when "New"
+ * was chosen. */
+function machineSearch(search: Record<string, unknown>): { machine?: string } {
+  return typeof search["machine"] === "string"
+    ? { machine: search["machine"] }
+    : {};
 }
 
 /** `/` is Fleet: there is no home dashboard apart from it (DESIGN.md §2.1).
@@ -52,6 +61,12 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/fleet/$node",
     component: FleetPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/new",
+    validateSearch: machineSearch,
+    component: NewSessionPage,
   }),
   createRoute({
     getParentRoute: () => rootRoute,

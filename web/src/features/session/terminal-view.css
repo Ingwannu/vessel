@@ -1,9 +1,9 @@
-/* The terminal frame (DESIGN.md §6.8) and xterm.js inside it. */
-
-/* --- Terminal --- */
+/* The terminal frame (features/session/terminal-view.tsx, DESIGN.md
+   §6.8) and xterm.js inside it: the concentric 16 / 12 frames, black in
+   both themes, a 32px chrome line in the dim colour. */
 
 .term-wrap {
-  grid-area: timeline;
+  flex: 1;
   padding: 12px;
   min-height: 0;
   display: flex;

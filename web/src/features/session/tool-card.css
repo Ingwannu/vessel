@@ -1,0 +1,129 @@
+/* A tool call (features/session/tool-card.tsx, DESIGN.md §6.6): a card
+   with a hairline, its head the kind's icon, title, status and path (cut
+   from the left), a chevron that turns while open; the body's input,
+   diffs and output in mono on the page's fill. */
+
+.tool {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  background: var(--bg-surface);
+}
+
+.tool > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.tool .title {
+  font: var(--t-label);
+  color: var(--text-primary);
+}
+
+.tool .loc {
+  margin-left: auto;
+  font: var(--t-mono);
+  color: var(--text-tertiary);
+  max-width: 42%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* Cut from the left, so the file name stays; the path itself is a
+	   left-to-right <bdi>, so its slashes do not move. */
+  direction: rtl;
+  text-align: left;
+}
+
+.tool .loc bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.tool .body {
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px 10px 10px;
+}
+
+.tool .io-label {
+  font: var(--t-kicker);
+  color: var(--text-tertiary);
+  margin: 8px 0 4px;
+}
+
+.tool pre {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  overflow: auto;
+  font: var(--t-mono);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.diff {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  overflow: auto;
+  font: var(--t-mono);
+  line-height: 1.6;
+}
+
+.diff .ln {
+  display: grid;
+  grid-template-columns: 36px 36px 1fr;
+}
+
+.diff .n {
+  padding: 0 8px;
+  color: var(--text-disabled);
+  text-align: right;
+  user-select: none;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.diff .add {
+  background: var(--diff-add-bg);
+}
+
+.diff .del {
+  background: var(--diff-del-bg);
+}
+
+.diff .tx {
+  padding: 0 10px;
+  white-space: pre;
+}
+
+.tool > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool > summary {
+  list-style: none;
+}
+
+.tool-chevron {
+  display: inline-flex;
+  color: var(--text-tertiary);
+  transition: rotate var(--d-2) var(--ease);
+}
+
+.tool .loc + .tool-chevron {
+  margin-left: 0;
+}
+
+.tool > summary > .badge + .tool-chevron {
+  margin-left: auto;
+}
+
+.tool[open] .tool-chevron {
+  rotate: 90deg;
+}

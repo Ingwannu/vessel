@@ -1,0 +1,105 @@
+/* The title bar inside the frame: the page's one heading, then the one
+   primary action. */
+.frame-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  height: var(--topbar-h);
+  padding: 0 6px 0 18px;
+  border-bottom: 1px solid var(--border-faint);
+  min-width: 0;
+}
+
+.frame-top.bare {
+  border-bottom-color: transparent;
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font: var(--t-control);
+}
+
+.crumb a {
+  color: var(--text-secondary);
+}
+
+.crumb h1 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--t-title);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+.crumb h1.mono {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.crumb .sep {
+  color: var(--text-disabled);
+}
+
+.frame-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* This client's link to `vessel ui`: a quiet line of text with a dot. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--r-1);
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.chip.reconnecting .status-dot {
+  animation: pulse 1.6s var(--ease) infinite;
+}
+
+/* What a page draws in the bar (features/shell/title-bar.tsx). */
+.frame-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.frame-title:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip.reconnecting .status-dot {
+    animation: none;
+  }
+}

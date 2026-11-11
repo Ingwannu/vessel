@@ -1,0 +1,290 @@
+/* The sidebar (features/shell/sidebar.tsx, DESIGN.md §2.2): its head,
+   its rows and their growing pill, a machine's sessions under it, the
+   Settings sections in place of the machines, the foot. */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-sidebar);
+}
+
+.side-head {
+  flex: none;
+  padding: 10px 12px 8px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px;
+  border-radius: var(--r-2);
+  color: var(--text-primary);
+  font: 600 14px / 20px var(--font-sans);
+  letter-spacing: -0.015em;
+  text-decoration: none;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--text-primary);
+  display: grid;
+  place-items: center;
+  color: var(--bg-shell);
+}
+
+.mark svg {
+  display: block;
+}
+
+/* Search: a filled row, the first thing in the sidebar. */
+.side-list {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.side-label {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: var(--nav-h);
+  margin-top: 8px;
+  padding: 0 12px 0 18px;
+  font: var(--t-label);
+  color: var(--text-secondary);
+}
+
+.side-label .btn {
+  margin-left: auto;
+}
+
+.side-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px 8px;
+}
+
+/* Settings, and the theme's switch beside it (features/theme). */
+.side-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding: 8px;
+  border-top: 1px solid var(--border-faint);
+}
+
+.side-foot > .nav-item {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A sidebar row. Its fill is a pill that grows from just inside the row
+   on hover, and stays, a shade darker, on the current row: the row's own
+   background never changes, so nothing flickers between neighbours. */
+.nav-item {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--nav-h);
+  padding: 0 10px;
+  border-radius: var(--r-4);
+  color: var(--text-secondary);
+  font: var(--t-label);
+  text-decoration: none;
+}
+
+.nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bg-hover);
+  opacity: 0;
+  transition: inset var(--d-2) var(--ease);
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-item:hover::before {
+    inset: 0;
+    opacity: 1;
+  }
+}
+
+.nav-item:focus-visible::before {
+  inset: 0;
+  opacity: 1;
+}
+
+.nav-item.active {
+  color: var(--text-primary);
+}
+
+.nav-item.active::before {
+  inset: 0;
+  opacity: 1;
+  background: var(--bg-active);
+}
+
+.nav-item .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item .count,
+.nav-item .dash {
+  margin-left: auto;
+  font: 400 11px / 16px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.nav-item.offline .count,
+.nav-item.offline .dash {
+  color: var(--text-disabled);
+}
+
+/* A node's row leads with its state dot where the others have an icon. */
+.nav-item.node .status-dot {
+  margin: 0 3px;
+}
+
+/* A node's live sessions, under it. (Not named `.session`: that class is
+   the session page's grid.) */
+.nav-item.sub {
+  gap: 6px;
+  padding: 0 10px 0 6px;
+  font: var(--t-control);
+}
+
+.nav-item.sub .slot {
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+}
+
+.nav-item.sub .id {
+  margin-left: auto;
+  font: 400 10.5px / 14px var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.nav-item.more {
+  height: 28px;
+  padding-left: 32px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+/* A session's mark: hollow at rest, filled in the needs-you colour while
+   it waits on its owner; a spinner stands in while its agent works. */
+.sdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 60%, transparent);
+}
+
+.sdot.needs-you {
+  border-color: transparent;
+  background: var(--st-needs-you);
+}
+
+/* A row's shortcut, as the search row shows its own. */
+.nav-item .shortcut {
+  margin-left: auto;
+  display: inline-flex;
+}
+
+/* A spinner standing in for a session's dot. */
+.sdot-spin {
+  display: inline-grid;
+  place-items: center;
+  color: var(--st-building);
+}
+
+/* Settings' sections, under their headings. */
+.settings-nav .side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-nav .side-label {
+  padding-left: 10px;
+}
+
+/* Narrow windows (DESIGN.md §3): the sidebar becomes a rail of icons,
+   then leaves. */
+@media (max-width: 1099px) {
+  .app {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .brand span,
+  .side-search-wrap,
+  .side-label,
+  .nav-item span.label,
+  .nav-item .count,
+  .nav-item .dash,
+  .nav-item .shortcut,
+  /* The rail has no room for a machine's sessions: the board has them. */
+  .nav-item.sub,
+  .nav-item.more {
+    display: none;
+  }
+
+  .side-head {
+    padding-inline: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .nav-item,
+  .nav-item.node {
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item::before {
+    transition: none;
+  }
+}

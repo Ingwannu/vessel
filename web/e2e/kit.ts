@@ -26,17 +26,56 @@ export async function optionOf(
   return page.getByRole("option", { name: option });
 }
 
-/** A new session on `node` with Claude Code, in `mode`, from the dialog
- * the topbar's New opens; the dialog is returned still open. */
-export async function newSessionDialog(
+/** The new-session page, opened from the title bar's New, on `node`
+ * with Claude Code; opened as a terminal for `"Terminal"`. Nothing is
+ * sent yet: the prompt box is returned, its text empty. */
+export async function newSessionPage(
   page: Page,
   node: string,
   mode: "Structured" | "Terminal",
 ): Promise<Locator> {
   await page.getByRole("button", { name: "New", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New session" });
-  await choose(page, dialog.getByLabel("Node"), new RegExp(`^${node}\\b`));
-  await choose(page, dialog.getByLabel("Harness"), /^claude/);
-  await dialog.getByRole("radio", { name: mode }).click();
-  return dialog;
+  await expect(
+    page.getByRole("heading", { name: "What do you want to work on?" }),
+  ).toBeVisible();
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Machine" }),
+    new RegExp(`^${node}\\b`),
+  );
+  await chooseAgent(page, "Claude Code");
+  if (mode === "Terminal") {
+    await page.getByRole("button", { name: "Add" }).click();
+    await page.getByRole("switch", { name: "Open as terminal" }).click();
+    await page.keyboard.press("Escape");
+  }
+  return page.getByRole("form", { name: "Prompt" });
+}
+
+/** Choose `agent` in the agent, model and effort menu. */
+export async function chooseAgent(page: Page, agent: string): Promise<void> {
+  await page.getByRole("button", { name: /^Agent, model and effort/ }).click();
+  await page.getByRole("menuitem", { name: /^Agent/ }).click();
+  await page.getByRole("menuitemradio", { name: agent }).click();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+}
+
+/** Start a session from the new-session page with `prompt`, and wait for
+ * its page. */
+export async function startSession(
+  page: Page,
+  node: string,
+  mode: "Structured" | "Terminal",
+  prompt = "",
+): Promise<void> {
+  const box = await newSessionPage(page, node, mode);
+  if (prompt !== "") {
+    await box.getByRole("textbox", { name: "Prompt" }).fill(prompt);
+  }
+  await box
+    .getByRole("button", {
+      name: mode === "Terminal" ? "Open the terminal" : "Send",
+    })
+    .click();
+  await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
 }

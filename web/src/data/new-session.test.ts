@@ -6,10 +6,13 @@ import {
   agentChoices,
   agentName,
   profileChoices,
+  startedModel,
   startingAgent,
 } from "./agents";
 import {
   type Draft,
+  draftControls,
+  machineChoices,
   sendable,
   specOf,
   splitArgs,
@@ -94,6 +97,19 @@ describe("startingMachine", () => {
     expect(startingMachine(book, statuses, "laptop", "gpu-box")).toBe("laptop");
     expect(startingMachine(book, statuses, null, "laptop")).toBe("laptop");
     expect(startingMachine(book, statuses, null, null)).toBe("gpu-box");
+  });
+
+  it("are offered by name, the unconnected ones off with a word", () => {
+    expect(machineChoices(book, statuses)).toEqual([
+      { value: "laptop", label: "laptop" },
+      { value: "gpu-box", label: "gpu-box" },
+      {
+        value: "build-server",
+        label: "build-server",
+        detail: "connecting",
+        disabled: true,
+      },
+    ]);
   });
 
   it("only a connected one", () => {
@@ -218,5 +234,65 @@ describe("sendable", () => {
     });
     expect(sendable({ ...DRAFT, machine: null }, CLAUDE).ok).toBe(false);
     expect(sendable(DRAFT, null).ok).toBe(false);
+  });
+});
+
+describe("draftControls", () => {
+  it("shows the picks, the loading, the failure, or a terminal's none", () => {
+    const ready = draftControls(DRAFT, CLAUDE, {
+      kind: "ready",
+      options: OPTIONS,
+    });
+    expect(
+      ready.kind === "ready" ? ready.controls.permissions?.current : null,
+    ).toBe("plan");
+    expect(draftControls(DRAFT, CLAUDE, { kind: "loading" })).toEqual({
+      kind: "loading",
+    });
+    expect(
+      draftControls(DRAFT, CLAUDE, {
+        kind: "failed",
+        message: "not logged in",
+      }),
+    ).toEqual({ kind: "failed", message: "not logged in" });
+    expect(
+      draftControls({ ...DRAFT, terminal: true }, CLAUDE, { kind: "loading" }),
+    ).toEqual({ kind: "terminal" });
+  });
+});
+
+describe("startedModel", () => {
+  it("is the route's model, else the one asked for, else none", () => {
+    const base = {
+      id: "a",
+      created_by: { kind: "owner" },
+      status: { state: "running" },
+      created_at: "2026-11-11T08:00:00Z",
+      next_seq: 0,
+    } as const;
+    expect(
+      startedModel({
+        ...base,
+        spec: { harness: "claude-code", mode: "structured" },
+        model: { route: "qwen-coder", model: "qwen/qwen3-coder" },
+      }),
+    ).toBe("qwen/qwen3-coder");
+    expect(
+      startedModel({
+        ...base,
+        spec: { harness: "claude-code", mode: "structured", model: "opus" },
+      }),
+    ).toBe("opus");
+    expect(
+      startedModel({
+        ...base,
+        spec: {
+          harness: "codex",
+          mode: "terminal",
+          args: [],
+          size: { cols: 80, rows: 24 },
+        },
+      }),
+    ).toBeNull();
   });
 });

@@ -1,0 +1,97 @@
+/* The composer (features/compose/prompt-box.tsx), agent-orchestrator's:
+   a box with radius 20 and 12px inside, 6px between the text and the row
+   of controls; in light the white surface on a hairline with a soft
+   shadow, in dark the card's fill alone. The row is 28px: the controls
+   on the left, Send at the right. A tray hangs under it, 16px in from
+   each side, 6px inside, its bottom corners concentric with the 10px
+   controls it holds; with a tray the box keeps only its hairline. */
+
+.prompt-dock {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.prompt-box {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--r-composer);
+  background: var(--composer-bg);
+  box-shadow:
+    0 0 0 1px var(--composer-edge),
+    0 1px 2px var(--composer-near),
+    0 8px 24px -10px var(--composer-far);
+  cursor: text;
+}
+
+.prompt-dock.trayed .prompt-box {
+  box-shadow: 0 0 0 1px var(--composer-edge);
+}
+
+/* The prompt: the reference's 14px sans text with its taller line, no
+   shell of its own (the box is the shell). */
+.prompt-box .text-field.area.bare {
+  padding: 0 4px;
+}
+
+.prompt-box .text-field.area.bare > .text-field-input {
+  font: 400 14px / 22px var(--font-sans);
+}
+
+.prompt-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-sm);
+}
+
+.prompt-tools {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.prompt-send {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A quiet trigger's label and its muted part (the effort after the
+   model). */
+.prompt-tools .btn {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.prompt-tools .trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prompt-tools .trigger-muted {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.prompt-tray {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin: 0 16px;
+  padding: 6px;
+  border-radius: 0 0 16px 16px;
+  background: var(--composer-tray);
+  box-shadow: 0 0 0 1px var(--composer-tray-edge);
+}

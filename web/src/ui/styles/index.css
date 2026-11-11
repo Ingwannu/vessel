@@ -4,6 +4,9 @@
    stated exception, the pairing QR code, which must stay dark on light to
    scan.
 
+   The screens built in milestone 10 keep their stylesheets beside their
+   components (in features and in the kit); they load after these.
+
    The look is agent-orchestrator's (ADRs 0018 and 0020): a framed page
    set into a grey shell, rows with a hover pill, filled buttons with an
    inset edge, a board of lanes divided by hairlines. Labels are sentence
@@ -12,25 +15,17 @@
 
    Why parts, and why this order (ADR 0021): one 2,600-line file made
    every track touch the same file. The order is the cascade's: an area
-   that overrides another's rules comes after it (`narrow` and `motion`
-   near the end, since they adjust every area), and a rule that overrides
+   that overrides another's rules comes after it (`narrow` near the end,
+   since it adjusts every area), and a rule that overrides
    one in its own area stays after it in that area's file. When moving a
    rule between files, check what its new place puts after it. */
 
 @import "./base.css";
 @import "./shell.css";
 @import "./tables.css";
-@import "./board.css";
-@import "./card.css";
-@import "./archive.css";
-@import "./session.css";
-@import "./timeline.css";
-@import "./permission.css";
-@import "./terminal.css";
 @import "./dialogs.css";
 @import "./pairing.css";
 @import "./feedback.css";
 @import "./pages.css";
-@import "./motion.css";
 @import "./narrow.css";
 @import "./detail.css";

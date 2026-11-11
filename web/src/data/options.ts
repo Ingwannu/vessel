@@ -256,3 +256,34 @@ export function pickerLabel(
     effort: controls.effort === null ? null : currentName(controls.effort),
   };
 }
+
+/** What the composer's controls can show: the agent's options, or why
+ * they are not there. */
+export type ControlsState =
+  | { kind: "loading" }
+  | { kind: "failed"; message: string }
+  | { kind: "ready"; controls: Controls }
+  /** A terminal session: the agent's own TUI, which takes no options. */
+  | { kind: "terminal" };
+
+/** The protocol that reports a session's options (ADR 0022). */
+export const OPTIONS_PROTOCOL = 9;
+
+/** A running session's controls, from what its log last reported
+ * (`null`: not yet). A node older than protocol 9 never reports them, so
+ * its sessions say so instead of loading for ever. */
+export function reportedControls(
+  options: readonly SessionOption[] | null,
+  protocol: number | null,
+): ControlsState {
+  if (options !== null) {
+    return { kind: "ready", controls: controlsOf(options) };
+  }
+  return protocol !== null && protocol < OPTIONS_PROTOCOL
+    ? {
+        kind: "failed",
+        message:
+          "This machine runs an older Vessel, which does not report them.",
+      }
+    : { kind: "loading" };
+}
