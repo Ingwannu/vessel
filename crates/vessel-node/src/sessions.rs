@@ -29,9 +29,11 @@ use std::sync::{Arc, PoisonError, RwLock};
 use tokio::sync::watch;
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
+use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    Conversation, EventPage, EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId,
-    SessionInfo, SessionInput, SessionMode, SessionOption, SessionSpec, SessionTitle,
+    ContentBlock, Conversation, Creator, Delivered, Delivery, EventPage, EventRecord, EventSeq,
+    HarnessKind, OptionChoice, QueueChange, SessionId, SessionInfo, SessionInput, SessionMode,
+    SessionOption, SessionSpec, SessionTitle,
 };
 use vessel_session::{
     Created, FollowError, LaunchOptions, ProfileMove, SessionError, SessionHandle, SessionRuntime,
@@ -260,6 +262,33 @@ impl Sessions {
     ) -> Result<(), ServiceError> {
         match self.find(id).await? {
             Found::Live { handle, .. } => Ok(handle.send(input).await?),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Deliver a prompt to a live structured session (protocol 10).
+    pub(crate) async fn prompt(
+        &self,
+        id: SessionId,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+        by: Creator,
+    ) -> Result<Delivered, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.prompt(content, delivery, by).await?),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Change a live structured session's queue (protocol 10). An ended
+    /// session's queue comes back with `session.resume`.
+    pub(crate) async fn change_queue(
+        &self,
+        id: SessionId,
+        change: QueueChange,
+    ) -> Result<QueueChanged, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.change_queue(change).await?),
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
     }

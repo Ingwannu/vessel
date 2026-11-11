@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use vessel_agent::{AgentOutput, AgentProcess, CommandSpec, Signal};
+use vessel_agent::{AgentOutput, AgentProcess, CommandSpec, InputError, Signal, SteerOutcome};
 use vessel_proto::{
     AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, StopReason, TokenCount,
     TurnUsage,
@@ -155,6 +155,92 @@ async fn commands_context_and_a_turns_tokens_are_reported() {
                 cached_write: None,
             })
         );
+        agent.signal(Signal::Terminate).unwrap();
+        let _code = agent.wait().await;
+    })
+    .await
+    .unwrap();
+}
+
+fn text(text: &str) -> Vec<ContentBlock> {
+    vec![ContentBlock::Text {
+        text: text.to_owned(),
+    }]
+}
+
+/// A steer reaches the running turn and is logged where the agent took
+/// it; the agent hands one back when its turn cannot take it; with no turn
+/// nothing is sent; an agent without the extension is never asked.
+#[tokio::test]
+async fn a_steer_joins_the_running_turn_or_comes_back() {
+    vessel_testkit::within(SAFETY_NET, async {
+        let command = CommandSpec::new(Fake::Acp.path().unwrap());
+        let (mut agent, input, mut outputs) = AgentProcess::spawn(&command, setup()).unwrap();
+        let _ready = until(&mut outputs, is_ready).await;
+        assert_eq!(
+            input.steer(text("early")).await.unwrap(),
+            SteerOutcome::PromptRequired,
+            "no turn: nothing sent"
+        );
+
+        input.prompt(text("wait")).await.unwrap();
+        assert_eq!(
+            input.steer(text("also this")).await.unwrap(),
+            SteerOutcome::Injected
+        );
+        let seen = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::Steered { .. }))
+        })
+        .await;
+        assert!(seen.iter().any(|output| matches!(
+            output,
+            AgentOutput::Event(AgentEvent::MessageChunk { content: ContentBlock::Text { text } })
+                if text == "steered: also this"
+        )));
+        let Some(AgentOutput::Event(AgentEvent::Steered { content })) = seen.last() else {
+            panic!("{seen:?}");
+        };
+        assert_eq!(*content, text("also this"));
+        assert_eq!(
+            input.steer(text("finish")).await.unwrap(),
+            SteerOutcome::Injected
+        );
+        let ended = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::TurnEnded { .. }))
+        })
+        .await;
+        assert!(matches!(
+            ended.last(),
+            Some(AgentOutput::Event(AgentEvent::TurnEnded {
+                reason: StopReason::EndTurn,
+                ..
+            }))
+        ));
+
+        // A turn that waits on a permission is not one the fake steers.
+        input.prompt(text("hello")).await.unwrap();
+        let _asked = until(&mut outputs, |output| {
+            matches!(
+                output,
+                AgentOutput::Event(AgentEvent::PermissionRequested(_))
+            )
+        })
+        .await;
+        assert_eq!(
+            input.steer(text("too late")).await.unwrap(),
+            SteerOutcome::PromptRequired
+        );
+        agent.signal(Signal::Terminate).unwrap();
+        let _code = agent.wait().await;
+
+        let command = command.env("FAKE_ACP_NO_STEER", "1");
+        let (mut agent, input, mut outputs) = AgentProcess::spawn(&command, setup()).unwrap();
+        let _ready = until(&mut outputs, is_ready).await;
+        input.prompt(text("wait")).await.unwrap();
+        assert!(matches!(
+            input.steer(text("x")).await,
+            Err(InputError::CannotSteer)
+        ));
         agent.signal(Signal::Terminate).unwrap();
         let _code = agent.wait().await;
     })

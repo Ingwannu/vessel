@@ -4,6 +4,7 @@ use tokio::sync::{mpsc, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionStatus};
 
+use crate::delivery::Desk;
 use crate::lifecycle::{Lifecycle, drain_deadline};
 use crate::moving::{Control, Launch};
 
@@ -39,6 +40,8 @@ pub(crate) struct StructuredActor {
     pub(crate) failed_before_kill: bool,
     /// Where a move to another profile stands.
     pub(crate) move_state: MoveState,
+    /// Deliveries and the queue (protocol 10, `delivery`).
+    pub(crate) desk: Desk,
 }
 
 /// A structured session's move state (see `moving`).
@@ -49,7 +52,8 @@ pub(crate) struct MoveState {
     /// A restarted agent replays the conversation before it is ready; the
     /// log has it already, so it is not published again.
     pub(crate) replaying: bool,
-    /// A turn ended (for a forced move, which waits for its cancel).
+    /// A turn ended (for a forced move or an interrupt, which wait for
+    /// its cancel).
     pub(crate) turn_over: bool,
     /// How an agent's connection ended during the move.
     pub(crate) disconnect: Option<Disconnect>,
@@ -71,7 +75,10 @@ impl StructuredActor {
                     None => self.outputs_open = false,
                 },
                 control = self.control.recv(), if control_open => match control {
-                    Some(Control::Move(order)) => self.move_profile(order).await,
+                    Some(Control::Move(order)) => self.move_profile(*order).await,
+                    Some(Control::Deliver(order)) => self.deliver(order).await,
+                    Some(Control::Queue(order)) => self.change_queue(order).await,
+                    Some(Control::Cancel(order)) => self.cancel(order).await,
                     None => control_open = false,
                 },
                 Some(call) = self.life.model_calls.recv() => {
@@ -81,11 +88,14 @@ impl StructuredActor {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
             }
+            // The queue moves once a turn's end is in the log.
+            self.after_turn().await;
         };
         if self.outputs_open {
             self.drain().await;
         }
         self.life.drain_model_calls(&mut self.agent).await;
+        self.queue_at_end().await;
 
         let status = if self.life.stop.interrupted() {
             SessionStatus::Interrupted
@@ -129,7 +139,10 @@ impl StructuredActor {
                 // A restarted agent's replay: the log has it already. Its
                 // stderr still goes in; `Ready` ends the replay.
                 match event {
-                    AgentEvent::Ready { .. } => self.move_state.replaying = false,
+                    AgentEvent::Ready { abilities, .. } => {
+                        self.move_state.replaying = false;
+                        self.desk.ready(abilities);
+                    }
                     AgentEvent::HarnessLog { .. } => {
                         self.life
                             .publish(&mut self.agent, SessionEvent::Agent { event })
@@ -170,6 +183,7 @@ impl StructuredActor {
                 } else {
                     None
                 };
+                self.desk.observe(&event, self.life.out.next_seq());
                 self.life
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;

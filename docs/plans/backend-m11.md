@@ -954,5 +954,16 @@ the same refusal an older node gives.
   A probe that fails now reads the agent's last stderr lines after the
   disconnect (they are read apart and could come later; a test of
   protocol 9 failed now and then on it).
-- Next: delivery and the queue; questions; marks, the board and delete;
-  start again; attachments; the CLI and the agent tools.
+- Slice 2, delivery and the queue: `session.prompt` (`start`, `queue`,
+  `steer` through `_session/steering` with `promptRequired`,
+  `interrupt` bounded at 10 s), `session.queue` (edit by revision, move
+  before an entry, remove, send now with the entry put back on failure,
+  hold, resume, clear), and `cancel_turn`'s `turn`. Every prompt and
+  cancel now goes through the session's actor, which awaits the agent
+  while still publishing its output (the move's `pump`). The queue moves
+  from the actor's loop once a turn's end is published; any `cancelled`
+  end holds it (an interrupt's excepted), a failed one too, and the
+  session's end holds what waits before the final status. `fake-acp`
+  steers its `wait` turn (`finish` ends it).
+- Next: questions; marks, the board and delete; start again;
+  attachments; the CLI and the agent tools.

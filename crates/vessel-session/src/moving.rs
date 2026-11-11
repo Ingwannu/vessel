@@ -38,6 +38,7 @@ use vessel_agent::{AgentError, AgentProcess, AgentSetup, CommandSpec, Disconnect
 use vessel_harness::{LinkError, ModelProxy, Profile, SessionFiles, SessionFilesError};
 use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 
+use crate::delivery::{Cancel, Change, Deliver};
 use crate::lifecycle::drain_deadline;
 use crate::structured::StructuredActor;
 
@@ -117,10 +118,16 @@ pub enum Restart {
     Exited(Option<i32>),
 }
 
-/// A message to a structured session's actor.
+/// A message to a structured session's actor: a move, or (protocol 10)
+/// a delivery, a queue change or a cancel (`delivery`), carried out one at
+/// a time.
 #[derive(Debug)]
 pub(crate) enum Control {
-    Move(MoveOrder),
+    /// Boxed: the rest are small, and they are many.
+    Move(Box<MoveOrder>),
+    Deliver(Deliver),
+    Queue(Change),
+    Cancel(Cancel),
 }
 
 /// Everything the actor needs to move.
@@ -197,7 +204,9 @@ impl StructuredActor {
             self.move_state.turn_over = false;
             let input = self.input.clone();
             let _cancelled = self.pump(async move { input.cancel_turn().await }).await?;
-            self.until_turn_over().await?;
+            if !self.until_turn_over().await? {
+                tracing::warn!("stopping the agent anyway");
+            }
         }
 
         let linked = self
@@ -235,8 +244,8 @@ impl StructuredActor {
     }
 
     /// Run `future` while publishing the agent's outputs; `Stopped` if the
-    /// session is stopped meanwhile.
-    async fn pump<F: Future>(&mut self, future: F) -> Result<F::Output, MoveError> {
+    /// session is stopped meanwhile. Also how a delivery awaits the agent.
+    pub(crate) async fn pump<F: Future>(&mut self, future: F) -> Result<F::Output, MoveError> {
         let mut future = std::pin::pin!(future);
         loop {
             tokio::select! {
@@ -255,8 +264,9 @@ impl StructuredActor {
     }
 
     /// Publish outputs until the cancelled turn ends, at most
-    /// [`CANCEL_GRACE`]; stopping the agent ends it otherwise.
-    async fn until_turn_over(&mut self) -> Result<(), MoveError> {
+    /// [`CANCEL_GRACE`]; whether it did. A move stops the agent otherwise
+    /// (which ends the turn too); an interrupt sends nothing.
+    pub(crate) async fn until_turn_over(&mut self) -> Result<bool, MoveError> {
         let deadline = Instant::now()
             .checked_add(CANCEL_GRACE)
             .unwrap_or_else(Instant::now);
@@ -272,12 +282,12 @@ impl StructuredActor {
                     None => self.outputs_open = false,
                 },
                 () = tokio::time::sleep_until(deadline) => {
-                    tracing::warn!("the cancelled turn did not end in time; stopping the agent anyway");
-                    return Ok(());
+                    tracing::warn!("the cancelled turn did not end in time");
+                    return Ok(false);
                 }
             }
         }
-        Ok(())
+        Ok(self.move_state.turn_over)
     }
 
     /// Stop the current agent (`SIGTERM`, then `SIGKILL` after

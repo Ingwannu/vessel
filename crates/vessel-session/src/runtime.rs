@@ -23,6 +23,7 @@ use vessel_pty::{PtyProcess, WindowSize};
 use crate::activity::Tracker;
 use crate::config::RuntimeConfig;
 use crate::conversation::Seen;
+use crate::delivery::Desk;
 use crate::error::{RemoveError, SessionError};
 use crate::handle::{Input, SessionHandle, Shared};
 use crate::lifecycle::{Lifecycle, Rename};
@@ -380,6 +381,7 @@ impl SessionRuntime {
             disconnect: None,
             failed_before_kill: false,
             move_state: MoveState::default(),
+            desk: Desk::default(),
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
@@ -554,7 +556,7 @@ impl SessionRuntime {
             force,
             reply,
         };
-        if control.send(Control::Move(order)).await.is_err() {
+        if control.send(Control::Move(Box::new(order))).await.is_err() {
             return Err(SessionError::Ended);
         }
         answer.await.map_err(|_ended| SessionError::Ended)??;

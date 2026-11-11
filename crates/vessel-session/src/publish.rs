@@ -74,6 +74,11 @@ impl Publisher {
         }
     }
 
+    /// The sequence number the next record committed gets.
+    pub(crate) const fn next_seq(&self) -> EventSeq {
+        self.next
+    }
+
     /// Number `event`, hand it to the store, append it to the ring,
     /// broadcast it, and update the session info, in that order.
     ///

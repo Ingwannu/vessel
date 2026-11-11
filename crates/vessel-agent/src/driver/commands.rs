@@ -1,5 +1,5 @@
-//! The client's commands: prompt, cancel, answer a permission request,
-//! read and change the agent's options.
+//! The client's commands: prompt, cancel, steer (`steer`), answer a
+//! permission request, read and change the agent's options.
 
 use agent_client_protocol::Agent;
 use agent_client_protocol::v1::ConnectionTo;
@@ -23,6 +23,7 @@ impl Driver {
                 let result = self.cancel(cx).await;
                 answer(reply, result);
             }
+            Command::Steer { content, reply } => self.steer(cx, content, reply),
             Command::Answer { id, outcome, reply } => {
                 let result = self.permissions.answer(id, &outcome);
                 if result.is_ok() {

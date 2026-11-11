@@ -6,6 +6,7 @@ use vessel_agent::InputError;
 use vessel_harness::{LinkError, SessionFilesError};
 
 use crate::moving::MoveError;
+use crate::queue::QueueError;
 use vessel_harness::HarnessError;
 use vessel_proto::{ErrorCode, SessionId, SessionInput};
 
@@ -34,6 +35,13 @@ pub enum SessionError {
     /// cannot carry).
     #[error(transparent)]
     Input(InputError),
+    /// A change to the queue, or a prompt for it, was refused (protocol
+    /// 10).
+    #[error(transparent)]
+    Queue(#[from] QueueError),
+    /// A prompt was not delivered as asked (protocol 10).
+    #[error(transparent)]
+    Delivery(#[from] DeliveryError),
     /// Something only a structured session has (protocol 10's
     /// conversation, queue, questions) was asked of a terminal session.
     #[error("a terminal session has no {0}; its harness runs its own interface")]
@@ -82,6 +90,18 @@ pub enum SessionError {
     Internal(#[source] tokio::task::JoinError),
 }
 
+/// Why a prompt was not delivered (protocol 10's `session.prompt`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum DeliveryError {
+    /// A prompt needs content.
+    #[error("the prompt is empty")]
+    Empty,
+    /// An interrupt's cancelled turn did not end in time; nothing was
+    /// sent (the turn was cancelled).
+    #[error("the running turn did not end after its cancel; the prompt was not sent")]
+    TurnDidNotEnd,
+}
+
 /// Why [`SessionRuntime::remove`](crate::SessionRuntime::remove) refused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum RemoveError {
@@ -106,7 +126,8 @@ impl SessionError {
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
-            | Self::NotBuilt(_) => ErrorCode::Unsupported,
+            | Self::NotBuilt(_)
+            | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -115,6 +136,8 @@ impl SessionError {
                 | HarnessError::Mcp(_),
             )
             | Self::NoWorkingDirectory
+            | Self::Delivery(DeliveryError::Empty)
+            | Self::Queue(QueueError::NotNow | QueueError::TooLarge)
             | Self::Input(
                 InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
@@ -123,9 +146,9 @@ impl SessionError {
             Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
                 ErrorCode::SpawnFailed
             }
-            Self::Input(InputError::PermissionNotFound(_)) | Self::NotFound(_) => {
-                ErrorCode::NotFound
-            }
+            Self::Input(InputError::PermissionNotFound(_))
+            | Self::NotFound(_)
+            | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended
             | Self::Moving
             // The agent's refusal of an option change: the session is in a
@@ -134,15 +157,20 @@ impl SessionError {
                 InputError::Closed
                 | InputError::TurnInProgress
                 | InputError::PermissionSettled(_)
-                | InputError::Refused { .. },
-            ) => ErrorCode::Conflict,
-            Self::ShuttingDown => ErrorCode::Unavailable,
+                | InputError::Refused { .. }
+                | InputError::SteerRefused { .. },
+            )
+            | Self::Queue(QueueError::Full | QueueError::Stale { .. }) => ErrorCode::Conflict,
+            Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
+                ErrorCode::Unavailable
+            }
             Self::Move(error) => move_code(error),
             // The node resolves `spec.profile`; another profile is its bug.
             Self::Internal(_)
             | Self::DuplicateId(_)
-            // The node loads a prompt's attachments before it sends it.
-            | Self::Input(InputError::AttachmentNotLoaded(_))
+            // The node loads a prompt's attachments before it sends it;
+            // the agent broke the steering extension's terms.
+            | Self::Input(InputError::AttachmentNotLoaded(_) | InputError::Steering(_))
             | Self::Launch(
                 HarnessError::McpFile(_)
                 | HarnessError::ProfileNotRequested { .. }
@@ -193,7 +221,10 @@ impl From<InputError> for SessionError {
             | InputError::UnknownOption { .. }
             | InputError::Option(_)
             | InputError::Refused { .. }
-            | InputError::AttachmentNotLoaded(_)) => Self::Input(refused),
+            | InputError::AttachmentNotLoaded(_)
+            | InputError::CannotSteer
+            | InputError::SteerRefused { .. }
+            | InputError::Steering(_)) => Self::Input(refused),
         }
     }
 }

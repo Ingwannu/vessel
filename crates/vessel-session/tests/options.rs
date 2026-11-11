@@ -13,6 +13,10 @@ use support::{Fixture, Log, mode, prompt, select, structured, title, within};
 
 #[cfg(test)]
 #[path = "support/runtime.rs"]
+#[expect(
+    dead_code,
+    reason = "the shared runtime fixture, not every helper of it"
+)]
 mod support;
 
 /// An untitled session takes the first line of its first prompt; a rename

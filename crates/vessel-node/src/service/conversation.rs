@@ -5,13 +5,16 @@
 
 use vessel_proto::conversation::{
     BeginUpload, ChangeQueue, DeleteSession, FinishUpload, GetConversation, MarkSession,
-    PromptSession, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload, Written,
+    PromptSession, QueueChange, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload,
+    Written,
 };
 use vessel_proto::{
-    Ack, AttachmentRef, BlobChunk, Conversation, Delivered, ErrorCode, SessionInfo, WireError,
+    Ack, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered, ErrorCode, SessionInfo,
+    WireError,
 };
 
 use super::{Connection, NodeService, wire};
+use crate::profiles::launch::creator;
 
 /// What a call the wire has and this node does not do yet answers.
 fn not_built(what: &str) -> WireError {
@@ -21,26 +24,56 @@ fn not_built(what: &str) -> WireError {
     )
 }
 
+/// Attachments come with their slice of the track; until then a prompt
+/// holding one is refused before anything is sent.
+fn no_attachments(content: &[ContentBlock]) -> Result<(), WireError> {
+    let attached = content
+        .iter()
+        .any(|block| matches!(block, ContentBlock::Attachment { .. }));
+    if attached {
+        return Err(not_built("attachments"));
+    }
+    Ok(())
+}
+
 #[expect(
     clippy::unused_async,
     reason = "the guard awaits every handler; these answer at once until \
               their slices of the track fill them"
 )]
 impl NodeService {
+    /// `session.prompt`: deliver a prompt as asked; who sent it is kept
+    /// with it if it waits in the queue.
     pub(crate) async fn prompt_session(
         &self,
-        _: &Connection,
-        _: PromptSession,
+        connection: &Connection,
+        request: PromptSession,
     ) -> Result<Delivered, WireError> {
-        Err(not_built("session.prompt"))
+        no_attachments(&request.content)?;
+        self.sessions
+            .prompt(
+                request.session,
+                request.content,
+                request.delivery,
+                creator(&connection.principal),
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 
+    /// `session.queue`: change a session's queue.
     pub(crate) async fn change_queue(
         &self,
         _: &Connection,
-        _: ChangeQueue,
+        request: ChangeQueue,
     ) -> Result<QueueChanged, WireError> {
-        Err(not_built("session.queue"))
+        if let QueueChange::Edit { content, .. } = &request.change {
+            no_attachments(content)?;
+        }
+        self.sessions
+            .change_queue(request.session, request.change)
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `session.conversation`: what a structured session's log says now,

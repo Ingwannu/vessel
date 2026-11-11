@@ -61,7 +61,7 @@ mod transport;
 
 pub use error::{AgentError, Disconnect, InputError};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT};
-pub use input::AgentInput;
+pub use input::{AgentInput, SteerOutcome};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
 pub use probe::{ProbeError, Probed, probe};

@@ -48,6 +48,20 @@ pub enum InputError {
     /// nothing was sent to it.
     #[error(transparent)]
     Option(#[from] OptionError),
+    /// The agent does not steer (protocol 10): it did not say so in its
+    /// handshake, or answered that it has no such method.
+    #[error("this agent cannot take a message into a running turn")]
+    CannotSteer,
+    /// The agent refused a steer (protocol 10).
+    #[error("the agent refused the message for the running turn: {message}")]
+    SteerRefused {
+        /// The agent's error, for people.
+        message: String,
+    },
+    /// The agent answered a steer outside the extension's terms (protocol
+    /// 10), for example by starting a turn of its own.
+    #[error("steering failed: {0}")]
+    Steering(String),
     /// The agent refused a config option change (protocol 9).
     #[error("the agent refused option `{id}`: {message}")]
     Refused {

@@ -2,7 +2,10 @@
 //! conversation as one call, live, from the store, and refused where there
 //! is none.
 
-use vessel_proto::{ErrorCode, EventSeq, HarnessKind, SessionEvent, SessionStatus};
+use vessel_proto::{
+    AgentEvent, ContentBlock, Delivered, Delivery, ErrorCode, EventSeq, HarnessKind, QueueChange,
+    QueueHold, SessionEvent, SessionStatus,
+};
 use vessel_rpc::CallError;
 
 use crate::support::{Fixture, read_until, status_of, structured_spec, terminal_spec, within};
@@ -63,6 +66,104 @@ async fn a_conversation_is_read_live_and_from_the_store() {
         assert_eq!(
             code(client.conversation(terminal).await),
             ErrorCode::Unsupported
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+fn text(text: &str) -> Vec<ContentBlock> {
+    vec![ContentBlock::Text {
+        text: text.to_owned(),
+    }]
+}
+
+/// `session.prompt` and `session.queue` over the wire: a prompt waits,
+/// a held queue keeps it past a turn's end, `resume` sends it; refusals
+/// are typed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn prompts_wait_in_the_nodes_queue() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        let id = client
+            .create_session(structured_spec(&fixture, None))
+            .await
+            .unwrap()
+            .id;
+        assert_eq!(
+            client
+                .prompt(id, text("wait"), Delivery::Start)
+                .await
+                .unwrap(),
+            Delivered::Started
+        );
+        assert_eq!(
+            code(client.prompt(id, text("again"), Delivery::Start).await),
+            ErrorCode::Conflict,
+            "a turn runs"
+        );
+        let Delivered::Queued { entry } = client
+            .prompt(id, text("plain"), Delivery::Queue)
+            .await
+            .unwrap()
+        else {
+            panic!("a turn runs: it waits");
+        };
+        let held = client.change_queue(id, QueueChange::Hold).await.unwrap();
+        assert_eq!(held.queue.held, Some(QueueHold::Asked));
+        assert_eq!(held.queue.entries[0].id, entry);
+        assert_eq!(held.queue.entries[0].by, vessel_proto::Creator::Owner);
+        assert_eq!(
+            client
+                .prompt(id, text("finish"), Delivery::Steer)
+                .await
+                .unwrap(),
+            Delivered::Steered
+        );
+        let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut stream, &mut seen, |record| {
+            matches!(
+                record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded { .. }
+                }
+            )
+        })
+        .await;
+        let waiting = client.conversation(id).await.unwrap().queue;
+        assert_eq!(waiting.entries.len(), 1, "held past the turn's end");
+        let resumed = client.change_queue(id, QueueChange::Resume).await.unwrap();
+        assert_eq!(resumed.delivered, Some(Delivered::Started));
+        assert_eq!(
+            code(client.change_queue(id, QueueChange::Remove { entry }).await),
+            ErrorCode::NotFound,
+            "sent"
+        );
+        assert_eq!(
+            code(client.prompt(id, Vec::new(), Delivery::Queue).await),
+            ErrorCode::InvalidRequest
+        );
+
+        let terminal = client
+            .create_session(terminal_spec(&fixture, HarnessKind::ClaudeCode))
+            .await
+            .unwrap()
+            .id;
+        assert_eq!(
+            code(client.prompt(terminal, text("x"), Delivery::Queue).await),
+            ErrorCode::Unsupported
+        );
+        node.stop().await.unwrap();
+
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        assert_eq!(
+            code(client.change_queue(id, QueueChange::Clear).await),
+            ErrorCode::Conflict,
+            "ended: its queue comes back with session.resume"
         );
         node.stop().await.unwrap();
     })

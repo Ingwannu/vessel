@@ -42,6 +42,7 @@
 mod agent;
 mod close;
 mod commands;
+mod steer;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -52,13 +53,13 @@ use agent_client_protocol::{Agent, Client, Error};
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::{
-    AgentAbilities, AgentCommand, AgentEvent, ContextUsage, HarnessSessionId, OptionId,
-    SessionOption, ToolCallId,
+    AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId,
+    OptionId, SessionOption, ToolCallId,
 };
 
 use crate::error::Disconnect;
 use crate::handshake::{self, AgentSetup, HandshakeError, Started};
-use crate::input::{Command, OptionsReply};
+use crate::input::{Command, OptionsReply, SteerReply};
 use crate::mapper;
 use crate::options::{Applied, Options};
 use crate::output::AgentOutput;
@@ -87,6 +88,12 @@ enum Inbound {
         id: OptionId,
         result: Result<Applied, Error>,
         reply: OptionsReply,
+    },
+    /// The agent answered a steer (protocol 10).
+    Steered {
+        content: Vec<ContentBlock>,
+        result: Result<serde_json::Value, Error>,
+        reply: SteerReply,
     },
 }
 
@@ -321,6 +328,11 @@ impl Driver {
                     tracing::debug!("option change reply dropped");
                 }
             }
+            Inbound::Steered {
+                content,
+                result,
+                reply,
+            } => self.steered(content, result, reply).await,
         }
         None
     }

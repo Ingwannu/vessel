@@ -13,6 +13,11 @@
 //!   accepted (not with `FAKE_ACP_NO_HTTP_MCP` set), images in prompts,
 //!   and the steering extension (`_meta.steering.supported`; not with
 //!   `FAKE_ACP_NO_STEER` set).
+//! - `_session/steering` (the steering extension, not with
+//!   `FAKE_ACP_NO_STEER` set: "method not found" then): during a `wait`
+//!   turn, `injected` and a message chunk `steered: <text>` (a steer
+//!   `finish` also ends the turn); with no such turn, `promptRequired`.
+//!   Any other extension method is "method not found".
 //! - Right after answering `session/new` or `session/load`, an
 //!   `available_commands_update`: `compact` (with a hint) and `review`.
 //! - `session/new`: session `fake-session-<n>`, with the options
@@ -29,7 +34,8 @@
 //!   the same for the older modes.
 //! - `session/prompt`, by prompt text:
 //!   - `plain`: one message chunk `echo: plain`, then `end_turn`;
-//!   - `wait`: nothing until `session/cancel`, then `cancelled`;
+//!   - `wait`: nothing until `session/cancel`, then `cancelled`, or until
+//!     a steer `finish`, then `end_turn`;
 //!   - `flood`: message chunks `flood`, ten a millisecond (faster than a
 //!     slow client reads) until `session/cancel`, then `cancelled`; it
 //!     gives up with `end_turn` after a minute;
@@ -84,7 +90,7 @@ use agent_client_protocol::v1::schema::{
     TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
     ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
 };
-use agent_client_protocol::{Agent, ByteStreams, Error};
+use agent_client_protocol::{Agent, ByteStreams, Error, UntypedMessage};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
 use tokio_util::sync::CancellationToken;
 
@@ -129,6 +135,9 @@ struct State {
     sessions: u32,
     options: options::Options,
     turn: Option<CancellationToken>,
+    /// Ends the running `wait` turn with `end_turn`: a `wait` turn is the
+    /// one a steer reaches.
+    steerable: Option<CancellationToken>,
     /// From the last `session/new` or `session/load`.
     mcp_servers: Vec<McpServer>,
     /// The id the last `session/load` got.
@@ -143,6 +152,7 @@ impl State {
             sessions: 0,
             options: options::Options::from_env(),
             turn: None,
+            steerable: None,
             mcp_servers: Vec::new(),
             loaded: None,
             cwd: None,
@@ -355,10 +365,12 @@ async fn serve() -> ExitCode {
                 let state = Arc::clone(&state);
                 async move |request: PromptRequest, responder, cx| {
                     let turn = CancellationToken::new();
+                    let finish = CancellationToken::new();
                     let prompt = prompt_text(&request.prompt);
                     let (model, report) = {
                         let mut state = lock(&state);
                         state.turn = Some(turn.clone());
+                        state.steerable = (prompt == "wait").then(|| finish.clone());
                         let report = report(&prompt, &state);
                         (state.options.model.clone(), report)
                     };
@@ -405,9 +417,17 @@ async fn serve() -> ExitCode {
                     // the dispatch loop.
                     cx.spawn({
                         let cx = cx.clone();
+                        let state = Arc::clone(&state);
                         async move {
-                            let reason =
-                                run_turn(&cx, &request.session_id, &prompt, &model, &turn).await?;
+                            let reason = run_turn(
+                                &cx,
+                                &request.session_id,
+                                &prompt,
+                                &model,
+                                (&turn, &finish),
+                            )
+                            .await?;
+                            lock(&state).steerable = None;
                             responder.respond(PromptResponse::new(reason))
                         }
                     })
@@ -427,6 +447,51 @@ async fn serve() -> ExitCode {
             },
             agent_client_protocol::on_receive_notification!(),
         )
+        .on_receive_request(
+            {
+                let state = Arc::clone(&state);
+                async move |request: UntypedMessage,
+                            responder: agent_client_protocol::v1::Responder<serde_json::Value>,
+                            cx: agent_client_protocol::v1::ConnectionTo<
+                    agent_client_protocol::Client,
+                >| {
+                    if !steer || request.method != "_session/steering" {
+                        return responder.respond_with_error(Error::method_not_found());
+                    }
+                    let said = request
+                        .params
+                        .get("prompt")
+                        .and_then(|prompt| prompt.get(0))
+                        .and_then(|block| block.get("text"))
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or_default()
+                        .to_owned();
+                    let session = request
+                        .params
+                        .get("sessionId")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or_default()
+                        .to_owned();
+                    let steerable = lock(&state).steerable.clone();
+                    let Some(finish) = steerable else {
+                        return responder
+                            .respond(serde_json::json!({ "outcome": "promptRequired" }));
+                    };
+                    cx.send_notification(SessionNotification::new(
+                        SessionId::new(session),
+                        SessionUpdate::AgentMessageChunk(ContentChunk::new(text(&format!(
+                            "steered: {said}"
+                        )))),
+                    ))?;
+                    responder.respond(serde_json::json!({ "outcome": "injected" }))?;
+                    if said == "finish" {
+                        finish.cancel();
+                    }
+                    Ok(())
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
         .connect_to(transport)
         .await;
     match served {
@@ -443,7 +508,7 @@ async fn run_turn(
     session: &SessionId,
     prompt: &str,
     model: &str,
-    turn: &CancellationToken,
+    (turn, finish): (&CancellationToken, &CancellationToken),
 ) -> Result<StopReason, Error> {
     let say = |update| cx.send_notification(SessionNotification::new(session.clone(), update));
     match prompt {
@@ -454,8 +519,10 @@ async fn run_turn(
             return Ok(StopReason::EndTurn);
         }
         "wait" => {
-            turn.cancelled().await;
-            return Ok(StopReason::Cancelled);
+            return Ok(tokio::select! {
+                () = turn.cancelled() => StopReason::Cancelled,
+                () = finish.cancelled() => StopReason::EndTurn,
+            });
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,

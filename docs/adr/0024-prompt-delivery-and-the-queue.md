@@ -102,6 +102,13 @@ cold.
   full output queue would stall the agent that has to answer.
 - The log carries the whole queue at each change (at most 128 KiB per
   record); retention counts it like any record.
+- Any turn that ends `cancelled` holds what waits, not only a person's
+  cancel: a forced move's cancel, or an agent cancelling on its own,
+  also stops the queue, since nobody asked for the next entry then.
+  An interrupt's cancel is the exception: its own prompt starts next.
+- The actor counts the turns it started and the ends it published
+  rather than keeping a flag: a turn's end can be in the log before the
+  agent's answer to its prompt reaches the actor.
 - An entry is checked again when it is sent; one an agent no longer
   takes (after a move or a start again) holds the queue with a log line
   instead of failing a turn.

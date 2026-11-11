@@ -147,6 +147,21 @@ impl Log {
         if self.records.iter().any(|record| wanted(&record.event)) {
             return;
         }
+        self.next(wanted).await;
+    }
+
+    /// Read until a record at or after `from` (an index into `records`)
+    /// matches.
+    pub(crate) async fn since(&mut self, from: usize, wanted: impl Fn(&SessionEvent) -> bool) {
+        let read = self.records.get(from..).unwrap_or_default();
+        if read.iter().any(|record| wanted(&record.event)) {
+            return;
+        }
+        self.next(wanted).await;
+    }
+
+    /// Read until a record not read yet matches.
+    pub(crate) async fn next(&mut self, wanted: impl Fn(&SessionEvent) -> bool) {
         loop {
             let record = match self.live.recv().await {
                 Ok(record) => record,
