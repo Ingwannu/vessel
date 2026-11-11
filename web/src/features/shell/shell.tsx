@@ -9,15 +9,19 @@ import { type ReactElement, useState } from "react";
 import { useFleet, useFleetState } from "../../context";
 import { Banner, Button } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
-import { useGoShortcuts } from "../palette/shortcuts";
+import { useNotices } from "../notifications/use-notices";
+import { useShortcutListener } from "../shortcuts/listener";
 import { FrameTop } from "./frame-top";
 import { Sidebar } from "./sidebar";
 import { TitleBarSlot } from "./title-bar";
 import { useNewSessionEntry } from "./use-new-session";
+import { useShellShortcuts } from "./use-shell-shortcuts";
 
 export function Shell(): ReactElement {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useGoShortcuts();
+  useShortcutListener();
+  useShellShortcuts();
+  useNotices();
   useNewSessionEntry();
   return (
     <>

@@ -7,7 +7,7 @@ import { useCallback, useEffect } from "react";
 
 import { closeNewSession, useChrome } from "../../context";
 import { useWhere, type Where } from "../../data/where";
-import { typing } from "../palette/shortcuts";
+import { useShortcut } from "../shortcuts/handlers";
 
 /** Open the new-session page on `machine` (`null`: the page picks). */
 export function useNewSession(): (machine: string | null) => void {
@@ -37,8 +37,8 @@ export function machineInView(where: Where): string | null {
 }
 
 /** Turns requests made through the chrome's store (`openNewSession`, the
- * palette's command) into the page, and listens for `n`. Mounted once,
- * by the shell. */
+ * palette's command) into the page, and answers the "new session"
+ * shortcut (`N` by default). Mounted once, by the shell. */
 export function useNewSessionEntry(): void {
   const open = useNewSession();
   const where = useWhere();
@@ -50,23 +50,8 @@ export function useNewSessionEntry(): void {
       open(request.node);
     }
   }, [request, open]);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (
-        event.key !== "n" ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        typing(event.target)
-      ) {
-        return;
-      }
-      event.preventDefault();
-      open(inView);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, inView]);
+  useShortcut("new-session", () => {
+    open(inView);
+    return true;
+  });
 }

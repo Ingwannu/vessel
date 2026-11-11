@@ -53,6 +53,12 @@ export const ICON_NAMES = [
   "circle-check",
   "circle-x",
   "circle-dashed",
+  "keyboard",
+  "bell",
+  "sidebar",
+  "list",
+  "sliders",
+  "menu",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];

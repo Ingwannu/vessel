@@ -1,5 +1,6 @@
 // The sidebar's search row and the command palette it opens (DESIGN.md
-// §2.2): `⌘K` (or Ctrl+K) anywhere, `/` when not typing.
+// §2.2): its shortcut (`⌘K` or Ctrl+K anywhere, `/` when not typing, by
+// default; data/shortcuts/registry.ts).
 //
 // The row is a button drawn as the reference's search pill, not a text
 // field: typing happens in the palette, so the sidebar never holds a
@@ -9,7 +10,7 @@
 import "./palette.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
@@ -28,7 +29,7 @@ import {
   Kbd,
 } from "../../ui/kit";
 import { sectionIcon } from "../settings/section-icon";
-import { typing } from "./shortcuts";
+import { useShortcut } from "../shortcuts/handlers";
 
 function iconOf(place: PalettePlace): IconName {
   if (typeof place === "object") {
@@ -63,19 +64,10 @@ export function SidebarSearch() {
   const navigate = useNavigate();
   const fleet = useFleet();
   const state = useFleetState((value) => value);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const chord = event.key === "k" && (event.metaKey || event.ctrlKey);
-      if (chord || (event.key === "/" && !typing(event.target))) {
-        event.preventDefault();
-        setOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, []);
+  useShortcut("palette", () => {
+    setOpen(true);
+    return true;
+  });
   const commands = useMemo(
     () =>
       paletteEntries(state, selectedNode(state, undefined)).map(

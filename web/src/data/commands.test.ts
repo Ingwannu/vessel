@@ -133,7 +133,10 @@ describe("paletteEntries", () => {
       .map((entry) => entry.label);
     expect(places).toEqual([
       "Board",
+      "Settings: General",
       "Settings: Appearance",
+      "Settings: Shortcuts",
+      "Settings: Notifications",
       "Settings: Agents",
       "Settings: Models",
       "Settings: Machines",

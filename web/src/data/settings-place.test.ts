@@ -30,11 +30,11 @@ describe("a Settings address", () => {
 
   it("is the default section when it names none or an unknown one", () => {
     expect(settingsPlace(at("/settings"))).toMatchObject({
-      section: "appearance",
+      section: "general",
       exact: false,
     });
     expect(settingsPlace(at("/settings/fleet"))).toMatchObject({
-      section: "appearance",
+      section: "general",
       exact: false,
     });
     expect(settingsPlace(at("/settings/machines/extra"))?.exact).toBe(false);
