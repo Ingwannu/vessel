@@ -249,34 +249,37 @@
   padding-left: 10px;
 }
 
-/* Narrow windows (DESIGN.md §3): the sidebar becomes a rail of icons,
-   then leaves. */
+/* Narrow windows (DESIGN.md §3): the sidebar beside the page becomes a
+   rail of icons, then leaves; below 768px it opens as a sheet from the
+   title bar's menu button (shell.tsx), drawn whole there. */
 @media (max-width: 1099px) {
   .app {
     grid-template-columns: 52px minmax(0, 1fr);
   }
 
-  .brand span,
-  .side-search-wrap,
-  .side-label,
-  .nav-item span.label,
-  .nav-item .count,
-  .nav-item .dash,
-  .nav-item .shortcut,
+  .app > .sidebar .brand span,
+  .app > .sidebar .side-search-wrap,
+  .app > .sidebar .side-label,
+  .app > .sidebar .nav-item span.label,
+  .app > .sidebar .nav-item .count,
+  .app > .sidebar .nav-item .dash,
+  .app > .sidebar .nav-item .shortcut,
   /* The rail has no room for a machine's sessions: the board has them. */
-  .nav-item.sub,
-  .nav-item.more {
+  .app > .sidebar .nav-item.sub,
+  .app > .sidebar .nav-item.more,
+  .app > .sidebar .side-status,
+  .app > .sidebar .side-machine {
     display: none;
   }
 
-  .side-head {
+  .app > .sidebar .side-head {
     padding-inline: 0;
     display: grid;
     place-items: center;
   }
 
-  .nav-item,
-  .nav-item.node {
+  .app > .sidebar .nav-item,
+  .app > .sidebar .nav-item.node {
     padding: 0;
     justify-content: center;
   }
@@ -287,13 +290,54 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .sidebar {
+  .app > .sidebar {
     display: none;
   }
+}
+
+/* Hidden by its shortcut or the title bar's button (kept with the
+   bridge): the page takes the whole window. */
+.app.no-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* In a sheet the sidebar fills it. */
+.sheet > .sidebar {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .nav-item::before {
     transition: none;
   }
+}
+
+/* Grouped by status (sidebar-statuses.tsx): a quiet heading per group,
+   each session's machine at the row's end; the Display menu's button
+   beside the list's heading. */
+.side-status {
+  padding: 10px 12px 4px;
+  font: var(--t-kicker);
+  color: var(--text-tertiary);
+}
+
+.side-machine {
+  margin-left: auto;
+  padding-left: 8px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.side-empty {
+  margin: 4px 12px;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+/* Two buttons by a heading (Display, then Add machine): the first takes
+   the free space, the second sits beside it. */
+.side-label .btn ~ .btn {
+  margin-left: 2px;
 }

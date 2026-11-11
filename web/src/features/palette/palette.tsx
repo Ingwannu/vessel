@@ -30,6 +30,7 @@ import {
 } from "../../ui/kit";
 import { sectionIcon } from "../settings/section-icon";
 import { useShortcut } from "../shortcuts/handlers";
+import { useShortcutWords } from "../shortcuts/use-keys";
 
 function iconOf(place: PalettePlace): IconName {
   if (typeof place === "object") {
@@ -63,6 +64,7 @@ export function SidebarSearch() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const fleet = useFleet();
+  const keys = useShortcutWords("palette");
   const state = useFleetState((value) => value);
   useShortcut("palette", () => {
     setOpen(true);
@@ -111,7 +113,7 @@ export function SidebarSearch() {
       >
         <Icon name="search" size={14} />
         <span className="label">Search</span>
-        <Kbd keys={["⌘", "K"]} look="text" />
+        {keys === null ? null : <Kbd keys={[keys]} look="text" />}
       </button>
       {open ? (
         <CommandPalette

@@ -17,7 +17,7 @@
 //   "next/previous session" walk (`sidebarOrder`), so a key goes where
 //   the eye already is.
 
-import type { NodeKey } from "../wire/bridge";
+import type { NodeKey, SidebarView } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
 import { placement } from "./board";
 import { isWorking, needsYou } from "./phrase";
@@ -30,19 +30,10 @@ import { sessionName } from "./titles";
 /** The mark a session's row leads with. */
 export type SessionMark = "needs-you" | "working" | "idle" | "ended";
 
-/** How the sidebar groups sessions. */
-export type SidebarGrouping = "machine" | "status";
-
-/** How it orders them, newest first either way. */
-export type SidebarSort = "created" | "activity";
-
-/** What the person chose (`data/prefs.ts` keeps it). */
-export interface SidebarView {
-  group: SidebarGrouping;
-  sort: SidebarSort;
-  /** Whether ended sessions are listed. */
-  ended: boolean;
-}
+/** What the person chose: how the sidebar groups sessions, how it
+ * orders them (newest first either way), whether ended sessions are
+ * listed. The bridge keeps it (`data/prefs.ts`). */
+export type { SidebarView } from "../wire/bridge";
 
 /** The sidebar as milestone 10 drew it. */
 export const DEFAULT_VIEW: SidebarView = {

@@ -18,6 +18,7 @@ import {
   MenuSeparator,
   MenuSubmenu,
   Popover,
+  Sheet,
   TextField,
   Tooltip,
 } from "../../ui/kit";
@@ -68,6 +69,7 @@ export function Popups() {
   const [archived, setArchived] = useState(false);
   const [dialog, setDialog] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [name, setName] = useState("laptop");
   return (
     <Section title="Popups">
@@ -141,6 +143,14 @@ export function Popups() {
         >
           Command palette
         </Button>
+        <Button
+          icon="menu"
+          onClick={() => {
+            setSheet(true);
+          }}
+        >
+          Sheet
+        </Button>
       </Specimens>
       {dialog ? (
         <Dialog
@@ -173,6 +183,18 @@ export function Popups() {
             <TextField value={name} onChange={setName} />
           </Field>
         </Dialog>
+      ) : null}
+      {sheet ? (
+        <Sheet
+          label="A sheet"
+          onClose={() => {
+            setSheet(false);
+          }}
+        >
+          <p className="kit-note">
+            A panel from the left edge, for what has no room on a phone.
+          </p>
+        </Sheet>
       ) : null}
       {palette ? (
         <CommandPalette

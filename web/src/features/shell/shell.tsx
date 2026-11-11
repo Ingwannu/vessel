@@ -1,5 +1,8 @@
 // The chrome every page sits in (DESIGN.md §2.2): the sidebar and the
-// framed page with its title bar, set into one grey shell.
+// framed page with its title bar, set into one grey shell. The sidebar
+// can be hidden (its shortcut, or the title bar's button; kept with the
+// bridge); below 768px it opens as a sheet from the title bar's menu
+// button, as GOAT's does, and picking a row closes it.
 
 import "./frame.css";
 
@@ -7,7 +10,10 @@ import { Outlet } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
-import { Banner, Button } from "../../ui/kit";
+import { prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
+import { useWhere } from "../../data/where";
+import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
 import { useShortcutListener } from "../shortcuts/listener";
@@ -19,6 +25,13 @@ import { useShellShortcuts } from "./use-shell-shortcuts";
 
 export function Shell(): ReactElement {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const shown = useStore(prefs, (state) => state.values.layout.sidebar);
+  const where = useWhere();
+  const at = where.segments.join("/");
+  // The sheet is open at the place it was opened from: going anywhere
+  // (picking a row) closes it.
+  const [sheetAt, setSheetAt] = useState<string | null>(null);
+  const sheet = sheetAt === at;
   useShortcutListener();
   useShellShortcuts();
   useNotices();
@@ -31,11 +44,16 @@ export function Shell(): ReactElement {
       {/* The sidebar and the margin around the page are one shell; the
           page is a framed surface set into it, with its title bar inside
           the frame (DESIGN.md §2.2). */}
-      <div className="app">
-        <Sidebar />
+      <div className={shown === "shown" ? "app" : "app no-sidebar"}>
+        {shown === "shown" ? <Sidebar /> : null}
         <div className="frame-wrap">
           <div className="frame">
-            <FrameTop slot={setSlot} />
+            <FrameTop
+              slot={setSlot}
+              onMenu={() => {
+                setSheetAt(at);
+              }}
+            />
             <TitleBarSlot.Provider value={slot}>
               <main className="main" id="main" role="main">
                 <Disconnected />
@@ -45,6 +63,20 @@ export function Shell(): ReactElement {
           </div>
         </div>
       </div>
+      {sheet ? (
+        <Sheet
+          label="Sidebar"
+          onClose={() => {
+            setSheetAt(null);
+          }}
+        >
+          <Sidebar
+            onPick={() => {
+              setSheetAt(null);
+            }}
+          />
+        </Sheet>
+      ) : null}
       <Toasts />
     </>
   );

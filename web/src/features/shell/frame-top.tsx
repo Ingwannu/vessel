@@ -8,11 +8,13 @@ import "./frame-top.css";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
 
-import { useChrome, useFleetState } from "../../context";
+import { useChrome, useFleet, useFleetState } from "../../context";
 import type { StateTone } from "../../data/format";
 import { selectedNode } from "../../data/nodes";
 import { useWhere } from "../../data/where";
-import { Button, StatusDot } from "../../ui/kit";
+import { prefer, prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
+import { Button, IconButton, StatusDot, Tooltip } from "../../ui/kit";
 import { machineInView, useNewSession } from "./use-new-session";
 
 /** The link's state in words, when it is not open. */
@@ -34,9 +36,14 @@ function linkChip(
 
 export function FrameTop({
   slot,
+  onMenu,
 }: {
   slot: (element: HTMLElement | null) => void;
+  /** Open the sidebar as a sheet (below 768px, where it has no room). */
+  onMenu: () => void;
 }) {
+  const fleet = useFleet();
+  const sidebar = useStore(prefs, (state) => state.values.layout.sidebar);
   const crumbs = useChrome((chrome) => chrome.crumbs);
   const link = useFleetState((state) => state.link);
   const where = useWhere();
@@ -48,6 +55,28 @@ export function FrameTop({
     // The new-session page is the chat before it has a session: its bar
     // is bare chrome, with no hairline (agent-orchestrator's).
     <header className={onNew ? "frame-top bare" : "frame-top"} role="banner">
+      <span className="frame-menu">
+        <IconButton
+          label="Open sidebar"
+          icon="menu"
+          size="sm"
+          onClick={onMenu}
+        />
+      </span>
+      {sidebar === "hidden" ? (
+        <span className="frame-show-sidebar">
+          <Tooltip label="Show sidebar">
+            <IconButton
+              label="Show sidebar"
+              icon="sidebar"
+              size="sm"
+              onClick={() => {
+                void prefer(fleet, { set: "sidebar_panel", value: "shown" });
+              }}
+            />
+          </Tooltip>
+        </span>
+      ) : null}
       {crumbs.length === 0 ? null : (
         <nav className="crumb" aria-label="Breadcrumb">
           {crumbs.map((crumb, index) => {
