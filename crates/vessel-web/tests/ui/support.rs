@@ -13,7 +13,8 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest as _;
 use tokio_util::sync::{CancellationToken, DropGuard};
-use vessel_client::{BearerToken, ConnectError, Connector, NodeClient, NodeUrl, WsConnector};
+use vessel_client::book::{BookEntry, BookError, BookFile, NodeName, TokenSource};
+use vessel_client::{BearerToken, ConnectError, Connector, NodeAddress, NodeClient, WsConnector};
 use vessel_harness::Lookup;
 use vessel_harness::fakes::{Role, install};
 use vessel_node::{Config, DataDir, Node};
@@ -227,7 +228,7 @@ impl Tab {
         let call = RawJson::from_serialize(call).unwrap();
         self.send(&ClientFrame::Call {
             id,
-            node: NodeKey::new(node),
+            node: node.parse().unwrap(),
             call,
         })
         .await;
@@ -239,7 +240,7 @@ impl Tab {
         let id = self.id();
         self.send(&ClientFrame::Call {
             id,
-            node: NodeKey::new(node),
+            node: node.parse().unwrap(),
             call: RawJson::from_text(call).unwrap(),
         })
         .await;
@@ -250,6 +251,15 @@ impl Tab {
     pub(crate) async fn op(&mut self, op: Op) -> CallId {
         let id = self.id();
         self.send(&ClientFrame::Op { id, op }).await;
+        id
+    }
+
+    /// Send a frame written as JSON text with `{id}` standing for a fresh
+    /// call id; that id.
+    pub(crate) async fn frame_text(&mut self, frame: &str) -> CallId {
+        let id = self.id();
+        let id_text = serde_json::to_string(&id).unwrap();
+        self.send_text(&frame.replace("{id}", &id_text)).await;
         id
     }
 
@@ -363,137 +373,137 @@ async fn pipe(mut inbound: TcpStream, upstream: SocketAddr, cut: CancellationTok
     }
 }
 
-/// The nodes the tests' UI offers: names to websocket addresses and
-/// tokens, with every dial counted. Its edits check names with the book's
-/// own `NodeName` and fail as the book does (no such node, a name taken);
-/// the CLI's real book source is tested in `vessel-cli`.
-#[derive(Default, Clone)]
+/// The nodes the tests' UI offers: a real node book (`BookFile`, the
+/// CLI's own writer) in a temporary directory, with each websocket node's
+/// token in a file beside it, and every dial counted. Its edits are the
+/// book's, so the bridge's tests see what the CLI's source does; what the
+/// CLI adds on top (this machine's node, SSH, pairing) is tested in
+/// `vessel-cli`.
+#[derive(Clone)]
 pub(crate) struct Source {
-    nodes: Arc<Mutex<Vec<(String, NodeUrl, BearerToken)>>>,
-    default: Arc<Mutex<Option<String>>>,
+    dir: Arc<TempDir>,
     dials: Arc<AtomicUsize>,
 }
 
+impl Default for Source {
+    fn default() -> Self {
+        Self {
+            dir: Arc::new(tempfile::tempdir().unwrap()),
+            dials: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
 impl Source {
-    /// Offer the node at `address` as `name`.
-    pub(crate) fn with(self, name: &str, address: SocketAddr, token: BearerToken) -> Self {
-        let url = address.to_string().parse().unwrap();
-        self.nodes
-            .lock()
-            .unwrap()
-            .push((name.to_owned(), url, token));
+    /// Offer the node at `address` as `name`, with `token` in a file.
+    pub(crate) fn with(self, name: &str, address: SocketAddr, token: &BearerToken) -> Self {
+        let tokens = self.dir.path().join("tokens");
+        std::fs::create_dir_all(&tokens).unwrap();
+        let file = tokens.join(name);
+        std::fs::write(&file, token.expose()).unwrap();
+        let entry = BookEntry {
+            address: NodeAddress::Ws(address.to_string().parse().unwrap()),
+            token: Some(TokenSource::File(file)),
+            credential: None,
+            id: None,
+        };
+        self.file().add(&name.parse().unwrap(), &entry).unwrap();
         self
     }
 
+    /// Empty the book, as `vessel nodes remove` for every node would.
     pub(crate) fn remove_all(&self) {
-        self.nodes.lock().unwrap().clear();
+        std::fs::write(self.path(), "").unwrap();
     }
 
     /// Counts the dials made through this source.
     pub(crate) fn dials(&self) -> Arc<AtomicUsize> {
         Arc::clone(&self.dials)
     }
-}
 
-/// What the tests' source refuses.
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum NoSuchNode {
-    #[error("no node named {0}")]
-    Missing(String),
-    #[error("a node named {0} is already in the book")]
-    Exists(String),
-    #[error(transparent)]
-    Name(#[from] vessel_client::book::InvalidNodeName),
-}
-
-impl Source {
-    /// The position of `node`, or why there is none.
-    fn find(nodes: &[(String, NodeUrl, BearerToken)], node: &NodeKey) -> Result<usize, NoSuchNode> {
-        nodes
-            .iter()
-            .position(|(name, _url, _token)| name == node.as_str())
-            .ok_or_else(|| NoSuchNode::Missing(node.to_string()))
+    /// The book's file.
+    pub(crate) fn path(&self) -> std::path::PathBuf {
+        self.dir.path().join("nodes.toml")
     }
+
+    fn file(&self) -> BookFile {
+        BookFile::open(&self.path()).unwrap()
+    }
+}
+
+/// What the tests' source refuses: the book's own errors, and what it has
+/// no way to reach.
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Refused {
+    #[error(transparent)]
+    Book(#[from] BookError),
+    #[error("no node named {0}")]
+    Missing(NodeKey),
+    #[error("the tests' book holds websocket nodes with token files only")]
+    NotWebsocket,
 }
 
 impl NodeSource for Source {
     type Connector = Counted;
-    type Error = NoSuchNode;
+    type Error = Refused;
 
-    async fn nodes(&self) -> Result<Vec<BookNode>, NoSuchNode> {
-        Ok(self
+    async fn nodes(&self) -> Result<Vec<BookNode>, Refused> {
+        let file = BookFile::open(&self.path())?;
+        let book = file.book();
+        Ok(book
             .nodes
-            .lock()
-            .unwrap()
             .iter()
-            .map(|(name, url, _token)| BookNode {
-                key: NodeKey::new(name.clone()),
-                label: name.clone(),
-                address: url.to_string(),
+            .map(|(name, entry)| BookNode {
+                key: NodeKey::from(name.clone()),
+                label: name.to_string(),
+                address: entry.address.to_string(),
                 transport: Transport::Ws,
-                default: self.default.lock().unwrap().as_ref() == Some(name),
+                default: book.default_node.as_ref() == Some(name),
                 id: None,
             })
             .collect())
     }
 
-    async fn connector(&self, node: &NodeKey) -> Result<Counted, NoSuchNode> {
-        let nodes = self.nodes.lock().unwrap();
-        let (_name, url, token) = nodes
-            .iter()
-            .find(|(name, _url, _token)| name == node.as_str())
-            .ok_or_else(|| NoSuchNode::Missing(node.to_string()))?;
+    async fn connector(&self, node: &NodeKey) -> Result<Counted, Refused> {
+        let file = BookFile::open(&self.path())?;
+        let entry = match node {
+            NodeKey::Here => None,
+            NodeKey::Book(name) => file.book().nodes.get(name),
+        }
+        .ok_or_else(|| Refused::Missing(node.clone()))?;
+        let (NodeAddress::Ws(url), Some(token)) = (&entry.address, &entry.token) else {
+            return Err(Refused::NotWebsocket);
+        };
+        let token = std::fs::read_to_string(token.path(None))
+            .unwrap()
+            .parse()
+            .unwrap();
         Ok(Counted {
-            inner: WsConnector::new(url.clone(), token.clone()),
+            inner: WsConnector::new(url.clone(), token),
             dials: Arc::clone(&self.dials),
         })
     }
 
     async fn seen(&self, _node: &NodeKey, _id: NodeId) {}
 
-    async fn pair(&self, name: &str, _link: &str) -> Result<BookNode, NoSuchNode> {
-        Err(NoSuchNode::Missing(name.to_owned()))
+    async fn pair(&self, name: &NodeName, _link: &str) -> Result<BookNode, Refused> {
+        Err(Refused::Missing(NodeKey::from(name.clone())))
     }
 
-    async fn forget(&self, node: &NodeKey) -> Result<(), NoSuchNode> {
-        assert!(!node.is_here(), "the bridge refuses this machine's node");
-        let mut nodes = self.nodes.lock().unwrap();
-        let at = Self::find(&nodes, node)?;
-        let _gone = nodes.remove(at);
-        let mut default = self.default.lock().unwrap();
-        if default.as_deref() == Some(node.as_str()) {
-            *default = None;
-        }
-        Ok(())
+    async fn forget(&self, node: &NodeName) -> Result<(), Refused> {
+        Ok(self.file().remove(node.as_str())?)
     }
 
-    async fn rename(&self, node: &NodeKey, name: &str) -> Result<(), NoSuchNode> {
-        assert!(!node.is_here(), "the bridge refuses this machine's node");
-        let to: vessel_client::book::NodeName = name.parse()?;
-        let mut nodes = self.nodes.lock().unwrap();
-        let at = Self::find(&nodes, node)?;
-        if nodes.iter().any(|(name, _url, _token)| name == to.as_str()) {
-            return Err(NoSuchNode::Exists(to.to_string()));
-        }
-        if let Some(entry) = nodes.get_mut(at) {
-            entry.0 = to.to_string();
-        }
-        let mut default = self.default.lock().unwrap();
-        if default.as_deref() == Some(node.as_str()) {
-            *default = Some(to.to_string());
-        }
-        Ok(())
+    async fn rename(&self, node: &NodeName, to: &NodeName) -> Result<(), Refused> {
+        Ok(self.file().rename(node.as_str(), to)?)
     }
 
-    async fn set_default(&self, node: &NodeKey) -> Result<(), NoSuchNode> {
-        let chosen = if node.is_here() {
-            None
-        } else {
-            let _at = Self::find(&self.nodes.lock().unwrap(), node)?;
-            Some(node.to_string())
+    async fn set_default(&self, node: &NodeKey) -> Result<(), Refused> {
+        let name = match node {
+            NodeKey::Here => None,
+            NodeKey::Book(name) => Some(name.as_str()),
         };
-        *self.default.lock().unwrap() = chosen;
-        Ok(())
+        Ok(self.file().set_default(name)?)
     }
 }
 

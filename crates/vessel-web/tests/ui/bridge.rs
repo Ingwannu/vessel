@@ -16,8 +16,8 @@ use vessel_proto::{
     TerminalBytes, TerminalInput, TerminalOutput, TerminalSize,
 };
 use vessel_web::wire::{
-    CallId, CallOutcome, ClientFrame, Failure, NodeKey, NodeStatus, Op, OpOutcome, OpResult,
-    ServerFrame, StreamId, StreamState,
+    CallId, CallOutcome, ClientFrame, Failure, NodeStatus, Op, OpOutcome, OpResult, ServerFrame,
+    StreamId, StreamState,
 };
 
 use crate::support::{Proxy, Source, Tab, TestNode, Ui, within};
@@ -57,7 +57,7 @@ fn failure(outcome: CallOutcome) -> Failure {
 async fn a_call_reaches_the_node_and_failures_come_back_by_id() {
     within(Box::pin(async {
         let node = TestNode::start().await;
-        let ui = Ui::start(Source::default().with("box", node.address(), node.token())).await;
+        let ui = Ui::start(Source::default().with("box", node.address(), &node.token())).await;
         let mut tab = ui.tab().await;
 
         let id = tab.call("box", &Call::NodeInfo(GetNode)).await;
@@ -130,7 +130,7 @@ async fn a_call_reaches_the_node_and_failures_come_back_by_id() {
 async fn every_tab_shares_one_connection_per_node() {
     within(Box::pin(async {
         let node = TestNode::start().await;
-        let source = Source::default().with("box", node.address(), node.token());
+        let source = Source::default().with("box", node.address(), &node.token());
         let dials = source.dials();
         let ui = Ui::start(source).await;
         let mut one = ui.tab().await;
@@ -158,7 +158,7 @@ async fn every_tab_shares_one_connection_per_node() {
 async fn ops_are_answered_by_the_bridge() {
     within(Box::pin(async {
         let node = TestNode::start().await;
-        let ui = Ui::start(Source::default().with("box", node.address(), node.token())).await;
+        let ui = Ui::start(Source::default().with("box", node.address(), &node.token())).await;
         let mut tab = ui.tab().await;
 
         let id = tab.op(Op::Nodes).await;
@@ -189,7 +189,7 @@ async fn ops_are_answered_by_the_bridge() {
         ));
         let id = tab
             .op(Op::Retry {
-                node: NodeKey::new("box"),
+                node: "box".parse().unwrap(),
             })
             .await;
         assert!(matches!(
@@ -249,7 +249,7 @@ async fn a_followed_session_resumes_after_its_node_connection_drops() {
     within(Box::pin(async {
         let node = TestNode::start().await;
         let proxy = Proxy::start(node.address()).await;
-        let source = Source::default().with("box", proxy.address, node.token());
+        let source = Source::default().with("box", proxy.address, &node.token());
         let dials = source.dials();
         let ui = Ui::start(source).await;
         let mut tab = ui.tab().await;
@@ -276,7 +276,7 @@ async fn a_followed_session_resumes_after_its_node_connection_drops() {
         let stream = StreamId::new(1);
         tab.send(&ClientFrame::Follow {
             stream,
-            node: NodeKey::new("box"),
+            node: "box".parse().unwrap(),
             session,
             from: EventSeq::ZERO,
         })
@@ -397,7 +397,7 @@ fn agent_event(record: &EventRecord) -> Option<&AgentEvent> {
 async fn a_structured_turn_with_a_permission_reaches_the_page() {
     within(Box::pin(async {
         let node = TestNode::start().await;
-        let ui = Ui::start(Source::default().with("box", node.address(), node.token())).await;
+        let ui = Ui::start(Source::default().with("box", node.address(), &node.token())).await;
         let mut tab = ui.tab().await;
         let mut spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
@@ -421,7 +421,7 @@ async fn a_structured_turn_with_a_permission_reaches_the_page() {
         let stream = StreamId::new(1);
         tab.send(&ClientFrame::Follow {
             stream,
-            node: NodeKey::new("box"),
+            node: "box".parse().unwrap(),
             session,
             from: EventSeq::ZERO,
         })
@@ -496,14 +496,14 @@ async fn a_structured_turn_with_a_permission_reaches_the_page() {
 async fn unknown_names_cannot_fill_the_registry_and_removed_nodes_are_pruned() {
     within(Box::pin(async {
         let node = TestNode::start().await;
-        let source = Source::default().with("box", node.address(), node.token());
+        let source = Source::default().with("box", node.address(), &node.token());
         let control = source.clone();
         let ui = Ui::start(source).await;
         let mut tab = ui.tab().await;
         for n in 0..260 {
             let id = tab
                 .op(Op::Retry {
-                    node: NodeKey::new(format!("missing-{n}")),
+                    node: format!("missing-{n}").parse().unwrap(),
                 })
                 .await;
             let failed = tab

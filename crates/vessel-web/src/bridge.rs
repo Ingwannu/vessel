@@ -26,6 +26,7 @@ use std::sync::Arc;
 use crate::socket::WebSocket;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
+use serde::Deserialize;
 use tokio::sync::{Semaphore, broadcast, mpsc};
 use tokio::task::{AbortHandle, JoinSet};
 use tokio_tungstenite::tungstenite::Message;
@@ -35,8 +36,8 @@ use vessel_proto::{Call, EventSeq, Method, RawJson, SessionId};
 use crate::registry::{Cancelled, Change, Registry, Shared, chain};
 use crate::source::NodeSource;
 use crate::wire::{
-    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpOutcome, ServerFrame, StreamId,
-    StreamState, StreamStop,
+    CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, ServerFrame,
+    StreamId, StreamState, StreamStop,
 };
 
 /// Calls and ops one tab may have in flight.
@@ -162,9 +163,60 @@ async fn read<S: NodeSource>(
         };
         match serde_json::from_str::<ClientFrame>(&text) {
             Ok(frame) => tab.handle(frame).await,
-            Err(error) => unreadable(&tab.out, format!("not a frame: {error}")).await,
+            Err(error) => refuse(&tab.out, &text, &error).await,
         }
     }
+}
+
+/// What a frame that did not decode still says: its kind and the id to
+/// answer by.
+///
+/// Names in a frame are parsed as it is decoded (`wire::NodeKey`,
+/// `wire::BookName`), so a call, op or follow naming a node badly fails
+/// the whole frame. The page waits for an answer by id; this reads just
+/// enough to give one, typed, instead of an `unreadable` it cannot match
+/// to what it sent. Anything else is unreadable.
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum Addressed {
+    Call {
+        id: CallId,
+    },
+    Op {
+        id: CallId,
+    },
+    Follow {
+        stream: StreamId,
+    },
+    #[serde(other)]
+    Other,
+}
+
+/// Answer a frame that did not decode, by its id when it has one.
+async fn refuse(out: &mpsc::Sender<ServerFrame>, text: &str, error: &serde_json::Error) {
+    let message = format!("not a frame this bridge reads: {error}");
+    let frame = match serde_json::from_str::<Addressed>(text) {
+        Ok(Addressed::Call { id }) => ServerFrame::Reply {
+            id,
+            outcome: CallOutcome::Err(Failure::Refused { message }),
+        },
+        Ok(Addressed::Op { id }) => ServerFrame::OpReply {
+            id,
+            outcome: OpOutcome::Err {
+                reason: OpFailure::Unreadable,
+                message,
+            },
+        },
+        Ok(Addressed::Follow { stream }) => ServerFrame::Stream {
+            stream,
+            state: StreamState::Failed {
+                message,
+                reason: StreamStop::Error,
+            },
+        },
+        Ok(Addressed::Other) | Err(_) => ServerFrame::Unreadable { message },
+    };
+    let _gone = out.send(frame).await;
 }
 
 /// What one tab started.
@@ -251,6 +303,7 @@ impl<S: NodeSource> Tab<S> {
     async fn op(&mut self, id: CallId, op: Op) {
         let Ok(permit) = Arc::clone(&self.calls).try_acquire_owned() else {
             let outcome = OpOutcome::Err {
+                reason: OpFailure::Busy,
                 message: "too many requests at once".to_owned(),
             };
             let _gone = self.out.send(ServerFrame::OpReply { id, outcome }).await;
@@ -261,7 +314,10 @@ impl<S: NodeSource> Tab<S> {
         let _op = self.tasks.spawn(async move {
             let outcome = match crate::ops::answer(&registry, op).await {
                 Ok(result) => OpOutcome::Ok(result),
-                Err(message) => OpOutcome::Err { message },
+                Err(error) => OpOutcome::Err {
+                    reason: error.reason,
+                    message: error.message,
+                },
             };
             let _gone = out.send(ServerFrame::OpReply { id, outcome }).await;
             drop(permit);

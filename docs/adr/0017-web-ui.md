@@ -186,10 +186,15 @@ Option 3.
   opened right before the edit, so a change made with the CLI while the
   page is open is kept. They dial nothing. They stand where `Op::Pair`
   stands: behind the socket's mutual proof, with no further gate (a
-  launch has one session key, and every welcomed tab holds it). This
-  machine's node is not a book entry and cannot be forgotten or renamed.
-  A forgotten or renamed node's connection is closed and its streams end
-  with `reason: removed`.
+  launch has one session key, and every welcomed tab holds it). Node
+  names are parsed as a frame is decoded: `NodeKey` (a book name or this
+  machine's) and `BookName` (a book entry only, the type of `forget`,
+  `rename` and `pair`), both the book's own `NodeName` inside and `string`
+  in TypeScript. This machine's node is not a book entry, so it cannot be
+  forgotten or renamed. A frame that does not decode is still answered
+  by its id (an op as `unreadable`, a call as `refused`, a follow as a
+  failed stream). A forgotten or renamed node's connection is closed and
+  its streams end with `reason: removed`.
 
 **Front end.**
 - React 19 with TanStack Router (typed routes), Vite, TypeScript strict,

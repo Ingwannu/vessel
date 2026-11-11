@@ -23,7 +23,9 @@
 //! streams, nothing more.
 
 mod auth;
+mod node;
 pub use auth::{AuthMode, InvalidAuthValue, LaunchId, Nonce};
+pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
 
 use std::fmt;
 
@@ -214,9 +216,29 @@ pub enum OpOutcome {
     Ok(OpResult),
     /// It did not.
     Err {
-        /// Why.
+        /// Which kind of failure, for the page to act on without reading
+        /// `message`.
+        reason: OpFailure,
+        /// Why, in words.
         message: String,
     },
+}
+
+/// Why an op has no result.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum OpFailure {
+    /// The op could not be read: not one the bridge knows, or a node key
+    /// or book name that is not one (this machine's node where only a book
+    /// entry will do, a name the book would not take). Nothing was done.
+    Unreadable,
+    /// Too many calls and ops at once; nothing was done.
+    Busy,
+    /// It was tried and did not work: the book's own refusal (no such
+    /// node, a name taken), a link that does not decode, a node that
+    /// cannot be reached.
+    Failed,
 }
 
 /// What the browser asks the bridge itself.
@@ -242,7 +264,7 @@ pub enum Op {
     /// book.
     Pair {
         /// The name to give it in the book.
-        name: String,
+        name: BookName,
         /// The link.
         link: String,
     },
@@ -253,20 +275,20 @@ pub enum Op {
     },
     /// Remove a node from the book (`vessel nodes remove`) and close the
     /// bridge's connection to it; streams following it end as
-    /// [`StreamStop::Removed`]. This machine's node ([`NodeKey::HERE`]) is
-    /// not in the book and is refused.
+    /// [`StreamStop::Removed`]. This machine's node is not in the book,
+    /// so it is not a [`BookName`] and cannot be named here.
     Forget {
         /// The node.
-        node: NodeKey,
+        node: BookName,
     },
     /// Give a node in the book another name (`vessel nodes rename`); the
     /// default follows it. Its connection and streams end under the old
     /// name, as when it is forgotten: follow it again under the new one.
     Rename {
         /// The node.
-        node: NodeKey,
-        /// Its new name, checked as the book checks names.
-        name: String,
+        node: BookName,
+        /// Its new name. The same name changes nothing.
+        name: BookName,
     },
     /// Make a node the one commands use when none is named (`vessel nodes
     /// default`); [`NodeKey::HERE`] clears the book's default, which is
@@ -453,49 +475,6 @@ pub struct Status {
     pub version: String,
     /// Whether the real UI is embedded (else the placeholder page).
     pub bundled: bool,
-}
-
-/// How the browser names a node: a book entry's name, or [`NodeKey::HERE`]
-/// for this machine's node. Book names start with a letter or a digit, so
-/// the two never meet.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(transparent)]
-pub struct NodeKey(String);
-
-impl NodeKey {
-    /// This machine's node (the CLI's default when nothing names one).
-    pub const HERE: &str = "_here";
-
-    /// A key as given.
-    #[must_use]
-    pub fn new(key: impl Into<String>) -> Self {
-        Self(key.into())
-    }
-
-    /// This machine's node.
-    #[must_use]
-    pub fn here() -> Self {
-        Self(Self::HERE.to_owned())
-    }
-
-    /// The key.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
-    /// Whether it is this machine's node.
-    #[must_use]
-    pub fn is_here(&self) -> bool {
-        self.0 == Self::HERE
-    }
-}
-
-impl fmt::Display for NodeKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
 }
 
 /// The browser's id for a call or an op.

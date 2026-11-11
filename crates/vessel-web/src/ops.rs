@@ -24,9 +24,11 @@
 //!   then, so the page needs no second `nodes` round trip.
 //! - Refusals: an op reaches these edits exactly where it reaches `pair`
 //!   (after the socket's mutual proof, within the tab's `MAX_CALLS`).
-//!   This machine's node is refused for `forget` and `rename`
-//!   ([`not_in_book`] says why); unknown nodes and invalid names are the
-//!   book's own errors.
+//!   Node names are parsed when the frame is decoded (`wire::BookName`):
+//!   this machine's node, which is not in the book, and names the book
+//!   would not take never reach an op ([`OpFailure::Unreadable`]);
+//!   unknown nodes and taken names are the book's own errors
+//!   ([`OpFailure::Failed`]).
 //! - Costs: a rename ends the node's connection and streams under the old
 //!   name, as a forget does, and the page follows again under the new
 //!   one. Moving a live entry between keys would have to re-key a running
@@ -41,69 +43,80 @@ use vessel_proto::PairingLink;
 use crate::bridge::failure_text;
 use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
-use crate::wire::{BookNode, NodeKey, Op, OpResult};
+use crate::wire::{BookNode, Op, OpFailure, OpResult};
 
 /// The longest text drawn as a QR code (a pairing link is a few hundred
 /// bytes; the code's own limit is about 2900).
 const MAX_QR_TEXT: usize = 2048;
 
+/// Why an op has no result: the page's `OpOutcome::Err`.
+#[derive(Debug)]
+pub(crate) struct OpError {
+    pub(crate) reason: OpFailure,
+    pub(crate) message: String,
+}
+
+impl OpError {
+    /// It was tried and did not work.
+    fn failed(message: String) -> Self {
+        Self {
+            reason: OpFailure::Failed,
+            message,
+        }
+    }
+}
+
 /// Answer an op.
 pub(crate) async fn answer<S: NodeSource>(
     registry: &Arc<Registry<S>>,
     op: Op,
-) -> Result<OpResult, String> {
+) -> Result<OpResult, OpError> {
+    let failed = |message| OpError::failed(message);
+    let source = |error: S::Error| OpError::failed(chain(&error));
     match op {
-        Op::Nodes => registry
-            .nodes()
+        Op::Nodes => book_now(registry)
             .await
-            .map(|nodes| OpResult::Nodes { nodes })
-            .map_err(|failure| failure_text(&failure)),
+            .map(|nodes| OpResult::Nodes { nodes }),
         Op::Retry { node } => registry
             .retry(&node)
             .await
             .map(|()| OpResult::Retry)
-            .map_err(|failure| failure_text(&failure)),
+            .map_err(|failure| failed(failure_text(&failure))),
         Op::Inspect { link } => {
-            let link: PairingLink = link.parse().map_err(|error| chain(&error))?;
-            let offer = link.decode().map_err(|error| chain(&error))?;
+            let link: PairingLink = link.parse().map_err(|error| failed(chain(&error)))?;
+            let offer = link.decode().map_err(|error| failed(chain(&error)))?;
             let fingerprint = vessel_client::fingerprint(&offer.key);
             Ok(OpResult::Inspect { offer, fingerprint })
         }
         Op::Pair { name, link } => registry
             .source()
-            .pair(&name, &link)
+            .pair(name.name(), &link)
             .await
             .map(|node| OpResult::Pair { node })
-            .map_err(|error| chain(&error)),
-        Op::Qr { text } => qr(&text).map(|svg| OpResult::Qr { svg }),
+            .map_err(source),
+        Op::Qr { text } => qr(&text).map(|svg| OpResult::Qr { svg }).map_err(failed),
         Op::Forget { node } => {
-            not_in_book(&node, "forgotten")?;
             registry
                 .source()
-                .forget(&node)
+                .forget(node.name())
                 .await
-                .map_err(|error| chain(&error))?;
+                .map_err(source)?;
             book_now(registry)
                 .await
                 .map(|nodes| OpResult::Forget { nodes })
         }
         Op::Rename { node, name } => {
-            not_in_book(&node, "renamed")?;
             registry
                 .source()
-                .rename(&node, &name)
+                .rename(node.name(), name.name())
                 .await
-                .map_err(|error| chain(&error))?;
+                .map_err(source)?;
             book_now(registry)
                 .await
                 .map(|nodes| OpResult::Rename { nodes })
         }
         Op::Default { node } => {
-            registry
-                .source()
-                .set_default(&node)
-                .await
-                .map_err(|error| chain(&error))?;
+            registry.source().set_default(&node).await.map_err(source)?;
             book_now(registry)
                 .await
                 .map(|nodes| OpResult::Default { nodes })
@@ -111,31 +124,13 @@ pub(crate) async fn answer<S: NodeSource>(
     }
 }
 
-/// Refuse to forget or rename this machine's node.
-///
-/// Why: it is not a book entry. `vessel ui`, like every `vessel` command,
-/// reaches it when nothing else is named, at the local address and with
-/// the local token, without the book ([`NodeKey::HERE`]); there is no
-/// entry to remove and no name to change, and it is the node the page
-/// falls back on with an empty book. A book entry that happens to point
-/// at this machine is an ordinary entry, forgotten like any other: the
-/// page keeps reaching the node as [`NodeKey::HERE`].
-fn not_in_book(node: &NodeKey, what: &str) -> Result<(), String> {
-    if node.is_here() {
-        return Err(format!(
-            "this machine's node is not in the book, so it cannot be {what}"
-        ));
-    }
-    Ok(())
-}
-
 /// The book after an edit; reading it is also what releases the entries
 /// of nodes no longer in it (their connections and streams).
-async fn book_now<S: NodeSource>(registry: &Registry<S>) -> Result<Vec<BookNode>, String> {
+async fn book_now<S: NodeSource>(registry: &Registry<S>) -> Result<Vec<BookNode>, OpError> {
     registry
         .nodes()
         .await
-        .map_err(|failure| failure_text(&failure))
+        .map_err(|failure| OpError::failed(failure_text(&failure)))
 }
 
 /// `text` as a QR code, an SVG document.

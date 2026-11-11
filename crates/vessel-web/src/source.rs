@@ -20,6 +20,7 @@
 use std::future::Future;
 
 use vessel_client::Connector;
+use vessel_client::book::NodeName;
 use vessel_proto::NodeId;
 
 use crate::wire::{BookNode, NodeKey};
@@ -49,26 +50,23 @@ pub trait NodeSource: Send + Sync + 'static {
     /// the node as the book has it then.
     fn pair(
         &self,
-        name: &str,
+        name: &NodeName,
         link: &str,
     ) -> impl Future<Output = Result<BookNode, Self::Error>> + Send;
 
-    /// Remove `node` from the book, as `vessel nodes remove` does. Never
-    /// called with [`NodeKey::HERE`] (the bridge refuses it: that node is
-    /// not in the book).
-    fn forget(&self, node: &NodeKey) -> impl Future<Output = Result<(), Self::Error>> + Send;
+    /// Remove `node` from the book, as `vessel nodes remove` does.
+    fn forget(&self, node: &NodeName) -> impl Future<Output = Result<(), Self::Error>> + Send;
 
-    /// Rename `node` to `name` in the book, as `vessel nodes rename` does,
-    /// with the book's own check of `name`. Never called with
-    /// [`NodeKey::HERE`].
+    /// Rename `node` to `to` in the book, as `vessel nodes rename` does
+    /// (the same name changes nothing).
     fn rename(
         &self,
-        node: &NodeKey,
-        name: &str,
+        node: &NodeName,
+        to: &NodeName,
     ) -> impl Future<Output = Result<(), Self::Error>> + Send;
 
     /// Make `node` the default, as `vessel nodes default` does;
-    /// [`NodeKey::HERE`] clears the book's default (`--none`), which makes
+    /// [`NodeKey::Here`] clears the book's default (`--none`), which makes
     /// this machine's node the default.
     fn set_default(&self, node: &NodeKey) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }

@@ -10,6 +10,11 @@ import type { Call, EventRecord, EventSeq, Method, NodeId, NodeInfo, PairingOffe
 export type AuthMode = "bootstrap" | "resume";
 
 /**
+ * A node's name in the book, where only a book entry will do.
+ */
+export type BookName = string;
+
+/**
  * A node the UI lists.
  */
 export type BookNode = { 
@@ -148,9 +153,9 @@ message: string, };
 export type LaunchId = string;
 
 /**
- * How the browser names a node: a book entry's name, or [`NodeKey::HERE`]
- * for this machine's node. Book names start with a letter or a digit, so
- * the two never meet.
+ * How the browser names a node: a book entry, or this machine's node
+ * ([`NodeKey::HERE`] on the wire). Book names start with a letter or a
+ * digit, so the two never meet.
  */
 export type NodeKey = string;
 
@@ -203,7 +208,7 @@ link: string, } | { "op": "pair",
 /**
  * The name to give it in the book.
  */
-name: string, 
+name: BookName, 
 /**
  * The link.
  */
@@ -215,26 +220,36 @@ text: string, } | { "op": "forget",
 /**
  * The node.
  */
-node: NodeKey, } | { "op": "rename", 
+node: BookName, } | { "op": "rename", 
 /**
  * The node.
  */
-node: NodeKey, 
+node: BookName, 
 /**
- * Its new name, checked as the book checks names.
+ * Its new name. The same name changes nothing.
  */
-name: string, } | { "op": "default", 
+name: BookName, } | { "op": "default", 
 /**
  * The node.
  */
 node: NodeKey, };
 
 /**
+ * Why an op has no result.
+ */
+export type OpFailure = "unreadable" | "busy" | "failed";
+
+/**
  * An op's answer.
  */
 export type OpOutcome = { "ok": OpResult } | { "err": { 
 /**
- * Why.
+ * Which kind of failure, for the page to act on without reading
+ * `message`.
+ */
+reason: OpFailure, 
+/**
+ * Why, in words.
  */
 message: string, } };
 
