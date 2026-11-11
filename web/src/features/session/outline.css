@@ -1,0 +1,121 @@
+/* The outline (GOAT's minimap): a rail centred on the conversation's
+   left edge, 8px a mark; a mark is 24 by 2px at a quarter of the muted
+   ink, darker while its prompt is on screen. Its card (320px, the popup
+   surface) opens to the right on hover or focus. Hidden below 1100px of
+   window: the centred column leaves no gutter there. */
+
+.outline {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  z-index: 2;
+  transform: translateY(-50%);
+  max-height: calc(100% - 96px);
+  overflow: visible;
+}
+
+.outline-rail {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outline-item {
+  position: relative;
+}
+
+.outline-mark {
+  display: block;
+  width: 32px;
+  height: 8px;
+  padding: 3px 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.outline-mark::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--text-tertiary) 25%, transparent);
+  transition:
+    background var(--d-1) var(--ease),
+    transform var(--d-1) var(--ease);
+  transform-origin: left center;
+}
+
+.outline-mark[data-in-view]::before {
+  background: color-mix(in srgb, var(--text-primary) 55%, transparent);
+}
+
+.outline-mark:hover::before,
+.outline-mark:focus-visible::before {
+  background: var(--text-primary);
+  transform: scaleX(1.25);
+}
+
+.outline-mark:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 0;
+  border-radius: 2px;
+}
+
+.outline-card {
+  position: absolute;
+  top: 50%;
+  left: 36px;
+  width: 320px;
+  padding: 12px;
+  transform: translateY(-50%);
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-edge);
+  border-radius: var(--r-4);
+  box-shadow: var(--popup-shadow);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--d-1) var(--ease);
+  pointer-events: none;
+}
+
+.outline-mark:hover + .outline-card,
+.outline-mark:focus-visible + .outline-card {
+  visibility: visible;
+  opacity: 1;
+}
+
+.outline-prompt {
+  margin: 0;
+  font: var(--t-label);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-reply {
+  margin: 4px 0 0;
+  font: var(--t-meta);
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (width < 1100px) {
+  .outline {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-mark::before,
+  .outline-card {
+    transition: none;
+  }
+}

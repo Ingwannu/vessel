@@ -36,6 +36,7 @@ import { PermissionsMenu } from "./permissions-menu";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
+import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
 import { WhereTray } from "./where-tray";
 
@@ -60,6 +61,10 @@ export function NewSession({ wanted }: { wanted: string | null }) {
   // The prompt is the new-session page's draft, kept by the bridge: it
   // comes back after leaving the page, a reload or a new launch.
   const saved = useDraft(null);
+  useShortcut("focus-composer", () => {
+    text.current?.focus();
+    return text.current !== null;
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);

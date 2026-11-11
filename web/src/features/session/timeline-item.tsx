@@ -38,7 +38,7 @@ export function TimelineItem({ entry }: { entry: Entry }) {
       );
     case "prompt":
       return (
-        <div className="t-item user">
+        <div className="t-item user" data-entry={entry.key} data-kind="prompt">
           <span className="glyph" aria-hidden="true" />
           <span className="when">
             {entry.replayed ? "replayed" : `turn ${String(entry.turn)}`}
@@ -48,7 +48,7 @@ export function TimelineItem({ entry }: { entry: Entry }) {
       );
     case "message":
       return (
-        <div className="t-item">
+        <div className="t-item" data-entry={entry.key} data-kind="message">
           <span className="glyph" aria-hidden="true" />
           <div className="md">
             <Markdown>{entry.text}</Markdown>

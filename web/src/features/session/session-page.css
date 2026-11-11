@@ -54,3 +54,12 @@
     display: none;
   }
 }
+
+/* The log with what floats over it (find, the outline). */
+.session-log {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

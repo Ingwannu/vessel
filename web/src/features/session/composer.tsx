@@ -30,6 +30,7 @@ import { PermissionsMenu } from "../compose/permissions-menu";
 import { PromptBox } from "../compose/prompt-box";
 import { SendButton } from "../compose/send-button";
 import { useDraft } from "../compose/use-draft";
+import { useShortcut } from "../shortcuts/handlers";
 import { PermissionDock } from "./permission-dock";
 
 export function Composer({
@@ -46,6 +47,10 @@ export function Composer({
   const text = draft.text;
   const walk = useRef<Walk | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
+  useShortcut("focus-composer", () => {
+    area.current?.focus();
+    return area.current !== null;
+  });
   const prompts = useMemo(
     () => sentPrompts(timeline.entries),
     [timeline.entries],
