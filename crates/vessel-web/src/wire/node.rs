@@ -122,7 +122,7 @@ pub struct BookName(NodeName);
 impl BookName {
     /// The book's name.
     #[must_use]
-    pub const fn name(&self) -> &NodeName {
+    pub const fn node_name(&self) -> &NodeName {
         &self.0
     }
 }
