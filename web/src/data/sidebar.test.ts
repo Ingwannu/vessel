@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type { SessionInfo } from "../wire/proto";
 import type { FleetState } from "./fleet";
-import { sessionMark, sidebarMachines } from "./sidebar";
+import {
+  DEFAULT_VIEW,
+  sessionMark,
+  sidebarMachines,
+  sidebarOrder,
+  sidebarStatuses,
+  stepSession,
+} from "./sidebar";
 
 function session(
   id: string,
@@ -92,9 +99,43 @@ describe("sidebarMachines", () => {
   });
 
   it("links to the board for the rest", () => {
-    const [laptop] = sidebarMachines(STATE, 1);
+    const [laptop] = sidebarMachines(STATE, DEFAULT_VIEW, 1);
     expect(laptop?.sessions).toHaveLength(1);
     expect(laptop?.more).toBe(1);
+  });
+});
+
+describe("the view the person chose", () => {
+  it("lists ended sessions when asked, and sorts by activity", () => {
+    const view = { group: "machine", sort: "activity", ended: true } as const;
+    const [laptop] = sidebarMachines(STATE, view);
+    expect(laptop?.sessions.map((row) => [row.id, row.mark])).toEqual([
+      ["bbbb", "idle"],
+      ["aaaa", "idle"],
+      ["cccc", "ended"],
+    ]);
+  });
+
+  it("groups by status across machines, leaving empty groups out", () => {
+    const groups = sidebarStatuses(STATE, { ...DEFAULT_VIEW, group: "status" });
+    expect(groups.map((group) => group.label)).toEqual(["Idle"]);
+    expect(groups[0]?.sessions.map((row) => row.machine)).toEqual([
+      "laptop",
+      "laptop",
+    ]);
+  });
+
+  it("walks the sessions in the order shown, wrapping", () => {
+    const order = sidebarOrder(STATE, DEFAULT_VIEW);
+    expect(order.map((row) => row.id)).toEqual(["bbbb", "aaaa"]);
+    expect(stepSession(order, { node: "laptop", id: "aaaa" }, 1)?.id).toBe(
+      "bbbb",
+    );
+    expect(stepSession(order, { node: "laptop", id: "bbbb" }, -1)?.id).toBe(
+      "aaaa",
+    );
+    expect(stepSession(order, null, -1)?.id).toBe("aaaa");
+    expect(stepSession([], null, 1)).toBeNull();
   });
 });
 

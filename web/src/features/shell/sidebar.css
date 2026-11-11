@@ -216,6 +216,15 @@
   background: var(--st-needs-you);
 }
 
+/* An ended session, listed only when the sidebar is asked to: a dash in
+   place of the dot, fainter than an idle one. */
+.sdot.ended {
+  height: 0;
+  border-width: 1px 0 0;
+  border-radius: 0;
+  border-color: var(--text-disabled);
+}
+
 /* A row's shortcut, as the search row shows its own. */
 .nav-item .shortcut {
   margin-left: auto;

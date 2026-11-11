@@ -85,17 +85,17 @@ export function isLive(session: SessionInfo): boolean {
   );
 }
 
-/** What a session's card is called: the last segment of its working
- * directory, which is the project the agent works in; `~` when it runs in
- * the node user's home (`cwd` unset). A session has no name of its own in
- * the protocol, and its id says nothing to a person scanning a board. */
-export function sessionTitle(cwd: string | null | undefined): string {
-  if (cwd === null || cwd === undefined || cwd === "") {
-    return "~";
+/** The last segment of a session's working directory, the project the
+ * agent works in; `null` when it has none (the node user's home, `cwd`
+ * unset, or the root). What an untitled session is called is
+ * `titles.ts`'s `sessionName`. */
+export function folderName(cwd: string | null | undefined): string | null {
+  if (cwd === null || cwd === undefined) {
+    return null;
   }
   // Both separators: the node may be a Windows machine.
   const segments = cwd.split(/[\\/]+/).filter((segment) => segment !== "");
-  return segments.at(-1) ?? cwd;
+  return segments.at(-1) ?? null;
 }
 
 /** "3m", "2h", "5d" since `iso`, at `now`. */
