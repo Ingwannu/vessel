@@ -936,9 +936,10 @@ Left as known limits:
 
 ## Track A: progress
 
-Built in slices, each committed with its tests; a call whose slice is
-not built yet answers `unsupported` ("not built yet") so a client sees
-the same refusal an older node gives.
+Built in seven slices, each committed with its tests; every call,
+event and stand-in of the contract is built. (While a slice was not
+built, its calls answered `unsupported`, the refusal an older node
+gives.)
 
 - Wire (protocol 10): every type, event, call and stand-in of the
   contract, the envelope's per-peer rewriting, the TypeScript, and the

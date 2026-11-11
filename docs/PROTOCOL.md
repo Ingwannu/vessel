@@ -81,9 +81,8 @@ worktrees, git, files); this entry is Track A's, the conversation.
     session in the archive (`SessionInfo::for_protocol`).
 - Logs: a session's final `status` is the last record of a run, no longer
   of the log: `session.resume` continues the same log after it.
-- Built in slices on the track's branch: a call whose slice has not
-  landed answers `unsupported` ("not built on this node yet"), as an
-  `answer_question` did until questions landed. Built so far:
+- Built in slices on the track's branch, all of it now (until its slice
+  landed a call answered `unsupported`, "not built on this node yet"):
   `session.conversation`, `session.prompt` and `session.queue`,
   `cancel_turn`'s `turn`, and questions: `question_asked`,
   `question_resolved` and `session.send`'s `answer_question`
