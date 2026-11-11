@@ -17,9 +17,11 @@ import {
 
 import { openNewSession, useChrome, useFleet, useFleetState } from "../context";
 import type { FleetState } from "../data/fleet";
+import { isWorking, needsYou, placement } from "../data/board";
 import { isLive, nodeState, sessionTitle, shortId } from "../data/format";
 import { nodeLabel, selectedNode } from "../data/nodes";
 import { NewSessionDialog } from "../routes/new-session";
+import type { SessionInfo } from "../wire/proto";
 import { Banner, Icon, StatusDot } from "./parts";
 import { Toasts } from "./toasts";
 
@@ -49,13 +51,20 @@ export function Shell(): ReactElement {
       <a className="skip" href="#main">
         Skip to main
       </a>
+      {/* The sidebar and the margin around the page are one shell; the
+          page is a framed surface set into it, with its title bar inside
+          the frame (DESIGN.md §2.2). */}
       <div className="app">
-        <Topbar />
         <Sidebar />
-        <main className="main" id="main" role="main">
-          <Disconnected />
-          <Outlet />
-        </main>
+        <div className="frame-wrap">
+          <div className="frame">
+            <FrameTop />
+            <main className="main" id="main" role="main">
+              <Disconnected />
+              <Outlet />
+            </main>
+          </div>
+        </div>
       </div>
       {newSession === null ? null : <NewSessionDialog node={newSession.node} />}
       <Toasts />
@@ -92,7 +101,10 @@ function Disconnected() {
   );
 }
 
-function Topbar() {
+/** The title bar inside the frame: where the page is (the last crumb is
+ * the page's one heading), the one primary action, and this client's
+ * link to `vessel ui`. */
+function FrameTop() {
   const crumbs = useChrome((chrome) => chrome.crumbs);
   const link = useFleetState((state) => state.link);
   const selected = useFleetState((state) => selectedNode(state, undefined));
@@ -105,21 +117,19 @@ function Topbar() {
           ? { tone: "danger", text: "vessel ui · disconnected" }
           : { tone: "warn", text: "vessel ui · reconnecting" };
   return (
-    <header className="topbar" role="banner">
-      <Link className="brand" to="/fleet">
-        {MARK}
-        <span>Vessel</span>
-      </Link>
+    <header className="frame-top" role="banner">
       <nav className="crumb" aria-label="Breadcrumb">
         {crumbs.map((crumb, index) => {
           const last = index === crumbs.length - 1;
           return (
             <Fragment key={`${crumb.label}-${index}`}>
               {index > 0 ? <span className="sep">/</span> : null}
-              {last || crumb.to === undefined ? (
-                <span className={crumb.mono === true ? "here mono" : "here"}>
+              {last ? (
+                <h1 className={crumb.mono === true ? "mono" : undefined}>
                   {crumb.label}
-                </span>
+                </h1>
+              ) : crumb.to === undefined ? (
+                <span>{crumb.label}</span>
               ) : (
                 <Link to={crumb.to}>{crumb.label}</Link>
               )}
@@ -127,8 +137,15 @@ function Topbar() {
           );
         })}
       </nav>
-      <Search />
-      <div className="topbar-actions">
+      <div className="frame-actions">
+        <Link
+          className={link.kind === "open" ? "chip" : "chip reconnecting"}
+          to="/settings"
+          title="This client"
+        >
+          <StatusDot tone={chip.tone} label={chip.text} />
+          {chip.text}
+        </Link>
         <button
           className="btn primary sm"
           type="button"
@@ -138,14 +155,6 @@ function Topbar() {
         >
           <Icon name="plus" size="sm" /> New
         </button>
-        <Link
-          className={link.kind === "open" ? "chip" : "chip reconnecting"}
-          to="/settings"
-          title="This client"
-        >
-          <StatusDot tone={chip.tone} label={chip.text} />
-          {chip.text}
-        </Link>
       </div>
     </header>
   );
@@ -210,13 +219,13 @@ function Search() {
     };
   }, []);
   return (
-    <div className="topbar-search-wrap">
-      <label className="topbar-search">
-        <Icon name="search" />
+    <div className="side-search-wrap">
+      <label className="side-search">
+        <Icon name="search" size="sm" />
         <input
           ref={input}
           type="search"
-          placeholder="Search nodes, sessions"
+          placeholder="Search"
           aria-label="Search"
           value={query}
           onChange={(event) => {
@@ -263,35 +272,90 @@ function Search() {
  * board. */
 const SIDEBAR_SESSIONS = 5;
 
+/** The mark a session row leads with: a spinner while its agent works, a
+ * filled dot in the needs-you colour while it waits on its owner, else a
+ * hollow dot. From the node's own placement (protocol 8); a session of an
+ * older node gets the hollow dot, since nothing says what it is doing. */
+function SessionMark({ session }: { session: SessionInfo }) {
+  const placed = placement(session);
+  if (needsYou(placed)) {
+    return (
+      <span className="sdot needs-you" role="img" aria-label="needs you" />
+    );
+  }
+  if (isWorking(placed)) {
+    return <span className="spinner" role="img" aria-label="working" />;
+  }
+  return <span className="sdot" aria-hidden="true" />;
+}
+
 function Sidebar() {
   const book = useFleetState((state) => state.book);
   const statuses = useFleetState((state) => state.statuses);
   const sessions = useFleetState((state) => state.sessions);
+  const selected = useFleetState((state) => selectedNode(state, undefined));
   const path = useRouterState({ select: (state) => state.location.pathname });
   const live = Object.values(sessions).reduce(
     (total, list) => total + list.filter(isLive).length,
     0,
   );
+  const item = (active: boolean, extra = "") =>
+    `nav-item${extra}${active ? " active" : ""}`;
   return (
     <nav className="sidebar" role="navigation" aria-label="Fleet">
-      <div className="nav-block nav-scroll">
-        <Link
-          className={path === "/fleet" ? "nav-item active" : "nav-item"}
-          to="/fleet"
-        >
-          <Icon name="fleet" />
+      <div className="side-head">
+        <Link className="brand" to="/fleet">
+          {MARK}
+          <span>Vessel</span>
+        </Link>
+      </div>
+      <Search />
+      <div className="side-list">
+        <Link className={item(path === "/fleet")} to="/fleet">
+          <Icon name="fleet" size="sm" />
           <span className="label">Fleet</span>
         </Link>
+        <Link className={item(path === "/sessions")} to="/sessions">
+          <Icon name="sessions" size="sm" />
+          <span className="label">Sessions</span>
+          <span className="count">{live}</span>
+        </Link>
+        <Link className={item(path === "/sync")} to="/sync">
+          <Icon name="sync" size="sm" />
+          <span className="label">Sync</span>
+        </Link>
+        <Link className={item(path === "/devices")} to="/devices">
+          <Icon name="devices" size="sm" />
+          <span className="label">Devices</span>
+        </Link>
+      </div>
+      <div className="side-label">
+        <span>Nodes</span>
+        <button
+          className="btn ghost xs icon-btn"
+          type="button"
+          aria-label="New session"
+          title="New session"
+          onClick={() => {
+            openNewSession(selected);
+          }}
+        >
+          <Icon name="plus" size="sm" />
+        </button>
+      </div>
+      <div className="side-scroll">
         {(book ?? []).map((node) => {
           const status = statuses[node.key];
           const state = nodeState(status);
           const running = (sessions[node.key] ?? []).filter(isLive);
           const connected = status?.state === "connected";
-          const active = path.startsWith(`/fleet/${node.key}`);
           return (
             <Fragment key={node.key}>
               <Link
-                className={`nav-item node${connected ? "" : " offline"}${active ? " active" : ""}`}
+                className={item(
+                  path.startsWith(`/fleet/${node.key}`),
+                  connected ? " node" : " node offline",
+                )}
                 to="/fleet/$node"
                 params={{ node: node.key }}
               >
@@ -304,25 +368,26 @@ function Sidebar() {
                 )}
               </Link>
               {/* The node's live sessions, to switch between them from any
-                  page (the board has the ones that ended). */}
-              {running.slice(0, SIDEBAR_SESSIONS).map((session) => {
-                const to = `/sessions/${node.key}/${session.id}`;
-                return (
-                  <Link
-                    key={session.id}
-                    className={
-                      path === to ? "nav-item sub active" : "nav-item sub"
-                    }
-                    to="/sessions/$node/$id"
-                    params={{ node: node.key, id: session.id }}
-                  >
-                    <span className="label">
-                      {sessionTitle(session.spec.cwd)}
-                    </span>
-                    <span className="id">{shortId(session.id)}</span>
-                  </Link>
-                );
-              })}
+                  page (the board's archive has the ones that ended). */}
+              {running.slice(0, SIDEBAR_SESSIONS).map((session) => (
+                <Link
+                  key={session.id}
+                  className={item(
+                    path === `/sessions/${node.key}/${session.id}`,
+                    " sub",
+                  )}
+                  to="/sessions/$node/$id"
+                  params={{ node: node.key, id: session.id }}
+                >
+                  <span className="slot">
+                    <SessionMark session={session} />
+                  </span>
+                  <span className="label">
+                    {sessionTitle(session.spec.cwd)}
+                  </span>
+                  <span className="id">{shortId(session.id)}</span>
+                </Link>
+              ))}
               {running.length > SIDEBAR_SESSIONS ? (
                 <Link
                   className="nav-item more"
@@ -336,36 +401,9 @@ function Sidebar() {
           );
         })}
       </div>
-      <div className="nav-block">
-        <Link
-          className={path === "/sessions" ? "nav-item active" : "nav-item"}
-          to="/sessions"
-        >
-          <Icon name="sessions" />
-          <span className="label">Sessions</span>
-          <span className="count">{live}</span>
-        </Link>
-        <Link
-          className={path === "/sync" ? "nav-item active" : "nav-item"}
-          to="/sync"
-        >
-          <Icon name="sync" />
-          <span className="label">Sync</span>
-        </Link>
-        <Link
-          className={path === "/devices" ? "nav-item active" : "nav-item"}
-          to="/devices"
-        >
-          <Icon name="devices" />
-          <span className="label">Devices</span>
-        </Link>
-      </div>
-      <div className="nav-foot">
-        <Link
-          className={path === "/settings" ? "nav-item active" : "nav-item"}
-          to="/settings"
-        >
-          <Icon name="settings" />
+      <div className="side-foot">
+        <Link className={item(path === "/settings")} to="/settings">
+          <Icon name="settings" size="sm" />
           <span className="label">Settings</span>
         </Link>
       </div>

@@ -126,7 +126,7 @@ test("a session is killed", async ({ page }) => {
   );
 });
 
-test("the board holds a session in its status's lane, and kills from its card", async ({
+test("the board holds a live session in a lane, and the archive the ended", async ({
   page,
 }) => {
   await open(page);
@@ -141,18 +141,18 @@ test("the board holds a session in its status's lane, and kills from its card", 
     .getByRole("link", { name: /^Sessions/ })
     .click();
   const board = page.getByRole("group", { name: "Sessions by status" });
-  // Four lanes, in order, each a labelled region.
+  // Four lanes, in delivery order, each a labelled region.
   await expect(board.getByRole("region")).toHaveCount(4);
   await expect(board.getByRole("heading", { level: 2 })).toHaveText([
-    "Running",
-    "Interrupted",
-    "Failed",
-    "Exited",
+    "Building",
+    "Validating",
+    "In review",
+    "Ready",
   ]);
-  const card = board.locator(`[data-session="${id}"]`);
-  const running = board.getByRole("region", { name: "Running" });
-  await expect(running.locator(`[data-session="${id}"]`)).toBeVisible();
-  await expect(card).toContainText("running");
+  // A live session with no pull request is being built.
+  const building = board.getByRole("region", { name: "Building" });
+  const card = building.locator(`[data-session="${id}"]`);
+  await expect(card).toBeVisible();
   await expect(card).toContainText("build-server");
 
   // Kill is the card's one action, and asks first.
@@ -161,13 +161,15 @@ test("the board holds a session in its status's lane, and kills from its card", 
   const confirm = page.getByRole("dialog");
   await expect(confirm).toContainText("build-server");
   await confirm.getByRole("button", { name: "Kill" }).click();
-  // The card leaves the running lane for the lane of how it ended.
-  await expect(running.locator(`[data-session="${id}"]`)).toHaveCount(0);
-  await expect(card).toHaveCount(1);
-  await expect(card).not.toContainText("running");
+  // An ended session is not on a lane: it is in the archive.
+  await expect(board.locator(`[data-session="${id}"]`)).toHaveCount(0);
+  await page.getByRole("button", { name: /^Archive/ }).click();
+  const archive = page.getByRole("dialog", { name: "Archive" });
+  const archived = archive.locator(`[data-session="${id}"]`);
+  await expect(archived).toBeVisible();
 
   // The card itself opens the session.
-  await card.getByRole("link", { name: /^Open / }).click();
+  await archived.getByRole("link", { name: /^Open / }).click();
   await expect(page).toHaveURL(new RegExp(`/sessions/[^/]+/${id}$`));
 });
 

@@ -93,7 +93,6 @@ export function SyncPage(): ReactElement {
   const head = (
     <div className="page-head">
       <div>
-        <h1>Fleet sync</h1>
         <p>
           {published === null
             ? "What a fleet's home publishes: instructions, skills and MCP servers. Members pull it; local edits are kept."

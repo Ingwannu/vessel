@@ -58,7 +58,6 @@ export function FleetPage(): ReactElement {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Fleet</h1>
           {/* One line of facts, not a row of tiles: the table below is the
               fleet, and a number repeated in a large tile says nothing more. */}
           <p className="strip" aria-label="Fleet summary">

@@ -20,7 +20,6 @@ export function SettingsPage(): ReactElement {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Settings</h1>
           <p>
             This client: how it looks, and the nodes it knows. The book is the
             CLI&apos;s, shared with <code>vessel</code>.

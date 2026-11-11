@@ -145,7 +145,6 @@ export function DevicesPage(): ReactElement {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Devices{label === "" ? "" : ` · ${label}`}</h1>
           <p>
             Paired clients for this node. Revoking closes their open
             connections. Pairing links expire in 10 minutes and are single-use.

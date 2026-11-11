@@ -1,84 +1,126 @@
-/* Vessel design tokens: the one token contract (DESIGN.md §4, ADR 0018).
-   White and black is the design: a white canvas, near-black ink, and no
-   hue in the chrome. Colour is kept for state (running, starting, failed)
-   and for syntax inside code. The dark theme is the same system inverted
-   (black canvas, white ink), selected by `data-theme="dark"` on <html>
-   (set before first paint in main.tsx). Pretendard is self-hosted
-   (fonts.css).
+/* Vessel design tokens: the one token contract (DESIGN.md §4, ADRs 0018
+   and 0020). The values are agent-orchestrator's light and dark themes,
+   resolved from its token file, because the owner wants the UI to be as
+   close to that product as it can be: a near-white page framed inside a
+   slightly grey shell, near-black ink, hairlines as black at 8% and 4%,
+   and one colour per board lane. Light is the design; dark is selected by
+   `data-theme="dark"` on <html> (set before first paint in main.tsx).
 
-   When changing a value here: every text/background pair in DESIGN.md
-   §4.3 was measured at WCAG AA (4.5:1) against these exact values, so
-   re-measure the pair and update the table in the same change. */
+   Where a value differs from theirs it is for one of two reasons, and the
+   comment beside it says which:
+   - AA: this UI's running text is 10.5px to 14px, and DESIGN.md §4.3
+     holds every text pair to WCAG AA (4.5:1). Their passive grey and
+     their amber and green fall short of it on white.
+   - Font: Pretendard first is the owner's rule for every site of ours
+     (their faces are Geist and the system's). The sizes are theirs.
+
+   When changing a value: re-measure its pairs and update DESIGN.md §4.3
+   in the same change. */
 
 :root {
-  --bg-base: #ffffff;
-  --bg-sidebar: #fafafa;
+  /* The shell is what shows around the framed page: the sidebar and the
+     margin the page sits in share it, so the sidebar has no edge. */
+  --bg-shell: #f4f4f4;
+  --bg-sidebar: #f4f4f4;
+  --bg-base: #fafafa;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-hover: #f5f5f5;
-  --bg-active: #ededed;
-  --border-subtle: #ebebeb;
-  --border-strong: #d4d4d4;
-  --text-primary: #0a0a0a;
-  --text-secondary: #525252;
-  --text-tertiary: #6b6b6b;
+  /* Hover and selection are the ink at 4% and 7%, laid over whatever
+     surface they sit on, so one value works on the shell, the page and a
+     card. */
+  --bg-hover: rgb(18 18 18 / 4%);
+  --bg-active: rgb(18 18 18 / 7%);
+  --bg-well: rgb(18 18 18 / 4%);
+  /* Hairlines are overlays too: 8% around a card and between its parts,
+     4% for the page's frame and the lanes' dividers. */
+  --border-subtle: rgb(0 0 0 / 8%);
+  --border-faint: rgb(0 0 0 / 4%);
+  --border-strong: rgb(0 0 0 / 16%);
+  --text-primary: #121212;
+  --text-secondary: #5d5d5d;
+  /* AA: theirs is #868686 (3.6:1 on white). */
+  --text-tertiary: #666666;
   --text-disabled: #a3a3a3;
-  /* The accent is the ink itself: selection, focus and links are black on
-     white, so no hue competes with state colour. */
-  --accent: #0a0a0a;
-  --accent-muted: #0a0a0a0f;
-  --online: #166534;
-  --warn: #92400e;
-  --danger: #b91c1c;
-  --interrupt: #6b6b6b;
-  --overlay: rgba(10, 10, 10, 0.32);
-  --inset: rgba(255, 255, 255, 0.7);
-  --shadow: 0 8px 24px rgba(10, 10, 10, 0.08), 0 0 0 1px var(--border-subtle);
-  --btn-primary-bg: #0a0a0a;
+  /* The accent is the ink: selection, focus and the primary button. */
+  --accent: #121212;
+  --accent-muted: rgb(18 18 18 / 7%);
+  --ring: #8c8c8c;
+
+  /* One colour per lane, and one for "needs you". */
+  --st-building: #2563eb;
+  --st-validating: #9b4871;
+  /* AA: theirs are #d97706 (3.2:1) and #16a34a (3.3:1). */
+  --st-review: #b45309;
+  --st-ready: #15803d;
+  --st-needs-you: #c2412d;
+  --st-merged: #9333ea;
+
+  /* A node's and a process's state, in the lanes' hues. */
+  --online: var(--st-ready);
+  --warn: var(--st-review);
+  --danger: #9d0006;
+  --interrupt: var(--text-tertiary);
+
+  --overlay: rgb(18 18 18 / 32%);
+  --shadow: 0 4px 12px -4px rgb(18 18 18 / 12%), 0 0 0 1px var(--border-subtle);
+  /* A filled button's only depth: a lit top edge and a shaded bottom
+     edge, inside it. No outer shadow anywhere. */
+  --shadow-control:
+    inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 -1px 0 rgb(0 0 0 / 10%);
+  --btn-primary-bg: #1f1f1f;
+  --btn-primary-bg-hover: #1b1b1b;
   --btn-primary-fg: #ffffff;
+  --btn-secondary-bg: #f0f0f0;
+  --btn-secondary-bg-hover: #e4e4e4;
+  --btn-danger-fg: #ffffff;
+
   --syn-keyword: #7a3db3;
   --syn-string: #3b6d11;
   --syn-func: #1d4ed8;
   --syn-number: #b5471c;
-  --syn-comment: #6b6b6b;
+  --syn-comment: #666666;
   --syn-const: #8a5a00;
-  --syn-error: #b91c1c;
-  --diff-add-bg: #16653414;
-  --diff-del-bg: #b91c1c14;
-  /* The terminal is black in both themes: harness TUIs draw for a dark
-     terminal, and a black panel on a white page is the white-and-black
-     look itself. */
-  --term-bg: #0a0a0a;
-  --term-frame: #171717;
+  --syn-error: #9d0006;
+  --diff-add-bg: rgb(21 128 61 / 8%);
+  --diff-del-bg: rgb(157 0 6 / 8%);
+
+  /* The terminal is dark in both themes: harness TUIs draw for a dark
+     terminal. It has tokens of its own because the page's accent is
+     near-black in the light theme. */
+  --term-bg: #121212;
+  --term-frame: #1f1f1f;
   --term-fg: #ededed;
   --term-dim: #8f8f8f;
-  --term-border: rgba(255, 255, 255, 0.12);
-  --term-selection: rgba(237, 237, 237, 0.24);
-  /* Not --accent: the accent is black in the light theme, and the
-     terminal is black in both. */
+  --term-border: rgb(255 255 255 / 12%);
   --term-cursor: #ededed;
+  --term-selection: rgb(237 237 237 / 24%);
 
+  /* Font: Pretendard first (the owner's rule), then the system's. */
   --font-sans:
     Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* The design's stack, with the monospace faces macOS and Linux ship
-     (SF Mono, Menlo, DejaVu Sans Mono, Liberation Mono, Noto Sans Mono)
-     before Pretendard: without one, a terminal grid would fall back to a
-     proportional face. Pretendard still comes before \`monospace\`. */
+  /* Real monospace faces (the ones macOS and Linux ship included), then
+     Pretendard, then \`monospace\`: without a real one a terminal grid
+     would fall back to a proportional face. */
   --font-mono:
     Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono",
     "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard,
     monospace;
 
-  --t-title: 600 16px / 24px var(--font-sans);
-  --t-body: 400 13px / 20px var(--font-sans);
-  --t-label: 500 12px / 16px var(--font-sans);
+  /* Their scale: 10.5 (card footers), 11 (labels), 11.5 (card titles),
+     12 (secondary chrome), 14 (body and controls), 16 (a page's title). */
+  --t-title: 600 16px / 20px var(--font-sans);
+  --t-body: 400 14px / 21px var(--font-sans);
+  --t-label: 500 14px / 20px var(--font-sans);
+  --t-control: 400 14px / 20px var(--font-sans);
   --t-meta: 400 12px / 16px var(--font-sans);
   --t-mono: 400 12px / 20px var(--font-mono);
   --t-mono-lg: 400 13px / 22px var(--font-mono);
   --t-term: 400 13px / 1.6 var(--font-mono);
-  /* Column headers and section labels: sentence case, never uppercase. */
+  /* Column headers and small labels: sentence case, never uppercase. */
   --t-kicker: 500 11px / 16px var(--font-sans);
-  --t-card: 600 13px / 18px var(--font-sans);
+  --t-card: 600 11.5px / 14.4px var(--font-sans);
+  --t-2xs: 400 10.5px / 14px var(--font-sans);
+  --tracking-tight: -0.01em;
 
   --s-1: 4px;
   --s-2: 8px;
@@ -88,64 +130,86 @@
   --s-6: 32px;
   --s-7: 48px;
 
-  --r-1: 2px;
-  --r-2: 4px;
-  --r-3: 6px;
-  --r-4: 8px;
+  /* Their radii: 4 and 6 for small things, 8 for controls, 10 for rows
+     and cards, 12 for the framed page. */
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 8px;
+  --r-4: 10px;
   --r-5: 12px;
   --r-6: 16px;
 
   --sidebar-w: 240px;
-  --topbar-h: 40px;
+  /* The title bar inside the framed page. */
+  --topbar-h: 36px;
+  /* How far the framed page sits in from the window: nothing on the
+     sidebar's side, so the two read as one shell. */
+  --panel-inset-y: 14px;
+  --panel-inset-x: 16px;
   --inspect-w: 320px;
   --row-h: 40px;
   --nav-h: 32px;
-  --lane-head-h: 44px;
+  --lane-head-h: 48px;
   --lane-min-w: 256px;
 
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
   --d-1: 120ms;
-  --d-2: 180ms;
-  --d-3: 240ms;
+  --d-2: 150ms;
+  --d-3: 280ms;
 
-  --focus: 2px solid var(--accent);
+  --focus: 2px solid var(--ring);
 }
 
 :root[data-theme="dark"] {
-  --bg-base: #0a0a0a;
-  --bg-sidebar: #0f0f0f;
-  --bg-surface: #111111;
-  --bg-elevated: #171717;
-  --bg-hover: #1c1c1c;
-  --bg-active: #262626;
-  --border-subtle: #222222;
-  --border-strong: #333333;
-  --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
+  --bg-shell: #121212;
+  --bg-sidebar: #121212;
+  --bg-base: #181818;
+  --bg-surface: #222222;
+  --bg-elevated: #2e2e2e;
+  --bg-hover: rgb(245 245 245 / 4%);
+  --bg-active: rgb(245 245 245 / 7%);
+  --bg-well: rgb(255 255 255 / 4%);
+  --border-subtle: rgb(255 255 255 / 7%);
+  --border-faint: rgb(255 255 255 / 4%);
+  --border-strong: rgb(255 255 255 / 14%);
+  --text-primary: #f5f5f5;
+  --text-secondary: #a4a4a4;
   --text-tertiary: #8f8f8f;
   --text-disabled: #5c5c5c;
-  --accent: #fafafa;
-  --accent-muted: #fafafa14;
-  --online: #4ade80;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --interrupt: #a3a3a3;
-  --overlay: rgba(0, 0, 0, 0.56);
-  --inset: rgba(255, 255, 255, 0.04);
-  --shadow: none;
-  --btn-primary-bg: #fafafa;
-  --btn-primary-fg: #0a0a0a;
+  --accent: #f5f5f5;
+  --accent-muted: rgb(245 245 245 / 7%);
+  --ring: #868686;
+
+  --st-building: #60a5fa;
+  --st-validating: #e58bb5;
+  --st-review: #f59e0b;
+  --st-ready: #4ade80;
+  --st-needs-you: #f06445;
+  --st-merged: #c084fc;
+  --danger: #fb4934;
+
+  --overlay: rgb(0 0 0 / 56%);
+  --shadow: 0 4px 12px -4px rgb(0 0 0 / 40%), 0 0 0 1px var(--border-subtle);
+  --btn-primary-bg: #dedede;
+  --btn-primary-bg-hover: #d0d0d0;
+  --btn-primary-fg: #181818;
+  --btn-secondary-bg: #2c2c2c;
+  --btn-secondary-bg-hover: #363636;
+  /* White on their dark red is 3.4:1; the dark ink is 5.2:1. */
+  --btn-danger-fg: #181818;
+
   --syn-keyword: #c792ea;
   --syn-string: #c3e88d;
   --syn-func: #93b4ff;
   --syn-number: #f78c6c;
   --syn-comment: #8f8f8f;
   --syn-const: #ffcb6b;
-  --syn-error: #f87171;
-  --diff-add-bg: #4ade8018;
-  --diff-del-bg: #f8717118;
-  --term-bg: #000000;
-  --term-frame: #111111;
+  --syn-error: #fb4934;
+  --diff-add-bg: rgb(74 222 128 / 10%);
+  --diff-del-bg: rgb(251 73 52 / 10%);
+
+  --term-bg: #0c0c0c;
+  --term-frame: #1a1a1a;
 }
 
 @media (prefers-reduced-motion: reduce) {

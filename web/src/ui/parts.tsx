@@ -30,6 +30,7 @@ export type IconName =
   | "exec"
   | "search-kind"
   | "qr"
+  | "archive"
   | "dot";
 
 /** A stroke icon in the current text colour (a CSS mask). */

@@ -58,12 +58,6 @@ export function sessionTitle(cwd: string | null | undefined): string {
   return segments.at(-1) ?? cwd;
 }
 
-/** When a session's card last changed: its end if it ended, else its
- * start. */
-export function sessionMoment(session: SessionInfo): string {
-  return session.ended_at ?? session.created_at;
-}
-
 /** A harness as the operator types it. */
 export function harnessName(kind: HarnessKind): string {
   switch (kind) {
@@ -75,6 +69,22 @@ export function harnessName(kind: HarnessKind): string {
       return "gemini";
     case "open-code":
       return "opencode";
+  }
+}
+
+/** The one letter a card's avatar shows for a harness. A letter, not the
+ * vendor's logo: the logos are theirs, and a board needs only to tell the
+ * four apart at a glance. (Claude Code and Codex both start with C.) */
+export function harnessMark(kind: HarnessKind): string {
+  switch (kind) {
+    case "claude-code":
+      return "C";
+    case "codex":
+      return "X";
+    case "gemini":
+      return "G";
+    case "open-code":
+      return "O";
   }
 }
 
