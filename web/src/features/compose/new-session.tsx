@@ -2,7 +2,9 @@
 // on?", one raised box for the prompt with what the session runs with in
 // its foot, and where it runs in the tray under it. Send creates the
 // session with those choices, sends the prompt, and opens the session.
-// What each part decides is data/new-session.ts's.
+// What each part decides is data/new-session.ts's. Until the person
+// chooses, the machine's last start fills in the agent, the profile and
+// the choices (data/defaults.ts), and a successful start is kept as that.
 
 import "./new-session.css";
 
@@ -28,6 +30,13 @@ import {
 import { machineChoices } from "../../data/machines";
 import { machineMeant } from "../../data/nodes";
 import { pick } from "../../data/picks";
+import {
+  rememberedAgent,
+  rememberedPicks,
+  rememberStart,
+} from "../../data/defaults";
+import { prefer, prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
 import type { HarnessKind } from "../../wire/proto";
 import { AddMenu } from "./add-menu";
@@ -82,14 +91,32 @@ export function NewSession({ wanted }: { wanted: string | null }) {
       (key) => state.statuses[key]?.state === "connected",
     );
   const harnesses = machine === null ? [] : (state.harnesses[machine] ?? []);
+  const status = machine === null ? undefined : state.statuses[machine];
+  const nodeId = status?.state === "connected" ? status.node.id : null;
+  const defaults = useStore(prefs, (value) => value.values.defaults);
   const agent: HarnessKind | null =
     harnesses.find((harness) => harness.kind === draft.agent)?.kind ??
+    rememberedAgent(defaults, nodeId, harnesses) ??
     startingAgent(harnesses);
   const harness =
     harnesses.find((candidate) => candidate.kind === agent) ?? null;
-  const effective: Draft = { ...draft, machine, agent, prompt: saved.text };
+  // What the machine's last start chose, while the person has chosen
+  // nothing for this agent yet.
+  const untouched =
+    draft.profile === "" && Object.keys(draft.picks).length === 0;
+  const remembered = untouched
+    ? rememberedPicks(defaults, nodeId, agent)
+    : null;
+  const effective: Draft = {
+    ...draft,
+    machine,
+    agent,
+    prompt: saved.text,
+    profile: remembered?.profile ?? draft.profile,
+    picks: remembered?.picks ?? draft.picks,
+  };
   const terminal = harness !== null && startsTerminal(effective, harness);
-  const options = useAgentOptions(machine, agent, draft.profile, !terminal);
+  const options = useAgentOptions(machine, agent, effective.profile, !terminal);
   const controls =
     harness === null
       ? ({ kind: "terminal" } as const)
@@ -131,6 +158,17 @@ export function NewSession({ wanted }: { wanted: string | null }) {
         }
       }
       saved.clear();
+      if (nodeId !== null && agent !== null) {
+        const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
+        for (const kept of rememberStart(
+          nodeId,
+          agent,
+          effective.profile,
+          chosen,
+        )) {
+          void prefer(fleet, kept);
+        }
+      }
       fleet.select(machine);
       void fleet.refreshSessions(machine);
       void navigate({
@@ -168,7 +206,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
             <>
               <AddMenu
                 profiles={profiles}
-                profile={draft.profile}
+                profile={effective.profile}
                 onProfile={(profile) => {
                   change({ profile, picks: {} });
                 }}
@@ -194,7 +232,10 @@ export function NewSession({ wanted }: { wanted: string | null }) {
                   }}
                   state={controls}
                   onChoose={(choice) => {
-                    change({ picks: pick(draft.picks, choice) });
+                    change({
+                      profile: effective.profile,
+                      picks: pick(effective.picks, choice),
+                    });
                   }}
                 />
               )}
@@ -203,7 +244,10 @@ export function NewSession({ wanted }: { wanted: string | null }) {
                 <PermissionsMenu
                   control={controls.controls.permissions}
                   onChoose={(choice) => {
-                    change({ picks: pick(draft.picks, choice) });
+                    change({
+                      profile: effective.profile,
+                      picks: pick(effective.picks, choice),
+                    });
                   }}
                 />
               ) : null}
