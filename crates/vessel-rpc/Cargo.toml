@@ -21,7 +21,13 @@ tracing.workspace = true
 
 [dev-dependencies]
 chrono.workspace = true
+criterion.workspace = true
 tokio = { workspace = true, features = ["io-util", "test-util"] }
+
+# `docs/PERFORMANCE.md`: frames over a byte stream.
+[[bench]]
+name = "framed"
+harness = false
 
 [lints]
 workspace = true

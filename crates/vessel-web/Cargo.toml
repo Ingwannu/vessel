@@ -47,10 +47,17 @@ sha2.workspace = true
 [dev-dependencies]
 # The bridge's tests: real nodes in this process, with the fake harnesses.
 bytes.workspace = true
+chrono.workspace = true
+criterion.workspace = true
 tempfile.workspace = true
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-node.workspace = true
 vessel-testkit.workspace = true
+
+# `docs/PERFORMANCE.md`: the bridge's work per forwarded record.
+[[bench]]
+name = "bridge"
+harness = false
 
 [lints]
 workspace = true
