@@ -335,7 +335,9 @@ function TimelineItem({
         <div className="t-item">
           <span className="glyph" aria-hidden="true" />
           <details className="thought">
-            <summary>Thought</summary>
+            <summary>
+              <Icon name="chevron" size={12} /> Thought
+            </summary>
             <p>{entry.text}</p>
           </details>
         </div>

@@ -61,16 +61,15 @@ function sizeClass(size: ButtonSize): string {
   }
 }
 
-/** The icon size that sits in a button of `size`: 16 in a form's, 14 in
- * a row's (the reference's composer controls), 12 in the densest. */
-function iconSize(size: ButtonSize): 16 | 14 | 12 {
+/** The icon size that sits in a button of `size`: the reference's 16 in
+ * buttons, 14 in the densest (24px) ones. */
+function iconSize(size: ButtonSize): 16 | 14 {
   switch (size) {
     case "md":
-      return 16;
     case "sm":
-      return 14;
+      return 16;
     case "xs":
-      return 12;
+      return 14;
   }
 }
 

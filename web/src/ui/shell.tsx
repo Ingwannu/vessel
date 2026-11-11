@@ -200,20 +200,20 @@ function Sidebar() {
       <SidebarSearch />
       <div className="side-list">
         <Link className={item(path === "/fleet")} to="/fleet">
-          <Icon name="fleet" size={14} />
+          <Icon name="fleet" size={16} />
           <span className="label">Fleet</span>
         </Link>
         <Link className={item(path === "/sessions")} to="/sessions">
-          <Icon name="sessions" size={14} />
+          <Icon name="sessions" size={16} />
           <span className="label">Sessions</span>
           <span className="count">{live}</span>
         </Link>
         <Link className={item(path === "/sync")} to="/sync">
-          <Icon name="sync" size={14} />
+          <Icon name="sync" size={16} />
           <span className="label">Sync</span>
         </Link>
         <Link className={item(path === "/devices")} to="/devices">
-          <Icon name="devices" size={14} />
+          <Icon name="devices" size={16} />
           <span className="label">Devices</span>
         </Link>
       </div>
@@ -290,7 +290,7 @@ function Sidebar() {
       </div>
       <div className="side-foot">
         <Link className={item(path === "/settings")} to="/settings">
-          <Icon name="settings" size={14} />
+          <Icon name="settings" size={16} />
           <span className="label">Settings</span>
         </Link>
         <ThemeMenu />

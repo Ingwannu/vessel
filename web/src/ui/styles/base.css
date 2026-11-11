@@ -53,6 +53,17 @@ button {
   cursor: pointer;
 }
 
+/* A disclosure draws its own chevron where it has one; the browser's
+   triangle is never drawn. */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
 /* Selected text and scrollbars are drawn from tokens, not left to the
    browser (its blue selection is the one hue the chrome would show). */
 ::selection {

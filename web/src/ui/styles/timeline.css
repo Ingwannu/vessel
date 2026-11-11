@@ -133,9 +133,19 @@
 }
 
 .thought summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--text-tertiary);
   font: var(--t-meta);
-  cursor: pointer;
+}
+
+.thought summary .ico {
+  transition: rotate var(--d-2) var(--ease);
+}
+
+.thought[open] summary .ico {
+  rotate: 90deg;
 }
 
 .thought p {
@@ -171,17 +181,12 @@
 }
 
 .tool > summary {
-  list-style: none;
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 36px;
   padding: 0 10px;
   cursor: pointer;
-}
-
-.tool > summary::-webkit-details-marker {
-  display: none;
 }
 
 .tool .title {
