@@ -5,7 +5,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Navigate,
   RouterProvider,
 } from "@tanstack/react-router";
 import { type ReactElement, useEffect, useState } from "react";
@@ -14,14 +13,19 @@ import { Bridge } from "./bridge/client";
 import { forgetToken, type Credential } from "./bridge/token";
 import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
+import { AddMachineHost } from "./features/machines/add-machine";
 import { Shell } from "./features/shell/shell";
-import { DevicesPage } from "./routes/devices";
-import { FleetPage } from "./routes/fleet";
+import { HomePage } from "./routes/home";
 import { NewSessionPage } from "./routes/new-session";
+import {
+  DevicesRedirect,
+  FleetRedirect,
+  SettingsIndex,
+  SyncRedirect,
+} from "./routes/redirects";
 import { SessionPage } from "./routes/session";
 import { SessionsPage } from "./routes/sessions";
 import { SettingsPage } from "./routes/settings";
-import { SyncPage } from "./routes/sync";
 import { TooltipProvider } from "./ui/kit";
 
 /** `?node=` on the pages scoped by node. */
@@ -29,38 +33,57 @@ function nodeSearch(search: Record<string, unknown>): { node?: string } {
   return typeof search["node"] === "string" ? { node: search["node"] } : {};
 }
 
-/** `?machine=` on the new-session page: the machine in view when "New"
- * was chosen. */
+/** `?machine=` and `?agent=` on Settings' sections (track W2): the
+ * machine a section is about, the agent whose card is open. */
+function settingsSearch(search: Record<string, unknown>): {
+  machine?: string;
+  agent?: string;
+} {
+  return {
+    ...machineSearch(search),
+    ...(typeof search["agent"] === "string" ? { agent: search["agent"] } : {}),
+  };
+}
+
+/** `?machine=` on the new-session page and on Settings: the machine in
+ * view. */
 function machineSearch(search: Record<string, unknown>): { machine?: string } {
   return typeof search["machine"] === "string"
     ? { machine: search["machine"] }
     : {};
 }
 
-/** `/` is Fleet: there is no home dashboard apart from it (DESIGN.md §2.1).
- * (A component, not a `beforeLoad` redirect: the redirect's typed target
- * would make the route tree's type refer to itself.) */
-function Home(): ReactElement {
-  return <Navigate to="/fleet" replace />;
+/** The frame, and the add-machine dialog, which Settings, the welcome
+ * screen and the palette all open (`data/add-machine.ts`). It is drawn
+ * here, inside the router, so its last step can lead to a session. */
+function Root(): ReactElement {
+  return (
+    <>
+      <Shell />
+      <AddMachineHost />
+    </>
+  );
 }
 
-const rootRoute = createRootRoute({ component: Shell });
+const rootRoute = createRootRoute({ component: Root });
 
 const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
-    component: Home,
+    component: HomePage,
   }),
+  // Fleet, Sync and Devices are Settings' sections now; their old
+  // addresses (bookmarks, the CLI's printed links) lead there.
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/fleet",
-    component: FleetPage,
+    component: FleetRedirect,
   }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/fleet/$node",
-    component: FleetPage,
+    component: FleetRedirect,
   }),
   createRoute({
     getParentRoute: () => rootRoute,
@@ -83,17 +106,23 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/sync",
     validateSearch: nodeSearch,
-    component: SyncPage,
+    component: SyncRedirect,
   }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/devices",
     validateSearch: nodeSearch,
-    component: DevicesPage,
+    component: DevicesRedirect,
   }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/settings",
+    component: SettingsIndex,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/$section",
+    validateSearch: settingsSearch,
     component: SettingsPage,
   }),
 ]);

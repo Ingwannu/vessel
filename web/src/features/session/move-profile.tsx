@@ -2,14 +2,14 @@
 // conversation continues under the other account, between turns. A
 // session keeps its model route: the node refuses a move to a profile on
 // another route, or between a route and none (ADR 0015), and the list
-// says so before it is asked (data/choices.ts).
+// says so before it is asked (data/agent-choices.ts).
 
 import { useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { agentName } from "../../data/agents";
 import { moveProfile } from "../../data/calls";
-import { moveOptions } from "../../data/choices";
+import { moveChoices } from "../../data/agent-choices";
 import { shortId } from "../../data/format";
 import { Button, Dialog, Field, Select } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
@@ -54,7 +54,7 @@ export function MoveProfile({
     ).then((outcome) => {
       if (!outcome.ok) {
         setBusy(false);
-        setError(outcome.message);
+        setError(outcome.problem.message);
         return;
       }
       toast(
@@ -89,7 +89,7 @@ export function MoveProfile({
       <Field label="Profile" error={error}>
         <Select
           value={chosen}
-          options={moveOptions(choices, route)}
+          options={moveChoices(profiles ?? [], session.spec.harness, route)}
           onChange={setChosen}
         />
       </Field>

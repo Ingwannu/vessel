@@ -9,7 +9,7 @@
 // (ADR 0017), and its frames are generated from the same Rust types as
 // these. What they catch is a frame of another kind or version.
 
-import type { CallId, NodeKey, ServerFrame } from "../wire/bridge";
+import type { CallId, NodeKey, OpFailure, ServerFrame } from "../wire/bridge";
 import type { Call, EventRecord, Reply } from "../wire/proto";
 
 /** The kinds of frame the bridge sends. */
@@ -123,4 +123,34 @@ export function answers<M extends Method>(
   method: M,
 ): reply is Reply & ReplyOf<M> {
   return reply.method === method;
+}
+
+/** Why an op has no result: the bridge's own reason, or `disconnected`
+ * when the socket was not open or closed before the answer. */
+export type OpReason = OpFailure | "disconnected";
+
+/** An op that has no result, with its reason kept, so the page can say
+ * what to do next without reading the message (track W2: "busy" is to
+ * wait and try again, "failed" is the book's or the link's own words). */
+export class OpFailed extends Error {
+  readonly reason: OpReason;
+
+  constructor(reason: OpReason, message: string) {
+    super(message);
+    this.name = "OpFailed";
+    this.reason = reason;
+  }
+}
+
+/** An op's failure as the bridge answered it. */
+export function opFailed(err: {
+  reason: OpFailure;
+  message: string;
+}): OpFailed {
+  return new OpFailed(err.reason, err.message);
+}
+
+/** An op the socket lost: never sent, or not answered before it closed. */
+export function opLost(message: string): OpFailed {
+  return new OpFailed("disconnected", message);
 }

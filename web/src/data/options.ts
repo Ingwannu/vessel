@@ -68,6 +68,25 @@ export const NO_CONTROLS: Controls = {
 /** Where one select goes. */
 type Slot = "model" | "effort" | "permissions" | "other";
 
+/** A slot the page names. */
+export type NamedSlot = Exclude<Slot, "other">;
+
+/** What the page calls the control in `slot` ("Words on the page": ACP's
+ * `mode` is permissions, `thought_level` effort). The composer's menus
+ * and an agent's card in Settings both say these, so the two never name
+ * the same thing differently; every other option keeps the agent's own
+ * name. */
+export function slotLabel(slot: NamedSlot): string {
+  switch (slot) {
+    case "model":
+      return "Model";
+    case "effort":
+      return "Effort";
+    case "permissions":
+      return "Permissions";
+  }
+}
+
 function slotOf(option: SessionOption): Slot {
   switch (option.category) {
     case "model":

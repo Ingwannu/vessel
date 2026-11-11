@@ -31,7 +31,7 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   const linkChip = page.getByRole("banner").getByText(/^vessel ui · /);
   const serving = page
     .getByRole("navigation", { name: "Sidebar" })
-    .getByRole("img", { name: "serving" })
+    .getByRole("img", { name: "Connected" })
     .first();
   const connected = async () => {
     await expect(linkChip).toHaveCount(0);
@@ -52,7 +52,6 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   await page.getByRole("button", { name: "Retry" }).click();
   await connected();
   await expect(disconnected).toBeHidden();
-  await expect(page.getByRole("list", { name: "Nodes" })).toBeVisible();
 
   // Again, and this time a reload: the key in this tab survived.
   await drop();
@@ -60,5 +59,4 @@ test("a tab that lost its connection recovers with Retry and after a reload", as
   failing = false;
   await page.reload();
   await connected();
-  await expect(page.getByRole("list", { name: "Nodes" })).toBeVisible();
 });

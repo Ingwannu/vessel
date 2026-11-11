@@ -12,6 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { openNewSession, useFleetState } from "../../context";
+import { openAddMachine } from "../../data/add-machine";
 import {
   type PaletteEntry,
   type PalettePlace,
@@ -26,28 +27,28 @@ import {
   type IconName,
   Kbd,
 } from "../../ui/kit";
+import { sectionIcon } from "../settings/section-icon";
 import { typing } from "./shortcuts";
 
 function iconOf(place: PalettePlace): IconName {
+  if (typeof place === "object") {
+    return sectionIcon(place.section);
+  }
   switch (place) {
-    case "fleet":
-      return "fleet";
-    case "sessions":
-      return "sessions";
-    case "sync":
-      return "sync";
-    case "devices":
-      return "devices";
+    case "board":
+      return "board";
     case "settings":
       return "settings";
-    case "node":
-      return "home";
+    case "machine":
+      return "machine";
     case "terminal":
       return "terminal";
     case "structured":
       return "message";
     case "new":
       return "plus";
+    case "add-machine":
+      return "machine";
     case "theme-system":
       return "monitor";
     case "theme-light":
@@ -92,6 +93,9 @@ export function SidebarSearch() {
                 return;
               case "new-session":
                 openNewSession(target.node);
+                return;
+              case "add-machine":
+                openAddMachine();
                 return;
               case "theme":
                 chooseTheme(target.preference);

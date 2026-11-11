@@ -8,7 +8,7 @@
 
 import "./add-menu.css";
 
-import type { ProfileChoice } from "../../data/agents";
+import type { ProfileChoice } from "../../data/agent-choices";
 import {
   Field,
   IconButton,

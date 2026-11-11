@@ -56,7 +56,9 @@ next):
 7. **A web UI.** `vessel ui` serves the fleet in a browser on this
    machine: a board of every machine's sessions, new sessions with the
    agent's own model, effort and permissions, a session's timeline or
-   terminal with its model calls, and settings ("Web UI" below).
+   terminal with its model calls, and Settings, where machines are added,
+   renamed and forgotten and each machine's agents, models, devices and
+   sync are shown ("Web UI" below).
 
 ## Try it
 
@@ -537,9 +539,14 @@ browser on Unix (on Windows, open the printed address).
   stage of delivery, a session an agent started named on its card; the
   ended ones are in the archive under it. The sidebar lists each
   machine's live sessions, marked while one works or waits on you.
-- Machines, devices and pairing with a QR code, sync and the page's look
-  are in Settings. The page follows the system's light or dark theme
-  until you choose one.
+- **Settings** (at the sidebar's foot; inside it the sidebar lists its
+  sections): Machines (add, rename, make default, forget), Agents (what
+  each agent on a machine offers: model, effort, permissions), Models,
+  Devices (pairing a phone with a QR code), Sync, Appearance and About. A
+  machine in the sidebar opens it there. The page follows the system's
+  light or dark theme until you choose one in Appearance.
+- With no machine connected, the page opens on a welcome that offers to
+  add one; once one is connected, on the board.
 
 ```bash
 vessel ui            # serves on 127.0.0.1:7079 (any free port if taken), opens the browser
@@ -566,6 +573,19 @@ vessel ui --no-open  # prints the address instead
   server proof and launch id; an old tab stops when the UI is restarted.
   A tab whose connection keeps failing stops redialling and says it is
   disconnected; Retry (or a reload) resumes once `vessel ui` answers again.
+- **Adding a machine** (the "+" by Machines in the sidebar, Settings ›
+  Machines › Add machine, the welcome, or the command palette): run `vessel node pair` on that machine and paste
+  the link it prints. The page reads the link without sending anything and
+  shows the machine's key; compare it with the `key` line of
+  `vessel node status` there before connecting. Then name it (the book's
+  names: letters, digits, `.`, `_`, `-`), and a checklist shows it paired,
+  connected and which agents it has. The link works once, for ten minutes;
+  the page never puts it in an address, a log or a notification.
+- An agent's card in Settings › Agents starts that agent once on its
+  machine to ask what it offers (no prompt is sent); the machine keeps
+  the answer for ten minutes.
+- The old addresses `/fleet`, `/sync` and `/devices` lead to the matching
+  Settings section.
 - Links in agent output, in the timeline's Markdown or a terminal's OSC 8
   hyperlinks, open only when they are http(s): in a new tab that cannot
   reach the UI's, after a confirmation showing the URL for the terminal.

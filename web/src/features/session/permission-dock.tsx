@@ -39,7 +39,7 @@ export function PermissionDock({
     void answerPermission(fleet, node, session, entry.request.id, option).then(
       (outcome) => {
         if (!outcome.ok) {
-          toast(outcome.message, "error");
+          toast(outcome.problem.message, "error");
         }
       },
     );

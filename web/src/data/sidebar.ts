@@ -8,7 +8,8 @@ import type { SessionInfo } from "../wire/proto";
 import { placement } from "./board";
 import { isWorking, needsYou } from "./phrase";
 import type { FleetState } from "./fleet";
-import { isLive, nodeState, type StateTone } from "./format";
+import { isLive, type StateTone } from "./format";
+import { machineState } from "./machines";
 import { nodeLabel } from "./nodes";
 import { sessionName } from "./titles";
 
@@ -60,7 +61,7 @@ export function sidebarMachines(
 ): SidebarMachine[] {
   return (state.book ?? []).map((node) => {
     const status = state.statuses[node.key];
-    const named = nodeState(status);
+    const named = machineState(status);
     const live = (state.sessions[node.key] ?? [])
       .filter(isLive)
       .slice()

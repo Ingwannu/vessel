@@ -23,12 +23,15 @@ export function useNewSession(): (machine: string | null) => void {
   );
 }
 
-/** The machine the page shows: a session's, or the one the board is
- * scoped to. */
+/** The machine the page shows: a session's, the one a Settings section is
+ * about, or the one the board is scoped to. */
 export function machineInView(where: Where): string | null {
   const [place, node] = where.segments;
   if (place === "sessions" && node !== undefined) {
     return node;
+  }
+  if (place === "settings" && where.machine !== undefined) {
+    return where.machine;
   }
   return where.node ?? null;
 }

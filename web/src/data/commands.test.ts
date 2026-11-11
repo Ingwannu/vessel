@@ -67,31 +67,42 @@ function state(): FleetState {
 }
 
 describe("paletteEntries", () => {
-  it("lists the action, the places, the nodes, the sessions, the theme", () => {
+  it("lists the actions, the places, the machines, the sessions, the theme", () => {
     const groups = paletteEntries(state(), "laptop").map(
       (entry) => entry.group,
     );
     expect([...new Set(groups)]).toEqual([
       "Actions",
       "Go to",
-      "Nodes",
+      "Machines",
       "Sessions",
       "Theme",
     ]);
   });
 
-  it("starts a new session on the selected node", () => {
+  it("starts a new session on the selected machine", () => {
     const action = paletteEntries(state(), "laptop").find(
       (entry) => entry.id === "new-session",
     );
     expect(action?.target).toEqual({ kind: "new-session", node: "laptop" });
   });
 
+  it("offers to add a machine, wherever the palette is opened", () => {
+    const action = paletteEntries(state(), null).find(
+      (entry) => entry.id === "add-machine",
+    );
+    expect(action).toMatchObject({
+      label: "Add a machine",
+      group: "Actions",
+      target: { kind: "add-machine" },
+    });
+  });
+
   it("puts live sessions first, newest first, and ended ones after", () => {
     const sessions = paletteEntries(state(), null)
       .filter((entry) => entry.group === "Sessions")
       .map((entry) => entry.label);
-    expect(sessions).toEqual(["web cccc", "api bbbb", "old aaaa"]);
+    expect(sessions).toEqual(["web", "api", "old"]);
   });
 
   it("opens a session at its route and finds it by its full id", () => {
@@ -105,14 +116,31 @@ describe("paletteEntries", () => {
     expect(entry?.detail).toBe("running · /w/api");
   });
 
-  it("opens a node's page", () => {
+  it("opens a machine's detail in Settings, in the page's words", () => {
     const entry = paletteEntries(state(), null).find(
-      (candidate) => candidate.group === "Nodes",
+      (candidate) => candidate.group === "Machines",
     );
     expect(entry).toMatchObject({
       label: "laptop",
-      target: { kind: "route", to: "/fleet/laptop" },
+      target: { kind: "route", to: "/settings/machines?machine=laptop" },
     });
+    expect(entry?.detail).not.toMatch(/ws:|node/);
+  });
+
+  it("goes to the board and to each section of Settings", () => {
+    const places = paletteEntries(state(), null)
+      .filter((entry) => entry.group === "Go to")
+      .map((entry) => entry.label);
+    expect(places).toEqual([
+      "Board",
+      "Settings: Appearance",
+      "Settings: Agents",
+      "Settings: Models",
+      "Settings: Machines",
+      "Settings: Devices",
+      "Settings: Sync",
+      "Settings: About",
+    ]);
   });
 
   it("switches the theme three ways", () => {

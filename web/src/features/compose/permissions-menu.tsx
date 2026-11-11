@@ -9,7 +9,7 @@
 // since Vessel holds no per-agent knowledge (ADR 0022).
 
 import type { SelectControl } from "../../data/options";
-import { currentName, selectChoice } from "../../data/options";
+import { currentName, selectChoice, slotLabel } from "../../data/options";
 import { Button, Icon, Menu, MenuRadioGroup } from "../../ui/kit";
 import type { OptionChoice } from "../../wire/proto";
 
@@ -35,7 +35,7 @@ export function PermissionsMenu({
           shape="soft"
           icon="shield"
           disabled={disabled}
-          aria-label={`Permissions: ${name}`}
+          aria-label={`${slotLabel("permissions")}: ${name}`}
           end={<Icon name="chevron-down" size={13} />}
         >
           <span className="trigger-label">{name}</span>

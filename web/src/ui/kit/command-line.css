@@ -1,0 +1,24 @@
+/* CommandLine (kit/command-line.tsx): GOAT's setup command, a filled
+   block (the field's 4% fill, radius 8, 4px inside and 8px before the
+   text) holding the command in mono and a ghost copy button. */
+
+.command-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--r-2);
+  background: var(--field-bg);
+  box-shadow: inset 0 0 0 1px var(--field-edge);
+}
+
+.command-line-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+  color: var(--text-primary);
+  font: var(--t-mono);
+  font-variant-ligatures: none;
+}

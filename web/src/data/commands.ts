@@ -1,33 +1,43 @@
-// What the command palette lists (DESIGN.md §2.2): the places, the nodes
-// in the book, every session the page knows, and the page's own
-// commands. A pure function of the fleet's state, so what the palette
-// offers is decided here and tested, and the palette only draws it.
+// What the command palette lists (DESIGN.md §2.2): the page's own
+// commands, the places (the board, Settings and each of its sections),
+// the machines, every session the page knows, and the theme. A pure
+// function of the fleet's state, so what the palette offers is decided
+// here and tested, and the palette only draws it. In the page's words: a
+// machine opens its detail in Settings, a session is called by its title.
 
 import type { FleetState } from "./fleet";
 import type { ThemePreference } from "./theme";
-import { isLive, sessionTitle, shortId, statusWord } from "./format";
+import { isLive, statusWord } from "./format";
+import { machineState, reachWord } from "./machines";
 import { nodeLabel } from "./nodes";
+import {
+  SETTINGS_SECTIONS,
+  type SettingsSection,
+  settingsSectionLabel,
+} from "./settings";
+import { sessionName } from "./titles";
 
 /** The palette's groups, in the order it lists them. */
-export type PaletteGroup = "Go to" | "Nodes" | "Sessions" | "Actions" | "Theme";
+export type PaletteGroup =
+  "Actions" | "Go to" | "Machines" | "Sessions" | "Theme";
 
 /** What choosing an entry does. */
 export type PaletteTarget =
   | { kind: "route"; to: string }
   | { kind: "new-session"; node: string | null }
+  | { kind: "add-machine" }
   | { kind: "theme"; preference: ThemePreference };
 
 /** The places a palette entry can name, for its icon. */
 export type PalettePlace =
-  | "fleet"
-  | "sessions"
-  | "sync"
-  | "devices"
+  | "board"
   | "settings"
-  | "node"
+  | { section: SettingsSection }
+  | "machine"
   | "terminal"
   | "structured"
   | "new"
+  | "add-machine"
   | "theme-system"
   | "theme-light"
   | "theme-dark";
@@ -44,42 +54,23 @@ export interface PaletteEntry {
   target: PaletteTarget;
 }
 
+/** The board, Settings, and each of Settings' sections (its one list,
+ * `settings.ts`). */
 const PLACES: readonly PaletteEntry[] = [
   {
-    id: "go-fleet",
-    label: "Fleet",
+    id: "go-board",
+    label: "Board",
     group: "Go to",
-    place: "fleet",
-    target: { kind: "route", to: "/fleet" },
-  },
-  {
-    id: "go-sessions",
-    label: "Sessions",
-    group: "Go to",
-    place: "sessions",
+    place: "board",
     target: { kind: "route", to: "/sessions" },
   },
-  {
-    id: "go-sync",
-    label: "Sync",
+  ...SETTINGS_SECTIONS.map((section): PaletteEntry => ({
+    id: `go-settings-${section}`,
+    label: `Settings: ${settingsSectionLabel(section)}`,
     group: "Go to",
-    place: "sync",
-    target: { kind: "route", to: "/sync" },
-  },
-  {
-    id: "go-devices",
-    label: "Devices",
-    group: "Go to",
-    place: "devices",
-    target: { kind: "route", to: "/devices" },
-  },
-  {
-    id: "go-settings",
-    label: "Settings",
-    group: "Go to",
-    place: "settings",
-    target: { kind: "route", to: "/settings" },
-  },
+    place: { section },
+    target: { kind: "route", to: `/settings/${section}` },
+  })),
 ];
 
 /** "Theme: system", "Theme: light", "Theme: dark". */
@@ -93,20 +84,23 @@ const THEMES: readonly PaletteEntry[] = (
   target: { kind: "theme", preference },
 }));
 
-/** Everything the palette lists for `state`, `selected` being the node a
+/** Everything the palette lists for `state`, `selected` being the machine a
  * new session starts on. Live sessions come before ended ones, each
  * newest first, so the one being worked on is near the top. */
 export function paletteEntries(
   state: FleetState,
   selected: string | null,
 ): PaletteEntry[] {
-  const nodes: PaletteEntry[] = (state.book ?? []).map((node) => ({
-    id: `node-${node.key}`,
+  const machines: PaletteEntry[] = (state.book ?? []).map((node) => ({
+    id: `machine-${node.key}`,
     label: nodeLabel(node, state.statuses[node.key]),
-    detail: node.address,
-    group: "Nodes",
-    place: "node",
-    target: { kind: "route", to: `/fleet/${node.key}` },
+    detail: `${machineState(state.statuses[node.key]).word} · ${reachWord(node)}`,
+    group: "Machines",
+    place: "machine",
+    target: {
+      kind: "route",
+      to: `/settings/machines?machine=${encodeURIComponent(node.key)}`,
+    },
   }));
   const sessions = Object.entries(state.sessions)
     .flatMap(([node, list]) => list.map((session) => ({ node, session })))
@@ -116,7 +110,7 @@ export function paletteEntries(
     .sort((a, b) => Number(isLive(b.session)) - Number(isLive(a.session)))
     .map(({ node, session }): PaletteEntry => ({
       id: `session-${node}-${session.id}`,
-      label: `${sessionTitle(session.spec.cwd)} ${shortId(session.id)}`,
+      label: sessionName(session),
       detail: `${statusWord(session.status)} · ${session.spec.cwd ?? "~"}`,
       keywords: session.id,
       group: "Sessions",
@@ -131,6 +125,13 @@ export function paletteEntries(
       place: "new",
       target: { kind: "new-session", node: selected },
     },
+    {
+      id: "add-machine",
+      label: "Add a machine",
+      group: "Actions",
+      place: "add-machine",
+      target: { kind: "add-machine" },
+    },
   ];
-  return [...actions, ...PLACES, ...nodes, ...sessions, ...THEMES];
+  return [...actions, ...PLACES, ...machines, ...sessions, ...THEMES];
 }

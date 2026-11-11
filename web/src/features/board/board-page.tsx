@@ -43,7 +43,7 @@ export function Board({ scope }: { scope: string | null }) {
         toast(`Killed ${shortId(card.session.id)}`);
         void fleet.refreshSessions(card.node);
       } else {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
       }
     });
   };

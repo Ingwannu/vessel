@@ -34,24 +34,28 @@ async function create(page: Page, node: string): Promise<void> {
   await startSession(page, node, "Terminal");
 }
 
-test("the fleet lists the book's nodes with what they report", async ({
-  page,
-}) => {
+test("Settings lists the machines with what they report", async ({ page }) => {
   await open(page);
-  const nodes = page.getByRole("list", { name: "Nodes" });
+  await page.goto(`${new URL(page.url()).origin}/fleet`);
+  // The old address leads to Settings' Machines.
+  await expect(page).toHaveURL(/\/settings\/machines$/);
+  const machines = page.getByRole("list", { name: "Machines" });
   for (const name of ["laptop", "gpu-box", "build-server"]) {
     await expect(
-      nodes.getByRole("listitem").filter({ hasText: name }),
-    ).toContainText("serving");
+      machines.getByRole("listitem").filter({ hasText: name }),
+    ).toContainText("Connected");
   }
   // This machine's node has no token here: listed, not connected.
   await expect(
-    nodes.getByRole("listitem").filter({ hasText: "this machine" }),
-  ).toContainText("offline");
-  await nodes.getByRole("link", { name: "gpu-box" }).click();
-  const panel = page.getByRole("complementary", { name: "gpu-box" });
-  await expect(panel).toContainText("protocol");
-  await expect(panel).toContainText("claude");
+    machines.getByRole("listitem").filter({ hasText: "This machine" }),
+  ).toContainText("Offline");
+  await machines.getByRole("link", { name: "gpu-box" }).click();
+  await expect(page).toHaveURL(/\/settings\/machines\?machine=gpu-box$/);
+  const about = page.getByRole("list", { name: "About gpu-box" });
+  await expect(about).toContainText("protocol");
+  await expect(
+    page.getByRole("list", { name: "Agents on gpu-box" }),
+  ).toContainText("Claude Code");
 });
 
 test("a terminal session runs and echoes keys", async ({ page }) => {
@@ -310,13 +314,15 @@ test("the board holds a live session in a lane, and the archive the ended", asyn
 test("a device is invited, pairs, and is revoked", async ({ page }) => {
   const env = loadEnv();
   await open(page);
+  // The old address leads to Settings' Devices, for the same machine.
   await page.goto(`${new URL(page.url()).origin}/devices?node=laptop`);
-  await page.getByLabel("Label").fill("phone");
+  await expect(page).toHaveURL(/\/settings\/devices\?machine=laptop$/);
+  await page.getByLabel("Device name").fill("phone");
   await page.getByRole("button", { name: "New link" }).click();
   await expect(
     page.getByRole("button", { name: "Show pairing link" }),
   ).toBeVisible();
-  await expect(page.locator(".link-text")).toHaveCount(0);
+  await expect(page.locator(".invite-box-text")).toHaveCount(0);
   await expect(
     page.getByRole("img", { name: "Pairing link as a QR code" }),
   ).toHaveCount(0);
@@ -324,11 +330,11 @@ test("a device is invited, pairs, and is revoked", async ({ page }) => {
   await expect(
     page.getByRole("img", { name: "Pairing link as a QR code" }),
   ).toBeVisible();
-  const link = (await page.locator(".link-box .link-text").textContent()) ?? "";
+  const link = (await page.locator(".invite-box-text").textContent()) ?? "";
   expect(link.startsWith("vessel://pair#")).toBe(true);
   await page.context().grantPermissions(["clipboard-write"]);
   await page.getByRole("button", { name: "Copy pairing link" }).click();
-  await expect(page.locator(".link-text")).toHaveCount(0);
+  await expect(page.locator(".invite-box-text")).toHaveCount(0);
   await expect(
     page.getByRole("img", { name: "Pairing link as a QR code" }),
   ).toHaveCount(0);
@@ -344,8 +350,8 @@ test("a device is invited, pairs, and is revoked", async ({ page }) => {
     },
   });
   await page.reload();
-  const devices = page.getByRole("table", { name: "Paired devices" });
-  const row = devices.getByRole("row").filter({ hasText: "phone" });
+  const devices = page.getByRole("list", { name: "Paired devices" });
+  const row = devices.getByRole("listitem").filter({ hasText: "phone" });
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Revoke" }).click();
   await page

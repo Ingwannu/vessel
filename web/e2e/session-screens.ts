@@ -99,7 +99,7 @@ test("starting and running a session", async ({ page }) => {
     ).toBeVisible();
     await shot(page, `42-new-permissions-${scheme}`);
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("switch", { name: "Open as terminal" }).click();
     await expect(page.getByLabel("Arguments")).toBeVisible();
     await shot(page, `43-new-add-${scheme}`);

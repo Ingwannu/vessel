@@ -1,22 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { BookNode, NodeStatus } from "../wire/bridge";
-import type { Harness, ProfileInfo, SessionOption } from "../wire/proto";
-import {
-  agentChoices,
-  agentName,
-  profileChoices,
-  startedModel,
-  startingAgent,
-} from "./agents";
+import type { Harness, SessionOption } from "../wire/proto";
+import { startedModel } from "./models";
 import {
   type Draft,
   draftControls,
-  machineChoices,
   sendable,
   specOf,
   splitArgs,
-  startingMachine,
 } from "./new-session";
 
 const CLAUDE: Harness = {
@@ -56,106 +47,6 @@ const DRAFT: Draft = {
   prompt: "Tidy the overview",
   picks: { mode: { id: "mode", kind: "select", value: "plan" } },
 };
-
-function node(key: string, isDefault = false): BookNode {
-  return {
-    key,
-    label: key,
-    address: `ws://${key}`,
-    transport: "ws",
-    default: isDefault,
-    id: null,
-  };
-}
-
-function connected(name: string): NodeStatus {
-  return {
-    state: "connected",
-    protocol: 9,
-    node: {
-      id: `n-${name}`,
-      name,
-      hostname: name,
-      os: "linux",
-      arch: "x86_64",
-      version: "0.1.0",
-      protocol: { min: 2, max: 9 },
-      started_at: "2026-11-11T06:00:00Z",
-      state: "serving",
-    },
-  };
-}
-
-describe("startingMachine", () => {
-  const book = [node("laptop"), node("gpu-box", true), node("build-server")];
-  const statuses: Record<string, NodeStatus> = {
-    laptop: connected("laptop"),
-    "gpu-box": connected("gpu-box"),
-  };
-
-  it("takes the one asked for, the last chosen, the default, the first", () => {
-    expect(startingMachine(book, statuses, "laptop", "gpu-box")).toBe("laptop");
-    expect(startingMachine(book, statuses, null, "laptop")).toBe("laptop");
-    expect(startingMachine(book, statuses, null, null)).toBe("gpu-box");
-  });
-
-  it("are offered by name, the unconnected ones off with a word", () => {
-    expect(machineChoices(book, statuses)).toEqual([
-      { value: "laptop", label: "laptop" },
-      { value: "gpu-box", label: "gpu-box" },
-      {
-        value: "build-server",
-        label: "build-server",
-        detail: "connecting",
-        disabled: true,
-      },
-    ]);
-  });
-
-  it("only a connected one", () => {
-    expect(startingMachine(book, statuses, "build-server", null)).toBe(
-      "gpu-box",
-    );
-    expect(startingMachine(book, {}, "laptop", null)).toBeNull();
-  });
-});
-
-describe("agents", () => {
-  it("are called by their names, with their versions", () => {
-    expect(agentName("open-code")).toBe("OpenCode");
-    expect(agentChoices([CLAUDE, GEMINI])).toEqual([
-      { value: "claude-code", label: "Claude Code", detail: "2.1.0" },
-      { value: "gemini", label: "Gemini" },
-    ]);
-  });
-
-  it("start on one with a timeline when there is one", () => {
-    expect(startingAgent([GEMINI, CLAUDE])).toBe("claude-code");
-    expect(startingAgent([GEMINI])).toBe("gemini");
-    expect(startingAgent([])).toBeNull();
-  });
-
-  it("list the agent's profiles after its default, with their routes", () => {
-    const profiles: ProfileInfo[] = [
-      {
-        name: "claude-qwen",
-        label: "Claude Code on Qwen",
-        harness: "claude-code",
-        sets: [],
-        model: "qwen-coder",
-      },
-      { name: "codex-work", harness: "codex", sets: [] },
-    ];
-    expect(profileChoices(profiles, "claude-code")).toEqual([
-      { value: "", label: "Default" },
-      {
-        value: "claude-qwen",
-        label: "Claude Code on Qwen",
-        detail: "qwen-coder",
-      },
-    ]);
-  });
-});
 
 describe("splitArgs", () => {
   it("splits as a shell would, without expanding anything", () => {

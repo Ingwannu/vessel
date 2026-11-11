@@ -22,7 +22,7 @@
 //   rules (quotes and backslashes), not by a shell: no variables, no
 //   globs. They are passed to the agent verbatim, as the CLI's are.
 
-import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
+import type { NodeKey } from "../wire/bridge";
 import type {
   Harness,
   HarnessKind,
@@ -30,8 +30,6 @@ import type {
   SessionSpec,
 } from "../wire/proto";
 import { runsTimeline } from "./agents";
-import { nodeState } from "./format";
-import { nodeLabel } from "./nodes";
 import { type ControlsState, controlsOf } from "./options";
 import { choicesFor, type Picks, withPicks } from "./picks";
 import { titleFromPrompt } from "./titles";
@@ -59,26 +57,6 @@ export type OptionsState =
 
 /** A terminal's size until its view measures itself. */
 const FIRST_SIZE = { cols: 120, rows: 36 };
-
-/** The machine a new session starts on: the one asked for, else the one
- * last chosen, else the book's default, else the first; only a connected
- * one can take a session. */
-export function startingMachine(
-  book: readonly BookNode[],
-  statuses: Readonly<Record<NodeKey, NodeStatus>>,
-  wanted: NodeKey | null,
-  selected: NodeKey | null,
-): NodeKey | null {
-  const connected = (key: NodeKey | null): key is NodeKey =>
-    key !== null && statuses[key]?.state === "connected";
-  const candidates = [
-    wanted,
-    selected,
-    book.find((node) => node.default)?.key ?? null,
-    ...book.map((node) => node.key),
-  ];
-  return candidates.find(connected) ?? null;
-}
 
 /** Whether the draft starts a terminal: asked for, or the only way the
  * agent runs on that machine. */
@@ -206,29 +184,4 @@ export function draftControls(
         controls: controlsOf(withPicks(options.options, draft.picks)),
       };
   }
-}
-
-/** One machine to choose. */
-export interface MachineChoice {
-  value: NodeKey;
-  label: string;
-  detail?: string;
-  disabled?: boolean;
-}
-
-/** The book's machines; only a connected one can take a session, and one
- * that is not says why in a word. */
-export function machineChoices(
-  book: readonly BookNode[],
-  statuses: Readonly<Record<NodeKey, NodeStatus>>,
-): MachineChoice[] {
-  return book.map((node) => {
-    const status = statuses[node.key];
-    const connected = status?.state === "connected";
-    return {
-      value: node.key,
-      label: nodeLabel(node, status),
-      ...(connected ? {} : { detail: nodeState(status).word, disabled: true }),
-    };
-  });
 }

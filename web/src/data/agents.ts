@@ -1,15 +1,20 @@
 // Agents in the page's words (milestone 10, "Words on the page"): the
 // protocol's harness is the agent a person chose, called by its product
-// name, not the command that starts it.
+// name, not the command that starts it. The one place an agent is named
+// and its kinds are listed; what the new-session page chooses from them
+// is `agent-choices.ts`, what Settings says of them `agent-status.ts`.
 
-import type {
-  Harness,
-  HarnessKind,
-  ProfileInfo,
-  SessionInfo,
-} from "../wire/proto";
+import type { Harness, HarnessKind } from "../wire/proto";
 
-/** What the page calls an agent. */
+/** Every agent Vessel can drive, in the order the page lists them. */
+export const AGENT_KINDS: readonly HarnessKind[] = [
+  "claude-code",
+  "codex",
+  "gemini",
+  "open-code",
+];
+
+/** What the page calls an agent: its name as its makers write it. */
 export function agentName(kind: HarnessKind): string {
   switch (kind) {
     case "claude-code":
@@ -23,6 +28,29 @@ export function agentName(kind: HarnessKind): string {
   }
 }
 
+/** The one letter an agent's mark shows (the kit's Avatar). A letter,
+ * not the vendor's logo: the logos are theirs, and a board needs only to
+ * tell the four apart at a glance. (Claude Code and Codex both start with
+ * C.) */
+export function agentMark(kind: HarnessKind): string {
+  switch (kind) {
+    case "claude-code":
+      return "C";
+    case "codex":
+      return "X";
+    case "gemini":
+      return "G";
+    case "open-code":
+      return "O";
+  }
+}
+
+/** `value` as one of the agents, if it names one (an address's
+ * `?agent=`). */
+export function agentKindOf(value: string | undefined): HarnessKind | null {
+  return AGENT_KINDS.find((kind) => kind === value) ?? null;
+}
+
 /** Whether `harness` can run a session with a timeline (and so has
  * options to choose); every installed one runs in a terminal. */
 export function runsTimeline(harness: Harness): boolean {
@@ -32,72 +60,4 @@ export function runsTimeline(harness: Harness): boolean {
     case "unavailable":
       return false;
   }
-}
-
-/** One agent to choose, in the kit's choice shape. */
-export interface AgentChoice {
-  value: HarnessKind;
-  label: string;
-  detail?: string;
-}
-
-/** The agents a machine has, each with its version as the detail. */
-export function agentChoices(harnesses: readonly Harness[]): AgentChoice[] {
-  return harnesses.map((harness) => {
-    const version = harness.version?.split(/\s+/)[0] ?? null;
-    return {
-      value: harness.kind,
-      label: agentName(harness.kind),
-      ...(version === null || version === "" ? {} : { detail: version }),
-    };
-  });
-}
-
-/** The agent a new session starts with: the first that runs with a
- * timeline, else the first installed. */
-export function startingAgent(
-  harnesses: readonly Harness[],
-): HarnessKind | null {
-  return (harnesses.find(runsTimeline) ?? harnesses[0])?.kind ?? null;
-}
-
-/** One profile to choose: `""` is the agent's default. */
-export interface ProfileChoice {
-  value: string;
-  label: string;
-  detail?: string;
-}
-
-/** The profiles of `agent` on a machine, after its default. A profile on
- * a model route says which (ADR 0015): choosing it is how a session runs
- * on another provider's model. */
-export function profileChoices(
-  profiles: readonly ProfileInfo[],
-  agent: HarnessKind,
-): ProfileChoice[] {
-  return [
-    { value: "", label: "Default" },
-    ...profiles
-      .filter((profile) => profile.harness === agent)
-      .map((profile) => {
-        const route = profile.model ?? null;
-        return {
-          value: profile.name,
-          label: profile.label ?? profile.name,
-          ...(route === null ? {} : { detail: route }),
-        };
-      }),
-  ];
-}
-
-/** The model a session was started on, when Vessel knows it: its route's
- * pinned model (protocol 7), else one asked for at creation; `null` when
- * the agent chose (its options then say which). */
-export function startedModel(session: SessionInfo): string | null {
-  if (session.model !== undefined && session.model !== null) {
-    return session.model.model;
-  }
-  return session.spec.mode === "structured"
-    ? (session.spec.model ?? null)
-    : null;
 }

@@ -1,0 +1,31 @@
+/* An agent's row (agent-row.tsx): GOAT's provider row, led by the kit's
+   Avatar (the board card's agent mark). */
+
+.agent-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agent-version {
+  overflow: hidden;
+  max-width: 24ch;
+  text-overflow: ellipsis;
+  color: var(--text-tertiary);
+  font: var(--t-mono);
+  font-variant-ligatures: none;
+}
+
+.agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.agent-status > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

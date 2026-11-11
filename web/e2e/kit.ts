@@ -45,7 +45,7 @@ export async function newSessionPage(
   );
   await chooseAgent(page, "Claude Code");
   if (mode === "Terminal") {
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("switch", { name: "Open as terminal" }).click();
     await page.keyboard.press("Escape");
   }

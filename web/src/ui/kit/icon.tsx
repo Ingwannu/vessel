@@ -8,49 +8,54 @@
 
 import "./icon.css";
 
-/** Every drawing the set has. A name here without a `.ico-<name>` rule
- * draws an empty square; the gallery (/kit) shows them all. */
-export type IconName =
-  | "fleet"
-  | "sessions"
-  | "sync"
-  | "devices"
-  | "settings"
-  | "plus"
-  | "search"
-  | "close"
-  | "chevron"
-  | "chevron-down"
-  | "chevron-up"
-  | "arrow-up"
-  | "back"
-  | "stop"
-  | "shield"
-  | "folder"
-  | "machine"
-  | "board"
-  | "compose"
-  | "terminal"
-  | "message"
-  | "copy"
-  | "more"
-  | "home"
-  | "warn"
-  | "check"
-  | "kill"
-  | "move"
-  | "link"
-  | "plan"
-  | "read"
-  | "edit"
-  | "exec"
-  | "search-kind"
-  | "qr"
-  | "archive"
-  | "dot"
-  | "sun"
-  | "moon"
-  | "monitor";
+/** Every drawing the set has, once each: the type below and the gallery
+ * (/kit) both read this list, so a drawing cannot be missing from the
+ * gallery, and a test checks each has its `.ico-<name>` rule (a name
+ * without one draws an empty square). Two names for one drawing are not
+ * kept: a new use takes the name of the drawing it looks like. */
+export const ICON_NAMES = [
+  "sync",
+  "settings",
+  "plus",
+  "search",
+  "close",
+  "chevron",
+  "chevron-down",
+  "chevron-up",
+  "arrow-up",
+  "back",
+  "stop",
+  "shield",
+  "folder",
+  "machine",
+  "board",
+  "compose",
+  "terminal",
+  "message",
+  "copy",
+  "more",
+  "home",
+  "warn",
+  "check",
+  "kill",
+  "move",
+  "link",
+  "plan",
+  "read",
+  "edit",
+  "exec",
+  "qr",
+  "archive",
+  "dot",
+  "sun",
+  "moon",
+  "monitor",
+  "circle-check",
+  "circle-x",
+  "circle-dashed",
+] as const;
+
+export type IconName = (typeof ICON_NAMES)[number];
 
 /** The sizes the reference draws at: 12 and 13 in dense chrome, 14 in a
  * composer's controls, 15 in menus, 16 in buttons and tabs, 20 for an

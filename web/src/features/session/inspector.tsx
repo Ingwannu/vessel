@@ -5,7 +5,8 @@
 
 import "./inspector.css";
 
-import { agentName, startedModel } from "../../data/agents";
+import { agentName } from "../../data/agents";
+import { startedModel } from "../../data/models";
 import { shortId, when } from "../../data/format";
 import { duration, tokens } from "../../data/models";
 import type { Timeline } from "../../data/timeline-model";

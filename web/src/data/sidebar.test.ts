@@ -80,7 +80,7 @@ describe("sidebarMachines", () => {
     expect(laptop).toMatchObject({
       key: "laptop",
       connected: true,
-      word: "serving",
+      word: "Connected",
       live: 2,
       more: 0,
     });

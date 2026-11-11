@@ -60,7 +60,7 @@ export function Composer({
       if (outcome.ok) {
         setText("");
       } else {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
       }
     });
   };
@@ -69,14 +69,14 @@ export function Composer({
     void setOption(fleet, node, session.id, choice).then((outcome) => {
       setChanging(false);
       if (!outcome.ok) {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
       }
     });
   };
   const stop = () => {
     void cancelTurn(fleet, node, session.id).then((outcome) => {
       if (!outcome.ok) {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
       }
     });
   };

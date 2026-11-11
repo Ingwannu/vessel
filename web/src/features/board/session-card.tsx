@@ -7,12 +7,12 @@ import "./session-card.css";
 
 import { Link } from "@tanstack/react-router";
 
-import { agentName } from "../../data/agents";
+import { agentMark, agentName } from "../../data/agents";
 import type { Card } from "../../data/board";
 import { sinceLabel } from "../../data/board";
 import { isWorking, needsYou, phraseLabel, tone } from "../../data/phrase";
 import type { FleetState } from "../../data/fleet";
-import { harnessMark, isLive, shortId } from "../../data/format";
+import { isLive, shortId } from "../../data/format";
 import { labelOf } from "../../data/nodes";
 import { sessionName } from "../../data/titles";
 import { Avatar, Icon, IconButton, Spinner, Tooltip } from "../../ui/kit";
@@ -57,7 +57,7 @@ export function SessionCard({
         <CardOrigin card={card} state={state} />
         <div className="card-title">
           <Avatar
-            letter={harnessMark(spec.harness)}
+            letter={agentMark(spec.harness)}
             label={agentName(spec.harness)}
           />
           <span className="title">{title}</span>

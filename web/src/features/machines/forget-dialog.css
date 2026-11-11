@@ -1,0 +1,19 @@
+/* What a confirming dialog says (forget-dialog.tsx): the dialog's body
+   copy, 13px secondary, paragraphs 8px apart. */
+
+.dialog-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-secondary);
+  font: 400 13px / 19px var(--font-sans);
+}
+
+.dialog-prose p {
+  margin: 0;
+}
+
+.dialog-prose code {
+  font: var(--t-mono);
+  font-variant-ligatures: none;
+}

@@ -29,8 +29,6 @@ const BUDGET = { ".ts": 300, ".tsx": 300, ".css": 400 };
 /** @type {Readonly<Record<string, number>>} */
 const STILL_TO_DIVIDE = {
   "src/bridge/client.ts": 467,
-  "src/routes/devices.tsx": 349,
-  "src/routes/fleet.tsx": 316,
 };
 
 /** @param {string} path @returns {string[]} */

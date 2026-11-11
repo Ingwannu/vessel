@@ -1,4 +1,5 @@
-// Where the page is: path segments and the `node` query parameter.
+// Where the page is: path segments and the query parameters the pages
+// read (`node`, `machine`, `agent`).
 //
 // Read from the router's location rather than its typed params hooks: with
 // code-based routes whose components are typed through the same router,
@@ -13,8 +14,10 @@ export interface Where {
   segments: readonly string[];
   /** `?node=`, when given. */
   node: string | undefined;
-  /** `?machine=` (the new-session page's), when given. */
+  /** `?machine=` (the new-session page's and Settings'), when given. */
   machine: string | undefined;
+  /** `?agent=` (Settings' Agents: the open card), when given. */
+  agent: string | undefined;
 }
 
 /** A query value as the router writes it: plain text, or JSON text. */
@@ -44,5 +47,6 @@ export function useWhere(): Where {
     segments,
     node: queryValue(params.get("node")),
     machine: queryValue(params.get("machine")),
+    agent: queryValue(params.get("agent")),
   };
 }

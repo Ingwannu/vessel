@@ -10,19 +10,23 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../../context";
-import { agentChoices, agentName, profileChoices } from "../../data/agents";
+import {
+  agentChoices,
+  profileChoices,
+  startingAgent,
+} from "../../data/agent-choices";
+import { agentName, runsTimeline } from "../../data/agents";
 import { createSession, sendPrompt } from "../../data/calls";
 import { folderSuggestions } from "../../data/folders";
 import {
   type Draft,
   draftControls,
-  machineChoices,
   sendable,
   specOf,
-  startingMachine,
   startsTerminal,
 } from "../../data/new-session";
-import { startingAgent, runsTimeline } from "../../data/agents";
+import { machineChoices } from "../../data/machines";
+import { machineMeant } from "../../data/nodes";
 import { pick } from "../../data/picks";
 import { toast } from "../../ui/toasts";
 import type { HarnessKind } from "../../wire/proto";
@@ -63,7 +67,11 @@ export function NewSession({ wanted }: { wanted: string | null }) {
   const book = state.book ?? [];
   const machine =
     draft.machine ??
-    startingMachine(book, state.statuses, wanted, state.selected);
+    machineMeant(
+      book,
+      [wanted, state.selected],
+      (key) => state.statuses[key]?.state === "connected",
+    );
   const harnesses = machine === null ? [] : (state.harnesses[machine] ?? []);
   const agent: HarnessKind | null =
     harnesses.find((harness) => harness.kind === draft.agent)?.kind ??
@@ -100,7 +108,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
     void createSession(fleet, machine, spec).then(async (created) => {
       if (!created.ok) {
         setBusy(false);
-        setError(created.message);
+        setError(created.problem.message);
         return;
       }
       const prompt = effective.prompt.trim();
@@ -108,7 +116,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
         const sent = await sendPrompt(fleet, machine, created.value.id, prompt);
         if (!sent.ok) {
           toast(
-            `The session started; the prompt did not: ${sent.message}`,
+            `The session started; the prompt did not: ${sent.problem.message}`,
             "error",
           );
         }
@@ -197,7 +205,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
           }
           tray={
             <WhereTray
-              machines={machineChoices(book, state.statuses)}
+              machines={machineChoices(book, state.statuses, true)}
               machine={machine}
               onMachine={(next) => {
                 change({ machine: next, agent: null, profile: "", picks: {} });

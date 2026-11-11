@@ -43,7 +43,7 @@ export function useAgentOptions(
         key,
         state: outcome.ok
           ? { kind: "ready", options: outcome.value.options }
-          : { kind: "failed", message: outcome.message },
+          : { kind: "failed", message: outcome.problem.message },
       });
     });
     return () => {

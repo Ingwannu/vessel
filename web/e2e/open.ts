@@ -6,19 +6,23 @@ import { createInterface } from "node:readline";
 import { expect, type Page } from "@playwright/test";
 import { loadEnv } from "./fleet";
 
+/** `root` is where the UI's user keeps its book and data: the fleet's
+ * own by default; another directory gives a UI with an empty book and no
+ * node of its own (the first screen, settings-screens.ts). */
 export async function launchUi(
   page: Page,
   port = 0,
+  root: string = loadEnv().root,
 ): Promise<{ url: string; origin: string }> {
   const env = loadEnv();
   const child = spawn(env.vessel, ["ui", "--no-open", "--port", String(port)], {
     env: {
       PATH: process.env["PATH"],
       SYSTEMROOT: process.env["SYSTEMROOT"],
-      HOME: env.root,
-      USERPROFILE: env.root,
-      VESSEL_CONFIG_DIR: join(env.root, "config"),
-      VESSEL_DATA_DIR: join(env.root, "ui-data"),
+      HOME: root,
+      USERPROFILE: root,
+      VESSEL_CONFIG_DIR: join(root, "config"),
+      VESSEL_DATA_DIR: join(root, "ui-data"),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

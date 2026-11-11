@@ -14,13 +14,12 @@
 // - Alternatives: let calls throw and catch in components (every screen
 //   repeats the narrowing, and a forgotten catch is an unhandled
 //   rejection); a query library (ADR 0017 decided against one).
-// - Choice: each function returns `Outcome<T>`, `{ ok: true, value }` or
-//   `{ ok: false, failure, message }`, where `failure` is the bridge's own
-//   closed set. Nothing here throws.
+// - Choice: each function returns `Outcome<T>` (`outcome.ts`, shared with
+//   the bridge's own ops): `{ ok: true, value }` or `{ ok: false, problem }`,
+//   where the problem keeps the bridge's closed set. Nothing here throws.
 // - Cost: one more indirection per call; the screens get shorter for it.
 
-import { CallFailed, describeFailure } from "../bridge/client";
-import type { Failure, NodeKey, StreamState } from "../wire/bridge";
+import type { NodeKey, StreamState } from "../wire/bridge";
 import type {
   EventRecord,
   HarnessKind,
@@ -33,26 +32,7 @@ import type {
   TerminalInput,
 } from "../wire/proto";
 import type { Fleet } from "./fleet";
-
-/** What a call came back with. */
-export type Outcome<T> =
-  { ok: true; value: T } | { ok: false; failure: Failure; message: string };
-
-/** `call`'s answer, or its failure as a value. */
-async function attempt<T>(call: () => Promise<T>): Promise<Outcome<T>> {
-  try {
-    return { ok: true, value: await call() };
-  } catch (error) {
-    const failure: Failure =
-      error instanceof CallFailed
-        ? error.failure
-        : {
-            kind: "failed",
-            message: error instanceof Error ? error.message : String(error),
-          };
-    return { ok: false, failure, message: describeFailure(failure) };
-  }
-}
+import { attempt, type Outcome } from "./outcome";
 
 /** What `harness` offers under `profile` (`null`: its default), asked of
  * the agent itself by `node` (protocol 9, ADR 0022). Takes a few seconds

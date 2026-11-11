@@ -64,7 +64,7 @@ export function SessionTitle({
     }
     void renameSession(fleet, node, session, checked.title).then((outcome) => {
       if (!outcome.ok) {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
         return;
       }
       setSaved({ from: name, to: outcome.value.title ?? checked.title });

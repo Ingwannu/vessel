@@ -39,7 +39,7 @@ export function SessionView({ node, id }: { node: string; id: string }) {
         setFetched(
           outcome.ok
             ? { id, session: outcome.value, error: null }
-            : { id, session: null, error: outcome.message },
+            : { id, session: null, error: outcome.problem.message },
         );
       }
     });

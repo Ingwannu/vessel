@@ -9,7 +9,7 @@
 // so, and the page stays usable; a failure says why in the menu.
 
 import type { OptionChoice } from "../../wire/proto";
-import type { AgentChoice } from "../../data/agents";
+import type { AgentChoice } from "../../data/agent-choices";
 import {
   type ControlsState,
   currentName,
@@ -17,6 +17,7 @@ import {
   pickerName,
   type SelectControl,
   selectChoice,
+  slotLabel,
   toggleChoice,
 } from "../../data/options";
 import {
@@ -144,14 +145,14 @@ export function AgentMenu({
           {controls.model === null ? null : (
             <SelectRow
               control={controls.model}
-              label="Model"
+              label={slotLabel("model")}
               onChoose={onChoose}
             />
           )}
           {controls.effort === null ? null : (
             <SelectRow
               control={controls.effort}
-              label="Effort"
+              label={slotLabel("effort")}
               onChoose={onChoose}
             />
           )}

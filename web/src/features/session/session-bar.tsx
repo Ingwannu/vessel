@@ -5,8 +5,8 @@
 
 import "./session-bar.css";
 
-import { agentName } from "../../data/agents";
-import { harnessMark, isLive, statusTone, statusWord } from "../../data/format";
+import { agentMark, agentName } from "../../data/agents";
+import { isLive, statusTone, statusWord } from "../../data/format";
 import { sessionName } from "../../data/titles";
 import { Avatar, Badge } from "../../ui/kit";
 import type { SessionInfo } from "../../wire/proto";
@@ -31,7 +31,7 @@ export function SessionBar({
   return (
     <TitleBar>
       <Avatar
-        letter={harnessMark(session.spec.harness)}
+        letter={agentMark(session.spec.harness)}
         label={agentName(session.spec.harness)}
       />
       <SessionTitle

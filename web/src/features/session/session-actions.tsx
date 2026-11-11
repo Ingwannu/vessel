@@ -44,7 +44,7 @@ export function SessionActions({
         toast(`Killed ${shortId(session.id)}`);
         void fleet.refreshSessions(node);
       } else {
-        toast(outcome.message, "error");
+        toast(outcome.problem.message, "error");
       }
     });
   };
