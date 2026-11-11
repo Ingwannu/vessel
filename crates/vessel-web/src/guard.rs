@@ -35,17 +35,31 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse as _, Response};
 
-/// The policy every response carries: this origin only, no inline script,
-/// no plugins, no framing.
+// `import_map_source!`: the index's import map by its hash (`build.rs`).
+include!(concat!(env!("OUT_DIR"), "/csp.rs"));
+
+/// The policy every response carries: this origin only, no inline script
+/// but the index's import map, no plugins, no framing.
 ///
 /// Styles may be inline: xterm.js (the terminal view) writes its theme and
 /// cell sizes into `<style>` elements it creates, and offers no nonce.
 /// Scripts stay `'self'` only, so inline styles could only matter after an
 /// injection of markup, which the page never renders from session content
 /// (React escapes text; Markdown is rendered with raw HTML off).
-const CSP: &str = "default-src 'self'; connect-src 'self'; img-src 'self' data:; \
-                   style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; \
-                   base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+///
+/// The one inline script allowed is the index's import map, by its
+/// SHA-256 (milestone 11, ADR 0017's amendment): it pins the chunks loaded
+/// after the entry (`web/scripts/integrity.mjs`). Any other inline script
+/// is refused. A refused map would leave its chunks unchecked, which is
+/// why the hash is not written by hand: `build.rs` reads it from the very
+/// index it embeds, so the two cannot disagree (a test holds it).
+const CSP: &str = concat!(
+    "default-src 'self'; script-src 'self'",
+    import_map_source!(),
+    "; connect-src 'self'; img-src 'self' data:; ",
+    "style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; ",
+    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+);
 
 /// The names this server answers to, and the origins its pages have.
 #[derive(Debug)]
@@ -164,5 +178,28 @@ mod tests {
         assert!(!allowed.origin(&HeaderValue::from_static("https://localhost:7079")));
         assert!(!allowed.origin(&HeaderValue::from_static("http://evil.example:7079")));
         assert!(!allowed.origin(&HeaderValue::from_static("null")));
+    }
+
+    /// The policy admits the embedded index's import map by its hash, and
+    /// no other inline script; without a map, scripts are this origin's.
+    #[test]
+    fn the_policy_admits_the_index_import_map_and_nothing_else() {
+        use base64::Engine as _;
+        use sha2::Digest as _;
+        let index = crate::files::index_text();
+        let script = CSP
+            .split("; ")
+            .find(|directive| directive.starts_with("script-src "))
+            .unwrap();
+        match index.split_once("<script type=\"importmap\">") {
+            Some((_before, rest)) => {
+                let map = rest.split_once("</script>").unwrap().0;
+                let hash = base64::engine::general_purpose::STANDARD
+                    .encode(sha2::Sha256::digest(map.as_bytes()));
+                assert_eq!(script, format!("script-src 'self' 'sha256-{hash}'"));
+            }
+            None => assert_eq!(script, "script-src 'self'"),
+        }
+        assert!(!script.contains("unsafe"));
     }
 }

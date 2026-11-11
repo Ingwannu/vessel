@@ -9,13 +9,20 @@ import "./ui/tokens.css";
 import "./ui/kit";
 import "./ui/styles/index.css";
 
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./app";
 import { takeToken } from "./bridge/token";
 import { applyTheme } from "./data/theme";
-import { Gallery, isGallery } from "./features/kit-gallery/gallery";
+import { isGallery } from "./features/kit-gallery/path";
+
+// The gallery is a chunk of its own, loaded only at /kit (gallery.tsx).
+const Gallery = lazy(() =>
+  import("./features/kit-gallery/gallery").then((module) => ({
+    default: module.Gallery,
+  })),
+);
 
 applyTheme();
 const root = document.getElementById("root");
@@ -25,7 +32,9 @@ if (root !== null) {
   createRoot(root).render(
     <StrictMode>
       {isGallery(window.location.pathname) ? (
-        <Gallery />
+        <Suspense fallback={null}>
+          <Gallery />
+        </Suspense>
       ) : (
         <App token={takeToken()} />
       )}

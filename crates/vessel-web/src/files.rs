@@ -188,6 +188,14 @@ fn cache_control(file: &File) -> &'static str {
     }
 }
 
+/// The embedded `index.html` as text, for tests of what it names.
+#[cfg(test)]
+pub(crate) fn index_text() -> &'static str {
+    find("/index.html")
+        .and_then(|index| std::str::from_utf8(index.bytes).ok())
+        .unwrap_or_default()
+}
+
 /// Whether the real bundle is embedded (else the placeholder page that
 /// says how to build it).
 pub(crate) const fn bundled() -> bool {

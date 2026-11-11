@@ -42,10 +42,16 @@ tracing.workspace = true
 ts-rs = { workspace = true, optional = true }
 
 [build-dependencies]
+# The import map's hash in the content security policy (ADR 0017's
+# amendment of milestone 11): base64 as CSP writes it. Both in the
+# workspace already.
+base64.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
 # The bridge's tests: real nodes in this process, with the fake harnesses.
+# The policy's hash of the import map, checked against the index.
+base64.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 criterion.workspace = true

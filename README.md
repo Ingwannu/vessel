@@ -560,7 +560,9 @@ vessel ui --no-open  # prints the address instead
 - It listens on loopback only. Each printed address uses a fresh random
   `vessel-<id>.localhost` hostname so an earlier process on that port cannot
   seed this launch's HTML cache or service worker. Use a browser that resolves
-  `*.localhost` locally: **Chrome, Edge or Firefox is required**. Safari
+  `*.localhost` locally: **Chrome or Edge 127+, or Firefox 138+, is
+  required** (those versions check the integrity of the page's screens
+  loaded later, ADR 0017). Safari
   does not resolve these hostnames and is not supported for now. Do not
   replace the printed hostname with a fixed address: that loses the
   per-launch browser-origin isolation.

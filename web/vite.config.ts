@@ -57,9 +57,22 @@ export default defineConfig({
     assetsDir: "assets",
     target: "es2022",
     sourcemap: false,
-    // The bundle is served from this machine; one chunk per library would
-    // only add requests.
+    // One chunk per screen that waits to be opened (src/app.tsx), not one
+    // per library: a library chunk would only add requests.
     chunkSizeWarningLimit: 2048,
+    // A chunk imported later is pinned by the index's import map
+    // (scripts/integrity.mjs). Preload links Vite would insert at run time
+    // for a screen's chunks are off, and so are per-chunk stylesheets:
+    // tags made at run time are outside what the index pins. The entry's
+    // own static imports keep their `modulepreload` tags in the index
+    // (fetched with the entry instead of after it; integrity.mjs pins them
+    // like every tag). One stylesheet, named by the index.
+    modulePreload: {
+      polyfill: false,
+      resolveDependencies: (_file, dependencies, context) =>
+        context.hostType === "html" ? dependencies : [],
+    },
+    cssCodeSplit: false,
   },
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],

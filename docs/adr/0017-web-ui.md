@@ -342,3 +342,65 @@ header on a script is the one line of it this amendment changes.
 a new build renames it; each launch is a new origin anyway. A font is not
 covered by SRI: a font poisoned on the literal loopback origin (not the
 printed one) could be drawn, as before this amendment.
+
+## Amendment: compressed, divided, subset (milestone 11, 2026-11-11)
+
+**Context.** The page was first served only to the machine that runs
+`vessel ui`; it is now also reached through a tunnel and from a phone.
+Measured before this amendment (`docs/PERFORMANCE.md`): a cold load of
+the board moved 3,371,739 bytes, 1,174,434 of them script sent
+uncompressed and 2,057,688 the whole Pretendard face, fetched as soon as
+one Hangul character is drawn; over a 1.6 Mbit/s link with 150 ms per
+request the board was usable after 17.9 s.
+
+**Decisions.**
+
+- **Compressed responses.** The web build writes each text file's brotli
+  and gzip forms beside it (`web/scripts/compress.mjs`, Node's own zlib)
+  and lists the hash of each file it compressed; `vessel-web`'s build
+  embeds the forms with their file and refuses one made from a different
+  file, and `files` serves the form a request's `Accept-Encoding`
+  prefers (`encoding`), with an entity tag per encoding and `Vary:
+  Accept-Encoding`. Nothing is compressed per request.
+- **Divided by screen.** A session, a new session, Settings and the
+  kit's gallery are chunks loaded when they open; the board, the shell
+  and the controls stay in the entry. ADR 0017's defence is kept for
+  every chunk: `scripts/integrity.mjs` puts an import map in the index
+  whose `integrity` section names every chunk no tag names, with its
+  SHA-384, and the browser refuses a module whose bytes do not match,
+  `import()` included. The map is an inline script; the policy's
+  `script-src` admits it by its SHA-256, which `vessel-web`'s build
+  reads from the same index it embeds (`guard`), and nothing else
+  inline. The preload links Vite would insert at run time for a screen's
+  chunks, and per-chunk stylesheets, are off (tags made at run time are
+  outside what the index pins); the entry's own static imports keep their
+  `modulepreload` tags in the index, with `integrity` like every tag, so
+  they are fetched with the entry rather than after it. The closed graph
+  is: the tags of the index, each with `integrity`, and the chunks of its
+  map. The build fails on a script or stylesheet outside it, as before.
+  `web/e2e/security.spec.ts` poisons the gallery's chunk in a browser's
+  cache and checks that the real index does not run it.
+- **Pretendard in its subsets.** The package's own 92 unicode-range
+  subsets replace the one 2 MB file (`src/ui/fonts.css`; the face keeps
+  the name `Pretendard` every stack uses). The one file was chosen
+  because the page was only served to the machine that runs it
+  (`fonts.css`'s note before this amendment); that no longer holds.
+
+**Options not taken.** `modulepreload` links with `integrity` for the
+chunks (they pin them, but fetch every chunk at load, which is what
+dividing avoids); loading chunks with `fetch()` and checking their hash
+in script (needs `blob:` in `script-src`); compressing per request
+(`tower-http`'s layer: CPU for every tab, for the same bytes).
+
+**Consequences.**
+
+- Import-map integrity is applied by Chrome and Edge from 127 and Firefox
+  from 138. An older browser would ignore it and run a chunk unchecked,
+  so these are the minimum versions of the browsers this ADR requires.
+  The attack it defends against needs the literal loopback origin (a
+  port squatter cannot know a launch's fresh `vessel-<id>.localhost`
+  origin), as before.
+- Opening a session, a new session or Settings the first time waits for
+  its chunk; the figures are in `docs/PERFORMANCE.md`.
+- The binary embeds each text file three times (as it is, brotli, gzip)
+  and 92 font files instead of one.
