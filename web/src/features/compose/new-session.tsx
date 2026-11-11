@@ -23,7 +23,7 @@ import {
   startsTerminal,
 } from "../../data/new-session";
 import { startingAgent, runsTimeline } from "../../data/agents";
-import { pick } from "../../data/options";
+import { pick } from "../../data/picks";
 import { toast } from "../../ui/toasts";
 import type { HarnessKind } from "../../wire/proto";
 import { AddMenu } from "./add-menu";

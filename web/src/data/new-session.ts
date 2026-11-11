@@ -32,13 +32,8 @@ import type {
 import { runsTimeline } from "./agents";
 import { nodeState } from "./format";
 import { nodeLabel } from "./nodes";
-import {
-  choicesFor,
-  type ControlsState,
-  controlsOf,
-  type Picks,
-  withPicks,
-} from "./options";
+import { type ControlsState, controlsOf } from "./options";
+import { choicesFor, type Picks, withPicks } from "./picks";
 import { titleFromPrompt } from "./titles";
 
 /** What the person has chosen so far. */

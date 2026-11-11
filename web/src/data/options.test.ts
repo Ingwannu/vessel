@@ -7,19 +7,17 @@ import { describe, expect, it } from "vitest";
 
 import type { SessionOption } from "../wire/proto";
 import {
-  choicesFor,
   controlsOf,
   currentName,
   NO_CONTROLS,
   offersAnything,
-  pick,
   pickerLabel,
   pickerName,
   reportedControls,
   selectChoice,
   toggleChoice,
-  withPicks,
 } from "./options";
+import { choicesFor, pick, withPicks } from "./picks";
 
 const CLAUDE: SessionOption[] = [
   {
