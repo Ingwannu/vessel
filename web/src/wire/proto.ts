@@ -3418,7 +3418,7 @@ board?: SessionBoard | null,
 title?: SessionTitle | null, 
 /**
  * Its project, worktree and branch (protocol 10), when its spec named
- * a place. Absent from older nodes.
+ * a place. Absent from older nodes. Boxed, as `SessionSpec.place` is.
  */
 workspace?: SessionWorkspace | null, };
 
@@ -3578,7 +3578,9 @@ title?: SessionTitle | null,
  * Where it runs (protocol 10, ADR 0024): a project's folder or a
  * worktree. With a place, `cwd` is left out by the client and filled
  * by the node with the folder the place resolves to, so a client that
- * predates places still sees where the session runs.
+ * predates places still sees where the session runs. Boxed: a spec is
+ * held by every session's info and copied into its futures, and most
+ * sessions have no place.
  */
 place?: SessionPlace | null, } & ({ "mode": "terminal", 
 /**
