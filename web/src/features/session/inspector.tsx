@@ -8,7 +8,7 @@ import "./inspector.css";
 import { agentName, startedModel } from "../../data/agents";
 import { shortId, when } from "../../data/format";
 import { duration, tokens } from "../../data/models";
-import type { Timeline } from "../../data/timeline";
+import type { Timeline } from "../../data/timeline-model";
 import { Collapsible, Icon, Tooltip } from "../../ui/kit";
 import type { SessionInfo } from "../../wire/proto";
 

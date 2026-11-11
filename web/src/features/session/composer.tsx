@@ -17,7 +17,7 @@ import { agentName } from "../../data/agents";
 import { cancelTurn, sendPrompt, setOption } from "../../data/calls";
 import { isLive } from "../../data/format";
 import { reportedControls } from "../../data/options";
-import type { Timeline } from "../../data/timeline";
+import type { Timeline } from "../../data/timeline-model";
 import { toast } from "../../ui/toasts";
 import type { OptionChoice, SessionInfo } from "../../wire/proto";
 import { AgentMenu } from "../compose/agent-menu";

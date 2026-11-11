@@ -8,18 +8,14 @@ import type {
   SessionInfo,
   SessionStatus,
 } from "../wire/proto";
+import { board, laneLabel, LANES, placement, sinceLabel } from "./board";
 import {
-  board,
   displayStatusLabel,
   isWorking,
-  laneLabel,
-  LANES,
   needsYou,
   phraseLabel,
-  placement,
-  sinceLabel,
   tone,
-} from "./board";
+} from "./phrase";
 import type { Row } from "./tree";
 
 const running: SessionStatus = { state: "running" };

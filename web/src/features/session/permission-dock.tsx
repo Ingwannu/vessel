@@ -10,7 +10,7 @@ import "./permission-dock.css";
 import { useFleet } from "../../context";
 import { answersOf } from "../../data/approval";
 import { answerPermission } from "../../data/calls";
-import type { Entry } from "../../data/timeline";
+import type { Entry } from "../../data/timeline-model";
 import {
   Button,
   Icon,

@@ -6,7 +6,7 @@ import "./timeline.css";
 
 import { useEffect, useRef } from "react";
 
-import type { Timeline as Log } from "../../data/timeline";
+import type { Timeline as Log } from "../../data/timeline-model";
 import { TimelineItem } from "./timeline-item";
 
 export function Timeline({ timeline }: { timeline: Log }) {

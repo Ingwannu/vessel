@@ -9,7 +9,7 @@ import { settled, settledLine } from "../../data/approval";
 import { when } from "../../data/format";
 import { Markdown } from "../../data/markdown";
 import { apiName, callParts } from "../../data/models";
-import type { Entry } from "../../data/timeline";
+import type { Entry } from "../../data/timeline-model";
 import { Icon, Tooltip } from "../../ui/kit";
 import { ToolCard } from "./tool-card";
 

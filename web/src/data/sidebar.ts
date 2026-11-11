@@ -5,7 +5,8 @@
 
 import type { NodeKey } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
-import { isWorking, needsYou, placement } from "./board";
+import { placement } from "./board";
+import { isWorking, needsYou } from "./phrase";
 import type { FleetState } from "./fleet";
 import { isLive, nodeState, type StateTone } from "./format";
 import { nodeLabel } from "./nodes";

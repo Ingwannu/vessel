@@ -8,14 +8,9 @@ import "./session-card.css";
 import { Link } from "@tanstack/react-router";
 
 import { agentName } from "../../data/agents";
-import {
-  type Card,
-  isWorking,
-  needsYou,
-  phraseLabel,
-  sinceLabel,
-  tone,
-} from "../../data/board";
+import type { Card } from "../../data/board";
+import { sinceLabel } from "../../data/board";
+import { isWorking, needsYou, phraseLabel, tone } from "../../data/phrase";
 import type { FleetState } from "../../data/fleet";
 import { harnessMark, isLive, shortId } from "../../data/format";
 import { labelOf } from "../../data/nodes";

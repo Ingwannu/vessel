@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 
 import { useFleet } from "../../context";
 import { followSession } from "../../data/calls";
-import { EMPTY, reduce, type Timeline } from "../../data/timeline";
+import { EMPTY, type Timeline } from "../../data/timeline-model";
+import { reduce } from "../../data/timeline";
 import type { StreamState } from "../../wire/bridge";
 import type { EventRecord } from "../../wire/proto";
 

@@ -7,7 +7,7 @@
 import "./tool-card.css";
 
 import { toolTone } from "../../data/format";
-import { blockText, type ToolState } from "../../data/timeline";
+import { blockText, type ToolState } from "../../data/timeline-model";
 import { Badge, Icon, type IconName, Tooltip } from "../../ui/kit";
 import type { ToolKind } from "../../wire/proto";
 
