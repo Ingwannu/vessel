@@ -22,17 +22,30 @@
 //!   tabs (or a tab and a first contact's pin) cannot lose each other's
 //!   edit; against another `vessel` process the window is one
 //!   read-edit-rename, as between two CLI commands.
+//! - The page's preferences live beside the book (`ui-preferences.json`),
+//!   so `--config-dir` moves them with it; its drafts live in the local
+//!   data directory (`ui-drafts.json`, `--data-dir`), beside the
+//!   sessions' logs: a draft is prompt text, and a configuration
+//!   directory is often a dotfiles repository, or roams to a server on
+//!   Windows (ADR 0025). The bridge writes them; this only says where.
 
 use vessel_client::NodeAddress;
 use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook, NodeName, Origin, Resolved};
+use vessel_node::DataDir;
 use vessel_proto::{NodeId, PairingLink};
-use vessel_web::NodeSource;
 use vessel_web::wire::{BookNode, NodeKey, SecretText, Transport};
+use vessel_web::{NodeSource, PageFiles};
 
 use crate::args::Target;
 use crate::connect::{self, NodeConnector};
 use crate::error::CliError;
 use crate::{nodes, pair};
+
+/// The page's preferences, beside the book.
+const PREFERENCES_FILE: &str = "ui-preferences.json";
+
+/// The page's drafts, in the local data directory.
+const DRAFTS_FILE: &str = "ui-drafts.json";
 
 /// The book and this machine's node, for `vessel ui`.
 #[derive(Debug)]
@@ -186,6 +199,26 @@ impl NodeSource for BookSource {
         self.edit(move |file| file.set_default(name.as_ref().map(NodeName::as_str)))
             .await
     }
+
+    fn preferences(&self) -> Result<PageFiles, CliError> {
+        page_files(
+            nodes::book_path(&self.target),
+            connect::data_dir(&self.target),
+        )
+    }
+}
+
+/// Where the page's files go, from the book's path and the data
+/// directory (module notes); either unknown (no home directory) is an
+/// error, and the bridge then keeps both in memory for the launch.
+fn page_files(
+    book: Result<std::path::PathBuf, CliError>,
+    data: Result<DataDir, CliError>,
+) -> Result<PageFiles, CliError> {
+    Ok(PageFiles {
+        preferences: Some(book?.with_file_name(PREFERENCES_FILE)),
+        drafts: Some(data?.root().join(DRAFTS_FILE)),
+    })
 }
 
 /// A book entry as the UI lists it.
@@ -217,7 +250,10 @@ mod tests {
     use vessel_web::NodeSource as _;
     use vessel_web::wire::NodeKey;
 
-    use super::BookSource;
+    use vessel_node::DataDir;
+    use vessel_web::PageFiles;
+
+    use super::{BookSource, page_files};
     use crate::args::Target;
     use crate::error::CliError;
 
@@ -331,5 +367,45 @@ ssh = "me@lab"
             Err(CliError::Book(BookError::Exists { .. }))
         ));
         assert_eq!(std::fs::read_to_string(&path).unwrap(), BOOK);
+    }
+
+    /// `--config-dir` moves the preferences with the book; `--data-dir`
+    /// places the drafts.
+    #[test]
+    fn the_pages_files_follow_the_book_and_the_data_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let (source, book) = source(dir.path());
+        let files = source.preferences().unwrap();
+        assert_eq!(
+            files,
+            PageFiles {
+                preferences: Some(book.with_file_name("ui-preferences.json")),
+                drafts: Some(dir.path().join("data").join("ui-drafts.json")),
+            }
+        );
+        assert_eq!(
+            files.preferences.unwrap(),
+            dir.path().join("vessel").join("ui-preferences.json")
+        );
+    }
+
+    /// Without a home directory the defaults cannot be worked out. The
+    /// test process cannot be made homeless (the platform's lookup falls
+    /// back on the user database), so the mapping is tested with the
+    /// error the lookups give then.
+    #[test]
+    fn a_place_that_cannot_be_worked_out_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let data = || Ok(DataDir::new(dir.path()));
+        let book = || Ok(dir.path().join("vessel").join("nodes.toml"));
+        assert!(page_files(book(), data()).is_ok());
+        assert!(matches!(
+            page_files(Err(CliError::NoHome), data()),
+            Err(CliError::NoHome)
+        ));
+        assert!(matches!(
+            page_files(book(), Err(CliError::NoHome)),
+            Err(CliError::NoHome)
+        ));
     }
 }
