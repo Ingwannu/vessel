@@ -17,11 +17,30 @@ describe("setup's output as lines", () => {
   });
 
   it("drops colours and cursor moves, keeps tabs", () => {
-    expect(plain("\u001b[1;32mok\u001b[0m\tdone\u001b[2K").clean).toBe(
+    expect(plain("\u001b[1;32mok\u001b[0m\tdone\u001b[1A").clean).toBe(
       "ok\tdone",
     );
     expect(plain("\u001b]0;title\u0007after").clean).toBe("after");
     expect(plain("a\u0008b\u007f").clean).toBe("ab");
+  });
+
+  it("drops an escape with intermediates whole (tput sgr0's ESC ( B)", () => {
+    const log = appendText(EMPTY_LOG, "\u001b[1mbold\u001b(B\u001b[m plain\n");
+    expect(log.lines).toEqual(["bold plain"]);
+    const cut = appendText(EMPTY_LOG, "a\u001b(");
+    expect(cut.pending).toBe("\u001b(");
+    expect(appendText(cut, "Bb\n").lines).toEqual(["ab"]);
+  });
+
+  it("erases the line from the cursor, as a progress bar's redraw does", () => {
+    const bar = appendText(EMPTY_LOG, "Downloading 100%\r\u001b[KDone\n");
+    expect(bar.lines).toEqual(["Done"]);
+    const whole = appendText(EMPTY_LOG, "Building 3/9\r\u001b[2KBuilt\n");
+    expect(whole.lines).toEqual(["Built"]);
+    const tail = appendText(EMPTY_LOG, "abcdef\rab\u001b[0K\n");
+    expect(tail.lines).toEqual(["ab"]);
+    const gone = appendText(EMPTY_LOG, "spinner \\\r\u001b[2K");
+    expect(shownLines(gone)).toEqual([]);
   });
 
   it("holds back an escape sequence cut by a page's end", () => {

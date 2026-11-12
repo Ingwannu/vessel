@@ -69,7 +69,9 @@ export function SetupCard({
         ) : (
           <Icon name={failed ? "circle-x" : "terminal"} size={14} />
         )}
-        <span className="setup-title">
+        {/* Its state is what is announced as it changes; the output is
+            not (a page of it at a time, up to 2,000 lines). */}
+        <span className="setup-title" aria-live="polite">
           {setupWord(setup)} · <span className="setup-branch">{branch}</span>
         </span>
         {setup.state === "running" ? (
@@ -77,7 +79,7 @@ export function SetupCard({
         ) : null}
       </header>
       {lines.length === 0 ? null : (
-        <pre className="setup-output" aria-live="polite">
+        <pre className="setup-output">
           {log.cut ? "…\n" : ""}
           {lines.join("\n")}
         </pre>

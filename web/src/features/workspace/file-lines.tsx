@@ -1,7 +1,8 @@
 // A file's text as numbered lines in its syntax colours, windowed as the
 // timeline is (`useWindow`, read from its top): only the lines near the
 // view exist, the next page is read when the reader nears the end, and a
-// line asked for (a search result) is put in the middle of the view.
+// line asked for (a search result) is put in the middle of the view once
+// the pages up to it are read (they are asked for until it is).
 
 import { useEffect, useMemo } from "react";
 
@@ -43,9 +44,13 @@ export function FileLines({
   // What the line before each leaves open (a block comment), read once
   // per page in order.
   const states = useMemo(() => lineStates(lines, language), [lines, language]);
+  // The window takes a target once, so it is given only when its line is
+  // read; until then the pages up to it are asked for (below).
+  const wanted = goTo === null ? 0 : goTo.line;
+  const reached = goTo !== null && goTo.line <= lines.length;
   const target = useMemo(
     (): Target | null =>
-      goTo === null
+      goTo === null || !reached
         ? null
         : {
             key: String(goTo.line - 1),
@@ -56,15 +61,17 @@ export function FileLines({
               return row;
             },
           },
-    [goTo],
+    [goTo, reached],
   );
   const windowed = useWindow(items, target, { follow: false });
   const { scroller, span } = windowed;
+  // Asked again after each page (`lines` is a new array then), so a page
+  // that ends inside a long first line does not stop the reading.
   useEffect(() => {
-    if (hasMore && span.end > lines.length - NEAR) {
+    if (hasMore && (span.end > lines.length - NEAR || wanted > lines.length)) {
       onMore();
     }
-  }, [hasMore, span.end, lines.length, onMore]);
+  }, [hasMore, span.end, lines, wanted, onMore]);
   const fence = useMemo(
     () => () => (language.name === "text" ? "" : language.name),
     [language],

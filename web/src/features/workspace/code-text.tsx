@@ -11,6 +11,11 @@ import {
 } from "../../data/workspace/syntax";
 import type { Language } from "../../data/workspace/syntax-languages";
 
+/** The most characters of a line coloured: a minified file's line of
+ * hundreds of kilobytes would otherwise be a span per token; the rest is
+ * drawn as plain text. */
+const COLOURED = 4000;
+
 function tokenClass(kind: TokenKind): string {
   switch (kind) {
     case "keyword":
@@ -41,7 +46,7 @@ export function CodeText({
   state?: LineState;
 }) {
   const tokens = useMemo(
-    () => tokenize(text, language, state).tokens,
+    () => tokenize(text.slice(0, COLOURED), language, state).tokens,
     [text, language, state],
   );
   return (
@@ -55,6 +60,7 @@ export function CodeText({
           </span>
         ),
       )}
+      {text.length > COLOURED ? text.slice(COLOURED) : null}
     </>
   );
 }

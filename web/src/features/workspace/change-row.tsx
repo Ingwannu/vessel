@@ -160,6 +160,16 @@ function noteText(note: FileNote): string {
 }
 
 function DiffLineRow({ row, path }: { row: DiffRow; path: string }) {
+  if (row.kind === "cut") {
+    return (
+      <div className="d-note">
+        <span>
+          This hunk is longer than the 5,000 lines shown of it; open the full
+          file to read the rest.
+        </span>
+      </div>
+    );
+  }
   if (row.kind === "hunk") {
     return (
       <div className="d-hunk">
@@ -225,6 +235,7 @@ export function ChangeRowView({
       );
     case "hunk":
     case "line":
+    case "cut":
       return <DiffLineRow row={row} path={path} />;
   }
 }

@@ -14,7 +14,10 @@
 //   terminal on a page that shows a box of text); the raw text (escape
 //   codes on screen, and every progress step as a line).
 // - Choice: a streaming `TextDecoder`, escape sequences dropped by a
-//   small scanner (CSI, OSC and two-character escapes), `\r` overwriting the line as a terminal would; the last
+//   small scanner (CSI, OSC, and ESC with its intermediates and final, as
+//   `tput sgr0`'s `ESC ( B`), `\r` overwriting the line as a terminal
+//   would, and erasing the line (`ESC [ K`, `ESC [ 2 K`, which progress
+//   bars write after `\r`) applied where the cursor is; the last
 //   `MAX_LINES` kept (setup's end is what explains a failure).
 // - Cost: colours are lost; a program that draws with cursor moves
 //   (a full-screen one) shows its text out of place. Setup commands are
@@ -44,19 +47,53 @@ export const EMPTY_LOG: SetupLog = {
   pending: "",
 };
 
-/** `line` after its carriage returns: a terminal starts the line again
- * at each, writing over what was there. */
+/** Where `plain` leaves an erase of the line, for `overwrite` to apply:
+ * from the cursor to the end (`ESC [ K`, `ESC [ 0 K`), or all of it
+ * (`ESC [ 2 K`). Unicode noncharacters, which no program's text holds. */
+const ERASE_TO_END = "\uFDD0";
+const ERASE_LINE = "\uFDD1";
+
+/** `line` after its carriage returns and erases: a terminal starts the
+ * line again at each return, writing over what was there, and an erase
+ * clears from where the cursor is. */
 function overwrite(line: string): string {
-  const parts = line.split("\r");
   let shown = "";
-  for (const part of parts) {
-    shown = part + shown.slice(part.length);
+  for (const part of line.split("\r")) {
+    let cursor = 0;
+    let run = "";
+    const flush = () => {
+      shown = shown.slice(0, cursor) + run + shown.slice(cursor + run.length);
+      cursor += run.length;
+      run = "";
+    };
+    for (const char of part) {
+      if (char === ERASE_TO_END) {
+        flush();
+        shown = shown.slice(0, cursor);
+      } else if (char === ERASE_LINE) {
+        flush();
+        shown = " ".repeat(cursor);
+      } else {
+        run += char;
+      }
+    }
+    flush();
   }
-  return shown;
+  return shown.trimEnd() === "" ? "" : shown;
 }
 
 const ESC = 0x1b;
 const BEL = 0x07;
+
+/** What an escape sequence from `at` to `end` leaves in the text: an erase
+ * of the line as its marker, anything else nothing. */
+function kept(text: string, at: number, end: number): string {
+  const sequence = text.slice(at, end);
+  if (sequence === "\u001b[K" || sequence === "\u001b[0K") {
+    return ERASE_TO_END;
+  }
+  return sequence === "\u001b[2K" ? ERASE_LINE : "";
+}
 
 /** Whether `code` is a control character a line of text has no use for
  * (tab, newline and carriage return are kept). */
@@ -100,11 +137,20 @@ function escapeEnd(text: string, at: number): number | null {
     }
     return null;
   }
-  return at + 2;
+  // ESC, any intermediates (0x20-0x2F: `(`, `)`, `#`), then one final
+  // byte: `ESC ( B`, `ESC 7`, `ESC =`.
+  for (let index = at + 1; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code < 0x20 || code > 0x2f) {
+      return index + 1;
+    }
+  }
+  return null;
 }
 
-/** `text` without escape sequences and dropped control characters, and
- * what an unfinished sequence at its end held back. */
+/** `text` without escape sequences (an erase of the line left as its
+ * marker, for `overwrite`) and dropped control characters, and what an
+ * unfinished sequence at its end held back. */
 export function plain(text: string): { clean: string; pending: string } {
   let clean = "";
   let from = 0;
@@ -117,6 +163,7 @@ export function plain(text: string): { clean: string; pending: string } {
       if (end === null) {
         return { clean, pending: text.slice(index) };
       }
+      clean += kept(text, index, end);
       index = end;
       from = end;
     } else if (dropped(code)) {

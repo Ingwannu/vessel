@@ -68,8 +68,8 @@ describe("the Changes list", () => {
               rows: diffRows(
                 [
                   {
-                    old_start: 1,
-                    old_lines: 1,
+                    old_start: 0,
+                    old_lines: 0,
                     new_start: 1,
                     new_lines: 1,
                     lines: [{ kind: "added", text: "x" }],

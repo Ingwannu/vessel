@@ -49,6 +49,17 @@ describe("a diff as rows", () => {
     expect(rows[0]).toMatchObject({ kind: "hunk", section: "fn main()" });
   });
 
+  it("says when the node sent only the start of a hunk", () => {
+    expect(diffRows([HUNK], 0, "f:").some((row) => row.kind === "cut")).toBe(
+      false,
+    );
+    const long: Hunk = { ...HUNK, old_lines: 9000, new_lines: 9001 };
+    expect(diffRows([long], 0, "f:").at(-1)).toEqual({
+      kind: "cut",
+      key: "f:h0:cut",
+    });
+  });
+
   it("keeps keys stable as pages are added", () => {
     const first = addPage(null, page([HUNK], 1), "f:");
     const second = addPage(first, page([HUNK], null), "f:");

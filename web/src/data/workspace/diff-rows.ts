@@ -14,6 +14,10 @@
 //   new line numbers worked out here once, so a drawn row only reads.
 // - Cost: a 5,000-line page is 5,000 small objects; the rows of a file
 //   are made once per page, not per render.
+// - A hunk longer than a page is cut by the node (the page's first hunk
+//   is cut at the bound so every page moves forward; the rest of it is
+//   never sent): its lines then fall short of what its header counts, and
+//   a `cut` row after them says so.
 
 import type { DiffLine, FileDiff, Hunk, LineKind } from "../../wire/proto";
 
@@ -38,6 +42,11 @@ export type DiffRow =
       old: number | null;
       /** Its number on the new side, when it is there. */
       new: number | null;
+    }
+  | {
+      /** The node sent only the start of this hunk. */
+      kind: "cut";
+      key: string;
     };
 
 /** A hunk's header as git writes it. */
@@ -57,7 +66,11 @@ function hunkRows(hunk: Hunk, index: number, prefix: string): DiffRow[] {
   ];
   let old = hunk.old_start;
   let next = hunk.new_start;
+  let onOld = 0;
+  let onNew = 0;
   hunk.lines.forEach((line: DiffLine, at) => {
+    onOld += line.kind === "context" || line.kind === "removed" ? 1 : 0;
+    onNew += line.kind === "context" || line.kind === "added" ? 1 : 0;
     const numbers = numbered(line.kind, old, next);
     old = numbers.nextOld;
     next = numbers.nextNew;
@@ -71,6 +84,9 @@ function hunkRows(hunk: Hunk, index: number, prefix: string): DiffRow[] {
       new: numbers.new,
     });
   });
+  if (onOld < hunk.old_lines || onNew < hunk.new_lines) {
+    rows.push({ kind: "cut", key: `${prefix}h${String(index)}:cut` });
+  }
   return rows;
 }
 
