@@ -34,6 +34,7 @@ export {
   MenuSubmenu,
 } from "./menu";
 export { MenuNote, MenuSwitchItem } from "./menu-switch";
+export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";
@@ -41,6 +42,7 @@ export { Select } from "./select";
 export { Sheet } from "./sheet";
 export { Skeleton } from "./skeleton";
 export { Spinner } from "./spinner";
+export { SplitButton } from "./split-button";
 export { StatusDot } from "./status-dot";
 export { Switch } from "./switch";
 export { type Tab, Tabs } from "./tabs";

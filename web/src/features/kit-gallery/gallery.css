@@ -84,6 +84,20 @@
   flex: 1;
 }
 
+/* A panel's icon tabs, in a box as wide as the session's inspector. */
+.kit-panel-tabs {
+  display: flex;
+  width: 340px;
+  height: 120px;
+  margin-top: 16px;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--r-2);
+}
+
+.kit-panel-tabs .kit-note {
+  padding: 12px;
+}
+
 .kit-note {
   margin: 0;
   font: var(--t-body);
