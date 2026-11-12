@@ -144,6 +144,10 @@ pub(crate) enum ServiceError {
     /// (protocol 10).
     #[error("session {0} is being started again already")]
     StartingAgain(SessionId),
+    /// `session.resume` of a session placed in a worktree that setup,
+    /// teardown or a removal holds now (protocol 10).
+    #[error("worktree {0} is being set up or removed; start the session again once that has ended")]
+    WorktreeBusy(vessel_proto::WorktreeId),
     /// `session.resume` of a session whose folder is gone (protocol 10): a
     /// worktree removed by a person, or tidied when the session it was made
     /// for went, or a folder removed by hand. A conflict, not a refusal of
@@ -347,6 +351,7 @@ impl ServiceError {
             | Self::AlreadyLive(_)
             | Self::StartingAgain(_)
             | Self::FolderGone { .. }
+            | Self::WorktreeBusy(_)
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }

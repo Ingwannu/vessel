@@ -52,18 +52,20 @@ impl Workspaces {
                     (entry.info.root.clone(), entry.info.name.clone())
                 };
                 let dir = dir.clone();
-                let cwd = tokio::task::spawn_blocking(move || {
+                let (cwd, folder) = tokio::task::spawn_blocking(move || {
                     let opened = Root::open(&root)?;
-                    match &dir {
-                        Some(dir) if !dir.is_root() => opened.existing(dir),
-                        _ => Ok(opened.path().to_path_buf()),
-                    }
+                    let cwd = match &dir {
+                        Some(dir) if !dir.is_root() => opened.existing(dir)?,
+                        _ => opened.path().to_path_buf(),
+                    };
+                    let folder = cwd.is_dir();
+                    Ok::<_, WorkspaceError>((cwd, folder))
                 })
                 .await
                 .map_err(|_panicked| {
                     WorkspaceError::Io("resolving the folder stopped".to_owned())
                 })??;
-                if !cwd.is_dir() {
+                if !folder {
                     return Err(WorkspaceError::Invalid(
                         "the place is not a folder".to_owned(),
                     ));
@@ -99,6 +101,16 @@ impl Workspaces {
                 })
             }
         }
+    }
+
+    /// Whether setup, teardown or a removal holds `worktree` now: a
+    /// session does not start in it then (`session.resume` asks, as
+    /// `place` does).
+    pub(crate) fn busy(&self, worktree: WorktreeId) -> bool {
+        self.state()
+            .worktrees
+            .get(&worktree)
+            .is_some_and(|entry| entry.running.is_some())
     }
 
     async fn worktree_notices(&self, info: &WorktreeInfo) -> Vec<String> {

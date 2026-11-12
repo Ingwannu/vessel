@@ -13,8 +13,8 @@ use vessel_client::NodeClient;
 use vessel_node::Node;
 use vessel_proto::conversation::TidiedWorktree;
 use vessel_proto::workspace::{
-    AddProject, IfLost, KeptReason, ListWorktrees, ProjectInfo, RemoveWorktree,
-    RemoveWorktreeOutcome, SessionPlace,
+    AddProject, ApproveCommands, IfLost, KeptReason, ListWorktrees, ProjectInfo, RemoveWorktree,
+    RemoveWorktreeOutcome, RunSetup, SessionPlace, SetupState,
 };
 use vessel_proto::{ErrorCode, EventSeq, HarnessKind, Mark, SessionId, SessionStatus, WorktreeId};
 use vessel_store::Retention;
@@ -274,6 +274,60 @@ async fn a_session_whose_folder_is_gone_does_not_start_again() {
         let after = owner.session(id).await.unwrap();
         assert_eq!(after.status, SessionStatus::Interrupted, "it stays ended");
         assert_eq!(after.workspace.as_deref().map(|w| w.worktree), None);
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A session is not started again in a worktree setup (or a removal)
+/// holds: the removal could take the folder from under its agent.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_session_does_not_start_again_while_its_worktree_is_busy() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = project(&owner).await;
+        let worktree = new_worktree(&owner, project.id).await;
+        let id = running_in(&owner, &fixture, worktree.id).await;
+        node.stop().await.unwrap();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+
+        // A slow setup of the worktree's own file, approved, run again.
+        let file = "[worktree]\nsetup = \"sleep 30\"\n";
+        std::fs::write(worktree.path.join("vessel.toml"), file).unwrap();
+        let digest = vessel_workspace::project_file::ProjectFile::parse(file.as_bytes())
+            .unwrap()
+            .digest();
+        let _approved = owner
+            .call(ApproveCommands {
+                project: project.id,
+                digest,
+                approved: true,
+            })
+            .await
+            .unwrap();
+        let running = owner
+            .call(RunSetup {
+                worktree: worktree.id,
+            })
+            .await
+            .unwrap();
+        assert!(
+            matches!(running.setup, SetupState::Running { .. }),
+            "{running:?}"
+        );
+        let refused = owner.resume_session(id).await.unwrap_err();
+        let vessel_client::CallError::Remote(error) = &refused else {
+            panic!("{refused:?}");
+        };
+        assert_eq!(error.code, ErrorCode::Conflict, "{}", error.message);
+        assert!(
+            error.message.contains("being set up or removed"),
+            "{}",
+            error.message
+        );
         node.stop().await.unwrap();
     })
     .await;

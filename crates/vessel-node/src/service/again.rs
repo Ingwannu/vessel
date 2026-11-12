@@ -17,6 +17,7 @@
 //!   profile whose route changed since is refused (`unsupported`) rather
 //!   than run the conversation through another provider.
 
+use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{SessionId, SessionInfo};
 
 use super::{Connection, NodeService};
@@ -36,6 +37,13 @@ impl NodeService {
         }
         let claim = self.sessions.claim(id)?;
         let ended = self.sessions.ended(id).await?;
+        // Not into a worktree a removal (or setup) holds: the removal may
+        // take the folder from under the agent.
+        if let Some(SessionPlace::Worktree { worktree }) = ended.info.spec.place.as_deref()
+            && self.workspaces.busy(*worktree)
+        {
+            return Err(ServiceError::WorktreeBusy(*worktree));
+        }
         let mut launch = self.launcher.again(&self.profiles, &ended.info)?;
         let secret = self
             .agents
