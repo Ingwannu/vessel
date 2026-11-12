@@ -123,12 +123,19 @@ impl SessionHandle {
     /// and how an entry sent now was delivered.
     ///
     /// # Errors
+    /// [`SessionError::Delivery`] for an edit with no content;
     /// [`SessionError::Queue`] for an entry no longer queued, an edit from
     /// another revision, a full queue or `send_now` with `queue`; a
     /// `send_now`'s delivery errors, as [`prompt`](Self::prompt);
     /// [`SessionError::Terminal`], [`SessionError::Moving`],
     /// [`SessionError::Ended`].
     pub async fn change_queue(&self, change: QueueChange) -> Result<QueueChanged, SessionError> {
+        // An entry is a prompt waiting: it needs content as one does.
+        if let QueueChange::Edit { content, .. } = &change
+            && content.is_empty()
+        {
+            return Err(DeliveryError::Empty.into());
+        }
         let route = self.structured("a queue")?;
         self.order(route, |reply| Control::Queue(Change { change, reply }))
             .await

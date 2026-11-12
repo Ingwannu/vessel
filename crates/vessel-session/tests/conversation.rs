@@ -353,6 +353,17 @@ async fn entries_change_by_id_and_outlive_the_session_held() {
             .await
             .unwrap_err();
         assert_eq!(stale.code(), ErrorCode::Conflict);
+        let emptied = handle
+            .change_queue(QueueChange::Edit {
+                entry: ids[1],
+                revision: 1,
+                content: Vec::new(),
+            })
+            .await;
+        assert!(
+            matches!(emptied, Err(SessionError::Delivery(DeliveryError::Empty))),
+            "an entry keeps content: {emptied:?}"
+        );
         let sent = handle
             .change_queue(QueueChange::SendNow {
                 entry: ids[0],
