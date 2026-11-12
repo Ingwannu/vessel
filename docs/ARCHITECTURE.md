@@ -234,8 +234,9 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   frame and its sections, General, Appearance, Shortcuts with its recorder,
                   Notifications), machines/ (Machines, Agents, the add-machine dialog),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
-                  notifications/ (notices, the tone), the command palette, the theme switch, the
-                  kit's gallery at /kit
+                  notifications/ (notices, the tone), the command palette (the shell's, with its
+                  shortcut; the sidebar's row only opens it), the theme switch, the kit's
+                  gallery at /kit
 web/src/routes/   the screens, each composing features: home (welcome or board), the board, a
                   session, new session, settings (/settings/<section>), the old addresses'
                   redirects; a session, new session and Settings (and /kit) are chunks of their

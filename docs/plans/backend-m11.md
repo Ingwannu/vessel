@@ -942,3 +942,168 @@ folds a single call too (Paseo's overview does).
   owner in `data/drafts.ts`; a composer never writes per keystroke.
 - A `preferences` frame may skip revisions (the bridge pushes the latest
   only); compare by revision, never count frames.
+
+## Integration (web): tracks P and W
+
+Branch `backend/m11-int-web`: track W's `backend/m11-page` with track
+P's `backend/m11-perf` merged into it (`d58e7fd`), then the follow-ups
+below, each its own commit. No crate outside `vessel-web` was touched
+(nor `vessel-cli`'s one file of track W, nor `vessel-proto/src/ts*`).
+
+### What conflicted, and how each was resolved
+
+- `features/session/timeline.tsx`: P's windowed list and W's `reveal`,
+  `scrollerRef` and folds. The merge kept P's window and drew W's
+  `TimelineEntry` in each row; going to a key that is not drawn followed
+  (below).
+- `features/session/structured-session.tsx`: W's find bar, outline and
+  folds around P's timeline. P's `key={session.id}` on the timeline was
+  dropped: the session screen is keyed by its session already
+  (`session-page.tsx`), so every state under it starts afresh.
+- `main.tsx`: W's `startPreferences()` and P's gallery loaded on demand
+  (`kit-gallery/path.ts`).
+- `data/fleet.ts`: both comments; P's unchanged-list path with W's
+  polling while notices are on and its typed record walks.
+- `data/timeline.test.ts`: P's new test of the reducer's index with W's
+  branded fixture ids (`fixtureId`).
+- `Cargo.lock`: P's, which already listed `chrono` for `vessel-web` (as
+  P's dev-dependency); `cargo metadata` changed nothing.
+- `docs/ARCHITECTURE.md` and this plan: every track's lines kept; P's
+  progress moved to the end, before W's, and "Left open" before the
+  contracts, so the file ends contract W, progress P, progress W, this.
+- Files that merged without a conflict but were wrong together:
+  `crates/vessel-web/src/files.rs` (P's compressed forms and W's paint:
+  the merged `respond` sent the painted index with a brotli
+  `Content-Encoding` over plain bytes, and did not build); the index now
+  has an answer of its own (below).
+
+### Changed beyond resolving
+
+- **Going to a key** (`c66d187`, `c4cdd73`, `4731047`, `1c1248a`). The
+  window's rows are `data/rows.ts`'s: a closed run of tool calls is one
+  row, its members are not rows at all; the reducer's indices stay in
+  the reducer and only keys cross. `useWindow` takes a target: it
+  scrolls to the row's estimated place so it is drawn in the same frame,
+  then `window-pin.ts` holds it there after every change of the rows,
+  their heights or the view, before paint, with the browser's anchoring
+  off while held; a wheel, a touch, a press, a key or any scroll not its
+  own lets go. The end is followed only within 48 px of it. Find's mark
+  is put back on a row drawn again or grown; the outline's jump gives
+  the prompt focus. `e2e/timeline.spec.ts`: 20,000 entries, a match far
+  above, one far below, a prompt 20,000 entries up, the same with tool
+  calls collapsed, each in place from its first frame to a second later.
+- **The index** (`d58e7fd`, `59974c6`). Painted per request, so the one
+  text file not compressed (`files::index`, `compress.mjs` skips it): no
+  `Content-Encoding`, no `Vary`, no entity tag. The end-to-end test reads
+  the first animation frame over the slow link and finds it dark. ADR
+  0017's amendment and ADR 0028 say so.
+- **The bundle**: W's Settings sections went into Settings' chunk, the
+  find bar and the outline into the session's, the preferences, the
+  shortcut listener, notices and the sidebar's display into the entry;
+  every chunk is in the import map; the content policy tests pass. The
+  race P fixed was re-checked with W's routes: Settings' redirect got
+  the index's rule (`db68394`), and a test holds Settings' chunk while
+  Mod+, then N are pressed (the redirect is not drawn again today, so
+  the test passes with or without the rule; it guards the flow).
+- **Find**: it moves to a match when the match changes, not when a
+  refresh finds it again (`d11cbd6`); an underscore inside a word is the
+  word's (`684d9d2`); it yields by a message, not a 4 ms timer
+  (`0a52c3d`: 547 → 144 ms typed to the count over 20,000 entries).
+- **ADR 0025 → 0028** (`7f993f0`), each mention read for what it is
+  about. Small: `files.rs`' tests in `files/tests.rs` (`14bea1a`),
+  `chrono` once in `vessel-web` (`e452991`), the committed
+  `tsconfig.tsbuildinfo` removed and ignored (`94f0bd0`).
+- **`npm run perf`** measures find and going far (`360a33f`);
+  `docs/PERFORMANCE.md`, "Tracks P and W merged", has both trees' figures
+  side by side.
+
+### Review
+
+An independent reviewer (Opus, read-only) read the merged diff of `web/`
+and `crates/vessel-web`. Found, and what became of each:
+
+1. Find never searched while a session streamed (every batch reset its
+   timer and cancelled the search). Fixed: `use-search.ts` (`3e5f8b3`).
+2. The outline read every message's Markdown on every batch and redrew
+   every mark. Fixed: previews once per entry, an unchanged outline
+   kept, memoised (`726b160`); measured, it was most of the timeline's
+   regression.
+3. The palette's shortcut lived in the sidebar, gone when it was hidden.
+   Fixed: the shell's `PaletteHost` (`d627ea8`), with a test.
+4. "Default" profile could not be chosen once another was remembered.
+   Fixed: the draft's `chosen`, `startingPicks` tested (`d3deb68`).
+5. The highlight matched by its own rule (case only). Fixed: `spansOf`
+   in `data/find.ts`, the count's folding mapped back (`929f32f`).
+6. A mark in a streaming message collapsed with its text node. Fixed:
+   marked again when the entry changes, a collapsed range is gone
+   (`1c1248a`).
+7. Only the appearance is painted into the index (a hidden sidebar
+   shows for a moment). Not taken here: what the index carries is ADR
+   0028's contract; widening it is track W's or the coordinator's call.
+8. Every preferences push replaced every section. Fixed:
+   `keepSections` (`ae700ef`).
+9. The sidebar's status grouping reads the whole fleet state. Not
+   taken: it copies the machine grouping's existing pattern, the fleet
+   state changes only when something did (track P), and the board at
+   rest measured no long task.
+10. Find's marks survived a session switch. Fixed (`726b160`).
+11. A scroll the browser clamps at the end released the pin. Fixed: a
+    clamp is the pin's own (`1c1248a`).
+12. The row lookup ran on every render. Fixed: memoised (`1c1248a`);
+    the composer's `entries.find` it also named is the pending
+    permission's, base code, left.
+
+Found while measuring, not by the review: an audio context opened on
+every page's first click whatever the setting (`b22cef0`); the outline
+read the layout on every scroll frame while not drawn (`5efa82c`).
+
+### Measured
+
+Track P's tree alone and this one, release builds, `npm run perf` back
+to back (`docs/PERFORMANCE.md` has every row and the reasons):
+
+| Figure | P alone | Merged |
+| --- | --- | --- |
+| board usable, cold, slow link | 2,573 ms | 2,664 ms |
+| … on a phone | 3,238 ms | 3,274 ms |
+| bytes for a cold board | 326,629 B | 335,114 B |
+| 20,000 entries: last entry drawn | 2,645 ms | 2,845 ms |
+| … a scroll step; heap; elements | 33 ms; 12.8 MiB; 501 | 33 ms; 13.1 MiB; 507 |
+| 500 cards at rest: long tasks per 10 s | 0 | 0 |
+| find, 20,000 entries: typed to the count | — | 138 ms |
+| a match far away: typed to it shown; moved after | — | 154 ms; 0 px |
+
+### Gate (final tree)
+
+```
+cargo fmt --all --check                                   fmt exit 0
+cargo clippy --workspace --all-targets -- -D warnings     Finished; exit 0
+cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets -- -D warnings
+                                                          Finished; exit 0
+cargo test --workspace --no-fail-fast                     83 suites: 1,099 passed, 0 failed, 8 ignored
+                                                          (a_failed_probe_says_why_and_never_hangs: ok this run)
+cargo test -p vessel-proto -p vessel-web --features ts --lib typescript
+                                                          2 passed (declarations current)
+web: npm ci                                               exit 0
+web: npm run lint                                         exit 0 (prettier, fonts: 132 stacks, controls, size: within budget)
+web: npm run typecheck                                    exit 0
+web: npm run test                                         52 files, 232 tests passed
+web: npm run build                                        exit 0
+web: npm run e2e                                          36 passed (1.7m)
+web: npm run screens                                      5 passed (2.4m)
+web: VESSEL_CARGO_PROFILE=release npm run perf            5 passed
+```
+
+One e2e run during the integration, beside a fat-LTO release build,
+failed once on a tab sent to "Open Vessel from its address" (W's
+shortcut test); it passed alone and in the two full runs since. Not
+reproduced, not explained.
+
+### Not verified
+
+- Firefox and Safari (only Chromium runs the tests); the pin's hold in a
+  browser whose scroll anchoring differs.
+- A far row among entries of very different heights (the 20,000-entry
+  log's are alike); the outline's jump with thousands of prompts.
+- The first entry drawn about 50 ms later than track P alone, in every
+  pair: the session screen mounts more; not separated further.
