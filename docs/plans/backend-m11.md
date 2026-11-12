@@ -3518,8 +3518,8 @@ Webhooks (ADR 0034):
 - `HookListener` (tagged `state`): `off`, `listening { address }`,
   `failed { message }`, `unknown`.
 - `HookDelivery { at, key?, bytes, outcome }`, `DeliveryOutcome` (tagged
-  `outcome`): `ran { outcome: RunOutcome }` (followed as a schedule's
-  run is), `duplicate`, `busy` (at its bound of live sessions or the
+  `outcome`): `ran { run }` (the run's `RunOutcome`, followed as a
+  schedule's run is), `duplicate`, `busy` (at its bound of live sessions or the
   target's queue is full), `rate_limited`, `rejected { why }` (`why`:
   `signature`, `stale`, `too_large`, `unknown`), `unknown`. No body and
   no header is kept.
@@ -3940,7 +3940,7 @@ changed:
     `schedule.run`.
 16. **Wire**: `unknown` on every enum that grows; a run's error is a
     `RunError` whose code has `unknown`; a hook's run is its delivery's
-    `ran { outcome }`; specs with `resume` and places in another project
+    `ran { run }`; specs with `resume` and places in another project
     refused; `revision` does not move at a run; every failure listed.
 17. **Webhooks through `fleet.forward`**: hook writes and `notify` are
     refused to delegated callers.

@@ -10,6 +10,7 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
+pub mod automation;
 mod base64_bytes;
 mod board;
 pub mod conversation;
@@ -70,9 +71,10 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId,
-    PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SessionId,
-    SubscriptionId, ToolCallId, TransferId, UploadId, WorktreeId,
+    AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, ModelId, NodeId, OptionId,
+    OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
+    RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, ToolCallId, TransferId,
+    UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

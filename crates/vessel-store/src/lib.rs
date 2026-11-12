@@ -50,6 +50,7 @@
 
 mod again;
 mod attachments;
+mod automation;
 mod codec;
 mod config;
 mod data_dir;
@@ -71,6 +72,7 @@ mod writer;
 pub use again::EndedSession;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
+pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, StoredDevice};

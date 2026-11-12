@@ -44,7 +44,7 @@ impl Reader {
 
     /// Run `read` on an idle connection (or a new one), then keep the
     /// connection for the next read.
-    fn with<T>(
+    pub(crate) fn with<T>(
         &self,
         read: impl FnOnce(&Connection) -> Result<T, StoreError>,
     ) -> Result<T, StoreError> {
@@ -153,6 +153,11 @@ impl Reader {
     /// Projects, worktrees and approvals (protocol 10).
     pub(crate) fn workspace(&self) -> Result<crate::workspace::StoredWorkspace, StoreError> {
         self.with(crate::workspace::load)
+    }
+
+    /// Schedules, hooks and their keys (protocol 11).
+    pub(crate) fn automation(&self) -> Result<crate::automation::StoredAutomation, StoreError> {
+        self.with(crate::automation::load)
     }
 
     /// Every paired device, oldest first.

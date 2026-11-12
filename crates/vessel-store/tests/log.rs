@@ -12,10 +12,17 @@ use vessel_proto::{
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
 /// Undoes schemas 9 to 7 (protocol 10), so a test can take a database
-/// further back: the workspace's tables (9), retention's index (schema 1's
+/// further back: the schedules', saved prompts' and hooks' tables (13;
+/// 10 to 12 are empty on this branch), the workspace's tables (9), retention's index (schema 1's
 /// in its place, 8), the conversation's columns and the attachments table
 /// (7).
-const UNDO_SCHEMAS_7_TO_9: &str = "DROP TABLE approvals;
+const UNDO_SCHEMAS_7_TO_13: &str = "DROP TABLE hook_keys;
+     DROP TABLE hook_deliveries;
+     DROP TABLE hooks;
+     DROP TABLE saved_prompts;
+     DROP TABLE schedule_runs;
+     DROP TABLE schedules;
+     DROP TABLE approvals;
      DROP TABLE worktrees;
      DROP TABLE projects;
      DROP INDEX sessions_retention;
@@ -643,7 +650,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_9).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_13).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN via;
@@ -673,7 +680,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_9).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_13).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN profile;
@@ -715,7 +722,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     drop(store);
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_9).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_13).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN model;
