@@ -196,7 +196,15 @@ pub(super) async fn owner(fixture: &Fixture) -> NodeClient {
 /// A structured session's `vessel` server environment, as its agent got
 /// it: start one, wait until it runs, ask `fake-acp` for its servers.
 pub(super) async fn agent_env(owner: &NodeClient) -> (SessionId, AgentEnv) {
-    let spec = SessionSpec::new(
+    agent_env_with(owner, None).await
+}
+
+/// [`agent_env`], the session started with `profile`.
+pub(super) async fn agent_env_with(
+    owner: &NodeClient,
+    profile: Option<vessel_proto::ProfileName>,
+) -> (SessionId, AgentEnv) {
+    let mut spec = SessionSpec::new(
         HarnessKind::ClaudeCode,
         SessionMode::Structured {
             model: Some(ModelId::new("fake-small")),
@@ -205,6 +213,7 @@ pub(super) async fn agent_env(owner: &NodeClient) -> (SessionId, AgentEnv) {
         },
     )
     .with_cwd(std::env::temp_dir());
+    spec.profile = profile;
     let id = owner.create_session(spec).await.unwrap().id;
     let mut stream = owner.follow(id, EventSeq::ZERO).await.unwrap();
     let mut reply = String::new();

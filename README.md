@@ -531,8 +531,11 @@ waits on an answer), `change_queue`, `answer_question`,
 `resume_session` and `archive_session`, and for projects
 `list_projects`, `list_worktrees` and `create_worktree` (which follows
 setup to its end; at most 8 worktrees of its own, a session in one only
-if it made it); each but `list_nodes` takes `node`, so an agent can
-start a session on another machine and read its answer.
+if it made it), and for terminals `create_terminal`, `list_terminals`,
+`read_terminal`, `write_terminal` (marked destructive: typing runs
+programs), `close_terminal` and `list_ports`; each but `list_nodes`
+takes `node`, so an agent can start a session on another machine and
+read its answer.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and
   operates only on sessions it started (and theirs).
@@ -540,6 +543,10 @@ start a session on another machine and read its answer.
   most 3 levels deep.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
+- Terminals only where a person allowed them (`agent_terminals = true` in
+  the session's profile), beside its own session or one it started, at
+  most 4 at once; it sees and uses only its own, and they end with its
+  session. It never runs a project's scripts.
 - Agents do not mark sessions read or unread (the node refuses: an agent
   reading is not its owner seeing), pin them, delete them or attach
   files. The node asks questions only in sessions a person or a device
