@@ -3353,8 +3353,15 @@ carried by the sessions' terminal transport** (ADR 0031):
   `lagged` and `resume_from`) and paged with the same `EventPage`; input
   is the same `TerminalInput`. The page's terminal view therefore draws a
   shell exactly as it draws a terminal session.
+- The wire is shared; the code that follows a log is not yet. The rpc
+  client's driver opens only `session.subscribe`'s routes, and
+  `vessel-client`'s streams page with `session.read`; both are taught a
+  terminal (a subscription answered with `TerminalSubscribed`, catching
+  up with `terminal.read`), and the node's forwarder for a terminal reads
+  its ring only (there is no store behind it). Listed as work, not
+  assumed.
 
-### Types (`vessel_proto::terminal_shell`, `vessel_proto::scripts`, `vessel_proto::ports`; new modules)
+### Types (`vessel_proto::terminals`, `vessel_proto::scripts`, `vessel_proto::ports`; new modules)
 
 Ids (`id.rs`): `TerminalId`, node-minted UUIDv4 (a handle in
 `ts/aliases.rs`).
@@ -3387,7 +3394,7 @@ Terminals:
   shell's window; `oldest_seq` the first record still kept (older output
   has been dropped, below) and `next_seq` the next one; `revision` changes
   with any field but the two sequence numbers, for waiting.
-- `ServiceState` (protocol 11, also an event): `starting { attempt }`,
+- `ServiceState`: `starting { attempt }`,
   `running { attempt, since }`, `backing_off { attempt, code?, restart_at
   }`, `exited { code }` (it ended by itself with 0: not restarted),
   `failed { reason }` with `ServiceFailure` one of `gave_up { restarts }`,
@@ -3424,21 +3431,30 @@ Ports:
   yet), `scanned { at }`, `unavailable { reason }` (the system's tool is
   missing or failed), `unknown`.
 
-The event (`SessionEvent`, the one shared type grown, by one variant):
-`service { state: ServiceState }`, protocol 11. It appears only in a
-service's log; its stand-in for an older connection is a `vessel:` line
-(`vessel: service running (attempt 2)`), as every newer event has.
+No event is added. A service's state is typed on its `TerminalInfo`
+(`service`), every change bumps `revision`, and `terminal.get {
+changed_from }` and `terminal.list` deliver the changes, as `project.get`
+delivers a clone's progress; the run's log gets a `vessel:` line at each
+change (`vessel: service exited with 1; restarting`), for a person
+reading the output. A `SessionEvent` variant was considered and dropped
+(review item 14): only protocol 11 calls serve a terminal's log, so its
+stand-in could never be sent, and it would add an arm to about ten
+exhaustive matches in other tracks' code.
 
 ### Calls
 
-All protocol 11, forwardable through `fleet.forward`, in `vessel-web`'s
-list. "Agents": what an agent principal (ADR 0013, local or delivered)
+All protocol 11. Every one but `terminal.subscribe` is forwardable
+through `fleet.forward` and in `vessel-web`'s list of calls a page may
+make; `terminal.subscribe` is a stream, which is neither (as
+`session.subscribe` is not): the bridge follows a terminal for the page
+(`follow_terminal`, below), and another node's terminal is read with
+`terminal.read`. "Agents": what an agent principal (ADR 0013, local or delivered)
 may do; the guard refuses the rest with `forbidden` before the call
 runs.
 
 | Method | Scope | Agents | Request | Reply |
 |---|---|---|---|---|
-| `terminal.create` | operate | own session's place | `CreateTerminal { place, size?, title? }` | `TerminalInfo` |
+| `terminal.create` | operate | when allowed (below) | `CreateTerminal { place, size?, title? }` | `TerminalInfo` |
 | `terminal.list` | read | its own | `ListTerminals { place? }` | `TerminalList` |
 | `terminal.get` | read | its own | `GetTerminal { terminal, changed_from? }` | `TerminalInfo` |
 | `terminal.read` | read | its own | `ReadTerminal { terminal, from, limit, wait? }` | `EventPage` |
@@ -3476,12 +3492,16 @@ node's wait shares) and `internal`. Beyond that:
 - `terminal.read`: a page from `from`, at most `limit` records (capped at
   512) and 1 MiB of output; with `from` older than `oldest_seq`, the page
   starts at `oldest_seq` (the scrollback that was dropped is gone, as a
-  pruned session log is); `wait` (at most 30 s) waits for a record at
-  `from`. `invalid_request` for `from` past `next_seq`.
+  pruned session log is); `wait` (at most 30 s, against `session.read`'s
+  60: a terminal is followed by subscription, a wait is for a tool's
+  poll; in the wait shares, and answered at once when forwarded) waits
+  for a record at `from`. `invalid_request` for `from` past `next_seq`.
 - `terminal.subscribe`: the records from `from` (from `oldest_seq` when
   older), then live ones, then `subscription_ended { session_ended }` once
-  the terminal ended and its last record was sent; `lagged { resume_from
-  }` for a follower further behind than the live buffer, as for sessions.
+  the terminal ended and its last record was sent (also when it was
+  closed: its final status comes first); `lagged { resume_from }` for a
+  follower further behind than the live buffer (64 records), as for
+  sessions, after which the client pages with `terminal.read`.
 - `terminal.send`: `data` written to the shell (at most 64 KiB a call),
   or a `resize`. `unsupported` for a script or a service (they have no
   terminal input; standard input is closed); `conflict` once it ended.
@@ -3491,8 +3511,10 @@ node's wait shares) and `internal`. Beyond that:
   process (a shell) or its job (a script) is terminated at once. A
   service is not restarted after it. The terminal is kept, ended, with
   its output. Nothing for one already ended.
-- `terminal.close`: kills it if it runs, waits for its end, and forgets
-  it; its subscriptions end.
+- `terminal.close`: kills it if it runs, waits for its end (at most the
+  grace and 5 s more; a process stuck in the kernel is forgotten anyway,
+  and logged), and forgets it; its subscriptions end after its final
+  status.
 - `script.list`: the place's root (a session's worktree, or its or the
   given project's folder), its `vessel.toml` as it is now, its approval,
   and its runs. `invalid_request` for a session without a project.
@@ -3507,10 +3529,13 @@ node's wait shares) and `internal`. Beyond that:
   into the run's log as `terminal` records, as one process group
   (`vessel-proc`: a group on Unix, a job object on Windows). One live run
   per root and script (`already_running`).
-- `script.restart`: a run, live or ended, runs again in the same terminal
-  (its log continues, a `vessel: restarted` notice between), with the
-  command it ran, if the set it came from is still approved
-  (`needs_approval` otherwise). A service's restart count starts again.
+- `script.restart`: a live run is stopped and run again in the same
+  terminal (its log continues, a `vessel: restarted` notice between, a
+  service's count starts again); an ended run's log is closed, so it runs
+  again in a new terminal, as `script.run` would (the old one stays kept
+  until closed or evicted). Either way with the command it ran, and only
+  if the set it came from is still approved (`needs_approval`
+  otherwise).
 - `port.list`: the last scan's listeners whose owner the caller may see;
   each call counts as interest (below). With `changed_from`, waits (at
   most 30 s, in the wait shares) for another revision.
@@ -3535,28 +3560,55 @@ node's wait shares) and `internal`. Beyond that:
   it, with `TERM=xterm-256color` and `COLORTERM=truecolor` (what the
   page's terminal draws), less every credential of Vessel's: any
   `VESSEL_*` variable whose name ends in `TOKEN` or `SECRET`
-  (`VESSEL_TOKEN`, `VESSEL_AGENT_SECRET`, `VESSEL_MODEL_SECRET`) and the
-  two that name an agent's connection (`VESSEL_AGENT_SESSION`,
-  `VESSEL_NODE_SOCKET`). The node never puts a credential in its own
-  environment, so these are there only when it was started from inside a
-  session's process tree, and then they belong to that other session. A
+  (`VESSEL_TOKEN`, `VESSEL_AGENT_SECRET`, `VESSEL_MODEL_SECRET`,
+  `VESSEL_MCP_<n>_<m>_SECRET`) and the two that name an agent's
+  connection (`VESSEL_AGENT_SESSION`, `VESSEL_NODE_SOCKET`); and, when
+  any of those is there, the variables a model route sets for a harness
+  (`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, ADR 0015). The node never
+  puts a credential in its own environment, so these are there only when
+  it was started from inside a session's process tree, and then they
+  belong to that other session; a node started normally leaves the
+  user's own `ANTHROPIC_*` alone, as the user's terminal has them. The
+  binary works out the list from its own environment at start (library
+  code reads no process environment); a node in a test removes the fixed
+  names. A
   session's agent credential (ADR 0013) and a routed session's model
   token (ADR 0015) are given to that session's harness only, never to a
   terminal beside it. Scripts get the same, plus setup's
   `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE` and `VESSEL_BRANCH`, and
   `VESSEL_SCRIPT` (its name).
 - **The process tree.** A shell is a session leader in its PTY
-  (`vessel-pty`), stopped as a group on Unix; on Windows the pseudo
-  console's closing ends what is attached to it (the gap ADR 0003's
-  terminal sessions have; a shell's own detached children can outlive
-  it there). A script or a service runs through `vessel_proc::spawn`: a
-  process group on Unix, a kill-on-close job object on Windows, so its
-  grandchildren end with it on every platform.
+  (`vessel-pty`), stopped as a group on Unix. An interactive shell puts
+  each job in a process group of its own, which a signal to the shell's
+  group misses: the polite `SIGHUP` is resent to every job by bash and
+  zsh, and the kernel sends `SIGHUP` to the foreground job when the
+  session's leader exits; on Linux, once the shell has exited, every
+  process still in its session is killed too (the session id is the
+  shell's pid, which the system does not hand out again while the
+  session has members), so `npm run dev &` ends with its terminal. On
+  macOS a background job that ignores `SIGHUP` can outlive it; on Windows
+  the pseudo console's closing ends what is attached to it (the gap ADR
+  0003's terminal sessions have). A script or a service runs through
+  `vessel_proc::spawn`: a process group on Unix, a kill-on-close job
+  object on Windows, so its children end with it, except, on Unix, one
+  that left the group on purpose (`setsid`, a daemon). If the node itself
+  crashes, nothing stops a Unix group: a service keeps its port, and the
+  same service started again fails to bind it (Windows closes the job
+  with the node's handle).
+- **The window.** Every client's resize is applied; the last one wins
+  (Paseo arbitrates between attached clients; Vessel's terminal sessions
+  never have, and a shell is one more of them).
+- **Piped, not a terminal.** A script or a service has no PTY: a program
+  that checks for a terminal prints without colour, and one that buffers
+  when piped (Python without `-u`) shows its output late. Paseo and GOAT
+  run scripts in a PTY; Vessel cannot put a PTY's program in a job object
+  before it starts (`vessel-pty`'s Decision Log), and a service's
+  children must end with it on Windows too.
 
 ### A service is kept running
 
 - Exit with a code other than 0, or by a signal Vessel did not send: a
-  restart after 1, 2, 4, 8, 16, then 30 s; a run that lasted 60 s resets
+  restart after 1, 2, 4, 8, then 16 s; a run that lasted 60 s resets
   the count; the sixth failure without such a run gives up (`failed {
   gave_up { restarts: 5 } }`). Exit with 0: `exited`, not restarted (a
   service that ends cleanly is done, or misconfigured; restarting it
@@ -3570,10 +3622,21 @@ node's wait shares) and `internal`. Beyond that:
   up, exits, or is stopped.
 - Its output is the run's log, bounded as every terminal's (below), across
   restarts.
-- Stopped by `terminal.kill`, `terminal.close`, its session's deletion,
-  its project's removal, and the node's stop. Not by its session's end: a
-  session that ended can be started again (ADR 0026) in the same folder,
-  and a dev server is often what a person is still looking at.
+- Stopped by `terminal.kill`, `terminal.close`, its session's deletion
+  or removal by retention, and the node's stop. Not by its session's end:
+  a session that ended can be started again (ADR 0026) in the same
+  folder, and a dev server is often what a person is still looking at.
+- `running` means the process started, nothing more: no readiness or
+  health probe (agent-orchestrator waits for its preview's URL, Paseo
+  probes its services' ports every 3 s). The ports below say whether it
+  listens.
+- No port is assigned (Paseo gives each service `PASEO_PORT`): the same
+  service run in two worktrees binds the same port, and the second fails
+  until the first stops. Assigning one would make every command depend
+  on a variable Vessel invents; left for the preview track.
+- `node.stop { when: idle }` waits for sessions only: terminals and
+  services are not work an agent is in the middle of, and end with the
+  node as everything else does.
 
 ### Ports
 
@@ -3597,8 +3660,12 @@ node's wait shares) and `internal`. Beyond that:
   MiB of output; at most 256 ports are reported (`more`). A scan runs on
   the blocking pool, one at a time.
 - Reported as facts only: nothing is opened, forwarded or proxied, and no
-  listener is opened to the network. How a page reaches a port (through
-  the bridge, never by exposing it) is the preview track's ADR.
+  listener is opened to the network. How a page reaches a port is the
+  preview track's ADR, with one rule fixed now (review item 12): a
+  previewed app is repository code, so it is served on an origin other
+  than the page's (another port or host, as Paseo's `*.localhost`), never
+  under the page's own origin, and it never holds a credential of the
+  bridge.
 - Only TCP listeners. A port is the owner whose tree holds the listening
   process at the scan; a process that moved out of the tree (a daemon that
   detached) is not reported, and is not Vessel's to stop either.
@@ -3617,9 +3684,12 @@ dir = "web"            # optional: where it runs, inside the root
 ```
 
 - `command`: one `ProjectCommand`; `dir`: a `RelPath`. A name in both
-  tables, an unknown key inside an entry, or more than 32 scripts and
-  services together makes the file invalid (`invalid { message }`):
-  nothing in it runs, setup included. `[env]` stays unread.
+  tables, an entry without a `command`, a name that is not a
+  `ScriptName`, or more than 32 scripts and services together makes the
+  file invalid (`invalid { message }`): nothing in it runs, setup
+  included. An unknown key inside an entry is ignored, as ADR 0027
+  ignores every key it does not read (a later node's key must not stop
+  this one's setup); the digest covers what runs. `[env]` stays unread.
 - **The digest grows only where the file does.** A file that names no
   script and no service keeps its version 1 digest exactly, so every
   approval given in protocol 10 still covers what it showed. A file that
@@ -3629,7 +3699,9 @@ dir = "web"            # optional: where it runs, inside the root
   `service`), its command and its folder (empty when none), every count
   and length 8 bytes little-endian. No version 1 approval can match it,
   so adding a first script asks again, and so does any later change to a
-  script, its kind, its folder or its order. Setup and teardown are
+  script's name, kind, command or folder, and any script added or
+  removed (entries are digested in name order, so their order in the
+  file does not matter). Setup and teardown are
   approved with the scripts, as one set: one approval per set, as ADR
   0027 says.
 - **An old client never approves what it could not show.** A protocol 10
@@ -3639,19 +3711,37 @@ dir = "web"            # optional: where it runs, inside the root
   (`Reply::for_protocol`, in `project.commands`, `project.approve` and
   `worktree.create`'s `needs_approval`), so it never sees the digest of
   a set it cannot display.
+- **And the page must not either** (review item 2). The page speaks
+  protocol 11, and its approval view is track B-page's, built beside this
+  track. **A condition of the join**: B-page's approval shows `scripts`
+  (name, kind, command, folder) when there are any, or refuses to approve
+  a set that has them. Track C draws nothing, so it cannot close this
+  itself; the report says so to the coordinator.
 
 ### Agents (ADR 0013), and what stops one leaving what it was given
 
-- An agent may create a terminal only in its own session's place (`place:
-  session` naming its own session); at most 4 of its terminals live at
-  once (`forbidden` past that, as its session limit is). Every other
-  terminal call works only on terminals it created; `port.list` shows only
-  its own session's and terminals' ports. `script.*` are refused: a
-  repository's commands run where a person approved them and a person
-  asked; an agent runs commands with its own tools.
+- **Off unless a person turned it on** (review item 1). An agent's own
+  shell tool may be sandboxed (Codex's sandbox, Claude Code's sandbox
+  and command allowlists); a terminal the node starts is not, so it would
+  give a sandboxed agent more than it has. An agent may open a terminal
+  only beside a session whose profile says so (`agent_terminals = true`
+  in its `[profiles.<name>]`, `profiles.toml`, ADR 0011): its own
+  session, or one it may operate (ADR 0013's ownership, so a session it
+  started on another node works through `fleet.forward`). The default
+  profile of every harness has it off. `forbidden` otherwise.
+- At most 4 of its terminals live at once (`forbidden` past that, as its
+  session limit is). Every other terminal call works only on terminals it
+  created; `port.list` shows only its own session's and terminals' ports.
+  Its terminals end when its own session ends (its credential dies then,
+  and nothing it started should outlive what it may still answer for).
+  `script.*` are refused: a repository's commands run where a person
+  approved them and a person asked; an agent runs commands with its own
+  tools.
 - Typing into a terminal is running a program, so the rule is that a
   terminal gives an agent nothing its own command tool does not:
-  - it starts in the agent's own folder, as the same user;
+  - a person turned it on for that profile, knowing what the agent's own
+    sandbox was;
+  - it starts in the session's folder, as the same user;
   - the shell holds no credential: not the node's token, not the agent's
     own credential, not a model token, so it cannot act through the node
     as the agent or the node;
@@ -3660,9 +3750,11 @@ dir = "web"            # optional: where it runs, inside the root
     agent's;
   - every `write_terminal` is a tool call of the agent's harness, held to
     the session's permission mode as its own shell tool is (Vessel does
-    not pre-approve its own MCP tools);
+    not pre-approve its own MCP tools), and is marked destructive and
+    open-world in its MCP annotations, so a harness that asks before such
+    tools asks;
   - its terminals are counted, named as its own (`created_by`), and end
-    with its session's deletion.
+    with its session.
   What it cannot stop, stated as ADR 0013 states it: a process of the
   node's user can read the node's files, its token included. A terminal
   is attribution and least privilege, not containment.
@@ -3694,12 +3786,12 @@ store's schema is not raised.
 |---|---|---|
 | Live terminals (shells and runs) | 64 a node, 8 a session, 16 a project's folder, 4 an agent's | `unavailable` (`forbidden` for an agent) |
 | Ended terminals kept | 32 a node | the oldest ended one is forgotten |
-| Scrollback | 1 MiB and 4,096 records a terminal | the oldest records are dropped; `oldest_seq` moves; a reader from before gets from `oldest_seq` |
-| Live followers | the ring's 4,096 records each | `lagged { resume_from }`, then pages |
+| Scrollback | 1 MiB of output and 4,096 records a terminal | the oldest records are dropped; `oldest_seq` moves; a reader from before gets from `oldest_seq` |
+| Live followers | 64 records behind (the broadcast's buffer: at most 1 MiB of 16 KiB chunks held for a stalled follower) | `lagged { resume_from }`, then pages |
 | Input | 64 KiB a `terminal.send` | `invalid_request` |
 | A page | 512 records, 1 MiB of output | `next` |
 | Long polls | 30 s, in the node's wait shares | answered as it is |
-| A service | restarts after 1 to 30 s; 5 without a run of 60 s | `failed { gave_up }` |
+| A service | restarts after 1 to 16 s; 5 without a run of 60 s | `failed { gave_up }` |
 | Stopping | 2 s (shell), 5 s (script) from the polite signal to `SIGKILL` | killed as a group |
 | `vessel.toml` | 32 scripts and services; names of 64 bytes | `invalid` |
 | Port scans | one per 3 s, only within 60 s of a `port.list`; 4,096 processes, 50,000 descriptors, 5 s and 4 MiB per tool; 256 ports | `more`; `unavailable` |
@@ -3712,8 +3804,10 @@ store's schema is not raised.
   rename`. `vessel script list | run | restart | stop | output` with
   `--session` or `--project`; `vessel ports`.
 - Agent tools (`vessel mcp`): `create_terminal`, `list_terminals`,
-  `read_terminal` (text from a cursor, escape sequences removed, at most
-  32 KiB a call, with an optional wait, and the cursor for the next),
+  `read_terminal` (the text of whole records from a cursor, a record's
+  sequence number, escape sequences removed (one split across two records
+  may leave a stray character), at most 32 KiB a call, with an optional
+  wait, and the cursor for the next),
   `write_terminal` (text, at most 16 KiB, and optional named keys:
   `enter`, `tab`, `escape`, `backspace`, `up`, `down`, `left`, `right`,
   `ctrl_c`, `ctrl_d`, `ctrl_z`), `close_terminal`, and `list_ports`. Each
@@ -3722,5 +3816,72 @@ store's schema is not raised.
   output, not the picture a full-screen program draws.
 - The bridge (`vessel ui`) follows a terminal as it follows a session:
   `follow_terminal { stream, node, terminal, from }`, answered with the
-  same `event` and `stream` frames. The page's data layer gets the
-  generated types and nothing drawn (track C-page draws).
+  same `event` and `stream` frames, reconnecting as a session's stream
+  does. The page's data layer gets the generated types and nothing drawn
+  (track C-page draws).
+
+### Where terminals meet the other tracks
+
+- **Deleting a session** (`session.delete`) ends its terminals and runs
+  before its worktree is tidied, so they never hold it; **retention**
+  dropping a session does the same, from the node's tidying sweep.
+- **Removing a worktree** (`worktree.remove`, and tidying) counts a live
+  terminal whose folder is inside it as `in_use`, as a live session is: a
+  person's shell or a service there keeps it (and teardown, `docker
+  compose down`, never runs under a live service).
+- **Removing a project** (`project.remove`) answers `conflict` while a
+  live terminal is placed in it or runs inside its folder, as it does for
+  a live session; ended ones are forgotten with it.
+- **A session or project going away while a terminal starts for it**:
+  the terminal is registered, then its place is looked up again; gone, it
+  is killed and the call answers `not_found`. Deletion ends what is
+  registered, so one of the two always ends it.
+
+### Review (2026-11-12)
+
+An independent reviewer (Opus, read only) read the first version of this
+contract against the references, the code it claims to reuse and the
+other tracks' contracts, and found fifteen problems. Each one's fate:
+
+1. Agent terminals would give a sandboxed agent an unsandboxed shell.
+   **Taken**: off unless a person turns it on in the session's profile
+   (`agent_terminals`); `write_terminal` annotated destructive and
+   open-world.
+2. The protocol 11 page could approve scripts it never shows. **Taken as
+   a join condition** for B-page's approval view (this track draws
+   nothing).
+3. Removing a worktree or a project ignored live terminals; retention did
+   not end them. **Taken** ("Where terminals meet the other tracks").
+4. The reuse held on the wire only, and streams are not forwardable.
+   **Taken**: `terminal.subscribe` is neither forwardable nor a page call;
+   the client's and the bridge's following are listed as work. **Not
+   taken**: dropping the subscription for `terminal.read { wait }` polls,
+   which would hold one of the bridge's eight waiting reads (the node's
+   wait shares per origin) for every terminal a page shows, where a
+   subscription holds none.
+5. The memory bound was by record count only. **Taken**: the ring is
+   bounded by bytes and records, the live buffer is 64 records.
+6. Restarting "in the same terminal" had no mechanism once its log was
+   closed. **Taken**: in place while it runs, a new terminal once ended.
+7. A shell's jobs survive a signal to its group. **Taken** for Linux (the
+   shell's session is swept); stated for macOS, Windows and a node that
+   crashes.
+8. `node.stop { when: idle }` did not say. **Taken**: terminals do not
+   hold it.
+9. The agent tools' `node` could never work, and agent terminals outlived
+   their agent. **Taken**: beside sessions the agent may operate; its
+   terminals end with its session.
+10. A routed session's model token was not scrubbed. **Taken**, for a
+    node running inside a session's tree.
+11. Behaviour of the references dropped without saying. **Taken**: piped
+    output, no port assignment, no readiness or health probe, the last
+    resize wins, each stated.
+12. A preview's origin. **Taken** as a rule for the preview track.
+13. Races and an unbounded wait. **Taken**: looked up again after
+    registering; `terminal.close` waits at most the grace and 5 s; the
+    subscription's end is named.
+14. The `service` event was overreach. **Taken**: no event; the typed
+    state is on `TerminalInfo`, read by revision.
+15. Smaller points. **Taken**: `IpAddr` for addresses; unknown keys inside
+    an entry ignored; `terminal.read`'s wait stated; `read_terminal`'s
+    cursor defined; "order" removed from the digest's description.
