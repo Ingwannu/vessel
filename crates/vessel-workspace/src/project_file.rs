@@ -161,11 +161,9 @@ impl ProjectFile {
                 return Err(ProjectFileError::NotAFile);
             }
         };
-        let metadata = std::fs::metadata(&path).map_err(ProjectFileError::Unreadable)?;
-        if !metadata.is_file() {
+        let Some(file) = crate::regular::open(&path).map_err(ProjectFileError::Unreadable)? else {
             return Err(ProjectFileError::NotAFile);
-        }
-        let file = std::fs::File::open(&path).map_err(ProjectFileError::Unreadable)?;
+        };
         let mut bytes = Vec::new();
         let _read = file
             .take(

@@ -19,6 +19,10 @@ tokio-util.workspace = true
 toml_edit.workspace = true
 tracing.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+# `O_NONBLOCK | O_NOFOLLOW` for reads (`regular`); FIFOs in its tests.
+nix = { workspace = true, features = ["fs"] }
+
 [dev-dependencies]
 tempfile.workspace = true
 # The tests find `git` on the test runner's `PATH`; the node finds it on its

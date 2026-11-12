@@ -80,15 +80,11 @@ fn gitdir_line(file: &Path) -> Option<PathBuf> {
 /// The first line of `file`, which must be a regular file (a link is not
 /// followed) of at most [`MAX_GITFILE`] bytes.
 fn first_line(file: &Path) -> Option<String> {
-    let metadata = std::fs::symlink_metadata(file).ok()?;
-    if !metadata.is_file() || metadata.len() > MAX_GITFILE {
+    let opened = crate::regular::open(file).ok()??;
+    if opened.metadata().ok()?.len() > MAX_GITFILE {
         return None;
     }
     let mut text = String::new();
-    let _read = std::fs::File::open(file)
-        .ok()?
-        .take(MAX_GITFILE)
-        .read_to_string(&mut text)
-        .ok()?;
+    let _read = opened.take(MAX_GITFILE).read_to_string(&mut text).ok()?;
     text.lines().next().map(str::to_owned)
 }

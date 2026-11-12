@@ -181,11 +181,8 @@ pub async fn read(
     let limit = limit.unwrap_or(DEFAULT_PAGE).clamp(1, MAX_PAGE);
     blocking(move || {
         let file = root.existing(&path)?;
-        if !file.is_file() {
-            return Err(FileError::Kind(path, "file"));
-        }
-        let version = version_of(&file)?;
-        let mut handle = File::open(&file).map_err(FileError::Io)?;
+        let mut handle = open_file(&file, &path)?;
+        let version = version_of(&mut handle)?;
         let mut start = vec![0_u8; SNIFF];
         let sniffed = read_up_to(&mut handle, &mut start)?;
         start.truncate(sniffed);
@@ -245,9 +242,17 @@ fn read_up_to(file: &mut File, buffer: &mut [u8]) -> Result<usize, FileError> {
     Ok(filled)
 }
 
-/// A file's version: size, change time, and its content's hash when small.
-fn version_of(path: &Path) -> Result<FileVersion, FileError> {
-    let metadata = fs::metadata(path).map_err(FileError::Io)?;
+/// `file` (at `path`) opened, when it is a regular file (`regular`).
+fn open_file(file: &Path, path: &RelPath) -> Result<File, FileError> {
+    crate::regular::open(file)
+        .map_err(FileError::Io)?
+        .ok_or_else(|| FileError::Kind(path.clone(), "file"))
+}
+
+/// An open file's version: size, change time, and its content's hash when
+/// small; read from its start, and left there.
+fn version_of(file: &mut File) -> Result<FileVersion, FileError> {
+    let metadata = file.metadata().map_err(FileError::Io)?;
     let modified = metadata
         .modified()
         .ok()
@@ -255,16 +260,16 @@ fn version_of(path: &Path) -> Result<FileVersion, FileError> {
         .and_then(|since| u64::try_from(since.as_nanos()).ok())
         .unwrap_or(0);
     let hash = if metadata.len() <= MAX_HASHED {
-        let mut file = File::open(path).map_err(FileError::Io)?;
         let mut hasher = Sha256::new();
         let mut chunk = vec![0_u8; 64 * 1024];
         loop {
-            let read = read_up_to(&mut file, &mut chunk)?;
+            let read = read_up_to(file, &mut chunk)?;
             hasher.update(chunk.get(..read).unwrap_or_default());
             if read < chunk.len() {
                 break;
             }
         }
+        let _start = file.seek(SeekFrom::Start(0)).map_err(FileError::Io)?;
         Some(ContentHash::from_sha256(hasher.finalize().into()))
     } else {
         None
@@ -303,7 +308,7 @@ pub async fn write(
             (WriteExpect::Absent, true) => return Err(FileError::Exists(path)),
             (WriteExpect::Version { .. }, false) => return Err(FileError::Changed(path)),
             (WriteExpect::Version { version }, true) => {
-                let now = version_of(&target)?;
+                let now = version_of(&mut open_file(&target, &path)?)?;
                 let same = now.size == version.size
                     && now.modified == version.modified
                     && (version.hash.is_none() || now.hash == version.hash);
@@ -314,7 +319,7 @@ pub async fn write(
             (WriteExpect::Absent, false) | (WriteExpect::Any, _) => {}
         }
         replace(&target, text.as_bytes(), exists)?;
-        version_of(&target)
+        version_of(&mut open_file(&target, &path)?)
     })
     .await
 }
