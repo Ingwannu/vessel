@@ -174,7 +174,11 @@ impl Call {
             | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
-            | Self::ListRuns(_) => None,
+            | Self::ListRuns(_)
+            | Self::ListPrompts(_)
+            | Self::CreatePrompt(_)
+            | Self::UpdatePrompt(_)
+            | Self::DeletePrompt(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

@@ -41,6 +41,8 @@ mod options;
 #[cfg(test)]
 mod profiles;
 #[cfg(test)]
+mod prompts;
+#[cfg(test)]
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]

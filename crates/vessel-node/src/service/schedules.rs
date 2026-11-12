@@ -8,7 +8,7 @@ use vessel_proto::automation::{
     ResumeSchedule, RunList, RunSchedule, ScheduleInfo, ScheduleList, ScheduleRun, ScheduleTarget,
     UpdateSchedule,
 };
-use vessel_proto::{Ack, ErrorCode, OriginBy, SessionMode, WireError};
+use vessel_proto::{Ack, ErrorCode, OriginBy, SessionMode, SessionSpec, WireError};
 
 use super::{Connection, NodeService, wire};
 use crate::automation::schedules::rules::{Asker, Via};
@@ -160,6 +160,42 @@ impl NodeService {
             .map_err(|error| wire(&error.into()))
     }
 
+    /// A spec a session will be started from later, without its caller
+    /// there (a schedule's run, a saved prompt), checked for `principal`
+    /// as `session.create` would check it now: structured, without
+    /// `resume` (each start is a new conversation; `resume` would load the
+    /// same one every time), its profile and place.
+    pub(super) async fn check_new_spec(
+        &self,
+        principal: &Principal,
+        spec: &SessionSpec,
+    ) -> Result<(), WireError> {
+        match &spec.mode {
+            SessionMode::Terminal { .. } => {
+                return Err(invalid(
+                    "a session started later is structured: a terminal one cannot be sent its \
+                     prompt",
+                ));
+            }
+            SessionMode::Structured {
+                resume: Some(_), ..
+            } => {
+                return Err(invalid(
+                    "each start is a new conversation; `resume` would load the same one again \
+                     every time",
+                ));
+            }
+            SessionMode::Structured { resume: None, .. } => {}
+        }
+        let _launch = self
+            .launcher
+            .options(&self.profiles, spec, principal)
+            .map_err(|error| wire(&error))?;
+        let mut placed = spec.clone();
+        let _notices = self.place(principal, &mut placed).await?;
+        Ok(())
+    }
+
     /// What a target names, checked for `principal` as a run would meet it
     /// (ADR 0033): a new session's spec as `session.create` takes it
     /// (structured, without `resume`, its profile and place), or a session
@@ -171,32 +207,7 @@ impl NodeService {
         target: &ScheduleTarget,
     ) -> Result<(), WireError> {
         match target {
-            ScheduleTarget::NewSession { spec, .. } => {
-                match &spec.mode {
-                    SessionMode::Terminal { .. } => {
-                        return Err(invalid(
-                            "a schedule starts a structured session: a terminal one cannot be \
-                             sent its prompt",
-                        ));
-                    }
-                    SessionMode::Structured {
-                        resume: Some(_), ..
-                    } => {
-                        return Err(invalid(
-                            "a schedule starts a new conversation each run; `resume` would load \
-                             the same one again every time",
-                        ));
-                    }
-                    SessionMode::Structured { resume: None, .. } => {}
-                }
-                let _launch = self
-                    .launcher
-                    .options(&self.profiles, spec, principal)
-                    .map_err(|error| wire(&error))?;
-                let mut placed = (**spec).clone();
-                let _notices = self.place(principal, &mut placed).await?;
-                Ok(())
-            }
+            ScheduleTarget::NewSession { spec, .. } => self.check_new_spec(principal, spec).await,
             ScheduleTarget::Session { session } => {
                 let info = self
                     .sessions

@@ -134,15 +134,6 @@ impl Unary for vessel_proto::conversation::FinishUpload {}
 impl Unary for vessel_proto::conversation::ReadAttachment {}
 // Protocol 10 (Track B): every workspace call answers once; long polls
 // (`project.get`, `worktree.output`) are bounded waits, not streams.
-impl Unary for vessel_proto::automation::ListSchedules {}
-impl Unary for vessel_proto::automation::GetSchedule {}
-impl Unary for vessel_proto::automation::CreateSchedule {}
-impl Unary for vessel_proto::automation::UpdateSchedule {}
-impl Unary for vessel_proto::automation::PauseSchedule {}
-impl Unary for vessel_proto::automation::ResumeSchedule {}
-impl Unary for vessel_proto::automation::RunSchedule {}
-impl Unary for vessel_proto::automation::DeleteSchedule {}
-impl Unary for vessel_proto::automation::ListRuns {}
 impl Unary for vessel_proto::workspace::ListProjects {}
 impl Unary for vessel_proto::workspace::GetProject {}
 impl Unary for vessel_proto::workspace::AddProject {}
@@ -183,6 +174,20 @@ impl Unary for vessel_proto::workspace::RenamePath {}
 impl Unary for vessel_proto::workspace::DeletePath {}
 impl Unary for vessel_proto::workspace::FindFiles {}
 impl Unary for vessel_proto::workspace::SearchFiles {}
+// Protocol 11 (Track D): schedules and saved prompts answer once.
+impl Unary for vessel_proto::automation::ListSchedules {}
+impl Unary for vessel_proto::automation::GetSchedule {}
+impl Unary for vessel_proto::automation::CreateSchedule {}
+impl Unary for vessel_proto::automation::UpdateSchedule {}
+impl Unary for vessel_proto::automation::PauseSchedule {}
+impl Unary for vessel_proto::automation::ResumeSchedule {}
+impl Unary for vessel_proto::automation::RunSchedule {}
+impl Unary for vessel_proto::automation::DeleteSchedule {}
+impl Unary for vessel_proto::automation::ListRuns {}
+impl Unary for vessel_proto::automation::ListPrompts {}
+impl Unary for vessel_proto::automation::CreatePrompt {}
+impl Unary for vessel_proto::automation::UpdatePrompt {}
+impl Unary for vessel_proto::automation::DeletePrompt {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -340,7 +345,11 @@ const fn is_unary(method: Method) -> bool {
         | Method::ResumeSchedule
         | Method::RunSchedule
         | Method::DeleteSchedule
-        | Method::ListRuns => true,
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt => true,
     }
 }
 

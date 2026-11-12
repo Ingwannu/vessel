@@ -105,6 +105,10 @@ const fn refused(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

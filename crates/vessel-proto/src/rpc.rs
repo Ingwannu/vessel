@@ -333,6 +333,14 @@ rpc_methods! {
     DeleteSchedule / delete_schedule / "schedule.delete" [Operate, 11]: crate::automation::DeleteSchedule => Ack;
     /// A schedule's newest runs (protocol 11).
     ListRuns / list_runs / "schedule.runs" [Read, 11]: crate::automation::ListRuns => crate::automation::RunList;
+    /// The saved prompts (protocol 11).
+    ListPrompts / list_prompts / "prompt.list" [Read, 11]: crate::automation::ListPrompts => crate::automation::PromptList;
+    /// Save a prompt (protocol 11).
+    CreatePrompt / create_prompt / "prompt.create" [Operate, 11]: crate::automation::CreatePrompt => crate::automation::SavedPrompt;
+    /// Change a saved prompt (protocol 11).
+    UpdatePrompt / update_prompt / "prompt.update" [Operate, 11]: crate::automation::UpdatePrompt => crate::automation::SavedPrompt;
+    /// Remove a saved prompt (protocol 11).
+    DeletePrompt / delete_prompt / "prompt.delete" [Operate, 11]: crate::automation::DeletePrompt => Ack;
 }
 
 /// Result of a call.

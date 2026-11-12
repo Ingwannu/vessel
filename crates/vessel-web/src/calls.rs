@@ -177,7 +177,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::ResumeSchedule
         | Method::RunSchedule
         | Method::DeleteSchedule
-        | Method::ListRuns => true,
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

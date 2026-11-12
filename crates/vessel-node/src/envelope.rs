@@ -561,6 +561,18 @@ async fn run_here(
             Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
         }
         Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
+        Call::ListPrompts(request) => {
+            Reply::ListPrompts(guard.list_prompts(connection, request).await?)
+        }
+        Call::CreatePrompt(request) => {
+            Reply::CreatePrompt(guard.create_prompt(connection, request).await?)
+        }
+        Call::UpdatePrompt(request) => {
+            Reply::UpdatePrompt(guard.update_prompt(connection, request).await?)
+        }
+        Call::DeletePrompt(request) => {
+            Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

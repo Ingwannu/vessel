@@ -3986,6 +3986,13 @@ whole gate (the end-to-end tests of the node and of the page included).
   methods. `Sessions` now tells who listens when a session's log is
   complete (`Sessions::ends`), which is what an agent's schedules end
   with.
+- **Slice 3, saved prompts** (`prompt.list`, `.create`, `.update`,
+  `.delete`): `automation::prompts` keeps a name unique within its
+  project or the machine's, the node's 256 and the revision under one
+  lock, so two writers meet `conflict`, never the store's index;
+  `service/prompts.rs` refuses agents and delegated callers and checks a
+  prompt's `session` as `session.create` would (the check schedules use,
+  now shared: `check_new_spec`), its place in the prompt's project.
 
 ### Checked, and how
 
@@ -4013,3 +4020,9 @@ whole gate (the end-to-end tests of the node and of the page included).
   schedule ends); what is refused at creation; an agent's heartbeat, what
   it may not touch, the owner running it as the agent, and its end with
   the session; schedules kept across a restart.
+- Saved prompts (`automation::prompts`, 4 tests; `tests/e2e/prompts.rs`,
+  2 tests): a name twice in one scope and once in another, a rename onto
+  a taken name, an old revision, the bound of 256, eight creates of one
+  name at once making one; through a node: a machine's prompt with a
+  place, an unknown project, a resuming spec, the lists by project, an
+  agent that reads them and is refused every write.

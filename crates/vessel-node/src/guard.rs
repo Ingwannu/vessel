@@ -161,7 +161,12 @@ targets!(
 // runs (protocol 6, Track X); the rest are not `operate` calls.
 // Schedules name schedules, not sessions: who may change one is the
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
+// Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::automation::ListPrompts,
+    vessel_proto::automation::CreatePrompt,
+    vessel_proto::automation::UpdatePrompt,
+    vessel_proto::automation::DeletePrompt,
     vessel_proto::automation::ListSchedules,
     vessel_proto::automation::GetSchedule,
     vessel_proto::automation::CreateSchedule,
@@ -378,6 +383,10 @@ guarded! {
     run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
     delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
     list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
+    list_prompts: vessel_proto::automation::ListPrompts => vessel_proto::automation::PromptList;
+    create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
+    update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
+    delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
 
     @through_the_guard {
         forward: Forward => Forwarded;

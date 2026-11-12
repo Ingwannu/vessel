@@ -86,6 +86,29 @@ Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
   `hook_deliveries`, `hook_keys`; 10 to 12 are empty until tracks B2, C
   and G are joined).
 
+### Saved prompts (track D)
+
+Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
+0033).
+
+- `SavedPrompt { id, name, text, project?, session?, defined_by,
+  created_at, updated_at, revision }`: `PromptName` (64 characters),
+  `PromptText`; `project` absent is the machine's; `session` a structured
+  `SessionSpec`, what a session started from it runs with, its place (if
+  any) in the prompt's project.
+- Methods: `prompt.list { project? }` (read; that project's and the
+  machine's, `not_found` for an unknown project; by name, the machine's
+  first of one name); `prompt.create`, `prompt.update` (name, text and
+  `session` under its `revision`; the project stays), `prompt.delete`
+  (operate).
+- A name is unique within its project (or the machine's): `conflict`, as
+  for an old revision and past 256 on the node. `session` is checked as
+  `session.create` would check it (`invalid_request` for a terminal or
+  resuming spec, or a place outside the prompt's project).
+- A person's text: agents and delegated callers may list, not write
+  (`forbidden`). Saved prompts are kept by the node, never read from a
+  repository's files (ADR 0033 says why).
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

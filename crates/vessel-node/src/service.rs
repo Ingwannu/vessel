@@ -14,6 +14,7 @@ use vessel_rpc::{Outbound, Peer};
 
 use crate::agents::Agents;
 use crate::attachments::Attachments;
+use crate::automation::prompts::SavedPrompts;
 use crate::automation::schedules::Schedules;
 use crate::devices::Devices;
 use crate::error::ServiceError;
@@ -48,6 +49,7 @@ mod projects;
 mod worktrees;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks.
+mod prompts;
 mod scheduled;
 mod schedules;
 
@@ -89,6 +91,8 @@ pub(crate) struct NodeService {
     tidying: Arc<Tidying>,
     /// The scheduler (protocol 11, `automation::schedules`).
     schedules: Schedules,
+    /// Saved prompts (protocol 11, `automation::prompts`).
+    prompts: SavedPrompts,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -137,6 +141,7 @@ impl NodeService {
             tidying,
             schedules,
         } = parts;
+        let store = sessions.store().clone();
         Self {
             lsp,
             lsp_roots,
@@ -158,6 +163,7 @@ impl NodeService {
             workspaces,
             tidying,
             schedules,
+            prompts: SavedPrompts::new(store),
         }
     }
 
