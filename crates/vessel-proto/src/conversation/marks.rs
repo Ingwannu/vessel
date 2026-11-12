@@ -20,7 +20,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::agent::AgentEvent;
 use crate::event::SessionEvent;
-use crate::id::{EventSeq, SessionId};
+use crate::id::{EventSeq, SessionId, WorktreeId};
+use crate::workspace::RemoveWorktreeOutcome;
 
 /// A session's marks, as `SessionInfo.marks`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -171,6 +172,42 @@ pub struct MarkSession {
 pub struct DeleteSession {
     /// Which session.
     pub session: SessionId,
+}
+
+/// `session.delete`'s answer: the session is gone; what became of the
+/// worktree made for it.
+///
+/// [Decision Log] (milestone 11, where tracks A and B meet)
+/// - Purpose: deleting a session tidies the worktree made for it (ADR
+///   0027's rule), and that removal may keep the worktree: uncommitted
+///   work, commits no other branch has, another session in it. A delete
+///   must never lose that work, nor keep it without saying so.
+/// - Alternatives: refuse the delete while the worktree would lose work
+///   (two calls for a person, and retention, which deletes on its own,
+///   needs the keeping rule anyway); snapshot it unasked (a decision about
+///   a person's work made for them); answer `Ack` and leave the kept
+///   worktree to be noticed in `worktree.list` (silent).
+/// - Choice: the session is deleted; the worktree goes only by the rule a
+///   person's `worktree.remove { if_lost: keep }` follows, and this answer
+///   says which it was, so a client can offer `snapshot` or `discard`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct SessionDeleted {
+    /// The worktree made for the session and what tidying did with it;
+    /// absent when the session had none of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree: Option<TidiedWorktree>,
+}
+
+/// A session's worktree, tidied with it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct TidiedWorktree {
+    /// Which worktree.
+    pub worktree: WorktreeId,
+    /// `removed`, or `kept { reasons }` (nothing of it was removed).
+    #[serde(flatten)]
+    pub outcome: RemoveWorktreeOutcome,
 }
 
 /// `session.resume`: start an ended structured session again with its

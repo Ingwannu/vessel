@@ -10,8 +10,7 @@ use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateWorktree, CreateWorktreeOutcome, GetProject,
     GetProjectCommands, GitSupport, InitProject, ListProjects, ListSnapshots, ListWorktrees,
     ProjectCommands, ProjectInfo, ProjectState, ReadSetupOutput, RemoveProject, RemoveWorktree,
-    RemoveWorktreeOutcome, RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeBase,
-    WorktreeBranch, WorktreeInfo,
+    RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeBase, WorktreeBranch, WorktreeInfo,
 };
 use vessel_proto::{ProjectId, WorktreeId};
 
@@ -257,20 +256,7 @@ async fn remove(
             if_lost,
         })
         .await?;
-    let text = match outcome {
-        RemoveWorktreeOutcome::Removed { snapshot: None } => "removed\n".to_owned(),
-        RemoveWorktreeOutcome::Removed {
-            snapshot: Some(snapshot),
-        } => format!(
-            "removed; its work is kept as snapshot {} (vessel worktree snapshots)\n",
-            snapshot.commit
-        ),
-        RemoveWorktreeOutcome::Kept { reasons } => format!(
-            "kept: {reasons:?}\n(--snapshot keeps a snapshot first; --discard removes it \
-             anyway)\n"
-        ),
-    };
-    out(&text).await
+    out(&crate::render::removal(&outcome)).await
 }
 
 async fn snapshots(client: &NodeClient, project: &str) -> Result<(), CliError> {

@@ -89,6 +89,7 @@ mod service;
 mod sessions;
 mod shutdown;
 mod subscribe;
+mod tidying;
 mod transfers;
 mod transport;
 mod waits;

@@ -282,7 +282,8 @@ async fn deleting_a_session_removes_its_attachments() {
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
         assert!(folder.exists(), "kept across a restart: its row names it");
-        client.delete_session(id).await.unwrap();
+        let deleted = client.delete_session(id).await.unwrap();
+        assert_eq!(deleted.worktree, None, "it ran in no worktree");
         assert!(!folder.exists());
         let log = client.read(id, EventSeq::ZERO, 10).await;
         assert_eq!(code(log), ErrorCode::NotFound);

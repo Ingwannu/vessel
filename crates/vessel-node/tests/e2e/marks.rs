@@ -197,7 +197,8 @@ async fn an_ended_session_is_deleted_and_a_live_one_is_not() {
         std::fs::write(folder.join("an-attachment").join("notes.txt"), b"x").unwrap();
 
         assert_eq!(code(client.delete_session(live).await), ErrorCode::Conflict);
-        client.delete_session(ended).await.unwrap();
+        let deleted = client.delete_session(ended).await.unwrap();
+        assert_eq!(deleted.worktree, None, "it ran in no worktree");
         assert!(!folder.exists(), "its files went with it");
         assert_eq!(code(client.session(ended).await), ErrorCode::NotFound);
         assert_eq!(

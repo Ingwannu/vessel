@@ -49,7 +49,7 @@ use vessel_workspace::{Git, GitSetup};
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
-pub(crate) use worktrees::Placed;
+pub(crate) use worktrees::{Placed, TidyScope};
 
 /// The most projects, and the most worktrees, one node keeps.
 pub(crate) const MAX_PROJECTS: usize = 1000;

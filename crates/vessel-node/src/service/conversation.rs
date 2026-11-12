@@ -5,10 +5,11 @@
 
 use vessel_proto::conversation::{
     BeginUpload, ChangeQueue, DeleteSession, FinishUpload, GetConversation, MarkSession,
-    PromptSession, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload, Written,
+    PromptSession, QueueChanged, ReadAttachment, ResumeSession, SessionDeleted, Upload,
+    WriteUpload, Written,
 };
 use vessel_proto::{
-    Ack, AttachmentRef, BlobChunk, Conversation, Delivered, Mark, SessionInfo, WireError,
+    AttachmentRef, BlobChunk, Conversation, Delivered, Mark, SessionInfo, WireError,
 };
 
 use super::{Connection, NodeService, wire};
@@ -96,16 +97,16 @@ impl NodeService {
             .map_err(|error| wire(&error))
     }
 
-    /// `session.delete`: remove an ended session whole.
+    /// `session.delete`: remove an ended session whole, and the worktree
+    /// made for it by the rule that keeps work (`tidying`).
     pub(crate) async fn delete_session(
         &self,
         _: &Connection,
         request: DeleteSession,
-    ) -> Result<Ack, WireError> {
-        self.sessions
+    ) -> Result<SessionDeleted, WireError> {
+        self.tidying
             .delete(request.session)
             .await
-            .map(|()| Ack)
             .map_err(|error| wire(&error))
     }
 

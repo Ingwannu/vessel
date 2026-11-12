@@ -1,21 +1,26 @@
 //! Where protocol 10's two halves meet (milestone 11, the plan's
 //! "Integration (node)"): a session placed in a worktree says so in every
-//! answer naming it, and ending or archiving it leaves the worktree, so
-//! `session.resume` finds its folder; a session whose folder is gone
-//! anyway is refused, not started elsewhere.
+//! answer naming it; deleting it, or retention dropping it, tidies the
+//! worktree made for it by the rule that keeps work (ADR 0027); ending or
+//! archiving it does not, so `session.resume` finds its folder, and a
+//! session whose folder is gone anyway is refused, not started elsewhere.
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use vessel_client::NodeClient;
 use vessel_node::Node;
+use vessel_proto::conversation::TidiedWorktree;
 use vessel_proto::workspace::{
-    AddProject, IfLost, ListWorktrees, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome,
-    SessionPlace,
+    AddProject, IfLost, KeptReason, ListWorktrees, ProjectInfo, RemoveWorktree,
+    RemoveWorktreeOutcome, SessionPlace,
 };
-use vessel_proto::{ErrorCode, EventSeq, Mark, SessionId, SessionStatus, WorktreeId};
+use vessel_proto::{ErrorCode, EventSeq, HarnessKind, Mark, SessionId, SessionStatus, WorktreeId};
+use vessel_store::Retention;
 
+use crate::agents::code;
 use crate::support::{Fixture, read_until, status_of, step, structured_spec, within};
-use crate::workspace::{lookup, new_worktree, repository};
+use crate::workspace::{in_place, lookup, new_worktree, repository};
 
 /// A node that finds git, started on `fixture`.
 async fn start(fixture: &Fixture) -> Node {
@@ -106,6 +111,74 @@ async fn a_placed_session_says_where_it_runs_in_every_answer() {
     .await;
 }
 
+/// `session.delete` removes the worktree made for the session when
+/// nothing would be lost, and says so; one with work in it is kept, with
+/// the reason, in the answer and in the worktree's record, and its work is
+/// still there.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn deleting_a_session_tidies_its_worktree_and_never_loses_work() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = project(&owner).await;
+        let clean = new_worktree(&owner, project.id).await;
+        let worked = new_worktree(&owner, project.id).await;
+        let tidy = running_in(&owner, &fixture, clean.id).await;
+        let keep = running_in(&owner, &fixture, worked.id).await;
+        std::fs::write(worked.path.join("notes.txt"), "not committed\n").unwrap();
+        // The restart ends both, and the store serves them from then on.
+        node.stop().await.unwrap();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+
+        let deleted = owner.delete_session(tidy).await.unwrap();
+        assert_eq!(
+            deleted.worktree,
+            Some(TidiedWorktree {
+                worktree: clean.id,
+                outcome: RemoveWorktreeOutcome::Removed { snapshot: None },
+            })
+        );
+        assert!(!clean.path.exists(), "its folder went");
+
+        let deleted = owner.delete_session(keep).await.unwrap();
+        let kept = RemoveWorktreeOutcome::Kept {
+            reasons: vec![KeptReason::Uncommitted { files: 1 }],
+        };
+        assert_eq!(
+            deleted.worktree,
+            Some(TidiedWorktree {
+                worktree: worked.id,
+                outcome: kept,
+            })
+        );
+        assert_eq!(
+            std::fs::read_to_string(worked.path.join("notes.txt")).unwrap(),
+            "not committed\n"
+        );
+        let list = owner.call(ListWorktrees { project: None }).await.unwrap();
+        let [listed] = list.worktrees.as_slice() else {
+            panic!("only the kept one: {list:?}");
+        };
+        assert_eq!(listed.id, worked.id);
+        assert_eq!(listed.kept, Some(KeptReason::Uncommitted { files: 1 }));
+        assert_eq!(code(owner.session(keep).await), ErrorCode::NotFound);
+
+        // A person removes it now, knowing why it was kept.
+        let removed = owner
+            .call(RemoveWorktree {
+                worktree: worked.id,
+                if_lost: IfLost::Discard,
+            })
+            .await
+            .unwrap();
+        assert_eq!(removed, RemoveWorktreeOutcome::Removed { snapshot: None });
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
 /// A session whose worktree a person removed while it had ended is
 /// refused when started again (`conflict`, naming the folder), not started
 /// in another folder; nothing of it changes.
@@ -139,6 +212,48 @@ async fn a_session_whose_folder_is_gone_does_not_start_again() {
         let after = owner.session(id).await.unwrap();
         assert_eq!(after.status, SessionStatus::Interrupted, "it stays ended");
         assert_eq!(after.workspace.as_deref().map(|w| w.worktree), None);
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// Retention dropping a session tidies the worktree made for it, as a
+/// deletion does; the node does it in the background after the prune.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn retention_tidies_the_worktree_of_a_session_it_drops() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture
+            .start_with(|config| {
+                config.harness_lookup = lookup(&fixture);
+                config.store.retention = Retention {
+                    max_ended_sessions: 0,
+                    ..Retention::default()
+                };
+            })
+            .await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = project(&owner).await;
+        let worktree = new_worktree(&owner, project.id).await;
+        let spec = in_place(
+            &fixture,
+            SessionPlace::Worktree {
+                worktree: worktree.id,
+            },
+        );
+        assert_eq!(spec.harness, HarnessKind::ClaudeCode);
+        let id = owner.create_session(spec).await.unwrap().id;
+        owner.kill(id).await.unwrap();
+        // Nothing answers when the background tidying is done, so this
+        // looks until the worktree is gone (the step's deadline bounds it).
+        step("the pruned session's worktree tidied", async {
+            while !worktrees(&owner).await.is_empty() {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await;
+        assert!(!worktree.path.exists());
+        assert_eq!(code(owner.session(id).await), ErrorCode::NotFound);
         node.stop().await.unwrap();
     })
     .await;

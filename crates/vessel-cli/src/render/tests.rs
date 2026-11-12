@@ -158,3 +158,57 @@ fn sessions_render_one_line_each() {
         sessions(&[marked])
     );
 }
+
+/// A kept worktree says why in words, never as a debug dump, and what
+/// removes it; a deleted session without a worktree says nothing more.
+#[test]
+fn a_kept_worktree_says_why_and_how_to_remove_it() {
+    use vessel_proto::WorktreeId;
+    use vessel_proto::conversation::{SessionDeleted, TidiedWorktree};
+    use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
+
+    let kept = RemoveWorktreeOutcome::Kept {
+        reasons: vec![
+            KeptReason::Uncommitted { files: 3 },
+            KeptReason::UniqueCommits { commits: 1 },
+            KeptReason::Operation {
+                operation: GitOperation::Rebase,
+            },
+        ],
+    };
+    let text = removal(&kept);
+    assert!(
+        text.starts_with(
+            "kept: 3 files not committed; 1 commit no other branch or tag has; a rebase in \
+             progress\n"
+        ),
+        "{text}"
+    );
+    assert!(text.contains("--snapshot"), "{text}");
+    let worktree = WorktreeId::random();
+    let text = deleted(&SessionDeleted {
+        worktree: Some(TidiedWorktree {
+            worktree,
+            outcome: kept,
+        }),
+    });
+    assert!(
+        text.starts_with(&format!("its worktree {worktree} was kept: 3 files")),
+        "{text}"
+    );
+    assert!(
+        text.contains(&format!("vessel worktree remove {worktree} --snapshot")),
+        "{text}"
+    );
+    let removed = SessionDeleted {
+        worktree: Some(TidiedWorktree {
+            worktree,
+            outcome: RemoveWorktreeOutcome::Removed { snapshot: None },
+        }),
+    };
+    assert_eq!(
+        deleted(&removed),
+        format!("its worktree {worktree} was removed\n")
+    );
+    assert_eq!(deleted(&SessionDeleted { worktree: None }), "");
+}

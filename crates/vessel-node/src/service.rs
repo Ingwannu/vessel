@@ -33,6 +33,7 @@ use crate::profiles::{NodeProfiles, moving};
 use crate::secret_copy::Copied;
 use crate::sessions::Sessions;
 use crate::subscribe;
+use crate::tidying::Tidying;
 use crate::transfers::export::Exporter;
 use crate::transfers::import::{Importer, Local, Pull, Remote};
 use crate::transfers::{Holder, Transfers};
@@ -86,6 +87,8 @@ pub(crate) struct NodeService {
     probes: Probes,
     /// Projects, worktrees, git and files (protocol 10, `workspace`).
     workspaces: Arc<Workspaces>,
+    /// Deleting sessions with their worktrees (protocol 10, `tidying`).
+    tidying: Arc<Tidying>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -107,6 +110,7 @@ pub(crate) struct Parts {
     pub(crate) attachments: Arc<Attachments>,
     pub(crate) probes: Probes,
     pub(crate) workspaces: Arc<Workspaces>,
+    pub(crate) tidying: Arc<Tidying>,
 }
 
 impl NodeService {
@@ -129,6 +133,7 @@ impl NodeService {
             attachments,
             probes,
             workspaces,
+            tidying,
         } = parts;
         Self {
             lsp,
@@ -149,6 +154,7 @@ impl NodeService {
             waits: Arc::default(),
             probes,
             workspaces,
+            tidying,
         }
     }
 

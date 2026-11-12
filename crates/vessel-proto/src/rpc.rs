@@ -24,7 +24,7 @@ use crate::agent::ContentBlock;
 use crate::conversation::{
     AttachmentRef, BeginUpload, ChangeQueue, Conversation, DeleteSession, Delivered, FinishUpload,
     GetConversation, MarkSession, PromptSession, QueueChanged, ReadAttachment, ResumeSession,
-    Upload, WriteUpload, Written,
+    SessionDeleted, Upload, WriteUpload, Written,
 };
 use crate::device::{DeviceInfo, Invitation, InviteDevice, ListDevices, RevokeDevice, Scope};
 use crate::error::WireError;
@@ -374,7 +374,7 @@ rpc_methods! {
     /// Pin, archive or mark a session read (protocol 10).
     MarkSession / mark_session / "session.mark" [Operate, 10]: MarkSession => SessionInfo;
     /// Remove an ended session and everything kept with it (protocol 10).
-    DeleteSession / delete_session / "session.delete" [Operate, 10]: DeleteSession => Ack;
+    DeleteSession / delete_session / "session.delete" [Operate, 10]: DeleteSession => SessionDeleted;
     /// Declare a file to upload to a session (protocol 10).
     BeginUpload / begin_upload / "attachment.begin" [Operate, 10]: BeginUpload => Upload;
     /// The next piece of an upload (protocol 10).

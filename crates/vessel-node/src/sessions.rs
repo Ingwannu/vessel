@@ -283,6 +283,31 @@ impl Sessions {
             .collect()
     }
 
+    /// Whether `id` is gone for good: the store no longer has it (deleted,
+    /// or dropped by retention), and the runtime has nothing of it but its
+    /// end (protocol 10's tidying). Retention prunes a session in the
+    /// commit of its final record, before the runtime lets it go, so an
+    /// ended session the runtime still holds counts; a session is the
+    /// runtime's, live, from its start and the store's from its first row,
+    /// so one being created never does. A store that cannot answer says it
+    /// is not gone, so nothing is tidied on a guess.
+    pub(crate) async fn gone(&self, id: SessionId) -> bool {
+        if self
+            .runtime
+            .get(id)
+            .is_some_and(|handle| !handle.has_ended())
+        {
+            return false;
+        }
+        match self.store.session(id).await {
+            Ok(found) => found.is_none(),
+            Err(error) => {
+                tracing::warn!(session = %id, %error, "could not tell whether a session is gone");
+                false
+            }
+        }
+    }
+
     pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
         Ok(match self.find(id).await? {
             Found::Live { handle, .. } => handle.info(),

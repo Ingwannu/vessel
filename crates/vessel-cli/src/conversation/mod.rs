@@ -88,7 +88,12 @@ async fn delete(client: &NodeClient, session: &SessionSelector, yes: bool) -> Re
     if !yes && !confirm(&info).await? {
         return Err(CliError::Usage("not confirmed; nothing was deleted"));
     }
-    Ok(client.delete_session(info.id).await?)
+    let deleted = client.delete_session(info.id).await?;
+    let said = render::deleted(&deleted);
+    if said.is_empty() {
+        return Ok(());
+    }
+    Ok(io::out(said.as_bytes()).await?)
 }
 
 /// Ask before deleting `info` for good; only a person at a terminal can

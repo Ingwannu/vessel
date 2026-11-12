@@ -16,17 +16,19 @@
 //!   the call: a caller that goes away (a cancelled call, a closed page)
 //!   leaves neither a folder made and unrecorded nor a worktree claimed
 //!   by a removal that stopped halfway.
-//! - Tidying is offered to track A's archive and delete as `retire`; this
-//!   track calls it from nowhere yet (the coordinator wires it when both
-//!   tracks are merged). A worktree it keeps says why in `kept`. A
-//!   worktree is made before its session (the three steps), so the first
-//!   session started in one made for no session claims it (`claim`).
+//! - Tidying is `retire`, called when the session a worktree was made for
+//!   is deleted or dropped by retention, never when it only ends or is
+//!   archived (`crate::tidying` says when, and why). A worktree it keeps
+//!   says why in `kept`. A worktree is made before its session (the three
+//!   steps), so the first session started in one made for no session
+//!   claims it (`claim`).
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use chrono::Utc;
 use tokio_util::sync::CancellationToken;
+use vessel_proto::conversation::TidiedWorktree;
 use vessel_proto::workspace::{
     BranchName, CreateWorktree, CreateWorktreeOutcome, IfLost, KeptReason, ProjectCommands,
     ProjectState, RemoveWorktreeOutcome, SessionPlace, SessionWorkspace, SetupChoice, SetupFailure,
@@ -48,6 +50,16 @@ pub(crate) struct Placed {
     pub(crate) cwd: PathBuf,
     /// The lines its log starts with.
     pub(crate) notices: Vec<String>,
+}
+
+/// Which worktrees made for sessions a tidying looks at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TidyScope {
+    /// Every one: the node's start, and after retention dropped sessions.
+    Every,
+    /// Only those kept because a session was in them or git could not
+    /// inspect them: after a deletion, which may have let one go.
+    Kept,
 }
 
 /// How a removal ended, inside this module.
@@ -290,23 +302,15 @@ impl Workspaces {
         })
     }
 
-    /// Tidy the worktree made for `session` (now archived, deleted or
-    /// dropped by retention), unless another live session is in it or
-    /// something would be lost; a kept one records why. `None` when the
-    /// session had no worktree of its own.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "track A's archive and delete call it; the coordinator wires it when both \
-                      tracks are merged"
-        )
-    )]
+    /// Tidy the worktree made for `session` (now deleted or dropped by
+    /// retention), unless another live session is in it or something would
+    /// be lost; a kept one records why. `None` when the session had no
+    /// worktree of its own.
     pub(crate) async fn retire(
         self: &Arc<Self>,
         session: SessionId,
         live: &Live,
-    ) -> Option<RemoveWorktreeOutcome> {
+    ) -> Option<TidiedWorktree> {
         let worktree = self
             .state()
             .worktrees
@@ -342,7 +346,31 @@ impl Workspaces {
                 tracing::warn!(%error, "could not record why a worktree was kept");
             }
         }
-        Some(outcome)
+        Some(TidiedWorktree { worktree, outcome })
+    }
+
+    /// The sessions whose worktrees tidying may still remove, among those
+    /// `scope` names; never one tidying kept for the work it holds, which
+    /// waits for a person (`crate::tidying`).
+    pub(crate) fn tidy_candidates(&self, scope: TidyScope) -> Vec<SessionId> {
+        self.state()
+            .worktrees
+            .values()
+            .filter(|entry| match entry.info.kept {
+                None => scope == TidyScope::Every,
+                Some(KeptReason::InUse | KeptReason::InspectionFailed) => true,
+                Some(
+                    KeptReason::Uncommitted { .. }
+                    | KeptReason::UniqueCommits { .. }
+                    | KeptReason::Operation { .. }
+                    | KeptReason::Submodules
+                    | KeptReason::FlaggedFiles
+                    | KeptReason::WorktreeRefs
+                    | KeptReason::Unknown,
+                ) => false,
+            })
+            .filter_map(|entry| entry.info.created_for)
+            .collect()
     }
 
     /// Claim the worktree, remove it by the rule, release it when kept.

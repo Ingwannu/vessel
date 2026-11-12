@@ -16,7 +16,7 @@ use vessel_proto::workspace::{
 use vessel_proto::{Creator, NodeId, ProjectId, SessionId};
 use vessel_store::{DataDir, Store, StoreConfig};
 
-use super::{Opening, WorkspaceError, Workspaces};
+use super::{Opening, TidyScope, WorkspaceError, Workspaces};
 
 struct Fixture {
     temp: tempfile::TempDir,
@@ -615,22 +615,34 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
             .created_for,
         Some(claimer)
     );
+    let removed = Some(RemoveWorktreeOutcome::Removed { snapshot: None });
+    let tidied = fixture.workspaces.retire(claimer, &[]).await.unwrap();
     assert_eq!(
-        fixture.workspaces.retire(claimer, &[]).await,
-        Some(RemoveWorktreeOutcome::Removed { snapshot: None })
+        (tidied.worktree, Some(tidied.outcome)),
+        (unclaimed.id, removed.clone())
     );
     let tidied = fixture
         .workspaces
         .retire(first, &[(first, made[0].path.clone())])
         .await;
+    assert_eq!(tidied.map(|tidied| tidied.outcome), removed);
+    // Every worktree made for a session is a candidate for the sweep; once
+    // kept because another session is in it, it is one for the narrow
+    // sweep after a deletion too.
     assert_eq!(
-        tidied,
-        Some(RemoveWorktreeOutcome::Removed { snapshot: None })
+        fixture.workspaces.tidy_candidates(TidyScope::Every),
+        [second]
+    );
+    assert!(
+        fixture
+            .workspaces
+            .tidy_candidates(TidyScope::Kept)
+            .is_empty()
     );
     let other = [(SessionId::random(), made[1].path.clone())];
     let kept = fixture.workspaces.retire(second, &other).await;
     assert_eq!(
-        kept,
+        kept.map(|tidied| tidied.outcome),
         Some(RemoveWorktreeOutcome::Kept {
             reasons: vec![KeptReason::InUse]
         })
@@ -639,6 +651,51 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
         fixture.workspaces.worktree(made[1].id).unwrap().kept,
         Some(KeptReason::InUse)
     );
+    assert_eq!(
+        fixture.workspaces.tidy_candidates(TidyScope::Kept),
+        [second]
+    );
+}
+
+/// A worktree tidying kept for the work in it waits for a person: no sweep
+/// looks at it again.
+#[tokio::test]
+async fn a_worktree_kept_for_its_work_is_left_to_a_person() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let session = SessionId::random();
+    let outcome = fixture
+        .workspaces
+        .create_worktree(
+            Creator::Owner,
+            CreateWorktree {
+                project: project.id,
+                branch: WorktreeBranch::New {
+                    name: None,
+                    base: None,
+                },
+                setup: SetupChoice::Run,
+            },
+            Some(session),
+        )
+        .await
+        .unwrap();
+    let CreateWorktreeOutcome::Created { worktree } = outcome else {
+        panic!("{outcome:?}");
+    };
+    std::fs::write(worktree.path.join("notes.txt"), "not committed\n").unwrap();
+    let kept = fixture.workspaces.retire(session, &[]).await.unwrap();
+    assert_eq!(kept.worktree, worktree.id);
+    assert_eq!(
+        kept.outcome,
+        RemoveWorktreeOutcome::Kept {
+            reasons: vec![KeptReason::Uncommitted { files: 1 }]
+        }
+    );
+    assert!(worktree.path.join("notes.txt").exists(), "nothing was lost");
+    for scope in [TidyScope::Every, TidyScope::Kept] {
+        assert!(fixture.workspaces.tidy_candidates(scope).is_empty());
+    }
 }
 
 #[tokio::test]

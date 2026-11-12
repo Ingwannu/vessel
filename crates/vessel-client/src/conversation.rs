@@ -6,7 +6,8 @@
 use bytes::Bytes;
 use vessel_proto::conversation::{
     BeginUpload, ChangeQueue, DeleteSession, FinishUpload, GetConversation, MarkSession, MimeType,
-    PromptSession, QueueChanged, ReadAttachment, ResumeSession, Upload, WriteUpload, Written,
+    PromptSession, QueueChanged, ReadAttachment, ResumeSession, SessionDeleted, Upload,
+    WriteUpload, Written,
 };
 use vessel_proto::{
     AttachmentId, AttachmentName, AttachmentRef, BlobChunk, ContentBlock, Conversation, Delivered,
@@ -122,14 +123,15 @@ impl NodeClient {
     }
 
     /// `session.delete` (protocol 10): remove an ended session, its log,
-    /// marks, queue and attachments.
+    /// marks, queue and attachments; the answer says what became of the
+    /// worktree made for it (removed, or kept and why).
     ///
     /// # Errors
     /// `not_found` for an unknown session; `conflict` for a live one, or
     /// one whose log is still being written (a retry works); `unsupported`
     /// from a node before protocol 10; otherwise see [`CallError`].
-    pub async fn delete_session(&self, session: SessionId) -> Result<(), CallError> {
-        self.call(DeleteSession { session }).await.map(drop)
+    pub async fn delete_session(&self, session: SessionId) -> Result<SessionDeleted, CallError> {
+        self.call(DeleteSession { session }).await
     }
 
     /// `attachment.begin` (protocol 10): declare a file of `size` bytes

@@ -4,10 +4,12 @@
 use std::fmt::Write as _;
 
 mod conversation;
+mod worktree;
 
 pub(crate) use conversation::{
     commands, delivered, question, question_outcome, queue, queue_entries, usage,
 };
+pub(crate) use worktree::{deleted, removal};
 
 use vessel_proto::{
     EnvName, Harness, ModelApi, ModelCall, ModelRoute, ModelStop, NodeInfo, NodeState, ProfileInfo,

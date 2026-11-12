@@ -43,6 +43,7 @@ use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
 use crate::shutdown::Teardown;
+use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
@@ -452,6 +453,10 @@ async fn core(
     )
     .await
     .map_err(NodeError::Store)?;
+    // Worktrees whose sessions are gone are tidied at start and after
+    // each prune (`tidying`); deletions tidy their own.
+    let tidying = Tidying::new(Arc::clone(&sessions), Arc::clone(&workspaces));
+    Arc::clone(&tidying).watch(store.pruned(), &tasks, stop.clone());
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -470,6 +475,7 @@ async fn core(
         attachments,
         probes: Probes::new(setup.probe_dir),
         workspaces,
+        tidying,
     })));
     Ok(Core {
         runtime,
