@@ -2042,3 +2042,338 @@ commands and the digest to show and approve with `project.approve`;
 `file.find` takes a `key` per input box so typing replaces the running
 search; `SessionInfo.workspace` names a session's project, worktree and
 branch.
+
+## Integration (node)
+
+2026-11-12, on `backend/m11-int-node`: track A's branch
+(`backend/m11-conversation`) with track B's (`backend/m11-workspace`)
+merged in. Tracks P and W (the page) are joined on another branch; the
+coordinator joins the two. Every track's commit is kept; the merge
+commit builds and passes, and each follow-up is a commit of its own.
+
+### What conflicted, and how each was resolved
+
+The trial merge conflicted in 28 files. Where both tracks added to the
+same list (ids, the method table and every list that names each method:
+`Call::since`'s and `Reply::for_protocol`'s arms, the forwardable list,
+the unary calls, the web bridge's list, the guard's and the envelope's
+rows, the test handlers, the agent tools), both stay, track A's first.
+Beyond that:
+
+- `SessionInfo` takes both tracks' fields: `marks` and `abilities` (A),
+  `workspace` (B).
+- The store: track A's schemas 7 and 8 stay, track B's 7 is 9 (nothing
+  of protocol 10 was released, so no database had it under the other
+  number); the writer takes both tracks' writes; the migration tests
+  take a database back to schema 6 and walk 7, 8 and 9 in order
+  (`UNDO_SCHEMAS_7_TO_9`, and `marks.rs`'s test now checks the
+  workspace's tables come back empty).
+- The agent tools are listed session tools, conversation, workspace,
+  language server; the server's instructions join both tracks' lines.
+- Replies newer than every older peer pass `Reply::for_protocol`
+  unchanged, track B's 40 included.
+- In the merge commit, beyond resolving: the long exhaustive matches over
+  every method (forwardable, unary, the web bridge's list, the older
+  peers' rewrite) passed clippy's line bound only with a stated reason;
+  `RelPath::name` became `file_name` (under the `ts` feature `name` is the
+  TypeScript type's, and clippy refuses the clash, as W found for
+  `BookName`, whose fix is cherry-picked here unchanged so the join is
+  clean); track B's expectation on the CLI's dispatch length was dropped
+  (track A had shortened it).
+- Generated files were regenerated: `web/src/wire/proto.ts` after every
+  wire change; `Cargo.lock` merged without a conflict and did not change
+  when built.
+
+### Numbers
+
+- Track B's ADR 0024 is **0027** (file, title, every mention: each hit
+  read by what its sentence is about; the queue, delivery and steering
+  stay 0024). Track A keeps 0024 to 0026, track B 0023.
+- Store schema: A's 7 and 8, B's **9**.
+- Protocol 10 raised once.
+
+### Where the two contracts met, and what was decided
+
+1. **Tidying a session's worktree** (B's `retire`, which had no caller).
+   It runs when the session the worktree was made for is deleted or
+   retention drops it, never when it only ends or is archived:
+   `session.resume` starts an archived session again in the same folder
+   (the coordinator's rule; B's contract had said "archived or deleted",
+   ADR 0027 is amended).
+   - `session.delete` deletes the session, then removes the worktree by
+     the rule `worktree.remove { if_lost: keep }` follows, and answers
+     what became of it: `SessionDeleted { worktree?: { worktree,
+     outcome: removed | kept { reasons } } }` (it answered `Ack`; the
+     reply changed in place, protocol 10 being unreleased). A worktree
+     with uncommitted work, commits no other branch has, an operation,
+     submodules, flagged files or refs of its own, or another live
+     session in it, is kept, its record saying why: a delete never loses
+     work, never snapshots or discards unasked, and never keeps it
+     silently. Rejected: refusing the delete while the worktree would
+     lose work (two calls for a person, and retention needs the keeping
+     rule anyway), and a snapshot taken unasked.
+   - Retention prunes in the store's writer, so the store now says how
+     many sessions it removed (`Store::pruned`, a watch). The node's
+     `tidying` module sweeps the worktrees whose sessions are gone
+     (neither the runtime nor the store has them; an ended session the
+     runtime still holds counts, since retention prunes in the commit of
+     its final record) at start and after each prune, and, for those
+     kept because a session was in them, after each deletion. One kept
+     for its work is left to a person.
+   - One tidying at a time (a tokio mutex across the deletion and the
+     removal), so a delete and a sweep never remove the same worktree
+     and the delete's answer is right. A delete waits for an approved
+     teardown (at most 5 minutes), as `worktree.remove` does.
+   - Tested: `crates/vessel-node/tests/e2e/tidying.rs` (removed; kept with
+     its reasons and its file intact; retention), and the workspace unit
+     tests (`tidy_candidates`, a worktree kept for its work left alone).
+2. **`session.resume` when the folder is gone anyway** (a person removed
+   the worktree, or it went with the session it was made for while
+   another session that ran in it had ended): `conflict`, naming the
+   folder, before anything starts; nothing of the session changes (it
+   failed at the agent's spawn before, with the system's words). So is
+   one into a worktree a setup, teardown or removal holds
+   (`Workspaces::busy`, which `place` already asked), since the removal
+   could take the folder from under the agent.
+3. **`SessionInfo`**: track B filled `workspace` at the service, on
+   `session.list`, `.get`, `.create`, `.move_profile` and `.rename`;
+   `session.subscribe`, `.resume` and `.mark` (A's) did not have it.
+   They do now, through the same function, and a test asks each. A's
+   `marks` and `abilities` come from the session's own record and were
+   on every answer already.
+4. **`session.create` with a place, and a first prompt with
+   attachments**: an attachment needs a live session (`attachment.begin`),
+   so a first prompt goes after the create (the MCP tool, the CLI); the
+   place's notices are the log's first lines either way. An attachment
+   is kept in the node's data folder, never in the worktree, so it never
+   makes the worktree dirty, and goes with its session (tested).
+5. **An agent's limits**: the guard runs the scope, then track B's
+   workspace rule, then ownership; track A's rules (no read or unread
+   marks; ownership on every `operate` call naming a session, delete,
+   resume, mark and uploads included) and track B's (orchestration's
+   calls only, 8 worktrees, `session.create` in its own worktrees) do
+   not overlap. An agent deleting its own session tidies the worktree
+   made for it by the same rule; a session it resumes counts as one of
+   its live ones (A). Track B's rule was a `matches!`, so every other
+   method was open to agents by default; it is an exhaustive `match`
+   now. An agent's own `cwd` inside the node's data folder (where
+   worktrees are made) is `forbidden`: the ownership checks are the
+   place's, and a raw folder went around them. Creations at once count
+   against the 8 together (`State::making`). Tested end to end through
+   the agent tools (below).
+6. **The board, and archived sessions that own a worktree**: an archived
+   session is in the archive lane whatever its worktree; the worktree
+   stays (archiving tidies nothing). `WorktreeInfo.sessions` lists live
+   sessions only, so such a worktree lists none, and `created_for` still
+   names its session; a person may remove it, after which a start again
+   is refused (2).
+7. **Export and import**: the importer drops the place (it named the
+   other machine's project, B), keeps the title (protocol 9's rule), and
+   leaves the marks and the queue on the source (A's known limit). The
+   imported session runs in the folder the import names, or its own,
+   which must exist when it starts; it was made for no worktree, so
+   tidying never touches one for it. Checked by reading the importer; no
+   test was added.
+
+### The files the tracks left long
+
+Divided by responsibility, code moved without a change of behaviour,
+one commit per file, each building and passing: `vessel-node`'s
+`service.rs` (967 lines, now 313, and `service/{sessions, profiles,
+fleet, transfers}.rs`), `vessel-proto`'s `rpc.rs` (652, now 341, and
+`rpc/methods.rs`, the table's macro, and `rpc/since.rs`),
+`vessel-mcp`'s `tools.rs` (793, now 336, and `tools/{sessions, waiting,
+args}.rs`), `vessel-cli`'s `args.rs` (1,043, now 331, and `args/{workspace,
+node, fleet, nodes, tests}.rs`), `vessel-agent`'s `mapper.rs` (402, now
+181, and `mapper/{prompt, tool}.rs`); and track B's
+`workspace/worktrees.rs` (998, now 107, and `worktrees/{create, start,
+removal, snapshots, place, branches}.rs`), `git/diff.rs` (630, now 83,
+and `diff/{scope, summary, file, tests}.rs`), `vessel-proto`'s
+`workspace/git.rs` (625, now 47, and `git/{state, outcomes,
+requests}.rs`), `workspace/projects.rs` (594, now 217, and
+`projects/{adding, commands}.rs`), `git/run.rs` (591, now 211, and
+`run/{limits, pool, output, tests}.rs`). Only the visibility a move
+needed changed (`pub(super)`, or `pub(crate)` one level deeper).
+
+### The flaky test
+
+`a_failed_probe_says_why_and_never_hangs` failed now and then on
+branches without track A's probe change, its stderr lines empty.
+Confirmed, not assumed: with the probe's read after the disconnect taken
+out, 4 runs in 80 failed under load, each with the line missing (the
+agent's stderr is read by a task of its own, apart from its ACP stream,
+so its last line can arrive after the disconnect); with it, 160 of 160
+in parallel and 50 in a row under load passed. The cause was fixed on
+track A's branch in the code under test (the probe reads on until the
+stderr pump has ended, bounded only against a stray process holding the
+pipe); the test now says what it pins.
+
+### What track B could not verify
+
+- A clone that succeeds: a clone URL is never a local path or `file://`,
+  not even for a test (the URL type refuses both and git runs with the
+  file protocol off), so the test serves a bare repository over HTTP from
+  loopback, ready for git's dumb transport (`update-server-info`), with a
+  few lines of the test's own: the project answers `cloning`, becomes
+  `ready` with the repository's files and a clean status, and leaves no
+  temporary folder (`e2e/workspace.rs`).
+- The agent tools with a project present (`vessel-mcp`'s
+  `tests/workspace.rs`): an agent lists the projects, makes a worktree
+  and follows its approved setup to the end, starts a session in it with
+  a first prompt, and is refused another's worktree, a ninth worktree of
+  its own, and status, a file, removing a worktree and approving
+  commands, whatever its scopes.
+
+### Found while reading both tracks, and fixed
+
+- `cargo test -p vessel-node` alone did not build (tokio's `test-util`
+  came only from other crates of a workspace build).
+- The CLI showed a kept worktree's reasons as a debug dump; it says them
+  in words now (`render::worktree`), for `vessel worktree remove` and
+  `vessel session delete`.
+- The `create_session` agent tool left out a `dir` given without its
+  `project`, and a `project` given with a `worktree`, so the session
+  started somewhere the agent had not asked for; both are refused.
+- The node's end-to-end fixture ran its sessions in the node's data
+  folder. Once an agent's `cwd` there was refused (review item 2,
+  `4c765e3`), seven agent tests were refused too, which only the full
+  run showed; `2b53a36` gives the fixture a folder of its own. The
+  commits between those two fail those seven tests; the branch is not
+  rewritten (no rebase), so it is said here.
+- After the division of `git/diff.rs` its tests imported `ModeChange`,
+  which only the Unix test uses, so a Windows test build warned
+  (`28fca6a`). `vessel-workspace` was linted for Windows here; the rest
+  of the workspace needs a Windows C compiler this machine lacks, so
+  CI is its check.
+
+### The independent review
+
+One reviewer (Opus, read only, security first) read the branch at
+`17e32ec` against both contracts and found 19 problems. Each one's fate,
+most severe first:
+
+1. A read ran programs from configuration an agent wrote (a worktree's
+   `.git` rewritten to name a folder of the agent's, whose `config`
+   names a filter). **Fixed for worktrees** (`b29ac30`): before git runs
+   in one, its `.git` must be the file `git worktree add` wrote, naming
+   the record in the project's `.git/worktrees/` that names it back
+   (`git::gitfile`), else `conflict`; tidying's inspection asks the same
+   and keeps such a worktree. **Left open for a project's own folder**,
+   where an agent can edit `.git/config` itself: ADR 0023 trusts that
+   configuration as the user's, and closing it needs git's help (an
+   empty attribute source, `--attr-source` from git 2.40, or reads
+   against a configuration of the node's). A decision of its own,
+   recorded in ADRs 0023 and 0027.
+2. An agent's raw `cwd` went around worktree ownership. **Fixed**
+   (`4c765e3`): an agent's `cwd` inside the node's data folder is
+   `forbidden`.
+3. "Missing" and "outside" answered differently (not a folder, no
+   permission, a link loop, a link to nowhere). **Fixed** (`ca4efa0`):
+   every failure to follow a path is `not_found`, the detail in a debug
+   log only; `PathError::Link` is gone; `vessel.toml` that leads out is
+   as if there were none.
+4. A worktree's folder swapped for a link was followed. **Fixed**
+   (`b29ac30`): every call opens its root again and refuses one that is
+   no longer the folder recorded.
+5. A relative data folder made the empty hooks folder relative, so a
+   repository could ship hooks there. **Fixed** (`e55df1d`): the node's
+   folders are made absolute, and git's probe refuses a relative one.
+6. Setup and teardown waited without end for a command that closed its
+   output and ran on. **Fixed** (`6ba54d9`): the wait is held to the
+   deadline and the cancel; the process group is killed at either.
+7. A removal raced a session starting again in its worktree. **Fixed
+   for `session.resume`** (`4e42255`: `conflict` while a setup, teardown
+   or removal holds the worktree). **Left**: a session that passes
+   `place`'s or `resume`'s check just before a removal claims the
+   worktree can still start in it; closing that needs a "starting" count
+   taken under the registry's lock and given back once the session is
+   live, a change to both tracks' start paths, so it is reported, not
+   made here.
+8. `worktree.create`'s limit was checked and recorded awaits apart, so
+   creations at once all passed. **Fixed** (`00e2651`; a test makes 12
+   at once: 8 made, 4 refused; 12 made without the fix).
+9. An upload finishing between `begin`'s two reads was counted in
+   neither. **Fixed** (`024720a`): the open uploads are counted first,
+   so one finishing meanwhile is counted twice at worst.
+10. A cut through a URL left the end of its token. **Fixed**
+    (`3528696`): redacted whole, then cut; a test cuts inside a token.
+    The ADR's 64 KiB is what is kept of standard error, the 2 KiB what a
+    reply carries; ADR 0023 now says both.
+11. A git call waited for a pool slot outside its time. **Fixed**
+    (`51d71de`): the wait counts against the call's time and ends with
+    its cancel. **Left**: clones share the 4 network slots with fetch,
+    push and pull; a slot or a cap of their own is a design change for
+    track B's next wave.
+12. Tidying retried worktrees git could not inspect, running their
+    teardown each time, under the lock `session.delete` waits on.
+    **Fixed** (`11c4752`): only those kept because a session was in
+    them are retried. **Kept by design**: a delete still waits for the
+    session's own worktree's teardown and for a sweep already running
+    (one tidying at a time, `tidying.rs` says why).
+13. `worktree.output`'s long poll lost its wake-up. **Fixed**
+    (`6663040`).
+14. `vessel.toml` followed links, had no bound, then could wait on a
+    FIFO. **Fixed** (`e55e2b5`, `3826627`): read only as a bounded
+    regular file inside its folder, opened without waiting and without
+    following a last link, judged on the handle; `file.read`, a file's
+    version and a gitfile are read the same way (`regular`).
+15. A queue `edit` took empty content. **Fixed** (`7c959b9`):
+    `invalid_request`, as an empty prompt.
+16. `project.init` made folders before checking the root. **Fixed**
+    (`493c45c`): the folder it would be is checked first.
+17. Weaker root checks. **Fixed** for the home's parents (`1462f84`).
+    **Left**: a project added at a `.git` folder or a bare repository
+    is a `git: false` project whose `config` and `hooks/` the file calls
+    can write; refusing those is a rule for track B's contract (which
+    roots are repositories in disguise), reported rather than guessed.
+18. On Windows two setups at once could share a script's name.
+    **Fixed** (`6ba54d9`): the name has the process, the index and a
+    counter, and the file is created new.
+19. Rules broken:
+    - `file.find` keyed callers by a `Debug` text. **Fixed** (`589a07a`).
+    - The CLI showed `Debug` names. **Fixed** (`43d82fa`).
+    - `file_in` answered a `String`. **Fixed** (`be03a30`).
+    - A `JoinError` became an empty list, then `unreachable!`. **Fixed**
+      (`a236b6b`).
+    - A blocking `is_dir` on the runtime in `place`. **Fixed** (moved to
+      the blocking pool with the resolve).
+    - Network stderr kept 256 KiB against the contract's 64. **Fixed**
+      (`006f7ef`). The name index's 64 MiB listing against 16: **kept**,
+      for its 500,000 paths, and now said in ADR 0023 and the code.
+    - `--end-of-options` missing in six commands. **Fixed** (`b861785`).
+    - **Left**: `WorkspaceError::Io(String)` and its ten call sites
+      (track B's error type, a refactor of its own); `Busy` decided by
+      git's `index.lock` text (git gives no other sign: the exit code is
+      128 for every fatal error); track A's Windows `is::<Refused>()`
+      downcast in the store; `find.rs`'s refresh outside the task
+      tracker, more than 8 indexes while an evicted build runs, and its
+      walk outside git not counting folders (track B's index, for its
+      next wave).
+
+### New ids and names on the wire, for `aliases.rs`
+
+Every newtype protocol 10 adds to the wire (W's aliases file):
+
+- Track A, handles: `AttachmentId`, `QuestionId`, `QueueEntryId`,
+  `UploadId`; named: `AttachmentName`, `CommandName`, `FieldName`,
+  `MimeType`, `CostUnit`; a quantity: `FiniteNumber`.
+- Track B, handles: `ProjectId`, `WorktreeId`, `SearchKey`; content
+  hashes, best as handles: `CommandsDigest`, `ContentHash`; named:
+  `BranchName`, `RefName`, `RemoteName`, `CommitId`, `CloneUrl`,
+  `CommitMessage`, `FolderName`, `ProjectCommand`, `ProjectName`,
+  `RelPath`, `FindQuery`, `GrepQuery`.
+
+### The gate, on the final tree
+
+- `cargo fmt --all --check`: clean.
+- `cargo clippy --workspace --all-targets -- -D warnings`: clean.
+- `cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets
+  -- -D warnings`: clean.
+- `cargo test --workspace --no-fail-fast`: 1,287 passed, 0 failed, 8
+  ignored, over 94 test binaries.
+- The TypeScript regeneration (`VESSEL_WRITE_TS=1 cargo test -p
+  vessel-proto -p vessel-web --features ts --lib typescript`): passes,
+  and `web/src/wire/proto.ts` does not change.
+- In `web/`: `npm ci`, `npm run lint`, `npm run typecheck`, `npm run
+  test` (149 passed), `npm run build`, then the node's binaries built
+  and `npm run e2e` (23 passed). Nothing under `web/` was restructured.

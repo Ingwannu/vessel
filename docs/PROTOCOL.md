@@ -4,7 +4,7 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
-## Version 10 (2026-11-11)
+## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with
 stand-ins for older clients) and optional fields, in two parts built side
@@ -15,6 +15,8 @@ failures and bounds; ADRs 0023 and 0027). Where the two meet is the
 plan's "Integration (node)".
 
 ### The conversation
+
+Ten of the methods, the six events and most of the optional fields.
 
 - Types (`vessel_proto::conversation`):
   - `AgentAbilities { steer, resume, image, audio }`: what the agent's
@@ -85,9 +87,8 @@ plan's "Integration (node)".
     session in the archive (`SessionInfo::for_protocol`).
 - Logs: a session's final `status` is the last record of a run, no longer
   of the log: `session.resume` continues the same log after it.
-- Built in slices on the track's branch, all of it now (until its slice
-  landed a call answered `unsupported`, "not built on this node yet"):
-  `session.conversation`, `session.prompt` and `session.queue`,
+- What each call does (the contract's details that the summary above
+  leaves out): `session.conversation`, `session.prompt` and `session.queue`,
   `cancel_turn`'s `turn`, and questions: `question_asked`,
   `question_resolved` and `session.send`'s `answer_question`
   (`invalid_request` for an answer that does not fit the form,
@@ -98,8 +99,8 @@ plan's "Integration (node)".
   has ended; a `read` past the end of the log is `invalid_request`; an
   agent marking `read` or `unread` is `forbidden`), `session.delete`
   (`conflict` for a live session and for one whose log is still being
-  written), the board's placement of ended sessions, and retention's
-  order (archived first, pinned last); starting again: `session.resume`
+  written; its answer, below), the board's placement of ended sessions,
+  and retention's order (archived first, pinned last); starting again: `session.resume`
   (the row reopened before the new run writes, the log continued after
   the final status, the title, choices and creator kept, the queue back
   held `ended`, out of the archive, a new agent credential; it answers
@@ -115,7 +116,8 @@ plan's "Integration (node)".
   dropped; `conflict` once the session ended, and for a kept file that
   was changed on disk; uploads open at a restart are dropped), and every
   prompt naming one (`session.prompt`, a queue `edit`, `session.send`, and
-  a queued prompt when it is sent) checked against the session's own
+  a queued prompt when it is sent; a queue `edit` with no content is
+  `invalid_request`, as an empty prompt is) checked against the session's own
   records, the per-prompt bounds and what its agent takes then
   (`invalid_request`); and every call from the command line (`vessel send
   --queue|--steer|--interrupt|--attach`, `vessel session
@@ -153,7 +155,10 @@ Forty of the methods, two optional fields and no event.
   `project.list`, `project.get`, `project.commands`, `worktree.list`,
   `worktree.create` (at most 8 they made), `worktree.output`, and
   `session.create` in a project or a worktree they made (or made for a
-  session they may operate); every other one answers them `forbidden`.
+  session they may operate; a `cwd` of their own inside the node's data
+  folder, where worktrees are made, is `forbidden`: they name the
+  `place`); every other one answers them `forbidden`. Creations at once
+  count against the 8 together.
   - Projects: `project.list` (read; with the git found: `found {
     version }`, `too_old`, `missing`), `project.get { project,
     changed_from? }` (read; a long poll until the revision differs, at
@@ -162,8 +167,12 @@ Forty of the methods, two optional fields and no event.
     `project.init { path, name? }`, `project.remove` (forgets; files
     stay), `project.commands { project, base? }` (read),
     `project.approve { project, digest, approved }` (all operate).
-    Roots refused: a file system's root, the home folder, any folder
-    holding the node's data folder or inside it.
+    Roots refused: a file system's root, any folder that is or holds the
+    home folder, any folder holding the node's data folder or inside it;
+    `project.init` checks the folder it would make before it makes
+    anything (`.` and `..` refused). A project's `vessel.toml` is read
+    only as a regular file inside its folder, at most 64 KiB; one that
+    leads out of it is as if there were none.
   - Worktrees: `worktree.list { project? }`, `worktree.create { project,
     branch: new { name?, base? } | existing { name } | snapshot {
     worktree, name? }, setup: run | skip }` answering `created`,
@@ -181,14 +190,53 @@ Forty of the methods, two optional fields and no event.
     `git.stashes` (read); `git.stage`, `git.unstage`, `git.discard`,
     `git.commit`, `git.fetch`, `git.push`, `git.pull` (fast-forward
     only), `git.switch`, `git.rename_branch`, `git.stash` (operate),
-    each with typed refusals (`GitRefusal`).
+    each with typed refusals (`GitRefusal`). A call's wait for one of
+    the node's git slots counts against its time (`timed_out`). Every
+    call checks its root again: a folder replaced since it was recorded
+    (a link to another), or a worktree whose `.git` no longer names its
+    repository's record of it, is `conflict`, and git is not run in it.
   - Files: `file.list`, `file.read`, `file.find { query, key? }` (by
     name; a newer search with the same key replaces a running one),
     `file.grep` (read); `file.write { expect: absent | version | any }`,
     `file.create_dir`, `file.rename`, `file.delete` (operate). A path
-    that leads out of the root and one that is not there both answer
-    `not_found`.
+    that leads out of the root, one that cannot be followed (a link to
+    nowhere, a file where a folder should be, no permission) and one
+    that is not there all answer `not_found`; what is read is opened
+    first and judged a regular file on the opened file (a FIFO is not
+    waited on).
 - Store schema 9 (`projects`, `worktrees`, `approvals`).
+
+### Where the two meet
+
+- `session.delete` answers `SessionDeleted { worktree? }` (track A's
+  branch answered `Ack`; nothing of protocol 10 was released, so the
+  reply changed in place): `worktree` is `TidiedWorktree { worktree,
+  outcome }` for the worktree made for the session (`WorktreeInfo.
+  created_for`), `outcome` `removed` or `kept { reasons }`. The session
+  is deleted either way; the worktree goes only by the rule a person's
+  `worktree.remove { if_lost: keep }` follows (ADR 0027), so a delete
+  never loses uncommitted work or commits no other branch has, never
+  snapshots or discards unasked, and says when it kept something (also
+  in `WorktreeInfo.kept`).
+- Retention dropping a session tidies its worktree by the same rule, in
+  the background after the prune; the node also tidies, when it starts,
+  every worktree whose session is gone. Ending or archiving a session
+  tidies nothing: `session.resume` starts it again in the same folder.
+- `session.resume` of a session whose folder is gone (a worktree a
+  person removed, or one tidied with the session it was made for, or a
+  folder removed by hand) is `conflict`, naming the folder; so is one
+  into a worktree whose setup, teardown or removal runs. Nothing of the
+  session changes.
+- Tidying keeps a worktree git could not inspect (`kept {
+  inspection_failed }`) and does not try it again; a person removes it
+  with `snapshot` or `discard`. One kept because a session was in it is
+  tried again once that session is gone.
+- `SessionInfo.workspace` is filled on every answer that carries a
+  session's info: `session.list`, `.get`, `.create` (and an import's),
+  `.move_profile`, `.rename`, `.subscribe`, `.resume` and `.mark`.
+- An imported session's place is dropped (it named the other machine's
+  project); its title comes with it, its marks and queue stay behind.
+- Store: schemas 7 and 8 are the conversation's, 9 the workspace's.
 
 ## Version 9 (2026-11-11)
 

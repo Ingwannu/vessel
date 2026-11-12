@@ -123,8 +123,8 @@ runs afterwards and `worktree.output` follows it. A session never waits
 for setup: `session.create` in a worktree whose setup runs fails with
 `conflict`. Removal follows one rule for a person's `worktree.remove`
 and for tidying (`Workspaces::retire`, for a worktree created for a
-session, when that session is archived or deleted, which track A
-calls): inspect (no operation in progress; no change `git status` shows,
+session, when that session is deleted or retention drops it; amended at
+the merge, below): inspect (no operation in progress; no change `git status` shows,
 submodules included; no submodule; no assume-unchanged or
 skip-worktree entry; no `refs/worktree/*` or `refs/bisect/*`; no commit
 reachable from `HEAD` or the created branch that no other branch,
@@ -181,6 +181,43 @@ protocol 10.
   (snapshots are built as a checkpoint would be), carrying a worktree
   when a session moves to another machine, scripts and services (the
   file keeps their keys; the digest's version line changes when more of
-  the file runs). Nothing calls `retire` until track A's archive and
-  delete are merged; retention dropping a session's log does not tidy
-  yet.
+  the file runs).
+
+## Amended when the tracks were merged (2026-11-12)
+
+- Tidying runs when the session a worktree was made for is deleted
+  (`session.delete`, which answers what became of the worktree:
+  `SessionDeleted`) or dropped by retention (a sweep after each prune,
+  and at the node's start for any worktree whose session is gone); not
+  when the session is archived, as this ADR first said: ADR 0026's
+  `session.resume` starts an archived session again in the same folder.
+  `crates/vessel-node/src/tidying.rs` says when and why; the rule itself
+  is unchanged.
+- `session.resume` of a session whose folder is gone anyway (a person
+  removed its worktree) is `conflict`, naming the folder; so is one into
+  a worktree a setup, teardown or removal holds (the removal could take
+  the folder from under the agent).
+- The agents' list of workspace calls is an exhaustive `match` over
+  every method, so a new one is decided where it is added. An agent's
+  `session.create` with a `cwd` of its own inside the node's data folder
+  is `forbidden`: the worktree ownership checks are the `place`'s, and a
+  raw folder would go around them.
+- A worktree kept because git could not inspect it is not tried again
+  by tidying (each try would run its teardown again); a person decides.
+  One kept because a session was in it is tried again once that session
+  has gone.
+- What the trust in this ADR rests on, made to hold under a swapped
+  folder: every call resolves its root again and refuses one replaced
+  since it was recorded, and a worktree whose `.git` no longer names its
+  repository's record of it (`git::gitfile`), so git never reads a
+  configuration someone put in its place; the node's folders, the empty
+  hooks folder among them, are absolute; `vessel.toml` is read only as a
+  bounded regular file inside its folder (one leading out is as if there
+  were none); a root that holds the home folder is refused, and
+  `project.init` checks its folder before making it.
+- Still open: in a project (not a worktree) whoever can write its
+  `.git/config` chooses the filters and the like that a read runs; this
+  ADR's trust says the user wrote that configuration, and an agent can
+  write in the project's folder. Closing it needs git's own help (an
+  empty attribute source, git 2.40's `--attr-source`, or reads against
+  a configuration of the node's) and is left to a decision of its own.

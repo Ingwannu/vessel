@@ -99,7 +99,7 @@ vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, 
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
-vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip)
+vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
 
 - Without `--queue`, `--steer`, `--interrupt` or `--attach`, `send` starts
@@ -350,8 +350,16 @@ teardown = "docker compose down"
   devices cannot approve.
 - A worktree is removed only when nothing would be lost (no change,
   operation, submodule, flagged file or unshipped commit); otherwise it is
-  kept and says why. A session's worktree is to be tidied by that rule
-  when the session is archived or deleted (wired when archiving lands).
+  kept and says why. The worktree made for a session goes by that rule
+  when the session is deleted (`vessel session delete` says whether it
+  went or why it stayed) or when retention drops the session; ending or
+  archiving a session leaves it, so `vessel session resume` starts the
+  session again in it. A session whose folder is gone, or whose worktree
+  a setup or a removal holds, does not start again.
+- Every call looks at its folder again: one replaced since it was added
+  (by a link to another, say), or a worktree that no longer belongs to
+  its repository, is refused, and git is not run in it. A project's
+  folder cannot be one holding your home folder or the node's data.
 - git is the machine's own `git` (2.25 or newer), run without prompts,
   without the repository's hooks (except on commit and push) and without
   the programs its configuration names.
@@ -518,7 +526,8 @@ prompt, and a `project` or `worktree` to run in), `send_input` (with a
 waits on an answer), `change_queue`, `answer_question`,
 `resume_session` and `archive_session`, and for projects
 `list_projects`, `list_worktrees` and `create_worktree` (which follows
-setup to its end); each but `list_nodes` takes `node`, so an agent can
+setup to its end; at most 8 worktrees of its own, a session in one only
+if it made it); each but `list_nodes` takes `node`, so an agent can
 start a session on another machine and read its answer.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and

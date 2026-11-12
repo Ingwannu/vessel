@@ -68,7 +68,11 @@ restores or archives it; archiving kills it and puts it in the archive
   subscription served from the store while it reopened ends `lagged`.
 - `session.delete` removes an ended session's log, marks, queue and
   attachments; a live one is `conflict`. Retention prunes archived
-  sessions first, then other ended ones, pinned ones last.
+  sessions first, then other ended ones, pinned ones last. Since the
+  merge with track B, deleting a session, or retention dropping it, also
+  tidies the worktree made for it by ADR 0027's rule, and the delete's
+  answer says what became of it (`SessionDeleted`); archiving does not,
+  so a session started again finds its folder.
 
 ## Why
 

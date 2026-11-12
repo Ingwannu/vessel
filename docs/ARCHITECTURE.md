@@ -307,7 +307,9 @@ In the crate table's order.
   `abilities`), and projects, worktrees, git and files (`workspace`),
   `SessionSpec.place` and `SessionInfo.workspace`.
   Every method has a first version (`since`), and a call that uses a
-  later field needs that version (`Call::since`). No I/O.
+  later field needs that version (`Call::since`, `rpc/since.rs`; the
+  table's macro is `rpc/methods.rs`, the table itself stays in `rpc.rs`).
+  No I/O.
 - `vessel-rpc`: handshake, typed calls with cancellation and an in-flight
   bound (calls beyond it are refused `Unavailable`; the connection keeps
   being read so `Cancel` gets through), per-connection outbound queue
@@ -357,16 +359,22 @@ In the crate table's order.
   bounded), `history`, `write`, `clone` (temporary folder, progress,
   cancel), `worktree` (add, the inspection, snapshots, removal), `search`
   (`ls-files`, `check-ignore`, `grep`), `refusal` and `redact` (git's
-  messages typed or cut, user information stripped)); `paths` (`Root`:
+  messages typed, user information stripped, then cut), `gitfile`
+  (whether a worktree's `.git` and its repository's record name each
+  other); a call's wait for a slot within its time); `paths` (`Root`:
   every path joined part by part, resolved with links followed, refused
-  outside the root or under `.git`, one answer for "outside" and "not
-  there"); `files` (list, paged read, atomic write against an expected
+  outside the root or under `.git`, one answer, "not there", for
+  outside, not followable and missing); `regular` (a file opened
+  without waiting and without following a last link, then judged a
+  regular file on the handle: reads, versions, `vessel.toml`, a
+  gitfile); `files` (list, paged read, atomic write against an expected
   version, create, rename, delete; a blob paged as a file); `find` (the
   name index and its cache: 500,000 paths, 8 roots, idle ones dropped,
   rebuilt in the background when stale, cancellable searches);
-  `project_file` (`vessel.toml`, its digest); `commands` (setup and
-  teardown through the platform's shell, one process group, a bounded
-  log). Tests run against temporary repositories with the real git and a
+  `project_file` (`vessel.toml`, read only as a bounded regular file
+  inside its folder, its digest); `commands` (setup and teardown through
+  the platform's shell, one process group, a bounded log, the wait for
+  its end within its deadline and cancel). Tests run against temporary repositories with the real git and a
   configuration of their own.
 - `vessel-pty`: `PtyProcess` over `portable-pty`, with dedicated reader,
   control (input and resize, in order) and waiter threads behind bounded
@@ -382,7 +390,10 @@ In the crate table's order.
   --agent-handshake-timeout`); a stuck adapter fails the session. MCP
   servers go in `session/new` and `session/load` (HTTP servers only when
   the agent advertises them). The `mapper` is pure and tested against
-  fixtures in `crates/vessel-agent/tests/fixtures/acp/`. Protocol 9
+  fixtures in `crates/vessel-agent/tests/fixtures/acp/`: session updates
+  and content in `mapper.rs`, the prompt side in `mapper/prompt.rs`, tool
+  calls and permissions in `mapper/tool.rs`, questions and reports in
+  their own. Protocol 9
   (`options`, ADR 0022): the driver keeps the agent's options as ACP
   reported them, applies a session's choices in the handshake (in order,
   after the model; one not offered or refused fails it), reports them as
@@ -450,7 +461,12 @@ In the crate table's order.
   `Store::mark`, `unread` derived from the last record asking for
   attention and the last `read`, `KeptMarks::marks`), and
   `Store::delete_session`; 8 retention's order (archived ended sessions
-  pruned first, pinned last) as an index the pruning walks.
+  pruned first, pinned last) as an index the pruning walks; 9 projects,
+  worktrees and approved command sets (`workspace`: each a row holding
+  its wire type, written whole; protocol 10, ADR 0027). `Store::pruned`
+  counts the sessions retention removed since the store opened, raised
+  after each commit that removed some, so the node can tidy what they
+  left outside the store (their worktrees).
   `Store::ended_session` and `Store::reopen` start an ended session again
   (protocol 10): the row is live again, without an end and out of the
   archive, before its next run writes, so retention never takes it. A deleted or
@@ -468,6 +484,13 @@ In the crate table's order.
   agents. `models.toml` is read with whether other users
   can read it (`DataDir::read_models`), which the node refuses.
 - `vessel-node` (`vesseld`):
+  - The service (`service`): one inherent method per call, routing to the
+    module that owns the work and mapping its error to the wire once; its
+    calls in a module per area (`sessions`, `profiles` with the agents'
+    ownership rule, `fleet` with this node's secrets, `transfers`,
+    `options`, `conversation`, `again`, `projects`, `worktrees`, `git`,
+    `files`); `service.rs` keeps the service's parts and a connection's
+    state.
   - Sessions: axum `/health` and token-checked `/rpc`, the `Handler`
     routing to `sessions` (live runtime sessions plus stored ones; a
     session whose log is complete is served from the store, and a live
@@ -488,6 +511,38 @@ In the crate table's order.
     subscription the store serves ends `Lagged` when its session started
     again meanwhile. A session's agent credential and model token are
     retired in its hand-over to the store.
+  - Projects, worktrees, git and files (protocol 10, ADRs 0023 and 0027,
+    `workspace`): the registry (projects, worktrees, approvals; read back
+    at start, a clone or setup the stop interrupted told as failed),
+    behind one lock never held across an `.await`; roots refused
+    (`policy::check_root`: a file system's root, any folder that is or
+    holds the home folder, any folder holding the data folder or inside
+    it; `project.init` checks the folder it would make before making
+    it); its folders absolute, so the empty hooks folder git is pointed
+    at is never read relative to a repository; every git or file call's
+    root resolved again (`roots`: still the folder recorded, and a
+    worktree's `.git` still naming its repository's record of it,
+    `git::gitfile`); clones and setups as tasks of the node's; `place`
+    (a session's `SessionSpec.place` resolved into `cwd` and its log's
+    first notices; an agent only in a worktree it made or one made for a
+    session it may operate, and never with a `cwd` of its own in the data
+    folder); `worktree.create`'s limits counting the creations under way;
+    `retire`, the removal rule tidying follows (a worktree git could not
+    inspect is kept and left for a person). The service only routes
+    (`service/{projects,worktrees,git,files}`); agents get only
+    orchestration's calls, decided for every method by one exhaustive
+    `match` (`policy::refuse_agents`, run by `guard` after the scope).
+  - Tidying (`tidying`, where the two halves of protocol 10 meet):
+    `session.delete` deletes the session, then removes the worktree made
+    for it by `retire`'s rule and answers what became of it
+    (`SessionDeleted`); a sweep removes the worktrees of sessions that are
+    gone (neither the runtime nor the store has them), at start and after
+    each prune `Store::pruned` reports, and, for those kept because a
+    session was in them, after each deletion. One tidying at a time under
+    a tokio mutex held across the deletion and the removal. Ending or
+    archiving a session tidies nothing; `session.resume` refuses a session
+    whose folder is gone, or whose worktree a setup, teardown or removal
+    holds (`conflict`).
   - Attachments (protocol 10, ADR 0025, `attachments`): uploads
     (`uploads`, `staging`: one owner-only staging file each under
     `uploads/`, appended and hashed piece by piece, held by whoever began
@@ -725,9 +780,14 @@ In the crate table's order.
   `send_input`'s `delivery` (`session.prompt`), `read_conversation`,
   `change_queue`, `answer_question` (values read by the question's field
   kinds, `vessel_client::compose`), `resume_session`, `archive_session`;
-  no read/unread marks, pins, deletes or attachments for agents. Each but
-  `list_nodes` takes `node` and goes through `fleet.forward` for another
-  node.
+  no read/unread marks, pins, deletes or attachments for agents; and
+  (`tools/workspace.rs`) `list_projects`, `list_worktrees`,
+  `create_worktree` (following setup to its end), `create_session`'s
+  `project`, `dir` and `worktree`. Each but `list_nodes` takes `node` and
+  goes through `fleet.forward` for another node. One module per area:
+  `sessions` (the session tools and their schemas), `waiting` (the long
+  polls), `args` (reading a tool's arguments), `conversation`,
+  `workspace`, `lsp`.
 - `vessel-cli` (`vessel`): `node start`, `status`, `harnesses`,
   `sessions`, `run`, `attach`, `send`, `log`, `kill`; terminal attach in
   raw mode with `Ctrl-]` to detach (also under the kitty keyboard
@@ -754,9 +814,15 @@ In the crate table's order.
   `session queue [edit|move|remove|send-now|hold|resume|clear]`, `session
   answer` (a question's `field=value`s or a permission's option),
   `session resume`, `session pin|unpin|archive|unarchive|read|unread`,
-  `session delete` (asks unless `--yes`), and each session's marks in
+  `session delete` (asks unless `--yes`; says whether the session's
+  worktree went or why it stayed), and each session's marks in
   `sessions`; entries and requests named by an id prefix
-  (`selector::IdPrefix`). The CLI reads `VESSEL_NODE`, `VESSEL_TOKEN`,
+  (`selector::IdPrefix`); and (`workspace.rs`) `project
+  list|add|clone|init|remove|commands|approve`, `worktree
+  list|new|output|setup|remove|snapshots` (a kept worktree's reasons in
+  words, `render::worktree`), `run --project [--dir] | --project
+  --new-worktree | --worktree`. Arguments in `args/`, one module per
+  command (`conversation`, `workspace`, `node`, `fleet`, `nodes`). The CLI reads `VESSEL_NODE`, `VESSEL_TOKEN`,
   `VESSEL_DATA_DIR`, `VESSEL_CONFIG_DIR`, `VESSEL_SSH` and `VESSEL_GH`;
   tests set them so they never touch the user's book, `ssh` or GitHub.
   Tested through the binary (`tests/cli/`), including a test that plants

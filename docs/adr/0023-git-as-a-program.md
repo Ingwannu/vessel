@@ -107,7 +107,8 @@ Questions:
   the node's binary links no git and no TLS stack for it.
 - A repository's configuration cannot make a read run a program; what
   still runs is what the user's own commit and push would run (hooks)
-  and filter drivers.
+  and filter drivers (whose configuration, in a project's own folder, an
+  agent can write: see the amendment below).
 - A credential that needs a person (a passphrase prompt, a browser
   sign-in) fails with `needs_credential` rather than hanging; the user signs
   in once in a terminal, and the node's runs use the helper's cache.
@@ -120,3 +121,23 @@ Questions:
   a service has no terminal.
 - Only CI confirms the Windows side (`cmd.exe`, Git for Windows'
   credential manager honouring `GCM_INTERACTIVE`) and the macOS one.
+
+## Amended when the tracks were merged (2026-11-12)
+
+- What git prints back: every run keeps the last 64 KiB of standard
+  error (network and clone runs had kept 256 KiB); what reaches a reply
+  or a log is redacted whole first, then cut to its last 2 KiB (cut
+  first, a cut through a URL left the end of its user information
+  without the `://` that marks it).
+- The name index's listing (`ls-files`) may read 64 MiB of standard
+  output, past the 16 MiB of other runs: the index's own bound is
+  500,000 paths. A longer listing is cut and says so.
+- A call's wait for a slot of its pool counts against its time limit
+  and ends with its cancellation.
+- `--end-of-options` now stands before every value in `log`, `switch`,
+  `branch --move`, `branch -D`, `worktree add` and `merge-base` too
+  (safe before only because the names refuse a leading `-`).
+- Not yet held in a project's own folder (ADR 0027's amendment says
+  why): a read runs the filters the repository's configuration names,
+  and an agent can write that configuration there. A worktree's `.git`
+  is checked against its repository's record of it before every call.
