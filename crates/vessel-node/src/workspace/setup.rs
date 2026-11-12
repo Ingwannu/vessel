@@ -191,7 +191,9 @@ impl Workspaces {
             && from >= length
         {
             let limit = Duration::from_secs(seconds.min(MAX_WAIT_SECS).into());
-            written.mark_unchanged();
+            // Not marked seen here: a write (or the run's end) between the
+            // subscription and now is what this wait is for, and marking it
+            // seen would sleep the whole wait past it.
             let _changed = tokio::time::timeout(limit, written.changed()).await;
         }
         let setup = self
