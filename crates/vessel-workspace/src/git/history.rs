@@ -94,6 +94,7 @@ impl Git {
             ])
             .arg(format!("--skip={skip}"))
             .arg(format!("--max-count={}", limit.saturating_add(1)))
+            .arg("--end-of-options")
             .arg(start.as_str())
             .arg("--")
             .output()

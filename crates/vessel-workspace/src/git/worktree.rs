@@ -113,9 +113,12 @@ impl Git {
             NewBranch::Create { name, start } => command
                 .arg("-b")
                 .arg(name.as_str())
+                .arg("--end-of-options")
                 .arg(path)
                 .arg(start.as_str()),
-            NewBranch::Existing { name } => command.arg(path).arg(name.as_str()),
+            NewBranch::Existing { name } => {
+                command.arg("--end-of-options").arg(path).arg(name.as_str())
+            }
         };
         let output = command.output().await?;
         if output.code == Some(0) {
@@ -508,7 +511,7 @@ impl Git {
         if let Some(branch) = created {
             let deleted = self
                 .command(repo)
-                .args(["branch", "-D"])
+                .args(["branch", "-D", "--end-of-options"])
                 .arg(branch.as_str())
                 .output()
                 .await?;

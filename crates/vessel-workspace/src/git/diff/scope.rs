@@ -100,7 +100,7 @@ impl Git {
     async fn merge_base(&self, dir: &Path, other: &CommitId) -> Result<Option<CommitId>, GitError> {
         let output = self
             .command(dir)
-            .args(["merge-base", "HEAD"])
+            .args(["merge-base", "--end-of-options", "HEAD"])
             .arg(other.as_str())
             .output()
             .await?;

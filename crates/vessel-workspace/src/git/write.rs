@@ -395,9 +395,10 @@ impl Git {
                 command = command
                     .arg("--create")
                     .arg(branch.as_str())
+                    .arg("--end-of-options")
                     .arg(commit.as_str());
             }
-            None => command = command.arg(branch.as_str()),
+            None => command = command.arg("--end-of-options").arg(branch.as_str()),
         }
         let output = command.output().await?;
         if output.code != Some(0) {
@@ -433,7 +434,7 @@ impl Git {
         };
         let output = self
             .command(dir)
-            .args(["branch", "--move"])
+            .args(["branch", "--move", "--end-of-options"])
             .arg(from.as_str())
             .arg(to.as_str())
             .output()
