@@ -7,7 +7,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { newSessionPage, startSession } from "./kit";
+import { newSessionPage, startSession, timeline } from "./kit";
 import { openUi } from "./open";
 import { shot } from "./shot";
 
@@ -69,7 +69,7 @@ test("starting and running a session", async ({ page }) => {
 
   // Answered: the dock goes, the timeline's line says how it ended.
   await permission.getByRole("button", { name: "Allow" }).click();
-  await expect(page.getByText(/^Allowed · /)).toBeVisible();
+  await expect(timeline(page).getByText(/^Allowed · /)).toBeVisible();
   await shot(page, "35-session-answered-light");
 
   // The new-session page and its menus, each opened from the keyboard.

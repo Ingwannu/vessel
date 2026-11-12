@@ -404,6 +404,12 @@ book, typed and versioned, and builds on it.
   prompt to several models, delivered files and HTML, a reviewing
   agent, spreading by load, updating and diagnostics from the page.
 
+## Left open
+
+- The desktop and phone shells (ADR 0020, still proposed). All three
+  references ship a phone app; Vessel's answer until the decision is the
+  page on a phone plus push (track E).
+
 ## Track W: contract
 
 Track W adds no call to a node and does not change protocol 10 (or the
@@ -781,11 +787,19 @@ Not taken, and why:
   state for the app, and the preferences are the page's only memory
   across launches; a toggle is a human-rate write.
 
-## Left open
+## Track P: progress (2026-11-11)
 
-- The desktop and phone shells (ADR 0020, still proposed). All three
-  references ship a phone app; Vessel's answer until the decision is the
-  page on a phone plus push (track E).
+Built: the benchmarks (`benches/` in vessel-store, -proto, -rpc,
+-session, -web), the load test (`vessel-cli`'s `load`), the page's
+measurement (`web/e2e/perf.ts`), and the baseline, all in
+`docs/PERFORMANCE.md`. Changed, each with its number before and after
+there: compressed responses made at build; Pretendard in its subsets;
+the page divided by screen with every chunk pinned by the index's import
+map (ADR 0017's amendment); memoised timeline entries, a windowed
+timeline and the reducer's index by id; an unchanged session list draws
+nothing; fat LTO with one codegen unit for release builds. Measured and
+left: the terminal (xterm's renderer), the store's write path, fan-out.
+Described and left: a session list subscription (a wire change).
 
 ## Track W: progress
 

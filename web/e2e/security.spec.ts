@@ -217,3 +217,92 @@ test("a new launch escapes cached HTML and a previous origin's service worker", 
     rmSync(profile, { recursive: true });
   }
 });
+
+test("a poisoned chunk loaded later cannot execute under the real index", async ({
+  page,
+}) => {
+  // The page is divided by screen (src/app.tsx, src/main.tsx): the kit's
+  // gallery is a chunk imported only at /kit, pinned by the index's import
+  // map, not by a tag (scripts/integrity.mjs, ADR 0017's amendment).
+  const probeUrl = new URL(loadEnv().url);
+  probeUrl.hostname = "127.0.0.1";
+  const html = await (await fetch(probeUrl.origin)).text();
+  const map = /<script type="importmap">([^<]*)<\/script>/.exec(html)?.[1];
+  if (map === undefined) throw new Error("No import map in the index");
+  const parsed: unknown = JSON.parse(map);
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("integrity" in parsed) ||
+    typeof parsed.integrity !== "object" ||
+    parsed.integrity === null
+  ) {
+    throw new Error("The import map pins nothing");
+  }
+  const chunk = Object.keys(parsed.integrity).find((path) =>
+    /^\/assets\/gallery-[\w-]+\.js$/.test(path),
+  );
+  if (chunk === undefined) throw new Error("No gallery chunk in the map");
+  const evil = 'document.documentElement.dataset.poisoned = "yes";';
+  const attacker = createServer((req, res) => {
+    if (req.url === chunk) {
+      res.writeHead(200, {
+        "content-type": "text/javascript",
+        "cache-control": "public, max-age=31536000, immutable",
+      });
+      res.end(evil);
+    } else {
+      res.writeHead(200, {
+        "content-type": "text/html",
+        "cache-control": "no-store",
+      });
+      res.end(`<script type="module">import("${chunk}");</script>`);
+    }
+  });
+  await new Promise<void>((resolve) => {
+    attacker.listen(0, "127.0.0.1", resolve);
+  });
+  const address = attacker.address();
+  if (address === null || typeof address === "string")
+    throw new Error("No port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const profile = mkdtempSync(join(tmpdir(), "vessel-chunk-test-"));
+  let context = await chromium.launchPersistentContext(profile, {
+    headless: true,
+  });
+  try {
+    const poisoned = await context.newPage();
+    await poisoned.goto(origin);
+    // The poisoned chunk runs where nothing pins it: the cache holds it.
+    await expect(poisoned.locator("html")).toHaveAttribute(
+      "data-poisoned",
+      "yes",
+    );
+    await context.close();
+    await new Promise<void>((resolve, reject) => {
+      attacker.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+    const real = await launchUi(page, address.port);
+    expect(new URL(real.origin).port).toBe(String(address.port));
+    context = await chromium.launchPersistentContext(profile, {
+      headless: true,
+    });
+    const clean = await context.newPage();
+    const refused = clean.waitForEvent("console", (message) =>
+      /integrity|Failed to fetch dynamically imported module/i.test(
+        message.text(),
+      ),
+    );
+    await clean.goto(`${origin}/kit`);
+    await refused;
+    await expect(clean.locator("html")).not.toHaveAttribute("data-poisoned");
+    await expect(clean.getByRole("heading", { name: "Kit" })).toHaveCount(0);
+  } finally {
+    await context.close();
+    attacker.close();
+    rmSync(profile, { recursive: true });
+  }
+});

@@ -29,6 +29,13 @@
 //!   - `flood`: message chunks `flood`, ten a millisecond (faster than a
 //!     slow client reads) until `session/cancel`, then `cancelled`; it
 //!     gives up with `end_turn` after a minute;
+//!   - `entries <n>`: `n` updates that stay `n` entries in the page's
+//!     timeline (its reducer merges consecutive chunks of one kind, so
+//!     the kinds take turns): a message chunk with a short Markdown
+//!     paragraph, a thought chunk, a completed tool call `entry-<i>` (raw
+//!     input, one text content), and again; then `end_turn`. A count that
+//!     is not a number gives one message chunk `error: entries <n>` (the
+//!     page's timeline measurement, `docs/PERFORMANCE.md`);
 //!   - `env NAME`: one message chunk `env NAME=<value>` or `env NAME
 //!     unset`, from the fake's own environment, then `end_turn`;
 //!   - `mcp`: one message chunk `mcp <JSON>`, the MCP servers of the last
@@ -414,6 +421,9 @@ async fn run_turn(
         "flood" => return flood(cx, session, turn).await,
         _ => {}
     }
+    if let Some(count) = prompt.strip_prefix("entries ") {
+        return entries(cx, session, count, turn).await;
+    }
     say(SessionUpdate::AgentThoughtChunk(ContentChunk::new(text(
         "thinking",
     ))))?;
@@ -491,6 +501,69 @@ async fn flood(
         tokio::time::sleep(std::time::Duration::from_millis(1)).await;
     }
     Ok(StopReason::EndTurn)
+}
+
+/// The kinds `entries` takes in turn: never two of a kind in a row, so the
+/// page's reducer, which merges consecutive message (or thought) chunks,
+/// keeps every update as an entry of its own.
+#[derive(Debug, Clone, Copy)]
+enum EntryKind {
+    Message,
+    Thought,
+    Tool,
+}
+
+/// `entries <n>`: `n` updates of the kinds in turn, then `end_turn`.
+async fn entries(
+    cx: &agent_client_protocol::v1::ConnectionTo<agent_client_protocol::Client>,
+    session: &SessionId,
+    count: &str,
+    turn: &CancellationToken,
+) -> Result<StopReason, Error> {
+    let say = |update| cx.send_notification(SessionNotification::new(session.clone(), update));
+    let Ok(count) = count.trim().parse::<u32>() else {
+        say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
+            "error: entries <n>",
+        ))))?;
+        return Ok(StopReason::EndTurn);
+    };
+    let kinds = [EntryKind::Message, EntryKind::Thought, EntryKind::Tool];
+    for (index, kind) in (0..count).zip(kinds.into_iter().cycle()) {
+        // Queued notifications are written by another task of this one
+        // thread: yielding lets it drain them as they come (a queue of
+        // 20,000 would sit in memory first) and lets a cancel in.
+        tokio::task::yield_now().await;
+        if turn.is_cancelled() {
+            return Ok(StopReason::Cancelled);
+        }
+        say(entry(index, kind))?;
+    }
+    Ok(StopReason::EndTurn)
+}
+
+/// Entry `index` of `entries`, of `kind`.
+fn entry(index: u32, kind: EntryKind) -> SessionUpdate {
+    match kind {
+        EntryKind::Message => SessionUpdate::AgentMessageChunk(ContentChunk::new(text(&format!(
+            "**Entry {index}.** A short paragraph, as an agent writes between \
+             tool calls: it names `src/module_{index}.rs` and what comes next."
+        )))),
+        EntryKind::Thought => SessionUpdate::AgentThoughtChunk(ContentChunk::new(text(&format!(
+            "Entry {index}: deciding which file to read next."
+        )))),
+        EntryKind::Tool => SessionUpdate::ToolCall(
+            ToolCall::new(
+                format!("entry-{index}"),
+                format!("Read src/module_{index}.rs"),
+            )
+            .kind(ToolKind::Read)
+            .status(ToolCallStatus::Completed)
+            .raw_input(serde_json::json!({ "path": format!("src/module_{index}.rs") }))
+            .content(vec![ToolCallContent::Content(Content::new(text(
+                &format!("{index} lines read"),
+            )))]),
+        ),
+    }
 }
 
 /// `exit` and `garbage`: a message chunk and a permission request, then the

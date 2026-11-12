@@ -22,5 +22,13 @@ serde_json.workspace = true
 ts-rs = { workspace = true, optional = true }
 uuid.workspace = true
 
+[dev-dependencies]
+criterion.workspace = true
+
+# `docs/PERFORMANCE.md`: a subscription event's text, encoded and decoded.
+[[bench]]
+name = "frames"
+harness = false
+
 [lints]
 workspace = true

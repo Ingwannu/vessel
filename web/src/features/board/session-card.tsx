@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { agentMark, agentName } from "../../data/agents";
 import type { Card } from "../../data/board";
 import { sinceLabel } from "../../data/board";
+import { useNow } from "../../data/clock";
 import { isWorking, needsYou, phraseLabel, tone } from "../../data/phrase";
 import type { FleetState } from "../../data/fleet";
 import { isLive, shortId } from "../../data/format";
@@ -32,6 +33,7 @@ export function SessionCard({
   onKill: ((card: Card) => void) | null;
 }) {
   const { session, node, placed } = card;
+  const now = useNow();
   const spec = session.spec;
   const id = shortId(session.id);
   const title = sessionName(session);
@@ -100,7 +102,7 @@ export function SessionCard({
         </span>
         <span className="card-meta">
           {scoped ? null : `${machine} · `}
-          {sinceLabel(placed.at)}
+          {sinceLabel(placed.at, now)}
         </span>
       </div>
       {session.status.state === "failed" ? (

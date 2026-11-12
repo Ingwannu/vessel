@@ -4,7 +4,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, newSessionPage, optionOf } from "./kit";
+import { choose, newSessionPage, optionOf, timeline } from "./kit";
 import { openUi } from "./open";
 
 /** Start a session on laptop with Claude Code under profile
@@ -68,7 +68,7 @@ test("a routed structured session lists its model calls", async ({ page }) => {
   await openUi(page);
   await routed(page, "Structured", "model what is a vessel?");
   await expect(
-    page.getByText("model fake reply to: what is a vessel?"),
+    timeline(page).getByText("model fake reply to: what is a vessel?"),
   ).toBeVisible();
   const call = page.locator(".t-item.model-call");
   await expect(call).toHaveCount(1);

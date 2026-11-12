@@ -9,7 +9,7 @@ import type {
   SessionStatus,
 } from "../wire/proto";
 import { reduce } from "./timeline";
-import { EMPTY } from "./timeline-model";
+import { EMPTY, type Entry } from "./timeline-model";
 import { fixtureId } from "../testing/ids";
 
 let seq = 0;
@@ -187,6 +187,80 @@ describe("the timeline", () => {
     // Entries that did not change are the same objects.
     expect(second.entries[2]).toBe(first.entries[2]);
     expect(second.entries.at(-1)?.kind).toBe("turn_ended");
+  });
+
+  it("finds tool calls and permissions by id across batches", () => {
+    seq = 0;
+    // Many tool calls, then updates and an answer in later batches: each
+    // must reach its own entry (the reducer's index, not a search).
+    const calls = Array.from({ length: 300 }, (_unused, n) =>
+      agent({
+        event: "tool_call",
+        id: fixtureId("ToolCallId", `call-${String(n)}`),
+        title: `Step ${String(n)}`,
+        kind: "read",
+        status: "pending",
+        content: [],
+        locations: [{ path: `/src/file-${String(n % 7)}.rs`, line: n }],
+      }),
+    );
+    const first = reduce(EMPTY, [
+      ...calls,
+      agent({
+        event: "permission_requested",
+        id: fixtureId("PermissionId", "perm-a"),
+        tool_call: fixtureId("ToolCallId", "call-10"),
+        options: [
+          {
+            id: fixtureId("PermissionOptionId", "allow-once"),
+            name: "Allow",
+            kind: "allow_once",
+          },
+        ],
+      }),
+      agent({
+        event: "permission_requested",
+        id: fixtureId("PermissionId", "perm-b"),
+        tool_call: fixtureId("ToolCallId", "call-250"),
+        options: [
+          {
+            id: fixtureId("PermissionOptionId", "allow-once"),
+            name: "Allow",
+            kind: "allow_once",
+          },
+        ],
+      }),
+    ]);
+    expect(first.pending?.request.id).toBe("perm-a");
+    expect(first.pending?.title).toBe("Step 10");
+    expect(first.files).toHaveLength(7);
+    const second = reduce(first, [
+      agent({
+        event: "tool_call_update",
+        id: fixtureId("ToolCallId", "call-250"),
+        status: "completed",
+      }),
+      agent({
+        event: "permission_resolved",
+        id: fixtureId("PermissionId", "perm-a"),
+        outcome: {
+          outcome: "selected",
+          option: fixtureId("PermissionOptionId", "allow-once"),
+        },
+      }),
+    ]);
+    const tools = second.entries.filter(
+      (entry): entry is Extract<Entry, { kind: "tool" }> =>
+        entry.kind === "tool",
+    );
+    expect(tools).toHaveLength(300);
+    const updated = tools.find((entry) => entry.tool.id === "call-250");
+    expect(updated?.tool.status).toBe("completed");
+    expect(updated?.tool.title).toBe("Step 250");
+    expect(second.pending?.request.id).toBe("perm-b");
+    // The earlier timeline is untouched by the later batch.
+    expect(first.pending?.request.id).toBe("perm-a");
+    expect(first.tools.size).toBe(300);
   });
 
   it("skips records it has seen, so a resumed stream can overlap", () => {

@@ -21,11 +21,18 @@ tokio-util = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 serde_json.workspace = true
 # `test-util`: the quiet timer is checked on a paused clock.
 tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-testkit.workspace = true
+
+# `docs/PERFORMANCE.md`: a terminal's output fanned out to followers, and
+# the board's reducer.
+[[bench]]
+name = "fanout"
+harness = false
 
 [lints]
 workspace = true

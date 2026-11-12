@@ -1,26 +1,23 @@
 // The timeline's column (agent-orchestrator's transcript: at most 768px,
 // centred, or Appearance's content width), following the log as it grows.
-// New entries are announced politely, once for the list, not for every
-// chunk.
-//
-// It follows the end only while the reader is there (within `NEAR_END`
-// of it): a reader who scrolled up, or was taken up by find or the
-// outline, is not pulled down by new records (agent-orchestrator's find
-// pauses "follow latest" the same way).
+// Only the entries near the view are drawn (use-window.ts); the space of
+// the others is kept. New entries are announced politely from a live
+// region of their text, once for the list, not for every row drawn while
+// scrolling.
 //
 // Its one seam for find and the outline is `reveal` (reveal.ts): an
 // entry to bring into view by key.
 
 import "./timeline.css";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
+import { spoken } from "../../data/timeline-text";
 import type { Timeline as Log } from "../../data/timeline-model";
-import { type Reveal, revealEntry } from "./reveal";
 import { TimelineEntry } from "./folds";
-
-/** How close to the end counts as reading the end, in pixels. */
-const NEAR_END = 48;
+import { type Reveal, revealEntry } from "./reveal";
+import { useWindow } from "./use-window";
+import { WindowRow } from "./window-row";
 
 export function Timeline({
   timeline,
@@ -32,45 +29,45 @@ export function Timeline({
   /** The scrolling element, for the outline. */
   scrollerRef?: (element: HTMLDivElement | null) => void;
 }) {
-  const end = useRef<HTMLDivElement>(null);
-  const column = useRef<HTMLDivElement>(null);
-  const atEnd = useRef(true);
-  const count = timeline.entries.length;
-  useEffect(() => {
-    if (atEnd.current) {
-      end.current?.scrollIntoView({ block: "end" });
-    }
-  }, [count]);
+  const entries = timeline.entries;
+  const { scroller, span, rows } = useWindow(entries);
+  const column = useRef<HTMLElement>(null);
+  const last = entries.at(-1);
   useEffect(() => {
     if (reveal !== null && column.current !== null) {
       revealEntry(column.current, reveal);
     }
   }, [reveal]);
-  const scroller = useCallback(
-    (element: HTMLDivElement | null) => {
-      scrollerRef?.(element);
-    },
-    [scrollerRef],
-  );
+  useLayoutEffect(() => {
+    scrollerRef?.(scroller.current);
+    return () => {
+      scrollerRef?.(null);
+    };
+  }, [scroller, scrollerRef]);
   return (
-    <div
-      className="timeline"
-      ref={scroller}
-      onScroll={(event) => {
-        const box = event.currentTarget;
-        atEnd.current =
-          box.scrollHeight - box.scrollTop - box.clientHeight < NEAR_END;
-      }}
-    >
-      <div className="timeline-column" aria-live="polite" ref={column}>
-        {timeline.entries.map((entry) => (
-          <TimelineEntry key={entry.key} entry={entry} />
+    <div className="timeline" ref={scroller}>
+      {/* A named region: the entries are found here, apart from the live
+          region below, which repeats the newest one's text. */}
+      <section className="timeline-column" aria-label="Timeline" ref={column}>
+        <div className="t-space" style={{ height: span.before }} />
+        {entries.slice(span.start, span.end).map((entry) => (
+          <WindowRow
+            key={entry.key}
+            id={entry.key}
+            last={entry === last}
+            rows={rows}
+          >
+            <TimelineEntry entry={entry} />
+          </WindowRow>
         ))}
-        {count === 0 ? (
+        <div className="t-space" style={{ height: span.after }} />
+        {last === undefined ? (
           <p className="t-meta">Waiting for the session&apos;s first record…</p>
         ) : null}
-        <div ref={end} />
-      </div>
+      </section>
+      <p className="visually-hidden" aria-live="polite">
+        {last === undefined ? "" : spoken(last)}
+      </p>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 // welcome while none is, nothing while the page cannot tell yet
 // (`data/welcome.ts` decides which).
 
-import { Navigate } from "@tanstack/react-router";
+import { Navigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
 
 import { useCrumbs, useFleetState } from "../context";
@@ -20,6 +20,10 @@ export function HomePage(): ReactElement | null {
   if (screen === "welcome" && !welcomed) {
     setWelcomed(true);
   }
+  // Where the router is headed: while a screen loaded on demand (app.tsx)
+  // is fetched, this page stays drawn but the reader has already gone
+  // elsewhere, and the board's redirect must not take them back.
+  const headed = useRouterState({ select: (state) => state.location.pathname });
   useCrumbs(screen === "welcome" ? [{ label: "Welcome" }] : []);
   switch (screen) {
     case "wait":
@@ -27,6 +31,6 @@ export function HomePage(): ReactElement | null {
     case "welcome":
       return <Welcome />;
     case "board":
-      return <Navigate to="/sessions" replace />;
+      return headed === "/" ? <Navigate to="/sessions" replace /> : null;
   }
 }

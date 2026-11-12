@@ -28,8 +28,14 @@ zeroize.workspace = true
 
 [dev-dependencies]
 bytes.workspace = true
+criterion.workspace = true
 futures-util.workspace = true
 tempfile.workspace = true
+
+# `docs/PERFORMANCE.md`: appending to and reading a session's log.
+[[bench]]
+name = "log"
+harness = false
 
 [lints]
 workspace = true

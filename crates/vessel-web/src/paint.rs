@@ -57,6 +57,15 @@ impl From<&Appearance> for Paint {
 }
 
 impl Paint {
+    /// A dark paint, for tests of the files that carry it.
+    #[cfg(test)]
+    pub(crate) fn dark_for_tests() -> Self {
+        Self {
+            theme: Theme::Dark,
+            ..Self::default()
+        }
+    }
+
     /// The attributes, each with a space before it.
     fn attributes(self) -> String {
         let mut text = String::with_capacity(96);

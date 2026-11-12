@@ -168,7 +168,8 @@ their licences are served beside Pretendard's under `/licenses/`.
   inline styles (`style-src 'self' 'unsafe-inline'`, for xterm.js); it
   allows no inline script, and Base UI needs none.
 - A new control is added to the kit, with its states in the `/kit`
-  gallery, before a screen uses it. The gallery ships in the one bundle
-  (main.tsx renders it for `/kit` before reading the token): the screens
-  capture the built page `vessel ui` serves, and a second entry or a lazy
-  chunk would be a second graph for `scripts/integrity.mjs` to pin.
+  gallery, before a screen uses it. main.tsx renders the gallery for
+  `/kit` before reading the token, and the screens capture the built page
+  `vessel ui` serves. (Milestone 11: the gallery is a chunk loaded only at
+  `/kit`, pinned by the index's import map with the other chunks; ADR
+  0017's amendment of that milestone.)

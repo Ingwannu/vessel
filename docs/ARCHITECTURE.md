@@ -55,7 +55,7 @@ and 0013).
 | `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal. | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Nothing about sessions, nodes or harnesses. | proto |
-| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0025). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
+| `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page; each text file with the brotli and gzip forms the web build made, one chosen per request by `Accept-Encoding`, milestone 11), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0025). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
 | `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7). | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). | - |
 
@@ -136,6 +136,14 @@ they started.
     are marked `Interrupted`. Their logs stay readable, and structured ones can
     be resumed through their `HarnessSessionId`.
 
+## Speed
+
+Measured, not assumed: each crate's `benches/` (criterion) for the hot
+paths, `vessel-cli`'s `load` test (the real node and `vessel ui` under
+many sessions), and `web/e2e/perf.ts` for the page. `docs/PERFORMANCE.md`
+has how to run each, the figures before and after every change made for
+speed, and what did not help.
+
 ## Design rules
 
 - The daemon is the product; clients are thin.
@@ -203,7 +211,9 @@ web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, t
                   follows; frames narrowed by predicates (frames.ts), replies by their method; the
                   socket's lifecycle (socket.ts) apart from the frames (client.ts); ids.ts, the one
                   place a plain string or number becomes a branded handle
-web/src/data/     stores (useSyncExternalStore), the timeline reducer, formatting, the terminal
+web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool calls and permissions
+                  found through its index by id), the timeline's window arithmetic (window.ts)
+                  and an entry as spoken text, the cards' shared clock, formatting, the terminal
                   adapter, the theme, the palette's entries and the forms' choices as pure functions;
                   every call a screen makes as a typed function giving one `Outcome` (outcome.ts:
                   calls.ts for sessions, book.ts for the book's edits); what /new chooses
@@ -215,7 +225,8 @@ web/src/data/     stores (useSyncExternalStore), the timeline reducer, formattin
                   the sidebar's view (sidebar), a machine's remembered start (defaults), and
                   records keyed by a handle walked with their keys' type (records)
 web/src/features/ an area's components and hooks, each stylesheet beside its component: the shell
-                  (frame, sidebar), compose (/new, the composer), session, board, settings/ (the
+                  (frame, sidebar), compose (/new, the composer), session (the timeline drawn
+                  through a window: only the entries near the view exist), board, settings/ (the
                   frame and its sections, General, Appearance, Shortcuts with its recorder,
                   Notifications), machines/ (Machines, Agents, the add-machine dialog),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
@@ -223,15 +234,18 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   kit's gallery at /kit
 web/src/routes/   the screens, each composing features: home (welcome or board), the board, a
                   session, new session, settings (/settings/<section>), the old addresses'
-                  redirects
+                  redirects; a session, new session and Settings (and /kit) are chunks of their
+                  own, loaded when they open (milestone 11)
 web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, its CSS beside it
 web/src/ui/       the design's tokens, the fonts, the toasts, and the older areas' CSS in styles/
                   (one file per area, imported in order from styles/index.css)
 web/src/testing/  tests' helper that names a fixture's handle without a guard (tests and fixtures only)
-web/scripts/      the build's integrity pass and lint's checks (fonts, controls, file size)
+web/scripts/      the build's integrity pass (tags and the import map), its compression pass,
+                  and lint's checks (fonts, controls, file size)
 web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
-                  and `screens` (the main screens, the session's states, Settings and the
-                  welcome, track W's screens, and /kit, in both themes)
+                  `screens` (the main screens, the session's states, Settings and the
+                  welcome, track W's screens, and /kit, in both themes) and `perf` (the page's
+                  speed, on demand, docs/PERFORMANCE.md)
 ```
 
 The layers import one way: `wire` <- `bridge` <- `data` <- `features` <-
@@ -304,9 +318,14 @@ from TCP accept through upgrades and enforces HTTP deadlines. The browser
 keeps the issued session key in `sessionStorage` for reloads. A changed
 launch or bad proof stops the tab. `files` serves content ETags, and
 content-hashed `assets/` files as immutable for a year (milestone 10;
-`index.html` is `no-store`); the web build's `scripts/integrity.mjs`
-closes the script/stylesheet SRI graph, which is what keeps a poisoned
-cache from running. `registry` validates the current book before
+`index.html` is `no-store`), each text file in the encoding `encoding`
+picks from the request's `Accept-Encoding` among the forms the web build
+compressed once (milestone 11; an entity tag per encoding, `Vary:
+Accept-Encoding`); the web build's `scripts/integrity.mjs` closes the
+script/stylesheet SRI graph, which is what keeps a poisoned cache from
+running: tags carry `integrity`, and the chunks loaded later are pinned
+by the index's import map, which `guard`'s policy admits by its hash
+(ADR 0017's amendment of milestone 11). `registry` validates the current book before
 allocating entries and cancels removed nodes. Pairing deliberately dials
 the supplied link before adding its entry. The page's `forget`, `rename`
 and `default` ops are `vessel nodes remove|rename|default` through

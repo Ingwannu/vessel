@@ -8,6 +8,21 @@ import { join } from "node:path";
 
 import type { FleetEnv } from "./fleet";
 
+/** The environment `vessel` runs in as the user of this fleet: its book
+ * and `data` as the local data directory. */
+export function cliEnv(
+  env: FleetEnv,
+  data = join(env.root, "ui-data"),
+): NodeJS.ProcessEnv {
+  return {
+    PATH: process.env["PATH"],
+    HOME: env.root,
+    USERPROFILE: env.root,
+    VESSEL_CONFIG_DIR: join(env.root, "config"),
+    VESSEL_DATA_DIR: data,
+  };
+}
+
 /** Run `vessel` as the user of this fleet would; `data` is the local data
  * directory (a node's own, for the commands that act on this machine's
  * node, such as `fleet init` and `fleet join`). */
@@ -20,13 +35,7 @@ export function cli(
   return execFileSync(env.vessel, args, {
     input,
     encoding: "utf8",
-    env: {
-      PATH: process.env["PATH"],
-      HOME: env.root,
-      USERPROFILE: env.root,
-      VESSEL_CONFIG_DIR: join(env.root, "config"),
-      VESSEL_DATA_DIR: data,
-    },
+    env: cliEnv(env, data),
   });
 }
 
