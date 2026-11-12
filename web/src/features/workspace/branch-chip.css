@@ -1,0 +1,48 @@
+/* A session's branch (features/workspace/branch-chip.tsx): GOAT's
+   composer control at its smallest, a 12px mark and the name in mono
+   11px, cut with an ellipsis; on a session's bar a 24px quiet button
+   (8px corners, the hover's wash). */
+
+.branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-tertiary);
+  font: 400 11px / 16px var(--font-mono);
+}
+
+.branch-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-chip.action {
+  flex: none;
+  max-width: 240px;
+  height: 24px;
+  margin: 0;
+  padding: 0 7px;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--d-2) var(--ease);
+}
+
+.branch-chip.action:hover,
+.branch-chip.action:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branch-chip.action {
+    transition: none;
+  }
+}

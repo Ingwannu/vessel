@@ -1,27 +1,35 @@
-/* The session's summary (features/session/inspector.tsx), agent-
-   orchestrator's inspector: a 36px head over a hairline, then collapsible
-   sections (the kit's Collapsible); a section's rows sit on the settings
-   card's fill (radius 8, 4px above and below), a plan's items with a box
-   that fills when done, files by name with the path in a tooltip, facts
-   as a label over its value. */
+/* The panel beside a session (features/session/inspector.tsx), agent-
+   orchestrator's inspector: the kit's panel tabs in a 36px head over a
+   hairline, then the tab. Summary is 340px of collapsible sections (the
+   kit's Collapsible); a section's rows sit on the settings card's fill
+   (radius 8, 4px above and below), a plan's items with a box that fills
+   when done, files by name with the path in a tooltip, facts as a label
+   over its value. Changes and Files widen it to agent-orchestrator's
+   500px, never past 45% of the window, so the conversation keeps its
+   column. */
 
 .inspector {
   display: flex;
   flex-direction: column;
+  width: var(--inspect-w);
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--border-faint);
 }
 
-.inspector-head {
-  display: flex;
-  flex: none;
-  align-items: center;
-  height: var(--topbar-h);
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border-faint);
-  color: var(--text-tertiary);
-  font: 400 14px / 20px var(--font-sans);
+.inspector.wide {
+  width: min(500px, 45vw);
+}
+
+/* In a sheet (a narrow window) the panel is the sheet's width. */
+.sheet .inspector {
+  flex: 1;
+  width: auto;
+  border-left: 0;
+}
+
+.inspector-wait {
+  padding: 16px;
 }
 
 .inspector-body {

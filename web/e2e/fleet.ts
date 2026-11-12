@@ -34,6 +34,8 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { addProjects, makeRepos } from "./repos";
+
 export interface FleetEnv {
   /** The UI's address with the launch's token. */
   url: string;
@@ -318,6 +320,10 @@ export async function startFleet(): Promise<FleetEnv> {
     }
     execFileSync(vessel, args, { env: cli });
   }
+  // Repositories for the code panel (milestone 11, track B-page), added
+  // as laptop's projects (e2e/repos.ts).
+  const repos = makeRepos(root, base);
+  addProjects(vessel, cli, [repos.shop, repos.notes]);
   const ui = spawnLogged(
     root,
     "ui",

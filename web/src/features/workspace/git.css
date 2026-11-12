@@ -1,0 +1,211 @@
+/* git on the Changes tab (git-bar.tsx and its dialogs): GOAT's context
+   strip, 40px, the branch in mono 12px after its 14px mark with how far
+   it is from its upstream and base in the passive ink, the split button
+   at the right; the commit dialog's summary box (12px corners, 12px in);
+   a branch list of 32px rows; the stash's rows; a refusal's paths and
+   output. */
+
+.git-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.git-branch {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.git-branch-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.git-distance {
+  flex: none;
+  color: var(--text-tertiary);
+  font: 400 11px / 16px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.git-notice {
+  flex: none;
+  padding: 8px 10px 0;
+}
+
+.git-notice-paths {
+  margin: 6px 0 0;
+  padding: 0 0 0 16px;
+  font: var(--t-mono);
+}
+
+.git-notice-output {
+  max-height: 160px;
+  margin: 6px 0 0;
+  padding: 8px;
+  overflow: auto;
+  border-radius: var(--r-2);
+  background: var(--bg-well);
+  font: var(--t-mono);
+  white-space: pre-wrap;
+}
+
+.commit-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--r-5);
+  background: var(--bg-well);
+}
+
+.commit-summary-row {
+  display: flex;
+  gap: 12px;
+  font: var(--t-meta);
+}
+
+.commit-summary-label {
+  flex: none;
+  width: 56px;
+  color: var(--text-tertiary);
+}
+
+.commit-summary-value {
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.commit-default {
+  color: var(--st-needs-you);
+}
+
+.commit-files {
+  max-height: 176px;
+  margin: 0;
+  padding: 0 0 0 68px;
+  overflow: auto;
+  color: var(--text-secondary);
+  font: var(--t-mono);
+  list-style: none;
+}
+
+.branch-list,
+.stash-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.branch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.branch-row:hover:not(:disabled),
+.branch-row:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.branch-row:disabled {
+  cursor: default;
+}
+
+.branch-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-badges {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.branch-empty,
+.branch-from {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.branch-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.branch-form > .btn {
+  align-self: flex-end;
+}
+
+.stash-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.stash-row + .stash-row {
+  border-top: 1px solid var(--border-faint);
+}
+
+.stash-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stash-message {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stash-meta {
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}

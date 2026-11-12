@@ -18,8 +18,9 @@ import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
 import { FindBar } from "./find-bar";
 import { FoldProvider } from "./folds";
-import { Inspector } from "./inspector";
+import { Inspector, InspectorSheet } from "./inspector";
 import { Outline } from "./outline";
+import { usePanel } from "./panel-state";
 import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
@@ -39,6 +40,7 @@ export function StructuredSession({
   const fleet = useFleet();
   const { timeline, stream } = useTimeline(node, session.id);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
+  const panel = usePanel(inspector);
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -102,6 +104,7 @@ export function StructuredSession({
         label={label}
         session={session}
         renamed={timeline.title}
+        onPlace={panel.openChanges}
       />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
@@ -136,7 +139,22 @@ export function StructuredSession({
         </div>
       </div>
       {inspector === "shown" ? (
-        <Inspector label={label} session={session} timeline={timeline} />
+        <Inspector
+          node={node}
+          label={label}
+          session={session}
+          timeline={timeline}
+          panel={panel}
+        />
+      ) : null}
+      {panel.sheet ? (
+        <InspectorSheet
+          node={node}
+          label={label}
+          session={session}
+          timeline={timeline}
+          panel={panel}
+        />
       ) : null}
     </>
   );
