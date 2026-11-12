@@ -8,7 +8,7 @@ use vessel_proto::{
 
 use crate::support::{
     Fixture, client as client_info, collect_until, keys, output_of, read_all, seqs, status_of,
-    terminal_spec, url, within,
+    step, terminal_spec, url, within,
 };
 
 /// Protocol 8 over the wire (ADR 0019): a session is on the board from its
@@ -459,7 +459,20 @@ async fn a_gap_pruned_from_the_store_is_reported_once_then_the_ring_follows() {
             .id;
         let mut first = client.follow(id, EventSeq::ZERO).await.unwrap();
         let mut seen = Vec::new();
-        collect_until(&mut first, &mut seen, "> ").await;
+        // The first follower may itself subscribe after the fake's first
+        // records left the ring of 4 and the store (its prompt can take
+        // several, and nothing holds the session back until someone
+        // follows): a gap here is not what this test is about, only the
+        // late follower's is. It failed once in seven runs before.
+        step("reading the prompt", async {
+            while !output_of(&seen).contains("> ") {
+                match first.next().await.unwrap() {
+                    Ok(record) => seen.push(record),
+                    Err(error) => assert!(!error.is_fatal(), "{error}"),
+                }
+            }
+        })
+        .await;
         // One line at a time, each echo awaited: every line then adds a
         // record of its own, so the log outgrows the ring of 4 however the
         // PTY chunks output (all at once, under load).
