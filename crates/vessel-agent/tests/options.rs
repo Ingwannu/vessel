@@ -450,6 +450,12 @@ async fn a_probe_reads_what_the_agent_offers() {
 
 /// A probe of an agent that cannot start says why, with what it wrote; one
 /// stuck in the handshake ends at the deadline.
+///
+/// The agent's stderr is read by a task of its own, apart from its ACP
+/// stream, so its last line can arrive after the disconnect: a probe that
+/// stopped reading at the disconnect lost it now and then (4 runs in 80
+/// under load, the line empty). The probe reads on until the stderr pump
+/// has ended (`probe`), which this test pins.
 #[tokio::test]
 async fn a_failed_probe_says_why_and_never_hangs() {
     within(async {
