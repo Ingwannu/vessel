@@ -10,6 +10,9 @@
 //!   that stops the whole group.
 //! - [`ProcessGroup`] (Unix): signal every process in a group, for runners
 //!   such as `vessel-pty` that spawn through another library.
+//! - What the trees it started still hold (protocol 11, ADR 0031): the TCP
+//!   ports they listen on ([`listening`]), and the processes left in a
+//!   terminal's session once its shell has exited ([`kill_session`]).
 //!
 //! It must not know about sessions, harnesses or the wire protocol, so it
 //! depends on nothing from Vessel.
@@ -42,6 +45,8 @@ mod child;
 mod error;
 #[cfg(unix)]
 mod group;
+pub mod listening;
+mod session;
 mod signal;
 mod spec;
 
@@ -49,5 +54,6 @@ pub use child::{Child, Spawned, spawn};
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 pub use group::{ProcessGroup, REAP_GRACE};
+pub use session::kill_session;
 pub use signal::Signal;
 pub use spec::{CommandSpec, EnvValue, Environment};
