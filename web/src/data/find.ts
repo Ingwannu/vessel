@@ -151,10 +151,20 @@ function collect(entry: Entry, needle: string, into: Match[]): void {
 /** Gives the page a turn between slices. */
 export type Yield = () => Promise<void>;
 
-/** A macrotask: input and paint get their turn before the next slice. */
+/** A macrotask: input and paint get their turn before the next slice.
+ * A message rather than `setTimeout(0)`: browsers hold a timer set from
+ * inside a timer back to at least 4 ms after a few levels, so the 100
+ * slices of a 20,000-entry search waited 400 ms between them for nothing
+ * (docs/PERFORMANCE.md, "Tracks P and W merged"); a message is
+ * delivered as soon as the page has had its turn. */
 export const yieldToPage: Yield = () =>
   new Promise((resolve) => {
-    setTimeout(resolve, 0);
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
   });
 
 /** Every match of `query` in `entries`, `SLICE` entries at a time,
