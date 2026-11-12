@@ -25,7 +25,9 @@ use vessel_workspace::git::{AddRefusal, NewBranch};
 
 use super::start::{Chosen, choose};
 use crate::workspace::projects::short;
-use crate::workspace::{MAX_PER_AGENT, MAX_WORKTREES, WorkspaceError, Workspaces, WorktreeEntry};
+use crate::workspace::{
+    MAX_PER_AGENT, MAX_WORKTREES, State, WorkspaceError, Workspaces, WorktreeEntry,
+};
 
 impl Workspaces {
     /// Make a worktree for `creator` (and the session `created_for`, when
@@ -58,7 +60,7 @@ impl Workspaces {
         let refused = |reason| Ok(CreateWorktreeOutcome::Refused { reason });
         let project = request.project;
         let (root, default_branch) = {
-            let state = self.state();
+            let mut state = self.state();
             let entry = state
                 .projects
                 .get(&project)
@@ -69,10 +71,19 @@ impl Workspaces {
             if !matches!(entry.info.state, ProjectState::Ready) {
                 return refused(WorktreeRefusal::NotReady);
             }
-            if over_limit(&state.worktrees, &creator) {
+            let found = (entry.info.root.clone(), entry.info.default_branch.clone());
+            if over_limit(&state, &creator) {
                 return refused(WorktreeRefusal::Limit);
             }
-            (entry.info.root.clone(), entry.info.default_branch.clone())
+            // Counted under the lock that checked the limit, so creations
+            // at once see each other; given back when this one ends,
+            // however it ends (`Making`).
+            state.making.push(creator.clone());
+            found
+        };
+        let _making = Making {
+            workspaces: self,
+            creator: creator.clone(),
         };
         let git = self.git()?.clone();
         let id = WorktreeId::random();
@@ -233,20 +244,35 @@ fn plan(choice: SetupChoice, commands: &ProjectCommands) -> Option<Planned> {
     })
 }
 
-/// Whether one more worktree would pass the node's bound, or an agent's.
-fn over_limit(
-    worktrees: &std::collections::HashMap<WorktreeId, WorktreeEntry>,
-    creator: &Creator,
-) -> bool {
-    if worktrees.len() >= MAX_WORKTREES {
+/// Whether one more worktree for `creator` would pass the node's bound,
+/// or an agent's, counting the ones being made.
+fn over_limit(state: &State, creator: &Creator) -> bool {
+    if state.worktrees.len().saturating_add(state.making.len()) >= MAX_WORKTREES {
         return true;
     }
-    matches!(creator, Creator::Agent { .. })
-        && worktrees
-            .values()
-            .filter(|entry| entry.info.created_by == *creator)
-            .count()
-            >= MAX_PER_AGENT
+    let own = state
+        .worktrees
+        .values()
+        .filter(|entry| entry.info.created_by == *creator)
+        .count()
+        .saturating_add(state.making.iter().filter(|made| *made == creator).count());
+    matches!(creator, Creator::Agent { .. }) && own >= MAX_PER_AGENT
+}
+
+/// One worktree being made, counted (in `State::making`, by the check
+/// that let it through) against the limits until this is dropped.
+struct Making<'a> {
+    workspaces: &'a Workspaces,
+    creator: Creator,
+}
+
+impl Drop for Making<'_> {
+    fn drop(&mut self) {
+        let mut state = self.workspaces.state();
+        if let Some(at) = state.making.iter().position(|made| *made == self.creator) {
+            let _given_back = state.making.swap_remove(at);
+        }
+    }
 }
 
 /// What setup a new worktree gets.

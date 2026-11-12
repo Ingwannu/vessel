@@ -573,6 +573,41 @@ async fn an_agent_has_at_most_eight_worktrees() {
 }
 
 #[tokio::test]
+async fn creations_at_once_never_pass_an_agents_limit() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let agent = Creator::Agent {
+        node: NodeId::random(),
+        session: SessionId::random(),
+    };
+    let tries = super::MAX_PER_AGENT.saturating_add(4);
+    let outcomes = futures_util::future::join_all(
+        (0..tries).map(|_try| fixture.create(project.id, agent.clone(), SetupChoice::Run)),
+    )
+    .await;
+    let created = outcomes
+        .iter()
+        .filter(|outcome| matches!(outcome, CreateWorktreeOutcome::Created { .. }))
+        .count();
+    let refused = outcomes
+        .iter()
+        .filter(|outcome| {
+            **outcome
+                == CreateWorktreeOutcome::Refused {
+                    reason: WorktreeRefusal::Limit,
+                }
+        })
+        .count();
+    assert_eq!(
+        (created, refused),
+        (super::MAX_PER_AGENT, 4),
+        "{outcomes:?}"
+    );
+    // Every one given back: the count is the recorded worktrees again.
+    assert!(fixture.workspaces.state().making.is_empty());
+}
+
+#[tokio::test]
 async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
     let fixture = Fixture::new().await;
     let project = fixture.project("app", None).await;

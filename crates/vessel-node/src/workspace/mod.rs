@@ -41,7 +41,7 @@ use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::workspace::{CommandsDigest, GitSupport, ProjectInfo, WorktreeInfo};
-use vessel_proto::{ProjectId, WorktreeId};
+use vessel_proto::{Creator, ProjectId, WorktreeId};
 use vessel_store::{Store, StoreError};
 use vessel_workspace::find::Indexes;
 use vessel_workspace::{Git, GitSetup};
@@ -120,10 +120,14 @@ struct WorktreeEntry {
 }
 
 #[derive(Debug, Default)]
-struct State {
+pub(super) struct State {
     projects: HashMap<ProjectId, ProjectEntry>,
     worktrees: HashMap<WorktreeId, WorktreeEntry>,
     approvals: HashSet<(ProjectId, CommandsDigest)>,
+    /// Who is making a worktree now, one entry each, counted with the
+    /// worktrees against the limits, so creations at once cannot all pass
+    /// the check before any is recorded.
+    making: Vec<Creator>,
 }
 
 /// The node's projects and worktrees.
