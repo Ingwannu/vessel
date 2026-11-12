@@ -32,7 +32,7 @@ import type {
   Nonce,
   StreamId,
 } from "../wire/bridge";
-import type { SessionId } from "../wire/proto";
+import type { SearchKey, SessionId } from "../wire/proto";
 
 /** This machine's own node on the wire (`NodeKey::HERE`). */
 const HERE_TEXT = "_here";
@@ -96,6 +96,20 @@ export function callIdOf(value: number): CallId {
 /** The client's counter `value` as a stream's id. */
 export function streamIdOf(value: number): StreamId {
   return isStreamId(value) ? value : unreachable(String(value));
+}
+
+/** The largest search key the wire takes (the node's `u32`). */
+export const SEARCH_KEY_MAX = 0xffff_ffff;
+
+function isSearchKey(value: number): value is SearchKey {
+  return counted(value) && value <= SEARCH_KEY_MAX;
+}
+
+/** The page's counter `value` as the key of one field's searches
+ * (`file.find`): a newer search with the same key replaces an older one
+ * still running. */
+export function searchKeyOf(value: number): SearchKey {
+  return isSearchKey(value) ? value : unreachable(String(value));
 }
 
 /** This machine's own node. */
