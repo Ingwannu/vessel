@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 use tokio::time::Instant;
 use vessel_forge::ForgeError;
 use vessel_proto::SessionId;
@@ -129,6 +129,13 @@ impl Watcher {
             return;
         };
         watch.due = now.checked_add(wait).unwrap_or(now);
+        // A card says when the next look is, not a guess.
+        if let Some(ForgeAccess::Unreachable { retry_at, .. }) = &mut watch.error {
+            *retry_at = TimeDelta::from_std(wait)
+                .ok()
+                .and_then(|wait| Utc::now().checked_add_signed(wait))
+                .unwrap_or_else(Utc::now);
+        }
         let replies = std::mem::take(&mut watch.replies);
         let sessions: Vec<SessionId> = watch.sessions.iter().copied().collect();
         for (session, reply) in replies {

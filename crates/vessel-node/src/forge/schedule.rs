@@ -176,9 +176,8 @@ impl Watcher {
     }
 
     fn look(&mut self, key: &Key) {
-        let Some(forge) = self.hosts.forge() else {
-            return;
-        };
+        let now = Instant::now();
+        let forge = self.hosts.forge();
         let Some(watch) = self.watches.get_mut(key) else {
             return;
         };
@@ -186,10 +185,13 @@ impl Watcher {
             .sessions
             .iter()
             .find_map(|session| self.sessions.get(session)?.head.clone());
-        let Some(head) = head else {
+        let (Some(forge), Some(head)) = (forge, head) else {
+            // Nothing to look with (cannot happen while a watch only has
+            // sessions with a head, and no provider means no watch): put it
+            // off, so the schedule never spins on it.
+            watch.due = now.checked_add(WATCH_EVERY).unwrap_or(now);
             return;
         };
-        let now = Instant::now();
         let landed = watch.read.as_ref().is_some_and(|read| {
             matches!(
                 read.pull.summary.state,

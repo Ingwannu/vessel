@@ -32,7 +32,7 @@ use vessel_forge::{Author, Forge, Read, ReviewVerdict};
 use vessel_proto::forge::{ForgeLogin, Mergeable, RepoRef};
 use vessel_proto::{Activity, ContentBlock, Creator, Delivery, QueueChange};
 use vessel_session::SessionHandle;
-use vessel_store::Store;
+use vessel_store::{MAX_FEEDBACK_SENT, Store};
 
 mod text;
 
@@ -113,30 +113,26 @@ pub(super) async fn feed(feed: Feed) -> HashSet<String> {
     } = feed;
     let session = handle.id();
     let prefix = prefix(&read);
-    if read.pull.summary.mergeable != Mergeable::Conflicting {
-        let rearmed: Vec<String> = sent
-            .iter()
-            .filter(|signature| signature.starts_with(&format!("{prefix}conflict:")))
-            .cloned()
-            .collect();
-        if !rearmed.is_empty()
-            && store
-                .forget_feedback_sent(session, rearmed.clone())
-                .await
-                .is_ok()
-        {
-            for signature in &rearmed {
-                let _was = sent.remove(signature);
-            }
+    let all = events(&read, &prefix);
+    let gone = gone(&read, &prefix, &all, &sent);
+    if !gone.is_empty()
+        && store
+            .forget_feedback_sent(session, gone.clone())
+            .await
+            .is_ok()
+    {
+        for signature in &gone {
+            let _was = sent.remove(signature);
         }
     }
-    let new: Vec<Event> = events(&read, &prefix)
+    let new: Vec<Event> = all
         .into_iter()
         .filter(|event| !sent.contains(&event.signature))
         .collect();
     if new.is_empty() || waits_on_owner(&handle) {
         return sent;
     }
+    let more = new.len().saturating_sub(MAX_EVENTS);
     let mut notes = Vec::with_capacity(new.len().min(MAX_EVENTS));
     let mut signatures = Vec::with_capacity(new.len());
     for event in new.into_iter().take(MAX_EVENTS) {
@@ -154,10 +150,6 @@ pub(super) async fn feed(feed: Feed) -> HashSet<String> {
         notes.push(event.note.quoted(quoted));
         signatures.push(event.signature);
     }
-    let more = events(&read, &prefix)
-        .iter()
-        .filter(|event| !sent.contains(&event.signature) && !signatures.contains(&event.signature))
-        .count();
     // Turned off while this was being written: nothing is sent.
     if !store.feedback(session).await.is_ok_and(|stored| stored.on) {
         return sent;
@@ -173,6 +165,31 @@ pub(super) async fn feed(feed: Feed) -> HashSet<String> {
         sent.extend(signatures);
     }
     sent
+}
+
+/// The signatures to forget before this read's events are weighed: a
+/// conflict's, once the forge knows the pull request does not conflict
+/// (so a later conflict is sent again); and near the bound of what is
+/// kept, every one this read no longer has (the store then drops the
+/// oldest only past that).
+fn gone(read: &Read, prefix: &str, all: &[Event], sent: &HashSet<String>) -> Vec<String> {
+    let resolved = matches!(
+        read.pull.summary.mergeable,
+        Mergeable::Mergeable | Mergeable::Blocked | Mergeable::Unstable | Mergeable::Behind
+    );
+    let conflict = format!("{prefix}conflict:");
+    let full = sent.len().saturating_add(MAX_EVENTS) > MAX_FEEDBACK_SENT;
+    let current: HashSet<&str> = all.iter().map(|event| event.signature.as_str()).collect();
+    let mut gone: Vec<String> = sent
+        .iter()
+        .filter(|signature| {
+            (resolved && signature.starts_with(&conflict))
+                || (full && !current.contains(signature.as_str()))
+        })
+        .cloned()
+        .collect();
+    gone.sort();
+    gone
 }
 
 /// `<host>/<owner>/<name>#<number>:`, every signature's start.
@@ -295,4 +312,54 @@ async fn deliver(handle: &SessionHandle, notes: &[String], more: usize, url: &st
         )
         .await
         .is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_proto::forge::{ForgeKind, PullNumber};
+
+    use super::*;
+
+    fn read(mergeable: Mergeable) -> Read {
+        let repo = RepoRef {
+            kind: ForgeKind::Github,
+            host: "github.com".parse().unwrap(),
+            path: "owner/name".parse().unwrap(),
+        };
+        let head = "a".repeat(40).parse().unwrap();
+        let branch = "topic".parse().unwrap();
+        let mut read =
+            vessel_forge::fake::pull(&repo, PullNumber::new(3).unwrap(), &branch, &head).unwrap();
+        read.pull.summary.mergeable = mergeable;
+        read
+    }
+
+    /// A conflict is sent again once the forge knows it was resolved (not
+    /// while it does not know yet); at the bound, what a read no longer has
+    /// goes first.
+    #[test]
+    fn a_resolved_conflict_re_arms_and_the_bound_drops_the_unseen_first() {
+        let conflicting = read(Mergeable::Conflicting);
+        let prefix = prefix(&conflicting);
+        let all = events(&conflicting, &prefix);
+        assert_eq!(all.len(), 1);
+        let sent: HashSet<String> = all.iter().map(|event| event.signature.clone()).collect();
+        assert!(gone(&conflicting, &prefix, &all, &sent).is_empty());
+        let unknown = read(Mergeable::Unknown);
+        let none = events(&unknown, &prefix);
+        assert!(
+            gone(&unknown, &prefix, &none, &sent).is_empty(),
+            "not known yet"
+        );
+        let clean = read(Mergeable::Mergeable);
+        let none = events(&clean, &prefix);
+        let rearmed: Vec<String> = sent.iter().cloned().collect();
+        assert_eq!(gone(&clean, &prefix, &none, &sent), rearmed);
+        let mut many: HashSet<String> =
+            (0..MAX_FEEDBACK_SENT).map(|n| format!("old:{n}")).collect();
+        many.extend(sent.iter().cloned());
+        let dropped = gone(&conflicting, &prefix, &all, &many);
+        assert_eq!(dropped.len(), MAX_FEEDBACK_SENT);
+        assert!(!dropped.iter().any(|signature| sent.contains(signature)));
+    }
 }
