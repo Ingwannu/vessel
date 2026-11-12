@@ -32,8 +32,10 @@
 //!    `escaped <pid>`, `flood <lines> <width>` writes `<lines>` lines of
 //!    `<width>` printable bytes each as fast as the terminal takes them,
 //!    then prints `flooded <lines>` (the load test and the page's terminal
-//!    measurement, `docs/PERFORMANCE.md`), and anything else prints
-//!    `echo: <line>`. EOF on stdin exits 0.
+//!    measurement, `docs/PERFORMANCE.md`), `listen` opens a TCP listener
+//!    on a free loopback port, keeps it for the rest of its life and prints
+//!    `listening <port>` (what `port.list` finds, ADR 0031), and anything
+//!    else prints `echo: <line>`. EOF on stdin exits 0.
 
 use std::io::{self, BufRead as _, Write as _};
 use std::process::{ExitCode, Stdio};
@@ -152,6 +154,16 @@ fn handle(line: &str) -> Option<ExitCode> {
         }
     } else if let Some(rest) = line.strip_prefix("flood ") {
         flood(rest);
+    } else if line == "listen" {
+        match std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)) {
+            Ok(listener) => {
+                let port = listener.local_addr().map_or(0, |address| address.port());
+                // Kept open until the process ends, as a dev server's is.
+                let _kept: &'static std::net::TcpListener = Box::leak(Box::new(listener));
+                say(&format!("listening {port}"));
+            }
+            Err(error) => say(&format!("error: no listener: {error}")),
+        }
     } else if line == "cwd" {
         match std::env::current_dir() {
             Ok(dir) => say(&format!("cwd {}", dir.display())),

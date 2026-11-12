@@ -10,6 +10,9 @@ repository.workspace = true
 [dependencies]
 vessel-agent.workspace = true
 vessel-harness.workspace = true
+# A project script's run is piped through `vessel_proc::spawn` (a job
+# object on Windows), not a PTY (ADR 0031).
+vessel-proc.workspace = true
 vessel-proto.workspace = true
 vessel-pty.workspace = true
 
@@ -18,7 +21,7 @@ chrono.workspace = true
 # The queue's bound is the JSON its `queue_changed` record carries.
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+tokio = { workspace = true, features = ["fs", "io-util", "macros", "rt", "sync", "time"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 
@@ -28,6 +31,11 @@ criterion.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-testkit.workspace = true
+# The terminals' tests: a folder each, and whether a job's pid is alive.
+tempfile.workspace = true
+
+[target.'cfg(unix)'.dev-dependencies]
+nix = { workspace = true, features = ["signal"] }
 
 # `docs/PERFORMANCE.md`: a terminal's output fanned out to followers, and
 # the board's reducer.

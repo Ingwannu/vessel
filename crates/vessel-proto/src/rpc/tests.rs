@@ -153,6 +153,33 @@ fn every_method_knows_its_first_version() {
         };
         assert_eq!(method.scope(), expected, "{method:?}");
     }
+    // Protocol 11, track C: terminals, scripts and ports. Reading a
+    // terminal or listing is `read`; opening, typing, ending and running
+    // are `operate` (ADR 0031).
+    for method in Method::ALL {
+        let name = method.as_str();
+        let track_c = ["terminal.", "script.", "port."]
+            .iter()
+            .any(|prefix| name.starts_with(prefix));
+        if !track_c {
+            continue;
+        }
+        assert_eq!(method.since(), ProtocolVersion::new(11), "{method:?}");
+        let reads = [
+            "terminal.list",
+            "terminal.get",
+            "terminal.read",
+            "terminal.subscribe",
+            "script.list",
+            "port.list",
+        ];
+        let expected = if reads.contains(&name) {
+            Scope::Read
+        } else {
+            Scope::Operate
+        };
+        assert_eq!(method.scope(), expected, "{method:?}");
+    }
 }
 
 #[test]
@@ -184,6 +211,10 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the pinned list is one line per method; splitting it would hide the decision"
+)]
 fn the_forwardable_set_is_pinned() {
     // Changing this list is a decision about what other nodes may do here
     // (`Method::forwardable` says why each group is in or out).
@@ -277,7 +308,19 @@ fn the_forwardable_set_is_pinned() {
             "file.rename",
             "file.delete",
             "file.find",
-            "file.grep"
+            "file.grep",
+            "terminal.create",
+            "terminal.list",
+            "terminal.get",
+            "terminal.read",
+            "terminal.send",
+            "terminal.rename",
+            "terminal.kill",
+            "terminal.close",
+            "script.list",
+            "script.run",
+            "script.restart",
+            "port.list"
         ]
     );
 }

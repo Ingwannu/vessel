@@ -404,6 +404,10 @@ vessel session move-profile 3f2a claude-work # at a usage limit: same conversati
 - A move keeps the session's id, log and followers. It works for
   structured Claude Code and Codex sessions, between turns (`--force`
   cancels a running one), and only to a profile that is logged in.
+- `agent_terminals = true` lets the agents of a profile's sessions open
+  terminals beside them (ADR 0031). It is off for every profile unless
+  written: a terminal the node starts is outside the harness's own
+  sandbox, so turn it on knowing what that sandbox would have stopped.
 
 ### A fleet: one home, many members
 

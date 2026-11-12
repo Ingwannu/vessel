@@ -81,7 +81,7 @@ impl NodeService {
         _: &Connection,
         request: RemoveWorktree,
     ) -> Result<RemoveWorktreeOutcome, WireError> {
-        let live = self.sessions.live_folders();
+        let live = self.occupied();
         self.workspaces
             .remove_worktree(request.worktree, request.if_lost, &live)
             .await

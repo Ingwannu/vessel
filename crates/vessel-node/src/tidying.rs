@@ -36,6 +36,10 @@
 //!   not inspect (whose teardown would run again at every try), stays
 //!   until a person decides (`worktree.remove` with `snapshot` or
 //!   `discard`), as ADR 0027 says.
+//! - Terminals (protocol 11, ADR 0031): a deleted session's terminals end
+//!   before its worktree is tidied, and the sweep ends those beside a
+//!   session retention dropped; a live terminal inside a worktree keeps it
+//!   as a live session does.
 //! - Cost: a delete waits for the worktree's teardown, when it has an
 //!   approved one (at most 5 minutes, ADR 0027), as `worktree.remove`
 //!   does, and for a sweep already running.
@@ -50,6 +54,7 @@ use vessel_proto::conversation::{SessionDeleted, TidiedWorktree};
 
 use crate::error::ServiceError;
 use crate::sessions::Sessions;
+use crate::terminals::Terminals;
 use crate::workspace::{TidyScope, Workspaces};
 
 /// Deleting sessions with their worktrees, and the sweep.
@@ -57,15 +62,22 @@ use crate::workspace::{TidyScope, Workspaces};
 pub(crate) struct Tidying {
     sessions: Arc<Sessions>,
     workspaces: Arc<Workspaces>,
+    /// Terminals beside sessions (protocol 11): a session's end with it.
+    terminals: Arc<Terminals>,
     /// One tidying at a time (Decision Log).
     one: Mutex<()>,
 }
 
 impl Tidying {
-    pub(crate) fn new(sessions: Arc<Sessions>, workspaces: Arc<Workspaces>) -> Arc<Self> {
+    pub(crate) fn new(
+        sessions: Arc<Sessions>,
+        workspaces: Arc<Workspaces>,
+        terminals: Arc<Terminals>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             sessions,
             workspaces,
+            terminals,
             one: Mutex::new(()),
         })
     }
@@ -78,6 +90,8 @@ impl Tidying {
     pub(crate) async fn delete(&self, id: SessionId) -> Result<SessionDeleted, ServiceError> {
         let _one = self.one.lock().await;
         self.sessions.delete(id).await?;
+        // Its terminals end first, so none holds its worktree.
+        self.terminals.end_session(id).await;
         let worktree = self.retire(id).await;
         self.sweep_locked(TidyScope::Kept).await;
         Ok(SessionDeleted { worktree })
@@ -92,10 +106,20 @@ impl Tidying {
 
     /// [`sweep`](Self::sweep) over `scope`, the lock held by the caller.
     async fn sweep_locked(&self, scope: TidyScope) {
+        // Terminals beside a session retention dropped end with it
+        // (protocol 11), before its worktree is looked at.
+        if scope == TidyScope::Every {
+            for session in self.terminals.beside() {
+                if self.sessions.gone(session).await {
+                    self.terminals.end_session(session).await;
+                }
+            }
+        }
         for session in self.workspaces.tidy_candidates(scope) {
             if !self.sessions.gone(session).await {
                 continue;
             }
+            self.terminals.end_session(session).await;
             if let Some(tidied) = self.retire(session).await {
                 tracing::info!(
                     %session,
@@ -133,7 +157,8 @@ impl Tidying {
     /// The worktree made for `session`, removed by the rule, with the
     /// live sessions' folders as they are now.
     async fn retire(&self, session: SessionId) -> Option<TidiedWorktree> {
-        let live = self.sessions.live_folders();
+        let mut live = self.sessions.live_folders();
+        live.extend(self.terminals.live_folders());
         self.workspaces.retire(session, &live).await
     }
 }

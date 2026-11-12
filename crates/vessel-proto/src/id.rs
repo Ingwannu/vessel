@@ -195,6 +195,12 @@ uuid_id! {
     WorktreeId
 }
 
+uuid_id! {
+    /// A terminal beside a session: a shell, or a run of a project's script
+    /// (protocol 11, ADR 0031).
+    TerminalId
+}
+
 opaque_id! {
     /// The harness's own session id (an ACP `sessionId`). Kept so a
     /// structured session can be resumed by the harness after a node restart.

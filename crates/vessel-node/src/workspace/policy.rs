@@ -12,6 +12,12 @@
 //!   list and a new method does not compile until it says whether agents
 //!   get it (it was a `matches!`, whose other methods were open to agents
 //!   by default).
+//! - Scripts (protocol 11, ADR 0031): a repository's commands run where a
+//!   person approved them and a person asked, so `script.*` refuse agents
+//!   too; an agent runs commands with its own tools. The terminal calls
+//!   and `port.list` are open to them here, and held to their own rule
+//!   (`service::terminals`: a profile that allows it, four at once, only
+//!   their own).
 //! - Roots: a project's root is everything a reader of it can read. A
 //!   file system's root, the user's home folder and any folder holding the
 //!   node's data folder are refused, for every caller.
@@ -27,6 +33,18 @@ use crate::principal::Principal;
 pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(), WireError> {
     if principal.agent().is_none() || !refused(method) {
         return Ok(());
+    }
+    if matches!(
+        method,
+        Method::ListScripts | Method::RunScript | Method::RestartScript
+    ) {
+        return Err(WireError::new(
+            ErrorCode::Forbidden,
+            format!(
+                "agents may not call `{}`: a repository's scripts run where a person approved                  them and a person asked; an agent runs commands with its own tools",
+                method.as_str()
+            ),
+        ));
     }
     Err(WireError::new(
         ErrorCode::Forbidden,
@@ -83,7 +101,11 @@ const fn refused(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        // A repository's scripts (protocol 11): a person's.
+        | Method::ListScripts
+        | Method::RunScript
+        | Method::RestartScript => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -158,7 +180,18 @@ const fn refused(method: Method) -> bool {
         | Method::BeginUpload
         | Method::WriteUpload
         | Method::FinishUpload
-        | Method::ReadAttachment => false,
+        | Method::ReadAttachment
+        // Terminals and ports (protocol 11): held to their own rule.
+        | Method::CreateTerminal
+        | Method::ListTerminals
+        | Method::GetTerminal
+        | Method::ReadTerminal
+        | Method::SubscribeTerminal
+        | Method::SendTerminal
+        | Method::RenameTerminal
+        | Method::KillTerminal
+        | Method::CloseTerminal
+        | Method::ListPorts => false,
     }
 }
 
@@ -211,6 +244,10 @@ mod tests {
             // Not workspace calls: other rules decide (`guard`).
             Method::PromptSession,
             Method::DeleteSession,
+            // Terminals: their own rule decides (ADR 0031).
+            Method::CreateTerminal,
+            Method::SendTerminal,
+            Method::ListPorts,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
@@ -222,6 +259,9 @@ mod tests {
             Method::ReadFile,
             Method::GitPush,
             Method::WriteFile,
+            Method::ListScripts,
+            Method::RunScript,
+            Method::RestartScript,
         ] {
             let error = refuse_agents(&agent, refused).unwrap_err();
             assert_eq!(error.code, ErrorCode::Forbidden);

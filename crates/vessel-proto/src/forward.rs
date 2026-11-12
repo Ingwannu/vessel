@@ -256,7 +256,12 @@ impl Method {
     ///   grant and membership calls belong to the hop between a member and
     ///   its home.
     /// - Not forwardable, streams: a subscription's events would need a
-    ///   stream across hops (`session.read` with `wait` serves instead).
+    ///   stream across hops (`session.read` with `wait` serves instead, and
+    ///   `terminal.read` with `wait` for a terminal).
+    /// - Forwardable, protocol 11's terminals, scripts and ports
+    ///   (`terminal.*` but its subscription, `script.*`, `port.list`): an
+    ///   agent opens a shell beside a session it started on another node,
+    ///   and a person runs a project's service there (ADR 0031).
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -347,7 +352,19 @@ impl Method {
             | Self::RenamePath
             | Self::DeletePath
             | Self::FindFiles
-            | Self::SearchFiles => true,
+            | Self::SearchFiles
+            | Self::CreateTerminal
+            | Self::ListTerminals
+            | Self::GetTerminal
+            | Self::ReadTerminal
+            | Self::SendTerminal
+            | Self::RenameTerminal
+            | Self::KillTerminal
+            | Self::CloseTerminal
+            | Self::ListScripts
+            | Self::RunScript
+            | Self::RestartScript
+            | Self::ListPorts => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices
@@ -369,6 +386,7 @@ impl Method {
             | Self::ReportApplied
             | Self::ListMembers
             | Self::Subscribe
+            | Self::SubscribeTerminal
             | Self::Unsubscribe => false,
         }
     }

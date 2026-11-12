@@ -28,7 +28,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{SessionId, WorktreeId};
 
-use crate::workspace::projects::Live;
+use crate::workspace::projects::{Live, Occupant};
 use crate::workspace::setup::Kind;
 use crate::workspace::{WorkspaceError, Workspaces};
 
@@ -81,9 +81,9 @@ impl Workspaces {
             .values()
             .find(|entry| entry.info.created_for == Some(session))
             .map(|entry| entry.info.id)?;
-        let others: Vec<(SessionId, PathBuf)> = live
+        let others: Vec<(Occupant, PathBuf)> = live
             .iter()
-            .filter(|(id, _)| *id != session)
+            .filter(|(occupant, _)| *occupant != Occupant::Session(session))
             .cloned()
             .collect();
         let outcome = match self.remove(worktree, IfLost::Keep, &others).await {

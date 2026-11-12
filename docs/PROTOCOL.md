@@ -30,6 +30,91 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 11 (2026-11-12, milestone 11 wave 2)
+
+Nodes speak 2..=11. Wave 2's tracks add to it side by side
+(`docs/plans/backend-m11.md`, "Wave 2: tracks"); each has its part here.
+
+### Terminals, scripts and ports (track C)
+
+Thirteen methods, one optional field and no event; ADR 0031 and the
+plan's "Track C: contract" (with its review) say why each choice.
+
+- A terminal is its own thing, carried by the sessions' terminal
+  transport: its records are `EventRecord`s numbered from 0 (`status`,
+  `terminal` output, and `agent { harness_log }` for Vessel's own
+  `vessel:` lines), followed with `ServerFrame::Event` and ended with
+  `SubscriptionEnd` as a session's are, paged as `EventPage`. Kept in
+  the node's memory only (no store schema change); it ends with the node.
+- Types (`vessel_proto::terminals`, `scripts`, `ports`): `TerminalId`;
+  `TerminalPlace` (`session { session }` or `project { project, dir? }`);
+  `TerminalKind` (`shell { program }`, `script { script, command }`,
+  `service { script, command }`, `unknown`); `TerminalInfo { id, place,
+  folder, kind, title?, created_by, created_at, ended_at?, status,
+  service?, size?, oldest_seq, next_seq, revision }`; `ServiceState`
+  (`starting`, `running`, `backing_off { attempt, code?, restart_at }`,
+  `exited { code }`, `failed { reason }`, `stopped`, `unknown`) with
+  `ServiceFailure` (`gave_up { restarts }`, `not_approved`, `spawn`,
+  `unknown`); `ScriptName` (1 to 64 of letters, digits, `-`, `_`, `.`),
+  `ScriptEntry { name, kind: script | service, command, dir? }`;
+  `ListeningPort { port, address, pid, process?, owner: session |
+  terminal }`, `PortList { ports, scan: pending | scanned { at } |
+  unavailable { reason }, revision, more }`.
+- `ProjectCommands::Listed.scripts`: the `[scripts.<name>]` and
+  `[services.<name>]` tables of `vessel.toml` (`command`, optional `dir`
+  inside the root; at most 32). The approval's digest covers them: a
+  file without scripts keeps version 1's digest exactly (approvals given
+  before stay), one with scripts is digested as version 2, which no
+  earlier approval matches. A protocol 10 client is answered `invalid`
+  for a set with scripts, since it could not show what it would approve.
+- Methods (all in `vessel-web`'s list; all but `terminal.subscribe`
+  forwardable; long polls wait at most 30 s in the caller's wait shares,
+  and never when forwarded):
+  - `terminal.create { place, size?, title? }` (operate): the account's
+    shell in the session's folder, or in the project's (`dir` inside
+    it); `unsupported` on a node without one. `terminal.list { place? }`,
+    `terminal.get { terminal, changed_from? }`, `terminal.read { terminal,
+    from, limit, wait? }` (at most 512 records and 1 MiB a page),
+    `terminal.subscribe { terminal, from }` (read; answers
+    `TerminalSubscribed { subscription, terminal }`); `terminal.send {
+    terminal, input }` (at most 64 KiB; a script takes none:
+    `unsupported`), `terminal.rename`, `terminal.kill` (ended, kept with
+    its output), `terminal.close` (ended and forgotten) (operate).
+  - `script.list { place }` (read; the checkout's commands with their
+    approval, and its runs), `script.run { place, script }` and
+    `script.restart { terminal }` (operate) answering `started {
+    terminal }`, `needs_approval { commands }` or `refused { reason:
+    no_project | no_such_script | no_such_dir | invalid_file { message } |
+    already_running { terminal } }`. A run's command is the very parse
+    whose digest was approved; a service is started again after a
+    failure (1, 2, 4, 8, 16 s; it gives up after 5 restarts without a
+    60 s run; an exit with 0 is not restarted) only while its set is
+    still approved.
+  - `port.list { changed_from? }` (read): the TCP listeners of the live
+    sessions' and terminals' process trees, found without privilege
+    (`/proc` on Linux, `lsof` on macOS, `netstat` on Windows), at most
+    every 3 s and only within 60 s of a `port.list`; at most 256.
+- Limits: 64 live terminals a node, 8 beside a session, 16 in a project;
+  32 ended ones kept; a terminal's scrollback 4,096 records and 1 MiB
+  (the oldest go, which a reader sees as a pruned range).
+- Agents: `script.*` are `forbidden`. `terminal.create` only beside its
+  own session or one it may operate, and only when that session's
+  profile sets `agent_terminals = true` (`profiles.toml`; off for every
+  default profile); at most 4 at once; every other call and `port.list`
+  only on its own terminals; they end when its session ends.
+- A terminal's environment is the node's without Vessel's credentials
+  (`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
+  `VESSEL_NODE_SOCKET`, and a model route's variables when the node runs
+  inside a session), with `TERM=xterm-256color` and
+  `COLORTERM=truecolor`; a script's adds `VESSEL_PROJECT_ROOT`,
+  `VESSEL_WORKTREE`, `VESSEL_BRANCH` and `VESSEL_SCRIPT`.
+- Where they meet the rest: `session.delete` (and retention) ends and
+  forgets the session's terminals before its worktree is tidied; a live
+  terminal inside a worktree keeps it (`kept { in_use }`), and one in a
+  project makes `project.remove` `conflict`.
+- The bridge: `follow_terminal { stream, node, terminal, from }`, whose
+  records and states come as a followed session's do.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

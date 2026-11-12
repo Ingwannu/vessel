@@ -19,13 +19,22 @@
 //!   digest, asked again. A later track that runs more of the file adds
 //!   what it runs to the digest, which makes every earlier approval ask
 //!   again; that is the safe direction.
+//! - Protocol 11 (ADR 0031) runs `[scripts.*]` and `[services.*]` too
+//!   (`scripts`): a file that names one is digested as version 2, which
+//!   covers them; a file that names none keeps version 1 exactly, so an
+//!   approval of it still covers what it showed.
 
 use std::io::Read as _;
 use std::path::Path;
 
+mod scripts;
+
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use vessel_proto::scripts::{ScriptEntry, ScriptName};
 use vessel_proto::workspace::{CommandsDigest, InvalidText, ProjectCommand, RelPath};
+
+pub use scripts::{MAX_SCRIPTS, ScriptsError};
 
 use crate::paths::{PathError, Root};
 
@@ -38,13 +47,15 @@ pub const MAX_BYTES: usize = 64 * 1024;
 /// The most commands in one list.
 pub const MAX_COMMANDS: usize = 32;
 
-/// What the file says about worktrees.
+/// What the file says about worktrees, and its scripts.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProjectFile {
     /// Run in order when a worktree is created.
     pub setup: Vec<ProjectCommand>,
     /// Run in order before a worktree is removed.
     pub teardown: Vec<ProjectCommand>,
+    /// Its scripts and services, in name order (protocol 11).
+    pub scripts: Vec<ScriptEntry>,
 }
 
 /// Why the file cannot be used. Nothing in it runs then.
@@ -73,6 +84,9 @@ pub enum ProjectFileError {
         /// What is wrong with it.
         source: InvalidText,
     },
+    /// A script or a service the rules refuse (protocol 11).
+    #[error(transparent)]
+    Scripts(#[from] ScriptsError),
     /// Not a regular file (a device, a pipe, a folder).
     #[error("`vessel.toml` is not a regular file; it is not read")]
     NotAFile,
@@ -85,6 +99,10 @@ pub enum ProjectFileError {
 struct Raw {
     #[serde(default)]
     worktree: RawWorktree,
+    #[serde(default)]
+    scripts: scripts::RawTable,
+    #[serde(default)]
+    services: scripts::RawTable,
 }
 
 #[derive(Deserialize, Default)]
@@ -123,6 +141,7 @@ impl ProjectFile {
         Ok(Self {
             setup: commands("setup", raw.worktree.setup)?,
             teardown: commands("teardown", raw.worktree.teardown)?,
+            scripts: scripts::entries(raw.scripts, raw.services)?,
         })
     }
 
@@ -179,22 +198,35 @@ impl ProjectFile {
     /// Whether it names no command.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.setup.is_empty() && self.teardown.is_empty()
+        self.setup.is_empty() && self.teardown.is_empty() && self.scripts.is_empty()
     }
 
-    /// What a person approves: SHA-256 over both lists.
+    /// Its script or service called `name`.
+    #[must_use]
+    pub fn script(&self, name: &ScriptName) -> Option<&ScriptEntry> {
+        self.scripts.iter().find(|script| &script.name == name)
+    }
+
+    /// What a person approves: SHA-256 over both lists, and over the
+    /// scripts when there are any (version 2; the module's Decision Log
+    /// says why version 1 stays for a file without them).
     #[must_use]
     pub fn digest(&self) -> CommandsDigest {
         let mut hash = Sha256::new();
-        hash.update(b"vessel.toml worktree commands 1\n");
+        if self.scripts.is_empty() {
+            hash.update(b"vessel.toml worktree commands 1\n");
+        } else {
+            hash.update(b"vessel.toml commands 2\n");
+        }
         for (name, list) in [("setup", &self.setup), ("teardown", &self.teardown)] {
             hash.update(name.as_bytes());
             hash.update(u64::try_from(list.len()).unwrap_or(u64::MAX).to_le_bytes());
             for command in list {
-                let bytes = command.as_str().as_bytes();
-                hash.update(u64::try_from(bytes.len()).unwrap_or(u64::MAX).to_le_bytes());
-                hash.update(bytes);
+                scripts::field(&mut hash, command.as_str().as_bytes());
             }
+        }
+        if !self.scripts.is_empty() {
+            scripts::digest(&mut hash, &self.scripts);
         }
         CommandsDigest::from_sha256(hash.finalize().into())
     }
@@ -286,22 +318,25 @@ mod tests {
             setup = ["npm ci", "cp \"$VESSEL_PROJECT_ROOT/.env\" ."]
             teardown = "docker compose down"
 
-            [scripts.dev]
+            [services.dev]
             command = "npm run dev"
             "#,
         )
         .unwrap();
         assert_eq!(file.setup.len(), 2);
+        assert_eq!(file.scripts.len(), 1);
         assert_eq!(
             file.teardown.first().unwrap().as_str(),
             "docker compose down"
         );
         assert!(ProjectFile::parse(b"").unwrap().is_empty());
         assert!(
-            ProjectFile::parse(b"[scripts.x]\ncommand = 'y'")
+            !ProjectFile::parse(b"[scripts.x]\ncommand = 'y'")
                 .unwrap()
-                .is_empty()
+                .is_empty(),
+            "a script is a command"
         );
+        assert!(ProjectFile::parse(b"[env]\nA = '1'").unwrap().is_empty());
     }
 
     #[test]
@@ -331,6 +366,93 @@ mod tests {
             ProjectFile::parse(&[0xff, 0xfe]),
             Err(ProjectFileError::NotText)
         ));
+    }
+
+    #[test]
+    fn scripts_and_services_are_read_checked_and_ordered() {
+        let file = ProjectFile::parse(
+            br#"
+            [scripts.test]
+            command = "cargo test"
+            later = "a key a newer node reads is ignored"
+
+            [services.web]
+            command = "npm run dev"
+            dir = "web"
+
+            [scripts.build]
+            command = "cargo build"
+            "#,
+        )
+        .unwrap();
+        let names: Vec<&str> = file.scripts.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, ["build", "test", "web"]);
+        let web = file.script(&"web".parse().unwrap()).unwrap();
+        assert_eq!(web.kind, vessel_proto::scripts::ScriptKind::Service);
+        assert_eq!(web.dir.as_ref().map(RelPath::as_str), Some("web"));
+
+        for bad in [
+            "[scripts.a]\ndir = 'x'",
+            "[scripts.a]\ncommand = 'x'\n[services.a]\ncommand = 'y'",
+            "[scripts.'-a']\ncommand = 'x'",
+            "[scripts.a]\ncommand = ''",
+            "[scripts.a]\ncommand = 'x'\ndir = '../out'",
+            "[scripts]\na = 'x'",
+        ] {
+            assert!(ProjectFile::parse(bad.as_bytes()).is_err(), "{bad}");
+        }
+        let many = (0..=MAX_SCRIPTS).fold(String::new(), |mut text, index| {
+            let _written = std::fmt::Write::write_fmt(
+                &mut text,
+                format_args!("[scripts.s{index}]\ncommand = 'x'\n"),
+            );
+            text
+        });
+        assert!(matches!(
+            ProjectFile::parse(many.as_bytes()),
+            Err(ProjectFileError::Scripts(ScriptsError::TooMany))
+        ));
+    }
+
+    /// An approval given before scripts existed still covers a file that
+    /// names none; one with scripts never matches it.
+    #[test]
+    fn the_digest_grows_only_where_the_file_does() {
+        let digest = |text: &str| ProjectFile::parse(text.as_bytes()).unwrap().digest();
+        // The version 1 digest of this file, as protocol 10 computed it.
+        let mut v1 = Sha256::new();
+        v1.update(b"vessel.toml worktree commands 1\n");
+        v1.update(b"setup");
+        v1.update(1_u64.to_le_bytes());
+        v1.update(2_u64.to_le_bytes());
+        v1.update(b"ci");
+        v1.update(b"teardown");
+        v1.update(0_u64.to_le_bytes());
+        let v1 = CommandsDigest::from_sha256(v1.finalize().into());
+        assert_eq!(digest("[worktree]\nsetup = 'ci'"), v1);
+
+        let with = digest("[worktree]\nsetup = 'ci'\n[scripts.t]\ncommand = 'x'");
+        assert_ne!(with, v1);
+        for changed in [
+            "[worktree]\nsetup = 'ci'\n[services.t]\ncommand = 'x'",
+            "[worktree]\nsetup = 'ci'\n[scripts.u]\ncommand = 'x'",
+            "[worktree]\nsetup = 'ci'\n[scripts.t]\ncommand = 'y'",
+            "[worktree]\nsetup = 'ci'\n[scripts.t]\ncommand = 'x'\ndir = 'd'",
+            "[worktree]\nsetup = 'cj'\n[scripts.t]\ncommand = 'x'",
+            "[worktree]\nsetup = 'ci'\n[scripts.t]\ncommand = 'x'\n[scripts.u]\ncommand = 'x'",
+        ] {
+            assert_ne!(digest(changed), with, "{changed}");
+        }
+        assert_eq!(
+            digest("[scripts.b]\ncommand = 'y'\n[scripts.a]\ncommand = 'x'"),
+            digest("[scripts.a]\ncommand = 'x'\n[scripts.b]\ncommand = 'y'"),
+            "the order in the file does not matter"
+        );
+        assert_eq!(
+            digest("[worktree]\nsetup = 'ci'\n[scripts.t]\ncommand = 'x'\nnote = 'z'"),
+            with,
+            "a key that does not run is not approved"
+        );
     }
 
     #[test]

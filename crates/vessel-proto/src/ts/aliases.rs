@@ -43,6 +43,10 @@
 //!   `CommitId` is plain too: the node reports full ones, and a person may
 //!   type an abbreviated one wherever a ref is taken. `ProjectCommand` is
 //!   content: a line of a project's file, shown to be approved.
+//! - Protocol 11's (milestone 11, wave 2, ADR 0031), by the same rule. A
+//!   handle: `TerminalId`, which the node mints. Plain: `ScriptName`, which
+//!   a person types (`vessel script run dev`). Content: `ProcessName`, what
+//!   the system called a listening process, shown and never handed back.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -125,6 +129,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
     ("PresentedToken", Alias::Secret),
+    ("ProcessName", Alias::Content),
     ("ProfileName", Alias::Named),
     ("ProjectCommand", Alias::Content),
     ("ProjectId", Alias::Handle),
@@ -138,6 +143,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RemoteName", Alias::Named),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
+    ("ScriptName", Alias::Named),
     ("SearchKey", Alias::Handle),
     ("SecretName", Alias::Named),
     ("SecretText", Alias::Secret),
@@ -147,6 +153,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
     ("TerminalBytes", Alias::Content),
+    ("TerminalId", Alias::Handle),
     ("TicketMac", Alias::Secret),
     ("TokenCount", Alias::Quantity),
     ("ToolCallId", Alias::Handle),

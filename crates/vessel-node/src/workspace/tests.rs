@@ -16,7 +16,7 @@ use vessel_proto::workspace::{
 use vessel_proto::{Creator, NodeId, ProjectId, SessionId};
 use vessel_store::{DataDir, Store, StoreConfig};
 
-use super::{Opening, TidyScope, WorkspaceError, Workspaces};
+use super::{Occupant, Opening, TidyScope, WorkspaceError, Workspaces};
 
 struct Fixture {
     temp: tempfile::TempDir,
@@ -328,7 +328,7 @@ async fn a_clean_worktree_is_made_placed_and_removed_with_its_branch() {
 
     // A live session in it keeps it.
     let session = SessionId::random();
-    let live = [(session, worktree.path.join("src"))];
+    let live = [(Occupant::Session(session), worktree.path.join("src"))];
     let kept = fixture
         .workspaces
         .remove_worktree(worktree.id, IfLost::Keep, &live)
@@ -684,7 +684,7 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
     );
     let tidied = fixture
         .workspaces
-        .retire(first, &[(first, made[0].path.clone())])
+        .retire(first, &[(Occupant::Session(first), made[0].path.clone())])
         .await;
     assert_eq!(tidied.map(|tidied| tidied.outcome), removed);
     // Every worktree made for a session is a candidate for the sweep; once
@@ -700,7 +700,7 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
             .tidy_candidates(TidyScope::Kept)
             .is_empty()
     );
-    let other = [(SessionId::random(), made[1].path.clone())];
+    let other = [(Occupant::Session(SessionId::random()), made[1].path.clone())];
     let kept = fixture.workspaces.retire(second, &other).await;
     assert_eq!(
         kept.map(|tidied| tidied.outcome),

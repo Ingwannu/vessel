@@ -89,6 +89,7 @@ mod service;
 mod sessions;
 mod shutdown;
 mod subscribe;
+mod terminals;
 mod tidying;
 mod transfers;
 mod transport;
@@ -108,6 +109,7 @@ pub use models::ModelsError;
 pub use node::Node;
 pub use profiles::ProfilesFileError;
 pub use shutdown::signal;
+pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build
 // a `Config` without depending on `vessel-store` themselves.
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};

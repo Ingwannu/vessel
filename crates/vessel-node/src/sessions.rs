@@ -40,6 +40,7 @@ use crate::agents::Agents;
 use crate::error::ServiceError;
 use crate::models::Models;
 use crate::persist::{self, Durability, Persisted};
+use crate::workspace::Occupant;
 
 /// Where a session was found.
 #[expect(
@@ -274,13 +275,25 @@ impl Sessions {
     /// The live sessions and the folders they run in (a session without
     /// one runs in the node's home, which no worktree is in): what keeps a
     /// worktree from being removed (protocol 10).
-    pub(crate) fn live_folders(&self) -> Vec<(SessionId, PathBuf)> {
+    pub(crate) fn live_folders(&self) -> Vec<(Occupant, PathBuf)> {
         self.runtime
             .list()
             .into_iter()
             .filter(|info| info.status.is_live())
-            .filter_map(|info| Some((info.id, info.spec.cwd?)))
+            .filter_map(|info| Some((Occupant::Session(info.id), info.spec.cwd?)))
             .collect()
+    }
+
+    /// The runtime's handle of `id` while the runtime holds it (protocol
+    /// 11: an agent's terminals end with its session).
+    pub(crate) fn runtime_handle(&self, id: SessionId) -> Option<SessionHandle> {
+        self.runtime.get(id)
+    }
+
+    /// The process ids of the live sessions' programs, for the ports their
+    /// trees listen on (protocol 11, ADR 0031).
+    pub(crate) fn live_pids(&self) -> Vec<(u32, SessionId)> {
+        self.runtime.pids()
     }
 
     /// Whether `id` is gone for good: the store no longer has it (deleted,

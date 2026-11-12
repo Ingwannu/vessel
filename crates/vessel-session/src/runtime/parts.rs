@@ -2,7 +2,7 @@
 //! runs: where its records start, its info watch, ring, channels and
 //! lifecycle; then the actor spawned and the handle registered.
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU32};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use chrono::{DateTime, Utc};
@@ -79,7 +79,7 @@ impl SessionRuntime {
         &self,
         begin: Begin,
         notices: Vec<String>,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
     ) -> Parts {
         let Begin {
@@ -96,7 +96,8 @@ impl SessionRuntime {
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
         let state = (seen, Marks::after(attention));
-        let (info, kill, shared) = self.shared(info, input, control, (model_calls, renames), state);
+        let (info, kill, shared) =
+            self.shared(info, (input, pid), control, (model_calls, renames), state);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -116,7 +117,7 @@ impl SessionRuntime {
     fn shared(
         &self,
         info: SessionInfo,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
         (model_calls, renames): (mpsc::Sender<ModelCall>, mpsc::Sender<Rename>),
         (seen, marks): (Seen, Marks),
@@ -140,6 +141,7 @@ impl SessionRuntime {
             // A new session has no marks; one started again takes the
             // store's once its row is reopened.
             marks: Mutex::new(marks),
+            pid: AtomicU32::new(pid),
         });
         (info, kill, shared)
     }

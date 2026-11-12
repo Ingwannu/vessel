@@ -83,6 +83,11 @@ impl Subscriptions {
             Outgoing::Response { id, outcome } => {
                 let announced = match &*outcome {
                     Outcome::Ok(Reply::Subscribe(subscribed)) => Some(subscribed.subscription),
+                    // Protocol 11: a terminal's subscription is announced
+                    // as a session's is (ADR 0031).
+                    Outcome::Ok(Reply::SubscribeTerminal(subscribed)) => {
+                        Some(subscribed.subscription)
+                    }
                     Outcome::Ok(_) | Outcome::Err(_) => None,
                 };
                 let response = Some(Frame::server(ServerFrame::Response {

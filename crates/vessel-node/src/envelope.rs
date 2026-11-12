@@ -536,6 +536,38 @@ async fn run_here(
         Call::SearchFiles(request) => {
             Reply::SearchFiles(guard.search_files(connection, request).await?)
         }
+        Call::CreateTerminal(request) => {
+            Reply::CreateTerminal(guard.create_terminal(connection, request).await?)
+        }
+        Call::ListTerminals(request) => {
+            Reply::ListTerminals(guard.list_terminals(connection, request).await?)
+        }
+        Call::GetTerminal(request) => {
+            Reply::GetTerminal(guard.get_terminal(connection, request).await?)
+        }
+        Call::ReadTerminal(request) => {
+            Reply::ReadTerminal(guard.read_terminal(connection, request).await?)
+        }
+        Call::SendTerminal(request) => {
+            Reply::SendTerminal(guard.send_terminal(connection, request).await?)
+        }
+        Call::RenameTerminal(request) => {
+            Reply::RenameTerminal(guard.rename_terminal(connection, request).await?)
+        }
+        Call::KillTerminal(request) => {
+            Reply::KillTerminal(guard.kill_terminal(connection, request).await?)
+        }
+        Call::CloseTerminal(request) => {
+            Reply::CloseTerminal(guard.close_terminal(connection, request).await?)
+        }
+        Call::ListScripts(request) => {
+            Reply::ListScripts(guard.list_scripts(connection, request).await?)
+        }
+        Call::RunScript(request) => Reply::RunScript(guard.run_script(connection, request).await?),
+        Call::RestartScript(request) => {
+            Reply::RestartScript(guard.restart_script(connection, request).await?)
+        }
+        Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)
@@ -557,6 +589,7 @@ async fn run_here(
         | Call::ReportApplied(_)
         | Call::ListMembers(_)
         | Call::Subscribe(_)
+        | Call::SubscribeTerminal(_)
         | Call::Unsubscribe(_) => return Err(not_forwardable(call.method())),
     })
 }

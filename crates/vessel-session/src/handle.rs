@@ -3,7 +3,7 @@
 
 mod input;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use tokio::sync::{mpsc, oneshot, watch};
@@ -64,6 +64,10 @@ pub(crate) struct Shared {
     /// mutex held for one assignment or one copy, never across an
     /// `.await`.
     pub(crate) marks: Mutex<Marks>,
+    /// The process id of the session's program (its PTY's or its agent's),
+    /// replaced when a move starts another agent (protocol 11: the ports a
+    /// session listens on are found from it, ADR 0031).
+    pub(crate) pid: AtomicU32,
 }
 
 impl Shared {
@@ -216,6 +220,15 @@ impl SessionHandle {
     #[must_use]
     pub fn has_ended(&self) -> bool {
         self.0.ended.load(Ordering::Acquire)
+    }
+
+    /// The process id of its program while it runs: the root of the
+    /// process tree whose listening ports `port.list` reports (ADR 0031).
+    /// `None` once it ended (the id may be another process's by then).
+    #[must_use]
+    pub fn pid(&self) -> Option<u32> {
+        let pid = self.0.pid.load(Ordering::Acquire);
+        (pid != 0 && !self.has_ended()).then_some(pid)
     }
 
     /// Record one model call the node's proxy made for this session

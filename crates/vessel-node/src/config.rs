@@ -83,6 +83,11 @@ pub struct Config {
     /// is believed (`vesseld --trusted-proxy`); anyone else is counted by
     /// its own address.
     pub trusted_proxies: Vec<vessel_relay::TrustedProxy>,
+    /// Terminals beside sessions (protocol 11, ADR 0031): the shell, the
+    /// credentials removed from their environment, their scrollback. No
+    /// shell by default, so `terminal.create` is `unsupported` until a
+    /// binary finds one (`TerminalsConfig::shell`); scripts run anyway.
+    pub terminals: crate::TerminalsConfig,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -146,6 +151,7 @@ impl Config {
             fleet: FleetConfig::default(),
             client_address_header: None,
             trusted_proxies: Vec::new(),
+            terminals: crate::TerminalsConfig::default(),
         }
     }
 }

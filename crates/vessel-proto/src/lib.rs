@@ -27,14 +27,17 @@ mod name;
 mod node;
 mod options;
 mod pairing;
+pub mod ports;
 mod profile;
 mod proxy;
 mod raw;
 mod relay;
 mod rpc;
+pub mod scripts;
 mod secret;
 mod session;
 mod terminal;
+pub mod terminals;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
@@ -72,7 +75,7 @@ pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
     AttachmentId, DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId,
     PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SessionId,
-    SubscriptionId, ToolCallId, TransferId, UploadId, WorktreeId,
+    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

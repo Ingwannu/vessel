@@ -20,6 +20,8 @@ vessel-fleet.workspace = true
 vessel-harness.workspace = true
 # The model routing proxy's APIs and upstream client (ADR 0015).
 vessel-llm.workspace = true
+# Terminals' commands, and the ports their trees listen on (ADR 0031).
+vessel-proc.workspace = true
 vessel-proto.workspace = true
 vessel-lsp.workspace = true
 vessel-relay.workspace = true

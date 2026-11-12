@@ -90,12 +90,14 @@ impl NodeService {
         _: &Connection,
         request: RemoveProject,
     ) -> Result<Ack, WireError> {
-        let live = self.sessions.live_folders();
+        let live = self.occupied();
         self.workspaces
             .remove_project(request.project, &live)
             .await
-            .map(|()| Ack)
-            .map_err(|error| wire(&error))
+            .map_err(|error| wire(&error))?;
+        // Its ended terminals go with it (a live one refused the removal).
+        self.terminals.forget_project(request.project);
+        Ok(Ack)
     }
 
     /// `project.commands`.

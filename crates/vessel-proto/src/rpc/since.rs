@@ -165,7 +165,20 @@ impl Call {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            | Self::CreateTerminal(_)
+            | Self::ListTerminals(_)
+            | Self::GetTerminal(_)
+            | Self::ReadTerminal(_)
+            | Self::SubscribeTerminal(_)
+            | Self::SendTerminal(_)
+            | Self::RenameTerminal(_)
+            | Self::KillTerminal(_)
+            | Self::CloseTerminal(_)
+            | Self::ListScripts(_)
+            | Self::RunScript(_)
+            | Self::RestartScript(_)
+            | Self::ListPorts(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

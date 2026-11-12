@@ -124,6 +124,7 @@ mod runtime;
 mod stop;
 mod structured;
 mod terminal;
+pub mod terminals;
 
 pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
 pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};

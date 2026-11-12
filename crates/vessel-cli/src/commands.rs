@@ -185,6 +185,13 @@ async fn node_start(
         std::env::var_os(name)
     });
     let mut config = Config::new(data_dir(target)?, env);
+    // Terminals (protocol 11): the shell and the credentials, from this
+    // binary's own environment.
+    config.terminals = vessel_node::TerminalsConfig::detect(
+        |name| std::env::var_os(name),
+        std::env::vars_os().map(|(name, _)| name),
+        |name| config.harness_lookup.find(name),
+    );
     config.bind = Some(bind);
     config.name = name;
     config.lsp.registry.search_path = std::env::var_os("PATH").unwrap_or_default();

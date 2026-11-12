@@ -141,6 +141,10 @@ pub enum ProjectCommands {
         digest: CommandsDigest,
         /// Whether a person approved it for this project.
         approved: bool,
+        /// Its scripts and services, in name order (protocol 11, ADR
+        /// 0031); the digest covers them. Left out when there are none.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        scripts: Vec<crate::scripts::ScriptEntry>,
     },
     /// The file does not parse; nothing in it runs.
     Invalid {
