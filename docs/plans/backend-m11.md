@@ -3885,3 +3885,156 @@ other tracks' contracts, and found fifteen problems. Each one's fate:
 15. Smaller points. **Taken**: `IpAddr` for addresses; unknown keys inside
     an entry ignored; `terminal.read`'s wait stated; `read_terminal`'s
     cursor defined; "order" removed from the digest's description.
+
+## Track C: progress
+
+2026-11-12, on `backend/m11-shells`. ADR 0031 (and ADR 0001's two new
+edges, `vessel-session -> proc` and `vessel-node -> proc`); protocol 11;
+store schema 11 not used (terminals are kept in memory only).
+
+Built, each with its tests:
+
+- The wire: `vessel_proto::{terminals, scripts, ports}`, the thirteen
+  methods with `Call::since`, the forwardable list (all but
+  `terminal.subscribe`), the stand-ins (`project.commands` and
+  `project.approve` answer `invalid` to a protocol 10 client for a set
+  with scripts, `worktree.create`'s `needs_approval` the same), the
+  aliases classified (`TerminalId` a handle, `ScriptName` named,
+  `ProcessName` content), the TypeScript regenerated.
+- `vessel-workspace`: `[scripts]` and `[services]` read and checked, the
+  version 2 digest only for a file that names one (a test pins version
+  1's digest unchanged), `shell_command` shared by setup and scripts.
+- `vessel-proc`: `listening::scan` (Linux `/proc`; macOS `ps` and
+  `lsof`; Windows a CIM query and `netstat`; bounded in processes, file
+  descriptors, time and output), `kill_session` (Linux), `account_shell`.
+- `vessel-session::terminals`: the shell actor in a PTY and the script
+  actor piped in its own process group, the ring bounded by bytes as well
+  as records (`Ring::bounded`), a service's backoff and its approval asked
+  again before every restart, a restart in place, `SessionHandle::pid`
+  for the ports; 9 tests against real processes (a script's grandchild
+  ends with it; a shell's job in a group of its own ends with it on
+  Linux; the scrollback drops its oldest output; the node's stop
+  interrupts both kinds).
+- `vessel-rpc` and `vessel-client`: `Connection::subscribe_terminal` (the
+  driver and the server's writer announce a terminal's subscription as a
+  session's), `Subscription<I>` over what it follows, `LogStream<L: Log>`
+  with `SessionStream` and `TerminalStream`, `ResumingStream<C, L>` with
+  `follow_terminal_resuming`.
+- The node: `terminals` (registry with reservations against the limits,
+  the environment without Vessel's credentials, `TerminalsConfig::detect`
+  for the binaries, the scripts' plans, the port scanner), the guard's
+  rows, `script.*` refused to agents in the workspace policy, the agents'
+  rule in `service::terminals`, `Occupant` (a live terminal keeps a
+  worktree, `kept { in_use }`, and a project, `conflict`), tidying ending
+  a deleted or dropped session's terminals first; 6 tests end to end over
+  the wire (a shell typed into, read, renamed, killed and closed; a node
+  without a shell; scripts approved, run, refused while running, a
+  service restarted in place and holding its project; an agent refused
+  without the profile, limited to 4 and to its own, its terminals ending
+  with its session; a port found and owned by its terminal; a deleted
+  session's terminal forgotten).
+- `vessel-web`: the call list (and the pinned test), `follow_terminal`
+  frames sharing the session streams' code; no `web/src/data` change was
+  needed (the page typechecks against the regenerated types).
+- `vessel mcp`: `create_terminal`, `list_terminals`, `read_terminal`,
+  `write_terminal` (destructive, open world), `close_terminal`,
+  `list_ports`; the agent's own session from its environment; a test
+  through a node (refused without the profile, then opened, typed into,
+  read, closed).
+- The CLI: `vessel shell [--session | --project [--dir]] [--title]
+  [--detached]`, `vessel shell list | attach | rename | kill | close`,
+  `vessel script list | run | restart | stop | output`, `vessel ports
+  [--watch]`; the terminal attach serves a session and a terminal alike;
+  `vessel project commands` shows the scripts; 2 tests against the
+  binary.
+
+Changed from the contract while building, and why:
+
+- `ShellStart.size` is the wire's `TerminalSize`, so the node needs no
+  `vessel-pty` edge.
+- `TerminalsConfig::detect` takes the binary's environment as closures
+  (the library reads none), and removes the known credential names as
+  well as those found.
+- Removal checks take what runs where as `Occupant` (a session or a
+  terminal) instead of session ids alone; a worktree's `sessions` still
+  lists sessions only.
+
+### Review of the code (2026-11-12)
+
+An independent reviewer (Opus, read only) read the commits against ADR
+0031 and the contract, and found seven defects; areas 3 (the
+environment), 5 (the wire) and 6 (path checks) clean. All seven taken:
+
+1. The switch was read on the target session's profile only: an agent
+   without it could start a session with a profile that has it and open
+   a shell beside that. Now its own session's profile must allow it too
+   (its own node checks before forwarding).
+2. An agent's terminals could outlive it: another node's agent's always,
+   a local one's when the call was cancelled before the watcher started.
+   Now one watcher a session, started right after registering and before
+   anything else is awaited, ends an agent's terminals when its own
+   session or the session they are beside ends; a create beside an ended
+   session is refused.
+3. A script could start in a worktree being removed. Now `script.*`
+   refuse a busy worktree, a start in progress counts as occupying its
+   folder, and a terminal that started as a removal began is ended.
+4. Two `script.run` at once could both start. The check is now in the
+   reservation, under the registry's one lock.
+5. A terminal beside a session in a project did not count against the
+   project's 16 once started. The counted owner is now kept with it.
+6. Approval was not asked again at the spawn itself. The run's actor now
+   asks before every start, the first and a person's restart included.
+7. Linux's socket tables were read unbounded. Now at most 4 MiB each,
+   cut at a whole line, the scan marked truncated.
+
+Measured (`docs/PERFORMANCE.md`, "Track C"): the benchmarks of the
+event frames, the session's fan-out and the board's reducer, before and
+after alternated twice, are within the spread of one tree's runs; the
+load test's paced and flood workloads are the same at the same load,
+the burst moves between runs of one build as before; `vesseld` holds
+0.5–1.4 MiB more. Nothing on the record path got slower that the
+machine's own variation could not explain.
+
+What remains: a removal whose look at what runs in a worktree precedes a
+terminal's reservation by a hair, and whose claim follows the terminal's
+last check, can still run its teardown under that terminal; closing it
+needs track B's removal to read the occupants under its own claim.
+
+What agents cannot do through Vessel: run, restart or list a project's
+scripts and services; open a terminal unless both its own session's
+profile and that of the session it is beside set `agent_terminals = true`
+(every default profile does not), or beside a session it may not operate;
+hold more than 4 live terminals; see, read, type into, kill or close a
+terminal it did not open; see ports of terminals it did not open or of
+sessions other than its own; keep a terminal past the end of its own
+session or of the session it is beside.
+
+Only CI can confirm: Windows (`pwsh.exe`/`powershell.exe`/`%ComSpec%`
+detection, the ConPTY shell, scripts through `cmd.exe /d /c` in a job
+object, the CIM and `netstat` port scan, the `.cmd` scratch file's
+removal) and macOS (`ps`/`lsof` port scan, `-l` login shells, a job
+ignoring `SIGHUP` outliving its shell). The terminal tests are Unix-only
+(`#[cfg(unix)]`); the parsers of every platform's tool output are
+unit-tested on every platform.
+
+Not verified: a real interactive attach from a terminal emulator (the
+tests attach with piped input); a service crash-looping to `gave_up`
+end to end (the backoff policy is unit-tested, a restart in place and a
+refusal to restart unapproved are tested with real processes); the page
+drawing any of it (track C-page).
+
+For the page track:
+
+- A terminal is followed with `follow_terminal { stream, node, terminal,
+  from }` and drawn as a terminal session is; `TerminalInfo.revision`
+  moves on every change (`terminal.get { changed_from }` waits for it),
+  `service` carries a service's typed state and `oldest_seq` where the
+  kept scrollback starts.
+- `script.run` answers `needs_approval { commands }`: show the scripts
+  (name, kind, command, folder) with setup and teardown before
+  `project.approve`. **A condition of the join**: B-page's approval view
+  shows `ProjectCommands::Listed.scripts` when there are any, or refuses
+  to approve such a set.
+- `port.list { changed_from }` is a long poll; the first answer may be
+  `pending` until the first scan. A port is reported, never opened:
+  previews are the preview track's, on an origin other than the page's.
