@@ -16,8 +16,16 @@ import { nodeKeyOf } from "../bridge/ids";
 import { DEFAULT_SETTINGS_SECTION } from "../data/settings";
 import { useWhere } from "../data/where";
 
-/** `/settings` → its default section. */
-export function SettingsIndex(): ReactElement {
+/** `/settings` → its default section. Only while the router is still
+ * headed for `/settings` (home.tsx's rule): the sections are a chunk
+ * loaded on demand (app.tsx), and while it loads this stays drawn; a
+ * redraw then (`Navigate` navigates again whenever it is drawn) would
+ * take the reader back from a screen they asked for meanwhile. */
+export function SettingsIndex(): ReactElement | null {
+  const where = useWhere();
+  if (where.segments.length !== 1 || where.segments[0] !== "settings") {
+    return null;
+  }
   return (
     <Navigate
       to="/settings/$section"
