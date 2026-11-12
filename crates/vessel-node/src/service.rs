@@ -414,6 +414,10 @@ impl NodeService {
             request,
         )
         .await
+        .map(|mut subscribed| {
+            subscribed.info = self.with_workspace(subscribed.info);
+            subscribed
+        })
         .map_err(|error| wire(&error))
     }
 

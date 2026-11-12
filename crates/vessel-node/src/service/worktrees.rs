@@ -165,7 +165,11 @@ impl NodeService {
     }
 
     /// `info` with its project, worktree and branch filled from its spec's
-    /// place, as the node knows them now.
+    /// place, as the node knows them now. Every answer that carries a
+    /// session's info goes through it: `session.list`, `.get`, `.create`
+    /// (and so `session.import`), `.move_profile`, `.rename`,
+    /// `.subscribe`, `.resume` and `.mark`; the e2e test `tidying` asks
+    /// each.
     pub(super) fn with_workspace(&self, mut info: SessionInfo) -> SessionInfo {
         info.workspace = self.workspaces.workspace_of(&info.spec).map(Box::new);
         info

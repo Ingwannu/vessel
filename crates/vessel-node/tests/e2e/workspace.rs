@@ -18,7 +18,7 @@ use crate::support::{Fixture, terminal_spec, within};
 
 /// A repository with one commit, made with the machine's git and a fixed
 /// identity.
-fn repository(dir: &Path) {
+pub(crate) fn repository(dir: &Path) {
     let git = |args: &[&str]| {
         let status = Command::new("git")
             .args([
@@ -46,13 +46,13 @@ fn repository(dir: &Path) {
 }
 
 /// The fixture's fake harnesses first, then the folder git is in.
-fn lookup(fixture: &Fixture) -> Lookup {
+pub(crate) fn lookup(fixture: &Fixture) -> Lookup {
     let git = which::which("git").expect("the tests need git on PATH");
     let folder = git.parent().map(Path::to_path_buf).unwrap_or_default();
     Lookup::new([fixture.bin().to_path_buf(), folder])
 }
 
-async fn new_worktree(client: &NodeClient, project: ProjectId) -> WorktreeInfo {
+pub(crate) async fn new_worktree(client: &NodeClient, project: ProjectId) -> WorktreeInfo {
     let outcome = client
         .call(CreateWorktree {
             project,
@@ -71,7 +71,7 @@ async fn new_worktree(client: &NodeClient, project: ProjectId) -> WorktreeInfo {
     }
 }
 
-fn in_place(fixture: &Fixture, place: SessionPlace) -> SessionSpec {
+pub(crate) fn in_place(fixture: &Fixture, place: SessionPlace) -> SessionSpec {
     let mut spec = terminal_spec(fixture, HarnessKind::ClaudeCode).with_place(place);
     spec.cwd = None;
     spec

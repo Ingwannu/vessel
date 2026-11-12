@@ -58,6 +58,8 @@ mod support;
 #[cfg(test)]
 mod terminal;
 #[cfg(test)]
+mod tidying;
+#[cfg(test)]
 mod transfers;
 #[cfg(test)]
 mod transfers_across;

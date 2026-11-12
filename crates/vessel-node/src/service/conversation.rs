@@ -69,6 +69,7 @@ impl NodeService {
     ) -> Result<SessionInfo, WireError> {
         self.start_again(connection, request.session)
             .await
+            .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
     }
 
@@ -91,6 +92,7 @@ impl NodeService {
         self.sessions
             .mark(session, mark)
             .await
+            .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
     }
 
