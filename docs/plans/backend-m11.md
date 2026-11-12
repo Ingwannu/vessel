@@ -1096,7 +1096,7 @@ web: VESSEL_CARGO_PROFILE=release npm run perf            5 passed
 
 One e2e run during the integration, beside a fat-LTO release build,
 failed once on a tab sent to "Open Vessel from its address" (W's
-shortcut test); it passed alone and in the two full runs since. Not
+shortcut test); it passed alone and in the full run since. Not
 reproduced, not explained.
 
 ### Not verified
