@@ -3329,13 +3329,16 @@ again is offered and the node's answer decides (track A's review item
 
 `composer.delivery`: what Send does while a turn runs, `queue` (the
 default), `steer` or `interrupt`, changed with `{ "set": "delivery",
-"value": … }`. Settings › General shows it beside the send key. Where
-the chosen delivery is `steer` and the agent cannot steer, Send queues
-and its tooltip says so; the choice is not changed. The send button's
-menu (the caret beside it, and Mod+click for the next one) sends one
-prompt another way without changing the preference. A file written
-before this field reads `queue`; an older bridge keeps the field it does
-not know (ADR 0028's "lenient by keeping").
+"value": … }`. Settings › General shows it as Paseo's "Default send"
+beside the send key. The other way is one modifier away, as in all three
+references: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter (⌘/Ctrl+Shift+Enter
+where ⌘/Ctrl+Enter is the send key), and the button's icon turns while
+the modifier is held. The other way of `queue` is `steer` where the
+agent can, `interrupt` where it cannot; of `steer` and `interrupt` it is
+`queue`. Where the chosen delivery is `steer` and the agent cannot
+steer, Send queues and its tooltip says so; the choice is not changed.
+A file written before this field reads `queue`; an older bridge keeps
+the field it does not know (ADR 0028's "lenient by keeping").
 
 Touches, outside `web/`: `crates/vessel-web/src/wire/prefs.rs` (the
 type, the field, the change, the default test),
@@ -3370,18 +3373,21 @@ All through `data/` functions that answer an `Outcome` (no throw).
   session's page opens and again after `session.resume`, for `limits`
   (the log has everything else). A failure leaves attachments unoffered
   with the reason in the attach button's tooltip.
-- **`attachment.begin` / `.write` / `.finish`**: each file uploads as
-  soon as it is attached, `limits.chunk` bytes at a time, read with
-  `Blob.slice` and `arrayBuffer()` one piece at a time (never the whole
-  file), at most two files at once from one composer (the node allows a
-  caller four). A piece's failure stops that file: its chip says why
-  with Retry (begins again from zero) and Remove. A file the page
-  refuses before `begin` (over a limit, a kind the agent does not take)
-  is never sent and says why on its chip. Send waits while a file still
-  uploads (the button says "Uploading…"), and is refused while one has
-  failed. Removing an uploading chip stops the loop after its piece; the
-  node drops the upload after 10 idle minutes (protocol 10 has no call
-  to abandon one, track A's known limit).
+- **`attachment.begin` / `.write` / `.finish`**: a file is checked when
+  it is attached (kind, size, count, against the agent's abilities and
+  the limits) and uploaded when Send is pressed, so a file removed before
+  sending never takes the session's room (the node has no call to give an
+  upload or an attachment back). Pieces of `Upload.chunk` bytes, read with
+  `Blob.slice` and `arrayBuffer()` one at a time (never the whole file),
+  each next offset the node's `received`; at most two files at once from
+  one composer. A failed piece stops that file: its chip says why. Retry
+  writes the same upload again from the node's `received`; only
+  `not_found` (the node dropped it) begins a new one; `invalid_request`,
+  `unsupported` and `conflict` offer Remove only (the reason stands);
+  `unavailable` (the node's upload places are taken) offers Retry. The
+  prompt goes once every file is in; a file uploaded before a failure is
+  kept for the next Send. An image's first bytes are checked on the page
+  before it is sent (the node refuses and drops one that does not match).
 - **`attachment.read`** `{ session, attachment, offset }`: an image in a
   prompt of the timeline, fetched only when its row is drawn and within
   one screen of the view (an `IntersectionObserver`; the timeline is
@@ -3389,49 +3395,78 @@ All through `data/` functions that answer an `Outcome` (no throw).
   file attached in this tab is shown from the local file (its object URL
   kept under the id `finish` answered), never fetched again. The page
   keeps at most 48 images or 64 MiB of them, oldest dropped and revoked.
-  Audio and files are chips with name and size, not fetched.
+  Audio and files are chips with name and size, not fetched. One
+  observer for the timeline, at most two reads at once, and a tile of
+  fixed size until its image is drawn, so the windowed rows keep their
+  measured height.
 - **`file.find`**: through `data/workspace/find.ts` only
   (`newSearchKey` once per composer, `findFiles`, an answer marked
-  `superseded` dropped); asked when `@` is typed and on each change of
-  the word after it, after 80 ms without typing.
+  `superseded` dropped); asked once the word after `@` has a character,
+  80 ms after typing stops (before that the menu says "Type to search
+  files"). The root is the session's worktree, else its project
+  (`SessionInfo.workspace`); a session started in a bare folder has none
+  until track B-page's place picker starts sessions in projects. A chosen
+  file is written into the prompt as text, `@path` relative to that root
+  (in quotes when it holds a space).
 - **`session.send` `answer_question`** `{ id, answer }`: the question
   dock's Submit (`accept` with every field that has a value) and Decline.
   `invalid_request` is shown under the field it names when the message
   names one, under the form otherwise; `conflict` (answered elsewhere
   first) and `not_found` close the dock with a toast.
 - **`session.send` `cancel_turn` `{ turn }`**: Stop names the turn it
-  saw start (`turn_started`'s seq), so a stop that lands after the queue
-  started the next turn holds the queue and cancels nothing.
+  saw start (`turn_started`'s seq, kept on the timeline), so a stop that
+  lands after the queue started the next turn holds the queue and cancels
+  nothing; the queue's strip then says it is paused and offers Resume.
+  To a node before protocol 10 `turn` is left out.
 - **`session.mark`** `{ session, mark }`: pin, unpin, archive (a live
   session: a dialog first, "Archiving stops the agent"), unarchive, and
   `read { through }`. `read` is sent when the session's page is in front
   (the tab visible and focused) and it has shown a record that asks for
   attention at or after the last `through` sent, or the session list
   says it is unread; `through` is the last record shown plus one. Not
-  per record: at most once a second, and never from a device the
-  machine gave only `read` (the node forbids it; the page does not ask).
+  per record: at most once a second. After "Mark unread" no `read` is
+  sent for that session until a record arrives after it. Every mark's
+  answer replaces the session in the page's list at once (the list is
+  polled every two seconds). The page cannot know a device was given
+  only `read` (no scope reaches it): the first `forbidden` from a mark
+  stops `read` marks to that machine for the page's life.
 - **`session.resume`**: "Start again". The button waits while the agent
   starts (up to the handshake's bound); `unsupported` "This agent cannot
-  pick up where it left off", `conflict` (still being written, or the
-  folder is gone: the node's message), `spawn_failed` (the log says
-  why), `invalid_request` (the profile was removed) each said plainly.
-- **`session.delete`**: a dialog first; its answer's worktree: removed,
-  or kept and why (`KeptReason`, each in words), in a toast; the page
-  goes back to the board if it was showing the session.
+  pick up where it left off", `conflict` (still being written, already
+  live, another start under way, or the folder is gone: the node's
+  message), `spawn_failed` (the log says why), `invalid_request` (the
+  profile was removed), `harness_not_installed`, `unavailable` (the
+  machine is stopping) each said plainly. Not offered for a session that
+  never had an agent session to load (`harness_session` absent). The
+  page follows the log again from where it stopped once the session is
+  live again (the answer, or the list, says so), so another device's
+  start again shows here too.
+- **`session.delete`**: a dialog first; it may wait while the worktree's
+  teardown runs (up to 5 minutes), the dialog's button saying so;
+  `conflict` (its log still being written, or live) said. Its answer's
+  worktree: removed, or kept and why (`KeptReason`, each in words), in a
+  toast (removing a kept one is track B-page's worktree screen). The
+  session's draft, tray and kept images are dropped; the page goes back
+  to the board if it was showing the session.
 
 ### Questions, drawn
 
-The dock takes the permission dock's place over the composer (the
-permission first when both wait). One question at a time, oldest first,
-"1 of 3" when more wait. Fields in the node's order, except Claude's
-pairs: `question_N` followed by `question_N_custom` is one question,
-its choices then an "Other" row whose text field is the custom answer
-(choosing Other clears the choice; typing in it chooses Other). Each
-kind by a kit control: text a field (multiline for no format), number
-and integer a field that takes digits, boolean a switch, a single choice
-a list of option rows with their descriptions, several a list of
-checkboxes, `unknown` a line saying it cannot be answered here, with
-Decline only. Submit is enabled when every required field has a value.
+agent-orchestrator's question dock, over the composer in the permission
+dock's place (the permission first when both wait). One question at a
+time, oldest first; within it one step per field, "Question · 1 of 3".
+Fields in the node's order (by key), except Claude's: `question_N` are
+ordered by N, and `question_N_custom` is drawn with `question_N` as its
+"Other" row, in the agent's own words (its title and description). For a
+multi-select the custom text is added to the picks; for a single choice
+it is a note to the pick, or the answer when nothing is picked
+(`claude-agent-acp`'s reading), so typing in it never clears a pick.
+Each kind by a kit control: text a field, number and integer a field
+taking a sign and (for number) a point, boolean a checkbox row, a single
+choice option rows with their descriptions, several the same rows
+checked; defaults filled in; `unknown` a line saying it cannot be
+answered here, with Skip only. The page checks what the node checks
+(required, lengths, bounds, item counts) before sending, so a refusal is
+rare; one that comes is shown at the field it names.
 
 ### The fake agent (`crates/vessel-testkit`, additive)
 
@@ -3441,14 +3476,53 @@ Decline only. Submit is enabled when every required field has a value.
 - Whatever else the tests need is added the same way, each prompt
   documented in `fake_acp.rs`'s list.
 
+### The contract's review (2026-11-12)
+
+An independent reviewer read this section against the node, the page and
+the references and found fifteen problems. Amended above: uploads at
+Send and retry from the node's `received` (1, 2), the read-only device
+(3), following again after a start again and its other refusals (4), the
+queue drawn only from the log, the revision on `edit` alone, an edit
+keeping its files, `send_now`'s delivery (6), `@`'s empty word, its root
+and what it inserts (7), Mark unread, mark answers applied at once (8),
+Stop's `turn` and an older node (9), Claude's "Other" (10), names and
+types cleaned as the node reads them and images checked (11), the image
+fetches bounded (12), delete's wait and what it drops (13), question
+order, signs and defaults, checked before sending (14).
+
+Rejected, and why:
+
+- **Between turns, Send always `queue`, labelled "Add to held queue"
+  while held** (5). A person who stopped a turn and types a new message
+  means it now: `start` sends it, and what was held stays held until
+  they resume or send it (agent-orchestrator: "an empty queue is never
+  held, so messages typed after a stop still start"; GOAT's Resume is a
+  button of the queue, not of the next message). `start` races nothing
+  while the queue is held (it moves only on resume).
+- **Two tabs' search keys** (7): every tab's first key is 1, so two
+  tabs searching at once on one machine replace each other's searches.
+  `find.ts` is the other page track's file; the composer asks again when
+  its own answer comes back `superseded` with no newer search of its
+  own, and the coordinator is told.
+- **Pinned and unread ended sessions hidden** (8): the sidebar's "show
+  ended" is track W's preference. With protocol 10 an ended session that
+  is not archived is still on the board; the sidebar keeps the
+  preference, and pinned sessions are listed first, ended or not.
+
+Built differently from a reference, and why (15): a large paste stays
+text (GOAT makes it a file; the queue's 128 KiB and the draft's bound
+already say so); no "Compact context" button by the meter (the agent's
+own `/compact` is in the `/` menu where it offers one); no Undo after
+archive (the archive's Restore is one click).
+
 ### Bounds, on the page
 
 | What | Bound |
 | --- | --- |
-| A file in memory while uploading | one piece (`limits.chunk`, 1 MiB) per uploading file |
+| A file in memory while uploading | one piece (`Upload.chunk`, 1 MiB) per uploading file |
 | Files uploading at once, per composer | 2 |
 | Attachments in the tray | `limits.per_prompt` (16) |
-| Images kept for the timeline | 48 or 64 MiB, least recently drawn dropped |
+| Images kept for the timeline | 48 or 64 MiB, least recently drawn dropped; two read at once |
 | `@` searches | one in flight per composer (the node replaces the older), 80 ms after typing stops |
 | `/` and `@` rows shown | 50 |
 | `read` marks | at most one a second per session |
