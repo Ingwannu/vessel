@@ -7,6 +7,7 @@
 //! and turns results into text. Output goes to stdout, notes and errors to
 //! stderr, so `vessel log ID > file` captures exactly the session's output.
 
+mod agents;
 mod args;
 mod attach;
 mod commands;
@@ -96,6 +97,7 @@ async fn cli() -> ExitCode {
         | Command::Status
         | Command::Harnesses
         | Command::Profiles { .. }
+        | Command::Agents { .. }
         | Command::Fleet { .. }
         | Command::Models
         | Command::Sessions

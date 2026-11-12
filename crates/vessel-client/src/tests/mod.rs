@@ -310,6 +310,30 @@ impl Handler for FakeNode {
         Err(unsupported())
     }
 
+    async fn list_agents(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::ListAgents,
+    ) -> Result<Vec<vessel_proto::agents::AgentInfo>, WireError> {
+        Err(unsupported())
+    }
+
+    async fn add_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::AddAgent,
+    ) -> Result<vessel_proto::agents::AgentInfo, WireError> {
+        Err(unsupported())
+    }
+
+    async fn remove_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::RemoveAgent,
+    ) -> Result<Ack, WireError> {
+        Err(unsupported())
+    }
+
     async fn move_profile(
         &self,
         _context: &Context,

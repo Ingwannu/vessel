@@ -59,6 +59,7 @@
 //!   flush their last frames; close the store. Subscribers therefore see
 //!   the final status, and a restart finds every log complete.
 
+mod added;
 mod agents;
 pub mod attach;
 mod attachments;

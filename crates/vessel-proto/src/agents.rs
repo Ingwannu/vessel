@@ -24,9 +24,21 @@
 //! - Cost: every place that took a `HarnessKind` from a spec decides what an
 //!   added agent gets there; the compiler lists them.
 
+mod added;
+mod calls;
 mod name;
 mod older;
+mod text;
 
+pub use added::{
+    AddedAgent, AgentDefinition, AgentDetail, AgentInfo, AgentSource, AgentToAdd, AgentVariable,
+    AuthMethod, InstallOffer, InstallPart, SecretEnv, SignInHelp,
+};
+pub use calls::{AddAgent, ListAgents, RemoveAgent};
 pub use name::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use older::{READS_ADDED_AGENTS, readable, unreadable};
 pub(crate) use older::{harnesses as harnesses_for, profiles as profiles_for};
+pub use text::{
+    AgentLabel, AgentProgram, AgentVersion, AuthMethodId, InvalidAgentText, RegistryId,
+    RegistryVersion, Sha256Hex,
+};

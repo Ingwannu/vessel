@@ -4,7 +4,8 @@
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    AgentName, ErrorCode, EventSeq, HarnessRef, ModelRouteName, ProfileName, SessionId, WireError,
+    AgentName, ErrorCode, EventSeq, HarnessRef, ModelRouteName, ProfileName, SecretName, SessionId,
+    WireError,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -234,6 +235,16 @@ pub(crate) enum ServiceError {
     /// 0032).
     #[error("this node has no agent `{0}` (see `agent.list`)")]
     UnknownAgent(AgentName),
+    /// An added agent names a secret this node has not set (ADR 0032).
+    #[error(
+        "agent `{agent}` needs secret {secret}, which is not set on this node (vessel fleet secret set {secret})"
+    )]
+    AgentSecret {
+        /// The agent.
+        agent: AgentName,
+        /// The secret its environment names.
+        secret: SecretName,
+    },
     /// `spec.profile` names a profile of another harness.
     #[error("profile `{profile}` is for {profile_harness}, not {harness}")]
     ProfileHarness {
@@ -289,6 +300,10 @@ pub(crate) enum ServiceError {
     /// stay.
     #[error("the profiles in effect stay")]
     Profiles(#[source] ProfilesFileError),
+    /// `agent.add` or `agent.remove` was refused or failed (protocol 11,
+    /// ADR 0032); it says why.
+    #[error(transparent)]
+    Added(crate::added::AddedError),
     /// `profile.reload` found a `models.toml` it cannot use; the routes in
     /// effect stay.
     #[error("the model routes in effect stay")]
@@ -344,7 +359,11 @@ impl ServiceError {
             // `Profiles(Parse)`: the call is fine; the node's file is not
             // (and stays unused).
             Self::Ended(_)
-            | Self::Profiles(ProfilesFileError::Parse(_))
+            | Self::Profiles(
+                ProfilesFileError::Parse(_)
+                | ProfilesFileError::ParseAgents(_)
+                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Unsafe { .. }),
+            )
             | Self::ProfileGone(_)
             | Self::HomeUnknown(_)
             | Self::NotLoggedIn(_)
@@ -356,6 +375,7 @@ impl ServiceError {
             | Self::StartingAgain(_)
             | Self::FolderGone { .. }
             | Self::WorktreeBusy(_)
+            | Self::AgentSecret { .. }
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }
@@ -375,7 +395,12 @@ impl ServiceError {
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),
-            Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),
+            Self::Store(error)
+            | Self::Profiles(
+                ProfilesFileError::Read(error)
+                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Read(error)),
+            ) => error.code(),
+            Self::Added(error) => error.code(),
             Self::Outbound(error) => error.code(),
             Self::Unpersisted(_)
             | Self::Task(_)

@@ -57,6 +57,14 @@ impl Lookup {
         &self.dirs
     }
 
+    /// The directories in the platform's `PATH` syntax: what an added
+    /// agent is given as its `PATH` (ADR 0032), so its own lookups see what
+    /// the node's did. `None` when there is none.
+    #[must_use]
+    pub fn search_path(&self) -> Option<&std::ffi::OsStr> {
+        self.joined.as_deref()
+    }
+
     /// Absolute path of the executable `binary`, if any directory has it.
     ///
     /// Does filesystem lookups; call it from a blocking context. On Windows

@@ -86,6 +86,27 @@ pub fn missing(lookup: &Lookup) -> Vec<Install> {
     missing
 }
 
+/// Every install `harness`'s vendor documents, installed or not: the
+/// harness, then its ACP adapter when it needs one (what `agent.list`
+/// shows, each command before it runs, ADR 0032).
+#[must_use]
+pub fn installs(harness: HarnessKind) -> Vec<Install> {
+    let descriptor = descriptor(harness);
+    let adapter = match &descriptor.structured {
+        Structured::Adapter { install, .. } => Some((InstallPart::Adapter, *install)),
+        Structured::Native { .. } => None,
+    };
+    std::iter::once((InstallPart::Harness, descriptor.install))
+        .chain(adapter)
+        .map(|(part, command)| Install {
+            harness,
+            part,
+            program: command.split_whitespace().next().unwrap_or(command),
+            command,
+        })
+        .collect()
+}
+
 /// The command (binary and arguments) that logs a person in to `harness`;
 /// `None` when that happens inside the harness's own interface.
 #[must_use]

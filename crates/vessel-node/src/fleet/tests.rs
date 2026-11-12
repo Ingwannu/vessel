@@ -304,10 +304,19 @@ async fn a_member_follows_its_home_and_reports_what_it_kept() {
             size: vessel_proto::TerminalSize::default(),
         },
     );
-    let servers = member.local.mcp.servers(&spec);
+    let servers = member.local.mcp.servers(&spec, None);
     assert!(servers.servers.is_empty());
     assert_eq!(servers.missing.len(), 1);
     assert_eq!(servers.missing[0].as_str(), "DOCS_TOKEN");
+    // An added agent that names none of the fleet's servers gets none,
+    // and so lacks no secret for them (ADR 0032).
+    let named = member.local.mcp.servers(&spec, Some(&[]));
+    assert!(named.servers.is_empty() && named.missing.is_empty());
+    let docs = ["docs".parse().unwrap()];
+    assert_eq!(
+        member.local.mcp.servers(&spec, Some(&docs)).missing.len(),
+        1
+    );
 
     // An edit on the home reaches the member through `fleet.watch`.
     write(&home.path("codex/AGENTS.md"), "instructions v2, longer\n");

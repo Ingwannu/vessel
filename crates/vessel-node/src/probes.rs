@@ -83,6 +83,15 @@ impl Probes {
         &self.dir
     }
 
+    /// Drop what is kept of `harness`'s probes, under every profile: an
+    /// added agent's definition changed or went (ADR 0032).
+    pub(crate) fn forget(&self, harness: &HarnessRef) {
+        self.slots
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .retain(|key, _slot| key.harness != *harness);
+    }
+
     /// `key`'s options: a recent answer for the same `version`, the answer
     /// of a probe that finished while this caller waited, or `probe`'s.
     pub(crate) async fn options(

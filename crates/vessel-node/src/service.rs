@@ -256,7 +256,7 @@ impl NodeService {
         _: &Connection,
         _: ListHarnesses,
     ) -> Result<Vec<Harness>, WireError> {
-        Ok(vessel_harness::discover(&self.lookup).await)
+        Ok(self.harnesses().await)
     }
 
     /// `node.stop` (protocol 3, ADR 0008): stop now, or drain and stop once

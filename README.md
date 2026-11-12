@@ -405,6 +405,34 @@ vessel session move-profile 3f2a claude-work # at a usage limit: same conversati
   structured Claude Code and Codex sessions, between turns (`--force`
   cancels a running one), and only to a profile that is logged in.
 
+### Any agent that speaks ACP
+
+Besides the four, a node runs any agent that speaks the Agent Client
+Protocol, added by the command that starts it (ADR 0032). It is kept in
+`agents.toml` beside `profiles.toml`, offered wherever the four are, and
+runs conversations only (no terminal).
+
+```bash
+vessel fleet secret set GOOSE_KEY            # read from standard input
+vessel agents add goose --label Goose --env GOOSE_MODE=auto \
+  --secret ANTHROPIC_API_KEY=GOOSE_KEY -- goose acp
+vessel agents                                # the four, then the added ones
+vessel run goose
+vessel agents remove goose
+```
+
+- It starts with an empty environment: the search path, your home, the
+  system's own variables (locale, terminal, time zone, temporary folder,
+  proxies without a password), then what you give: `--inherit NAME` from
+  the node's environment, `--env NAME=VALUE`, `--secret NAME=SECRET`
+  from the node's secrets. Keys never go in its arguments: every client
+  sees them, and so does the process table.
+- Of the fleet's MCP servers it gets only those named with `--mcp`;
+  Vessel's own tools always.
+- Only a person adds or removes one (the `admin` scope; an agent never).
+  An agent's session cannot move to another profile or be copied to
+  another node.
+
 ### A fleet: one home, many members
 
 One node keeps your instructions and skills: the home. Every other node is

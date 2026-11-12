@@ -7,6 +7,9 @@
 //!   set it writes `fake-acp: not logged in` to stderr and exits 3 before
 //!   speaking ACP (a harness that fails at start). Otherwise it writes
 //!   `fake-acp starting` to stderr and serves ACP v1 until stdin closes.
+//! - With `FAKE_ACP_ENV_FILE` set, it first writes the names (never the
+//!   values) of its environment's variables there, sorted, one a line: what
+//!   a test of an added agent's clean environment reads (ADR 0032).
 //! - With `FAKE_ACP_HANG` set to `initialize` or `session/new`, that request
 //!   is never answered (an adapter stuck at start); stuck at `session/new`,
 //!   it says so on stderr first (`fake-acp: stuck at session/new`), so a
@@ -141,6 +144,20 @@ fn main() -> ExitCode {
     if std::env::var_os("FAKE_ACP_EXIT_EARLY").is_some() {
         complain("fake-acp: not logged in");
         return ExitCode::from(3);
+    }
+    if let Some(file) = std::env::var_os("FAKE_ACP_ENV_FILE") {
+        let mut names: Vec<String> = std::env::vars_os()
+            .map(|(name, _value)| name.to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        let mut text = names.join("\n");
+        text.push('\n');
+        if let Err(error) = std::fs::write(&file, text) {
+            complain(&format!(
+                "fake-acp: cannot write the environment's names: {error}"
+            ));
+            return ExitCode::FAILURE;
+        }
     }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()

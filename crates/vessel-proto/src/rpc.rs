@@ -315,6 +315,12 @@ rpc_methods! {
     FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
     /// Search inside files (protocol 10).
     SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
+    /// The agents the node can run (protocol 11, ADR 0032).
+    ListAgents / list_agents / "agent.list" [Read, 11]: crate::agents::ListAgents => Vec<crate::agents::AgentInfo>;
+    /// Add an agent by its command (protocol 11).
+    AddAgent / add_agent / "agent.add" [Admin, 11]: crate::agents::AddAgent => crate::agents::AgentInfo;
+    /// Forget an added agent (protocol 11).
+    RemoveAgent / remove_agent / "agent.remove" [Admin, 11]: crate::agents::RemoveAgent => Ack;
 }
 
 /// Result of a call.

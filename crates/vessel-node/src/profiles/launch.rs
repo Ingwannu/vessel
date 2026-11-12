@@ -40,8 +40,9 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use vessel_harness::Profile;
 use vessel_proto::{
-    AgentSecret, Creator, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
+    AgentSecret, Creator, HarnessRef, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
     ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionInfo, SessionOrigin,
     SessionSpec,
 };
@@ -63,9 +64,14 @@ pub(crate) struct McpServers {
 
 /// Where sessions' MCP servers come from (see the module's Decision Log).
 pub(crate) trait McpSource: fmt::Debug + Send + Sync {
-    /// The servers a session of `spec` starts with. Called on the async
-    /// runtime: must answer from memory, without blocking.
-    fn servers(&self, spec: &SessionSpec) -> McpServers;
+    /// The servers a session of `spec` starts with: all, or `only` those
+    /// named (an added agent's, ADR 0032). Called on the async runtime:
+    /// must answer from memory, without blocking.
+    fn servers(&self, spec: &SessionSpec, only: Option<&[McpServerName]>) -> McpServers;
+
+    /// The node's value of secret `name` (`secrets.toml`, ADR 0012), for an
+    /// added agent's environment. From memory, as [`McpSource::servers`].
+    fn secret(&self, name: &SecretName) -> Option<ResolvedValue>;
 }
 
 /// No MCP servers, for tests of the launcher alone (the node launches with
@@ -76,8 +82,12 @@ pub(crate) struct NoMcpServers;
 
 #[cfg(test)]
 impl McpSource for NoMcpServers {
-    fn servers(&self, _spec: &SessionSpec) -> McpServers {
+    fn servers(&self, _spec: &SessionSpec, _only: Option<&[McpServerName]>) -> McpServers {
         McpServers::default()
+    }
+
+    fn secret(&self, _name: &SecretName) -> Option<ResolvedValue> {
+        None
     }
 }
 
@@ -194,14 +204,15 @@ impl Launcher {
                 if spec.harness != profile.harness() {
                     return Err(ServiceError::ProfileHarness {
                         profile: name.clone(),
-                        profile_harness: profile.harness().into(),
+                        profile_harness: profile.harness(),
                         harness: spec.harness.clone(),
                     });
                 }
                 Some(profile)
             }
         };
-        let (mcp_servers, notices) = self.mcp_servers(spec);
+        let profile = self.added(profiles, &spec.harness, profile)?;
+        let (mcp_servers, notices) = self.mcp_servers(spec, profile.as_ref());
         let created_by = creator(principal);
         Ok(LaunchOptions {
             profile,
@@ -250,14 +261,15 @@ impl Launcher {
                 if info.spec.harness != profile.harness() {
                     return Err(ServiceError::ProfileHarness {
                         profile: name.clone(),
-                        profile_harness: profile.harness().into(),
+                        profile_harness: profile.harness(),
                         harness: info.spec.harness.clone(),
                     });
                 }
                 Some(profile)
             }
         };
-        let (mcp_servers, notices) = self.mcp_servers(&info.spec);
+        let profile = self.added(profiles, &info.spec.harness, profile)?;
+        let (mcp_servers, notices) = self.mcp_servers(&info.spec, profile.as_ref());
         Ok(Relaunch {
             profile,
             mcp_servers,
@@ -267,10 +279,47 @@ impl Launcher {
         })
     }
 
-    /// The servers a session of `spec` starts with, and the lines its log
-    /// gets about servers left out.
-    pub(crate) fn mcp_servers(&self, spec: &SessionSpec) -> (ResolvedMcpServers, Vec<String>) {
-        let McpServers { servers, missing } = self.mcp.servers(spec);
+    /// An added agent's profile, ready to launch (ADR 0032): its default
+    /// when none is named (the session runtime knows only the four's), and
+    /// the value of every secret its environment names. A profile of one
+    /// of the four is returned as it is.
+    ///
+    /// # Errors
+    /// The agent is not defined on this node, or a secret it names is not
+    /// set: it would start without what its definition says it needs.
+    pub(crate) fn added(
+        &self,
+        profiles: &NodeProfiles,
+        harness: &HarnessRef,
+        profile: Option<Profile>,
+    ) -> Result<Option<Profile>, ServiceError> {
+        let profile = match (profile, harness) {
+            (Some(profile), _) => profile,
+            (None, HarnessRef::Known(_)) => return Ok(None),
+            (None, HarnessRef::Added(name)) => profiles
+                .default_of(harness)
+                .ok_or_else(|| ServiceError::UnknownAgent(name.clone()))?,
+        };
+        let Some(agent) = profile.added().map(|agent| agent.name().clone()) else {
+            return Ok(Some(profile));
+        };
+        profile
+            .with_secrets(|name| self.mcp.secret(name))
+            .map(Some)
+            .map_err(|secret| ServiceError::AgentSecret { agent, secret })
+    }
+
+    /// The servers a session of `spec` under `profile` starts with, and
+    /// the lines its log gets about servers left out. An added agent gets
+    /// only the fleet's servers its definition names (ADR 0032): a server's
+    /// definition holds its secret values.
+    pub(crate) fn mcp_servers(
+        &self,
+        spec: &SessionSpec,
+        profile: Option<&Profile>,
+    ) -> (ResolvedMcpServers, Vec<String>) {
+        let only = profile.and_then(Profile::added).map(|agent| agent.mcp());
+        let McpServers { servers, missing } = self.mcp.servers(spec, only);
         if !missing.is_empty() {
             tracing::warn!(
                 ?missing,

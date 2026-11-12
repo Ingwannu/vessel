@@ -5,7 +5,9 @@ use std::time::Duration;
 
 use tokio::io::{AsyncRead, AsyncReadExt as _};
 use vessel_proc::{CommandSpec, Spawned, spawn};
-use vessel_proto::{Harness, HarnessKind, StructuredSupport, TerminalSupport};
+use vessel_proto::{Harness, HarnessKind, HarnessRef, StructuredSupport, TerminalSupport};
+
+use crate::added::{AddedAgent, AddedAgents};
 
 use crate::harnesses::{Structured, descriptor};
 use crate::launch::adapter_missing;
@@ -55,6 +57,45 @@ pub async fn discover(lookup: &Lookup) -> Vec<Harness> {
         }
     }))
     .await
+}
+
+/// The agents of `agents` whose program is found, as `harness.list`
+/// reports them (ADR 0032): structured only, and no version, since an
+/// unknown program is never run with `--version` (it may take that as a
+/// prompt); its handshake says its version once it is probed.
+///
+/// Does filesystem lookups; call it from a blocking context.
+#[must_use]
+pub fn discover_added(lookup: &Lookup, agents: &AddedAgents) -> Vec<Harness> {
+    agents
+        .all()
+        .filter_map(|agent| {
+            let path = found(agent, lookup)?;
+            Some(Harness {
+                kind: HarnessRef::Added(agent.name().clone()),
+                path,
+                version: None,
+                structured: StructuredSupport::Available,
+                terminal: TerminalSupport::Unavailable {
+                    reason: "an added agent runs only as a conversation: Vessel knows its ACP \
+                             command, not a terminal of its own"
+                        .to_owned(),
+                },
+            })
+        })
+        .collect()
+}
+
+/// Where an added agent's program is: the absolute path written, if a file
+/// is there, or the first match on the search path.
+#[must_use]
+pub(crate) fn found(agent: &AddedAgent, lookup: &Lookup) -> Option<PathBuf> {
+    let written = Path::new(agent.program().as_str());
+    if written.is_absolute() {
+        written.is_file().then(|| written.to_path_buf())
+    } else {
+        lookup.find(agent.program().as_str())
+    }
 }
 
 /// An installed harness before its version is known.

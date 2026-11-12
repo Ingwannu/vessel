@@ -168,7 +168,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        | Method::ListAgents
+        | Method::AddAgent
+        | Method::RemoveAgent => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

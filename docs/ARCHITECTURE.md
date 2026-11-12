@@ -395,7 +395,9 @@ In the crate table's order.
   added agent by `AgentName`, in `SessionSpec`, `Harness`, profiles and
   `harness.options`; `Harness.terminal`; what an older peer is handed,
   `agents/older.rs`: lists without added agents, `Reply::withheld` for a
-  reply about one, applied where frames are written).
+  reply about one, applied where frames are written; `agent.list`,
+  `agent.add`, `agent.remove` and their types, `agents/added.rs`, with
+  the bounded texts of `agents/text.rs`).
   Every method has a first version (`since`), and a call that uses a
   later field needs that version (`Call::since`, `rpc/since.rs`; the
   table's macro is `rpc/methods.rs`, the table itself stays in `rpc.rs`).
@@ -438,6 +440,14 @@ In the crate table's order.
   owner-only per-session file). No MCP value is ever an argument: Claude
   Code reads an owner-only `--mcp-config=` file, Codex gets `-c
   mcp_servers.<name>` overrides that name variables in its environment.
+  Protocol 11 (ADR 0032): `added` (`agents.toml` parsed by
+  `parse_agents`, with the file's bounds; `add_agent`/`remove_agent`
+  change its text in place with `toml_edit`; `added/command.rs` builds an
+  added agent's command from an empty environment, `PASSED_ON` being the
+  system variables it gets), `discover_added` (found by path, never run
+  for a version), and a `Profile` whose base is one of the four or an
+  added agent (`parse_profiles_with`; the profile module is
+  `profile/{parse,tests}.rs` under `profile.rs`).
   `setup` holds what `vessel init` offers (install and login commands,
   other accounts' homes). The `fakes` feature installs testkit binaries
   under real harness names. Model selection is not here: it goes over ACP
@@ -571,7 +581,9 @@ In the crate table's order.
   recorded size and SHA-256, hashing it again only when its identity
   (device, inode, size, times) changed since the caller last verified it;
   at open, every folder no row names is removed. `DataDir::probe_dir` is where the node probes
-  agents. `models.toml` is read with whether other users
+  agents. `agents.toml` (protocol 11, ADR 0032: commands the node runs)
+  is refused when another user owns it or may write it or the data
+  directory (`DataDir::read_agents`), and written atomically, 0600. `models.toml` is read with whether other users
   can read it (`DataDir::read_models`), which the node refuses.
 - `vessel-node` (`vesseld`):
   - The service (`service`): one inherent method per call, routing to the
@@ -579,8 +591,15 @@ In the crate table's order.
     calls in a module per area (`sessions`, `profiles` with the agents'
     ownership rule, `fleet` with this node's secrets, `transfers`,
     `options`, `conversation`, `again`, `projects`, `worktrees`, `git`,
-    `files`); `service.rs` keeps the service's parts and a connection's
-    state.
+    `files`, `agents` for protocol 11's); `service.rs` keeps the
+    service's parts and a connection's state (its protocol among them).
+  - Added agents (protocol 11, ADR 0032): `added` changes `agents.toml`
+    one change at a time (`NodeProfiles::editing`), parsed with
+    `profiles.toml` before it is written, and refuses an agent principal
+    or a delivered call; `NodeProfiles` reads both files together. The
+    launcher (`profiles/launch.rs`) gives an added agent's session its
+    default profile, its secrets from `secrets.toml` (`McpSource::secret`)
+    and only the fleet's MCP servers it names.
   - Sessions: axum `/health` and token-checked `/rpc`, the `Handler`
     routing to `sessions` (live runtime sessions plus stored ones; a
     session whose log is complete is served from the store, and a live

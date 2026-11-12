@@ -18,6 +18,16 @@
 //! - Alternatives: watching the file (a half-saved file would be read);
 //!   reading it per session (a broken edit would fail every new session
 //!   instead of the one reload call).
+//!
+//! [Decision Log: added agents] (protocol 11, ADR 0032)
+//! - `agents.toml` is read with `profiles.toml`, first, and the two are
+//!   swapped in together: a profile may extend an added agent, so a reload
+//!   keeps both files' set or neither. A broken `agents.toml`, or one
+//!   another user could change, stops the node at start and leaves the
+//!   set in effect on reload, as `profiles.toml` does.
+//! - `agent.add` and `agent.remove` change the file through `edit`, one at
+//!   a time (a `tokio` lock held across the read, the check and the
+//!   write), so two of them never lose each other's change.
 
 pub(crate) mod launch;
 pub(crate) mod moving;
@@ -25,11 +35,14 @@ pub(crate) mod moving;
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
 
-use vessel_harness::{HarnessEnv, Profile, Profiles, ProfilesError, parse_profiles};
+use vessel_harness::{
+    AddedAgents, AgentsError, HarnessEnv, Profile, Profiles, ProfilesError, parse_agents,
+    parse_profiles_with,
+};
 use vessel_proto::{HarnessRef, ProfileInfo, ProfileName};
-use vessel_store::{DataDir, StoreError};
+use vessel_store::{AgentsFileError, DataDir, StoreError};
 
-/// Why `profiles.toml` could not be used.
+/// Why `profiles.toml` or `agents.toml` could not be used.
 #[derive(Debug, thiserror::Error)]
 pub enum ProfilesFileError {
     /// It could not be read.
@@ -38,6 +51,12 @@ pub enum ProfilesFileError {
     /// It does not parse; the message says where.
     #[error(transparent)]
     Parse(#[from] ProfilesError),
+    /// `agents.toml` could not be read, or another user could change it.
+    #[error(transparent)]
+    ReadAgents(#[from] AgentsFileError),
+    /// `agents.toml` does not parse; the message says where.
+    #[error(transparent)]
+    ParseAgents(#[from] AgentsError),
 }
 
 /// The profiles in effect on this node.
@@ -49,6 +68,8 @@ pub(crate) struct NodeProfiles {
     /// started the node (`Config::harness_env`), never read here.
     env: HarnessEnv,
     current: RwLock<Arc<Profiles>>,
+    /// Held across a change of `agents.toml` (`edit`).
+    pub(crate) editing: tokio::sync::Mutex<()>,
 }
 
 impl NodeProfiles {
@@ -64,11 +85,28 @@ impl NodeProfiles {
             dir,
             env,
             current: RwLock::new(Arc::new(profiles)),
+            editing: tokio::sync::Mutex::new(()),
         })
     }
 
     /// The profiles in effect: the defaults, then the defined ones, only
     /// `harness`'s if given. Names, labels and variable names only.
+    /// The default profile of `harness`: one of the four's, or an added
+    /// agent's when the node has it.
+    pub(crate) fn default_of(&self, harness: &HarnessRef) -> Option<Profile> {
+        self.snapshot().default_of(harness)
+    }
+
+    /// The set in effect now: the profiles and the added agents.
+    pub(crate) fn current(&self) -> Arc<Profiles> {
+        self.snapshot()
+    }
+
+    /// The data directory the two files are in.
+    pub(crate) const fn dir(&self) -> &DataDir {
+        &self.dir
+    }
+
     pub(crate) fn list(&self, harness: Option<&HarnessRef>) -> Vec<ProfileInfo> {
         self.snapshot()
             .all()
@@ -87,6 +125,13 @@ impl NodeProfiles {
         log_loaded(&profiles);
         *self.current.write().unwrap_or_else(PoisonError::into_inner) = Arc::new(profiles);
         Ok(self.list(None))
+    }
+
+    /// Use `profiles` from now on: a change of `agents.toml` already read
+    /// and checked (`added`).
+    pub(crate) fn install(&self, profiles: Profiles) {
+        log_loaded(&profiles);
+        *self.current.write().unwrap_or_else(PoisonError::into_inner) = Arc::new(profiles);
     }
 
     /// The profile named `name`, a defined one or a harness's default.
@@ -118,9 +163,23 @@ impl NodeProfiles {
 }
 
 fn read(dir: &DataDir, user_home: &std::path::Path) -> Result<Profiles, ProfilesFileError> {
+    let added = match dir.read_agents()? {
+        Some(file) => parse_agents(&file.text, Some(user_home))?,
+        None => AddedAgents::default(),
+    };
+    with_agents(dir, user_home, added)
+}
+
+/// `profiles.toml` read beside `added`: what a change of `agents.toml`
+/// checks before it is written.
+pub(crate) fn with_agents(
+    dir: &DataDir,
+    user_home: &std::path::Path,
+    added: AddedAgents,
+) -> Result<Profiles, ProfilesFileError> {
     match dir.read_profiles().map_err(ProfilesFileError::Read)? {
-        Some(file) => Ok(parse_profiles(&file.text, Some(user_home))?),
-        None => Ok(Profiles::default()),
+        Some(file) => Ok(parse_profiles_with(&file.text, Some(user_home), added)?),
+        None => Ok(parse_profiles_with("", Some(user_home), added)?),
     }
 }
 
@@ -129,5 +188,10 @@ fn log_loaded(profiles: &Profiles) {
         .defined()
         .map(|profile| profile.name().as_str())
         .collect();
-    tracing::info!(profiles = ?names, "harness profiles loaded");
+    let agents: Vec<&str> = profiles
+        .added()
+        .all()
+        .map(|agent| agent.name().as_str())
+        .collect();
+    tracing::info!(profiles = ?names, agents = ?agents, "harness profiles loaded");
 }

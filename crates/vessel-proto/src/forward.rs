@@ -247,10 +247,11 @@ impl Method {
     ///   worktrees, git and files (`project.*`, `worktree.*`, `git.*`,
     ///   `file.*`), which working in a project there needs; the roots that
     ///   would widen a reader's reach are refused for every caller instead
-    ///   (ADR 0027).
+    ///   (ADR 0027), and protocol 11's `agent.list`, read as `harness.list`
+    ///   is.
     /// - Not forwardable, administration of a node done there: stopping it,
     ///   its devices, re-reading its profiles, deleting or copying its
-    ///   secrets.
+    ///   secrets, adding or removing its agents (ADR 0032).
     /// - Not forwardable, the fleet's own plumbing: an envelope is never
     ///   wrapped in another (at most two hops, no loops), and the bundle,
     ///   grant and membership calls belong to the hop between a member and
@@ -347,8 +348,14 @@ impl Method {
             | Self::RenamePath
             | Self::DeletePath
             | Self::FindFiles
-            | Self::SearchFiles => true,
-            Self::StopNode
+            | Self::SearchFiles
+            // Protocol 11: what a node can run is read like its harnesses.
+            | Self::ListAgents => true,
+            // Protocol 11: adding and removing an agent is the node's own
+            // administration, by its owner or its own devices (ADR 0032).
+            Self::AddAgent
+            | Self::RemoveAgent
+            | Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

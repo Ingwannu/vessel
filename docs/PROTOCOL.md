@@ -56,6 +56,41 @@ tracks").
   `unsupported`, inside the fleet's envelope too; calls acting on one,
   and `session.subscribe`, are refused before they run. A call naming an
   added agent needs 11 (`Call::since`).
+- `agent.list` (`read`) → `AgentInfo[]`: the four first, then the agents
+  added on the node by name. `AgentInfo { agent: HarnessRef, detail }`,
+  `detail` tagged by `kind`:
+  - `known { installs: InstallOffer[], sign_in: SignInHelp }`: the
+    vendor's install commands (`part` `harness` or `adapter`) and how a
+    person signs in (`command?`, `home?`, the variable a profile sets for
+    another account, `methods`);
+  - `added { added: AddedAgent }`: `label?`, `program` (`AgentProgram`, a
+    name on the search path or an absolute path), `args`, `env` (the
+    names it sets, never a value), `secrets` (`{ variable, secret }`, the
+    variable and the node secret it is filled from), `inherit`, `mcp`
+    (the fleet servers it gets), `source` (`{ from: "command" }`).
+- `agent.add` (`admin`, never an agent principal: `forbidden`) `{ name,
+  agent: { from: "command", definition }, replace? }` → `AgentInfo`.
+  `definition`: `AgentDefinition { label?, program, args, env:
+  { name, value: string | { secret } }[], inherit, mcp }`. Names are one
+  space with profiles, compared ignoring case: a taken one is `conflict`
+  unless `replace`. The node writes `agents.toml` (0600) and the change
+  is in effect for the next session; one breaking the file's rules is
+  `invalid_request`, one `profiles.toml` would no longer read with is
+  `conflict`. Never forwarded across the fleet.
+- `agent.remove` (`admin`, as `agent.add`) `{ name }` → `Ack`;
+  `not_found` for a name not defined (exact case); `conflict` while a
+  profile extends it. Running sessions of the agent go on.
+- An added agent's session is structured only (`session.create` with a
+  terminal mode: `unsupported`), cannot move profiles or be exported or
+  imported (`unsupported`), and starts in an environment of its own: the
+  search path it was found on, the user's home, the system's variables
+  listed in `vessel_harness::PASSED_ON` (a proxy only without a user and
+  password in it), `inherit`, then `env`, a secret filled in from the
+  node's `secrets.toml`. A secret the node lacks makes `session.create`,
+  `session.resume` and `harness.options` a `conflict` naming it. It gets
+  the `vessel` MCP server and, of the fleet's, only those its `mcp`
+  names. `harness.list` lists one whose program is found, with no
+  version (an unknown program is never run to ask).
 
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 

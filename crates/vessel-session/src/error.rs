@@ -128,8 +128,12 @@ impl SessionError {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         match self {
-            Self::Launch(HarnessError::NotInstalled { .. }) => ErrorCode::HarnessNotInstalled,
-            Self::Launch(HarnessError::StructuredUnavailable { .. })
+            // An added agent's program not found is its "not installed"
+            // (ADR 0032).
+            Self::Launch(HarnessError::NotInstalled { .. } | HarnessError::AgentMissing { .. }) => {
+                ErrorCode::HarnessNotInstalled
+            }
+            Self::Launch(HarnessError::StructuredUnavailable { .. } | HarnessError::NoTerminal { .. })
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
@@ -169,6 +173,9 @@ impl SessionError {
             | Self::NotFound(_)
             | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended
+            // A secret an added agent names is not set on the node: the
+            // node's state, which `secret.set` changes.
+            | Self::Launch(HarnessError::SecretMissing { .. })
             | Self::Moving
             // The agent's refusal of an option change: the session is in a
             // state where it does not take it.

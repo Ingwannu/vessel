@@ -44,7 +44,9 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "secret.set",
             "secret.list",
             "secret.delete",
-            "secret.copy"
+            "secret.copy",
+            "agent.add",
+            "agent.remove"
         ]
     );
     assert_eq!(Method::SendInput.scope(), Scope::Operate);
@@ -277,7 +279,8 @@ fn the_forwardable_set_is_pinned() {
             "file.rename",
             "file.delete",
             "file.find",
-            "file.grep"
+            "file.grep",
+            "agent.list"
         ]
     );
 }

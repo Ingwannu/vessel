@@ -50,6 +50,7 @@
 //! [`SessionSpec`]: vessel_proto::SessionSpec
 //! [`CommandSpec`]: vessel_proc::CommandSpec
 
+mod added;
 mod discover;
 mod env;
 mod error;
@@ -67,7 +68,11 @@ mod routing;
 mod sessions;
 mod setup;
 
-pub use discover::discover;
+pub use added::{
+    AddedAgent, AddedAgents, AgentProblem, AgentsError, EditError, MAX_FILE as MAX_AGENTS_FILE,
+    PASSED_ON, add_agent, command as added_command, parse_agents, passed_on, remove_agent,
+};
+pub use discover::{discover, discover_added};
 pub use env::HarnessEnv;
 pub use error::HarnessError;
 pub use home::{home, login_check};
@@ -77,7 +82,8 @@ pub use lookup::Lookup;
 pub use mcp::{EncodeProblem, McpError, McpFile, WrittenMcpFile};
 pub use memory::{MemoryFilesError, RebaseError, memory_files, rebase};
 pub use profile::{
-    Position, Profile, ProfileProblem, Profiles, ProfilesError, parse_profiles, same_variable,
+    Position, Profile, ProfileProblem, Profiles, ProfilesError, parse_profiles,
+    parse_profiles_with, same_variable,
 };
 pub use routing::{ModelProxy, routable};
 pub use sessions::{
@@ -85,5 +91,5 @@ pub use sessions::{
 };
 pub use setup::{
     AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, home_variable,
-    login_command, missing,
+    installs, login_command, missing,
 };

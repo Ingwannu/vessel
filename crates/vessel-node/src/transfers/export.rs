@@ -139,7 +139,13 @@ impl Exporter<'_> {
         {
             return Err(TransferError::RelativeDirectory(project.clone()).into());
         }
-        let harness = profile.harness();
+        // An added agent's memory is its own files, unknown to Vessel
+        // (ADR 0032): there is nothing to export.
+        let harness = profile.known().ok_or_else(|| {
+            TransferError::Files(SessionFilesError::Unsupported {
+                harness: profile.harness(),
+            })
+        })?;
         let home = home(self.profiles, &profile)?;
         let (staged, snapshot) = {
             let (transfers, project) = (Arc::clone(self.transfers), request.project.clone());
@@ -206,7 +212,7 @@ pub(crate) fn named(
     match harness {
         Some(harness) if profile.harness() != harness => Err(ServiceError::ProfileHarness {
             profile: name.clone(),
-            profile_harness: profile.harness().into(),
+            profile_harness: profile.harness(),
             harness: harness.into(),
         }),
         Some(_) | None => Ok(profile),

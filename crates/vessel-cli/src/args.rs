@@ -8,12 +8,14 @@ use vessel_proto::{EventSeq, HarnessRef, ProfileName};
 
 use crate::selector::SessionSelector;
 
+mod agents;
 mod conversation;
 mod fleet;
 mod node;
 mod nodes;
 mod workspace;
 
+pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
@@ -81,6 +83,12 @@ pub(crate) enum Command {
         /// `admin` scope). A file that does not parse changes nothing.
         #[arg(long)]
         reload: bool,
+    },
+    /// The agents the node can run, and those added on it by their command
+    /// (any agent that speaks ACP, ADR 0032). Lists them without a command.
+    Agents {
+        #[command(subcommand)]
+        command: Option<AgentsCommand>,
     },
     /// Fleet sync: one node, the home, shares its instructions and skills;
     /// member nodes follow it into every profile (ADR 0012).
@@ -286,7 +294,8 @@ pub(crate) struct Run {
     /// Harness to run: claude-code (or claude), codex, gemini, opencode, or
     /// an agent added on the node (`vessel agents`).
     pub(crate) harness: HarnessRef,
-    /// Drive it over ACP and show a conversation instead of its terminal UI.
+    /// Drive it over ACP and show a conversation instead of its terminal UI
+    /// (always, for an added agent).
     #[arg(long)]
     pub(crate) structured: bool,
     /// Model to request (structured mode).

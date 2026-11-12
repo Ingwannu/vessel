@@ -127,6 +127,9 @@ pub(crate) enum CliError {
     /// Arguments that do not fit together.
     #[error("{0}")]
     Usage(&'static str),
+    /// An agent's text breaks its rule (`vessel agents add`).
+    #[error(transparent)]
+    AgentText(#[from] vessel_proto::agents::InvalidAgentText),
     #[error(transparent)]
     Ssh(#[from] SshError),
     #[error(transparent)]

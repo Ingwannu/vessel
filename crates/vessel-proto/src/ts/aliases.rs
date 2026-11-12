@@ -44,7 +44,10 @@
 //!   type an abbreviated one wherever a ref is taken. `ProjectCommand` is
 //!   content: a line of a project's file, shown to be approved.
 //! - Protocol 11's (track G, ADR 0032), by the same rule. Plain: an added
-//!   agent's name, which a person chooses and types.
+//!   agent's name, label and program, which a person chooses and types,
+//!   and an ACP registry entry's id and version, which a person reads and
+//!   may type. A handle: `AuthMethodId`, which
+//!   the agent names and the page only hands back, as an `OptionId`.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -78,9 +81,12 @@ pub enum Alias {
 /// sorted by name.
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
+    ("AgentLabel", Alias::Named),
     ("AgentName", Alias::Named),
+    ("AgentProgram", Alias::Named),
     ("AttachmentId", Alias::Handle),
     ("AttachmentName", Alias::Named),
+    ("AuthMethodId", Alias::Handle),
     ("BlobHash", Alias::Handle),
     ("BookName", Alias::Named),
     ("BranchName", Alias::Named),
@@ -137,6 +143,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QuestionId", Alias::Handle),
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
+    ("RegistryId", Alias::Named),
+    ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
     ("Revision", Alias::Quantity),

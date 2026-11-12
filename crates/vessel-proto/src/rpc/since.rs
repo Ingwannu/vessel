@@ -169,7 +169,10 @@ impl Call {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            | Self::ListAgents(_)
+            | Self::AddAgent(_)
+            | Self::RemoveAgent(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

@@ -889,7 +889,7 @@ fn routes_are_checked_when_profiles_are_read() {
     assert!(matches!(
         problem("[profiles.g]\nharness = \"gemini\"\nmodel = \"qwen-coder\"\n"),
         vessel_harness::ProfileProblem::NotRoutable {
-            harness: HarnessKind::Gemini
+            harness: vessel_proto::HarnessRef::Known(HarnessKind::Gemini)
         }
     ));
     assert!(matches!(

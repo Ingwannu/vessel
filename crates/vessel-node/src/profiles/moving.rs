@@ -61,7 +61,7 @@ pub(crate) async fn plan(
     if target.harness() != harness {
         return Err(ServiceError::ProfileHarness {
             profile: target.name().clone(),
-            profile_harness: target.harness().into(),
+            profile_harness: target.harness(),
             harness: harness.into(),
         });
     }
@@ -78,7 +78,7 @@ pub(crate) async fn plan(
         .home(&target)
         .ok_or_else(|| ServiceError::HomeUnknown(target.name().clone()))?;
     logged_in(lookup, profiles.env(), &target).await?;
-    let (mcp_servers, notices) = launcher.mcp_servers(&info.spec);
+    let (mcp_servers, notices) = launcher.mcp_servers(&info.spec, Some(&target));
     Ok(ProfileMove {
         mcp_servers,
         notices,

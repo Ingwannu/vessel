@@ -366,6 +366,30 @@ impl Handler for Fake {
         self.unsupported(request)
     }
 
+    async fn list_agents(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::ListAgents,
+    ) -> Result<Vec<vessel_proto::agents::AgentInfo>, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn add_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::AddAgent,
+    ) -> Result<vessel_proto::agents::AgentInfo, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn remove_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::RemoveAgent,
+    ) -> Result<Ack, WireError> {
+        self.unsupported(request)
+    }
+
     async fn move_profile(
         &self,
         _context: &Context,

@@ -6,16 +6,15 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_proc::CommandSpec;
-use vessel_proto::{
-    HarnessKind, HarnessRef, McpServerName, ResolvedMcpServers, SessionMode, SessionSpec,
-};
+use vessel_proto::{McpServerName, ResolvedMcpServers, SessionMode, SessionSpec};
 
+use crate::added::AddedAgent;
 use crate::env::HarnessEnv;
 use crate::error::HarnessError;
 use crate::harnesses::{Structured, descriptor};
 use crate::lookup::Lookup;
 use crate::mcp::{McpError, McpFile, TerminalMcp};
-use crate::profile::{Profile, same_variable};
+use crate::profile::{Base, Profile, same_variable};
 use crate::routing::{ModelProxy, Routed};
 
 /// What [`launch`] decided: the command, and what it needs around it.
@@ -90,7 +89,11 @@ pub fn launch(
     mcp: &ResolvedMcpServers,
     mcp_dir: Option<&Path>,
 ) -> Result<Launch, HarnessError> {
-    let harness = checked(spec, profile)?;
+    checked(spec, profile)?;
+    let harness = match profile.base() {
+        Base::Known(kind) => *kind,
+        Base::Added(agent) => return added(lookup, env, spec, profile, agent, proxy),
+    };
     let descriptor = descriptor(harness);
     let routed = match (profile.model(), proxy, &descriptor.model_proxy) {
         (None, None, _) => Routed::default(),
@@ -181,20 +184,55 @@ pub fn launch(
     })
 }
 
-/// The known harness `spec` runs, once `profile` is checked to be the one
-/// it asks for.
-fn checked(spec: &SessionSpec, profile: &Profile) -> Result<HarnessKind, HarnessError> {
-    let harness = match &spec.harness {
-        HarnessRef::Known(kind) => *kind,
-        HarnessRef::Added(name) => {
-            return Err(HarnessError::NotDefined { name: name.clone() });
-        }
+/// The launch of an agent added on the node (ADR 0032): structured only,
+/// on no route, its command from an empty environment
+/// ([`crate::added::command`], reading the node's own environment for what
+/// it passes on), then its profile's changes. Its MCP servers go over ACP,
+/// as for the four.
+fn added(
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    spec: &SessionSpec,
+    profile: &Profile,
+    agent: &AddedAgent,
+    proxy: Option<&ModelProxy>,
+) -> Result<Launch, HarnessError> {
+    if matches!(spec.mode, SessionMode::Terminal { .. }) {
+        return Err(HarnessError::NoTerminal {
+            name: agent.name().clone(),
+        });
+    }
+    // A profile of an added agent has no route (refused when it is read);
+    // a proxy given anyway is the caller's mistake.
+    if profile.model().is_some() || proxy.is_some() {
+        return Err(HarnessError::Unrouted {
+            profile: profile.name().clone(),
+        });
+    }
+    let command = crate::added::command(agent, lookup, env, profile.secret_values(), |name| {
+        std::env::var_os(name)
+    })?;
+    let command = with_profile(command, profile);
+    let command = match working_dir(spec, env)? {
+        Some(cwd) => command.cwd(cwd),
+        None => command,
     };
-    if profile.harness() != harness {
+    Ok(Launch {
+        command,
+        mcp_file: None,
+        unattached: Vec::new(),
+    })
+}
+
+/// Check that `profile` is the one `spec` asks for: of its harness, and
+/// the profile it names (or the harness's default).
+fn checked(spec: &SessionSpec, profile: &Profile) -> Result<(), HarnessError> {
+    let profile_harness = profile.harness();
+    if spec.harness != profile_harness {
         return Err(HarnessError::ProfileMismatch {
             profile: profile.name().clone(),
-            profile_harness: profile.harness().into(),
-            harness: harness.into(),
+            profile_harness,
+            harness: spec.harness.clone(),
         });
     }
     let requested = match &spec.profile {
@@ -207,7 +245,7 @@ fn checked(spec: &SessionSpec, profile: &Profile) -> Result<HarnessKind, Harness
             given: profile.name().clone(),
         });
     }
-    Ok(harness)
+    Ok(())
 }
 
 /// `command` with `profile`'s environment changes: removals first, then
@@ -393,7 +431,7 @@ mod tests {
     /// inherits.
     #[test]
     fn a_variable_the_harness_inherits_keeps_its_value() {
-        let plain = Profile::default_for(HarnessKind::Codex);
+        let plain = Profile::default_for(vessel_proto::HarnessKind::Codex);
         assert_eq!(
             check(&[("DOCS_TOKEN", "mine")], &plain),
             Err(shared("DOCS_TOKEN"))
@@ -413,7 +451,7 @@ mod tests {
 
     #[test]
     fn variables_that_steer_the_harness_are_refused() {
-        let plain = Profile::default_for(HarnessKind::Codex);
+        let plain = Profile::default_for(vessel_proto::HarnessKind::Codex);
         for name in [
             "PATH",
             "Path",
@@ -463,7 +501,10 @@ mod tests {
                     env: BTreeMap::new(),
                 },
             )]);
-            for harness in [HarnessKind::ClaudeCode, HarnessKind::Codex] {
+            for harness in [
+                vessel_proto::HarnessKind::ClaudeCode,
+                vessel_proto::HarnessKind::Codex,
+            ] {
                 let render = descriptor(harness).terminal_mcp.unwrap();
                 assert_eq!(
                     render(&servers).unwrap_err(),
