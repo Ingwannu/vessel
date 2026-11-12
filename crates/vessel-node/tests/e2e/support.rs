@@ -114,6 +114,9 @@ pub(crate) struct Fixture {
     bin: TempDir,
     /// The user home its nodes run harnesses under: never the machine's.
     home: TempDir,
+    /// The folder its sessions run in: apart from the data folder, which
+    /// an agent may not name as a session's folder.
+    work: TempDir,
 }
 
 impl Fixture {
@@ -189,6 +192,7 @@ impl Fixture {
             data,
             bin,
             home: tempfile::tempdir().unwrap(),
+            work: tempfile::tempdir().unwrap(),
         }
     }
 
@@ -235,7 +239,12 @@ impl Fixture {
     }
 
     pub(crate) fn cwd(&self) -> std::path::PathBuf {
-        self.data.path().to_path_buf()
+        self.work.path().to_path_buf()
+    }
+
+    /// Its nodes' data folder.
+    pub(crate) fn data_path(&self) -> &std::path::Path {
+        self.data.path()
     }
 
     /// The folder of fake harnesses its nodes look programs up in.

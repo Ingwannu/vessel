@@ -35,7 +35,7 @@ pub(crate) async fn stock_node(
 ) -> (Fixture, vessel_node::Node, NodeClient) {
     let fixture = Fixture::new();
     if let Some(id) = id {
-        std::fs::write(fixture.cwd().join("node.id"), format!("{id}\n")).unwrap();
+        std::fs::write(fixture.data_path().join("node.id"), format!("{id}\n")).unwrap();
     }
     let node = relayed_with(&fixture, &[&relay.url], |config| {
         config.name = Some(name.to_owned());
@@ -537,7 +537,7 @@ async fn a_reinstalled_node_grants_again_once_the_home_forgets_it() {
 
         // The same id, a new key, a new data directory.
         let fixture = Fixture::new();
-        std::fs::write(fixture.cwd().join("node.id"), format!("{id}\n")).unwrap();
+        std::fs::write(fixture.data_path().join("node.id"), format!("{id}\n")).unwrap();
         let node = member_node(&relay, &fixture, "desktop").await;
         assert_eq!(node.info().id, id);
         let since = Utc::now();
