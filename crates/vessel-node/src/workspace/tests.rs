@@ -939,6 +939,13 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
             reasons: vec![KeptReason::InspectionFailed]
         }
     );
+    assert!(
+        fixture
+            .workspaces
+            .tidy_candidates(TidyScope::Every)
+            .is_empty(),
+        "left to a person: a retry would run its teardown again"
+    );
     std::fs::write(&gitfile, original).unwrap();
     std::fs::remove_dir(worktree.path.join("fake")).unwrap();
 

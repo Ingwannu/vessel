@@ -31,10 +31,11 @@
 //!   runtime has it from its start, the store from its first row), so a
 //!   session being created is never taken for gone.
 //! - The sweep tries only worktrees tidying never kept, or kept because a
-//!   session was in it or git could not inspect it: one kept for the work
-//!   it holds stays until a person decides (`worktree.remove` with
-//!   `snapshot` or `discard`), as ADR 0027 says, and is not inspected again
-//!   at every prune.
+//!   session was in it (which costs no git run and no teardown until that
+//!   session has gone): one kept for the work it holds, or one git could
+//!   not inspect (whose teardown would run again at every try), stays
+//!   until a person decides (`worktree.remove` with `snapshot` or
+//!   `discard`), as ADR 0027 says.
 //! - Cost: a delete waits for the worktree's teardown, when it has an
 //!   approved one (at most 5 minutes, ADR 0027), as `worktree.remove`
 //!   does, and for a sweep already running.

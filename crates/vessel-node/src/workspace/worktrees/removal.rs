@@ -37,8 +37,8 @@ use crate::workspace::{WorkspaceError, Workspaces};
 pub(crate) enum TidyScope {
     /// Every one: the node's start, and after retention dropped sessions.
     Every,
-    /// Only those kept because a session was in them or git could not
-    /// inspect them: after a deletion, which may have let one go.
+    /// Only those kept because a session was in them: after a deletion,
+    /// which may have let one go.
     Kept,
 }
 
@@ -115,16 +115,19 @@ impl Workspaces {
 
     /// The sessions whose worktrees tidying may still remove, among those
     /// `scope` names; never one tidying kept for the work it holds, which
-    /// waits for a person (`crate::tidying`).
+    /// waits for a person (`crate::tidying`), nor one git could not
+    /// inspect: trying again would run its teardown again at every prune
+    /// and every deletion, for git to refuse again.
     pub(crate) fn tidy_candidates(&self, scope: TidyScope) -> Vec<SessionId> {
         self.state()
             .worktrees
             .values()
             .filter(|entry| match entry.info.kept {
                 None => scope == TidyScope::Every,
-                Some(KeptReason::InUse | KeptReason::InspectionFailed) => true,
+                Some(KeptReason::InUse) => true,
                 Some(
-                    KeptReason::Uncommitted { .. }
+                    KeptReason::InspectionFailed
+                    | KeptReason::Uncommitted { .. }
                     | KeptReason::UniqueCommits { .. }
                     | KeptReason::Operation { .. }
                     | KeptReason::Submodules
