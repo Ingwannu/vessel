@@ -263,7 +263,16 @@ function watch(
       );
     }
   };
-  const resized = new ResizeObserver(onScroll);
+  // The view growing shorter (a question or the queue opening over the
+  // composer, a phone's keyboard) does not take a reader at the end off
+  // it: read as a scroll, the dock's height would count as scrolling up
+  // past `NEAR_END`, and the last row would stay under the dock.
+  const resized = new ResizeObserver(() => {
+    if (reading.pin === null && reading.following) {
+      element.scrollTop = element.scrollHeight;
+    }
+    onScroll();
+  });
   resized.observe(element);
   read();
   element.addEventListener("scroll", onScroll, { passive: true });

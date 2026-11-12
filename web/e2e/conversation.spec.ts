@@ -271,6 +271,27 @@ test("a question the agent asks is answered in the dock over the composer", asyn
   await expect(timeline(page).getByText("answered: decline")).toBeVisible();
 });
 
+test("a question's dock on a phone leaves the timeline's end in view", async ({
+  page,
+}) => {
+  await openUi(page);
+  await startSession(page, "laptop", "Structured", "ask claude");
+  const dock = page.getByRole("region", { name: "Question from the agent" });
+  await expect(dock).toBeVisible();
+  // The window narrows to a phone's under the open dock.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const waiting = timeline(page).getByText(/^Waiting on an answer/);
+  await expect(async () => {
+    const line = await waiting.boundingBox();
+    const over = await dock.boundingBox();
+    expect(line).not.toBeNull();
+    expect(over).not.toBeNull();
+    if (line !== null && over !== null) {
+      expect(line.y + line.height).toBeLessThanOrEqual(over.y);
+    }
+  }).toPass();
+});
+
 test("the context meter and a turn's tokens are the agent's own figures", async ({
   page,
 }) => {
