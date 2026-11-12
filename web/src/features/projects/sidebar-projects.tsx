@@ -28,7 +28,7 @@ import { useStore } from "../../data/store";
 import { wantedPlace } from "../../data/workspace/wanted-place";
 import { Icon, IconButton, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { ProjectInfo, SessionInfo } from "../../wire/proto";
+import type { ProjectId, ProjectInfo, SessionInfo } from "../../wire/proto";
 import { SessionMark } from "../shell/session-mark";
 import { rowClass } from "../shell/sidebar";
 import { useNewSession } from "../shell/use-new-session";
@@ -37,17 +37,33 @@ import { useNewSession } from "../shell/use-new-session";
 const PROJECTS = 10;
 const SESSIONS = 6;
 
-/** Whether `session` runs in `project` (placed there, or in its folder). */
-function inProject(
-  session: SessionInfo,
-  project: ProjectInfo,
-  all: readonly ProjectInfo[],
-): boolean {
-  const workspace = session.workspace ?? null;
-  if (workspace !== null) {
-    return workspace.project === project.id;
+/** Each project's live sessions: placed there, or in its folder (the
+ * deepest project holding it). Worked out once per drawing, not per
+ * project shown. */
+function liveByProject(
+  sessions: readonly SessionInfo[],
+  projects: readonly ProjectInfo[],
+): ReadonlyMap<ProjectId, readonly SessionInfo[]> {
+  const grouped = new Map<ProjectId, SessionInfo[]>();
+  for (const session of sessions) {
+    if (!isLive(session)) {
+      continue;
+    }
+    const id =
+      session.workspace?.project ??
+      projectAmong(projects, session.spec.cwd)?.id ??
+      null;
+    if (id === null) {
+      continue;
+    }
+    const known = grouped.get(id);
+    if (known === undefined) {
+      grouped.set(id, [session]);
+    } else {
+      known.push(session);
+    }
   }
-  return projectAmong(all, session.spec.cwd)?.id === project.id;
+  return grouped;
 }
 
 function MachineProjects({
@@ -75,14 +91,13 @@ function MachineProjects({
   const list = projects.list.projects;
   const shown = all ? list : list.slice(0, PROJECTS);
   const [place, inNode, id] = where.segments;
+  const live = liveByProject(sessions ?? [], list);
   return (
     <>
       {shown.map((project) => {
         const key = `${node}\u0000${project.id}`;
         const isOpen = open.has(key);
-        const mine = (sessions ?? []).filter(
-          (session) => isLive(session) && inProject(session, project, list),
-        );
+        const mine = live.get(project.id) ?? [];
         return (
           <div key={key} className="side-project">
             <button

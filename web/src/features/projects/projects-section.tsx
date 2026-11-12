@@ -61,6 +61,8 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
   const projects = useProjects(fleet, node?.key ?? null);
   const [adding, setAdding] = useState<AddWay | null>(null);
   const [open, setOpen] = useState<ProjectId | null>(null);
+  // A removal the node refused, in words under the list until dismissed.
+  const [failure, setFailure] = useState<string | null>(null);
   if (node === null) {
     return (
       <SettingsPage lead={LEAD}>
@@ -187,7 +189,9 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
                                 setOpen(null);
                               }
                             } else {
-                              toast(outcome.problem.message, "error");
+                              setFailure(
+                                `${project.name} was not removed: ${outcome.problem.message}`,
+                              );
                             }
                             void loadProjects(fleet, node.key);
                           },
@@ -212,6 +216,24 @@ export function ProjectsSection({ machine }: { machine: NodeKey | undefined }) {
               </Banner>
             ) : null,
           )}
+        {failure === null ? null : (
+          <Banner
+            tone="error"
+            action={
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => {
+                  setFailure(null);
+                }}
+              >
+                Dismiss
+              </Button>
+            }
+          >
+            {failure}
+          </Banner>
+        )}
       </SettingsSection>
       {chosen === null ? null : (
         <ProjectDetail

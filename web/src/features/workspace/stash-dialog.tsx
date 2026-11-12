@@ -11,6 +11,7 @@ import { readStashes } from "../../data/workspace/git";
 import { Button, Dialog, Spinner } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { StashEntry, WorkspaceRoot } from "../../wire/proto";
+import { ConfirmDrop } from "./confirm-drop";
 import { GitNotice } from "./git-notice";
 import type { Git } from "./use-git";
 
@@ -85,16 +86,14 @@ export function StashDialog({
               >
                 Pop
               </Button>
-              <Button
-                size="xs"
-                variant="danger"
+              <ConfirmDrop
+                what={`stash@{${String(entry.index)}}`}
+                busy={git.busy === "stash"}
                 disabled={git.busy !== null}
-                onClick={() => {
+                onDrop={() => {
                   act(entry, "drop");
                 }}
-              >
-                Drop
-              </Button>
+              />
             </li>
           ))}
         </ul>

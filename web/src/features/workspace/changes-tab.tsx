@@ -81,6 +81,15 @@ function ChangesBody({
     status?.files.some(
       (file) => file.path === path && file.worktree === "untracked",
     ) ?? false;
+  // Discarding a file that is not in the last commit deletes it: an
+  // untracked one (git clean), and an added one (restored from HEAD,
+  // where it is not).
+  const deletes = (path: RelPath) =>
+    status?.files.some(
+      (file) =>
+        file.path === path &&
+        (file.worktree === "untracked" || file.index === "added"),
+    ) ?? false;
   return (
     <div className="changes">
       {status === null ? null : (
@@ -217,6 +226,7 @@ function ChangesBody({
         dialog={dialog}
         discarding={discarding}
         untracked={discarding !== null && untracked(discarding.path)}
+        deletes={discarding !== null && deletes(discarding.path)}
         defaultBranch={defaultBranch}
         onClose={() => {
           setDialog(null);

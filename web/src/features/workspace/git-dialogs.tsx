@@ -31,6 +31,7 @@ export function GitDialogs({
   dialog,
   discarding,
   untracked,
+  deletes,
   defaultBranch,
   onClose,
 }: {
@@ -42,6 +43,8 @@ export function GitDialogs({
   discarding: FileChange | null;
   /** Whether the file being discarded is untracked. */
   untracked: boolean;
+  /** Whether discarding it deletes it (untracked, or added). */
+  deletes: boolean;
   defaultBranch: string | null;
   onClose: () => void;
 }) {
@@ -70,6 +73,7 @@ export function GitDialogs({
         <DiscardDialog
           change={discarding}
           untracked={untracked}
+          deletes={deletes}
           git={git}
           onClose={onClose}
         />

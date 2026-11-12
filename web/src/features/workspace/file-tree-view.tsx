@@ -84,19 +84,26 @@ export function FileTreeView({
   node,
   root,
   ignored,
+  open,
+  onOpenChange,
   onFile,
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
   /** Whether files git ignores are listed too. */
   ignored: boolean;
+  /** The folders open, kept by the tab across a file opened. */
+  open: ReadonlySet<RelPath>;
+  onOpenChange: (open: ReadonlySet<RelPath>) => void;
   onFile: (path: RelPath) => void;
 }) {
   const fleet = useFleet();
   const [listings, setListings] = useState<ReadonlyMap<RelPath, Listing>>(
     () => new Map(),
   );
-  const [open, setOpen] = useState<ReadonlySet<RelPath>>(() => new Set());
+  // The folders open when this tree was drawn (a refresh draws a new
+  // one): listed with the root, so they come back as they are on disk.
+  const [listedFirst] = useState(open);
   // A folder's listing, asked of the node; until it answers, a folder
   // with no listing draws as loading (`treeRows`).
   const fetchListing = useCallback(
@@ -116,7 +123,10 @@ export function FileTreeView({
   );
   useEffect(() => {
     fetchListing("");
-  }, [fetchListing]);
+    for (const dir of listedFirst) {
+      fetchListing(dir);
+    }
+  }, [fetchListing, listedFirst]);
   const rows = useMemo(() => treeRows(listings, open), [listings, open]);
   const windowed = useWindow(rows, null, { follow: false });
   const { scroller, span } = windowed;
@@ -132,7 +142,7 @@ export function FileTreeView({
         fetchListing(path);
       }
     }
-    setOpen(next);
+    onOpenChange(next);
   };
   return (
     <div className="file-scroll" ref={scroller}>

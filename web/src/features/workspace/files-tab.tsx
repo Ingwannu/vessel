@@ -36,6 +36,10 @@ export function FilesTab({
   const [query, setQuery] = useState("");
   const [content, setContent] = useState(false);
   const [ignored, setIgnored] = useState(false);
+  // The tree's open folders, kept here so a file opened and closed comes
+  // back to the tree as it was; `round` reads them all again (Refresh).
+  const [folders, setFolders] = useState<ReadonlySet<RelPath>>(() => new Set());
+  const [round, setRound] = useState(0);
   const [seq, setSeq] = useState(0);
   const open = (path: RelPath, line: number | null) => {
     setSeq((value) => value + 1);
@@ -98,13 +102,26 @@ export function FilesTab({
             }}
           />
         </Tooltip>
+        <Tooltip label="Refresh">
+          <IconButton
+            label="Refresh files"
+            icon="refresh"
+            size="xs"
+            variant="ghost"
+            onClick={() => {
+              setRound((value) => value + 1);
+            }}
+          />
+        </Tooltip>
       </div>
       {searching === "" ? (
         <FileTreeView
-          key={String(ignored)}
+          key={`${String(ignored)}:${String(round)}`}
           node={node}
           root={root}
           ignored={ignored}
+          open={folders}
+          onOpenChange={setFolders}
           onFile={(path) => {
             open(path, null);
           }}

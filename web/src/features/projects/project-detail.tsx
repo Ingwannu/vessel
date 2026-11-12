@@ -3,7 +3,8 @@
 // `vessel.toml` names, and whether that set is approved, with Approve or
 // Withdraw; its worktrees, each removable (by the node's rule, then the
 // person's choice when work would be lost) and set up again; its
-// snapshots, each droppable.
+// snapshots, each droppable. What the node refuses is said in words above
+// the lists until dismissed, never in a toast that goes by.
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -19,13 +20,12 @@ import {
   setupWord,
 } from "../../data/workspace/worktree-words";
 import {
-  dropSnapshot,
   listSnapshots,
   listWorktrees,
   removeWorktree,
   runSetup,
 } from "../../data/workspace/worktrees";
-import { Button, Row, RowList } from "../../ui/kit";
+import { Banner, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
@@ -38,6 +38,7 @@ import type {
 import { FactValue, SettingsSection } from "../settings/settings-page";
 import { Commands } from "./project-commands";
 import { ApprovalDialog } from "./approval-dialog";
+import { ProjectSnapshots } from "./project-snapshots";
 import { RemoveWorktreeDialog } from "./remove-worktree-dialog";
 
 /** What the project's lists hold, once read. */
@@ -63,6 +64,7 @@ export function ProjectDetail({
     snapshots: [],
   });
   const [approving, setApproving] = useState<ListedCommands | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const [removing, setRemoving] = useState<{
     worktree: WorktreeInfo;
     reasons: readonly KeptReason[];
@@ -86,7 +88,9 @@ export function ProjectDetail({
       (outcome) => {
         setApproving(null);
         if (!outcome.ok) {
-          toast(outcome.problem.message, "error");
+          setFailure(
+            `The commands were not ${approved ? "approved" : "withdrawn"}: ${outcome.problem.message}`,
+          );
         }
         load();
       },
@@ -95,7 +99,9 @@ export function ProjectDetail({
   const remove = (worktree: WorktreeInfo) => {
     void removeWorktree(fleet, node, worktree.id, "keep").then((outcome) => {
       if (!outcome.ok) {
-        toast(outcome.problem.message, "error");
+        setFailure(
+          `${worktree.branch ?? "The worktree"} was not removed: ${outcome.problem.message}`,
+        );
       } else if (outcome.value.outcome === "kept") {
         setRemoving({ worktree, reasons: outcome.value.reasons });
       } else {
@@ -128,6 +134,24 @@ export function ProjectDetail({
           />
         </RowList>
       </SettingsSection>
+      {failure === null ? null : (
+        <Banner
+          tone="error"
+          action={
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => {
+                setFailure(null);
+              }}
+            >
+              Dismiss
+            </Button>
+          }
+        >
+          {failure}
+        </Banner>
+      )}
       <SettingsSection title="Commands">
         <Commands
           commands={lists.commands}
@@ -174,7 +198,9 @@ export function ProjectDetail({
                             void runSetup(fleet, node, worktree.id).then(
                               (outcome) => {
                                 if (!outcome.ok) {
-                                  toast(outcome.problem.message, "error");
+                                  setFailure(
+                                    `Setup did not start: ${outcome.problem.message}`,
+                                  );
                                 }
                                 load();
                               },
@@ -201,41 +227,13 @@ export function ProjectDetail({
           )}
         </SettingsSection>
       ) : null}
-      {lists.snapshots.length === 0 ? null : (
-        <SettingsSection title="Snapshots">
-          <RowList label="Snapshots">
-            {lists.snapshots.map((snapshot) => (
-              <Row
-                key={snapshot.worktree}
-                mark={{ icon: "archive" }}
-                title={snapshot.branch ?? snapshot.commit.slice(0, 7)}
-                detail={{
-                  facts: [
-                    snapshot.commit.slice(0, 7),
-                    when(snapshot.created_at),
-                  ],
-                }}
-                control={
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => {
-                      void dropSnapshot(
-                        fleet,
-                        node,
-                        project.id,
-                        snapshot.worktree,
-                      ).then(load);
-                    }}
-                  >
-                    Drop
-                  </Button>
-                }
-              />
-            ))}
-          </RowList>
-        </SettingsSection>
-      )}
+      <ProjectSnapshots
+        node={node}
+        project={project.id}
+        snapshots={lists.snapshots}
+        onDropped={load}
+        onFailed={setFailure}
+      />
       {approving === null ? null : (
         <ApprovalDialog
           commands={approving}

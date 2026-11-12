@@ -114,12 +114,13 @@ export function AddProjectDialog({
         }}
       >
         {way === "clone" ? (
+          // Plain text, not a URL field: git takes `git@host:org/repo.git`,
+          // which a browser's URL check refuses on Enter.
           <Field label="Repository URL" error={error}>
             <TextField
               value={url}
               onChange={setUrl}
               mono
-              type="url"
               icon="link"
               placeholder="https://github.com/org/repository.git"
               autoFocus

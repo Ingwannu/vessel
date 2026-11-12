@@ -1,7 +1,7 @@
 // "Discard changes?" (Paseo's confirm): what is thrown away, before it is.
-// A tracked file goes back to its last commit; an untracked one is
-// deleted, which the dialog says in its own words, since nothing brings
-// it back.
+// A tracked file goes back to its last commit; one the last commit does
+// not have (untracked, or added since) is deleted, which the dialog says
+// in its own words, since nothing brings it back.
 
 import { Button, Dialog } from "../../ui/kit";
 import type { FileChange } from "../../wire/proto";
@@ -11,12 +11,16 @@ import type { Git } from "./use-git";
 export function DiscardDialog({
   change,
   untracked,
+  deletes,
   git,
   onClose,
 }: {
   change: FileChange;
-  /** Whether git does not track the file (discarding deletes it). */
+  /** Whether git does not track the file (`git clean` deletes it). */
   untracked: boolean;
+  /** Whether discarding deletes the file: untracked, or added since the
+   * last commit. */
+  deletes: boolean;
   git: Git;
   onClose: () => void;
 }) {
@@ -43,7 +47,7 @@ export function DiscardDialog({
                 });
             }}
           >
-            {untracked ? "Delete" : "Discard"}
+            {deletes ? "Delete" : "Discard"}
           </Button>
         </>
       }
@@ -51,7 +55,9 @@ export function DiscardDialog({
       <p className="dialog-copy">
         {untracked
           ? `"${name}" is not tracked by git: discarding deletes the file, and nothing can bring it back.`
-          : `Changes to "${name}" will be permanently discarded: it goes back to its last commit, staged and unstaged changes alike.`}
+          : deletes
+            ? `"${name}" is not in the last commit: discarding deletes the file, staged or not, and nothing can bring it back.`
+            : `Changes to "${name}" will be permanently discarded: it goes back to its last commit, staged and unstaged changes alike.`}
       </p>
       {git.notice === null ? null : <GitNotice notice={git.notice} />}
     </Dialog>
