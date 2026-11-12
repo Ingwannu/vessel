@@ -113,14 +113,26 @@ async fn one(
             () = run.cancel.cancelled() => break Ended::Cancelled,
         }
     };
-    let code = match ended {
-        Ended::Closed => child.wait().await.ok().flatten(),
-        Ended::TimedOut | Ended::Cancelled => {
+    // Its output closed is not its end: a command that sends its output
+    // elsewhere (`docker compose up >/dev/null 2>&1`) closes the pipes and
+    // runs on, so the wait for its exit is held to the deadline and the
+    // cancel too.
+    let ended = match ended {
+        Ended::Closed => tokio::select! {
+            code = child.wait() => Exit::Code(code.ok().flatten()),
+            () = tokio::time::sleep_until(deadline) => Exit::Stopped(Ended::TimedOut),
+            () = run.cancel.cancelled() => Exit::Stopped(Ended::Cancelled),
+        },
+        stopped @ (Ended::TimedOut | Ended::Cancelled) => Exit::Stopped(stopped),
+    };
+    let (ended, code) = match ended {
+        Exit::Code(code) => (Ended::Closed, code),
+        Exit::Stopped(stopped) => {
             if let Err(error) = child.signal(Signal::Kill) {
                 tracing::debug!(%error, "a setup command had already ended");
             }
             let _code = child.wait().await;
-            None
+            (stopped, None)
         }
     };
     pumps.abort();
@@ -159,6 +171,14 @@ enum Ended {
     Cancelled,
 }
 
+/// How waiting for a command's exit ended.
+enum Exit {
+    /// It exited, with this code (none: a signal, or unknown).
+    Code(Option<i32>),
+    /// The deadline or the cancel came first: it is stopped.
+    Stopped(Ended),
+}
+
 /// Both pipes into one channel, as they arrive.
 async fn pump_both(
     stdout: impl AsyncRead + Unpin,
@@ -188,6 +208,9 @@ async fn pump(mut stream: impl AsyncRead + Unpin, sender: mpsc::Sender<Vec<u8>>)
 
 /// The command as the platform's shell runs it, and a script file to
 /// remove afterwards (Windows).
+/// Numbers each Windows command file this process writes.
+static SCRIPTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 async fn shell(
     command: &ProjectCommand,
     index: usize,
@@ -201,10 +224,22 @@ async fn shell(
         spec
     };
     if cfg!(windows) {
-        let script = run
-            .scratch
-            .join(format!("vessel-command-{index}-{}.cmd", std::process::id()));
-        tokio::fs::write(&script, format!("@echo off\r\n{}\r\n", command.as_str())).await?;
+        // A name of its own per command run, made new: two worktrees'
+        // setups run at once share the scratch folder, and one must never
+        // run (or overwrite) the other's file.
+        let script = run.scratch.join(format!(
+            "vessel-command-{}-{index}-{}.cmd",
+            std::process::id(),
+            SCRIPTS.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let mut file = tokio::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&script)
+            .await?;
+        file.write_all(format!("@echo off\r\n{}\r\n", command.as_str()).as_bytes())
+            .await?;
+        drop(file);
         let spec = base("cmd.exe").args(["/d", "/c"]).arg(&script);
         Ok((spec, Some(script)))
     } else {
@@ -336,6 +371,12 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(timed_out, Some(SetupFailure::TimedOut));
+        // A command whose output goes elsewhere closes the pipes at once
+        // and runs on: still stopped at the limit.
+        let quiet = run(&commands(&["sleep 30 >/dev/null 2>&1"]), &slow, &written)
+            .await
+            .unwrap();
+        assert_eq!(quiet, Some(SetupFailure::TimedOut));
         let cancel = CancellationToken::new();
         cancel.cancel();
         let stopped = Run {
