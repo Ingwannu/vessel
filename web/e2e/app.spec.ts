@@ -155,6 +155,13 @@ test("a structured session runs a turn and answers its permission", async ({
   await startSession(page, "gpu-box", "Structured", "tidy the overview");
   await expect(timeline(page).getByText("Agent ready")).toBeVisible();
   await expect(timeline(page).getByText("Run fake tool").first()).toBeVisible();
+  // One box around a tool call: the card draws its border, the timeline's
+  // row around it draws none. The two once shared a class name and the
+  // row drew the card's box a second time.
+  const card = timeline(page).locator("details.tool-card").first();
+  const row = timeline(page).locator(".t-item.tool").first();
+  await expect(card).toHaveCSS("border-top-width", "1px");
+  await expect(row).toHaveCSS("border-top-width", "0px");
   // One prompt, docked over the composer; the timeline keeps a line.
   const prompt = page.getByRole("group", { name: "Permission request" });
   await expect(prompt).toContainText("Approval needed");

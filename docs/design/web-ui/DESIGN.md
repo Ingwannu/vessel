@@ -783,7 +783,7 @@ item is a row with a 8px glyph on the rail:
 | `UserMessageChunk` | same | resume replay; muted, labelled "replayed" |
 | `MessageChunk` | empty circle | markdown, sans 13px, max 78ch |
 | `ThoughtChunk` | dashed circle | collapsed `<details>`, tertiary |
-| `ToolCall` | square by `ToolKind` | `.tool` card, §6.6 |
+| `ToolCall` | square by `ToolKind` | `.tool-card` card, §6.6 |
 | `ToolCallUpdate` | (same card, in place) | do not append a second card |
 | `Plan` | checklist | inspector, and a compact strip in-timeline |
 | `PermissionRequested` | amber diamond | one line, "Waiting on permission · <tool>", in the review colour; the prompt itself is docked over the composer (§6.7) |
@@ -813,7 +813,10 @@ accent-left only for blockquotes.
 
 ### 6.6 Tool-call cards
 
-`<details class="tool">`. Summary: kind icon, title, status badge,
+`<details class="tool-card">`, one box: the timeline's row around it
+(`.t-item.tool`) draws no border of its own, and the card's class is not
+the row's, so no rule for one can paint the other (they once shared the
+name and the card sat in a second box). Summary: kind icon, title, status badge,
 location path (mono, truncated from the left), then a chevron that turns
 while open; the browser's triangle is not drawn. (A command's icon is the
 terminal's mark, not a run triangle: beside the chevron a triangle read

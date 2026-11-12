@@ -44,7 +44,7 @@ export function ToolCard({ tool }: { tool: ToolState }) {
   const open = tool.status === "pending" || tool.status === "in_progress";
   const path = tool.locations[0]?.path;
   return (
-    <details className="tool" open={open}>
+    <details className="tool-card" open={open}>
       <summary>
         <Icon name={toolIcon(tool.kind)} size={14} />
         <span className="title">{tool.title}</span>
