@@ -364,6 +364,53 @@ teardown = "docker compose down"
   without the repository's hooks (except on commit and push) and without
   the programs its configuration names.
 
+### Shells, scripts and services beside a session
+
+A node opens shells beside a session or in a project (protocol 11, ADR
+0031). They outlive the page and the attach, and end with the node; their
+last 1 MiB of output is kept in memory, never on disk.
+
+```bash
+vessel shell --session 3f2a               # a shell in the session's folder; Ctrl-] detaches
+vessel shell --project app --dir web      # or in a project's folder
+vessel shell list                         # live first, then the ended ones kept
+vessel shell attach 9c1e                  # back to it, its screen replayed
+vessel shell close 9c1e                   # end it and forget it
+vessel script list --project app          # the project's scripts and services, and their runs
+vessel script run test --project app      # run one, following its output
+vessel script run web --session 3f2a      # a service in the session's worktree
+vessel script restart 7b2d                # in place while it runs
+vessel script stop 7b2d
+vessel ports                              # what the sessions' and terminals' processes listen on
+```
+
+Scripts and services are named in the project's `vessel.toml`, beside
+`[worktree]`, and run under the same approval:
+
+```toml
+[scripts.test]
+command = "cargo test"
+
+[services.web]
+command = "npm run dev"
+dir = "web"                                # a folder inside the checkout
+```
+
+- They run only once a person approved that exact set (`vessel project
+  approve`); a file that names scripts is digested anew, so an approval
+  given before it named any does not cover them. Agents cannot run them.
+- A service that fails starts again after 1, 2, 4, 8 and 16 s, and is
+  given up after five restarts without a minute's run; one that exits
+  cleanly stays ended. A script or service ends with everything it
+  started; a shell's own jobs end with it on Linux (on macOS and Windows a
+  job a shell detached may outlive it).
+- A terminal's environment is the node's without Vessel's own tokens and
+  credentials; a script's adds `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`,
+  `VESSEL_BRANCH` and `VESSEL_SCRIPT`.
+- Ports are found without privilege (`/proc` on Linux, `lsof` on macOS,
+  `netstat` on Windows), every few seconds while someone asks; nothing is
+  opened or forwarded.
+
 ## Profiles, the fleet and agent tools
 
 Milestone 4 (ADRs 0011 to 0013). Each part works on its own: profiles on

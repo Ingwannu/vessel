@@ -3324,6 +3324,7 @@ dependencies = [
  "vessel-store",
  "vessel-testkit",
  "vessel-web",
+ "which",
 ]
 
 [[package]]

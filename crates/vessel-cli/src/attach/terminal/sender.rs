@@ -32,9 +32,9 @@ use bytes::Bytes;
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 use vessel_client::NodeClient;
-use vessel_proto::{SessionId, SessionInput, TerminalBytes, TerminalInput, TerminalSize};
+use vessel_proto::{TerminalBytes, TerminalInput, TerminalSize};
 
-use crate::attach::{Sent, send};
+use crate::attach::{Keys, Sent, send_keys};
 use crate::error::CliError;
 
 /// Most bytes of keys queued while a send is in flight.
@@ -100,7 +100,7 @@ impl Pending {
 /// without one once `clients` is closed (the stream is gone).
 pub(super) fn spawn(
     mut clients: watch::Receiver<Option<NodeClient>>,
-    session: SessionId,
+    keys: Keys,
 ) -> (mpsc::Sender<Vec<Item>>, JoinHandle<Result<(), CliError>>) {
     // Capacity one: a batch waits here only while the previous one is being
     // sent; everything typed meanwhile stays in `Pending` and is joined.
@@ -119,7 +119,7 @@ pub(super) fn spawn(
                 };
                 // A refusal (the session just ended) is shown by `send`;
                 // the stream then ends the attach.
-                let sent = send(&client, session, SessionInput::Terminal { input }).await?;
+                let sent = send_keys(&client, keys, input).await?;
                 // A lost send is not repeated. Wait until the stream has
                 // noticed and replaced this connection before sending more.
                 if sent == Sent::Lost && clients.changed().await.is_err() {

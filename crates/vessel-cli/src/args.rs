@@ -12,12 +12,14 @@ mod conversation;
 mod fleet;
 mod node;
 mod nodes;
+mod terminals;
 mod workspace;
 
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
+pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
@@ -146,6 +148,17 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: WorktreeCommand,
     },
+    /// Shells beside sessions (protocol 11, ADR 0031): without a
+    /// subcommand, open one (`--session` or `--project`) and attach.
+    Shell(Shell),
+    /// A project's scripts and services (`vessel.toml`), run once
+    /// approved.
+    Script {
+        #[command(subcommand)]
+        command: ScriptCommand,
+    },
+    /// The TCP ports the node's sessions and terminals listen on.
+    Ports(Ports),
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs
     /// until interrupted.
@@ -323,7 +336,7 @@ pub(crate) struct Run {
     pub(crate) args: Vec<String>,
 }
 
-fn parse_seq(text: &str) -> Result<EventSeq, std::num::ParseIntError> {
+pub(crate) fn parse_seq(text: &str) -> Result<EventSeq, std::num::ParseIntError> {
     text.parse().map(EventSeq::new)
 }
 

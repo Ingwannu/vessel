@@ -62,6 +62,9 @@ vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-store.workspace = true
 # The fake model provider (feature `upstream`) for the model canary.
 vessel-testkit = { workspace = true, features = ["upstream"] }
+# The script tests run the machine's real git (protocol 11); already in
+# the workspace (vessel-node's tests).
+which.workspace = true
 
 [lints]
 workspace = true

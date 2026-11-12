@@ -18,7 +18,8 @@ use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
 use crate::selector::SessionSelector;
 use crate::{
-    conversation, devices, fleet, init, io, nodes, remote, render, transfer, ui, workspace,
+    conversation, devices, fleet, init, io, nodes, remote, render, terminals, transfer, ui,
+    workspace,
 };
 
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
@@ -83,6 +84,9 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Run(run) => run_session(target, run).await,
         Command::Project { command } => workspace::project(target, command).await,
         Command::Worktree { command } => workspace::worktree(target, command).await,
+        Command::Shell(shell) => terminals::shell(target, shell).await,
+        Command::Script { command } => terminals::script(target, command).await,
+        Command::Ports(ports) => terminals::ports(target, &ports).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
