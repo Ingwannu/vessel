@@ -4,3 +4,6 @@ dist/
 artifacts/
 test-results/
 playwright-report/
+
+# TypeScript's incremental build state, written by a local `tsc -b`.
+*.tsbuildinfo
