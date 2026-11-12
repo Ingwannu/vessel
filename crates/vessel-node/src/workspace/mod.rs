@@ -33,7 +33,7 @@ mod scripts;
 mod setup;
 mod worktrees;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
@@ -43,7 +43,9 @@ use crate::transfers::Holder;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_proto::workspace::{CommandsDigest, GitSupport, ProjectInfo, WorktreeInfo};
+use vessel_proto::workspace::{
+    ApprovedCommands, CommandSet, CommandsDigest, GitSupport, ProjectInfo, WorktreeInfo,
+};
 use vessel_proto::{Creator, ProjectId, WorktreeId};
 use vessel_store::{Store, StoreError};
 use vessel_workspace::find::Indexes;
@@ -136,6 +138,14 @@ pub(super) struct State {
     projects: HashMap<ProjectId, ProjectEntry>,
     worktrees: HashMap<WorktreeId, WorktreeEntry>,
     approvals: HashSet<(ProjectId, CommandsDigest)>,
+    /// What the newest approvals of each project covered, newest first,
+    /// at most `vessel_store::MAX_APPROVED_SETS` (protocol 11): the first
+    /// is shown beside a set that is not approved.
+    approved_sets: HashMap<ProjectId, Vec<ApprovedCommands>>,
+    /// The sets described lately, by digest, newest last, at most
+    /// `projects::commands::DESCRIBED`: what an approval of a digest
+    /// covers (the digest is of the set, so one found here is exactly it).
+    described: VecDeque<(CommandsDigest, Arc<CommandSet>)>,
     /// Who is making a worktree now, one entry each, counted with the
     /// worktrees against the limits, so creations at once cannot all pass
     /// the check before any is recorded.

@@ -475,6 +475,7 @@ pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
             scripts,
             digest,
             approved,
+            last_approved,
         } => {
             let mut text = String::new();
             for (list, name) in [(setup, "setup"), (teardown, "teardown")] {
@@ -505,6 +506,18 @@ pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
                 "digest: {digest}\napproved: {}",
                 if *approved { "yes" } else { "no" }
             );
+            // Protocol 11: what was approved last, when this set is not.
+            if let Some(last) = last_approved {
+                let _written = writeln!(
+                    text,
+                    "last approved: {} ({}), {} setup, {} teardown, {} scripts and services",
+                    last.digest,
+                    last.approved_at.to_rfc3339(),
+                    last.commands.setup.len(),
+                    last.commands.teardown.len(),
+                    last.commands.scripts.len()
+                );
+            }
             text
         }
     }

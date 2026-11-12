@@ -55,6 +55,9 @@ impl Workspaces {
                 ));
             }
             state.approvals.extend(stored.approvals);
+            for (project, set) in stored.approved_sets {
+                state.approved_sets.entry(project).or_default().push(set);
+            }
         }
         for info in rewrite {
             if let Err(error) = self.save_project(info).await {
@@ -178,6 +181,7 @@ impl Workspaces {
             }
             let removed = state.projects.remove(&project);
             state.approvals.retain(|(owner, _)| *owner != project);
+            let _sets = state.approved_sets.remove(&project);
             removed.and_then(|entry| entry.clone)
         };
         if let Some(cancel) = cancel {

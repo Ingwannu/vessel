@@ -4,11 +4,11 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 9 to 7 (protocol 10), so a test can take a database
+/// Undoes schemas 11 to 7 (protocols 10 and 11), so a test can take a database
 /// further back: the workspace's tables (9), retention's index (schema 1's
 /// in its place, 8), the conversation's columns and the attachments table
 /// (7).
-const UNDO_SCHEMAS_7_TO_10: &str = "DROP TABLE forge_feedback_sent;
+const UNDO_SCHEMAS_7_TO_11: &str = "DROP TABLE forge_feedback_sent;
      DROP TABLE forge_feedback_on;
      DROP TABLE approvals;
      DROP TABLE worktrees;
@@ -142,7 +142,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_10).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_11).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).

@@ -372,6 +372,32 @@ fn a_forwarded_call_nests_its_inner_call() {
     assert_eq!(inner.since(), V6);
 }
 
+/// Protocol 11's write guard (the join of wave 2's first half): a write
+/// guarded by its content needs 11, which a protocol 10 node could not
+/// decode; one that creates only, or writes whatever is there, does not.
+#[test]
+fn a_write_guarded_by_its_content_needs_protocol_eleven() {
+    use crate::workspace::{ContentHash, WorkspaceRoot, WriteExpect, WriteFile};
+    let write = |expect| {
+        WriteFile {
+            root: WorkspaceRoot::Project {
+                project: crate::id::ProjectId::random(),
+            },
+            path: "a.txt".parse().unwrap(),
+            text: String::new(),
+            expect,
+        }
+        .into_call()
+    };
+    assert_eq!(write(WriteExpect::Absent).since(), V10);
+    assert_eq!(write(WriteExpect::Any).since(), V10);
+    let hash = ContentHash::from_sha256([7; 32]);
+    assert_eq!(
+        write(WriteExpect::Content { hash }).since(),
+        ProtocolVersion::new(11)
+    );
+}
+
 #[test]
 fn a_new_field_raises_what_a_call_needs() {
     let terminal = SessionMode::Terminal {

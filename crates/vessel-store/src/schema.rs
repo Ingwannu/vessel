@@ -231,9 +231,19 @@ CREATE TABLE forge_feedback_sent (
 ) STRICT, WITHOUT ROWID;
 ";
 
+/// Version 11 (milestone 11, protocol 11, the join of wave 2's first
+/// half): an approval keeps the set it approved (`commands`, the
+/// `CommandSet` as JSON), so a set that changed can be shown beside the
+/// one last approved (`vessel_proto::workspace::approval`). Approvals
+/// from before have none (`NULL`). Track C was given 11 and needed none,
+/// so this one took it.
+const V11: &str = "
+ALTER TABLE approvals ADD COLUMN commands TEXT;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

@@ -48,6 +48,8 @@ mod moving;
 #[cfg(test)]
 mod options;
 #[cfg(test)]
+mod page_wire;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 #[cfg(unix)]

@@ -7,10 +7,11 @@
 //!   bound for the editor), written to a temporary file beside the target
 //!   and renamed over it, so a reader never sees half a file; the old
 //!   file's permissions are kept. A write states what it expects to find
-//!   ([`WriteExpect`]): a version is the size, the change time in
-//!   nanoseconds and, for a file of at most 8 MiB, a SHA-256 of the
-//!   content, since a coarse clock (FAT's 2 s, HFS+'s 1 s) can keep size
-//!   and time across an edit.
+//!   ([`WriteExpect`]): nothing, or the SHA-256 of the content it read
+//!   (files of at most 8 MiB carry one), never a time: a coarse clock
+//!   (FAT's 2 s, HFS+'s 1 s) keeps size and time across an edit, and a
+//!   page cannot hold a time in nanoseconds exactly (protocol 11, the
+//!   `FileVersion` Decision Log in `vessel-proto`).
 //! - Reads are pages of at most 1 MiB from an offset, never the whole file;
 //!   binary files are recognised (a NUL byte in the first 8 KiB, or bytes
 //!   that are not UTF-8) and not sent.
@@ -249,15 +250,15 @@ fn open_file(file: &Path, path: &RelPath) -> Result<File, FileError> {
         .ok_or_else(|| FileError::Kind(path.clone(), "file"))
 }
 
-/// An open file's version: size, change time, and its content's hash when
-/// small; read from its start, and left there.
+/// An open file's version: size, change time (milliseconds), and its
+/// content's hash when small; read from its start, and left there.
 fn version_of(file: &mut File) -> Result<FileVersion, FileError> {
     let metadata = file.metadata().map_err(FileError::Io)?;
     let modified = metadata
         .modified()
         .ok()
         .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-        .and_then(|since| u64::try_from(since.as_nanos()).ok())
+        .and_then(|since| u64::try_from(since.as_millis()).ok())
         .unwrap_or(0);
     let hash = if metadata.len() <= MAX_HASHED {
         let mut hasher = Sha256::new();
@@ -306,13 +307,12 @@ pub async fn write(
         }
         match (&expect, exists) {
             (WriteExpect::Absent, true) => return Err(FileError::Exists(path)),
-            (WriteExpect::Version { .. }, false) => return Err(FileError::Changed(path)),
-            (WriteExpect::Version { version }, true) => {
+            (WriteExpect::Content { .. }, false) => return Err(FileError::Changed(path)),
+            (WriteExpect::Content { hash }, true) => {
+                // A file past the hashed bound has no hash, so it is not the
+                // content the caller read (which had one).
                 let now = version_of(&mut open_file(&target, &path)?)?;
-                let same = now.size == version.size
-                    && now.modified == version.modified
-                    && (version.hash.is_none() || now.hash == version.hash);
-                if !same {
+                if now.hash.as_ref() != Some(hash) {
                     return Err(FileError::Changed(path));
                 }
             }

@@ -171,6 +171,23 @@ digest: CommandsDigest,
 approved: boolean, };
 
 /**
+ * A set a person approved for a project, and when.
+ */
+export type ApprovedCommands = { 
+/**
+ * What was approved.
+ */
+commands: CommandSet, 
+/**
+ * Its digest, as `project.approve` was given it.
+ */
+digest: CommandsDigest, 
+/**
+ * When (the newest approval of it).
+ */
+approved_at: string, };
+
+/**
  * Shared fields for a query at a saved source position.
  */
 export type AtPosition = { 
@@ -595,6 +612,25 @@ transfer: TransferId, };
  * space: what follows the first space is the command's input.
  */
 export type CommandName = string;
+
+/**
+ * What a project's file names to run: setup and teardown, and its
+ * scripts and services (protocol 11). Bounded by the file it was parsed
+ * from: at most 64 KiB, 32 commands of each kind, 32 scripts.
+ */
+export type CommandSet = { 
+/**
+ * Run when a worktree is created.
+ */
+setup: Array<ProjectCommand>, 
+/**
+ * Run before a worktree is removed.
+ */
+teardown: Array<ProjectCommand>, 
+/**
+ * Its scripts and services, in name order; left out when none.
+ */
+scripts?: Array<ScriptEntry>, };
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
@@ -1470,8 +1506,27 @@ content: FileContent, };
 export type FileState = "unmodified" | "modified" | "added" | "deleted" | "renamed" | "copied" | "type_changed" | "untracked" | "conflicted" | "unknown";
 
 /**
- * What a write expects to find, so it never overwrites a change it did
- * not see.
+ * A file as it was read or written: what a page shows, and the hash a
+ * later write is guarded by ([`WriteExpect::Content`]).
+ *
+ * [Decision Log]
+ * - Purpose: a write must never overwrite a change it did not see, and a
+ *   page must be able to say exactly which version it saw.
+ * - Constraint: the page is JavaScript, whose numbers hold integers to
+ *   2^53 only; protocol 10 had `modified` in nanoseconds (past 2^53 since
+ *   1970 plus 104 days) and compared it exactly, so a page's guard almost
+ *   never matched and the page wrote with `any` after a check of its
+ *   own, which a change landing in between could be lost to.
+ * - Alternatives: the time as text (exact, but a guard by the clock is
+ *   still wrong on a coarse file system, FAT's 2 s); the whole version
+ *   echoed back with `modified` ignored (a field sent and not compared
+ *   misleads); the content hash alone (chosen).
+ * - Choice (the join of wave 2's first half): the guard is the content's
+ *   SHA-256, which a page holds exactly as text; `modified` is shown only,
+ *   in milliseconds, which a JavaScript number holds exactly.
+ * - Cost: a file over 8 MiB has no hash, so it can be replaced only with
+ *   `any` (the editor edits at most 1 MiB anyway); a guarded write hashes
+ *   the file once more (at most 8 MiB, on the blocking pool).
  */
 export type FileVersion = { 
 /**
@@ -1479,12 +1534,14 @@ export type FileVersion = {
  */
 size: number, 
 /**
- * When it was last changed, in nanoseconds since the Unix epoch.
+ * When it was last changed, in milliseconds since the Unix epoch, as
+ * the file system says (0 when it does not, and for a blob): for
+ * showing only, never compared. A JavaScript number holds it exactly.
  */
 modified: number, 
 /**
- * SHA-256 of its content, for a file of at most 8 MiB: a change
- * within one tick of a coarse clock keeps the size and the time.
+ * SHA-256 of its content, for a file of at most 8 MiB: what a later
+ * write is guarded by ([`WriteExpect::Content`]).
  */
 hash?: ContentHash | null, };
 
@@ -3524,7 +3581,14 @@ approved: boolean,
  * Its scripts and services, in name order (protocol 11, ADR
  * 0031); the digest covers them. Left out when there are none.
  */
-scripts?: Array<ScriptEntry>, } | { "state": "invalid", 
+scripts?: Array<ScriptEntry>, 
+/**
+ * The set last approved for this project, to show what changed
+ * (protocol 11): only while this set is not approved, and only
+ * when the node kept what that approval covered (approvals given
+ * from protocol 11 on). Bounded as this set is.
+ */
+last_approved?: ApprovedCommands | null, } | { "state": "invalid", 
 /**
  * Why.
  */
@@ -6516,13 +6580,14 @@ commit: CommitId,
 name?: RefName | null, };
 
 /**
- * What a write expects.
+ * What a write expects to find; a write that finds anything else
+ * changes nothing and is `conflict`.
  */
-export type WriteExpect = { "kind": "absent" } | { "kind": "version", 
+export type WriteExpect = { "kind": "absent" } | { "kind": "content", 
 /**
- * The version read.
+ * The SHA-256 of the content expected.
  */
-version: FileVersion, } | { "kind": "any" };
+hash: ContentHash, } | { "kind": "any" };
 
 /**
  * `file.write`: a whole text file.

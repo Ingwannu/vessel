@@ -52,17 +52,38 @@ pub struct DirListing {
     pub more: bool,
 }
 
-/// What a write expects to find, so it never overwrites a change it did
-/// not see.
+/// A file as it was read or written: what a page shows, and the hash a
+/// later write is guarded by ([`WriteExpect::Content`]).
+///
+/// [Decision Log]
+/// - Purpose: a write must never overwrite a change it did not see, and a
+///   page must be able to say exactly which version it saw.
+/// - Constraint: the page is JavaScript, whose numbers hold integers to
+///   2^53 only; protocol 10 had `modified` in nanoseconds (past 2^53 since
+///   1970 plus 104 days) and compared it exactly, so a page's guard almost
+///   never matched and the page wrote with `any` after a check of its
+///   own, which a change landing in between could be lost to.
+/// - Alternatives: the time as text (exact, but a guard by the clock is
+///   still wrong on a coarse file system, FAT's 2 s); the whole version
+///   echoed back with `modified` ignored (a field sent and not compared
+///   misleads); the content hash alone (chosen).
+/// - Choice (the join of wave 2's first half): the guard is the content's
+///   SHA-256, which a page holds exactly as text; `modified` is shown only,
+///   in milliseconds, which a JavaScript number holds exactly.
+/// - Cost: a file over 8 MiB has no hash, so it can be replaced only with
+///   `any` (the editor edits at most 1 MiB anyway); a guarded write hashes
+///   the file once more (at most 8 MiB, on the blocking pool).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct FileVersion {
     /// Its size in bytes.
     pub size: u64,
-    /// When it was last changed, in nanoseconds since the Unix epoch.
+    /// When it was last changed, in milliseconds since the Unix epoch, as
+    /// the file system says (0 when it does not, and for a blob): for
+    /// showing only, never compared. A JavaScript number holds it exactly.
     pub modified: u64,
-    /// SHA-256 of its content, for a file of at most 8 MiB: a change
-    /// within one tick of a coarse clock keeps the size and the time.
+    /// SHA-256 of its content, for a file of at most 8 MiB: what a later
+    /// write is guarded by ([`WriteExpect::Content`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hash: Option<ContentHash>,
 }
@@ -97,17 +118,22 @@ pub struct FileRead {
     pub content: FileContent,
 }
 
-/// What a write expects.
+/// What a write expects to find; a write that finds anything else
+/// changes nothing and is `conflict`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum WriteExpect {
-    /// Nothing there: create only.
+    /// Nothing there: create only. `conflict` when something is.
     Absent,
-    /// This version: replace only it.
-    Version {
-        /// The version read.
-        version: FileVersion,
+    /// A file whose content is exactly this: the `hash` of the
+    /// [`FileVersion`] the caller read or last wrote. `conflict` when
+    /// nothing is there, or its content is other than that (including a
+    /// file grown past 8 MiB, which has no hash). Protocol 11; it replaces
+    /// protocol 10's `version`, which compared a time a page cannot hold.
+    Content {
+        /// The SHA-256 of the content expected.
+        hash: ContentHash,
     },
     /// Whatever is there, or nothing.
     Any,

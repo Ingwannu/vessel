@@ -328,7 +328,7 @@ project's setup commands.
 vessel project add ~/code/app               # inside a repository: its top level
 vessel project clone https://github.com/owner/repo.git ~/code
 vessel project list
-vessel project commands app                 # what vessel.toml would run, and its digest
+vessel project commands app                 # what vessel.toml would run, its digest, what was approved last
 vessel project approve app <digest>         # that exact set runs from now on
 vessel worktree new app                     # a new branch from the default one; follows setup
 vessel run claude --project app --new-worktree   # the same, then a session in it

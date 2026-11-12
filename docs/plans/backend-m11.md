@@ -4816,3 +4816,200 @@ For the page track:
 - `port.list { changed_from }` is a long poll; the first answer may be
   `pending` until the first scan. A port is reported, never opened:
   previews are the preview track's, on an origin other than the page's.
+
+## Integration 2 (node): tracks B2 and C
+
+2026-11-12, on `backend/m11-int2-node`: track B2's branch
+(`backend/m11-forge`) with track C's (`backend/m11-shells`) merged in.
+The page's tracks (A-page, B-page) are joined apart; the coordinator
+joins the two. Every track's commit is kept; the merge commit builds
+and passes, and each follow-up is a commit of its own.
+
+### What conflicted, and how each was resolved
+
+The merge conflicted in 33 files: the wire (`vessel-proto`: `rpc.rs`,
+`rpc/older.rs`, `rpc/since.rs`, `rpc/tests.rs`, `forward.rs`,
+`ts/aliases.rs`), the node (`service.rs`, `service/worktrees.rs`,
+`guard.rs`, `envelope.rs`, `node.rs`, `config.rs`, `tidying.rs`,
+`workspace/{mod,policy,tests}.rs`, `workspace/worktrees/removal.rs`),
+the session runtime (`handle.rs`, `runtime/parts.rs`), the agent tools
+(`vessel-mcp`'s `tools.rs` and its test), the CLI (`args.rs`,
+`commands.rs`, `main.rs`), `vessel-rpc` (the client's unary list, its
+test handler), `vessel-client`'s test handler, `vessel-web/src/calls.rs`,
+ADR 0001, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, this plan and the
+generated `web/src/wire/proto.ts`.
+
+- Where both tracks added to the same list (the method table and every
+  list naming each method: `Call::since`, `Reply::for_protocol`, the
+  forwardable list, the unary calls, the web bridge's list, the guard's
+  rows, the envelope's dispatch, the test handlers, the agents' list,
+  the agent tools, the CLI's commands, `Config`, the node's parts, the
+  session's shared state), both stay, B2's first. The agent tools are
+  session, conversation, workspace, pull request, terminal, then the
+  language server's (34).
+- A worktree's removal: B2 read the live sessions after its claim
+  (ADR 0030); C passed what runs where (`Occupant`: sessions and
+  terminals) read before. The merge keeps B2's order with C's occupants:
+  `remove_worktree` and `retire` take a closure called after the claim,
+  returning live sessions, live terminals and terminals starting.
+- Code written against a type the other side changed, with no textual
+  conflict, found by `cargo check --workspace --all-targets` right after
+  the merge: C's terminals and scripts called `Workspaces::busy`, which
+  B2 had replaced with the "starting" count. Resolved by giving terminals
+  the same count (below, meeting point 2).
+- `ProtocolVersion` 11 raised once; schema 10 (B2) kept. Track C was
+  given schema 11 and needed none; the join's set last approved took it
+  (below), and the store's tests walk 9, 10, 11 in order
+  (`tests/approvals.rs`; the rollback SQL of the older tests is
+  `UNDO_SCHEMAS_7_TO_11`).
+- The plan keeps every section: contracts B2, C; progress B2, C; then
+  this one. `web/src/wire/proto.ts` regenerated, never hand-merged;
+  `Cargo.lock` merged clean and did not change when built.
+- In the merge commit, beyond resolving: B2's protocol 11 reads sat in a
+  test list that only ever saw protocol 10's prefixes, so their scope was
+  never checked; protocol 11's nineteen methods have a test of their own.
+  C's refusal of `script.*` to agents had a broken line continuation (18
+  spaces in the message); the agents' refusal now says why by family.
+
+### Where the two tracks met, and what was decided
+
+1. **How git runs, and what C starts (ADR 0030 with ADR 0031).** A
+   terminal, a script, a service, setup and teardown are not git runs of
+   the node's: they run only where a person asked (a terminal; an
+   agent's only where a person set `agent_terminals` on both profiles) or
+   approved (the digest, which covers scripts), and git inside them runs
+   under the repository's configuration as in the user's own terminal.
+   ADR 0030 is amended to say so. Checked that nothing C starts runs
+   unapproved: `script.run` runs the command of the very parse whose
+   digest is approved, a service asks again before every restart, a
+   restart of a run asks again; no git is run to build a script's
+   environment. The environment: besides Vessel's credentials (C's list),
+   the variables the forge's token is read from (`GH_TOKEN`,
+   `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, now
+   `vessel_forge::SIGN_IN_VARIABLES`) are removed from every terminal,
+   script and service, and from setup and teardown, which removed
+   nothing before. Tested: the removal list (`env.rs`), setup's command
+   without a removed variable (`commands.rs`). Not closed, and said in
+   ADRs 0029 and 0031: an agent's own harness inherits the node's
+   environment (ADR 0013), and `gh`'s stored login is readable by any
+   process of the user.
+2. **A terminal starting in a worktree being removed (C's open
+   window).** Closed inside the removal's own claim: a terminal or a
+   script's run whose folder is in a worktree takes ADR 0030's "starting"
+   count (`Workspaces::hold_folder`) before its reservation and its
+   spawn, and gives it back once registered, when it is one of the live
+   terminals the removal reads after its claim. Either the removal sees
+   it (`kept { in_use }`) or the start finds the claim and is refused
+   (`conflict`) before anything runs. C's check after the start, which
+   killed a terminal that started under a removal, is gone. Tests:
+   `git_apart.rs` (a held worktree is kept; inside the removal's reading
+   a start is refused) and the e2e `meeting` race (six rounds of a
+   terminal opened beside a session in a worktree while the worktree is
+   removed; with the hold taken out, it fails in the first round on
+   every run, three of three).
+3. **B2's watcher and feedback beside C's terminals and services.**
+   Decided, for a session with a pull request and a service and a shell
+   beside it:
+   - its end: the watch and `SessionInfo.pull_request` end (B2); the
+     service and the shell run on (C: `session.resume` starts it again in
+     the same folder), so its worktree is kept;
+   - archived: the watch ends (B2) and now the terminals and runs beside
+     it end too, kept with their output (a service beside a session put
+     away would hold its port and its worktree unseen); the worktree can
+     then go;
+   - deleted: terminals and runs end and are forgotten, then its
+     worktree is tidied (C), its watch dropped and its feedback rows
+     deleted with it (B2);
+   - its worktree removed: never while anything live is in it; a removal
+     ends nothing.
+   Tested end to end in `meeting` (archive; end then delete), against the
+   in-memory forge and `/bin/sh`. The meeting test found a bug of C's:
+   a script beside a session and a terminal's count against a project
+   read the session's place from the runtime's info, which never carries
+   it, so `script.run { place: session }` answered `no_project` for
+   every session; both take it from the workspace registry now.
+4. **The agent's limits in one place.** `workspace/policy.rs`'s
+   exhaustive `refused` is the one list of what an agent may call through
+   the node: refused `forge.status`, `pr.list`, `pr.merge`,
+   `pr.feedback`, `script.list`, `script.run`, `script.restart` (and
+   protocol 10's workspace calls); open here and held to their own rule
+   `pr.get` (refresh only on a session it may operate), `pr.open` (same,
+   never pushing), every `terminal.*` and `port.list` (both profiles,
+   four at once, only its own). No method is undecided (a new one does
+   not compile); the test names every protocol 11 method.
+5. **`SessionInfo` and the board.** Every reply that carries a session
+   carries its pull request while it is watched (`session.list`,
+   `session.get`, a mark's reply: checked in `meeting`); an ended
+   session's is cleared, as the store has none. A session's terminals are
+   not put on `SessionInfo`: a page lists `terminal.list {}` (at most 96)
+   once and groups by `place`, since a terminal's change moves its own
+   `revision`, not the session's, and a count on the session would be
+   stale between reads. Older peers: a protocol 8 to 10 client ignores
+   `pull_request` and draws the board's lanes it knows; it sees no
+   terminal.
+
+### The two gaps the page found, fixed in protocol 11
+
+- **`ProjectCommands::Listed.last_approved`** (`ApprovedCommands {
+  commands: CommandSet { setup, teardown, scripts }, digest, approved_at
+  }`), while the listed set is not approved. The node remembers the last
+  16 sets it described by digest; an approval of one stores the set with
+  it (schema 11: `approvals.commands`; approved again, the newest time);
+  the four newest per project are held in memory. An approval from
+  before, or of a digest the node never described, has no set and is
+  never shown. Bounded as the set it mirrors. A protocol 10 client gets
+  the set without it. A page shows `last_approved.commands` beside the
+  listed set.
+- **A write guarded by the content hash.** A page sends `file.write {
+  root, path, text, expect: { kind: "content", hash } }` with
+  `FileVersion.hash` of what it read or last wrote. `conflict`: nothing
+  is there, or the content is not that (another write landed, or the
+  file grew past 8 MiB and has no hash); nothing is written. `absent`:
+  `conflict` when something is there. `version`, which compared
+  nanoseconds no page can hold, is gone (protocol 10 was never
+  released); `modified` is milliseconds, shown only. B-page's
+  workaround (`any` after a check of its own) can be removed in the
+  page's join: `{ kind: "version", version }` no longer typechecks.
+- ADR 0027 amended for both; tests: `approvals.rs` (node), the store's
+  schema walk and bound, `a_write_is_guarded_by_the_content_it_read`
+  (workspace), `Call::since` (a `content` write needs 11), the stand-in
+  for protocol 10, and `page_wire` through a node for both.
+
+### New aliases on the wire
+
+All twelve were classified by their tracks; the join added none
+(`CommandSet` and `ApprovedCommands` are structs of existing ones):
+
+- B2: `CheckName`, `ConfigKey`, `ForgeHost`, `ForgeLogin`, `ForgeUrl`,
+  `PullNumber`, `PullTitle`, `RepoPath` named; `PullBody` content.
+- C: `TerminalId` a handle; `ScriptName` named; `ProcessName` content.
+
+### Tests that fail only under load
+
+The machine ran at load 10 to 18 for most of the join (other workers
+building). The page's end-to-end tests are fixed in the page's join, so
+they are reported here, not changed:
+
+- On the merge commit: `page.spec.ts:255` ("with Mod+Enter chosen, Enter
+  starts a line…") failed once, a strict-mode violation: `getByText("echo:
+  plain", { exact: true })` matched the Timeline's paragraph and the live
+  region's visually hidden copy (`aria-live="polite"`). It races on
+  whether the live region still holds the announcement when the
+  assertion runs; the locator wants scoping to the Timeline region, as
+  B-page did for another.
+- On the first follow-up, at load 15: three failed in one cascade.
+  `page.spec.ts:154` ("with the sidebar hidden, Mod+K still opens the
+  command palette") pressed Control+B to show the sidebar again and did
+  not see it within 15 s; one `vessel ui` keeps preferences for the whole
+  run, so the sidebar stayed hidden for the tests after it,
+  `page.spec.ts:279` (the Display button detached while the sidebar went
+  away) and `reconnect.spec.ts:10` (the sidebar's "Connected" mark not
+  found). Its `finally` presses Control+B right after Escape closed the
+  palette: under load the keypress most likely lands while the closing palette
+  still holds focus, and is lost; a page that kept the preference hidden
+  then hides the sidebar for every later test. Waiting for focus to come
+  back (or setting the preference through the bridge in the `finally`)
+  would close it. Run again at load 2 on the same binaries: 36 of 36
+  passed.
+- None touches terminals, pull requests or files; no node code was
+  involved. `vessel-remote`'s connection test passed in every run here.

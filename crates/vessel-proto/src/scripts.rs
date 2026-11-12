@@ -241,15 +241,32 @@ impl ProjectCommands {
     /// This set as a client speaking `protocol` may see it, or `None` when
     /// it needs no change: a listed set with scripts is `invalid` to a
     /// client before protocol 11, so it never holds the digest of a set it
-    /// could not display.
+    /// could not display; the set last approved (protocol 11) is left out
+    /// for such a client, which knows no such field.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if protocol >= SCRIPTS_SHOWN {
+            return None;
+        }
         match self {
-            Self::Listed { scripts, .. } if !scripts.is_empty() && protocol < SCRIPTS_SHOWN => {
-                Some(Self::Invalid {
-                    message: NOT_SHOWN.to_owned(),
-                })
-            }
+            Self::Listed { scripts, .. } if !scripts.is_empty() => Some(Self::Invalid {
+                message: NOT_SHOWN.to_owned(),
+            }),
+            Self::Listed {
+                setup,
+                teardown,
+                digest,
+                approved,
+                scripts,
+                last_approved: Some(_),
+            } => Some(Self::Listed {
+                setup: setup.clone(),
+                teardown: teardown.clone(),
+                digest: digest.clone(),
+                approved: *approved,
+                scripts: scripts.clone(),
+                last_approved: None,
+            }),
             Self::None | Self::Listed { .. } | Self::Invalid { .. } => None,
         }
     }
@@ -318,6 +335,7 @@ mod tests {
             digest: digest.clone(),
             approved: false,
             scripts,
+            last_approved: None,
         };
         let dev = ScriptEntry {
             name: "dev".parse().unwrap(),
@@ -334,6 +352,20 @@ mod tests {
         assert_eq!(
             listed(Vec::new()).for_protocol(ProtocolVersion::new(10)),
             None
+        );
+        // The set last approved reaches only a client that knows it.
+        let mut changed = listed(Vec::new());
+        if let ProjectCommands::Listed { last_approved, .. } = &mut changed {
+            *last_approved = Some(Box::new(crate::workspace::ApprovedCommands {
+                commands: crate::workspace::CommandSet::default(),
+                digest: digest.clone(),
+                approved_at: chrono::DateTime::UNIX_EPOCH,
+            }));
+        }
+        assert_eq!(changed.for_protocol(ProtocolVersion::new(11)), None);
+        assert_eq!(
+            changed.for_protocol(ProtocolVersion::new(10)),
+            Some(listed(Vec::new()))
         );
         let outcome = CreateWorktreeOutcome::NeedsApproval { commands: with };
         assert!(matches!(

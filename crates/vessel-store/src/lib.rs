@@ -81,4 +81,4 @@ pub use lock::{NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
-pub use workspace::StoredWorkspace;
+pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};

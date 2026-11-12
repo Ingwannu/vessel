@@ -7,6 +7,7 @@
 //! paths that stay inside their root and git names that cannot read as
 //! options.
 
+mod approval;
 mod diff;
 mod files;
 mod git;
@@ -17,6 +18,7 @@ mod text;
 mod url;
 mod worktree;
 
+pub use approval::{ApprovedCommands, CommandSet};
 pub use diff::{
     ChangeStatus, DiffContent, DiffLine, DiffScope, DiffSummary, FileChange, FileDiff, GetChanges,
     GetFileDiff, Hunk, LineKind, ModeChange,

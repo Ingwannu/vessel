@@ -233,3 +233,34 @@ protocol 10.
 - A session that passed `place`'s check (or `session.resume`'s) and is
   not live yet keeps its worktree from removal (`in_use`), so a removal
   can no longer take the folder between the check and the start.
+
+## Amended when wave 2's first half was joined (2026-11-12)
+
+The page track found two places where the wire could not carry what a
+page holds; both are closed in protocol 11.
+
+- **An approval keeps what it covered.** A set asked again (its digest
+  changed) is shown beside the set last approved, so a person sees what
+  changed rather than reading it all as new: `ProjectCommands::Listed`
+  gains `last_approved` (while the listed set is not approved). The node
+  remembers the last 16 sets it described, by digest (the digest is of
+  the set, so one found is exactly what it covers), and an approval of
+  one stores it with the approval (store schema 11, a column of
+  `approvals`; approved again, the newest time). The four newest per
+  project are held in memory. An approval given before, or of a digest
+  the node never described (a client that computed it itself), covers
+  no set the node can show, and is never "last approved".
+  Alternatives: the page keeping what it showed (lost with the tab, and
+  another client may have approved); reading the file again at the
+  approval (the set approved may be a base commit's); every approved set
+  listed (the page shows one).
+- **A file's write is guarded by its content hash.** `FileVersion.
+  modified` was nanoseconds in a `u64` and the guard compared it
+  exactly; a JavaScript number holds integers to 2^53, so a page's
+  guard almost never matched, and the page wrote with `any` after a
+  check of its own, losing a change that landed between the two. The
+  guard is now `WriteExpect::content { hash }` (the SHA-256 the version
+  carries, text, held exactly); `version` is gone (protocol 10 was never
+  released); `modified` is milliseconds, shown only. A file over 8 MiB
+  has no hash and can be replaced only with `any`; a guarded write
+  hashes the file once more on the blocking pool.

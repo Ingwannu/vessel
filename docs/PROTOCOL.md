@@ -105,6 +105,33 @@ Six methods, one optional field, no event. Every type is in
   a folder inside one, a bare repository) are `invalid_request` for
   `project.add`, `project.init` and a clone's target.
 
+### Two gaps the page found, closed in the join (ADR 0027's amendment)
+
+- **A file's write is guarded by its content.** `WriteExpect` is
+  `absent` (create only), `content { hash }` or `any`; protocol 10's
+  `version`, which compared `FileVersion.modified` in nanoseconds (past
+  what a JavaScript number holds) exactly, is gone (protocol 10 was
+  never released). A page that saves an edit sends `file.write { root,
+  path, text, expect: { kind: "content", hash } }`, `hash` being
+  `FileVersion.hash` of the version it read or last wrote (a string,
+  held exactly). Failures: `conflict` when nothing is there, or its
+  content is not that (another write landed, the file grew past 8 MiB);
+  nothing is written, and the page reads the file again to show both.
+  `absent` answers `conflict` when something is there. A version without
+  `hash` (a file over 8 MiB) cannot be guarded: the editor offers no
+  guarded save for it. `FileVersion.modified` is milliseconds since the
+  epoch, for showing only, never compared. A `content` write needs
+  protocol 11 (`Call::since`).
+- **`ProjectCommands::Listed.last_approved?: ApprovedCommands { commands:
+  CommandSet { setup, teardown, scripts }, digest, approved_at }`**: the
+  set last approved for the project, while the listed set is not
+  approved, so a page can show what changed. Present only when the node
+  kept what that approval covered: from protocol 11 an approval of a
+  digest the node described lately (16 sets remembered by digest) keeps
+  its set (store schema 11); an older approval has none and is never
+  shown. Bounded as the listed set is (a file of at most 64 KiB). A
+  protocol 10 client is sent the set without it.
+
 ### Terminals, scripts and ports (track C, ADR 0031)
 
 Thirteen methods, one optional field and no event; ADR 0031 and the
@@ -389,7 +416,8 @@ Forty of the methods, two optional fields and no event.
     repository's record of it, is `conflict`, and git is not run in it.
   - Files: `file.list`, `file.read`, `file.find { query, key? }` (by
     name; a newer search with the same key replaces a running one),
-    `file.grep` (read); `file.write { expect: absent | version | any }`,
+    `file.grep` (read); `file.write { expect: absent | version | any }`
+    (protocol 11 replaces `version` with `content { hash }`, below),
     `file.create_dir`, `file.rename`, `file.delete` (operate). A path
     that leads out of the root, one that cannot be followed (a link to
     nowhere, a file where a folder should be, no permission) and one
