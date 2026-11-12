@@ -648,7 +648,9 @@ browser on Unix (on Windows, open the printed address).
   activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
   it opens from the title bar's menu button.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
-  sections): General (whether Enter or `Ctrl+Enter` sends), Appearance
+  sections): General (whether Enter or `Ctrl+Enter` sends, and whether a
+  message sent while the agent works is queued, steered into its turn or
+  interrupts it), Appearance
   (theme, interface and code font sizes, the conversation's width, and
   whether tool calls are collapsed), Shortcuts (every key, searchable,
   each rebound by pressing the new one; a key another command holds is

@@ -316,7 +316,9 @@ move between sections. Below 768px the column's padding is 12px.
   them. A machine that shares nothing says how to make it the one that
   does.
 - **General**: Composer (the send shortcut: Enter, or ⌘/Ctrl+Enter with
-  Enter starting a line; agent-orchestrator's "Chat send key"), then
+  Enter starting a line; agent-orchestrator's "Chat send key"; and "While
+  the agent works": Queue, Steer or Interrupt, what Send does during a
+  turn, §6.15), then
   Kept: where the bridge keeps the preferences (the file's path) and the
   drafts, or why they are kept for this launch only.
 - **Appearance** (GOAT's and Paseo's): Theme (the colour scheme: system,

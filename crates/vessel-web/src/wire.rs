@@ -37,7 +37,7 @@ pub use prefs::{
     MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS, MAX_MACHINES,
     MachineDefaults, Notifications, OutOfRange, Panel, PreferenceChange, Preferences,
     PreferencesState, Revision, SendKey, SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget,
-    SidebarView, Theme, TooMany,
+    SidebarView, Theme, TooMany, TurnDelivery,
 };
 
 use std::fmt;

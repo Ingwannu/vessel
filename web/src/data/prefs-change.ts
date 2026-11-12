@@ -21,7 +21,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     conversation: "full",
   },
   layout: { sidebar: "shown", inspector: "shown" },
-  composer: { send: "enter" },
+  composer: { send: "enter", delivery: "queue" },
   shortcuts: {},
   notifications: { alerts: "off", title: true },
   sidebar: { group: "machine", sort: "created", ended: false },
@@ -81,7 +81,12 @@ export function applyChange(
     case "inspector_panel":
       return { ...prefs, layout: { ...prefs.layout, inspector: change.value } };
     case "send":
-      return { ...prefs, composer: { send: change.value } };
+      return { ...prefs, composer: { ...prefs.composer, send: change.value } };
+    case "delivery":
+      return {
+        ...prefs,
+        composer: { ...prefs.composer, delivery: change.value },
+      };
     case "alerts":
       return {
         ...prefs,

@@ -196,7 +196,11 @@ export type Composer = {
 /**
  * Which key sends.
  */
-send: SendKey, };
+send: SendKey, 
+/**
+ * What Send does while a turn runs.
+ */
+delivery: TurnDelivery, };
 
 /**
  * How wide the conversation is.
@@ -587,7 +591,7 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "shortcuts", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "shortcuts", "value": { 
 /**
  * At most [`MAX_EDITS`].
  */
@@ -890,3 +894,24 @@ export type Theme = "system" | "light" | "dark";
  * How a node is reached.
  */
 export type Transport = "ws" | "ssh" | "paired";
+
+/**
+ * What Send does with a prompt while the agent's turn runs: protocol
+ * 10's ways of delivering one, less `start` (what Send does between
+ * turns).
+ *
+ * [Decision Log]
+ * - Purpose: agent-orchestrator, GOAT and Paseo each let a person choose
+ *   whether a message typed during a turn waits for it, joins it or
+ *   stops it; GOAT and T3 Code keep the default as a setting.
+ * - Choice: the default kept here, with the bridge's other preferences
+ *   (ADR 0028), so every tab and every launch sends the same way. Its
+ *   name is not the protocol's for the same set: the page's two
+ *   generated files share one namespace of type names, and the
+ *   protocol's has `start` too. (Nor is that name written here: the
+ *   generator imports every protocol type a comment mentions.)
+ * - Steer stays a choice even for an agent that cannot steer: the page
+ *   then queues and says so, and the person's choice holds for the next
+ *   agent that can.
+ */
+export type TurnDelivery = "queue" | "steer" | "interrupt";
