@@ -308,6 +308,11 @@ impl Sessions {
         }
     }
 
+    /// The live session `id`, when the runtime has it.
+    pub(crate) fn live(&self, id: SessionId) -> Option<SessionHandle> {
+        self.runtime.get(id).filter(|handle| !handle.has_ended())
+    }
+
     pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
         Ok(match self.find(id).await? {
             Found::Live { handle, .. } => handle.info(),

@@ -24,6 +24,7 @@
 
 mod args;
 mod conversation;
+mod forge;
 mod lsp;
 mod sessions;
 mod waiting;
@@ -94,6 +95,7 @@ impl VesselTools {
             "list_projects" | "list_worktrees" | "create_worktree" => {
                 self.workspace(name, args).await
             }
+            "get_pull_request" | "open_pull_request" => self.forge(name, args).await,
             "create_session" => self.create_session(args).await,
             "send_input" => self.send_input(args).await,
             "answer_permission" => self.answer_permission(args).await,
@@ -247,6 +249,7 @@ fn tools() -> Vec<Tool> {
         .into_iter()
         .chain(conversation::tools(&node, &session))
         .chain(workspace::tools(&node))
+        .chain(forge::tools(&node, &session))
         .chain(lsp::tools())
         .collect()
 }

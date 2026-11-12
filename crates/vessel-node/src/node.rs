@@ -28,6 +28,7 @@ use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
 use crate::fleet::{self, FleetFiles, FleetMcp};
+use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
 use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
@@ -457,6 +458,16 @@ async fn core(
     // each prune (`tidying`); deletions tidy their own.
     let tidying = Tidying::new(Arc::clone(&sessions), Arc::clone(&workspaces));
     Arc::clone(&tidying).watch(store.pruned(), &tasks, stop.clone());
+    // Pull requests (protocol 11): the watcher is one of the node's tasks;
+    // `gh` runs in the data folder, outside any repository.
+    let forges = Forges::start(
+        config.forge.clone(),
+        config.data_dir.root().to_path_buf(),
+        store.clone(),
+        Arc::clone(&workspaces),
+        &tasks,
+        stop.clone(),
+    );
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -476,6 +487,7 @@ async fn core(
         probes: Probes::new(setup.probe_dir),
         workspaces,
         tidying,
+        forges,
     })));
     Ok(Core {
         runtime,

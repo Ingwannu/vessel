@@ -39,7 +39,7 @@ vessel-session  -> proto, harness, pty, agent
 vessel-store    -> proto
 vessel-node     -> proto, rpc, harness, session, store, secure, relay,
                    fleet, client (milestone 4), lsp (milestone 6),
-                   llm (milestone 5), workspace (milestone 11)
+                   llm (milestone 5), workspace, forge (milestone 11)
 vessel-client   -> proto, rpc, secure, relay
 vessel-remote   -> proto, rpc, client      (milestone 2)
 vessel-secure   -> proto                   (milestone 3)
@@ -169,3 +169,7 @@ no shell), conditional reads and rate limits, and an in-memory forge for
 tests (feature `fake`). It knows no session, store or principal: which
 sessions are watched, what is sent to them and who may call is the
 node's.
+
+`vessel-node -> forge`: the node decides which sessions are watched,
+when, for whom, and what becomes of the answers (the board, feedback
+through the queue, the calls); the provider makes the requests.

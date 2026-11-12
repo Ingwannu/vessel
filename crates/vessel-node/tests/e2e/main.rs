@@ -25,6 +25,10 @@ mod crowd;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod forge;
+#[cfg(test)]
+mod forge_rules;
+#[cfg(test)]
 mod grants;
 #[cfg(test)]
 mod isolation;

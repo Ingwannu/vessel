@@ -216,7 +216,7 @@ impl Git {
     }
 
     /// The remote of the branch checked out, else `origin`.
-    async fn remote_of_branch(&self, dir: &Path, branch: Option<&BranchName>) -> String {
+    pub(super) async fn remote_of_branch(&self, dir: &Path, branch: Option<&BranchName>) -> String {
         if let Some(branch) = branch
             && let Ok(output) = self
                 .command(dir)

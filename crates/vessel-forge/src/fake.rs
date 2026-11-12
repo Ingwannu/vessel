@@ -47,6 +47,8 @@ struct State {
     writers: HashSet<ForgeLogin>,
     calls: HashMap<&'static str, usize>,
     merged: Vec<(PullNumber, MergeMethod, CommitId)>,
+    /// What the forge has each branch at (`pushed`).
+    heads: HashMap<BranchName, CommitId>,
 }
 
 /// A forge in memory.
@@ -76,6 +78,12 @@ impl FakeForge {
                 version,
             },
         );
+    }
+
+    /// The forge has `branch` at `head`, as a push leaves it: a pull
+    /// request opened of it has that head (otherwise a made-up one).
+    pub fn pushed(&self, branch: BranchName, head: CommitId) {
+        let _previous = self.state().heads.insert(branch, head);
     }
 
     /// Fail every call from now on, or stop failing.
@@ -203,7 +211,7 @@ impl Forge for FakeForge {
         &'a self,
         repo: &'a RepoRef,
         branch: &'a BranchName,
-        _priority: Priority,
+        priority: Priority,
     ) -> Answer<'a, Fresh<Vec<Found>>> {
         Box::pin(async move {
             let mut state = self.enter("find")?;
@@ -226,7 +234,10 @@ impl Forge for FakeForge {
                 .collect();
             let newest = found.iter().map(|(version, _)| *version).max().unwrap_or(0);
             let key = (repo.clone(), branch.clone());
-            if state.found.get(&key) == Some(&newest) && newest > 0 {
+            if priority == Priority::Background
+                && state.found.get(&key) == Some(&newest)
+                && newest > 0
+            {
                 return Ok(Fresh::Same);
             }
             let _seen = state.found.insert(key, newest);
@@ -242,14 +253,14 @@ impl Forge for FakeForge {
         repo: &'a RepoRef,
         number: PullNumber,
         _head: &'a CommitId,
-        _priority: Priority,
+        priority: Priority,
     ) -> Answer<'a, bool> {
         Box::pin(async move {
             let mut state = self.enter("changed")?;
             let key = (repo.clone(), number);
             let version = state.pulls.get(&key).map_or(0, |pull| pull.version);
             let seen = state.seen.insert(key, version);
-            Ok(seen != Some(version))
+            Ok(priority == Priority::Person || seen != Some(version))
         })
     }
 
@@ -285,10 +296,14 @@ impl Forge for FakeForge {
             state.next = state.next.saturating_add(1);
             let number = PullNumber::new(state.next.saturating_add(100))
                 .map_err(|_bad| ForgeError::Unexpected { what: "a number" })?;
+            let pushed = state.heads.get(&opening.head).cloned();
             drop(state);
-            let head: CommitId = "0000000000000000000000000000000000000001"
-                .parse()
-                .map_err(|_bad| ForgeError::Unexpected { what: "a commit" })?;
+            let head: CommitId = match pushed {
+                Some(head) => head,
+                None => "0000000000000000000000000000000000000001"
+                    .parse()
+                    .map_err(|_bad| ForgeError::Unexpected { what: "a commit" })?,
+            };
             let mut read = pull(repo, number, &opening.head, &head)
                 .ok_or(ForgeError::Unexpected { what: "an address" })?;
             read.pull.summary.title = opening.title.clone();

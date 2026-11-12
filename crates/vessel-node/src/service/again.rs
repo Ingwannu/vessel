@@ -81,6 +81,7 @@ impl NodeService {
                 return Err(error);
             }
         };
+        self.watch_session(&handle, &connection.principal);
         again::ready(&handle).await
     }
 }

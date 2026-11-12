@@ -123,6 +123,10 @@ impl NodeService {
         if let Some(SessionPlace::Worktree { worktree }) = info.spec.place.as_deref() {
             self.workspaces.claim(*worktree, info.id).await;
         }
+        // Its pull request, when it is placed (protocol 11).
+        if let Some(handle) = self.sessions.live(info.id) {
+            self.watch_session(&handle, &connection.principal);
+        }
         Ok(self.with_workspace(info))
     }
 

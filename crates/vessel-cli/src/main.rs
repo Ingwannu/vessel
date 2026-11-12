@@ -15,6 +15,7 @@ mod conversation;
 mod devices;
 mod error;
 mod fleet;
+mod forge;
 mod init;
 mod io;
 mod log;
@@ -107,6 +108,7 @@ async fn cli() -> ExitCode {
         | Command::Session { .. }
         | Command::Project { .. }
         | Command::Worktree { .. }
+        | Command::Pr { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

@@ -17,6 +17,7 @@ path = "src/main.rs"
 vessel-client.workspace = true
 # Bundling on the home, materialising on members (ADR 0012).
 vessel-fleet.workspace = true
+vessel-forge.workspace = true
 vessel-harness.workspace = true
 # The model routing proxy's APIs and upstream client (ADR 0015).
 vessel-llm.workspace = true
@@ -100,6 +101,8 @@ tokio-tungstenite.workspace = true
 # The misbehaving relay (feature `relay`) for the secure e2e tests, and
 # the fake model provider (feature `upstream`) for the model proxy's.
 vessel-testkit = { workspace = true, features = ["relay", "upstream"] }
+# The in-memory forge (feature `fake`) for the pull request e2e tests.
+vessel-forge = { workspace = true, features = ["fake"] }
 
 [lints]
 workspace = true

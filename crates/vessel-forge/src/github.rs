@@ -75,10 +75,12 @@ impl Ask {
         }
     }
 
-    /// A REST `GET` with the URL's last `ETag`.
+    /// A REST `GET` with the URL's last `ETag`, for the background only: a
+    /// person's read wants the answer itself, and a 304 would give it
+    /// none (the `ETag`s are shared with the watcher's looks).
     fn conditional(url: Url, priority: Priority) -> Self {
         Self {
-            conditional: true,
+            conditional: priority == Priority::Background,
             ..Self::get(url, priority)
         }
     }

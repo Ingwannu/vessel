@@ -10,12 +10,14 @@ use crate::selector::SessionSelector;
 
 mod conversation;
 mod fleet;
+mod forge;
 mod node;
 mod nodes;
 mod workspace;
 
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
+pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
@@ -145,6 +147,12 @@ pub(crate) enum Command {
     Worktree {
         #[command(subcommand)]
         command: WorktreeCommand,
+    },
+    /// A session's pull request on its forge: show it, open one, merge
+    /// it, and send its feedback to the session (protocol 11, ADR 0029).
+    Pr {
+        #[command(subcommand)]
+        command: PrCommand,
     },
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs

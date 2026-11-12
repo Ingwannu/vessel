@@ -90,11 +90,18 @@ impl NodeService {
         if reading && connection.principal().agent().is_some() {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
-        self.sessions
+        let archived = matches!(mark, Mark::Archive);
+        let marked = self
+            .sessions
             .mark(session, mark)
             .await
             .map(|info| self.with_workspace(info))
-            .map_err(|error| wire(&error))
+            .map_err(|error| wire(&error))?;
+        // An archived session is not watched (protocol 11).
+        if archived {
+            self.unwatch_session(session);
+        }
+        Ok(marked)
     }
 
     /// `session.delete`: remove an ended session whole, and the worktree
@@ -104,10 +111,13 @@ impl NodeService {
         _: &Connection,
         request: DeleteSession,
     ) -> Result<SessionDeleted, WireError> {
-        self.tidying
+        let deleted = self
+            .tidying
             .delete(request.session)
             .await
-            .map_err(|error| wire(&error))
+            .map_err(|error| wire(&error))?;
+        self.unwatch_session(request.session);
+        Ok(deleted)
     }
 
     /// `attachment.begin`: declare a file for a live structured session;

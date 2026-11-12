@@ -83,6 +83,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Run(run) => run_session(target, run).await,
         Command::Project { command } => workspace::project(target, command).await,
         Command::Worktree { command } => workspace::worktree(target, command).await,
+        Command::Pr { command } => crate::forge::pr(target, command).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
@@ -207,6 +208,10 @@ async fn node_start(
     // Sessions' agents reach this node through this executable's `mcp`
     // command (ADR 0013).
     config.vessel_mcp = std::env::current_exe().ok().map(VesselMcp::vessel);
+    // Pull requests (ADR 0029): this environment's tokens and the
+    // machine's `gh`, found here (the library reads no environment).
+    config.forge =
+        vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
     let node = Node::start(config).await?;
     let address = node.address().unwrap_or(bind);
     let started = format!(

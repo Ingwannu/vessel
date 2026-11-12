@@ -432,6 +432,10 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     config.client_address_header = args.client_address_header;
     config.trusted_proxies = args.trusted_proxies;
     config.vessel_mcp = vessel_beside_me();
+    // Pull requests (ADR 0029): this environment's tokens and the
+    // machine's `gh`, found here (the library reads no environment).
+    config.forge =
+        vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
 
     // Before the node starts, so a hang-up during start-up cannot kill it.
     #[cfg(unix)]

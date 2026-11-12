@@ -292,7 +292,8 @@ pub trait Forge: Send + Sync + fmt::Debug {
 
     /// The pull requests whose head is `branch` in `repo`, the most
     /// recently updated first (at most 10); [`Fresh::Same`] when nothing
-    /// changed since the last look.
+    /// changed since the last look, which a [`Priority::Person`] request
+    /// never answers (it is not conditional).
     fn find<'a>(
         &'a self,
         repo: &'a RepoRef,
@@ -301,7 +302,8 @@ pub trait Forge: Send + Sync + fmt::Debug {
     ) -> Answer<'a, Fresh<Vec<Found>>>;
 
     /// Whether `number` (its head at `head`) changed since the last look:
-    /// itself, its checks or its statuses.
+    /// itself, its checks or its statuses; always for a
+    /// [`Priority::Person`] request (it is not conditional).
     fn changed<'a>(
         &'a self,
         repo: &'a RepoRef,

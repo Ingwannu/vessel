@@ -83,6 +83,11 @@ pub struct Config {
     /// is believed (`vesseld --trusted-proxy`); anyone else is counted by
     /// its own address.
     pub trusted_proxies: Vec<vessel_relay::TrustedProxy>,
+    /// How the node reaches forges for pull requests (protocol 11, ADR
+    /// 0029): the tokens and the `gh` the binary found, or a test's
+    /// in-memory forge. The default finds neither, so a test's node never
+    /// reaches a real forge.
+    pub forge: crate::ForgeSetup,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -146,6 +151,7 @@ impl Config {
             fleet: FleetConfig::default(),
             client_address_header: None,
             trusted_proxies: Vec::new(),
+            forge: crate::ForgeSetup::default(),
         }
     }
 }

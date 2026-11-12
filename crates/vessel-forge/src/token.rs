@@ -19,6 +19,7 @@
 //!   `Authorization` header marked sensitive.
 
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fmt;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
@@ -74,6 +75,34 @@ pub struct EnvTokens {
     /// `GH_ENTERPRISE_TOKEN`, else `GITHUB_ENTERPRISE_TOKEN`, with the
     /// host `GH_HOST` names: for that host only.
     pub enterprise: Option<(ForgeHost, Token)>,
+}
+
+impl EnvTokens {
+    /// The tokens the variables `read` gives name (the binary passes its
+    /// environment's reader). Empty or unreadable values are none; an
+    /// enterprise token needs `GH_HOST` to name a host other than
+    /// `github.com`.
+    pub fn from_vars(read: impl Fn(&str) -> Option<OsString>) -> Self {
+        let text = |name: &str| read(name).and_then(|value| value.into_string().ok());
+        let token = |names: [&str; 2]| {
+            names
+                .into_iter()
+                .find_map(|name| text(name).and_then(|value| Token::new(value.trim())))
+        };
+        let enterprise = text("GH_HOST")
+            .and_then(|host| host.trim().to_ascii_lowercase().parse::<ForgeHost>().ok())
+            .filter(|host| host.as_str() != "github.com")
+            .and_then(|host| {
+                Some((
+                    host,
+                    token(["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"])?,
+                ))
+            });
+        Self {
+            github: token(["GH_TOKEN", "GITHUB_TOKEN"]),
+            enterprise,
+        }
+    }
 }
 
 /// What asking for a host's token found.
@@ -198,6 +227,31 @@ mod tests {
         assert!(header.is_sensitive());
         assert!(Token::new("  ").is_none());
         assert!(Token::new("two\nlines").is_none());
+    }
+
+    #[test]
+    fn the_environment_names_each_token_s_host() {
+        let vars = |pairs: &'static [(&'static str, &'static str)]| {
+            move |name: &str| {
+                pairs
+                    .iter()
+                    .find(|(key, _)| *key == name)
+                    .map(|(_, value)| OsString::from(*value))
+            }
+        };
+        let found = EnvTokens::from_vars(vars(&[
+            ("GITHUB_TOKEN", "second"),
+            ("GH_TOKEN", " first "),
+            ("GH_HOST", "GHE.Example.org"),
+            ("GITHUB_ENTERPRISE_TOKEN", "enterprise"),
+        ]));
+        assert!(found.github.unwrap().same_as(&Token::new("first").unwrap()));
+        let (host, token) = found.enterprise.unwrap();
+        assert_eq!(host.as_str(), "ghe.example.org");
+        assert!(token.same_as(&Token::new("enterprise").unwrap()));
+        // No host named: an enterprise token goes nowhere.
+        let alone = EnvTokens::from_vars(vars(&[("GH_ENTERPRISE_TOKEN", "x"), ("GH_TOKEN", "")]));
+        assert!(alone.enterprise.is_none() && alone.github.is_none());
     }
 
     #[tokio::test]

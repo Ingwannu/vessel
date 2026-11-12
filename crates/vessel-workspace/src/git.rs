@@ -12,6 +12,7 @@ mod repo;
 mod run;
 mod search;
 mod status;
+mod upstream;
 mod worktree;
 mod write;
 
@@ -27,6 +28,7 @@ pub use run::GitSetup;
 pub use run::own_config::OwnConfigRefusal;
 pub(crate) use run::{GitCommand, GitOutput, Limits};
 pub use status::MAX_ENTRIES;
+pub use upstream::{Checkout, RemoteAddress};
 pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
 
 /// A usable `git`: found, and at least [`GitVersion::MINIMUM`].

@@ -17,6 +17,7 @@ use crate::attachments::Attachments;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
+use crate::forge::Forges;
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::principal::Principal;
@@ -84,6 +85,8 @@ pub(crate) struct NodeService {
     workspaces: Arc<Workspaces>,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
+    /// Pull requests (protocol 11, `forge`).
+    forges: Arc<Forges>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -106,6 +109,7 @@ pub(crate) struct Parts {
     pub(crate) probes: Probes,
     pub(crate) workspaces: Arc<Workspaces>,
     pub(crate) tidying: Arc<Tidying>,
+    pub(crate) forges: Arc<Forges>,
 }
 
 impl NodeService {
@@ -129,6 +133,7 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            forges,
         } = parts;
         Self {
             lsp,
@@ -150,6 +155,7 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            forges,
         }
     }
 
