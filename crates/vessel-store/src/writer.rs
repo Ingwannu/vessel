@@ -111,6 +111,11 @@ pub(crate) enum Write {
         write: crate::workspace::WorkspaceWrite,
         done: Done,
     },
+    /// Change a session's pull request feedback (protocol 11).
+    Forge {
+        write: crate::forge::ForgeWrite,
+        done: Done,
+    },
 }
 
 /// What the writer needs besides its connection and its queue.
@@ -339,6 +344,12 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
         Write::Workspace { write, done } => {
             let applied = isolated(transaction, |connection| {
                 crate::workspace::apply(connection, &write)
+            });
+            Answer::Done(done, applied)
+        }
+        Write::Forge { write, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::forge::apply(connection, &write)
             });
             Answer::Done(done, applied)
         }

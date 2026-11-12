@@ -3,6 +3,7 @@
 
 mod attached;
 mod conversation;
+mod forge;
 
 use std::path::Path;
 use std::sync::Arc;

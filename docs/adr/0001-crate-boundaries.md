@@ -47,6 +47,7 @@ vessel-relay    -> proto, secure           (milestone 3)
 vessel-fleet    -> proto, harness          (milestone 4)
 vessel-mcp      -> proto, client           (milestone 4)
 vessel-llm      -> proto                   (milestone 5)
+vessel-forge    -> proto, proc             (milestone 11)
 vessel-web      -> proto, client           (milestone 7)
 vessel-cli      -> proto, client, node, remote, mcp, harness, web
 vessel-testkit  (fake harness binaries for tests; dev-dependency only)
@@ -160,3 +161,11 @@ store or session; its tests need only git. `vessel-node -> workspace`: the
 node decides who may call, keeps projects, worktrees and approvals in its
 store (schema 9), runs clones and setups as its tasks, and ties worktrees
 to sessions, as it does for `vessel-lsp`.
+
+`vessel-forge -> proto, proc` (track B2, ADR 0029, 2026-11-12): pull
+requests on a forge behind one trait (GitHub first), signing in with a
+token the binary found or the machine's `gh` (run through `vessel-proc`,
+no shell), conditional reads and rate limits, and an in-memory forge for
+tests (feature `fake`). It knows no session, store or principal: which
+sessions are watched, what is sent to them and who may call is the
+node's.

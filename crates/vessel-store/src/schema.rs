@@ -208,9 +208,32 @@ CREATE TABLE approvals (
 ) STRICT, WITHOUT ROWID;
 ";
 
+/// Version 10 (milestone 11, protocol 11, track B2): pull request
+/// feedback (ADR 0029; see `forge`).
+///
+/// - `forge_feedback_on`: the sessions a person turned feedback on for;
+///   none is off, the default.
+/// - `forge_feedback_sent`: the signature of each event sent to a
+///   session, so a restart sends nothing twice; at most `MAX_SENT` per
+///   session, the oldest dropped first (`sent_at`).
+/// - Both are deleted with their session. Nothing of a pull request
+///   itself is kept: the node finds it again by its branch.
+const V10: &str = "
+CREATE TABLE forge_feedback_on (
+    session_id TEXT NOT NULL PRIMARY KEY REFERENCES sessions (id) ON DELETE CASCADE
+) STRICT;
+
+CREATE TABLE forge_feedback_sent (
+    session_id TEXT    NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+    signature  TEXT    NOT NULL,
+    sent_at    INTEGER NOT NULL,
+    PRIMARY KEY (session_id, signature)
+) STRICT, WITHOUT ROWID;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

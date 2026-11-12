@@ -1,0 +1,34 @@
+[package]
+name = "vessel-forge"
+description = "Pull requests on a forge for a Vessel node: one trait, GitHub first, signed in as the machine is"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[features]
+# The in-memory forge (`fake`), for tests in this crate and the node's.
+fake = []
+
+[dependencies]
+vessel-proc.workspace = true
+vessel-proto.workspace = true
+
+chrono.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+rustls-native-certs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-util", "sync", "time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "time"] }
+
+[lints]
+workspace = true

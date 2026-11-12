@@ -17,6 +17,7 @@ use vessel_pty::PtyInput;
 
 use crate::conversation::Seen;
 use crate::error::{ModeKind, SessionError};
+use crate::forge::ForgeView;
 use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
@@ -64,6 +65,9 @@ pub(crate) struct Shared {
     /// mutex held for one assignment or one copy, never across an
     /// `.await`.
     pub(crate) marks: Mutex<Marks>,
+    /// The session's pull request as the node gives it (protocol 11,
+    /// `forge`): the latest wins, the actor reads it.
+    pub(crate) forge: watch::Sender<Option<Arc<ForgeView>>>,
 }
 
 impl Shared {
@@ -195,6 +199,26 @@ impl SessionHandle {
             .map_err(|_ended| SessionError::Ended)?;
         renamed.await.map_err(|_ended| SessionError::Ended)?;
         Ok(self.info())
+    }
+
+    /// Give the session what the node knows of its pull request now
+    /// (protocol 11, ADR 0029), `None` when it no longer watches it. The
+    /// actor puts the summary in the info and the facts in its board, as
+    /// the latest value of a watch: a view given twice before the actor
+    /// looks is read once, and an unchanged one wakes nothing. Never
+    /// waits; ignored once the session has ended.
+    pub fn set_pull_request(&self, view: Option<ForgeView>) {
+        if self.has_ended() {
+            return;
+        }
+        let view = view.map(Arc::new);
+        let _changed = self.0.forge.send_if_modified(|current| {
+            if *current == view {
+                return false;
+            }
+            *current = view;
+            true
+        });
     }
 
     /// The live agent's input, for the option calls.

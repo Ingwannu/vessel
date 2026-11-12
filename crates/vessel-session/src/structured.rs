@@ -106,6 +106,7 @@ impl StructuredActor {
                 Some(rename) = self.life.renames.recv() => {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
+                Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
             }
             // The queue moves once a turn's end is in the log.
             self.after_turn().await;

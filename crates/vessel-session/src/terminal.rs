@@ -62,6 +62,7 @@ impl TerminalActor {
                 Some(rename) = self.life.renames.recv() => {
                     self.life.renamed(&mut self.pty, rename).await;
                 }
+                Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
                 () = quiet.elapsed() => self.life.out.quiet(),
             }
         };

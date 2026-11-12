@@ -3,8 +3,8 @@
 //! them (`KanbanSessionFacts`, `KanbanPRFacts` and what they hold).
 //!
 //! Plain data with public fields: whoever knows a fact sets it (the
-//! session actor its worker's activity; the node, later, its pull
-//! requests). Not wire types.
+//! session actor its worker's activity; the node its pull requests and
+//! the policy its feedback switch makes, protocol 11). Not wire types.
 
 use chrono::{DateTime, Utc};
 use vessel_proto::Activity;
@@ -33,8 +33,11 @@ pub struct WorkerFacts {
 }
 
 /// Which follow-up loops the fleet drives on a session's behalf: whether
-/// its review-feedback loop is turned by the fleet or by a person. No
-/// Vessel session has any yet; all are false.
+/// its review-feedback loop is turned by the fleet or by a person. A
+/// session's pull request feedback (protocol 11, ADR 0029) sets both
+/// injections while it is on, as agent-orchestrator's one flag drives
+/// both its routing and its lane; `auto_review` stays false (Vessel has no
+/// reviewing agent).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Policy {
     /// The fleet reviews each new head itself and holds the pull request
@@ -217,7 +220,9 @@ impl PullRequestFacts {
 /// What the node knows about a session's pull requests.
 #[derive(Debug, Clone, Copy)]
 pub enum PullRequests<'a> {
-    /// It cannot see them (no Vessel node can yet). Unlike an empty
+    /// It cannot see them: the session is not placed, is on no branch or
+    /// on the base, has no remote, or the node has no access to its forge,
+    /// or has not read it yet (protocol 11). Unlike an empty
     /// [`Seen`](Self::Seen), this makes no claim that there are none.
     Unseen,
     /// These, all of them; empty when the session has none.

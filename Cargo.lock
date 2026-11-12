@@ -3368,6 +3368,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "vessel-forge"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "reqwest",
+ "rustls",
+ "rustls-native-certs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "vessel-proc",
+ "vessel-proto",
+]
+
+[[package]]
 name = "vessel-harness"
 version = "0.1.0"
 dependencies = [

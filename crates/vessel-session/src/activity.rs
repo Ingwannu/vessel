@@ -44,18 +44,26 @@
 //!   chunks inside a turn do not move it: the contract lists what does, and
 //!   a turn's start already says the agent is at work. A terminal's quiet
 //!   does not move it either: quiet is the absence of activity.
+//! - Pull requests (protocol 11, ADR 0029): the one input no record
+//!   carries besides a terminal's quiet. The node reads them from its
+//!   forge and gives them to the actor ([`Tracker::forge`]); they are held
+//!   here so every later record's board has them, and dropped at the
+//!   final status, before that record's board, so an ended session is
+//!   placed as the store places a stored one.
 //! - Must stay true: a record changes the facts the same way whichever
 //!   actor published it, so a replay of the log gives the same facts (the
-//!   quiet timer aside).
+//!   quiet timer and the pull requests aside).
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::{
     Activity, AgentEvent, PermissionId, QuestionId, SessionBoard, SessionEvent, StopReason,
 };
 
-use crate::board::{self, Policy, PullRequests, SessionFacts, WorkerFacts};
+use crate::board::{self, Policy, PullRequestFacts, PullRequests, SessionFacts, WorkerFacts};
+use crate::forge::ForgeView;
 
 #[cfg(doc)]
 use crate::publish::Publisher;
@@ -73,6 +81,11 @@ pub(crate) struct Tracker {
     /// Rarely more than one; a set so a resolution matches its own request,
     /// whatever order several are answered in.
     pending: HashSet<Waiting>,
+    /// The session's pull requests as the node last gave them: `None`
+    /// while it cannot see them (`PullRequests::Unseen`).
+    pulls: Option<Arc<[PullRequestFacts]>>,
+    /// The loops the node drives for the session (its feedback switch).
+    policy: Policy,
 }
 
 /// Something the agent waits on its owner for.
@@ -91,7 +104,16 @@ impl Tracker {
             seen: false,
             interrupted: false,
             pending: HashSet::new(),
+            pulls: None,
+            policy: Policy::default(),
         }
+    }
+
+    /// What the node knows of the session's pull requests now; `None`
+    /// when it no longer watches it.
+    pub(crate) fn forge(&mut self, view: Option<&ForgeView>) {
+        self.pulls = view.and_then(|view| view.seen.clone());
+        self.policy = view.map_or_else(Policy::default, |view| view.policy);
     }
 
     /// Read one record the session is publishing, stamped `at`.
@@ -102,6 +124,8 @@ impl Tracker {
                 // nothing about turns; only the end changes the facts.
                 if !status.is_live() {
                     self.pending.clear();
+                    // Nothing watches an ended session (ADR 0029).
+                    self.forge(None);
                     self.set(Activity::Exited, at);
                 }
             }
@@ -190,8 +214,8 @@ impl Tracker {
 
     /// The session's place on the board as of `now`.
     ///
-    /// No Vessel node can see pull requests yet and no session has a fleet
-    /// policy or an artifact, so those facts are fixed here; and nothing
+    /// Its pull requests and policy are the node's ([`Tracker::forge`]);
+    /// no session has an artifact, so that fact is fixed here; and nothing
     /// expects a signal (see [`WorkerFacts::signal_expected`]), so `now`
     /// cannot change the result today and the board needs no timer. An
     /// ended session comes out as `SessionBoard::exited` at its end, the
@@ -208,10 +232,13 @@ impl Tracker {
             },
             interrupted: self.interrupted,
             has_artifact_output: false,
-            policy: Policy::default(),
+            policy: self.policy,
         };
-        let (column, display_status) =
-            board::derive(&facts, PullRequests::Unseen, now, board::NO_SIGNAL_GRACE);
+        let pulls = match &self.pulls {
+            Some(seen) => PullRequests::Seen(seen),
+            None => PullRequests::Unseen,
+        };
+        let (column, display_status) = board::derive(&facts, pulls, now, board::NO_SIGNAL_GRACE);
         SessionBoard::new(column, display_status, self.activity, self.last_activity_at)
     }
 
