@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { PreferencesState } from "../wire/bridge";
 import { firstPaint, keptNote, prefs, takePreferences } from "./prefs";
-import { applyChange, DEFAULT_PREFERENCES } from "./prefs-change";
+import { applyChange, DEFAULT_PREFERENCES, keepSections } from "./prefs-change";
 import { fixtureId } from "../testing/ids";
 
 describe("the first paint", () => {
@@ -130,4 +130,23 @@ test("where they are kept, said only when it is not a file", () => {
       },
     }),
   ).toContain("Fix or remove it, then restart vessel ui.");
+});
+
+describe("a push keeps what did not change", () => {
+  test("each section said the same keeps its object", () => {
+    const before = DEFAULT_PREFERENCES;
+    // The bridge's push: a whole new document, one setting changed.
+    const pushed = applyChange(structuredClone(before), {
+      set: "inspector_panel",
+      value: "hidden",
+    });
+    const kept = keepSections(before, pushed);
+    expect(kept.layout).toBe(pushed.layout);
+    expect(kept.layout.inspector).toBe("hidden");
+    expect(kept.sidebar).toBe(before.sidebar);
+    expect(kept.appearance).toBe(before.appearance);
+    expect(kept.shortcuts).toBe(before.shortcuts);
+    // Nothing changed: the same document.
+    expect(keepSections(before, structuredClone(before))).toBe(before);
+  });
 });

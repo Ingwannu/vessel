@@ -130,3 +130,37 @@ export function applyChange(
     }
   }
 }
+
+/** `section` as it was when it says the same as `next`, else `next`. */
+function same<T>(section: T, next: T): T {
+  return JSON.stringify(section) === JSON.stringify(next) ? section : next;
+}
+
+/** `next` with each section of `previous` kept where it says the same:
+ * every push from the bridge is a whole new document, and a screen that
+ * reads one section (the sidebar's view, the shortcuts) must draw nothing
+ * when another one changed (track P's rule: an unchanged state draws
+ * nothing). `previous` itself when nothing changed. */
+export function keepSections(
+  previous: Preferences,
+  next: Preferences,
+): Preferences {
+  const kept: Preferences = {
+    appearance: same(previous.appearance, next.appearance),
+    layout: same(previous.layout, next.layout),
+    composer: same(previous.composer, next.composer),
+    shortcuts: same(previous.shortcuts, next.shortcuts),
+    notifications: same(previous.notifications, next.notifications),
+    sidebar: same(previous.sidebar, next.sidebar),
+    defaults: same(previous.defaults, next.defaults),
+  };
+  const unchanged =
+    kept.appearance === previous.appearance &&
+    kept.layout === previous.layout &&
+    kept.composer === previous.composer &&
+    kept.shortcuts === previous.shortcuts &&
+    kept.notifications === previous.notifications &&
+    kept.sidebar === previous.sidebar &&
+    kept.defaults === previous.defaults;
+  return unchanged ? previous : kept;
+}

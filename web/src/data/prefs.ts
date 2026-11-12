@@ -22,7 +22,7 @@
 
 import type { Fleet } from "./fleet";
 import { attempt, type Outcome } from "./outcome";
-import { applyChange, DEFAULT_PREFERENCES } from "./prefs-change";
+import { applyChange, DEFAULT_PREFERENCES, keepSections } from "./prefs-change";
 import { Store } from "./store";
 import type {
   ContentWidth,
@@ -133,10 +133,11 @@ export function takePreferences(state: PreferencesState): void {
   if (state.revision < current.revision) {
     return;
   }
+  const values = keepSections(current.values, state.values);
   show({
-    values: state.values,
+    values,
     kept: state.kept,
-    confirmed: state.values,
+    confirmed: values,
     revision: state.revision,
   });
 }
