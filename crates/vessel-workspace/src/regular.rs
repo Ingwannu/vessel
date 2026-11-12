@@ -11,7 +11,8 @@
 //!   `fstat` the handle. `O_NONBLOCK` does not change reads from a regular
 //!   file. The node's attachments and the language servers' documents are
 //!   read the same way.
-//! - Elsewhere: a plain open and the same check on the handle.
+//! - Elsewhere: the path asked first (Windows does not open a folder for
+//!   reading), then a plain open and the same check on the handle.
 
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -31,6 +32,12 @@ pub(crate) fn open(path: &Path) -> io::Result<Option<File>> {
         use nix::fcntl::OFlag;
         use std::os::unix::fs::OpenOptionsExt as _;
         let _flags = options.custom_flags((OFlag::O_NONBLOCK | OFlag::O_NOFOLLOW).bits());
+    }
+    // Windows refuses to open a folder this way: asked first, so a folder
+    // is "not a regular file" there too, not an error of the disk.
+    #[cfg(not(unix))]
+    if !std::fs::metadata(path)?.is_file() {
+        return Ok(None);
     }
     let file = options.open(path)?;
     Ok(file.metadata()?.is_file().then_some(file))
