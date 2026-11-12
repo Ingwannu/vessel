@@ -55,6 +55,13 @@ impl Git {
         let Some(setup) = setup else {
             return missing;
         };
+        // git reads `core.hooksPath` relative to the repository it runs in:
+        // a relative empty folder would be the repository's own, whose
+        // hooks it ships (and would run on a worktree's creation).
+        if !setup.no_hooks.is_absolute() {
+            tracing::warn!("the empty hooks folder is not an absolute path; git is not used");
+            return missing;
+        }
         let runner = run::Runner::new(setup);
         let output = runner
             .command(Path::new("."))
@@ -151,4 +158,24 @@ pub enum GitError {
         /// What was being read.
         what: &'static str,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A relative empty hooks folder would be a repository's own: git is
+    /// not used at all then.
+    #[tokio::test]
+    async fn a_relative_hooks_folder_means_no_git() {
+        let program = which::which("git").expect("the tests need git on PATH");
+        let found = Git::probe(Some(GitSetup {
+            program,
+            no_hooks: "workspace/no-hooks".into(),
+            env: Vec::new(),
+        }))
+        .await;
+        assert!(found.git.is_none());
+        assert_eq!(found.support, GitSupport::Missing);
+    }
 }

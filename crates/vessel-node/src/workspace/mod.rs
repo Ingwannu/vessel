@@ -165,17 +165,24 @@ impl Workspaces {
             git_env,
         } = found;
         let (places, dirs) = tokio::task::spawn_blocking(move || {
-            let resolve =
-                |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+            // Absolute, always: git takes `no_hooks` as `core.hooksPath`,
+            // which it reads relative to the repository it runs in, so a
+            // node started with a relative data folder would otherwise run
+            // the hooks a repository ships at that path.
+            let resolve = |path: &Path| {
+                std::fs::canonicalize(path)
+                    .or_else(|_missing| std::path::absolute(path))
+                    .unwrap_or_else(|_| path.to_path_buf())
+            };
             let places = Places {
                 data: resolve(&data),
                 home: resolve(&home),
             };
             let dirs = Dirs {
                 worktrees: resolve(&workspace.join("worktrees")),
-                logs: workspace.join("logs"),
-                scratch: workspace.join("scratch"),
-                no_hooks: workspace.join("no-hooks"),
+                logs: resolve(&workspace.join("logs")),
+                scratch: resolve(&workspace.join("scratch")),
+                no_hooks: resolve(&workspace.join("no-hooks")),
             };
             (places, dirs)
         })
