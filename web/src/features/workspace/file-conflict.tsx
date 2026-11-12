@@ -54,7 +54,7 @@ export function FileConflict({
       ? null
       : difference(diskText, mine);
   return (
-    <div className="file-strip" role="alert">
+    <div className="file-strip">
       <Banner tone="error">
         <strong>File changed on disk.</strong> Your unsaved edits are kept;
         nothing was written.

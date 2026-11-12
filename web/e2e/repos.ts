@@ -78,7 +78,7 @@ export function makeRepos(
     "vessel.toml",
     [
       "[worktree]",
-      'setup = ["echo installing packages", "echo setup done"]',
+      'setup = ["echo installing packages", "sleep 2", "echo setup done"]',
       'teardown = "echo bye"',
       "",
     ].join("\n"),

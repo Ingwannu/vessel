@@ -1,0 +1,81 @@
+/* Projects (features/projects/): the approval of a repository's commands
+   (each command in mono, a new one marked in the warning's tone, a
+   removed one struck through), the add-project dialogs and Settings ›
+   Projects' rows. */
+
+.commands {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.commands h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font: 500 13px / 20px var(--font-sans);
+}
+
+.commands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 0;
+  border-radius: var(--r-2);
+  background: var(--bg-well);
+  list-style: none;
+}
+
+.command {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 6px;
+}
+
+.command code {
+  color: var(--text-primary);
+  font: var(--t-mono);
+  overflow-wrap: anywhere;
+}
+
+.command.added {
+  background: var(--diff-add-bg);
+}
+
+.command.removed {
+  background: var(--diff-del-bg);
+}
+
+.command.removed code {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.command-mark {
+  color: var(--text-tertiary);
+  font: var(--t-mono);
+  text-align: center;
+}
+
+.commands-none,
+.commands-note,
+.commands-digest {
+  margin: 0;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.commands-digest {
+  font: 400 11px / 16px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* What removing a worktree would lose, one line per reason. */
+.kept-list {
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--text-primary);
+  font: var(--t-meta);
+}

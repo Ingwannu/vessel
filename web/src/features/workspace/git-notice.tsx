@@ -19,7 +19,7 @@ export function GitNotice({
   const shown = notice.paths.slice(0, SHOWN_PATHS);
   const rest = notice.paths.length - shown.length;
   return (
-    <div className="git-notice" role="alert">
+    <div className="git-notice">
       <Banner
         tone="error"
         {...(onDismiss === undefined

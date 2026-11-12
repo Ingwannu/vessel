@@ -168,17 +168,26 @@ export function projectIn(
 }
 
 /** The project whose folder holds `cwd` (the deepest, when one project
- * is inside another), for a session started in a typed folder. */
+ * is inside another), for a session started in a typed folder. Folders
+ * are compared as text: a link to a project's folder is not followed. */
 export function projectAt(
   view: ProjectsView,
   cwd: string | null | undefined,
 ): ProjectInfo | null {
-  if (view.kind !== "ready" || cwd === null || cwd === undefined) {
+  return view.kind === "ready" ? projectAmong(view.list.projects, cwd) : null;
+}
+
+/** The project of `projects` whose folder holds `cwd`, the deepest. */
+export function projectAmong(
+  projects: readonly ProjectInfo[],
+  cwd: string | null | undefined,
+): ProjectInfo | null {
+  if (cwd === null || cwd === undefined) {
     return null;
   }
   const folder = cwd.replace(/[\\/]+$/u, "");
   let best: ProjectInfo | null = null;
-  for (const project of view.list.projects) {
+  for (const project of projects) {
     const root = project.root.replace(/[\\/]+$/u, "");
     const inside =
       folder === root ||

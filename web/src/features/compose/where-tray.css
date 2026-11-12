@@ -1,0 +1,20 @@
+/* The tray's parts (where-tray.tsx, where-place.tsx): quiet pills in a
+   row that wraps on a narrow page; the machine, the project, the place
+   and the branch as wide as their values, the folder the rest. */
+
+.where {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.where-project,
+.where-mode,
+.where-branch {
+  flex: none;
+  max-width: 45%;
+  min-width: 0;
+}

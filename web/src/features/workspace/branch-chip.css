@@ -20,6 +20,13 @@
   white-space: nowrap;
 }
 
+/* At the end of a sidebar row, after the title. */
+.nav-item .branch-chip {
+  flex: 0 1 auto;
+  max-width: 36%;
+  margin-left: auto;
+}
+
 .branch-chip.action {
   flex: none;
   max-width: 240px;

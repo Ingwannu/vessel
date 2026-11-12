@@ -10,6 +10,7 @@ import { prefs } from "../../data/prefs";
 import { sidebarStatuses } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
+import { BranchChip } from "../workspace/branch-chip";
 import { SessionMark } from "./session-mark";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
@@ -47,6 +48,7 @@ export function SidebarStatuses() {
                   <SessionMark mark={session.mark} />
                 </span>
                 <span className="label">{session.title}</span>
+                <BranchChip branch={session.branch} />
                 <span className="side-machine">{session.machine}</span>
               </Link>
             ))}
