@@ -2,6 +2,8 @@
 //! worktree's, resolved and checked again on every call (a project folder
 //! can be moved or replaced by a link between calls).
 
+use std::path::Path;
+
 use vessel_proto::workspace::{ProjectState, RefName, WorkspaceRoot, WorktreeBase};
 use vessel_proto::{ProjectId, WorktreeId};
 use vessel_workspace::paths::Root;
@@ -39,7 +41,8 @@ impl Workspaces {
     /// `not_found` for an unknown one; `conflict` for a project not ready;
     /// the root checks of `policy`.
     pub(crate) async fn resolve(&self, root: WorkspaceRoot) -> Result<Resolved, WorkspaceError> {
-        let (path, git, project, worktree, base) = {
+        // A worktree's repository is checked with it (`open`).
+        let (path, git, repository, project, worktree, base) = {
             let state = self.state();
             match root {
                 WorkspaceRoot::Project { project } => {
@@ -56,6 +59,7 @@ impl Workspaces {
                     (
                         entry.info.root.clone(),
                         entry.info.git,
+                        None,
                         project,
                         None,
                         entry.info.default_branch.clone(),
@@ -67,26 +71,30 @@ impl Workspaces {
                         .get(&worktree)
                         .ok_or(WorkspaceError::UnknownWorktree(worktree))?;
                     let project = entry.info.project;
-                    let default = state
+                    let owner = state
                         .projects
                         .get(&project)
-                        .and_then(|project| project.info.default_branch.clone());
+                        .ok_or(WorkspaceError::UnknownProject(project))?;
                     let base = entry
                         .info
                         .base
                         .as_ref()
                         .and_then(|start| start.name.clone())
-                        .or(default);
-                    (entry.info.path.clone(), true, project, Some(worktree), base)
+                        .or_else(|| owner.info.default_branch.clone());
+                    (
+                        entry.info.path.clone(),
+                        true,
+                        Some(owner.info.root.clone()),
+                        project,
+                        Some(worktree),
+                        base,
+                    )
                 }
             }
         };
-        let opened = tokio::task::spawn_blocking(move || Root::open(&path))
+        let opened = tokio::task::spawn_blocking(move || open(&path, repository.as_deref()))
             .await
-            .map_err(|_panicked| WorkspaceError::Io("resolving the folder stopped".to_owned()))?
-            .map_err(|_gone| {
-                WorkspaceError::Conflict("the folder is gone from this machine".to_owned())
-            })?;
+            .map_err(|_panicked| WorkspaceError::Io("resolving the folder stopped".to_owned()))??;
         if worktree.is_none() {
             policy::check_root(&self.places, opened.path())?;
         }
@@ -114,4 +122,31 @@ impl Workspaces {
         }
         Ok(resolved)
     }
+}
+
+/// Open the recorded folder `path` for a call: still a folder, still where
+/// it was recorded (not replaced by a link to another, such as the node's
+/// data folder), and, for a worktree of the repository at `repository`,
+/// still that repository's (`gitfile::registered`), so git never reads a
+/// configuration someone else put in its place. Blocking.
+fn open(path: &Path, repository: Option<&Path>) -> Result<Root, WorkspaceError> {
+    let opened = Root::open(path).map_err(|_gone| {
+        WorkspaceError::Conflict("the folder is gone from this machine".to_owned())
+    })?;
+    if opened.path() != path {
+        return Err(WorkspaceError::Conflict(
+            "the folder was replaced since it was recorded (a link to another?); it is not used"
+                .to_owned(),
+        ));
+    }
+    if let Some(repository) = repository
+        && !vessel_workspace::git::gitfile::registered(path, repository)
+    {
+        return Err(WorkspaceError::Conflict(
+            "this worktree's `.git` no longer names its repository's record of it; git is not \
+             run in it"
+                .to_owned(),
+        ));
+    }
+    Ok(opened)
 }

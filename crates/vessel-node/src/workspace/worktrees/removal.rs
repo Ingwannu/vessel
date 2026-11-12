@@ -226,6 +226,19 @@ impl Workspaces {
             // next prune. Nothing is left to lose here.
             return Ok(Removal::Done(None));
         }
+        // git inspects the worktree with its repository's configuration:
+        // not when its `.git` names another (`gitfile::registered`). A
+        // forced removal runs git in the project only.
+        let checked = (path.clone(), root.to_path_buf());
+        let registered = tokio::task::spawn_blocking(move || {
+            vessel_workspace::git::gitfile::registered(&checked.0, &checked.1)
+        })
+        .await
+        .unwrap_or(false);
+        if !registered && if_lost != IfLost::Discard {
+            tracing::warn!(worktree = %info.id, "a worktree's .git names another repository; kept");
+            return Ok(Removal::Kept(vec![KeptReason::InspectionFailed]));
+        }
         let mut snapshot = None;
         let mut force = false;
         match if_lost {

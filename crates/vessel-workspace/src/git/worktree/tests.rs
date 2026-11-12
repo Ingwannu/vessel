@@ -234,3 +234,50 @@ async fn adding_refuses_an_existing_branch_and_one_checked_out_elsewhere() {
         .unwrap();
     assert_eq!(missing, Err(AddRefusal::NoSuchBranch));
 }
+
+/// A worktree's `.git` names its repository's record of it as `git
+/// worktree add` wrote it; rewritten to name a folder of someone else's
+/// (whose configuration git would read, filter programs included), or
+/// replaced by a link, it is not the repository's any more.
+#[tokio::test]
+async fn a_worktree_whose_gitfile_was_rewritten_is_not_its_repositorys() {
+    use crate::git::gitfile::registered;
+
+    let sandbox = Sandbox::new();
+    let (repo, path, _branch, _git) = setup(&sandbox).await;
+    assert!(registered(&path, &repo));
+
+    let gitfile = path.join(".git");
+    let original = std::fs::read_to_string(&gitfile).unwrap();
+    let fake = path.join("fake");
+    std::fs::create_dir(&fake).unwrap();
+    std::fs::write(&gitfile, "gitdir: ./fake\n").unwrap();
+    assert!(!registered(&path, &repo), "a folder of its own");
+    // Another worktree's record does not name this one back.
+    let elsewhere = sandbox.path().join("elsewhere");
+    sandbox.run(
+        &repo,
+        &[
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            "other",
+            &elsewhere.display().to_string(),
+        ],
+    );
+    let others = std::fs::read_to_string(elsewhere.join(".git")).unwrap();
+    std::fs::write(&gitfile, others).unwrap();
+    assert!(!registered(&path, &repo), "another worktree's record");
+    #[cfg(unix)]
+    {
+        let kept = sandbox.path().join("gitfile");
+        std::fs::write(&kept, &original).unwrap();
+        std::fs::remove_file(&gitfile).unwrap();
+        std::os::unix::fs::symlink(&kept, &gitfile).unwrap();
+        assert!(!registered(&path, &repo), "a link, not the file");
+        std::fs::remove_file(&gitfile).unwrap();
+    }
+    std::fs::write(&gitfile, original).unwrap();
+    assert!(registered(&path, &repo), "as git wrote it");
+}

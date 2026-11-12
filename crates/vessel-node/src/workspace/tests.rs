@@ -887,3 +887,76 @@ async fn a_project_file_linked_out_of_its_folder_is_not_read() {
     assert!(message.contains("leads out of its folder"), "{message}");
     assert!(!message.contains("not yours"), "{message}");
 }
+
+/// git is not run in a worktree whose `.git` was rewritten to name a
+/// folder of someone else's (its configuration could name a program), nor
+/// in a recorded folder replaced by a link: the calls are `conflict`, and
+/// tidying keeps the worktree instead of inspecting it.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let session = SessionId::random();
+    let outcome = fixture
+        .workspaces
+        .create_worktree(
+            Creator::Owner,
+            CreateWorktree {
+                project: project.id,
+                branch: WorktreeBranch::New {
+                    name: None,
+                    base: None,
+                },
+                setup: SetupChoice::Run,
+            },
+            Some(session),
+        )
+        .await
+        .unwrap();
+    let CreateWorktreeOutcome::Created { worktree } = outcome else {
+        panic!("{outcome:?}");
+    };
+    let root = WorkspaceRoot::Worktree {
+        worktree: worktree.id,
+    };
+    let _clean = fixture.workspaces.git_status(root).await.unwrap();
+
+    let gitfile = worktree.path.join(".git");
+    let original = std::fs::read_to_string(&gitfile).unwrap();
+    std::fs::create_dir(worktree.path.join("fake")).unwrap();
+    std::fs::write(&gitfile, "gitdir: ./fake\n").unwrap();
+    let refused = fixture.workspaces.git_status(root).await.unwrap_err();
+    assert!(
+        matches!(refused, WorkspaceError::Conflict(_)),
+        "{refused:?}"
+    );
+    let kept = fixture.workspaces.retire(session, &[]).await.unwrap();
+    assert_eq!(
+        kept.outcome,
+        RemoveWorktreeOutcome::Kept {
+            reasons: vec![KeptReason::InspectionFailed]
+        }
+    );
+    std::fs::write(&gitfile, original).unwrap();
+    std::fs::remove_dir(worktree.path.join("fake")).unwrap();
+
+    // The project's folder replaced by a link to another.
+    let other = fixture.path().join("other");
+    std::fs::create_dir(&other).unwrap();
+    let moved = fixture.path().join("moved");
+    std::fs::rename(&project.root, &moved).unwrap();
+    std::os::unix::fs::symlink(&other, &project.root).unwrap();
+    let project_root = WorkspaceRoot::Project {
+        project: project.id,
+    };
+    let refused = fixture
+        .workspaces
+        .git_status(project_root)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(refused, WorkspaceError::Conflict(_)),
+        "{refused:?}"
+    );
+}

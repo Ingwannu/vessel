@@ -3,6 +3,7 @@
 
 mod clone;
 mod diff;
+pub mod gitfile;
 mod history;
 mod patch;
 mod redact;
