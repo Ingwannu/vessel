@@ -22,6 +22,7 @@
 import type { NodeKey, StreamState } from "../wire/bridge";
 import type {
   EventRecord,
+  EventSeq,
   HarnessKind,
   HarnessOptions,
   OptionChoice,
@@ -104,16 +105,21 @@ export function answerPermission(
   );
 }
 
-/** Stop the turn the agent is running. */
+/** Stop the turn the agent is running. `turn` (protocol 10) names the
+ * turn meant, by its `turn_started` record: a stop that lands after that
+ * turn ended (the queue started the next) holds the queue and stops
+ * nothing. `null` stops whatever runs, as before protocol 10. */
 export function cancelTurn(
   fleet: Fleet,
   node: NodeKey,
   session: SessionId,
+  turn: EventSeq | null = null,
 ): Promise<Outcome<null>> {
   return attempt(() =>
     fleet.bridge.call(node, "session.send", {
       session,
-      input: { type: "cancel_turn" },
+      input:
+        turn === null ? { type: "cancel_turn" } : { type: "cancel_turn", turn },
     }),
   );
 }
