@@ -253,6 +253,35 @@ export class Fleet {
     }
   }
 
+  /** Put a session the node just answered with (a mark, a start again)
+   * into the machine's list at once, rather than at the next poll, so
+   * every list shows it the moment the node says. */
+  putSession(node: NodeKey, session: SessionInfo): void {
+    this.store.update((state) => {
+      const before = state.sessions[node];
+      if (before === undefined) {
+        return state;
+      }
+      const found = before.some((listed) => listed.id === session.id);
+      const after = found
+        ? before.map((listed) => (listed.id === session.id ? session : listed))
+        : [session, ...before];
+      return { ...state, sessions: { ...state.sessions, [node]: after } };
+    });
+  }
+
+  /** Take a deleted session out of the machine's list at once. */
+  dropSession(node: NodeKey, session: SessionInfo["id"]): void {
+    this.store.update((state) => {
+      const before = state.sessions[node];
+      if (before === undefined) {
+        return state;
+      }
+      const after = before.filter((listed) => listed.id !== session);
+      return { ...state, sessions: { ...state.sessions, [node]: after } };
+    });
+  }
+
   #pollSessions(): void {
     for (const [node, status] of entriesOf(this.store.get().statuses)) {
       if (status.state === "connected") {
