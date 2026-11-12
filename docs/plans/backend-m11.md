@@ -4984,6 +4984,69 @@ All twelve were classified by their tracks; the join added none
   `PullNumber`, `PullTitle`, `RepoPath` named; `PullBody` content.
 - C: `TerminalId` a handle; `ScriptName` named; `ProcessName` content.
 
+### The independent review
+
+One reviewer (Opus, read only, security first) read `git diff
+backend/m11` at `35ab1fc` and found ten problems. Each one's fate, most
+severe first:
+
+1. **High: `gh` handed the node's enterprise token to any host.** `gh
+   auth token --hostname <host>` answers from `GH_ENTERPRISE_TOKEN` (and
+   `GH_TOKEN` for `*.ghe.com`) before its stored logins, and the node
+   asks it for every host a remote names, which an agent can set: the
+   token went to the agent's host in a request's header. **Fixed**: `gh`
+   runs without the token variables and `GH_HOST` (`Gh::token_spec`,
+   tested); the node reads them itself for their own hosts.
+2. **High (design): an agent without `agent_terminals` can start a
+   session under a profile that has it, and prompt that agent.**
+   **Not taken as a change here**: the child's terminal is held to the
+   child's profile and permission mode, which is what a person allowed
+   that profile; which profiles an agent may start sessions under is ADR
+   0013's question. ADR 0031's amendment now says so instead of claiming
+   more.
+3. **Medium: commit and push hooks run with the forge's token
+   variables.** **Not taken**: they run with the user's environment as
+   the user's own `git push` does (a person's calls only); removing the
+   variables would break pushes through `gh auth git-credential`, and a
+   hook could still ask the credential helper. Said in ADR 0030.
+4. **Medium: another node's agent's terminal outlives the agent's
+   session.** **Left, and said** (ADR 0031): this node sees only the end
+   of the session the terminal is beside; the agent's credential ends
+   with it, so it cannot reach the terminal, which a person sees in
+   `terminal.list`. Closing it needs the agent's node to close what it
+   opened elsewhere, a fleet change of its own.
+5. **Low: a resumed session's new agent terminal may go unwatched**
+   while the old watch is still ending the previous terminals (the set
+   of watched sessions is by id). **Left, and said here**: it needs the
+   watch keyed by the runtime's handle, not the session's id; the window
+   is the ten seconds the old terminals take to end.
+6. **Low: a terminal or a script could start beside an archived
+   session.** **Fixed**: `conflict` until it is brought back, and a start
+   racing the archiving ends itself (`meeting` checks both calls).
+7. **Low: turning `agent_terminals` off leaves open terminals running.**
+   **Not taken**: the switch is asked at each start, as an approval is
+   for a service; said in ADR 0031.
+8. **Low: an agent's `port.list` was filtered after the node-wide bound
+   of 256**, so its own ports could be cut by others'. **Fixed**: a scan
+   keeps up to 4,096, and each caller's are picked out before the reply's
+   bound (`ports.rs` test).
+9. **Low: unbounded keeping.** `gh`'s answers and the hosts refused a
+   moment ago were kept per host a remote names: **fixed**, at most 64
+   each (tested). Every approval kept its set forever: **fixed**, only
+   the newest four per project keep theirs, every approval keeps its
+   digest (store test).
+10. **Low: `SessionInfo.pull_request` reaches agents.** **Not taken**: an
+    agent reads any session's pull request by B2's contract (`pr.get`);
+    said in ADR 0029.
+
+Areas the reviewer checked and found clean: scripts' approval (the
+approved parse runs, every restart asks again, agents refused), the
+environments, terminal ownership on every call, the races of removal and
+start and of deletion and start, git's overrides and listing, the forge's
+token handling over HTTP, the bounds of the forge, terminals and port
+scans, and the wire for older peers. Not read deeply: `vessel mcp`'s
+terminal tools, GraphQL decoding, `own_config`'s tests, Windows paths.
+
 ### Tests that fail only under load
 
 The machine ran at load 10 to 18 for most of the join (other workers
@@ -5005,11 +5068,67 @@ they are reported here, not changed:
   `page.spec.ts:279` (the Display button detached while the sidebar went
   away) and `reconnect.spec.ts:10` (the sidebar's "Connected" mark not
   found). Its `finally` presses Control+B right after Escape closed the
-  palette: under load the keypress most likely lands while the closing palette
-  still holds focus, and is lost; a page that kept the preference hidden
+  palette: under load the keypress most likely lands while the closing
+  palette still holds focus, and is lost; a page that kept the preference hidden
   then hides the sidebar for every later test. Waiting for focus to come
   back (or setting the preference through the bridge in the `finally`)
   would close it. Run again at load 2 on the same binaries: 36 of 36
   passed.
+- On the second follow-up, at load 15: `app.spec.ts:61` ("a terminal
+  session runs and echoes keys") timed out clicking the agent menu's
+  "Claude Code" item, which re-rendered under the pointer ("not stable",
+  then "detached"); `page.spec.ts:122` ("a screen asked for while
+  Settings loads…") waits for Settings' chunk with `waitForResponse`
+  registered after `release()`, so a chunk that arrives in between is
+  never seen. Run again at load 1.5: those two passed and
+  `timeline.spec.ts:101` failed instead, a row held 1.28 px from where it
+  was (the bound is 1 px) while the window settled.
 - None touches terminals, pull requests or files; no node code was
   involved. `vessel-remote`'s connection test passed in every run here.
+
+### Commits
+
+- `207fce6` the merge (33 files resolved; the removal's reading after its
+  claim with C's occupants; terminals and scripts on B2's "starting"
+  count; protocol 11's scope test; the agents' refusal by family).
+- `1532826` where the tracks meet: the window closed and raced, archive
+  ends what runs beside a session, no forge sign-in in a repository's
+  processes, a script beside a session finds its project, the agents'
+  list tested; two files divided.
+- `35ab1fc` the two wire gaps: a write guarded by the content hash, the
+  set last approved (schema 11).
+- The review's fixes: `gh` without the environment's tokens, nothing new
+  beside an archived session, an agent's ports picked out before the
+  bound, bounded token and approval keeping; the ADRs and this section.
+
+### The gate, on the final tree
+
+Run on the final tree under load 7 to 12, binaries and bundle rebuilt
+first:
+
+- `cargo fmt --all --check`: clean.
+- `cargo clippy --workspace --all-targets -- -D warnings`: clean.
+- `cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets
+  -- -D warnings`: clean.
+- `cargo test --workspace --no-fail-fast`: 1,486 passed, 0 failed, 9
+  ignored, over 102 test binaries.
+- The TypeScript regeneration (`VESSEL_WRITE_TS=1 cargo test -p
+  vessel-proto -p vessel-web --features ts --lib typescript`): passes;
+  `web/src/wire/proto.ts` committed with the wire's change.
+- In `web/`: `npm ci`, `npm run lint`, `npm run typecheck`, `npm run
+  test` (238 passed, 54 files), `npm run build`, then
+  `VESSEL_WEB_REQUIRE_BUNDLE=1 cargo build -p vessel-cli -p vessel-node
+  -p vessel-testkit --bins` and `npm run e2e` (36 passed). Nothing under
+  `web/` changed but the generated declarations.
+
+### For the page's join
+
+- B-page's editor saves with `{ kind: "content", hash }` (its `version`
+  guard no longer typechecks), and drops its check-then-`any` workaround;
+  on `conflict` it reads again and shows both.
+- B-page's approval dialog shows `last_approved.commands` beside the
+  listed set, and shows `scripts` (C's join condition) or refuses a set
+  that has them.
+- A session's terminals: `terminal.list {}` once, grouped by `place`.
+- Archiving a session ends its terminals and services; say so where a
+  person archives.

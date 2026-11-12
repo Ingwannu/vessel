@@ -1,8 +1,8 @@
 //! Where protocol 11's two node tracks meet (wave 2's first join): a
 //! session with a pull request watched (track B2, ADR 0029) and a service
 //! and a shell beside it (track C, ADR 0031), and what ends when the
-//! session is archived or deleted, or its worktree removed; and a
-//! terminal starting in a worktree while the worktree is removed, raced.
+//! session is archived or deleted, or its worktree removed (the race of
+//! a terminal's start with a removal is `removal_race`).
 //!
 //! Unix only, as the terminals' tests are: the shell is `/bin/sh`.
 
@@ -15,18 +15,18 @@ use vessel_proto::conversation::{Mark, MarkSession};
 use vessel_proto::forge::{GetForgeStatus, GetPullRequest, ListPullRequests};
 use vessel_proto::scripts::{RunScript, ScriptPlace, ScriptRunOutcome};
 use vessel_proto::terminals::{
-    CloseTerminal, CreateTerminal, GetTerminal, ServiceState, TerminalInfo, TerminalPlace,
+    CreateTerminal, GetTerminal, ServiceState, TerminalInfo, TerminalPlace,
 };
 use vessel_proto::workspace::{
-    AddProject, ApproveCommands, CommitId, GetProjectCommands, IfLost, KeptReason, ListProjects,
-    ProjectCommands, RemoveWorktree, RemoveWorktreeOutcome, SessionPlace, WorktreeInfo,
+    ApproveCommands, CommitId, GetProjectCommands, IfLost, KeptReason, ListProjects,
+    ProjectCommands, RemoveWorktree, RemoveWorktreeOutcome, WorktreeInfo,
 };
 use vessel_proto::{ErrorCode, ListSessions, ProjectId, SessionId, WorktreeId};
 
 use crate::agents::code;
 use crate::forge::{git, info_until, project, pull, running_in};
 use crate::support::{Fixture, step, within};
-use crate::workspace::{in_place, lookup, new_worktree, repository};
+use crate::workspace::{lookup, new_worktree};
 
 /// A node that finds git, reaches only `forge`, and opens `/bin/sh`.
 async fn start(fixture: &Fixture, forge: &Arc<FakeForge>) -> Node {
@@ -233,6 +233,18 @@ async fn archiving_ends_the_watch_the_service_and_the_shell() {
         );
         let shell = terminal(&owner, &shell).await;
         assert!(!shell.is_live(), "{shell:?}");
+        // Put away, nothing new starts beside it until it is brought back.
+        let beside = CreateTerminal {
+            place: TerminalPlace::Session { session },
+            size: None,
+            title: None,
+        };
+        assert_eq!(code(owner.call(beside).await), ErrorCode::Conflict);
+        let run = RunScript {
+            place: ScriptPlace::Session { session },
+            script: "web".parse().unwrap(),
+        };
+        assert_eq!(code(owner.call(run).await), ErrorCode::Conflict);
 
         // Nothing runs there any more.
         assert!(matches!(
@@ -297,97 +309,6 @@ async fn deleting_ends_and_forgets_the_runs_before_the_worktree_is_tidied() {
                 ErrorCode::NotFound
             );
         }
-        node.stop().await.unwrap();
-    })
-    .await;
-}
-
-/// A terminal opened beside a session in a worktree while the worktree is
-/// removed: the removal sees it and keeps the worktree, or it is refused
-/// before anything runs; never both a terminal and a removal (which would
-/// have run teardown under it). Raced six times; either may win a round
-/// (the removal usually does: opening a shell takes longer). Without the
-/// hold a start takes on the worktree, the first round fails.
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_terminal_and_its_worktree_s_removal_never_both_win() {
-    within(async {
-        let fixture = Fixture::new();
-        let node = fixture
-            .start_with(|config| {
-                config.harness_lookup = lookup(&fixture);
-                config.terminals.shell = Some(Shell::plain("/bin/sh"));
-            })
-            .await;
-        let owner = fixture.connect(&node).await;
-        let folder = tempfile::tempdir().unwrap();
-        let root = std::fs::canonicalize(folder.path()).unwrap().join("app");
-        std::fs::create_dir(&root).unwrap();
-        repository(&root);
-        let project = owner
-            .call(AddProject {
-                path: root,
-                name: None,
-            })
-            .await
-            .unwrap();
-        let (mut kept, mut removed) = (0_u32, 0_u32);
-        for _round in 0..6 {
-            let worktree = new_worktree(&owner, project.id).await;
-            // An ended session still has its folder, and a terminal may be
-            // opened beside it; it no longer holds the worktree itself.
-            let session = owner
-                .create_session(in_place(
-                    &fixture,
-                    SessionPlace::Worktree {
-                        worktree: worktree.id,
-                    },
-                ))
-                .await
-                .unwrap()
-                .id;
-            owner.kill(session).await.unwrap();
-            let _ended = info_until(&owner, session, |info| !info.status.is_live()).await;
-            let (opened, removal) = tokio::join!(
-                owner.call(CreateTerminal {
-                    place: TerminalPlace::Session { session },
-                    size: None,
-                    title: None,
-                }),
-                owner.call(RemoveWorktree {
-                    worktree: worktree.id,
-                    if_lost: IfLost::Discard,
-                })
-            );
-            match (opened, removal.unwrap()) {
-                (Ok(shell), RemoveWorktreeOutcome::Kept { reasons }) => {
-                    assert_eq!(reasons, [KeptReason::InUse]);
-                    assert!(shell.folder.starts_with(&worktree.path));
-                    kept = kept.saturating_add(1);
-                    let _closed = owner
-                        .call(CloseTerminal { terminal: shell.id })
-                        .await
-                        .unwrap();
-                    assert!(matches!(
-                        remove(&owner, worktree.id).await,
-                        RemoveWorktreeOutcome::Removed { .. }
-                    ));
-                }
-                (Err(refused), RemoveWorktreeOutcome::Removed { .. }) => {
-                    let refused = code(Err::<(), _>(refused));
-                    assert!(
-                        matches!(refused, ErrorCode::Conflict),
-                        "refused as {refused:?}"
-                    );
-                    removed = removed.saturating_add(1);
-                }
-                (opened, outcome) => {
-                    panic!("a terminal {opened:?} and a removal {outcome:?} at once")
-                }
-            }
-            let _deleted = owner.delete_session(session).await.unwrap();
-        }
-        tracing::info!(kept, removed, "the race's outcomes");
-        assert_eq!(kept.saturating_add(removed), 6);
         node.stop().await.unwrap();
     })
     .await;

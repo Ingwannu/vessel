@@ -54,6 +54,31 @@ impl Gh {
         }
     }
 
+    /// The command that asks `gh` for `host`'s token. Without the token
+    /// variables and `GH_HOST` (the join of wave 2's first half): `gh`
+    /// answers `auth token` from them before its stored logins, an
+    /// enterprise token for every host that is not `github.com`, so a host
+    /// a remote names (an agent can set a remote) would be handed the
+    /// node's enterprise token. The node reads those variables itself, for
+    /// the hosts they are for (`EnvTokens`); `gh` answers only from the
+    /// logins it stores per host.
+    fn token_spec(&self, host: &ForgeHost) -> CommandSpec {
+        crate::token::SIGN_IN_VARIABLES
+            .iter()
+            .chain(std::iter::once(&"GH_HOST"))
+            .fold(
+                CommandSpec::new(&self.program)
+                    .cwd(&self.folder)
+                    .args(["auth", "token", "--hostname"])
+                    .arg(host.as_str()),
+                CommandSpec::env_remove,
+            )
+            .env("GH_DEBUG", "")
+            .env("GH_PROMPT_DISABLED", "1")
+            .env("GH_NO_UPDATE_NOTIFIER", "1")
+            .env("NO_COLOR", "1")
+    }
+
     /// `host`'s token, or what stopped `gh` giving one.
     ///
     /// # Errors
@@ -65,14 +90,7 @@ impl Gh {
             .acquire()
             .await
             .map_err(|_closed| GhState::Failed)?;
-        let spec = CommandSpec::new(&self.program)
-            .cwd(&self.folder)
-            .args(["auth", "token", "--hostname"])
-            .arg(host.as_str())
-            .env("GH_DEBUG", "")
-            .env("GH_PROMPT_DISABLED", "1")
-            .env("GH_NO_UPDATE_NOTIFIER", "1")
-            .env("NO_COLOR", "1");
+        let spec = self.token_spec(host);
         let Spawned {
             mut child,
             stdin,
@@ -166,5 +184,24 @@ mod tests {
         assert_eq!(failed.token(&host).await.unwrap_err(), GhState::Failed);
         let missing = Gh::new(temp.path().join("nowhere"), temp.path().to_path_buf());
         assert_eq!(missing.token(&host).await.unwrap_err(), GhState::Failed);
+    }
+
+    /// `gh` answers from the environment's tokens first (an enterprise
+    /// one for any host but `github.com`): it never sees them, so a host
+    /// a remote names gets only what `gh` stored for it.
+    #[test]
+    fn gh_never_sees_the_environment_s_tokens() {
+        let gh = Gh::new("/usr/bin/gh".into(), "/data".into());
+        let spec = gh.token_spec(&"evil.example".parse().unwrap());
+        for name in crate::token::SIGN_IN_VARIABLES
+            .iter()
+            .chain(std::iter::once(&"GH_HOST"))
+        {
+            assert_eq!(
+                spec.env_change(name),
+                Some(&vessel_proc::EnvValue::Remove),
+                "{name}"
+            );
+        }
     }
 }

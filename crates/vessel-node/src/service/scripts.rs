@@ -32,6 +32,9 @@ impl NodeService {
                     self.sessions.get(*session).await.map_err(|error| {
                         ScriptLookup::Failed(TerminalsError::Wire(error.to_wire()))
                     })?;
+                if info.marks.archived_at.is_some() {
+                    return Err(ScriptLookup::Failed(super::terminals::archived()));
+                }
                 // The session's place as the registry knows it: the info
                 // a session's runtime holds carries none (the service
                 // fills `workspace` per reply, `with_workspace`).
@@ -245,19 +248,25 @@ impl NodeService {
     ) -> Result<PortList, WireError> {
         let mut wait = request.changed_from.map(|_| MAX_WAIT_SECS);
         let _slot = self.terminal_wait(connection, &mut wait);
-        let mut list = self.ports.list(request.changed_from, wait.is_some()).await;
         let principal = connection.principal();
-        if let Some((node, session)) = principal.agent() {
-            let mine = Creator::Agent { node, session };
-            let own = |owner: &PortOwner| match owner {
-                PortOwner::Session { session: owner } => *owner == session,
-                PortOwner::Terminal { terminal } => self
-                    .terminals
-                    .get(*terminal)
-                    .is_ok_and(|entry| entry.handle.info().created_by == mine),
-            };
-            list.ports.retain(|port| own(&port.owner));
-        }
+        let mine = principal
+            .agent()
+            .map(|(node, session)| (session, Creator::Agent { node, session }));
+        // An agent's own are picked out before the reply's bound, so the
+        // node's other ports never cut them off.
+        let list = self
+            .ports
+            .list(request.changed_from, wait.is_some(), |port| match &mine {
+                None => true,
+                Some((session, mine)) => match &port.owner {
+                    PortOwner::Session { session: owner } => owner == session,
+                    PortOwner::Terminal { terminal } => self
+                        .terminals
+                        .get(*terminal)
+                        .is_ok_and(|entry| entry.handle.info().created_by == *mine),
+                },
+            })
+            .await;
         Ok(list)
     }
 }

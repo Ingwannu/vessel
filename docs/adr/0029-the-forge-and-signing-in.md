@@ -214,3 +214,15 @@ feedback, list every pull request or see the node's sign-in.
 - Archiving a session ends its watch (as before) and what runs beside it
   (ADR 0031's amendment); deleting it ends and forgets that before its
   worktree is tidied, and its feedback rows go with it.
+- Found by the join's review: `gh auth token --hostname <host>` answers
+  from the token variables before its stored logins, an enterprise token
+  for any host but `github.com`, so a host a remote names (an agent can
+  set a remote) would have been sent the node's enterprise token. `gh` is
+  now run without those variables and without `GH_HOST`: it answers only
+  from what it stored for that host, and the node reads the variables
+  itself, for their own hosts only. The tokens `gh` gave are kept for at
+  most 64 hosts (the soonest to expire dropped first), as are the hosts
+  refused a moment ago.
+- `SessionInfo.pull_request` reaches an agent with every session's info,
+  as `pr.get` does (an agent reads any session's pull request, its
+  contract says); `pr.list` and `forge.status` stay a person's.

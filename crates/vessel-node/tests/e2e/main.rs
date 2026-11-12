@@ -55,6 +55,9 @@ mod profiles;
 #[cfg(unix)]
 mod remote;
 #[cfg(test)]
+#[cfg(unix)]
+mod removal_race;
+#[cfg(test)]
 mod resume;
 #[cfg(test)]
 mod routing;

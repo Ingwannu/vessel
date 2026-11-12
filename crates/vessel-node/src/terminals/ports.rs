@@ -8,7 +8,10 @@
 //!   only while someone asked within [`INTEREST`]; a node nobody asks
 //!   never scans. A scan runs one at a time (on the blocking pool on
 //!   Linux, as children with a time limit elsewhere), within
-//!   `ScanLimits::DEFAULT`; at most [`MAX_PORTS`] are reported.
+//!   `ScanLimits::DEFAULT`; at most [`MAX_KEPT`] are kept from a scan,
+//!   and at most [`MAX_PORTS`] reported to a caller, after what it may
+//!   see is picked out (an agent's own come first, not the node's first
+//!   256 with its own maybe cut; the join of wave 2's first half).
 //! - The list is a `watch`: a `port.list` with `changed_from` waits for the
 //!   next revision, and the revision moves only when the list or the
 //!   scan's state does, so a quiet machine wakes no waiter.
@@ -28,8 +31,11 @@ use vessel_proto::ports::{ListeningPort, PortList, PortOwner, PortScan, ProcessN
 pub(crate) const PERIOD: Duration = Duration::from_secs(3);
 /// Scans go on this long after the last `port.list`.
 pub(crate) const INTEREST: Duration = Duration::from_secs(60);
-/// The most ports reported.
+/// The most ports reported to a caller.
 pub(crate) const MAX_PORTS: usize = 256;
+/// The most ports kept from a scan (a few hundred kilobytes), so a
+/// caller's own are picked out of all of them before the reply's bound.
+pub(crate) const MAX_KEPT: usize = 4096;
 
 /// The roots of the trees to scan, each with its owner.
 pub(crate) type Roots = Vec<(u32, PortOwner)>;
@@ -72,7 +78,12 @@ impl Ports {
 
     /// The list now, or once its revision differs from `changed_from`
     /// (when `wait`); every call counts as interest, so scans run.
-    pub(crate) async fn list(&self, changed_from: Option<u64>, wait: bool) -> PortList {
+    pub(crate) async fn list(
+        &self,
+        changed_from: Option<u64>,
+        wait: bool,
+        keep: impl Fn(&ListeningPort) -> bool,
+    ) -> PortList {
         let _previous = self.asked.send_replace(Some(Instant::now()));
         self.wake.notify_one();
         let mut found = self.found.subscribe();
@@ -84,7 +95,21 @@ impl Ports {
             )
             .await;
         }
-        found.borrow().clone()
+        let found = found.borrow();
+        let mut ports: Vec<ListeningPort> = found
+            .ports
+            .iter()
+            .filter(|port| keep(port))
+            .cloned()
+            .collect();
+        let more = found.more || ports.len() > MAX_PORTS;
+        ports.truncate(MAX_PORTS);
+        PortList {
+            ports,
+            scan: found.scan.clone(),
+            revision: found.revision,
+            more,
+        }
     }
 
     async fn scan_while_asked(&self, roots: impl Fn() -> Roots) {
@@ -146,8 +171,8 @@ impl Ports {
                 .then(a.port.cmp(&b.port))
                 .then_with(|| a.address.cmp(&b.address))
         });
-        let more = ports.len() > MAX_PORTS;
-        ports.truncate(MAX_PORTS);
+        let more = ports.len() > MAX_KEPT;
+        ports.truncate(MAX_KEPT);
         let _woken = self.found.send_if_modified(|list| {
             // The scan's time moves at every scan; a waiter is woken only
             // when what it would show changed.
@@ -164,5 +189,52 @@ impl Ports {
             }
             changed
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_proto::{SessionId, TerminalId};
+
+    use super::*;
+
+    fn port(port: u16, owner: PortOwner) -> ListeningPort {
+        ListeningPort {
+            port,
+            address: "127.0.0.1".parse().unwrap(),
+            pid: 1,
+            process: None,
+            owner,
+        }
+    }
+
+    /// A caller's own ports are picked out of everything a scan kept,
+    /// then bounded: the node's others never cut them off.
+    #[tokio::test]
+    async fn a_caller_s_own_ports_come_before_the_bound() {
+        let others = PortOwner::Terminal {
+            terminal: TerminalId::random(),
+        };
+        let mine = PortOwner::Session {
+            session: SessionId::random(),
+        };
+        let mut ports: Vec<ListeningPort> = (0..300).map(|n| port(n, others)).collect();
+        ports.push(port(9000, mine));
+        let found = Ports {
+            found: watch::Sender::new(PortList {
+                ports,
+                scan: PortScan::Pending,
+                revision: 1,
+                more: false,
+            }),
+            asked: watch::Sender::new(None),
+            wake: Notify::new(),
+        };
+        let own = found.list(None, false, |port| port.owner == mine).await;
+        assert_eq!(own.ports.len(), 1);
+        assert!(!own.more);
+        let all = found.list(None, false, |_| true).await;
+        assert_eq!(all.ports.len(), MAX_PORTS);
+        assert!(all.more);
     }
 }

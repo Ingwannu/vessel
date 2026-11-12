@@ -133,6 +133,10 @@ struct Cached {
     until: Instant,
 }
 
+/// The most hosts whose answer from `gh` (or whose 401) is kept: remotes
+/// an agent controls can name any number of hosts.
+const MAX_CACHED: usize = 64;
+
 /// The node's tokens, per host: from its environment, else from `gh`.
 #[derive(Debug)]
 pub struct Credentials {
@@ -176,13 +180,28 @@ impl Credentials {
             Found::Token(..) => KEEP,
             Found::None(_) => KEEP_MISS,
         };
-        let _previous = self.cache().insert(
+        let mut cache = self.cache();
+        // Hosts come from remotes an agent can set: the cache is bounded,
+        // the expired first, else the one that expires soonest.
+        if !cache.contains_key(host) && cache.len() >= MAX_CACHED {
+            cache.retain(|_, cached| cached.until > now);
+            if cache.len() >= MAX_CACHED
+                && let Some(soonest) = cache
+                    .iter()
+                    .min_by_key(|(_, cached)| cached.until)
+                    .map(|(host, _)| host.clone())
+            {
+                let _dropped = cache.remove(&soonest);
+            }
+        }
+        let _previous = cache.insert(
             host.clone(),
             Cached {
                 found: found.clone(),
                 until: now.checked_add(keep).unwrap_or(now),
             },
         );
+        drop(cache);
         found
     }
 
@@ -198,7 +217,12 @@ impl Credentials {
         {
             return;
         }
-        let _at = dropped.insert(host.clone(), now);
+        // Bounded as the cache is: a drop older than a minute holds
+        // nothing back any more.
+        dropped.retain(|_, at| now.saturating_duration_since(*at) < ASK_AGAIN);
+        if dropped.len() < MAX_CACHED {
+            let _at = dropped.insert(host.clone(), now);
+        }
         drop(dropped);
         let _forgotten = self.cache().remove(host);
     }
@@ -224,6 +248,30 @@ mod tests {
 
     fn host(name: &str) -> ForgeHost {
         name.parse().unwrap()
+    }
+
+    /// Remotes can name any number of hosts: what is kept of their
+    /// answers stays bounded.
+    #[tokio::test]
+    async fn the_answers_kept_are_bounded() {
+        let credentials = Credentials::new(EnvTokens::default(), None);
+        for n in 0..(MAX_CACHED * 2) {
+            let named = host(&format!("h{n}.example"));
+            assert!(matches!(
+                credentials.token(&named).await,
+                Found::None(GhState::Missing)
+            ));
+            credentials.refused(&named);
+        }
+        assert!(credentials.cache().len() <= MAX_CACHED);
+        assert!(
+            credentials
+                .dropped
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .len()
+                <= MAX_CACHED
+        );
     }
 
     #[test]

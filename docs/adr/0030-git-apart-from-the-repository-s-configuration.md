@@ -222,3 +222,9 @@ Option 5.
 - The "starting" count also covers a terminal or a script's run starting
   in a worktree (`hold_folder`), held from before its reservation until
   it is registered, so a removal sees it or refuses it.
+- Not changed by the join's review, and why: commit and push (a person's
+  only, `pr.open`'s push included) run the repository's hooks with the
+  user's environment, the forge's token variables included, as the user's
+  own `git push` does. Removing them would break a push whose credential
+  helper (`gh auth git-credential`) reads `GH_TOKEN`, and would not keep
+  a hook from the credential: it can ask the user's helper, or `gh`.

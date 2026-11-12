@@ -41,6 +41,9 @@ impl NodeService {
                     .get(*session)
                     .await
                     .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
+                if info.marks.archived_at.is_some() {
+                    return Err(archived());
+                }
                 // The registry's place for it: the runtime's info carries
                 // none (the service fills `workspace` per reply).
                 project = self
@@ -168,17 +171,24 @@ impl NodeService {
         handle: &TerminalHandle,
         place: &TerminalPlace,
     ) -> Result<(), TerminalsError> {
-        let there = match place {
-            TerminalPlace::Session { session } => self.sessions.get(*session).await.is_ok(),
-            TerminalPlace::Project { project, .. } => self.workspaces.has_project(*project),
+        let refusal = match place {
+            // Archived meanwhile, it is put away: its archiving ends what
+            // was registered before its mark, this what came after.
+            TerminalPlace::Session { session } => match self.sessions.get(*session).await {
+                Ok(info) if info.marks.archived_at.is_some() => Some(archived()),
+                Ok(_) => None,
+                Err(_gone) => Some(TerminalsError::NotFound(handle.id())),
+            },
+            TerminalPlace::Project { project, .. } => (!self.workspaces.has_project(*project))
+                .then(|| TerminalsError::NotFound(handle.id())),
         };
-        if there {
+        let Some(refusal) = refusal else {
             return Ok(());
-        }
+        };
         handle.kill();
         let _ended = tokio::time::timeout(CLOSE_WAIT, handle.ended()).await;
         self.terminals.forget(handle.id());
-        Err(TerminalsError::NotFound(handle.id()))
+        Err(refusal)
     }
 
     /// Hold the worktree `folder` is in, if any, from removal, setup and
@@ -193,4 +203,14 @@ impl NodeService {
             .hold_folder(folder)
             .map_err(|error| TerminalsError::Wire(error.wire()))
     }
+}
+
+/// A start beside an archived session: refused, since archiving ends what
+/// runs beside it (the join of wave 2's first half).
+pub(in crate::service) fn archived() -> TerminalsError {
+    TerminalsError::Conflict(
+        "the session is archived; bring it back (`unarchive`) to open terminals or run scripts \
+         beside it"
+            .to_owned(),
+    )
 }

@@ -122,21 +122,7 @@ pub(crate) fn apply(connection: &Connection, write: &WorkspaceWrite) -> Result<(
             project,
             digest,
             change: ApprovalChange::Approved { at, commands },
-        } => connection
-            .prepare_cached(
-                // Approved again: the newest time, and the set once known.
-                "INSERT INTO approvals (project, digest, approved_at, commands)
-                 VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT (project, digest) DO UPDATE SET
-                     approved_at = excluded.approved_at,
-                     commands = coalesce(excluded.commands, approvals.commands)",
-            )?
-            .execute(params![
-                project.to_string(),
-                digest.as_str(),
-                time_to_sql(*at)?,
-                commands.as_deref().map(encode).transpose()?
-            ])?,
+        } => approve(connection, *project, digest, *at, commands.as_deref())?,
         WorkspaceWrite::Approval {
             project,
             digest,
@@ -147,6 +133,48 @@ pub(crate) fn apply(connection: &Connection, write: &WorkspaceWrite) -> Result<(
     };
     tracing::trace!(rows = changed, "workspace record written");
     Ok(())
+}
+
+/// Approve `digest` for `project` at `at`, with the set it covers when
+/// known (approved again: the newest time, and the set once known); then
+/// keep the sets of the newest [`MAX_APPROVED_SETS`] approvals of the
+/// project only, so the rows a person's approvals leave stay small (an
+/// older approval keeps its digest, and so its effect).
+fn approve(
+    connection: &Connection,
+    project: ProjectId,
+    digest: &CommandsDigest,
+    at: DateTime<Utc>,
+    commands: Option<&CommandSet>,
+) -> Result<usize, StoreError> {
+    let changed = connection
+        .prepare_cached(
+            "INSERT INTO approvals (project, digest, approved_at, commands)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT (project, digest) DO UPDATE SET
+                 approved_at = excluded.approved_at,
+                 commands = coalesce(excluded.commands, approvals.commands)",
+        )?
+        .execute(params![
+            project.to_string(),
+            digest.as_str(),
+            time_to_sql(at)?,
+            commands.map(encode).transpose()?
+        ])?;
+    let _older = connection
+        .prepare_cached(
+            "UPDATE approvals SET commands = NULL
+             WHERE project = ?1 AND commands IS NOT NULL AND digest NOT IN (
+                 SELECT digest FROM approvals
+                 WHERE project = ?1 AND commands IS NOT NULL
+                 ORDER BY approved_at DESC, digest LIMIT ?2
+             )",
+        )?
+        .execute(params![
+            project.to_string(),
+            i64::try_from(MAX_APPROVED_SETS).unwrap_or(i64::MAX)
+        ])?;
+    Ok(changed)
 }
 
 /// Everything, oldest first. Reader side.
@@ -366,8 +394,9 @@ mod tests {
         assert!(empty.approved_sets.is_empty());
     }
 
-    /// The newest sets come back first, a few per project, and a row that
-    /// is not one this node wrote is skipped, not fatal.
+    /// Only the newest approvals of a project keep their sets (every
+    /// approval keeps its digest); they come back newest first, and a row
+    /// that is not one this node wrote is skipped, not fatal.
     #[test]
     fn approved_sets_come_back_newest_first_and_bounded() {
         let mut connection = Connection::open_in_memory().unwrap();
@@ -389,6 +418,15 @@ mod tests {
             )
             .unwrap();
         }
+        let kept: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM approvals WHERE commands IS NOT NULL",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(kept, i64::try_from(MAX_APPROVED_SETS).unwrap());
+        assert_eq!(load(&connection).unwrap().approvals.len(), 6);
         let _broken = connection
             .execute(
                 r#"UPDATE approvals SET commands = '{"setup": 7}' WHERE digest = ?1"#,
@@ -400,6 +438,6 @@ mod tests {
             .iter()
             .map(|(_, set)| set.commands.setup[0].as_str().to_owned())
             .collect();
-        assert_eq!(newest, ["echo 4", "echo 3", "echo 2", "echo 1"]);
+        assert_eq!(newest, ["echo 4", "echo 3", "echo 2"]);
     }
 }

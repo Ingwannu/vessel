@@ -4,6 +4,8 @@
 
 mod place;
 
+pub(super) use place::archived;
+
 use chrono::Utc;
 use vessel_proto::terminals::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,

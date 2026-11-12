@@ -238,3 +238,23 @@ node's join (plan, "Integration 2 (node)"):
   session's runtime holds carries none (the service fills it per reply),
   so `script.run { place: session }` answered `no_project` for every
   session.
+- **Archived, nothing new starts beside it.** `terminal.create` and
+  `script.run` beside an archived session answer `conflict` until it is
+  brought back, and a start that raced the archiving ends itself (its
+  check after registering sees the mark; the archiving ends what was
+  registered before the mark).
+- **What "both profiles" does not stop, said plainly** (the join's
+  review). An agent whose profile lacks `agent_terminals` may still start
+  a session under a profile that has it (ADR 0013 does not limit which
+  profile an agent starts a session with) and prompt that agent, which
+  then uses a terminal of its own: what it runs there is held to that
+  profile's agent and permission mode, as its own shell tool is, so the
+  switch gives exactly what a person allowed that profile. Which profiles
+  an agent may start sessions under is ADR 0013's question, left open.
+  An agent of another node opening a terminal beside a session here is
+  tied to that session's end only: this node does not see the agent's own
+  session end, so its terminal runs until the session beside it ends or a
+  person closes it (the agent's credential, gone with its session, no
+  longer reaches it). A terminal already open keeps running when a person
+  turns `agent_terminals` off, as a running service does when its
+  approval is withdrawn: the switch is asked at each start.
