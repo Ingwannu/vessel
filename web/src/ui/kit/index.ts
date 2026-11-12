@@ -21,6 +21,7 @@ export { CommandLine } from "./command-line";
 export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
+export { useFilePicker } from "./file-picker";
 export { Field, FieldGroup } from "./field";
 export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
@@ -42,6 +43,12 @@ export { Sheet } from "./sheet";
 export { Skeleton } from "./skeleton";
 export { Spinner } from "./spinner";
 export { StatusDot } from "./status-dot";
+export {
+  moveActive,
+  suggestionId,
+  type SuggestionItem,
+  Suggestions,
+} from "./suggestions";
 export { Switch } from "./switch";
 export { type Tab, Tabs } from "./tabs";
 export { TextArea } from "./text-area";

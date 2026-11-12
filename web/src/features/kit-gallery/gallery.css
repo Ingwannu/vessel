@@ -107,3 +107,7 @@
     flex-direction: column;
   }
 }
+
+.kit-suggestions {
+  width: 320px;
+}

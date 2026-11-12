@@ -26,6 +26,7 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
 export function Tooltip({
   label,
   shortcut,
+  lines,
   side = "top",
   children,
   ...trigger
@@ -33,6 +34,8 @@ export function Tooltip({
   label: string;
   /** The keys, written as the platform shows them: "⌘K". */
   shortcut?: string;
+  /** Quieter lines under the label (the context meter's figures). */
+  lines?: readonly string[];
   side?: "top" | "bottom" | "right" | "left";
   /** The element it names: a kit control, or text that may be cut. */
   children: ReactElement;
@@ -47,11 +50,20 @@ export function Tooltip({
           sideOffset={8}
           collisionPadding={8}
         >
-          <Base.Popup className="tooltip">
+          <Base.Popup
+            className={lines === undefined ? "tooltip" : "tooltip lined"}
+          >
             <span>{label}</span>
             {shortcut === undefined ? null : (
               <span className="tooltip-keys">{shortcut}</span>
             )}
+            {lines === undefined
+              ? null
+              : lines.map((line) => (
+                  <span key={line} className="tooltip-line">
+                    {line}
+                  </span>
+                ))}
             <Base.Arrow className="tooltip-arrow" />
           </Base.Popup>
         </Base.Positioner>
