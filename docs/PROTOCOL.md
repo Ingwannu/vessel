@@ -30,6 +30,29 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 11 (2026-11-12, milestone 11, wave 2)
+
+Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave.
+Track B2's part
+("Track B2: contract" in `docs/plans/backend-m11.md`):
+
+### Git apart from a repository's own configuration (ADR 0030)
+
+- `GitRefusal::repository_config { key?: ConfigKey, reason }`: the
+  repository's own configuration (its `.git/config`, `config.worktree`
+  and what they include) sets something the node's git does not run
+  with: `program` (an `ssh`, a credential helper, a proxy, a signing
+  program, an upload or receive program, on a run that would start it),
+  `credential` (a proxy, a TLS check, a resolver, a header or a cookie
+  file that could send a network run's credential elsewhere), `layout`
+  (`core.worktree`), `unnamable`, `too_many` (drivers), `too_large`;
+  never the value. On a read the same refusal is `conflict` with the key
+  in its message. A protocol 10 client reads it as `unknown`.
+- `ConfigKey`: one line, at most 256 characters.
+- Folders that are git's own (a `.git` folder by git's own naming rules,
+  a folder inside one, a bare repository) are `invalid_request` for
+  `project.add`, `project.init` and a clone's target.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

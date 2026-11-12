@@ -23,7 +23,7 @@ use super::projects::Live;
 use super::setup::note;
 use super::{MAX_WORKTREES, WorkspaceError, Workspaces, WorktreeEntry};
 
-pub(crate) use place::Placed;
+pub(crate) use place::{Placed, Starting};
 pub(crate) use removal::TidyScope;
 
 impl Workspaces {
@@ -51,6 +51,7 @@ impl Workspaces {
                         info,
                         written: Arc::new(written),
                         running: None,
+                        starting: 0,
                     },
                 ));
             }

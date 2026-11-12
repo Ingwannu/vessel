@@ -131,9 +131,11 @@ impl Tidying {
     }
 
     /// The worktree made for `session`, removed by the rule, with the
-    /// live sessions' folders as they are now.
+    /// live sessions' folders as they are once the worktree is claimed.
     async fn retire(&self, session: SessionId) -> Option<TidiedWorktree> {
-        let live = self.sessions.live_folders();
-        self.workspaces.retire(session, &live).await
+        let sessions = &self.sessions;
+        self.workspaces
+            .retire(session, || sessions.live_folders())
+            .await
     }
 }

@@ -157,7 +157,13 @@ impl Git {
         }
         let staged = self
             .command(dir)
-            .args(["diff", "--cached", "--quiet", "--no-ext-diff"])
+            .args([
+                "diff",
+                "--cached",
+                "--quiet",
+                "--no-ext-diff",
+                "--no-textconv",
+            ])
             .output()
             .await?;
         if staged.code == Some(0) && self.operation(dir).await? != Some(GitOperation::Merge) {

@@ -54,6 +54,14 @@ impl From<GitError> for WorkspaceError {
         if matches!(error, GitError::Busy) {
             return Self::Busy(error.to_string());
         }
+        // ADR 0030: what a person must change in the repository, said as
+        // a conflict with its key (never its value).
+        if matches!(
+            error,
+            GitError::OwnConfig { .. } | GitError::OwnConfigTooLarge
+        ) {
+            return Self::Conflict(error.to_string());
+        }
         if let GitError::Failed { message, .. } = &error
             && message.contains("index.lock")
         {

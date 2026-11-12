@@ -8,10 +8,13 @@
 //!   caller says whether that is an error) and the process is killed; a
 //!   run past its time is killed and answers [`GitError::TimedOut`].
 
-use tokio::io::{AsyncRead, AsyncReadExt};
-use vessel_proc::{Signal, Spawned};
+use std::ffi::OsString;
 
-use super::{GitCommand, KIB};
+use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio_util::sync::CancellationToken;
+use vessel_proc::{CommandSpec, Signal, Spawned};
+
+use super::{GitCommand, KIB, Limits, PoolKind, own_config};
 use crate::git::GitError;
 
 /// What a run printed and how it ended.
@@ -77,75 +80,153 @@ impl GitCommand {
 
     /// [`output`](Self::output), also handing every piece of standard error
     /// to `progress` as it arrives (clone's progress lines).
+    ///
+    /// In a repository, its own configuration is listed and judged first
+    /// (ADR 0030, `own_config`), in the same slot and within the same time.
     pub(crate) async fn output_streaming(
         self,
-        mut progress: impl FnMut(&[u8]) + Send,
+        progress: impl FnMut(&[u8]) + Send,
     ) -> Result<GitOutput, GitError> {
-        let spec = self.spec();
-        let Self {
-            runner,
-            limits,
-            network,
-            cancel,
-            ..
-        } = self;
-        let pool = if network {
-            &runner.network
-        } else {
-            &runner.local
+        let pool = match self.pool {
+            PoolKind::Local => &self.runner.local,
+            PoolKind::Network => &self.runner.network,
+            PoolKind::Clone => &self.runner.clones,
         };
-        let cancel = cancel.unwrap_or_default();
-        // One deadline for the wait for a slot and the run: a call behind
-        // slow ones answers within its time, and a cancelled one stops
-        // waiting, rather than queueing until a slot frees.
-        let started = tokio::time::Instant::now();
+        let limits = self.limits;
+        let cancel = self.cancel.clone().unwrap_or_default();
+        // One deadline for the wait for a slot, the listing and the run: a
+        // call behind slow ones answers within its time, and a cancelled
+        // one stops waiting, rather than queueing until a slot frees.
+        // Limits are at most an hour; a clock that cannot hold one more
+        // hour is not one a runtime makes, and timing out at once is the
+        // safe side if it ever were.
+        let now = tokio::time::Instant::now();
+        let deadline = now.checked_add(limits.time).unwrap_or(now);
         let _slot = tokio::select! {
             slot = pool.slot() => slot?,
-            () = tokio::time::sleep(limits.time) => {
+            () = tokio::time::sleep_until(deadline) => {
                 return Err(GitError::TimedOut { after: limits.time });
             }
             () = cancel.cancelled() => return Err(GitError::Cancelled),
         };
-        let Spawned {
-            mut child,
-            stdin,
-            stdout,
-            stderr,
-        } = vessel_proc::spawn(&spec).map_err(GitError::Spawn)?;
-        // Nothing is ever typed into git.
-        drop(stdin);
-        let ended = {
-            let work = async {
-                let (out, err) = tokio::join!(
-                    read_capped(stdout, limits.stdout),
-                    read_tail(stderr, limits.stderr, &mut progress)
-                );
-                let code = child.wait().await.map_err(GitError::Wait)?;
-                Ok::<_, GitError>(GitOutput {
-                    code,
-                    stdout: out.bytes,
-                    stdout_cut: out.cut,
-                    stderr: err,
-                })
-            };
-            tokio::select! {
-                result = work => Ended::Finished(result),
-                () = tokio::time::sleep(limits.time.saturating_sub(started.elapsed())) => {
-                    Ended::TimedOut
-                }
-                () = cancel.cancelled() => Ended::Cancelled,
-            }
+        let settings = if self.own_config {
+            self.own_settings(deadline, &cancel).await?
+        } else {
+            Vec::new()
         };
-        match ended {
-            Ended::Finished(result) => result,
-            Ended::TimedOut => {
-                stop(&mut child).await;
-                Err(GitError::TimedOut { after: limits.time })
+        let spec = self.spec(&settings);
+        execute(&spec, limits, deadline, &cancel, progress).await
+    }
+
+    /// What the repository's own configuration makes this run turn off,
+    /// or the refusal (ADR 0030). Outside a repository there is none.
+    async fn own_settings(
+        &self,
+        deadline: tokio::time::Instant,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<String>, GitError> {
+        let mut listing = self.listing("--local", deadline, cancel).await?;
+        if own_config::has_worktree_config(&listing) {
+            let worktree = self.listing("--worktree", deadline, cancel).await?;
+            listing.push(0);
+            listing.extend_from_slice(&worktree);
+        }
+        own_config::judge(&listing, self.uses()).map_err(|refused| GitError::OwnConfig {
+            key: refused.key,
+            why: refused.why,
+        })
+    }
+
+    /// `git config <scope> --list -z --includes` in this run's folder: the
+    /// repository's own settings and every file they include, never the
+    /// user's global or system ones. Empty outside a repository.
+    async fn listing(
+        &self,
+        scope: &str,
+        deadline: tokio::time::Instant,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<u8>, GitError> {
+        let args = ["config", scope, "--list", "-z", "--includes"].map(OsString::from);
+        let spec = self.spec_of(&args, &[]);
+        let limits = Limits {
+            time: self.limits.time,
+            stdout: LISTING,
+            stderr: 4 * KIB,
+        };
+        let output = execute(&spec, limits, deadline, cancel, |_| {}).await?;
+        if output.stdout_cut {
+            return Err(GitError::OwnConfigTooLarge);
+        }
+        match output.code {
+            Some(0) => Ok(output.stdout),
+            // `--local` says this when the folder is in no repository: no
+            // repository's configuration can apply to the run either.
+            _ if output
+                .stderr_text()
+                .contains("can only be used inside a git repository") =>
+            {
+                Ok(Vec::new())
             }
-            Ended::Cancelled => {
-                stop(&mut child).await;
-                Err(GitError::Cancelled)
-            }
+            // An empty configuration lists nothing and exits 1 on some
+            // versions.
+            Some(1) if output.stderr.is_empty() => Ok(Vec::new()),
+            code => Err(GitError::Failed {
+                code,
+                message: crate::git::redact::tail(&output.stderr_text()),
+            }),
+        }
+    }
+}
+
+/// The most of a repository's own configuration a run reads before it.
+const LISTING: usize = 256 * KIB;
+
+/// Spawn `spec` and read it to its end within `limits`, killed at
+/// `deadline` or when `cancel` is.
+async fn execute(
+    spec: &CommandSpec,
+    limits: Limits,
+    deadline: tokio::time::Instant,
+    cancel: &CancellationToken,
+    mut progress: impl FnMut(&[u8]) + Send,
+) -> Result<GitOutput, GitError> {
+    let Spawned {
+        mut child,
+        stdin,
+        stdout,
+        stderr,
+    } = vessel_proc::spawn(spec).map_err(GitError::Spawn)?;
+    // Nothing is ever typed into git.
+    drop(stdin);
+    let ended = {
+        let work = async {
+            let (out, err) = tokio::join!(
+                read_capped(stdout, limits.stdout),
+                read_tail(stderr, limits.stderr, &mut progress)
+            );
+            let code = child.wait().await.map_err(GitError::Wait)?;
+            Ok::<_, GitError>(GitOutput {
+                code,
+                stdout: out.bytes,
+                stdout_cut: out.cut,
+                stderr: err,
+            })
+        };
+        tokio::select! {
+            result = work => Ended::Finished(result),
+            () = tokio::time::sleep_until(deadline) => Ended::TimedOut,
+            () = cancel.cancelled() => Ended::Cancelled,
+        }
+    };
+    match ended {
+        Ended::Finished(result) => result,
+        Ended::TimedOut => {
+            stop(&mut child).await;
+            Err(GitError::TimedOut { after: limits.time })
+        }
+        Ended::Cancelled => {
+            stop(&mut child).await;
+            Err(GitError::Cancelled)
         }
     }
 }

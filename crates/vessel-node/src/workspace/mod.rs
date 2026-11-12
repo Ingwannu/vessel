@@ -50,7 +50,7 @@ use vessel_workspace::{Git, GitSetup};
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
-pub(crate) use worktrees::{Placed, TidyScope};
+pub(crate) use worktrees::{Placed, Starting, TidyScope};
 
 /// The most projects, and the most worktrees, one node keeps.
 pub(crate) const MAX_PROJECTS: usize = 1000;
@@ -118,6 +118,9 @@ struct WorktreeEntry {
     written: Arc<watch::Sender<u64>>,
     /// Stops its setup or teardown, while one runs.
     running: Option<CancellationToken>,
+    /// Sessions that passed `place` (or `session.resume`'s check) and are
+    /// not live yet (ADR 0030): a removal counts them as sessions in it.
+    starting: usize,
 }
 
 #[derive(Debug, Default)]

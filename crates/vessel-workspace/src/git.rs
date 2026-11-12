@@ -24,6 +24,7 @@ pub use clone::{Failed as CloneFailed, Progress as CloneProgress};
 pub use diff::Resolved;
 pub(crate) use redact::{redact, tail};
 pub use run::GitSetup;
+pub use run::own_config::OwnConfigRefusal;
 pub(crate) use run::{GitCommand, GitOutput, Limits};
 pub use status::MAX_ENTRIES;
 pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
@@ -65,6 +66,7 @@ impl Git {
         let runner = run::Runner::new(setup);
         let output = runner
             .command(Path::new("."))
+            .outside_repository()
             .arg("--version")
             .limits(Limits {
                 time: Duration::from_secs(10),
@@ -158,6 +160,19 @@ pub enum GitError {
         /// What was being read.
         what: &'static str,
     },
+    /// The repository's own configuration sets something Vessel's git
+    /// does not run with (ADR 0030). Its value is never said.
+    #[error("this repository's own configuration sets `{key}`: {why}")]
+    OwnConfig {
+        /// The key, as git lists it.
+        key: String,
+        /// Why the run was refused.
+        why: OwnConfigRefusal,
+    },
+    /// The repository's own configuration is larger than a run reads
+    /// before it (ADR 0030).
+    #[error("this repository's own configuration is larger than Vessel reads before running git")]
+    OwnConfigTooLarge,
 }
 
 #[cfg(test)]

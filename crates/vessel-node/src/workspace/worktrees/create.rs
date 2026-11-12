@@ -148,6 +148,7 @@ impl Workspaces {
                     info: info.clone(),
                     written: Arc::new(written),
                     running: None,
+                    starting: 0,
                 },
             ));
         }

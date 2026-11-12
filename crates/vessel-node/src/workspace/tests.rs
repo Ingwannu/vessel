@@ -325,13 +325,16 @@ async fn a_clean_worktree_is_made_placed_and_removed_with_its_branch() {
         "{:?}",
         placed.notices
     );
+    // The session is live now (ADR 0030: until then, `placed` keeps any
+    // removal out).
+    drop(placed);
 
     // A live session in it keeps it.
     let session = SessionId::random();
     let live = [(session, worktree.path.join("src"))];
     let kept = fixture
         .workspaces
-        .remove_worktree(worktree.id, IfLost::Keep, &live)
+        .remove_worktree(worktree.id, IfLost::Keep, || live.to_vec())
         .await
         .unwrap();
     assert_eq!(
@@ -343,7 +346,7 @@ async fn a_clean_worktree_is_made_placed_and_removed_with_its_branch() {
 
     let removed = fixture
         .workspaces
-        .remove_worktree(worktree.id, IfLost::Keep, &[])
+        .remove_worktree(worktree.id, IfLost::Keep, Vec::new)
         .await
         .unwrap();
     assert_eq!(removed, RemoveWorktreeOutcome::Removed { snapshot: None });
@@ -368,7 +371,7 @@ async fn work_is_kept_or_snapshotted_and_a_snapshot_comes_back() {
 
     let kept = fixture
         .workspaces
-        .remove_worktree(worktree.id, IfLost::Keep, &[])
+        .remove_worktree(worktree.id, IfLost::Keep, Vec::new)
         .await
         .unwrap();
     let RemoveWorktreeOutcome::Kept { reasons } = kept else {
@@ -382,7 +385,7 @@ async fn work_is_kept_or_snapshotted_and_a_snapshot_comes_back() {
 
     let removed = fixture
         .workspaces
-        .remove_worktree(worktree.id, IfLost::Snapshot, &[])
+        .remove_worktree(worktree.id, IfLost::Snapshot, Vec::new)
         .await
         .unwrap();
     let RemoveWorktreeOutcome::Removed {
@@ -659,7 +662,10 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
         made.push(worktree);
     }
     assert_eq!(
-        fixture.workspaces.retire(SessionId::random(), &[]).await,
+        fixture
+            .workspaces
+            .retire(SessionId::random(), Vec::new)
+            .await,
         None
     );
     // A worktree made for no session is claimed by the first one started
@@ -677,14 +683,14 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
         Some(claimer)
     );
     let removed = Some(RemoveWorktreeOutcome::Removed { snapshot: None });
-    let tidied = fixture.workspaces.retire(claimer, &[]).await.unwrap();
+    let tidied = fixture.workspaces.retire(claimer, Vec::new).await.unwrap();
     assert_eq!(
         (tidied.worktree, Some(tidied.outcome)),
         (unclaimed.id, removed.clone())
     );
     let tidied = fixture
         .workspaces
-        .retire(first, &[(first, made[0].path.clone())])
+        .retire(first, || vec![(first, made[0].path.clone())])
         .await;
     assert_eq!(tidied.map(|tidied| tidied.outcome), removed);
     // Every worktree made for a session is a candidate for the sweep; once
@@ -701,7 +707,7 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
             .is_empty()
     );
     let other = [(SessionId::random(), made[1].path.clone())];
-    let kept = fixture.workspaces.retire(second, &other).await;
+    let kept = fixture.workspaces.retire(second, || other.to_vec()).await;
     assert_eq!(
         kept.map(|tidied| tidied.outcome),
         Some(RemoveWorktreeOutcome::Kept {
@@ -745,7 +751,7 @@ async fn a_worktree_kept_for_its_work_is_left_to_a_person() {
         panic!("{outcome:?}");
     };
     std::fs::write(worktree.path.join("notes.txt"), "not committed\n").unwrap();
-    let kept = fixture.workspaces.retire(session, &[]).await.unwrap();
+    let kept = fixture.workspaces.retire(session, Vec::new).await.unwrap();
     assert_eq!(kept.worktree, worktree.id);
     assert_eq!(
         kept.outcome,
@@ -999,7 +1005,7 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
         matches!(refused, WorkspaceError::Conflict(_)),
         "{refused:?}"
     );
-    let kept = fixture.workspaces.retire(session, &[]).await.unwrap();
+    let kept = fixture.workspaces.retire(session, Vec::new).await.unwrap();
     assert_eq!(
         kept.outcome,
         RemoveWorktreeOutcome::Kept {
@@ -1035,3 +1041,5 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
         "{refused:?}"
     );
 }
+
+mod git_apart;

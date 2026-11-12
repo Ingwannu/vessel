@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::state::{CommitInfo, StashList};
 use crate::workspace::path::RelPath;
-use crate::workspace::text::{BranchName, CommitId, RemoteName};
+use crate::workspace::text::{BranchName, CommitId, ConfigKey, RemoteName};
 use crate::workspace::worktree::GitOperation;
 
 /// Why git refused a change: what a client can act on.
@@ -71,7 +71,44 @@ pub enum GitRefusal {
         /// git's last lines, credentials removed.
         message: String,
     },
+    /// The repository's own configuration sets something the node's git
+    /// does not run with (protocol 11, ADR 0030): a program for this run
+    /// that turning off would also turn off the user's own global one, or
+    /// a working tree moved elsewhere. Never the value.
+    RepositoryConfig {
+        /// The key, as git lists it; absent when the whole configuration
+        /// was refused (`too_large`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        key: Option<ConfigKey>,
+        /// Why.
+        reason: RepositoryConfigReason,
+    },
     /// A refusal a newer node knows and this client does not.
+    #[serde(other)]
+    Unknown,
+}
+
+/// Why a git run was refused for its repository's own configuration
+/// (protocol 11, ADR 0030).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum RepositoryConfigReason {
+    /// It names a program this run would start (an `ssh`, a credential
+    /// helper, a signing program, a remote's upload or receive program).
+    Program,
+    /// It moves the working tree out of the folder.
+    Layout,
+    /// It could send the run's credential elsewhere (a proxy, a weakened
+    /// TLS check, a resolver, an extra header).
+    Credential,
+    /// A driver whose name cannot be turned off on git's command line.
+    Unnamable,
+    /// More drivers than one run turns off.
+    TooMany,
+    /// The configuration is larger than the node reads before a run.
+    TooLarge,
+    /// A reason a newer node knows and this client does not.
     #[serde(other)]
     Unknown,
 }

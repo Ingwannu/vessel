@@ -359,10 +359,17 @@ teardown = "docker compose down"
 - Every call looks at its folder again: one replaced since it was added
   (by a link to another, say), or a worktree that no longer belongs to
   its repository, is refused, and git is not run in it. A project's
-  folder cannot be one holding your home folder or the node's data.
+  folder cannot be one holding your home folder or the node's data, nor
+  git's own folder (a `.git` folder or a bare repository).
 - git is the machine's own `git` (2.25 or newer), run without prompts,
   without the repository's hooks (except on commit and push) and without
-  the programs its configuration names.
+  the programs its configuration names (ADR 0030): a filter or merge
+  driver a repository's own `.git/config` defines is turned off, and a
+  fetch, pull, push or commit is refused, naming the key, when that file
+  sets an `ssh` command, a credential helper, a proxy, a TLS setting or a
+  signing program. Your global git configuration is used as it is; move a
+  per-repository setting there (under `includeIf "gitdir:…"`) for Vessel
+  to use it.
 
 ## Profiles, the fleet and agent tools
 

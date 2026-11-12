@@ -160,7 +160,11 @@ impl Git {
                 "--porcelain=v1",
                 "-z",
                 "--untracked-files=all",
-                "--ignore-submodules=none",
+                // Never into a submodule's working tree, which would run
+                // git there under that repository's own configuration
+                // (ADR 0030); a gitlink keeps the worktree anyway
+                // (`Submodules`, below).
+                "--ignore-submodules=dirty",
             ])
             .output()
             .await?;
@@ -386,7 +390,15 @@ impl Git {
     async fn changed_files_fit(&self, dir: &Path) -> Result<bool, GitError> {
         let changed = self
             .command(dir)
-            .args(["diff", "--name-only", "-z", "--no-ext-diff", "HEAD", "--"])
+            .args([
+                "diff",
+                "--name-only",
+                "-z",
+                "--no-ext-diff",
+                "--no-textconv",
+                "HEAD",
+                "--",
+            ])
             .output()
             .await?
             .checked()?;

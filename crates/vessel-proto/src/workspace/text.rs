@@ -50,6 +50,9 @@ pub enum TextKind {
     FindQuery,
     /// A search in files: 1 to 1,000 characters, one line.
     GrepQuery,
+    /// A git configuration key named in a refusal (protocol 11, ADR
+    /// 0030): 1 to 256 characters, one line.
+    ConfigKey,
 }
 
 impl fmt::Display for TextKind {
@@ -67,6 +70,7 @@ impl fmt::Display for TextKind {
             Self::Folder => "folder name",
             Self::FindQuery => "file name query",
             Self::GrepQuery => "search query",
+            Self::ConfigKey => "configuration key",
         })
     }
 }
@@ -144,6 +148,7 @@ impl TextKind {
             Self::ProjectName => line(text.trim(), 80).map(|()| Arc::from(text.trim())),
             Self::FindQuery => line(text, 256).map(|()| Arc::from(text)),
             Self::GrepQuery => line(text, 1000).map(|()| Arc::from(text)),
+            Self::ConfigKey => line(text, 256).map(|()| Arc::from(text)),
         }
     }
 }
@@ -337,6 +342,10 @@ bounded_text! {
     FindQuery = FindQuery;
     /// What `file.grep` looks for.
     GrepQuery = GrepQuery;
+    /// A key of a repository's git configuration (`core.sshcommand`), named
+    /// when a run is refused for it (protocol 11, ADR 0030); never its
+    /// value.
+    ConfigKey = ConfigKey;
 }
 
 impl CommandsDigest {

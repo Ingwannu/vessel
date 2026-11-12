@@ -53,7 +53,7 @@ impl Git {
             "--no-textconv",
             "--no-color",
             "--find-renames",
-            "--ignore-submodules=none",
+            "--ignore-submodules=dirty",
             "--submodule=short",
         ]);
         if ignore_whitespace {

@@ -131,3 +131,26 @@ async fn a_call_waiting_for_a_slot_keeps_its_time_and_cancellation() {
     );
     drop(held);
 }
+
+/// Clones take slots of their own (ADR 0030): with every clone slot
+/// taken, a fetch, push or pull still gets one at once.
+#[tokio::test]
+async fn clones_have_slots_of_their_own() {
+    let sandbox = Sandbox::new();
+    let git = sandbox.git().await;
+    let runner = &git.runner;
+    let mut clones = Vec::new();
+    for _slot in 0..super::pool::CLONE_SLOTS {
+        clones.push(runner.clones.slot().await.unwrap());
+    }
+    let at_once = Duration::ZERO;
+    assert!(
+        tokio::time::timeout(at_once, runner.clones.slot())
+            .await
+            .is_err(),
+        "every clone slot is taken"
+    );
+    let network = tokio::time::timeout(at_once, runner.network.slot()).await;
+    assert!(matches!(network, Ok(Ok(_))), "a network run is not held up");
+    drop(clones);
+}

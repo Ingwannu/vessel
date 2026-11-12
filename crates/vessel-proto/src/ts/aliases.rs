@@ -89,6 +89,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CommandsDigest", Alias::Handle),
     ("CommitId", Alias::Named),
     ("CommitMessage", Alias::Named),
+    ("ConfigKey", Alias::Named),
     ("ContentHash", Alias::Handle),
     ("CostUnit", Alias::Named),
     ("DeviceId", Alias::Handle),

@@ -616,6 +616,13 @@ more: boolean, };
 export type CommitStage = "staged" | "tracked" | "everything";
 
 /**
+ * A key of a repository's git configuration (`core.sshcommand`), named
+ * when a run is refused for it (protocol 11, ADR 0030); never its
+ * value.
+ */
+export type ConfigKey = string;
+
+/**
  * A value in an MCP server definition: literal text, or the name of a
  * secret each node resolves from its own store. On the wire, a string or
  * `{"secret": "NAME"}`.
@@ -1769,7 +1776,16 @@ operation: GitOperation, } | { "kind": "remote_failed",
 /**
  * git's last lines, credentials removed.
  */
-message: string, } | { "kind": "unknown" };
+message: string, } | { "kind": "repository_config", 
+/**
+ * The key, as git lists it; absent when the whole configuration
+ * was refused (`too_large`).
+ */
+key?: ConfigKey | null, 
+/**
+ * Why.
+ */
+reason: RepositoryConfigReason, } | { "kind": "unknown" };
 
 /**
  * A root's git status.
@@ -3801,6 +3817,12 @@ generation: Generation,
  * Files kept as edited, with the incoming version written beside them.
  */
 conflicts?: Array<BundlePath>, };
+
+/**
+ * Why a git run was refused for its repository's own configuration
+ * (protocol 11, ADR 0030).
+ */
+export type RepositoryConfigReason = "program" | "layout" | "credential" | "unnamable" | "too_many" | "too_large" | "unknown";
 
 /**
  * `session.resume`: start an ended structured session again with its

@@ -28,7 +28,6 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{SessionId, WorktreeId};
 
-use crate::workspace::projects::Live;
 use crate::workspace::setup::Kind;
 use crate::workspace::{WorkspaceError, Workspaces};
 
@@ -58,7 +57,7 @@ impl Workspaces {
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         Ok(match self.remove(worktree, if_lost, live).await? {
             Removal::Done(snapshot) => RemoveWorktreeOutcome::Removed { snapshot },
@@ -73,7 +72,7 @@ impl Workspaces {
     pub(crate) async fn retire(
         self: &Arc<Self>,
         session: SessionId,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
     ) -> Option<TidiedWorktree> {
         let worktree = self
             .state()
@@ -81,12 +80,12 @@ impl Workspaces {
             .values()
             .find(|entry| entry.info.created_for == Some(session))
             .map(|entry| entry.info.id)?;
-        let others: Vec<(SessionId, PathBuf)> = live
-            .iter()
-            .filter(|(id, _)| *id != session)
-            .cloned()
-            .collect();
-        let outcome = match self.remove(worktree, IfLost::Keep, &others).await {
+        let others = move || {
+            let mut live = live();
+            live.retain(|(id, _)| *id != session);
+            live
+        };
+        let outcome = match self.remove(worktree, IfLost::Keep, others).await {
             Ok(Removal::Done(snapshot)) => RemoveWorktreeOutcome::Removed { snapshot },
             Ok(Removal::Kept(reasons)) => RemoveWorktreeOutcome::Kept { reasons },
             Err(error) => {
@@ -144,11 +143,16 @@ impl Workspaces {
     /// The removal runs as a task of the node's: a caller that goes away
     /// mid-teardown neither stops it halfway nor leaves the worktree
     /// claimed.
+    ///
+    /// The live sessions are read after the claim (`live`), not before:
+    /// a session that became live between a reading and the claim would
+    /// be seen in neither (ADR 0030). Once claimed, no `place` or start
+    /// again gets in; one that passed its check before is `starting`.
     async fn remove(
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
     ) -> Result<Removal, WorkspaceError> {
         let git = self.git()?.clone();
         let claim = self.stop.child_token();
@@ -169,15 +173,21 @@ impl Workspaces {
                 .worktrees
                 .get_mut(&worktree)
                 .ok_or(WorkspaceError::UnknownWorktree(worktree))?;
-            let in_use = live
-                .iter()
-                .any(|(_, cwd)| cwd.starts_with(&entry.info.path));
-            if in_use || entry.running.is_some() {
+            // A session that passed its place's check and is not live yet
+            // counts as one in it (ADR 0030).
+            if entry.running.is_some() || entry.starting > 0 {
                 return Ok(Removal::Kept(vec![KeptReason::InUse]));
             }
             entry.running = Some(claim.clone());
             (entry.info.clone(), root, Arc::clone(&entry.written))
         };
+        let in_use = live().iter().any(|(_, cwd)| cwd.starts_with(&info.path));
+        if in_use {
+            if let Some(entry) = self.state().worktrees.get_mut(&worktree) {
+                entry.running = None;
+            }
+            return Ok(Removal::Kept(vec![KeptReason::InUse]));
+        }
         let workspaces = Arc::clone(self);
         self.tasks
             .spawn(async move {

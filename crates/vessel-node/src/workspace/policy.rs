@@ -182,7 +182,26 @@ pub(super) fn check_root(places: &Places, root: &Path) -> Result<(), WorkspaceEr
     if root.starts_with(&places.data) {
         return refuse("it is inside the node's data folder");
     }
+    // ADR 0030: git's own folder is not a working tree; its `config` and
+    // `hooks` would be files the file calls write.
+    // By git's own rules for what names `.git` (any case, trailing dots
+    // or spaces, `git~1`, ignored zero-width characters).
+    if root.components().any(|part| {
+        part.as_os_str()
+            .to_str()
+            .is_some_and(vessel_proto::workspace::is_git_dir)
+    }) {
+        return refuse("it is a `.git` folder or inside one");
+    }
     Ok(())
+}
+
+/// Whether `root` holds what makes a folder git's own (`HEAD`, `objects`
+/// and `refs`): a bare repository or a `.git` folder under another name,
+/// told apart without git (a node may have none). Blocking: call it on the
+/// blocking pool.
+pub(super) fn looks_like_git_dir(root: &Path) -> bool {
+    root.join("HEAD").is_file() && root.join("objects").is_dir() && root.join("refs").is_dir()
 }
 
 #[cfg(test)]
@@ -261,5 +280,16 @@ mod tests {
             );
         }
         assert!(check_root(&places, Path::new("/home/me/code/app")).is_ok());
+        for refused in [
+            "/home/me/code/app/.git",
+            "/home/me/code/app/.GIT/hooks",
+            "/home/me/code/app/.git./x",
+            "/home/me/code/app/git~1",
+        ] {
+            assert!(
+                check_root(&places, Path::new(refused)).is_err(),
+                "{refused}"
+            );
+        }
     }
 }

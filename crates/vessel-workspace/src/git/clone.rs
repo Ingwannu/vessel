@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::workspace::{CloneFailure, CloneStage, CloneUrl};
 
-use super::{Git, GitError, Limits, redact};
+use super::{Git, GitError, redact};
 
 /// How far a clone is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,8 +76,7 @@ impl Git {
             ])
             .arg(temporary)
             .env("GIT_ALLOW_PROTOCOL", "https:http:ssh:git")
-            .network()
-            .limits(Limits::CLONE)
+            .clone_run()
             .cancel_on(cancel)
             .output_streaming(|piece| {
                 for line in parser.push(piece) {

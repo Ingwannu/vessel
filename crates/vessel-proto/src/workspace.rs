@@ -30,10 +30,10 @@ pub use git::{
     Branch, BranchList, Commit, CommitInfo, CommitOutcome, CommitPage, CommitStage, Discard,
     Distance, Fetch, FetchOutcome, FileState, GetStatus, GitRefusal, GitStatus, ListBranches,
     ListStashes, PathSet, Pull, PullOutcome, Push, PushOutcome, ReadLog, RenameBranch,
-    RenameOutcome, ShowFile, Stage, StashAction, StashChanges, StashEntry, StashList, StashOutcome,
-    StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
+    RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction, StashChanges, StashEntry,
+    StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
-pub use path::{InvalidRelPath, RelPath};
+pub use path::{InvalidRelPath, RelPath, is_git_dir};
 pub use project::{
     AddProject, ApproveCommands, CloneFailure, CloneProject, CloneStage, GetProject,
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
@@ -41,9 +41,9 @@ pub use project::{
 };
 pub use support::{GitSupport, GitVersion};
 pub use text::{
-    BranchName, CommandsDigest, CommitId, CommitMessage, ContentHash, FindQuery, FolderName,
-    GrepQuery, InvalidText, ProjectCommand, ProjectName, RefName, RemoteName, SearchKey, TextKind,
-    TextProblem,
+    BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,
+    FolderName, GrepQuery, InvalidText, ProjectCommand, ProjectName, RefName, RemoteName,
+    SearchKey, TextKind, TextProblem,
 };
 pub use url::{CloneUrl, InvalidCloneUrl};
 pub use worktree::{

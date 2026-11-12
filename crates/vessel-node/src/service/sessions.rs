@@ -73,8 +73,10 @@ impl NodeService {
         if origin.is_some() {
             spec.place = None;
         }
-        // A place resolves to the folder `cwd` names (protocol 10).
-        let notices = self.place(connection, &mut spec).await?;
+        // A place resolves to the folder `cwd` names (protocol 10). In a
+        // worktree, `_starting` keeps a removal out until the session is
+        // live, or failed to start (ADR 0030); it is dropped on return.
+        let (notices, _starting) = self.place(connection, &mut spec).await?;
         let mut options = self
             .launcher
             .options(&self.profiles, &spec, &connection.principal)

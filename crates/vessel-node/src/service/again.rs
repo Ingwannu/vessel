@@ -38,12 +38,16 @@ impl NodeService {
         let claim = self.sessions.claim(id)?;
         let ended = self.sessions.ended(id).await?;
         // Not into a worktree a removal (or setup) holds: the removal may
-        // take the folder from under the agent.
-        if let Some(SessionPlace::Worktree { worktree }) = ended.info.spec.place.as_deref()
-            && self.workspaces.busy(*worktree)
-        {
-            return Err(ServiceError::WorktreeBusy(*worktree));
-        }
+        // take the folder from under the agent. Held, once checked, until
+        // the session is live (ADR 0030), so no removal starts meanwhile.
+        let _starting = match ended.info.spec.place.as_deref() {
+            Some(SessionPlace::Worktree { worktree }) => Some(
+                self.workspaces
+                    .start_in(*worktree)
+                    .ok_or(ServiceError::WorktreeBusy(*worktree))?,
+            ),
+            Some(SessionPlace::Project { .. }) | None => None,
+        };
         let mut launch = self.launcher.again(&self.profiles, &ended.info)?;
         let secret = self
             .agents

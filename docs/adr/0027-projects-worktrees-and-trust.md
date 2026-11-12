@@ -221,3 +221,15 @@ protocol 10.
   write in the project's folder. Closing it needs git's own help (an
   empty attribute source, git 2.40's `--attr-source`, or reads against
   a configuration of the node's) and is left to a decision of its own.
+
+## Amended by ADR 0030 (2026-11-12)
+
+- The "still open" above is closed: the node's git runs no program a
+  repository's own configuration names (ADR 0030 says how, and what it
+  refuses instead).
+- Git's own folders are refused as projects: a path with a `.git` part,
+  a folder holding `HEAD`, `objects` and `refs`, and a folder git says is
+  inside a git directory or bare.
+- A session that passed `place`'s check (or `session.resume`'s) and is
+  not live yet keeps its worktree from removal (`in_use`), so a removal
+  can no longer take the folder between the check and the start.

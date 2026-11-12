@@ -24,6 +24,7 @@
 
 mod limits;
 mod output;
+pub(crate) mod own_config;
 mod pool;
 
 use std::ffi::OsString;
@@ -33,7 +34,7 @@ use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use vessel_proc::CommandSpec;
 
-use pool::{LOCAL_SLOTS, NETWORK_SLOTS, Pool};
+use pool::{CLONE_SLOTS, CLONES_WAITING, LOCAL_SLOTS, MAX_WAITING, NETWORK_SLOTS, Pool};
 
 pub(crate) use limits::Limits;
 pub(crate) use output::GitOutput;
@@ -61,14 +62,16 @@ pub(crate) struct Runner {
     setup: Arc<GitSetup>,
     local: Arc<Pool>,
     network: Arc<Pool>,
+    clones: Arc<Pool>,
 }
 
 impl Runner {
     pub(crate) fn new(setup: GitSetup) -> Self {
         Self {
             setup: Arc::new(setup),
-            local: Pool::new(LOCAL_SLOTS),
-            network: Pool::new(NETWORK_SLOTS),
+            local: Pool::new(LOCAL_SLOTS, MAX_WAITING),
+            network: Pool::new(NETWORK_SLOTS, MAX_WAITING),
+            clones: Pool::new(CLONE_SLOTS, CLONES_WAITING),
         }
     }
 
@@ -80,11 +83,23 @@ impl Runner {
             args: Vec::new(),
             env: Vec::new(),
             limits: Limits::LOCAL,
-            network: false,
+            pool: PoolKind::Local,
             hooks: false,
+            own_config: true,
             cancel: None,
         }
     }
+}
+
+/// Which of the node's pools a run takes a slot of.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PoolKind {
+    /// Status, diff, commit, a worktree.
+    Local,
+    /// Fetch, push, pull.
+    Network,
+    /// A clone (ADR 0030: kept apart, so clones never hold up a push).
+    Clone,
 }
 
 /// Set on every run.
@@ -108,6 +123,14 @@ const ENVIRONMENT: &[(&str, &str)] = &[
     // No pager, no editor: nothing here has a terminal.
     ("GIT_PAGER", "cat"),
     ("GIT_EDITOR", "true"),
+    ("GIT_SEQUENCE_EDITOR", "true"),
+    // ADR 0030: no transport that runs a program a configuration names
+    // (`ext::`, `fd::`, a remote helper by `vcs` or `<helper>::`), even
+    // where the repository's own configuration allows it. A local path
+    // stays usable: its `uploadpack` and `receivepack`, set by the
+    // repository, refuse the run (`own_config`). A clone narrows this
+    // further (no `file`).
+    ("GIT_ALLOW_PROTOCOL", "file:git:http:https:ssh"),
 ];
 
 /// Configuration every run overrides, before the subcommand: no program a
@@ -118,6 +141,16 @@ const OVERRIDES: &[&str] = &[
     "diff.external=",
     "log.showSignature=false",
     "color.ui=false",
+    // ADR 0030: never into a submodule, whose own configuration the
+    // listing of this repository's does not cover.
+    "submodule.recurse=false",
+    "fetch.recurseSubmodules=false",
+    // ADR 0030: no signature checked or made, so no signing program runs,
+    // except a commit's own (`commit.gpgSign` is left to the user's
+    // configuration only on a run with hooks, `spec_of`).
+    "merge.verifySignatures=false",
+    "tag.gpgSign=false",
+    "push.gpgSign=false",
 ];
 
 /// A git command being built. Arguments go to the program as a vector,
@@ -129,8 +162,12 @@ pub(crate) struct GitCommand {
     args: Vec<OsString>,
     env: Vec<(String, OsString)>,
     limits: Limits,
-    network: bool,
+    pool: PoolKind,
     hooks: bool,
+    /// Whether the repository's own configuration is listed and judged
+    /// before the run (ADR 0030): every run in a repository; not the
+    /// version probe, a clone or an init, which run in no repository.
+    own_config: bool,
     cancel: Option<CancellationToken>,
 }
 
@@ -166,8 +203,25 @@ impl GitCommand {
     /// A run that talks to a remote: [`Limits::NETWORK`] and a slot of the
     /// network pool.
     pub(crate) const fn network(mut self) -> Self {
-        self.network = true;
+        self.pool = PoolKind::Network;
         self.limits = Limits::NETWORK;
+        self
+    }
+
+    /// A clone: [`Limits::CLONE`] and a slot of the clones' own pool. It
+    /// runs in no repository, so no repository's configuration is read
+    /// first.
+    pub(crate) const fn clone_run(mut self) -> Self {
+        self.pool = PoolKind::Clone;
+        self.limits = Limits::CLONE;
+        self.own_config = false;
+        self
+    }
+
+    /// A run in no repository (the version probe, an init): no
+    /// repository's configuration is read first.
+    pub(crate) const fn outside_repository(mut self) -> Self {
+        self.own_config = false;
         self
     }
 
@@ -185,10 +239,30 @@ impl GitCommand {
         self
     }
 
-    /// The command as `vessel-proc` runs it.
-    fn spec(&self) -> CommandSpec {
+    /// What this run does that a repository's configuration could name a
+    /// program for (ADR 0030).
+    const fn uses(&self) -> own_config::Uses {
+        own_config::Uses {
+            network: matches!(self.pool, PoolKind::Network),
+            hooks: self.hooks,
+        }
+    }
+
+    /// The command as `vessel-proc` runs it, with `settings` (what the
+    /// repository's own configuration made this run turn off) after the
+    /// fixed overrides.
+    fn spec(&self, settings: &[String]) -> CommandSpec {
+        self.spec_of(&self.args, settings)
+    }
+
+    /// A command with every run's protections and `args`, in this run's
+    /// folder: the run itself, or the listing of its repository's own
+    /// configuration before it.
+    fn spec_of(&self, args: &[OsString], settings: &[String]) -> CommandSpec {
         let setup = &self.runner.setup;
-        let mut spec = CommandSpec::new(&setup.program).cwd(&self.dir);
+        let mut spec = CommandSpec::new(&setup.program)
+            .cwd(&self.dir)
+            .arg("--no-pager");
         for (name, value) in ENVIRONMENT {
             spec = spec.env(*name, *value);
         }
@@ -202,8 +276,14 @@ impl GitCommand {
             let mut hooks = OsString::from("core.hooksPath=");
             hooks.push(&setup.no_hooks);
             spec = spec.arg("-c").arg(hooks);
+            // A snapshot's `commit-tree` or a stash signs when asked to;
+            // only a person's commit does (ADR 0030).
+            spec = spec.args(["-c", "commit.gpgSign=false"]);
         }
-        spec.args(&self.args)
+        for setting in settings {
+            spec = spec.args(["-c", setting.as_str()]);
+        }
+        spec.args(args)
     }
 }
 
