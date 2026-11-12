@@ -3286,3 +3286,491 @@ schema 10). Rust, wire, CLI, agent tools.
   with them or after, decided when half 1 is in.
 - **A2**: rewind, fork, import from the agent's history, search across
   sessions, parking idle agents.
+
+## Track B2: contract
+
+Protocol 11 (wave 2's; track C raises the same number, once).
+ADR 0029 (the forge, and how the node signs in to it), ADR 0030 (git
+runs independent of what a repository's folder supplies), store schema
+10. Everything below is new except where it says which shared type it
+touches.
+
+### What the references do (read 2026-11-12)
+
+agent-orchestrator (AO), GOAT and Paseo at the revisions the feature
+tables were read from; their paths are in the inventories.
+
+- **Signing in.** None keeps a forge token of its own for pull
+  requests. AO reads `AO_GITHUB_TOKEN`, then `GITHUB_TOKEN`, then runs
+  `gh auth token`; the token is kept five minutes and dropped on a 401;
+  requests are its own HTTP (REST and GraphQL). GOAT: a token saved in
+  its settings (a file, mode 0600), else `GH_TOKEN` or `GITHUB_TOKEN`
+  for `github.com` and `*.ghe.com` only, else `gh auth token --hostname
+  <host>` with `GH_DEBUG` blanked (it would print the token) and
+  `GH_PROMPT_DISABLED=1`, ten seconds, four `gh` at once; hits kept five
+  minutes, misses ten seconds; its own HTTP, and a redirect to another
+  origin drops the header. Paseo runs `gh` for every call (`gh api`,
+  `gh pr …`), with `GH_HOST` set to the repository's host. Signed in as
+  someone else: AO reads `GET /user` and follows only pull requests that
+  login authored; GOAT falls back to `gh`'s default account; Paseo does
+  not look. `gh` missing or signed out: each reports it (`unavailable`,
+  `missing-tool`, `cli_missing`) and tries again later. A host is
+  GitHub when it is `github.com` (or `*.ghe.com`), or when `gh` is
+  signed in to it; none sends a credential to a host it is not signed in
+  to.
+- **The abstraction.** AO: a read port (parse a repository, a
+  conditional list of open pull requests, a conditional check of a
+  commit's checks, read pull requests in a batch, failed-check logs,
+  review threads) and write ports (merge, request review, resolve).
+  GOAT: a provider (list by head, get, create, check out) and a pull
+  request API (detail with head, checks and merge capabilities,
+  actions with an optional pinned head). Paseo: list, get, the current
+  pull request of a branch, create, merge, auto-merge. GitLab differs in
+  the same places for all three: the number is the merge request's
+  `iid`, checks are the head pipeline's, there is no "changes
+  requested" (approvals only), mergeability is `detailed_merge_status`,
+  and a pinned head is honoured for merge and squash but not rebase.
+  Gitea and Forgejo: no pinned head, states named differently.
+- **Which pull request is the session's.** AO lists a repository's open
+  pull requests and matches their head branch to a session (and `claim-pr`
+  by URL); GOAT links them explicitly (created from its page, parsed
+  from an agent's `gh pr create`, or by hand); Paseo asks for the
+  branch's (`head` and the repository's owner), preferring an open one,
+  then a closed one whose head is the local `HEAD`, then the most
+  recently updated. Forks: AO and Paseo require the head owner.
+- **Reading.** All three read with GraphQL: draft, state, mergeable and
+  `mergeStateStatus`, review decision, head and base, updated at, the
+  head commit's check rollup; AO and GOAT also review threads. AO maps
+  GitHub's values to the facts its board reducer (Vessel's, ported in
+  milestone 9) reads; that table is taken whole below.
+- **Watching.** AO every 30 s, review threads at most every 2 minutes,
+  a full read of any pull request older than 5 minutes (its two ETag
+  checks, the open list and a commit's check runs fetched as a full
+  page, notice neither a merge nor a close). GOAT every 2 minutes
+  through a cheap fingerprint, a full read every 30; 4 at once, 8
+  requests at once; stops background reads below 10 % of the quota.
+  Paseo only while someone looks, 20 s with checks pending, else 120 s,
+  errors doubling to 300 s; pauses a host at 40 % of its quota. Rate
+  limits: AO treats a 429, or a 403 with no requests left, a
+  `retry-after` or "rate limit / abuse / secondary" in the body, as a
+  limit; waits `retry-after`, else until the reset, else about 60 s,
+  clamped to 30 s to 10 minutes. GOAT doubles from 30 s to 15 minutes.
+  Every request 30 s at most. AO stops at a merge, a close, or the
+  session's end.
+- **Opening.** AO: none (its agents run `gh pr create`). GOAT: the branch
+  must be pushed; an open pull request for it is answered as it is.
+  Paseo pushes first (`git push -u origin <branch>`). Neither offers a
+  draft; both generate a title and body.
+- **Merging.** AO: squash only, with the head the caller saw; a fresh
+  read must still show that head; REST `PUT .../merge {sha,
+  merge_method}`; 409 is "head changed", 405 and 422 "not mergeable".
+  GOAT: merge, squash or rebase, GraphQL with `expectedHeadOid`. Paseo:
+  `gh pr merge` without a pinned head. None deletes the branch with it.
+- **Feedback.** AO sends failing checks, each counting unresolved
+  comment and each changes-requested review, and a conflict, to the
+  session; identity: `ci:<url>` with each failed check's name, commit,
+  status and URL; `comment:<url>:<comment id>`; `review:<url>:<review
+  id>`; on by default; refused (not marked sent) while the session waits
+  on its user. GOAT wakes the agent per event kind (newly failed checks,
+  checks passed, others' comments, a conflict), after the running turn
+  ends, never steering it; on by default; bots ignored. Paseo: none.
+- **Agents.** AO's agents run `gh` themselves and are told not to merge
+  (a prompt, no check). GOAT's agents open and merge through its tools
+  unless read-only. Paseo's agents have no pull request tool.
+
+### Where it lives
+
+- **`vessel-forge`**, a new crate (depends on `vessel-proto` and
+  `vessel-proc`; `reqwest` and `rustls` as `vessel-llm` has them): the
+  `Forge` trait, a remote's URL read into a repository, GitHub over
+  REST and GraphQL with conditional requests and rate limits, signing in
+  (ADR 0029), and a test double (`fake`, behind a feature only tests
+  enable). No session, store or principal. ADR 0001's map gains the
+  edge `vessel-node -> vessel-forge`.
+- **`vessel-node`'s `forge` module**: which sessions are watched, the
+  watcher task, the calls, feedback through the queue, and the store's
+  schema 10.
+- **`vessel-session`**: one watch per session carrying its pull
+  request, read by its actor, so the reducer that already places it
+  (`board::derive`) gets the facts. No second place decides a lane.
+- **`vessel-workspace`**: ADR 0030 (how every git run is made), a
+  third pool for clones, and the branch, remote and push `pr.open` needs.
+
+### Types (`vessel_proto::forge`)
+
+Parsed on decode (a bad one does not decode):
+
+- `PullNumber`: 1 to 2^53 − 1 (what JavaScript holds exactly).
+- `ForgeHost`: a host name as a remote names it, lower case, 1 to 253
+  bytes of `a-z 0-9 . -`, labels not starting or ending with `-`, an
+  optional `:port`.
+- `RepoPath`: `owner/name`, 2 to 8 segments (GitLab's nested groups),
+  each 1 to 100 bytes of `A-Z a-z 0-9 . _ -`, not `.` or `..`, no
+  leading `-`; `.git` taken off the end by whoever parses a remote.
+- `ForgeLogin`: 1 to 100 bytes of `A-Z a-z 0-9 - _ .` and a trailing
+  `[bot]`.
+- `PullTitle`: one line, 1 to 256 characters, no control character.
+- `PullBody`: at most 64 KiB, no NUL.
+- `ForgeUrl`: an `https` URL (`http` only for a loopback host, for the
+  tests' fake), at most 2 KiB, with no user information.
+- `CheckName`: 1 to 256 characters, one line.
+- `ConfigKey` (ADR 0030): a git configuration key named in a refusal,
+  1 to 256 bytes, printable, never its value.
+
+Every reply enum that will grow has `unknown`, as protocol 10's do.
+
+- `ForgeKind`: `github`, `unknown`. GitLab and Gitea are later
+  variants of the same trait.
+- `RepoRef { kind, host, path }`.
+- `PullState`: `open`, `merged`, `closed`, `unknown`.
+- `CheckState`: `pending`, `passed`, `failed`, `cancelled`, `skipped`,
+  `unknown` (AO's table, below).
+- `ChecksState`: `none` (no checks reported), `pending`, `passing`,
+  `failing`, `unknown` (cancelled with nothing running, or more checks
+  than one read holds).
+- `CheckRun { name, state, url? }`.
+- `Checks { state, passed, failed, pending, failing: Vec<CheckRun> }`,
+  counts `u32`, `failing` at most 20.
+- `ReviewDecision`: `approved`, `changes_requested`, `review_required`,
+  `none`, `unknown`.
+- `Mergeable`: `mergeable`, `conflicting`, `blocked`, `unstable`,
+  `behind`, `unknown`.
+- `Reviews { approved, changes_requested, commented, unresolved }`:
+  people's reviews on the current head, the latest per person (AO's
+  `ExternalReviewFacts`); `unresolved` the count of unresolved review
+  threads.
+- `PullRequest { repo, number, url, title, state, draft, author?, head:
+  PullHead { branch: BranchName, commit: CommitId }, base: BranchName,
+  checks, review, reviews, mergeable, updated_at, read_at }`. `read_at`
+  is when this node last read it.
+- `ForgeAccess`, why the node can or cannot see a session's pull
+  request: `ready { login }`; `not_placed` (the session has no project
+  or worktree, so no repository); `no_branch` (the session's folder is
+  on no branch); `no_remote` (the branch's remote, or `origin`, does not
+  exist); `not_supported { host }` (no provider for that host on this
+  node); `signed_out { host, gh: GhState }` with `GhState` `missing`,
+  `signed_out` or `failed`; `refused { host, login? }` (the forge
+  answered 401, or 404 for a repository the login cannot see);
+  `rate_limited { host, until }`; `unreachable { host, retry_at }`;
+  `limit` (the node watches as many sessions as it allows); `ended`
+  (not watched: the session is not live); `unknown`.
+- `SessionPullRequest { access, pull_request?, feedback }`:
+  `pull_request` the last one read (kept when access later fails, so the
+  card still says what was last known), `feedback` whether feedback is
+  on for the session.
+- `MergeMethod`: `merge`, `squash`, `rebase`.
+- `OpenOutcome`: `opened { pull_request }`; `exists { pull_request }`
+  (an open one has that head already; nothing new was made); `refused
+  { refusal: OpenRefusal }`. `OpenRefusal`: `on_base` (the branch is
+  the base), `no_commits`, `push { refusal:
+  GitRefusal }`, `access { access: ForgeAccess }`, `rejected { message
+  }` (the forge's own words, cut to 2 KiB), `unknown`.
+- `MergeOutcome`: `merged { commit }`; `refused { refusal: MergeRefusal
+  }`. `MergeRefusal`: `no_pull_request`, `not_open { state }`, `draft`,
+  `head_moved { head }` (the head now; nothing was merged),
+  `not_mergeable { message? }`, `method_not_allowed`, `access { access
+  }`, `rejected { message }`, `unknown`.
+- `ForgeStatus { hosts: Vec<HostStatus>, watched, limit }`,
+  `HostStatus { host, kind, access: ForgeAccess, source?: TokenSource
+  }`, `TokenSource`: `environment`, `gh`, `unknown`. Never the token.
+- `PullRequestList { entries: Vec<SessionPullRequestEntry { session,
+  pull_request: SessionPullRequest }> }`.
+
+On shared types (the smallest additions):
+
+- `SessionInfo.pull_request?: Box<SessionPullRequest>`: set by the
+  session's actor from what the node gives it, for a session whose
+  place is a project or a worktree; absent otherwise.
+- `GitRefusal::repository_program { key: ConfigKey }` (ADR 0030).
+
+### Calls
+
+All protocol 11, forwardable through `fleet.forward`, and in
+`vessel-web`'s list. "Agents": whether an agent principal (ADR 0013)
+may call it; `own` means only on a session it may operate (its own, or
+one it started), by the guard's ownership rule (`Target`), which a
+read takes here too.
+
+| Method | Scope | Agents | Request | Reply |
+|---|---|---|---|---|
+| `forge.status` | read | no | `GetForgeStatus {}` | `ForgeStatus` |
+| `pr.list` | read | no | `ListPullRequests {}` | `PullRequestList` |
+| `pr.get` | read | own | `GetPullRequest { session, refresh }` | `SessionPullRequest` |
+| `pr.open` | operate | own | `OpenPullRequest { session, title, body?, base?, draft }` | `OpenOutcome` |
+| `pr.merge` | operate | no | `MergePullRequest { session, method, head }` | `MergeOutcome` |
+| `pr.feedback` | operate | no | `SetFeedback { session, enabled }` | `SessionPullRequest` |
+
+Every call can also answer `forbidden`, `not_found` (no such session),
+`unavailable` (the forge's request slots and their queue are full) and
+`internal`.
+
+- `forge.status`: every host the node has watched or been asked about,
+  `github.com` always, each with what signing in found (`GET /user`
+  once per token, kept five minutes). Asks nothing of a host it has no
+  token for.
+- `pr.list`: every watched session's pull request (at most the watch
+  limit, 64).
+- `pr.get`: the session's view as the watcher holds it; with `refresh`,
+  read now (conditional requests, so cheap when nothing changed), at
+  most once per 10 s per session, else answered from memory. A session
+  without a place answers `access: not_placed` (and has no
+  `SessionInfo.pull_request`).
+- `pr.open`: for a placed, live or ended session. The branch is the
+  one checked out in the session's folder now; the remote is the
+  branch's upstream remote, else `origin`; the base is `base`, else the
+  project's default branch (without its remote's name). It pushes first
+  (`git push --set-upstream <remote> <branch>`, never forced, the
+  repository's hooks running as for `git.push`), then, if an open pull
+  request has that head, answers `exists`; else creates it (`draft` as
+  asked) and starts watching it. The forge's "no commits between" is
+  `no_commits`; its other refusals are `rejected` with its message.
+  Forks (a head in another repository) are not offered here.
+- `pr.merge`: a person only. Reads the pull request fresh; refuses
+  `not_open`, `draft`, or `head_moved` when its head is not `head`;
+  then asks the forge to merge with `method` and `head` pinned
+  (`sha`), so a push between the read and the merge is refused by the
+  forge too (409 → `head_moved`, with the head read again). 405 is
+  `method_not_allowed` when the forge says the method is not allowed,
+  else `not_mergeable`. Never deletes the branch, never retries, never
+  waits for checks: GitHub's own branch rules decide what may merge.
+  Never automatic: nothing in the node calls it.
+- `pr.feedback`: turns feedback on or off for a structured session
+  (`unsupported` for a terminal session, which has no queue); kept in
+  the store; off by default.
+
+### How the node watches (bounded)
+
+- **What is watched**: a session that is live (its process runs), has
+  a place (project or worktree), is on a branch, and whose branch's
+  remote is on a host the node has a provider and a token for. At most
+  64 sessions per node; past that, `access: limit` and nothing is
+  read for it. The watcher is told when a session starts, is resumed,
+  ends, is archived or is deleted, and drops it at once on the last
+  three. One task owns every watch; calls reach it through a bounded
+  channel (64; a call that finds it full answers `unavailable`).
+- **Finding the pull request**: `GET /repos/{owner}/{repo}/pulls?head=
+  {owner}:{branch}&state=all&sort=updated&direction=desc&per_page=10`,
+  conditional (`If-None-Match`), every 120 s until one is found. The
+  pick (Paseo's): the most recently updated open one; else the most
+  recently updated closed or merged one whose head is the folder's
+  `HEAD` now (so an old pull request of a reused branch name is not
+  shown for new work).
+- **Watching it**: every 60 s three conditional requests, the pull
+  request itself (`GET .../pulls/{n}`) and its head commit's check runs
+  (`.../commits/{sha}/check-runs?per_page=100`, the full page, AO's
+  trap) and statuses (`.../commits/{sha}/status`); a 304 costs nothing
+  against GitHub's limit. When any of them changed, or the last full
+  read is older than 5 minutes, one GraphQL read gets everything the
+  facts need (below). After 30 minutes without a change the interval is
+  300 s; any change brings it back to 60 s. A merged pull request is
+  read once more and no longer watched; a closed one goes back to
+  finding (a new one may be opened for the branch).
+- **Requests**: at most 4 at once per node, 30 s each (10 s to
+  connect), bodies at most 4 MiB, no redirect followed (the
+  `Authorization` header never reaches another origin), the token only
+  in that header.
+- **Rate limits** (AO's detection, GOAT's floor): `x-ratelimit-*` read
+  on every answer; background reads of a host stop while less than 10 %
+  of its quota remains, until its reset. A 429, or a 403 with nothing
+  remaining, a `retry-after`, or "rate limit" or "abuse" in its body,
+  puts the host in a cooldown: `retry-after`, else until the reset, else
+  60 s doubling to 15 minutes; every request to it waits (a person's
+  call answers `access: rate_limited { until }` at once).
+- **Errors**: a session whose read fails (a network error, a 5xx) backs
+  off 60 s doubling to 30 minutes, its last facts kept, `access:
+  unreachable`. A 401 drops the cached token and asks for it again (at
+  most once a minute per host).
+- **What the node keeps**: in memory, per watched session, the
+  repository, the pull request's number, the last facts, and an ETag
+  per request (a few hundred bytes); nothing of a forge is stored but
+  feedback (below).
+
+### The facts, and the board (ADR 0019)
+
+The node gives each watched session's actor its `SessionPullRequest`
+through a watch (latest wins; no queue); the actor puts it in
+`SessionInfo.pull_request` and derives the board again with it, and
+watchers wake when the lane, the phrase, or the pull request's facts
+(not `read_at`) change. The reducer gets `PullRequests::Seen` with the
+one pull request (or none) once the node has read the session's
+repository at least once; `Unseen` before that, and for a session the
+node cannot see (no branch, no remote, no provider, signed out). So a
+session with no pull request, or on a node with no forge access, is
+placed as today; a watched one with none yet is `awaiting_pr` between
+turns, as in agent-orchestrator.
+
+An ended session is not watched: its actor stops reading pull
+requests when it ends (`Unseen`), so it is `exited` in building, as the
+store places a stored one (ADR 0026), and both stay equal. Its
+`pull_request` keeps the last one read for the card. (agent-
+orchestrator keeps an exited worker in its pull request's lane; a
+Vessel session ends with its process, and nothing watches it then.)
+
+The mapping, AO's (`provider.go`, `observer_provider.go`), into the
+reducer's facts:
+
+- A check: `SUCCESS`, `NEUTRAL` passed; `FAILURE`, `TIMED_OUT`,
+  `ACTION_REQUIRED`, `STARTUP_FAILURE` failed; `CANCELLED` cancelled;
+  `SKIPPED`, `STALE` skipped; `QUEUED`, `PENDING`, `REQUESTED`,
+  `WAITING`, `IN_PROGRESS` pending; a status context's `SUCCESS`
+  passed, `FAILURE` and `ERROR` failed, `PENDING` and `EXPECTED`
+  pending. Only the newest run of each check name counts (a superseded
+  run does not fail the head).
+- Checks: any failed is failing; else any pending is pending; else a
+  cancelled one is unknown; else none at all is `none` (the reducer's
+  `CiState::Unknown`); else passing. More than 100 is unknown.
+- Review decision: as GitHub says; none is `none`.
+- Mergeable, first rule that holds: `DIRTY` or `CONFLICTING` is
+  conflicting; `BLOCKED` blocked; `UNSTABLE` unstable; a draft, failing
+  checks, changes requested or a review required is blocked; `MERGEABLE`
+  with `CLEAN`, `HAS_HOOKS` or nothing is mergeable; else unknown.
+  `BEHIND` alone is `behind` on the wire and unknown to the reducer (its
+  three-valued fact has no "behind").
+- People's reviews: approved and changes requested on the current head,
+  the latest per person, bots left out; `commented` when an unresolved
+  thread has a person's comment.
+- The fleet's own review passes and policy flags: none (Vessel has no
+  reviewing agent); left at their defaults.
+
+### Feedback to the session
+
+Off by default per session (`pr.feedback`); AO and GOAT have theirs on
+by default, the owner asked for off.
+
+- **Events**, and what makes two the same (each event's signature):
+  - a failing check: `check:<number>:<head commit>:<check name>`; the
+    same check failing again on the same head is the same event, on a
+    new head a new one;
+  - changes requested: `review:<number>:<review id>`;
+  - an unresolved comment: `comment:<number>:<comment id>`, for each
+    comment of an unresolved thread written by the pull request's author
+    or someone with write access (`OWNER`, `MEMBER`, `COLLABORATOR`).
+    Others' comments and bots' are counted in the message and never
+    quoted: on a public repository anyone can comment, and a comment
+    becomes the agent's prompt.
+- **When**: after a read finds events whose signatures were not sent
+  before, the node sends one prompt listing them (at most 20 events,
+  each quoted at most 1 KiB, control characters removed, the whole at
+  most 16 KiB, then "and N more" with the pull request's address),
+  through track A's queue (`Delivery::Queue`, as the owner, who turned
+  it on): never typed into a running turn (it waits in the queue for the
+  turn's end) and never started while the session waits on a
+  permission or a question (the node does not send then; the next read
+  tries again). A held queue keeps it until a person resumes.
+- **Kept**: the signatures sent, per session, in the store (schema 10),
+  at most 1,000 per session (the oldest dropped); deleted with the
+  session. A signature is recorded once the prompt was accepted (started
+  or queued); a refusal (the queue full) records nothing, so the next
+  read tries again.
+
+### ADR 0030: git independent of the repository's folder
+
+From wave 1's review (plan, "Integration (node)", findings 1, 7, 11,
+17). Measured on git 2.43 before deciding: a `-c <key>=` given on the
+command line wins over the repository's configuration and every file it
+includes; an empty driver command turns a filter, diff or merge driver
+off; `GIT_ATTR_SOURCE` (git 2.40+) does not cover `.git/info/attributes`;
+aliases never shadow git's own commands; a pager runs only on a
+terminal; `GIT_ALLOW_PROTOCOL` stops a local-path remote's
+`uploadpack`, `ext::` and a remote's `vcs` helper.
+
+- **Before every git run** in a repository the node lists the
+  repository's own configuration (`git config --local --list -z
+  --includes`, and `--worktree` when `extensions.worktreeConfig` is on):
+  its `.git/config`, a worktree's `config.worktree`, and every file they
+  include. The user's global and system configuration are the user's
+  and are left alone.
+- **Turned off on the command line**, for every key that names a
+  program and that the repository's configuration sets: every
+  `filter.<driver>.{clean,smudge,process}` (and `required=false`),
+  `diff.<driver>.{command,textconv}`, `merge.<driver>.driver`; and, on
+  every run whatever the repository sets, `core.fsmonitor`,
+  `core.hooksPath` (but for commit and push), `diff.external`,
+  `core.alternateRefsCommand`, `submodule.recurse`,
+  `fetch.recurseSubmodules`, `--no-pager`, `GIT_EDITOR`,
+  `GIT_SEQUENCE_EDITOR`, `GIT_ASKPASS` (empty), and `GIT_ALLOW_PROTOCOL
+  =https:http:ssh:git` on every run.
+- **Refused** when the repository's own configuration sets one of these,
+  for the runs that would use it, because turning it off would lose the
+  user's own global value: on network runs (fetch, pull, push, the push
+  of `pr.open`) `core.sshCommand`, `core.gitProxy`, `credential.helper`
+  and `credential.<url>.helper`, `remote.<name>.uploadpack`,
+  `remote.<name>.receivepack`, `remote.<name>.vcs`; on commit and push,
+  `gpg.program`, `gpg.<format>.program`, `gpg.ssh.defaultKeyCommand`; on
+  every run, `core.worktree` (it moves the working tree out of the
+  project's folder) and `core.bare`. A typed refusal names the key
+  (`GitRefusal::repository_program`, or `conflict` on a read), never the
+  value. The user moves such a setting to their global configuration
+  (`includeIf "gitdir:…"`) if they want Vessel to use it.
+- **Kept, and said**: commit and push run the repository's hooks (its
+  `.git/hooks`, or the `core.hooksPath` its configuration names), as the
+  user's own `git commit` would; those two calls are a person's only
+  (agents are refused them). A key git adds later that names a program
+  is not on the list until it is added; the list is git's documented
+  keys as of 2.47, and a test plants each.
+- **A project's root**: refused when it is a `.git` folder, inside one,
+  or a bare repository (`git rev-parse --is-inside-git-dir`,
+  `--is-bare-repository`), or when any part of its path is `.git`, for
+  `project.add`, `project.init` and a clone's target.
+- **Between checking a place and starting in it**: `place` (and
+  `session.resume`'s check) takes a "starting" count on the worktree in
+  the same lock as its check, given back once the session is live or
+  failed to start; a removal counts it as a session in the worktree
+  (`in_use`).
+- **Clones**: a pool of their own, 2 at once and 16 waiting, apart
+  from fetch, push and pull's 4.
+
+### Agents, the CLI
+
+- Agent tools (`vessel mcp`): `get_pull_request` (its own session, or
+  one it started) and `open_pull_request` (the same). No merge, no
+  feedback switch: a merge publishes to a shared branch and the owner
+  asked for merging to be explicit; ADR 0029 says why the node does not
+  merge for an agent.
+- CLI: `vessel pr list`, `vessel pr show <session> [--refresh]`,
+  `vessel pr open <session> --title <t> [--body <b> | --body-file <f>]
+  [--base <b>] [--draft]`, `vessel pr merge <session> --method
+  merge|squash|rebase --head <commit>` (the head is required: the one
+  `show` printed), `vessel pr feedback <session> on|off`, `vessel forge
+  status`.
+
+### What an older client and an older node see
+
+- A protocol 8 to 10 client gets `SessionInfo` with a field it does not
+  know (`pull_request`), which it ignores, and boards whose lanes and
+  phrases are protocol 8's enums, all of which it already draws: a
+  watched session can now be in Validating, In review or Ready, the
+  lanes those enums were made for (ADR 0019). `GitRefusal::
+  repository_program` reaches it as `unknown`.
+- A client asks no protocol 11 method of a node that speaks 10 or less:
+  `NotInProtocol` before sending.
+- No event is added.
+
+### Bounded, and by how much
+
+| What | Bound | Beyond it |
+|---|---|---|
+| Watched sessions | 64 per node | `access: limit` |
+| Forge requests | 4 at once, 64 waiting; 30 s each (10 s to connect); 4 MiB a body; no redirect | `unavailable`; `unreachable` |
+| Finding a pull request | every 120 s, conditional | — |
+| Watching one | every 60 s (300 s after 30 quiet minutes), three conditional requests, a full read on change or every 5 minutes | — |
+| A person's refresh | once per 10 s per session | answered from memory |
+| Rate limit | background stops under 10 % left; cooldown 60 s doubling to 15 min, or as the forge says | `rate_limited` |
+| Errors | 60 s doubling to 30 min per session | `unreachable` |
+| Token | asked of `gh` at most every 10 s on a miss, kept 5 min, dropped on 401 (asked again at most once a minute) | `signed_out` |
+| `gh` | 2 at once, 10 s each | `signed_out { gh: failed }` |
+| Feedback | 20 events and 16 KiB a prompt, 1 KiB a quote; 1,000 signatures per session | "and N more"; oldest dropped |
+| Failing checks named | 20 per pull request | counted |
+| Calls to the watcher | a channel of 64 | `unavailable` |
+| A repository's configuration listing | 256 KiB, inside the run's time and slot | the run refused |
+| Clones | 2 at once, 16 waiting | `unavailable` |
+
+### Store (schema 10)
+
+- `forge_feedback_on (session_id PRIMARY KEY REFERENCES sessions ON
+  DELETE CASCADE)`: the sessions with feedback on.
+- `forge_feedback_sent (session_id REFERENCES sessions ON DELETE
+  CASCADE, signature, sent_at, PRIMARY KEY (session_id, signature))`.
+
+Nothing else of a forge is stored: the pull request is found again by
+its branch after a restart.
