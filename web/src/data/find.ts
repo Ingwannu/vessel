@@ -64,13 +64,17 @@ export function searchable(entry: Entry): string | null {
 
 /** Markdown's marks removed: fences, emphasis, code ticks, headings,
  * quotes and list marks, links as their words. Approximate on purpose:
- * it decides what a reader would call the text, not how it is drawn. */
+ * it decides what a reader would call the text, not how it is drawn. An
+ * underscore inside a word (`module_300`, `snake_case`) is the word's,
+ * as CommonMark reads it, and is kept: only one at a word's edge marks
+ * emphasis. */
 export function readableText(markdown: string): string {
   return markdown
     .replace(/^\s{0,3}(```|~~~).*$/gm, "")
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/^\s{0,3}(#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/gm, "")
-    .replace(/(\*\*|__|\*|_|~~|`)/g, "");
+    .replace(/(\*\*|\*|~~|`)/g, "")
+    .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, "");
 }
 
 /** `text` folded for matching: decomposed, accents dropped, lower case,

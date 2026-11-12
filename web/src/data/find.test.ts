@@ -41,6 +41,13 @@ describe("folding", () => {
       "see the docs",
     );
     expect(readableText("# Title\n- one\n> quoted")).toBe("Title\none\nquoted");
+    // An underscore inside a word is the word's; at its edges, emphasis.
+    expect(readableText("names `src/module_300.rs` and _this_")).toBe(
+      "names src/module_300.rs and this",
+    );
+    expect(readableText("__init__ and snake_case_name")).toBe(
+      "init and snake_case_name",
+    );
   });
 
   test("occurrences do not overlap", () => {
