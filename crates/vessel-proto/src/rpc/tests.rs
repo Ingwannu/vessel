@@ -277,7 +277,16 @@ fn the_forwardable_set_is_pinned() {
             "file.rename",
             "file.delete",
             "file.find",
-            "file.grep"
+            "file.grep",
+            "schedule.list",
+            "schedule.get",
+            "schedule.create",
+            "schedule.update",
+            "schedule.pause",
+            "schedule.resume",
+            "schedule.run",
+            "schedule.delete",
+            "schedule.runs"
         ]
     );
 }

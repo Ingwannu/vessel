@@ -3960,3 +3960,56 @@ Not taken:
 - **A timeout on a run waiting for a permission** (finding 2): stopping an
   agent on a timer loses its work; the run says it waits, and the board
   shows the session blocked.
+
+## Track D: progress
+
+Built on `backend/m11-schedules`, slice by slice; each commit passed the
+whole gate (the end-to-end tests of the node and of the page included).
+
+### Built
+
+- **Slice 1, the wire's shapes and schema 13** (`vessel_proto::automation`,
+  `vessel-store`'s `automation`): cron expressions parsed into bit sets,
+  the bounded names and prompt text, cadences, targets, runs with typed
+  outcomes, saved prompts and hooks; the tables, with a run about to be
+  made written in the same commit as the next due time it took. Schema
+  versions 10 to 12 are empty on this branch: they are tracks B2, C and
+  G's, which the join puts in place.
+- **Slice 2, schedules** (protocol 11's first nine methods): the time
+  engine (`automation::time`: the next wall-clock minute in a zone from
+  `jiff`'s bundled database, gaps and folds, missed due times), the
+  scheduler (one task, an index of due times, a sleep of at most 10
+  minutes and none with nothing active, four run slots, one run at a time
+  per schedule), runs made as the definer through the service's checks
+  (`service/scheduled.rs`), a new session's first turn followed and the
+  session archived, the calls (`service/schedules.rs`), the client's
+  methods. `Sessions` now tells who listens when a session's log is
+  complete (`Sessions::ends`), which is what an agent's schedules end
+  with.
+
+### Checked, and how
+
+- Time, on a clock the test gives (`automation::time::tests`, 12 tests):
+  New York's spring gap (a time in it runs once at the jump; four times in
+  it and 03:00 make one run) and autumn fold (the first occurrence only,
+  also asked from inside the second pass), Lord Howe's thirty-minute
+  shift, London, 29 February across 2100, a cron that never matches,
+  `every` across a daylight-saving change and with a fractional anchor,
+  missed due times (once, skip, a day old, more than the count holds).
+- The scheduler, on a clock moved by hand with a recording runner
+  (`automation::schedules::tests`, 12 tests, no sleep): due once and moved
+  on; two due at once; missed while the node was stopped (one run, or one
+  record); the clock stepped back (no second run), forward (counted as
+  missed), and corrected after a run made days ahead; an edit while due;
+  a due time while a run is being made; run now, `max_runs`, `ends_at`,
+  pause and resume keeping the phase; a definer gone; an agent's schedule
+  gone with its session; `making` interrupted at start; at most four runs
+  at once.
+- Through a real node with the fake agent (`tests/e2e/schedules.rs`, 6
+  tests): a run that starts a session, follows its turn, archives it and
+  names it; a run through a busy session's queue that never piles up,
+  skips a session a person stopped and reaches it again once someone
+  sends it something; a target ended (the run fails) and deleted (the
+  schedule ends); what is refused at creation; an agent's heartbeat, what
+  it may not touch, the owner running it as the agent, and its end with
+  the session; schedules kept across a restart.

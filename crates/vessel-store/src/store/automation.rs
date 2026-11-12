@@ -75,7 +75,8 @@ impl Store {
             .await
     }
 
-    /// Saved prompts by name: every one, or `project`'s and the machine's.
+    /// Saved prompts by name (of one name, the machine's first): every one,
+    /// or `project`'s and the machine's.
     ///
     /// # Errors
     /// The read failed.

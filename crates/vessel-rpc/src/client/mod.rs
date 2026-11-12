@@ -134,6 +134,15 @@ impl Unary for vessel_proto::conversation::FinishUpload {}
 impl Unary for vessel_proto::conversation::ReadAttachment {}
 // Protocol 10 (Track B): every workspace call answers once; long polls
 // (`project.get`, `worktree.output`) are bounded waits, not streams.
+impl Unary for vessel_proto::automation::ListSchedules {}
+impl Unary for vessel_proto::automation::GetSchedule {}
+impl Unary for vessel_proto::automation::CreateSchedule {}
+impl Unary for vessel_proto::automation::UpdateSchedule {}
+impl Unary for vessel_proto::automation::PauseSchedule {}
+impl Unary for vessel_proto::automation::ResumeSchedule {}
+impl Unary for vessel_proto::automation::RunSchedule {}
+impl Unary for vessel_proto::automation::DeleteSchedule {}
+impl Unary for vessel_proto::automation::ListRuns {}
 impl Unary for vessel_proto::workspace::ListProjects {}
 impl Unary for vessel_proto::workspace::GetProject {}
 impl Unary for vessel_proto::workspace::AddProject {}
@@ -322,7 +331,16 @@ const fn is_unary(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        | Method::ListSchedules
+        | Method::GetSchedule
+        | Method::CreateSchedule
+        | Method::UpdateSchedule
+        | Method::PauseSchedule
+        | Method::ResumeSchedule
+        | Method::RunSchedule
+        | Method::DeleteSchedule
+        | Method::ListRuns => true,
     }
 }
 

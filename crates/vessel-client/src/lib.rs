@@ -50,6 +50,7 @@ mod local;
 pub mod pairing;
 mod pinned;
 mod resume;
+mod schedules;
 pub mod secure;
 mod stream;
 #[cfg(test)]

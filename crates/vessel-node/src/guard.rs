@@ -159,7 +159,18 @@ targets!(
 // is `session.import`, which creates one; the reads are open to every
 // agent; the envelope's rows carry a call whose own row is checked where it
 // runs (protocol 6, Track X); the rest are not `operate` calls.
+// Schedules name schedules, not sessions: who may change one is the
+// scheduler's rule (ADR 0033), and a run is checked as its definer.
 untargeted!(
+    vessel_proto::automation::ListSchedules,
+    vessel_proto::automation::GetSchedule,
+    vessel_proto::automation::CreateSchedule,
+    vessel_proto::automation::UpdateSchedule,
+    vessel_proto::automation::PauseSchedule,
+    vessel_proto::automation::ResumeSchedule,
+    vessel_proto::automation::RunSchedule,
+    vessel_proto::automation::DeleteSchedule,
+    vessel_proto::automation::ListRuns,
     vessel_proto::conversation::GetConversation,
     vessel_proto::conversation::ReadAttachment,
     vessel_proto::conversation::WriteUpload,
@@ -358,6 +369,15 @@ guarded! {
     lsp_incoming_calls: vessel_proto::lsp::IncomingCalls => vessel_proto::lsp::Page<vessel_proto::lsp::Call>;
     lsp_outgoing_calls: vessel_proto::lsp::OutgoingCalls => vessel_proto::lsp::Page<vessel_proto::lsp::Call>;
     lsp_diagnostics: vessel_proto::lsp::Diagnostics => vessel_proto::lsp::Page<vessel_proto::lsp::Diagnostic>;
+    list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
+    get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
+    create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
+    update_schedule: vessel_proto::automation::UpdateSchedule => vessel_proto::automation::ScheduleInfo;
+    pause_schedule: vessel_proto::automation::PauseSchedule => vessel_proto::automation::ScheduleInfo;
+    resume_schedule: vessel_proto::automation::ResumeSchedule => vessel_proto::automation::ScheduleInfo;
+    run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
+    delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
+    list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
 
     @through_the_guard {
         forward: Forward => Forwarded;

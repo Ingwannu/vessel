@@ -347,7 +347,18 @@ impl Method {
             | Self::RenamePath
             | Self::DeletePath
             | Self::FindFiles
-            | Self::SearchFiles => true,
+            | Self::SearchFiles
+            // Schedules (protocol 11): forwardable; who may do what from
+            // another node is the target's scheduler's rule (ADR 0033).
+            | Self::ListSchedules
+            | Self::GetSchedule
+            | Self::CreateSchedule
+            | Self::UpdateSchedule
+            | Self::PauseSchedule
+            | Self::ResumeSchedule
+            | Self::RunSchedule
+            | Self::DeleteSchedule
+            | Self::ListRuns => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

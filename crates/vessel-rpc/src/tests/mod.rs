@@ -497,6 +497,15 @@ impl Handler for Fake {
         delete_path: vessel_proto::workspace::DeletePath => Ack;
         find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
         search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
+        list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
+        get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
+        create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
+        update_schedule: vessel_proto::automation::UpdateSchedule => vessel_proto::automation::ScheduleInfo;
+        pause_schedule: vessel_proto::automation::PauseSchedule => vessel_proto::automation::ScheduleInfo;
+        resume_schedule: vessel_proto::automation::ResumeSchedule => vessel_proto::automation::ScheduleInfo;
+        run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
+        delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
+        list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
     }
 }
 

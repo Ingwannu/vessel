@@ -264,7 +264,8 @@ pub(crate) fn deliveries(
     )
 }
 
-/// Saved prompts by name: every one, or `project`'s and the machine's.
+/// Saved prompts by name (of one name, the machine's first): every one,
+/// or `project`'s and the machine's.
 /// Reader side.
 pub(crate) fn prompts(
     connection: &Connection,
@@ -273,13 +274,13 @@ pub(crate) fn prompts(
     match project {
         None => decoded(
             connection,
-            "SELECT info FROM saved_prompts ORDER BY name, id",
+            "SELECT info FROM saved_prompts ORDER BY name, scope, id",
             [],
             "saved prompt",
         ),
         Some(project) => decoded(
             connection,
-            "SELECT info FROM saved_prompts WHERE scope IN ('', ?1) ORDER BY name, id",
+            "SELECT info FROM saved_prompts WHERE scope IN ('', ?1) ORDER BY name, scope, id",
             [project.to_string()],
             "saved prompt",
         ),

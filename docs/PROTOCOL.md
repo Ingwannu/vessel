@@ -30,6 +30,62 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 11 (2026-11-12, wave 2 of milestone 11)
+
+Nodes speak 2..=11. One number for the whole of wave 2 ("Wave 2: tracks"
+in `docs/plans/backend-m11.md`); each track adds its part. No event and no
+shared reply gains a field, so a protocol 2-10 client reads a version 11
+node as before.
+
+### Schedules (track D)
+
+Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
+(`docs/plans/backend-m11.md`, "Track D: contract" and its review; ADR
+0033).
+
+- Types (`vessel_proto::automation`):
+  - `CronExpr`: five fields (minute, hour, day of the month, month, day of
+    the week), lists, ranges, steps on `*` or a range, month and day names,
+    `@hourly` to `@yearly`; parsed on decode into bit sets, so a bad one
+    does not decode. `TimeZoneName` (an IANA name's shape; the node says
+    whether it exists), `ScheduleName`, `PromptText` (16 KiB, no control
+    character but tab and line ends), `EverySeconds` (60 to 31,622,400),
+    `MaxRuns`, `RunNumber`.
+  - `Cadence`: `every { seconds, anchor? }` (elapsed time from the anchor
+    the node fills), `cron { expr, zone }`, `unknown`.
+  - `ScheduleTarget`: `new_session { spec, after }` (a structured
+    `SessionSpec`; `after` is `archive`, the default, or `keep`) or
+    `session { session }` (through its queue), `unknown`.
+  - `ScheduleDefinition { name?, cadence, target, prompt, catch_up,
+    max_runs?, ends_at? }`, `CatchUp` (`once`, `skip`), `ScheduleState`
+    (`active { next_due }`, `paused { since }`, `ended { at, reason }`),
+    `ScheduleInfo { id, definition, state, runs, last_due?, last_run?,
+    defined_by, created_at, updated_at, revision }`.
+  - `ScheduleRun { number, due_at, at, trigger, outcome }`; `RunTrigger`
+    (`due`, `caught_up { missed }`, `asked { by }`); `RunOutcome`
+    (`making`, `started`, `waiting`, `finished { session, end }`,
+    `prompted { session, delivered }`, `skipped { reason }`, `failed {
+    error: RunError, session? }`, `interrupted`). `RunError`'s code is a
+    `RunErrorCode`, `ErrorCode` with `unknown`, so a list of runs stays
+    readable to an older client when a newer code appears.
+  - Every enum that will grow has `unknown`; one sent to a node is
+    `invalid_request`.
+- Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
+  `.update` (the whole definition, under its `revision`), `.pause`,
+  `.resume`, `.run` (once now, answered with the run's outcome),
+  `.delete` (operate).
+- A run acts as the schedule's `defined_by` as they are when it runs (a
+  revoked device ends it; an agent's schedules go with its session), and
+  meets the checks a call of theirs would. Agents: 8 schedules per
+  session, their own session as a heartbeat's target, never `run` now;
+  delegated callers may only read, pause, resume and delete.
+- What happens at a daylight-saving gap or fold, after a stopped node, on
+  a clock stepped either way, and to a run under way when the node stops,
+  is the contract's "Time" and ADR 0033.
+- Store: schema 13 (`schedules`, `schedule_runs`, `saved_prompts`, `hooks`,
+  `hook_deliveries`, `hook_keys`; 10 to 12 are empty until tracks B2, C
+  and G are joined).
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

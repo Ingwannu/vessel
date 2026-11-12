@@ -14,6 +14,7 @@ use vessel_rpc::{Outbound, Peer};
 
 use crate::agents::Agents;
 use crate::attachments::Attachments;
+use crate::automation::schedules::Schedules;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -45,6 +46,10 @@ mod files;
 mod git;
 mod projects;
 mod worktrees;
+// Protocol 11's calls: schedules (`automation`), and the runs they make
+// through the service's own checks.
+mod scheduled;
+mod schedules;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -82,6 +87,8 @@ pub(crate) struct NodeService {
     workspaces: Arc<Workspaces>,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
+    /// The scheduler (protocol 11, `automation::schedules`).
+    schedules: Schedules,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -104,6 +111,7 @@ pub(crate) struct Parts {
     pub(crate) probes: Probes,
     pub(crate) workspaces: Arc<Workspaces>,
     pub(crate) tidying: Arc<Tidying>,
+    pub(crate) schedules: Schedules,
 }
 
 impl NodeService {
@@ -127,6 +135,7 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            schedules,
         } = parts;
         Self {
             lsp,
@@ -148,6 +157,7 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            schedules,
         }
     }
 

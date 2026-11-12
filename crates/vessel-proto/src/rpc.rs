@@ -315,6 +315,24 @@ rpc_methods! {
     FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
     /// Search inside files (protocol 10).
     SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
+    /// Every schedule on the node (protocol 11).
+    ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;
+    /// One schedule (protocol 11).
+    GetSchedule / get_schedule / "schedule.get" [Read, 11]: crate::automation::GetSchedule => crate::automation::ScheduleInfo;
+    /// Make a schedule (protocol 11).
+    CreateSchedule / create_schedule / "schedule.create" [Operate, 11]: crate::automation::CreateSchedule => crate::automation::ScheduleInfo;
+    /// Replace a schedule's definition (protocol 11).
+    UpdateSchedule / update_schedule / "schedule.update" [Operate, 11]: crate::automation::UpdateSchedule => crate::automation::ScheduleInfo;
+    /// Stop a schedule's runs (protocol 11).
+    PauseSchedule / pause_schedule / "schedule.pause" [Operate, 11]: crate::automation::PauseSchedule => crate::automation::ScheduleInfo;
+    /// Let a paused schedule run again (protocol 11).
+    ResumeSchedule / resume_schedule / "schedule.resume" [Operate, 11]: crate::automation::ResumeSchedule => crate::automation::ScheduleInfo;
+    /// Run a schedule once now (protocol 11).
+    RunSchedule / run_schedule / "schedule.run" [Operate, 11]: crate::automation::RunSchedule => crate::automation::ScheduleRun;
+    /// Remove a schedule and its runs (protocol 11).
+    DeleteSchedule / delete_schedule / "schedule.delete" [Operate, 11]: crate::automation::DeleteSchedule => Ack;
+    /// A schedule's newest runs (protocol 11).
+    ListRuns / list_runs / "schedule.runs" [Read, 11]: crate::automation::ListRuns => crate::automation::RunList;
 }
 
 /// Result of a call.

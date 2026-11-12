@@ -75,7 +75,15 @@ pub(crate) struct Sessions {
     marking: tokio::sync::Mutex<()>,
     /// Sessions being started again (`again`), one call each.
     claims: again::Claims,
+    /// Each session's end, once its log is complete (protocol 11): what an
+    /// agent's schedules end with (`automation`). Lossy by design: a
+    /// listener that falls behind finds the agent gone at the schedule's
+    /// next run instead.
+    ended: tokio::sync::broadcast::Sender<SessionId>,
 }
+
+/// Ends a listener may fall behind by before it misses some.
+const ENDED: usize = 64;
 
 impl Sessions {
     pub(crate) fn new(
@@ -94,7 +102,13 @@ impl Sessions {
             models,
             marking: tokio::sync::Mutex::new(()),
             claims: again::Claims::default(),
+            ended: tokio::sync::broadcast::Sender::new(ENDED),
         }
+    }
+
+    /// The ends of sessions from now on (see the field).
+    pub(crate) fn ends(&self) -> tokio::sync::broadcast::Receiver<SessionId> {
+        self.ended.subscribe()
     }
 
     pub(crate) const fn store(&self) -> &Store {
@@ -206,6 +220,8 @@ impl Sessions {
         }
         self.agents.retire(id);
         self.models.retire(id);
+        // Nobody listening is fine: nothing needs to hear of this end.
+        let _listeners = self.ended.send(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }

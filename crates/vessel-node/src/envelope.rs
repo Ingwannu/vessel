@@ -536,6 +536,31 @@ async fn run_here(
         Call::SearchFiles(request) => {
             Reply::SearchFiles(guard.search_files(connection, request).await?)
         }
+        Call::ListSchedules(request) => {
+            Reply::ListSchedules(guard.list_schedules(connection, request).await?)
+        }
+        Call::GetSchedule(request) => {
+            Reply::GetSchedule(guard.get_schedule(connection, request).await?)
+        }
+        Call::CreateSchedule(request) => {
+            Reply::CreateSchedule(guard.create_schedule(connection, request).await?)
+        }
+        Call::UpdateSchedule(request) => {
+            Reply::UpdateSchedule(guard.update_schedule(connection, request).await?)
+        }
+        Call::PauseSchedule(request) => {
+            Reply::PauseSchedule(guard.pause_schedule(connection, request).await?)
+        }
+        Call::ResumeSchedule(request) => {
+            Reply::ResumeSchedule(guard.resume_schedule(connection, request).await?)
+        }
+        Call::RunSchedule(request) => {
+            Reply::RunSchedule(guard.run_schedule(connection, request).await?)
+        }
+        Call::DeleteSchedule(request) => {
+            Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
+        }
+        Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

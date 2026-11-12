@@ -179,7 +179,17 @@ impl Reply {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            // Protocol 11's replies reach only peers that speak it.
+            | Self::ListSchedules(_)
+            | Self::GetSchedule(_)
+            | Self::CreateSchedule(_)
+            | Self::UpdateSchedule(_)
+            | Self::PauseSchedule(_)
+            | Self::ResumeSchedule(_)
+            | Self::RunSchedule(_)
+            | Self::DeleteSchedule(_)
+            | Self::ListRuns(_) => None,
         }
     }
 }

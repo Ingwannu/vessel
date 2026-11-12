@@ -24,6 +24,9 @@ use crate::agents::Agents;
 use crate::attachments::staging;
 use crate::attachments::uploads::{self, Uploads};
 use crate::attachments::{Attachments, Verified, load};
+use crate::automation;
+use crate::automation::schedules::node_runner::NodeRunner;
+use crate::automation::schedules::{Schedules, SystemClock};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
@@ -457,6 +460,10 @@ async fn core(
     // each prune (`tidying`); deletions tidy their own.
     let tidying = Tidying::new(Arc::clone(&sessions), Arc::clone(&workspaces));
     Arc::clone(&tidying).watch(store.pruned(), &tasks, stop.clone());
+    // The scheduler (protocol 11): its handle goes into the service, and
+    // it makes runs through the service (`NodeRunner` holds it weakly).
+    let (schedules, commands) = Schedules::channel();
+    let ended = sessions.ends();
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -476,7 +483,20 @@ async fn core(
         probes: Probes::new(setup.probe_dir),
         workspaces,
         tidying,
+        schedules,
     })));
+    automation::schedules::start(
+        commands,
+        automation::schedules::Parts {
+            runner: Arc::new(NodeRunner::new(&service)),
+            clock: SystemClock,
+            store: store.clone(),
+            tasks: tasks.clone(),
+            stop: stop.clone(),
+            ended,
+        },
+    )
+    .await;
     Ok(Core {
         runtime,
         lifecycle,

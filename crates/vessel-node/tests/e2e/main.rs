@@ -48,6 +48,8 @@ mod resume;
 #[cfg(test)]
 mod routing;
 #[cfg(test)]
+mod schedules;
+#[cfg(test)]
 mod secrets_across;
 #[cfg(test)]
 mod secure;
