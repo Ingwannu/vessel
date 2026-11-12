@@ -6,7 +6,7 @@
 
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
-import { startSession, timeline } from "./kit";
+import { choose, startSession, timeline } from "./kit";
 import { openUi } from "./open";
 
 function composer(page: Page): Locator {
@@ -105,6 +105,37 @@ test("the other way: a message steered into the running turn", async ({
   ).toBeVisible();
   await expect(timeline(page).getByText("steered: finish")).toBeVisible();
   await expect(timeline(page).getByText(/Turn ended · end turn/)).toBeVisible();
+});
+
+test("Default send, kept by the bridge, makes Send steer and Mod+Enter queue", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  await page.goto(`${origin}/settings/general`);
+  const send = page.getByRole("combobox", { name: "Default send" });
+  await choose(page, send, /^Steer/);
+  await expect(send).toContainText("Steer");
+  try {
+    await startSession(page, "laptop", "Structured", "wait");
+    await expect(timeline(page).getByText("turn 1")).toBeVisible();
+    await text(page).fill("finish");
+    await expect(
+      composer(page).getByRole("button", { name: "Steer message" }),
+    ).toBeVisible();
+    // The other way is now the queue.
+    await page.keyboard.down("Control");
+    await expect(
+      composer(page).getByRole("button", { name: "Queue message" }),
+    ).toBeVisible();
+    await page.keyboard.up("Control");
+    await text(page).press("Enter");
+    await expect(timeline(page).getByText("steered: finish")).toBeVisible();
+  } finally {
+    // The bridge keeps the choice for every later test: put it back.
+    await page.goto(`${origin}/settings/general`);
+    await choose(page, send, /^Queue/);
+    await expect(send).toContainText("Queue");
+  }
 });
 
 test("files go with a prompt, and the prompt shows them", async ({ page }) => {

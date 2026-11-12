@@ -76,11 +76,11 @@ export function GeneralSection() {
             }
           />
           <Row
-            title="While the agent works"
+            title="Default send"
             detail={{ description: deliveryNote(delivery) }}
             control={
               <Select
-                aria-label="While the agent works"
+                aria-label="Default send"
                 size="sm"
                 width="fit"
                 align="end"
