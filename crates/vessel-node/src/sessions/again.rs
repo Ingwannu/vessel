@@ -11,7 +11,10 @@
 //!   live (`conflict`) or ended with its log on its way to the store
 //!   (`conflict`, a retry works). Structured, its agent able to resume and
 //!   a conversation to resume (`unsupported` otherwise), read from its
-//!   stored row before any process starts. One start again of a session at
+//!   stored row before any process starts. Its folder still there
+//!   (`conflict` otherwise, `FolderGone`): a worktree goes when the
+//!   session it was made for is deleted, and a person may remove one, or
+//!   a folder, while a session that ran in it has ended. One start again of a session at
 //!   a time ([`Claim`]), so two calls never reserve its agent's place
 //!   twice nor start it twice.
 //! - Order: the runtime starts it gated (`vessel_session::Gate`, nothing
@@ -126,6 +129,17 @@ impl Sessions {
             .await?
             .ok_or(ServiceError::NotFound(id))?;
         let _conversation = vessel_session::resumable(&ended.info).map_err(SessionError::from)?;
+        // Its folder first: an agent started in a folder that is gone fails
+        // at its spawn with the operating system's words, or starts and
+        // loads a conversation about files it cannot find.
+        if let Some(folder) = &ended.info.spec.cwd
+            && !is_folder(folder).await
+        {
+            return Err(ServiceError::FolderGone {
+                session: id,
+                folder: folder.clone(),
+            });
+        }
         Ok(ended)
     }
 
@@ -234,6 +248,13 @@ pub(crate) async fn ready(handle: &SessionHandle) -> Result<SessionInfo, Service
         session: handle.id(),
         why,
     })
+}
+
+/// Whether `path` is a folder now (a link to one counts, as for a spawn).
+async fn is_folder(path: &std::path::Path) -> bool {
+    tokio::fs::metadata(path)
+        .await
+        .is_ok_and(|metadata| metadata.is_dir())
 }
 
 /// What the runtime continues from: the store's record of the session,

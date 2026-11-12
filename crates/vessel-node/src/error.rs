@@ -144,6 +144,20 @@ pub(crate) enum ServiceError {
     /// (protocol 10).
     #[error("session {0} is being started again already")]
     StartingAgain(SessionId),
+    /// `session.resume` of a session whose folder is gone (protocol 10): a
+    /// worktree removed by a person, or tidied when the session it was made
+    /// for went, or a folder removed by hand. A conflict, not a refusal of
+    /// the session itself: the folder put back, it starts again.
+    #[error(
+        "session {session} ran in {folder}, which is gone (a worktree removed, or a folder \
+         deleted); it cannot start again there"
+    )]
+    FolderGone {
+        /// Which session.
+        session: SessionId,
+        /// The folder it ran in.
+        folder: std::path::PathBuf,
+    },
     /// `session.resume` of a session whose profile `profiles.toml` no
     /// longer defines (protocol 10).
     #[error(
@@ -332,6 +346,7 @@ impl ServiceError {
             | Self::LogWriting(_)
             | Self::AlreadyLive(_)
             | Self::StartingAgain(_)
+            | Self::FolderGone { .. }
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }

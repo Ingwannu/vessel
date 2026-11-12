@@ -1,14 +1,18 @@
 //! Where protocol 10's two halves meet (milestone 11, the plan's
 //! "Integration (node)"): a session placed in a worktree says so in every
 //! answer naming it, and ending or archiving it leaves the worktree, so
-//! `session.resume` finds its folder.
+//! `session.resume` finds its folder; a session whose folder is gone
+//! anyway is refused, not started elsewhere.
 
 use std::path::PathBuf;
 
 use vessel_client::NodeClient;
 use vessel_node::Node;
-use vessel_proto::workspace::{AddProject, ListWorktrees, ProjectInfo, SessionPlace};
-use vessel_proto::{EventSeq, Mark, SessionId, SessionStatus, WorktreeId};
+use vessel_proto::workspace::{
+    AddProject, IfLost, ListWorktrees, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome,
+    SessionPlace,
+};
+use vessel_proto::{ErrorCode, EventSeq, Mark, SessionId, SessionStatus, WorktreeId};
 
 use crate::support::{Fixture, read_until, status_of, step, structured_spec, within};
 use crate::workspace::{lookup, new_worktree, repository};
@@ -97,6 +101,44 @@ async fn a_placed_session_says_where_it_runs_in_every_answer() {
         assert_eq!(resumed.spec.cwd.as_ref(), Some(&worktree.path));
         assert_eq!(resumed.workspace, expected, "session.resume");
         owner.kill(id).await.unwrap();
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A session whose worktree a person removed while it had ended is
+/// refused when started again (`conflict`, naming the folder), not started
+/// in another folder; nothing of it changes.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_session_whose_folder_is_gone_does_not_start_again() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = project(&owner).await;
+        let worktree = new_worktree(&owner, project.id).await;
+        let id = running_in(&owner, &fixture, worktree.id).await;
+        node.stop().await.unwrap();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let removed = owner
+            .call(RemoveWorktree {
+                worktree: worktree.id,
+                if_lost: IfLost::Keep,
+            })
+            .await
+            .unwrap();
+        assert_eq!(removed, RemoveWorktreeOutcome::Removed { snapshot: None });
+
+        let refused = owner.resume_session(id).await.unwrap_err();
+        let vessel_client::CallError::Remote(error) = &refused else {
+            panic!("{refused:?}");
+        };
+        assert_eq!(error.code, ErrorCode::Conflict);
+        assert!(error.message.contains("is gone"), "{}", error.message);
+        let after = owner.session(id).await.unwrap();
+        assert_eq!(after.status, SessionStatus::Interrupted, "it stays ended");
+        assert_eq!(after.workspace.as_deref().map(|w| w.worktree), None);
         node.stop().await.unwrap();
     })
     .await;
