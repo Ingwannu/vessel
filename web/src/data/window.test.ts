@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { guess, offsets, span } from "./window";
+import {
+  covers,
+  guess,
+  INSET,
+  offBy,
+  offsets,
+  scrollFor,
+  span,
+} from "./window";
 
 const keys = Array.from({ length: 1000 }, (_unused, n) => `k${String(n)}`);
 
@@ -63,5 +71,38 @@ describe("a list's window", () => {
     // Ten rows of 100, the rest guessed at their mean, 100.
     expect(starts[10]).toBe(1000);
     expect(span(starts, 950, 100, 0)).toMatchObject({ start: 9, end: 11 });
+  });
+});
+
+describe("going to an item", () => {
+  const starts = offsets(keys, new Map(), 20);
+
+  it("puts its top under the view's top, or its middle in the middle", () => {
+    // Item 500 starts at 10,000 px and ends at 10,020.
+    expect(scrollFor(starts, 500, 600, "start")).toBe(10_000 - INSET);
+    expect(scrollFor(starts, 500, 600, "center")).toBe(10_010 - 300);
+    // Near the top there is nothing above to scroll past.
+    expect(scrollFor(starts, 0, 600, "center")).toBe(0);
+    expect(scrollFor(starts, 0, 600, "start")).toBe(0);
+  });
+
+  it("corrects by what the drawn box says", () => {
+    // Drawn 40 px lower than asked for: scroll 40 further.
+    expect(offBy(INSET + 40, 20, 600, "start")).toBe(40);
+    expect(offBy(290, 20, 600, "center")).toBe(0);
+    expect(offBy(250, 20, 600, "center")).toBe(-40);
+    // A box taller than the view is held by its top.
+    expect(offBy(INSET, 900, 600, "center")).toBe(0);
+  });
+
+  it("knows when the drawn items leave part of the view empty", () => {
+    const drawn = span(starts, 10_000, 600, 200);
+    expect(covers(starts, drawn, 10_000, 600)).toBe(true);
+    // A correction of more than the margin uncovers the view.
+    expect(covers(starts, drawn, 10_300, 600)).toBe(false);
+    expect(covers(starts, drawn, 9_700, 600)).toBe(false);
+    expect(covers([0], { start: 0, end: 0, before: 0, after: 0 }, 0, 600)).toBe(
+      true,
+    );
   });
 });

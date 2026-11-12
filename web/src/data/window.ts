@@ -87,3 +87,60 @@ export function span(
   const after = total - (starts[end] ?? total);
   return { start, end, before, after };
 }
+
+/** Where a row is put when the window goes to it: its top just under the
+ * view's top (the outline's jump to a prompt), or the thing found in the
+ * view's middle (find's match). */
+export type Align = "start" | "center";
+
+/** The gap left above a row put at the view's top, in pixels. */
+export const INSET = 16;
+
+/** The `scrollTop` that puts item `index` at `align` in a view `view`
+ * pixels high, from the offsets as `offsets` estimated them. The drawn
+ * row then says how far off the estimate was (`offBy`). */
+export function scrollFor(
+  starts: readonly number[],
+  index: number,
+  view: number,
+  align: Align,
+): number {
+  const top = starts[index] ?? 0;
+  const bottom = starts[index + 1] ?? top;
+  switch (align) {
+    case "start":
+      return Math.max(0, top - INSET);
+    case "center":
+      return Math.max(0, (top + bottom) / 2 - view / 2);
+  }
+}
+
+/** How far the content must scroll (positive: down) for a box drawn `top`
+ * pixels below the view's top edge, `height` high, to sit at `align` in a
+ * view `view` pixels high. A box taller than the view is put at its top,
+ * as `center` would hide its start. */
+export function offBy(
+  top: number,
+  height: number,
+  view: number,
+  align: Align,
+): number {
+  if (align === "start" || height > view) {
+    return top - INSET;
+  }
+  return top + height / 2 - view / 2;
+}
+
+/** Whether the drawn items (`span`, over `starts`) cover a view `height`
+ * pixels high scrolled to `top`: when they do not, part of the view shows
+ * the spacers' empty space until the window is worked out again. */
+export function covers(
+  starts: readonly number[],
+  drawn: Span,
+  top: number,
+  height: number,
+): boolean {
+  const from = starts[drawn.start] ?? 0;
+  const to = starts[drawn.end] ?? from;
+  return drawn.start === drawn.end || (from <= top && to >= top + height);
+}
