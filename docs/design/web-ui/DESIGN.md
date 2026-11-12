@@ -183,6 +183,8 @@ Devices are sections there too (milestone 10, track W2).
 - **Search** (`/` or `⌘K`) opens the command palette (§6.13): New
   session and Add a machine; the board and each Settings section; the
   machines (each opening its detail); the sessions by title; the theme.
+  The shortcut works with the sidebar hidden: the palette is the
+  shell's, the row only opens it.
 - **New** is the one primary action, in the title bar on every page but
   the new-session page itself, and opens `/new` on the machine in view
   (§2.5): the session's, the one a Settings section is about, or the one
@@ -1141,12 +1143,14 @@ through its one seam (`reveal.ts`).
   three 24px buttons (previous, next, close). Enter goes to the next
   match and Shift+Enter to the previous, wrapping (said to a screen
   reader); Escape closes and gives focus back. It searches the prompts'
-  and messages' text, folded for case, never the page's DOM, so a match
-  scrolled out of a long log is still found; the search settles 100ms
-  after typing, runs in slices that give the page back every 200
-  entries, and runs again 300ms after the session grows (a refresh that
-  finds the same match leaves the view where the reader put it). The
-  match is marked with the CSS Custom Highlight API in the reference's
+  and messages' text, folded for case, accents and runs of white space,
+  never the page's DOM, so a match scrolled out of a long log is still
+  found; the search settles 100ms after typing, runs in slices that give
+  the page back every 200 entries, and while the session grows runs
+  again at most every 300ms, never cancelled by records arriving (a
+  refresh that finds the same match leaves the view where the reader
+  put it). The match is marked, by the same folding as the count, with
+  the CSS Custom Highlight API in the reference's
   colours (yellow, the current one orange) and put in the middle of the
   view; focus stays in the field, as agent-orchestrator's does.
 - **The outline** (GOAT's minimap, Paseo's outline): from two prompts
@@ -1339,8 +1343,9 @@ sessions is news; a session already waiting when the page first sees it
 is not. While the page is not in front, by Settings › Notifications: the
 browser's notification (titled with the session's name and why, tagged
 per session and kind so two tabs show it once; clicking it opens the
-session), a short tone made by the page (after its first click or key:
-browsers allow no sound before), and a count in the tab's title, cleared
+session), a short tone made by the page (after its first click or key
+while a sound is chosen: browsers allow no sound before, and no audio
+is opened while none is chosen), and a count in the tab's title, cleared
 when the page is in front again. While notices are on, a hidden page
 keeps polling; browsers slow a hidden tab's timers, so a notice can come
 up to about a minute late. The browser grants notifications per address,

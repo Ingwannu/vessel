@@ -9,21 +9,27 @@ reverted and listed under "Tried, did not help".
 
 ## Where it stands
 
-Milestone 11, track P, before → after, from the sections below:
+Milestone 11, track P, before → after, from the sections below; the last
+column is the page once track W's work was merged with it ("Tracks P
+and W merged", measured back to back with track P's tree alone on
+2026-11-12, so its figures sit beside that run's, not beside the
+column before it):
 
-| Measured | Before | After | Changes that moved it |
-| --- | --- | --- | --- |
-| board usable, cold, over a 1.6 Mbit/s link | 17,903 ms | 2,561 ms | compression, Pretendard subsets, the page divided |
-| … the same on a phone (CPU 4× slower) | 18,994 ms | 3,028 ms | the same |
-| first contentful paint over that link | 7,028 ms | 1,636 ms | compression, the page divided |
-| bytes for a cold board | 3,371,739 B | 326,422 B | the same three |
-| a 20,000-entry timeline: last entry drawn | 37,127 ms | 2,362 ms | memoised entries, windowing, the reducer's index |
-| … a scroll step | 265 ms | 33 ms | windowing |
-| … heap; elements | 107.7 MiB; 180,147 | 12.8 MiB; 501 | memo, windowing |
-| a board of 500 cards at rest: long tasks per 10 s | 15 (1,314 ms) | 0 | an unchanged list draws nothing |
-| CPU-bound hot paths (frame encode/decode, bridge, fan-out) | — | 5–12% faster | fat LTO, one codegen unit |
-| `vesseld` binary | 42.6 MB | 28.5 MB | the same |
-| a clean release build | 193 s | 694 s | the same (the cost) |
+| Measured | Before | After (P) | Merged with W | Changes that moved it |
+| --- | --- | --- | --- | --- |
+| board usable, cold, over a 1.6 Mbit/s link | 17,903 ms | 2,561 ms | 2,664 ms (P that day: 2,573) | compression, Pretendard subsets, the page divided |
+| … the same on a phone (CPU 4× slower) | 18,994 ms | 3,028 ms | 3,274 ms (3,238) | the same |
+| first contentful paint over that link | 7,028 ms | 1,636 ms | 1,704 ms (1,652) | compression, the page divided |
+| bytes for a cold board | 3,371,739 B | 326,422 B | 335,114 B (326,629) | the same three; the index uncompressed and track W's code (+8,485 B) |
+| a 20,000-entry timeline: last entry drawn | 37,127 ms | 2,362 ms | 2,845 ms (2,645) | memoised entries, windowing, the reducer's index |
+| … a scroll step | 265 ms | 33 ms | 33 ms (33) | windowing |
+| … heap; elements | 107.7 MiB; 180,147 | 12.8 MiB; 501 | 13.1 MiB; 507 (12.8; 501) | memo, windowing |
+| a board of 500 cards at rest: long tasks per 10 s | 15 (1,314 ms) | 0 | 0 (0) | an unchanged list draws nothing |
+| find over 20,000 entries: typed to the count | — | — | 138 ms (100 of them the field's settle) | find yields by a message |
+| … a match far away: typed to it shown; how far it moves after | — | — | 154 ms; 0 px | the window goes to a row by key and holds it |
+| CPU-bound hot paths (frame encode/decode, bridge, fan-out) | — | 5–12% faster | not changed | fat LTO, one codegen unit |
+| `vesseld` binary | 42.6 MB | 28.5 MB | 28.5 MB | the same |
+| a clean release build | 193 s | 694 s | not measured again | the same (the cost) |
 
 ## The machine
 
@@ -84,7 +90,12 @@ cd web && npm run build && cd .. \
 
 `e2e/perf.ts`, run on demand only. Results go to `artifacts/perf.json`
 (`VESSEL_PERF_OUT`), each figure the median of several runs with its
-minimum and maximum (`VESSEL_PERF_RUNS`).
+minimum and maximum (`VESSEL_PERF_RUNS`). Five measurements: the board
+loading cold, a timeline of 5,000 and 20,000 entries, find in that
+timeline and going to a match far from the view (`e2e/perf/find.ts`,
+since tracks P and W were merged), a terminal under heavy output, a
+board of 500 cards. `VESSEL_TARGET_DIR` points the fleet at another
+build's binaries (another tree measured beside this one).
 
 ## Baseline, before any change (2026-11-11)
 
@@ -378,6 +389,141 @@ percent between runs of one build):
 | `vesseld` started / after the flood | 20.4 / 61.2 MiB | 20.4 / 59.8 MiB | 16.3 / 55.2 MiB |
 | `vessel ui` started / after the flood | 16.8 / 23.8 MiB | 17.1 / 27.7 MiB | 14.1 / 23.4 MiB |
 
+## Tracks P and W merged (2026-11-12)
+
+Track W (preferences and drafts kept by the bridge, shortcuts, find and
+the outline, notices, the sidebar's display) was built beside track P,
+and merged into it on `backend/m11-int-web`. Both trees were built in
+release with the fat-LTO profile (track P's branch alone, `961ccb1`, and
+the merged tree) and measured with `npm run perf` one after the other,
+on the same machine, the same day: the merged tree, then P's (load
+averages 3.2–8.2 during the merged run, 4.2–6.0 during P's). Three such
+pairs were taken while integrating; the last is below, with the earlier
+ones where they say something. Medians (minimum–maximum) of 5 runs for
+the load, 3 for the rest.
+
+### Loading the board, cold
+
+| Profile, figure | P alone | Merged |
+| --- | --- | --- |
+| slow link: first contentful paint | 1,652 ms (1,648–1,668) | 1,704 ms (1,692–1,712) |
+| slow link: board usable | 2,573 ms (2,553–2,580) | 2,664 ms (2,631–2,667) |
+| phone: first contentful paint | 1,996 ms (1,952–2,148) | 2,044 ms (2,028–2,108) |
+| phone: board usable | 3,238 ms (3,084–3,342) | 3,274 ms (3,067–3,323) |
+| desktop: board usable | 338 ms (325–378) | 404 ms (342–466) |
+| the index | 1,578 B | 2,413 B |
+| script | 177,736 B | 184,011 B |
+| stylesheet | 22,876 B | 24,251 B |
+| font | 124,439 B | 124,439 B |
+| HTTP total | 326,629 B | 335,114 B |
+
+Worse by 52 ms of first paint and 91 ms until the board is usable over
+the slow link, and 8,485 bytes. Explained, not fixed:
+
+- **The index is sent uncompressed (+835 B).** Track W writes the
+  page's appearance into it for each request (ADR 0028); a form
+  compressed at build cannot carry that, so the web build leaves the
+  index alone and `vessel ui` sends it as built (`files::index`; ADR
+  0017's amendment). Compressing it per request would need an encoder in
+  `vessel-web`, a dependency, for these bytes; setting the attributes
+  from script instead would paint the wrong theme first. An end-to-end
+  test over the slow link reads the first frame and finds it dark
+  (`page.spec.ts`).
+- **Track W's code in the entry (+6,275 B of script, +1,375 B of
+  stylesheet).** Preferences (the store, the change rules, the first
+  paint), the one shortcut listener and its registry, notices, the
+  sidebar's display, the branded handles' guards and the sheet are used
+  on every screen, so they belong to the entry, not to a screen's chunk.
+  Settings' sections, the find bar and the outline went into the chunks
+  of the screens that use them, as track P's path puts them.
+- The bytes are about 42 ms at the slow link's 200 KB/s; the rest of the
+  91 ms is the larger entry's compile and track W's start (reading the
+  painted preferences, building the shortcut registry, the first drafts
+  read when the link opens), not measured apart.
+
+### A timeline of 20,000 entries (and 5,000)
+
+| Figure | P alone | Merged, before the review's fixes | Merged |
+| --- | --- | --- | --- |
+| 20,000: first entry drawn | 96 ms (95–112) | 160 ms (145–162) | 146 ms (145–161) |
+| 20,000: last entry drawn | 2,645 ms (2,512–2,646) | 2,995 ms (2,979–3,193) | 2,845 ms (2,545–2,961) |
+| … long tasks until then | 0 (0–0) | 2, 124 ms | 1, 50 ms (0–3) |
+| … a scroll step | 33 ms | 33 ms | 33 ms |
+| … heap; elements | 12.8 MiB; 501 | 13.2 MiB; 507 | 13.1 MiB; 507 |
+| 5,000: first entry drawn | 95 ms (95–127) | 129 ms (128–209) | 162 ms (146–201) |
+| 5,000: last entry drawn | 793 ms (711–795) | 876 ms (729–878) | 851 ms (812–879) |
+
+"Before the review's fixes" was measured against P's first run (2,545
+ms then). What the review found there, and what was done:
+
+- **The outline read every message on every batch** (`outline()` ran
+  `readableText` over each message's Markdown per batch of records, so
+  replaying a long log was quadratic in its text). Each preview is now
+  made once per entry object and only the last message of a turn is
+  read; an unchanged outline keeps its array and draws nothing
+  (`726b160`). Below two prompts the outline also stops reading the
+  layout on every scroll frame (`5efa82c`).
+- **An audio context was made on the first click** whatever the
+  notification setting (off by default), inside the click that opens
+  the session (`b22cef0`).
+
+What remains, from a CPU profile of opening the 20,000-entry session on
+an unminified build of each tree (debug binaries, one run each): the
+merged page does about 60–90 ms more JavaScript over the replay: the
+outline worked out per batch (21 ms, a walk over the entries with every
+preview cached), the session screen and the composer drawn again per
+batch with track W's additions (the folds' context, find's and the
+outline's state, the composer's draft and its recall list: 43 ms), and
+layout effects (+34 ms). The rest of the 200 ms is within the runs'
+spread (P's runs reached 2,646 ms, the merged tree's lowest was 2,545).
+The first entry is drawn about 50 ms later in every pair: the session
+screen mounts more (the composer's draft read from the bridge, three
+shortcuts, find's and the outline's state, the folds); not separated
+further. The next candidates, if it matters: the composer's recall
+list worked out on Up rather than per batch, and the outline updated
+from the entries a batch changed rather than walked whole.
+
+### Find, and going to a match far away
+
+New with track W. In Chromium, on the release build:
+
+| Figure | 5,000 entries | 20,000 entries |
+| --- | --- | --- |
+| first search (every entry's text folded): typed to the count | 122 ms (118–123) | 138 ms (138–154) |
+| a match about 300 entries from the top, from the log's end: typed to it shown | 122 ms (118–123) | 154 ms (154–155) |
+| … how far it moved in the 60 frames after | 0 px | 0 px |
+| a search again, every message (text folded already): typed to the count | 122 ms (106–122) | 122 ms (121–122) |
+| a match at 90% of the log: typed to it shown | 117 ms (108–123) | 126 ms (120–126) |
+| … how far it moved after | 0 px | 0 px |
+| long tasks over the three | 0 | 0 |
+
+Each figure includes the field's 100 ms settle (GOAT's) before the
+search starts.
+
+- **Find gives the page a turn by a message, not a timer** (`0a52c3d`).
+  The search yields every 200 entries; with `setTimeout(0)` a browser
+  holds nested timers back to at least 4 ms, so a 20,000-entry search
+  waited about 400 ms between its slices: 547 ms typed to the count, and
+  506 ms again over text already folded, on the debug fleet (one run
+  each; vitest, under Node, never showed it). With a `MessageChannel`
+  message: 144 and 123 ms on the same fleet.
+- **Going to a far row** (`c4cdd73`). The window scrolls to where the row
+  is estimated to be, so it is drawn in the same frame, then holds it
+  while the rows around it are measured and the spacers' estimates
+  change: 0 px of movement in every run. Without the hold (the
+  correction turned off) the end-to-end test caught it moving 5.5 px.
+
+### A board of 500 cards, and the terminal
+
+At rest the board had no long task in either tree (0, the noisiest run
+3 in both): track W's preferences, sidebar grouping and notices did not
+bring the redraws back. Drawing all 500 cards: 1,461 ms (1,293–1,691)
+for P, 1,707 ms (1,369–1,991) merged, with the previous pair the other
+way round (1,706 ms P, 1,531 ms merged): within the noise of a shared
+machine. The terminal was not touched by track W; its figures moved
+both ways between the pairs (the 51 MB flood 8,598 ms P, 9,313 ms
+merged in the last; 8,563 and 8,323 in the one before).
+
 ## Tried, did not help
 
 - **The reducer's index of tool calls, on its own** (before memoised
@@ -429,6 +575,10 @@ left for the coordinator.
 
 ## Not measured
 
+- Find and going far in another browser than Chromium, and with
+  entries of very different heights (the measured log's are uniform: a
+  far row's estimate is off by little before it is measured; the
+  end-to-end test checks the hold, not how far off the estimate was).
 - WebSocket frames over the throttled profiles: Chromium's network
   emulation does not add the 150 ms to frames (handshake 159 ms
   throttled against 4 ms, frames 7–23 ms against 0.4–0.9 ms), so the
