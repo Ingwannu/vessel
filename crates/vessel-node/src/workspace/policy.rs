@@ -8,9 +8,10 @@
 //!   rest refuses them here, before the call runs, whatever their scopes.
 //!   An agent never approves commands, so a worktree it makes runs setup
 //!   only when a person approved that set.
-//! - Checked by method in one `matches!`, so the rule reads as a list; a
-//!   new workspace method must be added to it (or it is open to agents
-//!   under their scopes, as every other method is).
+//! - Checked by method in one exhaustive `match`, so the rule reads as a
+//!   list and a new method does not compile until it says whether agents
+//!   get it (it was a `matches!`, whose other methods were open to agents
+//!   by default).
 //! - Roots: a project's root is everything a reader of it can read. A
 //!   file system's root, the user's home folder and any folder holding the
 //!   node's data folder are refused, for every caller.
@@ -37,45 +38,128 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     ))
 }
 
-/// The workspace methods an agent may not call.
+/// Whether an agent is refused `method` by this rule. Exhaustive over
+/// every method, so a new one does not compile until it says whether
+/// agents get it.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one arm per method, so a new method does not compile until someone decides; the \
+              list is the point"
+)]
 const fn refused(method: Method) -> bool {
-    matches!(
-        method,
+    match method {
+        // The workspace but orchestration: an agent uses its own file and
+        // git tools in its folder.
         Method::AddProject
-            | Method::CloneProject
-            | Method::InitProject
-            | Method::RemoveProject
-            | Method::ApproveCommands
-            | Method::RunSetup
-            | Method::RemoveWorktree
-            | Method::ListSnapshots
-            | Method::DropSnapshot
-            | Method::GitStatus
-            | Method::GitChanges
-            | Method::GitDiff
-            | Method::GitShow
-            | Method::GitBranches
-            | Method::GitLog
-            | Method::GitStashes
-            | Method::GitStage
-            | Method::GitUnstage
-            | Method::GitDiscard
-            | Method::GitCommit
-            | Method::GitFetch
-            | Method::GitPush
-            | Method::GitPull
-            | Method::GitSwitch
-            | Method::GitRenameBranch
-            | Method::GitStash
-            | Method::ListDir
-            | Method::ReadFile
-            | Method::WriteFile
-            | Method::CreateDir
-            | Method::RenamePath
-            | Method::DeletePath
-            | Method::FindFiles
-            | Method::SearchFiles
-    )
+        | Method::CloneProject
+        | Method::InitProject
+        | Method::RemoveProject
+        | Method::ApproveCommands
+        | Method::RunSetup
+        | Method::RemoveWorktree
+        | Method::ListSnapshots
+        | Method::DropSnapshot
+        | Method::GitStatus
+        | Method::GitChanges
+        | Method::GitDiff
+        | Method::GitShow
+        | Method::GitBranches
+        | Method::GitLog
+        | Method::GitStashes
+        | Method::GitStage
+        | Method::GitUnstage
+        | Method::GitDiscard
+        | Method::GitCommit
+        | Method::GitFetch
+        | Method::GitPush
+        | Method::GitPull
+        | Method::GitSwitch
+        | Method::GitRenameBranch
+        | Method::GitStash
+        | Method::ListDir
+        | Method::ReadFile
+        | Method::WriteFile
+        | Method::CreateDir
+        | Method::RenamePath
+        | Method::DeletePath
+        | Method::FindFiles
+        | Method::SearchFiles => true,
+        // Orchestration: the projects, and a worktree with its setup's
+        // output for a session the agent starts.
+        Method::ListProjects
+        | Method::GetProject
+        | Method::ProjectCommands
+        | Method::ListWorktrees
+        | Method::CreateWorktree
+        | Method::SetupOutput
+        // Not workspace calls: held to the scopes, ownership and limits
+        // every agent is (ADR 0013, `guard`), not to this rule.
+        | Method::NodeInfo
+        | Method::ListHarnesses
+        | Method::ListSessions
+        | Method::GetSession
+        | Method::CreateSession
+        | Method::SendInput
+        | Method::KillSession
+        | Method::ReadEvents
+        | Method::Subscribe
+        | Method::Unsubscribe
+        | Method::StopNode
+        | Method::InviteDevice
+        | Method::ListDevices
+        | Method::RevokeDevice
+        | Method::ListProfiles
+        | Method::ReloadProfiles
+        | Method::MoveProfile
+        | Method::GetManifest
+        | Method::ReadBlob
+        | Method::WatchFleet
+        | Method::ReportApplied
+        | Method::ListMembers
+        | Method::Forward
+        | Method::Relay
+        | Method::Deliver
+        | Method::GrantHome
+        | Method::GetCallback
+        | Method::ListPeers
+        | Method::ListNodes
+        | Method::ForgetNode
+        | Method::ExportSession
+        | Method::ImportSession
+        | Method::ExportMemory
+        | Method::ImportMemory
+        | Method::ReadTransfer
+        | Method::CloseTransfer
+        | Method::SetSecret
+        | Method::ListSecrets
+        | Method::DeleteSecret
+        | Method::CopySecret
+        | Method::LspWorkspaceSymbols
+        | Method::LspDocumentSymbols
+        | Method::LspDefinition
+        | Method::LspReferences
+        | Method::LspHover
+        | Method::LspImplementations
+        | Method::LspTypeDefinition
+        | Method::LspIncomingCalls
+        | Method::LspOutgoingCalls
+        | Method::LspDiagnostics
+        | Method::ListModels
+        | Method::HarnessOptions
+        | Method::SessionOptions
+        | Method::SetSessionOption
+        | Method::RenameSession
+        | Method::PromptSession
+        | Method::ChangeQueue
+        | Method::GetConversation
+        | Method::ResumeSession
+        | Method::MarkSession
+        | Method::DeleteSession
+        | Method::BeginUpload
+        | Method::WriteUpload
+        | Method::FinishUpload
+        | Method::ReadAttachment => false,
+    }
 }
 
 /// Refuse `root` (resolved) as a project's root when it would widen what
@@ -124,11 +208,17 @@ mod tests {
             Method::CreateWorktree,
             Method::SetupOutput,
             Method::CreateSession,
+            // Not workspace calls: other rules decide (`guard`).
+            Method::PromptSession,
+            Method::DeleteSession,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
         for refused in [
             Method::ApproveCommands,
+            Method::RunSetup,
+            Method::RemoveWorktree,
+            Method::ListSnapshots,
             Method::ReadFile,
             Method::GitPush,
             Method::WriteFile,
