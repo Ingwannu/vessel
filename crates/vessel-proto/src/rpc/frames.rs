@@ -137,10 +137,18 @@ impl ServerFrame {
             Self::Response {
                 id,
                 outcome: Outcome::Ok(reply),
-            } => reply.for_protocol(protocol).map(|reply| Self::Response {
-                id: *id,
-                outcome: Outcome::Ok(reply),
-            }),
+            } => match reply.withheld(protocol) {
+                // About one agent the client could not decode (protocol
+                // 11, ADR 0032): it gets the reason instead.
+                Some(error) => Some(Self::Response {
+                    id: *id,
+                    outcome: Outcome::Err(error),
+                }),
+                None => reply.for_protocol(protocol).map(|reply| Self::Response {
+                    id: *id,
+                    outcome: Outcome::Ok(reply),
+                }),
+            },
             Self::Welcome(_)
             | Self::Rejected { .. }
             | Self::Response {

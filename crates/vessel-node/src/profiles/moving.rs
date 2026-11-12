@@ -16,7 +16,7 @@
 use std::process::Stdio;
 use std::time::Duration;
 
-use vessel_harness::{HarnessEnv, Lookup, Profile, login_check};
+use vessel_harness::{HarnessEnv, Lookup, Profile, SessionFilesError, login_check};
 use vessel_proto::{MoveProfile, SessionInfo, SessionMode};
 use vessel_session::{MoveError, ProfileMove, SessionError};
 
@@ -44,7 +44,14 @@ pub(crate) async fn plan(
         // Refused before any check runs a harness.
         return Err(SessionError::Move(MoveError::Terminal).into());
     }
-    let harness = info.spec.harness;
+    // An added agent's conversation cannot move: Vessel does not know
+    // where it keeps it (ADR 0032).
+    let Some(harness) = info.spec.harness.known() else {
+        let harness = info.spec.harness.clone();
+        return Err(
+            SessionError::Move(MoveError::Files(SessionFilesError::Unsupported { harness })).into(),
+        );
+    };
     let target = match &request.profile {
         None => Profile::default_for(harness),
         Some(name) => profiles
@@ -54,8 +61,8 @@ pub(crate) async fn plan(
     if target.harness() != harness {
         return Err(ServiceError::ProfileHarness {
             profile: target.name().clone(),
-            profile_harness: target.harness(),
-            harness,
+            profile_harness: target.harness().into(),
+            harness: harness.into(),
         });
     }
     let current = match &info.profile {

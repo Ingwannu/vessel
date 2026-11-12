@@ -191,11 +191,11 @@ impl Launcher {
                 let profile = profiles
                     .get(name)
                     .ok_or_else(|| ServiceError::UnknownProfile(name.clone()))?;
-                if profile.harness() != spec.harness {
+                if spec.harness != profile.harness() {
                     return Err(ServiceError::ProfileHarness {
                         profile: name.clone(),
-                        profile_harness: profile.harness(),
-                        harness: spec.harness,
+                        profile_harness: profile.harness().into(),
+                        harness: spec.harness.clone(),
                     });
                 }
                 Some(profile)
@@ -247,11 +247,11 @@ impl Launcher {
                         session: info.id,
                         profile: name.clone(),
                     })?;
-                if profile.harness() != info.spec.harness {
+                if info.spec.harness != profile.harness() {
                     return Err(ServiceError::ProfileHarness {
                         profile: name.clone(),
-                        profile_harness: profile.harness(),
-                        harness: info.spec.harness,
+                        profile_harness: profile.harness().into(),
+                        harness: info.spec.harness.clone(),
                     });
                 }
                 Some(profile)

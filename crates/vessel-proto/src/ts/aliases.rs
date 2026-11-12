@@ -43,6 +43,8 @@
 //!   `CommitId` is plain too: the node reports full ones, and a person may
 //!   type an abbreviated one wherever a ref is taken. `ProjectCommand` is
 //!   content: a line of a project's file, shown to be approved.
+//! - Protocol 11's (track G, ADR 0032), by the same rule. Plain: an added
+//!   agent's name, which a person chooses and types.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -76,6 +78,7 @@ pub enum Alias {
 /// sorted by name.
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
+    ("AgentName", Alias::Named),
     ("AttachmentId", Alias::Handle),
     ("AttachmentName", Alias::Named),
     ("BlobHash", Alias::Handle),

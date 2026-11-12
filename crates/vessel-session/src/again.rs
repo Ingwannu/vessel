@@ -197,7 +197,7 @@ impl SessionRuntime {
             model_proxy,
             questions,
         } = launch;
-        let profile = profile.unwrap_or_else(|| Profile::default_for(info.spec.harness));
+        let profile = profile.map_or_else(|| Profile::default_of(&info.spec.harness), Ok)?;
         // Launched under its current profile, which a move may have
         // changed since its spec was written.
         let spec = info.spec.clone().with_profile(profile.name().clone());

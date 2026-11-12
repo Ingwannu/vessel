@@ -47,14 +47,14 @@ fn profiles_show_variable_names_and_labels() {
         ProfileInfo {
             name: "claude".parse().unwrap(),
             label: None,
-            harness: HarnessKind::ClaudeCode,
+            harness: HarnessKind::ClaudeCode.into(),
             sets: Vec::new(),
             model: None,
         },
         ProfileInfo {
             name: "claude-alt".parse().unwrap(),
             label: Some("second account".to_owned()),
-            harness: HarnessKind::ClaudeCode,
+            harness: HarnessKind::ClaudeCode.into(),
             sets: vec![
                 "CLAUDE_CONFIG_DIR".parse().unwrap(),
                 "ANTHROPIC_BASE_URL".parse().unwrap(),
@@ -64,7 +64,7 @@ fn profiles_show_variable_names_and_labels() {
         ProfileInfo {
             name: "claude-qwen".parse().unwrap(),
             label: None,
-            harness: HarnessKind::ClaudeCode,
+            harness: HarnessKind::ClaudeCode.into(),
             sets: Vec::new(),
             model: Some("qwen-coder".parse().unwrap()),
         },

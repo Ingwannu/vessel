@@ -164,6 +164,8 @@ impl SessionError {
                 ErrorCode::SpawnFailed
             }
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
+            // An agent this node has not added (ADR 0032).
+            | Self::Launch(HarnessError::NotDefined { .. })
             | Self::NotFound(_)
             | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended

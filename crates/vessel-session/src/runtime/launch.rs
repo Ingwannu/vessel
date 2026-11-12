@@ -190,7 +190,7 @@ impl SessionRuntime {
             model,
             notices,
         };
-        let profile = profile.unwrap_or_else(|| Profile::default_for(spec.harness));
+        let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
         match spec.mode.clone() {
             SessionMode::Terminal { size, .. } => {
                 let mcp = TerminalMcp {

@@ -10,6 +10,7 @@
 
 import type { OptionChoice } from "../../wire/proto";
 import type { AgentChoice } from "../../data/agent-choices";
+import { agentKey, agentKindOf } from "../../data/agents";
 import {
   AGENT_LABEL,
   type ControlsState,
@@ -32,13 +33,15 @@ import {
   MenuSwitchItem,
   Spinner,
 } from "../../ui/kit";
-import type { HarnessKind } from "../../wire/proto";
+import type { HarnessKind, HarnessRef } from "../../wire/proto";
 
 export interface AgentMenuProps {
   /** The agent, and the others it could be (`null`: it cannot change, as
    * on a running session). */
   agent: {
-    value: HarnessKind;
+    /** One of the four, or (protocol 11) an agent added on the machine,
+     * which a running session may have. */
+    value: HarnessRef;
     name: string;
     choices: readonly AgentChoice[] | null;
     onChange: (agent: HarnessKind) => void;
@@ -136,10 +139,19 @@ export function AgentMenu({
       }
     >
       <MenuSubmenu label={AGENT_LABEL} value={agent.name}>
-        <MenuRadioGroup
-          value={agent.value}
-          onChange={agent.onChange}
-          options={agent.choices ?? [{ value: agent.value, label: agent.name }]}
+        <MenuRadioGroup<string>
+          value={agentKey(agent.value)}
+          onChange={(key) => {
+            const kind = agentKindOf(key);
+            if (kind !== null) {
+              agent.onChange(kind);
+            }
+          }}
+          options={
+            agent.choices ?? [
+              { value: agentKey(agent.value), label: agent.name },
+            ]
+          }
         />
       </MenuSubmenu>
       {controls === null ? null : (

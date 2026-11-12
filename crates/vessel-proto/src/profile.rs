@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::harness::HarnessKind;
+use crate::agents::HarnessRef;
 use crate::id::{DeviceId, NodeId, SessionId};
 use crate::key::secret;
 use crate::name::{EnvName, ModelRouteName, ProfileName};
@@ -25,8 +25,9 @@ pub struct ProfileInfo {
     /// A label for people (for example the account it logs in as).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    /// The harness it applies to.
-    pub harness: HarnessKind,
+    /// The harness it applies to: one of the four, or (protocol 11) an
+    /// agent added on the node.
+    pub harness: HarnessRef,
     /// Names of the environment variables it sets.
     #[serde(default)]
     pub sets: Vec<EnvName>,
@@ -86,12 +87,12 @@ pub struct AgentAuth {
 
 /// `profile.list` (protocol 5): the node's profiles, the implicit default
 /// of each harness included. Needs `Read`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ListProfiles {
-    /// Only this harness's profiles.
+    /// Only this harness's profiles; an added agent needs protocol 11.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub harness: Option<HarnessKind>,
+    pub harness: Option<HarnessRef>,
 }
 
 /// `profile.reload` (protocol 5): read `profiles.toml` again. If it does
@@ -151,7 +152,7 @@ mod tests {
         let info = ProfileInfo {
             name: "alt".parse().unwrap(),
             label: Some("help@example".to_owned()),
-            harness: HarnessKind::ClaudeCode,
+            harness: crate::HarnessKind::ClaudeCode.into(),
             sets: vec!["CLAUDE_CONFIG_DIR".parse().unwrap()],
             model: Some("qwen-coder".parse().unwrap()),
         };

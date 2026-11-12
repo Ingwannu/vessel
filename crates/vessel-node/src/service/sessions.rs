@@ -177,6 +177,9 @@ impl NodeService {
         connection: &Connection,
         request: Subscribe,
     ) -> Result<Subscribed, WireError> {
+        // Before it opens: an older client must not be subscribed to what
+        // it cannot decode (protocol 11's added agents).
+        self.refuse_older(connection, request.session).await?;
         subscribe::open(
             &self.sessions,
             &connection.outbound,

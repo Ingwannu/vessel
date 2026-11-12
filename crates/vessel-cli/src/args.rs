@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use vessel_client::BearerToken;
-use vessel_proto::{EventSeq, HarnessKind, ProfileName};
+use vessel_proto::{EventSeq, HarnessRef, ProfileName};
 
 use crate::selector::SessionSelector;
 
@@ -76,7 +76,7 @@ pub(crate) enum Command {
     Profiles {
         /// Only this harness's profiles.
         #[arg(long)]
-        harness: Option<HarnessKind>,
+        harness: Option<HarnessRef>,
         /// Have the node read its `profiles.toml` again first (needs the
         /// `admin` scope). A file that does not parse changes nothing.
         #[arg(long)]
@@ -283,8 +283,9 @@ fn ttl_secs(text: &str) -> Result<u32, String> {
 /// `vessel run`.
 #[derive(Debug, Args)]
 pub(crate) struct Run {
-    /// Harness to run: claude-code (or claude), codex, gemini, opencode.
-    pub(crate) harness: HarnessKind,
+    /// Harness to run: claude-code (or claude), codex, gemini, opencode, or
+    /// an agent added on the node (`vessel agents`).
+    pub(crate) harness: HarnessRef,
     /// Drive it over ACP and show a conversation instead of its terminal UI.
     #[arg(long)]
     pub(crate) structured: bool,

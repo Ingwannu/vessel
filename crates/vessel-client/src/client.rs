@@ -5,7 +5,7 @@ use vessel_proto::{
     BlobChunk, BlobHash, BundleFile, BundlePath, ClientInfo, CloseTransfer, CopySecret,
     CreateSession, DeleteSecret, DeviceId, DeviceInfo, EventPage, EventSeq, ExportMemory,
     ExportSession, FleetMember, Forward, Generation, GetHarnessOptions, GetManifest, GetNode,
-    GetSession, GetSessionOptions, Harness, HarnessKind, HarnessOptions, ImportMemory,
+    GetSession, GetSessionOptions, Harness, HarnessOptions, HarnessRef, ImportMemory,
     ImportSession, Invitation, InviteDevice, KillSession, ListDevices, ListHarnesses, ListMembers,
     ListModels, ListProfiles, ListSecrets, ListSessions, MAX_TRANSFER_FILE, Manifest,
     MemoryImported, ModelRoute, MoveProfile, NodeId, NodeInfo, OptionChoice, ProfileInfo,
@@ -307,7 +307,7 @@ impl NodeClient {
     /// [`CallError`].
     pub async fn profiles(
         &self,
-        harness: Option<HarnessKind>,
+        harness: Option<HarnessRef>,
     ) -> Result<Vec<ProfileInfo>, CallError> {
         self.connection.call(ListProfiles { harness }).await
     }
@@ -332,11 +332,14 @@ impl NodeClient {
     /// [`CallError`].
     pub async fn harness_options(
         &self,
-        harness: HarnessKind,
+        harness: impl Into<HarnessRef>,
         profile: Option<ProfileName>,
     ) -> Result<HarnessOptions, CallError> {
         self.connection
-            .call(GetHarnessOptions { harness, profile })
+            .call(GetHarnessOptions {
+                harness: harness.into(),
+                profile,
+            })
             .await
     }
 

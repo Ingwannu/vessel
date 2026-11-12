@@ -81,6 +81,7 @@ macro_rules! guarded {
                     )?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
+                        self.0.refuse_older(connection, session).await?;
                     }
                     self.0.$handler(connection, request).await
                 }
@@ -95,6 +96,7 @@ macro_rules! guarded {
                     connection.principal().permit(<$through_request as Request>::METHOD)?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
+                        self.0.refuse_older(connection, session).await?;
                     }
                     self.0.$through(connection, request, self).await
                 }

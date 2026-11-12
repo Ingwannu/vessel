@@ -6,6 +6,8 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
+use crate::agents::{HarnessRef, TerminalSupport};
+
 /// An agent harness Vessel knows how to drive.
 ///
 /// Closed on purpose: everything harness-specific (argv, environment,
@@ -76,7 +78,7 @@ impl FromStr for HarnessKind {
             "claude-code" | "claude" => Ok(Self::ClaudeCode),
             "codex" => Ok(Self::Codex),
             "gemini" => Ok(Self::Gemini),
-            "opencode" => Ok(Self::OpenCode),
+            "opencode" | "open-code" => Ok(Self::OpenCode),
             other => Err(UnknownHarness(other.to_owned())),
         }
     }
@@ -100,15 +102,20 @@ pub enum StructuredSupport {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Harness {
-    /// Which harness.
-    pub kind: HarnessKind,
+    /// Which harness: one of the four, or (protocol 11) an agent added on
+    /// the node, which a node leaves out for an older client.
+    pub kind: HarnessRef,
     /// Resolved executable path.
     pub path: PathBuf,
     /// First line of `<binary> --version`, if it answered in time.
     pub version: Option<String>,
-    /// Structured-mode availability. Terminal mode is always available for an
-    /// installed harness.
+    /// Structured-mode availability.
     pub structured: StructuredSupport,
+    /// Terminal-mode availability (protocol 11): every one of the four
+    /// installed runs in a terminal; an added agent does not. Left out
+    /// when available.
+    #[serde(default, skip_serializing_if = "TerminalSupport::is_available")]
+    pub terminal: TerminalSupport,
 }
 
 #[cfg(test)]

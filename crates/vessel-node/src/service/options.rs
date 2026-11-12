@@ -6,11 +6,12 @@
 
 use chrono::Utc;
 use vessel_proto::{
-    GetHarnessOptions, GetSessionOptions, HarnessOptions, RenameSession, SessionId, SessionInfo,
-    SessionOption, SetSessionOption, StructuredSupport, WireError,
+    GetHarnessOptions, GetSessionOptions, HarnessOptions, HarnessRef, RenameSession, SessionId,
+    SessionInfo, SessionOption, SetSessionOption, StructuredSupport, WireError,
 };
 
 use super::{Connection, NodeService, wire};
+use crate::error::ServiceError;
 use crate::probes::ProbeKey;
 use crate::transfers::export::named;
 
@@ -27,8 +28,14 @@ impl NodeService {
         request: GetHarnessOptions,
     ) -> Result<HarnessOptions, WireError> {
         let GetHarnessOptions { harness, profile } = request;
+        let kind = match &harness {
+            HarnessRef::Known(kind) => *kind,
+            HarnessRef::Added(name) => {
+                return Err(wire(&ServiceError::UnknownAgent(name.clone())));
+            }
+        };
         let resolved =
-            named(&self.profiles, Some(harness), profile.as_ref()).map_err(|error| wire(&error))?;
+            named(&self.profiles, Some(kind), profile.as_ref()).map_err(|error| wire(&error))?;
         let installed = vessel_harness::discover(&self.lookup)
             .await
             .into_iter()
@@ -47,7 +54,10 @@ impl NodeService {
                 })
             }
             StructuredSupport::Available => {
-                let key = ProbeKey { harness, profile };
+                let key = ProbeKey {
+                    harness: harness.clone(),
+                    profile,
+                };
                 self.probes
                     .options(key, installed.version, async || {
                         self.probe(harness, resolved).await
@@ -62,7 +72,7 @@ impl NodeService {
     /// call (no prompt is sent), but it is started as a session would be.
     async fn probe(
         &self,
-        harness: vessel_proto::HarnessKind,
+        harness: HarnessRef,
         profile: vessel_harness::Profile,
     ) -> Result<HarnessOptions, WireError> {
         let probe = SessionId::random();

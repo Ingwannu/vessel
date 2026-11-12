@@ -113,7 +113,13 @@ mod support {
 fn claude_sessions_are_found_by_working_directory() {
     let cwd = TempDir::new();
     let home = ClaudeHome::new(cwd.path());
-    let files = session_files(HarnessKind::ClaudeCode, home.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        home.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     assert_eq!(files.transcript(), home.project.join(format!("{ID}.jsonl")));
     assert_eq!(
         files.entries(),
@@ -125,7 +131,7 @@ fn claude_sessions_are_found_by_working_directory() {
     );
 
     let missing = session_files(
-        HarnessKind::ClaudeCode,
+        &HarnessKind::ClaudeCode.into(),
         home.path(),
         cwd.path(),
         &id("nope"),
@@ -135,13 +141,31 @@ fn claude_sessions_are_found_by_working_directory() {
         "{missing:?}"
     );
     for bad in ["../x", "a/b", ".hidden", ""] {
-        let error = session_files(HarnessKind::ClaudeCode, home.path(), cwd.path(), &id(bad));
+        let error = session_files(
+            &HarnessKind::ClaudeCode.into(),
+            home.path(),
+            cwd.path(),
+            &id(bad),
+        );
         assert!(
             matches!(error, Err(SessionFilesError::InvalidId { .. })),
             "{bad}: {error:?}"
         );
     }
-    let error = session_files(HarnessKind::Gemini, home.path(), cwd.path(), &id(ID));
+    let error = session_files(
+        &HarnessKind::Gemini.into(),
+        home.path(),
+        cwd.path(),
+        &id(ID),
+    );
+    assert!(
+        matches!(error, Err(SessionFilesError::Unsupported { .. })),
+        "{error:?}"
+    );
+    // An added agent's never can: Vessel does not know where it keeps
+    // them (ADR 0032).
+    let goose = vessel_proto::HarnessRef::Added("goose".parse().unwrap());
+    let error = session_files(&goose, home.path(), cwd.path(), &id(ID));
     assert!(
         matches!(error, Err(SessionFilesError::Unsupported { .. })),
         "{error:?}"
@@ -153,7 +177,13 @@ fn linking_shares_one_file_and_leaves_memory_alone() {
     let cwd = TempDir::new();
     let from = ClaudeHome::new(cwd.path());
     let to = TempDir::new();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
 
     let linked = link_session(&files, from.path(), to.path()).unwrap();
     assert_eq!(linked.linked, 4, "{linked:?}");
@@ -220,7 +250,13 @@ fn created_directories_are_owner_only() {
     let cwd = TempDir::new();
     let from = ClaudeHome::new(cwd.path());
     let to = TempDir::new();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let _linked = link_session(&files, from.path(), to.path()).unwrap();
     for dir in ["projects", "file-history"] {
         let mode = fs::metadata(to.path().join(dir))
@@ -236,7 +272,13 @@ fn a_conflict_links_nothing() {
     let cwd = TempDir::new();
     let from = ClaudeHome::new(cwd.path());
     let to = TempDir::new();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let theirs = to.path().join("file-history").join(ID).join("v1");
     write(&theirs, "a different file\n");
 
@@ -256,7 +298,7 @@ fn a_session_named_memory_is_refused() {
     write(&home.path().join(&home.project).join("memory.jsonl"), "x\n");
     let to = TempDir::new();
     let files = session_files(
-        HarnessKind::ClaudeCode,
+        &HarnessKind::ClaudeCode.into(),
         home.path(),
         cwd.path(),
         &id("memory"),
@@ -286,7 +328,13 @@ fn symbolic_links_are_never_followed() {
     let nested_memory = from.path().join(&from.project).join(ID).join("memory");
     fs::create_dir_all(&nested_memory).unwrap();
     let to = TempDir::new();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let linked = link_session(&files, from.path(), to.path()).unwrap();
     let mut skipped = linked.skipped.clone();
     skipped.sort();
@@ -336,7 +384,13 @@ fn symbolic_links_are_never_followed() {
     let history = from.path().join("file-history");
     fs::rename(&history, outside.path().join("moved")).unwrap();
     symlink(outside.path().join("moved"), &history).unwrap();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let error = link_session(&files, from.path(), TempDir::new().path()).unwrap_err();
     assert!(matches!(error, LinkError::SymbolicLink { .. }), "{error:?}");
 }
@@ -355,7 +409,13 @@ fn codex_rollouts_are_found_by_id() {
         "{}\n",
     );
     write(&day.join("rollout-2026-11-06T09-00-00-other.jsonl"), "{}\n");
-    let files = session_files(HarnessKind::Codex, home.path(), home.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::Codex.into(),
+        home.path(),
+        home.path(),
+        &id(ID),
+    )
+    .unwrap();
     assert_eq!(
         files.entries(),
         [Path::new("sessions")
@@ -369,7 +429,12 @@ fn codex_rollouts_are_found_by_id() {
         link_session(&files, home.path(), to.path()).unwrap().linked,
         1
     );
-    let missing = session_files(HarnessKind::Codex, home.path(), home.path(), &id("absent"));
+    let missing = session_files(
+        &HarnessKind::Codex.into(),
+        home.path(),
+        home.path(),
+        &id("absent"),
+    );
     assert!(
         matches!(missing, Err(SessionFilesError::NotFound { .. })),
         "{missing:?}"
@@ -379,7 +444,12 @@ fn codex_rollouts_are_found_by_id() {
     // one.
     let tail = ID.rsplit('-').next().unwrap();
     for partial in [tail, ID.get(9..).unwrap()] {
-        let found = session_files(HarnessKind::Codex, home.path(), home.path(), &id(partial));
+        let found = session_files(
+            &HarnessKind::Codex.into(),
+            home.path(),
+            home.path(),
+            &id(partial),
+        );
         assert!(
             matches!(found, Err(SessionFilesError::NotFound { .. })),
             "{partial}: {found:?}"
@@ -387,7 +457,13 @@ fn codex_rollouts_are_found_by_id() {
     }
     // A name not in a rollout's shape is not a match either.
     write(&day.join(format!("rollout-today-{ID}.jsonl")), "{}\n");
-    let files = session_files(HarnessKind::Codex, home.path(), home.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::Codex.into(),
+        home.path(),
+        home.path(),
+        &id(ID),
+    )
+    .unwrap();
     assert_eq!(files.entries().len(), 1);
     // Two rollouts for one id: an error, not the first one found.
     let other_day = home
@@ -400,7 +476,12 @@ fn codex_rollouts_are_found_by_id() {
         &other_day.join(format!("rollout-2026-11-07T08-00-00-{ID}.jsonl")),
         "{}\n",
     );
-    let twice = session_files(HarnessKind::Codex, home.path(), home.path(), &id(ID));
+    let twice = session_files(
+        &HarnessKind::Codex.into(),
+        home.path(),
+        home.path(),
+        &id(ID),
+    );
     assert!(
         matches!(twice, Err(SessionFilesError::Ambiguous { count: 2, .. })),
         "{twice:?}"
@@ -419,7 +500,13 @@ fn a_failure_partway_takes_back_the_links_already_made() {
     let cwd = TempDir::new();
     let from = ClaudeHome::new(cwd.path());
     let to = TempDir::new();
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let history = to.path().join("file-history").join(ID);
     fs::create_dir_all(&history).unwrap();
     fs::set_permissions(&history, fs::Permissions::from_mode(0o500)).unwrap();
@@ -450,7 +537,7 @@ fn memory_is_recognised_in_any_case() {
     let home = ClaudeHome::new(cwd.path());
     write(&home.path().join(&home.project).join("MEMORY.jsonl"), "x\n");
     let files = session_files(
-        HarnessKind::ClaudeCode,
+        &HarnessKind::ClaudeCode.into(),
         home.path(),
         cwd.path(),
         &id("MEMORY"),
@@ -459,7 +546,7 @@ fn memory_is_recognised_in_any_case() {
     // Its directory is named like the project's memory: refused.
     fs::create_dir_all(home.path().join(&home.project).join("MEMORY")).unwrap();
     let files_with_dir = session_files(
-        HarnessKind::ClaudeCode,
+        &HarnessKind::ClaudeCode.into(),
         home.path(),
         cwd.path(),
         &id("MEMORY"),
@@ -474,7 +561,13 @@ fn memory_is_recognised_in_any_case() {
     let from = ClaudeHome::new(cwd.path());
     let nested = from.path().join(&from.project).join(ID).join("Memory");
     write(&nested.join("note.md"), "per profile\n");
-    let files = session_files(HarnessKind::ClaudeCode, from.path(), cwd.path(), &id(ID)).unwrap();
+    let files = session_files(
+        &HarnessKind::ClaudeCode.into(),
+        from.path(),
+        cwd.path(),
+        &id(ID),
+    )
+    .unwrap();
     let to = TempDir::new();
     let linked = link_session(&files, from.path(), to.path()).unwrap();
     assert_eq!(linked.skipped, [from.project.join(ID).join("Memory")]);

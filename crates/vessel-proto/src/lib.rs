@@ -10,6 +10,7 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
+pub mod agents;
 mod base64_bytes;
 mod board;
 pub mod conversation;
@@ -46,6 +47,7 @@ pub use agent::{
     PermissionRequest, PlanEntry, PlanPriority, PlanStatus, StopReason, ToolCall, ToolCallContent,
     ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
 };
+pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
 pub use conversation::{
     AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,

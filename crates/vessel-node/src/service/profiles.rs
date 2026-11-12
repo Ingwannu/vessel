@@ -46,7 +46,7 @@ impl NodeService {
         _: &Connection,
         request: ListProfiles,
     ) -> Result<Vec<ProfileInfo>, WireError> {
-        Ok(self.profiles.list(request.harness))
+        Ok(self.profiles.list(request.harness.as_ref()))
     }
 
     /// `profile.reload`: read `profiles.toml` again; a file that cannot be

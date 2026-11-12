@@ -168,7 +168,7 @@ async fn profiles_are_listed_without_values_and_sessions_run_in_their_homes() {
             "{json}"
         );
         let codex: Vec<String> = client
-            .profiles(Some(HarnessKind::Codex))
+            .profiles(Some(HarnessKind::Codex.into()))
             .await
             .unwrap()
             .into_iter()

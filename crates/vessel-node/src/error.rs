@@ -4,7 +4,7 @@
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    ErrorCode, EventSeq, HarnessKind, ModelRouteName, ProfileName, SessionId, WireError,
+    AgentName, ErrorCode, EventSeq, HarnessRef, ModelRouteName, ProfileName, SessionId, WireError,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -230,15 +230,19 @@ pub(crate) enum ServiceError {
     /// `spec.profile` names no profile on this node.
     #[error("this node has no profile `{0}` (see `profile.list`)")]
     UnknownProfile(ProfileName),
+    /// A call names an agent this node has not added (protocol 11, ADR
+    /// 0032).
+    #[error("this node has no agent `{0}` (see `agent.list`)")]
+    UnknownAgent(AgentName),
     /// `spec.profile` names a profile of another harness.
     #[error("profile `{profile}` is for {profile_harness}, not {harness}")]
     ProfileHarness {
         /// The profile.
         profile: ProfileName,
         /// The harness it extends.
-        profile_harness: HarnessKind,
+        profile_harness: HarnessRef,
         /// The session's harness.
-        harness: HarnessKind,
+        harness: HarnessRef,
     },
     /// A session runs under a profile `profiles.toml` no longer defines, so
     /// its files cannot be found to move.
@@ -336,7 +340,7 @@ impl ServiceError {
     /// chain of causes as text (none of which contains secrets).
     pub(crate) fn to_wire(&self) -> WireError {
         let code = match self {
-            Self::NotFound(_) => ErrorCode::NotFound,
+            Self::NotFound(_) | Self::UnknownAgent(_) => ErrorCode::NotFound,
             // `Profiles(Parse)`: the call is fine; the node's file is not
             // (and stays unused).
             Self::Ended(_)

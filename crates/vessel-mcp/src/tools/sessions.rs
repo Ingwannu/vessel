@@ -8,7 +8,7 @@ use bytes::Bytes;
 use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::{
-    ContentBlock, CreateSession, EventSeq, GetSession, HarnessKind, ModelId, PermissionOutcome,
+    ContentBlock, CreateSession, EventSeq, GetSession, HarnessRef, ModelId, PermissionOutcome,
     ReadEvents, SendInput, SessionId, SessionInput, SessionMode, SessionSpec, TerminalBytes,
     TerminalInput, TerminalSize,
 };
@@ -21,7 +21,7 @@ use super::{
 impl VesselTools {
     pub(super) async fn create_session(&self, args: &JsonObject) -> Result<Value, ToolError> {
         let node = self.target(args).await?;
-        let harness: HarnessKind = required(args, "harness")?
+        let harness: HarnessRef = required(args, "harness")?
             .parse()
             .map_err(|error| ToolError::Arguments(format!("{error}")))?;
         let terminal = flag(args, "terminal")?;
@@ -233,7 +233,7 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
             "node": node,
             "harness": {
                 "type": "string",
-                "description": "claude, codex, gemini or opencode."
+                "description": "claude, codex, gemini, opencode, or an agent added on the node."
             },
             "profile": {
                 "type": "string",

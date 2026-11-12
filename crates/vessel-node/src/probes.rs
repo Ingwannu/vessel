@@ -30,7 +30,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use tokio::time::Instant;
-use vessel_proto::{HarnessKind, HarnessOptions, ProfileName, WireError};
+use vessel_proto::{HarnessOptions, HarnessRef, ProfileName, WireError};
 
 /// How long a probe's answer is reused.
 pub(crate) const FRESH: Duration = Duration::from_secs(600);
@@ -38,7 +38,7 @@ pub(crate) const FRESH: Duration = Duration::from_secs(600);
 /// What a probe's answer depends on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ProbeKey {
-    pub(crate) harness: HarnessKind,
+    pub(crate) harness: HarnessRef,
     /// `None` is the harness's default profile.
     pub(crate) profile: Option<ProfileName>,
 }
@@ -142,7 +142,7 @@ mod tests {
 
     fn key() -> ProbeKey {
         ProbeKey {
-            harness: HarnessKind::ClaudeCode,
+            harness: vessel_proto::HarnessKind::ClaudeCode.into(),
             profile: None,
         }
     }

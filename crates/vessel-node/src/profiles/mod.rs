@@ -26,7 +26,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use vessel_harness::{HarnessEnv, Profile, Profiles, ProfilesError, parse_profiles};
-use vessel_proto::{HarnessKind, ProfileInfo, ProfileName};
+use vessel_proto::{HarnessRef, ProfileInfo, ProfileName};
 use vessel_store::{DataDir, StoreError};
 
 /// Why `profiles.toml` could not be used.
@@ -69,10 +69,10 @@ impl NodeProfiles {
 
     /// The profiles in effect: the defaults, then the defined ones, only
     /// `harness`'s if given. Names, labels and variable names only.
-    pub(crate) fn list(&self, harness: Option<HarnessKind>) -> Vec<ProfileInfo> {
+    pub(crate) fn list(&self, harness: Option<&HarnessRef>) -> Vec<ProfileInfo> {
         self.snapshot()
             .all()
-            .filter(|profile| harness.is_none_or(|harness| profile.harness() == harness))
+            .filter(|profile| harness.is_none_or(|harness| *harness == profile.harness()))
             .map(Profile::info)
             .collect()
     }

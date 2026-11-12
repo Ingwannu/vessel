@@ -54,8 +54,11 @@ use std::fmt;
 use std::path::Path;
 
 use serde::Deserialize;
-use vessel_proto::{EnvName, HarnessKind, InvalidName, ModelRouteName, ProfileInfo, ProfileName};
+use vessel_proto::{
+    EnvName, HarnessKind, HarnessRef, InvalidName, ModelRouteName, ProfileInfo, ProfileName,
+};
 
+use crate::error::HarnessError;
 use crate::harnesses::descriptor;
 use crate::routing::{overriding, routed_variables};
 
@@ -85,6 +88,20 @@ impl Profile {
             unset: BTreeSet::new(),
             args: Vec::new(),
             model: None,
+        }
+    }
+
+    /// The default profile of `harness`, for a caller given no profile:
+    /// one of the four's ([`Profile::default_for`]). An added agent's
+    /// default profile carries its definition, which only the node's set of
+    /// profiles has, so it is refused here.
+    ///
+    /// # Errors
+    /// [`HarnessError::NotDefined`] for an added agent.
+    pub fn default_of(harness: &HarnessRef) -> Result<Self, HarnessError> {
+        match harness {
+            HarnessRef::Known(kind) => Ok(Self::default_for(*kind)),
+            HarnessRef::Added(name) => Err(HarnessError::NotDefined { name: name.clone() }),
         }
     }
 
@@ -162,7 +179,7 @@ impl Profile {
         ProfileInfo {
             name: self.name.clone(),
             label: self.label.clone(),
-            harness: self.harness,
+            harness: self.harness.into(),
             sets: self.env.keys().cloned().collect(),
             model: self.model.clone(),
         }

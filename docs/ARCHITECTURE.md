@@ -38,7 +38,7 @@ and 0013).
 
 | Crate | Job | Depends on |
 | --- | --- | --- |
-| `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10). No I/O. | - |
+| `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11). No I/O. | - |
 | `vessel-rpc` | Moves `ClientFrame`/`ServerFrame` over any frame transport; handshake, correlation, concurrency limits, generic over `Handler`. From protocol 5 it holds both sides to the negotiated version: a call newer than the connection (`Call::since`) is refused by the client before sending and by the server before dispatch, and outgoing frames are adapted to an older client where they are encoded (`ServerFrame::for_protocol`). | proto |
 | `vessel-proc` | Command specs, spawning in a process group (a kill-on-close job object on Windows), killing the group. | - |
 | `vessel-harness` | Everything harness-specific, one module per harness: discovery, version probe, terminal and ACP launch commands; `HarnessEnv` (the account harnesses run as, given by the binaries, never read from the process by a library); since milestone 4 harness profiles and `profiles.toml`, each harness's home and login check, a session's files and linking them between homes, a profile's memory files and renaming a path for another working directory (transfers, protocol 6), MCP servers for terminal sessions, and what `vessel init` offers (install and login commands, other accounts' homes); since milestone 5 a profile's `model` route and pointing its harness at the node's model proxy (`routing`: Claude Code by its gateway variables, Codex by a `vessel` provider in `-c` overrides). | proto, proc |
@@ -368,7 +368,7 @@ bounds and platform tradeoffs.
 
 In the crate table's order.
 
-- `vessel-proto`: the wire contract, versions 2 to 9 (`docs/PROTOCOL.md`).
+- `vessel-proto`: the wire contract, versions 2 to 11 (`docs/PROTOCOL.md`).
   Protocol 2, milestone 1: typed RPC, the event log, the ACP-shaped agent
   timeline. 3: `node.stop` and `NodeInfo.state`. 4: devices, scopes on
   every method, the node's public key. 5: profiles, `session.move_profile`,
@@ -390,7 +390,12 @@ In the crate table's order.
   (`conversation`: delivery and the queue, the agent's commands and
   context, questions, attachments, marks; `SessionInfo.marks` and
   `abilities`), and projects, worktrees, git and files (`workspace`),
-  `SessionSpec.place` and `SessionInfo.workspace`.
+  `SessionSpec.place` and `SessionInfo.workspace`. 11 (track G, ADR
+  0032): agents beyond the four (`agents`: `HarnessRef`, the four or an
+  added agent by `AgentName`, in `SessionSpec`, `Harness`, profiles and
+  `harness.options`; `Harness.terminal`; what an older peer is handed,
+  `agents/older.rs`: lists without added agents, `Reply::withheld` for a
+  reply about one, applied where frames are written).
   Every method has a first version (`since`), and a call that uses a
   later field needs that version (`Call::since`, `rpc/since.rs`; the
   table's macro is `rpc/methods.rs`, the table itself stays in `rpc.rs`).

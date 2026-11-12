@@ -149,6 +149,20 @@ id: QuestionId,
 outcome: QuestionOutcome, };
 
 /**
+ * The name of an agent added on a node by its command (protocol 11, ADR
+ * 0032): the profile name rule (`[A-Za-z0-9._-]`, 1 to 64), and never a
+ * name of one of the four known agents, in any case or spelling
+ * (`claude`, `Claude-Code`, `opencode`).
+ *
+ * Why the profile rule: an added agent's default profile is named after
+ * it, as the four's are (ADR 0011), so every agent name must be a profile
+ * name. Why the four are refused: a word a person types is read as one of
+ * the four first ([`HarnessRef::from_str`]), so an added agent called
+ * `codex` could never be named.
+ */
+export type AgentName = string;
+
+/**
  * The value given for one field.
  */
 export type AnswerValue = { "type": "text", "value": string } | { "type": "number", "value": FiniteNumber } | { "type": "integer", "value": number } | { "type": "boolean", "value": boolean } | { "type": "choice", "value": string } | { "type": "choices", "value": Array<string> };
@@ -1658,9 +1672,9 @@ from_hunk?: number | null, };
  */
 export type GetHarnessOptions = { 
 /**
- * Which harness.
+ * Which harness; an added agent needs protocol 11.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Under this profile; `None` is the harness's default. A profile can
  * change what an agent offers (another account, another provider).
@@ -1911,9 +1925,10 @@ more: boolean, };
  */
 export type Harness = { 
 /**
- * Which harness.
+ * Which harness: one of the four, or (protocol 11) an agent added on
+ * the node, which a node leaves out for an older client.
  */
-kind: HarnessKind, 
+kind: HarnessRef, 
 /**
  * Resolved executable path.
  */
@@ -1923,10 +1938,15 @@ path: string,
  */
 version: string | null, 
 /**
- * Structured-mode availability. Terminal mode is always available for an
- * installed harness.
+ * Structured-mode availability.
  */
-structured: StructuredSupport, };
+structured: StructuredSupport, 
+/**
+ * Terminal-mode availability (protocol 11): every one of the four
+ * installed runs in a terminal; an added agent does not. Left out
+ * when available.
+ */
+terminal?: TerminalSupport, };
 
 /**
  * An agent harness Vessel knows how to drive.
@@ -1958,6 +1978,18 @@ probed_at: string,
  * nodes, and for a harness without structured sessions here.
  */
 abilities?: AgentAbilities | null, };
+
+/**
+ * Any agent a node can run (protocol 11, ADR 0032): one of the four Vessel
+ * knows, or one added on that node by its command.
+ *
+ * On the wire a known agent is the string it was before protocol 11
+ * (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`), so every spec
+ * and list an older node or client wrote reads the same; an added agent is
+ * `{"added": "<name>"}`, an object, so it can never be read as one of the
+ * four.
+ */
+export type HarnessRef = HarnessKind | { added: AgentName, };
 
 /**
  * The harness's own session id (an ACP `sessionId`). Kept so a
@@ -2260,9 +2292,9 @@ export type ListPeers = null;
  */
 export type ListProfiles = { 
 /**
- * Only this harness's profiles.
+ * Only this harness's profiles; an added agent needs protocol 11.
  */
-harness?: HarnessKind | null, };
+harness?: HarnessRef | null, };
 
 /**
  * `project.list`: every project.
@@ -2968,9 +3000,10 @@ name: ProfileName,
  */
 label?: string | null, 
 /**
- * The harness it applies to.
+ * The harness it applies to: one of the four, or (protocol 11) an
+ * agent added on the node.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Names of the environment variables it sets.
  */
@@ -4287,9 +4320,10 @@ session: SessionId, };
  */
 export type SessionSpec = { 
 /**
- * Harness to launch.
+ * Harness to launch: one of the four, or (protocol 11) an agent added
+ * on the node.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Working directory. Defaults to the node's home directory.
  */
@@ -4845,6 +4879,16 @@ cols: number,
  * Rows.
  */
 rows: number, };
+
+/**
+ * Whether a harness runs as a terminal session on a node (protocol 11).
+ * Absent from older nodes, whose every harness runs in one.
+ */
+export type TerminalSupport = { "state": "available" } | { "state": "unavailable", 
+/**
+ * Human-readable reason.
+ */
+reason: string, };
 
 /**
  * A shape free text must have.

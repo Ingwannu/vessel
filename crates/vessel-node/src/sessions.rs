@@ -30,7 +30,7 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo, SessionOption,
+    EventRecord, EventSeq, HarnessRef, OptionChoice, SessionId, SessionInfo, SessionOption,
     SessionSpec, SessionTitle,
 };
 use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
@@ -381,7 +381,7 @@ impl Sessions {
     /// What `harness`'s agent offers (`SessionRuntime::probe`).
     pub(crate) async fn probe(
         &self,
-        harness: HarnessKind,
+        harness: HarnessRef,
         profile: Profile,
         proxy: Option<ModelProxy>,
         dir: PathBuf,

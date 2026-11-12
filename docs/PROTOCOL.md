@@ -30,6 +30,33 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 11 (wave 2 of milestone 11, 2026-11-12)
+
+Nodes speak 2..=11. Version 11 is wave 2's number, raised once; its
+tracks add their parts below (`docs/plans/backend-m11.md`, "Wave 2:
+tracks").
+
+### Agents beyond the four (track G, ADR 0032)
+
+- `HarnessRef`: an agent a node can run, one of the four as the string it
+  always was (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`) or
+  an agent added on that node by its command, `{"added": "<name>"}`.
+  `AgentName` is the profile name rule, never a name of the four in any
+  case (`claude`, `opencode`, `open-code` included). It replaces
+  `HarnessKind` in `SessionSpec.harness`, `Harness.kind`,
+  `ProfileInfo.harness`, `ListProfiles.harness` and
+  `GetHarnessOptions.harness`.
+- `Harness.terminal?`: `{ state: "available" }` (left out) or
+  `{ state: "unavailable", reason }`; an added agent has no terminal.
+- A client of protocol 2 to 10 is never handed an added agent:
+  `harness.list`, `profile.list`, `profile.reload` and `session.list`
+  leave them out; a reply about one (`session.get`, `session.create`,
+  `session.move_profile`, `session.rename`, `session.resume`,
+  `session.mark`, `session.subscribe`, `session.import`) is replaced by
+  `unsupported`, inside the fleet's envelope too; calls acting on one,
+  and `session.subscribe`, are refused before they run. A call naming an
+  added agent needs 11 (`Call::since`).
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

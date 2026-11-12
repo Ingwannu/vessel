@@ -178,12 +178,13 @@ impl Handler for Fake {
     ) -> Result<Vec<Harness>, WireError> {
         self.saw(request.into_call());
         Ok(vec![Harness {
-            kind: HarnessKind::Gemini,
+            kind: HarnessKind::Gemini.into(),
             path: PathBuf::from("/bin/gemini"),
             version: Some("1.0".to_owned()),
             structured: StructuredSupport::Unavailable {
                 reason: "adapter missing".to_owned(),
             },
+            terminal: vessel_proto::TerminalSupport::Available,
         }])
     }
 

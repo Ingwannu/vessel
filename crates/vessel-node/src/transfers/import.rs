@@ -40,7 +40,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_fleet::{Incoming, OnConflict, Placed};
-use vessel_harness::{Profile, rebase};
+use vessel_harness::{Profile, SessionFilesError, rebase};
 use vessel_proto::{
     BlobChunk, BundleFile, BundlePath, CloseTransfer, ErrorCode, ExportMemory, ExportSession,
     HarnessKind, ImportMemory, ImportSession, MemoryImported, NodeId, ReadTransfer, Request,
@@ -254,7 +254,13 @@ impl Importer<'_> {
         else {
             return Err(to_wire(TransferError::WrongKind("memory")));
         };
-        let harness = info.spec.harness;
+        // The exporting node refuses an added agent's session (ADR 0032);
+        // one that sends it anyway is refused here.
+        let harness = info.spec.harness.known().ok_or_else(|| {
+            to_wire(TransferError::Files(SessionFilesError::Unsupported {
+                harness: info.spec.harness.clone(),
+            }))
+        })?;
         let profile =
             named(self.profiles, Some(harness), request.profile.as_ref()).map_err(to_wire)?;
         let to_cwd = request.cwd.clone().unwrap_or_else(|| from_cwd.clone());

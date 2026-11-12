@@ -8,7 +8,7 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_proto::{
     Ack, DeviceInfo, GetNode, Harness, Invitation, InviteDevice, ListDevices, ListHarnesses,
-    NodeInfo, RevokeDevice, StopNode, WireError,
+    NodeInfo, ProtocolVersion, RevokeDevice, StopNode, WireError,
 };
 use vessel_rpc::{Outbound, Peer};
 
@@ -40,6 +40,8 @@ mod options;
 // again.
 mod again;
 mod conversation;
+// Protocol 11's calls: agents beyond the four (ADR 0032).
+mod agents;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
@@ -179,6 +181,9 @@ impl NodeService {
 pub(crate) struct Connection {
     outbound: Outbound,
     principal: Principal,
+    /// The protocol the client negotiated: an older client is never handed
+    /// what it cannot decode (protocol 11's added agents).
+    protocol: ProtocolVersion,
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
 }
@@ -194,6 +199,7 @@ impl Connection {
         Self {
             outbound: peer.outbound,
             principal,
+            protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
         }
     }
@@ -208,12 +214,18 @@ impl Connection {
         &self.principal
     }
 
+    /// The protocol the client speaks.
+    pub(crate) const fn protocol(&self) -> ProtocolVersion {
+        self.protocol
+    }
+
     /// This connection, calling as `principal`: a call delivered from
     /// another node runs as its delegated principal (protocol 6).
     pub(crate) fn acting_as(&self, principal: Principal) -> Self {
         Self {
             outbound: self.outbound.clone(),
             principal,
+            protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
         }
     }

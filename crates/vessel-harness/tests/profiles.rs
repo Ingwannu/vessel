@@ -534,8 +534,8 @@ fn another_harness_profile_is_refused() {
             "{:?}",
             HarnessError::ProfileMismatch {
                 profile: "codex-work".parse().unwrap(),
-                profile_harness: HarnessKind::Codex,
-                harness: HarnessKind::ClaudeCode,
+                profile_harness: HarnessKind::Codex.into(),
+                harness: HarnessKind::ClaudeCode.into(),
             }
         )
     );

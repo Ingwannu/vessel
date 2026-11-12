@@ -672,7 +672,7 @@ async fn a_failed_session_is_exited() {
 /// the board from its creation, its last activity its creation.
 #[tokio::test]
 async fn a_starting_session_is_working() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::with_stuck_adapter();
         let created = fixture.runtime.create(structured(None)).await.unwrap();
         let stored = collect(created.durable);
@@ -693,6 +693,6 @@ async fn a_starting_session_is_working() {
             Some((KanbanColumn::Building, DisplayStatus::Exited))
         );
         drop(stored.await.unwrap());
-    })
+    }))
     .await;
 }

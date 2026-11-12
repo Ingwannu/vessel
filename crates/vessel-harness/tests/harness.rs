@@ -51,7 +51,7 @@ mod support {
 /// The launch from before profiles: the default profile, no MCP servers.
 #[expect(clippy::panic_in_result_fn, reason = "a test helper")]
 fn launch(lookup: &Lookup, spec: &SessionSpec) -> Result<CommandSpec, HarnessError> {
-    let profile = Profile::default_for(spec.harness);
+    let profile = Profile::default_of(&spec.harness)?;
     // A directory that exists and holds no account, never the machine's.
     let env = vessel_harness::HarnessEnv::new(std::env::temp_dir());
     let launch = vessel_harness::launch(
@@ -118,7 +118,7 @@ async fn discovers_installed_harnesses_with_versions() {
 
     let found = discover(&Lookup::new([bin.path().to_path_buf()])).await;
 
-    let kinds: Vec<_> = found.iter().map(|harness| harness.kind).collect();
+    let kinds: Vec<_> = found.iter().map(|harness| harness.kind.clone()).collect();
     assert_eq!(kinds, [HarnessKind::ClaudeCode, HarnessKind::OpenCode]);
     let first = &found[0];
     assert_eq!(first.path, claude);

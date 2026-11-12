@@ -2,6 +2,7 @@
 //! later makes the call need that later version.
 
 use crate::agent::ContentBlock;
+use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInput, SessionMode};
 
@@ -31,7 +32,7 @@ impl Call {
                     SessionMode::Structured { options, .. } => !options.is_empty(),
                     SessionMode::Terminal { .. } => false,
                 };
-                if spec.place.is_some() {
+                let fields = if spec.place.is_some() {
                     // A place came in 10: an older node would start the
                     // session in its home folder instead.
                     Some(10)
@@ -39,8 +40,13 @@ impl Call {
                     Some(9)
                 } else {
                     spec.profile.as_ref().map(|_| 5)
-                }
+                };
+                // An added agent came in 11 (ADR 0032): an older node
+                // cannot decode it.
+                fields.max(added(Some(&spec.harness)))
             }
+            Self::HarnessOptions(request) => added(Some(&request.harness)),
+            Self::ListProfiles(request) => added(request.harness.as_ref()),
             // `scopes` came in 5; a scope newer than that needs its own
             // version, or an older node would refuse the name it lacks.
             Self::InviteDevice(request) => request.scopes.as_ref().map(|scopes| {
@@ -73,7 +79,6 @@ impl Call {
             | Self::StopNode(_)
             | Self::ListDevices(_)
             | Self::RevokeDevice(_)
-            | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
             | Self::MoveProfile(_)
             | Self::GetManifest(_)
@@ -112,7 +117,6 @@ impl Call {
             | Self::LspDiagnostics(_)
             | Self::CopySecret(_)
             | Self::ListModels(_)
-            | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
             | Self::RenameSession(_)
@@ -169,4 +173,11 @@ impl Call {
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }
+}
+
+/// The version a call naming `harness` needs for it: 11 for an added agent.
+fn added(harness: Option<&HarnessRef>) -> Option<u32> {
+    harness
+        .filter(|harness| harness.added().is_some())
+        .map(|harness| harness.since().get())
 }

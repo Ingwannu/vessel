@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use vessel_proto::{HarnessKind, ProfileName};
+use vessel_proto::{AgentName, HarnessKind, HarnessRef, ProfileName};
 
 use crate::mcp::McpError;
 
@@ -51,9 +51,16 @@ pub enum HarnessError {
         /// The profile.
         profile: ProfileName,
         /// The harness it extends.
-        profile_harness: HarnessKind,
+        profile_harness: HarnessRef,
         /// The session's harness.
-        harness: HarnessKind,
+        harness: HarnessRef,
+    },
+    /// The session names an agent this node has not added (protocol 11,
+    /// ADR 0032).
+    #[error("no agent named `{name}` is added on this node")]
+    NotDefined {
+        /// The name asked for.
+        name: AgentName,
     },
     /// The profile is not the one the spec asks for (`spec.profile`, or the
     /// harness's default when it names none). The caller resolves the name;

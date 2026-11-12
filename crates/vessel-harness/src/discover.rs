@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tokio::io::{AsyncRead, AsyncReadExt as _};
 use vessel_proc::{CommandSpec, Spawned, spawn};
-use vessel_proto::{Harness, HarnessKind, StructuredSupport};
+use vessel_proto::{Harness, HarnessKind, StructuredSupport, TerminalSupport};
 
 use crate::harnesses::{Structured, descriptor};
 use crate::launch::adapter_missing;
@@ -47,10 +47,11 @@ pub async fn discover(lookup: &Lookup) -> Vec<Harness> {
             "harness found"
         );
         Harness {
-            kind: found.kind,
+            kind: found.kind.into(),
             path: found.path,
             version,
             structured: found.structured,
+            terminal: TerminalSupport::Available,
         }
     }))
     .await

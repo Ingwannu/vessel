@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
 use vessel_proto::{
-    EventSeq, HarnessKind, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
+    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
 };
 
 use vessel_client::book::Resolved;
@@ -152,7 +152,7 @@ async fn move_profile(
 /// `vessel profiles`: list them, after a reload if asked.
 async fn profiles(
     target: &Target,
-    harness: Option<HarnessKind>,
+    harness: Option<HarnessRef>,
     reload: bool,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;

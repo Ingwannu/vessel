@@ -80,8 +80,16 @@ fn run_takes_a_profile_and_profiles_a_harness() {
     else {
         panic!("expected profiles");
     };
-    assert_eq!(harness, Some(HarnessKind::Codex));
+    assert_eq!(harness, Some(vessel_proto::HarnessKind::Codex.into()));
     assert!(reload);
+    let Cli {
+        command: Command::Profiles { harness, .. },
+        ..
+    } = Cli::try_parse_from(["vessel", "profiles", "--harness", "goose"]).unwrap()
+    else {
+        panic!("expected profiles");
+    };
+    assert_eq!(harness, Some(HarnessRef::Added("goose".parse().unwrap())));
 }
 
 #[test]
