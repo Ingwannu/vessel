@@ -1,6 +1,6 @@
 //! Worktrees: making one, deciding whether removing one would lose
 //! anything, keeping a snapshot, putting a snapshot back, and removing one
-//! (ADR 0024).
+//! (ADR 0027).
 //!
 //! [Decision Log]
 //! - Purpose: a session gets a folder and a branch of its own; when it is

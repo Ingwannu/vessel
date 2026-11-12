@@ -1,5 +1,5 @@
 //! Projects, git worktrees, git and files for a Vessel node (milestone 11,
-//! track B; ADRs 0023 and 0024).
+//! track B; ADRs 0023 and 0027).
 //!
 //! Owns: running the `git` program safely ([`git`]), keeping every path a
 //! client names inside its folder ([`paths`]), and reading a project's own

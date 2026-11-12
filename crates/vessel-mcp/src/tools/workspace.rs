@@ -1,4 +1,4 @@
-//! The project and worktree tools (protocol 10, ADR 0024): what an agent
+//! The project and worktree tools (protocol 10, ADR 0027): what an agent
 //! needs to start a session in a project or a worktree of its own. The
 //! node refuses an agent every other workspace call; the agent reads,
 //! writes and runs git with its own tools.

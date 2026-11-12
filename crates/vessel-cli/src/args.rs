@@ -131,7 +131,7 @@ pub(crate) enum Command {
         command: SessionCommand,
     },
     /// The node's projects: folders and repositories it works in
-    /// (protocol 10, ADR 0024).
+    /// (protocol 10, ADR 0027).
     Project {
         #[command(subcommand)]
         command: ProjectCommand,

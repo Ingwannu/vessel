@@ -528,7 +528,7 @@ export type CommandName = string;
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
- * a person approves (ADR 0024).
+ * a person approves (ADR 0027).
  */
 export type CommandsDigest = string;
 
@@ -2995,7 +2995,7 @@ export type ProjectCommand = string;
 
 /**
  * The commands a project's file (`vessel.toml`) names, and whether a
- * person approved that set (ADR 0024).
+ * person approved that set (ADR 0027).
  */
 export type ProjectCommands = { "state": "none" } | { "state": "listed", 
 /**
@@ -3020,7 +3020,7 @@ approved: boolean, } | { "state": "invalid",
 message: string, };
 
 /**
- * A project: a folder the node works in (protocol 10, ADR 0024).
+ * A project: a folder the node works in (protocol 10, ADR 0027).
  */
 export type ProjectId = string;
 
@@ -4281,7 +4281,7 @@ profile?: ProfileName | null,
  */
 title?: SessionTitle | null, 
 /**
- * Where it runs (protocol 10, ADR 0024): a project's folder or a
+ * Where it runs (protocol 10, ADR 0027): a project's folder or a
  * worktree. With a place, `cwd` is left out by the client and filled
  * by the node with the folder the place resolves to, so a client that
  * predates places still sees where the session runs. Boxed: a spec is
@@ -5236,7 +5236,7 @@ worktree: WorktreeId,
 name?: BranchName | null, };
 
 /**
- * A worktree the node made for a project (protocol 10, ADR 0024).
+ * A worktree the node made for a project (protocol 10, ADR 0027).
  */
 export type WorktreeId = string;
 

@@ -1,5 +1,5 @@
 //! The file calls in a project's or a worktree's folder (protocol 10,
-//! ADR 0024): every path checked by `vessel_workspace::paths` against the
+//! ADR 0027): every path checked by `vessel_workspace::paths` against the
 //! root resolved for this call.
 //!
 //! [Decision Log]

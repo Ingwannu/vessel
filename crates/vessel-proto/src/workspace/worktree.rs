@@ -1,5 +1,5 @@
 //! Worktrees: a folder and a branch of a project's repository per session
-//! (protocol 10, ADR 0024), their setup, tidying and snapshots, and where
+//! (protocol 10, ADR 0027), their setup, tidying and snapshots, and where
 //! a session runs.
 
 use std::path::PathBuf;

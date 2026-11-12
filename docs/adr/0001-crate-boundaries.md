@@ -153,10 +153,10 @@ and the client, never the server runtime.
 
 ## Milestone 11 addition (2026-11-11)
 
-`vessel-workspace -> proto, proc` (track B, ADRs 0023 and 0024): git run
+`vessel-workspace -> proto, proc` (track B, ADRs 0023 and 0027): git run
 as a hardened program, worktrees, snapshots, checked paths and file
 operations, the name index and the project's file. It knows no principal,
 store or session; its tests need only git. `vessel-node -> workspace`: the
 node decides who may call, keeps projects, worktrees and approvals in its
-store (schema 7), runs clones and setups as its tasks, and ties worktrees
+store (schema 9), runs clones and setups as its tasks, and ties worktrees
 to sessions, as it does for `vessel-lsp`.

@@ -176,7 +176,7 @@ CREATE INDEX sessions_retention
 ";
 
 /// Version 9 (milestone 11, protocol 10, track B): projects, the worktrees
-/// the node made, and the command sets a person approved (ADR 0024; see
+/// the node made, and the command sets a person approved (ADR 0027; see
 /// `workspace`). Track B's branch numbered it 7; track A's two versions
 /// came first when the tracks were merged, and nothing of protocol 10 had
 /// been released, so no database ever had it under the other number.

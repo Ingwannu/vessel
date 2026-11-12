@@ -1,5 +1,5 @@
 //! Projects, worktrees, git and files (protocol 10, milestone 11 track B;
-//! ADRs 0023 and 0024): the wire types of the calls a node answers about
+//! ADRs 0023 and 0027): the wire types of the calls a node answers about
 //! the folders it works in.
 //!
 //! One module per area. Every string with a shape is a parsed newtype

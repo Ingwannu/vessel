@@ -11,7 +11,7 @@ stand-ins for older clients) and optional fields, in two parts built side
 by side in milestone 11 (`docs/plans/backend-m11.md`): the conversation
 ("Track A: contract" and its review; ADRs 0024 to 0026) and projects,
 worktrees, git and files ("Track B: contract", which has every call's
-failures and bounds; ADRs 0023 and 0024). Where the two meet is the
+failures and bounds; ADRs 0023 and 0027). Where the two meet is the
 plan's "Integration (node)".
 
 ### The conversation

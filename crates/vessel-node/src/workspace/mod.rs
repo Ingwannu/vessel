@@ -1,5 +1,5 @@
 //! Projects, worktrees, git and files as the node serves them (protocol
-//! 10, ADRs 0023 and 0024): who may call what, which folder a call works
+//! 10, ADRs 0023 and 0027): who may call what, which folder a call works
 //! in, and the state that outlives a call (projects, worktrees, approvals,
 //! running clones and setups). The work itself is `vessel-workspace`'s.
 //!

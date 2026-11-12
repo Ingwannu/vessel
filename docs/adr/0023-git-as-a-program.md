@@ -7,7 +7,7 @@ Status: accepted, 2026-11-11 (milestone 11, track B,
 ## Context
 
 Protocol 10 gives a node's clients its projects, worktrees, diffs,
-commits, pushes and files (ADR 0024). Every one of these needs git. The
+commits, pushes and files (ADR 0027). Every one of these needs git. The
 node runs as its user, on the user's repositories, often while an agent
 works in them; a repository can be someone else's code, and its
 configuration (`.git/config`, hooks, attributes) can name programs.

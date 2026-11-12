@@ -1,6 +1,6 @@
 //! Worktrees: making one (with its setup), removing one without losing
 //! work, snapshots, tidying a session's worktree, and where a session runs
-//! (protocol 10, ADR 0024).
+//! (protocol 10, ADR 0027).
 //!
 //! [Decision Log]
 //! - `worktree.create` answers at once: the folder and branch are made in
@@ -627,7 +627,7 @@ impl Workspaces {
     /// The first session started in a worktree made for no session claims
     /// it: tidying (`retire`) then removes it with that session, by the
     /// rule. A worktree is made before its session (the three steps of
-    /// ADR 0024), so this is how it becomes the session's own.
+    /// ADR 0027), so this is how it becomes the session's own.
     pub(crate) async fn claim(&self, worktree: WorktreeId, session: SessionId) {
         let claimed = {
             let mut state = self.state();

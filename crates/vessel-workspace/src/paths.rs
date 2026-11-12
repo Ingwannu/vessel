@@ -1,4 +1,4 @@
-//! Keeping every path a client names inside its folder (ADR 0024).
+//! Keeping every path a client names inside its folder (ADR 0027).
 //!
 //! [Decision Log]
 //! - Purpose: a file or git call names a [`RelPath`] inside a project or a

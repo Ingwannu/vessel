@@ -27,7 +27,7 @@ vessel-rpc.workspace = true
 vessel-secure.workspace = true
 vessel-session.workspace = true
 vessel-store.workspace = true
-# Projects, worktrees, git and files (protocol 10, ADRs 0023 and 0024):
+# Projects, worktrees, git and files (protocol 10, ADRs 0023 and 0027):
 # the work; the node keeps who may call, the record and the sessions.
 vessel-workspace.workspace = true
 

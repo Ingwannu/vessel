@@ -1,4 +1,4 @@
-//! Projects: the folders a node works in (protocol 10, ADR 0024).
+//! Projects: the folders a node works in (protocol 10, ADR 0027).
 
 use std::path::PathBuf;
 
@@ -124,7 +124,7 @@ pub struct ProjectList {
 }
 
 /// The commands a project's file (`vessel.toml`) names, and whether a
-/// person approved that set (ADR 0024).
+/// person approved that set (ADR 0027).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]

@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: every file and git call names a path inside a root the node
-//!   chose (ADR 0024). A client must not be able to name anything else:
+//!   chose (ADR 0027). A client must not be able to name anything else:
 //!   not by `..`, not by an absolute path, not by a drive or a UNC prefix,
 //!   and not the repository's own `.git`.
 //! - Constraint: one wire, three platforms. A Windows node would read `\`

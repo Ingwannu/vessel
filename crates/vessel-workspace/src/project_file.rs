@@ -1,4 +1,4 @@
-//! A project's own file, `vessel.toml` at its root (ADR 0024): the commands
+//! A project's own file, `vessel.toml` at its root (ADR 0027): the commands
 //! that set a new worktree up and tear it down.
 //!
 //! [Decision Log]

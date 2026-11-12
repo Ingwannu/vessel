@@ -1,5 +1,5 @@
 //! Projects: add a folder, clone, start a new one, forget one, and what a
-//! project's file would run (protocol 10, ADR 0024).
+//! project's file would run (protocol 10, ADR 0027).
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;

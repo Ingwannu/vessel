@@ -1515,7 +1515,8 @@ most 64 waiting; past that, `unavailable`.
 | A long poll (`project.get`, `worktree.output`) | 30 s, inside the node's wait shares | answers as it is |
 
 Store: schema 7 adds `projects`, `worktrees` and `approvals` (the next
-free number; the coordinator renumbers if track A takes it too).
+free number; the coordinator renumbers if track A takes it too). (It
+did: 9 after the merge, the plan's "Integration (node)".)
 
 ### Not in this track (wave 2), and the doors left open
 
@@ -1967,8 +1968,9 @@ gives.)
 ## Track B: progress
 
 2026-11-11, on `backend/m11-workspace`. ADRs 0023 (git as a program)
-and 0024 (projects, worktrees, the project's file and its trust); store
-schema 7; crate `vessel-workspace`.
+and 0027 (projects, worktrees, the project's file and its trust; 0024 on
+this track's branch); store schema 9 (7 on this track's branch); crate
+`vessel-workspace`.
 
 Built, each slice with its tests:
 
@@ -1979,7 +1981,7 @@ Built, each slice with its tests:
   inspection, snapshots, checked paths, files, the name index, `git
   grep`, `vessel.toml` and its digest, setup and teardown; 36 tests
   against temporary repositories with the real git.
-- The node: the registry (schema 7, read back at start, a clone or a
+- The node: the registry (schema 9, read back at start, a clone or a
   setup the node's stop interrupted told as failed), every call, the
   agents' list in `guard`, `session.create`'s place, `SessionInfo.
   workspace` on every answer; 16 tests (13 against temporary

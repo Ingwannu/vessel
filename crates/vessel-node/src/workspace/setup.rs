@@ -1,5 +1,5 @@
 //! A worktree's setup and teardown: running the approved commands as a
-//! task of the node's, their log, and reading it back (ADR 0024).
+//! task of the node's, their log, and reading it back (ADR 0027).
 //!
 //! [Decision Log]
 //! - The commands that run are the ones parsed from the file whose digest

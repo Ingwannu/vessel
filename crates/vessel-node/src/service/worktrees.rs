@@ -1,5 +1,5 @@
 //! Protocol 10's worktree calls, and where a session runs (track B,
-//! ADR 0024): routing and the agent rules; the work is
+//! ADR 0027): routing and the agent rules; the work is
 //! `crate::workspace`'s.
 
 use vessel_proto::workspace::{

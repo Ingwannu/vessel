@@ -1,5 +1,5 @@
 //! Running a project's approved commands (setup and teardown) in a
-//! worktree, their output kept in a bounded log (ADR 0024).
+//! worktree, their output kept in a bounded log (ADR 0027).
 //!
 //! [Decision Log]
 //! - Purpose: a worktree is prepared by the commands its project's file

@@ -1,5 +1,5 @@
 //! Projects, worktrees and approved commands (protocol 10, schema 9, ADR
-//! 0024): the node's own record of the folders it works in.
+//! 0027): the node's own record of the folders it works in.
 //!
 //! [Decision Log]
 //! - Purpose: projects, the worktrees the node made and the command sets a

@@ -186,12 +186,12 @@ uuid_id! {
 }
 
 uuid_id! {
-    /// A project: a folder the node works in (protocol 10, ADR 0024).
+    /// A project: a folder the node works in (protocol 10, ADR 0027).
     ProjectId
 }
 
 uuid_id! {
-    /// A worktree the node made for a project (protocol 10, ADR 0024).
+    /// A worktree the node made for a project (protocol 10, ADR 0027).
     WorktreeId
 }
 

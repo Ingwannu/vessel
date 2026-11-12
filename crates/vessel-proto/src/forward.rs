@@ -247,7 +247,7 @@ impl Method {
     ///   worktrees, git and files (`project.*`, `worktree.*`, `git.*`,
     ///   `file.*`), which working in a project there needs; the roots that
     ///   would widen a reader's reach are refused for every caller instead
-    ///   (ADR 0024).
+    ///   (ADR 0027).
     /// - Not forwardable, administration of a node done there: stopping it,
     ///   its devices, re-reading its profiles, deleting or copying its
     ///   secrets.

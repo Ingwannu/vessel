@@ -1,4 +1,4 @@
-//! Protocol 10's project calls (track B, ADR 0024): routing only; the work
+//! Protocol 10's project calls (track B, ADR 0027): routing only; the work
 //! is `crate::workspace`'s.
 
 use vessel_proto::workspace::{

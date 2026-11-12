@@ -1,4 +1,4 @@
-//! Protocol 10 over the wire (milestone 11, track B, ADR 0024): a project,
+//! Protocol 10 over the wire (milestone 11, track B, ADR 0027): a project,
 //! a worktree, and a session started in it, as the owner and as an agent,
 //! who gets only what orchestration needs.
 

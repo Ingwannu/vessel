@@ -99,7 +99,7 @@ pub struct SessionSpec {
     /// on its own; this stays what was asked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
-    /// Where it runs (protocol 10, ADR 0024): a project's folder or a
+    /// Where it runs (protocol 10, ADR 0027): a project's folder or a
     /// worktree. With a place, `cwd` is left out by the client and filled
     /// by the node with the folder the place resolves to, so a client that
     /// predates places still sees where the session runs. Boxed: a spec is

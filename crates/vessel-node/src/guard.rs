@@ -21,7 +21,7 @@
 //! - Cost: the rows repeat the protocol table's handler names and types;
 //!   the compiler keeps them in step.
 //!
-//! [Decision Log: agents and workspaces] (protocol 10, ADR 0024)
+//! [Decision Log: agents and workspaces] (protocol 10, ADR 0027)
 //! - Agents get, of the workspace calls, only what orchestration needs
 //!   (`workspace::policy`); the rest are refused right after the scope,
 //!   whatever the agent's scopes, by the same generated method, so a new

@@ -268,7 +268,7 @@ impl DataDir {
         Ok(dir)
     }
 
-    /// The node's workspace folder (protocol 10, ADR 0024): `worktrees/`
+    /// The node's workspace folder (protocol 10, ADR 0027): `worktrees/`
     /// (the worktrees it makes, one folder per project), `logs/` (each
     /// worktree's setup output), `no-hooks/` (an empty folder git's hooks
     /// are pointed at) and `scratch/` (temporary files).

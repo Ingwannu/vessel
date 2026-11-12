@@ -1,9 +1,12 @@
-# ADR 0024: Projects, worktrees, the project's file, and its trust
+# ADR 0027: Projects, worktrees, the project's file, and its trust
 
 Status: accepted, 2026-11-11 (milestone 11, track B,
 `docs/plans/backend-m11.md`, "Track B: contract"; the wire is protocol
 10, `crates/vessel-proto/src/workspace/`; the work is
 `crates/vessel-workspace`, the node's part `crates/vessel-node/src/workspace/`).
+Numbered 0024 on track B's branch; renumbered when the tracks were
+merged, track A's 0024 (the queue) having come first. Its store schema,
+7 there, is 9.
 
 ## Context
 
@@ -61,7 +64,7 @@ mechanism crate; depends on `vessel-proto` and `vessel-proc` only) knows
 git (ADR 0023), paths, files, the name index and the project's file, and
 nothing of principals, the store or sessions; its tests run against
 temporary repositories with the real git. The node's `workspace` module
-decides who may call, keeps the registry (store schema 7: `projects`,
+decides who may call, keeps the registry (store schema 9: `projects`,
 `worktrees`, `approvals`), runs clones and setups as its tasks, and ties
 worktrees to sessions. The service only routes.
 

@@ -319,7 +319,7 @@ vessel node devices revoke 3fa9       # its open connections close
 
 ### Projects and worktrees
 
-A node keeps the folders it works in (protocol 10, ADRs 0023 and 0024).
+A node keeps the folders it works in (protocol 10, ADRs 0023 and 0027).
 A session can start in a project's folder, or in a worktree of its own: a
 folder and a branch of the project's repository, prepared by the
 project's setup commands.

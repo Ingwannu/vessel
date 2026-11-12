@@ -327,7 +327,7 @@ bounded_text! {
     /// One shell command from a project's file (`vessel.toml`).
     ProjectCommand = Command;
     /// SHA-256 of a project's setup and teardown commands, hexadecimal: what
-    /// a person approves (ADR 0024).
+    /// a person approves (ADR 0027).
     CommandsDigest = Digest;
     /// SHA-256 of a file's content, hexadecimal.
     ContentHash = Hash;

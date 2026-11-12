@@ -1,5 +1,5 @@
 //! `vessel project …`, `vessel worktree …`, and where `vessel run` starts
-//! a session (protocol 10, ADR 0024). Projects and worktrees are named by
+//! a session (protocol 10, ADR 0027). Projects and worktrees are named by
 //! id, a unique prefix of one, or (projects) their name.
 
 use std::fmt::Write as _;
@@ -203,7 +203,7 @@ pub(crate) async fn worktree(target: &Target, command: WorktreeCommand) -> Resul
 
 /// `vessel run`'s place: `--project` (with `--dir`), `--worktree`, or
 /// `--project --new-worktree` (made and set up first, as the page and the
-/// agent tool do: the three steps of ADR 0024).
+/// agent tool do: the three steps of ADR 0027).
 pub(crate) async fn place(
     client: &NodeClient,
     project: Option<&str>,
