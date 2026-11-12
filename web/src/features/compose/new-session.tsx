@@ -32,13 +32,13 @@ import { machineMeant } from "../../data/nodes";
 import { pick } from "../../data/picks";
 import {
   rememberedAgent,
-  rememberedPicks,
+  startingPicks,
   rememberStart,
 } from "../../data/defaults";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
-import type { HarnessKind } from "../../wire/proto";
+import type { HarnessKind, OptionChoice } from "../../wire/proto";
 import { AddMenu } from "./add-menu";
 import { AgentMenu } from "./agent-menu";
 import { PermissionsMenu } from "./permissions-menu";
@@ -58,6 +58,7 @@ const EMPTY_DRAFT: Draft = {
   folder: "",
   prompt: "",
   picks: {},
+  chosen: false,
 };
 
 const NO_CRUMBS: readonly never[] = [];
@@ -101,19 +102,13 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const harness =
     harnesses.find((candidate) => candidate.kind === agent) ?? null;
   // What the machine's last start chose, while the person has chosen
-  // nothing for this agent yet.
-  const untouched =
-    draft.profile === "" && Object.keys(draft.picks).length === 0;
-  const remembered = untouched
-    ? rememberedPicks(defaults, nodeId, agent)
-    : null;
+  // nothing for this agent yet (data/defaults.ts).
   const effective: Draft = {
     ...draft,
     machine,
     agent,
     prompt: saved.text,
-    profile: remembered?.profile ?? draft.profile,
-    picks: remembered?.picks ?? draft.picks,
+    ...startingPicks(draft, defaults, nodeId, agent),
   };
   const terminal = harness !== null && startsTerminal(effective, harness);
   const options = useAgentOptions(machine, agent, effective.profile, !terminal);
@@ -132,6 +127,17 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const change = (next: Partial<Draft>) => {
     setError(null);
     setDraft((current) => ({ ...current, ...next }));
+  };
+  // Another machine or agent: its choices start again from what it kept.
+  const restart = (next: Partial<Draft>) => {
+    change({ ...next, profile: "", picks: {}, chosen: false });
+  };
+  const choose = (choice: OptionChoice) => {
+    change({
+      profile: effective.profile,
+      picks: pick(effective.picks, choice),
+      chosen: true,
+    });
   };
 
   const send = () => {
@@ -208,7 +214,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
                 profiles={profiles}
                 profile={effective.profile}
                 onProfile={(profile) => {
-                  change({ profile, picks: {} });
+                  change({ profile, picks: {}, chosen: true });
                 }}
                 terminal={draft.terminal}
                 canTimeline={harness === null || runsTimeline(harness)}
@@ -227,28 +233,18 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
                     name: agentLabel,
                     choices: agentChoices(harnesses),
                     onChange: (next) => {
-                      change({ agent: next, profile: "", picks: {} });
+                      restart({ agent: next });
                     },
                   }}
                   state={controls}
-                  onChoose={(choice) => {
-                    change({
-                      profile: effective.profile,
-                      picks: pick(effective.picks, choice),
-                    });
-                  }}
+                  onChoose={choose}
                 />
               )}
               {controls.kind === "ready" &&
               controls.controls.permissions !== null ? (
                 <PermissionsMenu
                   control={controls.controls.permissions}
-                  onChoose={(choice) => {
-                    change({
-                      profile: effective.profile,
-                      picks: pick(effective.picks, choice),
-                    });
-                  }}
+                  onChoose={choose}
                 />
               ) : null}
             </>
@@ -268,7 +264,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
               machines={machineChoices(book, state.statuses, true)}
               machine={machine}
               onMachine={(next) => {
-                change({ machine: next, agent: null, profile: "", picks: {} });
+                restart({ machine: next, agent: null });
               }}
               folders={folders}
               folder={draft.folder}

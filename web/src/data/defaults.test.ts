@@ -1,7 +1,12 @@
 import { expect, test } from "vitest";
 
 import type { Harness } from "../wire/proto";
-import { rememberedAgent, rememberedPicks, rememberStart } from "./defaults";
+import {
+  rememberedAgent,
+  rememberedPicks,
+  rememberStart,
+  startingPicks,
+} from "./defaults";
 import { applyChange, DEFAULT_PREFERENCES } from "./prefs-change";
 import { fixtureId } from "../testing/ids";
 
@@ -61,4 +66,41 @@ test("choices past the bounds are not kept", () => {
       ? Object.keys(defaults.value.choices)
       : [],
   ).toHaveLength(8);
+});
+
+test("a new session starts as the last one did until the person chooses, the default profile included", () => {
+  let prefs = DEFAULT_PREFERENCES;
+  for (const change of rememberStart(
+    fixtureId("NodeId", "n-1"),
+    "codex",
+    "work",
+    [],
+  )) {
+    prefs = applyChange(prefs, change);
+  }
+  const node = fixtureId("NodeId", "n-1");
+  const untouched = { profile: "", picks: {}, chosen: false };
+  expect(startingPicks(untouched, prefs.defaults, node, "codex")).toEqual({
+    profile: "work",
+    picks: {},
+  });
+  // Choosing the default profile ("") is a choice: "work" does not come
+  // back.
+  expect(
+    startingPicks(
+      { ...untouched, chosen: true },
+      prefs.defaults,
+      node,
+      "codex",
+    ),
+  ).toEqual({ profile: "", picks: {} });
+  // Nothing kept for this machine: what the draft says.
+  expect(
+    startingPicks(
+      untouched,
+      prefs.defaults,
+      fixtureId("NodeId", "n-2"),
+      "codex",
+    ),
+  ).toEqual({ profile: "", picks: {} });
 });

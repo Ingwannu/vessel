@@ -73,6 +73,22 @@ export function rememberedPicks(
   return { profile: kept.profile ?? "", picks };
 }
 
+/** The profile and choices a new session on `node` starts `agent` with:
+ * the person's, once they chose any for this agent (the default profile
+ * included: `chosen`); until then the machine's last start's, when it
+ * kept any. */
+export function startingPicks(
+  draft: { profile: string; picks: Picks; chosen: boolean },
+  defaults: Preferences["defaults"],
+  node: NodeId | null,
+  agent: HarnessKind | null,
+): { profile: string; picks: Picks } {
+  const remembered = draft.chosen
+    ? null
+    : rememberedPicks(defaults, node, agent);
+  return remembered ?? { profile: draft.profile, picks: draft.picks };
+}
+
 function valueOf(choice: OptionChoice): ChoiceValue {
   switch (choice.kind) {
     case "select":

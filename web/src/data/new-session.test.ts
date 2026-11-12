@@ -46,6 +46,7 @@ const DRAFT: Draft = {
   args: "",
   folder: "",
   prompt: "Tidy the overview",
+  chosen: false,
   picks: {
     [fixtureId("OptionId", "mode")]: {
       id: fixtureId("OptionId", "mode"),
