@@ -315,10 +315,14 @@ move between sections. Below 768px the column's padding is 12px.
   its `vessel.toml` names for a new worktree, Approved or Not approved,
   Review… opening the approval, Withdraw); Worktrees (branch, setup's
   state, live sessions, why it was kept; Run setup, Remove…); Snapshots
-  (Drop). Adding: agent-orchestrator's clone dialog (Repository URL,
-  Clone into, "Repository will be created at …"); a clone answers at once
-  and its progress and failure are the row's ("Receiving objects ·
-  42%", the reason in words with git's last lines).
+  (Drop, asked again in place: Keep or "Drop for good"). What the machine
+  refuses there (removing a worktree or the project, approving, setup, a
+  drop) is said in a banner until dismissed, not in a toast. Adding:
+  agent-orchestrator's clone dialog (Repository URL, which takes
+  `git@host:org/repo.git` too, Clone into, "Repository will be created at
+  …"); a clone answers at once and its progress and failure are the
+  row's ("Receiving objects · 42%", the reason in words with git's last
+  lines).
 - **Agents**: every agent Vessel drives, installed first, as GOAT's
   provider rows: the agent's letter, its name and version, a dot and one
   headline: Available, Needs attention (with the machine's reason:
@@ -1242,7 +1246,9 @@ project".
   12/20 with one 36px number column over a hairline and a 16px +/−
   column, added lines on the green wash and removed on the red, in
   syntax colour. Binary, oversized, submodule and mode-only files say so
-  in a line in place of the diff.
+  in a line in place of the diff; a hunk longer than the node's page
+  (5,000 lines, cut there) ends with a line saying the rest is in the
+  full file.
 - One windowed list (the timeline's window, read from its top): only the
   rows near the view exist; a file's diff, and each next page of 5,000
   lines, is asked for when its row is drawn. The comparison is read again
@@ -1256,28 +1262,31 @@ project".
   Everything; the message, ⌘/Ctrl+Enter commits), Switch branch (a
   filter and the branches with current, default, remote and worktree
   badges), New branch and Rename branch (a name checked with git's rules
-  as it is typed), Stashes (Apply, Pop, Drop), and "Discard changes?"
-  (Paseo's, saying a file git does not track is deleted).
+  as it is typed), Stashes (Apply, Pop, Drop, which asks again in place:
+  Keep or "Drop for good"), and "Discard changes?" (Paseo's, saying a
+  file the last commit does not have, untracked or added, is deleted).
 
 **Files** (agent-orchestrator's file explorer and file pane):
 
 - A 40px toolbar: "Go to file" (by name, `data/workspace/find.ts`; the
   letters matched in bold, "Some paths are not shown" past the node's
   bound), the switch to "Search in files" (lines by content, under their
-  file, the first 500), and "Show ignored files".
+  file, the first 500), "Show ignored files", and Refresh (the open
+  folders listed again; they stay open across a file opened and closed).
 - The tree: 28px rows, 6px in and 16px more per level, a folder's open
   or closed mark or a file's, 13px names; a folder is listed when first
   opened; past 5,000 entries a line says to find by name. Windowed.
 - A file: a 36px head (back, the path with its folders muted, Edit), its
   lines numbered in syntax colour, windowed, the next page read as the
   reader nears the end; a line found by content is put in the middle of
-  the view on the active wash. Binary: "Binary file preview is not
-  available." Edit reads the rest of the file (at most 1 MiB; past it,
+  the view on the active wash (the pages up to it read first); past
+  4,000 characters a line is drawn without colour. Binary: "Binary file
+  preview is not available." Edit reads the rest of the file (at most 1 MiB; past it,
   "File is too large to edit"), then Cancel and Save (⌘/Ctrl+S) and an
-  8px dot while there are unsaved edits. Save sends the version read;
-  a change on disk since keeps the edits and shows both sides (what was
-  read, what is on disk now, how many lines differ) with "Reload from
-  disk" and "Overwrite".
+  8px dot while there are unsaved edits. Save sends the version the edit
+  started from; a change on disk since keeps the edits and shows both
+  sides (what was read, what is on disk now, how many lines the refused
+  edit differs by) with "Reload from disk" and "Overwrite".
 
 **A selection to the composer.** Lines selected in a diff or a file show
 agent-orchestrator's floating "Add to chat" beside the selection's end;
@@ -1293,8 +1302,11 @@ line to line in a file.
 **A worktree's setup** (agent-orchestrator's script run panel): a card
 with a 32px head (a spinner, "Setting up · <branch>", the time), the
 output as it comes in mono 11px (at most 240px, the end kept, colours
-and cursor moves taken out), and when it failed the command that failed
-and three ways on: Run setup again, Start anyway, Stop here.
+and cursor moves taken out, a progress bar's redraw applied; only the
+state is announced to a screen reader, not each page of output), and
+when it failed the command that failed and three ways on: Run setup
+again, Start anyway, Stop here. Leaving the page stops the start: no
+session begins after it, and the worktree stays in Settings › Projects.
 
 **The approval of a project's commands** (no reference asks; ADR 0027):
 "Run this project's commands?", where they run, Setup and Teardown in
