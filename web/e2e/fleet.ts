@@ -30,7 +30,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { createServer } from "node:net";
+import { connect, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -97,6 +97,21 @@ function binary(name: string): string {
   return path;
 }
 
+/** Whether something accepts a connection on loopback's `port`. */
+async function accepts(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect(port, "127.0.0.1");
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
 async function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();
@@ -114,11 +129,11 @@ async function freePort(): Promise<number> {
 
 async function until(
   what: string,
-  ready: () => boolean,
+  ready: () => boolean | Promise<boolean>,
   ms = 30_000,
 ): Promise<void> {
   const deadline = Date.now() + ms;
-  while (!ready()) {
+  while (!(await ready())) {
     if (Date.now() > deadline) {
       throw new Error(`timed out waiting for ${what}`);
     }
@@ -298,6 +313,9 @@ export async function startFleet(): Promise<FleetEnv> {
     }
     nodes[name] = { port, data };
     await until(`${name}'s token`, () => existsSync(join(data, "token")));
+    // The token is written before the listener is bound, and the CLI
+    // talks to laptop before the UI starts (the projects, below).
+    await until(`${name}'s listener`, () => accepts(port));
   }
   const cli = {
     ...base,
