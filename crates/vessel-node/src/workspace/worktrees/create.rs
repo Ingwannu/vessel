@@ -1,0 +1,278 @@
+//! Making a worktree (`worktree.create`): the bounds, the folder and
+//! branch git makes from what `start` resolved, the record, and the setup
+//! it gets; and running setup again (`worktree.setup`). The commands
+//! themselves run in the workspace's `setup`, never here.
+//!
+//! [Decision Log]
+//! - `worktree.create` answers at once: the folder and branch are made in
+//!   the call, setup runs afterwards as a task of the node's. The commands
+//!   are read from the blob at the start commit, the one the folder is
+//!   made from, never from the checkout (which setup could change).
+//! - Making a worktree runs as a task of the node's, awaited by the call:
+//!   a caller that goes away (a cancelled call, a closed page) leaves no
+//!   folder made and unrecorded.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use chrono::Utc;
+use vessel_proto::workspace::{
+    BranchName, CreateWorktree, CreateWorktreeOutcome, ProjectCommands, ProjectState, SetupChoice,
+    SetupState, WorktreeBase, WorktreeInfo, WorktreeRefusal,
+};
+use vessel_proto::{Creator, SessionId, WorktreeId};
+use vessel_workspace::git::{AddRefusal, NewBranch};
+
+use super::start::{Chosen, choose};
+use crate::workspace::projects::short;
+use crate::workspace::{MAX_PER_AGENT, MAX_WORKTREES, WorkspaceError, Workspaces, WorktreeEntry};
+
+impl Workspaces {
+    /// Make a worktree for `creator` (and the session `created_for`, when
+    /// one is named), and start its setup.
+    ///
+    /// # Errors
+    /// `not_found`; `unsupported` without git; git's failures. The rules'
+    /// refusals are `refused` outcomes.
+    pub(crate) async fn create_worktree(
+        self: &Arc<Self>,
+        creator: Creator,
+        request: CreateWorktree,
+        created_for: Option<SessionId>,
+    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        // A task of the node's: a caller that goes away does not leave a
+        // folder made and unrecorded.
+        let workspaces = Arc::clone(self);
+        self.tasks
+            .spawn(async move { workspaces.create_now(creator, request, created_for).await })
+            .await
+            .map_err(|_stopped| WorkspaceError::Io("making the worktree stopped".to_owned()))?
+    }
+
+    async fn create_now(
+        self: &Arc<Self>,
+        creator: Creator,
+        request: CreateWorktree,
+        created_for: Option<SessionId>,
+    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
+        let refused = |reason| Ok(CreateWorktreeOutcome::Refused { reason });
+        let project = request.project;
+        let (root, default_branch) = {
+            let state = self.state();
+            let entry = state
+                .projects
+                .get(&project)
+                .ok_or(WorkspaceError::UnknownProject(project))?;
+            if !entry.info.git {
+                return refused(WorktreeRefusal::NotGit);
+            }
+            if !matches!(entry.info.state, ProjectState::Ready) {
+                return refused(WorktreeRefusal::NotReady);
+            }
+            if over_limit(&state.worktrees, &creator) {
+                return refused(WorktreeRefusal::Limit);
+            }
+            (entry.info.root.clone(), entry.info.default_branch.clone())
+        };
+        let git = self.git()?.clone();
+        let id = WorktreeId::random();
+        let Chosen {
+            branch,
+            start,
+            created,
+            restore,
+        } = match choose(&git, &root, default_branch, request.branch, id).await? {
+            Ok(chosen) => chosen,
+            Err(reason) => return refused(reason),
+        };
+        let commands = {
+            let file = self
+                .file_at(
+                    &root,
+                    &WorktreeBase::Commit {
+                        id: start.commit.clone(),
+                    },
+                )
+                .await?;
+            self.describe(project, file)
+        };
+        let Some(setup) = plan(request.setup, &commands) else {
+            return Ok(CreateWorktreeOutcome::NeedsApproval { commands });
+        };
+        let path = self
+            .dirs
+            .worktrees
+            .join(project.to_string())
+            .join(short(id));
+        if let Err(reason) =
+            make_folder(&git, &root, &path, &branch, created.as_ref(), restore).await?
+        {
+            return refused(reason);
+        }
+        let branch = match &branch {
+            NewBranch::Create { name, .. } | NewBranch::Existing { name } => name.clone(),
+        };
+        let info = WorktreeInfo {
+            id,
+            project,
+            path: canonical(path).await,
+            branch: Some(branch),
+            created_branch: created,
+            base: Some(start),
+            created_at: Utc::now(),
+            created_by: creator,
+            created_for,
+            sessions: Vec::new(),
+            setup: match setup {
+                Planned::Skipped => SetupState::Skipped,
+                Planned::Nothing | Planned::Run(_) => SetupState::None,
+            },
+            kept: None,
+        };
+        {
+            let (written, _) = tokio::sync::watch::channel(0);
+            drop(self.state().worktrees.insert(
+                id,
+                WorktreeEntry {
+                    info: info.clone(),
+                    written: Arc::new(written),
+                    running: None,
+                },
+            ));
+        }
+        self.save_worktree(info.clone()).await?;
+        let info = match setup {
+            Planned::Run(commands) => self.start_setup(id, commands)?,
+            Planned::Skipped | Planned::Nothing => info,
+        };
+        Ok(CreateWorktreeOutcome::Created { worktree: info })
+    }
+
+    /// Run setup again with the commands of the worktree's file as it is.
+    ///
+    /// # Errors
+    /// `conflict` while a run holds it, or when that set is not approved
+    /// (or the file cannot be used); `not_found`.
+    pub(crate) async fn run_setup(
+        self: &Arc<Self>,
+        worktree: WorktreeId,
+    ) -> Result<WorktreeInfo, WorkspaceError> {
+        let info = self.worktree(worktree)?;
+        let file = self.file_in(&info.path).await;
+        match self.describe(info.project, file) {
+            ProjectCommands::Listed {
+                approved: true,
+                setup,
+                ..
+            } => self.start_setup(worktree, setup),
+            ProjectCommands::Listed { .. } => Err(WorkspaceError::Conflict(
+                "the worktree's commands are not approved; approve them with `project.approve`"
+                    .to_owned(),
+            )),
+            ProjectCommands::Invalid { message } => Err(WorkspaceError::Conflict(format!(
+                "the worktree's `vessel.toml` cannot be used: {message}"
+            ))),
+            ProjectCommands::None => self.start_setup(worktree, Vec::new()),
+        }
+    }
+}
+
+/// `git worktree add` into `path`, and the snapshot put back in it; a
+/// refusal of git's as the wire says it.
+async fn make_folder(
+    git: &vessel_workspace::Git,
+    root: &Path,
+    path: &Path,
+    branch: &NewBranch,
+    created: Option<&BranchName>,
+    restore: Option<vessel_proto::workspace::CommitId>,
+) -> Result<Result<(), WorktreeRefusal>, WorkspaceError> {
+    if let Some(folder) = path.parent() {
+        prepare(folder, path).await?;
+    }
+    if let Err(refusal) = git.add_worktree(root, path, branch).await? {
+        return Ok(Err(match refusal {
+            AddRefusal::BranchExists => WorktreeRefusal::BranchExists,
+            AddRefusal::CheckedOutElsewhere(path) => WorktreeRefusal::CheckedOutElsewhere { path },
+            AddRefusal::NoSuchBranch => WorktreeRefusal::NoSuchBranch,
+        }));
+    }
+    if let Some(snapshot) = restore
+        && let Err(error) = git.restore_snapshot(path, &snapshot).await
+    {
+        if let Err(cleanup) = git.remove_worktree(root, path, created, true).await {
+            tracing::warn!(error = %cleanup, "a worktree whose snapshot failed stays");
+        }
+        return Err(error.into());
+    }
+    Ok(Ok(()))
+}
+
+/// What setup a new worktree gets from the commands at its start; `None`
+/// when they need a person's approval first (or cannot be used).
+fn plan(choice: SetupChoice, commands: &ProjectCommands) -> Option<Planned> {
+    Some(match (choice, commands) {
+        (SetupChoice::Skip, ProjectCommands::Listed { setup, .. }) if !setup.is_empty() => {
+            Planned::Skipped
+        }
+        (SetupChoice::Skip, _) | (SetupChoice::Run, ProjectCommands::None) => Planned::Nothing,
+        (SetupChoice::Run, ProjectCommands::Listed { setup, .. }) if setup.is_empty() => {
+            Planned::Nothing
+        }
+        (
+            SetupChoice::Run,
+            ProjectCommands::Listed {
+                approved: true,
+                setup,
+                ..
+            },
+        ) => Planned::Run(setup.clone()),
+        (SetupChoice::Run, ProjectCommands::Listed { .. } | ProjectCommands::Invalid { .. }) => {
+            return None;
+        }
+    })
+}
+
+/// Whether one more worktree would pass the node's bound, or an agent's.
+fn over_limit(
+    worktrees: &std::collections::HashMap<WorktreeId, WorktreeEntry>,
+    creator: &Creator,
+) -> bool {
+    if worktrees.len() >= MAX_WORKTREES {
+        return true;
+    }
+    matches!(creator, Creator::Agent { .. })
+        && worktrees
+            .values()
+            .filter(|entry| entry.info.created_by == *creator)
+            .count()
+            >= MAX_PER_AGENT
+}
+
+/// What setup a new worktree gets.
+enum Planned {
+    Nothing,
+    Skipped,
+    Run(Vec<vessel_proto::workspace::ProjectCommand>),
+}
+
+/// Make the project's folder of worktrees; the worktree's own must not
+/// exist yet.
+async fn prepare(folder: &Path, path: &Path) -> Result<(), WorkspaceError> {
+    tokio::fs::create_dir_all(folder)
+        .await
+        .map_err(|error| WorkspaceError::Io(error.to_string()))?;
+    if tokio::fs::symlink_metadata(path).await.is_ok() {
+        return Err(WorkspaceError::Conflict(format!(
+            "`{}` exists",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+async fn canonical(path: PathBuf) -> PathBuf {
+    tokio::task::spawn_blocking(move || std::fs::canonicalize(&path).unwrap_or(path))
+        .await
+        .unwrap_or_default()
+}
