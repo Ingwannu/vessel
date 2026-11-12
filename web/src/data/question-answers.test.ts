@@ -44,3 +44,66 @@ test("answers by title, a choice by its option's title, in field order", () => {
   ]);
   expect(answeredLines(QUESTION, { outcome: "declined" })).toEqual([]);
 });
+
+test("Claude's free text joins its question's line", () => {
+  const claude: Question = {
+    id: fixtureId("QuestionId", "q2"),
+    message: "Please answer the following questions.",
+    fields: [
+      {
+        name: fixtureId("FieldName", "question_1"),
+        title: "Extras",
+        required: false,
+        kind: "choice",
+        options: [
+          { value: "metrics", title: "Metrics" },
+          { value: "backups", title: "Backups" },
+        ],
+        multiple: true,
+      },
+      {
+        name: fixtureId("FieldName", "question_1_custom"),
+        title: "Other",
+        required: false,
+        kind: "text",
+      },
+      {
+        name: fixtureId("FieldName", "question_0"),
+        title: "Database",
+        required: false,
+        kind: "text",
+      },
+      {
+        name: fixtureId("FieldName", "question_0_custom"),
+        required: false,
+        kind: "text",
+      },
+    ],
+  };
+  expect(
+    answeredLines(claude, {
+      outcome: "answered",
+      values: {
+        [fixtureId("FieldName", "question_0")]: {
+          type: "text",
+          value: "SQLite",
+        },
+        [fixtureId("FieldName", "question_0_custom")]: {
+          type: "text",
+          value: "",
+        },
+        [fixtureId("FieldName", "question_1")]: {
+          type: "choices",
+          value: ["metrics"],
+        },
+        [fixtureId("FieldName", "question_1_custom")]: {
+          type: "text",
+          value: "and alerts",
+        },
+      },
+    }),
+  ).toEqual([
+    { field: "Database", value: "SQLite" },
+    { field: "Extras", value: "Metrics, and alerts" },
+  ]);
+});

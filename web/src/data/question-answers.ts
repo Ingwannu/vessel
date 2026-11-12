@@ -1,9 +1,12 @@
 // A settled question's answers as the timeline lists them
 // (agent-orchestrator's answered card): each field the person answered,
 // by its title, and its value in the agent's own words (a choice by its
-// option's title).
+// option's title). Claude's free text (`question_N_custom`) is not a line
+// of its own: it joins its question's line, as the dock drew it there as
+// that question's "Other" row.
 
 import type { AnswerValue, Question, QuestionOutcome } from "../wire/proto";
+import { stepsOf } from "./question-form";
 
 export interface AnsweredLine {
   field: string;
@@ -36,8 +39,8 @@ function valueText(
   }
 }
 
-/** The answers of `outcome`, in the question's field order; empty for a
- * question skipped or closed. */
+/** The answers of `outcome`, in the dock's order; empty for a question
+ * skipped or closed. */
 export function answeredLines(
   question: Question,
   outcome: QuestionOutcome,
@@ -46,13 +49,19 @@ export function answeredLines(
     return [];
   }
   const lines: AnsweredLine[] = [];
-  for (const field of question.fields) {
-    const value = outcome.values[field.name];
-    if (value !== undefined) {
-      lines.push({
-        field: field.title ?? field.name,
-        value: valueText(question, field.name, value),
-      });
+  for (const { field, other } of stepsOf(question)) {
+    const parts = [field, ...(other === null ? [] : [other])].flatMap(
+      (part) => {
+        const value = outcome.values[part.name];
+        if (value === undefined) {
+          return [];
+        }
+        const text = valueText(question, part.name, value);
+        return text === "" ? [] : [text];
+      },
+    );
+    if (parts.length > 0) {
+      lines.push({ field: field.title ?? field.name, value: parts.join(", ") });
     }
   }
   return lines;
