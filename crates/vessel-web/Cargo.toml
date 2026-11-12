@@ -56,7 +56,6 @@ sha2.workspace = true
 # The policy's hash of the import map, checked against the index.
 base64.workspace = true
 bytes.workspace = true
-chrono.workspace = true
 criterion.workspace = true
 tempfile.workspace = true
 vessel-harness = { workspace = true, features = ["fakes"] }
