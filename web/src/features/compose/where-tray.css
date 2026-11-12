@@ -18,3 +18,10 @@
   max-width: 45%;
   min-width: 0;
 }
+
+/* The folder goes to a line of its own rather than be narrower than a
+   short path: on a phone, the project's select beside the machine left
+   it a few pixels (new-session.css gives it the rest of the row). */
+.where .where-folder {
+  flex-basis: 160px;
+}
