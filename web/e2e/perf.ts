@@ -3,10 +3,11 @@
 // Run on demand only, never by `npm run e2e`: it takes minutes and its
 // result is a set of numbers, not a pass or a fail.
 //
-// Four measurements against the fleet of global-setup.ts, one test each
+// Five measurements against the fleet of global-setup.ts, one test each
 // (`npm run perf -- -g <word>` runs one): the board loading over a slow
-// and a phone-like link, a timeline of thousands of entries, a terminal
-// under heavy output, a board of 500 cards. Each starts the sessions it
+// and a phone-like link, a timeline of thousands of entries, find in it
+// and going to a match far away, a terminal under heavy output, a board
+// of 500 cards. Each starts the sessions it
 // needs through the CLI and stops them when it ends. The rule of the
 // track: no optimisation without a number before and after from this
 // harness on the same machine.
@@ -20,6 +21,7 @@ import { test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { measureBoard } from "./perf/board";
+import { measureFind } from "./perf/find";
 import { measureLoad } from "./perf/load";
 import { record } from "./perf/report";
 import { measureTerminal } from "./perf/terminal";
@@ -42,6 +44,12 @@ test("a timeline of thousands of entries", async ({ browser }) => {
     "timeline",
     await measureTimeline(browser, env),
   );
+});
+
+test("find in a long session, and a match far away", async ({ browser }) => {
+  test.setTimeout(HOUR);
+  const env = loadEnv();
+  record(env, browser.version(), "find", await measureFind(browser, env));
 });
 
 test("a terminal under heavy output", async ({ browser }) => {

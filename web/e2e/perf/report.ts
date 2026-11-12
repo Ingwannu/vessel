@@ -128,10 +128,11 @@ function print(section: Section): void {
 }
 
 /** A value as the table shows it: whole bytes and counts, tenths of a
- * millisecond. */
+ * millisecond or a pixel. */
 function show(value: number, unit: Row["unit"]): string {
   switch (unit) {
     case "ms":
+    case "px":
       return value.toFixed(1);
     case "bytes":
     case "count":

@@ -52,6 +52,14 @@ export type Watch =
       readonly name: string;
       readonly selector: string;
       readonly text: string;
+    }
+  /** Find's current match (the `vessel-find-active` highlight) reading
+   * `text`, drawn inside the timeline's view: a match gone to and
+   * shown. */
+  | {
+      readonly kind: "match";
+      readonly name: string;
+      readonly text: string;
     };
 
 /** Install the probe in the page: run in the page, before its scripts. */
@@ -87,6 +95,25 @@ function probe(watches: readonly Watch[]): void {
             .querySelector(watch.selector)
             ?.textContent.includes(watch.text) ?? false
         );
+      case "match": {
+        const view = document.querySelector(".timeline");
+        const active = CSS.highlights.get("vessel-find-active");
+        if (view === null || active === undefined) {
+          return false;
+        }
+        const bounds = view.getBoundingClientRect();
+        for (const range of active) {
+          if (
+            range instanceof Range &&
+            range.startContainer.isConnected &&
+            range.toString() === watch.text
+          ) {
+            const box = range.getBoundingClientRect();
+            return box.top >= bounds.top && box.bottom <= bounds.bottom;
+          }
+        }
+        return false;
+      }
     }
   };
   const frame = (time: number): void => {
@@ -122,6 +149,22 @@ function probe(watches: readonly Watch[]): void {
     "click",
     (event) => {
       performance.mark("vessel:click", { startTime: event.timeStamp });
+    },
+    { capture: true },
+  );
+  // A query typed into find: `vessel:input:<the field's text>`.
+  document.addEventListener(
+    "input",
+    (event) => {
+      const field = event.target;
+      if (
+        field instanceof HTMLInputElement &&
+        field.getAttribute("aria-label") === "Find in session"
+      ) {
+        performance.mark(`vessel:input:${field.value}`, {
+          startTime: event.timeStamp,
+        });
+      }
     },
     { capture: true },
   );

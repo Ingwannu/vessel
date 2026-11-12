@@ -4,7 +4,7 @@
 // spread in view. The runs themselves are kept too.
 
 /** What a quantity is counted in. */
-export type Unit = "ms" | "bytes" | "count" | "bytes/s" | "frames";
+export type Unit = "ms" | "bytes" | "count" | "bytes/s" | "frames" | "px";
 
 /** A quantity read from each run of type `R`. */
 export interface Metric<R> {
