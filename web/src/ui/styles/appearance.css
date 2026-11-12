@@ -1,4 +1,4 @@
-/* The person's appearance (Settings › Appearance; ADR 0025), from the
+/* The person's appearance (Settings › Appearance; ADR 0028), from the
    attributes the bridge writes on the index's `<html>` before any script
    runs, and `data/prefs.ts` keeps in step after. One rule per value the
    bridge accepts, so nothing is inline and the first paint is already

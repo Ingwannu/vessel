@@ -1,6 +1,6 @@
 // What a new session on a machine starts with when the person has not
 // chosen yet (DESIGN.md §7.5): the agent, profile and choices of the last
-// session started there, kept with the bridge (ADR 0025), so they hold
+// session started there, kept with the bridge (ADR 0028), so they hold
 // across browsers and launches.
 //
 // [Decision Log]

@@ -16,7 +16,7 @@
 //   Fonts (woff2 is brotli inside) and images are left as they are; a
 //   form is kept only when it is smaller than its file. The index is left
 //   as it is too: `vessel ui` writes the page's appearance into it for
-//   each request (crates/vessel-web/src/paint.rs, ADR 0025), which a form
+//   each request (crates/vessel-web/src/paint.rs, ADR 0028), which a form
 //   made here could not carry.
 // - Alternatives: `vite-plugin-compression` (a dependency for the same
 //   twenty lines); compressing in Rust's build script (two crates, run

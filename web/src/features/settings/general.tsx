@@ -1,6 +1,6 @@
 // Settings › General: how the composer sends (agent-orchestrator's
 // "Chat send key", GOAT's and Paseo's "Send shortcut") and where the
-// page's choices are kept (ADR 0025).
+// page's choices are kept (ADR 0028).
 
 import { useFleet } from "../../context";
 import { sendKeyLabel } from "../../data/compose-keys";

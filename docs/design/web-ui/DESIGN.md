@@ -23,7 +23,7 @@ way, how it maps onto the protocol, and what must not be improvised.
   Notifications (Paseo is the reference for settings), drafts and recall
   in the composer, find and the outline in a session, the sidebar's
   Display menu and its sheet on a phone, all kept by the bridge (ADR
-  0025).
+  0028).
 - **The reference is agent-orchestrator** (Apache-2.0): its `DESIGN.md`,
   its token file, its board view and its controls. Where this file gives a
   number, it is theirs unless it says otherwise. Where it has no such
@@ -150,7 +150,7 @@ Devices are sections there too (milestone 10, track W2).
   icon) and a "+" that adds one (§7.6), each machine with its live
   sessions under it; Settings and the theme switch at the foot. The
   sidebar hides with its shortcut (`⌘B`) or the title bar's button, and
-  stays hidden across launches (ADR 0025).
+  stays hidden across launches (ADR 0028).
 - **Display** (Paseo's sidebar menu, in agent-orchestrator's menu):
   Grouping (Machine, Status), Sort (Created, Last activity, newest first
   either way) and a "Show ended sessions" switch. Grouping by status
@@ -342,7 +342,7 @@ move between sections. Below 768px the column's padding is 12px.
   tab's title), then This launch (the browser's permission, with Allow
   while it has not been asked; Test notification). See §7.7.
 
-Each of these four is a preference the bridge keeps (ADR 0025), so it
+Each of these four is a preference the bridge keeps (ADR 0028), so it
 holds across launches and in every tab, with Settings › General's note
 when it is kept for this launch only.
 - **About**: this page's version and licence, each machine's version and
@@ -1524,7 +1524,7 @@ control, GOAT), on purpose:
     this host?" shows the host's name; a Vessel pairing link carries the
     node's id and key but not its name, which the checklist shows once the
     machine has connected.
-17. **Preferences live with `vessel ui`, not the browser** (ADR 0025).
+17. **Preferences live with `vessel ui`, not the browser** (ADR 0028).
     The references keep them in the app or the browser's storage; a
     Vessel launch has a new origin each time, so the bridge keeps them in
     a file and every tab follows it.

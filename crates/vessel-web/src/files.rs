@@ -153,7 +153,7 @@ pub(crate) fn serve(
 ///
 /// [Decision Log] (milestone 11: tracks P and W together)
 /// - Purpose: track W writes the page's appearance into the index per
-///   request (`paint`, ADR 0025); track P compresses every text file once
+///   request (`paint`, ADR 0028); track P compresses every text file once
 ///   at build. A form compressed at build cannot carry a value chosen per
 ///   request.
 /// - Alternatives: compressing the painted index per request (a brotli or

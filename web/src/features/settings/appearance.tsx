@@ -1,7 +1,7 @@
 // Settings › Appearance: how this page looks (DESIGN.md §3.1). The
 // colour scheme; GOAT's interface and code font sizes and its chat
 // width; Paseo's "Chat display" (how much of an agent's work the
-// conversation shows). Each is a preference the bridge keeps (ADR 0025),
+// conversation shows). Each is a preference the bridge keeps (ADR 0028),
 // so it holds across launches and in every tab.
 
 import { useFleet } from "../../context";

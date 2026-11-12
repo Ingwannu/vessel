@@ -2,7 +2,7 @@
 //! book's nodes, a retry, pairing, a QR code, and the book's edits).
 //! [`route`] sends the page's preferences and drafts elsewhere: they are
 //! `keep`'s, answered in order by the task that owns each file rather
-//! than as one of the tab's concurrent tasks (ADR 0025).
+//! than as one of the tab's concurrent tasks (ADR 0028).
 //!
 //! [Decision Log] The book's edits from the page (`forget`, `rename`,
 //! `default`), milestone 10, track E

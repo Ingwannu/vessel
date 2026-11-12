@@ -7,7 +7,7 @@
 //! - Purpose: the page matches a key press against what is kept. Two
 //!   spellings of one press (`Mod+?` and `Mod+Shift+/`, `k` and `K`) would
 //!   be two bindings that look different and clash silently.
-//! - Choice: one grammar with one spelling per press (ADR 0025): a key is
+//! - Choice: one grammar with one spelling per press (ADR 0028): a key is
 //!   a physical key (`KeyboardEvent.code`) written as it is on a US
 //!   keyboard without Shift, the modifiers come in a fixed order, each at
 //!   most once, and a binding is one chord or two. The parser accepts only

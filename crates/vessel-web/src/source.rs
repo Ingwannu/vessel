@@ -17,7 +17,7 @@
 //!   too, so the book has one writer, the CLI's (`BookFile`), and the
 //!   page cannot do to the book what `vessel nodes` cannot.
 //! - Where the page's preferences and drafts are kept is the source's to
-//!   say too ([`NodeSource::preferences`], ADR 0025): only the CLI knows
+//!   say too ([`NodeSource::preferences`], ADR 0028): only the CLI knows
 //!   `--config-dir`, `--data-dir` and where the book is, and a library
 //!   never works out the user's home itself (AGENTS.md section 8).
 

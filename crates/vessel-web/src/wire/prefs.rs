@@ -1,4 +1,4 @@
-//! The page's memory across launches (ADR 0025): its preferences and its
+//! The page's memory across launches (ADR 0028): its preferences and its
 //! composers' drafts, kept by the bridge, and the ops and the pushed frame
 //! that carry them.
 //!

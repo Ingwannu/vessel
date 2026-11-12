@@ -1,4 +1,4 @@
-//! The drafts file (`ui-drafts.json`, ADR 0025): its format, merging this
+//! The drafts file (`ui-drafts.json`, ADR 0028): its format, merging this
 //! process's saves into what another process wrote, and the bounds.
 //!
 //! ```json

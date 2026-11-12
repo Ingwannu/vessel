@@ -1,4 +1,4 @@
-//! The preferences file (`ui-preferences.json`, ADR 0025): its format,
+//! The preferences file (`ui-preferences.json`, ADR 0028): its format,
 //! what this build reads of it, and one change applied to it.
 //!
 //! ```json

@@ -1,4 +1,4 @@
-// What the person chose for this page, kept by the bridge (ADR 0025):
+// What the person chose for this page, kept by the bridge (ADR 0028):
 // the store screens read, how a choice is sent, and the appearance put
 // on `<html>`.
 //

@@ -15,7 +15,7 @@
 //!   else's.
 //! - Everything a tab started stops when its socket closes.
 //!
-//! [Decision Log] The page's preferences and drafts (ADR 0025)
+//! [Decision Log] The page's preferences and drafts (ADR 0028)
 //! - Purpose: two changes from one tab must apply, and be answered, in
 //!   the order the tab sent them; a draft saved as the page is hidden must
 //!   not be refused because node calls hold every permit.

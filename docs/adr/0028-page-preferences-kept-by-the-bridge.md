@@ -1,4 +1,4 @@
-# ADR 0025: The page's preferences and drafts, kept by the bridge
+# ADR 0028: The page's preferences and drafts, kept by the bridge
 
 Status: accepted, 2026-11-11 (milestone 11, track W,
 `docs/plans/backend-m11.md`, "Track W: contract"; the wire is

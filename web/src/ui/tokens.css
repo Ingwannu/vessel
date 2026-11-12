@@ -129,7 +129,7 @@
      Every size is scaled by the person's interface font (`--ui-scale`, 1
      at the default 14px) and code font (`--code-px`, 12px by default),
      which `ui/styles/appearance.css` sets from the attributes the bridge
-     writes on `<html>` (ADR 0025). */
+     writes on `<html>` (ADR 0028). */
   --t-title: 600 calc(16px * var(--ui-scale)) / calc(20px * var(--ui-scale))
     var(--font-sans);
   --t-body: 400 calc(14px * var(--ui-scale)) / calc(21px * var(--ui-scale))

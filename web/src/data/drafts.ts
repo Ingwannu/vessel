@@ -1,6 +1,6 @@
 // Drafts (DESIGN.md §6.15): what is typed into a composer and not yet
 // sent, one per session and one for the new-session page, kept by the
-// bridge (ADR 0025) so it survives leaving the page, a reload and a new
+// bridge (ADR 0028) so it survives leaving the page, a reload and a new
 // launch.
 //
 // [Decision Log]

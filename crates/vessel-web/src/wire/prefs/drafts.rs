@@ -1,5 +1,5 @@
 //! A composer's unsent text, kept by the bridge so it outlives the tab and
-//! the launch (ADR 0025): [`DraftKey`] says whose composer, [`DraftText`]
+//! the launch (ADR 0028): [`DraftKey`] says whose composer, [`DraftText`]
 //! the text, [`DraftsState`] every draft and where they are kept.
 
 use std::fmt;

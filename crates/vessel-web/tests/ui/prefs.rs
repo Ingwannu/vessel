@@ -1,4 +1,4 @@
-//! The page's preferences and drafts through the bridge (ADR 0025): where
+//! The page's preferences and drafts through the bridge (ADR 0028): where
 //! they are kept, in what order changes apply, what every tab is pushed,
 //! and what is kept for this launch only.
 #![expect(

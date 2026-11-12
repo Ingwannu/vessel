@@ -15,7 +15,7 @@
 //! - asks the bridge itself ([`ClientFrame::Op`]) for what only this
 //!   machine knows: the book's nodes, pairing, QR codes, the book's edits
 //!   (forget, rename, default), and the page's own preferences and drafts
-//!   (`prefs`, ADR 0025).
+//!   (`prefs`, ADR 0028).
 //!
 //! Every node's connection state is pushed as [`ServerFrame::Node`], and
 //! every state of the preferences as [`ServerFrame::Preferences`].

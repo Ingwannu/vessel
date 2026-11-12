@@ -3,7 +3,7 @@
 // the actions by group, each rebound by pressing the keys. A key another
 // action holds is offered to be moved ("Shortcut already in use"); a
 // fixed one, or one the browser keeps, is refused in place. Every change
-// is kept by the bridge (ADR 0025) and every tab follows it.
+// is kept by the bridge (ADR 0028) and every tab follows it.
 
 import "./shortcuts-section.css";
 

@@ -422,8 +422,9 @@ never meets a bridge of another version. The versions that can differ are
 those of two `vessel` binaries reading one file; the rules for that are
 under "The files".
 
-The decisions that could have gone another way are ADR 0025 (0023 is
-track B's; 0024 is left for track A). A reviewer read this contract
+The decisions that could have gone another way are ADR 0028 (taken as
+0025 on the track's branch and renumbered at the integration: 0023 and
+0027 are track B's, 0024 to 0026 track A's). A reviewer read this contract
 against the code and the references; what changed and what was not taken
 is under "Review" at the end of this section.
 
@@ -804,11 +805,12 @@ Described and left: a session list subscription (a wire change).
 ## Track W: progress
 
 Branch `backend/m11-page`. The contract above (reviewed) holds, with the
-deviations listed below. ADR 0025 is taken.
+deviations listed below. ADR 0028 is taken (0025 on the branch,
+renumbered at the integration).
 
 ### Built
 
-- **Preferences kept by the bridge** (ADR 0025): `vessel_web::keep`
+- **Preferences kept by the bridge** (ADR 0028): `vessel_web::keep`
   (one task per file, bounded queues, a `watch` with a rising revision
   pushed to every tab as a `preferences` frame), the lenient codec that
   keeps unknown keys and unreadable values, `paint` (the theme, sizes

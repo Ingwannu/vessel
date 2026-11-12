@@ -559,7 +559,7 @@ browser on Unix (on Windows, open the printed address).
   and About. A machine in the sidebar opens it there. The page follows
   the system's light or dark theme until you choose one.
 - **What you choose is kept by `vessel ui`, not the browser** (ADR
-  0025): each launch opens at a new address, which would start a
+  0028): each launch opens at a new address, which would start a
   browser's own storage empty. The preferences are
   `ui-preferences.json` beside the node book (`--config-dir` moves both),
   the drafts `ui-drafts.json` in the data directory (`~/.vessel`, or

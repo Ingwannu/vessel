@@ -179,7 +179,7 @@ export class Bridge {
     return () => this.#linkListeners.delete(listener);
   }
 
-  /** Every preferences state the bridge pushes (ADR 0025): once after
+  /** Every preferences state the bridge pushes (ADR 0028): once after
    * each welcome, then after every change from any tab. */
   onPreferences(listener: (state: PreferencesState) => void): () => void {
     this.#preferenceListeners.add(listener);

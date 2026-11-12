@@ -1,4 +1,4 @@
-// Where the bridge keeps what Settings changes (ADR 0025), said only when
+// Where the bridge keeps what Settings changes (ADR 0028), said only when
 // it is not a file: then a choice lasts until vessel ui stops, and the
 // page says so rather than pretend.
 

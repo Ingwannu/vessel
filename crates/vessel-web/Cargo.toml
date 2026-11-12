@@ -17,7 +17,7 @@ vessel-client.workspace = true
 vessel-proto.workspace = true
 
 axum.workspace = true
-# The time a draft was last saved (ADR 0025), as the protocol's own times
+# The time a draft was last saved (ADR 0028), as the protocol's own times
 # are typed (`vessel-proto` already depends on it).
 chrono.workspace = true
 futures-util.workspace = true

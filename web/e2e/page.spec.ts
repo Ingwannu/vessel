@@ -1,5 +1,5 @@
 // Track W (milestone 11) end to end: what the bridge keeps for the page
-// (ADR 0025) and what the page builds on it, against the test fleet's
+// (ADR 0028) and what the page builds on it, against the test fleet's
 // real `vessel ui` and fake agents. Every test puts back what it changed:
 // the fleet's one `vessel ui` keeps preferences across the run.
 

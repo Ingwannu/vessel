@@ -1,4 +1,4 @@
-//! What the bridge keeps for the page across launches (ADR 0025): its
+//! What the bridge keeps for the page across launches (ADR 0028): its
 //! preferences and its drafts, each owned by one task.
 //!
 //! [Decision Log]

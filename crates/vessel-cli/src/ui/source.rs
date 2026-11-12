@@ -27,7 +27,7 @@
 //!   data directory (`ui-drafts.json`, `--data-dir`), beside the
 //!   sessions' logs: a draft is prompt text, and a configuration
 //!   directory is often a dotfiles repository, or roams to a server on
-//!   Windows (ADR 0025). The bridge writes them; this only says where.
+//!   Windows (ADR 0028). The bridge writes them; this only says where.
 
 use vessel_client::NodeAddress;
 use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook, NodeName, Origin, Resolved};

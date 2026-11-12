@@ -1,5 +1,5 @@
 // The web UI's entry: the launch token, the preferences the bridge painted
-// on the index (ADR 0025), then the app (ADR 0017).
+// on the index (ADR 0028), then the app (ADR 0017).
 import "./ui/fonts.css";
 // Pretendard's unicode-range subsets (fonts.css says why it is here).
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";

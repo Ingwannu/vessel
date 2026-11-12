@@ -24,7 +24,7 @@
 //! - `registry`: one connection per node, shared by every tab, with its
 //!   state pushed to them;
 //! - `keep`: the page's preferences and drafts, one task per file, kept
-//!   where the source says ([`PageFiles`], ADR 0025);
+//!   where the source says ([`PageFiles`], ADR 0028);
 //! - `paint`: the preferences' appearance written into the index, so the
 //!   first paint is already right;
 //! - [`NodeSource`]: the seam through which the CLI gives the nodes;

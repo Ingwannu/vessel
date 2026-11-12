@@ -11,7 +11,7 @@
 // - Choice: CSS decides. Every colour token is `light-dark()` and `:root`
 //   is `color-scheme: light dark`, so with no attribute the page follows
 //   the system, live. A choice of light or dark is a preference the bridge
-//   keeps (ADR 0025), and the bridge writes it as `data-theme` on the
+//   keeps (ADR 0028), and the bridge writes it as `data-theme` on the
 //   index's `<html>`, which pins `color-scheme` before any script runs: no
 //   flash on any load. `data/prefs.ts` keeps the attribute in step with
 //   later changes.
