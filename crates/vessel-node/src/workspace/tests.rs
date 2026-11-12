@@ -868,3 +868,22 @@ async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
         .unwrap_err();
     assert!(matches!(error, WorkspaceError::NotGit), "{error:?}");
 }
+
+/// A project's `vessel.toml` linked out of its folder (to a file of the
+/// node's, say) is not read: `project.commands` says so, and names none
+/// of what the other file holds.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_project_file_linked_out_of_its_folder_is_not_read() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let elsewhere = fixture.path().join("elsewhere.toml");
+    std::fs::write(&elsewhere, "[worktree]\nsetup = \"echo not yours\"\n").unwrap();
+    std::os::unix::fs::symlink(&elsewhere, project.root.join("vessel.toml")).unwrap();
+    let commands = fixture.workspaces.commands(project.id, None).await.unwrap();
+    let ProjectCommands::Invalid { message } = commands else {
+        panic!("{commands:?}");
+    };
+    assert!(message.contains("leads out of its folder"), "{message}");
+    assert!(!message.contains("not yours"), "{message}");
+}

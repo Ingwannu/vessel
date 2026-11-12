@@ -61,20 +61,13 @@ impl Workspaces {
     }
 
     /// The project's file in a folder as it is.
+    /// Only a regular file inside the folder is read, and only up to the
+    /// bound (`ProjectFile::read_in`): an agent can write in a project's
+    /// folder and in its own worktree.
     pub(crate) async fn file_in(&self, folder: &Path) -> Result<Option<ProjectFile>, String> {
-        let path = folder.join(project_file::FILE_NAME);
+        let folder = folder.to_path_buf();
         tokio::task::spawn_blocking(move || {
-            let metadata = match std::fs::metadata(&path) {
-                Ok(metadata) => metadata,
-                Err(_missing) => return Ok(None),
-            };
-            if metadata.len() > u64::try_from(project_file::MAX_BYTES).unwrap_or(u64::MAX) {
-                return Err(project_file::ProjectFileError::TooLarge.to_string());
-            }
-            let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
-            ProjectFile::parse(&bytes)
-                .map(Some)
-                .map_err(|error| error.to_string())
+            ProjectFile::read_in(&folder).map_err(|error| error.to_string())
         })
         .await
         .unwrap_or_else(|_panicked| Err("reading the project's file stopped".to_owned()))

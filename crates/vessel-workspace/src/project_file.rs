@@ -20,9 +20,14 @@
 //!   what it runs to the digest, which makes every earlier approval ask
 //!   again; that is the safe direction.
 
+use std::io::Read as _;
+use std::path::Path;
+
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use vessel_proto::workspace::{CommandsDigest, InvalidText, ProjectCommand};
+use vessel_proto::workspace::{CommandsDigest, InvalidText, ProjectCommand, RelPath};
+
+use crate::paths::{PathError, Root};
 
 /// The file's name, at the project's root.
 pub const FILE_NAME: &str = "vessel.toml";
@@ -68,6 +73,15 @@ pub enum ProjectFileError {
         /// What is wrong with it.
         source: InvalidText,
     },
+    /// A link that leads out of its folder (or into its `.git`).
+    #[error("`vessel.toml` leads out of its folder; it is not read")]
+    Outside,
+    /// Not a regular file (a device, a pipe, a folder).
+    #[error("`vessel.toml` is not a regular file; it is not read")]
+    NotAFile,
+    /// The disk refused.
+    #[error("`vessel.toml` cannot be read")]
+    Unreadable(#[source] std::io::Error),
 }
 
 #[derive(Deserialize, Default)]
@@ -115,6 +129,53 @@ impl ProjectFile {
         })
     }
 
+    /// The file in `folder` as it is: `None` when there is none.
+    ///
+    /// Blocking. Read only when it is a regular file inside `folder` once
+    /// links are resolved, and never more than one byte past
+    /// [`MAX_BYTES`]: anyone who can write in a project's folder (an agent
+    /// working in it) could otherwise link it to a file of the node's,
+    /// whose text a parse error might show, or to a device that never ends
+    /// (`/dev/zero`), whose read would fill the node's memory. A same-user
+    /// process can still swap the file between the check and the read
+    /// (ADR 0027's limit for every path).
+    ///
+    /// # Errors
+    /// As [`ProjectFileError`] says.
+    pub fn read_in(folder: &Path) -> Result<Option<Self>, ProjectFileError> {
+        let Ok(root) = Root::open(folder) else {
+            return Ok(None);
+        };
+        let name: RelPath = FILE_NAME
+            .parse()
+            .map_err(|_never| ProjectFileError::Outside)?;
+        let path = match root.existing(&name) {
+            Ok(path) => path,
+            Err(PathError::NotFound(_)) => return Ok(None),
+            Err(PathError::Outside(_) | PathError::GitDir(_)) => {
+                return Err(ProjectFileError::Outside);
+            }
+            Err(
+                PathError::Root | PathError::Link(_) | PathError::Platform(_) | PathError::Io(_),
+            ) => return Err(ProjectFileError::NotAFile),
+        };
+        let metadata = std::fs::metadata(&path).map_err(ProjectFileError::Unreadable)?;
+        if !metadata.is_file() {
+            return Err(ProjectFileError::NotAFile);
+        }
+        let file = std::fs::File::open(&path).map_err(ProjectFileError::Unreadable)?;
+        let mut bytes = Vec::new();
+        let _read = file
+            .take(
+                u64::try_from(MAX_BYTES)
+                    .unwrap_or(u64::MAX)
+                    .saturating_add(1),
+            )
+            .read_to_end(&mut bytes)
+            .map_err(ProjectFileError::Unreadable)?;
+        Self::parse(&bytes).map(Some)
+    }
+
     /// Whether it names no command.
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -159,6 +220,58 @@ fn commands(list: &'static str, raw: Commands) -> Result<Vec<ProjectCommand>, Pr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A folder's file is read only when it is a regular file inside the
+    /// folder: a link out of it, or to a device, is refused unread; a link
+    /// inside it is followed.
+    #[cfg(unix)]
+    #[test]
+    fn a_folders_file_is_read_only_inside_it() {
+        let outside = tempfile::tempdir().unwrap();
+        let secret = outside.path().join("token");
+        std::fs::write(&secret, "[worktree]\nsetup = \"echo secret\"\n").unwrap();
+        let folder = tempfile::tempdir().unwrap();
+        assert!(ProjectFile::read_in(folder.path()).unwrap().is_none());
+
+        let file = folder.path().join(FILE_NAME);
+        std::os::unix::fs::symlink(&secret, &file).unwrap();
+        assert!(matches!(
+            ProjectFile::read_in(folder.path()),
+            Err(ProjectFileError::Outside)
+        ));
+        std::fs::remove_file(&file).unwrap();
+        std::os::unix::fs::symlink("/dev/zero", &file).unwrap();
+        assert!(matches!(
+            ProjectFile::read_in(folder.path()),
+            Err(ProjectFileError::Outside)
+        ));
+        std::fs::remove_file(&file).unwrap();
+        std::fs::create_dir(&file).unwrap();
+        assert!(matches!(
+            ProjectFile::read_in(folder.path()),
+            Err(ProjectFileError::NotAFile)
+        ));
+        std::fs::remove_dir(&file).unwrap();
+
+        let inside = folder.path().join("setup.toml");
+        std::fs::write(&inside, "[worktree]\nsetup = \"npm ci\"\n").unwrap();
+        std::os::unix::fs::symlink(&inside, &file).unwrap();
+        let parsed = ProjectFile::read_in(folder.path()).unwrap().unwrap();
+        assert_eq!(parsed.setup.len(), 1);
+    }
+
+    /// A file that grows past the bound is refused, however it grew.
+    #[test]
+    fn a_folders_file_past_the_bound_is_refused() {
+        let folder = tempfile::tempdir().unwrap();
+        let mut text = "[worktree]\nsetup = \"npm ci\"\n".to_owned();
+        text.push_str(&"#".repeat(MAX_BYTES));
+        std::fs::write(folder.path().join(FILE_NAME), text).unwrap();
+        assert!(matches!(
+            ProjectFile::read_in(folder.path()),
+            Err(ProjectFileError::TooLarge)
+        ));
+    }
 
     #[test]
     fn strings_lists_and_other_tables_parse() {
