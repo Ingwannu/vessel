@@ -2,7 +2,13 @@ import { expect, test } from "vitest";
 
 import { fixtureId } from "../testing/ids";
 import type { AttachmentRef, PromptQueue, QueuedPrompt } from "../wire/proto";
-import { heldBy, holdLine, queueRows, withText } from "./queue-view";
+import {
+  heldBy,
+  holdLine,
+  moveBefore,
+  queueRows,
+  withText,
+} from "./queue-view";
 
 const IMAGE: AttachmentRef = {
   id: fixtureId("AttachmentId", "a1"),
@@ -62,4 +68,20 @@ test("a held queue says why", () => {
   expect(heldBy({ entries: [], held: "cancelled" })).toBe("cancelled");
   expect(holdLine("cancelled")).toBe("Paused after you stopped the agent");
   expect(holdLine("ended")).toBe("Paused: the session ended");
+});
+
+test("a move to a place names the entry it goes before, or last", () => {
+  const rows = queueRows({
+    entries: [entry("e1", "one"), entry("e2", "two"), entry("e3", "three")],
+  });
+  // The first, down one: before the third.
+  expect(moveBefore(rows, 0, 1)).toBe(fixtureId("QueueEntryId", "e3"));
+  // The first, to the end: last.
+  expect(moveBefore(rows, 0, 2)).toBeNull();
+  expect(moveBefore(rows, 0, 9)).toBeNull();
+  // The last, up one: before the second.
+  expect(moveBefore(rows, 2, 1)).toBe(fixtureId("QueueEntryId", "e2"));
+  // Nowhere to go.
+  expect(moveBefore(rows, 0, 0)).toBeUndefined();
+  expect(moveBefore(rows, 0, -3)).toBeUndefined();
 });

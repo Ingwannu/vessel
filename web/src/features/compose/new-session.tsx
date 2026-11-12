@@ -12,12 +12,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../../context";
-import {
-  agentChoices,
-  profileChoices,
-  startingAgent,
-} from "../../data/agent-choices";
-import { agentName, runsTimeline } from "../../data/agents";
+import { profileChoices, startingAgent } from "../../data/agent-choices";
+import { agentName } from "../../data/agents";
 import { createSession, sendPrompt } from "../../data/calls";
 import { folderSuggestions } from "../../data/folders";
 import {
@@ -39,9 +35,9 @@ import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
 import type { HarnessKind, OptionChoice } from "../../wire/proto";
-import { AddMenu } from "./add-menu";
-import { AgentMenu } from "./agent-menu";
-import { PermissionsMenu } from "./permissions-menu";
+import { handOver, sendWhenReady, trayOf } from "../../data/trays";
+import { NewSessionControls } from "./new-session-controls";
+import { AttachmentStrip } from "./attachment-strip";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
@@ -76,6 +72,8 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     return text.current !== null;
   });
   const [busy, setBusy] = useState(false);
+  // Files for the first message, held until the session exists.
+  const tray = trayOf("new");
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
   useCrumbs(NO_CRUMBS);
@@ -154,7 +152,16 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
         return;
       }
       const prompt = effective.prompt.trim();
-      if (spec.mode === "structured" && prompt !== "") {
+      if (spec.mode === "structured" && tray.items.get().length > 0) {
+        // Files go once the session's agent can take them: its composer
+        // uploads them and sends this prompt (data/trays.ts).
+        handOver("new", created.value.id);
+        fleet.drafts.type(
+          { kind: "session", session: created.value.id },
+          prompt,
+        );
+        sendWhenReady(created.value.id);
+      } else if (spec.mode === "structured" && prompt !== "") {
         const sent = await sendPrompt(fleet, machine, created.value.id, prompt);
         if (!sent.ok) {
           toast(
@@ -208,46 +215,29 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           }
           onSend={send}
           textAreaRef={text}
+          {...(terminal
+            ? {}
+            : {
+                onFiles: (files: File[]) => {
+                  tray.add(files);
+                },
+                strip: <AttachmentStrip tray={tray} />,
+              })}
           controls={
-            <>
-              <AddMenu
-                profiles={profiles}
-                profile={effective.profile}
-                onProfile={(profile) => {
-                  change({ profile, picks: {}, chosen: true });
-                }}
-                terminal={draft.terminal}
-                canTimeline={harness === null || runsTimeline(harness)}
-                onTerminal={(on) => {
-                  change({ terminal: on });
-                }}
-                args={draft.args}
-                onArgs={(args) => {
-                  change({ args });
-                }}
-              />
-              {agent === null ? null : (
-                <AgentMenu
-                  agent={{
-                    value: agent,
-                    name: agentLabel,
-                    choices: agentChoices(harnesses),
-                    onChange: (next) => {
-                      restart({ agent: next });
-                    },
-                  }}
-                  state={controls}
-                  onChoose={choose}
-                />
-              )}
-              {controls.kind === "ready" &&
-              controls.controls.permissions !== null ? (
-                <PermissionsMenu
-                  control={controls.controls.permissions}
-                  onChoose={choose}
-                />
-              ) : null}
-            </>
+            <NewSessionControls
+              profiles={profiles}
+              draft={draft}
+              effective={effective}
+              change={change}
+              restart={restart}
+              terminal={terminal}
+              harness={harness}
+              harnesses={harnesses}
+              agent={agent}
+              controls={controls}
+              choose={choose}
+              tray={tray}
+            />
           }
           action={
             <SendButton

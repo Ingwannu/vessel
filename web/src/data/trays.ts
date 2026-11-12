@@ -44,3 +44,18 @@ export function handOver(from: string, to: string): void {
   trays.get(to)?.dispose();
   trays.set(to, tray);
 }
+
+/** Sessions the new-session page created with files: their first prompt
+ * is sent by the session's composer once the agent can take it. */
+const firstSends = new Set<string>();
+
+/** Ask `session`'s composer to send its draft and files once it can. */
+export function sendWhenReady(session: string): void {
+  firstSends.add(session);
+}
+
+/** Whether `session`'s composer was asked to send once it can; the ask
+ * is taken (a second composer of the same session does not send again). */
+export function takeFirstSend(session: string): boolean {
+  return firstSends.delete(session);
+}

@@ -35,6 +35,7 @@ export {
   MenuSubmenu,
 } from "./menu";
 export { MenuNote, MenuSwitchItem } from "./menu-switch";
+export { type OptionRow, OptionList } from "./option-list";
 export { Popover } from "./popover";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";

@@ -112,3 +112,20 @@ export function heldBy(queue: PromptQueue | null): QueueHold | null {
   const held = queue?.held;
   return held === undefined ? null : held;
 }
+
+/** The `before` a move of the entry at `from` to place `to` names (both
+ * places in the queue as it is; `to` past the end is last): the entry it
+ * will go before once taken out, `null` for last, or `undefined` when it
+ * would not move. */
+export function moveBefore(
+  rows: readonly QueueRow[],
+  from: number,
+  to: number,
+): QueueEntryId | null | undefined {
+  const place = Math.max(0, Math.min(rows.length - 1, to));
+  if (place === from || rows[from] === undefined) {
+    return undefined;
+  }
+  const rest = rows.filter((_, index) => index !== from);
+  return rest[place]?.id ?? null;
+}

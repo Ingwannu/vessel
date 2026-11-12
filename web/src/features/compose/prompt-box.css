@@ -7,10 +7,29 @@
    controls it holds; with a tray the box keeps only its hairline. */
 
 .prompt-dock {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   min-width: 0;
+}
+
+/* The suggestion list on the box's top-left edge, 6px above it
+   (agent-orchestrator's `bottom-full left-0 mb-1.5`), over whatever is
+   docked there. */
+.prompt-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 3;
+  display: flex;
+  width: 100%;
+}
+
+/* A drag of files over the box: agent-orchestrator's tint, the box's
+   fill with the accent at 6%. */
+.prompt-box.dropping {
+  background: color-mix(in srgb, var(--composer-bg) 94%, var(--accent));
 }
 
 .prompt-box {
@@ -101,4 +120,10 @@
   margin: 6px 4px 0;
   font: var(--t-meta);
   color: var(--text-tertiary);
+}
+
+/* Under the box: what the machine or the tray refused, kept until the
+   text changes. */
+.prompt-note .prompt-problem {
+  color: var(--danger);
 }
