@@ -62,9 +62,10 @@ pub(super) fn scan_proc(proc: &Path, roots: &[u32], limits: ScanLimits) -> Resul
     let mut names: HashMap<u32, Option<String>> = HashMap::new();
     for (file, v6) in [("net/tcp", false), ("net/tcp6", true)] {
         // A kernel without IPv6 has no `tcp6`.
-        let Ok(table) = std::fs::read_to_string(proc.join(file)) else {
+        let Ok((table, cut)) = read_bounded(&proc.join(file), limits.tool_output) else {
             continue;
         };
+        truncated |= cut;
         for socket in parse::proc_net_tcp(&table, v6) {
             let Some(&pid) = sockets.get(&socket.inode) else {
                 continue;
@@ -130,11 +131,49 @@ fn socket_owners(proc: &Path, trees: &Trees, limit: usize) -> (HashMap<u64, u32>
     (owners, false)
 }
 
+/// At most `limit` bytes of `path`, ended at its last whole line, and
+/// whether more was left.
+fn read_bounded(path: &Path, limit: usize) -> std::io::Result<(String, bool)> {
+    use std::io::Read as _;
+    let file = std::fs::File::open(path)?;
+    let mut bytes = Vec::new();
+    let cap = u64::try_from(limit).unwrap_or(u64::MAX).saturating_add(1);
+    let _read = file.take(cap).read_to_end(&mut bytes)?;
+    let cut = bytes.len() > limit;
+    if cut {
+        let end = bytes
+            .get(..limit)
+            .and_then(|head| head.iter().rposition(|&byte| byte == b'\n'))
+            .map_or(0, |at| at.saturating_add(1));
+        bytes.truncate(end);
+    }
+    Ok((String::from_utf8_lossy(&bytes).into_owned(), cut))
+}
+
 #[cfg(test)]
 mod tests {
     use std::net::{IpAddr, Ipv4Addr, TcpListener};
 
     use super::*;
+
+    /// A table larger than the bound is cut at its last whole line.
+    #[test]
+    fn a_table_is_read_up_to_its_bound() {
+        let folder =
+            std::env::temp_dir().join(format!("vessel-proc-bounded-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        let path = folder.join("tcp");
+        std::fs::write(&path, "head\nfirst line\nsecond line\n").unwrap();
+        assert_eq!(
+            read_bounded(&path, 100).unwrap(),
+            ("head\nfirst line\nsecond line\n".to_owned(), false)
+        );
+        assert_eq!(
+            read_bounded(&path, 20).unwrap(),
+            ("head\nfirst line\n".to_owned(), true)
+        );
+        std::fs::remove_dir_all(&folder).unwrap();
+    }
 
     /// The test's own process listens on loopback; a scan rooted at it
     /// finds that port, and one rooted elsewhere does not.

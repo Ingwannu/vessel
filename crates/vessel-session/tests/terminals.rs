@@ -361,11 +361,15 @@ async fn a_scripts_grandchild_ends_with_it() {
 async fn a_service_that_fails_backs_off_and_stops_when_unapproved() {
     within(async {
         let fixture = Fixture::new();
-        let approved = Arc::new(AtomicBool::new(false));
+        let approved = Arc::new(AtomicBool::new(true));
         let asked = Arc::clone(&approved);
         let service = fixture.script("echo up; exit 1", true, move || {
             asked.load(Ordering::Relaxed)
         });
+        // Approved for its first start; withdrawn while it runs, before
+        // the restart its failure asks for.
+        wait_for_output(&service, "up").await;
+        approved.store(false, Ordering::Relaxed);
         let (text, status) = output_to_end(&service).await;
         assert!(text.contains("up"), "{text}");
         assert!(text.contains("restarting"), "{text}");
@@ -376,6 +380,21 @@ async fn a_service_that_fails_backs_off_and_stops_when_unapproved() {
             })
         );
         assert!(matches!(status, SessionStatus::Failed { .. }), "{status:?}");
+    })
+    .await;
+}
+
+/// Approval is asked before every start, the first included: a set
+/// withdrawn between the node's check and the spawn runs nothing.
+#[tokio::test]
+async fn an_unapproved_run_starts_nothing() {
+    within(async {
+        let fixture = Fixture::new();
+        let run = fixture.script("echo ran", false, || false);
+        let (text, status) = output_to_end(&run).await;
+        assert!(!text.contains("ran"), "{text}");
+        assert!(matches!(status, SessionStatus::Failed { .. }), "{status:?}");
+        assert_eq!(run.info().service, None, "a script has no service state");
     })
     .await;
 }

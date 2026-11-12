@@ -2,7 +2,6 @@
 //! the registry; the terminal itself is `vessel_session::terminals`'.
 
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use chrono::Utc;
 use vessel_proto::terminals::{
@@ -12,15 +11,17 @@ use vessel_proto::terminals::{
 };
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{
-    Ack, Creator, EventPage, NodeId, SessionId, TerminalId, TerminalInput, TerminalSize, WireError,
+    Ack, Creator, EventPage, SessionId, TerminalId, TerminalInput, TerminalSize, WireError,
 };
-use vessel_session::FollowError;
 use vessel_session::terminals::{InputError, ShellStart, TerminalHandle, start_shell};
+use vessel_session::{FollowError, SessionHandle};
 
 use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
-use crate::terminals::{self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, Owner, Shell, TerminalsError};
+use crate::terminals::{
+    self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, Owner, Shell, Start, TerminalsError,
+};
 use crate::waits::Waiter;
 
 /// The most output a page carries.
@@ -54,6 +55,9 @@ impl NodeService {
         place: &TerminalPlace,
     ) -> Result<Resolved, TerminalsError> {
         let agent = principal.agent();
+        // A terminal beside a session in a project counts against the
+        // project too.
+        let mut project = place.project();
         let folder = match place {
             TerminalPlace::Session { session } => {
                 let info = self
@@ -61,6 +65,7 @@ impl NodeService {
                     .get(*session)
                     .await
                     .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
+                project = info.workspace.as_ref().map(|place| place.project);
                 if let Some(worktree) = info.workspace.as_ref().and_then(|place| place.worktree)
                     && self.workspaces.busy(worktree)
                 {
@@ -101,22 +106,26 @@ impl NodeService {
             folder,
             owner: Owner {
                 session: place.session(),
-                project: place.project(),
+                project,
                 agent,
             },
         })
     }
 
     /// An agent may open a terminal only beside its own session or one it
-    /// may operate, and only where that session's profile turned agent
-    /// terminals on (ADR 0031).
+    /// may operate, only where that session's profile turned agent
+    /// terminals on, and (an agent of this node) only where its own
+    /// session's profile did too: a person allowed terminals for that
+    /// harness's sandbox, not for an agent that started a session with
+    /// another profile (ADR 0031). Answers the sessions whose end must end
+    /// the terminal: the one it is beside, and the agent's own.
     async fn agent_may_open(
         &self,
         principal: &Principal,
         place: &TerminalPlace,
-    ) -> Result<(), TerminalsError> {
+    ) -> Result<Vec<SessionHandle>, TerminalsError> {
         let Some((node, own)) = principal.agent() else {
-            return Ok(());
+            return Ok(Vec::new());
         };
         let TerminalPlace::Session { session } = place else {
             return Err(TerminalsError::Forbidden(
@@ -124,14 +133,26 @@ impl NodeService {
             ));
         };
         let here = self.links.node();
+        let mut watch = Vec::new();
+        if node == here {
+            self.profile_allows(own).await?;
+            watch.push(self.live_handle(own, "your session has ended")?);
+        }
         if !(node == here && *session == own) {
             self.check_owner(principal, *session)
                 .await
                 .map_err(TerminalsError::Wire)?;
+            self.profile_allows(*session).await?;
+            watch.push(self.live_handle(*session, "the session has ended")?);
         }
+        Ok(watch)
+    }
+
+    /// `session`'s profile sets `agent_terminals = true`, or `forbidden`.
+    pub(crate) async fn profile_allows(&self, session: SessionId) -> Result<(), TerminalsError> {
         let info = self
             .sessions
-            .get(*session)
+            .get(session)
             .await
             .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
         let granted = info
@@ -143,11 +164,24 @@ impl NodeService {
             Ok(())
         } else {
             Err(TerminalsError::Forbidden(
-                "agents may not open terminals beside this session: its profile does not set \
+                "agents may not open terminals here: the session's profile does not set \
                  `agent_terminals = true` (profiles.toml), which a person turns on"
                     .to_owned(),
             ))
         }
+    }
+
+    /// The runtime's handle of a live session, whose end an agent's
+    /// terminal is tied to.
+    fn live_handle(
+        &self,
+        session: SessionId,
+        ended: &str,
+    ) -> Result<SessionHandle, TerminalsError> {
+        self.sessions
+            .runtime_handle(session)
+            .filter(|handle| !handle.has_ended())
+            .ok_or_else(|| TerminalsError::Conflict(ended.to_owned()))
     }
 
     /// A terminal the caller may use.
@@ -178,32 +212,23 @@ impl NodeService {
             TerminalPlace::Session { session } => self.sessions.get(*session).await.is_ok(),
             TerminalPlace::Project { project, .. } => self.workspaces.has_project(*project),
         };
-        if there {
+        // A removal that began while it started (its look at what runs in
+        // the worktree came before this terminal's reservation) holds the
+        // worktree now: the terminal yields.
+        let removing = self.workspaces.busy_folder(&handle.info().folder);
+        if there && !removing {
             return Ok(());
         }
         handle.kill();
         let _ended = tokio::time::timeout(CLOSE_WAIT, handle.ended()).await;
         self.terminals.forget(handle.id());
-        Err(TerminalsError::NotFound(handle.id()))
-    }
-
-    /// When an agent opened it: end its terminals when its session ends
-    /// (its credential dies then). Only this node's agents can be watched;
-    /// another node's agent's terminals end with the session they are
-    /// beside.
-    fn end_with_agent(&self, agent: Option<(NodeId, SessionId)>) {
-        let Some((node, session)) = agent else { return };
-        if node != self.links.node() {
-            return;
-        }
-        let Some(handle) = self.sessions.runtime_handle(session) else {
-            return;
-        };
-        let terminals = Arc::clone(&self.terminals);
-        drop(self.terminals.runner.tasks.spawn(async move {
-            let _info = handle.ended().await;
-            terminals.end_agent((node, session)).await;
-        }));
+        Err(if removing {
+            TerminalsError::Conflict(
+                "the worktree is being torn down or removed; the terminal was ended".to_owned(),
+            )
+        } else {
+            TerminalsError::NotFound(handle.id())
+        })
     }
 
     /// `terminal.create`.
@@ -213,7 +238,8 @@ impl NodeService {
         request: CreateTerminal,
     ) -> Result<TerminalInfo, WireError> {
         let principal = connection.principal();
-        self.agent_may_open(principal, &request.place)
+        let watch = self
+            .agent_may_open(principal, &request.place)
             .await
             .map_err(wire)?;
         let Some(shell) = self.terminals.runner.config.shell.clone() else {
@@ -225,11 +251,19 @@ impl NodeService {
             .resolve_terminal_place(principal, &request.place)
             .await
             .map_err(wire)?;
-        let agent = owner.agent;
-        let reservation = self.terminals.reserve(owner).map_err(wire)?;
+        let id = TerminalId::random();
+        let reservation = self
+            .terminals
+            .reserve(Start {
+                owner,
+                id,
+                folder: folder.clone(),
+                run: None,
+            })
+            .map_err(wire)?;
         let size = request.size.unwrap_or_default();
         let info = TerminalInfo::new(
-            TerminalId::random(),
+            id,
             request.place.clone(),
             folder.clone(),
             TerminalKind::Shell {
@@ -243,17 +277,16 @@ impl NodeService {
             .start_shell(&shell, info, &folder, size)
             .await
             .map_err(wire)?;
-        self.terminals.register(
-            reservation,
-            Entry {
-                handle: handle.clone(),
-                plan: None,
-            },
-        );
+        // Registered and watched before anything else is awaited: a caller
+        // that stops waiting now leaves a terminal the node still ends.
+        self.terminals.register(reservation, handle.clone(), None);
+        let here = self.links.node();
+        for session in watch {
+            self.terminals.watch_for_agents(here, session);
+        }
         self.still_placed(&handle, &request.place)
             .await
             .map_err(wire)?;
-        self.end_with_agent(agent);
         Ok(handle.info())
     }
 

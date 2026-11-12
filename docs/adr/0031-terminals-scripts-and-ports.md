@@ -151,11 +151,17 @@ known port before the service binds.
 
 **6. Agents.** An agent's own shell tool may be sandboxed (Codex's
 sandbox, Claude Code's sandbox and allowlists); a terminal the node
-starts is not. So an agent may open a terminal only beside a session
-whose profile a person marked `agent_terminals = true` (off for every
-default profile): its own session, or one it may operate (ADR 0013's
-ownership, across nodes too). At most 4 at once; it uses only terminals
-it made, and they end when its session ends; `port.list` shows it only
+starts is not. So an agent may open a terminal only where a person
+marked `agent_terminals = true` (off for every default profile) on both
+its own session's profile and the profile of the session it opens it
+beside: its own, or one it may operate (ADR 0013's ownership, across
+nodes too; its own node checks its own profile before passing the call
+on). Both, because a person allows terminals for one harness's sandbox:
+an agent without the switch must not get a shell by starting a session
+with a profile that has it. At most 4 at once; it uses only terminals
+it made, and they end when its own session ends or the session they are
+beside does (watched from the start, before the call answers, so a
+caller that stops waiting leaves nothing running); `port.list` shows it only
 its own; scripts are refused to it. What stops it leaving what it was
 given through a terminal: a person turned it on knowing the agent's own
 sandbox; it starts in the session's folder, as the same user; it holds no credential, so it cannot act

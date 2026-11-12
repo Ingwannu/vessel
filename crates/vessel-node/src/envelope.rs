@@ -86,6 +86,18 @@ impl NodeService {
             return forwarded(run_here(guard, connection, *call).await);
         }
         let here = self.links.node();
+        // An agent of this node opens a terminal elsewhere only if its own
+        // session's profile allows agent terminals, which only this node
+        // can tell (ADR 0031); the other node checks the session it is
+        // beside.
+        if let (Some((agent_node, own)), Call::CreateTerminal(_)) =
+            (connection.principal().agent(), call.as_ref())
+            && agent_node == here
+        {
+            self.profile_allows(own)
+                .await
+                .map_err(crate::terminals::TerminalsError::wire)?;
+        }
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.passed_wait(connection, shares, &mut call);
         self.pass_on(connection.principal(), node, call).await

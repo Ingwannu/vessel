@@ -98,10 +98,12 @@ plan's "Track C: contract" (with its review) say why each choice.
   32 ended ones kept; a terminal's scrollback 4,096 records and 1 MiB
   (the oldest go, which a reader sees as a pruned range).
 - Agents: `script.*` are `forbidden`. `terminal.create` only beside its
-  own session or one it may operate, and only when that session's
-  profile sets `agent_terminals = true` (`profiles.toml`; off for every
-  default profile); at most 4 at once; every other call and `port.list`
-  only on its own terminals; they end when its session ends.
+  own session or one it may operate, and only when both that session's
+  profile and the agent's own session's set `agent_terminals = true`
+  (`profiles.toml`; off for every default profile; the agent's node
+  checks its own before forwarding); at most 4 at once; every other call
+  and `port.list` only on its own terminals; they end when its session,
+  or the session they are beside, ends.
 - A terminal's environment is the node's without Vessel's credentials
   (`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
   `VESSEL_NODE_SOCKET`, and a model route's variables when the node runs

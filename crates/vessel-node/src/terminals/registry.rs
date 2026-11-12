@@ -1,13 +1,14 @@
 //! [`Terminals`]: the node's terminals by id, their limits, and what ties
 //! them to sessions, projects and agents.
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use vessel_proto::scripts::ScriptName;
 use vessel_proto::terminals::TerminalInfo;
 use vessel_proto::{Creator, ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireError};
+use vessel_session::SessionHandle;
 use vessel_session::terminals::TerminalHandle;
 
 use super::scripts::Plan;
@@ -25,32 +26,37 @@ pub(crate) struct Owner {
     pub(crate) agent: Option<(NodeId, SessionId)>,
 }
 
-impl Owner {
-    fn of(info: &TerminalInfo) -> Self {
-        Self {
-            session: info.place.session(),
-            project: info.place.project(),
-            agent: match info.created_by {
-                Creator::Agent { node, session } => Some((node, session)),
-                Creator::Owner | Creator::Device { .. } => None,
-            },
-        }
-    }
-}
-
 /// A terminal as the node keeps it.
 #[derive(Debug, Clone)]
 pub(crate) struct Entry {
     pub(crate) handle: TerminalHandle,
     /// What a script's run ran, to run it again.
     pub(crate) plan: Option<Arc<Plan>>,
+    /// What it counts against, as it was reserved (a terminal beside a
+    /// session in a project counts against the project too, which its
+    /// place alone does not say).
+    pub(crate) owner: Owner,
+}
+
+/// A start to count before it runs.
+#[derive(Debug, Clone)]
+pub(crate) struct Start {
+    /// What it counts against.
+    pub(crate) owner: Owner,
+    /// The id it will have.
+    pub(crate) id: TerminalId,
+    /// The folder it will run in: a start in progress keeps a worktree
+    /// or a project from being removed, as a live terminal does.
+    pub(crate) folder: PathBuf,
+    /// A script's run: its checkout and name, of which one runs at a time.
+    pub(crate) run: Option<(PathBuf, ScriptName)>,
 }
 
 #[derive(Debug, Default)]
 struct State {
     entries: HashMap<TerminalId, Entry>,
     /// Starts in progress, counted with the live ones.
-    starting: Vec<(u64, Owner)>,
+    starting: Vec<(u64, Start)>,
     /// Numbers each reservation.
     counter: u64,
 }
@@ -85,6 +91,9 @@ pub(crate) enum TerminalsError {
     /// A failure already on the wire's terms (a place's, a session's).
     #[error("{}", .0.message)]
     Wire(WireError),
+    /// The script runs already (or is starting), in this terminal.
+    #[error("the script runs already, in terminal {0}")]
+    Running(TerminalId),
 }
 
 impl TerminalsError {
@@ -94,7 +103,7 @@ impl TerminalsError {
             Self::NotFound(_) => ErrorCode::NotFound,
             Self::Limit(_) | Self::ShuttingDown => ErrorCode::Unavailable,
             Self::Forbidden(_) => ErrorCode::Forbidden,
-            Self::Conflict(_) => ErrorCode::Conflict,
+            Self::Conflict(_) | Self::Running(_) => ErrorCode::Conflict,
             Self::Unsupported(_) => ErrorCode::Unsupported,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
             Self::Spawn(_) => ErrorCode::SpawnFailed,
@@ -109,6 +118,9 @@ impl TerminalsError {
 pub(crate) struct Terminals {
     pub(crate) runner: Runner,
     state: Arc<Mutex<State>>,
+    /// The sessions whose end is watched for agents' terminals, one task
+    /// each however many terminals.
+    watching: Mutex<HashSet<SessionId>>,
 }
 
 /// A start counted against the limits until it is registered or dropped.
@@ -116,6 +128,7 @@ pub(crate) struct Terminals {
 pub(crate) struct Reservation {
     state: Arc<Mutex<State>>,
     number: u64,
+    owner: Owner,
 }
 
 impl Drop for Reservation {
@@ -130,11 +143,16 @@ fn lock(state: &Mutex<State>) -> MutexGuard<'_, State> {
     state.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+fn lock_set(set: &Mutex<HashSet<SessionId>>) -> MutexGuard<'_, HashSet<SessionId>> {
+    set.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 impl Terminals {
     pub(crate) fn new(runner: Runner) -> Arc<Self> {
         Arc::new(Self {
             runner,
             state: Arc::default(),
+            watching: Mutex::default(),
         })
     }
 
@@ -142,19 +160,42 @@ impl Terminals {
         lock(&self.state)
     }
 
-    /// Count a start against the limits, or say which is full.
+    /// Count a start against the limits, or say which is full; for a
+    /// script's run, also that it does not run already. One lock for all
+    /// of it, so starts at once cannot all pass.
     ///
     /// # Errors
-    /// `Limit` (the node's, a session's, a project's) or `Forbidden` (an
-    /// agent's four).
-    pub(crate) fn reserve(&self, owner: Owner) -> Result<Reservation, TerminalsError> {
+    /// `Limit` (the node's, a session's, a project's), `Forbidden` (an
+    /// agent's four) or `Running` (the script's live or starting run).
+    pub(crate) fn reserve(&self, start: Start) -> Result<Reservation, TerminalsError> {
         let mut state = self.state();
+        if let Some((root, script)) = &start.run {
+            let live = state.entries.values().find_map(|entry| {
+                let plan = entry.plan.as_ref()?;
+                (!entry.handle.is_ended() && &plan.root == root && &plan.entry.name == script)
+                    .then(|| entry.handle.id())
+            });
+            let starting = state
+                .starting
+                .iter()
+                .find(|(_, other)| {
+                    other
+                        .run
+                        .as_ref()
+                        .is_some_and(|(their_root, theirs)| their_root == root && theirs == script)
+                })
+                .map(|(_, other)| other.id);
+            if let Some(terminal) = live.or(starting) {
+                return Err(TerminalsError::Running(terminal));
+            }
+        }
+        let owner = start.owner.clone();
         let live: Vec<Owner> = state
             .entries
             .values()
             .filter(|entry| !entry.handle.is_ended())
-            .map(|entry| Owner::of(&entry.handle.info()))
-            .chain(state.starting.iter().map(|(_, owner)| owner.clone()))
+            .map(|entry| entry.owner.clone())
+            .chain(state.starting.iter().map(|(_, other)| other.owner.clone()))
             .collect();
         let count = |same: &dyn Fn(&Owner) -> bool| live.iter().filter(|other| same(other)).count();
         if live.len() >= MAX_LIVE {
@@ -183,17 +224,29 @@ impl Terminals {
         }
         state.counter = state.counter.wrapping_add(1);
         let number = state.counter;
-        state.starting.push((number, owner));
+        state.starting.push((number, start));
         Ok(Reservation {
             state: Arc::clone(&self.state),
             number,
+            owner,
         })
     }
 
-    /// Keep a started terminal (its reservation ends), forgetting the
-    /// oldest ended ones past the bound.
-    pub(crate) fn register(&self, reservation: Reservation, entry: Entry) {
-        let id = entry.handle.id();
+    /// Keep a started terminal (its reservation ends, its owner kept),
+    /// forgetting the oldest ended ones past the bound. Synchronous, so a
+    /// caller holding the handle registers it before it can stop waiting.
+    pub(crate) fn register(
+        &self,
+        reservation: Reservation,
+        handle: TerminalHandle,
+        plan: Option<Arc<Plan>>,
+    ) {
+        let id = handle.id();
+        let entry = Entry {
+            handle,
+            plan,
+            owner: reservation.owner.clone(),
+        };
         let mut state = self.state();
         drop(state.entries.insert(id, entry));
         let mut ended: Vec<(TerminalId, chrono::DateTime<chrono::Utc>)> = state
@@ -258,10 +311,12 @@ impl Terminals {
             .collect()
     }
 
-    /// The live terminals and the folders they run in: each keeps a
-    /// worktree or a project from being removed, as a live session does.
+    /// The live terminals, and those starting, with the folders they run
+    /// in: each keeps a worktree or a project from being removed, as a
+    /// live session does.
     pub(crate) fn live_folders(&self) -> Vec<(Occupant, PathBuf)> {
-        self.state()
+        let state = self.state();
+        state
             .entries
             .values()
             .filter(|entry| !entry.handle.is_ended())
@@ -269,6 +324,12 @@ impl Terminals {
                 let info = entry.handle.info();
                 (Occupant::Terminal(info.id), info.folder)
             })
+            .chain(
+                state
+                    .starting
+                    .iter()
+                    .map(|(_, start)| (Occupant::Terminal(start.id), start.folder.clone())),
+            )
             .collect()
     }
 
@@ -283,15 +344,6 @@ impl Terminals {
         sessions.sort_unstable();
         sessions.dedup();
         sessions
-    }
-
-    /// The live run of `script` in `root`, if there is one.
-    pub(crate) fn live_run(&self, root: &Path, script: &ScriptName) -> Option<TerminalId> {
-        self.state().entries.values().find_map(|entry| {
-            let plan = entry.plan.as_ref()?;
-            (!entry.handle.is_ended() && plan.root == root && &plan.entry.name == script)
-                .then(|| entry.handle.id())
-        })
     }
 
     /// The runs whose root is `root`.
@@ -323,15 +375,33 @@ impl Terminals {
         self.end_all(&handles, true).await;
     }
 
-    /// End (and keep) the terminals an agent opened: its session ended,
-    /// and its credential with it.
-    pub(crate) async fn end_agent(&self, agent: (NodeId, SessionId)) {
-        let handles = self.handles(|info| {
-            info.created_by
-                == Creator::Agent {
-                    node: agent.0,
-                    session: agent.1,
-                }
+    /// Watch `session`'s end (once, however many terminals): it ends the
+    /// terminals its own agent opened (`here` is this node) and every
+    /// agent's terminal beside it. Synchronous, so a call that stops
+    /// waiting after registering a terminal leaves it watched.
+    pub(crate) fn watch_for_agents(self: &Arc<Self>, here: NodeId, session: SessionHandle) {
+        let id = session.id();
+        if !lock_set(&self.watching).insert(id) {
+            return;
+        }
+        let terminals = Arc::clone(self);
+        drop(self.runner.tasks.spawn(async move {
+            let _info = session.ended().await;
+            terminals.end_agents_of(here, id).await;
+            let _was = lock_set(&terminals.watching).remove(&id);
+        }));
+    }
+
+    /// End (and keep) the agents' terminals `session`'s end takes with it:
+    /// those its own agent opened (its credential ended with it) and any
+    /// agent's beside it.
+    async fn end_agents_of(&self, here: NodeId, session: SessionId) {
+        let handles = self.handles(|info| match info.created_by {
+            Creator::Agent {
+                node,
+                session: agent,
+            } => (node == here && agent == session) || info.place.session() == Some(session),
+            Creator::Owner | Creator::Device { .. } => false,
         });
         self.end_all(&handles, false).await;
     }

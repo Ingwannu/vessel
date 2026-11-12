@@ -413,8 +413,21 @@ async fn scripts_run_once_approved_and_a_service_holds_its_project() {
             }
         );
 
-        // A service: one run at a time; it holds its project.
-        let web = started(owner.call(run("web")).await.unwrap());
+        // A service: one run at a time, even asked twice at once; it holds
+        // its project.
+        let (first, second) = tokio::join!(owner.call(run("web")), owner.call(run("web")));
+        let (first, second) = (first.unwrap(), second.unwrap());
+        let (web, other) = match (first, second) {
+            (ScriptRunOutcome::Started { terminal }, other)
+            | (other, ScriptRunOutcome::Started { terminal }) => (*terminal, other),
+            both => panic!("neither started: {both:?}"),
+        };
+        assert_eq!(
+            other,
+            ScriptRunOutcome::Refused {
+                reason: ScriptRefusal::AlreadyRunning { terminal: web.id }
+            }
+        );
         let mut stream = owner.follow_terminal(web.id, EventSeq::ZERO).await.unwrap();
         let mut seen = String::new();
         until_output(&mut stream, &mut seen, "web-up").await;
@@ -506,6 +519,24 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
             ),
             ErrorCode::Forbidden
         );
+        // Nor by starting a session whose profile allows it: its own
+        // profile must too.
+        let mut marked = structured_spec(&fixture, None);
+        marked.profile = Some("claude-term".parse().unwrap());
+        let child = refused.create_session(marked).await.unwrap();
+        assert_eq!(
+            code(
+                refused
+                    .call(CreateTerminal {
+                        place: beside(child.id),
+                        size: None,
+                        title: None,
+                    })
+                    .await
+            ),
+            ErrorCode::Forbidden
+        );
+        refused.kill(child.id).await.unwrap();
         // Scripts are a person's.
         assert_eq!(
             code(

@@ -263,9 +263,9 @@ pub(super) fn tools(node: &Value) -> Vec<Tool> {
         tool(
             "create_terminal",
             "Open a shell beside a session: your own (the default) or one you started. Allowed \
-             only where a person turned agent terminals on for that session's profile; at most \
-             4 at once. It runs in the session's folder, without your credentials, and ends \
-             when your session ends.",
+             only where a person turned agent terminals on, for your session's profile and for \
+             that session's; at most 4 at once. It runs in the session's folder, without your \
+             credentials, and ends when your session or that session ends.",
             json!({
                 "node": node,
                 "session": { "type": "string", "description": "A session id; yours by default." },

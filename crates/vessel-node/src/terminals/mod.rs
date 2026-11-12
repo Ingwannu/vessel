@@ -36,7 +36,7 @@ pub use env::{KNOWN_CREDENTIALS, Shell, credentials_in};
 pub(crate) use env::{scrubbed, shell_spec};
 pub(crate) use ports::Ports;
 pub(crate) use registry::Terminals;
-pub(crate) use registry::{Entry, Owner, TerminalsError};
+pub(crate) use registry::{Entry, Owner, Start, TerminalsError};
 pub(crate) use scripts::{CLOSE_WAIT, Plan};
 pub(crate) use subscribe::open as subscribe;
 

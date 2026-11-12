@@ -139,6 +139,18 @@ impl<A: Fn() -> bool> ScriptActor<A> {
         let mut attempt = 1_u32;
         let mut first = true;
         let status = loop {
+            // Asked before every start, the first and a person's restart
+            // included: an approval withdrawn meanwhile runs nothing more.
+            if !(self.approved)() {
+                let state = ServiceState::Failed {
+                    reason: ServiceFailure::NotApproved,
+                };
+                let message = state.summary();
+                if self.service {
+                    self.log.service(state);
+                }
+                break SessionStatus::Failed { message };
+            }
             if self.service {
                 self.log.service(ServiceState::Starting { attempt });
             }
@@ -197,14 +209,6 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     self.log.service(ServiceState::Stopped);
                     break self.stopped(code);
                 }
-            }
-            if !(self.approved)() {
-                let state = ServiceState::Failed {
-                    reason: ServiceFailure::NotApproved,
-                };
-                let message = state.summary();
-                self.log.service(state);
-                break SessionStatus::Failed { message };
             }
         };
         self.log.status(status);

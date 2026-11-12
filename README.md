@@ -452,7 +452,8 @@ vessel session move-profile 3f2a claude-work # at a usage limit: same conversati
   structured Claude Code and Codex sessions, between turns (`--force`
   cancels a running one), and only to a profile that is logged in.
 - `agent_terminals = true` lets the agents of a profile's sessions open
-  terminals beside them (ADR 0031). It is off for every profile unless
+  terminals beside them, or beside sessions they started whose profile
+  sets it too (ADR 0031). It is off for every profile unless
   written: a terminal the node starts is outside the harness's own
   sandbox, so turn it on knowing what that sandbox would have stopped.
 
@@ -591,9 +592,10 @@ read its answer.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
 - Terminals only where a person allowed them (`agent_terminals = true` in
-  the session's profile), beside its own session or one it started, at
-  most 4 at once; it sees and uses only its own, and they end with its
-  session. It never runs a project's scripts.
+  its own session's profile and in that of the session it opens one
+  beside: its own or one it started), at most 4 at once; it sees and uses
+  only its own, and they end with its session or the one they are beside.
+  It never runs a project's scripts.
 - Agents do not mark sessions read or unread (the node refuses: an agent
   reading is not its owner seeing), pin them, delete them or attach
   files. The node asks questions only in sessions a person or a device

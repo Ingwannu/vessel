@@ -59,7 +59,9 @@ pub struct ScanLimits {
     pub descriptors: usize,
     /// How long one tool may run (macOS, Windows).
     pub tool_time: Duration,
-    /// How much of one tool's output is read.
+    /// How much of one tool's output is read (on Linux, of each of
+    /// `/proc/net/tcp` and `tcp6`: a host with very many sockets has
+    /// tables of many megabytes).
     pub tool_output: usize,
 }
 

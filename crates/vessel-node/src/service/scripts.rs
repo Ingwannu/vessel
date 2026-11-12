@@ -15,7 +15,7 @@ use vessel_session::terminals::{Leftover, RestartError, ScriptStart, start_scrip
 use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
-use crate::terminals::{self, Entry, MAX_WAIT_SECS, Owner, Plan, TerminalsError};
+use crate::terminals::{self, MAX_WAIT_SECS, Owner, Plan, Start, TerminalsError};
 use crate::workspace::{DirError, ScriptRoot};
 
 fn wire(error: TerminalsError) -> WireError {
@@ -35,6 +35,13 @@ impl NodeService {
                 let Some(workspace) = info.workspace else {
                     return Err(ScriptLookup::NoProject);
                 };
+                if let Some(worktree) = workspace.worktree
+                    && self.workspaces.busy(worktree)
+                {
+                    return Err(ScriptLookup::Failed(TerminalsError::Conflict(
+                        "the session's worktree is being set up, torn down or removed".to_owned(),
+                    )));
+                }
                 (workspace.project, workspace.worktree)
             }
         };
@@ -97,9 +104,6 @@ impl NodeService {
         if !self.workspaces.is_approved(root.project, &digest) {
             return Ok(ScriptRunOutcome::NeedsApproval { commands });
         }
-        if let Some(terminal) = self.terminals.live_run(&root.root, &entry.name) {
-            return Ok(refused(ScriptRefusal::AlreadyRunning { terminal }));
-        }
         let place = match request.place {
             ScriptPlace::Session { session } => TerminalPlace::Session { session },
             ScriptPlace::Project { project } => TerminalPlace::Project {
@@ -123,14 +127,6 @@ impl NodeService {
         principal: &Principal,
         plan: Arc<Plan>,
     ) -> Result<ScriptRunOutcome, WireError> {
-        let reservation = self
-            .terminals
-            .reserve(Owner {
-                session: plan.place.session(),
-                project: plan.place.project().or(Some(plan.script_root.project)),
-                agent: None,
-            })
-            .map_err(wire)?;
         let (spec, leftover) = match self
             .workspaces
             .script_command(&plan.script_root, &plan.entry)
@@ -144,16 +140,47 @@ impl NodeService {
             .cwd
             .clone()
             .unwrap_or_else(|| plan.script_root.root.clone());
+        let id = TerminalId::random();
+        // One lock decides the limits and that the script does not run
+        // already, so two runs at once cannot both start.
+        let reserved = self.terminals.reserve(Start {
+            owner: Owner {
+                session: plan.place.session(),
+                project: Some(plan.script_root.project),
+                agent: None,
+            },
+            id,
+            folder: folder.clone(),
+            run: Some((plan.root.clone(), plan.entry.name.clone())),
+        });
+        let reservation = match reserved {
+            Ok(reservation) => reservation,
+            Err(refusal) => {
+                if let Some(path) = &leftover
+                    && let Err(error) = tokio::fs::remove_file(path).await
+                {
+                    tracing::debug!(%error, "could not remove a run's command file");
+                }
+                return match refusal {
+                    TerminalsError::Running(terminal) => {
+                        Ok(refused(ScriptRefusal::AlreadyRunning { terminal }))
+                    }
+                    other @ (TerminalsError::NotFound(_)
+                    | TerminalsError::Limit(_)
+                    | TerminalsError::Forbidden(_)
+                    | TerminalsError::Conflict(_)
+                    | TerminalsError::Unsupported(_)
+                    | TerminalsError::Invalid(_)
+                    | TerminalsError::Spawn(_)
+                    | TerminalsError::ShuttingDown
+                    | TerminalsError::Wire(_)) => Err(wire(other)),
+                };
+            }
+        };
         let runner = &self.terminals.runner;
         let spec = terminals::scrubbed(spec, &runner.config.removed);
-        let info = TerminalInfo::new(
-            TerminalId::random(),
-            plan.place.clone(),
-            folder,
-            plan.kind(),
-            Utc::now(),
-        )
-        .with_creator(creator(principal));
+        let info = TerminalInfo::new(id, plan.place.clone(), folder, plan.kind(), Utc::now())
+            .with_creator(creator(principal));
         let workspaces = Arc::clone(&self.workspaces);
         let (project, digest) = (plan.script_root.project, plan.digest.clone());
         let handle = start_script(ScriptStart {
@@ -166,13 +193,8 @@ impl NodeService {
             shutdown: runner.shutdown.clone(),
             tasks: runner.tasks.clone(),
         });
-        self.terminals.register(
-            reservation,
-            Entry {
-                handle: handle.clone(),
-                plan: Some(Arc::clone(&plan)),
-            },
-        );
+        self.terminals
+            .register(reservation, handle.clone(), Some(Arc::clone(&plan)));
         self.still_placed(&handle, &plan.place)
             .await
             .map_err(wire)?;
@@ -205,12 +227,7 @@ impl NodeService {
             Ok(()) => Ok(ScriptRunOutcome::Started {
                 terminal: Box::new(entry.handle.info()),
             }),
-            Err(RestartError::Ended) => {
-                if let Some(terminal) = self.terminals.live_run(&plan.root, &plan.entry.name) {
-                    return Ok(refused(ScriptRefusal::AlreadyRunning { terminal }));
-                }
-                self.start_run(connection.principal(), plan).await
-            }
+            Err(RestartError::Ended) => self.start_run(connection.principal(), plan).await,
             Err(RestartError::NotARun) => Err(wire(TerminalsError::Unsupported(
                 "only a script's run can be restarted".to_owned(),
             ))),

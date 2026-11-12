@@ -113,6 +113,16 @@ impl Workspaces {
             .is_some_and(|entry| entry.running.is_some())
     }
 
+    /// Whether `folder` is in a worktree that setup, teardown or a removal
+    /// holds now (protocol 11: a terminal does not start there, and one
+    /// that started as the removal began is ended).
+    pub(crate) fn busy_folder(&self, folder: &std::path::Path) -> bool {
+        self.state()
+            .worktrees
+            .values()
+            .any(|entry| entry.running.is_some() && folder.starts_with(&entry.info.path))
+    }
+
     async fn worktree_notices(&self, info: &WorktreeInfo) -> Vec<String> {
         let mut notices = vec![format!("vessel: in worktree {}", info.path.display())];
         if let Some(branch) = &info.branch {
