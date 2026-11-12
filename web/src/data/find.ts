@@ -104,6 +104,61 @@ function foldedOf(entry: Entry): string | null {
   return value;
 }
 
+/** One character of `text` as `fold` reads it: decomposed, accents
+ * dropped, lower case; white space as one space. */
+function foldOne(character: string): string {
+  return /\s/.test(character)
+    ? " "
+    : character.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+/** Where `query` occurs in `text` as find matches it (folded as `fold`
+ * folds, so the highlight and the count agree: "cafe" marks "café"), as
+ * offsets into `text` itself, not overlapping, in order. The timeline
+ * marks these in the drawn text of the entry it reveals (reveal.ts). */
+export function spansOf(
+  text: string,
+  query: string,
+): { start: number; end: number }[] {
+  const needle = queryOf(query);
+  if (needle === "") {
+    return [];
+  }
+  // The folded text, and for each of its code units where the character
+  // it came from starts and ends in `text`.
+  let folded = "";
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let at = 0;
+  for (const character of text) {
+    const next = at + character.length;
+    const one = foldOne(character);
+    if (one === "" && ends.length > 0) {
+      // A mark written apart (an accent after its letter) belongs to the
+      // letter before it: a match ending there takes it in.
+      ends[ends.length - 1] = next;
+    } else if (!(one === " " && folded.endsWith(" "))) {
+      starts.push(...new Array<number>(one.length).fill(at));
+      ends.push(...new Array<number>(one.length).fill(next));
+      folded += one;
+    }
+    at = next;
+  }
+  const spans: { start: number; end: number }[] = [];
+  for (
+    let found = folded.indexOf(needle);
+    found !== -1;
+    found = folded.indexOf(needle, found + needle.length)
+  ) {
+    const start = starts[found];
+    const end = ends[found + needle.length - 1];
+    if (start !== undefined && end !== undefined) {
+      spans.push({ start, end });
+    }
+  }
+  return spans;
+}
+
 /** How many times `needle` occurs in `haystack`, not overlapping. */
 export function occurrences(haystack: string, needle: string): number {
   if (needle === "") {

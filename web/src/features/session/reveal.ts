@@ -23,6 +23,8 @@
 //   prompt (focusable from script only, timeline-item.tsx), so the
 //   keyboard goes on from there.
 
+import { spansOf } from "../../data/find";
+
 /** What to bring into view. `seq` changes with every request, so asking
  * for the same match again scrolls to it again. */
 export interface Reveal {
@@ -53,22 +55,6 @@ export function clearMarks(): void {
   const highlights = registry();
   highlights?.delete(ALL);
   highlights?.delete(ACTIVE);
-}
-
-/** The query as a pattern: its words, escaped, with any run of white
- * space between them (Paseo's), ignoring case. */
-function pattern(query: string): RegExp | null {
-  const words = query
-    .trim()
-    .split(/\s+/)
-    .filter((word) => word !== "");
-  if (words.length === 0) {
-    return null;
-  }
-  const escaped = words.map((word) =>
-    word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-  );
-  return new RegExp(escaped.join("\\s+"), "giu");
 }
 
 /** The text nodes a reader sees in `element`, with where each starts in
@@ -109,16 +95,17 @@ function point(
  * when the drawn text has fewer) as the current one; its range. */
 function mark(element: Element, query: string, nth: number): Range | null {
   const highlights = registry();
-  const regex = pattern(query);
-  if (highlights === null || regex === null) {
+  if (highlights === null) {
     return null;
   }
   const nodes = textNodes(element);
   const text = nodes.map((entry) => entry.node.data).join("");
   const ranges: Range[] = [];
-  for (const found of text.matchAll(regex)) {
-    const start = point(nodes, found.index);
-    const end = point(nodes, found.index + found[0].length);
+  // Find's own rule (data/find.ts), so what is marked is what was
+  // counted: case, accents and runs of white space folded alike.
+  for (const span of spansOf(text, query)) {
+    const start = point(nodes, span.start);
+    const end = point(nodes, span.end);
     if (start === null || end === null) {
       continue;
     }

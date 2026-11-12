@@ -9,6 +9,7 @@ import {
   occurrences,
   queryOf,
   readableText,
+  spansOf,
   step,
 } from "./find";
 import type { Entry } from "./timeline-model";
@@ -115,5 +116,35 @@ describe("moving between matches", () => {
     expect(countText(12, 2)).toBe("3/12");
     expect(countSpoken(12, 2)).toBe("3 of 12");
     expect(countText(0, 0)).toBe("No results");
+  });
+});
+
+describe("where a match is in the drawn text", () => {
+  test("folded as the count folds, mapped back to the text", () => {
+    const text = "A Café\n\n  and  CAFE au lait";
+    const spans = spansOf(text, "cafe");
+    expect(spans.map(({ start, end }) => text.slice(start, end))).toEqual([
+      "Café",
+      "CAFE",
+    ]);
+    // Runs of white space are one space, as in the query.
+    const runs = spansOf(text, "café and");
+    expect(runs.map(({ start, end }) => text.slice(start, end))).toEqual([
+      "Café\n\n  and",
+    ]);
+    // Characters outside the basic plane keep their two code units.
+    const wide = "go 🚀 now, 🚀 again";
+    expect(
+      spansOf(wide, "🚀 again").map(({ start, end }) => wide.slice(start, end)),
+    ).toEqual(["🚀 again"]);
+    expect(spansOf(text, "  ")).toEqual([]);
+  });
+
+  test("an accent written apart is the letter's", () => {
+    const text = "cafe\u0301 noir";
+    const spans = spansOf(text, "café");
+    expect(spans.map(({ start, end }) => text.slice(start, end))).toEqual([
+      "cafe\u0301",
+    ]);
   });
 });
