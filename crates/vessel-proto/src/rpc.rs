@@ -20,7 +20,6 @@ use std::future::Future;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::agent::ContentBlock;
 use crate::conversation::{
     AttachmentRef, BeginUpload, ChangeQueue, Conversation, DeleteSession, Delivered, FinishUpload,
     GetConversation, MarkSession, PromptSession, QueueChanged, ReadAttachment, ResumeSession,
@@ -45,7 +44,7 @@ use crate::options::{
 };
 use crate::profile::{ListProfiles, MoveProfile, ProfileInfo, ReloadProfiles};
 use crate::secret::{CopySecret, DeleteSecret, ListSecrets, SetSecret};
-use crate::session::{SessionInfo, SessionInput, SessionMode};
+use crate::session::SessionInfo;
 use crate::transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MemoryImported,
     ReadTransfer, SessionImported, TransferManifest,
@@ -54,6 +53,7 @@ use crate::transfer::{
 mod frames;
 mod older;
 mod requests;
+mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
@@ -101,156 +101,8 @@ impl std::fmt::Display for UnexpectedReply {
 
 impl std::error::Error for UnexpectedReply {}
 
-/// Declares every RPC method in one table.
-///
-/// Each row: `Variant / handler_fn / "wire.name" [Scope, since]: Request => Response;`
-/// The scope column (protocol 4, ADR 0010) is what a paired device must hold
-/// to call the method; adding a method without one does not compile. `since`
-/// (protocol 5) is the first protocol version with the method: the client
-/// refuses to send it on an older connection and the node refuses to run it
-/// there, so neither side relies on the other ignoring what it cannot know.
-macro_rules! rpc_methods {
-    ($(
-        $(#[$doc:meta])*
-        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $since:literal] : $request:ty => $response:ty;
-    )*) => {
-        /// Every RPC method.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        pub enum Method {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant,
-            )*
-        }
-
-        impl Method {
-            /// Wire name.
-            #[must_use]
-            pub const fn as_str(self) -> &'static str {
-                match self {
-                    $( Self::$variant => $wire, )*
-                }
-            }
-
-            /// The scope a paired device needs to call it.
-            #[must_use]
-            pub const fn scope(self) -> Scope {
-                match self {
-                    $( Self::$variant => Scope::$scope, )*
-                }
-            }
-
-            /// The first protocol version with this method.
-            #[must_use]
-            pub const fn since(self) -> ProtocolVersion {
-                match self {
-                    $( Self::$variant => ProtocolVersion::new($since), )*
-                }
-            }
-
-            /// Every method, in table order.
-            pub const ALL: &'static [Self] = &[$( Self::$variant, )*];
-        }
-
-        /// A request of any method, as sent on the wire.
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        #[serde(tag = "method", content = "params")]
-        pub enum Call {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant($request),
-            )*
-        }
-
-        impl Call {
-            /// Which method this is.
-            #[must_use]
-            pub const fn method(&self) -> Method {
-                match self {
-                    $( Self::$variant(_) => Method::$variant, )*
-                }
-            }
-        }
-
-        /// A successful response of any method, as sent on the wire.
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        #[serde(tag = "method", content = "result")]
-        pub enum Reply {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant($response),
-            )*
-        }
-
-        impl Reply {
-            /// Which method this answers.
-            #[must_use]
-            pub const fn method(&self) -> Method {
-                match self {
-                    $( Self::$variant(_) => Method::$variant, )*
-                }
-            }
-        }
-
-        $(
-            impl Request for $request {
-                const METHOD: Method = Method::$variant;
-                type Response = $response;
-
-                fn into_call(self) -> Call {
-                    Call::$variant(self)
-                }
-
-                fn response_from(reply: Reply) -> Result<$response, UnexpectedReply> {
-                    let got = reply.method();
-                    if let Reply::$variant(response) = reply {
-                        Ok(response)
-                    } else {
-                        Err(UnexpectedReply { expected: Method::$variant, got })
-                    }
-                }
-            }
-        )*
-
-        /// Server side of the protocol: one method per RPC.
-        ///
-        /// `Context` is per-connection state (for example the connection's
-        /// subscriptions), so connection-scoped methods such as `subscribe`
-        /// go through the same exhaustive table as everything else.
-        pub trait Handler: Sync {
-            /// Per-connection state passed to every call.
-            type Context: Sync;
-
-            $(
-                $(#[$doc])*
-                fn $handler(
-                    &self,
-                    context: &Self::Context,
-                    request: $request,
-                ) -> impl Future<Output = Result<$response, WireError>> + Send;
-            )*
-        }
-
-        /// Route a call to its handler method. Exhaustive: a method without
-        /// a handler does not compile.
-        pub async fn dispatch<H: Handler>(handler: &H, context: &H::Context, call: Call) -> Outcome {
-            match call {
-                $(
-                    Call::$variant(request) => match handler.$handler(context, request).await {
-                        Ok(response) => Outcome::Ok(Reply::$variant(response)),
-                        Err(error) => Outcome::Err(error),
-                    },
-                )*
-            }
-        }
-    };
-}
+#[macro_use]
+mod methods;
 
 rpc_methods! {
     /// Describe the node.
@@ -463,170 +315,6 @@ rpc_methods! {
     FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
     /// Search inside files (protocol 10).
     SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
-}
-
-impl Call {
-    /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
-    /// ignore it silently (and, say, start a session with the wrong profile
-    /// or invite a device with more scopes than asked), so the client checks
-    /// this before sending. A request that gains a field adds a line here.
-    #[must_use]
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one arm per method, listed so that a new method must decide whether a \
-                  field of it needs a later version; the list is the point"
-    )]
-    pub fn since(&self) -> ProtocolVersion {
-        let method = self.method().since();
-        let fields = match self {
-            // Options chosen at creation and a title came in 9: an older
-            // node would start the session in the agent's default mode (a
-            // permissions mode the caller did not ask for) and unnamed.
-            Self::CreateSession(request) => {
-                let spec = &request.spec;
-                let chooses = match &spec.mode {
-                    SessionMode::Structured { options, .. } => !options.is_empty(),
-                    SessionMode::Terminal { .. } => false,
-                };
-                if spec.place.is_some() {
-                    // A place came in 10: an older node would start the
-                    // session in its home folder instead.
-                    Some(10)
-                } else if chooses || spec.title.is_some() {
-                    Some(9)
-                } else {
-                    spec.profile.as_ref().map(|_| 5)
-                }
-            }
-            // `scopes` came in 5; a scope newer than that needs its own
-            // version, or an older node would refuse the name it lacks.
-            Self::InviteDevice(request) => request.scopes.as_ref().map(|scopes| {
-                scopes
-                    .iter()
-                    .map(|scope| scope.since().get())
-                    .fold(5, u32::max)
-            }),
-            Self::ReadEvents(request) => request.wait.map(|_| 6),
-            // An answer to a question, and a prompt naming an attachment,
-            // came in 10: an older node cannot decode either.
-            Self::SendInput(request) => match &request.input {
-                SessionInput::AnswerQuestion { .. } => Some(10),
-                SessionInput::Prompt { content } => content
-                    .iter()
-                    .any(|block| matches!(block, ContentBlock::Attachment { .. }))
-                    .then_some(10),
-                // A cancel naming its turn: an older node would cancel
-                // whatever runs, the next queued prompt included.
-                SessionInput::CancelTurn { turn } => turn.map(|_| 10),
-                SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
-            },
-            Self::NodeInfo(_)
-            | Self::ListHarnesses(_)
-            | Self::ListSessions(_)
-            | Self::GetSession(_)
-            | Self::KillSession(_)
-            | Self::Subscribe(_)
-            | Self::Unsubscribe(_)
-            | Self::StopNode(_)
-            | Self::ListDevices(_)
-            | Self::RevokeDevice(_)
-            | Self::ListProfiles(_)
-            | Self::ReloadProfiles(_)
-            | Self::MoveProfile(_)
-            | Self::GetManifest(_)
-            | Self::ReadBlob(_)
-            | Self::WatchFleet(_)
-            | Self::ReportApplied(_)
-            | Self::ListMembers(_)
-            // The inner call of an envelope is checked against the target's
-            // protocol where it is delivered, not against this connection.
-            | Self::Forward(_)
-            | Self::Relay(_)
-            | Self::Deliver(_)
-            | Self::GrantHome(_)
-            | Self::GetCallback(_)
-            | Self::ForgetNode(_)
-            | Self::ListPeers(_)
-            | Self::ListNodes(_)
-            | Self::ExportSession(_)
-            | Self::ImportSession(_)
-            | Self::ExportMemory(_)
-            | Self::ImportMemory(_)
-            | Self::ReadTransfer(_)
-            | Self::CloseTransfer(_)
-            | Self::SetSecret(_)
-            | Self::ListSecrets(_)
-            | Self::DeleteSecret(_)
-            | Self::LspWorkspaceSymbols(_)
-            | Self::LspDocumentSymbols(_)
-            | Self::LspDefinition(_)
-            | Self::LspReferences(_)
-            | Self::LspHover(_)
-            | Self::LspImplementations(_)
-            | Self::LspTypeDefinition(_)
-            | Self::LspIncomingCalls(_)
-            | Self::LspOutgoingCalls(_)
-            | Self::LspDiagnostics(_)
-            | Self::CopySecret(_)
-            | Self::ListModels(_)
-            | Self::HarnessOptions(_)
-            | Self::SessionOptions(_)
-            | Self::SetSessionOption(_)
-            | Self::RenameSession(_)
-            | Self::PromptSession(_)
-            | Self::ChangeQueue(_)
-            | Self::GetConversation(_)
-            | Self::ResumeSession(_)
-            | Self::MarkSession(_)
-            | Self::DeleteSession(_)
-            | Self::BeginUpload(_)
-            | Self::WriteUpload(_)
-            | Self::FinishUpload(_)
-            | Self::ReadAttachment(_)
-            | Self::ListProjects(_)
-            | Self::GetProject(_)
-            | Self::AddProject(_)
-            | Self::CloneProject(_)
-            | Self::InitProject(_)
-            | Self::RemoveProject(_)
-            | Self::ProjectCommands(_)
-            | Self::ApproveCommands(_)
-            | Self::ListWorktrees(_)
-            | Self::CreateWorktree(_)
-            | Self::SetupOutput(_)
-            | Self::RunSetup(_)
-            | Self::RemoveWorktree(_)
-            | Self::ListSnapshots(_)
-            | Self::DropSnapshot(_)
-            | Self::GitStatus(_)
-            | Self::GitChanges(_)
-            | Self::GitDiff(_)
-            | Self::GitShow(_)
-            | Self::GitBranches(_)
-            | Self::GitLog(_)
-            | Self::GitStashes(_)
-            | Self::GitStage(_)
-            | Self::GitUnstage(_)
-            | Self::GitDiscard(_)
-            | Self::GitCommit(_)
-            | Self::GitFetch(_)
-            | Self::GitPush(_)
-            | Self::GitPull(_)
-            | Self::GitSwitch(_)
-            | Self::GitRenameBranch(_)
-            | Self::GitStash(_)
-            | Self::ListDir(_)
-            | Self::ReadFile(_)
-            | Self::WriteFile(_)
-            | Self::CreateDir(_)
-            | Self::RenamePath(_)
-            | Self::DeletePath(_)
-            | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
-        };
-        fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
-    }
 }
 
 /// Result of a call.
