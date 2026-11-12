@@ -8,11 +8,19 @@
 
 import "./outline.css";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { OUTLINE_MIN, type OutlineItem } from "../../data/outline";
 
-export function Outline({
+/** Whether two sets of keys hold the same keys. */
+function sameKeys(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  return a.size === b.size && [...a].every((key) => b.has(key));
+}
+
+/** Drawn again only when its items, its scroller or its jump change: not
+ * for a batch of records that changed no prompt (structured-session.tsx
+ * keeps the items' array then). */
+export const Outline = memo(function Outline({
   items,
   scroller,
   onJump,
@@ -43,7 +51,8 @@ export function Outline({
           visible.add(element.dataset["entry"] ?? "");
         }
       }
-      setSeen(visible);
+      // The same prompts in view: nothing to draw.
+      setSeen((known) => (sameKeys(known, visible) ? known : visible));
     };
     const onScroll = () => {
       frame ??= window.requestAnimationFrame(measure);
@@ -99,4 +108,4 @@ export function Outline({
       </ol>
     </nav>
   );
-}
+});

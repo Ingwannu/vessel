@@ -37,29 +37,68 @@ export function preview(text: string, max: number): string {
     : `${characters.slice(0, max - 1).join("")}…`;
 }
 
-/** The outline of `entries`, in order. */
+/** Each prompt's and each reply's preview, made once per entry object:
+ * the outline is worked out again for every batch of records, and a
+ * reply's Markdown is read through every pass of `readableText`. An
+ * entry that did not change keeps its object (timeline.ts), so a batch
+ * reads only what it changed. */
+const previews = new WeakMap<Entry, string>();
+
+function previewOf(entry: Entry, max: number, text: () => string): string {
+  const known = previews.get(entry);
+  if (known !== undefined) {
+    return known;
+  }
+  const made = preview(text(), max);
+  previews.set(entry, made);
+  return made;
+}
+
+/** The outline of `entries`, in order. Only the last message of each
+ * turn is read, once per entry object. */
 export function outline(entries: readonly Entry[]): OutlineItem[] {
   const items: OutlineItem[] = [];
-  let reply: string | null = null;
+  let last: Entry | null = null;
   const close = () => {
-    const last = items.at(-1);
-    if (last !== undefined) {
-      last.reply = reply;
+    const item = items.at(-1);
+    if (item !== undefined && last !== null && last.kind === "message") {
+      const reply = last;
+      item.reply = previewOf(reply, REPLY, () => readableText(reply.text));
     }
   };
   for (const entry of entries) {
     if (entry.kind === "prompt") {
       close();
-      reply = null;
+      last = null;
       items.push({
         key: entry.key,
-        prompt: preview(entry.text, PREVIEW),
+        prompt: previewOf(entry, PREVIEW, () => entry.text),
         reply: null,
       });
     } else if (entry.kind === "message" && items.length > 0) {
-      reply = preview(readableText(entry.text), REPLY);
+      last = entry;
     }
   }
   close();
   return items;
+}
+
+/** Whether two outlines say the same: the page keeps the older one then,
+ * so the outline draws nothing for a batch that changed no prompt or
+ * reply. */
+export function sameOutline(
+  a: readonly OutlineItem[],
+  b: readonly OutlineItem[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((item, index) => {
+      const other = b[index];
+      return (
+        item.key === other?.key &&
+        item.prompt === other.prompt &&
+        item.reply === other.reply
+      );
+    })
+  );
 }

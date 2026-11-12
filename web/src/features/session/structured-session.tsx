@@ -5,11 +5,11 @@
 // outline of the prompts, both reaching the log through its one seam
 // (`reveal.ts`).
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import type { Match } from "../../data/find";
-import { outline } from "../../data/outline";
+import { outline, sameOutline } from "../../data/outline";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import type { SessionInfo } from "../../wire/proto";
@@ -43,7 +43,13 @@ export function StructuredSession({
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
   const asked = useRef(0);
-  const items = useMemo(() => outline(timeline.entries), [timeline.entries]);
+  // The outline as last drawn while a batch changes no prompt or reply,
+  // so the outline draws nothing for it (data/outline.ts).
+  const worked = useMemo(() => outline(timeline.entries), [timeline.entries]);
+  const [items, setItems] = useState(worked);
+  if (items !== worked && !sameOutline(items, worked)) {
+    setItems(worked);
+  }
 
   useShortcut("find", () => {
     setFinding((count) => (count ?? 0) + 1);
@@ -70,6 +76,19 @@ export function StructuredSession({
     if (match === null) {
       clearMarks();
     }
+  }, []);
+  // Find's marks are the document's (the CSS highlight registry), not
+  // this screen's: they go with it, so another session opened with find
+  // still open shows none of this one's.
+  useEffect(
+    () => () => {
+      clearMarks();
+    },
+    [],
+  );
+  const onJump = useCallback((key: string) => {
+    asked.current += 1;
+    setReveal({ key, seq: asked.current, match: null });
   }, []);
   const closeFind = useCallback(() => {
     setFinding(null);
@@ -100,14 +119,7 @@ export function StructuredSession({
               scrollerRef={setScroller}
             />
           </FoldProvider>
-          <Outline
-            items={items}
-            scroller={scroller}
-            onJump={(key) => {
-              asked.current += 1;
-              setReveal({ key, seq: asked.current, match: null });
-            }}
-          />
+          <Outline items={items} scroller={scroller} onJump={onJump} />
           {finding === null ? null : (
             <FindBar
               entries={timeline.entries}
