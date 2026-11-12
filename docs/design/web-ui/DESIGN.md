@@ -169,13 +169,21 @@ Devices are sections there too (milestone 10, track W2).
   dot's word is the machine's state ("Connected", "Offline", the same
   words as Settings, `machineState`). It opens the machine's detail in
   Settings › Machines, which links to the board scoped to it.
-- **A session's row** leads with a mark: a spinner while its agent works,
-  a filled needs-you dot while it waits on its owner, else a hollow dot;
-  then its title (§7.4): a session with no title is named by its
-  folder, and one with neither (its folder the home) is "Untitled
-  session", never `~`. Up to five per machine, newest first, then "N
-  more" to the board scoped to that machine. Ended sessions are listed
-  only when Display asks for them.
+- **A session's row** is set in from its machine's row (agent-
+  orchestrator's nested list): 22px on the left, so its mark sits under
+  the machine's name, not under its dot. It leads with a mark: a spinner
+  while its agent works, a filled needs-you dot while it waits on its
+  owner, else a hollow dot; then its title (§7.4): a session with no
+  title is named by its folder, and one with neither (its folder the
+  home) is "Untitled session", never `~`. Up to five per machine,
+  pinned ones first, then newest first, then "N more" to the board
+  scoped to that machine. Ended sessions are listed only when Display
+  asks for them; archived ones never (all three references leave them
+  out of their sidebars).
+- **Unread** (protocol 10, the machine's `marks.unread`): the row's
+  title in semibold primary text and its hollow dot filled in the muted
+  ink, agent-orchestrator's unread dot. A mark the page asked for shows
+  when the machine reports it.
 - **Below 768px** the sidebar is a sheet (the kit's `Sheet`, GOAT's
   phone sidebar) from the title bar's menu button, over a scrim, so
   Settings' sections are reachable on a phone; picking a row closes
@@ -781,7 +789,7 @@ item is a row with a 8px glyph on the rail:
 
 | Event (`AgentEvent`) | Glyph | Body |
 | --- | --- | --- |
-| `TurnStarted` | filled accent tick | the prompt, mono 13px, on `--bg-elevated` |
+| `TurnStarted` | filled accent tick | the prompt, mono 13px, on `--bg-elevated`; the files it carried over it (below) |
 | `UserMessageChunk` | same | resume replay; muted, labelled "replayed" |
 | `MessageChunk` | empty circle | markdown, sans 13px, max 78ch |
 | `ThoughtChunk` | dashed circle | collapsed `<details>`, tertiary |
@@ -790,7 +798,10 @@ item is a row with a 8px glyph on the rail:
 | `Plan` | checklist | inspector, and a compact strip in-timeline |
 | `PermissionRequested` | amber diamond | one line, "Waiting on permission · <tool>", in the review colour; the prompt itself is docked over the composer (§6.7) |
 | `PermissionResolved` | the diamond, hollow | the same line, in place: "Allowed · <tool> · <option>", "Declined · …" or "Permission cancelled · …" |
-| `TurnEnded` / `TurnFailed` | rule | reason in meta |
+| `Steered` (protocol 10) | the accent tick, hollow | the words sent into the running turn, in the prompt's box, led by "steered" in meta, its files over it |
+| `QuestionAsked` | amber diamond | one line, "Waiting on an answer · <message>"; the question itself is docked over the composer (§6.7) |
+| `QuestionResolved` | the diamond, hollow | the question's card: its message, each answer by its field's title ("Database SQLite"), Claude's free text joined to its question's line, and "Answered", "Skipped" or "Question closed" |
+| `TurnEnded` / `TurnFailed` | rule | reason in meta; with protocol 10's usage, the turn's tokens after it: "30 tokens · 20 in · 10 out" |
 | `Ready` | meta | "Agent ready"; the agent's own session id is in the summary's Details |
 | `HarnessLog` | meta | stderr, mono, tertiary; error colour if it looks like a login failure |
 
@@ -807,6 +818,20 @@ one row (`data/rows.ts`). The log follows its end while the reader is
 within 48px of it; a reader who scrolled up, or was taken up by find or
 the outline, stays where they are as records arrive. New entries are
 announced from a live region of the newest one's text.
+
+**A prompt's files** (protocol 10, `prompt.attachments`; agent-
+orchestrator's attachment row over the message): an image is a tile
+64px tall, its own width, radius 8, that opens the image at full size in
+a dialog; any other file a card 8px inside on the hover wash, a 24px
+icon box, the name (12px medium, cut at 128px) and "type · size" under
+it. An image is fetched with `attachment.read` only when its row comes
+within a screen of the view, two at a time, and kept (48 images or
+64 MiB, the least recently drawn dropped, `data/images.ts`); one sent
+from this tab is shown from its own file and never fetched back. The
+page's content policy takes `data:` images and no `blob:` ones
+(ADR 0017), so a tile shows a 128px-tall `data:` thumbnail drawn from
+the bytes, and the full image is read into a `data:` address only when
+it is opened.
 
 Markdown: the sans face, 13/20. Inline code and fences use `--font-mono`
 on `--bg-elevated` with a hairline. Headings inside a turn start at
@@ -863,6 +888,37 @@ button; the owner asked for one.)
   with conflict: a toast says so, the history stays.
 - The composer under it is disabled while it waits, its placeholder
   "Answer the permission to continue".
+
+**A question the agent asks** (protocol 10, `question_asked`) takes the
+permission's place, one at a time, as agent-orchestrator's question
+dock does (`question-dock.tsx`):
+
+- 16px narrower than the box, radius 20, the box's surface on the strong
+  hairline, 8px above it, at most 65% of the window tall before it
+  scrolls. A 12px muted head, "Question · 1 of 2", with a chevron that
+  folds the dock to its head; the agent's message (12px muted); the
+  field's title as the question (14px semibold).
+- **A step per field** (`data/question-form.ts`): a choice is a list of
+  rows, each with an 18px number badge, its title (12px medium) and its
+  description (11px muted), the picked ones on the 7% wash with the
+  badge filled; digits pick a row (agent-orchestrator's); several picks
+  when the field takes several. Text and numbers are the kit's field,
+  yes/no a switch. Claude's `AskUserQuestion` sends `question_N` and
+  `question_N_custom`: the pair is one step, the custom field its
+  "Other…" row (badge 0) with "Type your own answer (optional)." under
+  it; Claude's questions are ordered by N (the node keeps a form's
+  fields by name, so `question_10` would come before `question_2`).
+- **The foot**: Back (from the second step), 6px step dots (current in
+  the ink, done in the accent), Skip, and Next or, on the last step,
+  "Submit answer" (the primary pill). Next checks the step with the
+  node's own rules first ("Choose an answer.", "This field is
+  required."); a refusal the node still sends (`invalid_request` naming
+  a field) is shown at that field and takes the dock to its step. Skip
+  declines the question.
+- The answer settles it for every follower; one settled elsewhere
+  closes the dock here, and the timeline's card says how it ended.
+- The composer under it stays usable: a question is part of the turn,
+  so a message typed now is queued (§6.15).
 
 ### 6.8 Terminal frame
 
@@ -943,10 +999,14 @@ the agent is doing.
 - Inside a lane, sessions that wait on their owner come first, then the
   most recently active. Each lane scrolls by itself: 12px of padding (8px
   on the right), 10px between cards.
-- **The archive is not a lane.** Ended sessions (`archive`) are counted on
-  a 36px bar under the lanes; the count opens them as the same cards,
-  three to a row, newest first, with a search. An archived card reads its
-  own status word, and a failed one keeps `--danger`.
+- **The archive is not a lane.** Archived sessions are counted on a 36px
+  bar under the lanes; the count opens them as the same cards, three to
+  a row, newest first, with agent-orchestrator's search ("Search
+  archived sessions"; "No archived sessions", "No results."). An
+  archived card reads its own status word, and a failed one keeps
+  `--danger`. With protocol 10 an ended session stays in its lane, its
+  card reading its status word, until it is archived; from an older
+  node every ended session is in the archive, as before.
 
 **Card.** One session. In order:
 
@@ -987,7 +1047,16 @@ the agent is doing.
   the origin link and the action stay separate targets and nothing
   interactive is nested in an `<a>`.
 - One action slot at the end of the title row, shown on hover or focus
-  without moving the title: Kill, for a live session. It asks first.
+  without moving the title: Kill, for a live session (it asks first);
+  Archive, for an ended one (it asks as agent-orchestrator does: "Are
+  you sure you want to archive this session?", "You can always restore
+  it from the Archive section later.", No and Confirm); in the archive,
+  Restore and Delete permanently. Restore starts the session again where
+  its agent can (`session.resume`, which unarchives it), else it only
+  unarchives it ("Unarchive").
+- **Marks on the card** (protocol 10): a 12px pin before the action slot
+  of a pinned session; an unread one's title in the primary ink with
+  agent-orchestrator's filled dot.
 - An empty Building lane, where a new session lands, offers "New
   session" (a quiet button) to `/new`.
 
@@ -1089,11 +1158,13 @@ approval (§6.7):
   several lines the arrows move the caret until its first or last line,
   and editing it ends the walk (Paseo's and GOAT's rules). The
   new-session page has no history.
-- **The row**, 28px: on the left the "+" (new session only: a round ghost
-  button opening "Start with": a profile, when the machine has one for
-  the agent, and "Open as terminal" with its arguments), the agent
-  control, the permissions control; at the right Send (a 28px round
-  primary button with an arrow), or Stop (a square) while a turn runs.
+- **The row**, 28px: on the left the "+" (on the new-session page a
+  round ghost button opening "Start with": a profile, when the machine
+  has one for the agent, "Open as terminal" with its arguments, and
+  "Attach files to this message"; on a running session, from protocol
+  10, the paperclip that picks files, "Attach files"), the context meter,
+  the agent control, the permissions control; at the right the one
+  round 28px primary button (below).
 - **The agent control** (`AgentModelPicker`): a quiet trigger (28px, radius
   10, 12px) reading the model's name and, muted, the effort's; "Loading
   models…" with a spinner while the machine asks the agent. Its menu,
@@ -1126,6 +1197,78 @@ approval (§6.7):
   they show what its log last reported (`options_changed`): a change
   shows when the node reports it, not when it is asked; a refusal is a
   toast and nothing moves.
+- **The send button** (agent-orchestrator's, `send-button.tsx`): between
+  turns an arrow, "Send". While a turn runs and the text is empty, a
+  square, "Stop turn" (it stops that turn, `cancel_turn`, and the
+  node's queue holds). While a turn runs with text: what Settings ›
+  General's "Default send" says (Paseo's setting, `composer.delivery`,
+  kept by the bridge): "Queue message" (an arrow, the default), "Steer
+  message" (a turning arrow) or "Interrupt and send". The other way is
+  one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
+  (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
+  and label turn while the modifier is held; the other way of queue is
+  steer, of steer and interrupt queue. Steer is offered only where the
+  agent says it takes it (`abilities.steer`), and an agent that refuses
+  it once is not offered it again while the session's page is open. Its tooltip says what
+  it does and the other way: "Sends when the agent finishes its turn",
+  "Ctrl+↵ or Ctrl+click: steer message". With a queued prompt open in
+  the box it is "Update queued message". A held queue (after Stop) does
+  not hold the next message: it starts the next turn.
+- **The node's queue** (protocol 10, agent-orchestrator's queued-message
+  dock, `queue-dock.tsx`): over the box, 16px narrower on each side, 8px
+  above it, radius 20; a 32px head "2 Queued Messages" (12px medium,
+  muted) with a chevron that folds it; a 40px row per prompt, a hollow
+  12px circle and its first line, its files' count, then Steer (where the
+  agent takes it), Edit, Delete and a grip, at most five rows before it
+  scrolls. The grip moves a row by drag (a 2px line shows where it will
+  land, GOAT's) or by Up and Down. Edit opens the prompt in the box with
+  "Editing queued message" and "Cancel edit" over the text; saving sends
+  `edit` with the revision the row had, so an edit that crossed another
+  says so instead of overwriting it. While the node holds the queue the
+  head says why ("Paused after you stopped the agent", "Paused after the
+  turn failed", "Paused: the session ended") with Resume.
+- **Files** (protocol 10, where the session's agent takes them): pasted,
+  dropped on the box (it tints while a file is over it) or picked with
+  the paperclip. Each is a chip over the text (agent-orchestrator's: the
+  4% wash, radius 8, an image's 24px thumbnail or a file's icon, the name
+  at most 120px, "type · size" under it), with Remove, and, while it
+  uploads, GOAT's band along its foot and "Uploading 40%". A file is
+  checked as it comes against what the agent takes and the machine's
+  limits (`session.conversation`'s `limits`: per file, per image, per
+  prompt, per session), with the node's own words for a refusal ("Claude
+  Code does not take images in this session."); it is uploaded when the
+  message is sent, two at a time, in 1 MiB pieces, and the message goes
+  when every file is in. A failed upload says why in the chip, with
+  Retry where trying again can help, going on from what the machine has.
+  A refused or failed file stops Send until it is removed or retried.
+  On the new-session page the files wait for the session, and its first
+  message takes them once the agent has said what it takes.
+- **`/` and `@`** in one list at the caret (agent-orchestrator's
+  suggestion menu, the kit's `Suggestions`): anchored 6px over the box's
+  top-left edge, at most 448px wide, up to 50 rows. `/` at the start of
+  the prompt lists the agent's own commands (`commands_changed`), names
+  that start with the word first, then names that hold it, then
+  descriptions; `@` at the start of a word finds the session's files
+  with `workspace.find` in its worktree or project (80 ms after typing
+  stops, one search in flight), the folder dimmed and the matched
+  characters marked. Up and Down move, Enter or Tab inserts (`/review `,
+  `@path`, a path with a space in quotes), Escape hides it until the
+  word changes. A session with no project says "This session has no
+  project to search."
+- **The context meter** (agent-orchestrator's, `context-ring.tsx`): a
+  20px ring in a 28px box, the arc from the top, in the muted ink, the
+  review colour from 70% and the danger colour from 90% full; its
+  tooltip "Context window", "84k / 200k tokens (42%)" and, when the agent
+  says, "Session cost $0.50". It shows only once the agent has reported
+  its usage (`usage` in the log); the figures are the agent's own.
+- **An ended session** (protocol 10): a banner in the docks' shape over
+  the box, "Session ended" (or "Session archived"), "History is kept.
+  Start the session again to continue." and Start again where the agent
+  can (`session.resume`); the box disabled, its placeholder "Start the
+  session again to continue".
+- **The placeholder** says what Enter will do: "Message the agent, tag
+  @files, or use /commands" between turns, "Next message you send will
+  be queued" while a turn runs (agent-orchestrator's words).
 - **The tray** (new session only), hung under the box, 16px in from each
   side, 6px inside, its bottom corners 16px: white on a 6% hairline in
   light, the ink at 3% in dark. It holds the machine (a ghost select,
@@ -1266,13 +1409,26 @@ The rest is in a menu at the bar's end, "Session actions":
 
 | Action | Notes |
 | --- | --- |
+| Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
+| Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
+| Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first.") |
+| Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy session id | |
 | Kill | live only, apart under a separator; confirm; `session.kill` |
 
-A board card's one action is Kill, also confirmed. Moving has
-consequences (the conversation continues under another account), so it
-is a dialog, not an inline select.
+A board card's one action is Kill for a live session and Archive for an
+ended one, both confirmed. Moving has consequences (the conversation
+continues under another account), so it is a dialog, not an inline
+select. A mark shows when the machine reports it (`SessionInfo.marks`).
+
+**Read and unread** (protocol 10). A session is read when its page is in
+front and its last record has been on screen: the page sends `read` with
+`through` the last record shown plus one, at most once a second, not per
+record. After "Mark as unread" nothing is sent as read until a new
+record comes or the page is opened again, so the mark stays while the
+page is still open.
 
 ### 7.5 New session
 
@@ -1442,6 +1598,15 @@ So M7 does not have to guess names.
 | An agent's status | `harness.list` (`Harness.structured`); absent from it is "Not found" |
 | What an agent offers | `harness.options` (`SessionOption`, grouped by `OptionCategory`) |
 | Kill / move / copy | `session.kill`, `session.move_profile`, export/import |
+| Send during a turn | `session.prompt` with `delivery` `queue`, `steer` or `interrupt`; between turns `start` |
+| Queued prompts | `SessionConversation.queue` from the log's queue records; `session.queue` `edit` (with its revision), `move`, `remove`, `send_now`, `resume` |
+| Files | `attachment.begin`, `write`, `finish`; a prompt's `ContentBlock::Attachment`; `attachment.read` for an image shown; bounds from `session.conversation`'s `limits` |
+| Commands | `commands_changed` (`AgentCommand`) |
+| `@` files | `workspace.find` with one search key per field (`data/workspace/find.ts`) |
+| Question | `question_asked`, `question_resolved`; `session.send` `answer_question` |
+| Context meter, a turn's tokens | `usage` records; `turn_ended.usage` |
+| Pin, archive, unread | `SessionInfo.marks`; `session.mark` |
+| Start again, delete | `session.resume`; `session.delete` (`SessionDeleted`: the worktree tidied or kept, and why) |
 
 Secret values never appear in the UI. Sync may list secret *names*.
 The app renders a QR of the returned pairing link and expires it in the
@@ -1527,8 +1692,10 @@ control, GOAT), on purpose:
    setups; an agent here offers a handful of values, in its own submenu,
    and the page keeps no favourites store.
 9. **The "+" opens a popover, not a menu**: it holds the terminal's
-   arguments, a text field a menu's typeahead would fight. The reference's
-   "+" attaches files, which Vessel's prompts do not carry yet.
+   arguments, a text field a menu's typeahead would fight. On the
+   new-session page files are attached from it ("Attach files to this
+   message"); on a running session, where the "+" has nothing else to
+   hold, from a paperclip in its place.
 10. **Terminal or timeline is chosen once, at creation** ("Open as
     terminal"). The reference switches a session's interface later; a
     Vessel session's mode is fixed by the protocol.
@@ -1566,3 +1733,23 @@ control, GOAT), on purpose:
 20. **One page-wide width for the conversation** (Comfortable, Wide,
     Full) where GOAT has a slider: three widths cover its range and keep
     the composer and the log aligned.
+21. **Files are uploaded when the message is sent**, not as they are
+    attached (agent-orchestrator's): the node keeps what was uploaded
+    against the session's 100 MiB until the session goes and has no call
+    to give an upload back, so a file removed before sending would still
+    count. Send waits for the uploads, each chip showing its progress.
+22. **A long paste stays text.** GOAT turns a long paste into a file; the
+    queue's 128 KiB and the draft's bound already say when text is too
+    long, and the agent reads text as the person sees it.
+23. **No "Compact context" button by the meter.** The agent's own
+    `/compact`, where it offers one, is in the `/` list; Vessel adds no
+    command of its own there.
+24. **No Undo after archiving.** The archive's Restore is one click, and
+    the confirmation already says it can be restored.
+25. **Pinned sessions lead their machine's group**, not a "Pinned"
+    section of their own (Paseo's and GOAT's): the sidebar is grouped by
+    machine, and a pinned session's machine is part of what it is.
+26. **An ended session waits on the board until archived** (with
+    protocol 10) where agent-orchestrator archives a session when it
+    ends: a Vessel session can be started again, and archiving is the
+    person's choice.
