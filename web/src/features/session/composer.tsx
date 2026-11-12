@@ -13,32 +13,29 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useFleet, useFleetState } from "../../context";
+import { useFleetState } from "../../context";
 import { agentName } from "../../data/agents";
-import { setOption } from "../../data/calls";
 import { hasConversation } from "../../data/delivery";
 import { isLive } from "../../data/format";
 import { canStartAgain } from "../../data/marks";
-import { reportedControls } from "../../data/options";
 import { queueRows } from "../../data/queue-view";
 import { searchRoot } from "../../data/suggest";
 import { recall, sentPrompts, type Walk } from "../../data/recall";
 import type { Timeline } from "../../data/timeline-model";
 import { takeFirstSend, trayOf } from "../../data/trays";
-import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
-import type { OptionChoice, SessionInfo } from "../../wire/proto";
-import { AgentMenu } from "../compose/agent-menu";
+import type { SessionInfo } from "../../wire/proto";
 import { AttachmentStrip } from "../compose/attachment-strip";
-import { PermissionsMenu } from "../compose/permissions-menu";
 import { PromptBox } from "../compose/prompt-box";
 import { SendButton } from "../compose/send-button";
 import { useDraft } from "../compose/use-draft";
 import { useSuggest } from "../compose/use-suggest";
 import { useShortcut } from "../shortcuts/handlers";
+import { AgentControls } from "./agent-controls";
 import { AttachButton } from "./attach-button";
 import { ComposerDocks } from "./composer-docks";
 import { ContextRing } from "./context-ring";
+import { EditingStrip } from "./editing-strip";
 import { EndedBanner } from "./ended-banner";
 import { composerAction, composerPlaceholder } from "./composer-words";
 import { type Editing, useComposerSend } from "./use-composer-send";
@@ -58,7 +55,6 @@ export function Composer({
   session: SessionInfo;
   timeline: Timeline;
 }) {
-  const fleet = useFleet();
   const draft = useDraft(session.id);
   const walk = useRef<Walk | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -70,7 +66,6 @@ export function Composer({
     () => sentPrompts(timeline.entries),
     [timeline.entries],
   );
-  const [changing, setChanging] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
   const conversation = timeline.conversation;
   const pending = timeline.pending;
@@ -133,16 +128,6 @@ export function Composer({
       });
     },
   });
-  const controls = reportedControls(timeline.options, protocol, agent);
-  const choose = (choice: OptionChoice) => {
-    setChanging(true);
-    void setOption(fleet, node, session.id, choice).then((outcome) => {
-      setChanging(false);
-      if (!outcome.ok) {
-        toast(outcome.problem.message, "error");
-      }
-    });
-  };
   const blocked = pending !== null || !live || sender.sending;
   // A session the new-session page made with files: its first prompt is
   // sent from here once the agent has said what it takes and the machine
@@ -178,8 +163,6 @@ export function Composer({
           <span className="prompt-problem" role="alert">
             {sender.problem}
           </span>
-        ) : editing !== null ? (
-          "Editing queued message · Escape to cancel"
         ) : draft.note === "too-long" ? (
           "This draft is too long to keep; it stays in this tab until it is sent."
         ) : undefined
@@ -236,7 +219,17 @@ export function Composer({
             },
           }
         : {})}
-      strip={<AttachmentStrip tray={tray} />}
+      strip={
+        editing === null ? (
+          <AttachmentStrip tray={tray} />
+        ) : (
+          <EditingStrip
+            onCancel={() => {
+              setEditing(null);
+            }}
+          />
+        )
+      }
       above={
         <>
           {!live && modern ? (
@@ -256,25 +249,15 @@ export function Composer({
         <>
           {modern && live ? <AttachButton tray={tray} limits={limits} /> : null}
           <ContextRing usage={conversation.usage} />
-          <AgentMenu
-            agent={{
-              value: harness,
-              name: agent,
-              choices: null,
-              onChange: () => undefined,
-            }}
-            state={controls}
-            onChoose={choose}
-            disabled={!live || changing}
+          <AgentControls
+            node={node}
+            session={session.id}
+            harness={harness}
+            agent={agent}
+            options={timeline.options}
+            protocol={protocol}
+            live={live}
           />
-          {controls.kind === "ready" &&
-          controls.controls.permissions !== null ? (
-            <PermissionsMenu
-              control={controls.controls.permissions}
-              onChoose={choose}
-              disabled={!live || changing}
-            />
-          ) : null}
         </>
       }
       action={

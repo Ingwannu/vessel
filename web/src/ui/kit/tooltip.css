@@ -37,6 +37,12 @@
   gap: 2px;
 }
 
+.tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .tooltip-line {
   color: var(--text-secondary);
 }

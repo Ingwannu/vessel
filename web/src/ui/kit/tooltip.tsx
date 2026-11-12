@@ -53,17 +53,28 @@ export function Tooltip({
           <Base.Popup
             className={lines === undefined ? "tooltip" : "tooltip lined"}
           >
-            <span>{label}</span>
-            {shortcut === undefined ? null : (
-              <span className="tooltip-keys">{shortcut}</span>
-            )}
-            {lines === undefined
-              ? null
-              : lines.map((line) => (
+            {lines === undefined ? (
+              <>
+                <span>{label}</span>
+                {shortcut === undefined ? null : (
+                  <span className="tooltip-keys">{shortcut}</span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="tooltip-head">
+                  <span>{label}</span>
+                  {shortcut === undefined ? null : (
+                    <span className="tooltip-keys">{shortcut}</span>
+                  )}
+                </span>
+                {lines.map((line) => (
                   <span key={line} className="tooltip-line">
                     {line}
                   </span>
                 ))}
+              </>
+            )}
             <Base.Arrow className="tooltip-arrow" />
           </Base.Popup>
         </Base.Positioner>
