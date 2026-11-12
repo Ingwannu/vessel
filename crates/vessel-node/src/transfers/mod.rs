@@ -71,8 +71,9 @@ pub(crate) const MAX_OPEN: usize = 16;
 const SWEEP: Duration = Duration::from_secs(30);
 
 /// Who opened a transfer: a principal without its scopes, which a
-/// transfer's reads do not depend on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// transfer's reads do not depend on. Also who a `file.find` search key
+/// belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Holder {
     /// The machine's own clients.
     Owner,

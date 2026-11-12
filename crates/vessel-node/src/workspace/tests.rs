@@ -900,7 +900,13 @@ async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
     assert_eq!(after.created_branch.as_ref(), Some(&to));
     let found = fixture
         .workspaces
-        .find_files("owner", root(), &"readme".parse().unwrap(), None, None)
+        .find_files(
+            crate::transfers::Holder::Owner,
+            root(),
+            &"readme".parse().unwrap(),
+            None,
+            None,
+        )
         .await
         .unwrap();
     assert_eq!(

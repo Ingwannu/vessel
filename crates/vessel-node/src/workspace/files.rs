@@ -21,6 +21,7 @@ use vessel_proto::workspace::{
 use vessel_workspace::files;
 
 use super::{WorkspaceError, Workspaces};
+use crate::transfers::Holder;
 
 impl Workspaces {
     /// `file.list`.
@@ -119,7 +120,7 @@ impl Workspaces {
     /// As [`resolve`](Self::resolve).
     pub(crate) async fn find_files(
         &self,
-        caller: &str,
+        caller: Holder,
         root: WorkspaceRoot,
         query: &FindQuery,
         key: Option<SearchKey>,
@@ -128,13 +129,13 @@ impl Workspaces {
         let resolved = self.resolve(root).await?;
         let cancel = CancellationToken::new();
         let mine = self.search_count.fetch_add(1, Ordering::Relaxed);
-        let slot = key.map(|key| (caller.to_owned(), key.0));
+        let slot = key.map(|key| (caller, key.0));
         if let Some(slot) = &slot {
             let older = self
                 .searches
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .insert(slot.clone(), (mine, cancel.clone()));
+                .insert(*slot, (mine, cancel.clone()));
             if let Some((_, older)) = older {
                 older.cancel();
             }

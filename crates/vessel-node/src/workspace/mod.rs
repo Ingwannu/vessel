@@ -37,6 +37,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use crate::transfers::Holder;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -142,7 +143,7 @@ pub(crate) struct Workspaces {
     indexes: Arc<Indexes>,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
-    searches: Mutex<HashMap<(String, u32), (u64, CancellationToken)>>,
+    searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
     /// Numbers each `file.find`, so one removes only its own entry.
     search_count: AtomicU64,
     tasks: TaskTracker,

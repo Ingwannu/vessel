@@ -9,6 +9,7 @@ use vessel_proto::{Ack, WireError};
 
 use super::projects::wire;
 use super::{Connection, NodeService};
+use crate::transfers::Holder;
 
 impl NodeService {
     /// `file.list`.
@@ -92,10 +93,10 @@ impl NodeService {
         connection: &Connection,
         request: FindFiles,
     ) -> Result<FoundFiles, WireError> {
-        let caller = format!("{:?}", connection.principal());
+        let caller = Holder::of(connection.principal());
         self.workspaces
             .find_files(
-                &caller,
+                caller,
                 request.root,
                 &request.query,
                 request.key,
