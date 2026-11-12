@@ -237,6 +237,11 @@ impl Fixture {
     pub(crate) fn cwd(&self) -> std::path::PathBuf {
         self.data.path().to_path_buf()
     }
+
+    /// The folder of fake harnesses its nodes look programs up in.
+    pub(crate) fn bin(&self) -> &std::path::Path {
+        self.bin.path()
+    }
 }
 
 pub(crate) fn url(node: &Node) -> NodeUrl {

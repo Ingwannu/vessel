@@ -1,0 +1,153 @@
+//! The `git` program, run safely (ADR 0023): finding it, checking its
+//! version once, and every run's protections ([`run`]).
+
+mod clone;
+mod diff;
+mod history;
+mod patch;
+mod redact;
+mod refusal;
+mod repo;
+mod run;
+mod search;
+mod status;
+mod worktree;
+mod write;
+
+use std::path::Path;
+use std::time::Duration;
+
+use vessel_proto::workspace::{GitSupport, GitVersion};
+
+pub use clone::{Failed as CloneFailed, Progress as CloneProgress};
+pub use diff::Resolved;
+pub(crate) use redact::{redact, tail};
+pub use run::GitSetup;
+pub(crate) use run::{GitCommand, GitOutput, Limits};
+pub use status::MAX_ENTRIES;
+pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
+
+/// A usable `git`: found, and at least [`GitVersion::MINIMUM`].
+#[derive(Debug, Clone)]
+pub struct Git {
+    runner: run::Runner,
+    version: GitVersion,
+}
+
+/// What looking for git found.
+#[derive(Debug, Clone)]
+pub struct Found {
+    /// What to report (`project.list`).
+    pub support: GitSupport,
+    /// The git to run, when it is usable.
+    pub git: Option<Git>,
+}
+
+impl Git {
+    /// Ask the program `setup` names (found by the node on its `PATH`) for
+    /// its version, once. `None` is a node without git.
+    pub async fn probe(setup: Option<GitSetup>) -> Found {
+        let missing = Found {
+            support: GitSupport::Missing,
+            git: None,
+        };
+        let Some(setup) = setup else {
+            return missing;
+        };
+        let runner = run::Runner::new(setup);
+        let output = runner
+            .command(Path::new("."))
+            .arg("--version")
+            .limits(Limits {
+                time: Duration::from_secs(10),
+                stdout: 4096,
+                stderr: 4096,
+            })
+            .output()
+            .await;
+        let version = match output {
+            Ok(output) if output.succeeded() => {
+                GitVersion::parse(&String::from_utf8_lossy(&output.stdout))
+            }
+            Ok(output) => {
+                tracing::warn!(code = ?output.code, "`git --version` failed");
+                None
+            }
+            Err(error) => {
+                tracing::warn!(%error, "could not run git");
+                None
+            }
+        };
+        match version {
+            None => missing,
+            Some(version) if version < GitVersion::MINIMUM => {
+                tracing::warn!(%version, minimum = %GitVersion::MINIMUM, "git is too old for the workspace calls");
+                Found {
+                    support: GitSupport::TooOld {
+                        version,
+                        minimum: GitVersion::MINIMUM,
+                    },
+                    git: None,
+                }
+            }
+            Some(version) => Found {
+                support: GitSupport::Found { version },
+                git: Some(Self { runner, version }),
+            },
+        }
+    }
+
+    /// Its version.
+    #[must_use]
+    pub const fn version(&self) -> GitVersion {
+        self.version
+    }
+
+    /// A command run in `dir`.
+    pub(crate) fn command(&self, dir: &Path) -> GitCommand {
+        self.runner.command(dir)
+    }
+}
+
+/// A git run that went wrong.
+#[derive(Debug, thiserror::Error)]
+pub enum GitError {
+    /// The program could not be started.
+    #[error("could not start git")]
+    Spawn(#[source] vessel_proc::SpawnError),
+    /// Its exit could not be read.
+    #[error("could not wait for git")]
+    Wait(#[source] vessel_proc::WaitError),
+    /// It ran past its time and was stopped.
+    #[error("git did not finish within {} s and was stopped", after.as_secs())]
+    TimedOut {
+        /// The limit.
+        after: Duration,
+    },
+    /// It was stopped because the caller no longer wanted it.
+    #[error("git was stopped")]
+    Cancelled,
+    /// The node is shutting down.
+    #[error("the node is stopping")]
+    Closed,
+    /// Too many git runs already wait for a slot.
+    #[error("the node is running as much git as it allows; try again")]
+    Busy,
+    /// It printed more than the limit for that call.
+    #[error("git printed more than this call reads")]
+    OutputLimit,
+    /// It exited with an error.
+    #[error("git failed ({}): {message}", code.map_or_else(|| "killed".to_owned(), |code| code.to_string()))]
+    Failed {
+        /// Its exit code.
+        code: Option<i32>,
+        /// The end of its standard error, credentials removed.
+        message: String,
+    },
+    /// Its output was not what this git version prints.
+    #[error("git printed something unexpected ({what})")]
+    Unexpected {
+        /// What was being read.
+        what: &'static str,
+    },
+}

@@ -36,6 +36,11 @@ impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
     /// needs no change.
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per reply, so a new reply must decide whether an older peer reads it \
+                  differently; the list is the point"
+    )]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
@@ -134,7 +139,47 @@ impl Reply {
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
-            | Self::ReadAttachment(_) => None,
+            | Self::ReadAttachment(_)
+            | Self::ListProjects(_)
+            | Self::GetProject(_)
+            | Self::AddProject(_)
+            | Self::CloneProject(_)
+            | Self::InitProject(_)
+            | Self::RemoveProject(_)
+            | Self::ProjectCommands(_)
+            | Self::ApproveCommands(_)
+            | Self::ListWorktrees(_)
+            | Self::CreateWorktree(_)
+            | Self::SetupOutput(_)
+            | Self::RunSetup(_)
+            | Self::RemoveWorktree(_)
+            | Self::ListSnapshots(_)
+            | Self::DropSnapshot(_)
+            | Self::GitStatus(_)
+            | Self::GitChanges(_)
+            | Self::GitDiff(_)
+            | Self::GitShow(_)
+            | Self::GitBranches(_)
+            | Self::GitLog(_)
+            | Self::GitStashes(_)
+            | Self::GitStage(_)
+            | Self::GitUnstage(_)
+            | Self::GitDiscard(_)
+            | Self::GitCommit(_)
+            | Self::GitFetch(_)
+            | Self::GitPush(_)
+            | Self::GitPull(_)
+            | Self::GitSwitch(_)
+            | Self::GitRenameBranch(_)
+            | Self::GitStash(_)
+            | Self::ListDir(_)
+            | Self::ReadFile(_)
+            | Self::WriteFile(_)
+            | Self::CreateDir(_)
+            | Self::RenamePath(_)
+            | Self::DeletePath(_)
+            | Self::FindFiles(_)
+            | Self::SearchFiles(_) => None,
         }
     }
 }

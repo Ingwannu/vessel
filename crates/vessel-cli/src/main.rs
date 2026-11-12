@@ -27,6 +27,7 @@ mod selector;
 mod transfer;
 mod ui;
 mod view;
+mod workspace;
 
 use std::process::ExitCode;
 
@@ -104,6 +105,8 @@ async fn cli() -> ExitCode {
         | Command::Log { .. }
         | Command::Kill { .. }
         | Command::Session { .. }
+        | Command::Project { .. }
+        | Command::Worktree { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

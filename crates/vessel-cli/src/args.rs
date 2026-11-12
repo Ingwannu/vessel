@@ -130,10 +130,141 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: SessionCommand,
     },
+    /// The node's projects: folders and repositories it works in
+    /// (protocol 10, ADR 0024).
+    Project {
+        #[command(subcommand)]
+        command: ProjectCommand,
+    },
+    /// Worktrees: a folder and a branch of a project's own, per session.
+    Worktree {
+        #[command(subcommand)]
+        command: WorktreeCommand,
+    },
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs
     /// until interrupted.
     Ui(UiArgs),
+}
+
+/// `vessel project …`. A project is named by its id, a unique prefix of
+/// one, or its name.
+#[derive(Debug, Subcommand)]
+pub(crate) enum ProjectCommand {
+    /// List the node's projects and the git it found.
+    List,
+    /// Add a folder on the node (inside a repository: its top level).
+    Add {
+        /// An absolute folder on the node.
+        path: PathBuf,
+        /// What to call it (default: the folder's name).
+        #[arg(long)]
+        name: Option<String>,
+    },
+    /// Clone a repository into a folder on the node, following its
+    /// progress.
+    Clone {
+        /// `https://`, `ssh://`, `git://` or `user@host:path`.
+        url: String,
+        /// The absolute folder to clone into (it gets the repository's
+        /// folder).
+        parent: PathBuf,
+        /// The new folder's name (default: the repository's).
+        #[arg(long)]
+        folder: Option<String>,
+        /// Return once the clone started.
+        #[arg(long)]
+        no_wait: bool,
+    },
+    /// Start a new repository in an empty or new folder on the node.
+    Init {
+        /// An absolute folder on the node.
+        path: PathBuf,
+    },
+    /// Forget a project; its files stay.
+    Remove {
+        /// The project.
+        project: String,
+    },
+    /// Show what the project's `vessel.toml` would run in a new worktree,
+    /// and the digest to approve it by.
+    Commands {
+        /// The project.
+        project: String,
+    },
+    /// Approve the set of commands whose digest `commands` printed: it
+    /// runs in new worktrees until the file changes.
+    Approve {
+        /// The project.
+        project: String,
+        /// The digest `vessel project commands` printed.
+        digest: String,
+        /// Withdraw the approval instead.
+        #[arg(long)]
+        withdraw: bool,
+    },
+}
+
+/// `vessel worktree …`. A worktree is named by its id or a unique prefix.
+#[derive(Debug, Subcommand)]
+pub(crate) enum WorktreeCommand {
+    /// List worktrees, or a project's.
+    List {
+        /// Only this project's.
+        #[arg(long)]
+        project: Option<String>,
+    },
+    /// Make a worktree and follow its setup.
+    New {
+        /// The project.
+        project: String,
+        /// The new branch's name (default: vessel/<8 hex>), or with
+        /// `--existing` the branch to check out.
+        #[arg(long)]
+        branch: Option<String>,
+        /// Check out `--branch` as it is.
+        #[arg(long, requires = "branch", conflicts_with = "base")]
+        existing: bool,
+        /// Where the new branch starts (default: the project's default
+        /// branch).
+        #[arg(long)]
+        base: Option<String>,
+        /// Do not run the project's setup commands.
+        #[arg(long)]
+        skip_setup: bool,
+        /// Return without following setup.
+        #[arg(long)]
+        no_wait: bool,
+    },
+    /// Print a worktree's setup output (`--follow` until setup ends).
+    Output {
+        /// The worktree.
+        worktree: String,
+        /// Keep printing until setup ends.
+        #[arg(long)]
+        follow: bool,
+    },
+    /// Run setup again, with the commands of the worktree's file as it is.
+    Setup {
+        /// The worktree.
+        worktree: String,
+    },
+    /// Remove a worktree; one with work in it is kept unless told.
+    Remove {
+        /// The worktree.
+        worktree: String,
+        /// Keep a snapshot of its work first.
+        #[arg(long, conflicts_with = "discard")]
+        snapshot: bool,
+        /// Remove it with its work.
+        #[arg(long)]
+        discard: bool,
+    },
+    /// List a project's snapshots.
+    Snapshots {
+        /// The project.
+        project: String,
+    },
 }
 
 /// `vessel ui`'s default port (`vesseld` has 7077, its relay 7078).
@@ -643,8 +774,20 @@ pub(crate) struct Run {
     /// Working directory on the node (defaults to the node user's home). A
     /// relative path is taken from the current directory when the node is
     /// on this machine, and refused for a remote node.
-    #[arg(long)]
+    #[arg(long, conflicts_with_all = ["project", "worktree"])]
     pub(crate) cwd: Option<PathBuf>,
+    /// Run in this project's folder (`vessel project list`).
+    #[arg(long, conflicts_with = "worktree")]
+    pub(crate) project: Option<String>,
+    /// With `--project`: a folder inside it, relative.
+    #[arg(long, requires = "project", conflicts_with = "new_worktree")]
+    pub(crate) dir: Option<String>,
+    /// With `--project`: in a new worktree of it, after its setup.
+    #[arg(long, requires = "project")]
+    pub(crate) new_worktree: bool,
+    /// Run in this worktree (`vessel worktree list`).
+    #[arg(long)]
+    pub(crate) worktree: Option<String>,
     /// Start it and print its id instead of attaching.
     #[arg(long)]
     pub(crate) detach: bool,
@@ -662,6 +805,65 @@ mod tests {
     use clap::Parser as _;
 
     use super::*;
+
+    #[test]
+    fn run_takes_a_place_or_a_folder_never_both() {
+        let Cli {
+            command: Command::Run(run),
+            ..
+        } = Cli::try_parse_from([
+            "vessel",
+            "run",
+            "claude",
+            "--project",
+            "app",
+            "--new-worktree",
+        ])
+        .unwrap()
+        else {
+            panic!("expected run");
+        };
+        assert_eq!(run.project.as_deref(), Some("app"));
+        assert!(run.new_worktree);
+        for refused in [
+            &["vessel", "run", "claude", "--cwd", "/x", "--project", "app"][..],
+            &["vessel", "run", "claude", "--dir", "src"],
+            &["vessel", "run", "claude", "--new-worktree"],
+            &[
+                "vessel",
+                "run",
+                "claude",
+                "--project",
+                "app",
+                "--worktree",
+                "ab12",
+            ],
+            &[
+                "vessel",
+                "run",
+                "claude",
+                "--project",
+                "app",
+                "--dir",
+                "s",
+                "--new-worktree",
+            ],
+        ] {
+            assert!(Cli::try_parse_from(refused).is_err(), "{refused:?}");
+        }
+        assert!(
+            Cli::try_parse_from([
+                "vessel",
+                "worktree",
+                "remove",
+                "ab",
+                "--snapshot",
+                "--discard"
+            ])
+            .is_err()
+        );
+        assert!(Cli::try_parse_from(["vessel", "project", "approve", "app", "00ff"]).is_ok());
+    }
 
     #[test]
     fn run_takes_a_profile_and_profiles_a_harness() {

@@ -317,6 +317,45 @@ vessel node devices revoke 3fa9       # its open connections close
   (0600); the book points to it and never holds the secret. Moving a
   device means pairing it again.
 
+### Projects and worktrees
+
+A node keeps the folders it works in (protocol 10, ADRs 0023 and 0024).
+A session can start in a project's folder, or in a worktree of its own: a
+folder and a branch of the project's repository, prepared by the
+project's setup commands.
+
+```bash
+vessel project add ~/code/app               # inside a repository: its top level
+vessel project clone https://github.com/owner/repo.git ~/code
+vessel project list
+vessel project commands app                 # what vessel.toml would run, and its digest
+vessel project approve app <digest>         # that exact set runs from now on
+vessel worktree new app                     # a new branch from the default one; follows setup
+vessel run claude --project app --new-worktree   # the same, then a session in it
+vessel run claude --worktree 3f2a           # a session in an existing worktree
+vessel worktree remove 3f2a                 # kept if anything would be lost
+vessel worktree remove 3f2a --snapshot      # or keep its work as a snapshot first
+```
+
+The project's file, `vessel.toml` at the repository's root:
+
+```toml
+[worktree]
+setup = ["npm ci", "cp \"$VESSEL_PROJECT_ROOT/.env\" ."]
+teardown = "docker compose down"
+```
+
+- Its commands run only once a person approved that exact set for that
+  project; any change to them is asked again. Agents and read-only
+  devices cannot approve.
+- A worktree is removed only when nothing would be lost (no change,
+  operation, submodule, flagged file or unshipped commit); otherwise it is
+  kept and says why. A session's worktree is to be tidied by that rule
+  when the session is archived or deleted (wired when archiving lands).
+- git is the machine's own `git` (2.25 or newer), run without prompts,
+  without the repository's hooks (except on commit and push) and without
+  the programs its configuration names.
+
 ## Profiles, the fleet and agent tools
 
 Milestone 4 (ADRs 0011 to 0013). Each part works on its own: profiles on
@@ -472,13 +511,15 @@ reaches its home by.
 Every session's agent gets the `vessel` MCP server (`vessel mcp`, started
 by the node) with a credential of its own, ending with the session. Its
 tools: `list_nodes`, `list_sessions`, `create_session` (with a first
-prompt), `send_input` (with a `delivery`: `start`, `queue`, `steer` or
-`interrupt`), `answer_permission`, `read_events`, `wait_turn`,
-`kill_session`, `read_conversation` (the queue, the agent's commands and
-context, what waits on an answer), `change_queue`, `answer_question`,
-`resume_session` and `archive_session`; each but `list_nodes` takes
-`node`, so an agent can start a session on another machine and read its
-answer.
+prompt, and a `project` or `worktree` to run in), `send_input` (with a
+`delivery`: `start`, `queue`, `steer` or `interrupt`),
+`answer_permission`, `read_events`, `wait_turn`, `kill_session`,
+`read_conversation` (the queue, the agent's commands and context, what
+waits on an answer), `change_queue`, `answer_question`,
+`resume_session` and `archive_session`, and for projects
+`list_projects`, `list_worktrees` and `create_worktree` (which follows
+setup to its end); each but `list_nodes` takes `node`, so an agent can
+start a session on another machine and read its answer.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and
   operates only on sessions it started (and theirs).

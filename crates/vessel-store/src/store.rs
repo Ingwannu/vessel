@@ -10,8 +10,10 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
+use vessel_proto::workspace::{CommandsDigest, ProjectInfo, WorktreeInfo};
 use vessel_proto::{
-    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, SessionId, SessionInfo,
+    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, ProjectId, SessionId,
+    SessionInfo, WorktreeId,
 };
 
 use crate::config::StoreConfig;
@@ -20,6 +22,7 @@ use crate::devices::{CredentialHash, StoredDevice};
 use crate::error::StoreError;
 use crate::log;
 use crate::reader::Reader;
+use crate::workspace::{StoredWorkspace, WorkspaceWrite};
 use crate::writer::{self, Done, Setup, Write, WriteOp};
 use crate::{attachments, files, recovery, schema};
 
@@ -225,6 +228,73 @@ impl Store {
     /// The read failed.
     pub async fn device(&self, id: DeviceId) -> Result<Option<StoredDevice>, StoreError> {
         self.read(move |reader| reader.device(id)).await
+    }
+
+    /// Projects, worktrees and approved command sets (protocol 10).
+    ///
+    /// # Errors
+    /// The read failed.
+    pub async fn workspace(&self) -> Result<StoredWorkspace, StoreError> {
+        self.read(Reader::workspace).await
+    }
+
+    /// Insert or replace a project.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn put_project(&self, project: ProjectInfo) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Project(Box::new(project)))
+            .await
+    }
+
+    /// Delete a project and its approvals (never one with worktrees: the
+    /// node refuses first, and the database refuses too).
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn forget_project(&self, project: ProjectId) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetProject(project))
+            .await
+    }
+
+    /// Insert or replace a worktree.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn put_worktree(&self, worktree: WorktreeInfo) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Worktree(Box::new(worktree)))
+            .await
+    }
+
+    /// Delete a worktree.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn forget_worktree(&self, worktree: WorktreeId) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetWorktree(worktree))
+            .await
+    }
+
+    /// Approve the command set `digest` for `project`, or withdraw it.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn set_approval(
+        &self,
+        project: ProjectId,
+        digest: CommandsDigest,
+        approved: bool,
+    ) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Approval {
+            project,
+            digest,
+            approved,
+        })
+        .await
+    }
+
+    async fn workspace_write(&self, write: WorkspaceWrite) -> Result<(), StoreError> {
+        self.write(|done| Write::Workspace { write, done }).await
     }
 
     /// Commit everything queued so far, fold the WAL into the database file

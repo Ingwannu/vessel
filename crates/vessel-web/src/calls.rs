@@ -65,6 +65,11 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 /// own frames), and the fleet's node-to-node machinery, which only nodes
 /// and relays call. Everything else passes, and the node checks scopes as
 /// for any client.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one line per method (ADR 0017), so a new method does not compile until someone \
+              decides; the list is the point"
+)]
 const fn forwardable(method: Method) -> bool {
     match method {
         Method::NodeInfo
@@ -123,7 +128,47 @@ const fn forwardable(method: Method) -> bool {
         | Method::BeginUpload
         | Method::WriteUpload
         | Method::FinishUpload
-        | Method::ReadAttachment => true,
+        | Method::ReadAttachment
+        | Method::ListProjects
+        | Method::GetProject
+        | Method::AddProject
+        | Method::CloneProject
+        | Method::InitProject
+        | Method::RemoveProject
+        | Method::ProjectCommands
+        | Method::ApproveCommands
+        | Method::ListWorktrees
+        | Method::CreateWorktree
+        | Method::SetupOutput
+        | Method::RunSetup
+        | Method::RemoveWorktree
+        | Method::ListSnapshots
+        | Method::DropSnapshot
+        | Method::GitStatus
+        | Method::GitChanges
+        | Method::GitDiff
+        | Method::GitShow
+        | Method::GitBranches
+        | Method::GitLog
+        | Method::GitStashes
+        | Method::GitStage
+        | Method::GitUnstage
+        | Method::GitDiscard
+        | Method::GitCommit
+        | Method::GitFetch
+        | Method::GitPush
+        | Method::GitPull
+        | Method::GitSwitch
+        | Method::GitRenameBranch
+        | Method::GitStash
+        | Method::ListDir
+        | Method::ReadFile
+        | Method::WriteFile
+        | Method::CreateDir
+        | Method::RenamePath
+        | Method::DeletePath
+        | Method::FindFiles
+        | Method::SearchFiles => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

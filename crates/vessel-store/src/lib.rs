@@ -65,6 +65,7 @@ mod recovery;
 mod schema;
 mod store;
 mod token;
+mod workspace;
 mod writer;
 
 pub use again::EndedSession;
@@ -78,3 +79,4 @@ pub use lock::{NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
+pub use workspace::StoredWorkspace;

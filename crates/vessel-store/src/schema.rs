@@ -175,9 +175,42 @@ CREATE INDEX sessions_retention
     WHERE live = 0 AND ended_at IS NOT NULL;
 ";
 
+/// Version 9 (milestone 11, protocol 10, track B): projects, the worktrees
+/// the node made, and the command sets a person approved (ADR 0024; see
+/// `workspace`). Track B's branch numbered it 7; track A's two versions
+/// came first when the tracks were merged, and nothing of protocol 10 had
+/// been released, so no database ever had it under the other number.
+///
+/// - `info` is the `ProjectInfo` or `WorktreeInfo` as JSON, written whole
+///   on every change; `created_at` orders them.
+/// - A worktree names its project, and a project with worktrees is never
+///   deleted (the node refuses), so the reference holds.
+/// - An approval is a project and a digest; deleted with its project.
+const V9: &str = "
+CREATE TABLE projects (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    created_at INTEGER NOT NULL,
+    info       TEXT    NOT NULL
+) STRICT;
+
+CREATE TABLE worktrees (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    project    TEXT    NOT NULL REFERENCES projects (id),
+    created_at INTEGER NOT NULL,
+    info       TEXT    NOT NULL
+) STRICT;
+
+CREATE TABLE approvals (
+    project     TEXT    NOT NULL REFERENCES projects (id),
+    digest      TEXT    NOT NULL,
+    approved_at INTEGER NOT NULL,
+    PRIMARY KEY (project, digest)
+) STRICT, WITHOUT ROWID;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

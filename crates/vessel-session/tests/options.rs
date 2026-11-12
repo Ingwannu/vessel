@@ -23,6 +23,8 @@ mod support;
 /// replaces it; later prompts do not.
 #[tokio::test]
 async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
+    // Boxed: it holds several session infos across awaits, and every field
+    // a protocol adds to them grows this future past clippy's bound.
     within(Box::pin(async {
         let fixture = Fixture::new();
         let handle = fixture.start(structured(Vec::new())).await;

@@ -4,10 +4,14 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 8 and 7 (protocol 10), so a test can take a database
-/// further back: retention's index (schema 1's in its place), the
-/// conversation's columns and the attachments table.
-const UNDO_SCHEMA_7: &str = "DROP INDEX sessions_retention;
+/// Undoes schemas 9 to 7 (protocol 10), so a test can take a database
+/// further back: the workspace's tables (9), retention's index (schema 1's
+/// in its place, 8), the conversation's columns and the attachments table
+/// (7).
+const UNDO_SCHEMAS_7_TO_9: &str = "DROP TABLE approvals;
+     DROP TABLE worktrees;
+     DROP TABLE projects;
+     DROP INDEX sessions_retention;
      CREATE INDEX sessions_ended ON sessions (ended_at) WHERE live = 0;
      ALTER TABLE sessions DROP COLUMN abilities;
      ALTER TABLE sessions DROP COLUMN usage;
@@ -136,7 +140,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMA_7).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_9).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).

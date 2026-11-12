@@ -150,6 +150,11 @@ impl Reader {
         self.with(|connection| attachments::usage(connection, session))
     }
 
+    /// Projects, worktrees and approvals (protocol 10).
+    pub(crate) fn workspace(&self) -> Result<crate::workspace::StoredWorkspace, StoreError> {
+        self.with(crate::workspace::load)
+    }
+
     /// Every paired device, oldest first.
     pub(crate) fn devices(&self) -> Result<Vec<DeviceInfo>, StoreError> {
         self.with(devices::list)

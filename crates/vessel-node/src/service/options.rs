@@ -117,6 +117,7 @@ impl NodeService {
         self.sessions
             .rename(request.session, request.title)
             .await
+            .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
     }
 }

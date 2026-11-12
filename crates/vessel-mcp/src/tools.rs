@@ -24,6 +24,7 @@
 
 mod conversation;
 mod lsp;
+mod workspace;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -91,6 +92,9 @@ impl VesselTools {
                 let node = self.target(args).await?;
                 Ok(json!(self.on(node, ListSessions).await?))
             }
+            "list_projects" | "list_worktrees" | "create_worktree" => {
+                self.workspace(name, args).await
+            }
             "create_session" => self.create_session(args).await,
             "send_input" => self.send_input(args).await,
             "answer_permission" => self.answer_permission(args).await,
@@ -149,8 +153,15 @@ impl VesselTools {
             }
         };
         let mut spec = SessionSpec::new(harness, mode);
-        if let Some(cwd) = text(args, "cwd")? {
-            spec = spec.with_cwd(PathBuf::from(cwd));
+        match (workspace::place(args)?, text(args, "cwd")?) {
+            (Some(_), Some(_)) => {
+                return Err(ToolError::Arguments(
+                    "give `cwd`, or a `project` or `worktree`, not both".to_owned(),
+                ));
+            }
+            (Some(place), None) => spec = spec.with_place(place),
+            (None, Some(cwd)) => spec = spec.with_cwd(PathBuf::from(cwd)),
+            (None, None) => {}
         }
         if let Some(profile) = text(args, "profile")? {
             let profile = profile
@@ -462,7 +473,9 @@ impl ServerHandler for VesselTools {
                 "Vessel: start and drive other agent sessions, on this machine or another node \
                  of its fleet (`node`, from `list_nodes`). A session you start is yours: you \
                  may send it input (queued or steered while it works), wait for its turns, \
-                 answer it, stop it, archive it and start it again.",
+                 answer it, stop it, archive it and start it again. To give one a folder and \
+                 branch of its own, `create_worktree` in a project from `list_projects`, then \
+                 `create_session` with that `worktree`.",
             )
     }
 
@@ -566,16 +579,21 @@ fn session(args: &JsonObject) -> Result<SessionId, ToolError> {
 /// Every tool with its input schema.
 fn tools() -> Vec<Tool> {
     let session = json!({ "type": "string", "description": "A session id." });
-    let node = json!({
-        "type": "string",
-        "description": "A node of the fleet, by its id or its name in `list_nodes`; leave it \
-                        out for this node."
-    });
+    let node = node_schema();
     session_tools(&node, &session)
         .into_iter()
         .chain(conversation::tools(&node, &session))
+        .chain(workspace::tools(&node))
         .chain(lsp::tools())
         .collect()
+}
+
+fn node_schema() -> Value {
+    json!({
+        "type": "string",
+        "description": "A node of the fleet, by its id or its name in `list_nodes`; leave it \
+                        out for this node."
+    })
 }
 
 fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
@@ -594,34 +612,7 @@ fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
             json!({ "node": node }),
             &[],
         ),
-        tool(
-            "create_session",
-            "Start a session; it is yours to drive and stop. Structured (a conversation) unless \
-             `terminal` is true. With `prompt`, it is sent once the session is ready; then call \
-             `wait_turn` with the returned `from` for the reply.",
-            json!({
-                "node": node,
-                "harness": {
-                    "type": "string",
-                    "description": "claude, codex, gemini or opencode."
-                },
-                "profile": {
-                    "type": "string",
-                    "description": "One of the node's profiles for that harness (an account)."
-                },
-                "cwd": {
-                    "type": "string",
-                    "description": "Absolute working directory on the node."
-                },
-                "model": { "type": "string", "description": "A model the agent offers." },
-                "prompt": { "type": "string", "description": "The first prompt." },
-                "terminal": {
-                    "type": "boolean",
-                    "description": "Run the harness's own terminal UI instead."
-                }
-            }),
-            &["harness"],
-        ),
+        create_session_tool(node),
         tool(
             "send_input",
             "Send a prompt to a structured session, or type a line into a terminal one. \
@@ -678,6 +669,51 @@ fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
             &["session"],
         ),
     ]
+}
+
+fn create_session_tool(node: &Value) -> Tool {
+    tool(
+        "create_session",
+        "Start a session; it is yours to drive and stop. Structured (a conversation) unless \
+         `terminal` is true. With `prompt`, it is sent once the session is ready; then call \
+         `wait_turn` with the returned `from` for the reply.",
+        json!({
+            "node": node,
+            "harness": {
+                "type": "string",
+                "description": "claude, codex, gemini or opencode."
+            },
+            "profile": {
+                "type": "string",
+                "description": "One of the node's profiles for that harness (an account)."
+            },
+            "cwd": {
+                "type": "string",
+                "description": "Absolute working directory on the node (or give `project` \
+                                or `worktree`)."
+            },
+            "project": {
+                "type": "string",
+                "description": "Run in this project's folder (an id from `list_projects`)."
+            },
+            "dir": {
+                "type": "string",
+                "description": "With `project`: a folder inside it, relative."
+            },
+            "worktree": {
+                "type": "string",
+                "description": "Run in this worktree (from `create_worktree`): one you made, \
+                                or one made for a session of yours."
+            },
+            "model": { "type": "string", "description": "A model the agent offers." },
+            "prompt": { "type": "string", "description": "The first prompt." },
+            "terminal": {
+                "type": "boolean",
+                "description": "Run the harness's own terminal UI instead."
+            }
+        }),
+        &["harness"],
+    )
 }
 
 fn tool(

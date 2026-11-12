@@ -450,6 +450,92 @@ async fn run_here(
         Call::ReadAttachment(request) => {
             Reply::ReadAttachment(guard.read_attachment(connection, request).await?)
         }
+        Call::ListProjects(request) => {
+            Reply::ListProjects(guard.list_projects(connection, request).await?)
+        }
+        Call::GetProject(request) => {
+            Reply::GetProject(guard.get_project(connection, request).await?)
+        }
+        Call::AddProject(request) => {
+            Reply::AddProject(guard.add_project(connection, request).await?)
+        }
+        Call::CloneProject(request) => {
+            Reply::CloneProject(guard.clone_project(connection, request).await?)
+        }
+        Call::InitProject(request) => {
+            Reply::InitProject(guard.init_project(connection, request).await?)
+        }
+        Call::RemoveProject(request) => {
+            Reply::RemoveProject(guard.remove_project(connection, request).await?)
+        }
+        Call::ProjectCommands(request) => {
+            Reply::ProjectCommands(guard.project_commands(connection, request).await?)
+        }
+        Call::ApproveCommands(request) => {
+            Reply::ApproveCommands(guard.approve_commands(connection, request).await?)
+        }
+        Call::ListWorktrees(request) => {
+            Reply::ListWorktrees(guard.list_worktrees(connection, request).await?)
+        }
+        Call::CreateWorktree(request) => {
+            Reply::CreateWorktree(guard.create_worktree(connection, request).await?)
+        }
+        Call::SetupOutput(request) => {
+            Reply::SetupOutput(guard.setup_output(connection, request).await?)
+        }
+        Call::RunSetup(request) => Reply::RunSetup(guard.run_setup(connection, request).await?),
+        Call::RemoveWorktree(request) => {
+            Reply::RemoveWorktree(guard.remove_worktree(connection, request).await?)
+        }
+        Call::ListSnapshots(request) => {
+            Reply::ListSnapshots(guard.list_snapshots(connection, request).await?)
+        }
+        Call::DropSnapshot(request) => {
+            Reply::DropSnapshot(guard.drop_snapshot(connection, request).await?)
+        }
+        Call::GitStatus(request) => Reply::GitStatus(guard.git_status(connection, request).await?),
+        Call::GitChanges(request) => {
+            Reply::GitChanges(guard.git_changes(connection, request).await?)
+        }
+        Call::GitDiff(request) => Reply::GitDiff(guard.git_diff(connection, request).await?),
+        Call::GitShow(request) => Reply::GitShow(guard.git_show(connection, request).await?),
+        Call::GitBranches(request) => {
+            Reply::GitBranches(guard.git_branches(connection, request).await?)
+        }
+        Call::GitLog(request) => Reply::GitLog(guard.git_log(connection, request).await?),
+        Call::GitStashes(request) => {
+            Reply::GitStashes(guard.git_stashes(connection, request).await?)
+        }
+        Call::GitStage(request) => Reply::GitStage(guard.git_stage(connection, request).await?),
+        Call::GitUnstage(request) => {
+            Reply::GitUnstage(guard.git_unstage(connection, request).await?)
+        }
+        Call::GitDiscard(request) => {
+            Reply::GitDiscard(guard.git_discard(connection, request).await?)
+        }
+        Call::GitCommit(request) => Reply::GitCommit(guard.git_commit(connection, request).await?),
+        Call::GitFetch(request) => Reply::GitFetch(guard.git_fetch(connection, request).await?),
+        Call::GitPush(request) => Reply::GitPush(guard.git_push(connection, request).await?),
+        Call::GitPull(request) => Reply::GitPull(guard.git_pull(connection, request).await?),
+        Call::GitSwitch(request) => Reply::GitSwitch(guard.git_switch(connection, request).await?),
+        Call::GitRenameBranch(request) => {
+            Reply::GitRenameBranch(guard.git_rename_branch(connection, request).await?)
+        }
+        Call::GitStash(request) => Reply::GitStash(guard.git_stash(connection, request).await?),
+        Call::ListDir(request) => Reply::ListDir(guard.list_dir(connection, request).await?),
+        Call::ReadFile(request) => Reply::ReadFile(guard.read_file(connection, request).await?),
+        Call::WriteFile(request) => Reply::WriteFile(guard.write_file(connection, request).await?),
+        Call::CreateDir(request) => Reply::CreateDir(guard.create_dir(connection, request).await?),
+        Call::RenamePath(request) => {
+            Reply::RenamePath(guard.rename_path(connection, request).await?)
+        }
+        Call::DeletePath(request) => {
+            Reply::DeletePath(guard.delete_path(connection, request).await?)
+        }
+        Call::FindFiles(request) => Reply::FindFiles(guard.find_files(connection, request).await?),
+        Call::SearchFiles(request) => {
+            Reply::SearchFiles(guard.search_files(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

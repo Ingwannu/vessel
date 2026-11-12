@@ -103,6 +103,11 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done,
     },
+    /// Change the record of projects and worktrees (protocol 10).
+    Workspace {
+        write: crate::workspace::WorkspaceWrite,
+        done: Done,
+    },
 }
 
 /// What the writer needs besides its connection and its queue.
@@ -310,6 +315,12 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
         Write::Attach { kept, at, done } => {
             let applied = isolated(transaction, |connection| {
                 attachments::insert(connection, &kept, time_to_sql(at)?)
+            });
+            Answer::Done(done, applied)
+        }
+        Write::Workspace { write, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::workspace::apply(connection, &write)
             });
             Answer::Done(done, applied)
         }

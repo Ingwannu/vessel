@@ -402,6 +402,46 @@ impl Handler for FakeNode {
         write_upload: vessel_proto::conversation::WriteUpload => vessel_proto::conversation::Written;
         finish_upload: vessel_proto::conversation::FinishUpload => vessel_proto::AttachmentRef;
         read_attachment: vessel_proto::conversation::ReadAttachment => BlobChunk;
+        list_projects: vessel_proto::workspace::ListProjects => vessel_proto::workspace::ProjectList;
+        get_project: vessel_proto::workspace::GetProject => vessel_proto::workspace::ProjectInfo;
+        add_project: vessel_proto::workspace::AddProject => vessel_proto::workspace::ProjectInfo;
+        clone_project: vessel_proto::workspace::CloneProject => vessel_proto::workspace::ProjectInfo;
+        init_project: vessel_proto::workspace::InitProject => vessel_proto::workspace::ProjectInfo;
+        remove_project: vessel_proto::workspace::RemoveProject => Ack;
+        project_commands: vessel_proto::workspace::GetProjectCommands => vessel_proto::workspace::ProjectCommands;
+        approve_commands: vessel_proto::workspace::ApproveCommands => vessel_proto::workspace::ProjectCommands;
+        list_worktrees: vessel_proto::workspace::ListWorktrees => vessel_proto::workspace::WorktreeList;
+        create_worktree: vessel_proto::workspace::CreateWorktree => vessel_proto::workspace::CreateWorktreeOutcome;
+        setup_output: vessel_proto::workspace::ReadSetupOutput => vessel_proto::workspace::SetupOutput;
+        run_setup: vessel_proto::workspace::RunSetup => vessel_proto::workspace::WorktreeInfo;
+        remove_worktree: vessel_proto::workspace::RemoveWorktree => vessel_proto::workspace::RemoveWorktreeOutcome;
+        list_snapshots: vessel_proto::workspace::ListSnapshots => vessel_proto::workspace::SnapshotList;
+        drop_snapshot: vessel_proto::workspace::DropSnapshot => Ack;
+        git_status: vessel_proto::workspace::GetStatus => vessel_proto::workspace::GitStatus;
+        git_changes: vessel_proto::workspace::GetChanges => vessel_proto::workspace::DiffSummary;
+        git_diff: vessel_proto::workspace::GetFileDiff => vessel_proto::workspace::FileDiff;
+        git_show: vessel_proto::workspace::ShowFile => vessel_proto::workspace::FileRead;
+        git_branches: vessel_proto::workspace::ListBranches => vessel_proto::workspace::BranchList;
+        git_log: vessel_proto::workspace::ReadLog => vessel_proto::workspace::CommitPage;
+        git_stashes: vessel_proto::workspace::ListStashes => vessel_proto::workspace::StashList;
+        git_stage: vessel_proto::workspace::Stage => vessel_proto::workspace::GitStatus;
+        git_unstage: vessel_proto::workspace::Unstage => vessel_proto::workspace::GitStatus;
+        git_discard: vessel_proto::workspace::Discard => vessel_proto::workspace::GitStatus;
+        git_commit: vessel_proto::workspace::Commit => vessel_proto::workspace::CommitOutcome;
+        git_fetch: vessel_proto::workspace::Fetch => vessel_proto::workspace::FetchOutcome;
+        git_push: vessel_proto::workspace::Push => vessel_proto::workspace::PushOutcome;
+        git_pull: vessel_proto::workspace::Pull => vessel_proto::workspace::PullOutcome;
+        git_switch: vessel_proto::workspace::Switch => vessel_proto::workspace::SwitchOutcome;
+        git_rename_branch: vessel_proto::workspace::RenameBranch => vessel_proto::workspace::RenameOutcome;
+        git_stash: vessel_proto::workspace::StashChanges => vessel_proto::workspace::StashOutcome;
+        list_dir: vessel_proto::workspace::ListDir => vessel_proto::workspace::DirListing;
+        read_file: vessel_proto::workspace::ReadFile => vessel_proto::workspace::FileRead;
+        write_file: vessel_proto::workspace::WriteFile => vessel_proto::workspace::FileVersion;
+        create_dir: vessel_proto::workspace::CreateDir => Ack;
+        rename_path: vessel_proto::workspace::RenamePath => Ack;
+        delete_path: vessel_proto::workspace::DeletePath => Ack;
+        find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
+        search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
     }
 }
 

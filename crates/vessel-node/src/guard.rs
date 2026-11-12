@@ -21,6 +21,12 @@
 //! - Cost: the rows repeat the protocol table's handler names and types;
 //!   the compiler keeps them in step.
 //!
+//! [Decision Log: agents and workspaces] (protocol 10, ADR 0024)
+//! - Agents get, of the workspace calls, only what orchestration needs
+//!   (`workspace::policy`); the rest are refused right after the scope,
+//!   whatever the agent's scopes, by the same generated method, so a new
+//!   workspace call is held to the list from its first row.
+//!
 //! [Decision Log: ownership] (protocol 5, ADR 0013)
 //! - Agents may `operate` only on sessions their own session started (or
 //!   that those started). Every request type declares which session it
@@ -69,6 +75,10 @@ macro_rules! guarded {
                     request: $request,
                 ) -> Result<$response, WireError> {
                     connection.principal().permit(<$request as Request>::METHOD)?;
+                    crate::workspace::refuse_agents(
+                        connection.principal(),
+                        <$request as Request>::METHOD,
+                    )?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
                     }
@@ -203,6 +213,46 @@ untargeted!(
     vessel_proto::lsp::IncomingCalls,
     vessel_proto::lsp::OutgoingCalls,
     vessel_proto::lsp::Diagnostics,
+    vessel_proto::workspace::ListProjects,
+    vessel_proto::workspace::GetProject,
+    vessel_proto::workspace::AddProject,
+    vessel_proto::workspace::CloneProject,
+    vessel_proto::workspace::InitProject,
+    vessel_proto::workspace::RemoveProject,
+    vessel_proto::workspace::GetProjectCommands,
+    vessel_proto::workspace::ApproveCommands,
+    vessel_proto::workspace::ListWorktrees,
+    vessel_proto::workspace::CreateWorktree,
+    vessel_proto::workspace::ReadSetupOutput,
+    vessel_proto::workspace::RunSetup,
+    vessel_proto::workspace::RemoveWorktree,
+    vessel_proto::workspace::ListSnapshots,
+    vessel_proto::workspace::DropSnapshot,
+    vessel_proto::workspace::GetStatus,
+    vessel_proto::workspace::GetChanges,
+    vessel_proto::workspace::GetFileDiff,
+    vessel_proto::workspace::ShowFile,
+    vessel_proto::workspace::ListBranches,
+    vessel_proto::workspace::ReadLog,
+    vessel_proto::workspace::ListStashes,
+    vessel_proto::workspace::Stage,
+    vessel_proto::workspace::Unstage,
+    vessel_proto::workspace::Discard,
+    vessel_proto::workspace::Commit,
+    vessel_proto::workspace::Fetch,
+    vessel_proto::workspace::Push,
+    vessel_proto::workspace::Pull,
+    vessel_proto::workspace::Switch,
+    vessel_proto::workspace::RenameBranch,
+    vessel_proto::workspace::StashChanges,
+    vessel_proto::workspace::ListDir,
+    vessel_proto::workspace::ReadFile,
+    vessel_proto::workspace::WriteFile,
+    vessel_proto::workspace::CreateDir,
+    vessel_proto::workspace::RenamePath,
+    vessel_proto::workspace::DeletePath,
+    vessel_proto::workspace::FindFiles,
+    vessel_proto::workspace::SearchFiles,
 );
 
 guarded! {
@@ -258,6 +308,46 @@ guarded! {
     write_upload: vessel_proto::conversation::WriteUpload => vessel_proto::conversation::Written;
     finish_upload: vessel_proto::conversation::FinishUpload => vessel_proto::AttachmentRef;
     read_attachment: vessel_proto::conversation::ReadAttachment => BlobChunk;
+    list_projects: vessel_proto::workspace::ListProjects => vessel_proto::workspace::ProjectList;
+    get_project: vessel_proto::workspace::GetProject => vessel_proto::workspace::ProjectInfo;
+    add_project: vessel_proto::workspace::AddProject => vessel_proto::workspace::ProjectInfo;
+    clone_project: vessel_proto::workspace::CloneProject => vessel_proto::workspace::ProjectInfo;
+    init_project: vessel_proto::workspace::InitProject => vessel_proto::workspace::ProjectInfo;
+    remove_project: vessel_proto::workspace::RemoveProject => Ack;
+    project_commands: vessel_proto::workspace::GetProjectCommands => vessel_proto::workspace::ProjectCommands;
+    approve_commands: vessel_proto::workspace::ApproveCommands => vessel_proto::workspace::ProjectCommands;
+    list_worktrees: vessel_proto::workspace::ListWorktrees => vessel_proto::workspace::WorktreeList;
+    create_worktree: vessel_proto::workspace::CreateWorktree => vessel_proto::workspace::CreateWorktreeOutcome;
+    setup_output: vessel_proto::workspace::ReadSetupOutput => vessel_proto::workspace::SetupOutput;
+    run_setup: vessel_proto::workspace::RunSetup => vessel_proto::workspace::WorktreeInfo;
+    remove_worktree: vessel_proto::workspace::RemoveWorktree => vessel_proto::workspace::RemoveWorktreeOutcome;
+    list_snapshots: vessel_proto::workspace::ListSnapshots => vessel_proto::workspace::SnapshotList;
+    drop_snapshot: vessel_proto::workspace::DropSnapshot => Ack;
+    git_status: vessel_proto::workspace::GetStatus => vessel_proto::workspace::GitStatus;
+    git_changes: vessel_proto::workspace::GetChanges => vessel_proto::workspace::DiffSummary;
+    git_diff: vessel_proto::workspace::GetFileDiff => vessel_proto::workspace::FileDiff;
+    git_show: vessel_proto::workspace::ShowFile => vessel_proto::workspace::FileRead;
+    git_branches: vessel_proto::workspace::ListBranches => vessel_proto::workspace::BranchList;
+    git_log: vessel_proto::workspace::ReadLog => vessel_proto::workspace::CommitPage;
+    git_stashes: vessel_proto::workspace::ListStashes => vessel_proto::workspace::StashList;
+    git_stage: vessel_proto::workspace::Stage => vessel_proto::workspace::GitStatus;
+    git_unstage: vessel_proto::workspace::Unstage => vessel_proto::workspace::GitStatus;
+    git_discard: vessel_proto::workspace::Discard => vessel_proto::workspace::GitStatus;
+    git_commit: vessel_proto::workspace::Commit => vessel_proto::workspace::CommitOutcome;
+    git_fetch: vessel_proto::workspace::Fetch => vessel_proto::workspace::FetchOutcome;
+    git_push: vessel_proto::workspace::Push => vessel_proto::workspace::PushOutcome;
+    git_pull: vessel_proto::workspace::Pull => vessel_proto::workspace::PullOutcome;
+    git_switch: vessel_proto::workspace::Switch => vessel_proto::workspace::SwitchOutcome;
+    git_rename_branch: vessel_proto::workspace::RenameBranch => vessel_proto::workspace::RenameOutcome;
+    git_stash: vessel_proto::workspace::StashChanges => vessel_proto::workspace::StashOutcome;
+    list_dir: vessel_proto::workspace::ListDir => vessel_proto::workspace::DirListing;
+    read_file: vessel_proto::workspace::ReadFile => vessel_proto::workspace::FileRead;
+    write_file: vessel_proto::workspace::WriteFile => vessel_proto::workspace::FileVersion;
+    create_dir: vessel_proto::workspace::CreateDir => Ack;
+    rename_path: vessel_proto::workspace::RenamePath => Ack;
+    delete_path: vessel_proto::workspace::DeletePath => Ack;
+    find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
+    search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

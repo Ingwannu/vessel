@@ -292,6 +292,8 @@ async fn retention_prunes_archived_first_and_pinned_last() {
 
 /// Schema 7 archived every session that had ended before it, as of its
 /// end, so the board looks as it did; a session still live then is not.
+/// The database is taken back to schema 6 and walks 7, 8 and 9 in order
+/// (9, the workspace's tables, comes back empty).
 #[tokio::test]
 async fn sessions_that_ended_before_schema_7_are_archived() {
     let (_temp, dir) = data_dir();
@@ -304,7 +306,10 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
         .execute_batch(
-            "DROP INDEX sessions_retention;
+            "DROP TABLE approvals;
+             DROP TABLE worktrees;
+             DROP TABLE projects;
+             DROP INDEX sessions_retention;
              CREATE INDEX sessions_ended ON sessions (ended_at) WHERE live = 0;
              ALTER TABLE sessions DROP COLUMN abilities;
              ALTER TABLE sessions DROP COLUMN usage;
@@ -321,6 +326,8 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     drop(connection);
 
     let store = open(&dir, StoreConfig::default()).await;
+    let workspace = store.workspace().await.unwrap();
+    assert!(workspace.projects.is_empty() && workspace.worktrees.is_empty());
     let before = store.session(ended).await.unwrap().unwrap();
     assert_eq!(before.marks.archived_at, Some(at(5)));
     assert!(!before.marks.unread, "no attention point was kept before");
