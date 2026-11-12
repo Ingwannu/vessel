@@ -26,8 +26,10 @@
 
 mod added;
 mod calls;
+mod catalogue;
 mod name;
 mod older;
+mod status;
 mod text;
 
 pub use added::{
@@ -35,9 +37,11 @@ pub use added::{
     AuthMethod, InstallOffer, InstallPart, SecretEnv, SignInHelp,
 };
 pub use calls::{AddAgent, ListAgents, RemoveAgent};
+pub use catalogue::{Catalogue, CatalogueEntry, CatalogueRun, CatalogueVariable, GetCatalogue};
 pub use name::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use older::{READS_ADDED_AGENTS, readable, unreadable};
 pub(crate) use older::{harnesses as harnesses_for, profiles as profiles_for};
+pub use status::{AgentReadiness, CheckStep, GetAgentStatus, Installed, SignedIn, UnknownReason};
 pub use text::{
     AgentLabel, AgentProgram, AgentVersion, AuthMethodId, InvalidAgentText, RegistryId,
     RegistryVersion, Sha256Hex,

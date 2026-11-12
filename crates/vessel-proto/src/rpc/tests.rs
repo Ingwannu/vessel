@@ -280,7 +280,8 @@ fn the_forwardable_set_is_pinned() {
             "file.delete",
             "file.find",
             "file.grep",
-            "agent.list"
+            "agent.list",
+            "agent.status"
         ]
     );
 }

@@ -42,6 +42,7 @@ mod again;
 mod conversation;
 // Protocol 11's calls: agents beyond the four (ADR 0032).
 mod agents;
+mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
@@ -84,6 +85,10 @@ pub(crate) struct NodeService {
     workspaces: Arc<Workspaces>,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
+    /// What `agent.status` found (protocol 11, `readiness`).
+    readiness: crate::readiness::Readiness,
+    /// The node's copy of the ACP registry (protocol 11, `catalogue`).
+    catalogue: crate::catalogue::Catalogues,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -106,6 +111,7 @@ pub(crate) struct Parts {
     pub(crate) probes: Probes,
     pub(crate) workspaces: Arc<Workspaces>,
     pub(crate) tidying: Arc<Tidying>,
+    pub(crate) catalogue: crate::catalogue::Catalogues,
 }
 
 impl NodeService {
@@ -129,6 +135,7 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            catalogue,
         } = parts;
         Self {
             lsp,
@@ -150,6 +157,8 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            readiness: crate::readiness::Readiness::default(),
+            catalogue,
         }
     }
 

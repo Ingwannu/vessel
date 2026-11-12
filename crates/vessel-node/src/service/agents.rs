@@ -4,8 +4,8 @@
 //! launcher's.
 
 use vessel_harness::Profile;
-use vessel_proto::agents::{AddAgent, AgentInfo, ListAgents, RemoveAgent};
-use vessel_proto::{Ack, Harness, HarnessRef, ProfileName, SessionId, WireError};
+use vessel_proto::agents::{AddAgent, AgentInfo, Catalogue, GetCatalogue, ListAgents, RemoveAgent};
+use vessel_proto::{Ack, ErrorCode, Harness, HarnessRef, ProfileName, SessionId, WireError};
 
 use super::{Connection, NodeService, wire};
 use crate::error::ServiceError;
@@ -56,9 +56,12 @@ impl NodeService {
         request: AddAgent,
     ) -> Result<AgentInfo, WireError> {
         crate::added::person(connection.principal()).map_err(|error| crate::added::wire(&error))?;
-        crate::added::add(&self.profiles, &self.probes, request)
+        let name = request.name.clone();
+        let added = crate::added::add(&self.profiles, &self.probes, &self.catalogue, request)
             .await
-            .map_err(|error| crate::added::wire(&error))
+            .map_err(|error| crate::added::wire(&error))?;
+        self.readiness.forget(&HarnessRef::Added(name));
+        Ok(added)
     }
 
     /// `agent.remove`: as `agent.add`. A live session of the agent goes on
@@ -70,10 +73,34 @@ impl NodeService {
         request: RemoveAgent,
     ) -> Result<Ack, WireError> {
         crate::added::person(connection.principal()).map_err(|error| crate::added::wire(&error))?;
+        let name = request.name.clone();
         crate::added::remove(&self.profiles, &self.probes, request)
             .await
             .map_err(|error| crate::added::wire(&error))?;
+        self.readiness.forget(&HarnessRef::Added(name));
         Ok(Ack)
+    }
+
+    /// `agent.catalogue`: the node's copy of the ACP registry; `refresh`
+    /// fetches it first, which only a person asks for.
+    pub(crate) async fn agent_catalogue(
+        &self,
+        connection: &Connection,
+        request: GetCatalogue,
+    ) -> Result<Catalogue, WireError> {
+        if !request.refresh {
+            return Ok(self.catalogue.current());
+        }
+        crate::added::person(connection.principal()).map_err(|_not| {
+            WireError::new(
+                ErrorCode::Forbidden,
+                "a fetch of the ACP registry is a person's ask; an agent reads the copy",
+            )
+        })?;
+        self.catalogue
+            .refresh(&self.lookup)
+            .await
+            .map_err(|error| WireError::new(ErrorCode::Unavailable, error.to_string()))
     }
 
     /// `harness.list`'s answer: the four found here, then the added agents

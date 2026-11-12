@@ -83,6 +83,10 @@ pub struct Config {
     /// is believed (`vesseld --trusted-proxy`); anyone else is counted by
     /// its own address.
     pub trusted_proxies: Vec<vessel_relay::TrustedProxy>,
+    /// Where `agent.catalogue` fetches the ACP registry (protocol 11, ADR
+    /// 0032): its published index. https only, or plain http to this
+    /// machine (what a test serves).
+    pub registry_url: String,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -146,6 +150,7 @@ impl Config {
             fleet: FleetConfig::default(),
             client_address_header: None,
             trusted_proxies: Vec::new(),
+            registry_url: crate::catalogue::REGISTRY_URL.to_owned(),
         }
     }
 }

@@ -321,6 +321,10 @@ rpc_methods! {
     AddAgent / add_agent / "agent.add" [Admin, 11]: crate::agents::AddAgent => crate::agents::AgentInfo;
     /// Forget an added agent (protocol 11).
     RemoveAgent / remove_agent / "agent.remove" [Admin, 11]: crate::agents::RemoveAgent => Ack;
+    /// Whether agents are installed and signed in (protocol 11).
+    GetAgentStatus / agent_status / "agent.status" [Read, 11]: crate::agents::GetAgentStatus => Vec<crate::agents::AgentReadiness>;
+    /// The ACP registry, as the node's copy (protocol 11).
+    GetCatalogue / agent_catalogue / "agent.catalogue" [Read, 11]: crate::agents::GetCatalogue => crate::agents::Catalogue;
 }
 
 /// Result of a call.

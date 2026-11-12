@@ -107,6 +107,13 @@ pub fn installs(harness: HarnessKind) -> Vec<Install> {
         .collect()
 }
 
+/// The program `harness` is run as (`claude`, `codex`, `gemini`,
+/// `opencode`): what `agent.status` says is missing.
+#[must_use]
+pub fn binary(harness: HarnessKind) -> &'static str {
+    descriptor(harness).binary
+}
+
 /// The command (binary and arguments) that logs a person in to `harness`;
 /// `None` when that happens inside the harness's own interface.
 #[must_use]

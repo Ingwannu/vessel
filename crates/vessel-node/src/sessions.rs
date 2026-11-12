@@ -30,8 +30,8 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessRef, OptionChoice, SessionId, SessionInfo, SessionOption,
-    SessionSpec, SessionTitle,
+    EventRecord, EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
+    SessionOption, SessionSpec, SessionTitle,
 };
 use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
@@ -269,6 +269,17 @@ impl Sessions {
         let mut list: Vec<SessionInfo> = all.into_values().collect();
         list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         Ok(list)
+    }
+
+    /// The agent and profile of every live session (`None`: its agent's
+    /// default): what `agent.status` does not check beside (protocol 11).
+    pub(crate) fn live_profiles(&self) -> Vec<(HarnessRef, Option<ProfileName>)> {
+        self.runtime
+            .list()
+            .into_iter()
+            .filter(|info| info.status.is_live())
+            .map(|info| (info.spec.harness, info.profile))
+            .collect()
     }
 
     /// The live sessions and the folders they run in (a session without

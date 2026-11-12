@@ -177,6 +177,8 @@ impl Unary for vessel_proto::workspace::SearchFiles {}
 impl Unary for vessel_proto::agents::ListAgents {}
 impl Unary for vessel_proto::agents::AddAgent {}
 impl Unary for vessel_proto::agents::RemoveAgent {}
+impl Unary for vessel_proto::agents::GetAgentStatus {}
+impl Unary for vessel_proto::agents::GetCatalogue {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -328,7 +330,9 @@ const fn is_unary(method: Method) -> bool {
         | Method::SearchFiles
         | Method::ListAgents
         | Method::AddAgent
-        | Method::RemoveAgent => true,
+        | Method::RemoveAgent
+        | Method::GetAgentStatus
+        | Method::GetCatalogue => true,
     }
 }
 

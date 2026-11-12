@@ -171,7 +171,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::SearchFiles
         | Method::ListAgents
         | Method::AddAgent
-        | Method::RemoveAgent => true,
+        | Method::RemoveAgent
+        | Method::GetAgentStatus
+        | Method::GetCatalogue => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

@@ -350,10 +350,12 @@ impl Method {
             | Self::FindFiles
             | Self::SearchFiles
             // Protocol 11: what a node can run is read like its harnesses.
-            | Self::ListAgents => true,
+            | Self::ListAgents
+            | Self::GetAgentStatus => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent
+            | Self::GetCatalogue
             | Self::RemoveAgent
             | Self::StopNode
             | Self::InviteDevice

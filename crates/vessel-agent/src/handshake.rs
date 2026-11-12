@@ -43,6 +43,7 @@ use vessel_proto::{
     AgentAbilities, HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers,
 };
 
+use crate::introduction::{self, Introduction, Refusal, Refused};
 use crate::model::ModelError;
 use crate::options::{Applied, Change, OptionError, Options};
 use crate::{abilities, mcp};
@@ -85,12 +86,19 @@ pub struct AgentSetup {
 pub(crate) enum HandshakeError {
     #[error("`initialize` failed")]
     Initialize(#[source] Error),
-    #[error("the agent speaks ACP version {0:?}; Vessel speaks version 1")]
-    Version(ProtocolVersion),
+    #[error("the agent speaks ACP version {version:?}; Vessel speaks version 1")]
+    Version {
+        version: ProtocolVersion,
+        introduction: Introduction,
+    },
     #[error("the agent cannot resume sessions (it does not support `session/load`)")]
     CannotResume,
     #[error("`session/new` failed")]
-    NewSession(#[source] Error),
+    NewSession {
+        #[source]
+        source: Error,
+        introduction: Introduction,
+    },
     #[error("`session/load` failed")]
     LoadSession(#[source] Error),
     #[error(transparent)]
@@ -109,13 +117,55 @@ pub(crate) enum HandshakeError {
     TimedOut(Duration),
 }
 
-/// A session the agent accepted, its options after the choices, and what
-/// the agent said it can do.
+impl HandshakeError {
+    /// Why, as `agent.status` reads it; `None` for a step a probe never
+    /// takes (a model, an option, a resume).
+    pub(crate) fn refused(&self) -> Option<Refused> {
+        let (refusal, introduction) = match self {
+            Self::Initialize(_) => (Refusal::Initialize, Introduction::default()),
+            Self::Version {
+                version,
+                introduction,
+            } => (
+                Refusal::Version {
+                    speaks: introduction::number(*version),
+                },
+                introduction.clone(),
+            ),
+            Self::NewSession {
+                source,
+                introduction,
+            } => (
+                if source.code == agent_client_protocol::ErrorCode::AUTH_REQUIRED {
+                    Refusal::SignIn
+                } else {
+                    Refusal::SessionNew
+                },
+                introduction.clone(),
+            ),
+            Self::TimedOut(limit) => (Refusal::TimedOut { after: *limit }, Introduction::default()),
+            Self::CannotResume
+            | Self::LoadSession(_)
+            | Self::Model(_)
+            | Self::SetModel(_)
+            | Self::Option(_)
+            | Self::SetOption { .. } => return None,
+        };
+        Some(Refused {
+            refusal,
+            introduction,
+        })
+    }
+}
+
+/// A session the agent accepted, its options after the choices, what the
+/// agent said it can do, and what it said of itself.
 #[derive(Debug)]
 pub(crate) struct Started {
     pub(crate) session: acp::SessionId,
     pub(crate) options: Options,
     pub(crate) abilities: AgentAbilities,
+    pub(crate) introduction: Introduction,
 }
 
 /// [`run`], bounded by `setup.handshake_timeout`.
@@ -158,8 +208,12 @@ pub(crate) async fn run(
         .block_task()
         .await
         .map_err(HandshakeError::Initialize)?;
+    let introduction = introduction::of(&initialized);
     if initialized.protocol_version != ProtocolVersion::V1 {
-        return Err(HandshakeError::Version(initialized.protocol_version));
+        return Err(HandshakeError::Version {
+            version: initialized.protocol_version,
+            introduction,
+        });
     }
     let abilities = abilities::of(&initialized);
 
@@ -191,7 +245,10 @@ pub(crate) async fn run(
             .send_request(acp::NewSessionRequest::new(&setup.cwd).mcp_servers(servers))
             .block_task()
             .await
-            .map_err(HandshakeError::NewSession)?;
+            .map_err(|source| HandshakeError::NewSession {
+                source,
+                introduction: introduction.clone(),
+            })?;
         let options = Options::new(created.config_options, created.modes);
         (created.session_id, options)
     };
@@ -220,6 +277,7 @@ pub(crate) async fn run(
         session,
         options,
         abilities,
+        introduction,
     })
 }
 

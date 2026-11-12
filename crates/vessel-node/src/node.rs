@@ -476,6 +476,7 @@ async fn core(
         probes: Probes::new(setup.probe_dir),
         workspaces,
         tidying,
+        catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
     })));
     Ok(Core {
         runtime,

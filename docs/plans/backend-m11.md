@@ -3739,8 +3739,9 @@ pub struct InstallOutput {
 
 New aliases for `ts/aliases.rs`: `AgentName`, `AgentLabel`,
 `AgentProgram`, `AgentVersion`, `RegistryId`, `RegistryVersion`,
-`AuthMethodId`, `Sha256Hex` are `Named` (a person types or reads them);
-`InstallId` is a `Handle` (the node mints it).
+`Sha256Hex` are `Named` (a person types or reads them); `InstallId` is a
+`Handle` (the node mints it), and so is `AuthMethodId`, which the agent
+names and a client only hands back (as built; "Track G: progress").
 
 ### Calls
 
@@ -3870,9 +3871,10 @@ checking are a person's.
 - The registry is never fetched by a test: its parser is tested against
   a recorded fixture in the shape GOAT's decoder and the registry's
   format give (no reference vendors a copy of the real file), and the
-  fetch against a loopback TLS server with a test root, the URL and the
-  roots being the node's `Config` values (the published URL and the
-  operating system's roots otherwise).
+  fetch against a loopback HTTP server of the test's, the URL being the
+  node's `Config` value (the published one otherwise): plain http is
+  accepted only to a loopback address, so no test needs a certificate of
+  its own (see "Track G: progress").
 - Installs run nothing real: the installer's program (`npm`) is found
   through the node's `Lookup`, which tests point at a testkit fake.
 - Added agents are the testkit's fake ACP agent, started by absolute
@@ -3986,3 +3988,43 @@ Not taken, and why:
 - Reusing `vessel-llm`'s client for the registry: it is built for model
   calls (endpoints, keys, retries, redaction); the fetch is one bounded
   GET with the same TLS settings, written in the node's registry module.
+
+## Track G: progress
+
+Built in slices on `backend/m11-agents`, each commit passing the whole
+gate (fmt, clippy with and without `ts`, every Rust test, the page's
+lint, typecheck, unit tests and build, and its end-to-end run against
+binaries built from the tree).
+
+### Decided while building
+
+- **An MCP server a definition names that the fleet does not define now
+  is not refused** (the contract's first text refused it): the agent gets
+  it once the fleet defines it, as a profile's servers follow the fleet,
+  and a node with no fleet would otherwise refuse every name.
+- **A secret an added agent names that the node lacks** makes
+  `session.create`, `session.resume` and `harness.options` a `conflict`
+  naming it (`vessel fleet secret set NAME`): it would start without
+  what its definition says it needs. A secret set by `secret.set` is
+  taken up at the fleet's next look at `secrets.toml` (5 s by default).
+- **`vessel run <added agent>`** starts a conversation without
+  `--structured`, and refuses arguments after `--` (they are the
+  definition's).
+- **An added agent's memory** is not exported (`memory.export` answers
+  `unsupported`), as its conversation is not moved or copied.
+- **`vessel init`** reads `agents.toml` with `profiles.toml`, so a profile
+  extending an added agent does not stop it; it checks the sign-in of the
+  four only.
+- **The registry's fetch** accepts plain http to a loopback address
+  besides https: a test serves its fixture that way, so no test needs a
+  TLS server or a certificate of its own.
+- **`AuthMethodId` is a handle**, not a plain name: the agent names it
+  and a client only hands it back, as a question's `FieldName`.
+- **A catalogue entry's variables** are `{ name, value }` objects
+  (`CatalogueVariable`), not pairs, as the rest of the wire.
+- **`in_use` applies to status commands**, as the contract says; a
+  probe's handshake (the others, and added agents) is the one
+  `harness.options` runs anyway.
+- **Another ACP version** (`too_old`, `too_new`) is tested at the node's
+  reading of a refused handshake, not end to end: the ACP crate's agent
+  side, which the testkit's fake uses, always answers version 1.

@@ -15,6 +15,9 @@ path = "src/main.rs"
 # A member's calls to its fleet's home (`fleet.*` over the secure channel,
 # pairing with a `sync` invitation): the same client every device uses.
 vessel-client.workspace = true
+# What a probe's handshake said of an agent (`agent.status`, protocol 11,
+# ADR 0032): its typed refusals; already below vessel-session.
+vessel-agent.workspace = true
 # Bundling on the home, materialising on members (ADR 0012).
 vessel-fleet.workspace = true
 vessel-harness.workspace = true
@@ -58,6 +61,10 @@ hostname.workspace = true
 # roots (`vessel_relay::TlsConfig::with_roots`); already built for
 # vessel-relay.
 rustls.workspace = true
+# Fetching the ACP registry (`agent.catalogue`, protocol 11): the same
+# client and roots as the model proxy's (vessel-llm); already built.
+reqwest.workspace = true
+rustls-native-certs.workspace = true
 # The fleet's own files (`fleet/*.json`).
 serde.workspace = true
 serde_json.workspace = true

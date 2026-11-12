@@ -21,6 +21,8 @@ mod attachments_sent;
 #[cfg(test)]
 mod callback;
 #[cfg(test)]
+mod catalogue;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod crowd;
@@ -53,6 +55,8 @@ mod routing;
 mod secrets_across;
 #[cfg(test)]
 mod secure;
+#[cfg(test)]
+mod status;
 #[cfg(test)]
 mod structured;
 #[cfg(test)]

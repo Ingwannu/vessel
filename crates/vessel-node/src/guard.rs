@@ -260,6 +260,8 @@ untargeted!(
     vessel_proto::agents::ListAgents,
     vessel_proto::agents::AddAgent,
     vessel_proto::agents::RemoveAgent,
+    vessel_proto::agents::GetAgentStatus,
+    vessel_proto::agents::GetCatalogue,
 );
 
 guarded! {
@@ -358,6 +360,8 @@ guarded! {
     list_agents: vessel_proto::agents::ListAgents => Vec<vessel_proto::agents::AgentInfo>;
     add_agent: vessel_proto::agents::AddAgent => vessel_proto::agents::AgentInfo;
     remove_agent: vessel_proto::agents::RemoveAgent => Ack;
+    agent_status: vessel_proto::agents::GetAgentStatus => Vec<vessel_proto::agents::AgentReadiness>;
+    agent_catalogue: vessel_proto::agents::GetCatalogue => vessel_proto::agents::Catalogue;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

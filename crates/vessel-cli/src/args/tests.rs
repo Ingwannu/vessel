@@ -302,3 +302,70 @@ fn agents_add_takes_its_command_after_the_options() {
         assert!(Cli::try_parse_from(refused).is_err(), "{refused:?}");
     }
 }
+
+#[test]
+fn agents_status_refreshes_one_agent_and_the_registry_replaces_the_command() {
+    let Cli {
+        command:
+            Command::Agents {
+                command:
+                    Some(AgentsCommand::Status {
+                        agent: Some(agent),
+                        profile: Some(profile),
+                        refresh: true,
+                    }),
+            },
+        ..
+    } = Cli::try_parse_from([
+        "vessel",
+        "agents",
+        "status",
+        "codex",
+        "--profile",
+        "work",
+        "--refresh",
+    ])
+    .unwrap()
+    else {
+        panic!("expected agents status");
+    };
+    assert_eq!(agent.to_string(), "codex");
+    assert_eq!(profile.as_str(), "work");
+    let Cli {
+        command: Command::Agents {
+            command: Some(AgentsCommand::Add(add)),
+        },
+        ..
+    } = Cli::try_parse_from([
+        "vessel",
+        "agents",
+        "add",
+        "example",
+        "--from-registry",
+        "example-agent",
+        "--yes",
+    ])
+    .unwrap()
+    else {
+        panic!("expected agents add");
+    };
+    assert_eq!(add.from_registry.unwrap().as_str(), "example-agent");
+    assert!(add.yes && add.command.is_empty());
+    for refused in [
+        // A refresh names its agent.
+        &["vessel", "agents", "status", "--refresh"][..],
+        // An entry or a command, not both.
+        &[
+            "vessel",
+            "agents",
+            "add",
+            "example",
+            "--from-registry",
+            "example-agent",
+            "--",
+            "x",
+        ],
+    ] {
+        assert!(Cli::try_parse_from(refused).is_err(), "{refused:?}");
+    }
+}

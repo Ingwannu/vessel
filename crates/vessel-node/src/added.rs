@@ -23,10 +23,15 @@ use std::sync::Arc;
 
 use vessel_harness::{AddedAgents, EditError, Profiles, add_agent, remove_agent};
 use vessel_proto::agents::{
-    AddAgent, AgentDetail, AgentInfo, AgentSource, AgentToAdd, InstallOffer, InstallPart,
+    AddAgent, AgentDefinition, AgentDetail, AgentInfo, AgentSource, AgentToAdd, AgentVariable,
+    CatalogueEntry, CatalogueRun, InstallOffer, InstallPart, RegistryId, RegistryVersion,
     RemoveAgent, SignInHelp,
 };
-use vessel_proto::{AgentName, ErrorCode, HarnessKind, HarnessRef, WireError};
+use vessel_proto::{
+    AgentName, ConfigValue, ErrorCode, HarnessKind, HarnessRef, McpServerName, WireError,
+};
+
+use crate::catalogue::Catalogues;
 
 use crate::error::ServiceError;
 use crate::principal::Principal;
@@ -68,6 +73,20 @@ pub(crate) enum AddedError {
     /// The blocking task that changes the file failed.
     #[error("the change of agents.toml did not complete")]
     Task(#[source] tokio::task::JoinError),
+    /// The entry is not in the node's copy of the registry at that
+    /// version.
+    #[error(
+        "the ACP registry's copy on this node has no `{id}` at {version} (`agent.catalogue` with refresh fetches it)"
+    )]
+    NotInCatalogue {
+        id: RegistryId,
+        version: RegistryVersion,
+    },
+    /// The entry runs no command here.
+    #[error(
+        "the ACP registry's `{0}` runs no command on this node: see what `agent.catalogue` says of it"
+    )]
+    NotACommand(RegistryId),
 }
 
 impl AddedError {
@@ -75,8 +94,8 @@ impl AddedError {
         match self {
             Self::NotAPerson => ErrorCode::Forbidden,
             Self::Taken(_) | Self::Profiles(_) => ErrorCode::Conflict,
-            Self::NotFound(_) => ErrorCode::NotFound,
-            Self::Invalid(_) => ErrorCode::InvalidRequest,
+            Self::NotFound(_) | Self::NotInCatalogue { .. } => ErrorCode::NotFound,
+            Self::Invalid(_) | Self::NotACommand(_) => ErrorCode::InvalidRequest,
             Self::File(_) | Self::Io(_) | Self::Write(_) | Self::Task(_) => ErrorCode::Internal,
         }
     }
@@ -118,7 +137,19 @@ pub(crate) fn known(kind: HarnessKind) -> AgentInfo {
             command: install.command.to_owned(),
         })
         .collect();
-    let sign_in = SignInHelp {
+    AgentInfo {
+        agent: HarnessRef::Known(kind),
+        detail: AgentDetail::Known {
+            installs,
+            sign_in: sign_in_help(kind),
+        },
+    }
+}
+
+/// How a person signs in to one of the four: its command and the
+/// variable a profile sets for another account.
+pub(crate) fn sign_in_help(kind: HarnessKind) -> SignInHelp {
+    SignInHelp {
         command: vessel_harness::login_command(kind).map(|(binary, args)| {
             std::iter::once(binary)
                 .chain(args.iter().copied())
@@ -127,10 +158,6 @@ pub(crate) fn known(kind: HarnessKind) -> AgentInfo {
         }),
         home: vessel_harness::home_variable(kind).and_then(|name| name.parse().ok()),
         methods: Vec::new(),
-    };
-    AgentInfo {
-        agent: HarnessRef::Known(kind),
-        detail: AgentDetail::Known { installs, sign_in },
     }
 }
 
@@ -139,6 +166,7 @@ pub(crate) fn known(kind: HarnessKind) -> AgentInfo {
 pub(crate) async fn add(
     profiles: &Arc<NodeProfiles>,
     probes: &Probes,
+    catalogue: &Catalogues,
     request: AddAgent,
 ) -> Result<AgentInfo, AddedError> {
     let AddAgent {
@@ -148,6 +176,19 @@ pub(crate) async fn add(
     } = request;
     let (definition, source) = match agent {
         AgentToAdd::Command { definition } => (definition, AgentSource::Command),
+        AgentToAdd::Registry { id, version, mcp } => {
+            let entry =
+                catalogue
+                    .entry(&id, &version)
+                    .ok_or_else(|| AddedError::NotInCatalogue {
+                        id: id.clone(),
+                        version: version.clone(),
+                    })?;
+            (
+                from_registry(entry, mcp)?,
+                AgentSource::Registry { id, version },
+            )
+        }
     };
     let _editing = profiles.editing.lock().await;
     let changed = {
@@ -178,6 +219,35 @@ pub(crate) async fn add(
         })
         .ok_or(AddedError::NotFound(name))?;
     Ok(info)
+}
+
+/// The definition an entry of the registry's copy runs: its command, its
+/// variables as text, its name as the label (cut to a label's length).
+fn from_registry(
+    entry: CatalogueEntry,
+    mcp: Vec<McpServerName>,
+) -> Result<AgentDefinition, AddedError> {
+    let CatalogueRun::Command {
+        program, args, env, ..
+    } = entry.runs
+    else {
+        return Err(AddedError::NotACommand(entry.id));
+    };
+    let label: String = entry.name.chars().take(80).collect();
+    Ok(AgentDefinition {
+        label: label.parse().ok(),
+        program,
+        args,
+        env: env
+            .into_iter()
+            .map(|variable| AgentVariable {
+                name: variable.name,
+                value: ConfigValue::Text(variable.value),
+            })
+            .collect(),
+        inherit: Vec::new(),
+        mcp,
+    })
 }
 
 /// `agent.remove`: forget `request.name`.

@@ -143,6 +143,18 @@ pub enum AgentToAdd {
         /// The definition.
         definition: AgentDefinition,
     },
+    /// An entry of the node's copy of the ACP registry, at this version:
+    /// the node builds the definition from its own copy, so what runs is
+    /// what the catalogue showed.
+    Registry {
+        /// The entry.
+        id: RegistryId,
+        /// Its version, as the catalogue showed it.
+        version: RegistryVersion,
+        /// The fleet's MCP servers it gets.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        mcp: Vec<McpServerName>,
+    },
 }
 
 /// One install a known agent's vendor documents.

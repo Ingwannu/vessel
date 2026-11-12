@@ -2,8 +2,8 @@
 //! those its owner added by their command among them.
 
 use clap::Subcommand;
-use vessel_proto::agents::AgentLabel;
-use vessel_proto::{AgentName, EnvName, McpServerName, SecretName};
+use vessel_proto::agents::{AgentLabel, RegistryId};
+use vessel_proto::{AgentName, EnvName, HarnessRef, McpServerName, ProfileName, SecretName};
 
 /// What to do with the node's agents; listing them when none is given.
 #[derive(Debug, Subcommand)]
@@ -22,6 +22,25 @@ pub(crate) enum AgentsCommand {
     Remove {
         /// The agent's name.
         name: AgentName,
+    },
+    /// Whether agents are installed and signed in: every agent's default
+    /// profile, or one agent's profile. Nothing runs without `--refresh`.
+    Status {
+        /// Only this agent.
+        agent: Option<HarnessRef>,
+        /// Its profile (its default without one).
+        #[arg(long, requires = "agent")]
+        profile: Option<ProfileName>,
+        /// Check now: the agent's status command, or its handshake (never
+        /// a prompt).
+        #[arg(long, requires = "agent")]
+        refresh: bool,
+    },
+    /// The ACP registry, as the node's copy: what each entry would run.
+    Catalogue {
+        /// Fetch it first.
+        #[arg(long)]
+        refresh: bool,
     },
 }
 
@@ -51,9 +70,17 @@ pub(crate) struct AddAgentArgs {
     /// Replace an agent of that name.
     #[arg(long)]
     pub(crate) replace: bool,
+    /// Add an entry of the node's copy of the ACP registry (`vessel agents
+    /// catalogue`) instead of a command: the node writes the command it
+    /// showed, after you say yes.
+    #[arg(long, value_name = "ID", conflicts_with_all = ["command", "env", "secrets", "inherit", "label"])]
+    pub(crate) from_registry: Option<RegistryId>,
+    /// Add the registry entry without asking (with `--from-registry`).
+    #[arg(long)]
+    pub(crate) yes: bool,
     /// The program (a name on the node's search path, or an absolute path)
     /// and its arguments, after `--`.
-    #[arg(last = true, required = true, num_args = 1..)]
+    #[arg(last = true, required_unless_present = "from_registry", num_args = 1..)]
     pub(crate) command: Vec<String>,
 }
 

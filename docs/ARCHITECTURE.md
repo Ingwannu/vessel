@@ -447,7 +447,9 @@ In the crate table's order.
   system variables it gets), `discover_added` (found by path, never run
   for a version), and a `Profile` whose base is one of the four or an
   added agent (`parse_profiles_with`; the profile module is
-  `profile/{parse,tests}.rs` under `profile.rs`).
+  `profile/{parse,tests}.rs` under `profile.rs`); `login_status` reads
+  Claude Code's and Codex's status commands' output into a typed answer
+  (`binary` names the program `agent.status` looks for).
   `setup` holds what `vessel init` offers (install and login commands,
   other accounts' homes). The `fakes` feature installs testkit binaries
   under real harness names. Model selection is not here: it goes over ACP
@@ -502,7 +504,12 @@ In the crate table's order.
   `config_option_update` / `current_mode_update`), and makes a mode
   option from ACP's older `modes`. `probe` starts an agent, takes the
   options from its handshake and stops it, bounded by the handshake
-  timeout.
+  timeout. Protocol 11 (`introduction`): what `initialize` said of the
+  agent (`agentInfo.version`, its `agent` sign-in methods, bounded) is
+  reported once (`AgentOutput::Introduced`, which a session ignores and a
+  probe keeps), and a failed handshake carries a typed `Refused` beside
+  its message (another ACP version, `auth_required`, a step's failure, its
+  time limit).
 - `vessel-session`: `SessionRuntime`, `SessionHandle`, `Follow`, records
   shared as `Arc<EventRecord>`; terminal and structured actors share the
   `lifecycle` module (stop-responsive publishing, two-step stop).
@@ -600,6 +607,19 @@ In the crate table's order.
     launcher (`profiles/launch.rs`) gives an added agent's session its
     default profile, its secrets from `secrets.toml` (`McpSource::secret`)
     and only the fleet's MCP servers it names.
+  - `agent.status` (`readiness`, `service/status.rs`): installed facts on
+    every call; sign-in facts only on a person's `refresh`, from the
+    agent's status command (Claude Code, Codex; never beside a running
+    session of that profile) or a probe's handshake (the others), kept
+    per agent and profile for five and ten minutes. `probes` keeps each
+    probe's options and what its handshake said together (`Answer`), so
+    `harness.options` and `agent.status` share one probe.
+  - `agent.catalogue` (`catalogue`): the node's copy of the ACP registry,
+    fetched only on a person's `refresh` (`catalogue/fetch.rs`: `reqwest`,
+    https or loopback http, bounded) and read entry by entry
+    (`catalogue/registry.rs`: exact pins only, the four told by their npm
+    packages); `agent.add` from the registry takes the entry from that
+    copy.
   - Sessions: axum `/health` and token-checked `/rpc`, the `Handler`
     routing to `sessions` (live runtime sessions plus stored ones; a
     session whose log is complete is served from the store, and a live

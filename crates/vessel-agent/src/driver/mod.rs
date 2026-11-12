@@ -209,11 +209,14 @@ impl Driver {
                 session,
                 options,
                 abilities,
+                introduction,
             })) => {
                 let harness_session = HarnessSessionId::new(Arc::clone(&session.0));
                 self.session = Some(session);
                 self.options = options;
                 self.abilities = abilities;
+                self.output(AgentOutput::Introduced(Box::new(introduction)))
+                    .await;
                 // Before `Ready`, always, even empty: whoever sees the
                 // session ready knows what it runs with, and "offers
                 // nothing" is told from "not known yet".
@@ -227,6 +230,7 @@ impl Driver {
             Inbound::Started(Err(error)) => {
                 return Some(Disconnect::Handshake {
                     message: describe(&error),
+                    refused: error.refused().map(Box::new),
                 });
             }
             Inbound::Update(notification) => {

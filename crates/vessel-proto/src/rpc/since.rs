@@ -172,7 +172,9 @@ impl Call {
             | Self::SearchFiles(_)
             | Self::ListAgents(_)
             | Self::AddAgent(_)
-            | Self::RemoveAgent(_) => None,
+            | Self::RemoveAgent(_)
+            | Self::GetAgentStatus(_)
+            | Self::GetCatalogue(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

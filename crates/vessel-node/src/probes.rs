@@ -32,6 +32,8 @@ use std::time::Duration;
 use tokio::time::Instant;
 use vessel_proto::{HarnessOptions, HarnessRef, ProfileName, WireError};
 
+use crate::readiness::Said;
+
 /// How long a probe's answer is reused.
 pub(crate) const FRESH: Duration = Duration::from_secs(600);
 
@@ -67,7 +69,16 @@ struct Probed {
     /// When it finished, on the monotonic clock.
     finished: Instant,
     version: HarnessVersion,
-    outcome: Result<HarnessOptions, WireError>,
+    outcome: Answer,
+}
+
+/// What one probe found: the options the agent offers (`harness.options`)
+/// and what its handshake said of it (`agent.status`, protocol 11), so
+/// both calls share one probe and its ten minutes.
+#[derive(Debug, Clone)]
+pub(crate) struct Answer {
+    pub(crate) options: Result<HarnessOptions, WireError>,
+    pub(crate) said: Said,
 }
 
 impl Probes {
@@ -92,14 +103,14 @@ impl Probes {
             .retain(|key, _slot| key.harness != *harness);
     }
 
-    /// `key`'s options: a recent answer for the same `version`, the answer
-    /// of a probe that finished while this caller waited, or `probe`'s.
-    pub(crate) async fn options(
+    /// `key`'s answer: a recent one for the same `version`, the answer of
+    /// a probe that finished while this caller waited, or `probe`'s.
+    pub(crate) async fn answer(
         &self,
         key: ProbeKey,
         version: HarnessVersion,
-        probe: impl AsyncFnOnce() -> Result<HarnessOptions, WireError>,
-    ) -> Result<HarnessOptions, WireError> {
+        probe: impl AsyncFnOnce() -> Answer,
+    ) -> Answer {
         let asked = Instant::now();
         let slot = Arc::clone(
             self.slots
@@ -136,7 +147,9 @@ impl Probed {
         if self.finished > asked {
             return true;
         }
-        self.outcome.is_ok() && self.version.as_ref() == version && self.finished.elapsed() < FRESH
+        self.outcome.options.is_ok()
+            && self.version.as_ref() == version
+            && self.finished.elapsed() < FRESH
     }
 }
 
@@ -164,6 +177,17 @@ mod tests {
         }
     }
 
+    fn ok() -> Answer {
+        Answer {
+            options: Ok(answer()),
+            said: Ok(vessel_agent::Introduction::default()),
+        }
+    }
+
+    fn options(answer: Answer) -> Result<HarnessOptions, WireError> {
+        answer.options
+    }
+
     #[tokio::test(start_paused = true)]
     async fn concurrent_callers_share_one_probe_and_a_fresh_answer_is_kept() {
         let probes = Probes::new(PathBuf::new());
@@ -171,22 +195,22 @@ mod tests {
         let probe = async || {
             let _first = started.fetch_add(1, Ordering::SeqCst);
             tokio::time::sleep(Duration::from_secs(3)).await;
-            Ok(answer())
+            ok()
         };
         let version = || Some("1.0".to_owned());
         let (a, b) = tokio::join!(
-            probes.options(key(), version(), probe),
-            probes.options(key(), version(), probe)
+            probes.answer(key(), version(), probe),
+            probes.answer(key(), version(), probe)
         );
-        assert_eq!((a, b), (Ok(answer()), Ok(answer())));
+        assert_eq!((options(a), options(b)), (Ok(answer()), Ok(answer())));
         assert_eq!(started.load(Ordering::SeqCst), 1, "one probe for both");
 
-        let _kept = probes.options(key(), version(), probe).await;
+        let _kept = probes.answer(key(), version(), probe).await;
         assert_eq!(started.load(Ordering::SeqCst), 1, "fresh: kept");
-        let _upgraded = probes.options(key(), Some("1.1".to_owned()), probe).await;
+        let _upgraded = probes.answer(key(), Some("1.1".to_owned()), probe).await;
         assert_eq!(started.load(Ordering::SeqCst), 2, "a new version probes");
         tokio::time::advance(FRESH).await;
-        let _stale = probes.options(key(), Some("1.1".to_owned()), probe).await;
+        let _stale = probes.answer(key(), Some("1.1".to_owned()), probe).await;
         assert_eq!(started.load(Ordering::SeqCst), 3, "stale: probed again");
     }
 
@@ -197,15 +221,18 @@ mod tests {
         let failing = async || {
             let _first = started.fetch_add(1, Ordering::SeqCst);
             tokio::time::sleep(Duration::from_secs(3)).await;
-            Err(WireError::new(ErrorCode::SpawnFailed, "not signed in"))
+            Answer {
+                options: Err(WireError::new(ErrorCode::SpawnFailed, "not signed in")),
+                said: Err(crate::readiness::HandshakeFailure::Exited),
+            }
         };
         let (a, b) = tokio::join!(
-            probes.options(key(), None, failing),
-            probes.options(key(), None, failing)
+            probes.answer(key(), None, failing),
+            probes.answer(key(), None, failing)
         );
-        assert!(a.is_err() && b.is_err());
+        assert!(a.options.is_err() && b.options.is_err());
         assert_eq!(started.load(Ordering::SeqCst), 1, "waiters share it");
-        let _again = probes.options(key(), None, failing).await;
+        let _again = probes.answer(key(), None, failing).await;
         assert_eq!(started.load(Ordering::SeqCst), 2, "a later caller retries");
     }
 }

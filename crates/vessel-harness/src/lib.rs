@@ -60,6 +60,7 @@ mod harnesses;
 mod home;
 mod launch;
 mod layout;
+mod login_status;
 mod lookup;
 mod mcp;
 mod memory;
@@ -78,6 +79,7 @@ pub use error::HarnessError;
 pub use home::{home, login_check};
 pub use launch::{Launch, launch};
 pub use layout::{HarnessLayout, layout};
+pub use login_status::{LoginStatus, MAX_STATUS_OUTPUT, read_login_status};
 pub use lookup::Lookup;
 pub use mcp::{EncodeProblem, McpError, McpFile, WrittenMcpFile};
 pub use memory::{MemoryFilesError, RebaseError, memory_files, rebase};
@@ -90,6 +92,6 @@ pub use sessions::{
     LinkError, Linked, SessionFiles, SessionFilesError, link_session, session_files,
 };
 pub use setup::{
-    AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, home_variable,
-    installs, login_command, missing,
+    AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, binary,
+    home_variable, installs, login_command, missing,
 };

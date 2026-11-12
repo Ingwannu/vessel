@@ -91,6 +91,55 @@ tracks").
   the `vessel` MCP server and, of the fleet's, only those its `mcp`
   names. `harness.list` lists one whose program is found, with no
   version (an unknown program is never run to ask).
+- `agent.status` (`read`; `refresh` refused to an agent and to a call
+  delivered from another node: `forbidden`) `{ agent?, profile?,
+  refresh? }` → `AgentReadiness[]`, each `{ agent, profile, installed,
+  signed_in, checked_at }`. Without `agent`, every agent's default
+  profile, from what the node knows (`refresh` and `profile` then are
+  `invalid_request`); with it, its `profile` (its default when absent;
+  `not_found` for an agent or profile the node lacks, `invalid_request`
+  for a profile of another agent).
+  - `installed`, tagged by `state`: `found { path, version?, structured }`
+    (an added agent's version is its handshake's `agentInfo.version`; it
+    is never run with `--version`), `missing { program }`, `too_old` /
+    `too_new { path, version?, speaks, needs }` (its handshake's ACP
+    version), `unknown { reason }`.
+  - `signed_in`, tagged by `state`: `yes`, `no { help: SignInHelp }`
+    (`methods` are the `agent` sign-in methods its handshake listed),
+    `not_required` (a routed profile), `unknown { reason }`, `reason`
+    tagged by `reason`: `not_installed`, `not_checked`, `in_use`,
+    `not_said`, `no_home`, `unread`, `timed_out { after }`, `failed {
+    step }` (`spawn`, `initialize`, `session_new`, `exited`).
+  - `refresh` runs, for Claude Code and Codex, the agent's own status
+    command (`claude auth status`, read by its JSON `loggedIn`; `codex
+    login status`, by its words) within 10 s, never beside a running
+    session of that profile (`unknown { in_use }`), its output never
+    logged or sent; for Gemini CLI, OpenCode and added agents, a handshake
+    with no prompt (`harness.options`'s probe and its ten minutes):
+    `auth_required` (-32000) to `session/new` is `no`, a completed one
+    `unknown { not_said }`. A status command's answer is kept five
+    minutes, a handshake's ten; a refresh within ten seconds of the last
+    answers what was kept.
+- `agent.catalogue` (`read`; `refresh` as `agent.status`'s) `{ refresh? }`
+  → `Catalogue { fetched_at?, version?, entries, skipped }`: the node's
+  copy of the ACP registry, empty until a person asks for a fetch. A
+  fetch: https only (plain http only to a loopback address), no redirect,
+  no proxy, 10 s to connect, 30 s in all, 2 MiB; at most 1,000 entries,
+  each bounded, and one not pinned to an exact version is skipped and
+  counted; a failure is `unavailable` and keeps the copy; a refresh
+  within a minute of the last fetch answers the copy. Each
+  `CatalogueEntry { id, name, version, description, website?,
+  repository?, license?, runs }`, `runs` tagged by `kind`: `known {
+  harness }` (one of the four by its npm package), `command { program,
+  args, env, runner_found }` (`npx -y <package>@<version>` or `uvx
+  <package>`, exactly what would be added), `download { archive,
+  sha256? }` (never downloaded), `unavailable`. Not forwarded across the
+  fleet.
+- `AgentToAdd::Registry { id, version, mcp }` (`from: "registry"`): the
+  node builds the definition from its own copy (`not_found` when the
+  entry is not there at that version; `invalid_request` when it runs no
+  command here), with the entry's `env` as text and `source: { from:
+  "registry", id, version }`.
 
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 

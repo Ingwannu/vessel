@@ -166,7 +166,8 @@ Questions:
   places.
 - `vessel-node` fetches the registry itself with `reqwest` (already in
   the workspace for `vessel-llm`), with the TLS settings `vessel-llm`
-  uses: one GET, no redirect, no proxy.
+  uses: one GET, no redirect, no proxy; https only, but for plain http to
+  a loopback address, which is how tests serve the registry.
 - A protocol 10 client acting through the fleet on an added agent's
   session by its id is not refused by the member (a delivered call
   carries no client protocol); the home still withholds every reply that

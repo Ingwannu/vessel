@@ -196,7 +196,9 @@ impl Reply {
             // Protocol 11's: asked only by peers that read them.
             | Self::ListAgents(_)
             | Self::AddAgent(_)
-            | Self::RemoveAgent(_) => None,
+            | Self::RemoveAgent(_)
+            | Self::GetAgentStatus(_)
+            | Self::GetCatalogue(_) => None,
         }
     }
 }

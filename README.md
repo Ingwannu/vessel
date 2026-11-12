@@ -419,6 +419,11 @@ vessel agents add goose --label Goose --env GOOSE_MODE=auto \
 vessel agents                                # the four, then the added ones
 vessel run goose
 vessel agents remove goose
+
+vessel agents status                         # installed? signed in? (nothing runs)
+vessel agents status codex --profile codex-work --refresh
+vessel agents catalogue --refresh            # the ACP registry, fetched when you ask
+vessel agents add example --from-registry example-agent   # shows the command, asks
 ```
 
 - It starts with an empty environment: the search path, your home, the
@@ -432,6 +437,13 @@ vessel agents remove goose
 - Only a person adds or removes one (the `admin` scope; an agent never).
   An agent's session cannot move to another profile or be copied to
   another node.
+- `vessel agents status --refresh` asks without a turn: Claude Code's and
+  Codex's own status commands (never beside a running session of that
+  profile), and for the others their ACP handshake. It says how to sign
+  in; it does not sign in for you.
+- The catalogue lists what each registry entry would run; adding one
+  writes exactly that (an `npx`/`uvx` command pinned to the version
+  shown). An entry that ships only an archive is shown, not downloaded.
 
 ### A fleet: one home, many members
 
