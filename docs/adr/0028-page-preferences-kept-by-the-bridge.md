@@ -120,7 +120,11 @@ Questions:
   `<html>`, spliced after the built index's one `<html lang="en"` from
   the preferences task's state in memory. Each value comes from a closed
   set or a bounded integer; the stylesheet has a rule for each. The
-  placeholder page is served as it is.
+  placeholder page is served as it is. Since the index is written per
+  request, it is the one text file the web build does not compress (ADR
+  0017's amendment of milestone 11 compresses the rest once, at build):
+  it is sent as built, with no `Vary` and no entity tag, and an
+  end-to-end test over a slow link finds the first frame dark.
 - **Drafts.** Keyed by session id (unique across machines, so a renamed
   machine keeps its drafts) or the new-session page. A save is answered
   when queued; the first save after a quiet second is written at once,

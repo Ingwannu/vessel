@@ -795,6 +795,15 @@ log, left-aligned, like an editor's output channel, in a column at most
 768px wide and centred (agent-orchestrator's transcript width), so a
 wide window does not stretch a line past reading.
 
+Only the rows within 1,200px of the view are drawn (milestone 11,
+`use-window.ts`); the space of the others is kept by two spacers that
+carry the rail, so it runs unbroken across the drawn rows' edges while
+the next ones come in. With "Collapse tool calls" a run of tool calls is
+one row (`data/rows.ts`). The log follows its end while the reader is
+within 48px of it; a reader who scrolled up, or was taken up by find or
+the outline, stays where they are as records arrive. New entries are
+announced from a live region of the newest one's text.
+
 Markdown: the sans face, 13/20. Inline code and fences use `--font-mono`
 on `--bg-elevated` with a hairline. Headings inside a turn start at
 the `h3` equivalent (14px / 600). Lists and blockquotes get a 1px
@@ -1135,16 +1144,25 @@ through its one seam (`reveal.ts`).
   and messages' text, folded for case, never the page's DOM, so a match
   scrolled out of a long log is still found; the search settles 100ms
   after typing, runs in slices that give the page back every 200
-  entries, and runs again 300ms after the session grows. The match is
-  marked with the CSS Custom Highlight API in the reference's colours
-  (yellow, the current one orange) and scrolled to the middle.
+  entries, and runs again 300ms after the session grows (a refresh that
+  finds the same match leaves the view where the reader put it). The
+  match is marked with the CSS Custom Highlight API in the reference's
+  colours (yellow, the current one orange) and put in the middle of the
+  view; focus stays in the field, as agent-orchestrator's does.
 - **The outline** (GOAT's minimap, Paseo's outline): from two prompts
   on, a rail on the log's left edge, a 24 by 2px mark per prompt, darker
   while that prompt is on screen. Hovering or focusing a mark shows a
   320px card with the prompt and the start of the reply to it; choosing
-  it brings the prompt into view. With the summary open the rail moves
-  to the edge and its marks shorten; below 1100px of window it is not
-  drawn.
+  it puts the prompt 16px under the view's top and gives it focus (its
+  box takes the focus ring when the keyboard chose it). With the summary
+  open the rail moves to the edge and its marks shorten; below 1100px of
+  window it is not drawn.
+- **Far away.** A match or a prompt may be thousands of rows from the
+  drawn ones. The window goes to where its row is estimated to be, so it
+  is drawn in the same frame, then holds it where it was put while the
+  rows around it are measured (`window-pin.ts`): no frame shows it
+  sliding. A wheel, a touch, a press, a key or any other scroll gives
+  the view back to the reader.
 
 ### 6.17 The sheet
 

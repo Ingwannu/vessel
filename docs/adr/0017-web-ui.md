@@ -361,7 +361,11 @@ request the board was usable after 17.9 s.
   embeds the forms with their file and refuses one made from a different
   file, and `files` serves the form a request's `Accept-Encoding`
   prefers (`encoding`), with an entity tag per encoding and `Vary:
-  Accept-Encoding`. Nothing is compressed per request.
+  Accept-Encoding`. Nothing is compressed per request. The index is the
+  one text file left as built: `vessel ui` writes the page's appearance
+  into it for each request (ADR 0028, merged with this amendment), which
+  a form made at build could not carry, so it is sent uncompressed (about
+  1.5 KB more than its brotli form; `docs/PERFORMANCE.md`).
 - **Divided by screen.** A session, a new session, Settings and the
   kit's gallery are chunks loaded when they open; the board, the shell
   and the controls stay in the entry. ADR 0017's defence is kept for

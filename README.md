@@ -661,7 +661,8 @@ vessel-cli -p vessel-node --bin vesseld` and `cargo build -p
 vessel-testkit --bins`). Set `VESSEL_SCREEN_DIR` to write screenshots outside
 the checkout. `perf` runs on demand only (minutes, not part of `e2e`): the
 board loading cold over a slow and a phone-like link, a timeline of 5,000
-and 20,000 entries, a terminal under heavy output, a board of 500 cards
+and 20,000 entries, find in it and going to a match far from the view, a
+terminal under heavy output, a board of 500 cards
 (`docs/PERFORMANCE.md` keeps the figures). `VESSEL_PERF_OUT` names its
 JSON file, `VESSEL_PERF_RUNS` the runs per measurement, and
 `VESSEL_CARGO_PROFILE=release` runs the fleet on release binaries (`cargo

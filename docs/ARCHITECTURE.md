@@ -212,8 +212,10 @@ web/src/bridge/   the websocket to `vessel ui`: mutual proof, tab session key, t
                   socket's lifecycle (socket.ts) apart from the frames (client.ts); ids.ts, the one
                   place a plain string or number becomes a branded handle
 web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool calls and permissions
-                  found through its index by id), the timeline's window arithmetic (window.ts)
-                  and an entry as spoken text, the cards' shared clock, formatting, the terminal
+                  found through its index by id), the timeline's window arithmetic and where
+                  going to a row puts it (window.ts), which entries are its rows once tool
+                  calls fold (rows.ts: only keys cross from the reducer's indices to the
+                  window's) and an entry as spoken text, the cards' shared clock, formatting, the terminal
                   adapter, the theme, the palette's entries and the forms' choices as pure functions;
                   every call a screen makes as a typed function giving one `Outcome` (outcome.ts:
                   calls.ts for sessions, book.ts for the book's edits); what /new chooses
@@ -226,7 +228,9 @@ web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool call
                   records keyed by a handle walked with their keys' type (records)
 web/src/features/ an area's components and hooks, each stylesheet beside its component: the shell
                   (frame, sidebar), compose (/new, the composer), session (the timeline drawn
-                  through a window: only the entries near the view exist), board, settings/ (the
+                  through a window: only the rows near the view exist; find and the outline go
+                  to a row by key through it, drawn or not, and window-pin.ts holds it in place
+                  while heights are measured), board, settings/ (the
                   frame and its sections, General, Appearance, Shortcuts with its recorder,
                   Notifications), machines/ (Machines, Agents, the add-machine dialog),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
@@ -240,12 +244,14 @@ web/src/ui/kit/   the controls (ADR 0021): one component per file on Base UI, it
 web/src/ui/       the design's tokens, the fonts, the toasts, and the older areas' CSS in styles/
                   (one file per area, imported in order from styles/index.css)
 web/src/testing/  tests' helper that names a fixture's handle without a guard (tests and fixtures only)
-web/scripts/      the build's integrity pass (tags and the import map), its compression pass,
-                  and lint's checks (fonts, controls, file size)
-web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests,
+web/scripts/      the build's integrity pass (tags and the import map), its compression pass
+                  (every text file but the index, which is painted per request), and lint's
+                  checks (fonts, controls, file size)
+web/e2e/          Playwright: a fleet of real `vesseld` nodes with the fake harnesses, the tests
+                  (timeline.spec.ts: find and the outline over the window, 20,000 entries),
                   `screens` (the main screens, the session's states, Settings and the
                   welcome, track W's screens, and /kit, in both themes) and `perf` (the page's
-                  speed, on demand, docs/PERFORMANCE.md)
+                  speed and find's, on demand, docs/PERFORMANCE.md)
 ```
 
 The layers import one way: `wire` <- `bridge` <- `data` <- `features` <-
@@ -321,7 +327,10 @@ content-hashed `assets/` files as immutable for a year (milestone 10;
 `index.html` is `no-store`), each text file in the encoding `encoding`
 picks from the request's `Accept-Encoding` among the forms the web build
 compressed once (milestone 11; an entity tag per encoding, `Vary:
-Accept-Encoding`); the web build's `scripts/integrity.mjs` closes the
+Accept-Encoding`), but for the index, which `paint` writes into per
+request and so is sent as built, uncompressed, with no `Vary` (a form
+made at build could not carry the paint; `files::index`); the web
+build's `scripts/integrity.mjs` closes the
 script/stylesheet SRI graph, which is what keeps a poisoned cache from
 running: tags carry `integrity`, and the chunks loaded later are pinned
 by the index's import map, which `guard`'s policy admits by its hash

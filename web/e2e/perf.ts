@@ -7,10 +7,10 @@
 // (`npm run perf -- -g <word>` runs one): the board loading over a slow
 // and a phone-like link, a timeline of thousands of entries, find in it
 // and going to a match far away, a terminal under heavy output, a board
-// of 500 cards. Each starts the sessions it
-// needs through the CLI and stops them when it ends. The rule of the
-// track: no optimisation without a number before and after from this
-// harness on the same machine.
+// of 500 cards. Each starts the sessions it needs through the CLI and
+// stops them when it ends. The rule of the track: no optimisation
+// without a number before and after from this harness on the same
+// machine.
 //
 // Environment: `VESSEL_PERF_OUT` (the JSON file; artifacts/perf.json by
 // default), `VESSEL_PERF_RUNS` (runs per measurement, overriding each
