@@ -87,16 +87,25 @@ export function useNotices(): void {
         document.title = base;
       }
     };
+    // Sound is made possible from a click or a key, and only while a
+    // sound is wanted: an audio context holds the machine's audio output
+    // open, and creating one took its time inside the reader's first
+    // click (docs/PERFORMANCE.md, "Tracks P and W merged").
+    const unlock = () => {
+      if (playsSound(prefs.get().values.notifications.alerts)) {
+        unlockSound();
+      }
+    };
     window.addEventListener("focus", back);
     document.addEventListener("visibilitychange", back);
-    window.addEventListener("pointerdown", unlockSound);
-    window.addEventListener("keydown", unlockSound);
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
     return () => {
       stop();
       window.removeEventListener("focus", back);
       document.removeEventListener("visibilitychange", back);
-      window.removeEventListener("pointerdown", unlockSound);
-      window.removeEventListener("keydown", unlockSound);
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
       document.title = base;
     };
   }, [fleet, navigate]);
