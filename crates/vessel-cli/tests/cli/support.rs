@@ -49,7 +49,8 @@ impl From<Output> for Ran {
 
 pub(super) struct Fixture {
     data: TempDir,
-    _bin: TempDir,
+    /// The fakes, installed where the node looks for harnesses.
+    bin: TempDir,
     node: Node,
 }
 
@@ -66,23 +67,39 @@ impl Fixture {
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Terminal, &tui).unwrap());
         let acp = Fake::Acp.path().unwrap();
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
-        // The node's harnesses run under a temporary home with no home
-        // variables: never the machine's own account.
-        let user_home = data.path().join("user-home");
-        std::fs::create_dir_all(&user_home).unwrap();
-        let mut config = Config::new(
-            DataDir::new(data.path()),
-            vessel_harness::HarnessEnv::new(user_home),
-        );
-        config.bind = Some(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)));
-        config.harness_lookup = Lookup::new([bin.path().to_path_buf()]);
+        let mut config = config(data.path(), bin.path());
         adjust(&mut config, data.path());
         let node = Node::start(config).await.unwrap();
-        Self {
-            data,
-            _bin: bin,
-            node,
-        }
+        Self { data, bin, node }
+    }
+
+    /// Stop the node and start it again on the same data directory (with
+    /// the default config): its sessions that were live end interrupted,
+    /// and every ended one is the store's from then on.
+    pub(super) async fn restart(self) -> Self {
+        self.node.stop().await.unwrap();
+        let node = Node::start(config(self.data.path(), self.bin.path()))
+            .await
+            .unwrap();
+        Self { node, ..self }
+    }
+
+    /// The node's owner, as a library client on its websocket.
+    pub(super) async fn owner(&self) -> vessel_client::NodeClient {
+        let token = DataDir::new(self.data.path())
+            .read_token()
+            .unwrap()
+            .expose()
+            .parse()
+            .unwrap();
+        let url = self.node_address().parse().unwrap();
+        let client = vessel_proto::ClientInfo {
+            name: "vessel-cli-test".to_owned(),
+            version: "0".to_owned(),
+        };
+        vessel_client::NodeClient::connect(&url, &token, client)
+            .await
+            .unwrap()
     }
 
     pub(super) fn cwd(&self) -> String {
@@ -349,6 +366,21 @@ impl Captured {
     pub(super) fn text(&self) -> String {
         self.0.borrow().clone()
     }
+}
+
+/// A node's config on `data`, with the fakes installed in `bin`. The
+/// node's harnesses run under a temporary home with no home variables:
+/// never the machine's own account.
+fn config(data: &Path, bin: &Path) -> Config {
+    let user_home = data.join("user-home");
+    std::fs::create_dir_all(&user_home).unwrap();
+    let mut config = Config::new(
+        DataDir::new(data),
+        vessel_harness::HarnessEnv::new(user_home),
+    );
+    config.bind = Some(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)));
+    config.harness_lookup = Lookup::new([bin.to_path_buf()]);
+    config
 }
 
 /// `vessel` against `node` (or, with `None`, whatever the book says),

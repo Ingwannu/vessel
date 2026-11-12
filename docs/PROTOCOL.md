@@ -4,6 +4,240 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
+
+Nodes speak 2..=10; version 10 adds fifty methods, six events (with
+stand-ins for older clients) and optional fields, in two parts built side
+by side in milestone 11 (`docs/plans/backend-m11.md`): the conversation
+("Track A: contract" and its review; ADRs 0024 to 0026) and projects,
+worktrees, git and files ("Track B: contract", which has every call's
+failures and bounds; ADRs 0023 and 0027). Where the two meet is the
+plan's "Integration (node)".
+
+### The conversation
+
+Ten of the methods, the six events and most of the optional fields.
+
+- Types (`vessel_proto::conversation`):
+  - `AgentAbilities { steer, resume, image, audio }`: what the agent's
+    ACP `initialize` answer says (`_meta.steering.supported`,
+    `loadSession`, `promptCapabilities`). In `AgentEvent::Ready.abilities?`,
+    `SessionInfo.abilities?` (kept by the store) and
+    `HarnessOptions.abilities?`.
+  - `ContentBlock::Attachment { attachment: AttachmentRef }`, `AttachmentRef
+    { id, name, kind, mime, size }`, `kind` `image`, `audio` or `file`:
+    only in what a client sends and its echo; the node replaces a
+    client's reference with its own record by id.
+  - The queue: `PromptQueue { entries, held? }`, `QueuedPrompt { id,
+    content, queued_at, revision, by }`, `QueueHold` (`cancelled`,
+    `failed`, `ended`, `asked`); `Delivery` (`start`, `queue`, `steer`,
+    `interrupt`) and `Delivered` (`started`, `steered`, `queued { entry
+    }`); `QueueChange` (`edit { entry, revision, content }`, `move {
+    entry, before? }`, `remove`, `send_now { entry, delivery }`, `hold`,
+    `resume`, `clear`).
+  - `AgentCommand { name, description, hint? }`, `CommandName` (no `/`,
+    no white space).
+  - Questions: `Question { id, message, tool_call?, fields }`, each field
+    `text`, `number`, `integer`, `boolean`, `choice` or `unknown`;
+    `QuestionAnswer` (`accept { values }`, `decline`); `QuestionOutcome`
+    (`answered`, `declined`, `cancelled`).
+  - `ContextUsage { used, size, cost? }`, `TurnUsage { total, input,
+    output, thought?, cached_read?, cached_write? }` in
+    `AgentEvent::TurnEnded.usage?`.
+  - `SessionMarks { pinned, archived_at?, unread }` in `SessionInfo.marks`
+    (left out when nothing is marked); `Mark` (`pin`, `unpin`, `archive`,
+    `unarchive`, `read { through }`, `unread`).
+  - `AttachmentLimits` (in `Conversation`), and `Conversation { queue,
+    commands, usage?, permissions, questions, abilities?, limits }`.
+- Input: `SessionInput::AnswerQuestion { id, answer }`; `SessionInput::
+  CancelTurn { turn? }`, the cancel naming the `turn_started` it means.
+- Events, each with the stand-in a version 2-9 client gets at the same
+  `seq`:
+  - `queue_changed { queue }`: `vessel: queue: N waiting (held: why)`;
+  - `commands_changed { commands }`: `vessel: commands: /a, /b and N
+    more`;
+  - `usage_changed { usage }`: `vessel: context: U of S tokens`;
+  - `agent { steered { content } }`: `vessel: steered: <first line>`;
+  - `agent { question_asked }`: `vessel: the agent asks: <message>`;
+  - `agent { question_resolved }`: `vessel: question answered`
+    (`declined`, `cancelled`);
+  - a `turn_started` naming an attachment: the same event, each
+    attachment a `resource_link` to `attachment:<id>`.
+  An agent event's version is read from its content as well as its kind
+  (`AgentEvent::since`).
+- Methods, all forwardable: `session.prompt` (operate), `session.queue`
+  (operate), `session.conversation` (read), `session.resume` (operate),
+  `session.mark` (operate), `session.delete` (operate),
+  `attachment.begin`, `attachment.write`, `attachment.finish` (operate),
+  `attachment.read` (read). The `operate` ones that name a session are
+  ownership-checked for agents; `attachment.write` and `attachment.finish`
+  belong to the caller that began the upload. Their failures and bounds
+  are the plan's contract.
+- A version 10 call, an `answer_question`, a prompt naming an attachment,
+  or a cancel naming its turn needs protocol 10 (`Call::since`).
+- What older peers get:
+  - Every reply is rewritten for the connection's version
+    (`Reply::for_protocol`), the fleet envelope's nested reply included:
+    before this, a `session.read` page passed back through
+    `fleet.forward`, `fleet.relay` or `fleet.deliver` reached an older
+    home unchanged.
+  - Ended sessions: from this version, an ended session that is not
+    archived is in `building` as `exited`, and only an archived one is in
+    `archive` (ADR 0026). A version 8-9 peer still gets every ended
+    session in the archive (`SessionInfo::for_protocol`).
+- Logs: a session's final `status` is the last record of a run, no longer
+  of the log: `session.resume` continues the same log after it.
+- What each call does (the contract's details that the summary above
+  leaves out): `session.conversation`, `session.prompt` and `session.queue`,
+  `cancel_turn`'s `turn`, and questions: `question_asked`,
+  `question_resolved` and `session.send`'s `answer_question`
+  (`invalid_request` for an answer that does not fit the form,
+  `not_found` for an unknown question, `conflict` once it is settled),
+  offered only to the agent of a session the owner or a device created;
+  marks and deletion: `SessionInfo.marks` everywhere a session's info is
+  read, `session.mark` (`archive` stops a live session and answers once it
+  has ended; a `read` past the end of the log is `invalid_request`; an
+  agent marking `read` or `unread` is `forbidden`), `session.delete`
+  (`conflict` for a live session and for one whose log is still being
+  written; its answer, below), the board's placement of ended sessions,
+  and retention's order (archived first, pinned last); starting again: `session.resume`
+  (the row reopened before the new run writes, the log continued after
+  the final status, the title, choices and creator kept, the queue back
+  held `ended`, out of the archive, a new agent credential; it answers
+  once the agent is ready, `spawn_failed` with the reason the log ends
+  with otherwise), and a subscription the store was serving ends
+  `lagged` when its session started again meanwhile; attachments:
+  `attachment.begin`, `.write`, `.finish` and `.read` (an upload is its
+  caller's, `not_found` to anyone else; an image or audio only to an
+  agent that said it takes them, `unsupported` otherwise and while it has
+  not said; a piece that ends at or before what the node has is answered
+  with it, one that starts elsewhere is `invalid_request`; an image that
+  does not start as its type does is `invalid_request` and its upload
+  dropped; `conflict` once the session ended, and for a kept file that
+  was changed on disk; uploads open at a restart are dropped), and every
+  prompt naming one (`session.prompt`, a queue `edit`, `session.send`, and
+  a queued prompt when it is sent; a queue `edit` with no content is
+  `invalid_request`, as an empty prompt is) checked against the session's own
+  records, the per-prompt bounds and what its agent takes then
+  (`invalid_request`); and every call from the command line (`vessel send
+  --queue|--steer|--interrupt|--attach`, `vessel session
+  queue|answer|resume|pin|unpin|archive|unarchive|read|unread|delete`)
+  and, but marks other than archiving, deletion and attachments, from the
+  agent tools (`send_input`'s `delivery`, `read_conversation`,
+  `change_queue`, `answer_question`, `resume_session`,
+  `archive_session`). A `vessel send` without a delivery or a file still
+  makes `session.send`, so it works with an older node.
+
+### Projects, worktrees, git and files
+
+Forty of the methods, two optional fields and no event.
+
+- Types (`vessel_proto::workspace`, one module per area): `ProjectId`,
+  `WorktreeId`; `RelPath` (relative, `/`-separated, never absolute,
+  climbing, a drive, or any `.git` by git's `verify_path` rules: a bad
+  one does not decode); `CloneUrl` (`https`, `http`, `ssh`, `git` or
+  `user@host:path`; no `<transport>::`, leading `-` or credentials);
+  bounded names (`BranchName`, `RefName`, `RemoteName`, `CommitId`,
+  `ProjectName`, `FolderName`, `CommitMessage`, `ProjectCommand`,
+  `CommandsDigest`, `ContentHash`, `FindQuery`, `GrepQuery`); every reply
+  enum that will grow has `unknown`.
+- `SessionSpec.place?`: `project { project, dir? }` or `worktree {
+  worktree }`. The node fills `cwd` with the folder it resolves to (so a
+  protocol 9 client still sees where the session runs), refuses a place
+  together with a `cwd`, and starts the log with `vessel:` notices (the
+  folder, the branch and its base, setup's result and, after a failure,
+  its last lines). In a worktree whose setup runs: `conflict`. A
+  `session.create` with a place needs protocol 10 (`Call::since`). The
+  first session started in a worktree made for no session claims it.
+  `SessionInfo.workspace? { project, worktree?, branch? }`, filled from
+  the place on every answer.
+- Methods, all forwardable, in `vessel-web`'s list; agents may call only
+  `project.list`, `project.get`, `project.commands`, `worktree.list`,
+  `worktree.create` (at most 8 they made), `worktree.output`, and
+  `session.create` in a project or a worktree they made (or made for a
+  session they may operate; a `cwd` of their own inside the node's data
+  folder, where worktrees are made, is `forbidden`: they name the
+  `place`); every other one answers them `forbidden`. Creations at once
+  count against the 8 together.
+  - Projects: `project.list` (read; with the git found: `found {
+    version }`, `too_old`, `missing`), `project.get { project,
+    changed_from? }` (read; a long poll until the revision differs, at
+    most 30 s), `project.add { path, name? }`, `project.clone { url,
+    parent, folder?, name? }` (answers `cloning`; progress in `state`),
+    `project.init { path, name? }`, `project.remove` (forgets; files
+    stay), `project.commands { project, base? }` (read),
+    `project.approve { project, digest, approved }` (all operate).
+    Roots refused: a file system's root, any folder that is or holds the
+    home folder, any folder holding the node's data folder or inside it;
+    `project.init` checks the folder it would make before it makes
+    anything (`.` and `..` refused). A project's `vessel.toml` is read
+    only as a regular file inside its folder, at most 64 KiB; one that
+    leads out of it is as if there were none.
+  - Worktrees: `worktree.list { project? }`, `worktree.create { project,
+    branch: new { name?, base? } | existing { name } | snapshot {
+    worktree, name? }, setup: run | skip }` answering `created`,
+    `needs_approval { commands }` or `refused { reason }`;
+    `worktree.output { worktree, from, wait? }` (a page of at most
+    64 KiB of setup's output, a long poll); `worktree.setup`;
+    `worktree.remove { worktree, if_lost: keep | snapshot | discard }`
+    answering `removed { snapshot? }` or `kept { reasons }`;
+    `worktree.snapshots { project }`, `worktree.drop_snapshot`.
+  - Git (`root`: `project { project }` or `worktree { worktree }`):
+    `git.status`, `git.changes { scope, ignore_whitespace }` (scopes
+    `unstaged`, `staged`, `uncommitted`, `base { base? }`, `commit {
+    id }`), `git.diff` (one file's typed hunks, paged by hunk),
+    `git.show` (a file at a commit, paged), `git.branches`, `git.log`,
+    `git.stashes` (read); `git.stage`, `git.unstage`, `git.discard`,
+    `git.commit`, `git.fetch`, `git.push`, `git.pull` (fast-forward
+    only), `git.switch`, `git.rename_branch`, `git.stash` (operate),
+    each with typed refusals (`GitRefusal`). A call's wait for one of
+    the node's git slots counts against its time (`timed_out`). Every
+    call checks its root again: a folder replaced since it was recorded
+    (a link to another), or a worktree whose `.git` no longer names its
+    repository's record of it, is `conflict`, and git is not run in it.
+  - Files: `file.list`, `file.read`, `file.find { query, key? }` (by
+    name; a newer search with the same key replaces a running one),
+    `file.grep` (read); `file.write { expect: absent | version | any }`,
+    `file.create_dir`, `file.rename`, `file.delete` (operate). A path
+    that leads out of the root, one that cannot be followed (a link to
+    nowhere, a file where a folder should be, no permission) and one
+    that is not there all answer `not_found`; what is read is opened
+    first and judged a regular file on the opened file (a FIFO is not
+    waited on).
+- Store schema 9 (`projects`, `worktrees`, `approvals`).
+
+### Where the two meet
+
+- `session.delete` answers `SessionDeleted { worktree? }` (track A's
+  branch answered `Ack`; nothing of protocol 10 was released, so the
+  reply changed in place): `worktree` is `TidiedWorktree { worktree,
+  outcome }` for the worktree made for the session (`WorktreeInfo.
+  created_for`), `outcome` `removed` or `kept { reasons }`. The session
+  is deleted either way; the worktree goes only by the rule a person's
+  `worktree.remove { if_lost: keep }` follows (ADR 0027), so a delete
+  never loses uncommitted work or commits no other branch has, never
+  snapshots or discards unasked, and says when it kept something (also
+  in `WorktreeInfo.kept`).
+- Retention dropping a session tidies its worktree by the same rule, in
+  the background after the prune; the node also tidies, when it starts,
+  every worktree whose session is gone. Ending or archiving a session
+  tidies nothing: `session.resume` starts it again in the same folder.
+- `session.resume` of a session whose folder is gone (a worktree a
+  person removed, or one tidied with the session it was made for, or a
+  folder removed by hand) is `conflict`, naming the folder; so is one
+  into a worktree whose setup, teardown or removal runs. Nothing of the
+  session changes.
+- Tidying keeps a worktree git could not inspect (`kept {
+  inspection_failed }`) and does not try it again; a person removes it
+  with `snapshot` or `discard`. One kept because a session was in it is
+  tried again once that session is gone.
+- `SessionInfo.workspace` is filled on every answer that carries a
+  session's info: `session.list`, `.get`, `.create` (and an import's),
+  `.move_profile`, `.rename`, `.subscribe`, `.resume` and `.mark`.
+- An imported session's place is dropped (it named the other machine's
+  project); its title comes with it, its marks and queue stay behind.
+- Store: schemas 7 and 8 are the conversation's, 9 the workspace's.
+
 ## Version 9 (2026-11-11)
 
 Nodes speak 2..=9; version 9 adds four methods, two events (with
@@ -129,7 +363,9 @@ reading an older node finds it absent. Milestone 9's plan
   - Any ended session (`exited`, `failed` or `interrupted`, live in this
     run or read back from the store) is `archive` / `terminated`, activity
     `exited`, its end as its last activity. The client shows the status
-    word on an archived card.
+    word on an archived card. (Version 10 changes this: an ended session
+    is `building` / `exited` until it is archived; a version 8-9 peer
+    still gets the placement above.)
   - No node gathers pull requests yet, so `validating`, `needs_review`,
     `ready`, `awaiting_pr` and the phrases of those columns are not sent;
     `no_signal` is not either (no Vessel session is expected to report on

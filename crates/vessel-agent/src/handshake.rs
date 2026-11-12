@@ -39,11 +39,13 @@ use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::v1::ConnectionTo;
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::{Agent, Error};
-use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers};
+use vessel_proto::{
+    AgentAbilities, HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers,
+};
 
-use crate::mcp;
 use crate::model::ModelError;
 use crate::options::{Applied, Change, OptionError, Options};
+use crate::{abilities, mcp};
 
 /// The default for [`AgentSetup::handshake_timeout`].
 pub const DEFAULT_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(60);
@@ -70,6 +72,12 @@ pub struct AgentSetup {
     /// [`DEFAULT_HANDSHAKE_TIMEOUT`]); past it the connection ends with
     /// `Disconnect::Handshake`.
     pub handshake_timeout: Duration,
+    /// Whether the agent may ask the person questions (protocol 10): ACP's
+    /// form elicitation is advertised in `initialize` only then, and Claude's
+    /// adapter offers its question tool only to a client that advertises it.
+    /// False unless someone watches the session (the node's choice: a
+    /// session the owner or a device created); a probe never asks.
+    pub questions: bool,
 }
 
 /// Why the handshake failed.
@@ -101,11 +109,13 @@ pub(crate) enum HandshakeError {
     TimedOut(Duration),
 }
 
-/// A session the agent accepted, and its options after the choices.
+/// A session the agent accepted, its options after the choices, and what
+/// the agent said it can do.
 #[derive(Debug)]
 pub(crate) struct Started {
     pub(crate) session: acp::SessionId,
     pub(crate) options: Options,
+    pub(crate) abilities: AgentAbilities,
 }
 
 /// [`run`], bounded by `setup.handshake_timeout`.
@@ -121,17 +131,25 @@ pub(crate) async fn run_within(
 
 /// Run the handshake; returns the ACP session and its options.
 ///
-/// Client capabilities are deliberately empty: no `fs` and no `terminal`,
+/// Client capabilities are deliberately small: no `fs` and no `terminal`,
 /// so agents use their own tools (Vessel wraps harnesses; it does not
-/// re-implement their file and shell access, ADR 0003).
+/// re-implement their file and shell access, ADR 0003). Form elicitation
+/// only when `setup.questions` says so; never URL elicitation (a link the
+/// agent chose, opened from a page on another machine).
 pub(crate) async fn run(
     cx: &ConnectionTo<Agent>,
     setup: &AgentSetup,
 ) -> Result<Started, HandshakeError> {
+    let mut capabilities = acp::ClientCapabilities::new();
+    if setup.questions {
+        capabilities = capabilities.elicitation(
+            acp::ElicitationCapabilities::new().form(acp::ElicitationFormCapabilities::new()),
+        );
+    }
     let initialized = cx
         .send_request(
             acp::InitializeRequest::new(ProtocolVersion::V1)
-                .client_capabilities(acp::ClientCapabilities::new())
+                .client_capabilities(capabilities)
                 .client_info(acp::Implementation::new(
                     "vessel",
                     env!("CARGO_PKG_VERSION"),
@@ -143,6 +161,7 @@ pub(crate) async fn run(
     if initialized.protocol_version != ProtocolVersion::V1 {
         return Err(HandshakeError::Version(initialized.protocol_version));
     }
+    let abilities = abilities::of(&initialized);
 
     let (servers, left_out) = mcp::to_acp(
         &setup.mcp_servers,
@@ -197,7 +216,11 @@ pub(crate) async fn run(
             options.apply(applied);
         }
     }
-    Ok(Started { session, options })
+    Ok(Started {
+        session,
+        options,
+        abilities,
+    })
 }
 
 /// Ask the agent to make `change`; its answer says what changed. Awaits

@@ -37,7 +37,8 @@ qrcode.workspace = true
 # A scratch directory for a release download (`vessel node install`).
 tempfile.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["io-std"] }
+# `fs`: `vessel send --attach` reads a file a piece at a time.
+tokio = { workspace = true, features = ["io-std", "fs"] }
 # Stopping `vessel ui`'s server; already in the workspace.
 tokio-util.workspace = true
 tracing.workspace = true

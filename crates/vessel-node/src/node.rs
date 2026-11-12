@@ -17,10 +17,13 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
+use crate::attachments::staging;
+use crate::attachments::uploads::{self, Uploads};
+use crate::attachments::{Attachments, Verified, load};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
@@ -40,7 +43,9 @@ use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
 use crate::shutdown::Teardown;
+use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
+use crate::workspace::{Opening, Workspaces};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -71,10 +76,8 @@ struct Prepared {
     profiles: NodeProfiles,
     /// From `models.toml` (ADR 0015).
     models: Models,
-    /// Owner-only, emptied of a previous run's files (ADR 0012).
-    mcp_dir: PathBuf,
-    /// Where agents are probed (protocol 9).
-    probe_dir: PathBuf,
+    /// The directories sessions, probes and worktrees use.
+    dirs: SetupDirs,
 }
 
 impl Node {
@@ -99,12 +102,10 @@ impl Node {
             lock,
             profiles,
             models,
-            mcp_dir,
-            probe_dir,
+            dirs,
         } = prepare_off_thread(&config).await?;
         let store = open_store(&config).await?;
         let (models, proxy) = model_proxy(models).await?;
-        let dirs = SetupDirs { mcp_dir, probe_dir };
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
         let Core {
@@ -117,7 +118,7 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup);
+        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -294,12 +295,20 @@ struct SessionSetup {
     fleet_mcp: Arc<FleetMcp>,
     /// Where agents are probed (`DataDir::probe_dir`, protocol 9).
     probe_dir: PathBuf,
+    /// Worktrees and their setup logs (`DataDir::workspace_dir`,
+    /// protocol 10).
+    workspace_dir: PathBuf,
 }
 
 /// The directories sessions and probes use, prepared under the lock.
 struct SetupDirs {
-    mcp_dir: PathBuf,
-    probe_dir: PathBuf,
+    /// Owner-only, emptied of a previous run's files (ADR 0012).
+    mcp: PathBuf,
+    /// Where agents are probed (protocol 9).
+    probe: PathBuf,
+    /// Worktrees, their setup logs and git's empty hooks folder
+    /// (protocol 10).
+    workspace: PathBuf,
 }
 
 impl SessionSetup {
@@ -308,7 +317,11 @@ impl SessionSetup {
         id: NodeId,
         profiles: NodeProfiles,
         models: Arc<Models>,
-        SetupDirs { mcp_dir, probe_dir }: SetupDirs,
+        SetupDirs {
+            mcp,
+            probe,
+            workspace,
+        }: SetupDirs,
     ) -> Self {
         let tools = config.vessel_mcp.clone().map(|mcp| AgentTools {
             program: mcp.program,
@@ -320,9 +333,10 @@ impl SessionSetup {
         Self {
             profiles: Arc::new(profiles),
             models,
-            launcher: Launcher::new(mcp_dir, source, tools),
+            launcher: Launcher::new(mcp, source, tools),
             fleet_mcp,
-            probe_dir,
+            probe_dir: probe,
+            workspace_dir: workspace,
         }
     }
 }
@@ -341,25 +355,22 @@ fn lsp_config(config: &Config) -> vessel_lsp::Config {
 }
 
 /// Build the session runtime, the lifecycle, the devices and the service.
-fn core(
+#[expect(
+    clippy::too_many_lines,
+    reason = "one list of the node's parts, in the order they depend on each other"
+)]
+async fn core(
     config: &Config,
     id: NodeId,
     store: &Store,
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
-) -> Core {
+) -> Result<Core, NodeError> {
     let key = keypair.public();
-    let runtime = Arc::new(SessionRuntime::new(
-        RuntimeConfig {
-            harness_lookup: config.harness_lookup.clone(),
-            harness_env: config.harness_env.clone(),
-            ring_capacity: config.ring_capacity,
-            durable_capacity: config.durable_capacity,
-            agent_handshake_timeout: config.agent_handshake_timeout,
-        },
-        CancellationToken::new(),
-    ));
+    // Sessions ask the node for their prompts' attachments (protocol 10).
+    let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
+    let runtime = runtime(config, loader);
     let stop = CancellationToken::new();
     let lifecycle = Lifecycle::new(
         identity::node_info(id, config.name.clone(), *key),
@@ -375,6 +386,7 @@ fn core(
         Arc::clone(&agents),
         Arc::clone(&setup.models),
     ));
+    let attachments = attachments(config, store, &sessions, loads, (&tasks, &stop));
     let forwarders = TaskTracker::new();
     let devices = Arc::new(Devices::new(
         store.clone(),
@@ -425,6 +437,26 @@ fn core(
     drop(tasks.spawn(async move {
         lsp_shutdown.stopped().await;
     }));
+    // Clones and setups are the node's tasks: shutdown stops them through
+    // `stop` and waits for them before the store closes.
+    let workspaces = Workspaces::start(
+        Opening {
+            data: config.data_dir.root().to_path_buf(),
+            workspace: setup.workspace_dir,
+            home: config.harness_env.user_home().to_path_buf(),
+            git: config.harness_lookup.find("git"),
+            git_env: Vec::new(),
+        },
+        store.clone(),
+        tasks.clone(),
+        stop.clone(),
+    )
+    .await
+    .map_err(NodeError::Store)?;
+    // Worktrees whose sessions are gone are tidied at start and after
+    // each prune (`tidying`); deletions tidy their own.
+    let tidying = Tidying::new(Arc::clone(&sessions), Arc::clone(&workspaces));
+    Arc::clone(&tidying).watch(store.pruned(), &tasks, stop.clone());
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -440,9 +472,12 @@ fn core(
         fleet,
         links,
         transfers,
+        attachments,
         probes: Probes::new(setup.probe_dir),
+        workspaces,
+        tidying,
     })));
-    Core {
+    Ok(Core {
         runtime,
         lifecycle,
         stop,
@@ -452,7 +487,50 @@ fn core(
         agents,
         service,
         relays,
-    }
+    })
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader`.
+fn runtime(config: &Config, loader: AttachmentLoader) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader),
+    )
+}
+
+/// How many prompts' attachment loads may wait for the node's loader; a
+/// session finding no room waits (each has at most one in flight).
+const ATTACHMENT_LOADS: usize = 16;
+
+/// The node's attachments (protocol 10): its uploads and their idle sweep,
+/// and the loader that answers the sessions' `loads`.
+fn attachments(
+    config: &Config,
+    store: &Store,
+    sessions: &Arc<Sessions>,
+    loads: tokio::sync::mpsc::Receiver<vessel_session::LoadAttachments>,
+    (tasks, stop): (&TaskTracker, &CancellationToken),
+) -> Arc<Attachments> {
+    let verified = Arc::new(Verified::default());
+    load::serve(store.clone(), Arc::clone(&verified), loads, tasks, stop);
+    let uploads = Arc::new(Uploads::new(staging::root(&config.data_dir), uploads::IDLE));
+    uploads.sweep(tasks, stop);
+    Arc::new(Attachments::new(
+        store.clone(),
+        Arc::clone(sessions),
+        uploads,
+        verified,
+    ))
 }
 
 /// Bind the local socket, and the TCP address if the config has one.
@@ -519,9 +597,13 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
     // owning the data directory may do.
     let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;
     let probe_dir = dir.prepare_probe_dir().map_err(NodeError::ProbeDir)?;
-    // Transfers expire at restart (protocol 6); same reason to wait for the
-    // lock.
+    let workspace_dir = dir
+        .prepare_workspace_dir()
+        .map_err(NodeError::WorkspaceDir)?;
+    // Transfers expire at restart (protocol 6), and so do uploads (protocol
+    // 10); same reason to wait for the lock.
     transfers::clear(dir);
+    staging::clear(dir);
     let profiles = NodeProfiles::load(dir.clone(), env).map_err(NodeError::Profiles)?;
     let models = Models::load(dir.clone(), FleetFiles::new(dir), model_client()?)
         .map_err(NodeError::Models)?;
@@ -535,8 +617,11 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
         lock,
         profiles,
         models,
-        mcp_dir,
-        probe_dir,
+        dirs: SetupDirs {
+            mcp: mcp_dir,
+            probe: probe_dir,
+            workspace: workspace_dir,
+        },
     })
 }
 

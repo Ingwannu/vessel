@@ -10,15 +10,19 @@ use std::sync::{Mutex, PoisonError};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _, params};
 use vessel_proto::{
-    DeviceId, DeviceInfo, EventPage, EventSeq, OptionChoice, SessionId, SessionInfo,
+    AttachmentId, AttachmentLimits, Conversation, DeviceId, DeviceInfo, EventPage, EventSeq,
+    OptionChoice, SessionId, SessionInfo,
 };
 
+use crate::again::{self, EndedSession};
+use crate::attachments::{self, AttachmentUsage, KeptAttachment};
 use crate::codec::{
-    SESSION_COLUMNS, choices_from_sql, record_from_row, seq_from_sql, seq_to_sql, session_from_row,
+    SESSION_COLUMNS, choices_from_sql, decode, record_from_row, seq_from_sql, seq_to_sql,
+    session_from_row,
 };
 use crate::config::StoreConfig;
 use crate::devices::{self, StoredDevice};
-use crate::error::StoreError;
+use crate::error::{Column, StoreError};
 use crate::schema;
 
 /// The read half of a store.
@@ -87,6 +91,68 @@ impl Reader {
                 .optional()?;
             choices_from_sql(id, text.flatten())
         })
+    }
+
+    /// An ended session's conversation as its log left it (protocol 10):
+    /// its queue (held), its last context report and its abilities; `None`
+    /// for an unknown session. Nothing waits on an ended session and it
+    /// offers no commands.
+    pub(crate) fn conversation(&self, id: SessionId) -> Result<Option<Conversation>, StoreError> {
+        self.with(|connection| {
+            let row: Option<(Option<String>, Option<String>, Option<String>)> = connection
+                .prepare_cached("SELECT queue, usage, abilities FROM sessions WHERE id = ?1")?
+                .query_row([id.to_string()], |row| {
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                })
+                .optional()?;
+            let Some((queue, usage, abilities)) = row else {
+                return Ok(None);
+            };
+            Ok(Some(Conversation {
+                queue: queue
+                    .map(|queue| decode(id, Column::Queue, &queue))
+                    .transpose()?
+                    .unwrap_or_default(),
+                commands: Vec::new(),
+                usage: usage
+                    .map(|usage| decode(id, Column::Usage, &usage))
+                    .transpose()?,
+                permissions: Vec::new(),
+                questions: Vec::new(),
+                abilities: abilities
+                    .map(|abilities| decode(id, Column::Abilities, &abilities))
+                    .transpose()?,
+                limits: AttachmentLimits::DEFAULT,
+            }))
+        })
+    }
+
+    /// A stored session with what a new run of it continues from
+    /// (protocol 10's `session.resume`).
+    pub(crate) fn ended_session(&self, id: SessionId) -> Result<Option<EndedSession>, StoreError> {
+        self.with(|connection| again::ended_session(connection, id))
+    }
+
+    /// `session`'s attachment `id` (protocol 10).
+    pub(crate) fn attachment(
+        &self,
+        session: SessionId,
+        id: AttachmentId,
+    ) -> Result<Option<KeptAttachment>, StoreError> {
+        self.with(|connection| attachments::select(connection, session, id))
+    }
+
+    /// The bytes of attachments kept, on the node and for `session`.
+    pub(crate) fn attachment_usage(
+        &self,
+        session: SessionId,
+    ) -> Result<AttachmentUsage, StoreError> {
+        self.with(|connection| attachments::usage(connection, session))
+    }
+
+    /// Projects, worktrees and approvals (protocol 10).
+    pub(crate) fn workspace(&self) -> Result<crate::workspace::StoredWorkspace, StoreError> {
+        self.with(crate::workspace::load)
     }
 
     /// Every paired device, oldest first.

@@ -161,6 +161,40 @@ uuid_id! {
     TransferId
 }
 
+uuid_id! {
+    /// A prompt waiting in a session's queue (protocol 10), minted by the
+    /// node when it is queued.
+    QueueEntryId
+}
+
+uuid_id! {
+    /// A question an agent asks (protocol 10). Minted by the node, as a
+    /// permission request's id is, so many clients can answer and the first
+    /// answer wins.
+    QuestionId
+}
+
+uuid_id! {
+    /// A file sent with a prompt, kept with its session (protocol 10).
+    AttachmentId
+}
+
+uuid_id! {
+    /// An upload in progress (protocol 10). Random, but not a secret: only
+    /// the caller that began it may write to it or finish it.
+    UploadId
+}
+
+uuid_id! {
+    /// A project: a folder the node works in (protocol 10, ADR 0027).
+    ProjectId
+}
+
+uuid_id! {
+    /// A worktree the node made for a project (protocol 10, ADR 0027).
+    WorktreeId
+}
+
 opaque_id! {
     /// The harness's own session id (an ACP `sessionId`). Kept so a
     /// structured session can be resumed by the harness after a node restart.

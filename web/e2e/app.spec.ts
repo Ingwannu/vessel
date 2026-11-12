@@ -264,7 +264,7 @@ test("a session is killed", async ({ page }) => {
   );
 });
 
-test("the board holds a live session in a lane, and the archive the ended", async ({
+test("the board holds a live session in a lane, and the ended one as exited", async ({
   page,
 }) => {
   await open(page);
@@ -299,15 +299,14 @@ test("the board holds a live session in a lane, and the archive the ended", asyn
   const confirm = page.getByRole("dialog");
   await expect(confirm).toContainText("build-server");
   await confirm.getByRole("button", { name: "Kill" }).click();
-  // An ended session is not on a lane: it is in the archive.
-  await expect(board.locator(`[data-session="${id}"]`)).toHaveCount(0);
-  await page.getByRole("button", { name: /^Archive/ }).click();
-  const archive = page.getByRole("dialog", { name: "Archive" });
-  const archived = archive.locator(`[data-session="${id}"]`);
-  await expect(archived).toBeVisible();
+  // An ended session stays in its lane as exited until it is archived
+  // (protocol 10, ADR 0026), and offers no kill.
+  const exited = building.locator(`[data-session="${id}"]`);
+  await expect(exited.locator(".phrase")).toHaveText("Exited");
+  await expect(exited.getByRole("button", { name: /^Kill / })).toHaveCount(0);
 
   // The card itself opens the session.
-  await archived.getByRole("link", { name: /^Open / }).click();
+  await exited.getByRole("link", { name: /^Open / }).click();
   await expect(page).toHaveURL(new RegExp(`/sessions/[^/]+/${id}$`));
 });
 

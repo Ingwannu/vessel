@@ -6,6 +6,8 @@ use std::sync::Arc;
 
 use vessel_proto::{DeviceId, ErrorCode, EventSeq, NodeId, SessionId};
 
+use crate::attachments::files::AttachmentFileError;
+
 /// A value that does not fit the on-disk representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quantity {
@@ -40,6 +42,12 @@ pub enum Column {
     Title,
     /// `sessions.choices` (`OptionChoice`s, schema 6).
     Choices,
+    /// `sessions.abilities` (`AgentAbilities`, schema 7).
+    Abilities,
+    /// `sessions.usage` (`ContextUsage`, schema 7).
+    Usage,
+    /// `sessions.queue` (`PromptQueue`, schema 7).
+    Queue,
 }
 
 /// Anything that can go wrong in the store.
@@ -155,6 +163,15 @@ pub enum StoreError {
         /// Which column.
         what: &'static str,
     },
+    /// A stored attachment row did not decode; the database was edited or
+    /// corrupted.
+    #[error("stored attachment {id:?} has an invalid {what}")]
+    CorruptAttachment {
+        /// The stored id text.
+        id: String,
+        /// Which column.
+        what: &'static str,
+    },
     /// No device with this id is stored.
     #[error("device {0} is not known to this node")]
     UnknownDevice(DeviceId),
@@ -173,6 +190,17 @@ pub enum StoreError {
     /// A session with this id is already stored.
     #[error("session {0} is already in the store")]
     SessionExists(SessionId),
+    /// The session is still live in the store (its log is not complete),
+    /// so it can neither be deleted nor started again.
+    #[error("session {0} is still live (its log is not complete)")]
+    SessionLive(SessionId),
+    /// The session has ended, so it keeps no new attachment (protocol 10).
+    #[error("session {0} has ended; it takes no more attachments")]
+    SessionEnded(SessionId),
+    /// A kept attachment's file is missing or not the one kept, or a
+    /// finished upload could not be put in place (protocol 10).
+    #[error(transparent)]
+    Attachment(#[from] AttachmentFileError),
     /// Records must be appended gap-free, in order.
     #[error("session {session}: expected record {expected}, got {got}")]
     OutOfOrder {
@@ -199,10 +227,17 @@ impl StoreError {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         match self {
-            Self::UnknownSession(_) | Self::UnknownDevice(_) => ErrorCode::NotFound,
-            Self::SessionExists(_) | Self::DeviceExists(_) | Self::OutOfOrder { .. } => {
-                ErrorCode::Conflict
-            }
+            // A row without its file: removed under the node.
+            Self::UnknownSession(_)
+            | Self::UnknownDevice(_)
+            | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
+            Self::SessionExists(_)
+            | Self::SessionLive(_)
+            | Self::DeviceExists(_)
+            | Self::SessionEnded(_)
+            | Self::Attachment(AttachmentFileError::Changed { .. })
+            | Self::OutOfOrder { .. } => ErrorCode::Conflict,
+
             Self::Closed => ErrorCode::Unavailable,
             Self::Io { .. }
             | Self::NotPrivate { .. }
@@ -217,6 +252,8 @@ impl StoreError {
             | Self::Corrupt { .. }
             | Self::CorruptId { .. }
             | Self::CorruptDevice { .. }
+            | Self::CorruptAttachment { .. }
+            | Self::Attachment(AttachmentFileError::Io { .. })
             | Self::Encode(_)
             | Self::OutOfRange(_)
             | Self::Thread(_)

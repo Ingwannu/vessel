@@ -12,6 +12,7 @@
 mod agent;
 mod base64_bytes;
 mod board;
+pub mod conversation;
 mod device;
 mod error;
 mod event;
@@ -38,6 +39,7 @@ mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
+pub mod workspace;
 
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
@@ -45,6 +47,11 @@ pub use agent::{
     ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
 };
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
+pub use conversation::{
+    AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,
+    ContextUsage, Conversation, Delivered, Delivery, KeptMarks, Mark, PromptQueue, Question,
+    QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
+};
 pub use device::{
     DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
     PreambleReply, RefusalReason, RevokeDevice, Scope,
@@ -63,8 +70,9 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId, PermissionId,
-    PermissionOptionId, RequestId, SessionId, SubscriptionId, ToolCallId, TransferId,
+    AttachmentId, DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId,
+    PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SessionId,
+    SubscriptionId, ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

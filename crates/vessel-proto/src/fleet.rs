@@ -201,7 +201,7 @@ const RESERVED: [&str; 32] = [
     "LPT\u{b3}",
 ];
 
-fn check_segment(segment: &str) -> Result<(), BundlePathRule> {
+pub(crate) fn check_segment(segment: &str) -> Result<(), BundlePathRule> {
     if matches!(segment, "" | "." | "..") {
         return Err(BundlePathRule::Segment);
     }

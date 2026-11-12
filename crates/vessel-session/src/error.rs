@@ -5,7 +5,10 @@ use std::fmt;
 use vessel_agent::InputError;
 use vessel_harness::{LinkError, SessionFilesError};
 
+use crate::again::NotResumable;
+use crate::attachments::AttachmentError;
 use crate::moving::MoveError;
+use crate::queue::QueueError;
 use vessel_harness::HarnessError;
 use vessel_proto::{ErrorCode, SessionId, SessionInput};
 
@@ -30,10 +33,26 @@ pub enum SessionError {
     #[error("no working directory: the spec has none and the node user has no home directory")]
     NoWorkingDirectory,
     /// The agent refused structured input (a turn already running, a
-    /// permission already answered, an unknown option or id, content ACP
-    /// cannot carry).
+    /// permission or question already answered, an unknown option or id,
+    /// an answer that does not fit its question, content ACP cannot
+    /// carry).
     #[error(transparent)]
     Input(InputError),
+    /// A change to the queue, or a prompt for it, was refused (protocol
+    /// 10).
+    #[error(transparent)]
+    Queue(#[from] QueueError),
+    /// A prompt was not delivered as asked (protocol 10).
+    #[error(transparent)]
+    Delivery(#[from] DeliveryError),
+    /// A prompt's attachments were refused or could not be loaded
+    /// (protocol 10).
+    #[error(transparent)]
+    Attachment(#[from] AttachmentError),
+    /// Something only a structured session has (protocol 10's
+    /// conversation, queue, questions) was asked of a terminal session.
+    #[error("a terminal session has no {0}; its harness runs its own interface")]
+    Terminal(&'static str),
     /// Agent options were asked of a terminal session (protocol 9): its
     /// harness runs its own TUI, and Vessel sees no options there.
     #[error("a terminal session has no agent options; its harness's own interface sets them")]
@@ -66,12 +85,28 @@ pub enum SessionError {
     /// The session has ended and accepts no more input.
     #[error("the session has ended")]
     Ended,
+    /// An ended session cannot start again (protocol 10's
+    /// `session.resume`).
+    #[error("the session cannot start again: {0}")]
+    NotResumable(#[from] NotResumable),
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
+}
+
+/// Why a prompt was not delivered (protocol 10's `session.prompt`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum DeliveryError {
+    /// A prompt needs content.
+    #[error("the prompt is empty")]
+    Empty,
+    /// An interrupt's cancelled turn did not end in time; nothing was
+    /// sent (the turn was cancelled).
+    #[error("the running turn did not end after its cancel; the prompt was not sent")]
+    TurnDidNotEnd,
 }
 
 /// Why [`SessionRuntime::remove`](crate::SessionRuntime::remove) refused.
@@ -96,7 +131,11 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. }) => ErrorCode::HarnessNotInstalled,
             Self::Launch(HarnessError::StructuredUnavailable { .. })
             | Self::Unsupported { .. }
-            | Self::NoOptions => ErrorCode::Unsupported,
+            | Self::NoOptions
+            | Self::Terminal(_)
+            | Self::NotResumable(_)
+            | Self::Attachment(AttachmentError::NoLoader)
+            | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -105,17 +144,28 @@ impl SessionError {
                 | HarnessError::Mcp(_),
             )
             | Self::NoWorkingDirectory
+            | Self::Delivery(DeliveryError::Empty)
+            | Self::Queue(QueueError::NotNow | QueueError::TooLarge)
             | Self::Input(
                 InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
-                | InputError::Option(_),
+                | InputError::Option(_)
+                | InputError::InvalidAnswer { .. }
+                | InputError::AttachmentNotTaken { .. },
+            )
+            | Self::Attachment(
+                AttachmentError::TooMany { .. }
+                | AttachmentError::TooLarge { .. }
+                | AttachmentError::Twice(_)
+                | AttachmentError::NotTaken { .. }
+                | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
             Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
                 ErrorCode::SpawnFailed
             }
-            Self::Input(InputError::PermissionNotFound(_)) | Self::NotFound(_) => {
-                ErrorCode::NotFound
-            }
+            Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
+            | Self::NotFound(_)
+            | Self::Queue(QueueError::NoEntry) => ErrorCode::NotFound,
             Self::Ended
             | Self::Moving
             // The agent's refusal of an option change: the session is in a
@@ -124,13 +174,24 @@ impl SessionError {
                 InputError::Closed
                 | InputError::TurnInProgress
                 | InputError::PermissionSettled(_)
-                | InputError::Refused { .. },
-            ) => ErrorCode::Conflict,
-            Self::ShuttingDown => ErrorCode::Unavailable,
+                | InputError::QuestionSettled(_)
+                | InputError::Refused { .. }
+                | InputError::SteerRefused { .. },
+            )
+            | Self::Queue(QueueError::Full | QueueError::Stale { .. })
+            // The file is not the one kept: the node's state changed.
+            | Self::Attachment(AttachmentError::Changed(_)) => ErrorCode::Conflict,
+            Self::ShuttingDown | Self::Delivery(DeliveryError::TurnDidNotEnd) => {
+                ErrorCode::Unavailable
+            }
             Self::Move(error) => move_code(error),
             // The node resolves `spec.profile`; another profile is its bug.
             Self::Internal(_)
             | Self::DuplicateId(_)
+            | Self::Attachment(AttachmentError::Failed(_))
+            // The actor loads a prompt's attachments before it sends it;
+            // the agent broke the steering extension's terms.
+            | Self::Input(InputError::AttachmentNotLoaded(_) | InputError::Steering(_))
             | Self::Launch(
                 HarnessError::McpFile(_)
                 | HarnessError::ProfileNotRequested { .. }
@@ -178,9 +239,17 @@ impl From<InputError> for SessionError {
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)
+            | InputError::QuestionNotFound(_)
+            | InputError::QuestionSettled(_)
+            | InputError::InvalidAnswer { .. }
             | InputError::UnknownOption { .. }
             | InputError::Option(_)
-            | InputError::Refused { .. }) => Self::Input(refused),
+            | InputError::Refused { .. }
+            | InputError::AttachmentNotLoaded(_)
+            | InputError::AttachmentNotTaken { .. }
+            | InputError::CannotSteer
+            | InputError::SteerRefused { .. }
+            | InputError::Steering(_)) => Self::Input(refused),
         }
     }
 }
@@ -214,6 +283,8 @@ pub enum InputKind {
     CancelTurn,
     /// A permission answer.
     AnswerPermission,
+    /// An answer to a question.
+    AnswerQuestion,
 }
 
 impl InputKind {
@@ -221,8 +292,9 @@ impl InputKind {
         match input {
             SessionInput::Terminal { .. } => Self::Terminal,
             SessionInput::Prompt { .. } => Self::Prompt,
-            SessionInput::CancelTurn => Self::CancelTurn,
+            SessionInput::CancelTurn { .. } => Self::CancelTurn,
             SessionInput::AnswerPermission { .. } => Self::AnswerPermission,
+            SessionInput::AnswerQuestion { .. } => Self::AnswerQuestion,
         }
     }
 }
@@ -234,6 +306,7 @@ impl fmt::Display for InputKind {
             Self::Prompt => "a prompt",
             Self::CancelTurn => "a turn cancellation",
             Self::AnswerPermission => "a permission answer",
+            Self::AnswerQuestion => "an answer to a question",
         })
     }
 }

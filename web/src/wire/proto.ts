@@ -13,13 +13,83 @@ export type Ack = null;
 export type Activity = "active" | "idle" | "waiting_input" | "exited";
 
 /**
+ * `project.add`: a folder on the node.
+ */
+export type AddProject = { 
+/**
+ * An existing folder, absolute.
+ */
+path: string, 
+/**
+ * What to call it; its folder's name otherwise.
+ */
+name?: ProjectName | null, };
+
+/**
+ * What an agent can do, from its ACP `initialize` answer.
+ *
+ * [Decision Log]
+ * - Purpose: steering, starting again and attaching images are offered
+ *   only where the agent takes them, and a client must know before it
+ *   offers the control, not from a failure after.
+ * - Choice: read once per agent start (`initialize`), logged with the
+ *   session's `ready` and kept by the store, so an ended session still
+ *   says whether it can start again. Files are not here: every
+ *   structured agent takes a resource link, ACP's baseline content.
+ */
+export type AgentAbilities = { 
+/**
+ * A message can be added to a running turn: the agent's answer
+ * carries `_meta.steering.supported: true` (the ACP steering
+ * extension, `_session/steering`).
+ */
+steer: boolean, 
+/**
+ * An ended conversation can be loaded again (`loadSession`).
+ */
+resume: boolean, 
+/**
+ * A prompt may hold images (`promptCapabilities.image`).
+ */
+image: boolean, 
+/**
+ * A prompt may hold audio (`promptCapabilities.audio`).
+ */
+audio: boolean, };
+
+/**
+ * One command the agent offers (ACP `available_commands_update`). A
+ * client uses it by sending a prompt that starts with `/name`.
+ */
+export type AgentCommand = { 
+/**
+ * Its name, without the `/`.
+ */
+name: CommandName, 
+/**
+ * What it does, in the agent's words (cut at
+ * [`AgentCommand::MAX_DESCRIPTION`] bytes by the node).
+ */
+description: string, 
+/**
+ * What to type after it, when it takes input (cut at
+ * [`AgentCommand::MAX_HINT`] bytes).
+ */
+hint?: string | null, };
+
+/**
  * One entry in a structured session's timeline.
  */
 export type AgentEvent = { "event": "ready", 
 /**
  * The harness's session id.
  */
-harness_session: HarnessSessionId, } | { "event": "turn_started", 
+harness_session: HarnessSessionId, 
+/**
+ * What the agent said it can do in its handshake (protocol 10);
+ * absent from older nodes.
+ */
+abilities?: AgentAbilities | null, } | { "event": "turn_started", 
 /**
  * The prompt.
  */
@@ -51,7 +121,12 @@ outcome: PermissionOutcome, } | { "event": "turn_ended",
 /**
  * Why it stopped.
  */
-reason: StopReason, } | { "event": "turn_failed", 
+reason: StopReason, 
+/**
+ * The turn's tokens, when the agent reports them with its end
+ * (protocol 10).
+ */
+usage?: TurnUsage | null, } | { "event": "turn_failed", 
 /**
  * Human-readable reason.
  */
@@ -59,7 +134,41 @@ message: string, } | { "event": "harness_log",
 /**
  * The line, without its newline.
  */
-line: string, };
+line: string, } | { "event": "steered", 
+/**
+ * The message.
+ */
+content: Array<ContentBlock>, } | { "event": "question_asked" } & Question | { "event": "question_resolved", 
+/**
+ * Which question.
+ */
+id: QuestionId, 
+/**
+ * How it was settled.
+ */
+outcome: QuestionOutcome, };
+
+/**
+ * The value given for one field.
+ */
+export type AnswerValue = { "type": "text", "value": string } | { "type": "number", "value": FiniteNumber } | { "type": "integer", "value": number } | { "type": "boolean", "value": boolean } | { "type": "choice", "value": string } | { "type": "choices", "value": Array<string> };
+
+/**
+ * `project.approve`: approve (or withdraw) a set of commands.
+ */
+export type ApproveCommands = { 
+/**
+ * Which project.
+ */
+project: ProjectId, 
+/**
+ * The set, as `project.commands` gave it.
+ */
+digest: CommandsDigest, 
+/**
+ * Approve, or withdraw an approval.
+ */
+approved: boolean, };
 
 /**
  * Shared fields for a query at a saved source position.
@@ -83,6 +192,104 @@ position: Position,
 page: PageRequest, };
 
 /**
+ * A file sent with a prompt, kept with its session (protocol 10).
+ */
+export type AttachmentId = string;
+
+/**
+ * What an attachment is to the agent.
+ */
+export type AttachmentKind = "image" | "audio" | "file";
+
+/**
+ * How large attachments may be, as a node enforces it; a client reads
+ * them (`session.conversation`) before it uploads.
+ */
+export type AttachmentLimits = { 
+/**
+ * Largest image, in bytes.
+ */
+image: number, 
+/**
+ * Largest audio file, in bytes.
+ */
+audio: number, 
+/**
+ * Largest other file, in bytes.
+ */
+file: number, 
+/**
+ * Most attachments one prompt names.
+ */
+per_prompt: number, 
+/**
+ * Most bytes of images and audio one prompt carries to the agent.
+ */
+inline_per_prompt: number, 
+/**
+ * Most bytes of attachments one session keeps.
+ */
+per_session: number, 
+/**
+ * Largest piece `attachment.write` takes, in bytes.
+ */
+chunk: number, };
+
+/**
+ * An attachment's file name as the person's file had it. The node
+ * stores the bytes under it (in a folder of the attachment's own id),
+ * so it is one path component on every platform.
+ */
+export type AttachmentName = string;
+
+/**
+ * An attachment a prompt names, as `attachment.finish` returned it.
+ */
+export type AttachmentRef = { 
+/**
+ * Its id within its session.
+ */
+id: AttachmentId, 
+/**
+ * Its file name.
+ */
+name: AttachmentName, 
+/**
+ * What it is to the agent.
+ */
+kind: AttachmentKind, 
+/**
+ * Its type.
+ */
+mime: MimeType, 
+/**
+ * Its size in bytes.
+ */
+size: number, };
+
+/**
+ * `attachment.begin`: declare a file to upload to a live structured
+ * session. Needs `operate`.
+ */
+export type BeginUpload = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The file's name.
+ */
+name: AttachmentName, 
+/**
+ * Its type.
+ */
+mime: MimeType, 
+/**
+ * Its size in bytes.
+ */
+size: number, };
+
+/**
  * Reply to `fleet.blob`.
  */
 export type BlobChunk = { 
@@ -100,6 +307,62 @@ total: number, };
  * stored by it, so equal content is fetched once.
  */
 export type BlobHash = string;
+
+/**
+ * A branch.
+ */
+export type Branch = { 
+/**
+ * Its name: `main`, or `origin/main` for a remote-tracking one.
+ */
+name: RefName, 
+/**
+ * The remote, for a remote-tracking branch.
+ */
+remote?: RemoteName | null, 
+/**
+ * Whether it is checked out in this root.
+ */
+current: boolean, 
+/**
+ * Whether it is the project's default branch.
+ */
+default: boolean, 
+/**
+ * Its commit.
+ */
+head: CommitId, 
+/**
+ * When that commit was made.
+ */
+time: string, 
+/**
+ * Against its upstream, for a local branch that has one.
+ */
+upstream?: Distance | null, 
+/**
+ * The folder that has it checked out, when one does.
+ */
+worktree?: string | null, };
+
+/**
+ * A root's branches.
+ */
+export type BranchList = { 
+/**
+ * Local branches first, then remote-tracking ones, each by name; at
+ * most 1,000.
+ */
+branches: Array<Branch>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * A git branch name (`refs/heads/<name>`).
+ */
+export type BranchName = string;
 
 /**
  * A file in a bundle.
@@ -130,7 +393,7 @@ export type BundlePath = string;
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles };
 
 /**
  * What `fleet.callback` answers.
@@ -148,6 +411,105 @@ relays: Array<RouteUrl>,
 ticket?: RelayTicket | null, };
 
 /**
+ * `session.queue`: change a session's queue. Needs `operate`.
+ */
+export type ChangeQueue = { 
+/**
+ * Which session.
+ */
+session: SessionId, } & ({ "change": "edit", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * The revision the edit was made from; another is `conflict`.
+ */
+revision: number, 
+/**
+ * Its new content.
+ */
+content: Array<ContentBlock>, } | { "change": "move", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * The entry it goes before; absent is the end.
+ */
+before?: QueueEntryId | null, } | { "change": "remove", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, } | { "change": "send_now", 
+/**
+ * Which entry.
+ */
+entry: QueueEntryId, 
+/**
+ * How: `start`, `steer` or `interrupt` (not `queue`).
+ */
+delivery: Delivery, } | { "change": "hold" } | { "change": "resume" } | { "change": "clear" });
+
+/**
+ * How a file changed.
+ */
+export type ChangeStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "type_changed" | "conflicted" | "unknown";
+
+/**
+ * One option of a choice.
+ */
+export type ChoiceOption = { 
+/**
+ * What is sent back when it is chosen.
+ */
+value: string, 
+/**
+ * Its label.
+ */
+title: string, 
+/**
+ * A longer explanation.
+ */
+description?: string | null, };
+
+/**
+ * Why a clone failed.
+ */
+export type CloneFailure = "needs_credential" | "not_found" | "network" | "timed_out" | "other" | "unknown";
+
+/**
+ * `project.clone`: a repository into a new folder.
+ */
+export type CloneProject = { 
+/**
+ * What to clone.
+ */
+url: CloneUrl, 
+/**
+ * The existing folder, absolute, to clone into.
+ */
+parent: string, 
+/**
+ * The new folder in it; the repository's name otherwise.
+ */
+folder?: FolderName | null, 
+/**
+ * What to call the project; the folder's name otherwise.
+ */
+name?: ProjectName | null, };
+
+/**
+ * A clone's stage, from git's progress lines.
+ */
+export type CloneStage = "connecting" | "counting" | "compressing" | "receiving" | "resolving" | "checking_out" | "unknown";
+
+/**
+ * A repository URL `git clone` may fetch.
+ */
+export type CloneUrl = string;
+
+/**
  * `transfer.close` (protocol 6): drop the snapshot. Only the caller that
  * opened it may close it. Needs `read`.
  */
@@ -156,6 +518,102 @@ export type CloseTransfer = {
  * Which transfer.
  */
 transfer: TransferId, };
+
+/**
+ * A command the agent offers, without its `/` (`compact`, `review`).
+ * Sent back as the start of a prompt, `/name`, so it has no white
+ * space: what follows the first space is the command's input.
+ */
+export type CommandName = string;
+
+/**
+ * SHA-256 of a project's setup and teardown commands, hexadecimal: what
+ * a person approves (ADR 0027).
+ */
+export type CommandsDigest = string;
+
+/**
+ * `git.commit`.
+ */
+export type Commit = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * The message.
+ */
+message: CommitMessage, 
+/**
+ * What it takes.
+ */
+stage: CommitStage, };
+
+/**
+ * A commit's id, in full or abbreviated, lower case.
+ */
+export type CommitId = string;
+
+/**
+ * A commit.
+ */
+export type CommitInfo = { 
+/**
+ * Its id.
+ */
+id: CommitId, 
+/**
+ * Its parents' ids.
+ */
+parents: Array<CommitId>, 
+/**
+ * Its author's name.
+ */
+author: string, 
+/**
+ * When it was authored.
+ */
+time: string, 
+/**
+ * Its message's first line.
+ */
+subject: string, };
+
+/**
+ * A commit's message.
+ */
+export type CommitMessage = string;
+
+/**
+ * `git.commit`'s answer.
+ */
+export type CommitOutcome = { "outcome": "committed", 
+/**
+ * The new commit.
+ */
+commit: CommitInfo, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * A page of history.
+ */
+export type CommitPage = { 
+/**
+ * Newest first.
+ */
+commits: Array<CommitInfo>, 
+/**
+ * Whether older ones follow.
+ */
+more: boolean, };
+
+/**
+ * What a commit takes.
+ */
+export type CommitStage = "staged" | "tracked" | "everything";
 
 /**
  * A value in an MCP server definition: literal text, or the name of a
@@ -183,7 +641,16 @@ name: string, } | { "type": "opaque",
 /**
  * The block as the transport sent it.
  */
-raw: RawJson, };
+raw: RawJson, } | { "type": "attachment", 
+/**
+ * Which, and what it is.
+ */
+attachment: AttachmentRef, };
+
+/**
+ * SHA-256 of a file's content, hexadecimal.
+ */
+export type ContentHash = string;
 
 /**
  * Scope and age of every answer, including empty answers.
@@ -212,6 +679,58 @@ freshness: Freshness,
 workspace_complete: boolean, };
 
 /**
+ * How full the session's context is, from the agent's last
+ * `usage_update`.
+ */
+export type ContextUsage = { 
+/**
+ * Tokens in the context now.
+ */
+used: TokenCount, 
+/**
+ * The context window's size.
+ */
+size: TokenCount, 
+/**
+ * What the session has cost so far, when the agent says.
+ */
+cost?: Cost | null, };
+
+/**
+ * A session's conversation as it stands (`session.conversation`): what
+ * its log says now, without reading the log.
+ */
+export type Conversation = { 
+/**
+ * The prompts waiting.
+ */
+queue: PromptQueue, 
+/**
+ * The commands the agent offers now (none for an ended session).
+ */
+commands: Array<AgentCommand>, 
+/**
+ * The agent's last report of its context.
+ */
+usage?: ContextUsage | null, 
+/**
+ * Permission requests waiting for an answer.
+ */
+permissions: Array<PermissionRequest>, 
+/**
+ * Questions waiting for an answer.
+ */
+questions: Array<Question>, 
+/**
+ * What the agent can do, once its handshake said.
+ */
+abilities?: AgentAbilities | null, 
+/**
+ * How large attachments may be.
+ */
+limits: AttachmentLimits, };
+
+/**
  * `secret.copy` (protocol 6): send this node's value for `name` to fleet
  * node `to`, which stores it under the same name. Needs `admin` here, and
  * the delivering grant on `to` must hold `admin` too.
@@ -227,6 +746,38 @@ name: SecretName,
 to: NodeId, };
 
 /**
+ * A cost, as the agent counts it.
+ */
+export type Cost = { 
+/**
+ * How much.
+ */
+amount: FiniteNumber, 
+/**
+ * In what.
+ */
+unit: CostUnit, };
+
+/**
+ * What a cost is counted in: an ISO 4217 code (`USD`) or the agent's
+ * own unit (`credits`).
+ */
+export type CostUnit = string;
+
+/**
+ * `file.create_dir`.
+ */
+export type CreateDir = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * The new folder (its parent must exist).
+ */
+path: RelPath, };
+
+/**
  * `session.create`: start a harness.
  */
 export type CreateSession = { 
@@ -234,6 +785,40 @@ export type CreateSession = {
  * What to run.
  */
 spec: SessionSpec, };
+
+/**
+ * `worktree.create`: a worktree with no session yet.
+ */
+export type CreateWorktree = { 
+/**
+ * Of which project.
+ */
+project: ProjectId, 
+/**
+ * On which branch.
+ */
+branch: WorktreeBranch, 
+/**
+ * Whether setup runs.
+ */
+setup: SetupChoice, };
+
+/**
+ * `worktree.create`'s answer.
+ */
+export type CreateWorktreeOutcome = { "outcome": "created", 
+/**
+ * It.
+ */
+worktree: WorktreeInfo, } | { "outcome": "needs_approval", 
+/**
+ * What a person would approve.
+ */
+commands: ProjectCommands, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+reason: WorktreeRefusal, };
 
 /**
  * Who created a session (ADR 0013): the owner, a paired device, or an agent
@@ -259,6 +844,23 @@ session: SessionId, };
 export type Definition = AtPosition;
 
 /**
+ * `file.delete`.
+ */
+export type DeletePath = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * What.
+ */
+path: RelPath, 
+/**
+ * A folder with everything in it; only an empty one otherwise.
+ */
+recursive: boolean, };
+
+/**
  * `secret.delete` (protocol 6): remove a secret. Needs `admin`.
  */
 export type DeleteSecret = { 
@@ -266,6 +868,16 @@ export type DeleteSecret = {
  * Which secret.
  */
 name: SecretName, };
+
+/**
+ * `session.delete`: remove an ended session, its log, its marks, its
+ * queue and its attachments. Needs `operate`.
+ */
+export type DeleteSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
 
 /**
  * `fleet.deliver` (protocol 6): the home asks a member to run a call for
@@ -283,6 +895,20 @@ call: Call,
  * Who it speaks for.
  */
 origin: Origin, };
+
+/**
+ * What became of a delivered prompt.
+ */
+export type Delivered = { "delivered": "started" } | { "delivered": "steered" } | { "delivered": "queued", 
+/**
+ * Its entry.
+ */
+entry: QueueEntryId, };
+
+/**
+ * How a prompt goes to a session (`session.prompt`).
+ */
+export type Delivery = "start" | "queue" | "steer" | "interrupt";
 
 /**
  * A paired device: one client machine holding its own credential for a
@@ -358,11 +984,149 @@ file: FilePath | null,
 page: PageRequest, };
 
 /**
+ * What a file's diff has.
+ */
+export type DiffContent = { "kind": "hunks", 
+/**
+ * Some or all of them (`FileDiff.more_from`).
+ */
+hunks: Array<Hunk>, } | { "kind": "binary" } | { "kind": "submodule", 
+/**
+ * Before.
+ */
+from?: CommitId | null, 
+/**
+ * After.
+ */
+to?: CommitId | null, } | { "kind": "unchanged" } | { "kind": "too_large", 
+/**
+ * How large git's output for it was, at least.
+ */
+bytes: number, } | { "kind": "unknown" };
+
+/**
+ * One line of a hunk.
+ */
+export type DiffLine = { 
+/**
+ * What it is.
+ */
+kind: LineKind, 
+/**
+ * Its text without the end of line (not valid UTF-8 replaced), at most
+ * 4 KiB.
+ */
+text: string, 
+/**
+ * Whether it was longer and cut.
+ */
+cut?: boolean, };
+
+/**
+ * Which changes.
+ */
+export type DiffScope = { "kind": "unstaged" } | { "kind": "staged" } | { "kind": "uncommitted" } | { "kind": "base", 
+/**
+ * The base; a worktree's own, else the project's default branch.
+ */
+base?: WorktreeBase | null, } | { "kind": "commit", 
+/**
+ * Which.
+ */
+id: CommitId, };
+
+/**
+ * The changed files of a scope.
+ */
+export type DiffSummary = { 
+/**
+ * The commit compared against (the merge base, `HEAD`, a parent);
+ * absent before the first commit.
+ */
+from?: CommitId | null, 
+/**
+ * By path, at most 5,000.
+ */
+files: Array<FileChange>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * One entry of a folder.
+ */
+export type DirEntry = { 
+/**
+ * Its name.
+ */
+name: string, 
+/**
+ * What it is.
+ */
+kind: EntryKind, 
+/**
+ * Its size in bytes, for a file.
+ */
+size?: number | null, 
+/**
+ * Whether git ignores it.
+ */
+ignored?: boolean, };
+
+/**
+ * A folder's entries.
+ */
+export type DirListing = { 
+/**
+ * Folders first, then by name; at most 5,000.
+ */
+entries: Array<DirEntry>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * `git.discard`: drop local changes.
+ */
+export type Discard = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which files.
+ */
+paths: PathSet, 
+/**
+ * Delete the untracked ones among them too (never ignored files).
+ */
+untracked: boolean, };
+
+/**
  * What is happening right now in the lane a session already sits in. It
  * changes with turns, permissions, checks and reviews while the lane stays
  * put.
  */
 export type DisplayStatus = "working" | "blocked" | "exited" | "no_signal" | "interrupted" | "awaiting_pr" | "idle" | "fixing_ci" | "addressing_comments" | "needs_review" | "review_scheduled" | "reviewing" | "review_failed" | "review_pending" | "draft" | "ci_failing" | "commented" | "changes_requested" | "needs_human_review" | "mergeable" | "approved" | "merged" | "closed" | "terminated";
+
+/**
+ * How far a branch is from another.
+ */
+export type Distance = { 
+/**
+ * The other branch.
+ */
+name: RefName, 
+/**
+ * Commits here that it does not have.
+ */
+ahead: number, 
+/**
+ * Commits it has that are not here.
+ */
+behind: number, };
 
 /**
  * Symbols in one saved file.
@@ -382,9 +1146,27 @@ file: FilePath,
 page: PageRequest, };
 
 /**
+ * `worktree.drop_snapshot`: delete a snapshot's ref.
+ */
+export type DropSnapshot = { 
+/**
+ * Which project.
+ */
+project: ProjectId, 
+/**
+ * The worktree the snapshot was taken of.
+ */
+worktree: WorktreeId, };
+
+/**
  * A duration in whole milliseconds.
  */
 export type DurationMs = number;
+
+/**
+ * What an entry of a folder is.
+ */
+export type EntryKind = "file" | "dir" | "symlink" | "other" | "unknown";
 
 /**
  * An environment variable's name.
@@ -471,9 +1253,189 @@ session: SessionId,
 force?: boolean, };
 
 /**
+ * `git.fetch`.
+ */
+export type Fetch = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * This remote; the branch's, else `origin`, when absent.
+ */
+remote?: RemoteName | null, };
+
+/**
+ * `git.fetch`'s answer.
+ */
+export type FetchOutcome = { "outcome": "fetched" } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * The key of one field of a question's form, as the agent names it
+ * (`question_1`). Echoed back in an answer.
+ */
+export type FieldName = string;
+
+/**
+ * One changed file in a scope.
+ */
+export type FileChange = { 
+/**
+ * Its path.
+ */
+path: RelPath, 
+/**
+ * Where it was, for a rename or a copy.
+ */
+old_path?: RelPath | null, 
+/**
+ * How it changed.
+ */
+status: ChangeStatus, 
+/**
+ * Lines added; absent for a binary file.
+ */
+additions?: number | null, 
+/**
+ * Lines removed; absent for a binary file.
+ */
+deletions?: number | null, 
+/**
+ * Whether git sees it as binary.
+ */
+binary: boolean, };
+
+/**
+ * What a page of a file holds.
+ */
+export type FileContent = { "kind": "text", 
+/**
+ * The page, cut back to a character boundary.
+ */
+text: string, 
+/**
+ * Where the rest starts, when there is more.
+ */
+next?: number | null, } | { "kind": "binary" } | { "kind": "unknown" };
+
+/**
+ * One file's diff in a scope.
+ */
+export type FileDiff = { 
+/**
+ * Its path.
+ */
+path: RelPath, 
+/**
+ * Where it was, for a rename or a copy.
+ */
+old_path?: RelPath | null, 
+/**
+ * How it changed.
+ */
+status: ChangeStatus, 
+/**
+ * Its mode changed.
+ */
+mode?: ModeChange | null, 
+/**
+ * What it has.
+ */
+content: DiffContent, 
+/**
+ * The index of the first hunk not sent, when a call's 5,000 lines
+ * ran out; ask again with `from_hunk`.
+ */
+more_from?: number | null, };
+
+/**
  * A file under the authorized workspace, never an absolute path or URI.
  */
 export type FilePath = string;
+
+/**
+ * A page of a file.
+ */
+export type FileRead = { 
+/**
+ * The version read, for a later write.
+ */
+version: FileVersion, 
+/**
+ * The page.
+ */
+content: FileContent, };
+
+/**
+ * What a file is in the index or the working tree, against the other.
+ */
+export type FileState = "unmodified" | "modified" | "added" | "deleted" | "renamed" | "copied" | "type_changed" | "untracked" | "conflicted" | "unknown";
+
+/**
+ * What a write expects to find, so it never overwrites a change it did
+ * not see.
+ */
+export type FileVersion = { 
+/**
+ * Its size in bytes.
+ */
+size: number, 
+/**
+ * When it was last changed, in nanoseconds since the Unix epoch.
+ */
+modified: number, 
+/**
+ * SHA-256 of its content, for a file of at most 8 MiB: a change
+ * within one tick of a coarse clock keeps the size and the time.
+ */
+hash?: ContentHash | null, };
+
+/**
+ * `file.find`: files by name.
+ */
+export type FindFiles = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * What to look for.
+ */
+query: FindQuery, 
+/**
+ * The search this one replaces: a newer `file.find` with the same key
+ * from the same caller stops an older one still running.
+ */
+key?: SearchKey | null, 
+/**
+ * At most this many (at most 200, 50 when absent).
+ */
+limit?: number | null, };
+
+/**
+ * What `file.find` looks for.
+ */
+export type FindQuery = string;
+
+/**
+ * `attachment.finish`: check an upload and keep it with its session.
+ * Needs `operate`.
+ */
+export type FinishUpload = { 
+/**
+ * Which upload.
+ */
+upload: UploadId, };
+
+/**
+ * A JSON number that is finite: no NaN or infinity, so the types holding
+ * it compare as equal or not (`Eq`), and it always encodes as JSON.
+ */
+export type FiniteNumber = number;
 
 /**
  * A member as its home reports it.
@@ -523,6 +1485,11 @@ protocol: ProtocolVersion,
 reachable: boolean, };
 
 /**
+ * The name of one folder to create (a clone's).
+ */
+export type FolderName = string;
+
+/**
  * `fleet.forget` (protocol 6): on the home, forget member node `node`'s
  * binding (its key and name, kept for good otherwise), for a node
  * reinstalled with a new key or to be renamed. Its grants are deleted;
@@ -564,6 +1531,43 @@ export type Forwarded = {
 reply: Reply, };
 
 /**
+ * A file whose name matched.
+ */
+export type FoundFile = { 
+/**
+ * Its path.
+ */
+path: RelPath, 
+/**
+ * The characters of `path` (counted in Unicode scalar values, from 0)
+ * that matched the query, for highlighting.
+ */
+positions: Array<number>, };
+
+/**
+ * What `file.find` found.
+ */
+export type FoundFiles = { 
+/**
+ * Best first.
+ */
+matches: Array<FoundFile>, 
+/**
+ * How many files were searched.
+ */
+indexed: number, 
+/**
+ * Whether every file of the root was searched (the index has a
+ * bound).
+ */
+complete: boolean, 
+/**
+ * Whether a newer search from the same connection replaced this one
+ * before it finished (then `matches` is empty).
+ */
+superseded?: boolean, };
+
+/**
  * How saved contents relate to the response.
  */
 export type Freshness = "saved" | "cached" | "unknown";
@@ -592,6 +1596,58 @@ node: NodeId,
  * Its key, which the ticket names.
  */
 key: NodePublicKey, };
+
+/**
+ * `git.changes`: the changed files of a scope.
+ */
+export type GetChanges = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which changes.
+ */
+scope: DiffScope, 
+/**
+ * Leave out changes that only touch white space.
+ */
+ignore_whitespace: boolean, };
+
+/**
+ * `session.conversation`: a session's conversation as it stands. Needs
+ * `read`.
+ */
+export type GetConversation = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
+
+/**
+ * `git.diff`: one file's hunks in a scope.
+ */
+export type GetFileDiff = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which changes.
+ */
+scope: DiffScope, 
+/**
+ * Which file (its new path, for a rename).
+ */
+path: RelPath, 
+/**
+ * Leave out changes that only touch white space.
+ */
+ignore_whitespace: boolean, 
+/**
+ * From this hunk on.
+ */
+from_hunk?: number | null, };
 
 /**
  * `harness.options` (protocol 9): what a harness's agent offers before
@@ -627,6 +1683,33 @@ export type GetManifest = null;
 export type GetNode = null;
 
 /**
+ * `project.get`: one project, at once or after its next change.
+ */
+export type GetProject = { 
+/**
+ * Which.
+ */
+project: ProjectId, 
+/**
+ * Wait (at most 30 s) until its `revision` differs from this one.
+ */
+changed_from?: number | null, };
+
+/**
+ * `project.commands`: what the project's file would run.
+ */
+export type GetProjectCommands = { 
+/**
+ * Which project.
+ */
+project: ProjectId, 
+/**
+ * The file at this commit or ref; the project's folder as it is
+ * otherwise.
+ */
+base?: WorktreeBase | null, };
+
+/**
  * `session.get`: one session.
  */
 export type GetSession = { 
@@ -646,6 +1729,118 @@ export type GetSessionOptions = {
 session: SessionId, };
 
 /**
+ * `git.status`.
+ */
+export type GetStatus = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, };
+
+/**
+ * A git operation that leaves a repository between two states.
+ */
+export type GitOperation = "merge" | "rebase" | "cherry_pick" | "revert" | "bisect";
+
+/**
+ * Why git refused a change: what a client can act on.
+ */
+export type GitRefusal = { "kind": "needs_credential" } | { "kind": "timed_out" } | { "kind": "non_fast_forward" } | { "kind": "diverged" } | { "kind": "would_overwrite", 
+/**
+ * The files, at most 100.
+ */
+paths: Array<RelPath>, } | { "kind": "conflicts", 
+/**
+ * The files, at most 100.
+ */
+paths: Array<RelPath>, } | { "kind": "nothing_to_commit" } | { "kind": "no_identity" } | { "kind": "hook_failed", 
+/**
+ * Its last lines.
+ */
+output: string, } | { "kind": "no_upstream" } | { "kind": "detached" } | { "kind": "checked_out_elsewhere", 
+/**
+ * That folder.
+ */
+path: string, } | { "kind": "nothing_to_stash" } | { "kind": "stash_moved" } | { "kind": "branch_exists" } | { "kind": "no_such_ref" } | { "kind": "operation", 
+/**
+ * Which.
+ */
+operation: GitOperation, } | { "kind": "remote_failed", 
+/**
+ * git's last lines, credentials removed.
+ */
+message: string, } | { "kind": "unknown" };
+
+/**
+ * A root's git status.
+ */
+export type GitStatus = { 
+/**
+ * The branch checked out; absent when detached.
+ */
+branch?: BranchName | null, 
+/**
+ * The commit checked out; absent before the first commit.
+ */
+head?: CommitId | null, 
+/**
+ * Against the branch's upstream, when it has one.
+ */
+upstream?: Distance | null, 
+/**
+ * Against the base a worktree was made from, when that is a branch.
+ */
+base?: Distance | null, 
+/**
+ * An operation in progress.
+ */
+operation?: GitOperation | null, 
+/**
+ * Every changed, staged, untracked or conflicted file (not ignored
+ * ones), at most 5,000.
+ */
+files: Array<StatusEntry>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * Whether the node can run the git calls.
+ */
+export type GitSupport = { "state": "found", 
+/**
+ * Its version.
+ */
+version: GitVersion, } | { "state": "too_old", 
+/**
+ * Its version.
+ */
+version: GitVersion, 
+/**
+ * The oldest that works.
+ */
+minimum: GitVersion, } | { "state": "missing" } | { "state": "unknown" };
+
+/**
+ * A git version, as `git --version` reports it (`2.43.0`, `2.45.1` of
+ * `2.45.1.windows.1`).
+ */
+export type GitVersion = { 
+/**
+ * The first number.
+ */
+major: number, 
+/**
+ * The second.
+ */
+minor: number, 
+/**
+ * The third (0 when git printed two).
+ */
+patch: number, };
+
+/**
  * `fleet.grant` (protocol 6): a member gives its home a credential on
  * itself, as a single-use pairing link made with its own `device.invite`
  * and the scopes its owner chose. The home redeems it like any device and
@@ -657,6 +1852,59 @@ export type GrantHome = {
  * The link, made on the member.
  */
 link: PairingLink, };
+
+/**
+ * Whether case matters in a search in files.
+ */
+export type GrepCase = "sensitive" | "insensitive" | "smart";
+
+/**
+ * One line that matched.
+ */
+export type GrepMatch = { 
+/**
+ * The file.
+ */
+path: RelPath, 
+/**
+ * The line, from 1.
+ */
+line: number, 
+/**
+ * Where the match starts on it, from 1, in Unicode scalar values.
+ */
+column: number, 
+/**
+ * The line, at most 512 characters.
+ */
+text: string, 
+/**
+ * Whether it was longer and cut.
+ */
+cut?: boolean, };
+
+/**
+ * How a search in files reads its query.
+ */
+export type GrepMode = "literal" | "regex";
+
+/**
+ * What `file.grep` looks for.
+ */
+export type GrepQuery = string;
+
+/**
+ * What `file.grep` found.
+ */
+export type GrepResult = { 
+/**
+ * By file, then line.
+ */
+matches: Array<GrepMatch>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
 
 /**
  * A harness found on a node.
@@ -703,7 +1951,13 @@ options: Array<SessionOption>,
  * When the node asked the agent: the node answers from a recent probe
  * rather than start the agent for every caller.
  */
-probed_at: string, };
+probed_at: string, 
+/**
+ * What the agent said it can do (protocol 10): whether a new
+ * session's composer offers steering and images. Absent from older
+ * nodes, and for a harness without structured sessions here.
+ */
+abilities?: AgentAbilities | null, };
 
 /**
  * The harness's own session id (an ACP `sessionId`). Kept so a
@@ -752,6 +2006,40 @@ context: Context, };
  * enforced: keep secrets out of URLs.
  */
 export type HttpUrl = string;
+
+/**
+ * A run of changed lines and their context.
+ */
+export type Hunk = { 
+/**
+ * Its first line on the old side (1-based; 0 for an empty side).
+ */
+old_start: number, 
+/**
+ * Its lines on the old side.
+ */
+old_lines: number, 
+/**
+ * Its first line on the new side.
+ */
+new_start: number, 
+/**
+ * Its lines on the new side.
+ */
+new_lines: number, 
+/**
+ * The function or section git names after `@@`, when it does.
+ */
+section?: string | null, 
+/**
+ * Its lines.
+ */
+lines: Array<DiffLine>, };
+
+/**
+ * What `worktree.remove` does when something would be lost.
+ */
+export type IfLost = "keep" | "snapshot" | "discard";
 
 /**
  * Implementations at a saved source position.
@@ -815,6 +2103,19 @@ export type IncomingCalls = AtPosition;
 export type Indexing = "unknown" | "busy" | "observed_idle";
 
 /**
+ * `project.init`: a new repository.
+ */
+export type InitProject = { 
+/**
+ * The folder, absolute: absent or empty.
+ */
+path: string, 
+/**
+ * What to call it; its folder's name otherwise.
+ */
+name?: ProjectName | null, };
+
+/**
  * Reply to `device.invite`.
  */
 export type Invitation = { 
@@ -858,6 +2159,23 @@ scopes?: Array<Scope> | null, };
 export type KanbanColumn = "building" | "validating" | "needs_review" | "ready" | "archive";
 
 /**
+ * Why tidying kept a worktree.
+ */
+export type KeptReason = { "kind": "uncommitted", 
+/**
+ * How many.
+ */
+files: number, } | { "kind": "unique_commits", 
+/**
+ * How many.
+ */
+commits: number, } | { "kind": "operation", 
+/**
+ * Which.
+ */
+operation: GitOperation, } | { "kind": "submodules" } | { "kind": "flagged_files" } | { "kind": "worktree_refs" } | { "kind": "in_use" } | { "kind": "inspection_failed" } | { "kind": "unknown" };
+
+/**
  * `session.kill`: stop a session's process (and its process group).
  */
 export type KillSession = { 
@@ -872,9 +2190,40 @@ session: SessionId, };
 export type Language = "rust" | "type_script" | "python" | "go" | "cpp";
 
 /**
+ * What a line of a hunk is.
+ */
+export type LineKind = "context" | "added" | "removed" | "no_newline";
+
+/**
+ * `git.branches`.
+ */
+export type ListBranches = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, };
+
+/**
  * `device.list` (protocol 4): every device, revoked ones included.
  */
 export type ListDevices = null;
+
+/**
+ * `file.list`: one folder.
+ */
+export type ListDir = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which folder; the root when empty.
+ */
+dir: RelPath, 
+/**
+ * List what git ignores too (marked).
+ */
+ignored: boolean, };
 
 /**
  * `harness.list`: discover installed harnesses.
@@ -916,6 +2265,11 @@ export type ListProfiles = {
 harness?: HarnessKind | null, };
 
 /**
+ * `project.list`: every project.
+ */
+export type ListProjects = Record<symbol, never>;
+
+/**
  * `secret.list` (protocol 6): the names of this node's secrets, never
  * their values. Needs `admin`.
  */
@@ -926,6 +2280,33 @@ export type ListSecrets = null;
  * ended sessions restored from disk.
  */
 export type ListSessions = null;
+
+/**
+ * `worktree.snapshots`: a project's snapshots.
+ */
+export type ListSnapshots = { 
+/**
+ * Which project.
+ */
+project: ProjectId, };
+
+/**
+ * `git.stashes`.
+ */
+export type ListStashes = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, };
+
+/**
+ * `worktree.list`: every worktree, or one project's.
+ */
+export type ListWorktrees = { 
+/**
+ * Only this project's.
+ */
+project?: ProjectId | null, };
 
 /**
  * A location relative to the authorized workspace.
@@ -970,6 +2351,19 @@ files: { [key in BundlePath]: BundleFile },
  * The MCP servers.
  */
 mcp: { [key in McpServerName]: McpTransport<ConfigValue> }, };
+
+/**
+ * `session.mark`: set a mark. Needs `operate`.
+ */
+export type MarkSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, } & ({ "mark": "pin" } | { "mark": "unpin" } | { "mark": "archive" } | { "mark": "unarchive" } | { "mark": "read", 
+/**
+ * The next record the reader has not seen.
+ */
+through: EventSeq, } | { "mark": "unread" });
 
 /**
  * How a bounded hover text is represented.
@@ -1045,7 +2439,26 @@ project?: string | null, };
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep";
+
+/**
+ * A media type without parameters, `type/subtype`, lower case
+ * (`image/png`, `application/pdf`).
+ */
+export type MimeType = string;
+
+/**
+ * A file mode change (`100644` to `100755`, say), as git prints modes.
+ */
+export type ModeChange = { 
+/**
+ * Before, in octal digits read as a number.
+ */
+old: number, 
+/**
+ * After.
+ */
+new: number, };
 
 /**
  * An API a provider or a harness speaks.
@@ -1431,6 +2844,15 @@ invite: InvitationSecret,
 expires: string, };
 
 /**
+ * Which files a call acts on.
+ */
+export type PathSet = { "kind": "all" } | { "kind": "paths", 
+/**
+ * The paths.
+ */
+paths: Array<RelPath>, };
+
+/**
  * A pending permission request inside a structured session. Minted by the
  * node (not the harness) so many clients can answer the same request and
  * the first answer wins.
@@ -1567,6 +2989,157 @@ model?: ModelRouteName | null, };
 export type ProfileName = string;
 
 /**
+ * One shell command from a project's file (`vessel.toml`).
+ */
+export type ProjectCommand = string;
+
+/**
+ * The commands a project's file (`vessel.toml`) names, and whether a
+ * person approved that set (ADR 0027).
+ */
+export type ProjectCommands = { "state": "none" } | { "state": "listed", 
+/**
+ * Run when a worktree is created.
+ */
+setup: Array<ProjectCommand>, 
+/**
+ * Run before a worktree is removed.
+ */
+teardown: Array<ProjectCommand>, 
+/**
+ * What approving this set approves.
+ */
+digest: CommandsDigest, 
+/**
+ * Whether a person approved it for this project.
+ */
+approved: boolean, } | { "state": "invalid", 
+/**
+ * Why.
+ */
+message: string, };
+
+/**
+ * A project: a folder the node works in (protocol 10, ADR 0027).
+ */
+export type ProjectId = string;
+
+/**
+ * A folder the node works in.
+ */
+export type ProjectInfo = { 
+/**
+ * Its id.
+ */
+id: ProjectId, 
+/**
+ * What it is called (its folder's name unless given one).
+ */
+name: ProjectName, 
+/**
+ * The folder on the node, absolute: a repository's top level when the
+ * folder added was inside one.
+ */
+root: string, 
+/**
+ * Whether it is a git repository. A folder that is not has files but
+ * no git and no worktrees.
+ */
+git: boolean, 
+/**
+ * Where new worktrees start: the remote-tracking branch `origin/HEAD`
+ * names (`origin/main`), else a local `main`, else `master`, else the
+ * branch the folder has checked out.
+ */
+default_branch?: RefName | null, 
+/**
+ * Ready, or being cloned.
+ */
+state: ProjectState, 
+/**
+ * When it was added.
+ */
+created_at: string, 
+/**
+ * Grows by one at every change (a clone's progress, its end), so a
+ * client can wait for the next (`project.get` with `after`).
+ */
+revision: number, };
+
+/**
+ * The projects, and what git the node found.
+ */
+export type ProjectList = { 
+/**
+ * Whether the git calls can work on this node.
+ */
+git: GitSupport, 
+/**
+ * Every project, oldest first, at most 1,000.
+ */
+projects: Array<ProjectInfo>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * What a project is called on the page.
+ */
+export type ProjectName = string;
+
+/**
+ * Whether a project can be used yet.
+ */
+export type ProjectState = { "state": "ready" } | { "state": "cloning", 
+/**
+ * What git is doing.
+ */
+stage: CloneStage, 
+/**
+ * How far along that stage is, when git says.
+ */
+percent?: number | null, } | { "state": "clone_failed", 
+/**
+ * Why, for a client to act on.
+ */
+reason: CloneFailure, 
+/**
+ * git's last lines, credentials removed, for a person.
+ */
+message: string, } | { "state": "missing" } | { "state": "unknown" };
+
+/**
+ * A session's queue.
+ */
+export type PromptQueue = { 
+/**
+ * The prompts waiting, next first.
+ */
+entries: Array<QueuedPrompt>, 
+/**
+ * Why it does not move on its own; absent while it does.
+ */
+held?: QueueHold | null, };
+
+/**
+ * `session.prompt`: send a prompt, delivered as asked. Needs `operate`.
+ */
+export type PromptSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * The message.
+ */
+content: Array<ContentBlock>, 
+/**
+ * How it goes.
+ */
+delivery: Delivery, };
+
+/**
  * An inclusive range of protocol versions a peer can speak.
  *
  * [Decision Log]
@@ -1600,6 +3173,261 @@ export type ProtocolVersion = number;
 export type ProviderName = string;
 
 /**
+ * `git.pull`: fast-forward from the upstream.
+ */
+export type Pull = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, };
+
+/**
+ * `git.pull`'s answer.
+ */
+export type PullOutcome = { "outcome": "pulled", 
+/**
+ * The commit before.
+ */
+from: CommitId, 
+/**
+ * The commit now.
+ */
+to: CommitId, } | { "outcome": "up_to_date" } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * `git.push`.
+ */
+export type Push = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * To this remote (`origin` when absent) instead of the upstream.
+ */
+remote?: RemoteName | null, 
+/**
+ * Make the pushed branch the upstream.
+ */
+set_upstream: boolean, };
+
+/**
+ * `git.push`'s answer.
+ */
+export type PushOutcome = { "outcome": "pushed", 
+/**
+ * Where to.
+ */
+remote: RemoteName, 
+/**
+ * Which branch.
+ */
+branch: BranchName, 
+/**
+ * Whether the push set the branch's upstream.
+ */
+upstream_set: boolean, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * A question waiting for an answer.
+ */
+export type Question = { 
+/**
+ * Node-assigned id clients answer with.
+ */
+id: QuestionId, 
+/**
+ * What the agent asks (cut at [`Question::MAX_MESSAGE`] bytes).
+ */
+message: string, 
+/**
+ * The tool call it belongs to, when the agent says.
+ */
+tool_call?: ToolCallId | null, 
+/**
+ * The form, in the agent's order.
+ */
+fields: Array<QuestionField>, };
+
+/**
+ * An answer to a question (`session.send`'s `answer_question`).
+ */
+export type QuestionAnswer = { "answer": "accept", 
+/**
+ * Each answered field's value.
+ */
+values: { [key in FieldName]: AnswerValue }, } | { "answer": "decline" };
+
+/**
+ * One field of a question's form.
+ */
+export type QuestionField = { 
+/**
+ * Its key, echoed back in the answer.
+ */
+name: FieldName, 
+/**
+ * Its label.
+ */
+title?: string | null, 
+/**
+ * A longer explanation.
+ */
+description?: string | null, 
+/**
+ * Whether an accepting answer must give it.
+ */
+required: boolean, } & ({ "kind": "text", 
+/**
+ * Fewest characters.
+ */
+min_length?: number | null, 
+/**
+ * Most characters.
+ */
+max_length?: number | null, 
+/**
+ * A shape the text must have.
+ */
+format?: TextFormat | null, 
+/**
+ * A regular expression the text must match, as the agent wrote it.
+ * Passed on for a client to check; the node does not (it would
+ * need a regular-expression engine for one field kind), so the
+ * agent may still refuse an answer that misses it.
+ */
+pattern?: string | null, 
+/**
+ * What to start with.
+ */
+default?: string | null, } | { "kind": "number", 
+/**
+ * Smallest allowed.
+ */
+minimum?: FiniteNumber | null, 
+/**
+ * Largest allowed.
+ */
+maximum?: FiniteNumber | null, 
+/**
+ * What to start with.
+ */
+default?: FiniteNumber | null, } | { "kind": "integer", 
+/**
+ * Smallest allowed.
+ */
+minimum?: number | null, 
+/**
+ * Largest allowed.
+ */
+maximum?: number | null, 
+/**
+ * What to start with.
+ */
+default?: number | null, } | { "kind": "boolean", 
+/**
+ * What to start with.
+ */
+default?: boolean | null, } | { "kind": "choice", 
+/**
+ * The options, in the agent's order.
+ */
+options: Array<ChoiceOption>, 
+/**
+ * Several may be chosen.
+ */
+multiple: boolean, 
+/**
+ * Fewest to choose (several).
+ */
+min_items?: number | null, 
+/**
+ * Most to choose (several).
+ */
+max_items?: number | null, 
+/**
+ * What is chosen to start with: one value for a choice of one,
+ * any number for several.
+ */
+default?: Array<string>, } | { "kind": "unknown" });
+
+/**
+ * A question an agent asks (protocol 10). Minted by the node, as a
+ * permission request's id is, so many clients can answer and the first
+ * answer wins.
+ */
+export type QuestionId = string;
+
+/**
+ * How a question was settled.
+ */
+export type QuestionOutcome = { "outcome": "answered", 
+/**
+ * Each answered field's value.
+ */
+values: { [key in FieldName]: AnswerValue }, } | { "outcome": "declined" } | { "outcome": "cancelled" };
+
+/**
+ * Reply to `session.queue`.
+ */
+export type QueueChanged = { 
+/**
+ * The queue afterwards.
+ */
+queue: PromptQueue, 
+/**
+ * For `send_now` and `resume`: what became of the entry sent, if one
+ * was.
+ */
+delivered?: Delivered | null, };
+
+/**
+ * A prompt waiting in a session's queue (protocol 10), minted by the
+ * node when it is queued.
+ */
+export type QueueEntryId = string;
+
+/**
+ * Why the queue does not move on its own.
+ */
+export type QueueHold = "cancelled" | "failed" | "ended" | "asked";
+
+/**
+ * A prompt waiting for its turn.
+ */
+export type QueuedPrompt = { 
+/**
+ * The entry's id.
+ */
+id: QueueEntryId, 
+/**
+ * What will be sent.
+ */
+content: Array<ContentBlock>, 
+/**
+ * When it was queued (or last edited).
+ */
+queued_at: string, 
+/**
+ * Raised by each edit; an edit names the revision it was made from,
+ * so two people editing one entry cannot overwrite each other unseen
+ * (agent-orchestrator checks the same).
+ */
+revision: number, 
+/**
+ * Who queued it.
+ */
+by: Creator, };
+
+/**
  * An exclusive-end source range.
  */
 export type Range = { 
@@ -1620,6 +3448,24 @@ end: Position, };
  * to define a typed struct.
  */
 export type RawJson = unknown;
+
+/**
+ * `attachment.read`: a piece of a session's attachment, from `offset`
+ * (at most `BlobChunk::MAX_LEN` bytes). Needs `read`.
+ */
+export type ReadAttachment = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * Which attachment.
+ */
+attachment: AttachmentId, 
+/**
+ * Where to start.
+ */
+offset: number, };
 
 /**
  * `fleet.blob` (protocol 5): part of a blob, from `offset`. A member asks
@@ -1661,6 +3507,65 @@ limit: number,
 wait?: number | null, };
 
 /**
+ * `file.read`: a page of a file.
+ */
+export type ReadFile = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which file.
+ */
+path: RelPath, 
+/**
+ * From this byte.
+ */
+offset: number, 
+/**
+ * At most this many bytes (at most 1 MiB, 256 KiB when absent).
+ */
+limit?: number | null, };
+
+/**
+ * `git.log`: a page of history.
+ */
+export type ReadLog = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * From this commit or ref; `HEAD` when absent.
+ */
+from?: WorktreeBase | null, 
+/**
+ * Commits to skip from there.
+ */
+skip: number, 
+/**
+ * At most this many (at most 200, 50 when absent).
+ */
+limit?: number | null, };
+
+/**
+ * `worktree.output`: a page of setup and teardown output.
+ */
+export type ReadSetupOutput = { 
+/**
+ * Which worktree.
+ */
+worktree: WorktreeId, 
+/**
+ * From this byte of the output.
+ */
+from: number, 
+/**
+ * Wait this many seconds (at most 30) for more output or setup's end.
+ */
+wait?: number | null, };
+
+/**
  * `transfer.read` (protocol 6): part of one file of an open transfer, from
  * `offset`, as `fleet.blob` reads the bundle. Only the caller that opened
  * it may read it. Needs `read`. Answers a `BlobChunk`.
@@ -1678,6 +3583,12 @@ hash: BlobHash,
  * Where to start, in bytes.
  */
 offset: number, };
+
+/**
+ * A name git resolves: a branch, a remote-tracking branch such as
+ * `origin/main`, or a tag.
+ */
+export type RefName = string;
 
 /**
  * References at a source position.
@@ -1703,6 +3614,12 @@ position: Position,
  * Sorted result page (unused by hover).
  */
 page: PageRequest, };
+
+/**
+ * A relative path inside a root, parts separated by `/`. The empty path is
+ * the root itself.
+ */
+export type RelPath = string;
 
 /**
  * `fleet.relay` (protocol 6): a member asks its home to pass a call on.
@@ -1765,6 +3682,93 @@ export type RemoteCreator = { "kind": "owner" } | { "kind": "device",
 id: DeviceId, };
 
 /**
+ * A remote's name (`origin`).
+ */
+export type RemoteName = string;
+
+/**
+ * `project.remove`: forget a project (its files stay).
+ */
+export type RemoveProject = { 
+/**
+ * Which.
+ */
+project: ProjectId, };
+
+/**
+ * `worktree.remove`.
+ */
+export type RemoveWorktree = { 
+/**
+ * Which worktree.
+ */
+worktree: WorktreeId, 
+/**
+ * What to do when something would be lost.
+ */
+if_lost: IfLost, };
+
+/**
+ * `worktree.remove`'s answer.
+ */
+export type RemoveWorktreeOutcome = { "outcome": "removed", 
+/**
+ * The snapshot kept first, when one was.
+ */
+snapshot?: Snapshot | null, } | { "outcome": "kept", 
+/**
+ * Every reason that applies.
+ */
+reasons: Array<KeptReason>, };
+
+/**
+ * `git.rename_branch`.
+ */
+export type RenameBranch = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * This branch; the one checked out when absent.
+ */
+from?: BranchName | null, 
+/**
+ * Its new name.
+ */
+to: BranchName, };
+
+/**
+ * `git.rename_branch`'s answer.
+ */
+export type RenameOutcome = { "outcome": "renamed", 
+/**
+ * Its name now.
+ */
+branch: BranchName, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * `file.rename`: move a file or folder within its root.
+ */
+export type RenamePath = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * What.
+ */
+from: RelPath, 
+/**
+ * To where (nothing may be there).
+ */
+to: RelPath, };
+
+/**
  * `session.rename` (protocol 9): give a session a title of its own. Every
  * client sees the change as a `renamed` event and in `SessionInfo.title`;
  * the reply is the session as it is now. Needs `operate`.
@@ -1782,7 +3786,7 @@ title: SessionTitle, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult };
 
 /**
  * `fleet.report` (protocol 5): a member says what it applied and which
@@ -1797,6 +3801,16 @@ generation: Generation,
  * Files kept as edited, with the incoming version written beside them.
  */
 conflicts?: Array<BundlePath>, };
+
+/**
+ * `session.resume`: start an ended structured session again with its
+ * conversation. Needs `operate`.
+ */
+export type ResumeSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, };
 
 /**
  * `device.revoke` (protocol 4): revoke a device and close its connections.
@@ -1814,11 +3828,55 @@ device: DeviceId, };
 export type RouteUrl = string;
 
 /**
+ * `worktree.setup`: run setup now.
+ */
+export type RunSetup = { 
+/**
+ * Which worktree.
+ */
+worktree: WorktreeId, };
+
+/**
  * What a caller may do. Every RPC method declares the one it needs
  * (`Method::scope`); the node checks it for calls from a paired device.
  * The node token and the local socket hold every scope.
  */
 export type Scope = "read" | "operate" | "admin" | "sync" | "relay";
+
+/**
+ * `file.grep`: search inside files.
+ */
+export type SearchFiles = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * What to look for.
+ */
+query: GrepQuery, 
+/**
+ * How to read it.
+ */
+mode: GrepMode, 
+/**
+ * Whether case matters.
+ */
+case: GrepCase, 
+/**
+ * Only under this folder.
+ */
+dir?: RelPath | null, 
+/**
+ * At most this many matches (at most 500, 100 when absent).
+ */
+limit?: number | null, };
+
+/**
+ * A client's number for a search, so a newer one with the same number
+ * replaces it (`file.find`).
+ */
+export type SearchKey = number;
 
 /**
  * A secret's name in a node's `secrets.toml`; definitions refer to
@@ -1870,6 +3928,31 @@ activity: Activity,
 last_activity_at: string, };
 
 /**
+ * `session.delete`'s answer: the session is gone; what became of the
+ * worktree made for it.
+ *
+ * [Decision Log] (milestone 11, where tracks A and B meet)
+ * - Purpose: deleting a session tidies the worktree made for it (ADR
+ *   0027's rule), and that removal may keep the worktree: uncommitted
+ *   work, commits no other branch has, another session in it. A delete
+ *   must never lose that work, nor keep it without saying so.
+ * - Alternatives: refuse the delete while the worktree would lose work
+ *   (two calls for a person, and retention, which deletes on its own,
+ *   needs the keeping rule anyway); snapshot it unasked (a decision about
+ *   a person's work made for them); answer `Ack` and leave the kept
+ *   worktree to be noticed in `worktree.list` (silent).
+ * - Choice: the session is deleted; the worktree goes only by the rule a
+ *   person's `worktree.remove { if_lost: keep }` follows, and this answer
+ *   says which it was, so a client can offer `snapshot` or `discard`.
+ */
+export type SessionDeleted = { 
+/**
+ * The worktree made for the session and what tidying did with it;
+ * absent when the session had none of its own.
+ */
+worktree?: TidiedWorktree | null, };
+
+/**
  * Something that happened in a session.
  */
 export type SessionEvent = { "type": "status", 
@@ -1896,7 +3979,19 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: SessionTitle, };
+title: SessionTitle, } | { "type": "queue_changed", 
+/**
+ * The queue now.
+ */
+queue: PromptQueue, } | { "type": "commands_changed", 
+/**
+ * Every command, in the agent's order.
+ */
+commands: Array<AgentCommand>, } | { "type": "usage_changed", 
+/**
+ * The report.
+ */
+usage: ContextUsage, };
 
 /**
  * A session on a node. Unique across the fleet, so it can be used
@@ -2004,7 +4099,25 @@ board?: SessionBoard | null,
  * node's store keeps it across restarts. Absent until it has one, and
  * from older nodes; a client then names it by its folder.
  */
-title?: SessionTitle | null, };
+title?: SessionTitle | null, 
+/**
+ * What a person marked on it: pinned, archived, unread (protocol 10,
+ * ADR 0026). Kept by the node, so every client sees the same; left
+ * out when nothing is marked, and absent from older nodes.
+ */
+marks?: SessionMarks, 
+/**
+ * What its agent said it can do in its last handshake (protocol 10):
+ * steer, start again, take images or audio. Kept by the store, so an
+ * ended session says whether `session.resume` can work. Absent for a
+ * terminal session, before the handshake, and from older nodes.
+ */
+abilities?: AgentAbilities | null, 
+/**
+ * Its project, worktree and branch (protocol 10), when its spec named
+ * a place. Absent from older nodes. Boxed, as `SessionSpec.place` is.
+ */
+workspace?: SessionWorkspace | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.
@@ -2020,7 +4133,15 @@ input: TerminalInput, } | { "type": "prompt",
 /**
  * The user's message.
  */
-content: Array<ContentBlock>, } | { "type": "cancel_turn" } | { "type": "answer_permission", 
+content: Array<ContentBlock>, } | { "type": "cancel_turn", 
+/**
+ * The turn meant: its `turn_started` record's `seq` (protocol 10).
+ * When another turn runs by the time the cancel lands (the queue
+ * started the next one as the first ended), that turn goes on
+ * and only the queue is held. Absent: whatever turn runs, as
+ * before protocol 10.
+ */
+turn?: EventSeq | null, } | { "type": "answer_permission", 
 /**
  * Which request.
  */
@@ -2028,7 +4149,33 @@ id: PermissionId,
 /**
  * The choice.
  */
-outcome: PermissionOutcome, };
+outcome: PermissionOutcome, } | { "type": "answer_question", 
+/**
+ * Which question.
+ */
+id: QuestionId, 
+/**
+ * The answer.
+ */
+answer: QuestionAnswer, };
+
+/**
+ * A session's marks, as `SessionInfo.marks`.
+ */
+export type SessionMarks = { 
+/**
+ * Kept at the top of lists.
+ */
+pinned?: boolean, 
+/**
+ * When it was put away (the board's archive lane). An archived
+ * session has ended.
+ */
+archived_at?: string | null, 
+/**
+ * Something happened that nobody has marked seen.
+ */
+unread?: boolean, };
 
 /**
  * The route a session was launched with (protocol 7).
@@ -2101,6 +4248,23 @@ node: NodeId,
 session: SessionId, };
 
 /**
+ * Where a session runs (`SessionSpec.place`, protocol 10).
+ */
+export type SessionPlace = { "kind": "project", 
+/**
+ * Which project.
+ */
+project: ProjectId, 
+/**
+ * A folder inside it; the project's root when absent.
+ */
+dir?: RelPath | null, } | { "kind": "worktree", 
+/**
+ * Which.
+ */
+worktree: WorktreeId, };
+
+/**
  * A session on a node of the fleet.
  */
 export type SessionRef = { 
@@ -2140,7 +4304,16 @@ profile?: ProfileName | null,
  * title now is `SessionInfo.title`, which starts as this and changes
  * on its own; this stays what was asked.
  */
-title?: SessionTitle | null, } & ({ "mode": "terminal", 
+title?: SessionTitle | null, 
+/**
+ * Where it runs (protocol 10, ADR 0027): a project's folder or a
+ * worktree. With a place, `cwd` is left out by the client and filled
+ * by the node with the folder the place resolves to, so a client that
+ * predates places still sees where the session runs. Boxed: a spec is
+ * held by every session's info and copied into its futures, and most
+ * sessions have no place.
+ */
+place?: SessionPlace | null, } & ({ "mode": "terminal", 
 /**
  * Extra arguments passed verbatim to the harness binary.
  */
@@ -2188,6 +4361,23 @@ message: string, } | { "state": "interrupted" };
 export type SessionTitle = string;
 
 /**
+ * Where a session runs, as the node resolved it (`SessionInfo.workspace`).
+ */
+export type SessionWorkspace = { 
+/**
+ * Its project.
+ */
+project: ProjectId, 
+/**
+ * Its worktree, when it runs in one.
+ */
+worktree?: WorktreeId | null, 
+/**
+ * The worktree's branch when the session started.
+ */
+branch?: BranchName | null, };
+
+/**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
  * replacing one of the same name. Needs `admin`.
  */
@@ -2218,9 +4408,267 @@ session: SessionId,
 choice: OptionChoice, };
 
 /**
+ * Whether a new worktree runs the project's setup commands.
+ */
+export type SetupChoice = "run" | "skip";
+
+/**
+ * How setup failed.
+ */
+export type SetupFailure = { "kind": "exit", 
+/**
+ * Its index in the setup list.
+ */
+command: number, 
+/**
+ * Its exit code; absent when a signal ended it.
+ */
+code?: number | null, } | { "kind": "timed_out" } | { "kind": "spawn" } | { "kind": "unknown" };
+
+/**
+ * A page of a worktree's setup and teardown output.
+ */
+export type SetupOutput = { 
+/**
+ * Where this page starts in the output.
+ */
+from: number, 
+/**
+ * Standard output and error together, as printed.
+ */
+bytes: TerminalBytes, 
+/**
+ * Where the next page starts.
+ */
+next: number, 
+/**
+ * Whether the log reached its limit and stopped keeping output.
+ */
+truncated: boolean, 
+/**
+ * The setup's state now.
+ */
+setup: SetupState, };
+
+/**
+ * A worktree's setup.
+ */
+export type SetupState = { "state": "none" } | { "state": "skipped" } | { "state": "running", 
+/**
+ * Since when.
+ */
+started_at: string, } | { "state": "succeeded", 
+/**
+ * When.
+ */
+finished_at: string, } | { "state": "failed", 
+/**
+ * How.
+ */
+failure: SetupFailure, 
+/**
+ * When.
+ */
+finished_at: string, } | { "state": "unknown" };
+
+/**
  * Diagnostic severity; absence is distinct from an error.
  */
 export type Severity = "error" | "warning" | "information" | "hint" | "unknown";
+
+/**
+ * `git.show`: a page of a file at a commit or ref (a diff's old side).
+ */
+export type ShowFile = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * At which commit or ref.
+ */
+at: WorktreeBase, 
+/**
+ * Which file.
+ */
+path: RelPath, 
+/**
+ * From this byte.
+ */
+offset: number, 
+/**
+ * At most this many bytes (at most 1 MiB, 256 KiB when absent).
+ */
+limit?: number | null, };
+
+/**
+ * A worktree's working state kept as a commit before it was removed.
+ */
+export type Snapshot = { 
+/**
+ * The worktree it was.
+ */
+worktree: WorktreeId, 
+/**
+ * The branch it had checked out.
+ */
+branch?: BranchName | null, 
+/**
+ * The snapshot commit: the working tree, its parent `head`.
+ */
+commit: CommitId, 
+/**
+ * What `HEAD` was.
+ */
+head: CommitId, 
+/**
+ * When it was made.
+ */
+created_at: string, };
+
+/**
+ * A project's snapshots.
+ */
+export type SnapshotList = { 
+/**
+ * Newest first, at most 1,000.
+ */
+snapshots: Array<Snapshot>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * `git.stage`.
+ */
+export type Stage = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which files.
+ */
+paths: PathSet, };
+
+/**
+ * What to do with the stash.
+ */
+export type StashAction = { "kind": "save", 
+/**
+ * Its message.
+ */
+message?: CommitMessage | null, 
+/**
+ * Untracked files too.
+ */
+untracked: boolean, } | { "kind": "apply", 
+/**
+ * Which (`stash@{index}`).
+ */
+index: number, 
+/**
+ * The entry's commit, as listed: refused when the index moved.
+ */
+commit: CommitId, } | { "kind": "pop", 
+/**
+ * Which.
+ */
+index: number, 
+/**
+ * The entry's commit.
+ */
+commit: CommitId, } | { "kind": "drop", 
+/**
+ * Which.
+ */
+index: number, 
+/**
+ * The entry's commit.
+ */
+commit: CommitId, };
+
+/**
+ * `git.stash`.
+ */
+export type StashChanges = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * What to do.
+ */
+action: StashAction, };
+
+/**
+ * A stash entry.
+ */
+export type StashEntry = { 
+/**
+ * Its position: 0 is the newest (`stash@{0}`).
+ */
+index: number, 
+/**
+ * Its commit, which names it when indexes move.
+ */
+commit: CommitId, 
+/**
+ * Its message.
+ */
+message: string, 
+/**
+ * When it was made.
+ */
+time: string, };
+
+/**
+ * A repository's stash.
+ */
+export type StashList = { 
+/**
+ * Newest first, at most 100.
+ */
+entries: Array<StashEntry>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * `git.stash`'s answer.
+ */
+export type StashOutcome = { "outcome": "done", 
+/**
+ * The stash now.
+ */
+stashes: StashList, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
+
+/**
+ * A file with a change, as `git status` reports it.
+ */
+export type StatusEntry = { 
+/**
+ * Its path.
+ */
+path: RelPath, 
+/**
+ * Where it was, for a rename or a copy.
+ */
+old_path?: RelPath | null, 
+/**
+ * Staged: the index against `HEAD`.
+ */
+index: FileState, 
+/**
+ * Not staged: the working tree against the index.
+ */
+worktree: FileState, };
 
 /**
  * `node.stop` (protocol 3): stop the node, now or once idle. Used by
@@ -2290,6 +4738,36 @@ resume_from: EventSeq, };
  * Node-assigned id of one event subscription; unique per connection.
  */
 export type SubscriptionId = number;
+
+/**
+ * `git.switch`.
+ */
+export type Switch = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * The branch.
+ */
+branch: BranchName, 
+/**
+ * Create it from here; it must exist otherwise.
+ */
+create?: WorktreeBase | null, };
+
+/**
+ * `git.switch`'s answer.
+ */
+export type SwitchOutcome = { "outcome": "switched", 
+/**
+ * Which.
+ */
+branch: BranchName, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, };
 
 /**
  * A symbol in saved source. Nested document symbols are flattened.
@@ -2369,11 +4847,33 @@ cols: number,
 rows: number, };
 
 /**
+ * A shape free text must have.
+ */
+export type TextFormat = "email" | "uri" | "date" | "date_time";
+
+/**
  * A ticket's HMAC-SHA256 under the relay's token (`vessel_relay`
  * computes and checks it). Not printed: it is no use without the
  * ticket's node key, but nothing needs to see it.
  */
 export type TicketMac = string;
+
+/**
+ * A session's worktree, tidied with it.
+ */
+export type TidiedWorktree = { 
+/**
+ * Which worktree.
+ */
+worktree: WorktreeId, } & ({ "outcome": "removed", 
+/**
+ * The snapshot kept first, when one was.
+ */
+snapshot?: Snapshot | null, } | { "outcome": "kept", 
+/**
+ * Every reason that applies.
+ */
+reasons: Array<KeptReason>, });
 
 /**
  * A number of tokens.
@@ -2591,9 +5091,56 @@ files: { [key in BundlePath]: BundleFile },
 detail: TransferDetail, };
 
 /**
+ * One turn's tokens, as the agent reports them with the turn's end (the
+ * prompt's answer `usage`).
+ *
+ * Not [`TokenUsage`](crate::TokenUsage): that is the node proxy's own
+ * count, with defined cache rules; agents disagree on whether `input`
+ * counts cached tokens, so this keeps their words.
+ */
+export type TurnUsage = { 
+/**
+ * Every token of the turn.
+ */
+total: TokenCount, 
+/**
+ * Input tokens.
+ */
+input: TokenCount, 
+/**
+ * Output tokens.
+ */
+output: TokenCount, 
+/**
+ * Reasoning tokens, when counted apart.
+ */
+thought?: TokenCount | null, 
+/**
+ * Tokens read from a cache.
+ */
+cached_read?: TokenCount | null, 
+/**
+ * Tokens written to a cache.
+ */
+cached_write?: TokenCount | null, };
+
+/**
  * Type definitions at a saved source position.
  */
 export type TypeDefinition = AtPosition;
+
+/**
+ * `git.unstage`.
+ */
+export type Unstage = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which files.
+ */
+paths: PathSet, };
 
 /**
  * `session.unsubscribe`: stop a subscription on this connection.
@@ -2603,6 +5150,25 @@ export type Unsubscribe = {
  * Which subscription.
  */
 subscription: SubscriptionId, };
+
+/**
+ * Reply to `attachment.begin`.
+ */
+export type Upload = { 
+/**
+ * The upload, for `attachment.write` and `attachment.finish`.
+ */
+upload: UploadId, 
+/**
+ * Largest piece a write takes, in bytes.
+ */
+chunk: number, };
+
+/**
+ * An upload in progress (protocol 10). Random, but not a secret: only
+ * the caller that began it may write to it or finish it.
+ */
+export type UploadId = string;
 
 /**
  * `fleet.watch` (protocol 5): wait for a generation newer than `after`.
@@ -2644,6 +5210,19 @@ root: string,
 language: Language, };
 
 /**
+ * The folder a git or file call works in.
+ */
+export type WorkspaceRoot = { "kind": "project", 
+/**
+ * Which.
+ */
+project: ProjectId, } | { "kind": "worktree", 
+/**
+ * Which.
+ */
+worktree: WorktreeId, };
+
+/**
  * Workspace symbol search.
  */
 export type WorkspaceSymbols = { 
@@ -2659,3 +5238,195 @@ query: string,
  * Sorted result page.
  */
 page: PageRequest, };
+
+/**
+ * Where a new branch starts.
+ */
+export type WorktreeBase = { "kind": "ref", 
+/**
+ * Its name.
+ */
+name: RefName, } | { "kind": "commit", 
+/**
+ * Its id.
+ */
+id: CommitId, };
+
+/**
+ * Which branch a new worktree has checked out.
+ */
+export type WorktreeBranch = { "kind": "new", 
+/**
+ * Its name; `vessel/<8 hex>` when absent.
+ */
+name?: BranchName | null, 
+/**
+ * Where it starts; the project's default branch when absent.
+ */
+base?: WorktreeBase | null, } | { "kind": "existing", 
+/**
+ * Its name.
+ */
+name: BranchName, } | { "kind": "snapshot", 
+/**
+ * The worktree the snapshot was taken of.
+ */
+worktree: WorktreeId, 
+/**
+ * The new branch's name; `vessel/<8 hex>` when absent.
+ */
+name?: BranchName | null, };
+
+/**
+ * A worktree the node made for a project (protocol 10, ADR 0027).
+ */
+export type WorktreeId = string;
+
+/**
+ * A worktree the node made.
+ */
+export type WorktreeInfo = { 
+/**
+ * Its id.
+ */
+id: WorktreeId, 
+/**
+ * Its project.
+ */
+project: ProjectId, 
+/**
+ * Its folder on the node.
+ */
+path: string, 
+/**
+ * The branch checked out now; absent when detached.
+ */
+branch?: BranchName | null, 
+/**
+ * The branch the node created for it, when it did: the only branch
+ * ever deleted with it, and the one tidying checks.
+ */
+created_branch?: BranchName | null, 
+/**
+ * Where it started.
+ */
+base?: WorktreeStart | null, 
+/**
+ * When it was made.
+ */
+created_at: string, 
+/**
+ * Who asked for it (ADR 0013).
+ */
+created_by: Creator, 
+/**
+ * The session it was made for, when one was (the first session
+ * started in it).
+ */
+created_for?: SessionId | null, 
+/**
+ * The live sessions whose folder is in it.
+ */
+sessions: Array<SessionId>, 
+/**
+ * Its setup.
+ */
+setup: SetupState, 
+/**
+ * Why tidying left it when its last session ended.
+ */
+kept?: KeptReason | null, };
+
+/**
+ * The worktrees.
+ */
+export type WorktreeList = { 
+/**
+ * Oldest first, at most 1,000.
+ */
+worktrees: Array<WorktreeInfo>, 
+/**
+ * Whether there were more.
+ */
+more: boolean, };
+
+/**
+ * Why `worktree.create` made nothing.
+ */
+export type WorktreeRefusal = { "kind": "not_git" } | { "kind": "not_ready" } | { "kind": "no_commit" } | { "kind": "branch_exists" } | { "kind": "checked_out_elsewhere", 
+/**
+ * That folder.
+ */
+path: string, } | { "kind": "no_such_base" } | { "kind": "no_such_branch" } | { "kind": "no_such_snapshot" } | { "kind": "limit" } | { "kind": "unknown" };
+
+/**
+ * Where a worktree started.
+ */
+export type WorktreeStart = { 
+/**
+ * The commit.
+ */
+commit: CommitId, 
+/**
+ * The ref it was asked by, when it was asked by one.
+ */
+name?: RefName | null, };
+
+/**
+ * What a write expects.
+ */
+export type WriteExpect = { "kind": "absent" } | { "kind": "version", 
+/**
+ * The version read.
+ */
+version: FileVersion, } | { "kind": "any" };
+
+/**
+ * `file.write`: a whole text file.
+ */
+export type WriteFile = { 
+/**
+ * Where.
+ */
+root: WorkspaceRoot, 
+/**
+ * Which file.
+ */
+path: RelPath, 
+/**
+ * Its new content, at most 1 MiB.
+ */
+text: string, 
+/**
+ * What must be there now.
+ */
+expect: WriteExpect, };
+
+/**
+ * `attachment.write`: the next piece of an upload. Only the caller that
+ * began it may write. Needs `operate`.
+ */
+export type WriteUpload = { 
+/**
+ * Which upload.
+ */
+upload: UploadId, 
+/**
+ * Where the piece starts: the bytes received so far.
+ */
+offset: number, 
+/**
+ * The piece, base64 on the wire.
+ */
+data: string, };
+
+/**
+ * Reply to `attachment.write`: how much of the file the node has. A
+ * piece repeated after a lost reply (it ends at or before this) is
+ * answered again without being written twice.
+ */
+export type Written = { 
+/**
+ * Bytes received so far; the next piece starts here.
+ */
+received: number, };

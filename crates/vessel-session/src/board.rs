@@ -74,7 +74,8 @@ pub const NO_SIGNAL_GRACE: Duration = Duration::from_secs(90);
 /// and its `pull_requests` as of `now`: the reference's
 /// `DeriveKanbanPresentation`, with the differences the module docs list.
 ///
-/// An ended session is in the archive whatever else is true. Without pull
+/// An archived session is in the archive whatever else is true; an ended
+/// one that is not says `exited` in its lane (ADR 0026). Without pull
 /// requests a session is building, or validating if it delivered something
 /// else for review. With pull requests the lane is chosen per pull request
 /// and the most actionable one speaks for the session; a merged or closed

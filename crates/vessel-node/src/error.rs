@@ -92,6 +92,10 @@ pub enum NodeError {
     /// The directory agents are probed in (protocol 9) cannot be created.
     #[error("the probe directory is unusable")]
     ProbeDir(#[source] StoreError),
+    /// The folder of worktrees and setup logs (protocol 10) cannot be
+    /// prepared.
+    #[error("the workspace directory is unusable")]
+    WorkspaceDir(#[source] StoreError),
     /// The HTTP server failed.
     #[error("the server failed")]
     Serve(#[source] std::io::Error),
@@ -112,6 +116,74 @@ pub(crate) enum ServiceError {
     /// not driven.
     #[error("session {0} has ended; its log can still be read")]
     Ended(SessionId),
+    /// A `read` mark's `through` is past the end of the session's log
+    /// (protocol 10).
+    #[error("session {session} has {end} records; cannot mark it read through {through}")]
+    ReadAhead {
+        /// The session.
+        session: SessionId,
+        /// The `read`'s point.
+        through: EventSeq,
+        /// The log's length.
+        end: EventSeq,
+    },
+    /// `session.delete` of a session that runs (protocol 10).
+    #[error("session {0} is live; archive it first, which stops it")]
+    Live(SessionId),
+    /// `session.delete` or `session.resume` of a session that has ended
+    /// while its log is still being written to the store (protocol 10).
+    #[error("session {0} has just ended and its log is still being written; try again")]
+    LogWriting(SessionId),
+    /// An agent asked to mark a session read or unread (protocol 10).
+    #[error("an agent may not mark a session read or unread: only a person sees it")]
+    AgentMarksRead,
+    /// `session.resume` of a session that runs (protocol 10).
+    #[error("session {0} is live already")]
+    AlreadyLive(SessionId),
+    /// `session.resume` of a session another call is starting again
+    /// (protocol 10).
+    #[error("session {0} is being started again already")]
+    StartingAgain(SessionId),
+    /// `session.resume` of a session placed in a worktree that setup,
+    /// teardown or a removal holds now (protocol 10).
+    #[error("worktree {0} is being set up or removed; start the session again once that has ended")]
+    WorktreeBusy(vessel_proto::WorktreeId),
+    /// `session.resume` of a session whose folder is gone (protocol 10): a
+    /// worktree removed by a person, or tidied when the session it was made
+    /// for went, or a folder removed by hand. A conflict, not a refusal of
+    /// the session itself: the folder put back, it starts again.
+    #[error(
+        "session {session} ran in {folder}, which is gone (a worktree removed, or a folder \
+         deleted); it cannot start again there"
+    )]
+    FolderGone {
+        /// Which session.
+        session: SessionId,
+        /// The folder it ran in.
+        folder: std::path::PathBuf,
+    },
+    /// `session.resume` of a session whose profile `profiles.toml` no
+    /// longer defines (protocol 10).
+    #[error(
+        "session {session} ran under profile `{profile}`, which this node no longer defines \
+         (see `profile.list`)"
+    )]
+    ProfileRemoved {
+        /// The session.
+        session: SessionId,
+        /// Its profile.
+        profile: ProfileName,
+    },
+    /// `session.resume`: the agent did not start, or `session/load` failed
+    /// (protocol 10); the attempt is in the session's log, which ends with
+    /// it, and the session stays ended.
+    #[error("session {session} did not start again: {why}")]
+    DidNotStart {
+        /// The session.
+        session: SessionId,
+        /// Why, as its log's final status says.
+        why: String,
+    },
     /// `from` is past the end of the session's log.
     #[error("session {session} has {next} records; cannot start at {from}")]
     Ahead {
@@ -221,6 +293,9 @@ pub(crate) enum ServiceError {
     /// 6).
     #[error(transparent)]
     Transfer(#[from] crate::transfers::TransferError),
+    /// An upload or a read of an attachment was refused (protocol 10).
+    #[error(transparent)]
+    Upload(#[from] crate::attachments::UploadError),
     /// A profile names a model route this node's `models.toml` does not
     /// have (ADR 0015).
     #[error("{}model route `{route}` is not in this node's models.toml (see `model.list`)", profile.as_ref().map_or_else(String::new, |profile| format!("profile `{profile}`: ")))]
@@ -271,20 +346,31 @@ impl ServiceError {
             | Self::NotLoggedIn(_)
             | Self::AgentGone(_)
             | Self::MoveRunning(_)
+            | Self::Live(_)
+            | Self::LogWriting(_)
+            | Self::AlreadyLive(_)
+            | Self::StartingAgain(_)
+            | Self::FolderGone { .. }
+            | Self::WorktreeBusy(_)
             | Self::Models(_) => ErrorCode::Conflict,
-            Self::AgentDepth { .. } | Self::AgentLimit { .. } | Self::NotOwned(_) => {
-                ErrorCode::Forbidden
-            }
+            Self::AgentDepth { .. }
+            | Self::AgentLimit { .. }
+            | Self::NotOwned(_)
+            | Self::AgentMarksRead => ErrorCode::Forbidden,
             Self::Draining | Self::TooManyInvitations => ErrorCode::Unavailable,
             Self::Ahead { .. }
+            | Self::ReadAhead { .. }
             | Self::InvalidTtl
             | Self::NoScopes
             | Self::UnknownProfile(_)
+            | Self::ProfileRemoved { .. }
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
+            Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
             Self::MoveRoute { .. } => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
+            Self::Upload(error) => error.code(),
             Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),
             Self::Outbound(error) => error.code(),
             Self::Unpersisted(_)

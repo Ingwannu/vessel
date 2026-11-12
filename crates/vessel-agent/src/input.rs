@@ -1,8 +1,12 @@
 //! [`AgentInput`]: the cloneable command side of an agent session.
 
 use tokio::sync::{mpsc, oneshot};
-use vessel_proto::{ContentBlock, OptionChoice, PermissionId, PermissionOutcome, SessionOption};
+use vessel_proto::{
+    ContentBlock, OptionChoice, PermissionId, PermissionOutcome, QuestionAnswer, QuestionId,
+    SessionOption,
+};
 
+use crate::attached::Attachments;
 use crate::error::InputError;
 
 /// Where a command's result goes.
@@ -11,19 +15,43 @@ pub(crate) type Reply = oneshot::Sender<Result<(), InputError>>;
 /// Where the options go after a change.
 pub(crate) type OptionsReply = oneshot::Sender<Result<Vec<SessionOption>, InputError>>;
 
+/// Where a steer's outcome goes.
+pub(crate) type SteerReply = oneshot::Sender<Result<SteerOutcome, InputError>>;
+
+/// What the agent did with a message for the running turn (protocol 10).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SteerOutcome {
+    /// It took it into the turn (logged as `steered`).
+    Injected,
+    /// No turn was running by the time it arrived; nothing was sent to
+    /// the model, and the caller starts a turn with it.
+    PromptRequired,
+}
+
 /// A command for the driver, answered once it has been applied.
 #[derive(Debug)]
 pub(crate) enum Command {
     Prompt {
         content: Vec<ContentBlock>,
+        attachments: Attachments,
         reply: Reply,
     },
     CancelTurn {
         reply: Reply,
     },
+    Steer {
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+        reply: SteerReply,
+    },
     Answer {
         id: PermissionId,
         outcome: PermissionOutcome,
+        reply: Reply,
+    },
+    AnswerQuestion {
+        id: QuestionId,
+        answer: QuestionAnswer,
         reply: Reply,
     },
     TurnRunning {
@@ -38,7 +66,8 @@ pub(crate) enum Command {
     },
 }
 
-/// Sends prompts, cancellations and permission answers to an agent.
+/// Sends prompts, cancellations, and answers to permission requests and
+/// questions to an agent.
 ///
 /// Cheap to clone. Each call waits until the driver has applied it, so the
 /// caller learns about a conflict (a turn already running, a permission
@@ -62,7 +91,29 @@ impl AgentInput {
     /// [`InputError::InvalidContent`] for opaque blocks that are not ACP
     /// content, [`InputError::Closed`] after the connection ended.
     pub async fn prompt(&self, content: Vec<ContentBlock>) -> Result<(), InputError> {
-        self.call(|reply| Command::Prompt { content, reply }).await
+        self.prompt_with(content, Attachments::new()).await
+    }
+
+    /// [`prompt`](Self::prompt), with the bodies of the attachments the
+    /// content names (protocol 10): each goes to the agent in its place,
+    /// while the turn's record keeps the reference.
+    ///
+    /// # Errors
+    /// As [`prompt`](Self::prompt), and
+    /// [`InputError::AttachmentNotTaken`] for a kind the agent did not say
+    /// it takes, [`InputError::AttachmentNotLoaded`] for one without its
+    /// body; nothing is sent then.
+    pub async fn prompt_with(
+        &self,
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+    ) -> Result<(), InputError> {
+        self.call(|reply| Command::Prompt {
+            content,
+            attachments,
+            reply,
+        })
+        .await
     }
 
     /// Cancel the turn in progress (a no-op when there is none). Pending
@@ -72,6 +123,42 @@ impl AgentInput {
     /// [`InputError::Closed`] after the connection ended.
     pub async fn cancel_turn(&self) -> Result<(), InputError> {
         self.call(|reply| Command::CancelTurn { reply }).await
+    }
+
+    /// Add `content` to the running turn (protocol 10, ACP's steering
+    /// extension). With no turn running it sends nothing and answers
+    /// [`SteerOutcome::PromptRequired`].
+    ///
+    /// # Errors
+    /// [`InputError::CannotSteer`] for an agent without steering,
+    /// [`InputError::SteerRefused`] when the agent refuses it,
+    /// [`InputError::Steering`] when it answers outside the extension,
+    /// [`InputError::InvalidContent`] for content ACP cannot carry,
+    /// [`InputError::Closed`] after the connection ended.
+    pub async fn steer(&self, content: Vec<ContentBlock>) -> Result<SteerOutcome, InputError> {
+        self.steer_with(content, Attachments::new()).await
+    }
+
+    /// [`steer`](Self::steer), with the bodies of the attachments the
+    /// content names, as [`prompt_with`](Self::prompt_with).
+    ///
+    /// # Errors
+    /// As [`steer`](Self::steer) and [`prompt_with`](Self::prompt_with).
+    pub async fn steer_with(
+        &self,
+        content: Vec<ContentBlock>,
+        attachments: Attachments,
+    ) -> Result<SteerOutcome, InputError> {
+        let (reply, result) = oneshot::channel();
+        let steer = Command::Steer {
+            content,
+            attachments,
+            reply,
+        };
+        if self.commands.send(steer).await.is_err() {
+            return Err(InputError::Closed);
+        }
+        result.await.unwrap_or(Err(InputError::Closed))
     }
 
     /// Answer a pending permission request.
@@ -87,6 +174,25 @@ impl AgentInput {
         outcome: PermissionOutcome,
     ) -> Result<(), InputError> {
         self.call(|reply| Command::Answer { id, outcome, reply })
+            .await
+    }
+
+    /// Answer a question the agent asked (protocol 10): checked against
+    /// its form, then given to the agent (accepted with the values, or
+    /// declined), and logged as `question_resolved`.
+    ///
+    /// # Errors
+    /// [`InputError::InvalidAnswer`] when the answer does not fit the form
+    /// (the question still waits), [`InputError::QuestionSettled`] when it
+    /// was already answered, declined or withdrawn,
+    /// [`InputError::QuestionNotFound`] for an unknown id,
+    /// [`InputError::Closed`] after the connection ended.
+    pub async fn answer_question(
+        &self,
+        id: QuestionId,
+        answer: QuestionAnswer,
+    ) -> Result<(), InputError> {
+        self.call(|reply| Command::AnswerQuestion { id, answer, reply })
             .await
     }
 

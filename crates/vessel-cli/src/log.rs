@@ -102,7 +102,10 @@ fn render(
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => {
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => {
                 push(Stream::Note, conversation.show(record).as_bytes());
             }
             SessionEvent::Agent { .. } => push(Stream::Out, conversation.show(record).as_bytes()),
@@ -165,6 +168,7 @@ mod tests {
                 1,
                 AgentEvent::Ready {
                     harness_session: HarnessSessionId::new("s-1"),
+                    abilities: None,
                 },
             ),
             status(2, SessionStatus::Running),

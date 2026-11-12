@@ -234,7 +234,10 @@ mod support {
                 | SessionEvent::ProfileChanged { .. }
                 | SessionEvent::ModelCall(_)
                 | SessionEvent::OptionsChanged { .. }
-                | SessionEvent::Renamed { .. }) => {
+                | SessionEvent::Renamed { .. }
+                | SessionEvent::QueueChanged { .. }
+                | SessionEvent::CommandsChanged { .. }
+                | SessionEvent::UsageChanged { .. }) => {
                     panic!("last record is not a status: {other:?}")
                 }
             }
@@ -485,7 +488,10 @@ async fn input_must_match_the_session_mode() {
         let stored = collect(created.durable);
         let handle = created.handle;
 
-        let error = handle.send(SessionInput::CancelTurn).await.unwrap_err();
+        let error = handle
+            .send(SessionInput::CancelTurn { turn: None })
+            .await
+            .unwrap_err();
         assert_eq!(error.code(), ErrorCode::Unsupported);
         assert_eq!(
             error.to_string(),
@@ -748,11 +754,12 @@ async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
 
         handle.kill();
         let end = handle.ended().await;
+        // ADR 0026: in building as exited until it is archived.
         assert_eq!(
             end.board,
             Some(SessionBoard::new(
-                KanbanColumn::Archive,
-                DisplayStatus::Terminated,
+                KanbanColumn::Building,
+                DisplayStatus::Exited,
                 Activity::Exited,
                 end.ended_at.unwrap(),
             ))

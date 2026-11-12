@@ -1,5 +1,6 @@
-//! The client's commands: prompt, cancel, answer a permission request,
-//! read and change the agent's options.
+//! The client's commands: prompt, cancel, steer (`steer`), answer a
+//! permission request or a question (`questions`), read and change the
+//! agent's options.
 
 use agent_client_protocol::Agent;
 use agent_client_protocol::v1::ConnectionTo;
@@ -7,6 +8,7 @@ use agent_client_protocol::v1::schema as acp;
 use vessel_proto::{AgentEvent, ContentBlock, OptionChoice};
 
 use super::{Driver, Inbound, forward};
+use crate::attached::Attachments;
 use crate::error::InputError;
 use crate::handshake;
 use crate::input::{Command, OptionsReply, Reply};
@@ -15,14 +17,23 @@ use crate::mapper;
 impl Driver {
     pub(super) async fn command(&mut self, cx: &ConnectionTo<Agent>, command: Command) {
         match command {
-            Command::Prompt { content, reply } => {
-                let result = self.prompt(cx, content).await;
+            Command::Prompt {
+                content,
+                attachments,
+                reply,
+            } => {
+                let result = self.prompt(cx, content, attachments).await;
                 answer(reply, result);
             }
             Command::CancelTurn { reply } => {
                 let result = self.cancel(cx).await;
                 answer(reply, result);
             }
+            Command::Steer {
+                content,
+                attachments,
+                reply,
+            } => self.steer(cx, content, attachments, reply),
             Command::Answer { id, outcome, reply } => {
                 let result = self.permissions.answer(id, &outcome);
                 if result.is_ok() {
@@ -30,6 +41,10 @@ impl Driver {
                         .await;
                 }
                 answer(reply, result);
+            }
+            Command::AnswerQuestion { id, answer, reply } => {
+                let result = self.answer_question(id, answer).await;
+                self::answer(reply, result);
             }
             Command::TurnRunning { reply } => {
                 // The asker may have given up; nothing to do then.
@@ -83,6 +98,7 @@ impl Driver {
         &mut self,
         cx: &ConnectionTo<Agent>,
         content: Vec<ContentBlock>,
+        mut attachments: Attachments,
     ) -> Result<(), InputError> {
         if self.turn {
             return Err(InputError::TurnInProgress);
@@ -93,9 +109,8 @@ impl Driver {
         let blocks = content
             .iter()
             .cloned()
-            .map(mapper::prompt_block)
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(InputError::InvalidContent)?;
+            .map(|block| mapper::prompt_block(block, &mut attachments, self.abilities))
+            .collect::<Result<Vec<_>, _>>()?;
         let sent = cx.send_request(acp::PromptRequest::new(session.clone(), blocks));
         let inbound = self.inbound.clone();
         let spawned = cx.spawn(async move {
@@ -127,10 +142,11 @@ impl Driver {
         }
         // ACP: after `session/cancel` the client answers every pending
         // permission request with `cancelled` (also those still on their
-        // way, see `permission`); the agent then ends the turn with the
-        // `cancelled` stop reason.
+        // way, see `permission`), and every question with `cancel`; the
+        // agent then ends the turn with the `cancelled` stop reason.
         self.cancelling = true;
         self.withdraw_permissions().await;
+        self.withdraw_questions().await;
         Ok(())
     }
 }

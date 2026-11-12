@@ -15,13 +15,14 @@ vessel-pty.workspace = true
 
 bytes.workspace = true
 chrono.workspace = true
+# The queue's bound is the JSON its `queue_changed` record carries.
+serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 
 [dev-dependencies]
-serde_json.workspace = true
 # `test-util`: the quiet timer is checked on a paused clock.
 tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
 vessel-harness = { workspace = true, features = ["fakes"] }

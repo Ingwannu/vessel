@@ -1,10 +1,10 @@
 //! The ACP connection driver: one task per agent session.
 //!
 //! Owns the ACP connection, the session state (ready or not, turn running
-//! or not, pending permissions, announced tool calls) and turns ACP traffic
-//! into [`AgentOutput`]s. Must not touch the process (the owner of
-//! [`AgentProcess`](crate::AgentProcess) stops it) or read ACP payloads
-//! (the `mapper` does).
+//! or not, pending permissions and questions, announced tool calls) and
+//! turns ACP traffic into [`AgentOutput`]s. Must not touch the process (the
+//! owner of [`AgentProcess`](crate::AgentProcess) stops it) or read ACP
+//! payloads (the `mapper` does).
 //!
 //! [Decision Log]
 //! - Purpose: ACP handlers run inside the SDK's dispatch loop, which is
@@ -34,34 +34,48 @@
 //!   the loop keeps the session's options (`options`) and reports them
 //!   whenever they differ from what it last reported.
 //!
-//! Layout: this module sets the connection up and runs the loop, which
-//! takes the client's commands (`commands`) and the agent's traffic
-//! (`agent`) in order; `close` settles what a closed connection leaves
-//! open. All of them share the one [`Driver`] state.
+//! - Questions (protocol 10) are the agent's requests, like permission
+//!   requests; the agent may withdraw one, which a task per question
+//!   watches and reports into `inbound` (`Withdrawn`), as option changes
+//!   report back (`questions`).
+//!
+//! Layout: `connection` sets the connection up; this module runs the
+//! loop, which takes the client's commands (`commands`, `steer`) and the
+//! agent's traffic (`agent`, `questions`) in order; `close` settles what a
+//! closed connection leaves open. All of them share the one [`Driver`]
+//! state.
 
 mod agent;
 mod close;
 mod commands;
+mod connection;
+mod questions;
+mod steer;
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::v1::{ConnectionTo, Responder};
-use agent_client_protocol::{Agent, Client, Error};
-use tokio::process::{ChildStdin, ChildStdout};
+use agent_client_protocol::{Agent, Error};
 use tokio::sync::mpsc;
-use vessel_proto::{AgentEvent, HarnessSessionId, OptionId, SessionOption, ToolCallId};
+use vessel_proto::{
+    AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId,
+    OptionId, QuestionId, SessionOption, ToolCallId,
+};
 
 use crate::error::Disconnect;
 use crate::handshake::{self, AgentSetup, HandshakeError, Started};
-use crate::input::{Command, OptionsReply};
+use crate::input::{Command, OptionsReply, SteerReply};
 use crate::mapper;
 use crate::options::{Applied, Options};
 use crate::output::AgentOutput;
 use crate::permissions::Permissions;
+use crate::questions::Questions;
 use crate::recent::Recent;
-use crate::transport::{self, Gate};
+use crate::transport::Gate;
+
+pub(crate) use connection::run;
 
 /// Bound of the inbound queue between the SDK's handlers and the loop.
 const INBOUND: usize = 64;
@@ -78,6 +92,13 @@ enum Inbound {
         acp::RequestPermissionRequest,
         Responder<acp::RequestPermissionResponse>,
     ),
+    /// The agent asks the person something (protocol 10).
+    Question(
+        acp::CreateElicitationRequest,
+        Responder<acp::CreateElicitationResponse>,
+    ),
+    /// The agent withdrew a question it asked (`$/cancel_request`).
+    Withdrawn(QuestionId),
     TurnDone(Result<acp::PromptResponse, Error>),
     /// The agent answered an option change.
     OptionSet {
@@ -85,80 +106,12 @@ enum Inbound {
         result: Result<Applied, Error>,
         reply: OptionsReply,
     },
-}
-
-/// Drive the ACP connection over the agent's stdio until it ends, then
-/// report why.
-pub(crate) async fn run(
-    stdin: ChildStdin,
-    stdout: ChildStdout,
-    commands: mpsc::Receiver<Command>,
-    outputs: mpsc::Sender<AgentOutput>,
-    setup: AgentSetup,
-) {
-    let (inbound, inbound_receiver) = mpsc::channel(INBOUND);
-    let gate = Gate::new();
-    let transport = transport::lines(stdin, stdout, gate.clone());
-    // Outside the connection's closure, so it can still be settled when the
-    // connection fails rather than closes (see the end of this function).
-    let mut driver = Driver {
-        inbound: inbound.clone(),
-        inbound_receiver,
-        commands,
-        commands_open: true,
-        outputs: outputs.clone(),
-        session: None,
-        turn: false,
-        cancelling: false,
-        permissions: Permissions::default(),
-        tool_calls: Recent::default(),
-        gate,
-        options: Options::default(),
-        reported: None,
-    };
-    let ended = Client
-        .v1()
-        .name("vessel")
-        .on_receive_notification(
-            {
-                let inbound = inbound.clone();
-                async move |notification: acp::SessionNotification, _cx| {
-                    forward(&inbound, Inbound::Update(notification)).await;
-                    Ok::<(), Error>(())
-                }
-            },
-            agent_client_protocol::on_receive_notification!(),
-        )
-        .on_receive_request(
-            async move |request: acp::RequestPermissionRequest, responder, _cx| {
-                forward(&inbound, Inbound::Permission(request, responder)).await;
-                Ok::<(), Error>(())
-            },
-            agent_client_protocol::on_receive_request!(),
-        )
-        .connect_with(transport, async |cx| driver.run(cx, setup).await)
-        .await;
-    let disconnect = match ended {
-        Ok(disconnect) => disconnect,
-        Err(error) => {
-            // The transport failed (for example the agent wrote bytes that
-            // are not UTF-8): the loop was dropped without seeing a close,
-            // so the turn and the permission requests it left open are
-            // settled here, as on a close.
-            driver.abandon_turn().await;
-            Disconnect::Protocol {
-                message: describe(&error),
-            }
-        }
-    };
-    drop(driver);
-    if outputs
-        .send(AgentOutput::Disconnected(disconnect))
-        .await
-        .is_err()
-    {
-        tracing::debug!("agent outputs dropped before the disconnect");
-    }
+    /// The agent answered a steer (protocol 10).
+    Steered {
+        content: Vec<ContentBlock>,
+        result: Result<serde_json::Value, Error>,
+        reply: SteerReply,
+    },
 }
 
 /// Session state, owned by the driver loop.
@@ -177,6 +130,7 @@ struct Driver {
     /// their way are answered `cancelled` as they arrive.
     cancelling: bool,
     permissions: Permissions,
+    questions: Questions,
     /// Tool calls already announced on the timeline.
     /// Recent ones only, so a long session does not keep them all.
     tool_calls: Recent<ToolCallId>,
@@ -189,6 +143,12 @@ struct Driver {
     /// What was last reported as [`AgentOutput::Options`]; `None` before
     /// the handshake ends.
     reported: Option<Vec<SessionOption>>,
+    /// What the agent said it can do (protocol 10), once it has.
+    abilities: AgentAbilities,
+    /// The last commands and usage reported (protocol 10): an agent that
+    /// sends the same list again logs nothing.
+    last_commands: Option<Vec<AgentCommand>>,
+    last_usage: Option<ContextUsage>,
 }
 
 impl Driver {
@@ -230,12 +190,12 @@ impl Driver {
                     let Some(item) = item else {
                         return Ok(Disconnect::Closed);
                     };
-                    if let Some(end) = self.handle(item).await {
+                    if let Some(end) = self.handle(&cx, item).await {
                         return Ok(end);
                     }
                 }
                 () = cx.incoming_closed() => {
-                    self.settle_after_close().await;
+                    self.settle_after_close(&cx).await;
                     return Ok(Disconnect::Closed);
                 }
             }
@@ -243,17 +203,26 @@ impl Driver {
     }
 
     /// Apply one inbound item; `Some` ends the session.
-    async fn handle(&mut self, item: Inbound) -> Option<Disconnect> {
+    async fn handle(&mut self, cx: &ConnectionTo<Agent>, item: Inbound) -> Option<Disconnect> {
         match item {
-            Inbound::Started(Ok(Started { session, options })) => {
+            Inbound::Started(Ok(Started {
+                session,
+                options,
+                abilities,
+            })) => {
                 let harness_session = HarnessSessionId::new(Arc::clone(&session.0));
                 self.session = Some(session);
                 self.options = options;
+                self.abilities = abilities;
                 // Before `Ready`, always, even empty: whoever sees the
                 // session ready knows what it runs with, and "offers
                 // nothing" is told from "not known yet".
                 self.report_options().await;
-                self.emit(AgentEvent::Ready { harness_session }).await;
+                self.emit(AgentEvent::Ready {
+                    harness_session,
+                    abilities: Some(abilities),
+                })
+                .await;
             }
             Inbound::Started(Err(error)) => {
                 return Some(Disconnect::Handshake {
@@ -268,13 +237,20 @@ impl Driver {
                 self.gate.release();
                 self.permission(request, responder).await;
             }
+            Inbound::Question(request, responder) => {
+                self.gate.release();
+                self.question(cx, request, responder).await;
+            }
+            Inbound::Withdrawn(id) => self.withdrawn(id).await,
             Inbound::TurnDone(result) => {
                 self.turn = false;
                 self.cancelling = false;
                 self.withdraw_permissions().await;
+                self.withdraw_questions().await;
                 let event = match result {
                     Ok(response) => AgentEvent::TurnEnded {
                         reason: mapper::stop_reason(response.stop_reason),
+                        usage: response.usage.as_ref().map(mapper::turn_usage),
                     },
                     Err(error) => AgentEvent::TurnFailed {
                         message: describe(&error),
@@ -299,6 +275,11 @@ impl Driver {
                     tracing::debug!("option change reply dropped");
                 }
             }
+            Inbound::Steered {
+                content,
+                result,
+                reply,
+            } => self.steered(content, result, reply).await,
         }
         None
     }
@@ -317,6 +298,13 @@ impl Driver {
             .await
             .is_err()
         {
+            tracing::debug!("agent outputs dropped");
+        }
+    }
+
+    /// Hand an output other than a timeline event to the session.
+    pub(super) async fn output(&mut self, output: AgentOutput) {
+        if self.outputs.send(output).await.is_err() {
             tracing::debug!("agent outputs dropped");
         }
     }

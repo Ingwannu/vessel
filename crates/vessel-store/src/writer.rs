@@ -9,27 +9,37 @@
 //!
 //! It is a plain thread rather than a task because every `SQLite` call blocks;
 //! the queue is a bounded tokio channel so async callers wait on it without
-//! blocking.
+//! blocking. Removing a removed session's attachment folder blocks too, and
+//! happens here, after the commit that removed its row (`attachments`).
+//! What a session leaves outside the data directory's own folders (a
+//! worktree, protocol 10) is the node's to tidy: after a commit in which
+//! retention removed sessions, the writer says so ([`Setup::pruned`]).
 
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Transaction};
-use tokio::sync::{mpsc, oneshot};
-use vessel_proto::{DeviceId, DeviceInfo, EventRecord, SessionId, SessionInfo};
+use tokio::sync::{mpsc, oneshot, watch};
+use vessel_proto::{
+    DeviceId, DeviceInfo, EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo,
+};
 
+use crate::attachments::KeptAttachment;
+use crate::codec::time_to_sql;
 use crate::config::Retention;
 use crate::devices::{self, CredentialHash};
 use crate::error::StoreError;
 use crate::log::{self, Appended};
+use crate::{again, attachments, marks};
 
 /// Most operations committed in one transaction. Bounds how long one
 /// commit takes (and so the latency of the first operation in it).
 const MAX_BATCH: usize = 256;
 
 /// Answers one write operation once its batch is committed.
-pub(crate) type Done = oneshot::Sender<Result<(), StoreError>>;
+pub(crate) type Done<T = ()> = oneshot::Sender<Result<T, StoreError>>;
 
 /// One item on the writer's queue.
 #[derive(Debug)]
@@ -73,22 +83,110 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done,
     },
+    /// Set a mark on a session (protocol 10); answers with its marks after.
+    Mark {
+        session: SessionId,
+        mark: Mark,
+        at: DateTime<Utc>,
+        done: Done<KeptMarks>,
+    },
+    /// Delete an ended session whole (protocol 10).
+    Delete { session: SessionId, done: Done },
+    /// Reopen an ended session's row for a run starting at record `next`
+    /// (protocol 10's `session.resume`); answers with its marks after.
+    Reopen {
+        session: SessionId,
+        next: EventSeq,
+        done: Done<KeptMarks>,
+    },
+    /// Record an attachment whose file is in place and checked (protocol
+    /// 10), kept at `at`. Boxed for the queue's slots, as `Create` is.
+    Attach {
+        kept: Box<KeptAttachment>,
+        at: DateTime<Utc>,
+        done: Done,
+    },
+    /// Change the record of projects and worktrees (protocol 10).
+    Workspace {
+        write: crate::workspace::WorkspaceWrite,
+        done: Done,
+    },
+}
+
+/// What the writer needs besides its connection and its queue.
+#[derive(Debug)]
+pub(crate) struct Setup {
+    /// What retention keeps.
+    pub(crate) retention: Retention,
+    /// The data directory's `attachments/`, whose session folders go with
+    /// their sessions.
+    pub(crate) attachments: PathBuf,
+    /// How many sessions retention has removed since the store opened,
+    /// raised after each commit that removed some (protocol 10): the node
+    /// then tidies the worktrees those sessions had. A count, not the ids:
+    /// a watch keeps only the latest value and never fills, and the node
+    /// looks for every worktree whose session is gone anyway.
+    pub(crate) pruned: watch::Sender<u64>,
+}
+
+/// One caller's answer, held until its batch is committed.
+enum Answer {
+    Done(Done, Result<(), StoreError>),
+    Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
+}
+
+impl Answer {
+    /// Send it, as a failure if the commit failed.
+    fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
+        let sent = match self {
+            Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
+        };
+        if !sent {
+            tracing::trace!("store caller went away before its write committed");
+        }
+    }
+}
+
+/// `result`, unless the commit it waited for failed.
+fn after<T>(
+    failed: Option<&Arc<rusqlite::Error>>,
+    result: Result<T, StoreError>,
+) -> Result<T, StoreError> {
+    match (failed, result) {
+        (Some(error), Ok(_)) => Err(StoreError::Commit(Arc::clone(error))),
+        (_, result) => result,
+    }
+}
+
+/// What one batch changed beyond its own rows.
+#[derive(Default)]
+struct Effects {
+    /// Sessions whose logs grew, for the per-session byte cap.
+    touched: HashSet<SessionId>,
+    /// A session ended, so retention may prune ended sessions.
+    ended: bool,
+    /// Sessions removed (deleted or pruned), whose attachment folders go
+    /// once the batch is committed.
+    removed: Vec<SessionId>,
+    /// How many of them retention pruned.
+    pruned: usize,
 }
 
 /// Start the writer thread on `connection`.
 pub(crate) fn spawn(
     connection: Connection,
     ops: mpsc::Receiver<WriteOp>,
-    retention: Retention,
+    setup: Setup,
 ) -> Result<(), StoreError> {
     let _detached = std::thread::Builder::new()
         .name("vessel-store-writer".to_owned())
-        .spawn(move || run(connection, ops, retention))
+        .spawn(move || run(connection, ops, &setup))
         .map_err(StoreError::Thread)?;
     Ok(())
 }
 
-fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, retention: Retention) {
+fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, setup: &Setup) {
     let mut batch = Vec::with_capacity(MAX_BATCH);
     let mut writes = Vec::with_capacity(MAX_BATCH);
     let mut closes = Vec::new();
@@ -101,7 +199,7 @@ fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, retention: 
                 WriteOp::Close { done } => closes.push(done),
             }
         }
-        commit(&mut connection, writes.drain(..), &retention);
+        commit(&mut connection, writes.drain(..), setup);
         if !closes.is_empty() {
             break;
         }
@@ -123,47 +221,50 @@ fn checkpoint(connection: &Connection) {
     }
 }
 
-/// Apply and commit one batch, then answer every caller in it.
-fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, retention: &Retention) {
-    let mut answers: Vec<(Done, Result<(), StoreError>)> = Vec::new();
+/// Apply and commit one batch, remove what it removed, then answer every
+/// caller in it.
+fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, setup: &Setup) {
+    let mut answers = Vec::new();
+    let mut effects = Effects::default();
     let committed = connection.transaction().and_then(|mut transaction| {
-        let mut touched = HashSet::new();
-        let mut ended = false;
         for write in writes {
-            answers.push(apply(&mut transaction, write, &mut touched, &mut ended));
+            answers.push(apply(&mut transaction, write, &mut effects));
         }
-        retain(&mut transaction, &touched, ended, retention);
+        retain(&mut transaction, &mut effects, &setup.retention);
         transaction.commit()
     });
     let failed = committed.err().map(Arc::new);
     if let Some(error) = &failed {
         tracing::error!(%error, "committing to the event log failed");
-    }
-    for (done, result) in answers {
-        let result = match (&failed, result) {
-            (Some(error), Ok(())) => Err(StoreError::Commit(Arc::clone(error))),
-            (_, result) => result,
-        };
-        if done.send(result).is_err() {
-            tracing::trace!("store caller went away before its write committed");
+    } else {
+        // Only now are the rows gone for good; a failed commit kept them,
+        // and with them their files.
+        for &session in &effects.removed {
+            attachments::remove_folder(&setup.attachments, session);
         }
+        if effects.pruned > 0 {
+            // A count of events, so wrapping is harmless: readers only look
+            // for a change.
+            let pruned = u64::try_from(effects.pruned).unwrap_or(u64::MAX);
+            setup
+                .pruned
+                .send_modify(|count| *count = count.wrapping_add(pruned));
+        }
+    }
+    for answer in answers {
+        answer.send(failed.as_ref());
     }
 }
 
 /// Apply one write in its own savepoint, so a failing write leaves no
 /// partial rows and does not affect the rest of the batch.
-fn apply(
-    transaction: &mut Transaction<'_>,
-    write: Write,
-    touched: &mut HashSet<SessionId>,
-    ended: &mut bool,
-) -> (Done, Result<(), StoreError>) {
+fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects) -> Answer {
     match write {
         Write::Create { info, done } => {
             let applied = isolated(transaction, |connection| {
                 log::create_session(connection, &info)
             });
-            (done, applied)
+            Answer::Done(done, applied)
         }
         Write::Append {
             session,
@@ -173,11 +274,11 @@ fn apply(
             let applied = isolated(transaction, |connection| {
                 let Appended { ended: now_ended } =
                     log::append(connection, session, records.iter().map(Arc::as_ref))?;
-                let _first = touched.insert(session);
-                *ended |= now_ended;
+                let _first = effects.touched.insert(session);
+                effects.ended |= now_ended;
                 Ok(())
             });
-            (done, applied)
+            Answer::Done(done, applied)
         }
         Write::AddDevice {
             device,
@@ -187,42 +288,77 @@ fn apply(
             let applied = isolated(transaction, |connection| {
                 devices::insert(connection, &device, &credential)
             });
-            (done, applied)
+            Answer::Done(done, applied)
         }
         Write::DeviceSeen { device, at, done } => {
             let applied = isolated(transaction, |connection| {
                 devices::seen(connection, device, at)
             });
-            (done, applied)
+            Answer::Done(done, applied)
         }
         Write::RevokeDevice { device, at, done } => {
             let applied = isolated(transaction, |connection| {
                 devices::revoke(connection, device, at)
             });
-            (done, applied)
+            Answer::Done(done, applied)
+        }
+        Write::Mark {
+            session,
+            mark,
+            at,
+            done,
+        } => {
+            let applied = isolated(transaction, |connection| {
+                marks::mark(connection, session, mark, at)
+            });
+            Answer::Marked(done, applied)
+        }
+        Write::Delete { session, done } => {
+            let applied = isolated(transaction, |connection| marks::delete(connection, session));
+            if applied.is_ok() {
+                effects.removed.push(session);
+            }
+            Answer::Done(done, applied)
+        }
+        Write::Reopen {
+            session,
+            next,
+            done,
+        } => {
+            let applied = isolated(transaction, |connection| {
+                again::reopen(connection, session, next)
+            });
+            Answer::Marked(done, applied)
+        }
+        Write::Attach { kept, at, done } => {
+            let applied = isolated(transaction, |connection| {
+                attachments::insert(connection, &kept, time_to_sql(at)?)
+            });
+            Answer::Done(done, applied)
+        }
+        Write::Workspace { write, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::workspace::apply(connection, &write)
+            });
+            Answer::Done(done, applied)
         }
     }
 }
 
-fn isolated(
+fn isolated<T>(
     transaction: &mut Transaction<'_>,
-    operation: impl FnOnce(&Connection) -> Result<(), StoreError>,
-) -> Result<(), StoreError> {
+    operation: impl FnOnce(&Connection) -> Result<T, StoreError>,
+) -> Result<T, StoreError> {
     let savepoint = transaction.savepoint()?;
-    operation(&savepoint)?;
+    let done = operation(&savepoint)?;
     savepoint.commit()?;
-    Ok(())
+    Ok(done)
 }
 
 /// Retention for this batch. Failures are logged, not returned: keeping a
 /// bit more history than configured must never fail the appends.
-fn retain(
-    transaction: &mut Transaction<'_>,
-    touched: &HashSet<SessionId>,
-    ended: bool,
-    retention: &Retention,
-) {
-    for &session in touched {
+fn retain(transaction: &mut Transaction<'_>, effects: &mut Effects, retention: &Retention) {
+    for &session in &effects.touched {
         let pruned = isolated(transaction, |connection| {
             log::prune_session(connection, session, retention)
         });
@@ -230,12 +366,16 @@ fn retain(
             tracing::warn!(%session, %error, "could not prune session log");
         }
     }
-    if ended {
+    if effects.ended {
         let pruned = isolated(transaction, |connection| {
-            log::prune_ended(connection, retention).map(drop)
+            log::prune_ended(connection, retention)
         });
-        if let Err(error) = pruned {
-            tracing::warn!(%error, "could not prune ended sessions");
+        match pruned {
+            Ok(pruned) => {
+                effects.pruned = effects.pruned.saturating_add(pruned.len());
+                effects.removed.extend(pruned);
+            }
+            Err(error) => tracing::warn!(%error, "could not prune ended sessions"),
         }
     }
 }

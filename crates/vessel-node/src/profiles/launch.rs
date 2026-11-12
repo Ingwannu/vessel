@@ -42,9 +42,10 @@ use std::sync::Arc;
 
 use vessel_proto::{
     AgentSecret, Creator, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
-    ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionOrigin, SessionSpec,
+    ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionInfo, SessionOrigin,
+    SessionSpec,
 };
-use vessel_session::LaunchOptions;
+use vessel_session::{LaunchOptions, Relaunch};
 
 use super::NodeProfiles;
 use crate::error::ServiceError;
@@ -201,11 +202,13 @@ impl Launcher {
             }
         };
         let (mcp_servers, notices) = self.mcp_servers(spec);
+        let created_by = creator(principal);
         Ok(LaunchOptions {
             profile,
             mcp_servers,
             mcp_dir: Some(self.mcp_dir.clone()),
-            created_by: creator(principal),
+            questions: watched(&created_by),
+            created_by,
             notices,
             id: None,
             // An import (F4) sets its own origin.
@@ -218,6 +221,49 @@ impl Launcher {
             // session's id is known (`Models::launch`).
             model: None,
             model_proxy: None,
+        })
+    }
+
+    /// What starting `info`'s ended session again runs with (protocol 10's
+    /// `session.resume`, ADR 0026): its current profile (a move may have
+    /// changed it), the fleet's MCP servers, and questions as for a new
+    /// session of its creator, whose `created_by` stays. The `vessel`
+    /// server and a routed profile's proxy are the caller's to add, once
+    /// a credential and a token are minted for the new run.
+    ///
+    /// # Errors
+    /// Its profile is no longer defined, or is now another harness's.
+    pub(crate) fn again(
+        &self,
+        profiles: &NodeProfiles,
+        info: &SessionInfo,
+    ) -> Result<Relaunch, ServiceError> {
+        let profile = match &info.profile {
+            None => None,
+            Some(name) => {
+                let profile = profiles
+                    .get(name)
+                    .ok_or_else(|| ServiceError::ProfileRemoved {
+                        session: info.id,
+                        profile: name.clone(),
+                    })?;
+                if profile.harness() != info.spec.harness {
+                    return Err(ServiceError::ProfileHarness {
+                        profile: name.clone(),
+                        profile_harness: profile.harness(),
+                        harness: info.spec.harness,
+                    });
+                }
+                Some(profile)
+            }
+        };
+        let (mcp_servers, notices) = self.mcp_servers(&info.spec);
+        Ok(Relaunch {
+            profile,
+            mcp_servers,
+            notices,
+            model_proxy: None,
+            questions: watched(&info.created_by),
         })
     }
 
@@ -247,7 +293,7 @@ fn missing_secret(name: &SecretName) -> String {
 /// (protocol 6) is recorded as the origin's agent, a variant protocol 5
 /// readers know, or else as the delivering device, which is true here;
 /// [`origin`] keeps the rest.
-fn creator(principal: &Principal) -> Creator {
+pub(crate) fn creator(principal: &Principal) -> Creator {
     match principal {
         Principal::Owner => Creator::Owner,
         Principal::Device { id, .. } => Creator::Device { id: *id },
@@ -262,6 +308,27 @@ fn creator(principal: &Principal) -> Creator {
             },
             OriginBy::Owner | OriginBy::Device { .. } => Creator::Device { id: *device },
         },
+    }
+}
+
+/// Whether a session `creator` starts may ask questions (protocol 10,
+/// review item 4 of milestone 11's contract): only one a person watches.
+///
+/// [Decision Log]
+/// - Purpose: advertising questions turns on Claude's `AskUserQuestion`
+///   (its adapter disables the tool for a client without form
+///   elicitation). A session an agent created (ADR 0013) runs unwatched:
+///   a question there would wait for an answer nobody gives, and before
+///   protocol 10 such sessions never asked, they went on.
+/// - Choice: the owner's and a device's sessions (a delivered call of
+///   either too) ask; an agent's, here or delivered from another node,
+///   does not. Decided once, at creation: a move keeps it.
+/// - Cost: an agent that wants its child session to ask cannot; it reads
+///   the child's turns and answers in the next prompt instead.
+pub(crate) const fn watched(creator: &Creator) -> bool {
+    match creator {
+        Creator::Owner | Creator::Device { .. } => true,
+        Creator::Agent { .. } => false,
     }
 }
 
@@ -295,71 +362,4 @@ pub(crate) fn agent_session(creator: &Creator, node: NodeId) -> Option<SessionId
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use vessel_proto::{HarnessKind, McpTransport, ResolvedValue, SessionMode, TerminalSize};
-
-    use super::*;
-
-    /// One server, and one secret it could not find.
-    #[derive(Debug)]
-    struct OneServer;
-
-    impl McpSource for OneServer {
-        fn servers(&self, spec: &SessionSpec) -> McpServers {
-            let mut servers = ResolvedMcpServers::new();
-            let _none = servers.insert(
-                "docs".parse().unwrap(),
-                McpTransport::Stdio {
-                    command: PathBuf::from("docs-mcp"),
-                    args: vec![spec.harness.to_string()],
-                    env: BTreeMap::from([(
-                        "DOCS_TOKEN".parse().unwrap(),
-                        ResolvedValue::new("value-never-logged".to_owned()),
-                    )]),
-                },
-            );
-            McpServers {
-                servers,
-                missing: vec!["WEB_TOKEN".parse().unwrap()],
-            }
-        }
-    }
-
-    #[test]
-    fn a_launch_gets_the_sources_servers_and_a_line_per_missing_secret() {
-        let dir = tempfile::tempdir().unwrap();
-        let profiles = NodeProfiles::load(
-            vessel_store::DataDir::new(dir.path()),
-            vessel_harness::HarnessEnv::new(dir.path().to_owned()),
-        )
-        .unwrap();
-        let launcher = Launcher::new(dir.path().join("mcp"), Arc::new(OneServer), None);
-        let spec = SessionSpec::new(
-            HarnessKind::ClaudeCode,
-            SessionMode::Terminal {
-                args: Vec::new(),
-                size: TerminalSize::default(),
-            },
-        );
-        let options = launcher
-            .options(&profiles, &spec, &Principal::Owner)
-            .unwrap();
-        let names: Vec<String> = options
-            .mcp_servers
-            .keys()
-            .map(ToString::to_string)
-            .collect();
-        assert_eq!(names, ["docs"]);
-        assert_eq!(options.notices.len(), 1);
-        let notice = options.notices.first().unwrap();
-        assert!(notice.starts_with("vessel: secret WEB_TOKEN "), "{notice}");
-        assert!(!notice.contains("value-never-logged"), "{notice}");
-
-        let none = Launcher::new(dir.path().join("mcp"), Arc::new(NoMcpServers), None)
-            .options(&profiles, &spec, &Principal::Owner)
-            .unwrap();
-        assert!(none.mcp_servers.is_empty() && none.notices.is_empty());
-    }
-}
+mod tests;

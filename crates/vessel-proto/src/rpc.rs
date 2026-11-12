@@ -20,6 +20,11 @@ use std::future::Future;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::conversation::{
+    AttachmentRef, BeginUpload, ChangeQueue, Conversation, DeleteSession, Delivered, FinishUpload,
+    GetConversation, MarkSession, PromptSession, QueueChanged, ReadAttachment, ResumeSession,
+    SessionDeleted, Upload, WriteUpload, Written,
+};
 use crate::device::{DeviceInfo, Invitation, InviteDevice, ListDevices, RevokeDevice, Scope};
 use crate::error::WireError;
 use crate::fleet::{
@@ -39,14 +44,16 @@ use crate::options::{
 };
 use crate::profile::{ListProfiles, MoveProfile, ProfileInfo, ReloadProfiles};
 use crate::secret::{CopySecret, DeleteSecret, ListSecrets, SetSecret};
-use crate::session::{SessionInfo, SessionMode};
+use crate::session::SessionInfo;
 use crate::transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MemoryImported,
     ReadTransfer, SessionImported, TransferManifest,
 };
 
 mod frames;
+mod older;
 mod requests;
+mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
@@ -94,156 +101,8 @@ impl std::fmt::Display for UnexpectedReply {
 
 impl std::error::Error for UnexpectedReply {}
 
-/// Declares every RPC method in one table.
-///
-/// Each row: `Variant / handler_fn / "wire.name" [Scope, since]: Request => Response;`
-/// The scope column (protocol 4, ADR 0010) is what a paired device must hold
-/// to call the method; adding a method without one does not compile. `since`
-/// (protocol 5) is the first protocol version with the method: the client
-/// refuses to send it on an older connection and the node refuses to run it
-/// there, so neither side relies on the other ignoring what it cannot know.
-macro_rules! rpc_methods {
-    ($(
-        $(#[$doc:meta])*
-        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $since:literal] : $request:ty => $response:ty;
-    )*) => {
-        /// Every RPC method.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        pub enum Method {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant,
-            )*
-        }
-
-        impl Method {
-            /// Wire name.
-            #[must_use]
-            pub const fn as_str(self) -> &'static str {
-                match self {
-                    $( Self::$variant => $wire, )*
-                }
-            }
-
-            /// The scope a paired device needs to call it.
-            #[must_use]
-            pub const fn scope(self) -> Scope {
-                match self {
-                    $( Self::$variant => Scope::$scope, )*
-                }
-            }
-
-            /// The first protocol version with this method.
-            #[must_use]
-            pub const fn since(self) -> ProtocolVersion {
-                match self {
-                    $( Self::$variant => ProtocolVersion::new($since), )*
-                }
-            }
-
-            /// Every method, in table order.
-            pub const ALL: &'static [Self] = &[$( Self::$variant, )*];
-        }
-
-        /// A request of any method, as sent on the wire.
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        #[serde(tag = "method", content = "params")]
-        pub enum Call {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant($request),
-            )*
-        }
-
-        impl Call {
-            /// Which method this is.
-            #[must_use]
-            pub const fn method(&self) -> Method {
-                match self {
-                    $( Self::$variant(_) => Method::$variant, )*
-                }
-            }
-        }
-
-        /// A successful response of any method, as sent on the wire.
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        #[serde(tag = "method", content = "result")]
-        pub enum Reply {
-            $(
-                $(#[$doc])*
-                #[serde(rename = $wire)]
-                $variant($response),
-            )*
-        }
-
-        impl Reply {
-            /// Which method this answers.
-            #[must_use]
-            pub const fn method(&self) -> Method {
-                match self {
-                    $( Self::$variant(_) => Method::$variant, )*
-                }
-            }
-        }
-
-        $(
-            impl Request for $request {
-                const METHOD: Method = Method::$variant;
-                type Response = $response;
-
-                fn into_call(self) -> Call {
-                    Call::$variant(self)
-                }
-
-                fn response_from(reply: Reply) -> Result<$response, UnexpectedReply> {
-                    let got = reply.method();
-                    if let Reply::$variant(response) = reply {
-                        Ok(response)
-                    } else {
-                        Err(UnexpectedReply { expected: Method::$variant, got })
-                    }
-                }
-            }
-        )*
-
-        /// Server side of the protocol: one method per RPC.
-        ///
-        /// `Context` is per-connection state (for example the connection's
-        /// subscriptions), so connection-scoped methods such as `subscribe`
-        /// go through the same exhaustive table as everything else.
-        pub trait Handler: Sync {
-            /// Per-connection state passed to every call.
-            type Context: Sync;
-
-            $(
-                $(#[$doc])*
-                fn $handler(
-                    &self,
-                    context: &Self::Context,
-                    request: $request,
-                ) -> impl Future<Output = Result<$response, WireError>> + Send;
-            )*
-        }
-
-        /// Route a call to its handler method. Exhaustive: a method without
-        /// a handler does not compile.
-        pub async fn dispatch<H: Handler>(handler: &H, context: &H::Context, call: Call) -> Outcome {
-            match call {
-                $(
-                    Call::$variant(request) => match handler.$handler(context, request).await {
-                        Ok(response) => Outcome::Ok(Reply::$variant(response)),
-                        Err(error) => Outcome::Err(error),
-                    },
-                )*
-            }
-        }
-    };
-}
+#[macro_use]
+mod methods;
 
 rpc_methods! {
     /// Describe the node.
@@ -356,99 +215,106 @@ rpc_methods! {
     SetSessionOption / set_session_option / "session.set_option" [Operate, 9]: SetSessionOption => Vec<SessionOption>;
     /// Give a session a title (protocol 9).
     RenameSession / rename_session / "session.rename" [Operate, 9]: RenameSession => SessionInfo;
-}
-
-impl Call {
-    /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
-    /// ignore it silently (and, say, start a session with the wrong profile
-    /// or invite a device with more scopes than asked), so the client checks
-    /// this before sending. A request that gains a field adds a line here.
-    #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
-        let method = self.method().since();
-        let fields = match self {
-            // Options chosen at creation and a title came in 9: an older
-            // node would start the session in the agent's default mode (a
-            // permissions mode the caller did not ask for) and unnamed.
-            Self::CreateSession(request) => {
-                let spec = &request.spec;
-                let chooses = match &spec.mode {
-                    SessionMode::Structured { options, .. } => !options.is_empty(),
-                    SessionMode::Terminal { .. } => false,
-                };
-                if chooses || spec.title.is_some() {
-                    Some(9)
-                } else {
-                    spec.profile.as_ref().map(|_| 5)
-                }
-            }
-            // `scopes` came in 5; a scope newer than that needs its own
-            // version, or an older node would refuse the name it lacks.
-            Self::InviteDevice(request) => request.scopes.as_ref().map(|scopes| {
-                scopes
-                    .iter()
-                    .map(|scope| scope.since().get())
-                    .fold(5, u32::max)
-            }),
-            Self::ReadEvents(request) => request.wait.map(|_| 6),
-            Self::NodeInfo(_)
-            | Self::ListHarnesses(_)
-            | Self::ListSessions(_)
-            | Self::GetSession(_)
-            | Self::SendInput(_)
-            | Self::KillSession(_)
-            | Self::Subscribe(_)
-            | Self::Unsubscribe(_)
-            | Self::StopNode(_)
-            | Self::ListDevices(_)
-            | Self::RevokeDevice(_)
-            | Self::ListProfiles(_)
-            | Self::ReloadProfiles(_)
-            | Self::MoveProfile(_)
-            | Self::GetManifest(_)
-            | Self::ReadBlob(_)
-            | Self::WatchFleet(_)
-            | Self::ReportApplied(_)
-            | Self::ListMembers(_)
-            // The inner call of an envelope is checked against the target's
-            // protocol where it is delivered, not against this connection.
-            | Self::Forward(_)
-            | Self::Relay(_)
-            | Self::Deliver(_)
-            | Self::GrantHome(_)
-            | Self::GetCallback(_)
-            | Self::ForgetNode(_)
-            | Self::ListPeers(_)
-            | Self::ListNodes(_)
-            | Self::ExportSession(_)
-            | Self::ImportSession(_)
-            | Self::ExportMemory(_)
-            | Self::ImportMemory(_)
-            | Self::ReadTransfer(_)
-            | Self::CloseTransfer(_)
-            | Self::SetSecret(_)
-            | Self::ListSecrets(_)
-            | Self::DeleteSecret(_)
-            | Self::LspWorkspaceSymbols(_)
-            | Self::LspDocumentSymbols(_)
-            | Self::LspDefinition(_)
-            | Self::LspReferences(_)
-            | Self::LspHover(_)
-            | Self::LspImplementations(_)
-            | Self::LspTypeDefinition(_)
-            | Self::LspIncomingCalls(_)
-            | Self::LspOutgoingCalls(_)
-            | Self::LspDiagnostics(_)
-            | Self::CopySecret(_)
-            | Self::ListModels(_)
-            | Self::HarnessOptions(_)
-            | Self::SessionOptions(_)
-            | Self::SetSessionOption(_)
-            | Self::RenameSession(_) => None,
-        };
-        fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
-    }
+    /// Send a prompt, delivered as asked (protocol 10).
+    PromptSession / prompt_session / "session.prompt" [Operate, 10]: PromptSession => Delivered;
+    /// Change a session's queue (protocol 10).
+    ChangeQueue / change_queue / "session.queue" [Operate, 10]: ChangeQueue => QueueChanged;
+    /// A session's conversation as it stands (protocol 10).
+    GetConversation / get_conversation / "session.conversation" [Read, 10]: GetConversation => Conversation;
+    /// Start an ended session again with its conversation (protocol 10).
+    ResumeSession / resume_session / "session.resume" [Operate, 10]: ResumeSession => SessionInfo;
+    /// Pin, archive or mark a session read (protocol 10).
+    MarkSession / mark_session / "session.mark" [Operate, 10]: MarkSession => SessionInfo;
+    /// Remove an ended session and everything kept with it (protocol 10).
+    DeleteSession / delete_session / "session.delete" [Operate, 10]: DeleteSession => SessionDeleted;
+    /// Declare a file to upload to a session (protocol 10).
+    BeginUpload / begin_upload / "attachment.begin" [Operate, 10]: BeginUpload => Upload;
+    /// The next piece of an upload (protocol 10).
+    WriteUpload / write_upload / "attachment.write" [Operate, 10]: WriteUpload => Written;
+    /// Check an upload and keep it with its session (protocol 10).
+    FinishUpload / finish_upload / "attachment.finish" [Operate, 10]: FinishUpload => AttachmentRef;
+    /// A piece of a session's attachment (protocol 10).
+    ReadAttachment / read_attachment / "attachment.read" [Read, 10]: ReadAttachment => BlobChunk;
+    /// The projects, and the git the node found (protocol 10).
+    ListProjects / list_projects / "project.list" [Read, 10]: crate::workspace::ListProjects => crate::workspace::ProjectList;
+    /// One project, or its next change (protocol 10).
+    GetProject / get_project / "project.get" [Read, 10]: crate::workspace::GetProject => crate::workspace::ProjectInfo;
+    /// Add a folder as a project (protocol 10).
+    AddProject / add_project / "project.add" [Operate, 10]: crate::workspace::AddProject => crate::workspace::ProjectInfo;
+    /// Clone a repository as a project (protocol 10).
+    CloneProject / clone_project / "project.clone" [Operate, 10]: crate::workspace::CloneProject => crate::workspace::ProjectInfo;
+    /// Start a new repository as a project (protocol 10).
+    InitProject / init_project / "project.init" [Operate, 10]: crate::workspace::InitProject => crate::workspace::ProjectInfo;
+    /// Forget a project (protocol 10).
+    RemoveProject / remove_project / "project.remove" [Operate, 10]: crate::workspace::RemoveProject => Ack;
+    /// What a project's file would run (protocol 10).
+    ProjectCommands / project_commands / "project.commands" [Read, 10]: crate::workspace::GetProjectCommands => crate::workspace::ProjectCommands;
+    /// Approve a project's commands (protocol 10).
+    ApproveCommands / approve_commands / "project.approve" [Operate, 10]: crate::workspace::ApproveCommands => crate::workspace::ProjectCommands;
+    /// The worktrees (protocol 10).
+    ListWorktrees / list_worktrees / "worktree.list" [Read, 10]: crate::workspace::ListWorktrees => crate::workspace::WorktreeList;
+    /// Make a worktree (protocol 10).
+    CreateWorktree / create_worktree / "worktree.create" [Operate, 10]: crate::workspace::CreateWorktree => crate::workspace::CreateWorktreeOutcome;
+    /// A page of a worktree's setup output (protocol 10).
+    SetupOutput / setup_output / "worktree.output" [Read, 10]: crate::workspace::ReadSetupOutput => crate::workspace::SetupOutput;
+    /// Run a worktree's setup again (protocol 10).
+    RunSetup / run_setup / "worktree.setup" [Operate, 10]: crate::workspace::RunSetup => crate::workspace::WorktreeInfo;
+    /// Remove a worktree (protocol 10).
+    RemoveWorktree / remove_worktree / "worktree.remove" [Operate, 10]: crate::workspace::RemoveWorktree => crate::workspace::RemoveWorktreeOutcome;
+    /// A project's worktree snapshots (protocol 10).
+    ListSnapshots / list_snapshots / "worktree.snapshots" [Read, 10]: crate::workspace::ListSnapshots => crate::workspace::SnapshotList;
+    /// Delete a worktree snapshot (protocol 10).
+    DropSnapshot / drop_snapshot / "worktree.drop_snapshot" [Operate, 10]: crate::workspace::DropSnapshot => Ack;
+    /// A root's git status (protocol 10).
+    GitStatus / git_status / "git.status" [Read, 10]: crate::workspace::GetStatus => crate::workspace::GitStatus;
+    /// The changed files of a diff scope (protocol 10).
+    GitChanges / git_changes / "git.changes" [Read, 10]: crate::workspace::GetChanges => crate::workspace::DiffSummary;
+    /// One file's diff (protocol 10).
+    GitDiff / git_diff / "git.diff" [Read, 10]: crate::workspace::GetFileDiff => crate::workspace::FileDiff;
+    /// A page of a file at a commit (protocol 10).
+    GitShow / git_show / "git.show" [Read, 10]: crate::workspace::ShowFile => crate::workspace::FileRead;
+    /// A root's branches (protocol 10).
+    GitBranches / git_branches / "git.branches" [Read, 10]: crate::workspace::ListBranches => crate::workspace::BranchList;
+    /// A page of history (protocol 10).
+    GitLog / git_log / "git.log" [Read, 10]: crate::workspace::ReadLog => crate::workspace::CommitPage;
+    /// The stash (protocol 10).
+    GitStashes / git_stashes / "git.stashes" [Read, 10]: crate::workspace::ListStashes => crate::workspace::StashList;
+    /// Stage files (protocol 10).
+    GitStage / git_stage / "git.stage" [Operate, 10]: crate::workspace::Stage => crate::workspace::GitStatus;
+    /// Unstage files (protocol 10).
+    GitUnstage / git_unstage / "git.unstage" [Operate, 10]: crate::workspace::Unstage => crate::workspace::GitStatus;
+    /// Drop local changes (protocol 10).
+    GitDiscard / git_discard / "git.discard" [Operate, 10]: crate::workspace::Discard => crate::workspace::GitStatus;
+    /// Commit (protocol 10).
+    GitCommit / git_commit / "git.commit" [Operate, 10]: crate::workspace::Commit => crate::workspace::CommitOutcome;
+    /// Fetch from a remote (protocol 10).
+    GitFetch / git_fetch / "git.fetch" [Operate, 10]: crate::workspace::Fetch => crate::workspace::FetchOutcome;
+    /// Push the current branch (protocol 10).
+    GitPush / git_push / "git.push" [Operate, 10]: crate::workspace::Push => crate::workspace::PushOutcome;
+    /// Fast-forward from the upstream (protocol 10).
+    GitPull / git_pull / "git.pull" [Operate, 10]: crate::workspace::Pull => crate::workspace::PullOutcome;
+    /// Switch to a branch (protocol 10).
+    GitSwitch / git_switch / "git.switch" [Operate, 10]: crate::workspace::Switch => crate::workspace::SwitchOutcome;
+    /// Rename a branch (protocol 10).
+    GitRenameBranch / git_rename_branch / "git.rename_branch" [Operate, 10]: crate::workspace::RenameBranch => crate::workspace::RenameOutcome;
+    /// Save, apply or drop a stash entry (protocol 10).
+    GitStash / git_stash / "git.stash" [Operate, 10]: crate::workspace::StashChanges => crate::workspace::StashOutcome;
+    /// A folder's entries (protocol 10).
+    ListDir / list_dir / "file.list" [Read, 10]: crate::workspace::ListDir => crate::workspace::DirListing;
+    /// A page of a file (protocol 10).
+    ReadFile / read_file / "file.read" [Read, 10]: crate::workspace::ReadFile => crate::workspace::FileRead;
+    /// Write a text file (protocol 10).
+    WriteFile / write_file / "file.write" [Operate, 10]: crate::workspace::WriteFile => crate::workspace::FileVersion;
+    /// Create a folder (protocol 10).
+    CreateDir / create_dir / "file.create_dir" [Operate, 10]: crate::workspace::CreateDir => Ack;
+    /// Move a file or folder (protocol 10).
+    RenamePath / rename_path / "file.rename" [Operate, 10]: crate::workspace::RenamePath => Ack;
+    /// Delete a file or folder (protocol 10).
+    DeletePath / delete_path / "file.delete" [Operate, 10]: crate::workspace::DeletePath => Ack;
+    /// Find files by name (protocol 10).
+    FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
+    /// Search inside files (protocol 10).
+    SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
 }
 
 /// Result of a call.
@@ -469,3 +335,6 @@ pub enum Outcome {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod conversation_tests;

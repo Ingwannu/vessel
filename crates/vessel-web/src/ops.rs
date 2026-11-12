@@ -93,7 +93,7 @@ pub(crate) async fn answer<S: NodeSource>(
         }
         Op::Pair { name, link } => registry
             .source()
-            .pair(name.name(), &link)
+            .pair(name.node_name(), &link)
             .await
             .map(|node| OpResult::Pair { node })
             .map_err(source),
@@ -103,7 +103,7 @@ pub(crate) async fn answer<S: NodeSource>(
         Op::Forget { node } => {
             registry
                 .source()
-                .forget(node.name())
+                .forget(node.node_name())
                 .await
                 .map_err(source)?;
             book_now(registry)
@@ -113,7 +113,7 @@ pub(crate) async fn answer<S: NodeSource>(
         Op::Rename { node, name } => {
             registry
                 .source()
-                .rename(node.name(), name.name())
+                .rename(node.node_name(), name.node_name())
                 .await
                 .map_err(source)?;
             book_now(registry)

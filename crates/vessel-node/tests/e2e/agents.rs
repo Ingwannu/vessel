@@ -37,7 +37,12 @@ pub(crate) async fn structured(creator: &NodeClient, fixture: &Fixture) -> Runni
         .await
         .unwrap()
         .id;
-    let mut stream = creator.follow(id, EventSeq::ZERO).await.unwrap();
+    following(creator, id, EventSeq::ZERO).await
+}
+
+/// The structured session `id`, followed from record `from` until it runs.
+pub(crate) async fn following(creator: &NodeClient, id: SessionId, from: EventSeq) -> Running {
+    let mut stream = creator.follow(id, from).await.unwrap();
     let mut seen = Vec::new();
     read_until(&mut stream, &mut seen, |record| {
         status_of(record) == Some(&SessionStatus::Running)

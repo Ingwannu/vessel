@@ -3305,6 +3305,7 @@ name = "vessel-node"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64 0.23.1",
  "bytes",
  "chrono",
  "clap",
@@ -3329,6 +3330,7 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+ "url",
  "vessel-client",
  "vessel-fleet",
  "vessel-harness",
@@ -3342,6 +3344,8 @@ dependencies = [
  "vessel-session",
  "vessel-store",
  "vessel-testkit",
+ "vessel-workspace",
+ "which",
 ]
 
 [[package]]
@@ -3492,6 +3496,7 @@ dependencies = [
  "futures-util",
  "getrandom 0.4.3",
  "rusqlite",
+ "rustix",
  "serde",
  "serde_json",
  "sha2 0.11.1",
@@ -3510,6 +3515,7 @@ version = "0.1.0"
 dependencies = [
  "agent-client-protocol",
  "axum",
+ "base64 0.23.1",
  "futures-util",
  "rustix",
  "serde",
@@ -3518,6 +3524,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
+ "url",
 ]
 
 [[package]]
@@ -3549,6 +3556,25 @@ dependencies = [
  "vessel-node",
  "vessel-proto",
  "vessel-testkit",
+]
+
+[[package]]
+name = "vessel-workspace"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "nix 0.31.3",
+ "serde",
+ "sha2 0.11.1",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "toml_edit",
+ "tracing",
+ "vessel-proc",
+ "vessel-proto",
+ "which",
 ]
 
 [[package]]

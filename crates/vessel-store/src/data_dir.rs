@@ -19,6 +19,11 @@
 //!                    directory's inherited ACL is relied on, see `files`)
 //!   mcp/             terminal sessions' MCP configuration files (ADR
 //!                    0012), one per live session, emptied at start
+//!   attachments/     files sent with prompts (ADR 0025), a folder per
+//!                    session (`<session>/<id>/<name>`), removed with its
+//!                    session; folders no row names are swept at start
+//!   uploads/         attachments being uploaded, one file each, emptied
+//!                    at start
 //! ```
 //!
 //! Every file is owner-only (0600 on Unix); see `files` for why and for
@@ -59,6 +64,12 @@ const MODELS_FILE: &str = "models.toml";
 const MCP_DIR: &str = "mcp";
 /// Where the node starts agents to ask what they offer (protocol 9).
 const PROBE_DIR: &str = "probe";
+/// Files sent with prompts, a folder per session (protocol 10, ADR 0025).
+const ATTACHMENTS_DIR: &str = "attachments";
+/// Attachments being uploaded (protocol 10, ADR 0025).
+const UPLOADS_DIR: &str = "uploads";
+/// The workspace folder's name in the data directory (protocol 10).
+const WORKSPACE_DIR: &str = "workspace";
 
 /// `profiles.toml` as read: its text, and whether other users can read it
 /// (it may hold secrets, so the node warns).
@@ -257,6 +268,34 @@ impl DataDir {
         Ok(dir)
     }
 
+    /// The node's workspace folder (protocol 10, ADR 0027): `worktrees/`
+    /// (the worktrees it makes, one folder per project), `logs/` (each
+    /// worktree's setup output), `no-hooks/` (an empty folder git's hooks
+    /// are pointed at) and `scratch/` (temporary files).
+    #[must_use]
+    pub fn workspace_dir(&self) -> PathBuf {
+        self.root.join(WORKSPACE_DIR)
+    }
+
+    /// Create the workspace folder and its four folders, owner-only.
+    /// Returns it.
+    ///
+    /// # Errors
+    /// A folder cannot be created.
+    pub fn prepare_workspace_dir(&self) -> Result<PathBuf, StoreError> {
+        let dir = self.workspace_dir();
+        for path in [
+            dir.clone(),
+            dir.join("worktrees"),
+            dir.join("logs"),
+            dir.join("no-hooks"),
+            dir.join("scratch"),
+        ] {
+            files::create_private_dir(&path).map_err(StoreError::io(&path))?;
+        }
+        Ok(dir)
+    }
+
     /// Where the node starts an agent to ask what it offers
     /// (`harness.options`, protocol 9): the working directory of every
     /// probe, one directory so the trace a probe may leave in a harness's
@@ -264,6 +303,22 @@ impl DataDir {
     #[must_use]
     pub fn probe_dir(&self) -> PathBuf {
         self.root.join(PROBE_DIR)
+    }
+
+    /// Where the files sent with prompts are kept (protocol 10, ADR
+    /// 0025): a folder per session, named by its id, which the store
+    /// removes when it removes the session.
+    #[must_use]
+    pub fn attachments_dir(&self) -> PathBuf {
+        self.root.join(ATTACHMENTS_DIR)
+    }
+
+    /// Where attachments being uploaded are staged (protocol 10, ADR
+    /// 0025), one file each until it is kept; the node empties it at
+    /// start, which drops every upload a previous run left open.
+    #[must_use]
+    pub fn uploads_dir(&self) -> PathBuf {
+        self.root.join(UPLOADS_DIR)
     }
 
     /// Create the probe directory owner-only. Returns it.

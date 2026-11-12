@@ -10,7 +10,7 @@
 //! - `process`: [`AgentProcess`], spawning through `vessel-proc` (own
 //!   process group) and starting the tasks below;
 //! - `driver`: the ACP connection and the session state machine
-//!   (handshake, prompt, cancel, permission round trip);
+//!   (handshake, prompt, cancel, permission and question round trips);
 //! - `transport`: the agent's stdio as the SDK's line transport, holding
 //!   lines back while the driver is behind (backpressure);
 //! - `handshake`: `initialize`, `session/new` or `session/load`, model,
@@ -22,13 +22,16 @@
 //! - `probe`: asking an agent what it offers without a session (protocol
 //!   9's `harness.options`);
 //! - `permissions`: pending permission requests, first answer wins;
+//! - `questions`: pending questions (ACP form elicitations, protocol 10),
+//!   first answer wins;
 //! - `mapper`: pure ACP-to-Vessel conversions, tested with fixtures;
 //! - `stderr`: harness stderr lines as `HarnessLog` events;
 //! - `input`, `output`: the public command and event ends.
 //!
-//! Client capabilities are empty: no `fs`, no `terminal`. Agents use their
+//! Client capabilities are small: no `fs`, no `terminal`. Agents use their
 //! own tools, as they do in a terminal, and Vessel does not re-implement
-//! them.
+//! them. Form elicitation (questions) only for a session that asks for it
+//! ([`AgentSetup::questions`]); never URL elicitation.
 //!
 //! [Decision Log]
 //! - Purpose: one client for every structured harness (ADR 0003).
@@ -42,6 +45,8 @@
 //! - Cost: the session state machine is written here (~300 lines), not
 //!   borrowed from the SDK.
 
+mod abilities;
+mod attached;
 mod driver;
 mod error;
 mod handshake;
@@ -54,17 +59,25 @@ mod output;
 mod permissions;
 mod probe;
 mod process;
+mod questions;
 mod recent;
 mod stderr;
 mod transport;
 
+pub use attached::{AttachmentBody, Attachments};
 pub use error::{AgentError, Disconnect, InputError};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT};
-pub use input::AgentInput;
+pub use input::{AgentInput, SteerOutcome};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
-pub use probe::{ProbeError, probe};
+pub use probe::{ProbeError, Probed, probe};
 pub use process::AgentProcess;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.
 pub use vessel_proc::{CommandSpec, Signal};
+
+/// The most permission requests, and apart the most questions, an agent
+/// session keeps waiting (protocol 10's bound). A newer one withdraws the
+/// oldest, answered `cancelled`; the session's projection of what waits
+/// keeps the same number, so the two drop the same one.
+pub const MAX_WAITING: usize = 64;

@@ -63,7 +63,8 @@
 //!   projection of its log, as the store's `sessions` row is: a turn
 //!   started is active, a permission asked is waiting on the owner, a turn
 //!   ended is idle, a cancelled one is interrupted until the next, any
-//!   final status is exited. A terminal has no turns: output is active,
+//!   final status is exited (in building as `exited`, ADR 0026; an archived
+//!   session is in the archive). A terminal has no turns: output is active,
 //!   and one resettable timer in the actor's loop turns it idle after a
 //!   quiet stretch (`terminal::QUIET`). [`board::derive()`] turns those facts
 //!   into a lane and a phrase. The info watch wakes only when the lane,
@@ -81,6 +82,23 @@
 //!   publishes as `renamed` in order with the log and answers once the info
 //!   has it. Only the actor publishes, so a title can never disagree with
 //!   the log the store rebuilds it from.
+//! - Marks (protocol 10, ADR 0026, `marks`): the node applies a mark in the
+//!   store and hands the store's result to [`SessionHandle::set_marks`];
+//!   the publisher notes each record that asks for attention.
+//!   [`SessionHandle::info`] adds both to the info, so a session the
+//!   runtime has carries the marks the store would give it.
+//! - Attachments (protocol 10, ADR 0025, `attachments`): a structured
+//!   session checks a prompt's attachments before it queues or sends it
+//!   and, right before it sends it, asks the node's loader
+//!   ([`AttachmentLoader`], given with [`SessionRuntime::with_attachments`])
+//!   for their bodies, awaiting the answer as it awaits the agent, so it
+//!   never blocks on file I/O; the log keeps the references only.
+//! - Starting again (protocol 10, ADR 0026, `again`):
+//!   [`SessionRuntime::start_again`] runs an ended structured session's
+//!   agent again with `session/load`, as a profile move does, its log
+//!   continuing at its stored `next_seq`; the session publishes nothing
+//!   until the node, having reopened its row in the store, opens its
+//!   [`Gate`].
 //! - Lifetime: an ended session stays in the runtime, ring and all, until
 //!   its owner calls `SessionRuntime::remove` (the node does once the store
 //!   has its whole log). Eviction is the owner's call because only the
@@ -88,24 +106,39 @@
 //!   either drop rings the store still lacks or keep them for nothing.
 
 mod activity;
+mod again;
+mod attachments;
 pub mod board;
 mod config;
+mod conversation;
+mod delivery;
 mod error;
 mod handle;
 mod lifecycle;
+mod marks;
 mod moving;
 mod publish;
+mod queue;
 mod ring;
 mod runtime;
 mod stop;
 mod structured;
 mod terminal;
 
+pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
+pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
-pub use error::{InputKind, ModeKind, RemoveError, SessionError};
+pub use error::{DeliveryError, InputKind, ModeKind, RemoveError, SessionError};
 pub use handle::SessionHandle;
 pub use moving::{MoveError, ProfileMove, Restart};
+pub use queue::QueueError;
 pub use ring::{Follow, FollowError};
 pub use runtime::{Created, LaunchOptions, SessionRuntime};
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
+/// What `SessionRuntime::probe` learned (re-exported so the node needs no
+/// edge to `vessel-agent`).
+pub use vessel_agent::Probed;
+/// What a loader answers with (`LoadAttachments`), re-exported for the
+/// same reason.
+pub use vessel_agent::{AttachmentBody, Attachments};

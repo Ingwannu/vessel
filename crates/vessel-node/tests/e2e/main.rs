@@ -13,7 +13,13 @@ mod across;
 #[cfg(test)]
 mod agents;
 #[cfg(test)]
+mod attachments;
+#[cfg(test)]
+mod attachments_sent;
+#[cfg(test)]
 mod callback;
+#[cfg(test)]
+mod conversation;
 #[cfg(test)]
 mod crowd;
 #[cfg(test)]
@@ -27,6 +33,8 @@ mod local;
 #[cfg(test)]
 mod lsp;
 #[cfg(test)]
+mod marks;
+#[cfg(test)]
 mod moving;
 #[cfg(test)]
 mod options;
@@ -35,6 +43,8 @@ mod profiles;
 #[cfg(test)]
 #[cfg(unix)]
 mod remote;
+#[cfg(test)]
+mod resume;
 #[cfg(test)]
 mod routing;
 #[cfg(test)]
@@ -48,8 +58,12 @@ mod support;
 #[cfg(test)]
 mod terminal;
 #[cfg(test)]
+mod tidying;
+#[cfg(test)]
 mod transfers;
 #[cfg(test)]
 mod transfers_across;
 #[cfg(test)]
 mod waiting;
+#[cfg(test)]
+mod workspace;

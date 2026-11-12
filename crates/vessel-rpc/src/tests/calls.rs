@@ -159,6 +159,57 @@ async fn unknown_methods_are_answered_by_id() {
     assert_eq!(error.code, ErrorCode::InvalidRequest);
 }
 
+/// Protocol 10: an attachment's name is one file name, checked where the
+/// frame is decoded, so a name that would leave its folder never reaches
+/// the node's handler.
+#[tokio::test]
+async fn an_attachment_name_that_leaves_its_folder_never_reaches_the_node() {
+    let (mut client_end, server_end) = pair();
+    let mut served = serve(server_end);
+    let hello = ClientFrame::Hello(vessel_proto::Hello {
+        protocol: ProtocolRange::CURRENT,
+        client: client_info(),
+    });
+    client_end
+        .send(serde_json::to_string(&hello).unwrap())
+        .await
+        .unwrap();
+    let _welcome = client_end.next().await.unwrap().unwrap();
+    let session = session(1);
+    for (id, bad) in [
+        (1_u64, "../token"),
+        (2, "a/b"),
+        (3, "a\\\\b"),
+        (4, ".."),
+        (5, ""),
+    ] {
+        let call = format!(
+            r#"{{"type":"request","id":{id},"call":{{"method":"attachment.begin","params":{{"session":"{session}","name":"{bad}","mime":"text/plain","size":1}}}}}}"#
+        );
+        client_end.send(call).await.unwrap();
+        let answer = client_end.next().await.unwrap().unwrap();
+        let ServerFrame::Response {
+            outcome: Outcome::Err(error),
+            ..
+        } = serde_json::from_str(&answer).unwrap()
+        else {
+            panic!("expected an error response for {bad:?}, got {answer}");
+        };
+        assert_eq!(error.code, ErrorCode::InvalidRequest, "{bad:?}");
+    }
+    assert!(served.seen.try_recv().is_err(), "no call reached the node");
+    // The same frame with a file name does.
+    let call = format!(
+        r#"{{"type":"request","id":9,"call":{{"method":"attachment.begin","params":{{"session":"{session}","name":"notes.txt","mime":"text/plain","size":1}}}}}}"#
+    );
+    client_end.send(call).await.unwrap();
+    let _answer = client_end.next().await.unwrap().unwrap();
+    assert_eq!(
+        served.seen.recv().await.unwrap().method(),
+        <vessel_proto::conversation::BeginUpload as Request>::METHOD
+    );
+}
+
 #[tokio::test]
 async fn calls_over_the_limit_are_refused_while_cancel_still_gets_through() {
     let (client_end, server_end) = pair();

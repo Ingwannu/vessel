@@ -26,16 +26,14 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
 
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventPage, EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo,
-    SessionInput, SessionOption, SessionSpec, SessionTitle,
+    EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo, SessionOption,
+    SessionSpec, SessionTitle,
 };
-use vessel_session::{
-    Created, FollowError, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime,
-};
+use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
 
 use crate::agents::Agents;
@@ -71,6 +69,12 @@ pub(crate) struct Sessions {
     agents: Arc<Agents>,
     /// Model routes: a session's model token is retired when it ends.
     models: Arc<Models>,
+    /// Serializes marks, from the store's write to the handle's copy
+    /// (`marks`), and a session's start again from its becoming visible to
+    /// its handle taking the store's marks (`again`).
+    marking: tokio::sync::Mutex<()>,
+    /// Sessions being started again (`again`), one call each.
+    claims: again::Claims,
 }
 
 impl Sessions {
@@ -88,6 +92,8 @@ impl Sessions {
             tasks,
             agents,
             models,
+            marking: tokio::sync::Mutex::new(()),
+            claims: again::Claims::default(),
         }
     }
 
@@ -119,29 +125,9 @@ impl Sessions {
     ) -> Result<SessionInfo, ServiceError> {
         let Created { handle, durable } = self.runtime.create_with(spec, options).await?;
         let id = handle.id();
-        self.agents.started(id, handle.clone());
-        self.models.started(id, handle.clone());
-        // The agent's credential dies with the session (ADR 0013), and so
-        // does its model token (ADR 0015).
-        let ending = handle.clone();
-        let agents = Arc::clone(&self.agents);
-        let models = Arc::clone(&self.models);
-        drop(self.tasks.spawn(async move {
-            let _final = ending.ended().await;
-            agents.retire(id);
-            models.retire(id);
-        }));
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
-        let (durability, watching) = watch::channel(Durability::Through(EventSeq::ZERO));
-        let previous = self
-            .durability
-            .write()
-            .unwrap_or_else(PoisonError::into_inner)
-            .insert(id, watching);
-        if previous.is_some() {
-            tracing::error!(session = %id, "session id created twice");
-        }
+        let durability = self.track(&handle, EventSeq::ZERO);
         if let Err(error) = self.store.create_session(handle.info()).await {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
@@ -160,13 +146,44 @@ impl Sessions {
             return Err(error.into());
         }
         let info = handle.info();
+        self.persist(handle, durable, durability);
+        Ok(info)
+    }
+
+    /// Make a session the runtime has just started (or started again)
+    /// visible: its agent's and its model token's places take its handle,
+    /// and its durability entry says every record before `stored` is
+    /// committed (none for a new session, its stored log for one started
+    /// again).
+    fn track(&self, handle: &SessionHandle, stored: EventSeq) -> watch::Sender<Durability> {
+        let id = handle.id();
+        self.agents.started(id, handle.clone());
+        self.models.started(id, handle.clone());
+        let (durability, watching) = watch::channel(Durability::Through(stored));
+        let previous = self
+            .durability
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(id, watching);
+        if previous.is_some() {
+            tracing::error!(session = %id, "session id created twice");
+        }
+        durability
+    }
+
+    /// Drain the session's records into the store, then hand it over.
+    fn persist(
+        self: &Arc<Self>,
+        handle: SessionHandle,
+        durable: mpsc::Receiver<Arc<EventRecord>>,
+        durability: watch::Sender<Durability>,
+    ) {
         let sessions = Arc::clone(self);
         let store = self.store.clone();
         drop(self.tasks.spawn(async move {
             let persisted = persist::run(store, handle.clone(), durable, durability).await;
             sessions.hand_over(handle, persisted).await;
         }));
-        Ok(info)
     }
 
     /// The session's log is complete in the store (or never will be): let
@@ -176,11 +193,19 @@ impl Sessions {
     /// the session has ended and `remove` accepts it. Otherwise persistence
     /// stopped early and killed the session; it is removed once it has
     /// ended.
+    ///
+    /// The agent's credential dies with the session (ADR 0013), and so
+    /// does its model token (ADR 0015): both already refuse once its end is
+    /// visible (`SessionHandle::has_ended`), and are removed here, before
+    /// the store serves the session, so a run that starts it again
+    /// (`again`) never has its own places taken by this run's end.
     async fn hand_over(&self, handle: SessionHandle, persisted: Persisted) {
         let id = handle.id();
         if persisted == Persisted::Incomplete {
             let _final = handle.ended().await;
         }
+        self.agents.retire(id);
+        self.models.retire(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }
@@ -246,22 +271,48 @@ impl Sessions {
         Ok(list)
     }
 
+    /// The live sessions and the folders they run in (a session without
+    /// one runs in the node's home, which no worktree is in): what keeps a
+    /// worktree from being removed (protocol 10).
+    pub(crate) fn live_folders(&self) -> Vec<(SessionId, PathBuf)> {
+        self.runtime
+            .list()
+            .into_iter()
+            .filter(|info| info.status.is_live())
+            .filter_map(|info| Some((info.id, info.spec.cwd?)))
+            .collect()
+    }
+
+    /// Whether `id` is gone for good: the store no longer has it (deleted,
+    /// or dropped by retention), and the runtime has nothing of it but its
+    /// end (protocol 10's tidying). Retention prunes a session in the
+    /// commit of its final record, before the runtime lets it go, so an
+    /// ended session the runtime still holds counts; a session is the
+    /// runtime's, live, from its start and the store's from its first row,
+    /// so one being created never does. A store that cannot answer says it
+    /// is not gone, so nothing is tidied on a guess.
+    pub(crate) async fn gone(&self, id: SessionId) -> bool {
+        if self
+            .runtime
+            .get(id)
+            .is_some_and(|handle| !handle.has_ended())
+        {
+            return false;
+        }
+        match self.store.session(id).await {
+            Ok(found) => found.is_none(),
+            Err(error) => {
+                tracing::warn!(session = %id, %error, "could not tell whether a session is gone");
+                false
+            }
+        }
+    }
+
     pub(crate) async fn get(&self, id: SessionId) -> Result<SessionInfo, ServiceError> {
         Ok(match self.find(id).await? {
             Found::Live { handle, .. } => handle.info(),
             Found::Stored(info) => info,
         })
-    }
-
-    pub(crate) async fn send(
-        &self,
-        id: SessionId,
-        input: SessionInput,
-    ) -> Result<(), ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.send(input).await?),
-            Found::Stored(_) => Err(ServiceError::Ended(id)),
-        }
     }
 
     /// Move a live session to another profile (`profiles::moving` plans it).
@@ -334,7 +385,7 @@ impl Sessions {
         profile: Profile,
         proxy: Option<ModelProxy>,
         dir: PathBuf,
-    ) -> Result<Vec<SessionOption>, ServiceError> {
+    ) -> Result<vessel_session::Probed, ServiceError> {
         Ok(self
             .runtime
             .probe(harness, Some(profile), proxy, dir)
@@ -349,136 +400,14 @@ impl Sessions {
         }
         Ok(())
     }
-
-    /// A page of the log. For a live session, first waits until everything
-    /// the session had produced when the call arrived is committed, so the
-    /// page (and `at_end`) reflects the log as of the call, not the store's
-    /// lag; and records retention already pruned from the store but still
-    /// in the session's ring come from the ring (see [`with_ring`]).
-    pub(crate) async fn read(
-        &self,
-        id: SessionId,
-        from: EventSeq,
-        limit: u32,
-    ) -> Result<EventPage, ServiceError> {
-        match self.find(id).await? {
-            Found::Live {
-                handle,
-                mut durability,
-            } => {
-                let produced = handle.info().next_seq;
-                persist::wait_until(id, &mut durability, produced).await?;
-                let page = self.store.read_events(id, from, limit).await?;
-                Ok(with_ring(page, &handle, from, limit))
-            }
-            Found::Stored(_) => Ok(self.store.read_events(id, from, limit).await?),
-        }
-    }
-
-    /// [`read`](Self::read), but with nothing at `from` yet in a live
-    /// session, first wait up to `wait` for a record there or for the
-    /// session to end (`session.read` with `wait`, protocol 6).
-    ///
-    /// [Decision Log]
-    /// - Purpose: an agent waits for another node's session to finish a
-    ///   turn without a subscription across hops (ADR 0013: a long poll,
-    ///   as `fleet.watch`).
-    /// - Choice: follow the session's ring from `from` and wait for its
-    ///   first record there, or for the live stream to close (the session
-    ///   ended); then read as usual, so the page is the same as without
-    ///   waiting. Records already at `from`, an ended or stored session,
-    ///   and a `from` the read refuses all answer at once.
-    /// - Not the info watch: `next_seq` there moves with every record but
-    ///   does not notify (that would wake every info watcher on every
-    ///   event), so a wait on it slept through a turn's records until a
-    ///   status changed or the wait ran out.
-    /// - Bound: the caller caps `wait` ([`ReadEvents::MAX_WAIT`]), so a
-    ///   waiting call holds one of the connection's call slots for at most
-    ///   a minute.
-    ///
-    /// [`ReadEvents::MAX_WAIT`]: vessel_proto::ReadEvents::MAX_WAIT
-    pub(crate) async fn read_waiting(
-        &self,
-        id: SessionId,
-        from: EventSeq,
-        limit: u32,
-        wait: std::time::Duration,
-    ) -> Result<EventPage, ServiceError> {
-        if let Found::Live { handle, .. } = self.find(id).await?
-            && let Ok(follow) = handle.follow(from)
-            && follow.cached.is_empty()
-        {
-            // A record, a lag (records landed) or the end: read now.
-            let mut live = follow.live;
-            if tokio::time::timeout(wait, live.recv()).await.is_err() {
-                tracing::trace!(session = %id, "a waiting read found nothing new");
-            }
-        }
-        self.read(id, from, limit).await
-    }
 }
 
-/// `page`, read from the store for a live session, unless retention pruned
-/// records at its start that the session's ring still holds: then the page
-/// comes from the ring, starting at `from` or at the ring's oldest record.
-///
-/// [Decision Log]
-/// - Problem: a follower that lags catches up with `session.read`. When the
-///   retention budget is smaller than the ring (`max_session_bytes` under
-///   about 16 MiB with the default ring), the store can have dropped
-///   records the ring still has. A store-only page then jumped over them,
-///   and the follower reported them missing although the node had them. A
-///   test waiting for output in that range waited forever.
-/// - Alternatives: have the client resubscribe instead of reading (the
-///   subscription path already prefers the ring), but paging exists so a
-///   slow client catches up at its own pace without lagging the broadcast
-///   again; or forbid budgets under the ring size, which would make
-///   retention depend on a runtime setting.
-/// - Choice: the read prefers the ring whenever the store's page does not
-///   start at `from` and the ring reaches further back. Retention prunes a
-///   prefix and the ring holds the newest records, so either source alone
-///   is a gap-free suffix; no merge is needed.
-/// - Cost: one ring lookup per read of a live session whose store page has
-///   a gap, which only happens after pruning.
-fn with_ring(page: EventPage, handle: &SessionHandle, from: EventSeq, limit: u32) -> EventPage {
-    let stored_from = page.records.first().map(|record| record.seq);
-    if stored_from == Some(from) {
-        return page;
-    }
-    let follow = match handle.follow(from) {
-        Ok(follow) => follow,
-        Err(FollowError::Gap { oldest_cached }) => {
-            // The ring starts later than `from`: it helps only if it starts
-            // earlier than the store's page.
-            if stored_from.is_some_and(|stored| stored <= oldest_cached) {
-                return page;
-            }
-            match handle.follow(oldest_cached) {
-                Ok(follow) => follow,
-                // The ring moved on meanwhile; the store's page stands.
-                Err(FollowError::Gap { .. } | FollowError::Ahead { .. }) => return page,
-            }
-        }
-        Err(FollowError::Ahead { .. }) => return page,
-    };
-    let cached = follow.cached;
-    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
-    let records: Vec<EventRecord> = cached
-        .iter()
-        .take(limit)
-        .map(|record| EventRecord::clone(record))
-        .collect();
-    let Some(last) = records.last() else {
-        return page;
-    };
-    EventPage {
-        // `None` only for a log that is full; nothing follows its last
-        // record, so asking for it again is as good an answer as any.
-        next: last.seq.next().unwrap_or(last.seq),
-        at_end: cached.len() <= limit,
-        records,
-    }
-}
+// Protocol 10's marks and deletion, and starting an ended session again;
+// the conversation's input; reading the log.
+pub(crate) mod again;
+mod conversation;
+mod marks;
+mod read;
 
 #[cfg(test)]
 mod tests;

@@ -165,8 +165,43 @@ pub(crate) enum CliError {
     Stream(#[from] StreamError),
     #[error("no session matches `{0}`")]
     NoSuchSession(String),
+    /// A project or worktree selector that names none, or more than one
+    /// (protocol 10).
+    #[error("{0}")]
+    Workspace(String),
     #[error("`{prefix}` matches {matches} sessions; type more of the id")]
     AmbiguousSession { prefix: String, matches: usize },
+    /// An id prefix naming none of a session's queued prompts or waiting
+    /// requests.
+    #[error("no {what} matches `{prefix}`")]
+    NoMatch { what: &'static str, prefix: String },
+    /// ... or several.
+    #[error("`{prefix}` matches {matches} of the {what}s; type more of the id")]
+    AmbiguousMatch {
+        what: &'static str,
+        prefix: String,
+        matches: usize,
+    },
+    /// A file `vessel send --attach` could not read.
+    #[error("cannot attach {}", path.display())]
+    Attach {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    /// A file whose name (or type) cannot be an attachment's.
+    #[error("cannot attach {}", path.display())]
+    NotAttachable {
+        path: PathBuf,
+        #[source]
+        source: vessel_proto::conversation::InvalidText,
+    },
+    /// A file that changed size while it was sent.
+    #[error("{} changed while it was sent; nothing was attached", .0.display())]
+    AttachmentChanged(PathBuf),
+    /// Values that do not answer the question.
+    #[error(transparent)]
+    Answer(#[from] vessel_client::compose::FillError),
     #[error(transparent)]
     Node(#[from] NodeError),
     /// `vessel fleet init` did not make this node a home.

@@ -214,7 +214,10 @@ fn printed(record: &EventRecord) -> String {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => String::new(),
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => String::new(),
     }
 }
 

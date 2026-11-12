@@ -31,13 +31,25 @@
 //!   appended, so the summary can never disagree with the history.
 //! - A stored session's place on the board (`SessionInfo::board`, protocol
 //!   8, ADR 0019) is derived when its row is read, never stored: an ended
-//!   session is in the archive, its last activity its end; a live one has
-//!   none from the store (the node serves it from its runtime).
+//!   session is in the archive once archived and in building as `exited`
+//!   until then (ADR 0026), its last activity its end; a live one has none
+//!   from the store (the node serves it from its runtime).
+//! - A person's marks (protocol 10, ADR 0026) are columns of the row, and
+//!   `unread` is derived when it is read, from the last record asking for
+//!   attention (a projection of the log) and the last `read`. Deleting a
+//!   session, or retention pruning it, removes its attachment folder once
+//!   the deletion is committed.
+//! - Attachments (protocol 10, ADR 0025): a row each and the bytes under
+//!   `attachments/<session>/<id>/<name>`, put there and read back only as
+//!   the regular file of the recorded size and SHA-256, never through a
+//!   link (`attachments::files`); folders no row names are swept at open.
 //! - Cost: a C build step (bundled `SQLite`), and writes are acknowledged per
 //!   batch commit rather than immediately.
 //!
 //! [`EventRecord`]: vessel_proto::EventRecord
 
+mod again;
+mod attachments;
 mod codec;
 mod config;
 mod data_dir;
@@ -46,14 +58,19 @@ mod error;
 mod files;
 mod lock;
 mod log;
+mod marks;
 mod node_key;
 mod reader;
 mod recovery;
 mod schema;
 mod store;
 mod token;
+mod workspace;
 mod writer;
 
+pub use again::EndedSession;
+pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
+pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, StoredDevice};
@@ -62,3 +79,4 @@ pub use lock::{NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
+pub use workspace::StoredWorkspace;

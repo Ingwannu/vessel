@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use vessel_proc::{CommandSpec, Signal};
-use vessel_proto::{AgentEvent, SessionOption};
+use vessel_proto::{AgentAbilities, AgentEvent, SessionOption};
 
 use crate::error::{AgentError, Disconnect};
 use crate::handshake::AgentSetup;
@@ -75,6 +75,15 @@ impl std::fmt::Display for Said<'_> {
     }
 }
 
+/// What a probe learned from the handshake.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Probed {
+    /// The options the agent offers by default.
+    pub options: Vec<SessionOption>,
+    /// What it says it can do (protocol 10).
+    pub abilities: AgentAbilities,
+}
+
 /// How the handshake ended, before the log is attached.
 enum Unready {
     Disconnected(Disconnect),
@@ -82,18 +91,22 @@ enum Unready {
 }
 
 /// Start `command` with `setup` (its `model`, `resume` and `options`
-/// should be empty: a probe asks what the agent offers by default), take
-/// the options from the handshake and stop the agent. Bounded by
-/// `setup.handshake_timeout` plus [`STOP_GRACE`].
+/// should be empty: a probe asks what the agent offers by default; its
+/// `questions` is ignored, a probe never advertises them), take
+/// the options and abilities from the handshake and stop the agent.
+/// Bounded by `setup.handshake_timeout` plus twice [`STOP_GRACE`].
 ///
 /// # Errors
 /// [`ProbeError::Spawn`] when the program cannot start,
 /// [`ProbeError::Disconnected`] or [`ProbeError::TimedOut`] when the
 /// handshake does not complete.
-pub async fn probe(
-    command: &CommandSpec,
-    setup: AgentSetup,
-) -> Result<Vec<SessionOption>, ProbeError> {
+pub async fn probe(command: &CommandSpec, setup: AgentSetup) -> Result<Probed, ProbeError> {
+    // Never questions, whatever the caller set: nobody watches a probe,
+    // and what the agent offers does not depend on it.
+    let setup = AgentSetup {
+        questions: false,
+        ..setup
+    };
     let limit = setup.handshake_timeout;
     let (mut agent, _input, mut outputs) =
         AgentProcess::spawn(command, setup).map_err(ProbeError::Spawn)?;
@@ -105,16 +118,14 @@ pub async fn probe(
         while let Some(output) = outputs.next().await {
             match output {
                 AgentOutput::Options(listed) => options = Some(listed),
-                AgentOutput::Event(AgentEvent::Ready { .. }) => {
-                    return Ok(options.take().unwrap_or_default());
+                AgentOutput::Event(AgentEvent::Ready { abilities, .. }) => {
+                    return Ok(Probed {
+                        options: options.take().unwrap_or_default(),
+                        abilities: abilities.unwrap_or_default(),
+                    });
                 }
-                AgentOutput::Event(AgentEvent::HarnessLog { line }) => {
-                    if log.len() == LOG_LINES {
-                        let _oldest = log.remove(0);
-                    }
-                    log.push(line);
-                }
-                AgentOutput::Event(_) => {}
+                AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),
+                AgentOutput::Event(_) | AgentOutput::Commands(_) | AgentOutput::Usage(_) => {}
                 AgentOutput::Disconnected(disconnect) => {
                     return Err(Unready::Disconnected(disconnect));
                 }
@@ -126,10 +137,32 @@ pub async fn probe(
         .await
         .unwrap_or(Err(Unready::TimedOut));
     stop(&mut agent).await;
+    if outcome.is_err() {
+        // The agent's stderr is read apart from its ACP stream, so the
+        // lines it wrote before going away can come after the disconnect.
+        // It has stopped now, so they end soon; bounded all the same (a
+        // child of its own could hold stderr open).
+        let rest = async {
+            while let Some(output) = outputs.next().await {
+                if let AgentOutput::Event(AgentEvent::HarnessLog { line }) = output {
+                    keep(&mut log, line);
+                }
+            }
+        };
+        let _drained = tokio::time::timeout(STOP_GRACE, rest).await;
+    }
     outcome.map_err(|unready| match unready {
         Unready::Disconnected(disconnect) => ProbeError::Disconnected { disconnect, log },
         Unready::TimedOut => ProbeError::TimedOut { limit, log },
     })
+}
+
+/// Keep `line`, the oldest dropped past [`LOG_LINES`].
+fn keep(log: &mut Vec<String>, line: String) {
+    if log.len() == LOG_LINES {
+        let _oldest = log.remove(0);
+    }
+    log.push(line);
 }
 
 /// Ask the agent to exit, then kill its group after [`STOP_GRACE`].

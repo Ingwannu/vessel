@@ -1,15 +1,24 @@
 //! The command line, parsed once into typed values.
 
-use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand, ValueEnum};
-use vessel_client::book::NodeName;
-use vessel_client::{BearerToken, RemotePath};
-use vessel_node::fleet::SkipGlob;
-use vessel_proto::{EventSeq, HarnessKind, NodeId, ProfileName, Scope, SecretName};
+use clap::{Args, Parser, Subcommand};
+use vessel_client::BearerToken;
+use vessel_proto::{EventSeq, HarnessKind, ProfileName};
 
 use crate::selector::SessionSelector;
+
+mod conversation;
+mod fleet;
+mod node;
+mod nodes;
+mod workspace;
+
+pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
+pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
+pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
+pub(crate) use nodes::{FromStdin, NodesCommand};
+pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
 #[derive(Debug, Parser)]
@@ -95,12 +104,7 @@ pub(crate) enum Command {
         from: EventSeq,
     },
     /// Send a line (terminal session) or a prompt (structured session).
-    Send {
-        /// Session id, or a unique prefix of one.
-        session: SessionSelector,
-        /// What to send.
-        text: String,
-    },
+    Send(Send),
     /// Print a session's log.
     Log {
         /// Session id, or a unique prefix of one.
@@ -125,10 +129,22 @@ pub(crate) enum Command {
     /// server), with its endpoint and the session's credential in the
     /// environment; it is not run by hand.
     Mcp,
-    /// Change a session in place.
+    /// Change a session in place: its profile, its queue, answers to its
+    /// agent, marks; start it again, copy, move or delete it.
     Session {
         #[command(subcommand)]
         command: SessionCommand,
+    },
+    /// The node's projects: folders and repositories it works in
+    /// (protocol 10, ADR 0027).
+    Project {
+        #[command(subcommand)]
+        command: ProjectCommand,
+    },
+    /// Worktrees: a folder and a branch of a project's own, per session.
+    Worktree {
+        #[command(subcommand)]
+        command: WorktreeCommand,
     },
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs
@@ -212,6 +228,8 @@ pub(crate) enum SessionCommand {
         #[command(flatten)]
         to: CopyTo,
     },
+    #[command(flatten)]
+    Conversation(ConversationCommand),
 }
 
 /// Where `vessel session copy|move` takes a conversation.
@@ -229,253 +247,6 @@ pub(crate) struct CopyTo {
     /// The working directory there, absolute; default: the session's own.
     #[arg(long)]
     pub(crate) cwd: Option<PathBuf>,
-}
-
-#[derive(Debug, Subcommand)]
-pub(crate) enum NodeCommand {
-    /// Start a node and serve until Ctrl-C.
-    Start {
-        /// Operator-owned LSP roots and executable overrides (JSON).
-        #[arg(long)]
-        lsp_config: Option<PathBuf>,
-        /// Saved-source root allowed to Read callers, including the fleet (repeatable).
-        #[arg(long = "lsp-root")]
-        lsp_roots: Vec<PathBuf>,
-        /// Trusted root where LSP may run build scripts/proc macros (repeatable).
-        #[arg(long = "lsp-full-analysis-root")]
-        lsp_full_roots: Vec<PathBuf>,
-        /// Address to listen on.
-        #[arg(long, env = "VESSEL_BIND", default_value = "127.0.0.1:7077")]
-        bind: SocketAddr,
-        /// Node name shown to clients (defaults to the hostname).
-        #[arg(long, env = "VESSEL_NAME")]
-        name: Option<String>,
-    },
-    /// Install this client's vesseld on an SSH node (`--node`, or the
-    /// default node). Nothing is restarted: a running node keeps its
-    /// version until `vessel node update`.
-    Install(Install),
-    /// Install this client's vesseld on an SSH node and restart the node
-    /// into it, as its live sessions allow.
-    Update(Update),
-    /// Show the node: version, state (serving or draining), live sessions.
-    Status,
-    /// Make a single-use link that pairs a new device with the node (needs
-    /// the `admin` scope). Prints the link, and a QR code on a terminal.
-    Pair {
-        /// Name for the device on the node (else it names itself).
-        #[arg(long)]
-        label: Option<String>,
-        /// How long the link works: `90s`, `10m`, `2h` (at most `24h`).
-        #[arg(long, default_value = "10m", value_parser = ttl_secs)]
-        ttl: u32,
-    },
-    /// List the node's paired devices, or revoke one.
-    Devices {
-        #[command(subcommand)]
-        command: Option<DevicesCommand>,
-    },
-}
-
-/// `vessel fleet ...`. `init`, `join`, `leave`, `status` and `restore` act
-/// on the node of this machine's data directory (`--data-dir`), running or
-/// not; `invite`, `members` and `forget` talk to a node (`--node`, the
-/// home).
-#[derive(Debug, Subcommand)]
-pub(crate) enum FleetCommand {
-    /// Make this node the fleet's home: write `fleet.toml`, naming the
-    /// instructions file and skills directory every member gets.
-    Init {
-        /// The instructions file (`~/.codex/AGENTS.md`, say).
-        #[arg(long)]
-        instructions: Option<PathBuf>,
-        /// The skills directory (`~/.codex/skills`, say).
-        #[arg(long)]
-        skills: Option<PathBuf>,
-        /// Names to leave out (`*` and `?` within one name), such as
-        /// skills another tool manages; repeatable.
-        #[arg(long = "skip", value_name = "GLOB")]
-        skip: Vec<SkipGlob>,
-    },
-    /// Make a single-use link for a node to join this home (needs the
-    /// `admin` scope on the home). Prints the link, and a QR code on a
-    /// terminal.
-    Invite {
-        /// Name for the member on the home (else it names itself).
-        #[arg(long)]
-        label: Option<String>,
-        /// How long the link works: `90s`, `10m`, `2h` (at most `24h`).
-        #[arg(long, default_value = "10m", value_parser = ttl_secs)]
-        ttl: u32,
-        /// Also let the member pass calls through this home to the fleet's
-        /// other nodes (the `relay` scope), for its agents and devices.
-        #[arg(long)]
-        relay: bool,
-    },
-    /// Join the fleet whose home made the link: paste it at the prompt, or
-    /// pipe it in with `--yes` (never on the command line).
-    Join {
-        /// Join without asking, after checking the key's fingerprint.
-        #[arg(long)]
-        yes: bool,
-        /// What the home may do on this node, for calls from the fleet's
-        /// other nodes: scopes separated by commas, or `none`.
-        #[arg(long, default_value = "read,operate", value_parser = grant_scopes)]
-        grant: GrantScopes,
-    },
-    /// Stop following the home. The files it wrote stay as they are.
-    Leave,
-    /// This node's place in the fleet: its role, what it last applied, and
-    /// the files it left alone and why.
-    Status,
-    /// The home's members and what each last applied (needs `admin`).
-    Members,
-    /// Let a member node grant again under a new key (it was reinstalled)
-    /// or a new name (needs `admin` on the home).
-    ///
-    /// The home binds each node id to the key and name of its first grant
-    /// for good; this forgets that binding and the node's grants, and
-    /// records it. From then on any member device invited may take the id
-    /// and name, and the first to claim them keeps them: invite only that
-    /// node next (`vessel fleet invite`), join it, and invite others after
-    /// it has joined. Every invitation still outstanding on the home is
-    /// withdrawn and pairings in progress are refused, whoever they were
-    /// for; make new ones then. Revoke any of the node's old devices that
-    /// should not sync any more.
-    Forget {
-        /// The node's id (`vessel fleet members`, `list_nodes`).
-        node: NodeId,
-    },
-    /// Bring back fleet files deleted here: one file, or every one below a
-    /// directory. The node writes them again within a few seconds.
-    Restore {
-        /// The deleted file, or a directory.
-        path: PathBuf,
-    },
-    /// Profiles' memory, copied between profiles and nodes on demand.
-    Memory {
-        #[command(subcommand)]
-        command: MemoryCommand,
-    },
-    /// This node's secrets, which fill the fleet's MCP servers here
-    /// (`secrets.toml`); they never leave this node.
-    Secret {
-        #[command(subcommand)]
-        command: SecretCommand,
-    },
-}
-
-/// What a member grants its home (`vessel fleet join --grant`).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct GrantScopes(pub(crate) Vec<Scope>);
-
-fn grant_scopes(text: &str) -> Result<GrantScopes, String> {
-    if text.trim() == "none" {
-        return Ok(GrantScopes(Vec::new()));
-    }
-    let mut scopes = Vec::new();
-    for name in text.split(',').map(str::trim) {
-        let scope = Scope::ALL
-            .into_iter()
-            .find(|scope| scope.as_str() == name)
-            .ok_or_else(|| {
-                format!("`{name}` is not a scope (read, operate, admin, sync, relay, or `none`)")
-            })?;
-        if !scopes.contains(&scope) {
-            scopes.push(scope);
-        }
-    }
-    Ok(GrantScopes(scopes))
-}
-
-/// `vessel fleet memory ...`.
-#[derive(Debug, Subcommand)]
-pub(crate) enum MemoryCommand {
-    /// Copy a profile's memory to another profile or node (needs `admin`
-    /// there). Files that differ are written beside the existing ones
-    /// (`<name>.vessel-incoming`); nothing is overwritten.
-    Copy {
-        /// The node it comes from (as for --node); default: --node.
-        #[arg(long)]
-        from: Option<String>,
-        /// The profile it comes from; default: Claude Code's default.
-        #[arg(long)]
-        from_profile: Option<ProfileName>,
-        /// One project's memory (its working directory on that node);
-        /// default: all of the profile's memory.
-        #[arg(long)]
-        from_project: Option<PathBuf>,
-        /// The node it goes to (as for --node); default: --node.
-        #[arg(long)]
-        to: Option<String>,
-        /// The profile it goes to; default: its harness's default profile.
-        #[arg(long)]
-        profile: Option<ProfileName>,
-        /// The project it goes to, absolute; default: the same directory.
-        #[arg(long, requires = "from_project")]
-        project: Option<PathBuf>,
-    },
-}
-
-/// `vessel fleet secret ...`.
-#[derive(Debug, Subcommand)]
-pub(crate) enum SecretCommand {
-    /// Set a secret: typed at a prompt (not shown), or piped in; never on
-    /// the command line, where other users can read it.
-    Set {
-        /// Its name, as the fleet's MCP servers refer to it.
-        name: SecretName,
-    },
-    /// List the secrets set on this node (names only).
-    List,
-    /// Delete a secret.
-    Delete {
-        /// Its name.
-        name: SecretName,
-    },
-    /// Copy a secret to another node of the fleet, which keeps it under
-    /// the same name. That node must have granted the fleet's home `admin`
-    /// (`vessel fleet join --grant read,operate,admin`).
-    Copy {
-        /// Its name.
-        name: SecretName,
-        /// The node's id, whole (`vessel fleet members` on the home, or
-        /// `vessel status` there): a value goes only to the node named
-        /// exactly, never to one a name or a prefix might also match.
-        #[arg(long)]
-        to: NodeId,
-    },
-}
-
-/// `vessel node devices ...`.
-#[derive(Debug, Subcommand)]
-pub(crate) enum DevicesCommand {
-    /// Revoke a device: it is refused from now on and its open connections
-    /// close. Other devices are not affected.
-    Revoke {
-        /// The device's id, or a unique prefix of it.
-        device: String,
-    },
-}
-
-/// `--pair` reads its link from standard input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct FromStdin;
-
-/// `--pair` or `--pair -`, and nothing else: a link on the command line is
-/// readable by every user of the machine (`ps`, `/proc`) and stays in the
-/// shell's history, so someone else could redeem it first.
-fn link_from_stdin(text: &str) -> Result<FromStdin, String> {
-    if text == "-" {
-        return Ok(FromStdin);
-    }
-    Err(
-        "the pairing link is read from standard input, never from the command line, where \
-         other users of this machine can read it and your shell history keeps it. Make a new \
-         link with `vessel node pair` (this one has been exposed), then run `vessel nodes add \
-         NAME --pair` and paste it"
-            .to_owned(),
-    )
 }
 
 /// Longest pairing link lifetime, as the node allows (ADR 0010).
@@ -509,117 +280,6 @@ fn ttl_secs(text: &str) -> Result<u32, String> {
     Ok(secs)
 }
 
-/// `vessel node update`.
-#[derive(Debug, Args)]
-pub(crate) struct Update {
-    /// With live sessions: stop once the last one has ended (the node
-    /// refuses new sessions meanwhile).
-    #[arg(long, conflicts_with = "now")]
-    pub(crate) when_idle: bool,
-    /// With live sessions: stop now; they end interrupted (asks first).
-    #[arg(long)]
-    pub(crate) now: bool,
-    /// Do not ask before `--now` interrupts sessions.
-    #[arg(long, requires = "now")]
-    pub(crate) yes: bool,
-    /// Where vesseld comes from (see `vessel node install`).
-    #[arg(long, value_enum, default_value_t = Source::Auto)]
-    pub(crate) from: Source,
-    /// The local vesseld build to upload (implies `--from local`).
-    #[arg(long)]
-    pub(crate) vesseld: Option<PathBuf>,
-}
-
-/// `vessel node install`.
-#[derive(Debug, Args)]
-pub(crate) struct Install {
-    /// Where vesseld comes from: `local` uploads a vesseld built here (the
-    /// one next to `vessel`, or `--vesseld`), `release` this version's
-    /// release (downloaded with `gh`), `auto` a local build if there is one
-    /// for that machine, else the release.
-    #[arg(long, value_enum, default_value_t = Source::Auto)]
-    pub(crate) from: Source,
-    /// The local vesseld build to upload (implies `--from local`).
-    #[arg(long)]
-    pub(crate) vesseld: Option<PathBuf>,
-}
-
-/// Where an installed vesseld comes from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub(crate) enum Source {
-    Auto,
-    Local,
-    Release,
-}
-
-#[derive(Debug, Subcommand)]
-pub(crate) enum NodesCommand {
-    /// Add a node: `vessel nodes add gpu-box me@gpu-box`, a websocket node
-    /// with `--token-file`, or pair with one: `vessel nodes add gpu-box
-    /// --pair`, then paste the link `vessel node pair` printed.
-    Add {
-        /// Its name (letters, digits, `.`, `_`, `-`).
-        name: NodeName,
-        /// How to reach it: `[user@]host` or `ssh://[user@]host[:port]` over
-        /// SSH, or a `ws://` URL.
-        #[arg(required_unless_present = "pair")]
-        address: Option<String>,
-        /// A websocket node's token file.
-        #[arg(long)]
-        token_file: Option<PathBuf>,
-        /// An SSH node's data directory on that machine (default
-        /// `~/.vessel`).
-        #[arg(long)]
-        remote_data_dir: Option<RemotePath>,
-        /// Pair with the node: the link is read from standard input (pasted
-        /// at the prompt, or piped), never from the command line.
-        #[arg(
-            long,
-            num_args = 0..=1,
-            default_missing_value = "-",
-            value_name = "-",
-            value_parser = link_from_stdin,
-            conflicts_with_all = ["address", "token_file", "remote_data_dir"],
-        )]
-        pair: Option<FromStdin>,
-        /// Pair without asking to confirm the node's key (needed when the
-        /// link is piped in). Only with `--pair`.
-        #[arg(long)]
-        yes: bool,
-        /// Make it the default node.
-        #[arg(long)]
-        default: bool,
-    },
-    /// List the nodes in the book.
-    List,
-    /// Show one node.
-    Show {
-        /// Its name.
-        name: String,
-    },
-    /// Remove a node from the book.
-    Remove {
-        /// Its name.
-        name: String,
-    },
-    /// Give a node in the book another name (the default follows it).
-    Rename {
-        /// Its name now.
-        name: String,
-        /// The new name.
-        to: NodeName,
-    },
-    /// Set (or with `--none`, clear) the default node.
-    Default {
-        /// The node.
-        #[arg(required_unless_present = "none")]
-        name: Option<String>,
-        /// No default: commands then use the node on this machine.
-        #[arg(long, conflicts_with = "name")]
-        none: bool,
-    },
-}
-
 /// `vessel run`.
 #[derive(Debug, Args)]
 pub(crate) struct Run {
@@ -641,8 +301,20 @@ pub(crate) struct Run {
     /// Working directory on the node (defaults to the node user's home). A
     /// relative path is taken from the current directory when the node is
     /// on this machine, and refused for a remote node.
-    #[arg(long)]
+    #[arg(long, conflicts_with_all = ["project", "worktree"])]
     pub(crate) cwd: Option<PathBuf>,
+    /// Run in this project's folder (`vessel project list`).
+    #[arg(long, conflicts_with = "worktree")]
+    pub(crate) project: Option<String>,
+    /// With `--project`: a folder inside it, relative.
+    #[arg(long, requires = "project", conflicts_with = "new_worktree")]
+    pub(crate) dir: Option<String>,
+    /// With `--project`: in a new worktree of it, after its setup.
+    #[arg(long, requires = "project")]
+    pub(crate) new_worktree: bool,
+    /// Run in this worktree (`vessel worktree list`).
+    #[arg(long)]
+    pub(crate) worktree: Option<String>,
     /// Start it and print its id instead of attaching.
     #[arg(long)]
     pub(crate) detach: bool,
@@ -656,184 +328,4 @@ fn parse_seq(text: &str) -> Result<EventSeq, std::num::ParseIntError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use clap::Parser as _;
-
-    use super::*;
-
-    #[test]
-    fn run_takes_a_profile_and_profiles_a_harness() {
-        let Cli {
-            command: Command::Run(run),
-            ..
-        } = Cli::try_parse_from(["vessel", "run", "claude", "--profile", "claude-alt"]).unwrap()
-        else {
-            panic!("expected run");
-        };
-        assert_eq!(run.profile.unwrap().as_str(), "claude-alt");
-        assert!(Cli::try_parse_from(["vessel", "run", "claude", "--profile", "bad name"]).is_err());
-        let Cli {
-            command: Command::Profiles { harness, reload },
-            ..
-        } = Cli::try_parse_from(["vessel", "profiles", "--harness", "codex", "--reload"]).unwrap()
-        else {
-            panic!("expected profiles");
-        };
-        assert_eq!(harness, Some(HarnessKind::Codex));
-        assert!(reload);
-    }
-
-    #[test]
-    fn copy_and_move_take_a_node_a_profile_and_a_directory() {
-        let Cli {
-            command:
-                Command::Session {
-                    command: SessionCommand::Copy { to, start },
-                },
-            ..
-        } = Cli::try_parse_from([
-            "vessel",
-            "session",
-            "copy",
-            "3f2a",
-            "--to",
-            "laptop",
-            "--profile",
-            "claude-alt",
-            "--cwd",
-            "/srv/app",
-            "--start",
-        ])
-        .unwrap()
-        else {
-            panic!("expected session copy");
-        };
-        assert_eq!(to.to.as_deref(), Some("laptop"));
-        assert_eq!(to.profile.unwrap().as_str(), "claude-alt");
-        assert_eq!(to.cwd, Some(PathBuf::from("/srv/app")));
-        assert!(start);
-        assert!(matches!(
-            Cli::try_parse_from(["vessel", "session", "move", "3f2a"])
-                .unwrap()
-                .command,
-            Command::Session {
-                command: SessionCommand::Move { .. }
-            }
-        ));
-        // A move always resumes the copy: no --start.
-        assert!(Cli::try_parse_from(["vessel", "session", "move", "3f2a", "--start"]).is_err());
-    }
-
-    #[test]
-    fn a_secret_is_copied_to_a_whole_node_id_only() {
-        let id = NodeId::random().to_string();
-        let parsed =
-            Cli::try_parse_from(["vessel", "fleet", "secret", "copy", "TOKEN", "--to", &id]);
-        assert!(parsed.is_ok(), "{parsed:?}");
-        let prefix = id.get(..8).unwrap();
-        for to in ["laptop", prefix] {
-            assert!(
-                Cli::try_parse_from(["vessel", "fleet", "secret", "copy", "TOKEN", "--to", to])
-                    .is_err(),
-                "{to}"
-            );
-        }
-    }
-
-    #[test]
-    fn memory_copy_needs_a_source_project_for_a_target_one() {
-        let parsed = Cli::try_parse_from([
-            "vessel",
-            "fleet",
-            "memory",
-            "copy",
-            "--from-profile",
-            "claude-alt",
-            "--from-project",
-            "/srv/a",
-            "--profile",
-            "claude-work",
-            "--project",
-            "/srv/b",
-        ]);
-        assert!(parsed.is_ok(), "{parsed:?}");
-        assert!(
-            Cli::try_parse_from(["vessel", "fleet", "memory", "copy", "--project", "/srv/b"])
-                .is_err()
-        );
-    }
-
-    #[test]
-    fn move_profile_takes_a_session_a_profile_and_force() {
-        let Cli {
-            command:
-                Command::Session {
-                    command: SessionCommand::MoveProfile { profile, force, .. },
-                },
-            ..
-        } = Cli::try_parse_from(["vessel", "session", "move-profile", "3f2a", "claude-alt"])
-            .unwrap()
-        else {
-            panic!("expected session move-profile");
-        };
-        assert_eq!(profile.as_str(), "claude-alt");
-        assert!(!force);
-        assert!(Cli::try_parse_from(["vessel", "session", "move-profile", "3f2a", "a b"]).is_err());
-        assert!(Cli::try_parse_from(["vessel", "session", "move-profile", "3f2a"]).is_err());
-        assert!(
-            Cli::try_parse_from(["vessel", "session", "move-profile", "3f2a", "x", "--force"])
-                .is_ok()
-        );
-    }
-
-    /// Review item 3: a pairing link never comes from the command line,
-    /// where other users and the shell's history see it.
-    #[test]
-    fn a_pairing_link_on_the_command_line_is_refused() {
-        let parse = |args: &[&str]| Cli::try_parse_from(args);
-        let error = parse(&[
-            "vessel",
-            "nodes",
-            "add",
-            "box",
-            "--pair",
-            "vessel://pair#e30",
-        ])
-        .unwrap_err()
-        .to_string();
-        assert!(error.contains("standard input"), "{error}");
-        assert!(error.contains("Make a new link"), "{error}");
-        for args in [
-            &["vessel", "nodes", "add", "box", "--pair"][..],
-            &["vessel", "nodes", "add", "box", "--pair", "-"],
-            &["vessel", "nodes", "add", "box", "--pair", "--yes"],
-        ] {
-            let Cli {
-                command:
-                    Command::Nodes {
-                        command: NodesCommand::Add { pair, address, .. },
-                    },
-                ..
-            } = parse(args).unwrap()
-            else {
-                panic!("{args:?}");
-            };
-            assert_eq!((pair, address), (Some(FromStdin), None), "{args:?}");
-        }
-        assert!(parse(&["vessel", "nodes", "add", "box", "me@box", "--pair"]).is_err());
-    }
-
-    #[test]
-    fn pairing_link_lifetimes_read_like_durations_and_stay_within_a_day() {
-        assert_eq!(ttl_secs("90"), Ok(90));
-        assert_eq!(ttl_secs("90s"), Ok(90));
-        assert_eq!(ttl_secs("10m"), Ok(600));
-        assert_eq!(ttl_secs(" 2h "), Ok(7200));
-        assert_eq!(ttl_secs("24h"), Ok(MAX_TTL_SECS));
-        assert!(ttl_secs("25h").is_err());
-        assert!(ttl_secs("0m").is_err());
-        assert!(ttl_secs("ten").is_err());
-        assert!(ttl_secs("1d").is_err());
-        assert!(ttl_secs("4294967295h").is_err(), "overflow is an error");
-    }
-}
+mod tests;

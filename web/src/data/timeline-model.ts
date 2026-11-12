@@ -17,6 +17,7 @@ import type {
   ToolKind,
   ToolLocation,
 } from "../wire/proto";
+import { type Conversation, EMPTY_CONVERSATION } from "./conversation";
 import type { Usage } from "./models";
 
 /** A tool call as it stands after its updates. */
@@ -84,6 +85,8 @@ export interface Timeline {
   title: string | null;
   /** The next record expected. */
   next: number;
+  /** What protocol 10's events say (data/conversation.ts). */
+  conversation: Conversation;
 }
 
 export const EMPTY: Timeline = {
@@ -98,6 +101,7 @@ export const EMPTY: Timeline = {
   options: null,
   title: null,
   next: 0,
+  conversation: EMPTY_CONVERSATION,
 };
 
 /** A content block as text. */
@@ -109,6 +113,8 @@ export function blockText(block: ContentBlock): string {
       return `[${block.name}](${block.uri})`;
     case "opaque":
       return "";
+    case "attachment":
+      return `[${block.attachment.name}]`;
   }
 }
 

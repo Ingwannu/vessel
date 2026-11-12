@@ -114,6 +114,9 @@ pub(crate) struct Fixture {
     bin: TempDir,
     /// The user home its nodes run harnesses under: never the machine's.
     home: TempDir,
+    /// The folder its sessions run in: apart from the data folder, which
+    /// an agent may not name as a session's folder.
+    work: TempDir,
 }
 
 impl Fixture {
@@ -130,6 +133,14 @@ impl Fixture {
             drop(install(bin, HarnessKind::Codex, Role::Structured, acp).unwrap());
             let tui = Fake::Tui.path().unwrap();
             drop(install(bin, HarnessKind::Codex, Role::Terminal, &tui).unwrap());
+        })
+    }
+
+    /// Also Gemini: fake-acp as `gemini`, which speaks ACP itself.
+    pub(crate) fn with_gemini() -> Self {
+        Self::with_adapter(|bin, acp| {
+            drop(install(bin, HarnessKind::ClaudeCode, Role::Structured, acp).unwrap());
+            drop(install(bin, HarnessKind::Gemini, Role::Structured, acp).unwrap());
         })
     }
 
@@ -181,6 +192,7 @@ impl Fixture {
             data,
             bin,
             home: tempfile::tempdir().unwrap(),
+            work: tempfile::tempdir().unwrap(),
         }
     }
 
@@ -227,7 +239,17 @@ impl Fixture {
     }
 
     pub(crate) fn cwd(&self) -> std::path::PathBuf {
-        self.data.path().to_path_buf()
+        self.work.path().to_path_buf()
+    }
+
+    /// Its nodes' data folder.
+    pub(crate) fn data_path(&self) -> &std::path::Path {
+        self.data.path()
+    }
+
+    /// The folder of fake harnesses its nodes look programs up in.
+    pub(crate) fn bin(&self) -> &std::path::Path {
+        self.bin.path()
     }
 }
 
@@ -275,7 +297,10 @@ pub(crate) fn output_of(records: &[EventRecord]) -> String {
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => None,
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => None,
         })
         .flatten()
         .collect();
@@ -322,7 +347,10 @@ pub(crate) fn status_of(record: &EventRecord) -> Option<&SessionStatus> {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => None,
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => None,
     }
 }
 
@@ -372,7 +400,10 @@ pub(crate) const fn agent_of(record: &EventRecord) -> Option<&AgentEvent> {
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
-        | SessionEvent::Renamed { .. } => None,
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => None,
     }
 }
 

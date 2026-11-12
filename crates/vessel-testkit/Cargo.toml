@@ -43,6 +43,11 @@ upstream = ["dep:axum", "dep:futures-util", "tokio/net", "tokio/time"]
 [dependencies]
 agent-client-protocol.workspace = true
 axum = { workspace = true, optional = true }
+# fake-acp's `describe`: an image's or audio block's bytes decoded, and a
+# resource link's `file:` URI read, to say what reached the agent
+# (protocol 10's attachments). Both already in the workspace.
+base64.workspace = true
+url.workspace = true
 futures-util = { workspace = true, optional = true, features = ["sink"] }
 serde_json.workspace = true
 serde.workspace = true

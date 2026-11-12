@@ -1,4 +1,7 @@
-//! [`SessionHandle`]: the cheap, cloneable view of one session.
+//! [`SessionHandle`]: the cheap, cloneable view of one session. What it
+//! sends the session is `input`'s.
+
+mod input;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -7,13 +10,15 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::AgentInput;
 use vessel_proto::{
-    EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionInput, SessionOption,
-    SessionTitle, TerminalInput,
+    Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
+    SessionTitle,
 };
-use vessel_pty::{PtyInput, WindowSize};
+use vessel_pty::PtyInput;
 
-use crate::error::{InputKind, ModeKind, SessionError};
+use crate::conversation::Seen;
+use crate::error::{ModeKind, SessionError};
 use crate::lifecycle::Rename;
+use crate::marks::Marks;
 use crate::moving::Control;
 use crate::ring::{Follow, FollowError, Ring};
 
@@ -50,6 +55,15 @@ pub(crate) struct Shared {
     /// on. A `std` mutex held for one clone or one store, never across an
     /// `.await`.
     pub(crate) reported: Mutex<Option<Arc<[SessionOption]>>>,
+    /// The conversation as the log says it now (protocol 10), kept by the
+    /// publisher; what `session.conversation` answers. A `std` mutex held
+    /// for one update or one snapshot, never across an `.await`.
+    pub(crate) seen: Mutex<Seen>,
+    /// The session's marks (protocol 10, `marks`): the store's copy, set by
+    /// the node, and the attention point, set by the publisher. A `std`
+    /// mutex held for one assignment or one copy, never across an
+    /// `.await`.
+    pub(crate) marks: Mutex<Marks>,
 }
 
 impl Shared {
@@ -145,6 +159,25 @@ impl SessionHandle {
         Ok(self.agent()?.set_option(choice).await?)
     }
 
+    /// The conversation as the session's log says it now (protocol 10):
+    /// the queue, the agent's commands, context and abilities, and what
+    /// waits on an answer. Kept as the session publishes; no log is read.
+    ///
+    /// # Errors
+    /// [`SessionError::Terminal`] for a terminal session, whose harness
+    /// runs its own interface.
+    pub fn conversation(&self) -> Result<Conversation, SessionError> {
+        match &self.0.input {
+            Input::Terminal(_) => Err(SessionError::Terminal("a conversation")),
+            Input::Structured(_) => Ok(self
+                .0
+                .seen
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .conversation()),
+        }
+    }
+
     /// Give the session `title` (protocol 9): a `renamed` record, in order
     /// with the rest of its log, then the info as it is with it.
     ///
@@ -200,10 +233,16 @@ impl SessionHandle {
         }
     }
 
-    /// A snapshot of the session's info (one clone of the current value).
+    /// A snapshot of the session's info (one clone of the current value),
+    /// with its marks (protocol 10): the store's, and `unread` from the
+    /// records published so far; an archived session in the archive.
     #[must_use]
     pub fn info(&self) -> SessionInfo {
-        self.0.info.borrow().clone()
+        let mut info = self.0.info.borrow().clone();
+        // The watch's lock is released before the marks' is taken: neither
+        // is held while the other is.
+        self.0.marks().apply(&mut info);
+        info
     }
 
     /// A receiver of info changes.
@@ -214,79 +253,11 @@ impl SessionHandle {
     /// are kept current too, but advancing them alone does not wake
     /// watchers (they change with every event, or every burst of terminal
     /// output). The sender closes once the session has published its final
-    /// status.
+    /// status. Its values carry no marks, which change apart from the
+    /// session's records: [`info`](Self::info) adds them.
     #[must_use]
     pub fn watch_info(&self) -> watch::Receiver<SessionInfo> {
         self.0.info.clone()
-    }
-
-    /// Send input to the session.
-    ///
-    /// Terminal input waits while the program's input queue is full.
-    /// Structured input waits until the agent has applied it (and, while the
-    /// ACP handshake runs, until it is ready).
-    ///
-    /// # Errors
-    /// [`SessionError::Unsupported`] when the input does not match the
-    /// session's mode, [`SessionError::Ended`] once the session has ended,
-    /// [`SessionError::Input`] when the agent refuses it (for example a
-    /// second answer to a permission request).
-    pub async fn send(&self, input: SessionInput) -> Result<(), SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
-        match (&self.0.input, input) {
-            (Input::Terminal(pty), SessionInput::Terminal { input }) => {
-                let sent = match input {
-                    TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
-                    TerminalInput::Resize { size } => {
-                        pty.resize(WindowSize {
-                            cols: size.cols,
-                            rows: size.rows,
-                        })
-                        .await
-                    }
-                };
-                sent.map_err(|vessel_pty::PtyClosed| SessionError::Ended)
-            }
-            (Input::Structured(route), SessionInput::Prompt { content }) => {
-                Ok(current(route)?.prompt(content).await?)
-            }
-            (Input::Structured(route), SessionInput::CancelTurn) => {
-                Ok(current(route)?.cancel_turn().await?)
-            }
-            (Input::Structured(route), SessionInput::AnswerPermission { id, outcome }) => {
-                Ok(current(route)?.answer(id, outcome).await?)
-            }
-            (
-                input_path @ Input::Terminal(_),
-                input @ (SessionInput::Prompt { .. }
-                | SessionInput::CancelTurn
-                | SessionInput::AnswerPermission { .. }),
-            )
-            | (input_path @ Input::Structured(_), input @ SessionInput::Terminal { .. }) => {
-                Err(SessionError::Unsupported {
-                    input: InputKind::of(&input),
-                    mode: input_path.mode(),
-                })
-            }
-        }
-    }
-
-    /// Whether the session's agent is in the middle of a turn (a prompt
-    /// already on its way counts); `false` for a terminal session, whose
-    /// turns Vessel cannot see. For copying a session's files away
-    /// (protocol 6's `session.export`): between turns its transcript is
-    /// complete, during one the harness is still appending to it.
-    ///
-    /// # Errors
-    /// [`SessionError::Moving`] while the session moves to another profile,
-    /// [`SessionError::Ended`] once its agent's connection has closed.
-    pub async fn turn_running(&self) -> Result<bool, SessionError> {
-        match &self.0.input {
-            Input::Terminal(_) => Ok(false),
-            Input::Structured(route) => Ok(current(route)?.turn_running().await?),
-        }
     }
 
     /// Wait until the session has ended, then return its final info.
@@ -301,7 +272,7 @@ impl SessionHandle {
         let mut info = self.0.info.clone();
         // `changed` fails only once the actor dropped the sender.
         while info.changed().await.is_ok() {}
-        info.borrow().clone()
+        self.info()
     }
 
     /// Whether the session can publish no more records.

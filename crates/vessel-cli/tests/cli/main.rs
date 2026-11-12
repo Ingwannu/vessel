@@ -11,6 +11,8 @@
 #[cfg(test)]
 mod canary;
 #[cfg(test)]
+mod conversation;
+#[cfg(test)]
 mod devices;
 #[cfg(test)]
 mod fleet;

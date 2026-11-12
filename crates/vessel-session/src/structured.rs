@@ -1,9 +1,11 @@
 //! The structured-mode session actor: an ACP agent's outputs become events.
 
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionStatus};
 
+use crate::attachments::AttachmentLoader;
+use crate::delivery::Desk;
 use crate::lifecycle::{Lifecycle, drain_deadline};
 use crate::moving::{Control, Launch};
 
@@ -39,6 +41,14 @@ pub(crate) struct StructuredActor {
     pub(crate) failed_before_kill: bool,
     /// Where a move to another profile stands.
     pub(crate) move_state: MoveState,
+    /// Deliveries and the queue (protocol 10, `delivery`).
+    pub(crate) desk: Desk,
+    /// A session started again (protocol 10, `again`) publishes nothing
+    /// until its row is reopened: answered then, dropped if it is not.
+    pub(crate) gate: Option<oneshot::Receiver<()>>,
+    /// Where a prompt's attachments are loaded (protocol 10,
+    /// `attachments`); `None` in a runtime that keeps none.
+    pub(crate) loader: Option<AttachmentLoader>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -49,7 +59,8 @@ pub(crate) struct MoveState {
     /// A restarted agent replays the conversation before it is ready; the
     /// log has it already, so it is not published again.
     pub(crate) replaying: bool,
-    /// A turn ended (for a forced move, which waits for its cancel).
+    /// A turn ended (for a forced move or an interrupt, which wait for
+    /// its cancel).
     pub(crate) turn_over: bool,
     /// How an agent's connection ended during the move.
     pub(crate) disconnect: Option<Disconnect>,
@@ -58,7 +69,19 @@ pub(crate) struct MoveState {
 impl StructuredActor {
     /// Run until the agent has exited and the final status is published.
     pub(crate) async fn run(mut self) {
+        // A session started again waits for its row to be reopened. If it
+        // is not, it ends without a record, and its agent goes with it
+        // (dropping the process kills its group).
+        if let Some(gate) = self.gate.take()
+            && gate.await.is_err()
+        {
+            tracing::debug!("not started again: its row was not reopened");
+            return;
+        }
         self.life.starting(&mut self.agent).await;
+        // The queue a session started again brought back, held (protocol
+        // 10); nothing for a new session.
+        self.publish_queue().await;
 
         let mut control_open = true;
         let code = loop {
@@ -71,7 +94,10 @@ impl StructuredActor {
                     None => self.outputs_open = false,
                 },
                 control = self.control.recv(), if control_open => match control {
-                    Some(Control::Move(order)) => self.move_profile(order).await,
+                    Some(Control::Move(order)) => self.move_profile(*order).await,
+                    Some(Control::Deliver(order)) => self.deliver(order).await,
+                    Some(Control::Queue(order)) => self.change_queue(order).await,
+                    Some(Control::Cancel(order)) => self.cancel(order).await,
                     None => control_open = false,
                 },
                 Some(call) = self.life.model_calls.recv() => {
@@ -81,11 +107,14 @@ impl StructuredActor {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
             }
+            // The queue moves once a turn's end is in the log.
+            self.after_turn().await;
         };
         if self.outputs_open {
             self.drain().await;
         }
         self.life.drain_model_calls(&mut self.agent).await;
+        self.queue_at_end().await;
 
         let status = if self.life.stop.interrupted() {
             SessionStatus::Interrupted
@@ -105,6 +134,16 @@ impl StructuredActor {
     }
 
     pub(crate) async fn output(&mut self, output: AgentOutput) {
+        // A session started again drops its agent's replay of the
+        // conversation until `ready`, as a move does (`session/load`); that
+        // `ready` is its run's first, so it is published as a new
+        // session's is, and the session runs.
+        if self.move_state.replaying
+            && !self.ready
+            && matches!(output, AgentOutput::Event(AgentEvent::Ready { .. }))
+        {
+            self.move_state.replaying = false;
+        }
         match output {
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
@@ -113,11 +152,26 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::OptionsChanged { options })
                     .await;
             }
+            // Protocol 10: the driver reports each only when it differs
+            // from its last, so each is one record per change.
+            AgentOutput::Commands(commands) => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::CommandsChanged { commands })
+                    .await;
+            }
+            AgentOutput::Usage(usage) => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::UsageChanged { usage })
+                    .await;
+            }
             AgentOutput::Event(event) if self.move_state.replaying => {
                 // A restarted agent's replay: the log has it already. Its
                 // stderr still goes in; `Ready` ends the replay.
                 match event {
-                    AgentEvent::Ready { .. } => self.move_state.replaying = false,
+                    AgentEvent::Ready { abilities, .. } => {
+                        self.move_state.replaying = false;
+                        self.desk.ready(abilities);
+                    }
                     AgentEvent::HarnessLog { .. } => {
                         self.life
                             .publish(&mut self.agent, SessionEvent::Agent { event })
@@ -133,7 +187,10 @@ impl StructuredActor {
                     | AgentEvent::PermissionRequested(_)
                     | AgentEvent::PermissionResolved { .. }
                     | AgentEvent::TurnEnded { .. }
-                    | AgentEvent::TurnFailed { .. } => {}
+                    | AgentEvent::TurnFailed { .. }
+                    | AgentEvent::Steered { .. }
+                    | AgentEvent::QuestionAsked(_)
+                    | AgentEvent::QuestionResolved { .. } => {}
                 }
             }
             AgentOutput::Disconnected(disconnect) if self.move_state.active => {
@@ -155,6 +212,7 @@ impl StructuredActor {
                 } else {
                     None
                 };
+                self.desk.observe(&event, self.life.out.next_seq());
                 self.life
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;

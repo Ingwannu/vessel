@@ -239,7 +239,15 @@ impl Method {
     ///   session there needs as much as the profiles, and protocol 9's
     ///   options and titles (`harness.options`, `session.options`,
     ///   `session.set_option`, `session.rename`), which starting and
-    ///   steering a session there needs.
+    ///   steering a session there needs, and protocol 10's conversation
+    ///   (`session.prompt`, `session.queue`, `session.conversation`,
+    ///   `session.resume`, `session.mark`, `session.delete`, and the
+    ///   `attachment.*` calls), which talking to a session there needs as
+    ///   much as `session.send` does, and protocol 10's projects,
+    ///   worktrees, git and files (`project.*`, `worktree.*`, `git.*`,
+    ///   `file.*`), which working in a project there needs; the roots that
+    ///   would widen a reader's reach are refused for every caller instead
+    ///   (ADR 0027).
     /// - Not forwardable, administration of a node done there: stopping it,
     ///   its devices, re-reading its profiles, deleting or copying its
     ///   secrets.
@@ -250,6 +258,11 @@ impl Method {
     /// - Not forwardable, streams: a subscription's events would need a
     ///   stream across hops (`session.read` with `wait` serves instead).
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per method, deny by default, so a new method does not compile until \
+                  someone decides; the list is the point"
+    )]
     pub const fn forwardable(self) -> bool {
         match self {
             Self::NodeInfo
@@ -284,7 +297,57 @@ impl Method {
             | Self::HarnessOptions
             | Self::SessionOptions
             | Self::SetSessionOption
-            | Self::RenameSession => true,
+            | Self::RenameSession
+            | Self::PromptSession
+            | Self::ChangeQueue
+            | Self::GetConversation
+            | Self::ResumeSession
+            | Self::MarkSession
+            | Self::DeleteSession
+            | Self::BeginUpload
+            | Self::WriteUpload
+            | Self::FinishUpload
+            | Self::ReadAttachment
+            | Self::ListProjects
+            | Self::GetProject
+            | Self::AddProject
+            | Self::CloneProject
+            | Self::InitProject
+            | Self::RemoveProject
+            | Self::ProjectCommands
+            | Self::ApproveCommands
+            | Self::ListWorktrees
+            | Self::CreateWorktree
+            | Self::SetupOutput
+            | Self::RunSetup
+            | Self::RemoveWorktree
+            | Self::ListSnapshots
+            | Self::DropSnapshot
+            | Self::GitStatus
+            | Self::GitChanges
+            | Self::GitDiff
+            | Self::GitShow
+            | Self::GitBranches
+            | Self::GitLog
+            | Self::GitStashes
+            | Self::GitStage
+            | Self::GitUnstage
+            | Self::GitDiscard
+            | Self::GitCommit
+            | Self::GitFetch
+            | Self::GitPush
+            | Self::GitPull
+            | Self::GitSwitch
+            | Self::GitRenameBranch
+            | Self::GitStash
+            | Self::ListDir
+            | Self::ReadFile
+            | Self::WriteFile
+            | Self::CreateDir
+            | Self::RenamePath
+            | Self::DeletePath
+            | Self::FindFiles
+            | Self::SearchFiles => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

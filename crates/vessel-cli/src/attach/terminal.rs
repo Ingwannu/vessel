@@ -91,7 +91,10 @@ pub(super) async fn attach(mut stream: Stream, session: SessionId) -> Result<End
                     | SessionEvent::ProfileChanged { .. }
                     | SessionEvent::ModelCall(_)
                     | SessionEvent::OptionsChanged { .. }
-                    | SessionEvent::Renamed { .. } => {}
+                    | SessionEvent::Renamed { .. }
+                    | SessionEvent::QueueChanged { .. }
+                    | SessionEvent::CommandsChanged { .. }
+                    | SessionEvent::UsageChanged { .. } => {}
                 },
                 Some(Err(error)) if !error.is_fatal() => notice(&error, "\r\n").await?,
                 Some(Err(error)) => return Err(error.into()),

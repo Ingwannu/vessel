@@ -47,7 +47,9 @@ pub enum KanbanColumn {
     NeedsReview,
     /// A pull request merged, closed, mergeable, or approved by a person.
     Ready,
-    /// A session that has ended. Not a lane: clients list these apart.
+    /// A session put away: archived (protocol 10, ADR 0026), or, from a
+    /// node before protocol 10, ended. Not a lane: clients list these
+    /// apart.
     Archive,
 }
 
@@ -112,7 +114,7 @@ pub enum DisplayStatus {
     /// It was closed without merging.
     Closed,
     // Archive.
-    /// The session has ended.
+    /// The session is archived (from a node before protocol 10: ended).
     Terminated,
 }
 
@@ -167,11 +169,11 @@ impl SessionBoard {
         }
     }
 
-    /// An ended session's place: the archive, `terminated`, its agent
-    /// `exited`, last seen when it ended. The one definition of it: the
-    /// node's reducer gives every ended session this, and a node reading a
-    /// session back from its store builds it here, so the two cannot
-    /// drift apart.
+    /// An archived session's place: the archive, `terminated`, its agent
+    /// `exited`, last seen when it ended (protocol 10, ADR 0026; before
+    /// it, every ended session's). The one definition of it: the reducer
+    /// gives it to an archived session, and the session runtime and the
+    /// store place an archived session here, so they cannot drift apart.
     #[must_use]
     pub const fn archived(ended_at: DateTime<Utc>) -> Self {
         Self::new(
@@ -180,6 +182,33 @@ impl SessionBoard {
             Activity::Exited,
             ended_at,
         )
+    }
+
+    /// An ended session's place while it is not archived (protocol 10, ADR
+    /// 0026): building, `exited`, last seen when it ended, as
+    /// agent-orchestrator shows a worker whose process is gone until it is
+    /// restored or archived. What the reducer gives a session whose agent
+    /// has exited and that no pull request places elsewhere; the store
+    /// builds it here for a stored one.
+    #[must_use]
+    pub const fn exited(ended_at: DateTime<Utc>) -> Self {
+        Self::new(
+            KanbanColumn::Building,
+            DisplayStatus::Exited,
+            Activity::Exited,
+            ended_at,
+        )
+    }
+
+    /// An ended session's place: [`archived`](Self::archived) once it is
+    /// archived, [`exited`](Self::exited) until then.
+    #[must_use]
+    pub const fn ended(ended_at: DateTime<Utc>, archived: bool) -> Self {
+        if archived {
+            Self::archived(ended_at)
+        } else {
+            Self::exited(ended_at)
+        }
     }
 }
 

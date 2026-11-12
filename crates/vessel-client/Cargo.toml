@@ -13,6 +13,9 @@ vessel-relay.workspace = true
 vessel-rpc.workspace = true
 vessel-secure.workspace = true
 
+# An attachment's pieces (protocol 10's `attachment.write`), as the wire
+# type carries them; already in the workspace through vessel-proto.
+bytes.workspace = true
 futures-util = { workspace = true, features = ["sink"] }
 # The random suffix of a credential file's temporary name; already in the
 # workspace through vessel-store and vessel-secure.

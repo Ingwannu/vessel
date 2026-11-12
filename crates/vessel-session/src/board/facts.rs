@@ -25,7 +25,10 @@ pub struct WorkerFacts {
     /// never reports fails at its handshake timeout, and a terminal
     /// program owes no report.
     pub signal_expected: bool,
-    /// Whether the session has ended.
+    /// Whether the session is archived (ADR 0026; until protocol 10,
+    /// whether it had ended). agent-orchestrator's `terminated`, which its
+    /// archive action sets: a session whose process is gone and that
+    /// nobody archived has `activity` exited and stays in its lane.
     pub is_terminated: bool,
 }
 

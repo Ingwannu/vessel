@@ -1,7 +1,8 @@
 //! `vessel`: the command-line client for Vessel nodes.
 //!
 //! Commands: `node start`, `node install`, `nodes`, `status`, `harnesses`,
-//! `sessions`, `run`, `attach`, `send`, `log`, `kill`. Everything goes through
+//! `sessions`, `run`, `attach`, `send`, `log`, `kill`, `session` (a
+//! session's profile, queue, answers, marks, starting again, deletion). Everything goes through
 //! `vessel-client`; this crate only parses arguments, resolves the token,
 //! and turns results into text. Output goes to stdout, notes and errors to
 //! stderr, so `vessel log ID > file` captures exactly the session's output.
@@ -10,6 +11,7 @@ mod args;
 mod attach;
 mod commands;
 mod connect;
+mod conversation;
 mod devices;
 mod error;
 mod fleet;
@@ -25,6 +27,7 @@ mod selector;
 mod transfer;
 mod ui;
 mod view;
+mod workspace;
 
 use std::process::ExitCode;
 
@@ -98,10 +101,12 @@ async fn cli() -> ExitCode {
         | Command::Sessions
         | Command::Run(_)
         | Command::Attach { .. }
-        | Command::Send { .. }
+        | Command::Send(_)
         | Command::Log { .. }
         | Command::Kill { .. }
         | Command::Session { .. }
+        | Command::Project { .. }
+        | Command::Worktree { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

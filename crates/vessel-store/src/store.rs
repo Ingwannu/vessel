@@ -1,12 +1,19 @@
-//! The public handle to the event log.
+//! The public handle to the event log. Protocol 10's session calls are
+//! `conversation`'s, attachments `attached`'s.
 
+mod attached;
+mod conversation;
+
+use std::path::Path;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
+use vessel_proto::workspace::{CommandsDigest, ProjectInfo, WorktreeInfo};
 use vessel_proto::{
-    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, SessionId, SessionInfo,
+    DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, ProjectId, SessionId,
+    SessionInfo, WorktreeId,
 };
 
 use crate::config::StoreConfig;
@@ -15,8 +22,9 @@ use crate::devices::{CredentialHash, StoredDevice};
 use crate::error::StoreError;
 use crate::log;
 use crate::reader::Reader;
-use crate::writer::{self, Done, Write, WriteOp};
-use crate::{files, recovery, schema};
+use crate::workspace::{StoredWorkspace, WorkspaceWrite};
+use crate::writer::{self, Done, Setup, Write, WriteOp};
+use crate::{attachments, files, recovery, schema};
 
 /// The session event log. Cheap to clone; every clone talks to the same
 /// writer thread and read pool.
@@ -24,6 +32,11 @@ use crate::{files, recovery, schema};
 pub struct Store {
     writes: mpsc::Sender<WriteOp>,
     reader: Arc<Reader>,
+    /// The data directory's `attachments/` (protocol 10).
+    attachments: Arc<Path>,
+    /// How many sessions retention has removed since the store opened
+    /// (protocol 10, [`Store::pruned`]).
+    pruned: watch::Receiver<u64>,
 }
 
 /// A freshly opened store and what recovery found.
@@ -39,7 +52,9 @@ pub struct Opened {
 impl Store {
     /// Open (or create) the event log in `dir`, migrate it, and recover from
     /// the previous run: every session that was still live is closed with a
-    /// final `Status{Interrupted}` record, then retention runs.
+    /// final `Status{Interrupted}` record, then retention runs (removing
+    /// the attachment folders of the sessions it prunes), and every
+    /// attachment folder no row names is removed.
     ///
     /// # Errors
     /// The database cannot be opened or migrated (for example it was written
@@ -48,13 +63,18 @@ impl Store {
         let path = dir.database_path();
         let retention = config.retention;
         let opening = path.clone();
+        let folders = dir.attachments_dir();
         let (connection, interrupted) = tokio::task::spawn_blocking(move || {
             files::private_database(&opening).map_err(StoreError::io(&opening))?;
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
-            let _pruned = log::prune_ended(&connection, &retention)?;
+            // Outside a transaction: each deletion is committed as it runs.
+            for session in log::prune_ended(&connection, &retention)? {
+                attachments::remove_folder(&folders, session);
+            }
+            attachments::sweep(&connection, &folders)?;
             Ok::<_, StoreError>((connection, interrupted))
         })
         .await
@@ -67,12 +87,30 @@ impl Store {
         }
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
-        writer::spawn(connection, ops, retention)?;
+        let (pruned, pruned_count) = watch::channel(0);
+        let setup = Setup {
+            retention,
+            attachments: dir.attachments_dir(),
+            pruned,
+        };
+        writer::spawn(connection, ops, setup)?;
         let store = Self {
             writes,
             reader: Arc::new(Reader::new(path, config)),
+            attachments: Arc::from(dir.attachments_dir()),
+            pruned: pruned_count,
         };
         Ok(Opened { store, interrupted })
+    }
+
+    /// How many sessions retention has removed since the store opened: it
+    /// changes after each commit that removed some (protocol 10), so the
+    /// node can tidy what they left outside the store (their worktrees).
+    /// The ones the opening's own retention removed are not counted; the
+    /// node looks for those when it starts.
+    #[must_use]
+    pub fn pruned(&self) -> watch::Receiver<u64> {
+        self.pruned.clone()
     }
 
     /// Store a new session with an empty log.
@@ -208,6 +246,73 @@ impl Store {
         self.read(move |reader| reader.device(id)).await
     }
 
+    /// Projects, worktrees and approved command sets (protocol 10).
+    ///
+    /// # Errors
+    /// The read failed.
+    pub async fn workspace(&self) -> Result<StoredWorkspace, StoreError> {
+        self.read(Reader::workspace).await
+    }
+
+    /// Insert or replace a project.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn put_project(&self, project: ProjectInfo) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Project(Box::new(project)))
+            .await
+    }
+
+    /// Delete a project and its approvals (never one with worktrees: the
+    /// node refuses first, and the database refuses too).
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn forget_project(&self, project: ProjectId) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetProject(project))
+            .await
+    }
+
+    /// Insert or replace a worktree.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn put_worktree(&self, worktree: WorktreeInfo) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Worktree(Box::new(worktree)))
+            .await
+    }
+
+    /// Delete a worktree.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn forget_worktree(&self, worktree: WorktreeId) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetWorktree(worktree))
+            .await
+    }
+
+    /// Approve the command set `digest` for `project`, or withdraw it.
+    ///
+    /// # Errors
+    /// The write failed.
+    pub async fn set_approval(
+        &self,
+        project: ProjectId,
+        digest: CommandsDigest,
+        approved: bool,
+    ) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::Approval {
+            project,
+            digest,
+            approved,
+        })
+        .await
+    }
+
+    async fn workspace_write(&self, write: WorkspaceWrite) -> Result<(), StoreError> {
+        self.write(|done| Write::Workspace { write, done }).await
+    }
+
     /// Commit everything queued so far, fold the WAL into the database file
     /// and stop the writer. Later writes through any clone fail with
     /// [`StoreError::Closed`]; reads keep working.
@@ -220,11 +325,16 @@ impl Store {
 
     async fn write(&self, write: impl FnOnce(Done) -> Write) -> Result<(), StoreError> {
         let (done, committed) = oneshot::channel();
-        self.writes
-            .send(WriteOp::Write(write(done)))
-            .await
-            .map_err(|_closed| StoreError::Closed)?;
+        self.send(write(done)).await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+
+    /// Queue `write` for the writer; its answer comes on its own channel.
+    async fn send(&self, write: Write) -> Result<(), StoreError> {
+        self.writes
+            .send(WriteOp::Write(write))
+            .await
+            .map_err(|_closed| StoreError::Closed)
     }
 
     async fn read<T: Send + 'static>(

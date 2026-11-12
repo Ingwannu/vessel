@@ -26,6 +26,10 @@
 //!   publishes how far it is committed; once a log is complete, `sessions`
 //!   removes the session from the runtime and the store serves it.
 //! - `subscribe`: forwards a session's records to one subscription.
+//! - `attachments`: files sent with prompts (protocol 10, ADR 0025):
+//!   uploads held by whoever began them, reading one back, a prompt's
+//!   references made the node's records, and the loader sessions ask for
+//!   a prompt's bodies.
 //! - `ipc`: the local socket (or named pipe) `vesseld attach` reaches.
 //! - `attach`: that proxy, which also starts the node when none runs.
 //! - `lifecycle`: `node.stop` and draining (protocol 3).
@@ -57,6 +61,7 @@
 
 mod agents;
 pub mod attach;
+mod attachments;
 mod auth;
 pub mod cleanup;
 mod config;
@@ -84,9 +89,11 @@ mod service;
 mod sessions;
 mod shutdown;
 mod subscribe;
+mod tidying;
 mod transfers;
 mod transport;
 mod waits;
+mod workspace;
 
 pub use config::{Config, VesselMcp};
 

@@ -140,9 +140,9 @@ mod support {
             claude_project(&self.home_of(profile), &self.work()).unwrap()
         }
 
-        /// A running structured session under `profile`, with the
-        /// transcript and the project memory Claude Code would have
-        /// written in its home.
+        /// A running structured session under `profile` that takes
+        /// questions (as a person's does), with the transcript and the
+        /// project memory Claude Code would have written in its home.
         pub(super) async fn movable(&self, profile: &Profile) -> Reader {
             std::fs::create_dir_all(self.work()).unwrap();
             let created = self
@@ -150,6 +150,7 @@ mod support {
                     structured(None).with_cwd(self.work()),
                     LaunchOptions {
                         profile: Some(profile.clone()),
+                        questions: true,
                         ..LaunchOptions::default()
                     },
                 )
@@ -370,7 +371,7 @@ mod support {
                     self.text.push('\n');
                 }
                 SessionEvent::Agent {
-                    event: AgentEvent::TurnEnded { reason },
+                    event: AgentEvent::TurnEnded { reason, .. },
                 } => {
                     self.turns = self.turns.saturating_add(1);
                     self.stops.push(*reason);
@@ -385,7 +386,10 @@ mod support {
                 | SessionEvent::Status { .. }
                 | SessionEvent::ModelCall(_)
                 | SessionEvent::OptionsChanged { .. }
-                | SessionEvent::Renamed { .. } => {}
+                | SessionEvent::Renamed { .. }
+                | SessionEvent::QueueChanged { .. }
+                | SessionEvent::CommandsChanged { .. }
+                | SessionEvent::UsageChanged { .. } => {}
             }
             Some(record)
         }
@@ -716,6 +720,8 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             }),
             // Recorded only: `alt` has no route, so no proxy.
             model_proxy: None,
+            // The runtime follows the node's choice, whoever created it.
+            questions: false,
         };
         let created = fixture
             .create(structured(None), options.clone())
@@ -761,6 +767,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             assert!(!args.contains(secret), "{secret} on argv: {args}");
         }
         assert_eq!(reader.ask("loaded").await, "loaded none");
+        assert_eq!(reader.ask("ask").await, "no questions");
         reader.handle().kill();
         let _ended = reader.handle().ended().await;
 
@@ -829,6 +836,9 @@ async fn a_moved_session_continues_its_conversation_in_the_other_home() {
         // The log has the conversation already; the replay is not repeated.
         assert!(!reader.text.contains("replayed"), "{}", reader.text);
         assert_eq!(reader.logs, ["vessel: moved"]);
+        // The new agent may ask, as the first could (protocol 10): the
+        // fake asks and withdraws at once, so the turn does not wait.
+        assert_eq!(reader.ask("ask withdraw").await, "answered: cancel");
 
         let (from, to) = (fixture.project(&alt), fixture.project(&work));
         assert!(same_file(

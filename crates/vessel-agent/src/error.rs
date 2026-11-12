@@ -2,7 +2,10 @@
 
 use std::fmt;
 
-use vessel_proto::{OptionId, PermissionId, PermissionOptionId};
+use vessel_proto::conversation::InvalidAnswer;
+use vessel_proto::{
+    AttachmentId, AttachmentKind, OptionId, PermissionId, PermissionOptionId, QuestionId,
+};
 
 use crate::options::OptionError;
 
@@ -26,6 +29,19 @@ pub enum InputError {
     /// An opaque content block is not valid ACP content.
     #[error("the prompt contains content the agent protocol cannot carry")]
     InvalidContent(#[source] serde_json::Error),
+    /// The prompt names an attachment whose bytes the caller did not hand
+    /// over with it (protocol 10).
+    #[error("attachment {0} was not loaded for the prompt")]
+    AttachmentNotLoaded(AttachmentId),
+    /// The prompt names an attachment of a kind the agent did not say it
+    /// takes (protocol 10); nothing was sent.
+    #[error("this agent does not take {} attachments (attachment {id})", noun(*.kind))]
+    AttachmentNotTaken {
+        /// The attachment.
+        id: AttachmentId,
+        /// Its kind.
+        kind: AttachmentKind,
+    },
     /// No such permission request was ever made in this session.
     #[error("permission request {0} does not exist")]
     PermissionNotFound(PermissionId),
@@ -40,10 +56,41 @@ pub enum InputError {
         /// The rejected option.
         option: PermissionOptionId,
     },
+    /// No such question was ever asked in this session (protocol 10).
+    #[error("question {0} does not exist")]
+    QuestionNotFound(QuestionId),
+    /// The question was already settled: answered, declined or withdrawn
+    /// (protocol 10; the first answer wins).
+    #[error("question {0} was already settled")]
+    QuestionSettled(QuestionId),
+    /// The answer does not fit the question's form (protocol 10); nothing
+    /// was sent, and the question still waits.
+    #[error("the answer does not fit question {id}")]
+    InvalidAnswer {
+        /// The question.
+        id: QuestionId,
+        /// What does not fit.
+        #[source]
+        reason: InvalidAnswer,
+    },
     /// A config option choice the agent does not offer (protocol 9);
     /// nothing was sent to it.
     #[error(transparent)]
     Option(#[from] OptionError),
+    /// The agent does not steer (protocol 10): it did not say so in its
+    /// handshake, or answered that it has no such method.
+    #[error("this agent cannot take a message into a running turn")]
+    CannotSteer,
+    /// The agent refused a steer (protocol 10).
+    #[error("the agent refused the message for the running turn: {message}")]
+    SteerRefused {
+        /// The agent's error, for people.
+        message: String,
+    },
+    /// The agent answered a steer outside the extension's terms (protocol
+    /// 10), for example by starting a turn of its own.
+    #[error("steering failed: {0}")]
+    Steering(String),
     /// The agent refused a config option change (protocol 9).
     #[error("the agent refused option `{id}`: {message}")]
     Refused {
@@ -52,6 +99,15 @@ pub enum InputError {
         /// The agent's error, for people.
         message: String,
     },
+}
+
+/// An attachment kind in a sentence.
+const fn noun(kind: AttachmentKind) -> &'static str {
+    match kind {
+        AttachmentKind::Image => "image",
+        AttachmentKind::Audio => "audio",
+        AttachmentKind::File => "file",
+    }
 }
 
 /// Why the ACP connection ended. Always the last output of an agent.

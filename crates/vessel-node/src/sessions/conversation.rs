@@ -1,0 +1,123 @@
+//! What reaches a live session's conversation: input, prompts delivered
+//! as asked and queue changes (protocol 10), each prompt's attachments
+//! replaced by the node's own records first; and the conversation as it
+//! stands, live or stored.
+
+use vessel_proto::conversation::QueueChanged;
+use vessel_proto::{
+    ContentBlock, Conversation, Creator, Delivered, Delivery, QueueChange, SessionId, SessionInput,
+    SessionMode,
+};
+use vessel_session::{SessionError, SessionHandle};
+
+use super::{Found, Sessions};
+use crate::error::ServiceError;
+
+impl Sessions {
+    pub(crate) async fn send(
+        &self,
+        id: SessionId,
+        input: SessionInput,
+    ) -> Result<(), ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => {
+                let input = match input {
+                    SessionInput::Prompt { content } => SessionInput::Prompt {
+                        content: self.attached(&handle, content).await?,
+                    },
+                    other @ (SessionInput::Terminal { .. }
+                    | SessionInput::CancelTurn { .. }
+                    | SessionInput::AnswerPermission { .. }
+                    | SessionInput::AnswerQuestion { .. }) => other,
+                };
+                Ok(handle.send(input).await?)
+            }
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Deliver a prompt to a live structured session (protocol 10).
+    pub(crate) async fn prompt(
+        &self,
+        id: SessionId,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+        by: Creator,
+    ) -> Result<Delivered, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => {
+                let content = self.attached(&handle, content).await?;
+                Ok(handle.prompt(content, delivery, by).await?)
+            }
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// Change a live structured session's queue (protocol 10). An ended
+    /// session's queue comes back with `session.resume`.
+    pub(crate) async fn change_queue(
+        &self,
+        id: SessionId,
+        change: QueueChange,
+    ) -> Result<QueueChanged, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => {
+                let change = match change {
+                    QueueChange::Edit {
+                        entry,
+                        revision,
+                        content,
+                    } => QueueChange::Edit {
+                        entry,
+                        revision,
+                        content: self.attached(&handle, content).await?,
+                    },
+                    other @ (QueueChange::Move { .. }
+                    | QueueChange::Remove { .. }
+                    | QueueChange::SendNow { .. }
+                    | QueueChange::Hold
+                    | QueueChange::Resume
+                    | QueueChange::Clear) => other,
+                };
+                Ok(handle.change_queue(change).await?)
+            }
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// A prompt for `handle`'s session with each attachment it names
+    /// replaced by the node's record (protocol 10, ADR 0025), so the
+    /// session, its queue and its log see only what the node kept. A
+    /// terminal session's prompt is left for the handle to refuse.
+    async fn attached(
+        &self,
+        handle: &SessionHandle,
+        content: Vec<ContentBlock>,
+    ) -> Result<Vec<ContentBlock>, ServiceError> {
+        let named = content
+            .iter()
+            .any(|block| matches!(block, ContentBlock::Attachment { .. }));
+        if !named || matches!(handle.info().spec.mode, SessionMode::Terminal { .. }) {
+            return Ok(content);
+        }
+        crate::attachments::load::resolve(&self.store, handle.id(), content).await
+    }
+
+    /// A structured session's conversation as it stands (protocol 10): a
+    /// live one's from its runtime, an ended one's from the store.
+    pub(crate) async fn conversation(&self, id: SessionId) -> Result<Conversation, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.conversation()?),
+            Found::Stored(info) => match info.spec.mode {
+                SessionMode::Terminal { .. } => {
+                    Err(SessionError::Terminal("a conversation").into())
+                }
+                SessionMode::Structured { .. } => self
+                    .store
+                    .conversation(id)
+                    .await?
+                    .ok_or(ServiceError::NotFound(id)),
+            },
+        }
+    }
+}

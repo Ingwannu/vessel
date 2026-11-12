@@ -93,10 +93,15 @@ vessel-session = { path = "crates/vessel-session" }
 vessel-store = { path = "crates/vessel-store" }
 vessel-testkit = { path = "crates/vessel-testkit" }
 vessel-web = { path = "crates/vessel-web" }
+vessel-workspace = { path = "crates/vessel-workspace" }
 
 # The Agent Client Protocol SDK (Zed's); one pinned version, used only by
 # vessel-agent (and the fake agent in vessel-testkit). ADR 0003.
-agent-client-protocol = "5.0"
+# `unstable_end_turn_token_usage`: a turn's tokens in the prompt's answer
+# (protocol 10's `TurnUsage`), which Claude's, Codex's and Gemini's ACP
+# agents fill. One schema field read with ACP's default-on-error rule; if
+# ACP drops it the figure is absent and nothing else changes.
+agent-client-protocol = { version = "5.0", features = ["unstable_end_turn_token_usage"] }
 axum = { version = "0.8", features = ["ws"] }
 # The relay's own accept loop (vessel-relay `server::accept`): HTTP/1 with
 # a header-read timeout and per-address counts from `accept`, which
