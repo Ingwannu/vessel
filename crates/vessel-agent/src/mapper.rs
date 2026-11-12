@@ -14,19 +14,20 @@
 use agent_client_protocol::v1::schema as acp;
 use serde::Serialize;
 
-use crate::attached::{AttachmentBody, Attachments};
-use crate::error::InputError;
-
+mod prompt;
 mod question;
 mod report;
+mod tool;
 
+pub(crate) use prompt::prompt_block;
 pub(crate) use question::{Refusal, elicitation_response, question};
 pub(crate) use report::turn_usage;
+pub(crate) use tool::{
+    permission_options, permission_outcome, permission_tool_call, tool_call, tool_call_update,
+};
 use vessel_proto::{
-    AgentAbilities, AgentCommand, AgentEvent, AttachmentKind, AttachmentRef, ContentBlock,
-    ContextUsage, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
-    PlanEntry, PlanPriority, PlanStatus, RawJson, StopReason, ToolCall, ToolCallContent,
-    ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
+    AgentCommand, AgentEvent, ContentBlock, ContextUsage, PlanEntry, PlanPriority, PlanStatus,
+    RawJson, StopReason,
 };
 
 /// What a `session/update` becomes.
@@ -111,166 +112,6 @@ pub(crate) fn content(block: acp::ContentBlock) -> ContentBlock {
     }
 }
 
-/// A prompt block in ACP form. Opaque blocks must be ACP content already
-/// (they are what [`content`] forwarded), so they are parsed back. An
-/// attachment takes its body from `attachments` (protocol 10): an image or
-/// audio inline, a file as a link, each only if the agent said in its
-/// handshake (`abilities`) that it takes that kind; files it always takes.
-pub(crate) fn prompt_block(
-    block: ContentBlock,
-    attachments: &mut Attachments,
-    abilities: AgentAbilities,
-) -> Result<acp::ContentBlock, InputError> {
-    match block {
-        ContentBlock::Text { text } => Ok(acp::ContentBlock::Text(acp::TextContent::new(text))),
-        ContentBlock::ResourceLink { uri, name } => Ok(acp::ContentBlock::ResourceLink(
-            acp::ResourceLink::new(name, uri),
-        )),
-        ContentBlock::Opaque { raw } => {
-            serde_json::from_str(raw.as_text()).map_err(InputError::InvalidContent)
-        }
-        ContentBlock::Attachment { attachment } => attached(attachment, attachments, abilities),
-    }
-}
-
-/// An attachment as the agent takes it: an `image` or `audio` block with
-/// its bytes, or a `resource_link` to its file.
-fn attached(
-    attachment: AttachmentRef,
-    attachments: &mut Attachments,
-    abilities: AgentAbilities,
-) -> Result<acp::ContentBlock, InputError> {
-    let AttachmentRef {
-        id,
-        name,
-        kind,
-        mime,
-        size,
-    } = attachment;
-    let taken = match kind {
-        AttachmentKind::Image => abilities.image,
-        AttachmentKind::Audio => abilities.audio,
-        AttachmentKind::File => true,
-    };
-    if !taken {
-        return Err(InputError::AttachmentNotTaken { id, kind });
-    }
-    let mime = mime.as_str().to_owned();
-    match (kind, attachments.take(id)) {
-        (AttachmentKind::Image, Some(AttachmentBody::Inline(data))) => {
-            Ok(acp::ContentBlock::Image(acp::ImageContent::new(data, mime)))
-        }
-        (AttachmentKind::Audio, Some(AttachmentBody::Inline(data))) => {
-            Ok(acp::ContentBlock::Audio(acp::AudioContent::new(data, mime)))
-        }
-        (AttachmentKind::File, Some(AttachmentBody::Link(uri))) => {
-            Ok(acp::ContentBlock::ResourceLink(
-                acp::ResourceLink::new(name.as_str(), uri)
-                    .mime_type(mime)
-                    .size(i64::try_from(size).ok()),
-            ))
-        }
-        (
-            AttachmentKind::Image | AttachmentKind::Audio | AttachmentKind::File,
-            Some(AttachmentBody::Inline(_) | AttachmentBody::Link(_)) | None,
-        ) => Err(InputError::AttachmentNotLoaded(id)),
-    }
-}
-
-/// Map an announced tool call.
-pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
-    ToolCall {
-        id: ToolCallId::new(call.tool_call_id.0),
-        title: call.title,
-        kind: tool_kind(call.kind),
-        status: tool_status(call.status),
-        content: call.content.into_iter().map(tool_content).collect(),
-        locations: call.locations.into_iter().map(location).collect(),
-        raw_input: call.raw_input.as_ref().and_then(raw_json),
-    }
-}
-
-/// Map a tool call update.
-pub(crate) fn tool_call_update(update: acp::ToolCallUpdate) -> ToolCallUpdate {
-    let fields = update.fields;
-    ToolCallUpdate {
-        id: ToolCallId::new(update.tool_call_id.0),
-        title: fields.title,
-        kind: fields.kind.map(tool_kind),
-        status: fields.status.map(tool_status),
-        content: fields
-            .content
-            .map(|content| content.into_iter().map(tool_content).collect()),
-        locations: fields
-            .locations
-            .map(|locations| locations.into_iter().map(location).collect()),
-        raw_input: fields.raw_input.as_ref().and_then(raw_json),
-        raw_output: fields.raw_output.as_ref().and_then(raw_json),
-    }
-}
-
-/// The tool call a permission request is about, as a timeline event.
-///
-/// ACP lets a permission request describe a tool call the agent never
-/// announced, so clients would have nothing to show. An unknown call is
-/// announced here; for a known one, any fields the request carries become
-/// an update. `None` when there is nothing new to say.
-pub(crate) fn permission_tool_call(update: acp::ToolCallUpdate, known: bool) -> Option<AgentEvent> {
-    if known {
-        let update = tool_call_update(update);
-        let changed = update.title.is_some()
-            || update.kind.is_some()
-            || update.status.is_some()
-            || update.content.is_some()
-            || update.locations.is_some()
-            || update.raw_input.is_some()
-            || update.raw_output.is_some();
-        return changed.then_some(AgentEvent::ToolCallUpdate(update));
-    }
-    let fields = update.fields;
-    Some(AgentEvent::ToolCall(ToolCall {
-        id: ToolCallId::new(update.tool_call_id.0),
-        title: fields.title.unwrap_or_default(),
-        kind: fields.kind.map_or(ToolKind::Other, tool_kind),
-        status: fields.status.map_or(ToolCallStatus::Pending, tool_status),
-        content: fields
-            .content
-            .unwrap_or_default()
-            .into_iter()
-            .map(tool_content)
-            .collect(),
-        locations: fields
-            .locations
-            .unwrap_or_default()
-            .into_iter()
-            .map(location)
-            .collect(),
-        raw_input: fields.raw_input.as_ref().and_then(raw_json),
-    }))
-}
-
-/// Map the options of a permission request.
-pub(crate) fn permission_options(options: Vec<acp::PermissionOption>) -> Vec<PermissionOption> {
-    options
-        .into_iter()
-        .map(|option| PermissionOption {
-            id: PermissionOptionId::new(option.option_id.0),
-            name: option.name,
-            kind: permission_kind(option.kind),
-        })
-        .collect()
-}
-
-/// A Vessel permission answer in ACP form.
-pub(crate) fn permission_outcome(outcome: &PermissionOutcome) -> acp::RequestPermissionOutcome {
-    match outcome {
-        PermissionOutcome::Selected { option } => acp::RequestPermissionOutcome::Selected(
-            acp::SelectedPermissionOutcome::new(option.as_str().to_owned()),
-        ),
-        PermissionOutcome::Cancelled => acp::RequestPermissionOutcome::Cancelled,
-    }
-}
-
 /// Map why a turn stopped. A future reason is reported as a normal end:
 /// the turn did end, and nothing more specific is known.
 pub(crate) fn stop_reason(reason: acp::StopReason) -> StopReason {
@@ -280,57 +121,6 @@ pub(crate) fn stop_reason(reason: acp::StopReason) -> StopReason {
         acp::StopReason::Refusal => StopReason::Refusal,
         acp::StopReason::Cancelled => StopReason::Cancelled,
         acp::StopReason::EndTurn | _ => StopReason::EndTurn,
-    }
-}
-
-fn tool_kind(kind: acp::ToolKind) -> ToolKind {
-    match kind {
-        acp::ToolKind::Read => ToolKind::Read,
-        acp::ToolKind::Edit => ToolKind::Edit,
-        acp::ToolKind::Delete => ToolKind::Delete,
-        acp::ToolKind::Move => ToolKind::Move,
-        acp::ToolKind::Search => ToolKind::Search,
-        acp::ToolKind::Execute => ToolKind::Execute,
-        acp::ToolKind::Think => ToolKind::Think,
-        acp::ToolKind::Fetch => ToolKind::Fetch,
-        acp::ToolKind::SwitchMode => ToolKind::SwitchMode,
-        acp::ToolKind::Other | _ => ToolKind::Other,
-    }
-}
-
-/// A future status is reported as still running: it is neither known to
-/// have finished nor to have failed.
-fn tool_status(status: acp::ToolCallStatus) -> ToolCallStatus {
-    match status {
-        acp::ToolCallStatus::Pending => ToolCallStatus::Pending,
-        acp::ToolCallStatus::Completed => ToolCallStatus::Completed,
-        acp::ToolCallStatus::Failed => ToolCallStatus::Failed,
-        acp::ToolCallStatus::InProgress | _ => ToolCallStatus::InProgress,
-    }
-}
-
-/// Terminal content is forwarded verbatim: Vessel declares no terminal
-/// capability, so agents should not send it, but nothing is lost if one does.
-fn tool_content(content: acp::ToolCallContent) -> ToolCallContent {
-    match content {
-        acp::ToolCallContent::Content(inner) => ToolCallContent::Content {
-            content: self::content(inner.content),
-        },
-        acp::ToolCallContent::Diff(diff) => ToolCallContent::Diff {
-            path: diff.path,
-            old_text: diff.old_text,
-            new_text: diff.new_text,
-        },
-        other @ (acp::ToolCallContent::Terminal(_) | _) => ToolCallContent::Content {
-            content: opaque(&other),
-        },
-    }
-}
-
-fn location(location: acp::ToolCallLocation) -> ToolLocation {
-    ToolLocation {
-        path: location.path,
-        line: location.line,
     }
 }
 
@@ -347,17 +137,6 @@ fn plan_entry(entry: acp::PlanEntry) -> PlanEntry {
             acp::PlanEntryStatus::Completed => PlanStatus::Completed,
             acp::PlanEntryStatus::Pending | _ => PlanStatus::Pending,
         },
-    }
-}
-
-/// A future option kind is treated as a rejection: a client must never
-/// show an unknown choice as "allow".
-fn permission_kind(kind: acp::PermissionOptionKind) -> PermissionOptionKind {
-    match kind {
-        acp::PermissionOptionKind::AllowOnce => PermissionOptionKind::AllowOnce,
-        acp::PermissionOptionKind::AllowAlways => PermissionOptionKind::AllowAlways,
-        acp::PermissionOptionKind::RejectAlways => PermissionOptionKind::RejectAlways,
-        acp::PermissionOptionKind::RejectOnce | _ => PermissionOptionKind::RejectOnce,
     }
 }
 

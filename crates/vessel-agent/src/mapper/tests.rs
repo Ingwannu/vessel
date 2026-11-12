@@ -9,6 +9,13 @@
 //! user's own slash commands removed.
 
 use serde::Deserialize;
+use vessel_proto::{
+    AgentAbilities, AttachmentKind, AttachmentRef, PermissionOptionId, PermissionOptionKind,
+    PermissionOutcome, ToolCallId, ToolKind,
+};
+
+use crate::attached::{AttachmentBody, Attachments};
+use crate::error::InputError;
 
 use super::*;
 use vessel_proto::AttachmentId;
