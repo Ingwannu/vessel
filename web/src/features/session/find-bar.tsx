@@ -41,8 +41,17 @@ export function FindBar({
   focusRequest: number;
 }) {
   const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState<readonly Match[]>([]);
+  // The matches and the query they were found for: the field can be
+  // ahead of them while a search runs.
+  const [found, setFound] = useState<{
+    query: string;
+    matches: readonly Match[];
+  }>({ query: "", matches: [] });
+  const matches = found.matches;
   const [index, setIndex] = useState(0);
+  // Every press of Enter, previous or next: the same match asked for again
+  // is gone to again (the reader may have scrolled away from it).
+  const [asked, setAsked] = useState(0);
   const [searching, setSearching] = useState(false);
   const [said, setSaid] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -64,17 +73,17 @@ export function FindBar({
     const wait = sameQuery ? REFRESH_MS : SETTLE_MS;
     const timer = setTimeout(() => {
       setSearching(true);
-      void findInSlices(entries, query, () => cancelled).then((found) => {
-        if (found === null || cancelled) {
+      void findInSlices(entries, query, () => cancelled).then((result) => {
+        if (result === null || cancelled) {
           return;
         }
         searched.current = { query, entries };
         setSearching(false);
-        setMatches(found);
+        setFound({ query, matches: result });
         // A new query starts at its first match; a refresh of the same
         // query keeps the place, clamped.
         setIndex((current) =>
-          sameQuery ? Math.min(current, Math.max(0, found.length - 1)) : 0,
+          sameQuery ? Math.min(current, Math.max(0, result.length - 1)) : 0,
         );
       });
     }, wait);
@@ -84,10 +93,14 @@ export function FindBar({
     };
   }, [entries, query]);
 
-  const current = matches[index] ?? null;
+  // The match to show, by what it is rather than by its object: a search
+  // run again as the session grows (REFRESH_MS) finds the same match as a
+  // new object, and must not take the reader back to it each time.
+  const key = matches[index]?.key ?? null;
+  const nth = matches[index]?.nth ?? 0;
   useEffect(() => {
-    onReveal(current, query);
-  }, [current, query, onReveal]);
+    onReveal(key === null ? null : { key, nth }, found.query);
+  }, [key, nth, found.query, asked, onReveal]);
 
   const close = () => {
     onClose();
@@ -98,6 +111,7 @@ export function FindBar({
   const move = (by: 1 | -1) => {
     const next = step(matches.length, index, by);
     setIndex(next.index);
+    setAsked((count) => count + 1);
     setSaid(
       next.wrapped
         ? by === 1
