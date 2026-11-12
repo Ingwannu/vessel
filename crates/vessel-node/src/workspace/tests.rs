@@ -266,6 +266,32 @@ async fn init_starts_a_repository_in_an_empty_folder_only() {
 }
 
 #[tokio::test]
+async fn init_makes_no_folder_where_a_project_is_refused() {
+    let fixture = Fixture::new().await;
+    let inside = fixture
+        .path()
+        .join("home")
+        .join(".vessel")
+        .join("new")
+        .join("app");
+    let error = fixture
+        .workspaces
+        .init_project(inside.clone(), None)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, WorkspaceError::Invalid(_)), "{error:?}");
+    assert!(!fixture.path().join("home/.vessel/new").exists());
+    let climbing = fixture.path().join("fresh").join("..").join("home");
+    let error = fixture
+        .workspaces
+        .init_project(climbing, None)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, WorkspaceError::Invalid(_)), "{error:?}");
+    assert!(!fixture.path().join("fresh").exists());
+}
+
+#[tokio::test]
 async fn a_clean_worktree_is_made_placed_and_removed_with_its_branch() {
     let fixture = Fixture::new().await;
     let project = fixture.project("app", None).await;

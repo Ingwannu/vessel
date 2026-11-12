@@ -3,7 +3,7 @@
 //! task of the node's and shows its progress on the project. Every root
 //! is checked against the refused ones (`policy`) before it is recorded.
 
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use chrono::Utc;
 use tokio::sync::watch;
@@ -60,6 +60,14 @@ impl Workspaces {
                 "the folder must be an absolute path".to_owned(),
             ));
         }
+        // Checked before anything is made, so a refused root is not left
+        // behind as an empty folder (inside the data folder, say); checked
+        // again once made, as the folder that is there then.
+        let planned = path.clone();
+        let planned = tokio::task::spawn_blocking(move || would_be(&planned))
+            .await
+            .map_err(|_panicked| WorkspaceError::Io("resolving the folder stopped".to_owned()))??;
+        policy::check_root(&self.places, &planned)?;
         let made = path.clone();
         tokio::task::spawn_blocking(move || {
             if made.exists() {
@@ -252,6 +260,40 @@ async fn existing_folder(path: PathBuf) -> Result<PathBuf, WorkspaceError> {
 }
 
 /// `path` resolved, or as given when it cannot be.
+/// The folder `path` (absolute) would be once made: its nearest existing
+/// ancestor resolved, the rest joined as named. `.` and `..` are refused:
+/// past an ancestor that exists only resolving could read them rightly,
+/// and a new folder is named plainly. Blocking.
+fn would_be(path: &Path) -> Result<PathBuf, WorkspaceError> {
+    if path
+        .components()
+        .any(|part| matches!(part, Component::CurDir | Component::ParentDir))
+    {
+        return Err(WorkspaceError::Invalid(format!(
+            "`{}` names `.` or `..`; name the folder plainly",
+            path.display()
+        )));
+    }
+    let mut missing = Vec::new();
+    let mut at = path;
+    loop {
+        if let Ok(found) = std::fs::canonicalize(at) {
+            return Ok(missing
+                .iter()
+                .rev()
+                .fold(found, |made, name| made.join(name)));
+        }
+        let (Some(parent), Some(name)) = (at.parent(), at.file_name()) else {
+            return Err(WorkspaceError::Invalid(format!(
+                "`{}` cannot be made: none of its folders exists",
+                path.display()
+            )));
+        };
+        missing.push(name);
+        at = parent;
+    }
+}
+
 async fn canonical(path: PathBuf) -> PathBuf {
     tokio::task::spawn_blocking(move || std::fs::canonicalize(&path).unwrap_or(path))
         .await
