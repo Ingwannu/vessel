@@ -3286,3 +3286,196 @@ schema 10). Rust, wire, CLI, agent tools.
   with them or after, decided when half 1 is in.
 - **A2**: rewind, fork, import from the agent's history, search across
   sessions, parking idle agents.
+
+## Track B-page: progress
+
+2026-11-12, on `backend/m11-b-page`. Page only: nothing under `crates/`
+changed, no wire change, no ADR, no store schema. The screens are
+taken from agent-orchestrator first, then GOAT, then Paseo, as
+DESIGN.md §6.18 and §12 (21–27) say value by value.
+
+### Built
+
+- **Every call of protocol 10's projects, worktrees, git and files** as
+  a typed function giving one `Outcome` (`web/src/data/workspace/`: one
+  module per subject; `find.ts`, written before the track, is the one
+  wrapper of `file.find`), and the pure parts the screens draw, each with
+  unit tests: git's refusals and a worktree's states and kept reasons in
+  words; setup's output as lines (escape sequences scanned out, carriage
+  returns applied, the last 2,000 lines kept); a diff as numbered rows
+  keyed so pages add without moving them; the Changes list; the file
+  tree; the git button's action and GOAT's reasons for an action that is
+  off; a branch name checked with git's rules; where a session runs and
+  the spec it makes; the commands to approve compared with the folder's
+  approved set; a selection as agent-orchestrator's captured-code
+  reference; a lexer for syntax colour.
+- **The inspector as tabs** (agent-orchestrator's): Summary, Changes,
+  Files, the kit's new `PanelTabs`. Changes and Files are a chunk of their
+  own (`features/workspace/panel.tsx`, loaded with `lazy()`; the import
+  map pins it as it pins every chunk, and `security.spec.ts` still
+  passes). Summary keeps 340px; code takes 500px, at most 45% of the
+  window. Below 1280px the branch's chip opens the panel as a sheet from
+  the right (the kit's `Sheet` gained a side).
+- **Changes**: GOAT's git bar and split button (the kit's new
+  `SplitButton`), agent-orchestrator's comparison picker (Changes,
+  Uncommitted, Staged, Unstaged, the latest twenty commits), whitespace,
+  fold all, refresh; every changed file's diff in one list windowed by
+  the timeline's `useWindow` (reused with one added option, `follow:
+  false`, for a list read from its top), a file's diff and each next
+  page asked for when its row is drawn; stage, unstage, discard (with
+  Paseo's confirmation, deleting an untracked file said as such), commit
+  (GOAT's dialog), push, pull, fetch, switch, create and rename a branch,
+  stash save, apply, pop and drop; each refusal said in words above the
+  list or in its dialog, never a toast.
+- **Files**: the tree (a folder listed when opened), a file by name, lines
+  by content, a viewer windowed and paged, an editor (the kit's
+  `TextArea` gained `fill`) that saves with the version it read and,
+  when the file changed on disk since, keeps the edit and shows both
+  sides with Reload from disk and Overwrite.
+- **A selection sent to the composer**: "Add to chat" beside a selection
+  in a diff or a file appends the reference to the session's draft
+  (`fleet.drafts`), the composer's own; nothing of the composer was
+  touched.
+- **Where a session runs** on the new-session page: the project, then
+  Local, New worktree (with its base) or Existing branch; the node's
+  order for a worktree (create; approve when asked; follow setup's
+  output to its end; a failed setup waits for the person; then the
+  session). `new-session.tsx` kept its 296 lines: the tray and the
+  start are `where-tray.tsx`, `where-place.tsx`, `use-starter.tsx` and
+  `start-worktree.ts`.
+- **Projects**: Settings › Projects (add a folder, clone with progress,
+  start one; the commands' approval and withdrawal; worktrees, removed by
+  the node's rule and, when work would be lost, Paseo's warning with a
+  snapshot or a discard that says what it deletes; snapshots dropped),
+  and a Projects group in the sidebar (each machine's projects, open to
+  their live sessions, a "+" that starts a session there).
+- **A session's branch** on its title bar (a chip that opens Changes),
+  its board card and its sidebar row (`SidebarSession.branch`, one added
+  field).
+- **The end-to-end fleet** makes real repositories in its temporary
+  directory (`e2e/repos.ts`: `shop`, with commits, a branch, a
+  `vessel.toml` and uncommitted, staged and untracked work; `notes`,
+  without git) and adds them as laptop's projects with the CLI.
+
+### Checked, and how
+
+- Unit tests (vitest) for every pure module above, 68 of the suite's 304
+  tests.
+- `e2e/code.spec.ts` against the real fleet: a session started in a new
+  worktree only after its commands were approved, with setup's output
+  shown as it ran and the branch on its bar; the Changes tab listing the
+  work, staging a file, and a branch renamed to one that exists refused
+  in words; an edit saved after the file changed on disk shows both
+  sides and the disk's text is still there; lines selected in a diff
+  land in the draft as the reference; a folder added from Settings and a
+  failed clone said plainly. Two older tests followed the inspector's new
+  name ("Session panel").
+- `e2e/code-screens.ts` captures the new-session page's places and modes,
+  the approval (light and dark), setup running, a session in its
+  worktree, Changes with the git menu and the commit dialog, a file and
+  its editor, find, Changes dark, the sidebar's projects (light and
+  dark), Settings › Projects, the clone dialog, and Changes as a sheet at
+  390px (light and dark).
+
+- `npm run perf` on this tree and on its base, back to back in release
+  (`docs/PERFORMANCE.md`, "Track B-page"): a new measurement of the code
+  panel (a diff of 4,000 hunks beside 1,500 changed files: 764 ms from
+  the tab to its first line, 33 ms a scroll step, no long task; a folder
+  of 5,000: 390 ms). **Worse**, explained there and not fixed: the
+  board's load over the slow link by 40 ms until usable (70 ms on the
+  phone) and 5,164 bytes (the code panel's styles in the one stylesheet
+  ADR 0017 allows, five more chunks pinned, the sidebar's projects and
+  the branch chip in the entry, `project.list` at start); opening a long
+  session by 16–27 ms to its first entry and 59–132 ms to its last, with
+  one long task of about 50 ms (not profiled apart). Find, the terminal
+  and the 500-card board stayed within their spread.
+
+### A review, and what it changed
+
+A second reading of the whole page side (code, not this plan) found
+these, each fixed with a test where one can hold it:
+
+- The panel's root was a new object on every drawing of the session's
+  page, so while an agent streamed, the Changes tab's reads, a file's
+  pages and a search's settle started again on each record. The root is
+  now one object while it names the same place, and the tabs are keyed
+  by it.
+- A save sent the newest version read, not the one the edit started
+  from, so a re-read during the edit let a save overwrite an agent's
+  change; pages of two versions could also be joined. The edit now keeps
+  its own version, and a page of another version reads the file again.
+- Every guarded save of an untouched file was refused (the wire gap
+  below); the page now writes it when the disk's size and content hash
+  are the ones the edit started from.
+- Leaving the new-session page while setup ran still started the
+  session, sent the prompt and opened it. The start is aborted on
+  leaving (and on another place chosen).
+- The follow of setup's output and of a clone asked back to back when
+  the node answered without waiting (a forwarded call, its waits taken);
+  a read that brings nothing new now waits out a second
+  (`data/workspace/pace.ts`). A failed read is tried again three times.
+- A poll answered after a stage or a discard could put back the older
+  status; a diff asked before its file changed could be shown under the
+  new counts. Only the latest read is taken, and a diff only if its file
+  did not change since it was asked.
+- The sidebar's "+" did not choose its project; discarding a file added
+  since the last commit said it "goes back" (it is deleted); a stash and
+  a snapshot were dropped on one press (now Keep or "Drop for good");
+  Settings › Projects said a refused removal in a toast (now a banner);
+  a line far down a file was not gone to; a first page inside one long
+  line never showed; `ESC ( B` left a "B" and `ESC [ K` left a progress
+  bar's tail in setup's output; below 1280px the inspector stayed
+  mounted beside the sheet, reading twice; the whole setup log was a
+  live region; "Go to file" could show an older query's answer; the
+  tree never listed a folder again (Refresh); a clone URL in scp form
+  was refused on Enter; a hunk the node cut was not marked.
+
+Found while checking the screens, outside the code panel: the tray's
+folder field was squeezed to nothing at 390px beside the project select
+(it now wraps to its own line); the fleet asked laptop to add projects
+before its listener was bound (it now waits for each node's listener);
+and track W's tests looked for an echoed reply anywhere on the page,
+where the timeline's live region repeats it (now inside the timeline).
+
+### Not built, and why
+
+- **A guarded write of an untouched file.** `FileVersion.modified` is
+  nanoseconds since 1970 (about 1.7e18), past what a JavaScript number
+  holds exactly (2^53): the bridge's JSON rounds it, the page sends the
+  rounded value back, and the node's exact comparison
+  (`vessel-workspace`'s `write`) refuses nearly every guarded write on a
+  file system with nanosecond times. **Wire gap**: the node should
+  compare size and hash when the version has a hash (or carry the time
+  as text). Until then the page writes with `any` when the disk's size
+  and hash are the ones the edit started from, which leaves one round
+  trip in which a change would be overwritten
+  (`features/workspace/use-file.ts`'s Decision Log).
+
+- **What changed since the last approval, exactly.** The node keeps only
+  the digests it approved (store schema 9's `approvals`), not their
+  commands, so the page compares the set asked for with the folder's set
+  when that one is approved and differs (the common case: a branch or a
+  pull changed `vessel.toml`), and otherwise says it has nothing to
+  compare with. **Wire gap**: `ProjectCommands` (or `project.commands`)
+  should carry the last approved set (its setup and teardown lists and
+  when) for the dialog to compare with that.
+- A per-line comment, "viewed" marks, a split view, word-level marks, image
+  and rich previews (agent-orchestrator's review pane): a selection sent
+  to the draft is what is offered; DESIGN.md §12.
+- A quick-open shortcut (`⌘P`) and "Add to chat"'s `⌘L`: the shortcut
+  registry is track W's, and a browser keeps Ctrl+L.
+- Resizing the panel.
+
+### What the next tracks need to know
+
+- `useWindow(items, target, { follow: false })` is a list read from its
+  top; the timeline's own call is unchanged.
+- `data/workspace/project-store.ts` holds each machine's projects for
+  every screen; `tookProject` after a change made from the page,
+  `loadProjects` to read again. `wantedPlace` starts the next new session
+  in a project.
+- The panel finds a session's project from `SessionInfo.workspace`, or,
+  for a session started in a typed folder, from the project whose root
+  holds its `cwd` (compared as text).
+- B2's pull request on a session's page belongs beside the git bar; the
+  card's branch chip is where its facts can go.
