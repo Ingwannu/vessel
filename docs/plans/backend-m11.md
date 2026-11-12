@@ -3286,3 +3286,441 @@ schema 10). Rust, wire, CLI, agent tools.
   with them or after, decided when half 1 is in.
 - **A2**: rewind, fork, import from the agent's history, search across
   sessions, parking idle agents.
+
+## Track C: contract
+
+Protocol 11 (shared with track B2, raised once). ADR 0031 holds the
+decisions that could have gone another way. Store schema 11 was set
+aside for this track and is **not used**: nothing below is kept on disk
+(why under "What is kept, and for how long").
+
+### What the references do (read 2026-11-12)
+
+- **Shell terminals.** agent-orchestrator: shell tabs per session or
+  standalone, surviving its daemon (a terminal host of their own); the
+  shell is the user's login shell (`--login -i`), on Windows `pwsh.exe`,
+  then `powershell.exe` (both `-NoLogo`), then `%ComSpec%`, then
+  `cmd.exe`; titles at most 80 characters. GOAT: terminals per thread,
+  `$SHELL` (else `bash`; `-l` for bash on macOS, `-o nopromptsp` for
+  zsh), `pwsh.exe -NoLogo` on Windows; history kept per terminal, 5,000
+  lines and 8 MiB; its own variables and `VITE_*` removed from the
+  shell's environment and `COLORTERM=truecolor` added; 128 ended terminals
+  kept. Paseo: terminals per working folder, `$SHELL` (else `/bin/sh`),
+  `%ComSpec%` on Windows; a headless emulator per terminal with 10,000
+  lines of scrollback; its own control variables removed.
+- **Scripts and services.** Paseo: `paseo.json` `scripts.<name> {
+  command, type?: "service", port? }`; a service gets a port Paseo picks
+  (`PASEO_PORT`, `HOST`, its peers' ports as `PASEO_SERVICE_<NAME>_PORT`),
+  a route on Paseo's own proxy by host name (`<script>--<branch>--<project>
+  .localhost`), and a TCP health probe every 3 s (two failures: stopped);
+  no restart. agent-orchestrator: post-create and pre-remove steps with a
+  time limit, and `ao preview` running `.ao/launch.json` with a readiness
+  probe (30 s, at most 55) and no restart. GOAT: `goat.json` scripts, run
+  in terminals.
+- **Ports.** GOAT scans every 3 s while a page holds the list: `lsof
+  -iTCP -sTCP:LISTEN -P -n -F pcn` (5 s limit), a walk of `/proc` (at most
+  50,000 descriptors) where `lsof` is missing, `netstat.exe -ano` on
+  Windows (16 MiB of output at most). Paseo knows its services' ports
+  because it chose them. agent-orchestrator waits for the port a preview
+  was told to use.
+- **Agent tools.** Paseo: `list_terminals`, `create_terminal` (any
+  folder), `capture_terminal` (lines, escape sequences removed by
+  default), `send_terminal_keys` (tmux key names), `kill_terminal`, and
+  the workspace scripts' list, start and stop; no ownership: an agent
+  can type into any terminal. GOAT: its agent reads at most 32 KiB and
+  writes at most 16 KiB a call, lists at most 100.
+
+### The decision this track turns on: what a terminal is
+
+A shell terminal is a terminal-mode session without an agent, so it
+could be a kind of session. It is **a thing of its own beside sessions,
+carried by the sessions' terminal transport** (ADR 0031):
+
+- As a session it would be on the board (a card with no turns), in every
+  session list (a protocol 10 client cannot decode a spec without a
+  harness, so its whole `session.list` would fail unless the node hid
+  shells from it), counted in an agent's eight live sessions, offered to
+  export, import, archive, resume and marks, given an agent credential and
+  `vessel mcp`, and written to the store: every byte a shell prints
+  (`env`, `cat .env`) kept on disk under the sessions' retention.
+- Beside sessions, none of that happens, and what the session's terminal
+  already does is reused, not copied: `vessel-pty` runs the shell; the
+  session runtime's ring keeps the scrollback and broadcasts it; a
+  terminal's log is made of the same `EventRecord`s a terminal session's
+  is (`terminal` output, `status`, `vessel:` notices as `harness_log`),
+  numbered gap-free from zero; it is followed through the same
+  subscription frames (`ServerFrame::Event`, `SubscriptionEnded`,
+  `lagged` and `resume_from`) and paged with the same `EventPage`; input
+  is the same `TerminalInput`. The page's terminal view therefore draws a
+  shell exactly as it draws a terminal session.
+
+### Types (`vessel_proto::terminal_shell`, `vessel_proto::scripts`, `vessel_proto::ports`; new modules)
+
+Ids (`id.rs`): `TerminalId`, node-minted UUIDv4 (a handle in
+`ts/aliases.rs`).
+
+Parsed on decode:
+
+- `ScriptName`: a script's or a service's name in `vessel.toml`: 1 to 64
+  bytes of ASCII letters, digits, `-`, `_` and `.`, starting with a letter
+  or a digit (a plain name in `aliases.rs`: a person types it).
+- `ProcessName`: what the system calls a listening process (`comm` on
+  Linux, `lsof`'s command on macOS, the image name on Windows), at most 64
+  characters, control characters removed (plain: content).
+- Titles are `SessionTitle` (one line, at most 120 characters).
+
+Terminals:
+
+- `TerminalPlace`: `session { session }` (the session's folder: its
+  `cwd`, the node's home when it has none) or `project { project, dir?:
+  RelPath }` (the project's folder, or a folder in it, checked as every
+  `RelPath` is: resolved, inside the root, not under `.git`).
+- `TerminalKind`: `shell { program }` (the program started), `script {
+  script, command }` or `service { script, command }` (a run of a project
+  script; `command` the `ProjectCommand` that runs), `unknown`.
+- `TerminalInfo { id, place, folder, kind, title?, created_by,
+  created_at, ended_at?, status, service?, size?, oldest_seq, next_seq,
+  revision }`: `folder` the absolute folder it runs in; `created_by` ADR
+  0013's `Creator`; `status` the process state, the session's own
+  `SessionStatus` (`running`, then `exited { code }`, `failed { message
+  }` or `interrupted`); `service` a service's `ServiceState`; `size` a
+  shell's window; `oldest_seq` the first record still kept (older output
+  has been dropped, below) and `next_seq` the next one; `revision` changes
+  with any field but the two sequence numbers, for waiting.
+- `ServiceState` (protocol 11, also an event): `starting { attempt }`,
+  `running { attempt, since }`, `backing_off { attempt, code?, restart_at
+  }`, `exited { code }` (it ended by itself with 0: not restarted),
+  `failed { reason }` with `ServiceFailure` one of `gave_up { restarts }`,
+  `not_approved` (the set it came from is no longer approved), `spawn`,
+  `unknown`; `stopped` (a person, its session's deletion, its project's
+  removal, or the node stopped it); `unknown`. `attempt` counts from 1.
+- `TerminalList { terminals }` (at most 96: 64 live and 32 ended).
+
+Scripts:
+
+- `ScriptKind`: `script` or `service`.
+- `ScriptEntry { name, kind, command, dir? }`.
+- `ProjectCommands::Listed` gains `scripts: Vec<ScriptEntry>` (left out
+  when empty).
+- `ScriptPlace`: `session { session }` (its project's checkout: the
+  worktree it runs in, or its project's folder) or `project { project }`.
+- `ScriptList { root, commands, runs }`: `root` the folder the file was
+  read in; `commands` what `project.commands` would answer for it, as it
+  is now; `runs` the live and kept runs in that root, as `TerminalInfo`.
+- `ScriptRunOutcome`: `started { terminal }`, `needs_approval { commands
+  }` (nothing ran), `refused { reason }` with `ScriptRefusal` one of
+  `no_project` (a session with no project), `no_such_script`,
+  `no_such_dir` (its `dir` is not a folder in the root), `invalid_file {
+  message }`, `already_running { terminal }`, `unknown`.
+
+Ports:
+
+- `ListeningPort { port, address, pid, process?, owner }`: a TCP socket
+  in the listening state; `address` the local address as text
+  (`127.0.0.1`, `::`, `0.0.0.0`), so a client tells loopback from every
+  interface; `owner` a `PortOwner`: `session { session }` or `terminal {
+  terminal }`, the root of the process tree the listener is in.
+- `PortList { ports, scan, revision, more }`; `PortScan`: `pending` (none
+  yet), `scanned { at }`, `unavailable { reason }` (the system's tool is
+  missing or failed), `unknown`.
+
+The event (`SessionEvent`, the one shared type grown, by one variant):
+`service { state: ServiceState }`, protocol 11. It appears only in a
+service's log; its stand-in for an older connection is a `vessel:` line
+(`vessel: service running (attempt 2)`), as every newer event has.
+
+### Calls
+
+All protocol 11, forwardable through `fleet.forward`, in `vessel-web`'s
+list. "Agents": what an agent principal (ADR 0013, local or delivered)
+may do; the guard refuses the rest with `forbidden` before the call
+runs.
+
+| Method | Scope | Agents | Request | Reply |
+|---|---|---|---|---|
+| `terminal.create` | operate | own session's place | `CreateTerminal { place, size?, title? }` | `TerminalInfo` |
+| `terminal.list` | read | its own | `ListTerminals { place? }` | `TerminalList` |
+| `terminal.get` | read | its own | `GetTerminal { terminal, changed_from? }` | `TerminalInfo` |
+| `terminal.read` | read | its own | `ReadTerminal { terminal, from, limit, wait? }` | `EventPage` |
+| `terminal.subscribe` | read | its own | `SubscribeTerminal { terminal, from }` | `TerminalSubscribed { subscription, terminal }` |
+| `terminal.send` | operate | its own | `SendTerminal { terminal, input }` | `Ack` |
+| `terminal.rename` | operate | its own | `RenameTerminal { terminal, title }` | `TerminalInfo` |
+| `terminal.kill` | operate | its own | `KillTerminal { terminal }` | `Ack` |
+| `terminal.close` | operate | its own | `CloseTerminal { terminal }` | `Ack` |
+| `script.list` | read | no | `ListScripts { place }` | `ScriptList` |
+| `script.run` | operate | no | `RunScript { place, script }` | `ScriptRunOutcome` |
+| `script.restart` | operate | no | `RestartScript { terminal }` | `ScriptRunOutcome` |
+| `port.list` | read | its own | `ListPorts { changed_from? }` | `PortList` |
+
+"Its own" means terminals the agent created, and ports owned by its own
+session or by those terminals. A subscription is ended with
+`session.unsubscribe`, which already takes any subscription of the
+connection.
+
+Every call can answer `forbidden`, `not_found` (no such terminal,
+session, project or folder, and a terminal an agent did not create is
+`forbidden`, not `not_found`), `unavailable` (a limit below, or the
+node's wait shares) and `internal`. Beyond that:
+
+- `terminal.create`: starts the shell in a PTY of `size` (80×24 when
+  absent) and answers once it runs. `not_found` for a place whose
+  session, project or folder is gone; `conflict` while the session's
+  worktree is being set up, torn down or removed (`Workspaces::busy`);
+  `spawn_failed` when the shell does not start. A session that has ended
+  but is not deleted still has a folder, and a terminal can be opened in
+  it.
+- `terminal.list`: live terminals first, then kept ones, each newest
+  first; with `place`, those of that session or project only.
+- `terminal.get`: with `changed_from`, waits (at most 30 s, in the node's
+  wait shares, at once when forwarded) until `revision` differs.
+- `terminal.read`: a page from `from`, at most `limit` records (capped at
+  512) and 1 MiB of output; with `from` older than `oldest_seq`, the page
+  starts at `oldest_seq` (the scrollback that was dropped is gone, as a
+  pruned session log is); `wait` (at most 30 s) waits for a record at
+  `from`. `invalid_request` for `from` past `next_seq`.
+- `terminal.subscribe`: the records from `from` (from `oldest_seq` when
+  older), then live ones, then `subscription_ended { session_ended }` once
+  the terminal ended and its last record was sent; `lagged { resume_from
+  }` for a follower further behind than the live buffer, as for sessions.
+- `terminal.send`: `data` written to the shell (at most 64 KiB a call),
+  or a `resize`. `unsupported` for a script or a service (they have no
+  terminal input; standard input is closed); `conflict` once it ended.
+- `terminal.kill`: a shell gets `SIGHUP` and, two seconds later, its
+  group `SIGKILL` (as a terminal session); a script or a service its
+  group's `SIGTERM` and, five seconds later, `SIGKILL`; on Windows the
+  process (a shell) or its job (a script) is terminated at once. A
+  service is not restarted after it. The terminal is kept, ended, with
+  its output. Nothing for one already ended.
+- `terminal.close`: kills it if it runs, waits for its end, and forgets
+  it; its subscriptions end.
+- `script.list`: the place's root (a session's worktree, or its or the
+  given project's folder), its `vessel.toml` as it is now, its approval,
+  and its runs. `invalid_request` for a session without a project.
+- `script.run`: reads the root's `vessel.toml` as it is now (a bounded
+  regular file inside the root, as ADR 0027 reads it), and runs the named
+  script only when that file's set is approved for the project
+  (`needs_approval` otherwise, carrying it); the command that runs is the
+  one parsed from the file whose digest matched, never a second read. It
+  runs in `<root>/<dir>`, through the platform's shell as setup commands
+  do (`/bin/sh -c`; `cmd.exe /d /c` on a temporary `.cmd` file on
+  Windows), piped, standard input closed, its standard output and error
+  into the run's log as `terminal` records, as one process group
+  (`vessel-proc`: a group on Unix, a job object on Windows). One live run
+  per root and script (`already_running`).
+- `script.restart`: a run, live or ended, runs again in the same terminal
+  (its log continues, a `vessel: restarted` notice between), with the
+  command it ran, if the set it came from is still approved
+  (`needs_approval` otherwise). A service's restart count starts again.
+- `port.list`: the last scan's listeners whose owner the caller may see;
+  each call counts as interest (below). With `changed_from`, waits (at
+  most 30 s, in the wait shares) for another revision.
+
+### A shell: what runs, where, and with what
+
+- **The program** is found once, by the binary at start (library code
+  never reads the process's environment, AGENTS.md section 8), and given
+  to the node in its `Config`: on Unix `$SHELL` when it is an absolute
+  path to an executable file, else the account's shell (the password
+  database), else `/bin/sh`; started with `-l` on macOS (as its Terminal
+  starts every shell, so `~/.zprofile` and Homebrew's `PATH` apply) and
+  with no argument elsewhere (a Linux terminal emulator starts an
+  interactive shell that is not a login one). On Windows `pwsh.exe -NoLogo`
+  when found on `PATH`, else `powershell.exe -NoLogo`, else `%ComSpec%`,
+  else `cmd.exe` (agent-orchestrator's order). A node whose `Config` has
+  no shell answers `terminal.create` with `unsupported`.
+- **The folder** is the place's, resolved when the terminal starts; the
+  shell may `cd` anywhere afterwards: a folder is where it starts, not a
+  sandbox (ADR 0013's limit for everything run as the node's user).
+- **The environment** is the node's own, as a terminal the user opens has
+  it, with `TERM=xterm-256color` and `COLORTERM=truecolor` (what the
+  page's terminal draws), less every credential of Vessel's: any
+  `VESSEL_*` variable whose name ends in `TOKEN` or `SECRET`
+  (`VESSEL_TOKEN`, `VESSEL_AGENT_SECRET`, `VESSEL_MODEL_SECRET`) and the
+  two that name an agent's connection (`VESSEL_AGENT_SESSION`,
+  `VESSEL_NODE_SOCKET`). The node never puts a credential in its own
+  environment, so these are there only when it was started from inside a
+  session's process tree, and then they belong to that other session. A
+  session's agent credential (ADR 0013) and a routed session's model
+  token (ADR 0015) are given to that session's harness only, never to a
+  terminal beside it. Scripts get the same, plus setup's
+  `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE` and `VESSEL_BRANCH`, and
+  `VESSEL_SCRIPT` (its name).
+- **The process tree.** A shell is a session leader in its PTY
+  (`vessel-pty`), stopped as a group on Unix; on Windows the pseudo
+  console's closing ends what is attached to it (the gap ADR 0003's
+  terminal sessions have; a shell's own detached children can outlive
+  it there). A script or a service runs through `vessel_proc::spawn`: a
+  process group on Unix, a kill-on-close job object on Windows, so its
+  grandchildren end with it on every platform.
+
+### A service is kept running
+
+- Exit with a code other than 0, or by a signal Vessel did not send: a
+  restart after 1, 2, 4, 8, 16, then 30 s; a run that lasted 60 s resets
+  the count; the sixth failure without such a run gives up (`failed {
+  gave_up { restarts: 5 } }`). Exit with 0: `exited`, not restarted (a
+  service that ends cleanly is done, or misconfigured; restarting it
+  forever would hide that).
+- Before every restart the node checks that the set the command came
+  from is still approved for its project (`failed { not_approved }`
+  otherwise): withdrawing an approval stops what it allowed, at the next
+  start, without killing what runs.
+- Each change is a `service` record in the run's log and on its
+  `TerminalInfo`; the log's `status` ends only when the service is given
+  up, exits, or is stopped.
+- Its output is the run's log, bounded as every terminal's (below), across
+  restarts.
+- Stopped by `terminal.kill`, `terminal.close`, its session's deletion,
+  its project's removal, and the node's stop. Not by its session's end: a
+  session that ended can be started again (ADR 0026) in the same folder,
+  and a dev server is often what a person is still looking at.
+
+### Ports
+
+- Found without a privileged call, for the process trees of the node's
+  live sessions (their PTY program or agent) and terminals:
+  - **Linux**: `/proc/<pid>/stat` for parents, `/proc/<pid>/fd` for the
+    socket inodes of each process in a tree, `/proc/net/tcp` and
+    `/proc/net/tcp6` for those in the listening state. Every process of
+    the node's user can be read, which is every process Vessel started.
+  - **macOS**: `ps -A -o pid=,ppid=` for parents and `lsof -nP -iTCP
+    -sTCP:LISTEN -a -p <pids> -F pcn` for the listeners of the trees'
+    processes; `lsof` sees the user's own processes without privilege.
+  - **Windows**: `netstat -ano -p TCP` and `-p TCPv6` for listeners and
+    their process ids (no privilege needed for the ids), and one
+    PowerShell `Get-CimInstance Win32_Process` for parents and image
+    names. Where PowerShell is not allowed to run, the scan is
+    `unavailable`.
+- Bounded: at most one scan every 3 s (GOAT's period), and only while
+  someone asked `port.list` in the last 60 s; a scan stops at 4,096
+  processes in the trees and 50,000 descriptors, the tools at 5 s and 4
+  MiB of output; at most 256 ports are reported (`more`). A scan runs on
+  the blocking pool, one at a time.
+- Reported as facts only: nothing is opened, forwarded or proxied, and no
+  listener is opened to the network. How a page reaches a port (through
+  the bridge, never by exposing it) is the preview track's ADR.
+- Only TCP listeners. A port is the owner whose tree holds the listening
+  process at the scan; a process that moved out of the tree (a daemon that
+  detached) is not reported, and is not Vessel's to stop either.
+
+### The project's file
+
+`vessel.toml` gains two tables beside `[worktree]`, which is unchanged:
+
+```toml
+[scripts.test]
+command = "cargo test --workspace"
+
+[services.web]
+command = "npm run dev"
+dir = "web"            # optional: where it runs, inside the root
+```
+
+- `command`: one `ProjectCommand`; `dir`: a `RelPath`. A name in both
+  tables, an unknown key inside an entry, or more than 32 scripts and
+  services together makes the file invalid (`invalid { message }`):
+  nothing in it runs, setup included. `[env]` stays unread.
+- **The digest grows only where the file does.** A file that names no
+  script and no service keeps its version 1 digest exactly, so every
+  approval given in protocol 10 still covers what it showed. A file that
+  names one is digested as version 2: `vessel.toml commands 2\n`, setup
+  and teardown as in version 1, then the count of scripts and services
+  and, for each in name order, its name, its kind (`script` or
+  `service`), its command and its folder (empty when none), every count
+  and length 8 bytes little-endian. No version 1 approval can match it,
+  so adding a first script asks again, and so does any later change to a
+  script, its kind, its folder or its order. Setup and teardown are
+  approved with the scripts, as one set: one approval per set, as ADR
+  0027 says.
+- **An old client never approves what it could not show.** A protocol 10
+  connection reading a listed set that has scripts gets `invalid {
+  message: "this project's file names scripts or services, which this
+  client cannot show; approve it from a newer client" }` instead
+  (`Reply::for_protocol`, in `project.commands`, `project.approve` and
+  `worktree.create`'s `needs_approval`), so it never sees the digest of
+  a set it cannot display.
+
+### Agents (ADR 0013), and what stops one leaving what it was given
+
+- An agent may create a terminal only in its own session's place (`place:
+  session` naming its own session); at most 4 of its terminals live at
+  once (`forbidden` past that, as its session limit is). Every other
+  terminal call works only on terminals it created; `port.list` shows only
+  its own session's and terminals' ports. `script.*` are refused: a
+  repository's commands run where a person approved them and a person
+  asked; an agent runs commands with its own tools.
+- Typing into a terminal is running a program, so the rule is that a
+  terminal gives an agent nothing its own command tool does not:
+  - it starts in the agent's own folder, as the same user;
+  - the shell holds no credential: not the node's token, not the agent's
+    own credential, not a model token, so it cannot act through the node
+    as the agent or the node;
+  - the agent reaches only terminals it made, never a person's (which may
+    hold an `ssh` login, a `sudo` timestamp, another folder) or another
+    agent's;
+  - every `write_terminal` is a tool call of the agent's harness, held to
+    the session's permission mode as its own shell tool is (Vessel does
+    not pre-approve its own MCP tools);
+  - its terminals are counted, named as its own (`created_by`), and end
+    with its session's deletion.
+  What it cannot stop, stated as ADR 0013 states it: a process of the
+  node's user can read the node's files, its token included. A terminal
+  is attribution and least privilege, not containment.
+
+### What an older client and an older node see
+
+- A client asks no protocol 11 method of a node that speaks 10 or less
+  (`NotInProtocol` before sending); the CLI and the agent tools say the
+  node is too old.
+- A protocol 10 client of a protocol 11 node sees no terminal (they are
+  not sessions), no new event (a `service` record exists only in a
+  service's log, which only `terminal.*` serve), and a project file with
+  scripts as `invalid` (above).
+- `PROTOCOL_VERSION` goes to 11; nothing else in that line.
+
+### What is kept, and for how long
+
+Nothing on disk. A terminal, its scrollback and its runs live in the
+node's memory: they outlive the page and every connection, and end with
+the node (its stop marks them `interrupted`; a new node has none). Kept
+on disk, a shell's output would be a second copy of whatever a person
+printed in it, read back by anyone who reads the data folder later; and a
+terminal reopened after a restart would be a new shell anyway. So the
+store's schema is not raised.
+
+### Bounded, and by how much
+
+| What | Bound | Beyond it |
+|---|---|---|
+| Live terminals (shells and runs) | 64 a node, 8 a session, 16 a project's folder, 4 an agent's | `unavailable` (`forbidden` for an agent) |
+| Ended terminals kept | 32 a node | the oldest ended one is forgotten |
+| Scrollback | 1 MiB and 4,096 records a terminal | the oldest records are dropped; `oldest_seq` moves; a reader from before gets from `oldest_seq` |
+| Live followers | the ring's 4,096 records each | `lagged { resume_from }`, then pages |
+| Input | 64 KiB a `terminal.send` | `invalid_request` |
+| A page | 512 records, 1 MiB of output | `next` |
+| Long polls | 30 s, in the node's wait shares | answered as it is |
+| A service | restarts after 1 to 30 s; 5 without a run of 60 s | `failed { gave_up }` |
+| Stopping | 2 s (shell), 5 s (script) from the polite signal to `SIGKILL` | killed as a group |
+| `vessel.toml` | 32 scripts and services; names of 64 bytes | `invalid` |
+| Port scans | one per 3 s, only within 60 s of a `port.list`; 4,096 processes, 50,000 descriptors, 5 s and 4 MiB per tool; 256 ports | `more`; `unavailable` |
+
+### The CLI, the agent tools, the page
+
+- `vessel shell [--session S | --project P [--dir D]] [--title T]` opens
+  a shell and attaches to it (the attach of a terminal session: raw mode,
+  resize, the detach key); `vessel shell list | attach | kill | close |
+  rename`. `vessel script list | run | restart | stop | output` with
+  `--session` or `--project`; `vessel ports`.
+- Agent tools (`vessel mcp`): `create_terminal`, `list_terminals`,
+  `read_terminal` (text from a cursor, escape sequences removed, at most
+  32 KiB a call, with an optional wait, and the cursor for the next),
+  `write_terminal` (text, at most 16 KiB, and optional named keys:
+  `enter`, `tab`, `escape`, `backspace`, `up`, `down`, `left`, `right`,
+  `ctrl_c`, `ctrl_d`, `ctrl_z`), `close_terminal`, and `list_ports`. Each
+  takes `node`, as every session tool does. No tool renders a screen
+  (Vessel has no terminal emulator on the node): `read_terminal` gives the
+  output, not the picture a full-screen program draws.
+- The bridge (`vessel ui`) follows a terminal as it follows a session:
+  `follow_terminal { stream, node, terminal, from }`, answered with the
+  same `event` and `stream` frames. The page's data layer gets the
+  generated types and nothing drawn (track C-page draws).
