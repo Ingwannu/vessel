@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use bytes::Bytes;
 use vessel_client::NodeClient;
 use vessel_node::Node;
 use vessel_proto::conversation::TidiedWorktree;
@@ -19,6 +20,7 @@ use vessel_proto::{ErrorCode, EventSeq, HarnessKind, Mark, SessionId, SessionSta
 use vessel_store::Retention;
 
 use crate::agents::code;
+use crate::attachments::{answer, attached, mime, name, text};
 use crate::support::{Fixture, read_until, status_of, step, structured_spec, within};
 use crate::workspace::{in_place, lookup, new_worktree, repository};
 
@@ -174,6 +176,66 @@ async fn deleting_a_session_tidies_its_worktree_and_never_loses_work() {
             .await
             .unwrap();
         assert_eq!(removed, RemoveWorktreeOutcome::Removed { snapshot: None });
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A session in a worktree takes a prompt with a file attached: the file
+/// is the session's, in the node's data folder, never written into the
+/// worktree, so it leaves the worktree clean and tidying removes it when
+/// the session is deleted, the attachment with it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_placed_session_takes_attachments_without_dirtying_its_worktree() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = project(&owner).await;
+        let worktree = new_worktree(&owner, project.id).await;
+        let mut spec = structured_spec(&fixture, None).with_place(SessionPlace::Worktree {
+            worktree: worktree.id,
+        });
+        spec.cwd = None;
+        let id = owner.create_session(spec).await.unwrap().id;
+        let mut stream = owner.follow(id, EventSeq::ZERO).await.unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut stream, &mut seen, |record| {
+            status_of(record) == Some(&SessionStatus::Running)
+        })
+        .await;
+        let file = owner
+            .attach(
+                id,
+                name("notes.txt"),
+                mime("text/plain"),
+                Bytes::from_static(b"notes"),
+            )
+            .await
+            .unwrap();
+        let said = answer(
+            &owner,
+            (&mut stream, &mut seen),
+            id,
+            vec![text("describe"), attached(&file)],
+        )
+        .await;
+        assert_eq!(said, "text 8; link notes.txt text/plain 5 read 5");
+        assert!(!worktree.path.join("notes.txt").exists());
+        let kept = fixture.data_dir().attachments_dir().join(id.to_string());
+        assert!(kept.exists(), "the session's own");
+        drop(stream);
+        node.stop().await.unwrap();
+
+        let node = start(&fixture).await;
+        let owner = fixture.connect(&node).await;
+        let deleted = owner.delete_session(id).await.unwrap();
+        assert_eq!(
+            deleted.worktree.map(|tidied| tidied.outcome),
+            Some(RemoveWorktreeOutcome::Removed { snapshot: None }),
+            "nothing of the attachment is in the worktree"
+        );
+        assert!(!kept.exists(), "the attachment went with its session");
         node.stop().await.unwrap();
     })
     .await;
