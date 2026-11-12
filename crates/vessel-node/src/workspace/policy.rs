@@ -173,8 +173,8 @@ pub(super) fn check_root(places: &Places, root: &Path) -> Result<(), WorkspaceEr
     if root.parent().is_none() {
         return refuse("it is a file system's root");
     }
-    if root == places.home {
-        return refuse("it is the home folder, which holds credentials");
+    if places.home.starts_with(root) {
+        return refuse("it is or holds the home folder, which holds credentials");
     }
     if places.data.starts_with(root) {
         return refuse("it holds the node's data folder and its token");
@@ -235,6 +235,19 @@ mod tests {
             data: PathBuf::from("/home/me/.vessel"),
             home: PathBuf::from("/home/me"),
         };
+        // The data folder elsewhere: the home's parents are refused by the
+        // home's own rule.
+        let elsewhere = Places {
+            data: PathBuf::from("/srv/vessel"),
+            home: PathBuf::from("/home/me"),
+        };
+        for refused in ["/home", "/home/me"] {
+            assert!(
+                check_root(&elsewhere, Path::new(refused)).is_err(),
+                "{refused}"
+            );
+        }
+        assert!(check_root(&elsewhere, Path::new("/home/me/code")).is_ok());
         for refused in [
             "/",
             "/home/me",
