@@ -7,6 +7,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { startSession } from "./kit";
 import { openUi } from "./open";
+import { applyConditions, PROFILES } from "./perf/conditions";
 
 const SETTINGS = (origin: string, section: string): string =>
   `${origin}/settings/${section}`;
@@ -46,6 +47,108 @@ test("a theme is kept by the bridge and painted on the index before any script",
     .click();
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
   expect(await paintedTheme(page, origin)).toBeNull();
+});
+
+test("a dark theme is drawn from the first frame over a slow link", async ({
+  page,
+  context,
+}) => {
+  // The index is painted per request, so it is the one file sent
+  // uncompressed (crates/vessel-web/src/files.rs): its `<html>` carries
+  // the theme before the stylesheet or any script arrives. Over the slow
+  // link the stylesheet takes a few hundred milliseconds and the script
+  // longer; the first frame the browser draws must already be dark.
+  const origin = await openUi(page);
+  await page.goto(SETTINGS(origin, "appearance"));
+  await page
+    .getByRole("radiogroup", { name: "Colour scheme" })
+    .getByRole("radio", { name: "Dark" })
+    .click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const slow = PROFILES.find((profile) => profile.name === "slow-link");
+  if (slow === undefined) throw new Error("No slow-link profile");
+  const cdp = await context.newCDPSession(page);
+  try {
+    // What the first animation frame shows: rendering waits for the
+    // stylesheet, so this is the first paint.
+    await page.addInitScript(() => {
+      requestAnimationFrame(() => {
+        const root = document.documentElement;
+        Reflect.set(window, "__firstFrame", {
+          theme: root.getAttribute("data-theme"),
+          scheme: getComputedStyle(root).colorScheme,
+          background: getComputedStyle(document.body).backgroundColor,
+        });
+      });
+    });
+    await cdp.send("Network.enable");
+    await applyConditions(cdp, slow);
+    const response = await page.goto(`${origin}/sessions`);
+    expect(response?.headers()["content-encoding"]).toBeUndefined();
+    const first: unknown = await (
+      await page.waitForFunction(() => {
+        const frame: unknown = Reflect.get(window, "__firstFrame");
+        return frame;
+      })
+    ).jsonValue();
+    expect(first).toMatchObject({ theme: "dark", scheme: "dark" });
+    const channels =
+      typeof first === "object" &&
+      first !== null &&
+      "background" in first &&
+      typeof first.background === "string"
+        ? (first.background.match(/\d+/g) ?? []).slice(0, 3).map(Number)
+        : [];
+    expect(channels).toHaveLength(3);
+    for (const channel of channels) {
+      expect(channel).toBeLessThan(64);
+    }
+  } finally {
+    await cdp.send("Network.emulateNetworkConditions", {
+      offline: false,
+      latency: 0,
+      downloadThroughput: -1,
+      uploadThroughput: -1,
+    });
+    await page.goto(SETTINGS(origin, "appearance"));
+    await page
+      .getByRole("radiogroup", { name: "Colour scheme" })
+      .getByRole("radio", { name: "System" })
+      .click();
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
+  }
+});
+
+test("a screen asked for while Settings loads is not taken back by Settings' redirect", async ({
+  page,
+}) => {
+  // `/settings` redirects to its default section, which is a chunk loaded
+  // on demand (app.tsx); while it loads, the router keeps the redirect
+  // drawn. Settings (Mod+,) and then a new session (N) before Settings'
+  // chunk arrives: the new-session page must stay (home.tsx's and
+  // redirects.tsx's rule: redirect only while still headed there).
+  const origin = await openUi(page);
+  await page.goto(`${origin}/sessions`);
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(/\/assets\/settings-[\w-]+\.js$/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.keyboard.press("Control+Comma");
+  await expect(page).toHaveURL(/\/settings\/general$/);
+  await page.keyboard.press("n");
+  await expect(page).toHaveURL(/\/new(\?|$)/);
+  await expect(page.getByRole("form", { name: "Prompt" })).toBeVisible();
+  release();
+  // Settings' chunk arrives; nothing takes the reader back there.
+  await page.waitForResponse(/\/assets\/settings-[\w-]+\.js$/);
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/\/new(\?|$)/);
+  await expect(page.getByRole("form", { name: "Prompt" })).toBeVisible();
 });
 
 test("a draft comes back, Up recalls a sent prompt, and find finds it", async ({
