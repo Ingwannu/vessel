@@ -35,7 +35,9 @@ export const Outline = memo(function Outline({
   // so a long session's outline is one button per prompt in the page.
   const [shown, setShown] = useState<string | null>(null);
   useEffect(() => {
-    if (scroller === null) {
+    // Not drawn (fewer than two prompts): nothing to keep in step with
+    // the scroll, and no layout to read on every frame of it.
+    if (scroller === null || items.length < OUTLINE_MIN) {
       return undefined;
     }
     let frame: number | null = null;
