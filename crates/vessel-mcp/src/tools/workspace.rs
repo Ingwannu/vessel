@@ -143,22 +143,31 @@ impl VesselTools {
 }
 
 /// A session's place from `create_session`'s arguments: a worktree, or a
-/// project and a folder in it.
+/// project and a folder in it. A `dir` without its `project`, or a
+/// `worktree` with either, is refused rather than left out: the session
+/// would start somewhere the agent did not ask for.
 pub(super) fn place(args: &JsonObject) -> Result<Option<SessionPlace>, ToolError> {
-    if let Some(worktree) = text(args, "worktree")? {
-        return Ok(Some(SessionPlace::Worktree {
+    let (worktree, project, dir) = (
+        text(args, "worktree")?,
+        text(args, "project")?,
+        text(args, "dir")?,
+    );
+    match (worktree, project) {
+        (Some(worktree), None) if dir.is_none() => Ok(Some(SessionPlace::Worktree {
             worktree: parse(worktree, "worktree")?,
-        }));
+        })),
+        (Some(_), _) => Err(ToolError::Arguments(
+            "give a `worktree`, or a `project` (and a `dir` in it), not both".to_owned(),
+        )),
+        (None, Some(project)) => Ok(Some(SessionPlace::Project {
+            project: parse_project(project)?,
+            dir: dir.map(|dir| parse(dir, "dir")).transpose()?,
+        })),
+        (None, None) if dir.is_some() => Err(ToolError::Arguments(
+            "`dir` is a folder of a `project`; name the project too".to_owned(),
+        )),
+        (None, None) => Ok(None),
     }
-    let Some(project) = text(args, "project")? else {
-        return Ok(None);
-    };
-    Ok(Some(SessionPlace::Project {
-        project: parse_project(project)?,
-        dir: text(args, "dir")?
-            .map(|dir| parse(dir, "dir"))
-            .transpose()?,
-    }))
 }
 
 fn parse_project(text: &str) -> Result<ProjectId, ToolError> {
@@ -262,8 +271,14 @@ mod tests {
             place(&args).unwrap(),
             Some(SessionPlace::Project { project: found, dir: Some(_) }) if found == project
         ));
-        let args: JsonObject = serde_json::from_value(json!({ "dir": "../x" })).unwrap();
-        assert_eq!(place(&args).unwrap(), None);
+        let args: JsonObject = serde_json::from_value(json!({ "dir": "src" })).unwrap();
+        assert!(place(&args).is_err(), "a dir without its project");
+        let args: JsonObject = serde_json::from_value(
+            json!({ "worktree": worktree.to_string(), "project": project.to_string() }),
+        )
+        .unwrap();
+        assert!(place(&args).is_err(), "a worktree and a project");
+        assert_eq!(place(&JsonObject::new()).unwrap(), None);
         let args: JsonObject =
             serde_json::from_value(json!({ "project": project.to_string(), "dir": "../x" }))
                 .unwrap();
