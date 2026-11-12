@@ -14,6 +14,7 @@ import { shortId } from "../../data/format";
 import { Button, Dialog, Field, Select } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { SessionInfo } from "../../wire/proto";
+import type { NodeKey } from "../../wire/bridge";
 
 export function MoveProfile({
   node,
@@ -21,7 +22,7 @@ export function MoveProfile({
   close,
   moved,
 }: {
-  node: string;
+  node: NodeKey;
   session: SessionInfo;
   close: () => void;
   moved: () => void;

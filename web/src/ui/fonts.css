@@ -10,16 +10,12 @@
 @import "@fontsource-variable/geist-mono/index.css";
 
 /* Pretendard, self-hosted (ADR 0017; the operator's font rule): the
-   variable face, one file for every weight, bundled from the `pretendard`
-   package (SIL Open Font License 1.1, /licenses/Pretendard-OFL.txt). One
-   2 MB file rather than the ~90 unicode-range subsets: the page is served
-   from this machine, so the size costs nothing at load, and the binary
-   embeds one file instead of ninety. */
-@font-face {
-  font-family: Pretendard;
-  font-style: normal;
-  font-weight: 45 920;
-  font-display: swap;
-  src: url("pretendard/dist/web/variable/woff2/PretendardVariable.woff2")
-    format("woff2");
-}
+   variable face, every weight in one face, bundled from the `pretendard`
+   package (SIL Open Font License 1.1, /licenses/Pretendard-OFL.txt), in
+   the package's own 92 unicode-range subsets, so a page fetches only the
+   subsets of the characters it draws: a screen of Korean text takes a few
+   of them, not the whole 2 MB face (docs/PERFORMANCE.md; ADR 0017's
+   amendment of milestone 11). Their stylesheet is imported from main.tsx,
+   not from here: an `@import` here is inlined where Vite's plugins do not
+   see it, and vite.config.ts renames the face to "Pretendard", the name
+   every stack of ours uses. */

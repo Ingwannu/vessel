@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { FleetMember, Manifest } from "../wire/proto";
 import { memberLine, memberState, secretNames, withConflicts } from "./sync";
+import { fixtureId } from "../testing/ids";
 
 const member: FleetMember = {
-  device: "d-1",
+  device: fixtureId("DeviceId", "d-1"),
   label: "gpu-box",
   applied: 3,
   conflicts: [],

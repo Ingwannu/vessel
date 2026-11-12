@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, newSessionPage } from "./kit";
+import { choose, newSessionPage, timeline } from "./kit";
 import { openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { fleetHome } from "./fleet-home";
@@ -92,14 +92,14 @@ test("every main screen", async ({ page }) => {
     prompt: `model ${questions[0] ?? ""}`,
   });
   const prompt = page.getByRole("textbox", { name: "Prompt" });
-  await expect(page.getByText("Agent ready")).toBeVisible();
+  await expect(timeline(page).getByText("Agent ready")).toBeVisible();
   await expect(
-    page.getByText(`model fake reply to: ${questions[0] ?? ""}`),
+    timeline(page).getByText(`model fake reply to: ${questions[0] ?? ""}`),
   ).toBeVisible();
   await prompt.fill(`model ${questions[1] ?? ""}`);
   await prompt.press("Enter");
   await expect(
-    page.getByText(`model fake reply to: ${questions[1] ?? ""}`),
+    timeline(page).getByText(`model fake reply to: ${questions[1] ?? ""}`),
   ).toBeVisible();
   await expect(page.locator(".t-item.model-call")).toHaveCount(2);
   await prompt.fill(
@@ -159,4 +159,9 @@ test("every main screen", async ({ page }) => {
     page.getByRole("group", { name: "Sessions by status" }),
   ).toBeVisible();
   await shot(page, "11-sessions-dark");
+  // The bridge keeps the choice for every later page of the run (ADR
+  // 0028), so the other screen files would be dark too: put it back.
+  await page.goto(`${origin}/settings/appearance`);
+  await page.getByRole("radio", { name: "System" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
 });

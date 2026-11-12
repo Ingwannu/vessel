@@ -632,18 +632,50 @@ browser on Unix (on Windows, open the printed address).
   each permission once, over the composer. Its summary holds the plan,
   the files it touched, its model calls and, under Details, its
   identifiers. A session opened as a terminal is the agent's own TUI.
+  What you type is the session's draft until you send it: it survives
+  leaving the session, a reload and a new launch. In an empty composer
+  Up and Down bring back the prompts you sent. Find in the session
+  (`Ctrl+F`, `⌘F` on a Mac) searches its prompts and messages and counts
+  the matches; the outline at the conversation's left edge, one mark per
+  prompt, shows each prompt and the reply to it and jumps there.
 - **The board** shows every machine's sessions by title, one lane per
   stage of delivery, a session an agent started named on its card; an
   ended one stays in its lane as exited until it is archived, and the
   archived ones are in the archive under it (from a node before
   protocol 10, every ended one is). The sidebar lists each
-  machine's live sessions, marked while one works or waits on you.
+  machine's live sessions, marked while one works or waits on you; its
+  Display menu groups them by status instead, sorts them by last
+  activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
+  it opens from the title bar's menu button.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
-  sections): Machines (add, rename, make default, forget), Agents (what
-  each agent on a machine offers: model, effort, permissions), Models,
-  Devices (pairing a phone with a QR code), Sync, Appearance and About. A
-  machine in the sidebar opens it there. The page follows the system's
-  light or dark theme until you choose one in Appearance.
+  sections): General (whether Enter or `Ctrl+Enter` sends), Appearance
+  (theme, interface and code font sizes, the conversation's width, and
+  whether tool calls are collapsed), Shortcuts (every key, searchable,
+  each rebound by pressing the new one; a key another command holds is
+  offered to move), Notifications, Machines (add, rename, make default,
+  forget), Agents (what each agent on a machine offers: model, effort,
+  permissions), Models, Devices (pairing a phone with a QR code), Sync
+  and About. A machine in the sidebar opens it there. The page follows
+  the system's light or dark theme until you choose one.
+- **What you choose is kept by `vessel ui`, not the browser** (ADR
+  0028): each launch opens at a new address, which would start a
+  browser's own storage empty. The preferences are
+  `ui-preferences.json` beside the node book (`--config-dir` moves both),
+  the drafts `ui-drafts.json` in the data directory (`~/.vessel`, or
+  `--data-dir`), both written by this user only (0600, replaced whole).
+  Every open tab sees a change at once; when two tabs change one thing,
+  the later change wins. Settings › General says where they are kept,
+  and says so when they are kept for this launch only (no place to keep
+  them, a file it cannot read, or one written by a newer Vessel, which
+  is left as it is). A new session on a machine starts with the agent,
+  profile and options its last one had there.
+- **Notifications** (Settings › Notifications, off until chosen): a
+  browser notification, a sound, or both, when a session starts to need
+  you or finishes its work while the page is open but not in front, and
+  a count in the tab's title. The browser grants notifications per
+  address, and each launch has a new one: allow them again after each
+  start of `vessel ui` (the section has the button and says what the
+  browser answered).
 - With no machine connected, the page opens on a welcome that offers to
   add one; once one is connected, on the board.
 
@@ -659,7 +691,9 @@ vessel ui --no-open  # prints the address instead
 - It listens on loopback only. Each printed address uses a fresh random
   `vessel-<id>.localhost` hostname so an earlier process on that port cannot
   seed this launch's HTML cache or service worker. Use a browser that resolves
-  `*.localhost` locally: **Chrome, Edge or Firefox is required**. Safari
+  `*.localhost` locally: **Chrome or Edge 127+, or Firefox 138+, is
+  required** (those versions check the integrity of the page's screens
+  loaded later, ADR 0017). Safari
   does not resolve these hostnames and is not supported for now. Do not
   replace the printed hostname with a fixed address: that loses the
   per-launch browser-origin isolation.
@@ -718,13 +752,22 @@ npm run lint && npm run typecheck && npm test   # ESLint, Prettier, the font rul
 npm run build && npm run fonts                  # SRI-protected web/dist and built font audit
 npm run e2e                                     # Playwright against real nodes with the fake harnesses
 npm run screens                                 # every main screen into web/artifacts/screens/
+npm run perf                                    # the page's speed, measured, into web/artifacts/perf.json
 ```
 
-`e2e` and `screens` need the Rust binaries first (`cargo build -p
+`e2e`, `screens` and `perf` need the Rust binaries first (`cargo build -p
 vessel-cli -p vessel-node --bin vesseld` and `cargo build -p
 vessel-testkit --bins`). Set `VESSEL_SCREEN_DIR` to write screenshots outside
-the checkout. CI uploads only the deliberate screenshots with pairing links
-hidden; traces, videos and automatic failure screenshots are disabled.
+the checkout. `perf` runs on demand only (minutes, not part of `e2e`): the
+board loading cold over a slow and a phone-like link, a timeline of 5,000
+and 20,000 entries, find in it and going to a match far from the view, a
+terminal under heavy output, a board of 500 cards
+(`docs/PERFORMANCE.md` keeps the figures). `VESSEL_PERF_OUT` names its
+JSON file, `VESSEL_PERF_RUNS` the runs per measurement, and
+`VESSEL_CARGO_PROFILE=release` runs the fleet on release binaries (`cargo
+build --release ...`) instead of debug ones. CI uploads only the
+deliberate screenshots with pairing links hidden; traces, videos and
+automatic failure screenshots are disabled.
 
 ## Environment
 

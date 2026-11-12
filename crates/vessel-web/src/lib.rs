@@ -12,7 +12,8 @@
 //! - `guard`: the `Host` and `Origin` checks and the security headers on
 //!   every response;
 //! - `files`: the embedded files, with the app's routes falling back to
-//!   `index.html`, and their caching (`hashed`: which are content-hashed);
+//!   `index.html`, and their caching (`hashed`: which are content-hashed)
+//!   and encodings (`encoding`: which compressed form a request gets);
 //! - `socket`: the browser's websocket: the hello within a deadline, then
 //!   the bridge;
 //! - `bridge`: one tab's calls, streams and ops;
@@ -22,6 +23,10 @@
 //!   book's edits);
 //! - `registry`: one connection per node, shared by every tab, with its
 //!   state pushed to them;
+//! - `keep`: the page's preferences and drafts, one task per file, kept
+//!   where the source says ([`PageFiles`], ADR 0028);
+//! - `paint`: the preferences' appearance written into the index, so the
+//!   first paint is already right;
 //! - [`NodeSource`]: the seam through which the CLI gives the nodes;
 //! - [`wire`]: the frames the browser and the server exchange.
 //!
@@ -31,11 +36,14 @@
 mod auth;
 mod bridge;
 mod calls;
+mod encoding;
 mod files;
 mod guard;
 #[cfg(test)]
 mod hashed;
+mod keep;
 mod ops;
+mod paint;
 mod registry;
 mod server;
 mod socket;
@@ -46,5 +54,5 @@ mod transport;
 pub mod wire;
 
 pub use server::{ServeError, UiConfig, serve};
-pub use source::NodeSource;
+pub use source::{NodeSource, PageFiles};
 pub use token::{LaunchToken, MintError};

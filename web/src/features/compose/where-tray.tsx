@@ -6,6 +6,7 @@
 import type { FolderSuggestion } from "../../data/folders";
 import type { Choice } from "../../ui/kit";
 import { Combobox, Select } from "../../ui/kit";
+import type { NodeKey } from "../../wire/bridge";
 
 export function WhereTray({
   machines,
@@ -15,9 +16,9 @@ export function WhereTray({
   folder,
   onFolder,
 }: {
-  machines: readonly Choice<string>[];
-  machine: string | null;
-  onMachine: (machine: string) => void;
+  machines: readonly Choice<NodeKey>[];
+  machine: NodeKey | null;
+  onMachine: (machine: NodeKey) => void;
   folders: readonly FolderSuggestion[];
   folder: string;
   onFolder: (folder: string) => void;

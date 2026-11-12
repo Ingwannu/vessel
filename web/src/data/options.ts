@@ -40,18 +40,18 @@ import type { OptionChoice, OptionValue, SessionOption } from "../wire/proto";
 
 /** A select, as the page shows it. */
 export interface SelectControl {
-  id: string;
+  id: SessionOption["id"];
   name: string;
   description: string | null;
   /** The value in effect: an id among `values`, or one the agent set
    * that it does not list. */
-  current: string;
+  current: OptionValue["id"];
   values: readonly OptionValue[];
 }
 
 /** An on/off option. */
 export interface ToggleControl {
-  id: string;
+  id: SessionOption["id"];
   name: string;
   description: string | null;
   on: boolean;
@@ -221,7 +221,7 @@ export function offersAnything(controls: Controls): boolean {
 /** Choose `value` of select `control`. */
 export function selectChoice(
   control: SelectControl,
-  value: string,
+  value: OptionValue["id"],
 ): OptionChoice {
   return { id: control.id, kind: "select", value };
 }

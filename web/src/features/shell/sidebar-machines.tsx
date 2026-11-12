@@ -1,5 +1,6 @@
 // "Machines" in the sidebar: each machine with its state and live count,
-// and its live sessions under it by title (data/sidebar.ts). A machine's
+// and its sessions under it by title, as the Display menu says
+// (data/sidebar.ts; grouped by status, sidebar-statuses.tsx). A machine's
 // row opens it in Settings' Machines (its detail, whose "Open the board"
 // scopes the board to it); a session's row opens the session; the
 // heading's "+" adds a machine (the dialog the welcome, Settings and the
@@ -10,22 +11,27 @@ import { Fragment, useMemo } from "react";
 
 import { useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
+import { prefs } from "../../data/prefs";
 import { sidebarMachines } from "../../data/sidebar";
+import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
 import { IconButton, StatusDot, Tooltip } from "../../ui/kit";
 import { SessionMark } from "./session-mark";
+import { SidebarViewMenu } from "./sidebar-view-menu";
 import { rowClass } from "./sidebar";
 
 export function SidebarMachines() {
   const where = useWhere();
   const state = useFleetState((value) => value);
-  const machines = useMemo(() => sidebarMachines(state), [state]);
+  const view = useStore(prefs, (value) => value.values.sidebar);
+  const machines = useMemo(() => sidebarMachines(state, view), [state, view]);
   const [place, node, id] = where.segments;
   const machineOpen = place === "settings" && node === "machines";
   return (
     <>
       <div className="side-label">
         <span>Machines</span>
+        <SidebarViewMenu />
         <Tooltip label="Add machine">
           <IconButton
             label="Add machine"

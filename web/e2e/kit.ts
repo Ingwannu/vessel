@@ -52,6 +52,12 @@ export async function newSessionPage(
   return page.getByRole("form", { name: "Prompt" });
 }
 
+/** A session's timeline: its entries, apart from the live region that
+ * repeats the newest one's text for screen readers. */
+export function timeline(page: Page): Locator {
+  return page.getByRole("region", { name: "Timeline" });
+}
+
 /** Choose `agent` in the agent, model and effort menu. */
 export async function chooseAgent(page: Page, agent: string): Promise<void> {
   await page.getByRole("button", { name: /^Agent, model and effort/ }).click();

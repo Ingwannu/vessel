@@ -5,6 +5,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   RouterProvider,
 } from "@tanstack/react-router";
 import { type ReactElement, useEffect, useState } from "react";
@@ -13,19 +14,17 @@ import { Bridge } from "./bridge/client";
 import { forgetToken, type Credential } from "./bridge/token";
 import { FleetContext } from "./context";
 import { Fleet } from "./data/fleet";
+import { followPreferences } from "./data/prefs";
 import { AddMachineHost } from "./features/machines/add-machine";
 import { Shell } from "./features/shell/shell";
 import { HomePage } from "./routes/home";
-import { NewSessionPage } from "./routes/new-session";
 import {
   DevicesRedirect,
   FleetRedirect,
   SettingsIndex,
   SyncRedirect,
 } from "./routes/redirects";
-import { SessionPage } from "./routes/session";
 import { SessionsPage } from "./routes/sessions";
-import { SettingsPage } from "./routes/settings";
 import { TooltipProvider } from "./ui/kit";
 
 /** `?node=` on the pages scoped by node. */
@@ -67,6 +66,22 @@ function Root(): ReactElement {
 
 const rootRoute = createRootRoute({ component: Root });
 
+/* [Decision Log] Screens loaded when they open (milestone 11, track P)
+   - Purpose: the page's script was one 1,124 KB file, the terminal
+     (xterm.js) and Markdown included, fetched and compiled before the
+     board's first paint; over a phone's link that is seconds
+     (docs/PERFORMANCE.md).
+   - Constraint: ADR 0017's defence: no script runs that the index did
+     not pin. A chunk imported later is pinned by the index's import map
+     (`integrity`, scripts/integrity.mjs), which the CSP admits by its
+     hash (vessel-web's files and guard); security.spec.ts poisons a
+     chunk and checks it does not run.
+   - Choice: a session, a new session and Settings are chunks of their
+     own (the kit's gallery too, main.tsx); the board, the shell and the
+     controls stay in the entry, since every visit draws them.
+   - Cost: opening one of those screens the first time waits for its
+     chunk (one request; the measured sizes are in PERFORMANCE.md). */
+
 const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
@@ -89,7 +104,10 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/new",
     validateSearch: machineSearch,
-    component: NewSessionPage,
+    component: lazyRouteComponent(
+      () => import("./routes/new-session"),
+      "NewSessionPage",
+    ),
   }),
   createRoute({
     getParentRoute: () => rootRoute,
@@ -100,7 +118,10 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/sessions/$node/$id",
-    component: SessionPage,
+    component: lazyRouteComponent(
+      () => import("./routes/session"),
+      "SessionPage",
+    ),
   }),
   createRoute({
     getParentRoute: () => rootRoute,
@@ -123,7 +144,10 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/settings/$section",
     validateSearch: settingsSearch,
-    component: SettingsPage,
+    component: lazyRouteComponent(
+      () => import("./routes/settings"),
+      "SettingsPage",
+    ),
   }),
 ]);
 
@@ -161,6 +185,19 @@ export function App({ token }: { token: Credential | null }) {
     if (fleet === null) {
       return undefined;
     }
+    const unfollow = followPreferences(fleet);
+    // A draft typed in the last half second is saved as the page goes
+    // (hidden, or closed), not lost with it (data/drafts.ts).
+    const save = () => {
+      if (document.visibilityState === "hidden") {
+        fleet.drafts.flush();
+      }
+    };
+    const leaving = () => {
+      fleet.drafts.flush();
+    };
+    document.addEventListener("visibilitychange", save);
+    window.addEventListener("pagehide", leaving);
     const off = fleet.bridge.onLink((link) => {
       if (link.kind === "refused") {
         forgetToken();
@@ -169,6 +206,9 @@ export function App({ token }: { token: Credential | null }) {
     });
     fleet.start();
     return () => {
+      document.removeEventListener("visibilitychange", save);
+      window.removeEventListener("pagehide", leaving);
+      unfollow();
       off();
       fleet.stop();
     };

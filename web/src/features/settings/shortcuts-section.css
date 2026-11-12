@@ -1,0 +1,130 @@
+/* Settings › Shortcuts (agent-orchestrator's "Keyboard shortcuts"): a
+   toolbar (search, the filter, Reset all), then a card per group, its
+   heading a 32px band on the secondary wash, rows of 44px. */
+
+/* The toolbar and the groups sit 16px apart, closer than the column's
+   40px between Settings sections: they are one list. */
+.shortcuts-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* On a phone the search takes a row of its own rather than shrinking
+   to a few letters beside the filter. */
+.shortcuts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcuts-toolbar .text-field {
+  flex: 1 1 240px;
+}
+
+.shortcuts-group {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.shortcuts-group-head {
+  margin: 0;
+  padding: 8px 16px;
+  font: var(--t-meta);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-well);
+}
+
+.shortcuts-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 8px 6px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shortcut-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.shortcut-label {
+  font: var(--t-control);
+  color: var(--text-primary);
+}
+
+.shortcut-clash {
+  flex-basis: 100%;
+  font: var(--t-meta);
+  color: var(--warn);
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shortcut-or,
+.shortcut-unset,
+.shortcut-fixed {
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.shortcut-fixed {
+  padding: 0 8px;
+}
+
+.shortcut-recorder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.shortcut-recorder-prompt {
+  font: var(--t-label);
+  color: var(--text-primary);
+}
+
+.shortcut-recorder-help {
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.shortcut-recorder-help.error {
+  color: var(--danger);
+}
+
+.shortcuts-empty {
+  font: var(--t-body);
+  color: var(--text-tertiary);
+}
+
+@media (width < 768px) {
+  .shortcut-row {
+    flex-wrap: wrap;
+  }
+}

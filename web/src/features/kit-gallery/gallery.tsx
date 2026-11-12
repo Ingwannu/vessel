@@ -15,17 +15,18 @@
 //   for integrity.mjs to pin); a branch in main.tsx on the path.
 // - Choice: main.tsx renders this page instead of the app when the path is
 //   /kit, before the token is read; `vessel ui` already answers /kit with
-//   index.html. A static import keeps the one bundle, so integrity.mjs and
-//   the CSP need nothing new.
-// - Cost: the gallery's few kilobytes ship in the bundle every page loads;
-//   it is the kit's specimen, not a feature an operator reaches.
+//   index.html. It is a chunk of its own, imported when the path is /kit
+//   (milestone 11): the operator's every page load no longer carries the
+//   kit's specimen. integrity.mjs pins the chunk in the index's import
+//   map, like every other one (ADR 0017's amendment), and `isGallery`
+//   lives apart (path.ts) so deciding does not load it.
+// - Cost: opening /kit waits for one more request.
 
 import "./gallery.css";
 
-import { chooseTheme, theme } from "../../data/theme";
-import { useStore } from "../../data/store";
+import { showTheme } from "../../data/theme";
 import { Segmented, TooltipProvider } from "../../ui/kit";
-import { THEMES, ThemeMenu } from "../theme/theme";
+import { THEMES, ThemeMenu, useTheme } from "../theme/theme";
 import { Buttons } from "./buttons";
 import { Choices } from "./choices";
 import { Composer } from "./composer";
@@ -33,13 +34,8 @@ import { Display } from "./display";
 import { Fields } from "./fields";
 import { Popups } from "./popups";
 
-/** Whether the page asked for is the gallery. */
-export function isGallery(path: string): boolean {
-  return path === "/kit" || path === "/kit/";
-}
-
 export function Gallery() {
-  const preference = useStore(theme, (value) => value);
+  const preference = useTheme();
   return (
     <TooltipProvider>
       <main className="kit-page">
@@ -57,10 +53,10 @@ export function Gallery() {
               size="sm"
               iconsOnly
               value={preference}
-              onChange={chooseTheme}
+              onChange={showTheme}
               options={THEMES}
             />
-            <ThemeMenu />
+            <ThemeMenu choose={showTheme} />
           </div>
         </header>
         <Buttons />

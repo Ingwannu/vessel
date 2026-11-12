@@ -11,6 +11,7 @@ import {
   isServerFrame,
   parse,
 } from "./frames";
+import { fixtureId } from "../testing/ids";
 
 describe("frames", () => {
   it("takes the bridge's frames and nothing else", () => {
@@ -46,7 +47,9 @@ describe("frames", () => {
   });
 
   it("builds a call from its method and parameters", () => {
-    expect(callOf("session.kill", { session: "s" })).toEqual({
+    expect(
+      callOf("session.kill", { session: fixtureId("SessionId", "s") }),
+    ).toEqual({
       method: "session.kill",
       params: { session: "s" },
     });

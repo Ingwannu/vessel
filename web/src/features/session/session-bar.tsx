@@ -13,6 +13,7 @@ import type { SessionInfo } from "../../wire/proto";
 import { TitleBar } from "../shell/title-bar";
 import { SessionActions } from "./session-actions";
 import { SessionTitle } from "./session-title";
+import type { NodeKey } from "../../wire/bridge";
 
 export function SessionBar({
   node,
@@ -20,7 +21,7 @@ export function SessionBar({
   session,
   renamed,
 }: {
-  node: string;
+  node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;

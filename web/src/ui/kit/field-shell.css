@@ -66,6 +66,17 @@
   font-size: 13px;
 }
 
+/* A field that floats over content (a find bar, agent-orchestrator's
+   `bg-overlay` bar with the popover's shadow): the popup surface, opaque,
+   36px tall; the ring stays the shell's. */
+.text-field.floating {
+  height: 36px;
+  padding: 0 4px 0 12px;
+  background: var(--popup-bg);
+  border-color: var(--popup-edge);
+  box-shadow: var(--popup-shadow);
+}
+
 .text-field.mono {
   font: var(--t-mono);
 }

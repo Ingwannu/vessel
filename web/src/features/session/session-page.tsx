@@ -11,20 +11,21 @@ import { readSession } from "../../data/calls";
 import { shortId } from "../../data/format";
 import { labelOf } from "../../data/nodes";
 import { Banner, Skeleton } from "../../ui/kit";
-import type { SessionInfo } from "../../wire/proto";
+import type { SessionId, SessionInfo } from "../../wire/proto";
 import { StructuredSession } from "./structured-session";
 import { TerminalView } from "./terminal-view";
+import type { NodeKey } from "../../wire/bridge";
 
 const NO_CRUMBS: readonly never[] = [];
 
-export function SessionView({ node, id }: { node: string; id: string }) {
+export function SessionView({ node, id }: { node: NodeKey; id: SessionId }) {
   const fleet = useFleet();
   const label = useFleetState((state) => labelOf(state, node));
   const listed = useFleetState((state) =>
     state.sessions[node]?.find((session) => session.id === id),
   );
   const [fetched, setFetched] = useState<{
-    id: string;
+    id: SessionId;
     session: SessionInfo | null;
     error: string | null;
   } | null>(null);

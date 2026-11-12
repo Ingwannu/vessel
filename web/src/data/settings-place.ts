@@ -12,6 +12,7 @@ import {
   settingsSectionOf,
 } from "./settings";
 import { useWhere, type Where } from "./where";
+import type { NodeKey } from "../wire/bridge";
 
 /** What a Settings address says. */
 export interface SettingsPlace {
@@ -20,7 +21,7 @@ export interface SettingsPlace {
   /** Whether the address named the section exactly (else the page
    * replaces it with the section's own address). */
   exact: boolean;
-  machine: string | undefined;
+  machine: NodeKey | undefined;
   agent: string | undefined;
 }
 

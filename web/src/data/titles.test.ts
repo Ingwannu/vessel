@@ -8,9 +8,10 @@ import {
   TITLE_MAX,
   titleFromPrompt,
 } from "./titles";
+import { fixtureId } from "../testing/ids";
 
 const SESSION: SessionInfo = {
-  id: "8e7f7d69-813c-4f55-9a36-48f03226cfd1",
+  id: fixtureId("SessionId", "8e7f7d69-813c-4f55-9a36-48f03226cfd1"),
   spec: { harness: "claude-code", mode: "structured", cwd: "/work/vessel" },
   created_by: { kind: "owner" },
   status: { state: "running" },

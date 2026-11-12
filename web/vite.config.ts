@@ -25,16 +25,54 @@ function xtermFont(): Plugin {
   };
 }
 
+/** Pretendard's unicode-range subsets name their face "Pretendard
+ * Variable"; every stack of ours names it "Pretendard" (ADR 0017's font
+ * rule, scripts/check-fonts.mjs), so the face takes our name. The
+ * subsets themselves are the package's, unchanged. The stylesheet must be
+ * imported from a module (src/main.tsx) for this to see it. */
+function pretendardName(): Plugin {
+  return {
+    name: "vessel-pretendard-name",
+    enforce: "pre",
+    transform(code, id) {
+      if (
+        !id.endsWith(
+          "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css",
+        )
+      ) {
+        return null;
+      }
+      return code.replaceAll(
+        "font-family: 'Pretendard Variable';",
+        "font-family: Pretendard;",
+      );
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [xtermFont(), react()],
+  plugins: [xtermFont(), pretendardName(), react()],
   build: {
     outDir: "dist",
     assetsDir: "assets",
     target: "es2022",
     sourcemap: false,
-    // The bundle is served from this machine; one chunk per library would
-    // only add requests.
+    // One chunk per screen that waits to be opened (src/app.tsx), not one
+    // per library: a library chunk would only add requests.
     chunkSizeWarningLimit: 2048,
+    // A chunk imported later is pinned by the index's import map
+    // (scripts/integrity.mjs). Preload links Vite would insert at run time
+    // for a screen's chunks are off, and so are per-chunk stylesheets:
+    // tags made at run time are outside what the index pins. The entry's
+    // own static imports keep their `modulepreload` tags in the index
+    // (fetched with the entry instead of after it; integrity.mjs pins them
+    // like every tag). One stylesheet, named by the index.
+    modulePreload: {
+      polyfill: false,
+      resolveDependencies: (_file, dependencies, context) =>
+        context.hostType === "html" ? dependencies : [],
+    },
+    cssCodeSplit: false,
   },
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],

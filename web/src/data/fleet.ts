@@ -3,8 +3,14 @@
 // (harnesses, profiles, model routes, sessions).
 //
 // Sessions have no list subscription in the protocol, so each connected
-// node's list is read again every few seconds while the page is visible;
-// rows patch in place because unchanged sessions keep their objects.
+// node's list is read again every few seconds while the page is visible,
+// and while it is hidden too when notices are on (Settings ›
+// Notifications: a hidden page is the one they are for; the browser
+// slows a hidden tab's timers, to about once a minute after five
+// minutes). Rows patch in place because unchanged sessions keep their
+// objects, and a list with no change leaves the state as it was, so
+// nothing is drawn again (milestone 11, docs/PERFORMANCE.md; the cards'
+// clock is clock.ts).
 
 import { Bridge, CallFailed, type LinkState } from "../bridge/client";
 import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
@@ -14,6 +20,10 @@ import type {
   ProfileInfo,
   SessionInfo,
 } from "../wire/proto";
+import { wantsNotices } from "./alerts";
+import { Drafts } from "./drafts";
+import { prefs } from "./prefs";
+import { entriesOf } from "./records";
 import { Store } from "./store";
 
 const SESSIONS_EVERY_MS = 2000;
@@ -54,17 +64,21 @@ const INITIAL: FleetState = {
 function keep(
   previous: readonly SessionInfo[] | undefined,
   next: SessionInfo[],
-): SessionInfo[] {
+): readonly SessionInfo[] {
   if (previous === undefined) {
     return next;
   }
   const byId = new Map(previous.map((session) => [session.id, session]));
-  return next.map((session) => {
+  const kept = next.map((session) => {
     const old = byId.get(session.id);
     return old !== undefined && JSON.stringify(old) === JSON.stringify(session)
       ? old
       : session;
   });
+  const same =
+    kept.length === previous.length &&
+    kept.every((session, index) => session === previous[index]);
+  return same ? previous : kept;
 }
 
 function message(error: unknown): string {
@@ -74,14 +88,18 @@ function message(error: unknown): string {
 export class Fleet {
   readonly bridge: Bridge;
   readonly store = new Store<FleetState>(INITIAL);
+  /** The composers' drafts, kept by the bridge (data/drafts.ts). */
+  readonly drafts: Drafts;
   #timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(bridge: Bridge) {
     this.bridge = bridge;
+    this.drafts = new Drafts(this);
     bridge.onLink((link) => {
       this.store.update((state) => ({ ...state, link }));
       if (link.kind === "open") {
         void this.loadBook();
+        void this.drafts.readAll();
       }
     });
     bridge.onNode((node, status) => {
@@ -99,7 +117,10 @@ export class Fleet {
   start(): void {
     this.bridge.start();
     this.#timer = setInterval(() => {
-      if (document.visibilityState === "visible") {
+      if (
+        document.visibilityState === "visible" ||
+        wantsNotices(prefs.get().values.notifications)
+      ) {
         this.#pollSessions();
       }
     }, SESSIONS_EVERY_MS);
@@ -145,7 +166,7 @@ export class Fleet {
     const keys = new Set(nodes.map((node) => node.key));
     const before = new Set((this.store.get().book ?? []).map((n) => n.key));
     const kept = <V>(map: Readonly<Record<NodeKey, V>>) =>
-      Object.fromEntries(Object.entries(map).filter(([key]) => keys.has(key)));
+      Object.fromEntries(entriesOf(map).filter(([key]) => keys.has(key)));
     this.store.update((state) => ({
       ...state,
       book: nodes,
@@ -220,20 +241,20 @@ export class Fleet {
   async refreshSessions(node: NodeKey): Promise<void> {
     try {
       const sessions = await this.bridge.call(node, "session.list", null);
-      this.store.update((state) => ({
-        ...state,
-        sessions: {
-          ...state.sessions,
-          [node]: keep(state.sessions[node], sessions),
-        },
-      }));
+      this.store.update((state) => {
+        const before = state.sessions[node];
+        const after = keep(before, sessions);
+        return after === before
+          ? state
+          : { ...state, sessions: { ...state.sessions, [node]: after } };
+      });
     } catch {
       // The node's state says why; the list stays as it was.
     }
   }
 
   #pollSessions(): void {
-    for (const [node, status] of Object.entries(this.store.get().statuses)) {
+    for (const [node, status] of entriesOf(this.store.get().statuses)) {
       if (status.state === "connected") {
         void this.refreshSessions(node);
       }

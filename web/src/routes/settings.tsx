@@ -14,7 +14,10 @@ import { MachinesSection } from "../features/machines/machines-section";
 import { AboutSection } from "../features/settings/about";
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
+import { GeneralSection } from "../features/settings/general";
 import { ModelsSection } from "../features/settings/models";
+import { NotificationsSection } from "../features/settings/notifications-section";
+import { ShortcutsSection } from "../features/settings/shortcuts-section";
 import { SyncSection } from "../features/settings/sync-section";
 
 export function SettingsPage(): ReactElement | null {
@@ -40,8 +43,14 @@ export function SettingsPage(): ReactElement | null {
     );
   }
   switch (place.section) {
+    case "general":
+      return <GeneralSection />;
     case "appearance":
       return <AppearanceSection />;
+    case "shortcuts":
+      return <ShortcutsSection />;
+    case "notifications":
+      return <NotificationsSection />;
     case "agents":
       return <AgentsSection machine={place.machine} agent={place.agent} />;
     case "models":

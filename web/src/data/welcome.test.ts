@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { FleetState } from "./fleet";
 import { bookNode, connectedAs } from "./fixtures/machines";
 import { HERE } from "./machines";
+import { fixtureId } from "../testing/ids";
+
 import { firstScreen, hereIsDown } from "./welcome";
 
 function state(extra: Partial<FleetState>): FleetState {
@@ -27,7 +29,12 @@ describe("the first screen", () => {
   it("waits while the book is unread or a machine is first dialled", () => {
     expect(firstScreen(state({}))).toBe("wait");
     expect(
-      firstScreen(state({ book, statuses: { box: { state: "connecting" } } })),
+      firstScreen(
+        state({
+          book,
+          statuses: { [fixtureId("NodeKey", "box")]: { state: "connecting" } },
+        }),
+      ),
     ).toBe("wait");
   });
 
@@ -36,7 +43,7 @@ describe("the first screen", () => {
       book,
       statuses: {
         [HERE]: { state: "failed", message: "no node" },
-        box: {
+        [fixtureId("NodeKey", "box")]: {
           state: "reconnecting",
           message: "refused",
           attempt: 1,
@@ -48,7 +55,10 @@ describe("the first screen", () => {
     expect(firstScreen(state({ book: [] }))).toBe("welcome");
     const redialling = state({
       book,
-      statuses: { ...down.statuses, box: { state: "connecting" } },
+      statuses: {
+        ...down.statuses,
+        [fixtureId("NodeKey", "box")]: { state: "connecting" },
+      },
     });
     expect(firstScreen(redialling, "welcome")).toBe("welcome");
   });
@@ -56,7 +66,10 @@ describe("the first screen", () => {
   it("is the board as soon as one machine connects", () => {
     expect(
       firstScreen(
-        state({ book, statuses: { box: connectedAs("box") } }),
+        state({
+          book,
+          statuses: { [fixtureId("NodeKey", "box")]: connectedAs("box") },
+        }),
         "welcome",
       ),
     ).toBe("board");

@@ -1,0 +1,50 @@
+/* The find bar (agent-orchestrator's): over the conversation's top
+   right, 12px in, 320px wide (narrower windows take what is left); one
+   field shell on the popup surface with the count, a divider and three
+   small buttons inside it. Matches are the CSS Custom Highlight API's
+   (reveal.ts), in agent-orchestrator's colours. */
+
+.find-bar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  width: min(320px, calc(100% - 24px));
+}
+
+.find-bar-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.find-count {
+  min-width: 40px;
+  padding-right: 4px;
+  text-align: right;
+  font: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.find-count.none {
+  color: var(--danger);
+}
+
+.find-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-subtle);
+}
+
+::highlight(vessel-find) {
+  background-color: #ffe066;
+  color: #202020;
+}
+
+::highlight(vessel-find-active) {
+  background-color: #c4580e;
+  color: #ffffff;
+  text-decoration: underline;
+}

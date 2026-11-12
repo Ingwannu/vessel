@@ -7,15 +7,20 @@ import "./sidebar.css";
 
 import { Link } from "@tanstack/react-router";
 
-import { useFleetState } from "../../context";
+import { useFleet, useFleetState } from "../../context";
 import { isLive } from "../../data/format";
 import { selectedNode } from "../../data/nodes";
+import { prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
+import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
 import { Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
 import { SidebarSettings } from "./sidebar-settings";
+import { SidebarStatuses } from "./sidebar-statuses";
+import { useShortcutWords } from "../shortcuts/use-keys";
 import { machineInView, useNewSession } from "./use-new-session";
 
 const MARK = (
@@ -41,7 +46,13 @@ export function rowClass(active: boolean, extra = ""): string {
   return `nav-item${extra}${active ? " active" : ""}`;
 }
 
-export function Sidebar() {
+export function Sidebar({
+  onPick,
+}: {
+  /** A link in it was followed (the sheet closes then). */
+  onPick?: () => void;
+} = {}) {
+  const fleet = useFleet();
   const where = useWhere();
   const [place] = where.segments;
   const selected = useFleetState((state) => selectedNode(state, undefined));
@@ -53,8 +64,22 @@ export function Sidebar() {
   );
   const open = useNewSession();
   const inSettings = place === "settings";
+  const grouping = useStore(prefs, (state) => state.values.sidebar.group);
+  const newKeys = useShortcutWords("new-session");
   return (
-    <nav className="sidebar" role="navigation" aria-label="Sidebar">
+    <nav
+      className="sidebar"
+      role="navigation"
+      aria-label="Sidebar"
+      onClick={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest("a") !== null
+        ) {
+          onPick?.();
+        }
+      }}
+    >
       <div className="side-head">
         <Link className="brand" to="/sessions">
           {MARK}
@@ -77,9 +102,11 @@ export function Sidebar() {
         >
           <Icon name="compose" size={16} />
           <span className="label">New session</span>
-          <span className="shortcut">
-            <Kbd keys={["N"]} look="text" />
-          </span>
+          {newKeys === null ? null : (
+            <span className="shortcut">
+              <Kbd keys={[newKeys]} look="text" />
+            </span>
+          )}
         </a>
         <Link
           className={rowClass(
@@ -94,15 +121,21 @@ export function Sidebar() {
       </div>
       {inSettings ? (
         <SidebarSettings current={where.segments[1] ?? null} />
-      ) : (
+      ) : grouping === "machine" ? (
         <SidebarMachines />
+      ) : (
+        <SidebarStatuses />
       )}
       <div className="side-foot">
         <Link className={rowClass(inSettings)} to="/settings">
           <Icon name="settings" size={16} />
           <span className="label">Settings</span>
         </Link>
-        <ThemeMenu />
+        <ThemeMenu
+          choose={(preference) => {
+            void chooseTheme(fleet, preference);
+          }}
+        />
       </div>
     </nav>
   );

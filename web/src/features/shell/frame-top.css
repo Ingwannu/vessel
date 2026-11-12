@@ -103,3 +103,25 @@
     animation: none;
   }
 }
+
+/* The menu button that opens the sidebar as a sheet: only where the
+   sidebar has no room (below 768px). The "Show sidebar" button: only
+   while it is hidden on a wider window. */
+.frame-menu {
+  display: none;
+  margin-left: -10px;
+}
+
+.frame-show-sidebar {
+  margin-left: -10px;
+}
+
+@media (max-width: 767px) {
+  .frame-menu {
+    display: inline-flex;
+  }
+
+  .frame-show-sidebar {
+    display: none;
+  }
+}

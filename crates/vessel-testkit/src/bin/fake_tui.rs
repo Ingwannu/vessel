@@ -29,8 +29,11 @@
 //!    keyboard flags, as Codex's TUI does) and print `modes on` / `modes
 //!    off`, `escape` (Unix) starts a sleeper in a process group of its own,
 //!    which survives the group kill and keeps the output open, and prints
-//!    `escaped <pid>`, and anything else prints `echo: <line>`. EOF on stdin
-//!    exits 0.
+//!    `escaped <pid>`, `flood <lines> <width>` writes `<lines>` lines of
+//!    `<width>` printable bytes each as fast as the terminal takes them,
+//!    then prints `flooded <lines>` (the load test and the page's terminal
+//!    measurement, `docs/PERFORMANCE.md`), and anything else prints
+//!    `echo: <line>`. EOF on stdin exits 0.
 
 use std::io::{self, BufRead as _, Write as _};
 use std::process::{ExitCode, Stdio};
@@ -147,6 +150,8 @@ fn handle(line: &str) -> Option<ExitCode> {
             Ok(()) => say("reported"),
             Err(error) => say(&format!("error: no report: {error}")),
         }
+    } else if let Some(rest) = line.strip_prefix("flood ") {
+        flood(rest);
     } else if line == "cwd" {
         match std::env::current_dir() {
             Ok(dir) => say(&format!("cwd {}", dir.display())),
@@ -156,6 +161,42 @@ fn handle(line: &str) -> Option<ExitCode> {
         say(&format!("echo: {line}"));
     }
     None
+}
+
+/// `flood <lines> <width>`: `<lines>` numbered lines of `<width>` bytes
+/// (the number, then letters), written in large blocks so the program is
+/// never the bottleneck, then `flooded <lines>`. Bad arguments say so.
+fn flood(arguments: &str) {
+    let mut parts = arguments.split_whitespace().map(str::parse::<usize>);
+    let (Some(Ok(lines)), Some(Ok(width)), None) = (parts.next(), parts.next(), parts.next())
+    else {
+        say("error: flood <lines> <width>");
+        return;
+    };
+    let mut out = io::stdout().lock();
+    let mut block = Vec::with_capacity(64 * 1024);
+    for number in 0..lines {
+        let start = block.len();
+        let _written = write!(block, "{number} ");
+        let used = block.len().saturating_sub(start);
+        block.extend(
+            b"abcdefghijklmnopqrstuvwxyz"
+                .iter()
+                .cycle()
+                .take(width.saturating_sub(used)),
+        );
+        block.extend_from_slice(b"\r\n");
+        if block.len() >= 60 * 1024 {
+            if out.write_all(&block).is_err() {
+                return;
+            }
+            block.clear();
+        }
+    }
+    let written = out.write_all(&block).and_then(|()| out.flush());
+    drop(written);
+    drop(out);
+    say(&format!("flooded {lines}"));
 }
 
 /// Start the sleeping grandchild; returns its pid.

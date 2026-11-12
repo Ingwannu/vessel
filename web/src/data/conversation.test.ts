@@ -7,6 +7,7 @@ import type {
   Question,
   SessionEvent,
 } from "../wire/proto";
+import { fixtureId } from "../testing/ids";
 import { EMPTY_CONVERSATION, waitingQuestions } from "./conversation";
 import { reduce } from "./timeline";
 import { EMPTY } from "./timeline-model";
@@ -21,12 +22,15 @@ function agent(event: AgentEvent): SessionEvent {
   return { type: "agent", event };
 }
 
+const Q1 = fixtureId("QuestionId", "q-1");
+const FIELD = fixtureId("FieldName", "question_1");
+
 const QUESTION: Question = {
-  id: "q-1",
+  id: Q1,
   message: "Which approach?",
   fields: [
     {
-      name: "question_1",
+      name: FIELD,
       required: true,
       kind: "choice",
       options: [{ value: "a", title: "Rewrite" }],
@@ -38,7 +42,7 @@ const QUESTION: Question = {
 const HELD: PromptQueue = {
   entries: [
     {
-      id: "e-1",
+      id: fixtureId("QueueEntryId", "e-1"),
       content: [{ type: "text", text: "next" }],
       queued_at: at,
       revision: 0,
@@ -87,10 +91,10 @@ describe("the conversation's model", () => {
         at,
         event: agent({
           event: "question_resolved",
-          id: "q-1",
+          id: Q1,
           outcome: {
             outcome: "answered",
-            values: { question_1: { type: "choice", value: "a" } },
+            values: { [FIELD]: { type: "choice", value: "a" } },
           },
         }),
       },
@@ -107,7 +111,7 @@ describe("the conversation's model", () => {
       records([
         agent({
           event: "ready",
-          harness_session: "s",
+          harness_session: fixtureId("HarnessSessionId", "s"),
           abilities: { steer: true, resume: true, image: true, audio: false },
         }),
         agent({ event: "turn_started", content: [] }),
@@ -153,7 +157,7 @@ describe("the conversation's model", () => {
             {
               type: "attachment",
               attachment: {
-                id: "a-1",
+                id: fixtureId("AttachmentId", "a-1"),
                 name: "shot.png",
                 kind: "image",
                 mime: "image/png",

@@ -2,6 +2,7 @@
 // carries only a one-use code, never the independent session key. Keep the
 // latter in this tab's sessionStorage for reloads, not origin localStorage.
 import type { LaunchId } from "../wire/bridge";
+import { isLaunchId } from "./ids";
 
 export type Credential =
   | { kind: "bootstrap"; key: string }
@@ -30,7 +31,7 @@ export function takeToken(): Credential | null {
     launch === undefined ||
     key === undefined ||
     extra !== undefined ||
-    !HEX.test(launch) ||
+    !isLaunchId(launch) ||
     !HEX.test(key)
   )
     return null;

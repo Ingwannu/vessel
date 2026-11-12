@@ -617,6 +617,85 @@ async fn cancel_gets_through_a_flood_of_updates() {
     .await;
 }
 
+/// `entries <n>` (the page's timeline measurement): `n` updates whose
+/// kinds take turns, so no two in a row are chunks of one kind (which the
+/// page would merge into one entry), each tool call with an id of its own.
+#[tokio::test]
+async fn entries_sends_updates_of_kinds_in_turn() {
+    within(async {
+        let mut agent = Agent::start(setup(None));
+        drop(agent.until(ready).await);
+        agent.input.prompt(text("entries 7")).await.unwrap();
+        let started = agent
+            .until(|event| matches!(event, AgentEvent::TurnStarted { .. }))
+            .await;
+        assert_eq!(
+            agent.until(turn_over).await,
+            AgentEvent::TurnEnded {
+                reason: StopReason::EndTurn,
+                usage: None
+            }
+        );
+        let turn = after(&agent.events, &started);
+        let kinds: Vec<&str> = turn.iter().map(kind).collect();
+        assert_eq!(
+            kinds,
+            [
+                "message",
+                "thought",
+                "tool_call",
+                "message",
+                "thought",
+                "tool_call",
+                "message",
+                "turn_ended"
+            ]
+        );
+        let calls: Vec<(&str, ToolCallStatus)> = turn
+            .iter()
+            .filter_map(|event| {
+                if let AgentEvent::ToolCall(call) = event {
+                    Some((call.id.as_str(), call.status))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(
+            calls,
+            [
+                ("entry-2", ToolCallStatus::Completed),
+                ("entry-5", ToolCallStatus::Completed)
+            ]
+        );
+
+        // Thousands arrive whole, in order.
+        agent.input.prompt(text("entries 3000")).await.unwrap();
+        let started = agent
+            .until(|event| matches!(event, AgentEvent::TurnStarted { .. }))
+            .await;
+        drop(agent.until(turn_over).await);
+        let turn = after(&agent.events, &started);
+        assert_eq!(turn.len(), 3001, "3000 entries and the turn's end");
+        assert_eq!(
+            turn.get(2997),
+            Some(&AgentEvent::MessageChunk {
+                content: ContentBlock::Text {
+                    text: "**Entry 2997.** A short paragraph, as an agent writes between tool \
+                           calls: it names `src/module_2997.rs` and what comes next."
+                        .to_owned()
+                }
+            })
+        );
+
+        assert_eq!(
+            report(&mut agent, "entries many").await,
+            "error: entries <n>"
+        );
+    })
+    .await;
+}
+
 #[tokio::test]
 async fn an_agent_exiting_mid_turn_settles_the_turn_and_its_requests() {
     within(async {

@@ -9,15 +9,10 @@ import { useFleet, useFleetState } from "../../context";
 import { agentHeadline, agentsOn } from "../../data/agent-status";
 import { agentName } from "../../data/agents";
 import { retryMachine } from "../../data/book";
-import {
-  isLive,
-  sessionTitle,
-  shortId,
-  statusWord,
-  when,
-} from "../../data/format";
+import { isLive, shortId, statusWord, when } from "../../data/format";
 import { isHere, machineState, platform, reachWord } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
+import { sessionName } from "../../data/titles";
 import type { BookNode } from "../../wire/bridge";
 import { Badge, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
@@ -175,7 +170,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
                       to="/sessions/$node/$id"
                       params={{ node: node.key, id: session.id }}
                     >
-                      {session.title ?? sessionTitle(session.spec.cwd)}
+                      {sessionName(session)}
                     </Link>
                   }
                   detail={{

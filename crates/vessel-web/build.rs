@@ -13,12 +13,25 @@
 //! - Each file is recorded with its content's SHA-256 (its entity tag) and
 //!   whether its name carries a content hash (`src/hashed.rs`), which
 //!   decides its caching (`files`).
+//! - Compressed forms (milestone 11, `docs/PERFORMANCE.md`): the web build
+//!   writes `<file>.br` and `<file>.gz` beside a text file and lists, in
+//!   `.encodings`, the SHA-256 of each file it compressed. They are
+//!   embedded with their file, not as files of their own; one whose file
+//!   no longer has that hash (an edited or rebuilt file next to an old
+//!   variant) fails the build, so a stale variant is never served.
+//!   Hidden files (the manifest) are not embedded.
+//! - The index's import map (milestone 11, ADR 0017's amendment): the one
+//!   inline script the page has, pinning the chunks loaded later. Its
+//!   SHA-256 goes into `csp.rs` as the macro `import_map_source!`, which
+//!   `guard` expands into the policy's `script-src`, so the policy stays
+//!   one static string and admits exactly that map.
 //! - Watching: the bundle's directory when it exists; otherwise all of
 //!   `web/`, so a bundle built later is noticed (cargo scans a watched
 //!   directory recursively).
 //! - Alternatives: `rust-embed` (a dependency for forty lines);
 //!   committing `web/dist` (minified diffs in every UI change).
 
+use base64::Engine as _;
 use sha2::{Digest as _, Sha256};
 
 // The rule for content-hashed names, shared with the crate's tests.
@@ -38,6 +51,13 @@ struct File {
     /// Where it is on disk.
     disk: PathBuf,
 }
+
+/// The compressed forms the build makes: their suffix, and their field in
+/// `File`.
+const VARIANTS: [(&str, &str); 2] = [(".gz", "gzip"), (".br", "brotli")];
+
+/// Compressed forms found, each with the URL of the file it belongs to.
+type Variants = Vec<(String, File)>;
 
 fn main() -> ExitCode {
     match run() {
@@ -78,16 +98,24 @@ fn run() -> Result<(), String> {
         (placeholder, web)
     };
     let _written = writeln!(cargo, "cargo::rerun-if-changed={}", watched.display());
-    let mut files = Vec::new();
-    collect(&root, &root, &mut files)
+    let mut found = Vec::new();
+    collect(&root, &root, &mut found)
         .map_err(|error| format!("reading {}: {error}", root.display()))?;
+    let manifest = fs::read_to_string(root.join(".encodings")).unwrap_or_default();
+    let (mut files, variants) = split(found, &manifest)?;
     files.sort_by(|a, b| a.url.cmp(&b.url));
-    let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("no OUT_DIR")?).join("files.rs");
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").ok_or("no OUT_DIR")?);
+    let out = out_dir.join("files.rs");
     write_if_changed(
         &out,
-        &table(&files, bundled).map_err(|error| format!("hashing assets: {error}"))?,
+        &table(&files, &variants, bundled).map_err(|error| format!("hashing assets: {error}"))?,
     )
     .map_err(|error| format!("writing {}: {error}", out.display()))?;
+    let csp = out_dir.join("csp.rs");
+    let index = fs::read_to_string(root.join("index.html"))
+        .map_err(|error| format!("reading the index: {error}"))?;
+    write_if_changed(&csp, &import_map_source(&index)?)
+        .map_err(|error| format!("writing {}: {error}", csp.display()))?;
     io::stdout()
         .lock()
         .write_all(cargo.as_bytes())
@@ -99,6 +127,9 @@ fn collect(root: &Path, dir: &Path, files: &mut Vec<File>) -> io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
+        if entry.file_name().to_string_lossy().starts_with('.') {
+            continue;
+        }
         if entry.file_type()?.is_dir() {
             collect(root, &path, files)?;
         } else {
@@ -117,23 +148,83 @@ fn collect(root: &Path, dir: &Path, files: &mut Vec<File>) -> io::Result<()> {
     Ok(())
 }
 
+/// The files to serve, and the compressed forms among `found` by the URL
+/// of the file each belongs to. A compressed form must be listed in
+/// `manifest` (`<url> <sha256>` lines) with its file's current hash.
+fn split(found: Vec<File>, manifest: &str) -> Result<(Vec<File>, Variants), String> {
+    let urls: std::collections::HashSet<String> =
+        found.iter().map(|file| file.url.clone()).collect();
+    let mut files = Vec::new();
+    let mut variants = Vec::new();
+    for file in found {
+        let base = VARIANTS.iter().find_map(|(suffix, _name)| {
+            file.url
+                .strip_suffix(suffix)
+                .filter(|base| urls.contains(*base))
+                .map(str::to_owned)
+        });
+        match base {
+            Some(base) => variants.push((base, file)),
+            None => files.push(file),
+        }
+    }
+    for (base, variant) in &variants {
+        let Some(file) = files.iter().find(|file| &file.url == base) else {
+            continue;
+        };
+        let listed = manifest
+            .lines()
+            .find_map(|line| line.strip_prefix(base.as_str())?.strip_prefix(' '));
+        let actual = hex(&fs::read(&file.disk).map_err(|error| error.to_string())?);
+        if listed != Some(actual.as_str()) {
+            return Err(format!(
+                "{} was not made from {} as it is now (run `npm run build` in web/)",
+                variant.disk.display(),
+                file.disk.display()
+            ));
+        }
+    }
+    Ok((files, variants))
+}
+
+/// `bytes`' SHA-256 in lowercase hex.
+fn hex(bytes: &[u8]) -> String {
+    let mut text = String::new();
+    for byte in Sha256::digest(bytes) {
+        let _written = write!(text, "{byte:02x}");
+    }
+    text
+}
+
 /// The generated table: `FILES` and whether it is the real bundle.
-fn table(files: &[File], bundled: bool) -> io::Result<String> {
+fn table(files: &[File], variants: &Variants, bundled: bool) -> io::Result<String> {
     let mut out = String::from("/// The web UI's files, generated by `build.rs`.\n");
     out.push_str("pub(crate) static FILES: &[File] = &[\n");
     for file in files {
-        let mut etag = String::from("\"");
-        for byte in Sha256::digest(fs::read(&file.disk)?) {
-            let _written = write!(etag, "{byte:02x}");
+        let digest = hex(&fs::read(&file.disk)?);
+        let mut forms = String::new();
+        for (suffix, name) in VARIANTS {
+            let variant = variants
+                .iter()
+                .find(|(base, variant)| *base == file.url && variant.url.ends_with(suffix));
+            let _written = match variant {
+                Some((_base, variant)) => write!(
+                    forms,
+                    "{name}: Some(Variant {{ bytes: include_bytes!({:?}), etag: {:?} }}), ",
+                    variant.disk.display().to_string(),
+                    format!("\"{digest}-{}\"", suffix.trim_start_matches('.')),
+                ),
+                None => write!(forms, "{name}: None, "),
+            };
         }
-        etag.push('"');
         let _written = writeln!(
             out,
-            "    File {{ path: {:?}, kind: {:?}, bytes: include_bytes!({:?}), etag: {etag:?}, \
-             hashed: {} }},",
+            "    File {{ path: {:?}, kind: {:?}, bytes: include_bytes!({:?}), etag: {:?}, \
+             hashed: {}, {forms}}},",
             file.url,
             kind(&file.url),
             file.disk.display().to_string(),
+            format!("\"{digest}\""),
             hashed(&file.url),
         );
     }
@@ -144,6 +235,33 @@ fn table(files: &[File], bundled: bool) -> io::Result<String> {
          pub(crate) const BUNDLED: bool = {bundled};"
     );
     Ok(out)
+}
+
+/// `csp.rs`: the macro giving `script-src`'s source for the index's
+/// import map (` 'sha256-<base64>'`), or nothing when it has none.
+fn import_map_source(index: &str) -> Result<String, String> {
+    let open = "<script type=\"importmap\">";
+    let source = match index.split_once(open) {
+        None => String::new(),
+        Some((_before, rest)) => {
+            let (map, _after) = rest
+                .split_once("</script>")
+                .ok_or("the index's import map is not closed")?;
+            if rest.contains(open) {
+                return Err("the index has more than one import map".to_owned());
+            }
+            let digest = Sha256::digest(map.as_bytes());
+            format!(
+                " 'sha256-{}'",
+                base64::engine::general_purpose::STANDARD.encode(digest)
+            )
+        }
+    };
+    Ok(format!(
+        "/// `script-src`'s source for the index's import map, generated by\n\
+         /// `build.rs`; empty when the index has none.\n\
+         macro_rules! import_map_source {{\n    () => {{\n        {source:?}\n    }};\n}}\n"
+    ))
 }
 
 /// A file's `Content-Type`, by its extension.

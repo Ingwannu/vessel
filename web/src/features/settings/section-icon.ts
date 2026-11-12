@@ -8,8 +8,14 @@ import type { IconName } from "../../ui/kit";
 /** Each section's mark, in this list and in the command palette. */
 export function sectionIcon(section: SettingsSection): IconName {
   switch (section) {
+    case "general":
+      return "settings";
     case "appearance":
       return "sun";
+    case "shortcuts":
+      return "keyboard";
+    case "notifications":
+      return "bell";
     case "agents":
       return "terminal";
     case "models":

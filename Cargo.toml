@@ -114,6 +114,13 @@ base64 = "0.23"
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env"] }
+# Benchmarks of the hot paths (milestone 11, track P, `docs/PERFORMANCE.md`):
+# a dev-dependency only, never in a shipped binary. It replaces a timing
+# loop of our own: warm-up, sample statistics, outlier detection and the
+# comparison with the previous run are what make a before/after number
+# trustworthy, and `std`'s bench harness is nightly-only. Default features
+# off: no plots (plotters) and no rayon; `cargo bench` support only.
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 # Raw mode and window size for `vessel attach` on Unix and Windows; no event
 # loop (input is read as raw bytes), hence no default features (vessel-cli).
 crossterm = { version = "0.29", default-features = false, features = ["windows"] }
@@ -255,3 +262,19 @@ opt-level = 3
 
 [profile.dev.package.curve25519-dalek]
 opt-level = 3
+
+# The release build (milestone 11, track P; docs/PERFORMANCE.md has the
+# figures). Measured against cargo's defaults (thin-local LTO, 16 codegen
+# units): fat link-time optimisation with one codegen unit made the
+# CPU-bound hot paths 5 to 12% faster (a frame's encode and decode, the
+# bridge's work per record, a terminal's fan-out) and `vesseld` a third
+# smaller (42.6 to 28.5 MB, which an SSH install uploads), for a clean
+# release build about 3.6 times as long. Thin LTO moved nothing beyond the
+# noise. Symbols are kept (`strip` would save 14% more) so a panic's
+# backtrace in a node's log still names its functions; and panics still
+# unwind (the default): one node process carries every session, and a
+# task that panics must end alone, not take the process with it.
+# Development builds are unchanged.
+[profile.release]
+lto = "fat"
+codegen-units = 1

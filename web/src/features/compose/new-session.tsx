@@ -2,7 +2,9 @@
 // on?", one raised box for the prompt with what the session runs with in
 // its foot, and where it runs in the tray under it. Send creates the
 // session with those choices, sends the prompt, and opens the session.
-// What each part decides is data/new-session.ts's.
+// What each part decides is data/new-session.ts's. Until the person
+// chooses, the machine's last start fills in the agent, the profile and
+// the choices (data/defaults.ts), and a successful start is kept as that.
 
 import "./new-session.css";
 
@@ -28,13 +30,22 @@ import {
 import { machineChoices } from "../../data/machines";
 import { machineMeant } from "../../data/nodes";
 import { pick } from "../../data/picks";
+import {
+  rememberedAgent,
+  startingPicks,
+  rememberStart,
+} from "../../data/defaults";
+import { prefer, prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
-import type { HarnessKind } from "../../wire/proto";
+import type { HarnessKind, OptionChoice } from "../../wire/proto";
 import { AddMenu } from "./add-menu";
 import { AgentMenu } from "./agent-menu";
 import { PermissionsMenu } from "./permissions-menu";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
+import { useDraft } from "./use-draft";
+import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
 import { WhereTray } from "./where-tray";
 
@@ -47,15 +58,23 @@ const EMPTY_DRAFT: Draft = {
   folder: "",
   prompt: "",
   picks: {},
+  chosen: false,
 };
 
 const NO_CRUMBS: readonly never[] = [];
 
-export function NewSession({ wanted }: { wanted: string | null }) {
+export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const fleet = useFleet();
   const navigate = useNavigate();
   const state = useFleetState((value) => value);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  // The prompt is the new-session page's draft, kept by the bridge: it
+  // comes back after leaving the page, a reload or a new launch.
+  const saved = useDraft(null);
+  useShortcut("focus-composer", () => {
+    text.current?.focus();
+    return text.current !== null;
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
@@ -73,14 +92,26 @@ export function NewSession({ wanted }: { wanted: string | null }) {
       (key) => state.statuses[key]?.state === "connected",
     );
   const harnesses = machine === null ? [] : (state.harnesses[machine] ?? []);
+  const status = machine === null ? undefined : state.statuses[machine];
+  const nodeId = status?.state === "connected" ? status.node.id : null;
+  const defaults = useStore(prefs, (value) => value.values.defaults);
   const agent: HarnessKind | null =
     harnesses.find((harness) => harness.kind === draft.agent)?.kind ??
+    rememberedAgent(defaults, nodeId, harnesses) ??
     startingAgent(harnesses);
   const harness =
     harnesses.find((candidate) => candidate.kind === agent) ?? null;
-  const effective: Draft = { ...draft, machine, agent };
+  // What the machine's last start chose, while the person has chosen
+  // nothing for this agent yet (data/defaults.ts).
+  const effective: Draft = {
+    ...draft,
+    machine,
+    agent,
+    prompt: saved.text,
+    ...startingPicks(draft, defaults, nodeId, agent),
+  };
   const terminal = harness !== null && startsTerminal(effective, harness);
-  const options = useAgentOptions(machine, agent, draft.profile, !terminal);
+  const options = useAgentOptions(machine, agent, effective.profile, !terminal);
   const controls =
     harness === null
       ? ({ kind: "terminal" } as const)
@@ -96,6 +127,17 @@ export function NewSession({ wanted }: { wanted: string | null }) {
   const change = (next: Partial<Draft>) => {
     setError(null);
     setDraft((current) => ({ ...current, ...next }));
+  };
+  // Another machine or agent: its choices start again from what it kept.
+  const restart = (next: Partial<Draft>) => {
+    change({ ...next, profile: "", picks: {}, chosen: false });
+  };
+  const choose = (choice: OptionChoice) => {
+    change({
+      profile: effective.profile,
+      picks: pick(effective.picks, choice),
+      chosen: true,
+    });
   };
 
   const send = () => {
@@ -121,6 +163,18 @@ export function NewSession({ wanted }: { wanted: string | null }) {
           );
         }
       }
+      saved.clear();
+      if (nodeId !== null && agent !== null) {
+        const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
+        for (const kept of rememberStart(
+          nodeId,
+          agent,
+          effective.profile,
+          chosen,
+        )) {
+          void prefer(fleet, kept);
+        }
+      }
       fleet.select(machine);
       void fleet.refreshSessions(machine);
       void navigate({
@@ -137,10 +191,16 @@ export function NewSession({ wanted }: { wanted: string | null }) {
         <h1>What do you want to work on?</h1>
         <PromptBox
           label="Prompt"
-          value={draft.prompt}
+          value={saved.text}
           onChange={(prompt) => {
-            change({ prompt });
+            setError(null);
+            saved.setText(prompt);
           }}
+          note={
+            saved.note === "too-long"
+              ? "This draft is too long to keep; it stays in this tab until it is sent."
+              : undefined
+          }
           placeholder={
             terminal
               ? "A title for the terminal (optional)"
@@ -152,9 +212,9 @@ export function NewSession({ wanted }: { wanted: string | null }) {
             <>
               <AddMenu
                 profiles={profiles}
-                profile={draft.profile}
+                profile={effective.profile}
                 onProfile={(profile) => {
-                  change({ profile, picks: {} });
+                  change({ profile, picks: {}, chosen: true });
                 }}
                 terminal={draft.terminal}
                 canTimeline={harness === null || runsTimeline(harness)}
@@ -173,22 +233,18 @@ export function NewSession({ wanted }: { wanted: string | null }) {
                     name: agentLabel,
                     choices: agentChoices(harnesses),
                     onChange: (next) => {
-                      change({ agent: next, profile: "", picks: {} });
+                      restart({ agent: next });
                     },
                   }}
                   state={controls}
-                  onChoose={(choice) => {
-                    change({ picks: pick(draft.picks, choice) });
-                  }}
+                  onChoose={choose}
                 />
               )}
               {controls.kind === "ready" &&
               controls.controls.permissions !== null ? (
                 <PermissionsMenu
                   control={controls.controls.permissions}
-                  onChoose={(choice) => {
-                    change({ picks: pick(draft.picks, choice) });
-                  }}
+                  onChoose={choose}
                 />
               ) : null}
             </>
@@ -208,7 +264,7 @@ export function NewSession({ wanted }: { wanted: string | null }) {
               machines={machineChoices(book, state.statuses, true)}
               machine={machine}
               onMachine={(next) => {
-                change({ machine: next, agent: null, profile: "", picks: {} });
+                restart({ machine: next, agent: null });
               }}
               folders={folders}
               folder={draft.folder}

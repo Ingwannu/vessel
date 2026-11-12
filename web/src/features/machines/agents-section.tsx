@@ -13,12 +13,13 @@ import { SettingsPage, SettingsSection } from "../settings/settings-page";
 import { AgentDetail } from "./agent-detail";
 import { AgentRow } from "./agent-row";
 import { MachinePicker } from "./machine-picker";
+import type { NodeKey } from "../../wire/bridge";
 
 export function AgentsSection({
   machine,
   agent,
 }: {
-  machine: string | undefined;
+  machine: NodeKey | undefined;
   agent: string | undefined;
 }) {
   const book = useFleetState((state) => state.book);

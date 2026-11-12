@@ -11,6 +11,8 @@ import { renameSession } from "../../data/calls";
 import { checkTitle } from "../../data/titles";
 import { TextField, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
+import type { NodeKey } from "../../wire/bridge";
+import type { SessionId } from "../../wire/proto";
 
 export function SessionTitle({
   node,
@@ -18,8 +20,8 @@ export function SessionTitle({
   name,
   canRename,
 }: {
-  node: string;
-  session: string;
+  node: NodeKey;
+  session: SessionId;
   /** What it is called now. */
   name: string;
   /** False for a session that has ended (the node refuses). */

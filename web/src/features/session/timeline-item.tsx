@@ -3,7 +3,7 @@
 // that becomes its outcome; the prompt to answer it is docked over the
 // composer (permission-dock.tsx).
 
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 import { settled, settledLine } from "../../data/approval";
 import { when } from "../../data/format";
@@ -28,7 +28,19 @@ function Meta({
   );
 }
 
-export function TimelineItem({ entry }: { entry: Entry }) {
+/** One entry, drawn again only when its entry changes: the reducer keeps
+ * the object of every entry a batch does not touch (data/timeline.ts), so
+ * a batch re-renders the entries it changed, not the whole log
+ * (docs/PERFORMANCE.md). */
+export const TimelineItem = memo(function TimelineItem({
+  entry,
+}: {
+  entry: Entry;
+}) {
+  return <Item entry={entry} />;
+});
+
+function Item({ entry }: { entry: Entry }) {
   switch (entry.kind) {
     case "ready":
       return (
@@ -38,7 +50,14 @@ export function TimelineItem({ entry }: { entry: Entry }) {
       );
     case "prompt":
       return (
-        <div className="t-item user">
+        <div
+          className="t-item user"
+          data-entry={entry.key}
+          data-kind="prompt"
+          // The outline's jump gives a prompt focus (reveal.ts); Tab
+          // does not stop here.
+          tabIndex={-1}
+        >
           <span className="glyph" aria-hidden="true" />
           <span className="when">
             {entry.replayed ? "replayed" : `turn ${String(entry.turn)}`}
@@ -48,7 +67,7 @@ export function TimelineItem({ entry }: { entry: Entry }) {
       );
     case "message":
       return (
-        <div className="t-item">
+        <div className="t-item" data-entry={entry.key} data-kind="message">
           <span className="glyph" aria-hidden="true" />
           <div className="md">
             <Markdown>{entry.text}</Markdown>

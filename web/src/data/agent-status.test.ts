@@ -10,6 +10,7 @@ import {
 } from "./agent-status";
 import { controlsOf } from "./options";
 import { claude, codexTerminalOnly } from "./fixtures/machines";
+import { fixtureId } from "../testing/ids";
 
 describe("an agent's status on a machine", () => {
   it("is available, needs attention with the machine's reason, or not found", () => {
@@ -44,40 +45,51 @@ describe("what an agent offers", () => {
   // in the order it gives them.
   const options: SessionOption[] = [
     {
-      id: "mode",
+      id: fixtureId("OptionId", "mode"),
       name: "Mode",
       category: "mode",
       kind: "select",
-      current: "default",
+      current: fixtureId("OptionValueId", "default"),
       values: [
-        { id: "default", name: "Default" },
-        { id: "plan", name: "Plan" },
+        { id: fixtureId("OptionValueId", "default"), name: "Default" },
+        { id: fixtureId("OptionValueId", "plan"), name: "Plan" },
       ],
     },
     {
-      id: "model",
+      id: fixtureId("OptionId", "model"),
       name: "Model",
       category: "model",
       kind: "select",
-      current: "fake-small",
+      current: fixtureId("OptionValueId", "fake-small"),
       values: [
-        { id: "fake-small", name: "Fake small" },
-        { id: "fake-large", name: "Fake large" },
+        { id: fixtureId("OptionValueId", "fake-small"), name: "Fake small" },
+        { id: fixtureId("OptionValueId", "fake-large"), name: "Fake large" },
       ],
     },
     {
-      id: "effort",
+      id: fixtureId("OptionId", "effort"),
       name: "Effort",
       category: "thought_level",
       kind: "select",
-      current: "high",
+      current: fixtureId("OptionValueId", "high"),
       values: [
-        { id: "low", name: "Low", group: "Quick" },
-        { id: "high", name: "High", group: "Deep" },
+        { id: fixtureId("OptionValueId", "low"), name: "Low", group: "Quick" },
+        { id: fixtureId("OptionValueId", "high"), name: "High", group: "Deep" },
       ],
     },
-    { id: "fast", name: "Fast", category: "other", kind: "toggle", on: false },
-    { id: "later", name: "Later", category: "other", kind: "unknown" },
+    {
+      id: fixtureId("OptionId", "fast"),
+      name: "Fast",
+      category: "other",
+      kind: "toggle",
+      on: false,
+    },
+    {
+      id: fixtureId("OptionId", "later"),
+      name: "Later",
+      category: "other",
+      kind: "unknown",
+    },
   ];
 
   it("lists them as models, effort, permissions, then the rest, in the page's words", () => {
@@ -107,12 +119,12 @@ describe("what an agent offers", () => {
 
   it("names a second option of a category by its own name", () => {
     const select = (id: string, name: string): SessionOption => ({
-      id,
+      id: fixtureId("OptionId", id),
       name,
       category: "model",
       kind: "select",
-      current: "a",
-      values: [{ id: "a", name: "A" }],
+      current: fixtureId("OptionValueId", "a"),
+      values: [{ id: fixtureId("OptionValueId", "a"), name: "A" }],
     });
     const two = [select("model", "Model"), select("fallback", "Fallback")];
     expect(offerRows(controlsOf(two, "Fake")).map((row) => row.label)).toEqual([

@@ -1,17 +1,23 @@
 // The sidebar's search row and the command palette it opens (DESIGN.md
-// §2.2): `⌘K` (or Ctrl+K) anywhere, `/` when not typing.
+// §2.2): its shortcut (`⌘K` or Ctrl+K anywhere, `/` when not typing, by
+// default; data/shortcuts/registry.ts).
 //
 // The row is a button drawn as the reference's search pill, not a text
 // field: typing happens in the palette, so the sidebar never holds a
 // second, smaller search box. What the palette lists is
 // `data/commands.ts`; this only maps its targets to the router.
+//
+// The palette and its shortcut are the shell's (`PaletteHost`), mounted
+// once whether the sidebar is shown, hidden or a sheet: the shortcut was
+// the sidebar's, and hiding the sidebar (milestone 11) left Mod+K to the
+// browser. Only the open palette reads the whole fleet.
 
 import "./palette.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { openNewSession, useFleetState } from "../../context";
+import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
 import {
   type PaletteEntry,
@@ -19,6 +25,8 @@ import {
   paletteEntries,
 } from "../../data/commands";
 import { selectedNode } from "../../data/nodes";
+import { closePalette, openPalette, palette } from "../../data/palette";
+import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import {
   type Command,
@@ -28,7 +36,8 @@ import {
   Kbd,
 } from "../../ui/kit";
 import { sectionIcon } from "../settings/section-icon";
-import { typing } from "./shortcuts";
+import { useShortcut } from "../shortcuts/handlers";
+import { useShortcutWords } from "../shortcuts/use-keys";
 
 function iconOf(place: PalettePlace): IconName {
   if (typeof place === "object") {
@@ -58,23 +67,12 @@ function iconOf(place: PalettePlace): IconName {
   }
 }
 
-export function SidebarSearch() {
-  const [open, setOpen] = useState(false);
+/** The palette, while open: what it lists comes from the fleet as it is
+ * now. */
+function Palette() {
   const navigate = useNavigate();
-  const state = useFleetState((fleet) => fleet);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const chord = event.key === "k" && (event.metaKey || event.ctrlKey);
-      if (chord || (event.key === "/" && !typing(event.target))) {
-        event.preventDefault();
-        setOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, []);
+  const fleet = useFleet();
+  const state = useFleetState((value) => value);
   const commands = useMemo(
     () =>
       paletteEntries(state, selectedNode(state, undefined)).map(
@@ -98,36 +96,42 @@ export function SidebarSearch() {
                 openAddMachine();
                 return;
               case "theme":
-                chooseTheme(target.preference);
+                void chooseTheme(fleet, target.preference);
                 return;
             }
           },
         }),
       ),
-    [state, navigate],
+    [state, navigate, fleet],
   );
+  return <CommandPalette commands={commands} onClose={closePalette} />;
+}
+
+/** The palette and its shortcut, once, in the shell. */
+export function PaletteHost() {
+  const open = useStore(palette, (value) => value);
+  useShortcut("palette", () => {
+    openPalette();
+    return true;
+  });
+  return open ? <Palette /> : null;
+}
+
+/** The sidebar's search row: it opens the palette. */
+export function SidebarSearch() {
+  const keys = useShortcutWords("palette");
   return (
     <div className="side-search-wrap">
       <button
         type="button"
         className="side-search"
         aria-haspopup="dialog"
-        onClick={() => {
-          setOpen(true);
-        }}
+        onClick={openPalette}
       >
         <Icon name="search" size={14} />
         <span className="label">Search</span>
-        <Kbd keys={["⌘", "K"]} look="text" />
+        {keys === null ? null : <Kbd keys={[keys]} look="text" />}
       </button>
-      {open ? (
-        <CommandPalette
-          commands={commands}
-          onClose={() => {
-            setOpen(false);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   tone,
 } from "./phrase";
 import type { Row } from "./tree";
+import { fixtureId } from "../testing/ids";
 
 const running: SessionStatus = { state: "running" };
 const starting: SessionStatus = { state: "starting" };
@@ -43,7 +44,7 @@ function session(
 ): SessionInfo {
   const created_by: Creator = { kind: "owner" };
   return {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured" },
     created_by,
     status,
@@ -55,7 +56,7 @@ function session(
 
 function row(info: SessionInfo): Row {
   return {
-    node: "laptop",
+    node: fixtureId("NodeKey", "laptop"),
     session: info,
     depth: 0,
     parent: null,

@@ -1,0 +1,77 @@
+/* The person's appearance (Settings › Appearance; ADR 0028), from the
+   attributes the bridge writes on the index's `<html>` before any script
+   runs, and `data/prefs.ts` keeps in step after. One rule per value the
+   bridge accepts, so nothing is inline and the first paint is already
+   right.
+
+   - `data-ui-size` (12 to 20 px, 14 by default): every sans token scales
+     by `--ui-scale` (tokens.css). Spacing and control heights stay as
+     they are, as GOAT's interface size changes text, not the layout.
+   - `data-code-size` (10 to 18 px, 12 by default): `--code-px`, the code
+     tokens' size; the terminal reads it too.
+   - `data-content-width`: how wide the conversation and its composer
+     grow (agent-orchestrator's 768px transcript is "comfortable"; GOAT's
+     wide is 72rem, its full the whole frame). */
+
+:root {
+  --ui-scale: 1;
+  --code-px: 12px;
+  --content-width: 768px;
+}
+
+:root[data-ui-size="12"] {
+  --ui-scale: calc(12 / 14);
+}
+:root[data-ui-size="13"] {
+  --ui-scale: calc(13 / 14);
+}
+:root[data-ui-size="15"] {
+  --ui-scale: calc(15 / 14);
+}
+:root[data-ui-size="16"] {
+  --ui-scale: calc(16 / 14);
+}
+:root[data-ui-size="17"] {
+  --ui-scale: calc(17 / 14);
+}
+:root[data-ui-size="18"] {
+  --ui-scale: calc(18 / 14);
+}
+:root[data-ui-size="19"] {
+  --ui-scale: calc(19 / 14);
+}
+:root[data-ui-size="20"] {
+  --ui-scale: calc(20 / 14);
+}
+
+:root[data-code-size="10"] {
+  --code-px: 10px;
+}
+:root[data-code-size="11"] {
+  --code-px: 11px;
+}
+:root[data-code-size="13"] {
+  --code-px: 13px;
+}
+:root[data-code-size="14"] {
+  --code-px: 14px;
+}
+:root[data-code-size="15"] {
+  --code-px: 15px;
+}
+:root[data-code-size="16"] {
+  --code-px: 16px;
+}
+:root[data-code-size="17"] {
+  --code-px: 17px;
+}
+:root[data-code-size="18"] {
+  --code-px: 18px;
+}
+
+:root[data-content-width="wide"] {
+  --content-width: 1152px;
+}
+:root[data-content-width="full"] {
+  --content-width: 100%;
+}

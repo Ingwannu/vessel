@@ -80,6 +80,11 @@ async function edit(
       case "inspect":
       case "pair":
       case "qr":
+      case "preferences":
+      case "prefer":
+      case "drafts":
+      case "draft":
+      case "save_draft":
         throw new Error("vessel ui answered another op");
     }
   });

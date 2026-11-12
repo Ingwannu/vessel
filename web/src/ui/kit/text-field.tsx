@@ -27,6 +27,10 @@ export interface TextFieldProps {
    * §1, principle 5). */
   mono?: boolean;
   size?: "md" | "sm";
+  /** `popup`: the field floats over content on the popup surface (a find
+   * bar), opaque and lifted; still one shell, the input inside draws
+   * nothing. */
+  look?: "field" | "popup";
   /** `url` brings the right keyboard on a phone; nothing else differs. */
   type?: "text" | "url";
   /** A leading icon, inside the shell. */
@@ -47,8 +51,12 @@ export interface TextFieldProps {
   inputRef?: Ref<HTMLInputElement>;
 }
 
-function shellClass(size: "md" | "sm", mono: boolean): string {
-  return `text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}`;
+function shellClass(
+  size: "md" | "sm",
+  mono: boolean,
+  look: "field" | "popup",
+): string {
+  return `text-field${size === "sm" ? " sm" : ""}${mono ? " mono" : ""}${look === "popup" ? " floating" : ""}`;
 }
 
 export function TextField({
@@ -57,6 +65,7 @@ export function TextField({
   placeholder,
   mono = false,
   size = "md",
+  look = "field",
   type = "text",
   icon,
   end,
@@ -72,7 +81,7 @@ export function TextField({
 }: TextFieldProps) {
   return (
     <span
-      className={shellClass(size, mono)}
+      className={shellClass(size, mono, look)}
       data-disabled={disabled === true ? "" : undefined}
     >
       {icon === undefined ? null : (

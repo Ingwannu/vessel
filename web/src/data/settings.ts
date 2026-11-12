@@ -12,6 +12,9 @@
 //   section could be reachable without a row, or a row lead nowhere); the
 //   list in a component file (the sidebar would import a route's file, or
 //   the reverse, against the layers `npm run lint` holds).
+// - Milestone 11 (track W) adds General (the send key, where the page's
+//   choices are kept), Shortcuts and Notifications, and makes General the
+//   default: milestone 10 had no General because nothing true was in it.
 // - Choice: the list lives here, in `data/`, as one closed set. A section
 //   is added in this file and nowhere else; the label, the group and the
 //   address follow from it, and the switches below stop compiling until
@@ -20,7 +23,10 @@
 
 /** Every section, in the order the list shows them. */
 export const SETTINGS_SECTIONS = [
+  "general",
   "appearance",
+  "shortcuts",
+  "notifications",
   "agents",
   "models",
   "machines",
@@ -38,8 +44,9 @@ export const SETTINGS_GROUPS = ["app", "agents", "machines", "about"] as const;
 /** One heading of the list. */
 export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
 
-/** The section `/settings` opens when the address names none. */
-export const DEFAULT_SETTINGS_SECTION: SettingsSection = "appearance";
+/** The section `/settings` opens when the address names none: General,
+ * as all three references open theirs. */
+export const DEFAULT_SETTINGS_SECTION: SettingsSection = "general";
 
 /** `value` as a section, if it names one. */
 export function settingsSectionOf(value: string): SettingsSection | null {
@@ -49,8 +56,14 @@ export function settingsSectionOf(value: string): SettingsSection | null {
 /** What the list and the page's title call `section`. */
 export function settingsSectionLabel(section: SettingsSection): string {
   switch (section) {
+    case "general":
+      return "General";
     case "appearance":
       return "Appearance";
+    case "shortcuts":
+      return "Shortcuts";
+    case "notifications":
+      return "Notifications";
     case "agents":
       return "Agents";
     case "models":
@@ -69,7 +82,10 @@ export function settingsSectionLabel(section: SettingsSection): string {
 /** The heading `section` sits under. */
 export function settingsGroupOf(section: SettingsSection): SettingsGroup {
   switch (section) {
+    case "general":
     case "appearance":
+    case "shortcuts":
+    case "notifications":
       return "app";
     case "agents":
     case "models":

@@ -87,6 +87,14 @@ export interface Timeline {
   next: number;
   /** What protocol 10's events say (data/conversation.ts). */
   conversation: Conversation;
+  /** Where each tool call's entry is, by the call's id, and each
+   * permission request's, by the request's id: entries are only ever
+   * appended or replaced in place, never moved or removed, so an index
+   * stays right. Without it every tool call searched the whole list, and
+   * replaying a long log was quadratic (docs/PERFORMANCE.md: 35 s of long
+   * tasks to fold 20,000 entries). */
+  tools: ReadonlyMap<string, number>;
+  permissions: ReadonlyMap<string, number>;
 }
 
 export const EMPTY: Timeline = {
@@ -102,6 +110,8 @@ export const EMPTY: Timeline = {
   title: null,
   next: 0,
   conversation: EMPTY_CONVERSATION,
+  tools: new Map(),
+  permissions: new Map(),
 };
 
 /** A content block as text. */
@@ -116,6 +126,22 @@ export function blockText(block: ContentBlock): string {
     case "attachment":
       return `[${block.attachment.name}]`;
   }
+}
+
+/** A tool call as the agent announced it. */
+export function toolOf(
+  call: Extract<AgentEvent, { event: "tool_call" }>,
+): ToolState {
+  return {
+    id: call.id,
+    title: call.title,
+    kind: call.kind,
+    status: call.status,
+    content: call.content,
+    locations: call.locations,
+    input: call.raw_input ?? null,
+    output: null,
+  };
 }
 
 /** An update to a tool call, as the agent reports it. */
@@ -139,13 +165,58 @@ export function toolAfter(
   };
 }
 
-/** The entry of tool call `id` among `entries`. */
-export function findTool(
+/** The kinds of entry that grow by chunks of text. */
+export type TextKind = "prompt" | "message" | "thought";
+
+/** `text` joined to the last of `entries` when that is a `kind` entry,
+ * else a new `kind` entry started with it (a user chunk outside a turn is
+ * a replayed prompt, of turn `turn`). `entries` is one batch's own copy
+ * (data/timeline.ts) and is changed in place: only the entry that grew is
+ * a new object, so only it renders again. */
+export function appendText(
+  entries: Entry[],
+  base: Base,
+  kind: TextKind,
+  text: string,
+  turn: number,
+): void {
+  const last = entries.at(-1);
+  if (last?.kind === kind) {
+    entries[entries.length - 1] = { ...last, text: last.text + text };
+    return;
+  }
+  if (kind === "prompt") {
+    entries.push({ ...base, kind, text, replayed: true, turn });
+  } else {
+    entries.push({ ...base, kind, text });
+  }
+}
+
+/** The entry at `index` (an index from `Timeline.tools` or
+ * `permissions`), if any. */
+export function entryAt(
   entries: readonly Entry[],
-  id: string,
-): Extract<Entry, { kind: "tool" }> | undefined {
-  return entries.find(
-    (entry): entry is Extract<Entry, { kind: "tool" }> =>
-      entry.kind === "tool" && entry.tool.id === id,
-  );
+  index: number | undefined,
+): Entry | undefined {
+  return index === undefined ? undefined : entries[index];
+}
+
+/** The first permission request among `permissions` still unanswered, in
+ * log order: what the composer's dock asks about. */
+export function firstPending(
+  entries: readonly Entry[],
+  permissions: ReadonlyMap<string, number>,
+): Extract<Entry, { kind: "permission" }> | null {
+  let first: Extract<Entry, { kind: "permission" }> | null = null;
+  for (const index of permissions.values()) {
+    const entry = entries[index];
+    if (
+      entry?.kind === "permission" &&
+      entry.outcome === null &&
+      (first === null || entry.seq < first.seq)
+    ) {
+      first = entry;
+    }
+  }
+  return first;
 }

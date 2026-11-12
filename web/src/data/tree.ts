@@ -5,28 +5,29 @@
 
 import type { SessionInfo } from "../wire/proto";
 import type { FleetState } from "./fleet";
+import type { NodeKey } from "../wire/bridge";
 
 /** A session with the node it runs on and its place in the tree. */
 export interface Row {
-  node: string;
+  node: NodeKey;
   session: SessionInfo;
   depth: number;
   parent: SessionInfo | null;
   /** The node `parent` runs on: a child may run on another node than the
    * session that started it. */
-  parentNode: string | null;
+  parentNode: NodeKey | null;
 }
 
 /** Every session of `nodes` as tree rows: roots (started by a person)
  * newest first, each followed by its agent-started children, depth first.
  * A child whose parent is not listed is a root. */
-export function tree(state: FleetState, nodes: readonly string[]): Row[] {
-  const all: { node: string; session: SessionInfo }[] = nodes.flatMap((node) =>
+export function tree(state: FleetState, nodes: readonly NodeKey[]): Row[] {
+  const all: { node: NodeKey; session: SessionInfo }[] = nodes.flatMap((node) =>
     (state.sessions[node] ?? []).map((session) => ({ node, session })),
   );
   const byId = new Map(all.map((entry) => [entry.session.id, entry]));
-  const children = new Map<string, { node: string; session: SessionInfo }[]>();
-  const roots: { node: string; session: SessionInfo }[] = [];
+  const children = new Map<string, { node: NodeKey; session: SessionInfo }[]>();
+  const roots: { node: NodeKey; session: SessionInfo }[] = [];
   for (const entry of all) {
     const creator = entry.session.created_by;
     if (creator.kind === "agent" && byId.has(creator.session)) {
@@ -43,9 +44,9 @@ export function tree(state: FleetState, nodes: readonly string[]): Row[] {
   ) => two.session.created_at.localeCompare(one.session.created_at);
   const rows: Row[] = [];
   const visit = (
-    entry: { node: string; session: SessionInfo },
+    entry: { node: NodeKey; session: SessionInfo },
     depth: number,
-    parent: { node: string; session: SessionInfo } | null,
+    parent: { node: NodeKey; session: SessionInfo } | null,
   ) => {
     rows.push({
       ...entry,

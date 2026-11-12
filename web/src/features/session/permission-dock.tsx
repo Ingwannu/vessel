@@ -20,6 +20,8 @@ import {
   Tooltip,
 } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
+import type { NodeKey } from "../../wire/bridge";
+import type { PermissionOptionId, SessionId } from "../../wire/proto";
 
 export function PermissionDock({
   node,
@@ -27,15 +29,15 @@ export function PermissionDock({
   entry,
   location,
 }: {
-  node: string;
-  session: string;
+  node: NodeKey;
+  session: SessionId;
   entry: Extract<Entry, { kind: "permission" }>;
   /** The file the tool call touches, when it says. */
   location: string | null;
 }) {
   const fleet = useFleet();
   const answers = answersOf(entry.request.options);
-  const answer = (option: string) => {
+  const answer = (option: PermissionOptionId) => {
     void answerPermission(fleet, node, session, entry.request.id, option).then(
       (outcome) => {
         if (!outcome.ok) {

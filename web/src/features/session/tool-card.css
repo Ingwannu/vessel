@@ -1,15 +1,21 @@
 /* A tool call (features/session/tool-card.tsx, DESIGN.md §6.6): a card
    with a hairline, its head the kind's icon, title, status and path (cut
    from the left), a chevron that turns while open; the body's input,
-   diffs and output in mono on the page's fill. */
+   diffs and output in mono on the page's fill.
 
-.tool {
+   The card's class is `tool-card`, not `tool`: the timeline's row for a
+   tool call is `.t-item.tool` (timeline-item.tsx), and while the two
+   shared the name the row drew the card's border, radius and fill a
+   second time around it, a box inside a box. A rule here must never
+   match the row. */
+
+.tool-card {
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-3);
   background: var(--bg-surface);
 }
 
-.tool > summary {
+.tool-card > summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -18,12 +24,12 @@
   cursor: pointer;
 }
 
-.tool .title {
+.tool-card .title {
   font: var(--t-label);
   color: var(--text-primary);
 }
 
-.tool .loc {
+.tool-card .loc {
   margin-left: auto;
   font: var(--t-mono);
   color: var(--text-tertiary);
@@ -37,23 +43,23 @@
   text-align: left;
 }
 
-.tool .loc bdi {
+.tool-card .loc bdi {
   direction: ltr;
   unicode-bidi: isolate;
 }
 
-.tool .body {
+.tool-card .body {
   border-top: 1px solid var(--border-subtle);
   padding: 8px 10px 10px;
 }
 
-.tool .io-label {
+.tool-card .io-label {
   font: var(--t-kicker);
   color: var(--text-tertiary);
   margin: 8px 0 4px;
 }
 
-.tool pre {
+.tool-card pre {
   margin: 0;
   padding: 8px 10px;
   background: var(--bg-base);
@@ -102,11 +108,11 @@
   white-space: pre;
 }
 
-.tool > summary::-webkit-details-marker {
+.tool-card > summary::-webkit-details-marker {
   display: none;
 }
 
-.tool > summary {
+.tool-card > summary {
   list-style: none;
 }
 
@@ -116,14 +122,14 @@
   transition: rotate var(--d-2) var(--ease);
 }
 
-.tool .loc + .tool-chevron {
+.tool-card .loc + .tool-chevron {
   margin-left: 0;
 }
 
-.tool > summary > .badge + .tool-chevron {
+.tool-card > summary > .badge + .tool-chevron {
   margin-left: auto;
 }
 
-.tool[open] .tool-chevron {
+.tool-card[open] .tool-chevron {
   rotate: 90deg;
 }

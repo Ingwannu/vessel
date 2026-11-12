@@ -7,14 +7,16 @@
 // is reached. The protocol's words stay in the CLI and in detail rows that
 // show a literal value.
 
+import { HERE } from "../bridge/ids";
 import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
 import type { SessionInfo } from "../wire/proto";
 import type { StateTone } from "./format";
 import { isLive } from "./format";
 import { machineMeant, nodeLabel } from "./nodes";
 
-/** The key the bridge gives this machine's own node (`NodeKey::HERE`). */
-export const HERE: NodeKey = "_here";
+/** The key the bridge gives this machine's own node (`NodeKey::HERE`),
+ * branded where every handle is (`bridge/ids.ts`). */
+export { HERE };
 
 /** Whether `key` is the machine this page was opened from. */
 export function isHere(key: NodeKey): boolean {
@@ -149,7 +151,7 @@ export function nameProblem(
  * always one in the book. */
 export function machineFor(
   book: readonly BookNode[],
-  asked: string | undefined,
+  asked: NodeKey | undefined,
   selected: NodeKey | null,
 ): BookNode | null {
   const key = machineMeant(book, [asked, selected], (candidate) =>

@@ -23,7 +23,8 @@
 }
 
 /* The log scrolls; its column is agent-orchestrator's transcript, at most
-   768px, centred. */
+   768px, centred, or as wide as Appearance's "Content width" says
+   (`--content-width`, ui/styles/appearance.css). */
 .timeline {
   flex: 1;
   min-height: 0;
@@ -34,7 +35,7 @@
 .timeline-column,
 .session-dock-column {
   width: 100%;
-  max-width: 768px;
+  max-width: var(--content-width);
   margin: 0 auto;
 }
 
@@ -52,4 +53,15 @@
   .session .inspector {
     display: none;
   }
+}
+
+/* The log with what floats over it (find, the outline), a container the
+   outline sizes itself by. */
+.session-log {
+  container: session-log / inline-size;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }

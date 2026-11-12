@@ -10,6 +10,7 @@ import {
   machineState,
   nameProblem,
 } from "./machines";
+import { fixtureId } from "../testing/ids";
 
 describe("a machine's row", () => {
   it("says what it runs on, how it is reached, its state and its sessions", () => {
@@ -69,7 +70,9 @@ describe("a machine's name", () => {
     expect(nameProblem("gpu-box", book)).toBe(
       "There is already a machine called gpu-box.",
     );
-    expect(nameProblem("gpu-box", book, "gpu-box")).toBeNull();
+    expect(
+      nameProblem("gpu-box", book, fixtureId("NodeKey", "gpu-box")),
+    ).toBeNull();
   });
 });
 
@@ -81,11 +84,19 @@ describe("the machine a section is about", () => {
   ];
 
   it("is the address's, else the last chosen, else the default, in the book", () => {
-    expect(machineFor(book, "laptop", "build-server")?.key).toBe("laptop");
-    expect(machineFor(book, undefined, "build-server")?.key).toBe(
-      "build-server",
+    expect(
+      machineFor(
+        book,
+        fixtureId("NodeKey", "laptop"),
+        fixtureId("NodeKey", "build-server"),
+      )?.key,
+    ).toBe("laptop");
+    expect(
+      machineFor(book, undefined, fixtureId("NodeKey", "build-server"))?.key,
+    ).toBe("build-server");
+    expect(machineFor(book, fixtureId("NodeKey", "missing"), null)?.key).toBe(
+      "gpu-box",
     );
-    expect(machineFor(book, "missing", null)?.key).toBe("gpu-box");
     expect(machineFor([], undefined, null)).toBeNull();
   });
 });

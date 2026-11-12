@@ -4,6 +4,32 @@ The types are defined in `crates/vessel-proto`; this file is the changelog
 and a reader's summary. Bump `PROTOCOL_VERSION` on any breaking change and add
 an entry here. Additive, optional fields do not need a bump.
 
+## TypeScript declarations (`web/src/wire/`)
+
+The page's declarations are generated from these types (ADR 0017);
+nothing here changes the wire. Since milestone 11 a primitive alias is
+declared by what it is (`vessel-proto/src/ts/aliases.rs`, one table):
+
+- **A handle**, minted by a node, the bridge, a harness or the page's
+  bridge client and only handed back by the page, is branded:
+  `type SessionId = string & { readonly __brand: "SessionId" }`. A
+  string or number is not one until a guard of its shape says so
+  (`web/src/bridge/ids.ts`), so two kinds of handle cannot be swapped.
+  The numeric ones too (`CallId`, `StreamId`, `SubscriptionId`): the
+  first two come from one counter and are looked up in different maps.
+- **Plain**: what a person types or names (`BookName`, `ProfileName`,
+  `SecretName`, `SessionTitle`, `FilePath`, `EnvName`, `HttpUrl`,
+  `KeyBinding`, …), checked where it is typed; quantities (`EventSeq`,
+  `Offset`, `DurationMs`, `TokenCount`, `ProtocolVersion`, sizes,
+  revisions); secrets (`SecretText`, `SecretValue`, `PairingLink`,
+  `InvitationSecret`, `PresentedToken`, `TicketMac`), which the page
+  takes from a person and hands on once; and content (`TerminalBytes`,
+  `DraftText`).
+
+A new alias is classified in that table, by this rule, in the change
+that adds it: the generator's test fails on an alias in no class, and on
+an entry neither generated file declares any more.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { settingsPlace } from "./settings-place";
 import type { Where } from "./where";
+import { fixtureId } from "../testing/ids";
 
 /** A place at `path` with `query`'s values, as `useWhere` reads it. */
 function at(path: string, query: Partial<Where> = {}): Where {
@@ -18,7 +19,10 @@ describe("a Settings address", () => {
   it("names a section, a machine and an agent", () => {
     expect(
       settingsPlace(
-        at("/settings/agents", { machine: "gpu-box", agent: "codex" }),
+        at("/settings/agents", {
+          machine: fixtureId("NodeKey", "gpu-box"),
+          agent: "codex",
+        }),
       ),
     ).toEqual({
       section: "agents",
@@ -30,11 +34,11 @@ describe("a Settings address", () => {
 
   it("is the default section when it names none or an unknown one", () => {
     expect(settingsPlace(at("/settings"))).toMatchObject({
-      section: "appearance",
+      section: "general",
       exact: false,
     });
     expect(settingsPlace(at("/settings/fleet"))).toMatchObject({
-      section: "appearance",
+      section: "general",
       exact: false,
     });
     expect(settingsPlace(at("/settings/machines/extra"))?.exact).toBe(false);

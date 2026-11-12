@@ -4,6 +4,7 @@ import type { BookNode } from "../wire/bridge";
 import type { SessionInfo, SessionStatus } from "../wire/proto";
 import { paletteEntries } from "./commands";
 import type { FleetState } from "./fleet";
+import { fixtureId } from "../testing/ids";
 
 function session(
   id: string,
@@ -12,7 +13,7 @@ function session(
   cwd: string,
 ): SessionInfo {
   return {
-    id,
+    id: fixtureId("SessionId", id),
     spec: { harness: "claude-code", mode: "structured", cwd },
     created_by: { kind: "owner" },
     status,
@@ -22,7 +23,7 @@ function session(
 }
 
 const laptop: BookNode = {
-  key: "laptop",
+  key: fixtureId("NodeKey", "laptop"),
   label: "laptop",
   address: "ws://127.0.0.1:7001/rpc",
   transport: "ws",
@@ -42,7 +43,7 @@ function state(): FleetState {
     errors: {},
     selected: null,
     sessions: {
-      laptop: [
+      [fixtureId("NodeKey", "laptop")]: [
         session(
           "aaaa1111",
           "2026-11-07T09:00:00Z",
@@ -133,7 +134,10 @@ describe("paletteEntries", () => {
       .map((entry) => entry.label);
     expect(places).toEqual([
       "Board",
+      "Settings: General",
       "Settings: Appearance",
+      "Settings: Shortcuts",
+      "Settings: Notifications",
       "Settings: Agents",
       "Settings: Models",
       "Settings: Machines",

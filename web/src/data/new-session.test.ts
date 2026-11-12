@@ -9,6 +9,7 @@ import {
   specOf,
   splitArgs,
 } from "./new-session";
+import { fixtureId } from "../testing/ids";
 
 const CLAUDE: Harness = {
   kind: "claude-code",
@@ -25,27 +26,34 @@ const GEMINI: Harness = {
 
 const OPTIONS: SessionOption[] = [
   {
-    id: "mode",
+    id: fixtureId("OptionId", "mode"),
     name: "Mode",
     category: "mode",
     kind: "select",
-    current: "default",
+    current: fixtureId("OptionValueId", "default"),
     values: [
-      { id: "default", name: "Default" },
-      { id: "plan", name: "Plan" },
+      { id: fixtureId("OptionValueId", "default"), name: "Default" },
+      { id: fixtureId("OptionValueId", "plan"), name: "Plan" },
     ],
   },
 ];
 
 const DRAFT: Draft = {
-  machine: "laptop",
+  machine: fixtureId("NodeKey", "laptop"),
   agent: "claude-code",
   profile: "",
   terminal: false,
   args: "",
   folder: "",
   prompt: "Tidy the overview",
-  picks: { mode: { id: "mode", kind: "select", value: "plan" } },
+  chosen: false,
+  picks: {
+    [fixtureId("OptionId", "mode")]: {
+      id: fixtureId("OptionId", "mode"),
+      kind: "select",
+      value: fixtureId("OptionValueId", "plan"),
+    },
+  },
 };
 
 describe("splitArgs", () => {
@@ -155,7 +163,7 @@ describe("draftControls", () => {
 describe("startedModel", () => {
   it("is the route's model, else the one asked for, else none", () => {
     const base = {
-      id: "a",
+      id: fixtureId("SessionId", "a"),
       created_by: { kind: "owner" },
       status: { state: "running" },
       created_at: "2026-11-11T08:00:00Z",

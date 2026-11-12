@@ -21,6 +21,7 @@ const SERVER_FRAMES: ReadonlySet<string> = new Set([
   "node",
   "event",
   "stream",
+  "preferences",
   "unreadable",
 ] satisfies ServerFrame["type"][]);
 

@@ -7,9 +7,11 @@
 //   request with its answer, the latest plan.
 // - Choice: a pure reducer over `EventRecord`s in sequence order, fed in
 //   batches. It copies the entry list once per batch and replaces only the
-//   entries that change, so React re-renders those alone, and replaying a
-//   long log is linear. Keys come from sequence numbers and the protocol's
-//   ids, so an entry keeps its key while it grows.
+//   entries that change, so React re-renders those alone. Tool calls and
+//   permission requests are found through the timeline's index by id,
+//   never by a search, so replaying a long log is linear (milestone 11,
+//   docs/PERFORMANCE.md). Keys come from sequence numbers and the
+//   protocol's ids, so an entry keeps its key while it grows.
 // - Model calls (protocol 7) are entries too, and summed into `usage` as
 //   they arrive, so the inspector's totals cost nothing per render. They
 //   carry metadata only; the record holds no content to show.
@@ -27,12 +29,16 @@ import type {
 import * as conversation from "./conversation";
 import { addCall, type Usage } from "./models";
 import {
+  appendText,
   type Base,
   blockText,
   type Entry,
-  findTool,
+  entryAt,
+  firstPending,
+  type TextKind,
   type Timeline,
   toolAfter,
+  toolOf,
   type ToolState,
   type ToolUpdate,
 } from "./timeline-model";
@@ -61,6 +67,10 @@ class Work {
   turns: number;
   inTurn: boolean;
   readonly files: string[];
+  /** `files` as a set, for the membership test. */
+  readonly touched: Set<string>;
+  readonly tools: Map<string, number>;
+  readonly permissions: Map<string, number>;
   status: SessionStatus | null;
   usage: Usage | null;
   options: readonly SessionOption[] | null;
@@ -73,6 +83,9 @@ class Work {
     this.turns = timeline.turns;
     this.inTurn = timeline.inTurn;
     this.files = [...timeline.files];
+    this.touched = new Set(timeline.files);
+    this.tools = new Map(timeline.tools);
+    this.permissions = new Map(timeline.permissions);
     this.status = timeline.status;
     this.usage = timeline.usage;
     this.options = timeline.options;
@@ -81,23 +94,20 @@ class Work {
   }
 
   finish(): Omit<Timeline, "conversation"> {
-    const pending =
-      this.entries.find(
-        (entry): entry is Extract<Entry, { kind: "permission" }> =>
-          entry.kind === "permission" && entry.outcome === null,
-      ) ?? null;
     return {
       entries: this.entries,
       plan: this.plan,
       turns: this.turns,
       inTurn: this.inTurn,
-      pending,
+      pending: firstPending(this.entries, this.permissions),
       files: this.files,
       status: this.status,
       usage: this.usage,
       options: this.options,
       title: this.title,
       next: this.next,
+      tools: this.tools,
+      permissions: this.permissions,
     };
   }
 
@@ -177,16 +187,7 @@ class Work {
         this.merge(base, "thought", blockText(event.content));
         return;
       case "tool_call":
-        this.tool(base, {
-          id: event.id,
-          title: event.title,
-          kind: event.kind,
-          status: event.status,
-          content: event.content,
-          locations: event.locations,
-          input: event.raw_input ?? null,
-          output: null,
-        });
+        this.tool(base, toolOf(event));
         return;
       case "tool_call_update":
         this.update(base, event);
@@ -196,7 +197,8 @@ class Work {
         this.entries.push({ ...base, kind: "plan", entries: event.entries });
         return;
       case "permission_requested": {
-        const call = findTool(this.entries, event.tool_call);
+        const call = this.findTool(event.tool_call);
+        this.permissions.set(event.id, this.entries.length);
         this.entries.push({
           ...base,
           key: `p${event.id}`,
@@ -212,12 +214,9 @@ class Work {
         return;
       }
       case "permission_resolved": {
-        const index = this.entries.findIndex(
-          (entry) =>
-            entry.kind === "permission" && entry.request.id === event.id,
-        );
-        const entry = this.entries[index];
-        if (entry?.kind === "permission") {
+        const index = this.permissions.get(event.id);
+        const entry = entryAt(this.entries, index);
+        if (index !== undefined && entry?.kind === "permission") {
           this.entries[index] = { ...entry, outcome: event.outcome };
         }
         return;
@@ -244,54 +243,36 @@ class Work {
     }
   }
 
-  /** Append `text` to the last entry if it is a `kind` one, else start
-   * one (a user chunk outside a turn is a replayed prompt). */
-  merge(
-    base: Base,
-    kind: "prompt" | "message" | "thought",
-    text: string,
-  ): void {
-    const last = this.entries.at(-1);
-    if (last?.kind === kind) {
-      this.entries[this.entries.length - 1] = {
-        ...last,
-        text: last.text + text,
-      };
-      return;
-    }
-    if (kind === "prompt") {
-      this.entries.push({
-        ...base,
-        kind,
-        text,
-        replayed: true,
-        turn: this.turns,
-      });
-    } else {
-      this.entries.push({ ...base, kind, text });
-    }
+  /** A chunk of text joined to the entry it continues, or starting one. */
+  merge(base: Base, kind: TextKind, text: string): void {
+    appendText(this.entries, base, kind, text, this.turns);
+  }
+
+  findTool(id: string): Extract<Entry, { kind: "tool" }> | undefined {
+    const entry = entryAt(this.entries, this.tools.get(id));
+    return entry?.kind === "tool" ? entry : undefined;
   }
 
   tool(base: Base, tool: ToolState): void {
     this.touch(tool.locations);
-    const index = this.entries.findIndex(
-      (entry) => entry.kind === "tool" && entry.tool.id === tool.id,
-    );
-    const existing = this.entries[index];
-    if (existing?.kind === "tool") {
+    const index = this.tools.get(tool.id);
+    const existing = entryAt(this.entries, index);
+    if (index !== undefined && existing?.kind === "tool") {
       this.entries[index] = { ...existing, tool };
       return;
     }
+    this.tools.set(tool.id, this.entries.length);
     this.entries.push({ ...base, key: `t${tool.id}`, kind: "tool", tool });
   }
 
   update(base: Base, update: ToolUpdate): void {
-    this.tool(base, toolAfter(findTool(this.entries, update.id)?.tool, update));
+    this.tool(base, toolAfter(this.findTool(update.id)?.tool, update));
   }
 
   touch(locations: readonly ToolLocation[]): void {
     for (const location of locations) {
-      if (!this.files.includes(location.path)) {
+      if (!this.touched.has(location.path)) {
+        this.touched.add(location.path);
         this.files.push(location.path);
       }
     }

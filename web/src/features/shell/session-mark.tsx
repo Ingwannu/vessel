@@ -1,6 +1,7 @@
 // The mark a session's row leads with (DESIGN.md §2.2): a spinner while
 // its agent works, a filled dot in the needs-you colour while it waits on
-// its owner, else a hollow dot. Decided by data/sidebar.ts.
+// its owner, a hollow dot while idle, a faint dash once it has ended.
+// Decided by data/sidebar.ts.
 
 import type { SessionMark as Mark } from "../../data/sidebar";
 import { Spinner } from "../../ui/kit";
@@ -19,5 +20,7 @@ export function SessionMark({ mark }: { mark: Mark }) {
       );
     case "idle":
       return <span className="sdot" aria-hidden="true" />;
+    case "ended":
+      return <span className="sdot ended" role="img" aria-label="ended" />;
   }
 }

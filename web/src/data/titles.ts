@@ -9,7 +9,7 @@
 // node still decides.
 
 import type { SessionInfo } from "../wire/proto";
-import { sessionTitle } from "./format";
+import { folderName } from "./format";
 
 /** The most characters a typed title may have. */
 export const TITLE_MAX = 120;
@@ -29,14 +29,19 @@ const CONTROL = new RegExp(
   "u",
 );
 
+/** What an untitled session is called when it has no folder either
+ * (agent-orchestrator's "Untitled session"; milestone 10 showed "~"). */
+export const UNTITLED = "Untitled session";
+
 /** What the page calls `session`: the title its log last reported
  * (`renamed`, fresher than the polled list), else the node's, else its
- * folder's name, as a session of an older node is called. */
+ * folder's name, as a session of an older node is called, else
+ * "Untitled session". */
 export function sessionName(
   session: SessionInfo,
   renamed: string | null = null,
 ): string {
-  return renamed ?? session.title ?? sessionTitle(session.spec.cwd);
+  return renamed ?? session.title ?? folderName(session.spec.cwd) ?? UNTITLED;
 }
 
 /** Whether `session` has a title of its own (not its folder's name). */

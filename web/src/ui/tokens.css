@@ -125,19 +125,32 @@
     Pretendard, monospace;
 
   /* Their scale: 10.5 (card footers), 11 (labels), 11.5 (card titles),
-     12 (secondary chrome), 14 (body and controls), 16 (a page's title). */
-  --t-title: 600 16px / 20px var(--font-sans);
-  --t-body: 400 14px / 21px var(--font-sans);
-  --t-label: 500 14px / 20px var(--font-sans);
-  --t-control: 400 14px / 20px var(--font-sans);
-  --t-meta: 400 12px / 16px var(--font-sans);
-  --t-mono: 400 12px / 20px var(--font-mono);
-  --t-mono-lg: 400 13px / 22px var(--font-mono);
-  --t-term: 400 13px / 1.6 var(--font-mono);
+     12 (secondary chrome), 14 (body and controls), 16 (a page's title).
+     Every size is scaled by the person's interface font (`--ui-scale`, 1
+     at the default 14px) and code font (`--code-px`, 12px by default),
+     which `ui/styles/appearance.css` sets from the attributes the bridge
+     writes on `<html>` (ADR 0028). */
+  --t-title: 600 calc(16px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-sans);
+  --t-body: 400 calc(14px * var(--ui-scale)) / calc(21px * var(--ui-scale))
+    var(--font-sans);
+  --t-label: 500 calc(14px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-sans);
+  --t-control: 400 calc(14px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-sans);
+  --t-meta: 400 calc(12px * var(--ui-scale)) / calc(16px * var(--ui-scale))
+    var(--font-sans);
+  --t-mono: 400 var(--code-px) / calc(var(--code-px) * 5 / 3) var(--font-mono);
+  --t-mono-lg: 400 calc(var(--code-px) + 1px) /
+    calc((var(--code-px) + 1px) * 22 / 13) var(--font-mono);
+  --t-term: 400 calc(var(--code-px) + 1px) / 1.6 var(--font-mono);
   /* Column headers and small labels: sentence case, never uppercase. */
-  --t-kicker: 500 11px / 16px var(--font-sans);
-  --t-card: 600 11.5px / 14.4px var(--font-sans);
-  --t-2xs: 400 10.5px / 14px var(--font-sans);
+  --t-kicker: 500 calc(11px * var(--ui-scale)) / calc(16px * var(--ui-scale))
+    var(--font-sans);
+  --t-card: 600 calc(11.5px * var(--ui-scale)) / calc(14.4px * var(--ui-scale))
+    var(--font-sans);
+  --t-2xs: 400 calc(10.5px * var(--ui-scale)) / calc(14px * var(--ui-scale))
+    var(--font-sans);
   --tracking-tight: -0.01em;
 
   --s-1: 4px;

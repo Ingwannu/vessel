@@ -4,7 +4,7 @@ import {
   ago,
   answerEmphasis,
   listOr,
-  sessionTitle,
+  folderName,
   shortId,
   statusTone,
   statusWord,
@@ -18,13 +18,14 @@ describe("formatting", () => {
     expect(statusWord({ state: "interrupted" })).toBe("interrupted");
   });
 
-  it("titles a session by its working directory", () => {
-    expect(sessionTitle("/home/me/work/vessel")).toBe("vessel");
-    expect(sessionTitle("/home/me/work/vessel/")).toBe("vessel");
-    expect(sessionTitle("C:\\Users\\me\\proj")).toBe("proj");
-    expect(sessionTitle("/")).toBe("/");
-    expect(sessionTitle(null)).toBe("~");
-    expect(sessionTitle(undefined)).toBe("~");
+  it("names a session's folder by its last segment", () => {
+    expect(folderName("/home/me/work/vessel")).toBe("vessel");
+    expect(folderName("/home/me/work/vessel/")).toBe("vessel");
+    expect(folderName("C:\\Users\\me\\proj")).toBe("proj");
+    expect(folderName("/")).toBeNull();
+    expect(folderName("")).toBeNull();
+    expect(folderName(null)).toBeNull();
+    expect(folderName(undefined)).toBeNull();
   });
 
   it("shortens ids and times", () => {

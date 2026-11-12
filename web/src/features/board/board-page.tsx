@@ -19,8 +19,9 @@ import { toast } from "../../ui/toasts";
 import { useNewSession } from "../shell/use-new-session";
 import { Archive } from "./archive";
 import { Lane } from "./lane";
+import type { NodeKey } from "../../wire/bridge";
 
-export function Board({ scope }: { scope: string | null }) {
+export function Board({ scope }: { scope: NodeKey | null }) {
   const fleet = useFleet();
   const state = useFleetState((value) => value);
   const open = useNewSession();

@@ -47,6 +47,11 @@ export interface Draft {
   folder: string;
   prompt: string;
   picks: Picks;
+  /** Whether the person chose a profile or an option for this agent:
+   * until they do, the machine's last start's are used (defaults.ts's
+   * `startingPicks`), and choosing the agent's default profile is a
+   * choice too. */
+  chosen: boolean;
 }
 
 /** What the page knows of the agent's options. */

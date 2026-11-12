@@ -24,12 +24,12 @@ const src = join(web, "src");
 const BUDGET = { ".ts": 300, ".tsx": 300, ".css": 400 };
 
 /** Files still to be divided, with the lines each had when it was listed
- * (2026-11-11, milestone 10's track W0). Each may shrink, never grow.
+ * (2026-11-11, milestone 10's track W0). Each may shrink, never grow. The
+ * last, `bridge/client.ts`, was divided in milestone 11 (track W); the
+ * list stays so the rule has one place, and nothing is added to it.
  */
 /** @type {Readonly<Record<string, number>>} */
-const STILL_TO_DIVIDE = {
-  "src/bridge/client.ts": 467,
-};
+const STILL_TO_DIVIDE = {};
 
 /** @param {string} path @returns {string[]} */
 function files(path) {

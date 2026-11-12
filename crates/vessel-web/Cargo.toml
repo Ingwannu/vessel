@@ -17,6 +17,9 @@ vessel-client.workspace = true
 vessel-proto.workspace = true
 
 axum.workspace = true
+# The time a draft was last saved (ADR 0028), as the protocol's own times
+# are typed (`vessel-proto` already depends on it).
+chrono.workspace = true
 futures-util.workspace = true
 # The per-launch token (ADR 0017); already in the workspace.
 getrandom.workspace = true
@@ -42,15 +45,27 @@ tracing.workspace = true
 ts-rs = { workspace = true, optional = true }
 
 [build-dependencies]
+# The import map's hash in the content security policy (ADR 0017's
+# amendment of milestone 11): base64 as CSP writes it. Both in the
+# workspace already.
+base64.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
 # The bridge's tests: real nodes in this process, with the fake harnesses.
+# The policy's hash of the import map, checked against the index.
+base64.workspace = true
 bytes.workspace = true
+criterion.workspace = true
 tempfile.workspace = true
 vessel-harness = { workspace = true, features = ["fakes"] }
 vessel-node.workspace = true
 vessel-testkit.workspace = true
+
+# `docs/PERFORMANCE.md`: the bridge's work per forwarded record.
+[[bench]]
+name = "bridge"
+harness = false
 
 [lints]
 workspace = true
