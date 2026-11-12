@@ -64,7 +64,12 @@ describe("what a session offers", () => {
     expect(
       canStartAgain({
         ...ENDED,
-        spec: { harness: "claude-code", mode: "terminal" },
+        spec: {
+          harness: "claude-code",
+          mode: "terminal",
+          args: [],
+          size: { cols: 80, rows: 24 },
+        },
       }),
     ).toBe(false);
   });
