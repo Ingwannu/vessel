@@ -3,7 +3,8 @@
 // tool calls collapsed, a run of them (and the thoughts between) is one
 // row saying what was done, opened on a click; the rest of the turn is
 // drawn as it is. The runs are data/tool-runs.ts's; which are open is
-// this page's, not kept.
+// this page's, not kept. Which entries are the window's rows then is
+// data/rows.ts's: a closed run's members are not rows at all.
 
 import {
   createContext,
@@ -21,7 +22,7 @@ import { type Folds, type ToolRun, toolRuns } from "../../data/tool-runs";
 import { Icon } from "../../ui/kit";
 import { TimelineItem } from "./timeline-item";
 
-interface FoldState {
+export interface FoldState {
   folds: Folds | null;
   open: ReadonlySet<string>;
   toggle: (lead: string) => void;
@@ -88,10 +89,18 @@ function FoldRow({
   );
 }
 
-/** One entry as the conversation display draws it: itself, a run's
- * summary row, or nothing while its run is closed. */
+/** The folds the timeline is drawn with, which runs are open, and the
+ * toggle: for the window's rows (data/rows.ts). */
+export function useFolds(): FoldState {
+  return useContext(FoldContext);
+}
+
+/** One row as the conversation display draws it: an entry, or a run's
+ * summary row with its lead under it once opened. A closed run's other
+ * members are not rows (data/rows.ts), so they never come here; one that
+ * did would draw nothing. */
 export function TimelineEntry({ entry }: { entry: Entry }) {
-  const { folds, open, toggle } = useContext(FoldContext);
+  const { folds, open, toggle } = useFolds();
   const run = folds?.get(entry.key);
   if (run === undefined) {
     return <TimelineItem entry={entry} />;

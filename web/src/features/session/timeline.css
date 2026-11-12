@@ -24,6 +24,19 @@
   display: flow-root;
 }
 
+/* The space of the rows not drawn carries the rail on, so it runs
+   unbroken across the window's edges while the next rows are drawn. */
+.t-space {
+  background: linear-gradient(var(--border-subtle), var(--border-subtle)) 5px
+    0 / 1px 100% no-repeat;
+}
+
+/* While a row gone to by key is held in place (window-pin.ts), the
+   window's own correction is the only thing that moves the view. */
+.timeline[data-pinned] {
+  overflow-anchor: none;
+}
+
 .t-row[data-last] > .t-item::before {
   display: none;
 }
@@ -41,6 +54,17 @@
 
 .t-item.user .glyph {
   background: var(--accent);
+}
+
+/* A prompt the outline jumped to has focus (reveal.ts): the ring on its
+   box, as the kit draws one, only when the keyboard brought it. */
+.t-item.user:focus {
+  outline: none;
+}
+
+.t-item.user:focus-visible .prompt {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .t-item.tool .glyph {

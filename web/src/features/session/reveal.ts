@@ -4,18 +4,24 @@
 // [Decision Log]
 // - Purpose: find and the outline decide what to show from the model
 //   (`data/find.ts`, `data/outline.ts`); something must then put that
-//   entry on screen. The timeline is being windowed (track P), so the
-//   callers cannot reach into its DOM, and the timeline must not learn
-//   what a find is.
+//   entry on screen. The timeline is windowed (track P, use-window.ts):
+//   the entry may not be drawn, so the callers cannot reach into its DOM,
+//   and the timeline must not learn what a find is.
 // - Choice: the timeline takes a `Reveal` (an entry's key, and for a find
-//   the query and which occurrence) and, once that entry is drawn, calls
-//   `revealEntry` on its column. A windowed timeline first scrolls its
-//   window to the entry's index, then calls the same function.
+//   the query and which occurrence), and its window goes to that entry's
+//   row (use-window.ts's `Target`): it scrolls to where the row is
+//   estimated to be, so the row is drawn; once it is, `showReveal` marks
+//   the match or gives the entry focus, and says what the window then
+//   holds in place while measured heights replace the estimates.
 // - The marks are the CSS Custom Highlight API (agent-orchestrator's and
 //   GOAT's find): ranges over the drawn text, no element added, nothing
 //   for React to reconcile. Only the revealed entry is walked, so the cost
 //   is one entry's text. Where the API is missing, the entry is still
 //   brought into view.
+// - Focus: a find keeps it in its field, as agent-orchestrator's does
+//   (Enter goes on to the next match); the outline's jump gives it to the
+//   prompt (focusable from script only, timeline-item.tsx), so the
+//   keyboard goes on from there.
 
 /** What to bring into view. `seq` changes with every request, so asking
  * for the same match again scrolls to it again. */
@@ -35,6 +41,11 @@ function registry(): HighlightRegistry | null {
   return typeof CSS !== "undefined" && "highlights" in CSS
     ? CSS.highlights
     : null;
+}
+
+/** `reveal` when it is a find's, with a match to mark; else `null`. */
+export function finding(reveal: Reveal | null): Reveal | null {
+  return (reveal?.match ?? null) === null ? null : reveal;
 }
 
 /** Remove every find mark. */
@@ -129,22 +140,18 @@ function mark(element: Element, query: string, nth: number): Range | null {
   return current;
 }
 
-/** Bring `reveal`'s entry into view inside `column`, marking its match;
- * false when the entry is not drawn there. */
-export function revealEntry(column: ParentNode, reveal: Reveal): boolean {
-  const element = column.querySelector(
-    `[data-entry="${CSS.escape(reveal.key)}"]`,
-  );
-  if (element === null) {
-    return false;
-  }
+/** Show `reveal` in its drawn `row`: the match marked, or the entry
+ * given focus; what the window holds in place, the match's range or the
+ * entry. Scrolls nothing: the window does (use-window.ts). */
+export function showReveal(row: Element, reveal: Reveal): Element | Range {
+  const entry =
+    row.querySelector(`[data-entry="${CSS.escape(reveal.key)}"]`) ?? row;
   if (reveal.match === null) {
     clearMarks();
-    element.scrollIntoView({ block: "start" });
-    return true;
+    if (entry instanceof HTMLElement) {
+      entry.focus({ preventScroll: true });
+    }
+    return entry;
   }
-  const range = mark(element, reveal.match.query, reveal.match.nth);
-  const target = range?.startContainer.parentElement ?? element;
-  target.scrollIntoView({ block: "center" });
-  return true;
+  return mark(entry, reveal.match.query, reveal.match.nth) ?? entry;
 }

@@ -1,22 +1,25 @@
 // The timeline's column (agent-orchestrator's transcript: at most 768px,
-// centred, or Appearance's content width), following the log as it grows.
-// Only the entries near the view are drawn (use-window.ts); the space of
-// the others is kept. New entries are announced politely from a live
-// region of their text, once for the list, not for every row drawn while
-// scrolling.
+// centred, or Appearance's content width), following the log as it grows
+// while the reader is at its end. Only the rows near the view are drawn
+// (use-window.ts); the space of the others is kept. New entries are
+// announced politely from a live region of their text, once for the list,
+// not for every row drawn while scrolling.
 //
-// Its one seam for find and the outline is `reveal` (reveal.ts): an
-// entry to bring into view by key.
+// Its one seam for find and the outline is `reveal` (reveal.ts): an entry
+// to bring into view by key, which the window goes to whether or not its
+// row is drawn.
 
 import "./timeline.css";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
+import { rowIndex, rowsOf } from "../../data/rows";
 import { spoken } from "../../data/timeline-text";
 import type { Timeline as Log } from "../../data/timeline-model";
-import { TimelineEntry } from "./folds";
-import { type Reveal, revealEntry } from "./reveal";
+import { TimelineEntry, useFolds } from "./folds";
+import { finding, type Reveal, showReveal } from "./reveal";
 import { useWindow } from "./use-window";
+import type { Target } from "./window-pin";
 import { WindowRow } from "./window-row";
 
 export function Timeline({
@@ -30,32 +33,70 @@ export function Timeline({
   scrollerRef?: (element: HTMLDivElement | null) => void;
 }) {
   const entries = timeline.entries;
-  const { scroller, span, rows } = useWindow(entries);
-  const column = useRef<HTMLElement>(null);
-  const last = entries.at(-1);
-  useEffect(() => {
-    if (reveal !== null && column.current !== null) {
-      revealEntry(column.current, reveal);
-    }
-  }, [reveal]);
+  const { folds, open } = useFolds();
+  const rows = useMemo(
+    () => rowsOf(entries, folds, open),
+    [entries, folds, open],
+  );
+  // The row a reveal names: the entry's own, or its run's lead when it is
+  // folded away.
+  const rowKey =
+    reveal === null
+      ? null
+      : (rows[rowIndex(rows, reveal.key, folds)]?.key ?? null);
+  // The row last marked for a find: one drawn again (the reader scrolled
+  // away and back) is marked again.
+  const marked = useRef<Element | null>(null);
+  const target = useMemo<Target | null>(
+    () =>
+      reveal === null || rowKey === null
+        ? null
+        : {
+            key: rowKey,
+            seq: reveal.seq,
+            align: reveal.match === null ? "start" : "center",
+            show: (row) => {
+              marked.current = row;
+              return showReveal(row, reveal);
+            },
+          },
+    [reveal, rowKey],
+  );
+  const windowed = useWindow(rows, target);
+  const { scroller, span } = windowed;
   useLayoutEffect(() => {
     scrollerRef?.(scroller.current);
     return () => {
       scrollerRef?.(null);
     };
   }, [scroller, scrollerRef]);
+  const find = finding(reveal);
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (find === null || rowKey === null || element === null) {
+      marked.current = null;
+      return;
+    }
+    const row = element.querySelector(`[data-key="${CSS.escape(rowKey)}"]`);
+    if (row !== null && row !== marked.current) {
+      marked.current = row;
+      showReveal(row, find);
+    }
+  }, [find, rowKey, scroller, span]);
+  const last = rows.at(-1);
+  const newest = entries.at(-1);
   return (
     <div className="timeline" ref={scroller}>
       {/* A named region: the entries are found here, apart from the live
           region below, which repeats the newest one's text. */}
-      <section className="timeline-column" aria-label="Timeline" ref={column}>
+      <section className="timeline-column" aria-label="Timeline">
         <div className="t-space" style={{ height: span.before }} />
-        {entries.slice(span.start, span.end).map((entry) => (
+        {rows.slice(span.start, span.end).map((entry) => (
           <WindowRow
             key={entry.key}
             id={entry.key}
             last={entry === last}
-            rows={rows}
+            rows={windowed.rows}
           >
             <TimelineEntry entry={entry} />
           </WindowRow>
@@ -66,7 +107,7 @@ export function Timeline({
         ) : null}
       </section>
       <p className="visually-hidden" aria-live="polite">
-        {last === undefined ? "" : spoken(last)}
+        {newest === undefined ? "" : spoken(newest)}
       </p>
     </div>
   );

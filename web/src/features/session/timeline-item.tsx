@@ -50,7 +50,14 @@ function Item({ entry }: { entry: Entry }) {
       );
     case "prompt":
       return (
-        <div className="t-item user" data-entry={entry.key} data-kind="prompt">
+        <div
+          className="t-item user"
+          data-entry={entry.key}
+          data-kind="prompt"
+          // The outline's jump gives a prompt focus (reveal.ts); Tab
+          // does not stop here.
+          tabIndex={-1}
+        >
           <span className="glyph" aria-hidden="true" />
           <span className="when">
             {entry.replayed ? "replayed" : `turn ${String(entry.turn)}`}

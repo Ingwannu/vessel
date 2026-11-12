@@ -1,6 +1,6 @@
-// The timeline's window (data/window.ts): which entries are drawn as the
-// log scrolls, their heights as measured, and the log kept at its end
-// whenever it grows, as the timeline always did.
+// The timeline's window (data/window.ts): which rows are drawn as the log
+// scrolls, their heights as measured, the log kept at its end while the
+// reader is there, and a row gone to by key held where it was put.
 //
 // [Decision Log] (milestone 11, track P; docs/PERFORMANCE.md)
 // - Purpose: a 20,000-entry timeline put 180,000 elements in the page;
@@ -23,6 +23,14 @@
 //   browser's find-in-page and a screen reader's browse mode reach only
 //   what is drawn, and new entries are announced from a live region of
 //   their text (timeline.tsx) instead of from the list itself.
+//
+// With track W (merged in milestone 11): the rows are data/rows.ts's (a
+// closed run of tool calls is one row); the end is followed only while
+// the reader is within `NEAR_END` of it (a reader who scrolled up, or was
+// taken up by find or the outline, is not pulled down by new records, as
+// agent-orchestrator's find pauses "follow latest"); and `target` goes to
+// a row by key, drawn or not, and holds it there (window-pin.ts says why
+// and how).
 
 import {
   type RefObject,
@@ -32,12 +40,25 @@ import {
   useState,
 } from "react";
 
-import { offsets, type Span, span } from "../../data/window";
+import { covers, offsets, scrollFor, type Span, span } from "../../data/window";
+import {
+  hold,
+  markPinned,
+  type Pin,
+  TAKE_BACK,
+  type Target,
+} from "./window-pin";
 
 /** Pixels drawn beyond each edge of the viewport. */
 const MARGIN = 1200;
 /** A first guess at an entry's height, before any is measured. */
 const FALLBACK = 72;
+/** How close to the end counts as reading the end, in pixels. */
+const NEAR_END = 48;
+/** How many times in one frame a held pin may have the window worked out
+ * again before paint (each pass draws the rows its correction brought
+ * into view; the next frame's scroll finishes any it did not). */
+const PASSES = 4;
 
 /** What the drawn rows share: the observer measuring them and the open
  * state of the `<details>` the reader toggled, by entry. */
@@ -53,8 +74,22 @@ export interface Window {
   rows: Rows;
 }
 
-/** The window over `items`, by their keys. */
-export function useWindow(items: readonly { key: string }[]): Window {
+/** Where the reader is: following the end, holding a pin, and how many
+ * passes this frame's pin has had. */
+interface Reading {
+  following: boolean;
+  pin: Pin | null;
+  passes: number;
+  /** The last target taken, by `seq`. */
+  taken: number | null;
+}
+
+/** The window over `items`, by their keys, going to `target` when it
+ * changes. */
+export function useWindow(
+  items: readonly { key: string }[],
+  target: Target | null,
+): Window {
   const scroller = useRef<HTMLDivElement>(null);
   const [heights, setHeights] = useState<ReadonlyMap<string, number>>(
     () => new Map(),
@@ -66,6 +101,12 @@ export function useWindow(items: readonly { key: string }[]): Window {
     }),
     opened: new Map(),
   }));
+  const reading = useRef<Reading>({
+    following: true,
+    pin: null,
+    passes: 0,
+    taken: null,
+  });
   useLayoutEffect(
     () => () => {
       rows.observer.disconnect();
@@ -77,24 +118,8 @@ export function useWindow(items: readonly { key: string }[]): Window {
     if (element === null) {
       return undefined;
     }
-    return watch(element, rows, setView);
+    return watch(element, rows, reading.current, setView);
   }, [rows]);
-  // The end whenever the log grows, and again whenever a measurement
-  // moves it while the reader is there.
-  const end = useRef({ count: -1, height: -1 });
-  useLayoutEffect(() => {
-    const element = scroller.current;
-    if (element === null) {
-      return;
-    }
-    const atEnd =
-      element.scrollTop + element.clientHeight >= element.scrollHeight - 4;
-    const grew = items.length !== end.current.count;
-    if (grew || (atEnd && element.scrollHeight !== end.current.height)) {
-      element.scrollTop = element.scrollHeight;
-      end.current = { count: items.length, height: element.scrollHeight };
-    }
-  });
   const starts = useMemo(
     () =>
       offsets(
@@ -104,11 +129,73 @@ export function useWindow(items: readonly { key: string }[]): Window {
       ),
     [items, heights],
   );
-  return {
-    scroller,
-    span: span(starts, view.top, view.height, MARGIN),
-    rows,
-  };
+  const drawn = useMemo(
+    () => span(starts, view.top, view.height, MARGIN),
+    [starts, view],
+  );
+  // A new target: scroll to where its row is estimated to be, so it is
+  // drawn in the render this asks for, and hold it.
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    const state = reading.current;
+    if (target === null || element === null || state.taken === target.seq) {
+      return;
+    }
+    state.taken = target.seq;
+    const index = items.findIndex((item) => item.key === target.key);
+    if (index < 0) {
+      return;
+    }
+    state.pin = { target, anchor: null };
+    state.following = false;
+    state.passes = 0;
+    markPinned(element, true);
+    element.scrollTop = scrollFor(
+      starts,
+      index,
+      element.clientHeight,
+      target.align,
+    );
+    setView(viewOf(element));
+  }, [target, items, starts]);
+  // After every change of the rows, their heights or the view: a held pin
+  // corrected where the change moved it, or the end kept while the reader
+  // is there.
+  const end = useRef({ count: -1, height: -1 });
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    const state = reading.current;
+    if (element === null) {
+      return;
+    }
+    if (state.pin !== null) {
+      const moved = hold(element, state.pin);
+      const top = element.scrollTop;
+      if (
+        moved &&
+        state.passes < PASSES &&
+        !covers(starts, drawn, top, element.clientHeight)
+      ) {
+        state.passes += 1;
+        setView(viewOf(element));
+      }
+      return;
+    }
+    const grew = items.length !== end.current.count;
+    if (
+      state.following &&
+      (grew || element.scrollHeight !== end.current.height)
+    ) {
+      element.scrollTop = element.scrollHeight;
+    }
+    end.current = { count: items.length, height: element.scrollHeight };
+  }, [items, starts, drawn]);
+  return { scroller, span: drawn, rows };
+}
+
+/** `element`'s view as the window reads it. */
+function viewOf(element: HTMLElement): { top: number; height: number } {
+  return { top: element.scrollTop, height: element.clientHeight };
 }
 
 /** `known` with the heights `changes` measured; the same map when none
@@ -129,20 +216,35 @@ function measure(
   return next ?? known;
 }
 
-/** Follow `element`'s scrolling and size into `setView`, once a frame,
- * and remember the `<details>` toggled in its rows; returns the undo. */
+/** Follow `element`'s scrolling and size into `setView`, once a frame;
+ * keep `reading` told whether the reader is at the end and let its pin go
+ * when the reader takes the scroll back; and remember the `<details>`
+ * toggled in its rows. Returns the undo. */
 function watch(
   element: HTMLElement,
   rows: Rows,
+  reading: Reading,
   setView: (view: { top: number; height: number }) => void,
 ): () => void {
   let frame: number | null = null;
   const read = () => {
     frame = null;
-    setView({ top: element.scrollTop, height: element.clientHeight });
+    reading.passes = 0;
+    setView(viewOf(element));
   };
   const onScroll = () => {
+    if (reading.pin === null) {
+      reading.following =
+        element.scrollHeight - element.scrollTop - element.clientHeight <
+        NEAR_END;
+    }
     frame ??= window.requestAnimationFrame(read);
+  };
+  const takeBack = () => {
+    if (reading.pin !== null) {
+      reading.pin = null;
+      markPinned(element, false);
+    }
   };
   const onToggle = (event: Event) => {
     const row =
@@ -161,10 +263,16 @@ function watch(
   resized.observe(element);
   read();
   element.addEventListener("scroll", onScroll, { passive: true });
+  for (const name of TAKE_BACK) {
+    element.addEventListener(name, takeBack, { passive: true });
+  }
   // `toggle` does not bubble; it is seen on its way down.
   element.addEventListener("toggle", onToggle, { capture: true });
   return () => {
     element.removeEventListener("scroll", onScroll);
+    for (const name of TAKE_BACK) {
+      element.removeEventListener(name, takeBack);
+    }
     element.removeEventListener("toggle", onToggle, { capture: true });
     resized.disconnect();
     if (frame !== null) {
