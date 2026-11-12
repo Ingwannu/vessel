@@ -3286,3 +3286,74 @@ schema 10). Rust, wire, CLI, agent tools.
   with them or after, decided when half 1 is in.
 - **A2**: rewind, fork, import from the agent's history, search across
   sessions, parking idle agents.
+
+## Wave 2, half 1: where it stands (2026-11-12)
+
+Three of the four tracks finished on their branches: B-page
+(`backend/m11-b-page`), B2 (`backend/m11-forge`) and C
+(`backend/m11-shells`). A-page's worker stalled for six hours with its
+first slice uncommitted and was restarted; it is still building.
+
+The node's two are joined first (`backend/m11-int2-node`: C into B2), as
+in wave 1. Besides the merge, the join carries what the tracks found in
+each other:
+
+- From C: the short window where a terminal starts in a worktree being
+  removed, closed inside the removal's own claim.
+- From B-page, two gaps in the wire: `ProjectCommands` gains the set last
+  approved, so the page can say what changed; and a file's write is
+  guarded by something a page can carry exactly (the content hash), not a
+  nanosecond time past what a JavaScript number holds.
+- C's condition on the page (the approval dialog shows a set's scripts, or
+  refuses a set that has any) is the page's join.
+
+The page's join (A-page with B-page, then with the node's) waits for
+A-page.
+
+### Started before half 1 is joined: tracks D and G
+
+Two node tracks of half 2 that build modules of their own, started now so
+workers are not idle while A-page finishes. They branch from
+`backend/m11` and are joined with the rest; the rules of "Wave 2: tracks"
+hold (protocol 11, numbers given out here, every commit passing the whole
+gate, files divided where they grow, aliases classified).
+
+**Track G: any agent that speaks ACP** (`backend/m11-agents`; ADR 0032,
+schema 12 if one is needed). Rust, wire, CLI.
+
+1. An agent by its command: a name, a command and arguments, an
+   environment, kept in the node's configuration, started over ACP like
+   the four Vessel knows, and offered everywhere a known agent is (a
+   session's agent, the options probe, profiles). `HarnessKind` is a
+   closed set on the wire today; how an agent outside it is named without
+   breaking an older peer is the ADR's first question.
+2. The ACP registry as a catalogue: read from the registry's published
+   list, cached and bounded, never run from it without a person adding
+   the agent; what is run is what the person saw.
+3. Whether each agent is installed and signed in, as typed facts with the
+   reason, checked without starting a turn; the four known agents first.
+4. Installing and signing in: what the node can do for a person, and what
+   it only explains. Nothing is installed from the network without the
+   person asking for that agent on that machine.
+
+**Track D: schedules and saved prompts** (`backend/m11-schedules`; ADRs
+0033 and 0034, schema 13). Rust, wire, CLI, agent tools.
+
+1. Schedules: every so often, or at a time (cron with a time zone),
+   starting a new session or sending a prompt to an existing one through
+   the queue; paused, resumed, run once now, ended after a count or a
+   date; their runs kept as a bounded history. They run in the node, and
+   what was missed while it was down is caught up within a stated bound,
+   never all at once.
+2. A recurring prompt a session sets for itself (Paseo's heartbeat), as
+   a schedule whose target is its own session, ending with it.
+3. Saved prompts: named, per project or for the machine, with what a
+   session started from one runs with.
+4. The starter told when a session it started finishes or needs it,
+   through the queue, once.
+5. A webhook that starts a session (ADR 0034): a listener the node opens
+   only when a person configures one, on loopback unless told otherwise,
+   each hook with its own secret checked in constant time, deliveries
+   deduplicated, bounded and logged without their bodies. If the ADR
+   finds this cannot be made safe within the track, it is described and
+   left.
