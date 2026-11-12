@@ -44,6 +44,7 @@ import { covers, offsets, scrollFor, type Span, span } from "../../data/window";
 import {
   hold,
   markPinned,
+  ownScroll,
   type Pin,
   TAKE_BACK,
   type Target,
@@ -146,7 +147,6 @@ export function useWindow(
     if (index < 0) {
       return;
     }
-    state.pin = { target, anchor: null };
     state.following = false;
     state.passes = 0;
     markPinned(element, true);
@@ -156,6 +156,7 @@ export function useWindow(
       element.clientHeight,
       target.align,
     );
+    state.pin = { target, anchor: null, at: element.scrollTop };
     setView(viewOf(element));
   }, [target, items, starts]);
   // After every change of the rows, their heights or the view: a held pin
@@ -232,19 +233,22 @@ function watch(
     reading.passes = 0;
     setView(viewOf(element));
   };
+  const takeBack = () => {
+    if (reading.pin !== null) {
+      reading.pin = null;
+      markPinned(element, false);
+    }
+  };
   const onScroll = () => {
+    if (reading.pin !== null && !ownScroll(element, reading.pin)) {
+      takeBack();
+    }
     if (reading.pin === null) {
       reading.following =
         element.scrollHeight - element.scrollTop - element.clientHeight <
         NEAR_END;
     }
     frame ??= window.requestAnimationFrame(read);
-  };
-  const takeBack = () => {
-    if (reading.pin !== null) {
-      reading.pin = null;
-      markPinned(element, false);
-    }
   };
   const onToggle = (event: Event) => {
     const row =

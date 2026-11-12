@@ -20,7 +20,10 @@
 //   carries `data-pinned`, which turns the browser's anchoring off
 //   (timeline.css), so only this correction moves the view. The pin is
 //   let go when the reader takes the scroll back (a wheel, a touch, a
-//   press in the timeline, a key), or another target replaces it.
+//   press in the timeline, a key), when anything else scrolls the view
+//   (a screen reader moving to an element, a script: the pin remembers
+//   where it put the view, and any scroll that lands elsewhere is not its
+//   own), or when another target replaces it.
 // - Cost: a `getBoundingClientRect` of one box per commit while pinned,
 //   which forces the layout the browser was about to do anyway.
 
@@ -43,6 +46,14 @@ export interface Pin {
   readonly target: Target;
   /** What `show` gave, once the row was drawn. */
   anchor: Element | Range | null;
+  /** The `scrollTop` the pin last left the view at. */
+  at: number;
+}
+
+/** Whether a scroll that left `scroller` where it is now was the pin's
+ * own: one that lands anywhere else was someone else's. */
+export function ownScroll(scroller: HTMLElement, pin: Pin): boolean {
+  return Math.abs(scroller.scrollTop - pin.at) <= 1;
 }
 
 /** Whether `anchor` is still in the document. */
@@ -72,12 +83,12 @@ export function hold(scroller: HTMLElement, pin: Pin): boolean {
     scroller.clientHeight,
     pin.target.align,
   );
-  if (Math.abs(by) < 1) {
-    return false;
-  }
   const before = scroller.scrollTop;
-  scroller.scrollTop = before + by;
-  return scroller.scrollTop !== before;
+  if (Math.abs(by) >= 1) {
+    scroller.scrollTop = before + by;
+  }
+  pin.at = scroller.scrollTop;
+  return pin.at !== before;
 }
 
 /** Mark `scroller` as holding a pin, or not: the browser's own scroll

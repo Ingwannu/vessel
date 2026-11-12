@@ -128,6 +128,18 @@ test("find and the outline go to rows thousands of entries away and hold them th
     // Far above (the view is at the end), then far below.
     await findFar(page, "Entry 300.");
     await findFar(page, "Entry 15000.");
+    // A scroll that is not the pin's (a script, a screen reader moving
+    // to an element) is the reader's: the held row lets go of the view.
+    const left = await page.locator(".timeline").evaluate(async (element) => {
+      element.scrollTop = 4_000;
+      for (let frame = 0; frame < 10; frame += 1) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return element.scrollTop;
+    });
+    // Near where the script put it (the browser's anchoring may move it
+    // as the rows there are measured), far from the match it held.
+    expect(left).toBeLessThan(50_000);
     // Find keeps focus in its field.
     await expect(
       page.getByRole("textbox", { name: "Find in session" }),
