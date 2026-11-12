@@ -35,11 +35,11 @@ vessel-pty      -> proc
 vessel-agent    -> proto, proc
 vessel-lsp      -> proto, proc            (milestone 6)
 vessel-workspace -> proto, proc           (milestone 11)
-vessel-session  -> proto, harness, pty, agent
+vessel-session  -> proto, harness, pty, agent, proc (milestone 11)
 vessel-store    -> proto
 vessel-node     -> proto, rpc, harness, session, store, secure, relay,
                    fleet, client (milestone 4), lsp (milestone 6),
-                   llm (milestone 5), workspace, forge (milestone 11)
+                   llm (milestone 5), workspace, forge, proc (milestone 11)
 vessel-client   -> proto, rpc, secure, relay
 vessel-remote   -> proto, rpc, client      (milestone 2)
 vessel-secure   -> proto                   (milestone 3)
@@ -173,3 +173,12 @@ node's.
 `vessel-node -> forge`: the node decides which sessions are watched,
 when, for whom, and what becomes of the answers (the board, feedback
 through the queue, the calls); the provider makes the requests.
+
+Wave 2, track C (2026-11-12, ADR 0031): `vessel-session -> proc`, since a
+project script's run is spawned piped in its own process group (a
+kill-on-close job object on Windows) by the same runtime that keeps its
+log, and a shell's session is swept after it exits; `vessel-node ->
+proc`, for the command a terminal runs (`CommandSpec`), the account's
+shell and the ports its trees listen on (`vessel_proc::listening`). Both
+are mechanism the crates already used through others; the node still
+decides who may open a terminal and where.

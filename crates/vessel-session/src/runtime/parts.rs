@@ -2,7 +2,7 @@
 //! runs: where its records start, its info watch, ring, channels and
 //! lifecycle; then the actor spawned and the handle registered.
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU32};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use chrono::{DateTime, Utc};
@@ -88,7 +88,7 @@ impl SessionRuntime {
         &self,
         begin: Begin,
         notices: Vec<String>,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
     ) -> Parts {
         let Begin {
@@ -107,7 +107,7 @@ impl SessionRuntime {
         let (forge, forge_view) = watch::channel(None);
         let state = (seen, Marks::after(attention));
         let channels = (model_calls, renames, forge);
-        let (info, kill, shared) = self.shared(info, input, control, channels, state);
+        let (info, kill, shared) = self.shared(info, (input, pid), control, channels, state);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -128,7 +128,7 @@ impl SessionRuntime {
     fn shared(
         &self,
         info: SessionInfo,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
         (model_calls, renames, forge): Channels,
         (seen, marks): (Seen, Marks),
@@ -153,6 +153,7 @@ impl SessionRuntime {
             // store's once its row is reopened.
             marks: Mutex::new(marks),
             forge,
+            pid: AtomicU32::new(pid),
         });
         (info, kill, shared)
     }

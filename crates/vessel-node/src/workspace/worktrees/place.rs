@@ -37,8 +37,8 @@ pub(crate) struct Placed {
     pub(crate) starting: Option<Starting>,
 }
 
-/// A session starting in a worktree: counted until dropped, so no removal
-/// takes the worktree meanwhile (ADR 0030).
+/// A session (or, protocol 11, a terminal) starting in a worktree: counted
+/// until dropped, so no removal takes the worktree meanwhile (ADR 0030).
 #[derive(Debug)]
 pub(crate) struct Starting {
     workspaces: Arc<Workspaces>,
@@ -157,6 +157,39 @@ impl Workspaces {
             workspaces: Arc::clone(self),
             worktree,
         })
+    }
+
+    /// A terminal or a script's run starting in `folder` (protocol 11, ADR
+    /// 0031): when the folder is in a worktree, the count a removal sees
+    /// until the terminal is registered (and from then on is one of the
+    /// live terminals the removal reads), as `place` takes it for a
+    /// session (ADR 0030); `None` when no worktree holds the folder.
+    ///
+    /// # Errors
+    /// `conflict` while setup, teardown or a removal holds the worktree:
+    /// nothing starts under them.
+    pub(crate) fn hold_folder(
+        self: &Arc<Self>,
+        folder: &std::path::Path,
+    ) -> Result<Option<Starting>, WorkspaceError> {
+        let mut state = self.state();
+        let Some(entry) = state
+            .worktrees
+            .values_mut()
+            .find(|entry| folder.starts_with(&entry.info.path))
+        else {
+            return Ok(None);
+        };
+        if entry.running.is_some() {
+            return Err(WorkspaceError::Conflict(
+                "the worktree is being set up, torn down or removed".to_owned(),
+            ));
+        }
+        entry.starting = entry.starting.saturating_add(1);
+        Ok(Some(Starting {
+            workspaces: Arc::clone(self),
+            worktree: entry.info.id,
+        }))
     }
 
     async fn worktree_notices(&self, info: &WorktreeInfo) -> Vec<String> {

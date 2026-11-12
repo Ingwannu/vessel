@@ -88,6 +88,11 @@ impl Publisher {
         self.shared.id
     }
 
+    /// The session's program is now `pid` (a move started another agent).
+    pub(crate) fn running(&self, pid: u32) {
+        self.shared.pid.store(pid, Ordering::Release);
+    }
+
     /// Number `event`, hand it to the store, append it to the ring,
     /// broadcast it, and update the session info, in that order.
     ///

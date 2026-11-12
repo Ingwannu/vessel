@@ -88,6 +88,11 @@ pub struct Config {
     /// in-memory forge. The default finds neither, so a test's node never
     /// reaches a real forge.
     pub forge: crate::ForgeSetup,
+    /// Terminals beside sessions (protocol 11, ADR 0031): the shell, the
+    /// credentials removed from their environment, their scrollback. No
+    /// shell by default, so `terminal.create` is `unsupported` until a
+    /// binary finds one (`TerminalsConfig::shell`); scripts run anyway.
+    pub terminals: crate::TerminalsConfig,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -152,6 +157,7 @@ impl Config {
             client_address_header: None,
             trusted_proxies: Vec::new(),
             forge: crate::ForgeSetup::default(),
+            terminals: crate::TerminalsConfig::default(),
         }
     }
 }

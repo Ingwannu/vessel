@@ -396,6 +396,13 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     };
     let env = HarnessEnv::from_vars(user_home, |name| std::env::var_os(name));
     let mut config = Config::new(dir, env);
+    // Terminals (protocol 11): the shell and the credentials, from this
+    // binary's own environment.
+    config.terminals = vessel_node::TerminalsConfig::detect(
+        |name| std::env::var_os(name),
+        std::env::vars_os().map(|(name, _)| name),
+        |name| config.harness_lookup.find(name),
+    );
     config.bind = match args.bind {
         Bind::Tcp(address) => Some(address),
         Bind::None => None,

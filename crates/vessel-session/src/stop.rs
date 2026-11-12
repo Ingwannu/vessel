@@ -15,6 +15,8 @@ const GRACE: Duration = Duration::from_secs(2);
 pub(crate) struct Stopper {
     kill: CancellationToken,
     shutdown: CancellationToken,
+    /// From the polite signal to the group's kill.
+    grace: Duration,
     state: State,
 }
 
@@ -41,9 +43,20 @@ impl Stopper {
     /// `kill` stops this session; `shutdown` is the runtime's token (an
     /// ancestor of `kill`), consulted to tell a node shutdown from a kill.
     pub(crate) const fn new(kill: CancellationToken, shutdown: CancellationToken) -> Self {
+        Self::with_grace(kill, shutdown, GRACE)
+    }
+
+    /// The same with another grace: a project's script gets longer to
+    /// close what it opened (ADR 0031).
+    pub(crate) const fn with_grace(
+        kill: CancellationToken,
+        shutdown: CancellationToken,
+        grace: Duration,
+    ) -> Self {
         Self {
             kill,
             shutdown,
+            grace,
             state: State::Idle,
         }
     }
@@ -70,7 +83,7 @@ impl Stopper {
             // If the deadline is not representable, force right away.
             Step::Ask => State::Asked {
                 deadline: Instant::now()
-                    .checked_add(GRACE)
+                    .checked_add(self.grace)
                     .unwrap_or_else(Instant::now),
             },
             Step::Force => State::Forced,

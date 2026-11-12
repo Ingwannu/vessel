@@ -91,6 +91,7 @@ impl Workspaces {
                     approved: self.approved(project, &digest),
                     setup: file.setup,
                     teardown: file.teardown,
+                    scripts: file.scripts,
                     digest,
                 }
             }
@@ -98,7 +99,7 @@ impl Workspaces {
     }
 
     /// Whether a person approved `digest` for `project`.
-    pub(super) fn approved(&self, project: ProjectId, digest: &CommandsDigest) -> bool {
+    pub(crate) fn approved(&self, project: ProjectId, digest: &CommandsDigest) -> bool {
         self.state().approvals.contains(&(project, digest.clone()))
     }
 

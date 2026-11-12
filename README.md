@@ -408,6 +408,53 @@ vessel pr status                            # the forges, and who the node is si
   tools `get_pull_request`, `open_pull_request`), after pushing the
   branch with its own tools; it cannot merge or turn feedback on.
 
+### Shells, scripts and services beside a session
+
+A node opens shells beside a session or in a project (protocol 11, ADR
+0031). They outlive the page and the attach, and end with the node; their
+last 1 MiB of output is kept in memory, never on disk.
+
+```bash
+vessel shell --session 3f2a               # a shell in the session's folder; Ctrl-] detaches
+vessel shell --project app --dir web      # or in a project's folder
+vessel shell list                         # live first, then the ended ones kept
+vessel shell attach 9c1e                  # back to it, its screen replayed
+vessel shell close 9c1e                   # end it and forget it
+vessel script list --project app          # the project's scripts and services, and their runs
+vessel script run test --project app      # run one, following its output
+vessel script run web --session 3f2a      # a service in the session's worktree
+vessel script restart 7b2d                # in place while it runs
+vessel script stop 7b2d
+vessel ports                              # what the sessions' and terminals' processes listen on
+```
+
+Scripts and services are named in the project's `vessel.toml`, beside
+`[worktree]`, and run under the same approval:
+
+```toml
+[scripts.test]
+command = "cargo test"
+
+[services.web]
+command = "npm run dev"
+dir = "web"                                # a folder inside the checkout
+```
+
+- They run only once a person approved that exact set (`vessel project
+  approve`); a file that names scripts is digested anew, so an approval
+  given before it named any does not cover them. Agents cannot run them.
+- A service that fails starts again after 1, 2, 4, 8 and 16 s, and is
+  given up after five restarts without a minute's run; one that exits
+  cleanly stays ended. A script or service ends with everything it
+  started; a shell's own jobs end with it on Linux (on macOS and Windows a
+  job a shell detached may outlive it).
+- A terminal's environment is the node's without Vessel's own tokens and
+  credentials; a script's adds `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`,
+  `VESSEL_BRANCH` and `VESSEL_SCRIPT`.
+- Ports are found without privilege (`/proc` on Linux, `lsof` on macOS,
+  `netstat` on Windows), every few seconds while someone asks; nothing is
+  opened or forwarded.
+
 ## Profiles, the fleet and agent tools
 
 Milestone 4 (ADRs 0011 to 0013). Each part works on its own: profiles on
@@ -448,6 +495,11 @@ vessel session move-profile 3f2a claude-work # at a usage limit: same conversati
 - A move keeps the session's id, log and followers. It works for
   structured Claude Code and Codex sessions, between turns (`--force`
   cancels a running one), and only to a profile that is logged in.
+- `agent_terminals = true` lets the agents of a profile's sessions open
+  terminals beside them, or beside sessions they started whose profile
+  sets it too (ADR 0031). It is off for every profile unless
+  written: a terminal the node starts is outside the harness's own
+  sandbox, so turn it on knowing what that sandbox would have stopped.
 
 ### A fleet: one home, many members
 
@@ -571,8 +623,11 @@ waits on an answer), `change_queue`, `answer_question`,
 `resume_session` and `archive_session`, and for projects
 `list_projects`, `list_worktrees` and `create_worktree` (which follows
 setup to its end; at most 8 worktrees of its own, a session in one only
-if it made it); each but `list_nodes` takes `node`, so an agent can
-start a session on another machine and read its answer.
+if it made it), and for terminals `create_terminal`, `list_terminals`,
+`read_terminal`, `write_terminal` (marked destructive: typing runs
+programs), `close_terminal` and `list_ports`; each but `list_nodes`
+takes `node`, so an agent can start a session on another machine and
+read its answer.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and
   operates only on sessions it started (and theirs).
@@ -580,6 +635,11 @@ start a session on another machine and read its answer.
   most 3 levels deep.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
+- Terminals only where a person allowed them (`agent_terminals = true` in
+  its own session's profile and in that of the session it opens one
+  beside: its own or one it started), at most 4 at once; it sees and uses
+  only its own, and they end with its session or the one they are beside.
+  It never runs a project's scripts.
 - Agents do not mark sessions read or unread (the node refuses: an agent
   reading is not its owner seeing), pin them, delete them or attach
   files. The node asks questions only in sessions a person or a device

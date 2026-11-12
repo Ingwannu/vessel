@@ -49,9 +49,9 @@ use vessel_proto::{
     WatchFleet, Welcome, WireError,
 };
 
-pub use subscription::{Subscription, SubscriptionItem};
+pub use subscription::{Subscription, SubscriptionItem, TerminalSubscription};
 
-use self::driver::{Command, Waiter};
+use self::driver::{Command, Subject, Waiter};
 use crate::error::{CallError, ConnectError, ProtocolViolation};
 use crate::transport::FrameTransport;
 
@@ -180,6 +180,20 @@ impl Unary for vessel_proto::forge::GetPullRequest {}
 impl Unary for vessel_proto::forge::OpenPullRequest {}
 impl Unary for vessel_proto::forge::MergePullRequest {}
 impl Unary for vessel_proto::forge::SetFeedback {}
+// Protocol 11 (Track C): every call but `terminal.subscribe` answers once;
+// `terminal.get`, `terminal.read` and `port.list` wait at most 30 s.
+impl Unary for vessel_proto::terminals::CreateTerminal {}
+impl Unary for vessel_proto::terminals::ListTerminals {}
+impl Unary for vessel_proto::terminals::GetTerminal {}
+impl Unary for vessel_proto::terminals::ReadTerminal {}
+impl Unary for vessel_proto::terminals::SendTerminal {}
+impl Unary for vessel_proto::terminals::RenameTerminal {}
+impl Unary for vessel_proto::terminals::KillTerminal {}
+impl Unary for vessel_proto::terminals::CloseTerminal {}
+impl Unary for vessel_proto::scripts::ListScripts {}
+impl Unary for vessel_proto::scripts::RunScript {}
+impl Unary for vessel_proto::scripts::RestartScript {}
+impl Unary for vessel_proto::ports::ListPorts {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -224,7 +238,7 @@ impl UnaryCall {
 )]
 const fn is_unary(method: Method) -> bool {
     match method {
-        Method::Subscribe => false,
+        Method::Subscribe | Method::SubscribeTerminal => false,
         Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
@@ -334,7 +348,19 @@ const fn is_unary(method: Method) -> bool {
         | Method::GetPullRequest
         | Method::OpenPullRequest
         | Method::MergePullRequest
-        | Method::SetFeedback => true,
+        | Method::SetFeedback
+        | Method::CreateTerminal
+        | Method::ListTerminals
+        | Method::GetTerminal
+        | Method::ReadTerminal
+        | Method::SendTerminal
+        | Method::RenameTerminal
+        | Method::KillTerminal
+        | Method::CloseTerminal
+        | Method::ListScripts
+        | Method::RunScript
+        | Method::RestartScript
+        | Method::ListPorts => true,
     }
 }
 
@@ -535,7 +561,47 @@ impl Connection {
             .start(request.into_call(), Waiter::Subscribe(waiter))
             .await?;
         let opened = pending.wait(answer).await??;
-        Ok(Subscription::new(opened, self.shared.commands.clone()))
+        Subscription::new(
+            opened,
+            self.shared.commands.clone(),
+            |subject| match subject {
+                Subject::Session(info) => Some(*info),
+                Subject::Terminal(_) => None,
+            },
+        )
+        .ok_or(CallError::UnexpectedReply(vessel_proto::UnexpectedReply {
+            expected: Method::Subscribe,
+            got: Method::SubscribeTerminal,
+        }))
+    }
+
+    /// Follow a terminal's records (protocol 11, ADR 0031): as
+    /// [`subscribe`](Self::subscribe) does a session's. Dropping the
+    /// returned subscription unsubscribes.
+    ///
+    /// # Errors
+    /// The node answered with an error, or the connection closed first.
+    pub async fn subscribe_terminal(
+        &self,
+        request: vessel_proto::terminals::SubscribeTerminal,
+    ) -> Result<TerminalSubscription, CallError> {
+        let (waiter, answer) = oneshot::channel();
+        let pending = self
+            .start(request.into_call(), Waiter::Subscribe(waiter))
+            .await?;
+        let opened = pending.wait(answer).await??;
+        Subscription::new(
+            opened,
+            self.shared.commands.clone(),
+            |subject| match subject {
+                Subject::Terminal(info) => Some(*info),
+                Subject::Session(_) => None,
+            },
+        )
+        .ok_or(CallError::UnexpectedReply(vessel_proto::UnexpectedReply {
+            expected: Method::SubscribeTerminal,
+            got: Method::Subscribe,
+        }))
     }
 
     /// Whether the connection has closed.

@@ -1,4 +1,6 @@
-//! `vessel attach`: join a running (or finished) session.
+//! `vessel attach`: join a running (or finished) session; and `vessel
+//! shell`'s terminals beside sessions (protocol 11, ADR 0031), attached
+//! as a terminal session is (`attach_terminal`).
 //!
 //! A terminal session is a byte pipe to the harness's own TUI; a structured
 //! session is a conversation. Both replay history from `--from` first (a
@@ -18,8 +20,15 @@ pub(crate) mod terminal;
 
 use std::sync::Arc;
 
-use vessel_client::{CallError, NodeClient, ResumingStream, StreamError, follow_resuming};
-use vessel_proto::{EventSeq, SessionId, SessionInfo, SessionInput, SessionMode};
+use vessel_client::{
+    CallError, Log, NodeClient, ResumingStream, SessionLog, StreamError, follow_resuming,
+    follow_terminal_resuming,
+};
+use vessel_proto::terminals::{SendTerminal, TerminalInfo};
+use vessel_proto::{
+    EventSeq, SessionEvent, SessionId, SessionInfo, SessionInput, SessionMode, SessionStatus,
+    TerminalId, TerminalInput,
+};
 
 use crate::connect::{Connected, NodeConnector, client_info};
 use crate::error::CliError;
@@ -40,7 +49,7 @@ pub(crate) async fn attach(
     )
     .reusing(connected.client.clone());
     let ended = match session.spec.mode {
-        SessionMode::Terminal { .. } => terminal::attach(stream, session.id).await?,
+        SessionMode::Terminal { .. } => terminal::attach(stream, Keys::Session(session.id)).await?,
         SessionMode::Structured { .. } => structured::attach(stream, session).await?,
     };
     let message = match ended {
@@ -58,11 +67,90 @@ enum Ended {
     /// The user detached; the session goes on.
     Detached,
     /// The session ended, with its final status if it was seen.
-    Session(Option<vessel_proto::SessionStatus>),
+    Session(Option<SessionStatus>),
 }
 
-/// The follow both attach modes read.
-type Stream = ResumingStream<Arc<NodeConnector>>;
+/// The follow the attach modes read: a session's, or a terminal's.
+type Stream<L = SessionLog> = ResumingStream<Arc<NodeConnector>, L>;
+
+/// Attach to `terminal` (protocol 11): a shell as a terminal session is,
+/// keys in and its screen out; a script's run (which takes no input) by
+/// printing its output until it ends or the user interrupts.
+pub(crate) async fn attach_terminal(
+    connected: &Connected,
+    terminal: &TerminalInfo,
+    from: EventSeq,
+) -> Result<(), CliError> {
+    let stream = follow_terminal_resuming(
+        Arc::clone(&connected.connector),
+        client_info(),
+        terminal.id,
+        from,
+    )
+    .reusing(connected.client.clone());
+    let ended = if terminal.kind.takes_input() {
+        terminal::attach(stream, Keys::Terminal(terminal.id)).await?
+    } else {
+        print_output(stream).await?
+    };
+    let message = match ended {
+        Ended::Detached => format!("[vessel] detached from {}\n", terminal.id),
+        Ended::Session(Some(status)) => {
+            format!("[vessel] terminal {}\n", render::status(&status))
+        }
+        Ended::Session(None) => "[vessel] terminal ended\n".to_owned(),
+    };
+    io::note(&message).await?;
+    Ok(())
+}
+
+/// A log's output printed as it comes, with Vessel's own lines, until it
+/// ends; Ctrl-C leaves it running.
+async fn print_output<L: Log>(mut stream: Stream<L>) -> Result<Ended, CliError> {
+    let mut last: Option<SessionStatus> = None;
+    loop {
+        let item = tokio::select! {
+            item = stream.next() => item,
+            interrupted = tokio::signal::ctrl_c() => {
+                interrupted?;
+                return Ok(Ended::Detached);
+            }
+        };
+        match item {
+            None => return Ok(Ended::Session(last)),
+            Some(Ok(record)) => match record.event {
+                SessionEvent::Terminal(output) => io::out(output.data.bytes()).await?,
+                SessionEvent::Status { status } => {
+                    if !status.is_live() {
+                        last = Some(status);
+                    }
+                }
+                SessionEvent::Agent {
+                    event: vessel_proto::AgentEvent::HarnessLog { line },
+                } => io::note(&format!("[{line}]\n")).await?,
+                SessionEvent::Agent { .. }
+                | SessionEvent::ProfileChanged { .. }
+                | SessionEvent::ModelCall(_)
+                | SessionEvent::OptionsChanged { .. }
+                | SessionEvent::Renamed { .. }
+                | SessionEvent::QueueChanged { .. }
+                | SessionEvent::CommandsChanged { .. }
+                | SessionEvent::UsageChanged { .. } => {}
+            },
+            Some(Err(error)) if !error.is_fatal() => notice(&error, "\n").await?,
+            Some(Err(error)) => return Err(error.into()),
+        }
+    }
+}
+
+/// Where typed keys go: a terminal session, or a terminal beside one.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Keys {
+    /// A session in terminal mode (`session.send`).
+    Session(SessionId),
+    /// A terminal (`terminal.send`, protocol 11).
+    Terminal(TerminalId),
+}
 
 /// What became of input sent while attached.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,7 +177,28 @@ async fn send(
     session: SessionId,
     input: SessionInput,
 ) -> Result<Sent, CliError> {
-    match client.send(session, input).await {
+    reported(client.send(session, input).await).await
+}
+
+/// Send keys or a resize to `keys`, as [`send`] does.
+async fn send_keys(
+    client: &NodeClient,
+    keys: Keys,
+    input: TerminalInput,
+) -> Result<Sent, CliError> {
+    let sent = match keys {
+        Keys::Session(session) => client.send(session, SessionInput::Terminal { input }).await,
+        Keys::Terminal(terminal) => client
+            .call(SendTerminal { terminal, input })
+            .await
+            .map(drop),
+    };
+    reported(sent).await
+}
+
+/// What became of a send, shown when it was refused or lost.
+async fn reported(sent: Result<(), CallError>) -> Result<Sent, CliError> {
+    match sent {
         Ok(()) => Ok(Sent::Accepted),
         Err(CallError::Remote(error)) => {
             io::note(&format!("\r\n[vessel] {}\r\n", error.message)).await?;

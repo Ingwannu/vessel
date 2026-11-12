@@ -12,6 +12,22 @@
 //!   list and a new method does not compile until it says whether agents
 //!   get it (it was a `matches!`, whose other methods were open to agents
 //!   by default).
+//! - Scripts (protocol 11, ADR 0031): a repository's commands run where a
+//!   person approved them and a person asked, so `script.*` refuse agents
+//!   too; an agent runs commands with its own tools. The terminal calls
+//!   and `port.list` are open to them here, and held to their own rule
+//!   (`service::terminals`: a profile that allows it, four at once, only
+//!   their own).
+//! - Pull requests (protocol 11, ADR 0029): `pr.merge`, `pr.feedback`,
+//!   `pr.list` and `forge.status` refuse agents (a merge publishes to a
+//!   shared branch; what is sent into a session, the node's sign-in and
+//!   every session's pull request are a person's); `pr.get` and `pr.open`
+//!   are open here and held to the forge's own rule (`refresh` and opening
+//!   only on a session the agent may operate; an agent's open never
+//!   pushes).
+//! - This `match` is the one list of what an agent may call through the
+//!   node: every method of every track is in it, either refused here or
+//!   named with the rule that holds it instead.
 //! - Roots: a project's root is everything a reader of it can read. A
 //!   file system's root, the user's home folder and any folder holding the
 //!   node's data folder are refused, for every caller.
@@ -28,13 +44,30 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     if principal.agent().is_none() || !refused(method) {
         return Ok(());
     }
+    // The reason by family; `refused` decides, exhaustively, which methods.
+    let why = if matches!(
+        method,
+        Method::ListScripts | Method::RunScript | Method::RestartScript
+    ) {
+        "a repository's scripts run where a person approved them and a person asked; an agent \
+         runs commands with its own tools"
+    } else if matches!(
+        method,
+        Method::ForgeStatus
+            | Method::ListPullRequests
+            | Method::MergePullRequest
+            | Method::SetFeedback
+    ) {
+        "a merge publishes to a shared branch, and what is sent into a session, the node's \
+         sign-in and every session's pull request are a person's; an agent reads a pull request \
+         and opens one for a session it may operate"
+    } else {
+        "an agent uses its own file and git tools; through the node it may list projects and \
+         start a session in a worktree"
+    };
     Err(WireError::new(
         ErrorCode::Forbidden,
-        format!(
-            "agents may not call `{}`: an agent uses its own file and git tools; through the \
-             node it may list projects and start a session in a worktree",
-            method.as_str()
-        ),
+        format!("agents may not call `{}`: {why}", method.as_str()),
     ))
 }
 
@@ -90,7 +123,11 @@ const fn refused(method: Method) -> bool {
         | Method::ForgeStatus
         | Method::ListPullRequests
         | Method::MergePullRequest
-        | Method::SetFeedback => true,
+        | Method::SetFeedback
+        // A repository's scripts (protocol 11): a person's.
+        | Method::ListScripts
+        | Method::RunScript
+        | Method::RestartScript => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -170,7 +207,18 @@ const fn refused(method: Method) -> bool {
         | Method::BeginUpload
         | Method::WriteUpload
         | Method::FinishUpload
-        | Method::ReadAttachment => false,
+        | Method::ReadAttachment
+        // Terminals and ports (protocol 11): held to their own rule.
+        | Method::CreateTerminal
+        | Method::ListTerminals
+        | Method::GetTerminal
+        | Method::ReadTerminal
+        | Method::SubscribeTerminal
+        | Method::SendTerminal
+        | Method::RenameTerminal
+        | Method::KillTerminal
+        | Method::CloseTerminal
+        | Method::ListPorts => false,
     }
 }
 
@@ -242,6 +290,10 @@ mod tests {
             // Not workspace calls: other rules decide (`guard`).
             Method::PromptSession,
             Method::DeleteSession,
+            // Terminals: their own rule decides (ADR 0031).
+            Method::CreateTerminal,
+            Method::SendTerminal,
+            Method::ListPorts,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
@@ -253,6 +305,9 @@ mod tests {
             Method::ReadFile,
             Method::GitPush,
             Method::WriteFile,
+            Method::ListScripts,
+            Method::RunScript,
+            Method::RestartScript,
         ] {
             let error = refuse_agents(&agent, refused).unwrap_err();
             assert_eq!(error.code, ErrorCode::Forbidden);

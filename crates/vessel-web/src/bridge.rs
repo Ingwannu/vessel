@@ -49,7 +49,7 @@ use crate::keep::{Answer, Keeper};
 use crate::ops::{BridgeOp, Routed};
 use crate::registry::{Cancelled, Change, Registry};
 use crate::source::NodeSource;
-use crate::streams::{Follows, Place};
+use crate::streams::{Followed, Follows, Place};
 use crate::wire::{
     CallId, CallOutcome, ClientFrame, Failure, NodeKey, Op, OpFailure, OpOutcome, PreferencesState,
     ServerFrame, StreamId, StreamState, StreamStop,
@@ -326,7 +326,24 @@ impl<S: NodeSource> Tab<S> {
                     registry: &self.registry,
                     out: &self.out,
                 };
-                self.follows.start(place, stream, node, session, from).await;
+                self.follows
+                    .start(place, stream, node, Followed::Session(session), from)
+                    .await;
+            }
+            ClientFrame::FollowTerminal {
+                stream,
+                node,
+                terminal,
+                from,
+            } => {
+                let place = Place {
+                    tasks: &mut self.tasks,
+                    registry: &self.registry,
+                    out: &self.out,
+                };
+                self.follows
+                    .start(place, stream, node, Followed::Terminal(terminal), from)
+                    .await;
             }
             ClientFrame::Unfollow { stream } => self.follows.stop(stream),
             ClientFrame::Op { id, op } => self.op(id, op).await,

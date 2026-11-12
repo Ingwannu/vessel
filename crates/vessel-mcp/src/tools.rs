@@ -27,6 +27,7 @@ mod conversation;
 mod forge;
 mod lsp;
 mod sessions;
+mod terminals;
 mod waiting;
 mod workspace;
 
@@ -42,7 +43,7 @@ use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler};
 use serde_json::{Value, json};
 use vessel_client::{CallError, NodeClient, Unary};
-use vessel_proto::{FleetNode, KillSession, ListNodes, ListSessions, NodeId};
+use vessel_proto::{FleetNode, KillSession, ListNodes, ListSessions, NodeId, SessionId};
 
 use args::{flag, number, required, session, text};
 use sessions::session_tools;
@@ -70,6 +71,9 @@ const EARLY_PAUSE: Duration = Duration::from_secs(1);
 #[derive(Debug, Clone)]
 pub struct VesselTools {
     client: Arc<NodeClient>,
+    /// The session whose agent this is, when known: where
+    /// `create_terminal` opens one by default.
+    own: Option<SessionId>,
 }
 
 /// Where a tool's calls go: this node (`None`) or another of the fleet.
@@ -81,7 +85,21 @@ impl VesselTools {
     pub fn new(client: NodeClient) -> Self {
         Self {
             client: Arc::new(client),
+            own: None,
         }
+    }
+
+    /// The same tools, knowing the agent's own session (`vessel mcp` reads
+    /// it from its environment).
+    #[must_use]
+    pub const fn with_own_session(mut self, session: SessionId) -> Self {
+        self.own = Some(session);
+        self
+    }
+
+    /// The agent's own session, if known.
+    const fn own_session(&self) -> Option<SessionId> {
+        self.own
     }
 
     async fn call(&self, name: &str, args: &JsonObject) -> Result<Value, ToolError> {
@@ -103,6 +121,8 @@ impl VesselTools {
             "wait_turn" => self.wait_turn(args).await,
             "read_conversation" | "change_queue" | "answer_question" | "resume_session"
             | "archive_session" => self.conversation(name, args).await,
+            "create_terminal" | "list_terminals" | "read_terminal" | "write_terminal"
+            | "close_terminal" | "list_ports" => self.terminals(name, args).await,
             "kill_session" => {
                 let node = self.target(args).await?;
                 let session = session(args)?;
@@ -178,7 +198,8 @@ impl ServerHandler for VesselTools {
                  may send it input (queued or steered while it works), wait for its turns, \
                  answer it, stop it, archive it and start it again. To give one a folder and \
                  branch of its own, `create_worktree` in a project from `list_projects`, then \
-                 `create_session` with that `worktree`.",
+                 `create_session` with that `worktree`. Where a person allowed it, open a \
+                 terminal beside your session (`create_terminal`) and type into it.",
             )
     }
 
@@ -250,6 +271,7 @@ fn tools() -> Vec<Tool> {
         .chain(conversation::tools(&node, &session))
         .chain(workspace::tools(&node))
         .chain(forge::tools(&node, &session))
+        .chain(terminals::tools(&node))
         .chain(lsp::tools())
         .collect()
 }

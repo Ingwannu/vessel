@@ -1,4 +1,5 @@
-//! Terminal attach: keystrokes in, the harness's own screen out.
+//! Terminal attach: keystrokes in, the harness's own screen out (or a
+//! shell's, beside a session: protocol 11).
 //!
 //! The local terminal goes into raw mode so every key (arrows, Ctrl-C,
 //! escape sequences) reaches the harness untouched; its output bytes are
@@ -30,9 +31,10 @@ use tokio::sync::mpsc;
 #[cfg(unix)]
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::time::Instant;
-use vessel_proto::{SessionEvent, SessionId, TerminalSize};
+use vessel_client::Log;
+use vessel_proto::{SessionEvent, TerminalSize};
 
-use super::{Ended, Stream, notice};
+use super::{Ended, Keys, Stream, notice};
 use crate::error::CliError;
 use crate::io;
 use detach::{ESCAPE_WAIT, Scanner};
@@ -45,13 +47,13 @@ use signals::Stop;
 /// keep the user from leaving.
 const DETACH_FLUSH: Duration = Duration::from_secs(1);
 
-pub(super) async fn attach(mut stream: Stream, session: SessionId) -> Result<Ended, CliError> {
+pub(super) async fn attach<L: Log>(mut stream: Stream<L>, keys: Keys) -> Result<Ended, CliError> {
     let raw = RawMode::enable()?;
     if raw.is_some() {
         io::note("[vessel] attached; Ctrl-] detaches\r\n").await?;
     }
     let mut stop = Stop::listen();
-    let (batches, mut sending) = sender::spawn(stream.client(), session);
+    let (batches, mut sending) = sender::spawn(stream.client(), keys);
     let mut pending = Pending::default();
     if let Some(size) = window_size() {
         pending.resize(size);

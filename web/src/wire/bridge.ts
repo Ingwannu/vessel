@@ -2,7 +2,7 @@
 // `VESSEL_WRITE_TS=1 cargo test --features ts typescript` in the crate that
 // generates this file rewrites it, and CI fails while it differs.
 
-import type { Call, EventRecord, EventSeq, HarnessKind, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, WireError } from "./proto";
+import type { Call, EventRecord, EventSeq, HarnessKind, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, TerminalId, WireError } from "./proto";
 
 /**
  * One of the page's actions: 1 to 48 characters of `a-z`, `0-9` and `-`,
@@ -167,6 +167,22 @@ node: NodeKey,
  * The session.
  */
 session: SessionId, 
+/**
+ * The first record wanted.
+ */
+from: EventSeq, } | { "type": "follow_terminal", 
+/**
+ * The browser's id for the stream.
+ */
+stream: StreamId, 
+/**
+ * The node.
+ */
+node: NodeKey, 
+/**
+ * The terminal.
+ */
+terminal: TerminalId, 
 /**
  * The first record wanted.
  */

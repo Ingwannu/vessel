@@ -25,6 +25,7 @@ mod remote;
 mod render;
 mod secret;
 mod selector;
+mod terminals;
 mod transfer;
 mod ui;
 mod view;
@@ -109,6 +110,9 @@ async fn cli() -> ExitCode {
         | Command::Project { .. }
         | Command::Worktree { .. }
         | Command::Pr { .. }
+        | Command::Shell(_)
+        | Command::Script { .. }
+        | Command::Ports(_)
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

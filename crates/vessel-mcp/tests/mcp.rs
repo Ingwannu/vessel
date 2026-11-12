@@ -21,6 +21,10 @@ use support::{Fixture, McpClient, agent_env, owner, within};
 mod support;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "one story told in order: the tools listed, then used one after another"
+)]
 async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
     within(async {
         let fixture = Fixture::start().await;
@@ -55,11 +59,24 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         );
 
         // Then the project and worktree tools (protocol 10), the pull
-        // request tools (protocol 11), then LSP's.
-        let workspace = "list_projects list_worktrees create_worktree";
-        let forge = "get_pull_request open_pull_request";
-        assert_eq!(names[13..18].join(" "), format!("{workspace} {forge}"));
-        assert_eq!(names.len(), 28);
+        // request tools and the terminal tools (protocol 11), then LSP's.
+        assert_eq!(
+            &names[13..16],
+            ["list_projects", "list_worktrees", "create_worktree"]
+        );
+        assert_eq!(&names[16..18], ["get_pull_request", "open_pull_request"]);
+        assert_eq!(
+            &names[18..24],
+            [
+                "create_terminal",
+                "list_terminals",
+                "read_terminal",
+                "write_terminal",
+                "close_terminal",
+                "list_ports"
+            ]
+        );
+        assert_eq!(names.len(), 34);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.

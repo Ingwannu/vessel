@@ -21,9 +21,10 @@ use futures_util::{Sink, SinkExt as _, Stream, StreamExt as _};
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
+use vessel_proto::terminals::TerminalInfo;
 use vessel_proto::{
     Call, ClientFrame, EventRecord, Method, Outcome, Reply, Request as _, RequestId, ServerFrame,
-    Subscribed, SubscriptionEnd, SubscriptionId, UnexpectedReply, Unsubscribe,
+    SessionInfo, SubscriptionEnd, SubscriptionId, UnexpectedReply, Unsubscribe,
 };
 
 use super::RequestIds;
@@ -57,16 +58,46 @@ pub(super) enum Command {
 pub(super) enum Waiter {
     /// An ordinary call.
     Unary(oneshot::Sender<Outcome>),
-    /// `session.subscribe`: the reader opens a route when the reply arrives.
+    /// `session.subscribe` or `terminal.subscribe` (protocol 11): the
+    /// reader opens a route when the reply arrives.
     Subscribe(oneshot::Sender<Result<Opened, CallError>>),
+}
+
+/// What a subscription follows, as the reply that opened it described it.
+#[derive(Debug)]
+pub(super) enum Subject {
+    /// A session (`session.subscribe`).
+    Session(Box<SessionInfo>),
+    /// A terminal beside one (`terminal.subscribe`, ADR 0031): the same
+    /// records, frames and ends, carried by the same route.
+    Terminal(Box<TerminalInfo>),
 }
 
 /// A subscription the reader has opened a route for.
 #[derive(Debug)]
 pub(super) struct Opened {
-    pub(super) subscribed: Subscribed,
+    pub(super) subscription: SubscriptionId,
+    pub(super) subject: Subject,
     pub(super) records: mpsc::Receiver<EventRecord>,
     pub(super) end: oneshot::Receiver<SubscriptionEnd>,
+}
+
+/// The subscription a reply opened, and what it follows; `None` for any
+/// other reply.
+fn opened_by(reply: Reply) -> Option<(SubscriptionId, Subject)> {
+    if let Reply::Subscribe(subscribed) = reply {
+        return Some((
+            subscribed.subscription,
+            Subject::Session(Box::new(subscribed.info)),
+        ));
+    }
+    if let Reply::SubscribeTerminal(subscribed) = reply {
+        return Some((
+            subscribed.subscription,
+            Subject::Terminal(Box::new(subscribed.terminal)),
+        ));
+    }
+    None
 }
 
 /// Writer to reader.
@@ -317,8 +348,10 @@ impl Reader {
             // A cancelled call answered anyway. If it opened a subscription,
             // nobody will read it: close it on the node.
             None => {
-                if let Outcome::Ok(Reply::Subscribe(subscribed)) = outcome {
-                    self.unsubscribe(subscribed.subscription);
+                if let Outcome::Ok(reply) = outcome
+                    && let Some((subscription, _subject)) = opened_by(reply)
+                {
+                    self.unsubscribe(subscription);
                 }
             }
         }
@@ -326,30 +359,36 @@ impl Reader {
 
     fn open(&mut self, waiter: oneshot::Sender<Result<Opened, CallError>>, outcome: Outcome) {
         let opened = match outcome {
-            Outcome::Ok(Reply::Subscribe(subscribed)) => {
-                let (records_tx, records) = mpsc::channel(self.capacity.get());
-                let (end_tx, end) = oneshot::channel();
-                let route = Route {
-                    records: records_tx,
-                    end: end_tx,
-                };
-                if self.routes.insert(subscribed.subscription, route).is_some() {
-                    tracing::warn!(subscription = %subscribed.subscription, "node reused a subscription id");
+            Outcome::Ok(reply) => {
+                let got = reply.method();
+                match opened_by(reply) {
+                    Some((subscription, subject)) => {
+                        let (records_tx, records) = mpsc::channel(self.capacity.get());
+                        let (end_tx, end) = oneshot::channel();
+                        let route = Route {
+                            records: records_tx,
+                            end: end_tx,
+                        };
+                        if self.routes.insert(subscription, route).is_some() {
+                            tracing::warn!(%subscription, "node reused a subscription id");
+                        }
+                        Ok(Opened {
+                            subscription,
+                            subject,
+                            records,
+                            end,
+                        })
+                    }
+                    None => Err(CallError::UnexpectedReply(UnexpectedReply {
+                        expected: Method::Subscribe,
+                        got,
+                    })),
                 }
-                Ok(Opened {
-                    subscribed,
-                    records,
-                    end,
-                })
             }
-            Outcome::Ok(reply) => Err(CallError::UnexpectedReply(UnexpectedReply {
-                expected: Method::Subscribe,
-                got: reply.method(),
-            })),
             Outcome::Err(error) => Err(CallError::Remote(error)),
         };
         if let Err(Ok(unclaimed)) = waiter.send(opened) {
-            let subscription = unclaimed.subscribed.subscription;
+            let subscription = unclaimed.subscription;
             drop(self.routes.remove(&subscription));
             self.unsubscribe(subscription);
         }

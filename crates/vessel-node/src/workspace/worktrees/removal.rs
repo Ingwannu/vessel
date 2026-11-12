@@ -28,6 +28,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{SessionId, WorktreeId};
 
+use crate::workspace::projects::Occupant;
 use crate::workspace::setup::Kind;
 use crate::workspace::{WorkspaceError, Workspaces};
 
@@ -57,7 +58,7 @@ impl Workspaces {
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         Ok(match self.remove(worktree, if_lost, live).await? {
             Removal::Done(snapshot) => RemoveWorktreeOutcome::Removed { snapshot },
@@ -72,7 +73,7 @@ impl Workspaces {
     pub(crate) async fn retire(
         self: &Arc<Self>,
         session: SessionId,
-        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Option<TidiedWorktree> {
         let worktree = self
             .state()
@@ -82,7 +83,7 @@ impl Workspaces {
             .map(|entry| entry.info.id)?;
         let others = move || {
             let mut live = live();
-            live.retain(|(id, _)| *id != session);
+            live.retain(|(occupant, _)| *occupant != Occupant::Session(session));
             live
         };
         let outcome = match self.remove(worktree, IfLost::Keep, others).await {
@@ -144,15 +145,18 @@ impl Workspaces {
     /// mid-teardown neither stops it halfway nor leaves the worktree
     /// claimed.
     ///
-    /// The live sessions are read after the claim (`live`), not before:
-    /// a session that became live between a reading and the claim would
-    /// be seen in neither (ADR 0030). Once claimed, no `place` or start
-    /// again gets in; one that passed its check before is `starting`.
+    /// What runs where (`live`: live sessions, live terminals and the
+    /// terminals starting) is read after the claim, not before: one that
+    /// began between a reading and the claim would be seen by neither
+    /// (ADR 0030). Once claimed, no `place`, start again, terminal or
+    /// script gets in (each checks the claim after it counts itself, so
+    /// it is either read here or refused there; ADR 0031); a session that
+    /// passed its check before is `starting`.
     async fn remove(
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: impl FnOnce() -> Vec<(SessionId, PathBuf)>,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<Removal, WorkspaceError> {
         let git = self.git()?.clone();
         let claim = self.stop.child_token();

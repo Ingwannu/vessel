@@ -1,4 +1,5 @@
-//! [`ResumingStream`]: a session stream that outlives its connection.
+//! [`ResumingStream`]: a session's stream (or a terminal's, protocol 11)
+//! that outlives its connection.
 //!
 //! [Decision Log]
 //! - Purpose: over SSH (ADR 0007) a connection drops whenever the network
@@ -41,13 +42,13 @@ use std::time::Duration;
 
 use tokio::sync::watch;
 use tokio::time::Instant;
-use vessel_proto::{ClientInfo, EventRecord, EventSeq, SessionId};
+use vessel_proto::{ClientInfo, EventRecord, EventSeq, SessionId, TerminalId};
 use vessel_rpc::CallError;
 
 use crate::client::NodeClient;
 use crate::connector::Connector;
 use crate::error::{StreamError, chain};
-use crate::stream::SessionStream;
+use crate::stream::{Log, LogStream, SessionLog, TerminalLog};
 
 /// How long to wait between reconnect attempts: doubling from `first` up
 /// to `max`, each delay scaled by a random factor between 0.75 and 1.25
@@ -107,46 +108,50 @@ pub fn follow_resuming<C: Connector + 'static>(
     session: SessionId,
     from: EventSeq,
 ) -> ResumingStream<C> {
-    ResumingStream {
-        connector: Arc::new(connector),
-        client_info: client,
-        session,
-        cursor: from,
-        backoff: Backoff::default(),
-        state: State::Dial { attempt: 0 },
-        current: watch::Sender::new(None),
-    }
+    ResumingStream::new(connector, client, session, from)
 }
 
-/// A session's records in order, like [`SessionStream`], across lost
-/// connections: when the connection drops it yields
+/// Follow `terminal` (protocol 11, ADR 0031) from `from` through
+/// `connector`, as [`follow_resuming`] follows a session.
+#[must_use]
+pub fn follow_terminal_resuming<C: Connector + 'static>(
+    connector: C,
+    client: ClientInfo,
+    terminal: TerminalId,
+    from: EventSeq,
+) -> ResumingStream<C, TerminalLog> {
+    ResumingStream::new(connector, client, terminal, from)
+}
+
+/// A session's records in order, like [`SessionStream`](crate::SessionStream),
+/// (or a terminal's, with `L` [`TerminalLog`]) across lost connections: when the connection drops it yields
 /// [`StreamError::Reconnecting`], dials again with backoff, follows again
 /// from its cursor, and yields [`StreamError::Resumed`]. Both are
 /// non-fatal; the records around them are gap-free and unrepeated.
 ///
-/// It ends (`None`) when the session ends, or after a fatal error: the
-/// session is gone, or a dial failed in a way that waiting does not fix
+/// It ends (`None`) when the log ends, or after a fatal error: the session
+/// (or terminal) is gone, or a dial failed in a way that waiting does not fix
 /// ([`Connector::is_transient`]). It does not give up on a node that stays
 /// down; drop it to stop.
 ///
 /// [`next`](Self::next) is cancel-safe.
-pub struct ResumingStream<C> {
+pub struct ResumingStream<C, L: Log = SessionLog> {
     connector: Arc<C>,
     client_info: ClientInfo,
-    session: SessionId,
+    id: L::Id,
     /// The next sequence number to yield.
     cursor: EventSeq,
     backoff: Backoff,
-    state: State,
+    state: State<L>,
     /// The open connection, `None` while there is none.
     current: watch::Sender<Option<NodeClient>>,
 }
 
-impl<C> fmt::Debug for ResumingStream<C> {
+impl<C, L: Log> fmt::Debug for ResumingStream<C, L> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("ResumingStream")
-            .field("session", &self.session)
+            .field("id", &self.id)
             .field("cursor", &self.cursor)
             .field("backoff", &self.backoff)
             .field("state", &self.state)
@@ -155,22 +160,22 @@ impl<C> fmt::Debug for ResumingStream<C> {
 }
 
 /// Where the stream is.
-enum State {
+enum State<L: Log> {
     /// Dial now. `attempt` 0 is the first connection, which is not a
     /// reconnect.
     Dial { attempt: u32 },
     /// A dial in progress.
-    Dialing { attempt: u32, dial: Dial },
+    Dialing { attempt: u32, dial: Dial<L> },
     /// Waiting before attempt `attempt`.
     Waiting { attempt: u32, until: Instant },
     /// Following on an open connection. (Boxed: a stream is several
     /// hundred bytes, the other states a few words.)
-    Following(Box<SessionStream>),
-    /// The session ended, or a fatal error was reported.
+    Following(Box<LogStream<L>>),
+    /// The log ended, or a fatal error was reported.
     Done,
 }
 
-impl fmt::Debug for State {
+impl<L: Log> fmt::Debug for State<L> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Dial { attempt } => write!(formatter, "Dial({attempt})"),
@@ -185,31 +190,43 @@ impl fmt::Debug for State {
 }
 
 /// A dial: connect, then follow from the cursor.
-type Dial = Pin<Box<dyn Future<Output = Dialed> + Send>>;
+type Dial<L> = Pin<Box<dyn Future<Output = Dialed<L>> + Send>>;
 
 /// How a dial ended.
-enum Dialed {
-    Following(NodeClient, Box<SessionStream>),
+enum Dialed<L: Log> {
+    Following(NodeClient, Box<LogStream<L>>),
     /// Failed; `transient` if trying again may help.
     Failed {
         transient: bool,
         reason: String,
     },
-    /// Connected, but the session cannot be followed (it is gone).
+    /// Connected, but the log cannot be followed (it is gone).
     Refused(CallError),
 }
 
-impl<C: Connector + 'static> ResumingStream<C> {
+impl<C: Connector + 'static, L: Log> ResumingStream<C, L> {
+    fn new(connector: C, client: ClientInfo, id: L::Id, from: EventSeq) -> Self {
+        Self {
+            connector: Arc::new(connector),
+            client_info: client,
+            id,
+            cursor: from,
+            backoff: Backoff::default(),
+            state: State::Dial { attempt: 0 },
+            current: watch::Sender::new(None),
+        }
+    }
+
     /// Start on `client`, a connection already open to the same node,
     /// instead of dialling one. Later connections are dialled. `client` is
     /// published ([`client`](Self::client)) at once: input can be sent on
     /// it before the first record is read.
     #[must_use]
     pub fn reusing(mut self, client: NodeClient) -> Self {
-        let session = self.session;
+        let id = self.id;
         let from = self.cursor;
         let _none = self.current.send_replace(Some(client.clone()));
-        let dial: Dial = Box::pin(async move { follow(client, session, from).await });
+        let dial: Dial<L> = Box::pin(async move { follow::<L>(client, id, from).await });
         self.state = State::Dialing { attempt: 0, dial };
         self
     }
@@ -237,7 +254,7 @@ impl<C: Connector + 'static> ResumingStream<C> {
     }
 
     /// The next record, or a non-fatal notice about the connection; `None`
-    /// once the session has ended or after a fatal error.
+    /// once the log has ended or after a fatal error.
     pub async fn next(&mut self) -> Option<Result<EventRecord, StreamError>> {
         loop {
             match &mut self.state {
@@ -259,7 +276,7 @@ impl<C: Connector + 'static> ResumingStream<C> {
                             self.state = State::Following(stream);
                             let _previous = self.current.send_replace(Some(client));
                             if attempt > 0 {
-                                tracing::debug!(session = %self.session, at = %self.cursor, "resumed");
+                                tracing::debug!(id = %self.id, at = %self.cursor, "resumed");
                                 return Some(Err(StreamError::Resumed { at: self.cursor }));
                             }
                         }
@@ -290,7 +307,7 @@ impl<C: Connector + 'static> ResumingStream<C> {
                         }
                         Some(Err(StreamError::Call(CallError::Disconnected))) => {
                             let _lost = self.current.send_replace(None);
-                            tracing::debug!(session = %self.session, at = %self.cursor, "connection lost");
+                            tracing::debug!(id = %self.id, at = %self.cursor, "connection lost");
                             return Some(Err(self.retry(1, "the connection closed".to_owned())));
                         }
                         Some(item) => {
@@ -319,14 +336,14 @@ impl<C: Connector + 'static> ResumingStream<C> {
         }
     }
 
-    fn dial(&self) -> Dial {
+    fn dial(&self) -> Dial<L> {
         let connector = Arc::clone(&self.connector);
         let client_info = self.client_info.clone();
-        let session = self.session;
+        let id = self.id;
         let from = self.cursor;
         Box::pin(async move {
             match connector.connect(client_info).await {
-                Ok(client) => follow(client, session, from).await,
+                Ok(client) => follow::<L>(client, id, from).await,
                 Err(error) => Dialed::Failed {
                     transient: connector.is_transient(&error),
                     reason: chain(&error),
@@ -336,8 +353,8 @@ impl<C: Connector + 'static> ResumingStream<C> {
     }
 }
 
-async fn follow(client: NodeClient, session: SessionId, from: EventSeq) -> Dialed {
-    match client.follow(session, from).await {
+async fn follow<L: Log>(client: NodeClient, id: L::Id, from: EventSeq) -> Dialed<L> {
+    match LogStream::<L>::open(client.connection().clone(), id, from).await {
         Ok(stream) => Dialed::Following(client, Box::new(stream)),
         Err(CallError::Disconnected) => Dialed::Failed {
             transient: true,

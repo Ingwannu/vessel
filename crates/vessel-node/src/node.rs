@@ -12,6 +12,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
+use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
@@ -44,6 +45,7 @@ use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
 use crate::shutdown::Teardown;
+use crate::terminals::{Ports, Runner, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
@@ -456,7 +458,39 @@ async fn core(
     .map_err(NodeError::Store)?;
     // Worktrees whose sessions are gone are tidied at start and after
     // each prune (`tidying`); deletions tidy their own.
-    let tidying = Tidying::new(Arc::clone(&sessions), Arc::clone(&workspaces));
+    // Terminals beside sessions (protocol 11, ADR 0031): the node's tasks,
+    // so its stop ends them and waits for their ends; memory only.
+    let terminals = Terminals::new(Runner {
+        config: Arc::new(config.terminals.clone()),
+        shutdown: stop.clone(),
+        tasks: tasks.clone(),
+    });
+    let ports = {
+        let (sessions, terminals) = (Arc::clone(&sessions), Arc::clone(&terminals));
+        Ports::start(
+            move || {
+                let mut roots: Vec<(u32, PortOwner)> = sessions
+                    .live_pids()
+                    .into_iter()
+                    .map(|(pid, session)| (pid, PortOwner::Session { session }))
+                    .collect();
+                roots.extend(
+                    terminals
+                        .roots()
+                        .into_iter()
+                        .map(|(pid, terminal)| (pid, PortOwner::Terminal { terminal })),
+                );
+                roots
+            },
+            stop.clone(),
+            &tasks,
+        )
+    };
+    let tidying = Tidying::new(
+        Arc::clone(&sessions),
+        Arc::clone(&workspaces),
+        Arc::clone(&terminals),
+    );
     Arc::clone(&tidying).watch(store.pruned(), &tasks, stop.clone());
     // Pull requests (protocol 11): the watcher is one of the node's tasks;
     // `gh` runs in the data folder, outside any repository.
@@ -488,6 +522,8 @@ async fn core(
         workspaces,
         tidying,
         forges,
+        terminals,
+        ports,
     })));
     Ok(Core {
         runtime,

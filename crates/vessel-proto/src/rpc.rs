@@ -328,6 +328,32 @@ rpc_methods! {
     MergePullRequest / merge_pull_request / "pr.merge" [Operate, 11]: crate::forge::MergePullRequest => crate::forge::MergeOutcome;
     /// Turn feedback to the session on or off.
     SetFeedback / set_feedback / "pr.feedback" [Operate, 11]: crate::forge::SetFeedback => crate::forge::SessionPullRequest;
+    /// Open a shell beside a session or in a project (protocol 11).
+    CreateTerminal / create_terminal / "terminal.create" [Operate, 11]: crate::terminals::CreateTerminal => crate::terminals::TerminalInfo;
+    /// The terminals (protocol 11).
+    ListTerminals / list_terminals / "terminal.list" [Read, 11]: crate::terminals::ListTerminals => crate::terminals::TerminalList;
+    /// One terminal, or its next change (protocol 11).
+    GetTerminal / get_terminal / "terminal.get" [Read, 11]: crate::terminals::GetTerminal => crate::terminals::TerminalInfo;
+    /// A page of a terminal's log (protocol 11).
+    ReadTerminal / read_terminal / "terminal.read" [Read, 11]: crate::terminals::ReadTerminal => EventPage;
+    /// Subscribe to a terminal's log (protocol 11).
+    SubscribeTerminal / subscribe_terminal / "terminal.subscribe" [Read, 11]: crate::terminals::SubscribeTerminal => crate::terminals::TerminalSubscribed;
+    /// Keystrokes or a resize, for a shell (protocol 11).
+    SendTerminal / send_terminal / "terminal.send" [Operate, 11]: crate::terminals::SendTerminal => Ack;
+    /// Give a terminal a title (protocol 11).
+    RenameTerminal / rename_terminal / "terminal.rename" [Operate, 11]: crate::terminals::RenameTerminal => crate::terminals::TerminalInfo;
+    /// End a terminal's process, keeping its output (protocol 11).
+    KillTerminal / kill_terminal / "terminal.kill" [Operate, 11]: crate::terminals::KillTerminal => Ack;
+    /// End a terminal and forget it (protocol 11).
+    CloseTerminal / close_terminal / "terminal.close" [Operate, 11]: crate::terminals::CloseTerminal => Ack;
+    /// A place's scripts, their approval and their runs (protocol 11).
+    ListScripts / list_scripts / "script.list" [Read, 11]: crate::scripts::ListScripts => crate::scripts::ScriptList;
+    /// Run a project's script or start a service (protocol 11).
+    RunScript / run_script / "script.run" [Operate, 11]: crate::scripts::RunScript => crate::scripts::ScriptRunOutcome;
+    /// Run a script's run again (protocol 11).
+    RestartScript / restart_script / "script.restart" [Operate, 11]: crate::scripts::RestartScript => crate::scripts::ScriptRunOutcome;
+    /// The ports the node's sessions and terminals listen on (protocol 11).
+    ListPorts / list_ports / "port.list" [Read, 11]: crate::ports::ListPorts => crate::ports::PortList;
 }
 
 /// Result of a call.

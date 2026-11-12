@@ -12,12 +12,22 @@ use std::time::Duration;
 
 use tokio::sync::watch;
 use vessel_proto::workspace::{CloneFailure, ProjectInfo, ProjectList, ProjectState};
-use vessel_proto::{ProjectId, SessionId};
+use vessel_proto::{ProjectId, SessionId, TerminalId};
 
 use super::{MAX_PROJECTS, MAX_WAIT_SECS, ProjectEntry, WorkspaceError, Workspaces};
 
-/// The live sessions and the folders they run in, as the node knows them.
-pub(crate) type Live = [(SessionId, PathBuf)];
+/// What runs in a folder: a live session, or (protocol 11, ADR 0031) a
+/// live terminal. Either keeps a worktree or a project from being removed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Occupant {
+    /// A live session.
+    Session(SessionId),
+    /// A live terminal (a shell, a script's run, a service).
+    Terminal(TerminalId),
+}
+
+/// What runs where, as the node knows it now.
+pub(crate) type Live = [(Occupant, PathBuf)];
 
 impl Workspaces {
     /// Read the stored record back: a clone or a setup the node's stop
@@ -134,7 +144,8 @@ impl Workspaces {
     /// Forget a project; its files stay. A clone still running is stopped.
     ///
     /// # Errors
-    /// `not_found`; `conflict` while it has worktrees or live sessions.
+    /// `not_found`; `conflict` while it has worktrees, or live sessions or
+    /// terminals (protocol 11) run in it.
     pub(crate) async fn remove_project(
         &self,
         project: ProjectId,
@@ -156,9 +167,13 @@ impl Workspaces {
                 ));
             }
             let root = &entry.info.root;
-            if live.iter().any(|(_, cwd)| cwd.starts_with(root)) {
+            if let Some((occupant, _)) = live.iter().find(|(_, cwd)| cwd.starts_with(root)) {
                 return Err(WorkspaceError::Conflict(
-                    "sessions run in the project".to_owned(),
+                    match occupant {
+                        Occupant::Session(_) => "sessions run in the project",
+                        Occupant::Terminal(_) => "terminals run in the project; close them first",
+                    }
+                    .to_owned(),
                 ));
             }
             let removed = state.projects.remove(&project);
@@ -169,6 +184,12 @@ impl Workspaces {
             cancel.cancel();
         }
         self.store.forget_project(project).await.map_err(Into::into)
+    }
+
+    /// Whether the node has `project` (protocol 11: a terminal placed in
+    /// one ends if it was removed while the terminal started).
+    pub(crate) fn has_project(&self, project: ProjectId) -> bool {
+        self.state().projects.contains_key(&project)
     }
 
     /// A project's root.

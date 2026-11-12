@@ -171,7 +171,20 @@ impl Call {
             | Self::GetPullRequest(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
-            | Self::SetFeedback(_) => None,
+            | Self::SetFeedback(_)
+            | Self::CreateTerminal(_)
+            | Self::ListTerminals(_)
+            | Self::GetTerminal(_)
+            | Self::ReadTerminal(_)
+            | Self::SubscribeTerminal(_)
+            | Self::SendTerminal(_)
+            | Self::RenameTerminal(_)
+            | Self::KillTerminal(_)
+            | Self::CloseTerminal(_)
+            | Self::ListScripts(_)
+            | Self::RunScript(_)
+            | Self::RestartScript(_)
+            | Self::ListPorts(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

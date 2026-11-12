@@ -174,8 +174,24 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetPullRequest
         | Method::OpenPullRequest
         | Method::MergePullRequest
-        | Method::SetFeedback => true,
+        | Method::SetFeedback
+        // Protocol 11 (ADR 0031): a terminal's calls, a project's scripts
+        // and the ports; its records follow through the bridge's own
+        // frames (`follow_terminal`), as a session's do.
+        | Method::CreateTerminal
+        | Method::ListTerminals
+        | Method::GetTerminal
+        | Method::ReadTerminal
+        | Method::SendTerminal
+        | Method::RenameTerminal
+        | Method::KillTerminal
+        | Method::CloseTerminal
+        | Method::ListScripts
+        | Method::RunScript
+        | Method::RestartScript
+        | Method::ListPorts => true,
         Method::Subscribe
+        | Method::SubscribeTerminal
         | Method::Unsubscribe
         | Method::ReportApplied
         | Method::Relay
@@ -241,6 +257,8 @@ mod tests {
                 "fleet.grant",
                 "fleet.callback",
                 "fleet.peers",
+                // Protocol 11: a terminal's stream has its own frame.
+                "terminal.subscribe",
             ]
         );
     }

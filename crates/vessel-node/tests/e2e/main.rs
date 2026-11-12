@@ -62,6 +62,9 @@ mod support;
 #[cfg(test)]
 mod terminal;
 #[cfg(test)]
+#[cfg(unix)]
+mod terminals;
+#[cfg(test)]
 mod tidying;
 #[cfg(test)]
 mod transfers;

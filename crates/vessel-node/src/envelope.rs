@@ -86,6 +86,18 @@ impl NodeService {
             return forwarded(run_here(guard, connection, *call).await);
         }
         let here = self.links.node();
+        // An agent of this node opens a terminal elsewhere only if its own
+        // session's profile allows agent terminals, which only this node
+        // can tell (ADR 0031); the other node checks the session it is
+        // beside.
+        if let (Some((agent_node, own)), Call::CreateTerminal(_)) =
+            (connection.principal().agent(), call.as_ref())
+            && agent_node == here
+        {
+            self.profile_allows(own)
+                .await
+                .map_err(crate::terminals::TerminalsError::wire)?;
+        }
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.passed_wait(connection, shares, &mut call);
         self.pass_on(connection.principal(), node, call).await
@@ -554,6 +566,38 @@ async fn run_here(
         Call::SetFeedback(request) => {
             Reply::SetFeedback(guard.set_feedback(connection, request).await?)
         }
+        Call::CreateTerminal(request) => {
+            Reply::CreateTerminal(guard.create_terminal(connection, request).await?)
+        }
+        Call::ListTerminals(request) => {
+            Reply::ListTerminals(guard.list_terminals(connection, request).await?)
+        }
+        Call::GetTerminal(request) => {
+            Reply::GetTerminal(guard.get_terminal(connection, request).await?)
+        }
+        Call::ReadTerminal(request) => {
+            Reply::ReadTerminal(guard.read_terminal(connection, request).await?)
+        }
+        Call::SendTerminal(request) => {
+            Reply::SendTerminal(guard.send_terminal(connection, request).await?)
+        }
+        Call::RenameTerminal(request) => {
+            Reply::RenameTerminal(guard.rename_terminal(connection, request).await?)
+        }
+        Call::KillTerminal(request) => {
+            Reply::KillTerminal(guard.kill_terminal(connection, request).await?)
+        }
+        Call::CloseTerminal(request) => {
+            Reply::CloseTerminal(guard.close_terminal(connection, request).await?)
+        }
+        Call::ListScripts(request) => {
+            Reply::ListScripts(guard.list_scripts(connection, request).await?)
+        }
+        Call::RunScript(request) => Reply::RunScript(guard.run_script(connection, request).await?),
+        Call::RestartScript(request) => {
+            Reply::RestartScript(guard.restart_script(connection, request).await?)
+        }
+        Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)
@@ -575,6 +619,7 @@ async fn run_here(
         | Call::ReportApplied(_)
         | Call::ListMembers(_)
         | Call::Subscribe(_)
+        | Call::SubscribeTerminal(_)
         | Call::Unsubscribe(_) => return Err(not_forwardable(call.method())),
     })
 }

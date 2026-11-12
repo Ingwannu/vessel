@@ -47,7 +47,13 @@ impl SessionRuntime {
         let (route, routed) = watch::channel(Some(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
-        let parts = self.parts(begin, notices, Input::Structured(routed), Some(control));
+        let pid = agent.pid();
+        let parts = self.parts(
+            begin,
+            notices,
+            (Input::Structured(routed), pid),
+            Some(control),
+        );
         let ActorStart {
             desk,
             replaying,

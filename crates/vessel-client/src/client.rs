@@ -1,6 +1,8 @@
 //! [`NodeClient`]: one typed method per protocol call.
 
 use std::path::PathBuf;
+use vessel_proto::TerminalId;
+use vessel_proto::terminals::SubscribeTerminal;
 use vessel_proto::{
     BlobChunk, BlobHash, BundleFile, BundlePath, ClientInfo, CloseTransfer, CopySecret,
     CreateSession, DeleteSecret, DeviceId, DeviceInfo, EventPage, EventSeq, ExportMemory,
@@ -16,12 +18,13 @@ use vessel_proto::{
     TransferManifest, WatchFleet,
 };
 use vessel_rpc::{
-    CallError, ClientConfig, Connection, FrameTransport, Subscription, Unary, UnaryCall,
+    CallError, ClientConfig, Connection, FrameTransport, Subscription, TerminalSubscription, Unary,
+    UnaryCall,
 };
 
 use crate::chunks::{ChunkSink, FetchError, fetch_chunks};
 use crate::error::ConnectError;
-use crate::stream::SessionStream;
+use crate::stream::{SessionStream, TerminalStream};
 use crate::token::BearerToken;
 use crate::url::NodeUrl;
 use crate::ws;
@@ -240,6 +243,11 @@ impl NodeClient {
         from: EventSeq,
     ) -> Result<Subscription, CallError> {
         self.connection.subscribe(Subscribe { session, from }).await
+    }
+
+    /// The connection under it, for the streams (`stream`, `resume`).
+    pub(crate) const fn connection(&self) -> &Connection {
+        &self.connection
     }
 
     /// `node.stop` (protocol 3): stop the node now (live sessions end
@@ -679,11 +687,37 @@ impl NodeClient {
         session: SessionId,
         from: EventSeq,
     ) -> Result<SessionStream, CallError> {
-        let subscription = self.subscribe(session, from).await?;
-        Ok(SessionStream::new(
-            self.connection.clone(),
-            from,
-            subscription,
-        ))
+        SessionStream::open(self.connection.clone(), session, from).await
+    }
+
+    /// `terminal.subscribe` (protocol 11), raw: the subscription ends with
+    /// `Lagged` if this side falls behind. Most callers want
+    /// [`follow_terminal`](Self::follow_terminal).
+    ///
+    /// # Errors
+    /// See [`CallError`].
+    pub async fn subscribe_terminal(
+        &self,
+        terminal: TerminalId,
+        from: EventSeq,
+    ) -> Result<TerminalSubscription, CallError> {
+        self.connection
+            .subscribe_terminal(SubscribeTerminal { terminal, from })
+            .await
+    }
+
+    /// Every record of a terminal (protocol 11, ADR 0031) from `from` on,
+    /// gap-free but for the scrollback it dropped
+    /// ([`StreamError::Missing`](crate::StreamError::Missing)), ending when
+    /// the terminal ends.
+    ///
+    /// # Errors
+    /// The first subscription failed (for example `NotFound`).
+    pub async fn follow_terminal(
+        &self,
+        terminal: TerminalId,
+        from: EventSeq,
+    ) -> Result<TerminalStream, CallError> {
+        TerminalStream::open(self.connection.clone(), terminal, from).await
     }
 }

@@ -38,7 +38,7 @@ impl fmt::Display for ProtocolVersion {
 /// and record the change in `docs/PROTOCOL.md`.
 pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(11);
 
-/// The oldest protocol this build still accepts. Versions 3 to 10 only add
+/// The oldest protocol this build still accepts. Versions 3 to 11 only add
 /// methods, events (with stand-ins for older peers) and defaulted fields,
 /// so version 2 peers keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);

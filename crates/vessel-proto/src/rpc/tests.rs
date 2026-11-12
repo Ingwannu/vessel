@@ -145,9 +145,6 @@ fn every_method_knows_its_first_version() {
             "file.read",
             "file.find",
             "file.grep",
-            "forge.status",
-            "pr.list",
-            "pr.get",
         ];
         let expected = if reads.contains(&name) {
             Scope::Read
@@ -156,6 +153,44 @@ fn every_method_knows_its_first_version() {
         };
         assert_eq!(method.scope(), expected, "{method:?}");
     }
+}
+
+#[test]
+fn protocol_eleven_methods_know_their_version_and_scope() {
+    // Track B2's pull requests (ADR 0029) and track C's terminals, scripts
+    // and ports (ADR 0031): reading is `read`; opening, merging, the
+    // feedback switch, typing, ending and running are `operate`.
+    let reads = [
+        "forge.status",
+        "pr.list",
+        "pr.get",
+        "terminal.list",
+        "terminal.get",
+        "terminal.read",
+        "terminal.subscribe",
+        "script.list",
+        "port.list",
+    ];
+    let mut seen = 0_usize;
+    for method in Method::ALL {
+        let name = method.as_str();
+        let eleven = ["forge.", "pr.", "terminal.", "script.", "port."]
+            .iter()
+            .any(|prefix| name.starts_with(prefix));
+        if !eleven {
+            continue;
+        }
+        seen += 1;
+        assert_eq!(method.since(), ProtocolVersion::new(11), "{method:?}");
+        let expected = if reads.contains(&name) {
+            Scope::Read
+        } else {
+            Scope::Operate
+        };
+        assert_eq!(method.scope(), expected, "{method:?}");
+    }
+    // Six of B2's, thirteen of C's.
+    assert_eq!(seen, 19);
 }
 
 #[test]
@@ -187,6 +222,10 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the pinned list is one line per method; splitting it would hide the decision"
+)]
 fn the_forwardable_set_is_pinned() {
     // Changing this list is a decision about what other nodes may do here
     // (`Method::forwardable` says why each group is in or out).
@@ -286,7 +325,19 @@ fn the_forwardable_set_is_pinned() {
             "pr.get",
             "pr.open",
             "pr.merge",
-            "pr.feedback"
+            "pr.feedback",
+            "terminal.create",
+            "terminal.list",
+            "terminal.get",
+            "terminal.read",
+            "terminal.send",
+            "terminal.rename",
+            "terminal.kill",
+            "terminal.close",
+            "script.list",
+            "script.run",
+            "script.restart",
+            "port.list"
         ]
     );
 }

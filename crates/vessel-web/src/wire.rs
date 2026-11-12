@@ -9,7 +9,8 @@
 //!
 //! - calls methods on nodes ([`ClientFrame::Call`]), each answered once by
 //!   a [`ServerFrame::Reply`] with the same id;
-//! - follows sessions ([`ClientFrame::Follow`]): records come as
+//! - follows sessions ([`ClientFrame::Follow`]) and terminals
+//!   ([`ClientFrame::FollowTerminal`], protocol 11): records come as
 //!   [`ServerFrame::Event`], the stream's ups and downs as
 //!   [`ServerFrame::Stream`];
 //! - asks the bridge itself ([`ClientFrame::Op`]) for what only this
@@ -46,7 +47,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
     EventRecord, EventSeq, Method, NodeId, NodeInfo, PairingOffer, ProtocolVersion, RawJson, Reply,
-    SessionId, WireError,
+    SessionId, TerminalId, WireError,
 };
 
 /// Closes a websocket that sent no valid token in time.
@@ -87,6 +88,18 @@ pub enum ClientFrame {
         node: NodeKey,
         /// The session.
         session: SessionId,
+        /// The first record wanted.
+        from: EventSeq,
+    },
+    /// Follow a terminal (protocol 11, ADR 0031) from a record on: its
+    /// records and its stream's states come as a followed session's do.
+    FollowTerminal {
+        /// The browser's id for the stream.
+        stream: StreamId,
+        /// The node.
+        node: NodeKey,
+        /// The terminal.
+        terminal: TerminalId,
         /// The first record wanted.
         from: EventSeq,
     },

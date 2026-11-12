@@ -310,11 +310,15 @@ async fn kill_stops_the_session_with_no_exit_code() {
         let stored = collect(created.durable);
         let mut follower = Follower::new(&created.handle, EventSeq::ZERO);
         follower.until_text("ready").await;
+        // Its program's id while it runs (protocol 11: its ports are
+        // found from it), none once it ended.
+        assert!(created.handle.pid().is_some());
 
         created.handle.kill();
 
         let status = follower.until_end().await;
         assert!(killed(&status), "{status:?}");
+        assert_eq!(created.handle.pid(), None);
         assert_eq!(stored.await.unwrap(), follower.records);
     })
     .await;

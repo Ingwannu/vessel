@@ -3324,6 +3324,7 @@ dependencies = [
  "vessel-store",
  "vessel-testkit",
  "vessel-web",
+ "which",
 ]
 
 [[package]]
@@ -3506,6 +3507,7 @@ dependencies = [
  "vessel-llm",
  "vessel-lsp",
  "vessel-mcp",
+ "vessel-proc",
  "vessel-proto",
  "vessel-relay",
  "vessel-rpc",
@@ -3645,13 +3647,16 @@ dependencies = [
  "bytes",
  "chrono",
  "criterion",
+ "nix 0.31.3",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
  "tracing",
  "vessel-agent",
  "vessel-harness",
+ "vessel-proc",
  "vessel-proto",
  "vessel-pty",
  "vessel-testkit",
