@@ -5,6 +5,10 @@
 //! - At most [`LOCAL_SLOTS`] local and [`NETWORK_SLOTS`] network runs at
 //!   once per node; the next waits for a slot (GOAT and Paseo use the same
 //!   bound).
+//! - The wait counts against the call's time limit and ends with its
+//!   cancellation (`GitCommand::output_streaming`): a call behind slow runs
+//!   answers `timed out` within its time instead of queueing until a slot
+//!   frees.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};

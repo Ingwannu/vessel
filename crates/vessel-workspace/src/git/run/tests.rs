@@ -89,3 +89,45 @@ async fn a_cancelled_run_stops() {
         "{cancelled:?}"
     );
 }
+
+/// A call that waits for a slot keeps to its time and its cancellation:
+/// every local slot is held, so it never gets one.
+#[tokio::test]
+async fn a_call_waiting_for_a_slot_keeps_its_time_and_cancellation() {
+    let sandbox = Sandbox::new();
+    let repo = sandbox.repo("r");
+    let git = sandbox.git().await;
+    let mut held = Vec::new();
+    for _slot in 0..super::LOCAL_SLOTS {
+        held.push(git.runner.local.slot().await.unwrap());
+    }
+    let waited = git
+        .command(&repo)
+        .arg("status")
+        .limits(Limits {
+            time: Duration::from_millis(200),
+            ..Limits::LOCAL
+        })
+        .output();
+    let waited = tokio::time::timeout(Duration::from_secs(10), waited)
+        .await
+        .expect("the wait keeps to the call's time");
+    assert!(
+        matches!(waited, Err(GitError::TimedOut { .. })),
+        "{waited:?}"
+    );
+
+    let token = CancellationToken::new();
+    let call = git.command(&repo).arg("status").cancel_on(token.clone());
+    let waiting = tokio::spawn(call.output());
+    token.cancel();
+    let cancelled = tokio::time::timeout(Duration::from_secs(10), waiting)
+        .await
+        .expect("a cancelled wait stops")
+        .unwrap();
+    assert!(
+        matches!(cancelled, Err(GitError::Cancelled)),
+        "{cancelled:?}"
+    );
+    drop(held);
+}

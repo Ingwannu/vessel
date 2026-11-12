@@ -94,7 +94,18 @@ impl GitCommand {
         } else {
             &runner.local
         };
-        let _slot = pool.slot().await?;
+        let cancel = cancel.unwrap_or_default();
+        // One deadline for the wait for a slot and the run: a call behind
+        // slow ones answers within its time, and a cancelled one stops
+        // waiting, rather than queueing until a slot frees.
+        let started = tokio::time::Instant::now();
+        let _slot = tokio::select! {
+            slot = pool.slot() => slot?,
+            () = tokio::time::sleep(limits.time) => {
+                return Err(GitError::TimedOut { after: limits.time });
+            }
+            () = cancel.cancelled() => return Err(GitError::Cancelled),
+        };
         let Spawned {
             mut child,
             stdin,
@@ -103,7 +114,6 @@ impl GitCommand {
         } = vessel_proc::spawn(&spec).map_err(GitError::Spawn)?;
         // Nothing is ever typed into git.
         drop(stdin);
-        let cancel = cancel.unwrap_or_default();
         let ended = {
             let work = async {
                 let (out, err) = tokio::join!(
@@ -120,7 +130,9 @@ impl GitCommand {
             };
             tokio::select! {
                 result = work => Ended::Finished(result),
-                () = tokio::time::sleep(limits.time) => Ended::TimedOut,
+                () = tokio::time::sleep(limits.time.saturating_sub(started.elapsed())) => {
+                    Ended::TimedOut
+                }
                 () = cancel.cancelled() => Ended::Cancelled,
             }
         };
