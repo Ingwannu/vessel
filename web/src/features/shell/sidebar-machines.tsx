@@ -68,13 +68,13 @@ export function SidebarMachines() {
                   place === "sessions" &&
                     node === machine.key &&
                     id === session.id,
-                  " sub",
+                  session.unread ? " sub unread" : " sub",
                 )}
                 to="/sessions/$node/$id"
                 params={{ node: machine.key, id: session.id }}
               >
                 <span className="slot">
-                  <SessionMark mark={session.mark} />
+                  <SessionMark mark={session.mark} unread={session.unread} />
                 </span>
                 <span className="label">{session.title}</span>
               </Link>

@@ -39,6 +39,7 @@ import { useShortcut } from "../shortcuts/handlers";
 import { AttachButton } from "./attach-button";
 import { ComposerDocks } from "./composer-docks";
 import { ContextRing } from "./context-ring";
+import { EndedBanner } from "./ended-banner";
 import { composerAction, composerPlaceholder } from "./composer-words";
 import { type Editing, useComposerSend } from "./use-composer-send";
 import { useLimits } from "./use-limits";
@@ -47,10 +48,13 @@ import { useTrayTarget } from "./use-tray-target";
 
 export function Composer({
   node,
+  label,
   session,
   timeline,
 }: {
   node: NodeKey;
+  /** The machine's name. */
+  label: string;
   session: SessionInfo;
   timeline: Timeline;
 }) {
@@ -234,14 +238,19 @@ export function Composer({
         : {})}
       strip={<AttachmentStrip tray={tray} />}
       above={
-        <ComposerDocks
-          node={node}
-          session={session.id}
-          timeline={timeline}
-          rows={rows}
-          editing={editing?.row.id ?? null}
-          actions={queueActions}
-        />
+        <>
+          {!live && modern ? (
+            <EndedBanner node={node} session={session} label={label} />
+          ) : null}
+          <ComposerDocks
+            node={node}
+            session={session.id}
+            timeline={timeline}
+            rows={rows}
+            editing={editing?.row.id ?? null}
+            actions={queueActions}
+          />
+        </>
       }
       controls={
         <>

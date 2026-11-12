@@ -38,13 +38,13 @@ export function SidebarStatuses() {
                   place === "sessions" &&
                     node === session.node &&
                     id === session.id,
-                  " sub",
+                  session.unread ? " sub unread" : " sub",
                 )}
                 to="/sessions/$node/$id"
                 params={{ node: session.node, id: session.id }}
               >
                 <span className="slot">
-                  <SessionMark mark={session.mark} />
+                  <SessionMark mark={session.mark} unread={session.unread} />
                 </span>
                 <span className="label">{session.title}</span>
                 <span className="side-machine">{session.machine}</span>

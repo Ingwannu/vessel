@@ -7,7 +7,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
+import { isLive } from "../../data/format";
 import type { Match } from "../../data/find";
 import { outline, sameOutline } from "../../data/outline";
 import { prefer, prefs } from "../../data/prefs";
@@ -24,6 +25,7 @@ import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
 import { TimelineSourceContext } from "./timeline-source";
+import { useReadMarks } from "./use-read-marks";
 import { useTimeline } from "./use-timeline";
 import type { NodeKey } from "../../wire/bridge";
 
@@ -38,7 +40,12 @@ export function StructuredSession({
   session: SessionInfo;
 }) {
   const fleet = useFleet();
-  const { timeline, stream } = useTimeline(node, session.id);
+  const { timeline, stream } = useTimeline(node, session.id, isLive(session));
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
+  useReadMarks(node, session, timeline, protocol);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
@@ -138,7 +145,12 @@ export function StructuredSession({
         </div>
         <div className="session-dock">
           <div className="session-dock-column">
-            <Composer node={node} session={session} timeline={timeline} />
+            <Composer
+              node={node}
+              label={label}
+              session={session}
+              timeline={timeline}
+            />
           </div>
         </div>
       </div>
