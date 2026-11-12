@@ -177,13 +177,22 @@ plan's "Track C: contract" (with its review) say why each choice.
 - A terminal's environment is the node's without Vessel's credentials
   (`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
   `VESSEL_NODE_SOCKET`, and a model route's variables when the node runs
-  inside a session), with `TERM=xterm-256color` and
-  `COLORTERM=truecolor`; a script's adds `VESSEL_PROJECT_ROOT`,
-  `VESSEL_WORKTREE`, `VESSEL_BRANCH` and `VESSEL_SCRIPT`.
+  inside a session) and without the forge's sign-in (`GH_TOKEN`,
+  `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`), with
+  `TERM=xterm-256color` and `COLORTERM=truecolor`; a script's adds
+  `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`, `VESSEL_BRANCH` and
+  `VESSEL_SCRIPT`. Setup and teardown (protocol 10) lose the same
+  variables.
 - Where they meet the rest: `session.delete` (and retention) ends and
-  forgets the session's terminals before its worktree is tidied; a live
-  terminal inside a worktree keeps it (`kept { in_use }`), and one in a
-  project makes `project.remove` `conflict`.
+  forgets the session's terminals before its worktree is tidied;
+  `session.mark { archive }` ends them and keeps them, with their output;
+  a session's end alone ends only agents' terminals tied to it. A live
+  terminal inside a worktree keeps it (`kept { in_use }`), and so does one
+  starting there (it holds the worktree until registered; a removal that
+  holds it first makes the start `conflict`, before anything runs); one
+  in a project makes `project.remove` `conflict`.
+- A session's terminals are not on `SessionInfo`: `terminal.list {}` (at
+  most 96) grouped by `place` gives every session's at once.
 - The bridge: `follow_terminal { stream, node, terminal, from }`, whose
   records and states come as a followed session's do.
 

@@ -195,6 +195,28 @@ mod tests {
     }
 
     #[test]
+    fn the_forges_sign_in_never_reaches_a_terminal() {
+        // Whatever the binary found, and by default (a test's node): the
+        // variables the node's forge token is read from (ADR 0029) are
+        // removed with Vessel's own credentials.
+        let detected =
+            crate::TerminalsConfig::detect(|_| None, names(&["PATH", "GH_TOKEN"]), |_| None);
+        for config in [detected, crate::TerminalsConfig::default()] {
+            for name in vessel_forge::SIGN_IN_VARIABLES
+                .iter()
+                .chain(KNOWN_CREDENTIALS.iter())
+            {
+                assert!(
+                    config.removed.contains(&OsString::from(name)),
+                    "{name} stays in {:?}",
+                    config.removed
+                );
+            }
+            assert!(!config.removed.contains(&OsString::from("PATH")));
+        }
+    }
+
+    #[test]
     fn a_normal_nodes_environment_keeps_the_users_keys() {
         assert!(credentials_in(names(&["ANTHROPIC_AUTH_TOKEN", "HOME"])).is_empty());
     }

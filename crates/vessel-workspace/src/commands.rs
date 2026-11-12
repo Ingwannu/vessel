@@ -42,6 +42,10 @@ pub struct Run<'a> {
     pub dir: &'a Path,
     /// Added to the node's environment (`VESSEL_PROJECT_ROOT`, …).
     pub env: Vec<(String, OsString)>,
+    /// Taken out of the node's environment first: the node's credentials
+    /// and the forge's sign-in, which a repository's command must not hold
+    /// (protocol 11; the node names them).
+    pub removed: &'a [OsString],
     /// The log file, appended to.
     pub log: &'a Path,
     /// A folder for temporary files (Windows command files).
@@ -88,6 +92,7 @@ async fn one(
     log: &mut Log<'_>,
 ) -> std::io::Result<Option<SetupFailure>> {
     let (spec, script) = shell_command(command, run.dir, &run.env, run.scratch).await?;
+    let spec = run.removed.iter().fold(spec, CommandSpec::env_remove);
     let spawned = vessel_proc::spawn(&spec);
     let Ok(Spawned {
         mut child,
@@ -333,16 +338,24 @@ mod tests {
     async fn commands_run_in_order_with_their_environment_and_stop_at_a_failure() {
         let temp = tempfile::tempdir().unwrap();
         let (log, written) = setup(temp.path());
+        // `HOME` stands for a credential the node names: every test
+        // process has it, and the command must not.
+        let removed = [OsString::from("HOME")];
         let run_in = Run {
             dir: temp.path(),
             env: vec![("VESSEL_BRANCH".to_owned(), "topic".into())],
+            removed: &removed,
             log: &log,
             scratch: temp.path(),
             limit: SETUP_LIMIT,
             cancel: CancellationToken::new(),
         };
         let ok = run(
-            &commands(&["echo one", "echo $VESSEL_BRANCH 1>&2"]),
+            &commands(&[
+                "echo one",
+                "echo $VESSEL_BRANCH 1>&2",
+                "echo home=${HOME-gone}",
+            ]),
             &run_in,
             &written,
         )
@@ -352,6 +365,7 @@ mod tests {
         let text = std::fs::read_to_string(&log).unwrap();
         assert!(text.contains("$ echo one\none\n"), "{text}");
         assert!(text.contains("topic"), "{text}");
+        assert!(text.contains("home=gone"), "{text}");
         assert_eq!(*written.borrow(), u64::try_from(text.len()).unwrap());
 
         let failed = run(&commands(&["exit 3", "touch never"]), &run_in, &written)
@@ -374,6 +388,7 @@ mod tests {
         let slow = Run {
             dir: temp.path(),
             env: Vec::new(),
+            removed: &[],
             log: &log,
             scratch: temp.path(),
             limit: Duration::from_millis(300),

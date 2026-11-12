@@ -1,7 +1,8 @@
-//! Protocol 11's terminal calls (track C, ADR 0031): who may, where, and
-//! the registry; the terminal itself is `vessel_session::terminals`'.
+//! Protocol 11's terminal calls (track C, ADR 0031): the registry and the
+//! calls; who may open one where is `place`; the terminal itself is
+//! `vessel_session::terminals`'.
 
-use std::path::PathBuf;
+mod place;
 
 use chrono::Utc;
 use vessel_proto::terminals::{
@@ -9,29 +10,19 @@ use vessel_proto::terminals::{
     RenameTerminal, SendTerminal, SubscribeTerminal, TerminalInfo, TerminalKind, TerminalList,
     TerminalPlace, TerminalSubscribed,
 };
-use vessel_proto::workspace::SessionPlace;
-use vessel_proto::{
-    Ack, Creator, EventPage, SessionId, TerminalId, TerminalInput, TerminalSize, WireError,
-};
+use vessel_proto::{Ack, Creator, EventPage, TerminalId, TerminalInput, TerminalSize, WireError};
+use vessel_session::FollowError;
 use vessel_session::terminals::{InputError, ShellStart, TerminalHandle, start_shell};
-use vessel_session::{FollowError, SessionHandle};
 
 use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
-use crate::terminals::{
-    self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, Owner, Shell, Start, TerminalsError,
-};
+use crate::terminals::{self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, Shell, Start, TerminalsError};
 use crate::waits::Waiter;
+use place::Resolved;
 
 /// The most output a page carries.
 const PAGE_BYTES: usize = 1024 * 1024;
-
-/// Where a terminal resolved to.
-pub(super) struct Resolved {
-    pub(super) folder: PathBuf,
-    pub(super) owner: Owner,
-}
 
 fn wire(error: TerminalsError) -> WireError {
     error.wire()
@@ -47,136 +38,6 @@ pub(super) fn may_use(principal: &Principal, info: &TerminalInfo) -> bool {
 }
 
 impl NodeService {
-    /// The folder a place resolves to, and what a terminal there counts
-    /// against.
-    pub(super) async fn resolve_terminal_place(
-        &self,
-        principal: &Principal,
-        place: &TerminalPlace,
-    ) -> Result<Resolved, TerminalsError> {
-        let agent = principal.agent();
-        // A terminal beside a session in a project counts against the
-        // project too.
-        let mut project = place.project();
-        let folder = match place {
-            TerminalPlace::Session { session } => {
-                let info = self
-                    .sessions
-                    .get(*session)
-                    .await
-                    .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
-                project = info.workspace.as_ref().map(|place| place.project);
-                let folder = info
-                    .spec
-                    .cwd
-                    .clone()
-                    .unwrap_or_else(|| self.profiles.user_home().to_path_buf());
-                let checked = folder.clone();
-                let exists = tokio::task::spawn_blocking(move || checked.is_dir())
-                    .await
-                    .unwrap_or(false);
-                if !exists {
-                    return Err(TerminalsError::Conflict(format!(
-                        "the session's folder is gone: {}",
-                        folder.display()
-                    )));
-                }
-                folder
-            }
-            TerminalPlace::Project { project, dir } => {
-                let placed = self
-                    .workspaces
-                    .place(&SessionPlace::Project {
-                        project: *project,
-                        dir: dir.clone(),
-                    })
-                    .await
-                    .map_err(|error| TerminalsError::Wire(error.wire()))?;
-                placed.cwd
-            }
-        };
-        Ok(Resolved {
-            folder,
-            owner: Owner {
-                session: place.session(),
-                project,
-                agent,
-            },
-        })
-    }
-
-    /// An agent may open a terminal only beside its own session or one it
-    /// may operate, only where that session's profile turned agent
-    /// terminals on, and (an agent of this node) only where its own
-    /// session's profile did too: a person allowed terminals for that
-    /// harness's sandbox, not for an agent that started a session with
-    /// another profile (ADR 0031). Answers the sessions whose end must end
-    /// the terminal: the one it is beside, and the agent's own.
-    async fn agent_may_open(
-        &self,
-        principal: &Principal,
-        place: &TerminalPlace,
-    ) -> Result<Vec<SessionHandle>, TerminalsError> {
-        let Some((node, own)) = principal.agent() else {
-            return Ok(Vec::new());
-        };
-        let TerminalPlace::Session { session } = place else {
-            return Err(TerminalsError::Forbidden(
-                "an agent opens terminals only beside a session".to_owned(),
-            ));
-        };
-        let here = self.links.node();
-        let mut watch = Vec::new();
-        if node == here {
-            self.profile_allows(own).await?;
-            watch.push(self.live_handle(own, "your session has ended")?);
-        }
-        if !(node == here && *session == own) {
-            self.check_owner(principal, *session)
-                .await
-                .map_err(TerminalsError::Wire)?;
-            self.profile_allows(*session).await?;
-            watch.push(self.live_handle(*session, "the session has ended")?);
-        }
-        Ok(watch)
-    }
-
-    /// `session`'s profile sets `agent_terminals = true`, or `forbidden`.
-    pub(crate) async fn profile_allows(&self, session: SessionId) -> Result<(), TerminalsError> {
-        let info = self
-            .sessions
-            .get(session)
-            .await
-            .map_err(|error| TerminalsError::Wire(error.to_wire()))?;
-        let granted = info
-            .profile
-            .as_ref()
-            .and_then(|name| self.profiles.get(name))
-            .is_some_and(|profile| profile.agent_terminals());
-        if granted {
-            Ok(())
-        } else {
-            Err(TerminalsError::Forbidden(
-                "agents may not open terminals here: the session's profile does not set \
-                 `agent_terminals = true` (profiles.toml), which a person turns on"
-                    .to_owned(),
-            ))
-        }
-    }
-
-    /// The runtime's handle of a live session, whose end an agent's
-    /// terminal is tied to.
-    fn live_handle(
-        &self,
-        session: SessionId,
-        ended: &str,
-    ) -> Result<SessionHandle, TerminalsError> {
-        self.sessions
-            .runtime_handle(session)
-            .filter(|handle| !handle.has_ended())
-            .ok_or_else(|| TerminalsError::Conflict(ended.to_owned()))
-    }
-
     /// A terminal the caller may use.
     pub(super) fn terminal_for(
         &self,
@@ -191,42 +52,6 @@ impl NodeService {
                 "an agent may use only the terminals it opened".to_owned(),
             ))
         }
-    }
-
-    /// After a start: the place still there, or the terminal ended and
-    /// forgotten (its session or project went away meanwhile; deletion
-    /// ends what is registered, so one of the two always ends it). A
-    /// removal of its worktree cannot have begun meanwhile: the start held
-    /// the worktree (`Workspaces::hold_folder`) until it was registered.
-    pub(super) async fn still_placed(
-        &self,
-        handle: &TerminalHandle,
-        place: &TerminalPlace,
-    ) -> Result<(), TerminalsError> {
-        let there = match place {
-            TerminalPlace::Session { session } => self.sessions.get(*session).await.is_ok(),
-            TerminalPlace::Project { project, .. } => self.workspaces.has_project(*project),
-        };
-        if there {
-            return Ok(());
-        }
-        handle.kill();
-        let _ended = tokio::time::timeout(CLOSE_WAIT, handle.ended()).await;
-        self.terminals.forget(handle.id());
-        Err(TerminalsError::NotFound(handle.id()))
-    }
-
-    /// Hold the worktree `folder` is in, if any, from removal, setup and
-    /// teardown until the terminal starting there is registered (ADR 0030's
-    /// count, protocol 11): a removal either sees the start, or claimed the
-    /// worktree first and the start is refused here, before anything runs.
-    pub(super) fn hold_folder(
-        &self,
-        folder: &std::path::Path,
-    ) -> Result<Option<crate::workspace::Starting>, TerminalsError> {
-        self.workspaces
-            .hold_folder(folder)
-            .map_err(|error| TerminalsError::Wire(error.wire()))
     }
 
     /// `terminal.create`.

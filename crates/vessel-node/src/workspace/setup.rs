@@ -148,6 +148,7 @@ impl Workspaces {
         let run = Run {
             dir: &info.path,
             env: self.command_env(info),
+            removed: &self.removed,
             log: &log,
             scratch: &self.dirs.scratch,
             limit: match kind {

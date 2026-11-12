@@ -2,7 +2,7 @@
 //! and tidying the worktree made for a session (`retire`), with the
 //! sessions tidying may still look at (`tidy_candidates`). It decides
 //! nothing about when to tidy (`crate::tidying` does), and never removes
-//! a worktree a live session is in.
+//! a worktree a live session or a live terminal is in.
 //!
 //! [Decision Log]
 //! - Removal follows one rule for a person's `worktree.remove` and for
@@ -13,6 +13,17 @@
 //! - Removing a worktree runs as a task of the node's, awaited by the
 //!   call: a caller that goes away (a cancelled call, a closed page)
 //!   leaves no worktree claimed by a removal that stopped halfway.
+//! - What runs in a worktree is read after the claim, never before (ADR
+//!   0030), and a session, a terminal or a script's run starting there
+//!   holds the worktree by the "starting" count until it is live or
+//!   registered (`place`, `start_in`, `hold_folder`); a start checks the
+//!   claim after taking the count. So, whatever the order, the removal
+//!   sees the start (`kept { in_use }`) or the start sees the claim and is
+//!   refused before anything runs: teardown never runs under it. (Track C
+//!   checked after its start instead, which left a window: a reading
+//!   before the start's reservation and a claim after its last check. The
+//!   join of wave 2's first half closed it with B2's count; the e2e test
+//!   `meeting` races the two.)
 //! - Tidying is `retire`, called when the session a worktree was made for
 //!   is deleted or dropped by retention, never when it only ends or is
 //!   archived (`crate::tidying` says when, and why). A worktree it keeps

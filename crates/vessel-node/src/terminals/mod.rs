@@ -60,9 +60,11 @@ pub struct TerminalsConfig {
     /// The shell, found by the binary at start; without one,
     /// `terminal.create` is `unsupported`.
     pub shell: Option<Shell>,
-    /// Removed from every terminal's environment: Vessel's credentials
-    /// (`credentials_in` over the binary's own environment; the known
-    /// names by default).
+    /// Removed from the environment of every terminal, script and service,
+    /// and of the setup and teardown commands of a project's file:
+    /// Vessel's credentials (`credentials_in` over the binary's own
+    /// environment; the known names by default) and the forge's sign-in
+    /// (`vessel_forge::SIGN_IN_VARIABLES`, ADR 0029).
     pub removed: Vec<OsString>,
     /// How much of a terminal's log is kept.
     pub scrollback: Scrollback,
@@ -92,7 +94,7 @@ impl TerminalsConfig {
         // The known names too: a variable the binary did not have is
         // harmless to remove, and one set later (a shell's profile) is not
         // the node's.
-        removed.extend(KNOWN_CREDENTIALS.iter().map(OsString::from));
+        removed.extend(always_removed());
         removed.sort();
         removed.dedup();
         Self {
@@ -107,10 +109,23 @@ impl Default for TerminalsConfig {
     fn default() -> Self {
         Self {
             shell: None,
-            removed: KNOWN_CREDENTIALS.iter().map(OsString::from).collect(),
+            removed: always_removed().collect(),
             scrollback: Scrollback::DEFAULT,
         }
     }
+}
+
+/// Removed whatever the binary's environment holds: Vessel's credentials
+/// by name, and the variables the forge's sign-in is read from. A token
+/// the node reads there is its sign-in (ADR 0029), and what the node
+/// starts in a repository's folder (a shell an agent may type into, a
+/// repository's script) must not hold it; a person's `gh` in a terminal
+/// still finds its own stored login.
+fn always_removed() -> impl Iterator<Item = OsString> {
+    KNOWN_CREDENTIALS
+        .iter()
+        .chain(vessel_forge::SIGN_IN_VARIABLES.iter())
+        .map(OsString::from)
 }
 
 /// What a terminal needs from the node to run.

@@ -1,6 +1,8 @@
 //! ADR 0030 in the node: git's own folders refused as projects, and no
 //! removal between a session's place being checked and the session being
-//! live (wave 1's review, findings 7 and 17).
+//! live (wave 1's review, findings 7 and 17); and, protocol 11, none
+//! between a terminal's start in a worktree and its registration (the
+//! window track C left open, closed in the join of wave 2's first half).
 
 use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktreeOutcome, SessionPlace};
 
@@ -96,6 +98,78 @@ async fn nothing_starts_once_a_removal_reads_the_live_sessions() {
             assert!(
                 workspaces.start_in(worktree.id).is_none(),
                 "a start again is refused while the removal holds it"
+            );
+            Vec::new()
+        })
+        .await
+        .unwrap();
+    assert!(
+        matches!(removed, RemoveWorktreeOutcome::Removed { .. }),
+        "{removed:?}"
+    );
+}
+
+/// A terminal or a script's run starting in a worktree holds it from
+/// removal until it is registered (then the removal reads it among what
+/// runs there): a removal meanwhile keeps the worktree.
+#[tokio::test]
+async fn a_terminal_starting_in_a_worktree_keeps_it_from_removal() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let worktree = fixture.created(project.id).await;
+    let inside = worktree.path.join("src");
+    let held = fixture.workspaces.hold_folder(&inside).unwrap();
+    assert!(held.is_some(), "a folder in a worktree is held");
+    let kept = fixture
+        .workspaces
+        .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
+        .await
+        .unwrap();
+    assert_eq!(
+        kept,
+        RemoveWorktreeOutcome::Kept {
+            reasons: vec![KeptReason::InUse]
+        }
+    );
+    drop(held);
+    assert!(
+        fixture
+            .workspaces
+            .hold_folder(fixture.temp.path())
+            .unwrap()
+            .is_none(),
+        "a folder in no worktree holds nothing"
+    );
+    let removed = fixture
+        .workspaces
+        .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
+        .await
+        .unwrap();
+    assert!(
+        matches!(removed, RemoveWorktreeOutcome::Removed { .. }),
+        "{removed:?}"
+    );
+}
+
+/// Once a removal reads what runs in the worktree it holds the worktree,
+/// so a terminal starting then is refused before anything runs: either
+/// the removal sees a start, or the start sees the removal.
+#[tokio::test]
+async fn no_terminal_starts_once_a_removal_reads_what_runs() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let worktree = fixture.created(project.id).await;
+    let workspaces = std::sync::Arc::clone(&fixture.workspaces);
+    let path = worktree.path.clone();
+    let removed = fixture
+        .workspaces
+        .remove_worktree(worktree.id, IfLost::Discard, || {
+            assert!(
+                matches!(
+                    workspaces.hold_folder(&path),
+                    Err(WorkspaceError::Conflict(_))
+                ),
+                "a terminal is refused while the removal holds the worktree"
             );
             Vec::new()
         })

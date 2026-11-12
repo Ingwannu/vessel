@@ -292,8 +292,19 @@ mod tests {
             Method::DeleteSession,
             // Terminals: their own rule decides (ADR 0031).
             Method::CreateTerminal,
+            Method::ListTerminals,
+            Method::GetTerminal,
+            Method::ReadTerminal,
+            Method::SubscribeTerminal,
             Method::SendTerminal,
+            Method::RenameTerminal,
+            Method::KillTerminal,
+            Method::CloseTerminal,
             Method::ListPorts,
+            // A pull request: read, and opened without a push, on a session
+            // the agent may operate (the forge's rule, ADR 0029).
+            Method::GetPullRequest,
+            Method::OpenPullRequest,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
@@ -308,9 +319,14 @@ mod tests {
             Method::ListScripts,
             Method::RunScript,
             Method::RestartScript,
+            Method::ForgeStatus,
+            Method::ListPullRequests,
+            Method::MergePullRequest,
+            Method::SetFeedback,
         ] {
             let error = refuse_agents(&agent, refused).unwrap_err();
             assert_eq!(error.code, ErrorCode::Forbidden);
+            assert!(!error.message.contains("  "), "{}", error.message);
         }
         assert!(refuse_agents(&Principal::Owner, Method::ApproveCommands).is_ok());
     }

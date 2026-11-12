@@ -449,8 +449,15 @@ dir = "web"                                # a folder inside the checkout
   started; a shell's own jobs end with it on Linux (on macOS and Windows a
   job a shell detached may outlive it).
 - A terminal's environment is the node's without Vessel's own tokens and
-  credentials; a script's adds `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`,
-  `VESSEL_BRANCH` and `VESSEL_SCRIPT`.
+  credentials and without the forge's sign-in (`GH_TOKEN`,
+  `GITHUB_TOKEN` and the enterprise pair; `gh` in a shell still finds its
+  own login), as setup's and teardown's are; a script's adds
+  `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`, `VESSEL_BRANCH` and
+  `VESSEL_SCRIPT`.
+- Archiving a session ends the shells, scripts and services beside it,
+  keeping them with their output; deleting it ends and forgets them
+  before its worktree is tidied. A live one, or one starting, keeps its
+  worktree from being removed.
 - Ports are found without privilege (`/proc` on Linux, `lsof` on macOS,
   `netstat` on Windows), every few seconds while someone asks; nothing is
   opened or forwarded.

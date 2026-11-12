@@ -66,6 +66,17 @@ impl fmt::Debug for Token {
     }
 }
 
+/// The variables a token for a forge is read from, by [`EnvTokens::from_vars`]:
+/// the node's sign-in when they are set, so whatever the node starts in a
+/// repository's folder (a terminal, a script, setup and teardown) runs
+/// without them (the join of wave 2's first half; ADRs 0029 and 0031).
+pub const SIGN_IN_VARIABLES: [&str; 4] = [
+    "GH_TOKEN",
+    "GITHUB_TOKEN",
+    "GH_ENTERPRISE_TOKEN",
+    "GITHUB_ENTERPRISE_TOKEN",
+];
+
 /// Tokens the binary found in the node's environment. A library reads no
 /// environment (AGENTS.md section 8): `vesseld` fills this.
 #[derive(Debug, Clone, Default)]
@@ -83,6 +94,7 @@ impl EnvTokens {
     /// enterprise token needs `GH_HOST` to name a host other than
     /// `github.com`.
     pub fn from_vars(read: impl Fn(&str) -> Option<OsString>) -> Self {
+        let [gh, github, gh_enterprise, github_enterprise] = SIGN_IN_VARIABLES;
         let text = |name: &str| read(name).and_then(|value| value.into_string().ok());
         let token = |names: [&str; 2]| {
             names
@@ -92,14 +104,9 @@ impl EnvTokens {
         let enterprise = text("GH_HOST")
             .and_then(|host| host.trim().to_ascii_lowercase().parse::<ForgeHost>().ok())
             .filter(|host| host.as_str() != "github.com")
-            .and_then(|host| {
-                Some((
-                    host,
-                    token(["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"])?,
-                ))
-            });
+            .and_then(|host| Some((host, token([gh_enterprise, github_enterprise])?)));
         Self {
-            github: token(["GH_TOKEN", "GITHUB_TOKEN"]),
+            github: token([gh, github]),
             enterprise,
         }
     }

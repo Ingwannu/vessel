@@ -206,3 +206,19 @@ Option 5.
   refuse a start again once a removal holds the worktree.
 - Measured on git 2.43 only; the planted tests run with whatever git CI
   has, and fail if a driver runs.
+
+## Amended when wave 2's first half was joined (2026-11-12)
+
+- What ADR 0031 starts in a repository's folder (a terminal, a script, a
+  service) and ADR 0027's setup and teardown are not git runs of the
+  node's: git started inside them (a person typing `git`, a shell prompt
+  that shows the branch, a script that commits) runs under the
+  repository's configuration as it would in the user's own terminal.
+  They run only where a person asked (a terminal; an agent's only where a
+  person turned `agent_terminals` on) or approved (the digest of ADR
+  0027, which covers scripts), so this ADR's rule, which is about git the
+  node runs without anyone asking, does not reach them; neither holds a
+  credential of the node's or the forge's sign-in (ADR 0031's amendment).
+- The "starting" count also covers a terminal or a script's run starting
+  in a worktree (`hold_folder`), held from before its reservation until
+  it is registered, so a removal sees it or refuses it.

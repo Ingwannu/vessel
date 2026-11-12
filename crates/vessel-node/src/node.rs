@@ -449,6 +449,7 @@ async fn core(
             home: config.harness_env.user_home().to_path_buf(),
             git: config.harness_lookup.find("git"),
             git_env: Vec::new(),
+            removed: config.terminals.removed.clone().into(),
         },
         store.clone(),
         tasks.clone(),

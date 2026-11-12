@@ -191,6 +191,7 @@ async fn start(
             home: temp.path().join("home"),
             git: Some(which::which("git").expect("the tests need git on PATH")),
             git_env: env.to_vec(),
+            removed: crate::TerminalsConfig::default().removed.into(),
         },
         store.clone(),
         tasks.clone(),

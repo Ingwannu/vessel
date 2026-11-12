@@ -32,7 +32,10 @@ impl NodeService {
                     self.sessions.get(*session).await.map_err(|error| {
                         ScriptLookup::Failed(TerminalsError::Wire(error.to_wire()))
                     })?;
-                let Some(workspace) = info.workspace else {
+                // The session's place as the registry knows it: the info
+                // a session's runtime holds carries none (the service
+                // fills `workspace` per reply, `with_workspace`).
+                let Some(workspace) = self.workspaces.workspace_of(&info.spec) else {
                     return Err(ScriptLookup::NoProject);
                 };
                 (workspace.project, workspace.worktree)

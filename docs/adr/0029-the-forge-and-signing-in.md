@@ -199,3 +199,18 @@ feedback, list every pull request or see the node's sign-in.
   (a head in another repository), merge queues and auto-merge, pull
   requests not found through a session (a pull requests page of the
   repository's own), a page (track B2-page).
+
+## Amended when wave 2's first half was joined (2026-11-12)
+
+- The variables a forge token is read from (`vessel_forge::
+  SIGN_IN_VARIABLES`: `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`,
+  `GITHUB_ENTERPRISE_TOKEN`) are the node's sign-in when set, so what the
+  node starts in a repository's folder runs without them: terminals,
+  scripts and services (ADR 0031), setup and teardown (ADR 0027). A token
+  the node gets from `gh` is only ever in memory and in a request's
+  header. An agent's own harness still inherits the node's environment
+  (ADR 0013): this keeps the token out of what the node starts, not out
+  of the agent's reach.
+- Archiving a session ends its watch (as before) and what runs beside it
+  (ADR 0031's amendment); deleting it ends and forgets that before its
+  worktree is tidied, and its feedback rows go with it.

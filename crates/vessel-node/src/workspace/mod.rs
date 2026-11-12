@@ -93,6 +93,10 @@ pub(crate) struct Opening {
     /// Added to git's environment: nothing for a node; the tests' own
     /// configuration, so a developer's settings never change a result.
     pub(crate) git_env: Vec<(String, OsString)>,
+    /// Removed from the environment of setup and teardown (protocol 11):
+    /// what a terminal's loses too (`TerminalsConfig::removed`), since
+    /// both are a repository's commands the node starts.
+    pub(crate) removed: Arc<[OsString]>,
 }
 
 /// Where the node runs and what roots it refuses.
@@ -153,6 +157,8 @@ pub(crate) struct Workspaces {
     searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
     /// Numbers each `file.find`, so one removes only its own entry.
     search_count: AtomicU64,
+    /// Taken out of setup's and teardown's environment (`Opening`).
+    removed: Arc<[OsString]>,
     tasks: TaskTracker,
     stop: CancellationToken,
 }
@@ -175,6 +181,7 @@ impl Workspaces {
             home,
             git,
             git_env,
+            removed,
         } = found;
         let (places, dirs) = tokio::task::spawn_blocking(move || {
             // Absolute, always: git takes `no_hooks` as `core.hooksPath`,
@@ -218,6 +225,7 @@ impl Workspaces {
             indexes: Arc::new(Indexes::default()),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
+            removed,
             tasks,
             stop,
         });

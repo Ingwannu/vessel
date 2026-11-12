@@ -97,9 +97,11 @@ impl NodeService {
             .await
             .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))?;
-        // An archived session is not watched (protocol 11).
+        // An archived session is not watched, and what runs beside it ends
+        // (protocol 11; kept, with its output): the session was put away.
         if archived {
             self.unwatch_session(session);
+            self.terminals.end_beside(session).await;
         }
         Ok(marked)
     }

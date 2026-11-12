@@ -7,12 +7,13 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use vessel_proto::scripts::ScriptName;
 use vessel_proto::terminals::TerminalInfo;
-use vessel_proto::{Creator, ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireError};
-use vessel_session::SessionHandle;
+use vessel_proto::{ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireError};
 use vessel_session::terminals::TerminalHandle;
 
 use super::scripts::Plan;
 use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
+
+mod ending;
 use crate::workspace::Occupant;
 
 /// What a terminal counts against.
@@ -368,44 +369,6 @@ impl Terminals {
             .collect()
     }
 
-    /// End and forget every terminal beside `session` (its deletion, or
-    /// retention dropping it), and wait for their ends.
-    pub(crate) async fn end_session(&self, session: SessionId) {
-        let handles = self.handles(|info| info.place.session() == Some(session));
-        self.end_all(&handles, true).await;
-    }
-
-    /// Watch `session`'s end (once, however many terminals): it ends the
-    /// terminals its own agent opened (`here` is this node) and every
-    /// agent's terminal beside it. Synchronous, so a call that stops
-    /// waiting after registering a terminal leaves it watched.
-    pub(crate) fn watch_for_agents(self: &Arc<Self>, here: NodeId, session: SessionHandle) {
-        let id = session.id();
-        if !lock_set(&self.watching).insert(id) {
-            return;
-        }
-        let terminals = Arc::clone(self);
-        drop(self.runner.tasks.spawn(async move {
-            let _info = session.ended().await;
-            terminals.end_agents_of(here, id).await;
-            let _was = lock_set(&terminals.watching).remove(&id);
-        }));
-    }
-
-    /// End (and keep) the agents' terminals `session`'s end takes with it:
-    /// those its own agent opened (its credential ended with it) and any
-    /// agent's beside it.
-    async fn end_agents_of(&self, here: NodeId, session: SessionId) {
-        let handles = self.handles(|info| match info.created_by {
-            Creator::Agent {
-                node,
-                session: agent,
-            } => (node == here && agent == session) || info.place.session() == Some(session),
-            Creator::Owner | Creator::Device { .. } => false,
-        });
-        self.end_all(&handles, false).await;
-    }
-
     /// Forget the ended terminals placed in `project` (its removal; a live
     /// one refuses the removal first).
     pub(crate) fn forget_project(&self, project: ProjectId) {
@@ -413,22 +376,5 @@ impl Terminals {
             let info = entry.handle.info();
             info.is_live() || info.place.project() != Some(project)
         });
-    }
-
-    async fn end_all(&self, handles: &[TerminalHandle], forget: bool) {
-        for handle in handles {
-            handle.kill();
-        }
-        for handle in handles {
-            if tokio::time::timeout(super::scripts::CLOSE_WAIT, handle.ended())
-                .await
-                .is_err()
-            {
-                tracing::warn!(terminal = %handle.id(), "a terminal did not end in time");
-            }
-            if forget {
-                self.forget(handle.id());
-            }
-        }
     }
 }

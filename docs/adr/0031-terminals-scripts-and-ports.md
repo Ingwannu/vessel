@@ -195,3 +195,46 @@ containment (ADR 0013).
   started.
 - A script runs whatever the repository's own scripts say on that branch
   (`npm run dev` runs `package.json`'s script): ADR 0027's limit holds.
+
+## Amended when wave 2's first half was joined (2026-11-12)
+
+Tracks B2 and C were built apart; where they meet was decided in the
+node's join (plan, "Integration 2 (node)"):
+
+- **A start holds its worktree.** A terminal or a script's run whose
+  folder is in a worktree takes that worktree's "starting" count (ADR
+  0030's, `Workspaces::hold_folder`) before its reservation and its
+  spawn, and gives it back once registered; a removal claims the worktree
+  first and then reads what runs where (live sessions, live terminals,
+  terminals starting). So the removal sees the start (`kept { in_use }`),
+  or the start finds the claim and is refused (`conflict`) before
+  anything runs; teardown never runs under it. This replaces the check
+  after the start, which left a window (a reading before the start's
+  reservation, a claim after its last check). The node's e2e test
+  `meeting` races the two.
+- **Archiving ends what runs beside a session.** `session.mark {
+  archive }` ends its terminals and runs (shells, scripts, services) and
+  keeps them, with their output, as `terminal.kill` does; deletion and
+  retention still end and forget them; a session's end alone still ends
+  none but agents'. An archived session is put away: a service beside it
+  would run on unseen, holding its port and its worktree.
+- **No forge sign-in in a repository's processes.** Besides Vessel's
+  credentials, every terminal, script and service, and setup and
+  teardown (ADR 0027), runs without the variables the node's forge token
+  is read from (`GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`,
+  `GITHUB_ENTERPRISE_TOKEN`, ADR 0029): a shell an agent may type into
+  and a repository's script are not the node's sign-in. A person's `gh`
+  in a terminal still finds its own stored login. Not closed: an agent's
+  own harness process inherits the node's environment as before (ADR
+  0013), and `gh`'s stored login is readable by any process of the user.
+- **A session's terminals are not on `SessionInfo`.** A page lists
+  `terminal.list {}` once (at most 96) and groups by `place`: a
+  terminal's changes move its own `revision`, not the session's, so a
+  count on the session would be stale between the page's reads of the
+  sessions.
+- **The session's place is the registry's.** A script beside a session,
+  and a terminal's count against a project, take the session's project
+  and worktree from the workspace registry (`workspace_of`); the info a
+  session's runtime holds carries none (the service fills it per reply),
+  so `script.run { place: session }` answered `no_project` for every
+  session.
