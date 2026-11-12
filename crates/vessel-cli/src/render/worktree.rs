@@ -1,9 +1,12 @@
 //! What became of a worktree a removal or a deletion tidied (protocol 10):
 //! `vessel worktree remove` and `vessel session delete` say it in the same
-//! words.
+//! words; and why a worktree was not made, a setup failed or where a clone
+//! is, in words rather than the wire's names.
 
 use vessel_proto::conversation::SessionDeleted;
-use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
+use vessel_proto::workspace::{
+    CloneStage, GitOperation, KeptReason, RemoveWorktreeOutcome, SetupFailure, WorktreeRefusal,
+};
 
 /// A removal's outcome, ending with a newline; a kept worktree says why
 /// and how to remove it anyway.
@@ -81,5 +84,57 @@ const fn operation_name(operation: GitOperation) -> &'static str {
         GitOperation::CherryPick => "a cherry-pick",
         GitOperation::Revert => "a revert",
         GitOperation::Bisect => "a bisect",
+    }
+}
+
+/// Why `worktree.create` made no worktree.
+pub(crate) fn refusal(reason: &WorktreeRefusal) -> String {
+    match reason {
+        WorktreeRefusal::NotGit => "the project is not a git repository".to_owned(),
+        WorktreeRefusal::NotReady => {
+            "the project is not ready (cloning, failed, or its folder is gone)".to_owned()
+        }
+        WorktreeRefusal::NoCommit => "the repository has no commit yet".to_owned(),
+        WorktreeRefusal::BranchExists => "the new branch exists; name another".to_owned(),
+        WorktreeRefusal::CheckedOutElsewhere { path } => {
+            format!("the branch is checked out in {}", path.display())
+        }
+        WorktreeRefusal::NoSuchBase => "the base is not a commit".to_owned(),
+        WorktreeRefusal::NoSuchBranch => "no such branch".to_owned(),
+        WorktreeRefusal::NoSuchSnapshot => "no snapshot of that worktree".to_owned(),
+        WorktreeRefusal::Limit => {
+            "as many worktrees as allowed already (on the node, or for this agent)".to_owned()
+        }
+        WorktreeRefusal::Unknown => "for a reason this vessel does not know".to_owned(),
+    }
+}
+
+/// How a setup failed.
+pub(crate) fn setup_failure(failure: SetupFailure) -> String {
+    match failure {
+        SetupFailure::Exit {
+            command,
+            code: Some(code),
+        } => format!("command {} exited with {code}", command.saturating_add(1)),
+        SetupFailure::Exit {
+            command,
+            code: None,
+        } => format!("command {} was stopped", command.saturating_add(1)),
+        SetupFailure::TimedOut => "it ran past its time limit".to_owned(),
+        SetupFailure::Spawn => "the shell did not start".to_owned(),
+        SetupFailure::Unknown => "for a reason this vessel does not know".to_owned(),
+    }
+}
+
+/// Where a clone is.
+pub(crate) const fn clone_stage(stage: CloneStage) -> &'static str {
+    match stage {
+        CloneStage::Connecting => "connecting",
+        CloneStage::Counting => "counting objects",
+        CloneStage::Compressing => "compressing objects",
+        CloneStage::Receiving => "receiving objects",
+        CloneStage::Resolving => "resolving deltas",
+        CloneStage::CheckingOut => "checking out files",
+        CloneStage::Unknown => "working",
     }
 }

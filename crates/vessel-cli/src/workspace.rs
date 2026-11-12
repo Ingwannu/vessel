@@ -312,9 +312,10 @@ async fn new_worktree(
              --skip-setup",
             commands_text(&commands)
         ))),
-        CreateWorktreeOutcome::Refused { reason } => {
-            Err(CliError::Workspace(format!("no worktree: {reason:?}")))
-        }
+        CreateWorktreeOutcome::Refused { reason } => Err(CliError::Workspace(format!(
+            "no worktree: {}",
+            crate::render::refusal(&reason)
+        ))),
     }
 }
 
@@ -415,7 +416,7 @@ fn state_text(state: &ProjectState) -> String {
         ProjectState::Ready => "ready".to_owned(),
         ProjectState::Cloning { stage, percent } => format!(
             "cloning ({}{})",
-            format!("{stage:?}").to_lowercase(),
+            crate::render::clone_stage(*stage),
             percent
                 .map(|percent| format!(" {percent}%"))
                 .unwrap_or_default()
@@ -450,7 +451,9 @@ fn setup_text(state: &SetupState) -> String {
         SetupState::Skipped => "skipped".to_owned(),
         SetupState::Running { .. } => "running".to_owned(),
         SetupState::Succeeded { .. } => "succeeded".to_owned(),
-        SetupState::Failed { failure, .. } => format!("failed ({failure:?})"),
+        SetupState::Failed { failure, .. } => {
+            format!("failed ({})", crate::render::setup_failure(*failure))
+        }
         SetupState::Unknown => "unknown".to_owned(),
     }
 }

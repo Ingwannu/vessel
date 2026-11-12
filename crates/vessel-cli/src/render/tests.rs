@@ -212,3 +212,21 @@ fn a_kept_worktree_says_why_and_how_to_remove_it() {
     );
     assert_eq!(deleted(&SessionDeleted { worktree: None }), "");
 }
+
+#[test]
+fn refusals_failures_and_stages_are_told_in_words() {
+    use vessel_proto::workspace::{CloneStage, SetupFailure, WorktreeRefusal};
+
+    assert_eq!(
+        refusal(&WorktreeRefusal::Limit),
+        "as many worktrees as allowed already (on the node, or for this agent)"
+    );
+    assert_eq!(
+        setup_failure(SetupFailure::Exit {
+            command: 0,
+            code: Some(2)
+        }),
+        "command 1 exited with 2"
+    );
+    assert_eq!(clone_stage(CloneStage::CheckingOut), "checking out files");
+}
