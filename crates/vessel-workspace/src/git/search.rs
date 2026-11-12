@@ -40,6 +40,9 @@ impl Git {
                 "--exclude-standard",
                 "-z",
             ])
+            // Past the 16 MiB of other runs: the index's own bound is
+            // [`MAX_INDEXED`] files, which at a hundred bytes a path is
+            // about 48 MiB; a longer listing is cut and says so.
             .limits(Limits::LOCAL.with_stdout(64 * 1024 * 1024))
             .output()
             .await?;

@@ -28,14 +28,16 @@ impl Limits {
     pub(crate) const NETWORK: Self = Self {
         time: Duration::from_secs(120),
         stdout: MIB,
-        stderr: 256 * KIB,
+        stderr: 64 * KIB,
     };
 
     /// A clone, whose progress streams on standard error.
     pub(crate) const CLONE: Self = Self {
         time: Duration::from_secs(3600),
         stdout: 64 * KIB,
-        stderr: 256 * KIB,
+        // Progress is handed on as it comes (`output_streaming`); only the
+        // tail is kept, as for every run.
+        stderr: 64 * KIB,
     };
 
     /// These limits with standard output capped at `bytes`.
