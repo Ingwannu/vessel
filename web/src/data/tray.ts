@@ -25,7 +25,9 @@
 //   the tab's life (16 at most), so leaving a session and coming back
 //   finds its files; nothing is written anywhere (a file cannot be).
 // - Cost: Send waits for the uploads; a pasted image (a blob the browser
-//   holds) stays in memory until it is sent or removed.
+//   holds) stays in memory until it is sent or removed. A chip's picture
+//   is a small `data:` thumbnail drawn from the file (the page's content
+//   policy takes no `blob:` address, data/thumbnail.ts).
 
 import type {
   AgentAbilities,
@@ -34,6 +36,7 @@ import type {
 } from "../wire/proto";
 import { attachmentName, kindOf, mimeOf, refusal, refusalLine } from "./attach";
 import { Store } from "./store";
+import { thumbnail } from "./thumbnail";
 import {
   checked,
   type ItemState,
@@ -56,6 +59,9 @@ export interface TrayTarget {
  * four; two leaves room for another tab). */
 const AT_ONCE = 2;
 
+/** A chip's thumbnail is 24px; drawn at twice that. */
+const CHIP_THUMB = 48;
+
 let counter = 0;
 
 export class Tray {
@@ -77,11 +83,24 @@ export class Tray {
         kind,
         size: file.size,
         file,
-        preview: kind === "image" ? URL.createObjectURL(file) : null,
+        preview: null,
         state: { kind: "held" },
       };
     });
     this.items.update((items) => [...items, ...added]);
+    for (const item of added) {
+      if (item.kind === "image") {
+        void thumbnail(item.file, CHIP_THUMB).then((preview) => {
+          this.items.update((items) =>
+            items.map((candidate) =>
+              candidate.key === item.key
+                ? { ...candidate, preview }
+                : candidate,
+            ),
+          );
+        });
+      }
+    }
     this.#settle();
   }
 
@@ -109,9 +128,6 @@ export class Tray {
       return;
     }
     this.#stopping.add(key);
-    if (item.preview !== null) {
-      URL.revokeObjectURL(item.preview);
-    }
     this.items.update((items) =>
       items.filter((candidate) => candidate.key !== key),
     );
@@ -165,15 +181,13 @@ export class Tray {
     return trayReady(this.items.get());
   }
 
-  /** Empty the tray once its files went with a prompt; the previews are
+  /** Empty the tray once its files went with a prompt; its images are
    * handed to `keep` (the timeline shows them from here, not from the
    * machine). */
-  sent(keep: (ref: AttachmentRef, preview: string) => void): void {
+  sent(keep: (ref: AttachmentRef, image: Blob) => void): void {
     for (const item of this.items.get()) {
-      if (item.state.kind === "ready" && item.preview !== null) {
-        keep(item.state.ref, item.preview);
-      } else if (item.preview !== null) {
-        URL.revokeObjectURL(item.preview);
+      if (item.state.kind === "ready" && item.kind === "image") {
+        keep(item.state.ref, item.file);
       }
     }
     this.items.set([]);
@@ -183,9 +197,6 @@ export class Tray {
   dispose(): void {
     for (const item of this.items.get()) {
       this.#stopping.add(item.key);
-      if (item.preview !== null) {
-        URL.revokeObjectURL(item.preview);
-      }
     }
     this.items.set([]);
   }

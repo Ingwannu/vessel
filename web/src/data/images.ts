@@ -1,41 +1,51 @@
 // The images of sent prompts, as the timeline shows them (milestone 11,
 // Track A-page): fetched with `attachment.read` only when their row is
-// near the view, kept as object URLs within a bound, and, for a file sent
-// from this tab, shown from the local file instead.
+// near the view, kept within a bound, shown from a small thumbnail, and,
+// for a file sent from this tab, taken from the local file instead.
 //
 // [Decision Log]
 // - Purpose: a prompt that carried an image shows the image (all three
 //   references do), and another device shows what was sent from this one.
 // - Constraint: the timeline is windowed (only rows near the view are
 //   drawn) and a session can carry 100 MB of attachments; fetching every
-//   image of a long session when it opens would read all of them.
+//   image of a long session when it opens would read all of them. The
+//   page's content policy takes `data:` images and no `blob:` ones
+//   (ADR 0017), so an image is drawn from a `data:` address.
 // - Choice: a fetch per image when its row asks (the row asks when it is
-//   within a screen of the view), joined pieces into one `Blob`, one fetch
-//   at a time per image however many rows ask; at most 48 images or
-//   64 MiB kept, the least recently asked dropped and its URL revoked.
-//   An image attached in this tab is seeded from its local file
-//   (`Tray.sent`), so it is never fetched back.
-// - Cost: an image scrolled far away and back may be fetched again.
+//   within a screen of the view), two at a time, one fetch per image
+//   however many rows ask; the bytes kept as a `Blob` and drawn as a
+//   thumbnail of the tile's size (data/thumbnail.ts), the full image read
+//   into a `data:` address only when it is opened; at most 48 images or
+//   64 MiB of bytes kept, the least recently asked dropped. An image
+//   attached in this tab is seeded from its local file (`Tray.sent`), so
+//   it is never fetched back.
+// - Cost: an image scrolled far away and back may be fetched again; a
+//   thumbnail is drawn on the main thread (one canvas, at 128px tall).
 
 import type { NodeKey } from "../wire/bridge";
 import type { AttachmentId, SessionId } from "../wire/proto";
 import { readAttachment } from "./conversation-calls";
 import type { Fleet } from "./fleet";
+import { thumbnail } from "./thumbnail";
 
 /** The most images kept, and their bytes. */
 const MOST = 48;
 const MOST_BYTES = 64 * 1024 * 1024;
 
-interface Kept {
-  url: string;
-  bytes: number;
-  /** Whether the URL is the page's to revoke (a seeded one is the
-   * tray's, which handed it over: it is). */
-  revoke: boolean;
+/** A tile is 64px tall; its thumbnail is drawn at twice that. */
+export const THUMB_HEIGHT = 128;
+
+/** An image as the timeline holds it. */
+export interface KeptImage {
+  /** The bytes, for the full-size view. */
+  blob: Blob;
+  /** A small `data:` picture for the tile; `null` when it could not be
+   * drawn (the tile then says so). */
+  thumb: string | null;
 }
 
-const kept = new Map<string, Kept>();
-const loading = new Map<string, Promise<string | null>>();
+const kept = new Map<string, KeptImage>();
+const loading = new Map<string, Promise<KeptImage | null>>();
 let bytes = 0;
 
 /** Images read at once: the others wait their turn, so a fast scroll
@@ -61,14 +71,14 @@ function keyOf(node: NodeKey, session: SessionId, id: AttachmentId): string {
   return `${node}\u0000${session}\u0000${id}`;
 }
 
-function keep(key: string, entry: Kept): void {
+function keep(key: string, image: KeptImage): void {
   const old = kept.get(key);
   if (old !== undefined) {
     kept.delete(key);
-    bytes -= old.bytes;
+    bytes -= old.blob.size;
   }
-  kept.set(key, entry);
-  bytes += entry.bytes;
+  kept.set(key, image);
+  bytes += image.blob.size;
   while (kept.size > MOST || (bytes > MOST_BYTES && kept.size > 1)) {
     const [oldest] = kept.keys();
     if (oldest === undefined) {
@@ -77,32 +87,36 @@ function keep(key: string, entry: Kept): void {
     const dropped = kept.get(oldest);
     kept.delete(oldest);
     if (dropped !== undefined) {
-      bytes -= dropped.bytes;
-      if (dropped.revoke) {
-        URL.revokeObjectURL(dropped.url);
-      }
+      bytes -= dropped.blob.size;
     }
   }
 }
 
 /** Show an image sent from this tab from its local file, under the id
- * the node gave it. */
+ * the node gave it (its thumbnail is drawn now, so the row that asks
+ * for it waits on the drawing, not on the machine). */
 export function seedImage(
   node: NodeKey,
   session: SessionId,
   id: AttachmentId,
-  url: string,
-  size: number,
+  blob: Blob,
 ): void {
-  keep(keyOf(node, session, id), { url, bytes: size, revoke: true });
+  const key = keyOf(node, session, id);
+  const work = thumbnail(blob, THUMB_HEIGHT).then((thumb) => {
+    loading.delete(key);
+    const image = { blob, thumb };
+    keep(key, image);
+    return image;
+  });
+  loading.set(key, work);
 }
 
-/** The image's URL when it is kept, marking it recently used. */
+/** The image when it is kept, marking it recently used. */
 export function keptImage(
   node: NodeKey,
   session: SessionId,
   id: AttachmentId,
-): string | null {
+): KeptImage | null {
   const key = keyOf(node, session, id);
   const found = kept.get(key);
   if (found === undefined) {
@@ -110,22 +124,22 @@ export function keptImage(
   }
   kept.delete(key);
   kept.set(key, found);
-  return found.url;
+  return found;
 }
 
 /** The pieces of an image larger than this are not read (the node's
  * image bound is 10 MiB; a larger answer is not an image to show). */
 const IMAGE_MAX = 16 * 1024 * 1024;
 
-/** The image's URL, fetched from the machine if it is not kept. `null`
- * when it could not be read. */
+/** The image, fetched from the machine if it is not kept; `null` when it
+ * could not be read. */
 export function loadImage(
   fleet: Fleet,
   node: NodeKey,
   session: SessionId,
   id: AttachmentId,
   mime: string,
-): Promise<string | null> {
+): Promise<KeptImage | null> {
   const found = keptImage(node, session, id);
   if (found !== null) {
     return Promise.resolve(found);
@@ -136,14 +150,14 @@ export function loadImage(
     return running;
   }
   const work = inTurn(() => fetchImage(fleet, node, session, id, mime)).then(
-    (blob) => {
+    async (blob) => {
       loading.delete(key);
       if (blob === null) {
         return null;
       }
-      const url = URL.createObjectURL(blob);
-      keep(key, { url, bytes: blob.size, revoke: true });
-      return url;
+      const image = { blob, thumb: await thumbnail(blob, THUMB_HEIGHT) };
+      keep(key, image);
+      return image;
     },
   );
   loading.set(key, work);
@@ -161,19 +175,19 @@ async function fetchImage(
   let offset = 0;
   for (;;) {
     const read = await readAttachment(fleet, node, session, id, offset);
-    if (!read.ok) {
+    if (!read.ok || read.value.total > IMAGE_MAX) {
       return null;
     }
     const piece = bytesOf(read.value.data);
-    if (piece.length === 0 || read.value.total > IMAGE_MAX) {
-      return offset >= read.value.total
-        ? new Blob(parts, { type: mime })
-        : null;
+    if (piece.length > 0) {
+      parts.push(piece);
+      offset += piece.length;
     }
-    parts.push(piece);
-    offset += piece.length;
     if (offset >= read.value.total) {
       return new Blob(parts, { type: mime });
+    }
+    if (piece.length === 0) {
+      return null;
     }
   }
 }

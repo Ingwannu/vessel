@@ -124,6 +124,17 @@ test("files go with a prompt, and the prompt shows them", async ({ page }) => {
   const strip = composer(page).getByRole("list", { name: "Attached files" });
   await expect(strip.getByRole("listitem")).toHaveCount(2);
   await expect(strip).toContainText("notes.txt");
+  // The image's chip shows it (a `data:` thumbnail: the page's content
+  // policy takes no `blob:` address).
+  await expect(strip.locator("img.attachment-thumb")).toHaveJSProperty(
+    "complete",
+    true,
+  );
+  expect(
+    await strip
+      .locator("img.attachment-thumb")
+      .evaluate((image: HTMLImageElement) => image.naturalWidth),
+  ).toBeGreaterThan(0);
   await text(page).fill("describe");
   await text(page).press("Enter");
   // The agent got both: the file as a link it read, the image inline.
@@ -136,10 +147,19 @@ test("files go with a prompt, and the prompt shows them", async ({ page }) => {
   await expect(strip).toBeHidden();
   // The prompt shows its files: the image from this tab's own copy.
   const files = timeline(page).getByRole("list", { name: "Attached files" });
-  await expect(
-    files.getByRole("button", { name: "Open dot.png" }),
-  ).toBeEnabled();
+  const tile = files.getByRole("button", { name: "Open dot.png" });
+  await expect(tile).toBeEnabled();
+  expect(
+    await tile
+      .locator("img")
+      .evaluate((image: HTMLImageElement) => image.naturalWidth),
+  ).toBeGreaterThan(0);
   await expect(files).toContainText("notes.txt");
+  // Opened, it is read at full size.
+  await tile.click();
+  const full = page.getByRole("dialog", { name: "dot.png" });
+  await expect(full.getByRole("img", { name: "dot.png" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   // A removed file is not sent.
   const again = page.waitForEvent("filechooser");

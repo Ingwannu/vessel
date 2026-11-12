@@ -144,8 +144,8 @@ export function useComposerSend({
       setSending(false);
       if (outcome.ok) {
         draft.clear();
-        tray.sent((ref, preview) => {
-          seedImage(node, session.id, ref.id, preview, ref.size);
+        tray.sent((ref, image) => {
+          seedImage(node, session.id, ref.id, image);
         });
         onSent();
         return;

@@ -25,7 +25,7 @@ export interface TrayItem {
   kind: AttachmentKind;
   size: number;
   file: Blob;
-  /** An image's preview, from the local file. */
+  /** An image's thumbnail (a `data:` address) once it is drawn. */
   preview: string | null;
   state: ItemState;
 }
