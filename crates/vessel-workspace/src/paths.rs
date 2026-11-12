@@ -53,9 +53,6 @@ pub enum PathError {
     /// The call needs a path below the root, not the root itself.
     #[error("the folder itself cannot be the target")]
     Root,
-    /// The last part is a symbolic link, which a write never follows.
-    #[error("`{0}` is a symbolic link")]
-    Link(RelPath),
     /// A name this platform reads as something else (`:` on Windows names
     /// a stream of another file).
     #[error("`{0}` cannot be used on this machine")]
@@ -97,12 +94,12 @@ impl Root {
     /// [`PathError::GitDir`], [`PathError::Platform`].
     pub fn existing(&self, path: &RelPath) -> Result<PathBuf, PathError> {
         platform(path)?;
+        // Every failure to resolve is "not there": a link may lead outside,
+        // where "not a folder", "no permission" or "too many links" would
+        // tell a caller what exists there (one answer, ADR 0027).
         let resolved = std::fs::canonicalize(path.under(&self.resolved)).map_err(|error| {
-            if error.kind() == io::ErrorKind::NotFound {
-                PathError::NotFound(path.clone())
-            } else {
-                PathError::Io(error)
-            }
+            tracing::debug!(%error, "a path did not resolve");
+            PathError::NotFound(path.clone())
         })?;
         self.inside(path, &resolved)?;
         Ok(resolved)
@@ -156,15 +153,16 @@ impl Root {
     /// `AGENTS.md`); the link itself is never replaced.
     ///
     /// # Errors
-    /// As [`entry`](Self::entry); [`PathError::Link`] for a link that leads
-    /// nowhere, [`PathError::Outside`] for one that leads out.
+    /// As [`entry`](Self::entry); [`PathError::NotFound`] for a link that
+    /// leads nowhere (the same answer as one that leads out: whether its
+    /// target exists outside is not the caller's to learn).
     pub fn write_target(&self, path: &RelPath) -> Result<Target, PathError> {
         let entry = self.entry(path)?;
         if !entry.link {
             return Ok(entry);
         }
         let resolved = std::fs::canonicalize(&entry.path)
-            .map_err(|_dangling| PathError::Link(path.clone()))?;
+            .map_err(|_dangling| PathError::NotFound(path.clone()))?;
         self.inside(path, &resolved)?;
         Ok(Target {
             path: resolved,
@@ -310,14 +308,43 @@ mod tests {
         let link = root.entry(&rel("secret")).unwrap();
         assert!(link.link && link.exists);
         assert_eq!(link.path, root.path().join("secret"));
-        // A link that leads nowhere is not written through.
+        // A link that leads nowhere is not written through, and answers
+        // as a missing path does.
         symlink(root.path().join("gone"), root.path().join("dangling")).unwrap();
         assert!(matches!(
             root.write_target(&rel("dangling")),
-            Err(PathError::Link(_))
+            Err(PathError::NotFound(_))
         ));
         // A link inside that stays inside reads fine.
         assert!(root.existing(&rel("inner")).is_ok());
+    }
+
+    /// Through a link out of the folder, what is there and what is not
+    /// answer alike: "not a folder" or "no permission" would tell a caller
+    /// what exists outside.
+    #[cfg(unix)]
+    #[test]
+    fn outside_through_a_link_answers_as_missing_whatever_is_there() {
+        use std::os::unix::fs::symlink;
+
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("file.txt"), "x").unwrap();
+        let folder = tempfile::tempdir().unwrap();
+        symlink(outside.path(), folder.path().join("out")).unwrap();
+        let root = Root::open(folder.path()).unwrap();
+        for probe in ["out/file.txt/x", "out/nope/x", "out/file.txt", "out"] {
+            assert!(
+                matches!(
+                    root.existing(&rel(probe)),
+                    Err(PathError::NotFound(_) | PathError::Outside(_))
+                ),
+                "{probe}"
+            );
+        }
+        assert!(matches!(
+            root.existing(&rel("out/file.txt/x")),
+            Err(PathError::NotFound(_))
+        ));
     }
 
     #[cfg(unix)]

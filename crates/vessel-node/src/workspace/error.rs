@@ -76,9 +76,6 @@ impl From<PathError> for WorkspaceError {
                 Self::NoSuchPath(path)
             }
             PathError::Root => Self::Invalid("the folder itself cannot be the target".to_owned()),
-            PathError::Link(path) => {
-                Self::Invalid(format!("`{path}` is a symbolic link that leads nowhere"))
-            }
             PathError::Platform(path) => {
                 Self::Invalid(format!("`{path}` cannot be used on this machine"))
             }

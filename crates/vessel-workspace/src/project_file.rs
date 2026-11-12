@@ -73,9 +73,6 @@ pub enum ProjectFileError {
         /// What is wrong with it.
         source: InvalidText,
     },
-    /// A link that leads out of its folder (or into its `.git`).
-    #[error("`vessel.toml` leads out of its folder; it is not read")]
-    Outside,
     /// Not a regular file (a device, a pipe, a folder).
     #[error("`vessel.toml` is not a regular file; it is not read")]
     NotAFile,
@@ -129,7 +126,8 @@ impl ProjectFile {
         })
     }
 
-    /// The file in `folder` as it is: `None` when there is none.
+    /// The file in `folder` as it is: `None` when there is none, or when
+    /// it leads out of the folder.
     ///
     /// Blocking. Read only when it is a regular file inside `folder` once
     /// links are resolved, and never more than one byte past
@@ -146,18 +144,22 @@ impl ProjectFile {
         let Ok(root) = Root::open(folder) else {
             return Ok(None);
         };
-        let name: RelPath = FILE_NAME
-            .parse()
-            .map_err(|_never| ProjectFileError::Outside)?;
+        let Ok(name) = FILE_NAME.parse::<RelPath>() else {
+            return Ok(None);
+        };
         let path = match root.existing(&name) {
             Ok(path) => path,
             Err(PathError::NotFound(_)) => return Ok(None),
+            // As if there were none, as for a link that leads nowhere: an
+            // answer of its own would tell whoever planted the link what
+            // exists outside the folder.
             Err(PathError::Outside(_) | PathError::GitDir(_)) => {
-                return Err(ProjectFileError::Outside);
+                tracing::warn!("a project's vessel.toml leads out of its folder; not read");
+                return Ok(None);
             }
-            Err(
-                PathError::Root | PathError::Link(_) | PathError::Platform(_) | PathError::Io(_),
-            ) => return Err(ProjectFileError::NotAFile),
+            Err(PathError::Root | PathError::Platform(_) | PathError::Io(_)) => {
+                return Err(ProjectFileError::NotAFile);
+            }
         };
         let metadata = std::fs::metadata(&path).map_err(ProjectFileError::Unreadable)?;
         if !metadata.is_file() {
@@ -222,30 +224,34 @@ mod tests {
     use super::*;
 
     /// A folder's file is read only when it is a regular file inside the
-    /// folder: a link out of it, or to a device, is refused unread; a link
+    /// folder: a link out of it, or to a device, is never read; a link
     /// inside it is followed.
     #[cfg(unix)]
     #[test]
     fn a_folders_file_is_read_only_inside_it() {
+        use std::path::PathBuf;
+
         let outside = tempfile::tempdir().unwrap();
         let secret = outside.path().join("token");
         std::fs::write(&secret, "[worktree]\nsetup = \"echo secret\"\n").unwrap();
         let folder = tempfile::tempdir().unwrap();
         assert!(ProjectFile::read_in(folder.path()).unwrap().is_none());
 
+        // Out of the folder, read as none, whether the target is there or
+        // not, so the answer says nothing of what exists outside.
         let file = folder.path().join(FILE_NAME);
-        std::os::unix::fs::symlink(&secret, &file).unwrap();
-        assert!(matches!(
-            ProjectFile::read_in(folder.path()),
-            Err(ProjectFileError::Outside)
-        ));
-        std::fs::remove_file(&file).unwrap();
-        std::os::unix::fs::symlink("/dev/zero", &file).unwrap();
-        assert!(matches!(
-            ProjectFile::read_in(folder.path()),
-            Err(ProjectFileError::Outside)
-        ));
-        std::fs::remove_file(&file).unwrap();
+        for target in [
+            secret.clone(),
+            PathBuf::from("/dev/zero"),
+            outside.path().join("none"),
+        ] {
+            std::os::unix::fs::symlink(&target, &file).unwrap();
+            assert!(
+                ProjectFile::read_in(folder.path()).unwrap().is_none(),
+                "{target:?}"
+            );
+            std::fs::remove_file(&file).unwrap();
+        }
         std::fs::create_dir(&file).unwrap();
         assert!(matches!(
             ProjectFile::read_in(folder.path()),
