@@ -22,6 +22,15 @@ import type {
 import type { Fleet } from "../fleet";
 import { attempt, type Outcome } from "../outcome";
 
+/** Whether a file is still what `base` read, by its size and content's
+ * hash, not its time: the node's time is in nanoseconds, past what a
+ * page's number holds exactly (features/workspace/use-file.ts's Decision
+ * Log). A version without a hash (a file over 8 MiB) is never the same. */
+export function sameContent(base: FileVersion, now: FileVersion): boolean {
+  const hash = base.hash ?? null;
+  return hash !== null && base.size === now.size && hash === now.hash;
+}
+
 /** One folder's entries, folders first; ignored ones only when asked. */
 export function listDir(
   fleet: Fleet,

@@ -24,7 +24,12 @@ import {
   Tooltip,
 } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
+import type {
+  FileVersion,
+  RelPath,
+  SessionId,
+  WorkspaceRoot,
+} from "../../wire/proto";
 import { FileConflict } from "./file-conflict";
 import { FileLines } from "./file-lines";
 import { type Saved, useFile, WRITE_LIMIT } from "./use-file";
@@ -46,6 +51,9 @@ export function FileView({
 }) {
   const file = useFile(node, root, path);
   const [draft, setDraft] = useState<string | null>(null);
+  // The version the edit started from: the save's guard, whatever is
+  // read after it.
+  const [base, setBase] = useState<FileVersion | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Saved | null>(null);
   const { dir, name } = splitPath(path);
@@ -61,7 +69,7 @@ export function FileView({
       return;
     }
     setSaving(true);
-    void file.save(draft, force).then((answer) => {
+    void file.save(draft, force ? null : base).then((answer) => {
       setSaving(false);
       setSaved(answer);
       if (answer.kind === "saved") {
@@ -73,7 +81,8 @@ export function FileView({
     void file.whole().then((whole) => {
       if (whole !== null) {
         setSaved(null);
-        setDraft(whole);
+        setBase(whole.version);
+        setDraft(whole.text);
       }
     });
   };
@@ -187,10 +196,10 @@ export function FileView({
           goTo={goTo}
         />
       )}
-      {saved?.kind === "conflict" && draft !== null && text.kind === "text" ? (
+      {saved?.kind === "conflict" && draft !== null && base !== null ? (
         <FileConflict
-          mine={draft}
-          read={text.version}
+          mine={saved.mine}
+          read={base}
           disk={saved.disk}
           diskText={saved.diskText}
           busy={saving}

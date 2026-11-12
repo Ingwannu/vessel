@@ -3,6 +3,8 @@
 // ways on: reload from disk (the edits are dropped) or overwrite (the
 // disk's change is). Nothing is written until one is chosen.
 
+import { useMemo } from "react";
+
 import { when } from "../../data/format";
 import { compareLists } from "../../data/workspace/command-changes";
 import { sizeWord } from "../../data/workspace/size";
@@ -36,6 +38,8 @@ export function FileConflict({
   onReload,
   onOverwrite,
 }: {
+  /** The edit that was refused (not the one typed since: the
+   * comparison is worked out once, not on every key). */
   mine: string;
   /** The version the edit started from. */
   read: FileVersion;
@@ -47,12 +51,15 @@ export function FileConflict({
   onReload: () => void;
   onOverwrite: () => void;
 }) {
-  const compared =
-    diskText === null ||
-    diskText.split("\n").length > COMPARED ||
-    mine.split("\n").length > COMPARED
-      ? null
-      : difference(diskText, mine);
+  const compared = useMemo(
+    () =>
+      diskText === null ||
+      diskText.split("\n").length > COMPARED ||
+      mine.split("\n").length > COMPARED
+        ? null
+        : difference(diskText, mine),
+    [diskText, mine],
+  );
   return (
     <div className="file-strip">
       <Banner tone="error">
