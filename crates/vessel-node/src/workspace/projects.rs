@@ -102,11 +102,10 @@ impl Workspaces {
             .get(&project)
             .map(|entry| entry.info.clone())
             .ok_or(WorkspaceError::UnknownProject(project))?;
-        Ok(mark_missing(vec![info])
+        mark_missing(vec![info])
             .await
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| unreachable_project(project)))
+            .pop()
+            .ok_or(WorkspaceError::UnknownProject(project))
     }
 
     /// Change a project in memory and bump its revision; the project after.
@@ -183,20 +182,29 @@ impl Workspaces {
 }
 
 /// Projects whose folder is gone, told as `missing`.
-async fn mark_missing(projects: Vec<ProjectInfo>) -> Vec<ProjectInfo> {
-    tokio::task::spawn_blocking(move || {
-        projects
-            .into_iter()
-            .map(|mut info| {
-                if matches!(info.state, ProjectState::Ready) && !info.root.is_dir() {
+async fn mark_missing(mut projects: Vec<ProjectInfo>) -> Vec<ProjectInfo> {
+    // Looked at on the blocking pool, the list kept here: a look that
+    // stops (the runtime shutting down) leaves them as recorded rather
+    // than dropping them.
+    let roots: Vec<PathBuf> = projects.iter().map(|info| info.root.clone()).collect();
+    let present = tokio::task::spawn_blocking(move || {
+        roots
+            .iter()
+            .map(|root| root.is_dir())
+            .collect::<Vec<bool>>()
+    })
+    .await;
+    match present {
+        Ok(present) => {
+            for (info, present) in projects.iter_mut().zip(present) {
+                if matches!(info.state, ProjectState::Ready) && !present {
                     info.state = ProjectState::Missing;
                 }
-                info
-            })
-            .collect()
-    })
-    .await
-    .unwrap_or_default()
+            }
+        }
+        Err(error) => tracing::debug!(%error, "looking for projects' folders stopped"),
+    }
+    projects
 }
 
 /// The first eight hex digits of an id, for folder names.
@@ -206,12 +214,4 @@ pub(super) fn short(id: impl std::fmt::Display) -> String {
         .filter(char::is_ascii_hexdigit)
         .take(8)
         .collect()
-}
-
-#[expect(
-    clippy::unreachable,
-    reason = "the project was read under the same call a moment before"
-)]
-fn unreachable_project(project: ProjectId) -> ProjectInfo {
-    unreachable!("project {project} vanished between two reads")
 }
