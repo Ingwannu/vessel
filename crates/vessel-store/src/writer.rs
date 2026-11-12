@@ -11,6 +11,9 @@
 //! the queue is a bounded tokio channel so async callers wait on it without
 //! blocking. Removing a removed session's attachment folder blocks too, and
 //! happens here, after the commit that removed its row (`attachments`).
+//! What a session leaves outside the data directory's own folders (a
+//! worktree, protocol 10) is the node's to tidy: after a commit in which
+//! retention removed sessions, the writer says so ([`Setup::pruned`]).
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -18,7 +21,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Transaction};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use vessel_proto::{
     DeviceId, DeviceInfo, EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo,
 };
@@ -118,6 +121,12 @@ pub(crate) struct Setup {
     /// The data directory's `attachments/`, whose session folders go with
     /// their sessions.
     pub(crate) attachments: PathBuf,
+    /// How many sessions retention has removed since the store opened,
+    /// raised after each commit that removed some (protocol 10): the node
+    /// then tidies the worktrees those sessions had. A count, not the ids:
+    /// a watch keeps only the latest value and never fills, and the node
+    /// looks for every worktree whose session is gone anyway.
+    pub(crate) pruned: watch::Sender<u64>,
 }
 
 /// One caller's answer, held until its batch is committed.
@@ -160,6 +169,8 @@ struct Effects {
     /// Sessions removed (deleted or pruned), whose attachment folders go
     /// once the batch is committed.
     removed: Vec<SessionId>,
+    /// How many of them retention pruned.
+    pruned: usize,
 }
 
 /// Start the writer thread on `connection`.
@@ -223,14 +234,21 @@ fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, setu
         transaction.commit()
     });
     let failed = committed.err().map(Arc::new);
-    match &failed {
-        Some(error) => tracing::error!(%error, "committing to the event log failed"),
+    if let Some(error) = &failed {
+        tracing::error!(%error, "committing to the event log failed");
+    } else {
         // Only now are the rows gone for good; a failed commit kept them,
         // and with them their files.
-        None => {
-            for &session in &effects.removed {
-                attachments::remove_folder(&setup.attachments, session);
-            }
+        for &session in &effects.removed {
+            attachments::remove_folder(&setup.attachments, session);
+        }
+        if effects.pruned > 0 {
+            // A count of events, so wrapping is harmless: readers only look
+            // for a change.
+            let pruned = u64::try_from(effects.pruned).unwrap_or(u64::MAX);
+            setup
+                .pruned
+                .send_modify(|count| *count = count.wrapping_add(pruned));
         }
     }
     for answer in answers {
@@ -353,7 +371,10 @@ fn retain(transaction: &mut Transaction<'_>, effects: &mut Effects, retention: &
             log::prune_ended(connection, retention)
         });
         match pruned {
-            Ok(pruned) => effects.removed.extend(pruned),
+            Ok(pruned) => {
+                effects.pruned = effects.pruned.saturating_add(pruned.len());
+                effects.removed.extend(pruned);
+            }
             Err(error) => tracing::warn!(%error, "could not prune ended sessions"),
         }
     }

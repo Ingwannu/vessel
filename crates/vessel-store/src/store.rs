@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use vessel_proto::workspace::{CommandsDigest, ProjectInfo, WorktreeInfo};
 use vessel_proto::{
     DeviceId, DeviceInfo, EventPage, EventRecord, EventSeq, OptionChoice, ProjectId, SessionId,
@@ -34,6 +34,9 @@ pub struct Store {
     reader: Arc<Reader>,
     /// The data directory's `attachments/` (protocol 10).
     attachments: Arc<Path>,
+    /// How many sessions retention has removed since the store opened
+    /// (protocol 10, [`Store::pruned`]).
+    pruned: watch::Receiver<u64>,
 }
 
 /// A freshly opened store and what recovery found.
@@ -84,17 +87,30 @@ impl Store {
         }
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
+        let (pruned, pruned_count) = watch::channel(0);
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
+            pruned,
         };
         writer::spawn(connection, ops, setup)?;
         let store = Self {
             writes,
             reader: Arc::new(Reader::new(path, config)),
             attachments: Arc::from(dir.attachments_dir()),
+            pruned: pruned_count,
         };
         Ok(Opened { store, interrupted })
+    }
+
+    /// How many sessions retention has removed since the store opened: it
+    /// changes after each commit that removed some (protocol 10), so the
+    /// node can tidy what they left outside the store (their worktrees).
+    /// The ones the opening's own retention removed are not counted; the
+    /// node looks for those when it starts.
+    #[must_use]
+    pub fn pruned(&self) -> watch::Receiver<u64> {
+        self.pruned.clone()
     }
 
     /// Store a new session with an empty log.

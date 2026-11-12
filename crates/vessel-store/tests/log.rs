@@ -380,6 +380,10 @@ async fn retention_drops_the_oldest_records_but_keeps_the_newest() {
     assert_eq!(page.records, plain(&[output(10, 5000)]));
 }
 
+/// Retention keeps the newest ended sessions, and counts what it removed
+/// (`Store::pruned`, protocol 10) by the time the write that pruned
+/// returns, so the node can tidy their worktrees; a deletion is not
+/// retention's and is not counted.
 #[tokio::test]
 async fn retention_keeps_the_most_recently_ended_sessions() {
     let (_temp, dir) = data_dir();
@@ -391,6 +395,7 @@ async fn retention_keeps_the_most_recently_ended_sessions() {
         ..StoreConfig::default()
     };
     let store = open(&dir, config).await;
+    let pruned = store.pruned();
     let live = new_session(0);
     store.create_session(live.clone()).await.unwrap();
     let mut ended = Vec::new();
@@ -422,6 +427,9 @@ async fn retention_keeps_the_most_recently_ended_sessions() {
         store.read_events(*oldest, EventSeq::ZERO, 10).await,
         Err(StoreError::UnknownSession(_))
     ));
+    assert_eq!(*pruned.borrow(), 1, "one session pruned");
+    store.delete_session(*second).await.unwrap();
+    assert_eq!(*pruned.borrow(), 1, "a deletion is not a prune");
 }
 
 #[tokio::test]
