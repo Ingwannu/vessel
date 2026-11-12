@@ -151,6 +151,29 @@ test("a screen asked for while Settings loads is not taken back by Settings' red
   await expect(page.getByRole("form", { name: "Prompt" })).toBeVisible();
 });
 
+test("with the sidebar hidden, Mod+K still opens the command palette", async ({
+  page,
+}) => {
+  // The palette and its shortcut are the shell's, not the sidebar's.
+  const origin = await openUi(page);
+  await page.goto(`${origin}/sessions`);
+  const side = page.getByRole("navigation", { name: "Sidebar" });
+  await expect(side).toBeVisible();
+  await page.keyboard.press("Control+b");
+  await expect(side).toHaveCount(0);
+  try {
+    await page.keyboard.press("Control+k");
+    const palette = page.getByRole("dialog", { name: "Command palette" });
+    await expect(palette).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(palette).toHaveCount(0);
+  } finally {
+    // The fleet's one `vessel ui` keeps the choice for the whole run.
+    await page.keyboard.press("Control+b");
+    await expect(side).toBeVisible();
+  }
+});
+
 test("a draft comes back, Up recalls a sent prompt, and find finds it", async ({
   page,
 }) => {

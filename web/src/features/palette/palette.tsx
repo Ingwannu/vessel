@@ -6,11 +6,16 @@
 // field: typing happens in the palette, so the sidebar never holds a
 // second, smaller search box. What the palette lists is
 // `data/commands.ts`; this only maps its targets to the router.
+//
+// The palette and its shortcut are the shell's (`PaletteHost`), mounted
+// once whether the sidebar is shown, hidden or a sheet: the shortcut was
+// the sidebar's, and hiding the sidebar (milestone 11) left Mod+K to the
+// browser. Only the open palette reads the whole fleet.
 
 import "./palette.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
@@ -20,6 +25,8 @@ import {
   paletteEntries,
 } from "../../data/commands";
 import { selectedNode } from "../../data/nodes";
+import { closePalette, openPalette, palette } from "../../data/palette";
+import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import {
   type Command,
@@ -60,16 +67,12 @@ function iconOf(place: PalettePlace): IconName {
   }
 }
 
-export function SidebarSearch() {
-  const [open, setOpen] = useState(false);
+/** The palette, while open: what it lists comes from the fleet as it is
+ * now. */
+function Palette() {
   const navigate = useNavigate();
   const fleet = useFleet();
-  const keys = useShortcutWords("palette");
   const state = useFleetState((value) => value);
-  useShortcut("palette", () => {
-    setOpen(true);
-    return true;
-  });
   const commands = useMemo(
     () =>
       paletteEntries(state, selectedNode(state, undefined)).map(
@@ -101,28 +104,34 @@ export function SidebarSearch() {
       ),
     [state, navigate, fleet],
   );
+  return <CommandPalette commands={commands} onClose={closePalette} />;
+}
+
+/** The palette and its shortcut, once, in the shell. */
+export function PaletteHost() {
+  const open = useStore(palette, (value) => value);
+  useShortcut("palette", () => {
+    openPalette();
+    return true;
+  });
+  return open ? <Palette /> : null;
+}
+
+/** The sidebar's search row: it opens the palette. */
+export function SidebarSearch() {
+  const keys = useShortcutWords("palette");
   return (
     <div className="side-search-wrap">
       <button
         type="button"
         className="side-search"
         aria-haspopup="dialog"
-        onClick={() => {
-          setOpen(true);
-        }}
+        onClick={openPalette}
       >
         <Icon name="search" size={14} />
         <span className="label">Search</span>
         {keys === null ? null : <Kbd keys={[keys]} look="text" />}
       </button>
-      {open ? (
-        <CommandPalette
-          commands={commands}
-          onClose={() => {
-            setOpen(false);
-          }}
-        />
-      ) : null}
     </div>
   );
 }
