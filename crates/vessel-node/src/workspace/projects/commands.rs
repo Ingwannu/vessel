@@ -6,7 +6,7 @@ use std::path::Path;
 
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::{CommandsDigest, ProjectCommands, WorktreeBase};
-use vessel_workspace::project_file::{self, ProjectFile};
+use vessel_workspace::project_file::{self, ProjectFile, ProjectFileError};
 
 use crate::workspace::{WorkspaceError, Workspaces};
 
@@ -34,7 +34,7 @@ impl Workspaces {
         &self,
         root: &Path,
         base: &WorktreeBase,
-    ) -> Result<Result<Option<ProjectFile>, String>, WorkspaceError> {
+    ) -> Result<Result<Option<ProjectFile>, ProjectFileError>, WorkspaceError> {
         let git = self.git()?;
         let commit = git
             .resolve(root, base)
@@ -49,13 +49,9 @@ impl Workspaces {
             )
             .await;
         Ok(match bytes {
-            Ok(Some(bytes)) => ProjectFile::parse(&bytes)
-                .map(Some)
-                .map_err(|error| error.to_string()),
+            Ok(Some(bytes)) => ProjectFile::parse(&bytes).map(Some),
             Ok(None) => Ok(None),
-            Err(vessel_workspace::GitError::OutputLimit) => {
-                Err(project_file::ProjectFileError::TooLarge.to_string())
-            }
+            Err(vessel_workspace::GitError::OutputLimit) => Err(ProjectFileError::TooLarge),
             Err(error) => return Err(error.into()),
         })
     }
@@ -64,23 +60,29 @@ impl Workspaces {
     /// Only a regular file inside the folder is read, and only up to the
     /// bound (`ProjectFile::read_in`): an agent can write in a project's
     /// folder and in its own worktree.
-    pub(crate) async fn file_in(&self, folder: &Path) -> Result<Option<ProjectFile>, String> {
+    pub(crate) async fn file_in(
+        &self,
+        folder: &Path,
+    ) -> Result<Option<ProjectFile>, ProjectFileError> {
         let folder = folder.to_path_buf();
-        tokio::task::spawn_blocking(move || {
-            ProjectFile::read_in(&folder).map_err(|error| error.to_string())
-        })
-        .await
-        .unwrap_or_else(|_panicked| Err("reading the project's file stopped".to_owned()))
+        tokio::task::spawn_blocking(move || ProjectFile::read_in(&folder))
+            .await
+            .unwrap_or_else(|stopped| {
+                Err(ProjectFileError::Unreadable(std::io::Error::other(stopped)))
+            })
     }
 
     /// The wire's form of a parsed file, with its approval.
     pub(crate) fn describe(
         &self,
         project: ProjectId,
-        file: Result<Option<ProjectFile>, String>,
+        file: Result<Option<ProjectFile>, ProjectFileError>,
     ) -> ProjectCommands {
         match file {
-            Err(message) => ProjectCommands::Invalid { message },
+            // Said on the wire as text, here only.
+            Err(error) => ProjectCommands::Invalid {
+                message: error.to_string(),
+            },
             Ok(None) => ProjectCommands::None,
             Ok(Some(file)) if file.is_empty() => ProjectCommands::None,
             Ok(Some(file)) => {
