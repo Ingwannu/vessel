@@ -15,7 +15,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 
 import { rowIndex, rowsOf } from "../../data/rows";
 import { spoken } from "../../data/timeline-text";
-import type { Timeline as Log } from "../../data/timeline-model";
+import type { Entry, Timeline as Log } from "../../data/timeline-model";
 import { TimelineEntry, useFolds } from "./folds";
 import { finding, type Reveal, showReveal } from "./reveal";
 import { useWindow } from "./use-window";
@@ -39,14 +39,21 @@ export function Timeline({
     [entries, folds, open],
   );
   // The row a reveal names: the entry's own, or its run's lead when it is
-  // folded away.
-  const rowKey =
-    reveal === null
-      ? null
-      : (rows[rowIndex(rows, reveal.key, folds)]?.key ?? null);
-  // The row last marked for a find: one drawn again (the reader scrolled
-  // away and back) is marked again.
-  const marked = useRef<Element | null>(null);
+  // folded away. Worked out when the rows or the reveal change, not on
+  // every scroll frame.
+  const revealed = useMemo(
+    () =>
+      reveal === null
+        ? null
+        : (rows[rowIndex(rows, reveal.key, folds)] ?? null),
+    [rows, reveal, folds],
+  );
+  const rowKey = revealed?.key ?? null;
+  // The row last marked for a find, and the entry it drew then: a row
+  // drawn again (the reader scrolled away and back), or its entry grown
+  // (a message still streaming, whose text nodes React rewrote, which
+  // collapses the ranges in them), is marked again.
+  const marked = useRef<{ row: Element; entry: Entry | null } | null>(null);
   const target = useMemo<Target | null>(
     () =>
       reveal === null || rowKey === null
@@ -56,11 +63,11 @@ export function Timeline({
             seq: reveal.seq,
             align: reveal.match === null ? "start" : "center",
             show: (row) => {
-              marked.current = row;
+              marked.current = { row, entry: revealed };
               return showReveal(row, reveal);
             },
           },
-    [reveal, rowKey],
+    [reveal, rowKey, revealed],
   );
   const windowed = useWindow(rows, target);
   const { scroller, span } = windowed;
@@ -78,11 +85,14 @@ export function Timeline({
       return;
     }
     const row = element.querySelector(`[data-key="${CSS.escape(rowKey)}"]`);
-    if (row !== null && row !== marked.current) {
-      marked.current = row;
+    if (
+      row !== null &&
+      (row !== marked.current?.row || revealed !== marked.current.entry)
+    ) {
+      marked.current = { row, entry: revealed };
       showReveal(row, find);
     }
-  }, [find, rowKey, scroller, span]);
+  }, [find, rowKey, revealed, scroller, span]);
   const last = rows.at(-1);
   const newest = entries.at(-1);
   return (

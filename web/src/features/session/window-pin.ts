@@ -51,15 +51,22 @@ export interface Pin {
 }
 
 /** Whether a scroll that left `scroller` where it is now was the pin's
- * own: one that lands anywhere else was someone else's. */
+ * own: one that lands anywhere else was someone else's, but for the
+ * browser holding the view at the end of content that shrank under it
+ * (measured rows smaller than guessed, near the log's end). */
 export function ownScroll(scroller: HTMLElement, pin: Pin): boolean {
-  return Math.abs(scroller.scrollTop - pin.at) <= 1;
+  const top = scroller.scrollTop;
+  const clamped =
+    top < pin.at && top >= scroller.scrollHeight - scroller.clientHeight - 1;
+  return Math.abs(top - pin.at) <= 1 || clamped;
 }
 
-/** Whether `anchor` is still in the document. */
-function connected(anchor: Element | Range): boolean {
+/** Whether `anchor` still marks what it marked: in the document, and
+ * for a range, not collapsed (React rewriting a text node's data, as a
+ * streaming message grows, collapses the ranges inside it). */
+function current(anchor: Element | Range): boolean {
   return anchor instanceof Range
-    ? anchor.startContainer.isConnected
+    ? anchor.startContainer.isConnected && !anchor.collapsed
     : anchor.isConnected;
 }
 
@@ -72,7 +79,7 @@ export function hold(scroller: HTMLElement, pin: Pin): boolean {
   if (row === null) {
     return false;
   }
-  if (pin.anchor === null || !connected(pin.anchor)) {
+  if (pin.anchor === null || !current(pin.anchor)) {
     pin.anchor = pin.target.show(row);
   }
   const box = pin.anchor.getBoundingClientRect();
