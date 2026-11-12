@@ -4,11 +4,14 @@
 
 import type {
   AgentEvent,
+  AttachmentRef,
   ContentBlock,
   ModelCall,
   PermissionOutcome,
   PermissionRequest,
   PlanEntry,
+  Question,
+  QuestionOutcome,
   SessionOption,
   SessionStatus,
   StopReason,
@@ -16,6 +19,7 @@ import type {
   ToolCallStatus,
   ToolKind,
   ToolLocation,
+  TurnUsage,
 } from "../wire/proto";
 import { type Conversation, EMPTY_CONVERSATION } from "./conversation";
 import type { Usage } from "./models";
@@ -41,7 +45,27 @@ export interface Base {
 
 export type Entry =
   | (Base & { kind: "ready"; harnessSession: string })
-  | (Base & { kind: "prompt"; text: string; replayed: boolean; turn: number })
+  | (Base & {
+      kind: "prompt";
+      text: string;
+      replayed: boolean;
+      turn: number;
+      /** The files it carried (protocol 10). */
+      attachments: readonly AttachmentRef[];
+    })
+  /** A message added to the running turn (protocol 10's steering). */
+  | (Base & {
+      kind: "steer";
+      text: string;
+      attachments: readonly AttachmentRef[];
+    })
+  /** A question the agent asked, and how it was settled (`null` while it
+   * waits); the form itself is docked over the composer. */
+  | (Base & {
+      kind: "question";
+      question: Question;
+      outcome: QuestionOutcome | null;
+    })
   | (Base & { kind: "message"; text: string })
   | (Base & { kind: "thought"; text: string })
   | (Base & { kind: "tool"; tool: ToolState })
@@ -52,7 +76,12 @@ export type Entry =
       title: string;
       outcome: PermissionOutcome | null;
     })
-  | (Base & { kind: "turn_ended"; reason: StopReason })
+  | (Base & {
+      kind: "turn_ended";
+      reason: StopReason;
+      /** The turn's tokens, where the agent reported them. */
+      usage: TurnUsage | null;
+    })
   | (Base & { kind: "turn_failed"; message: string })
   | (Base & { kind: "log"; line: string })
   | (Base & { kind: "status"; status: SessionStatus })
@@ -67,6 +96,13 @@ export interface Timeline {
   turns: number;
   /** Whether a turn is running. */
   inTurn: boolean;
+  /** The running turn's `turn_started` record, which Stop names (protocol
+   * 10's `cancel_turn { turn }`); `null` between turns. */
+  turn: number | null;
+  /** The last record that asks for the person's attention (a turn's end
+   * or failure, the session's end, a permission or a question), as the
+   * node counts unread; -1 before one. */
+  attention: number;
   /** The first permission request still unanswered. */
   pending: Extract<Entry, { kind: "permission" }> | null;
   /** Paths the session's tool calls touched, in first-touched order. */
@@ -95,6 +131,8 @@ export interface Timeline {
    * tasks to fold 20,000 entries). */
   tools: ReadonlyMap<string, number>;
   permissions: ReadonlyMap<string, number>;
+  /** Where each question's entry is, by the question's id. */
+  questions: ReadonlyMap<string, number>;
 }
 
 export const EMPTY: Timeline = {
@@ -102,6 +140,8 @@ export const EMPTY: Timeline = {
   plan: null,
   turns: 0,
   inTurn: false,
+  turn: null,
+  attention: -1,
   pending: null,
   files: [],
   status: null,
@@ -112,6 +152,7 @@ export const EMPTY: Timeline = {
   conversation: EMPTY_CONVERSATION,
   tools: new Map(),
   permissions: new Map(),
+  questions: new Map(),
 };
 
 /** A content block as text. */
@@ -126,6 +167,23 @@ export function blockText(block: ContentBlock): string {
     case "attachment":
       return `[${block.attachment.name}]`;
   }
+}
+
+/** A prompt's words (its text and links) and its files, apart. */
+export function promptParts(content: readonly ContentBlock[]): {
+  text: string;
+  attachments: AttachmentRef[];
+} {
+  const attachments: AttachmentRef[] = [];
+  let text = "";
+  for (const block of content) {
+    if (block.type === "attachment") {
+      attachments.push(block.attachment);
+    } else {
+      text += blockText(block);
+    }
+  }
+  return { text, attachments };
 }
 
 /** A tool call as the agent announced it. */
@@ -186,7 +244,14 @@ export function appendText(
     return;
   }
   if (kind === "prompt") {
-    entries.push({ ...base, kind, text, replayed: true, turn });
+    entries.push({
+      ...base,
+      kind,
+      text,
+      replayed: true,
+      turn,
+      attachments: [],
+    });
   } else {
     entries.push({ ...base, kind, text });
   }

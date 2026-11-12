@@ -28,17 +28,16 @@ import type {
 } from "../wire/proto";
 import * as conversation from "./conversation";
 import { addCall, type Usage } from "./models";
+import { applyAgent } from "./timeline-agent";
 import {
   appendText,
   type Base,
-  blockText,
   type Entry,
   entryAt,
   firstPending,
   type TextKind,
   type Timeline,
   toolAfter,
-  toolOf,
   type ToolState,
   type ToolUpdate,
 } from "./timeline-model";
@@ -66,11 +65,14 @@ class Work {
   plan: readonly PlanEntry[] | null;
   turns: number;
   inTurn: boolean;
+  turn: number | null;
+  attention: number;
   readonly files: string[];
   /** `files` as a set, for the membership test. */
   readonly touched: Set<string>;
   readonly tools: Map<string, number>;
   readonly permissions: Map<string, number>;
+  readonly questions: Map<string, number>;
   status: SessionStatus | null;
   usage: Usage | null;
   options: readonly SessionOption[] | null;
@@ -82,10 +84,13 @@ class Work {
     this.plan = timeline.plan;
     this.turns = timeline.turns;
     this.inTurn = timeline.inTurn;
+    this.turn = timeline.turn;
+    this.attention = timeline.attention;
     this.files = [...timeline.files];
     this.touched = new Set(timeline.files);
     this.tools = new Map(timeline.tools);
     this.permissions = new Map(timeline.permissions);
+    this.questions = new Map(timeline.questions);
     this.status = timeline.status;
     this.usage = timeline.usage;
     this.options = timeline.options;
@@ -99,6 +104,8 @@ class Work {
       plan: this.plan,
       turns: this.turns,
       inTurn: this.inTurn,
+      turn: this.turn,
+      attention: this.attention,
       pending: firstPending(this.entries, this.permissions),
       files: this.files,
       status: this.status,
@@ -108,6 +115,7 @@ class Work {
       next: this.next,
       tools: this.tools,
       permissions: this.permissions,
+      questions: this.questions,
     };
   }
 
@@ -124,6 +132,8 @@ class Work {
           event.status.state !== "running"
         ) {
           this.inTurn = false;
+          this.turn = null;
+          this.attention = record.seq;
         }
         this.entries.push({ ...base, kind: "status", status: event.status });
         return;
@@ -157,90 +167,7 @@ class Work {
   }
 
   agent(base: Base, event: AgentEvent): void {
-    if (conversation.isConversationAgentEvent(event)) return;
-    switch (event.event) {
-      case "ready":
-        this.entries.push({
-          ...base,
-          kind: "ready",
-          harnessSession: event.harness_session,
-        });
-        return;
-      case "turn_started":
-        this.turns += 1;
-        this.inTurn = true;
-        this.entries.push({
-          ...base,
-          kind: "prompt",
-          text: event.content.map(blockText).join(""),
-          replayed: false,
-          turn: this.turns,
-        });
-        return;
-      case "user_message_chunk":
-        this.merge(base, "prompt", blockText(event.content));
-        return;
-      case "message_chunk":
-        this.merge(base, "message", blockText(event.content));
-        return;
-      case "thought_chunk":
-        this.merge(base, "thought", blockText(event.content));
-        return;
-      case "tool_call":
-        this.tool(base, toolOf(event));
-        return;
-      case "tool_call_update":
-        this.update(base, event);
-        return;
-      case "plan":
-        this.plan = event.entries;
-        this.entries.push({ ...base, kind: "plan", entries: event.entries });
-        return;
-      case "permission_requested": {
-        const call = this.findTool(event.tool_call);
-        this.permissions.set(event.id, this.entries.length);
-        this.entries.push({
-          ...base,
-          key: `p${event.id}`,
-          kind: "permission",
-          request: {
-            id: event.id,
-            tool_call: event.tool_call,
-            options: event.options,
-          },
-          title: call?.tool.title ?? "A tool call",
-          outcome: null,
-        });
-        return;
-      }
-      case "permission_resolved": {
-        const index = this.permissions.get(event.id);
-        const entry = entryAt(this.entries, index);
-        if (index !== undefined && entry?.kind === "permission") {
-          this.entries[index] = { ...entry, outcome: event.outcome };
-        }
-        return;
-      }
-      case "turn_ended":
-        this.inTurn = false;
-        this.entries.push({
-          ...base,
-          kind: "turn_ended",
-          reason: event.reason,
-        });
-        return;
-      case "turn_failed":
-        this.inTurn = false;
-        this.entries.push({
-          ...base,
-          kind: "turn_failed",
-          message: event.message,
-        });
-        return;
-      case "harness_log":
-        this.entries.push({ ...base, kind: "log", line: event.line });
-        return;
-    }
+    applyAgent(this, base, event);
   }
 
   /** A chunk of text joined to the entry it continues, or starting one. */

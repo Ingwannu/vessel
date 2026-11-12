@@ -23,6 +23,7 @@ import { Outline } from "./outline";
 import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
+import { TimelineSourceContext } from "./timeline-source";
 import { useTimeline } from "./use-timeline";
 import type { NodeKey } from "../../wire/bridge";
 
@@ -43,6 +44,10 @@ export function StructuredSession({
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
   const asked = useRef(0);
+  const source = useMemo(
+    () => ({ node, session: session.id, scroller }),
+    [node, session.id, scroller],
+  );
   // The outline as last drawn while a batch changes no prompt or reply,
   // so the outline draws nothing for it (data/outline.ts).
   const worked = useMemo(() => outline(timeline.entries), [timeline.entries]);
@@ -112,13 +117,15 @@ export function StructuredSession({
           <Banner tone="error">The stream stopped: {stream.message}</Banner>
         ) : null}
         <div className="session-log">
-          <FoldProvider entries={timeline.entries}>
-            <Timeline
-              timeline={timeline}
-              reveal={reveal}
-              scrollerRef={setScroller}
-            />
-          </FoldProvider>
+          <TimelineSourceContext value={source}>
+            <FoldProvider entries={timeline.entries}>
+              <Timeline
+                timeline={timeline}
+                reveal={reveal}
+                scrollerRef={setScroller}
+              />
+            </FoldProvider>
+          </TimelineSourceContext>
           <Outline items={items} scroller={scroller} onJump={onJump} />
           {finding === null ? null : (
             <FindBar

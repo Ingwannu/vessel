@@ -38,6 +38,25 @@ const kept = new Map<string, Kept>();
 const loading = new Map<string, Promise<string | null>>();
 let bytes = 0;
 
+/** Images read at once: the others wait their turn, so a fast scroll
+ * through a session of images does not ask for all of them together. */
+const AT_ONCE = 2;
+let reading = 0;
+const turns: (() => void)[] = [];
+
+async function inTurn<T>(work: () => Promise<T>): Promise<T> {
+  if (reading >= AT_ONCE) {
+    await new Promise<void>((resolve) => turns.push(resolve));
+  }
+  reading += 1;
+  try {
+    return await work();
+  } finally {
+    reading -= 1;
+    turns.shift()?.();
+  }
+}
+
 function keyOf(node: NodeKey, session: SessionId, id: AttachmentId): string {
   return `${node}\u0000${session}\u0000${id}`;
 }
@@ -116,15 +135,17 @@ export function loadImage(
   if (running !== undefined) {
     return running;
   }
-  const work = fetchImage(fleet, node, session, id, mime).then((blob) => {
-    loading.delete(key);
-    if (blob === null) {
-      return null;
-    }
-    const url = URL.createObjectURL(blob);
-    keep(key, { url, bytes: blob.size, revoke: true });
-    return url;
-  });
+  const work = inTurn(() => fetchImage(fleet, node, session, id, mime)).then(
+    (blob) => {
+      loading.delete(key);
+      if (blob === null) {
+        return null;
+      }
+      const url = URL.createObjectURL(blob);
+      keep(key, { url, bytes: blob.size, revoke: true });
+      return url;
+    },
+  );
   loading.set(key, work);
   return work;
 }
