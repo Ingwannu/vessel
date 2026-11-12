@@ -2,7 +2,7 @@
 //! against real repositories.
 
 use vessel_proto::workspace::{
-    ChangeStatus, DiffContent, DiffScope, DiffSummary, LineKind, ModeChange, WorktreeBase,
+    ChangeStatus, DiffContent, DiffScope, DiffSummary, LineKind, WorktreeBase,
 };
 
 use crate::testing::Sandbox;
@@ -117,6 +117,7 @@ async fn a_file_s_diff_is_typed_hunks_and_untracked_files_are_all_added() {
 #[tokio::test]
 async fn a_mode_change_and_a_binary_file_say_so() {
     use std::os::unix::fs::PermissionsExt;
+    use vessel_proto::workspace::ModeChange;
     let sandbox = Sandbox::new();
     let repo = sandbox.repo("r");
     let git = sandbox.git().await;
