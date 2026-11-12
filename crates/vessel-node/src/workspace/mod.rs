@@ -216,6 +216,27 @@ impl Workspaces {
         self.git.as_ref().ok_or(WorkspaceError::NoGit)
     }
 
+    /// Whether `path`, resolved (its nearest existing folder, when it is
+    /// not there yet), is the node's data folder or inside it.
+    pub(crate) async fn in_data_folder(&self, path: &Path) -> bool {
+        let data = self.places.data.clone();
+        let path = path.to_path_buf();
+        tokio::task::spawn_blocking(move || {
+            let mut probe = path.as_path();
+            loop {
+                if let Ok(resolved) = std::fs::canonicalize(probe) {
+                    return resolved.starts_with(&data);
+                }
+                match probe.parent() {
+                    Some(parent) => probe = parent,
+                    None => return false,
+                }
+            }
+        })
+        .await
+        .unwrap_or(true)
+    }
+
     /// Write a project's row.
     async fn save_project(&self, info: ProjectInfo) -> Result<(), WorkspaceError> {
         self.store.put_project(info).await.map_err(Into::into)

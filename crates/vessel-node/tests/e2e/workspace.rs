@@ -224,6 +224,13 @@ async fn an_agent_gets_projects_and_worktrees_and_nothing_else() {
             ),
             ErrorCode::Forbidden
         );
+        // Nor that worktree by its folder, which would skip the check.
+        let mut by_folder = terminal_spec(&fixture, HarnessKind::ClaudeCode);
+        by_folder.cwd = Some(owners.path.join("sub"));
+        assert_eq!(
+            code(agent.create_session(by_folder).await),
+            ErrorCode::Forbidden
+        );
         agent.kill(started.id).await.unwrap();
         owner.kill(first.id).await.unwrap();
         node.stop().await.unwrap();

@@ -118,12 +118,27 @@ impl NodeService {
     /// the notices its log starts with. An agent may start in any project
     /// and in a worktree it created, or one created for a session it may
     /// operate (ADR 0013's ownership).
+    ///
+    /// An agent's own `cwd` may not lead into the node's data folder, where
+    /// every worktree is: a folder named directly would skip the place's
+    /// ownership check (and the refusal while setup runs), and the data
+    /// folder holds the node's token besides.
     pub(super) async fn place(
         &self,
         connection: &Connection,
         spec: &mut SessionSpec,
     ) -> Result<Vec<String>, WireError> {
         let Some(place) = spec.place.as_deref() else {
+            if connection.principal().agent().is_some()
+                && let Some(cwd) = &spec.cwd
+                && self.workspaces.in_data_folder(cwd).await
+            {
+                return Err(WireError::new(
+                    ErrorCode::Forbidden,
+                    "an agent starts a session in a worktree with `place`, never by its folder; \
+                     nothing else of the node's data folder is a session's folder",
+                ));
+            }
             return Ok(Vec::new());
         };
         if spec.cwd.is_some() {
