@@ -371,6 +371,43 @@ teardown = "docker compose down"
   per-repository setting there (under `includeIf "gitdir:…"`) for Vessel
   to use it.
 
+### Pull requests
+
+A session placed in a project or a worktree, on a branch other than the
+project's default one, has its pull request watched by its node: its
+checks, reviews and whether it can merge place the session on the board
+(validating, in review, ready) and show on its card.
+
+```sh
+gh auth login                               # once, on the node's machine
+vessel pr list                              # every watched session's
+vessel pr show 3f2a --refresh               # one session's, read now
+vessel pr open 3f2a --title "Fix the parser" --body-file notes.md
+vessel pr merge 3f2a --number 12 --head <full commit id> --method squash
+vessel pr feedback 3f2a on                  # send it its failing checks and reviews
+vessel pr status                            # the forges, and who the node is signed in as
+```
+
+- GitHub (and GitHub Enterprise) for now. The node signs in as the
+  machine already is: `GH_TOKEN` or `GITHUB_TOKEN` in its environment for
+  github.com, `GH_ENTERPRISE_TOKEN` for the host `GH_HOST` names, else
+  `gh auth token`. A token is kept in memory only and never logged; a
+  host with none gets no request.
+- A forge that is slow, down or limiting the node never holds a session:
+  its last facts stay on the card with the reason, and the node looks
+  again later (a minute while it moves, five once it is quiet).
+- Opening pushes the branch first (never forced); a merge names the pull
+  request and its head exactly and is refused if either moved. Nothing
+  merges on its own.
+- Feedback is off until you turn it on per session. It then sends, once
+  each, failing checks, requested changes, unresolved comments and
+  conflicts as one prompt through the session's queue, never into a
+  running turn; a review's or comment's words are quoted only when their
+  author can write to the repository.
+- A session's agent can read its pull request and open one (`vessel`
+  tools `get_pull_request`, `open_pull_request`), after pushing the
+  branch with its own tools; it cannot merge or turn feedback on.
+
 ## Profiles, the fleet and agent tools
 
 Milestone 4 (ADRs 0011 to 0013). Each part works on its own: profiles on

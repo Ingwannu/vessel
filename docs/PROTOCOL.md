@@ -57,8 +57,10 @@ Six methods, one optional field, no event. Every type is in
 - `pr.list {}` (read): every watched session's pull request.
 - `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
   with the failing ones named, people's reviews, times, the repository's
-  merge methods). `refresh` reads now, at most once per 10 s per session;
-  an agent may refresh only a session it may operate.
+  merge methods). `refresh` reads now, at most once per 10 s per session
+  (more often is answered from memory); an agent may refresh only a
+  session it may operate. A session that has ended answers `access:
+  ended`; one the node does not watch (not placed) `not_placed`.
 - `pr.open { session, title, body?, base?, draft }` (operate): from the
   branch the session's folder is on, into `base` or the project's default
   branch; a person's call pushes the branch first (never forced), an
@@ -73,7 +75,12 @@ Six methods, one optional field, no event. Every type is in
 - `pr.feedback { session, enabled }` (operate, a person only): failing
   checks, changes requested, unresolved comments and conflicts sent to the
   session through its queue; off by default; `unsupported` for a terminal
-  session.
+  session. Each event is sent once, as one prompt beginning `Vessel: pull
+  request feedback` (at most 20 events and 16 KiB, then `and N more`),
+  queued as the owner's; while it waits, newer events are added to it.
+  A review's or comment's words are quoted only when their author may
+  write to the repository; nothing is sent while the session waits on a
+  permission or a question.
 - All forwardable and in the web bridge's list. Agents: `pr.get`, and
   `pr.open` on a session they may operate; the rest is `forbidden`.
 - The board: a watched session's pull request places it in Validating,

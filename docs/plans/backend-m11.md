@@ -3951,3 +3951,116 @@ Not taken, and why:
 - *Measuring the empty-driver behaviour on git 2.25.* Not available on
   this machine; CI runs the runners' git, and the planted tests fail if
   a driver runs.
+
+## Track B2: progress
+
+2026-11-12, on `backend/m11-forge`. ADRs 0029 (the forge and signing in)
+and 0030 (git apart from a repository's own configuration); ADRs 0001,
+0019, 0023 and 0027 amended; store schema 10; protocol 11; crate
+`vessel-forge`.
+
+Built, each slice with its tests, each commit through the whole gate:
+
+- ADR 0030: every git run judges the repository's own configuration
+  (`.git/config`, `config.worktree` and what they include, read once per
+  run, at most 256 KiB): drivers turned off with `-c`, programs,
+  credential-moving settings and `core.worktree` refused with the key
+  named; git's own folders refused as projects; a worktree held from
+  removal while a session starts in it; clones in a pool of their own.
+  Planted tests per vector, against the real git.
+- The wire (protocol 11): `vessel_proto::forge`, the six calls in every
+  table a method passes, `SessionInfo.pull_request`; the page's types
+  regenerated, nothing drawn.
+- `vessel-forge`: the trait, GitHub (REST conditional reads, one GraphQL
+  read, writes; a merge pinned to its head), signing in, the bounded
+  HTTP client with quotas, cooldowns and a token bucket, remotes read
+  into repositories, and the in-memory forge (feature `fake`). 23 tests,
+  GitHub's against a stand-in on loopback.
+- `vessel-session`: the pull request watch, the tracker's facts and
+  policy, the info's summary, both dropped at the end.
+- `vessel-store`: schema 10 (the feedback switch and the signatures
+  sent, deleted with the session); the rollback tests undo it too.
+- `vessel-workspace`: the checkout in one run, a branch's remote and its
+  address (kept out of `Debug`: it may hold credentials), its
+  remote-tracking commit.
+- The node (`forge`): the watcher, hosts and sign-in, folder reads,
+  looks, the views, feedback through the queue, `pr.open` and
+  `pr.merge`, the hooks on create, start again, archive and delete; the
+  binaries hand it the environment's tokens and the machine's `gh`.
+  End-to-end tests against the in-memory forge: a watched session's card
+  and board, an exact merge, a person's open pushing to a bare repository
+  on disk (the remote's fetch address names the forge, its push address
+  the disk), an agent's open refused `not_pushed`, an agent refused
+  merge, feedback and status, a forge that is down holding nothing, an
+  end clearing the pull request, feedback sent once.
+- `vessel pr` (list, show, open, merge, feedback, status) and the
+  `vessel` tools `get_pull_request` and `open_pull_request`.
+
+Not offered to agents, and why: merging (it publishes to a shared
+branch: a person's decision), the feedback switch (what is sent into a
+session is a person's to decide), the node's sign-in and the whole list
+(a person's view), and a push by the node for an agent (the node would
+run the repository's hooks and the user's credentials for it).
+
+Deviations from the contract, each deliberate:
+
+- An end is not told to the watcher: the session's actor clears its pull
+  request itself at the final status, and the watcher drops the session
+  at its next turn (within a minute).
+- A person's request is never conditional (the `ETag`s are shared with
+  the watcher's looks, and a 304 would answer a person with nothing): a
+  person's refresh, open or merge costs its requests; an agent's refresh
+  stays background traffic.
+- A conflict is re-armed when the forge knows the pull request does not
+  conflict (mergeable, blocked, unstable or behind), not while it is
+  still computing it (unknown), which would send the same conflict twice.
+
+Found while building, and fixed:
+
+- A feedback switch turned on while the session's first folder read was
+  loading the store's copy was undone by that load (seen once under
+  load): the switch is unknown until either answers, and a person's
+  stands.
+- A waiting feedback prompt took an "and N more" line as an addition
+  when no note fitted; it now takes nothing then, and its old count is
+  replaced, not repeated.
+- Checked against the contract after the node slice: the bound of 1,000
+  signatures now drops those a read no longer has before the store drops
+  the oldest; `unreachable.retry_at` is the next look's time, not a
+  guess; a watch with nothing to look with is put off instead of being
+  due at once.
+
+For the page track (B2-page):
+
+- `SessionInfo.pull_request` is set only for a live session placed in a
+  project or a worktree, a moment after it starts (the watcher's first
+  folder read), and cleared when it ends; draw nothing from its absence.
+  `access` says why there is no summary; `summary` stays while a later
+  look fails (`unreachable`, `rate_limited`), so draw the reason beside
+  the last facts, not instead of them.
+- `pr.get { refresh: true }` reads now, at most once per 10 s per
+  session (more often answers from memory); a person's refresh costs
+  requests, so call it on a person's action, not on a timer.
+- `pr.merge` needs the full `head_commit` the page showed and the method
+  from `merge_methods`; `head_moved { head }` carries the head now, to
+  show and ask again. Nothing merges on its own.
+- `pr.feedback` answers `unsupported` for a terminal session; the switch
+  also changes the board (failing checks with feedback on are "fixing
+  CI" in Validating while the agent works).
+- Feedback prompts begin `Vessel: pull request feedback` and are queued
+  as the owner's: the queue shows them like any other entry.
+
+Not verified here:
+
+- A real GitHub: every forge request in the tests goes to the in-memory
+  forge or to a stand-in on loopback (the brief's rule). The REST and
+  GraphQL shapes are GitHub's documented ones, as the references read
+  them; GitHub Enterprise Server's API addresses are GOAT's.
+- `gh` signed in for a real account: the tests run a stand-in `gh`
+  script.
+- The page e2e suite is flaky under this machine's load: each run of the
+  slices' gates had 35 of 36 passing, the one failing different each time
+  and always in `web/e2e/page.spec.ts` (a theme kept by the bridge, the
+  Mod+Enter and shortcut-rebinding tests), code this track did not
+  touch. The theme test failed 2 of 6 times alone: after clicking System
+  it fetches the index before the bridge has written the change.

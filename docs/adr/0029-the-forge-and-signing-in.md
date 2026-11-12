@@ -89,11 +89,13 @@ references do"), each with its source paths.
   cannot see is `refused { no_access }`, and single sign-on `refused {
   sso { url } }`.
 
-**2. One trait (`vessel_forge::Forge`)**, object-safe, one provider per
-host chosen at run time from a remote's URL (an open extension point, so
-`Arc<dyn Forge>`, which AGENTS.md section 2 allows): who the token is;
-the pull requests of a branch (conditional); whether one changed
-(conditional); one read whole (its facts and its discussion: reviews,
+**2. One trait (`vessel_forge::Forge`)**, object-safe, an open extension
+point (`Arc<dyn Forge>`, which AGENTS.md section 2 allows): GitHub's
+provider serves every host for now (github.com, `*.ghe.com` and GitHub
+Enterprise Server by their API addresses) and the token decides whether
+a host is reached at all; a later provider is chosen by a remote's host.
+It answers who the token is; the pull requests of a branch
+(conditional); whether one changed (conditional); one read whole (its facts and its discussion: reviews,
 threads, failing checks); open; merge at a pinned head; whether a login
 may write; and whether the forge can pin a head for a method (GitLab
 cannot for rebase, Gitea not at all). Its values are the wire's, named
@@ -101,7 +103,10 @@ so GitLab's `iid`, pipelines and approvals and Gitea's states fill them.
 GitHub is built (REST for what has conditional requests and for writes,
 one GraphQL read); a test double (`fake`) implements it for the node's
 tests, so nothing in the tests calls a real forge, and the GitHub
-provider is tested against a stand-in on loopback.
+provider is tested against a stand-in on loopback. A person's request is
+never conditional: the `ETag`s are shared with the watcher's looks, and
+a 304 would answer a person with nothing (an agent's refresh stays
+background traffic, conditional).
 
 **3. The facts enter through the session's actor (option 2).** The node
 gives each watched session a `ForgeView` through a `watch`; the actor's
@@ -137,13 +142,17 @@ deletes the branch, retries, or waits for checks.
 
 **6. Feedback (option 2), off by default.** Failing checks (per head and
 check name), changes requested (per review), unresolved comments (per
-comment) and conflicts (per head, re-armed when mergeable again), each
+comment) and conflicts (per head, re-armed once the forge knows the pull request
+no longer conflicts, not while it is still computing that), each
 signature prefixed with the repository, sent once. Text is quoted only
 from people with write access (asked of the forge, kept an hour), with
 control and format characters removed and set apart as quoted data;
 others' and bots' are counted, never quoted. One prompt at most waits in
 the session's queue, edited as more arrive; never into a running turn,
 never started while the session waits on a permission or a question.
+The switch and the signatures sent are kept in the store (schema 10), at
+most 1,000 per session: near the bound those of events the last read no
+longer has go first, then the oldest.
 
 **7. Agents** read any session's pull request (as they read every
 session's info) and refresh their own; they open one for a session they
