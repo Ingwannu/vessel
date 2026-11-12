@@ -127,7 +127,10 @@ impl Uploads {
         declared: Declared,
     ) -> Result<UploadId, UploadError> {
         let _one_at_a_time = self.beginning.lock().await;
-        let kept = store.attachment_usage(declared.session).await?;
+        // The open uploads are counted before the kept ones are read: a
+        // `finish` keeps its file in the store before it leaves `open`, so
+        // one finishing meanwhile is counted twice (refusing early) rather
+        // than not at all (letting a session past its bound).
         let (open_all, open_session) = {
             let open = self.open();
             if open.len() >= AttachmentLimits::OPEN_UPLOADS {
@@ -158,6 +161,7 @@ impl Uploads {
                 declared_by(&|upload| upload.declared.session == declared.session),
             )
         };
+        let kept = store.attachment_usage(declared.session).await?;
         // Saturating: a sum past `u64` is past every limit anyway.
         let session = kept
             .session
