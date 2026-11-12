@@ -179,7 +179,11 @@ test("a draft comes back, Up recalls a sent prompt, and find finds it", async ({
 }) => {
   const origin = await openUi(page);
   await startSession(page, "laptop", "Structured", "plain");
-  await expect(page.getByText("echo: plain", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Timeline" })
+      .getByText("echo: plain", { exact: true }),
+  ).toBeVisible();
   const session = page.url();
   const text = page.getByRole("textbox", { name: "Prompt" });
   // Up in the empty box recalls the prompt sent; Down empties it again.
@@ -261,7 +265,11 @@ test("with Mod+Enter chosen, Enter starts a line and Ctrl+Enter sends", async ({
   await page.getByRole("option", { name: "Ctrl+Enter" }).click();
   try {
     await startSession(page, "laptop", "Structured", "plain");
-    await expect(page.getByText("echo: plain", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("region", { name: "Timeline" })
+        .getByText("echo: plain", { exact: true }),
+    ).toBeVisible();
     const text = page.getByRole("textbox", { name: "Prompt" });
     await text.fill("options");
     await text.press("Enter");

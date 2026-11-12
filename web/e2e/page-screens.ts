@@ -61,7 +61,11 @@ async function conversation(page: Page, origin: string, scheme: Scheme) {
   const text = page.getByRole("textbox", { name: "Prompt" });
   await text.fill("plain");
   await text.press("Enter");
-  await expect(page.getByText("echo: plain", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Timeline" })
+      .getByText("echo: plain", { exact: true }),
+  ).toBeVisible();
   const session = page.url();
   // Find, with a match marked.
   await text.press("Control+f");
@@ -79,7 +83,11 @@ async function conversation(page: Page, origin: string, scheme: Scheme) {
   await page.getByRole("combobox", { name: "Conversation display" }).click();
   await page.getByRole("option", { name: "Collapse tool calls" }).click();
   await page.goto(session);
-  await expect(page.getByText("echo: plain", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Timeline" })
+      .getByText("echo: plain", { exact: true }),
+  ).toBeVisible();
   await capture(page, `96-collapsed-${scheme}`);
   await page.goto(`${origin}/settings/appearance`);
   await page.getByRole("combobox", { name: "Conversation display" }).click();
