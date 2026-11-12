@@ -17,6 +17,7 @@ mod device;
 mod error;
 mod event;
 mod fleet;
+pub mod forge;
 mod forward;
 mod harness;
 mod id;

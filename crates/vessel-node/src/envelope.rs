@@ -536,6 +536,24 @@ async fn run_here(
         Call::SearchFiles(request) => {
             Reply::SearchFiles(guard.search_files(connection, request).await?)
         }
+        Call::ForgeStatus(request) => {
+            Reply::ForgeStatus(guard.forge_status(connection, request).await?)
+        }
+        Call::ListPullRequests(request) => {
+            Reply::ListPullRequests(guard.list_pull_requests(connection, request).await?)
+        }
+        Call::GetPullRequest(request) => {
+            Reply::GetPullRequest(guard.get_pull_request(connection, request).await?)
+        }
+        Call::OpenPullRequest(request) => {
+            Reply::OpenPullRequest(guard.open_pull_request(connection, request).await?)
+        }
+        Call::MergePullRequest(request) => {
+            Reply::MergePullRequest(guard.merge_pull_request(connection, request).await?)
+        }
+        Call::SetFeedback(request) => {
+            Reply::SetFeedback(guard.set_feedback(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

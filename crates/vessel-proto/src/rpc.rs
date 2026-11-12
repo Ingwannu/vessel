@@ -315,6 +315,19 @@ rpc_methods! {
     FindFiles / find_files / "file.find" [Read, 10]: crate::workspace::FindFiles => crate::workspace::FoundFiles;
     /// Search inside files (protocol 10).
     SearchFiles / search_files / "file.grep" [Read, 10]: crate::workspace::SearchFiles => crate::workspace::GrepResult;
+    // Protocol 11, track B2 (ADR 0029): pull requests on a forge.
+    /// How the node is signed in to each forge.
+    ForgeStatus / forge_status / "forge.status" [Read, 11]: crate::forge::GetForgeStatus => crate::forge::ForgeStatus;
+    /// Every watched session's pull request.
+    ListPullRequests / list_pull_requests / "pr.list" [Read, 11]: crate::forge::ListPullRequests => crate::forge::PullRequestList;
+    /// A session's pull request, whole.
+    GetPullRequest / get_pull_request / "pr.get" [Read, 11]: crate::forge::GetPullRequest => crate::forge::PullRequestView;
+    /// Open a pull request from a session's branch.
+    OpenPullRequest / open_pull_request / "pr.open" [Operate, 11]: crate::forge::OpenPullRequest => crate::forge::OpenOutcome;
+    /// Merge a session's pull request, at the head the caller saw.
+    MergePullRequest / merge_pull_request / "pr.merge" [Operate, 11]: crate::forge::MergePullRequest => crate::forge::MergeOutcome;
+    /// Turn feedback to the session on or off.
+    SetFeedback / set_feedback / "pr.feedback" [Operate, 11]: crate::forge::SetFeedback => crate::forge::SessionPullRequest;
 }
 
 /// Result of a call.

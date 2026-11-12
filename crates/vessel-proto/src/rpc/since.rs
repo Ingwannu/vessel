@@ -165,7 +165,13 @@ impl Call {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            | Self::ForgeStatus(_)
+            | Self::ListPullRequests(_)
+            | Self::GetPullRequest(_)
+            | Self::OpenPullRequest(_)
+            | Self::MergePullRequest(_)
+            | Self::SetFeedback(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

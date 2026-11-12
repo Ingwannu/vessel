@@ -145,6 +145,9 @@ fn every_method_knows_its_first_version() {
             "file.read",
             "file.find",
             "file.grep",
+            "forge.status",
+            "pr.list",
+            "pr.get",
         ];
         let expected = if reads.contains(&name) {
             Scope::Read
@@ -277,7 +280,13 @@ fn the_forwardable_set_is_pinned() {
             "file.rename",
             "file.delete",
             "file.find",
-            "file.grep"
+            "file.grep",
+            "forge.status",
+            "pr.list",
+            "pr.get",
+            "pr.open",
+            "pr.merge",
+            "pr.feedback"
         ]
     );
 }

@@ -45,6 +45,8 @@ mod files;
 mod git;
 mod projects;
 mod worktrees;
+// Protocol 11's calls: pull requests (`forge`, ADR 0029).
+mod forge;
 
 /// The node's protocol implementation.
 #[derive(Debug)]

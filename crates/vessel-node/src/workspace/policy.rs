@@ -83,7 +83,14 @@ const fn refused(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        // Protocol 11 (ADR 0029): a merge publishes to a shared branch and
+        // is a person's to decide, as is what is sent into a session; the
+        // node's sign-in and the whole list are a person's view.
+        | Method::ForgeStatus
+        | Method::ListPullRequests
+        | Method::MergePullRequest
+        | Method::SetFeedback => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -92,6 +99,11 @@ const fn refused(method: Method) -> bool {
         | Method::ListWorktrees
         | Method::CreateWorktree
         | Method::SetupOutput
+        // Protocol 11: an agent reads a session's pull request, and opens
+        // one for a session it may operate (the guard's ownership), never
+        // pushing (`forge::open`).
+        | Method::GetPullRequest
+        | Method::OpenPullRequest
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
         | Method::NodeInfo

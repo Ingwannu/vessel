@@ -347,7 +347,15 @@ impl Method {
             | Self::RenamePath
             | Self::DeletePath
             | Self::FindFiles
-            | Self::SearchFiles => true,
+            | Self::SearchFiles
+            // Protocol 11: a session's pull request, on the machine the
+            // session runs on.
+            | Self::ForgeStatus
+            | Self::ListPullRequests
+            | Self::GetPullRequest
+            | Self::OpenPullRequest
+            | Self::MergePullRequest
+            | Self::SetFeedback => true,
             Self::StopNode
             | Self::InviteDevice
             | Self::ListDevices

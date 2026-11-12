@@ -174,6 +174,12 @@ impl Unary for vessel_proto::workspace::RenamePath {}
 impl Unary for vessel_proto::workspace::DeletePath {}
 impl Unary for vessel_proto::workspace::FindFiles {}
 impl Unary for vessel_proto::workspace::SearchFiles {}
+impl Unary for vessel_proto::forge::GetForgeStatus {}
+impl Unary for vessel_proto::forge::ListPullRequests {}
+impl Unary for vessel_proto::forge::GetPullRequest {}
+impl Unary for vessel_proto::forge::OpenPullRequest {}
+impl Unary for vessel_proto::forge::MergePullRequest {}
+impl Unary for vessel_proto::forge::SetFeedback {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -322,7 +328,13 @@ const fn is_unary(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        | Method::ForgeStatus
+        | Method::ListPullRequests
+        | Method::GetPullRequest
+        | Method::OpenPullRequest
+        | Method::MergePullRequest
+        | Method::SetFeedback => true,
     }
 }
 

@@ -442,6 +442,12 @@ impl Handler for FakeNode {
         delete_path: vessel_proto::workspace::DeletePath => Ack;
         find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
         search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
+        forge_status: vessel_proto::forge::GetForgeStatus => vessel_proto::forge::ForgeStatus;
+        list_pull_requests: vessel_proto::forge::ListPullRequests => vessel_proto::forge::PullRequestList;
+        get_pull_request: vessel_proto::forge::GetPullRequest => vessel_proto::forge::PullRequestView;
+        open_pull_request: vessel_proto::forge::OpenPullRequest => vessel_proto::forge::OpenOutcome;
+        merge_pull_request: vessel_proto::forge::MergePullRequest => vessel_proto::forge::MergeOutcome;
+        set_feedback: vessel_proto::forge::SetFeedback => vessel_proto::forge::SessionPullRequest;
     }
 }
 

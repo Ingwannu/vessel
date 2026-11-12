@@ -36,6 +36,50 @@ Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave.
 Track B2's part
 ("Track B2: contract" in `docs/plans/backend-m11.md`):
 
+### Pull requests (ADR 0029)
+
+Six methods, one optional field, no event. Every type is in
+`vessel_proto::forge`; every enum a forge may grow has `unknown`.
+
+- `SessionInfo.pull_request?: SessionPullRequest { access, summary?,
+  feedback }`: for a live session with a place. `access` says whether the
+  node can see the session's pull request and why not (`ready { login? }`,
+  `not_placed`, `no_branch`, `on_base`, `no_remote`, `not_supported {
+  host }`, `signed_out { host, gh }`, `refused { host, reason, login? }`,
+  `rate_limited { host, until }`, `unreachable { host, retry_at }`,
+  `limit`, `ended`); `summary` (`PullSummary`: repository, number,
+  address, title, state, draft, head commit, checks, review decision,
+  mergeability, updated at) is the last one read. Cleared when the
+  session ends. A forge's text (a title, a check's name, an address) is
+  made lossy by the node, so it always decodes.
+- `forge.status {}` (read): every host and how the node is signed in to
+  it (`source: environment | gh`), at most 16; never a token.
+- `pr.list {}` (read): every watched session's pull request.
+- `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
+  with the failing ones named, people's reviews, times, the repository's
+  merge methods). `refresh` reads now, at most once per 10 s per session;
+  an agent may refresh only a session it may operate.
+- `pr.open { session, title, body?, base?, draft }` (operate): from the
+  branch the session's folder is on, into `base` or the project's default
+  branch; a person's call pushes the branch first (never forced), an
+  agent's never pushes (`not_pushed`). Answers `opened`, `exists` or
+  `refused { not_pushed | no_commits | push { refusal } | access {
+  access } | rejected { message } }`.
+- `pr.merge { session, number, method, head }` (operate, a person only):
+  `head` a full commit id; refused `no_pull_request`,
+  `other_pull_request`, `not_open`, `draft`, `head_moved { head }`,
+  `not_mergeable`, `method_not_allowed`, `merge_queue`, `cannot_pin`,
+  `access`, `rejected`. The head is pinned in the forge's request too.
+- `pr.feedback { session, enabled }` (operate, a person only): failing
+  checks, changes requested, unresolved comments and conflicts sent to the
+  session through its queue; off by default; `unsupported` for a terminal
+  session.
+- All forwardable and in the web bridge's list. Agents: `pr.get`, and
+  `pr.open` on a session they may operate; the rest is `forbidden`.
+- The board: a watched session's pull request places it in Validating,
+  In review or Ready by the reducer of ADR 0019, which every client of
+  protocol 8 and later already draws.
+
 ### Git apart from a repository's own configuration (ADR 0030)
 
 - `GitRefusal::repository_config { key?: ConfigKey, reason }`: the

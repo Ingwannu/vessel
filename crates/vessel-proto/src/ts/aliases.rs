@@ -43,6 +43,10 @@
 //!   `CommitId` is plain too: the node reports full ones, and a person may
 //!   type an abbreviated one wherever a ref is taken. `ProjectCommand` is
 //!   content: a line of a project's file, shown to be approved.
+//! - Protocol 11's (track B2), by the same rule, all plain: a forge's
+//!   host, a repository's path, a login, a pull request's number, title
+//!   and address, a check's name are what a person reads, types or picks
+//!   (`#12`, `owner/name`); a pull request's description is content.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -83,6 +87,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("BranchName", Alias::Named),
     ("BundlePath", Alias::Named),
     ("CallId", Alias::Handle),
+    ("CheckName", Alias::Named),
     ("CloneUrl", Alias::Named),
     ("CodeSize", Alias::Quantity),
     ("CommandName", Alias::Named),
@@ -102,6 +107,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("FindQuery", Alias::Named),
     ("FiniteNumber", Alias::Quantity),
     ("FolderName", Alias::Named),
+    ("ForgeHost", Alias::Named),
+    ("ForgeLogin", Alias::Named),
+    ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
@@ -132,11 +140,15 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ProjectName", Alias::Named),
     ("ProtocolVersion", Alias::Quantity),
     ("ProviderName", Alias::Named),
+    ("PullBody", Alias::Content),
+    ("PullNumber", Alias::Named),
+    ("PullTitle", Alias::Named),
     ("QuestionId", Alias::Handle),
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
+    ("RepoPath", Alias::Named),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("SearchKey", Alias::Handle),

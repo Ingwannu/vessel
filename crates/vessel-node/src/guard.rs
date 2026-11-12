@@ -153,6 +153,11 @@ targets!(
     vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
     vessel_proto::conversation::BeginUpload,
+    // Protocol 11: opening, merging and the feedback switch act on a
+    // session's branch and its conversation.
+    vessel_proto::forge::OpenPullRequest,
+    vessel_proto::forge::MergePullRequest,
+    vessel_proto::forge::SetFeedback,
 );
 
 // `session.create` is limited by `agents` instead (count and depth), and so
@@ -253,6 +258,11 @@ untargeted!(
     vessel_proto::workspace::DeletePath,
     vessel_proto::workspace::FindFiles,
     vessel_proto::workspace::SearchFiles,
+    // Protocol 11: reads; `pr.get`'s refresh is held to ownership by the
+    // service (ADR 0029).
+    vessel_proto::forge::GetForgeStatus,
+    vessel_proto::forge::ListPullRequests,
+    vessel_proto::forge::GetPullRequest,
 );
 
 guarded! {
@@ -348,6 +358,12 @@ guarded! {
     delete_path: vessel_proto::workspace::DeletePath => Ack;
     find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
     search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
+    forge_status: vessel_proto::forge::GetForgeStatus => vessel_proto::forge::ForgeStatus;
+    list_pull_requests: vessel_proto::forge::ListPullRequests => vessel_proto::forge::PullRequestList;
+    get_pull_request: vessel_proto::forge::GetPullRequest => vessel_proto::forge::PullRequestView;
+    open_pull_request: vessel_proto::forge::OpenPullRequest => vessel_proto::forge::OpenOutcome;
+    merge_pull_request: vessel_proto::forge::MergePullRequest => vessel_proto::forge::MergeOutcome;
+    set_feedback: vessel_proto::forge::SetFeedback => vessel_proto::forge::SessionPullRequest;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

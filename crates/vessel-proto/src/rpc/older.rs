@@ -179,7 +179,14 @@ impl Reply {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            // Protocol 11's are newer than every older peer.
+            | Self::ForgeStatus(_)
+            | Self::ListPullRequests(_)
+            | Self::GetPullRequest(_)
+            | Self::OpenPullRequest(_)
+            | Self::MergePullRequest(_)
+            | Self::SetFeedback(_) => None,
         }
     }
 }
