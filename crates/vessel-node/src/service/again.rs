@@ -37,6 +37,7 @@ impl NodeService {
         }
         let claim = self.sessions.claim(id)?;
         let ended = self.sessions.ended(id).await?;
+        self.refuse_installing(&ended.info.spec.harness)?;
         // Not into a worktree a removal (or setup) holds: the removal may
         // take the folder from under the agent.
         if let Some(SessionPlace::Worktree { worktree }) = ended.info.spec.place.as_deref()

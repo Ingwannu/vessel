@@ -117,6 +117,8 @@ const fn refused(method: Method) -> bool {
         | Method::RemoveAgent
         | Method::GetAgentStatus
         | Method::GetCatalogue
+        | Method::InstallAgent
+        | Method::ReadInstall
         | Method::MoveProfile
         | Method::GetManifest
         | Method::ReadBlob

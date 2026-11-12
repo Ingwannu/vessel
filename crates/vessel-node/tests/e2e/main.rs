@@ -31,6 +31,8 @@ mod fleet;
 #[cfg(test)]
 mod grants;
 #[cfg(test)]
+mod install;
+#[cfg(test)]
 mod isolation;
 #[cfg(test)]
 mod local;

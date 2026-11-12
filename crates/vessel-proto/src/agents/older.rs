@@ -203,7 +203,9 @@ impl Reply {
             | Self::AddAgent(_)
             | Self::RemoveAgent(_)
             | Self::GetAgentStatus(_)
-            | Self::GetCatalogue(_) => None,
+            | Self::GetCatalogue(_)
+            | Self::InstallAgent(_)
+            | Self::ReadInstall(_) => None,
         }
     }
 }

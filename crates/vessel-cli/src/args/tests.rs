@@ -369,3 +369,25 @@ fn agents_status_refreshes_one_agent_and_the_registry_replaces_the_command() {
         assert!(Cli::try_parse_from(refused).is_err(), "{refused:?}");
     }
 }
+
+#[test]
+fn agents_install_takes_one_of_the_four_and_its_part() {
+    let Cli {
+        command:
+            Command::Agents {
+                command:
+                    Some(AgentsCommand::Install {
+                        agent,
+                        adapter: true,
+                        yes: false,
+                    }),
+            },
+        ..
+    } = Cli::try_parse_from(["vessel", "agents", "install", "claude", "--adapter"]).unwrap()
+    else {
+        panic!("expected agents install");
+    };
+    assert_eq!(agent, vessel_proto::HarnessKind::ClaudeCode);
+    // Only the four have documented installers.
+    assert!(Cli::try_parse_from(["vessel", "agents", "install", "goose"]).is_err());
+}

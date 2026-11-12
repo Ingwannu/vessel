@@ -4028,3 +4028,37 @@ binaries built from the tree).
 - **Another ACP version** (`too_old`, `too_new`) is tested at the node's
   reading of a refused handshake, not end to end: the ACP crate's agent
   side, which the testkit's fake uses, always answers version 1.
+- **An install runs its program directly**: `npm` as the node's search
+  path finds it (`npm.cmd` on Windows, which the standard library runs
+  through `cmd.exe` itself, its arguments being Vessel's constants).
+- **An install's waiting read** is held 30 s at most, but is not counted
+  in the node's wait shares (`waits`): there is one install at a time and
+  only `admin` reads it. Recorded here as a difference from the contract.
+- **Not tested end to end**: that `session.create`, `session.resume` and
+  `harness.options` answer `conflict` while an install of that agent
+  runs (the fake installer ends at once); the three calls share one
+  check (`refuse_installing`).
+
+### Slices
+
+1. Protocol 11 names agents beyond the four (`HarnessRef`, what older
+   peers are handed), no agent addable yet.
+2. Agents added by their command: `agents.toml`, `agent.list`,
+   `agent.add`, `agent.remove`, the clean environment, the launcher's
+   secrets and MCP servers, `vessel agents`, `vessel run <name>`.
+3. `agent.status` (status commands, a handshake's `auth_required`, typed
+   facts kept per agent and profile) and `agent.catalogue` (the
+   registry's copy, an entry added from it).
+4. `agent.install` and `agent.install_output`, and `vessel agents
+   install`.
+
+### Not offered, because an added agent cannot do it
+
+An added agent runs conversations only: no terminal (Vessel knows its ACP
+command, not a terminal of its own); its conversation cannot move to
+another profile or be exported or imported, and its memory is not
+exported (Vessel does not know where it keeps either); fleet sync writes
+no instructions or skills into its home, and no model route is applied to
+it (both need knowledge of the agent's own configuration); Vessel does
+not install it (a person installs it, or adds a registry entry whose
+runner fetches it) and does not sign it in.

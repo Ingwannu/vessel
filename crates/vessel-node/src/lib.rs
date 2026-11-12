@@ -73,6 +73,7 @@ mod error;
 pub mod fleet;
 mod guard;
 mod identity;
+mod install;
 mod ipc;
 mod lifecycle;
 mod lsp;

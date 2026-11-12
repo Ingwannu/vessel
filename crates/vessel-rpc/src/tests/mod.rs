@@ -406,6 +406,22 @@ impl Handler for Fake {
         self.unsupported(request)
     }
 
+    async fn install_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::InstallAgent,
+    ) -> Result<vessel_proto::agents::InstallJob, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn install_output(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::ReadInstall,
+    ) -> Result<vessel_proto::agents::InstallOutput, WireError> {
+        self.unsupported(request)
+    }
+
     async fn move_profile(
         &self,
         _context: &Context,

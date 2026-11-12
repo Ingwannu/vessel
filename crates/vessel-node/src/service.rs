@@ -89,6 +89,8 @@ pub(crate) struct NodeService {
     readiness: crate::readiness::Readiness,
     /// The node's copy of the ACP registry (protocol 11, `catalogue`).
     catalogue: crate::catalogue::Catalogues,
+    /// The last install (protocol 11, `install`).
+    installs: crate::install::Installs,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -159,6 +161,7 @@ impl NodeService {
             tidying,
             readiness: crate::readiness::Readiness::default(),
             catalogue,
+            installs: crate::install::Installs::default(),
         }
     }
 

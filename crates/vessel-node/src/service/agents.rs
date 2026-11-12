@@ -4,8 +4,13 @@
 //! launcher's.
 
 use vessel_harness::Profile;
-use vessel_proto::agents::{AddAgent, AgentInfo, Catalogue, GetCatalogue, ListAgents, RemoveAgent};
-use vessel_proto::{Ack, ErrorCode, Harness, HarnessRef, ProfileName, SessionId, WireError};
+use vessel_proto::agents::{
+    AddAgent, AgentInfo, Catalogue, GetCatalogue, InstallAgent, InstallJob, InstallOutput,
+    InstallPart, ListAgents, ReadInstall, RemoveAgent,
+};
+use vessel_proto::{
+    Ack, ErrorCode, Harness, HarnessRef, InstallId, ProfileName, SessionId, WireError,
+};
 
 use super::{Connection, NodeService, wire};
 use crate::error::ServiceError;
@@ -79,6 +84,93 @@ impl NodeService {
             .map_err(|error| crate::added::wire(&error))?;
         self.readiness.forget(&HarnessRef::Added(name));
         Ok(Ack)
+    }
+
+    /// Refuse to start `harness` while an install of it runs.
+    pub(crate) fn refuse_installing(&self, harness: &HarnessRef) -> Result<(), ServiceError> {
+        match harness {
+            HarnessRef::Known(kind) if self.installs.running(*kind) => {
+                Err(ServiceError::Installing(*kind))
+            }
+            HarnessRef::Known(_) | HarnessRef::Added(_) => Ok(()),
+        }
+    }
+
+    /// `agent.install`: the vendor's documented command for one of the
+    /// four, run on the node for a person (module `install`).
+    pub(crate) async fn install_agent(
+        &self,
+        connection: &Connection,
+        request: InstallAgent,
+    ) -> Result<InstallJob, WireError> {
+        crate::added::person(connection.principal()).map_err(|error| crate::added::wire(&error))?;
+        let InstallAgent { agent, part } = request;
+        let wanted = match part {
+            InstallPart::Harness => vessel_harness::InstallPart::Harness,
+            InstallPart::Adapter => vessel_harness::InstallPart::Adapter,
+        };
+        let install = vessel_harness::installs(agent)
+            .into_iter()
+            .find(|install| install.part == wanted)
+            .ok_or_else(|| {
+                WireError::new(
+                    ErrorCode::InvalidRequest,
+                    format!(
+                        "{agent} has no such part to install (`agent.list` shows its installs)"
+                    ),
+                )
+            })?;
+        if self
+            .sessions
+            .live_profiles()
+            .iter()
+            .any(|(running, _profile)| *running == agent)
+        {
+            return Err(WireError::new(
+                ErrorCode::Conflict,
+                format!(
+                    "{agent} has live sessions on this node: an install replaces what they run; stop them first"
+                ),
+            ));
+        }
+        let (lookup, env) = (self.lookup.clone(), self.profiles.env().clone());
+        let command = tokio::task::spawn_blocking(move || {
+            vessel_harness::installer(
+                &install,
+                &lookup,
+                &env,
+                |name| std::env::var_os(name),
+                std::env::vars_os(),
+            )
+            .map(|command| (command, install))
+        })
+        .await
+        .map_err(|error| wire(&ServiceError::Task(error)))?;
+        let Some((command, install)) = command else {
+            return Err(WireError::new(
+                ErrorCode::HarnessNotInstalled,
+                "the installer's program (`npm`) is not on the node's search path",
+            ));
+        };
+        let job = InstallJob {
+            id: InstallId::random(),
+            agent,
+            part,
+            command: install.command.to_owned(),
+            started_at: chrono::Utc::now(),
+        };
+        self.installs
+            .start(job, command)
+            .map_err(|error| WireError::new(ErrorCode::Conflict, error.to_string()))
+    }
+
+    /// `agent.install_output`: a page of the last install's output.
+    pub(crate) async fn install_output(
+        &self,
+        _: &Connection,
+        request: ReadInstall,
+    ) -> Result<InstallOutput, WireError> {
+        self.installs.read(request).await
     }
 
     /// `agent.catalogue`: the node's copy of the ACP registry; `refresh`

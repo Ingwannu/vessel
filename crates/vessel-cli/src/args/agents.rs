@@ -3,7 +3,9 @@
 
 use clap::Subcommand;
 use vessel_proto::agents::{AgentLabel, RegistryId};
-use vessel_proto::{AgentName, EnvName, HarnessRef, McpServerName, ProfileName, SecretName};
+use vessel_proto::{
+    AgentName, EnvName, HarnessKind, HarnessRef, McpServerName, ProfileName, SecretName,
+};
 
 /// What to do with the node's agents; listing them when none is given.
 #[derive(Debug, Subcommand)]
@@ -35,6 +37,19 @@ pub(crate) enum AgentsCommand {
         /// a prompt).
         #[arg(long, requires = "agent")]
         refresh: bool,
+    },
+    /// Install one of the four (or its ACP adapter) on the node with its
+    /// vendor's documented command: shown first, run after you say yes,
+    /// its output printed as it runs.
+    Install {
+        /// claude-code, codex, gemini or opencode.
+        agent: HarnessKind,
+        /// Its ACP adapter instead of the agent.
+        #[arg(long)]
+        adapter: bool,
+        /// Run it without asking.
+        #[arg(long)]
+        yes: bool,
     },
     /// The ACP registry, as the node's copy: what each entry would run.
     Catalogue {

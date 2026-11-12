@@ -350,6 +350,22 @@ impl Handler for FakeNode {
         Err(unsupported())
     }
 
+    async fn install_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::InstallAgent,
+    ) -> Result<vessel_proto::agents::InstallJob, WireError> {
+        Err(unsupported())
+    }
+
+    async fn install_output(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::ReadInstall,
+    ) -> Result<vessel_proto::agents::InstallOutput, WireError> {
+        Err(unsupported())
+    }
+
     async fn move_profile(
         &self,
         _context: &Context,

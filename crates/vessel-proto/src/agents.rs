@@ -27,6 +27,7 @@
 mod added;
 mod calls;
 mod catalogue;
+mod install;
 mod name;
 mod older;
 mod status;
@@ -38,6 +39,7 @@ pub use added::{
 };
 pub use calls::{AddAgent, ListAgents, RemoveAgent};
 pub use catalogue::{Catalogue, CatalogueEntry, CatalogueRun, CatalogueVariable, GetCatalogue};
+pub use install::{InstallAgent, InstallJob, InstallOutput, InstallState, ReadInstall};
 pub use name::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use older::{READS_ADDED_AGENTS, readable, unreadable};
 pub(crate) use older::{harnesses as harnesses_for, profiles as profiles_for};

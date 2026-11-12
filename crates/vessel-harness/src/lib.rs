@@ -71,7 +71,8 @@ mod setup;
 
 pub use added::{
     AddedAgent, AddedAgents, AgentProblem, AgentsError, EditError, MAX_FILE as MAX_AGENTS_FILE,
-    PASSED_ON, add_agent, command as added_command, parse_agents, passed_on, remove_agent,
+    PASSED_ON, add_agent, command as added_command, installer, parse_agents, passed_on,
+    remove_agent,
 };
 pub use discover::{discover, discover_added};
 pub use env::HarnessEnv;

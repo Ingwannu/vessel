@@ -47,8 +47,9 @@
 //!   agent's name, label and program, which a person chooses and types,
 //!   an agent's version, an ACP registry entry's id and version, which a
 //!   person reads and may type, and an archive's SHA-256, which a person
-//!   compares. A handle: `AuthMethodId`, which
-//!   the agent names and the page only hands back, as an `OptionId`.
+//!   compares. Handles: `InstallId`, which the node mints for an install,
+//!   and `AuthMethodId`, which the agent names and the page only hands
+//!   back, as an `OptionId`.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -117,6 +118,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
+    ("InstallId", Alias::Handle),
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),

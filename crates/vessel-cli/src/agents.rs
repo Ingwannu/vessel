@@ -6,10 +6,11 @@ use std::fmt::Write as _;
 use vessel_client::NodeClient;
 use vessel_proto::agents::{
     AddAgent, AgentDefinition, AgentDetail, AgentInfo, AgentReadiness, AgentSource, AgentToAdd,
-    AgentVariable, Catalogue, CatalogueRun, GetAgentStatus, GetCatalogue, Installed, ListAgents,
-    RegistryId, RemoveAgent, SignedIn, UnknownReason,
+    AgentVariable, Catalogue, CatalogueRun, GetAgentStatus, GetCatalogue, InstallAgent,
+    InstallPart, InstallState, Installed, ListAgents, ReadInstall, RegistryId, RemoveAgent,
+    SignedIn, UnknownReason,
 };
-use vessel_proto::{AgentName, ConfigValue, McpServerName};
+use vessel_proto::{AgentName, ConfigValue, HarnessKind, McpServerName};
 
 use crate::args::{AddAgentArgs, AgentsCommand, Target};
 use crate::connect::connect;
@@ -62,6 +63,11 @@ pub(crate) async fn agents(target: &Target, command: AgentsCommand) -> Result<()
                 .await?;
             out(&readiness(&listed)).await
         }
+        AgentsCommand::Install {
+            agent,
+            adapter,
+            yes,
+        } => install(&client, agent, adapter, yes).await,
         AgentsCommand::Catalogue { refresh } => {
             let catalogue = client.call(GetCatalogue { refresh }).await?;
             out(&catalogue_text(&catalogue)).await
@@ -349,6 +355,79 @@ async fn add_from_registry(
             replace,
         })
         .await?)
+}
+
+/// `vessel agents install`: show the command, ask, run it on the node and
+/// print its output until it ends.
+async fn install(
+    client: &NodeClient,
+    agent: HarnessKind,
+    adapter: bool,
+    yes: bool,
+) -> Result<(), CliError> {
+    let part = if adapter {
+        InstallPart::Adapter
+    } else {
+        InstallPart::Harness
+    };
+    let listed = client.call(ListAgents {}).await?;
+    let command = listed
+        .iter()
+        .find_map(|info| match &info.detail {
+            AgentDetail::Known { installs, .. } if info.agent == agent => installs
+                .iter()
+                .find(|offer| offer.part == part)
+                .map(|offer| offer.command.clone()),
+            AgentDetail::Known { .. } | AgentDetail::Added { .. } => None,
+        })
+        .ok_or(CliError::Usage(
+            "the node offers no such install (`vessel agents` lists each agent's)",
+        ))?;
+    io::note(&format!(
+        "The node would run, as its user, in its home:\n  {command}\n"
+    ))
+    .await?;
+    if !yes {
+        io::note("Run it? [y/N] ").await?;
+        let mut lines = io::input_lines()?;
+        let answer = lines.recv().await.unwrap_or_default();
+        if !matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+            return Err(CliError::Usage("not run (you said no)"));
+        }
+    }
+    let job = client.call(InstallAgent { agent, part }).await?;
+    let mut from = 0;
+    loop {
+        let page = client
+            .call(ReadInstall {
+                job: job.id,
+                from,
+                wait: Some(30),
+            })
+            .await?;
+        from = page.next;
+        io::out(&page.bytes.into_bytes()).await?;
+        match page.state {
+            InstallState::Running => {}
+            InstallState::Succeeded => {
+                return Ok(io::note(&format!("[vessel] {command}: done\n")).await?);
+            }
+            InstallState::Failed { code } => {
+                let code = code.map_or_else(
+                    || "no exit code".to_owned(),
+                    |code| format!("exit code {code}"),
+                );
+                return Err(CliError::AgentInstall(format!(
+                    "`{command}` failed ({code})"
+                )));
+            }
+            InstallState::TimedOut => {
+                return Err(CliError::AgentInstall(format!(
+                    "`{command}` was stopped after 15 minutes"
+                )));
+            }
+        }
+    }
 }
 
 async fn out(text: &str) -> Result<(), CliError> {

@@ -135,6 +135,26 @@ tracks").
   <package>`, exactly what would be added), `download { archive,
   sha256? }` (never downloaded), `unavailable`. Not forwarded across the
   fleet.
+- `agent.install` (`admin`, never an agent principal nor a delivered
+  call: `forbidden`) `{ agent: HarnessKind, part: "harness" | "adapter" }`
+  → `InstallJob { id: InstallId, agent, part, command, started_at }`: the
+  vendor's documented command (the one `agent.list` shows), its program
+  found on the node's search path, run as the node's user in the user's
+  home with the environment an added agent gets plus `npm_config_*`,
+  standard input closed. `invalid_request` for a part the agent does not
+  have, `harness_not_installed` when the installer's program (`npm`) is
+  missing, `conflict` while an install runs or the agent has live
+  sessions. One at a time; 15 minutes, then stopped with its children.
+  While it runs, `session.create`, `session.resume` and `harness.options`
+  for that agent answer `conflict`.
+- `agent.install_output` (`admin`) `{ job, from?, wait? }` →
+  `InstallOutput { from, bytes, next, truncated, state }`, the shape of
+  `worktree.output`: standard output and error as printed, the first 1 MiB
+  kept, 64 KiB a page, `wait` holding the read (30 s at most) until there
+  is more or it ends; `state` tagged by `state`: `running`, `succeeded`,
+  `failed { code? }`, `timed_out`. `not_found` for a job that is not the
+  last one (the node keeps only the last, until it stops). Neither call
+  is forwarded across the fleet.
 - `AgentToAdd::Registry { id, version, mcp }` (`from: "registry"`): the
   node builds the definition from its own copy (`not_found` when the
   entry is not there at that version; `invalid_request` when it runs no

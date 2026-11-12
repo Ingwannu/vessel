@@ -614,6 +614,12 @@ In the crate table's order.
     per agent and profile for five and ten minutes. `probes` keeps each
     probe's options and what its handshake said together (`Answer`), so
     `harness.options` and `agent.status` share one probe.
+  - `agent.install` (`install`): the last install as a job of the node's
+    (`vessel_proc` process group, 15 minutes, the first 1 MiB of output
+    kept with a `watch` for waiting reads), started from
+    `vessel_harness::installer` (the vendor's command in the clean
+    environment plus `npm_config_*`); while it runs, the service refuses
+    to start that agent (`refuse_installing`).
   - `agent.catalogue` (`catalogue`): the node's copy of the ACP registry,
     fetched only on a person's `refresh` (`catalogue/fetch.rs`: `reqwest`,
     https or loopback http, bounded) and read entry by entry

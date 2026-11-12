@@ -545,6 +545,8 @@ async fn run_here(
         Call::StopNode(_)
         | Call::AddAgent(_)
         | Call::GetCatalogue(_)
+        | Call::InstallAgent(_)
+        | Call::ReadInstall(_)
         | Call::RemoveAgent(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)

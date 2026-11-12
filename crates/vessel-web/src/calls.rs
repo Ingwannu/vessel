@@ -173,7 +173,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::AddAgent
         | Method::RemoveAgent
         | Method::GetAgentStatus
-        | Method::GetCatalogue => true,
+        | Method::GetCatalogue
+        | Method::InstallAgent
+        | Method::ReadInstall => true,
         Method::Subscribe
         | Method::Unsubscribe
         | Method::ReportApplied

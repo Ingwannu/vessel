@@ -4,8 +4,8 @@
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    AgentName, ErrorCode, EventSeq, HarnessRef, ModelRouteName, ProfileName, SecretName, SessionId,
-    WireError,
+    AgentName, ErrorCode, EventSeq, HarnessKind, HarnessRef, ModelRouteName, ProfileName,
+    SecretName, SessionId, WireError,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -235,6 +235,10 @@ pub(crate) enum ServiceError {
     /// 0032).
     #[error("this node has no agent `{0}` (see `agent.list`)")]
     UnknownAgent(AgentName),
+    /// An install of this agent is running (`agent.install`, ADR 0032):
+    /// it replaces the program a session would start.
+    #[error("an install of {0} is running on this node; start it once the install ends")]
+    Installing(HarnessKind),
     /// An added agent names a secret this node has not set (ADR 0032).
     #[error(
         "agent `{agent}` needs secret {secret}, which is not set on this node (vessel fleet secret set {secret})"
@@ -376,6 +380,7 @@ impl ServiceError {
             | Self::FolderGone { .. }
             | Self::WorktreeBusy(_)
             | Self::AgentSecret { .. }
+            | Self::Installing(_)
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }

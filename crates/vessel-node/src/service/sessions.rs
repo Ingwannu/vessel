@@ -68,6 +68,8 @@ impl NodeService {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
+        self.refuse_installing(&spec.harness)
+            .map_err(|error| wire(&error))?;
         // An imported session's place named its own machine's project; it
         // runs in the folder it brings (carrying worktrees is wave 2's).
         if origin.is_some() {

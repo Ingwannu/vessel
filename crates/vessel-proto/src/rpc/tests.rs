@@ -46,7 +46,9 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "secret.delete",
             "secret.copy",
             "agent.add",
-            "agent.remove"
+            "agent.remove",
+            "agent.install",
+            "agent.install_output"
         ]
     );
     assert_eq!(Method::SendInput.scope(), Scope::Operate);

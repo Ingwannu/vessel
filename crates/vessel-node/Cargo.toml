@@ -23,6 +23,9 @@ vessel-fleet.workspace = true
 vessel-harness.workspace = true
 # The model routing proxy's APIs and upstream client (ADR 0015).
 vessel-llm.workspace = true
+# An install's process group (`agent.install`, protocol 11): started and
+# stopped as the session runtime starts agents; already below it.
+vessel-proc.workspace = true
 vessel-proto.workspace = true
 vessel-lsp.workspace = true
 vessel-relay.workspace = true

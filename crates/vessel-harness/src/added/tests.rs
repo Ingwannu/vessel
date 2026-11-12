@@ -332,3 +332,51 @@ fn an_added_agent_launches_structured_only_and_as_its_own_profile() {
     ));
     drop(std::fs::remove_dir_all(&dir));
 }
+
+#[test]
+fn an_installer_gets_the_clean_environment_and_npm_settings_only() {
+    let dir = std::env::temp_dir().join(format!("vessel-installer-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let npm = dir.join(if cfg!(windows) { "npm.exe" } else { "npm" });
+    std::fs::write(&npm, b"").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(&npm, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let install = crate::setup::installs(vessel_proto::HarnessKind::Codex)
+        .into_iter()
+        .find(|install| install.part == crate::setup::InstallPart::Harness)
+        .unwrap();
+    let env = HarnessEnv::new(absolute("home/u"));
+    let lookup = Lookup::new([dir.clone()]);
+    let reader = node(&[("ANTHROPIC_API_KEY", "leak"), ("LANG", "C.UTF-8")]);
+    let vars = [
+        ("npm_config_cache", "/cache"),
+        ("NPM_CONFIG_REGISTRY", "https://registry.example"),
+        ("OPENAI_API_KEY", "leak"),
+    ]
+    .map(|(name, value)| (OsString::from(name), OsString::from(value)));
+    let command = installer(&install, &lookup, &env, &reader, vars).unwrap();
+    assert_eq!(command.program, npm);
+    assert_eq!(command.args, ["install", "-g", "@openai/codex"]);
+    assert_eq!(command.environment, Environment::Clear);
+    assert_eq!(command.cwd.as_deref(), Some(absolute("home/u").as_path()));
+    let set: Vec<String> = command
+        .env
+        .iter()
+        .map(|(name, _value)| name.to_string_lossy().into_owned())
+        .collect();
+    for wanted in ["npm_config_cache", "NPM_CONFIG_REGISTRY", "PATH"] {
+        assert!(set.iter().any(|name| name == wanted), "{wanted}: {set:?}");
+    }
+    for kept_out in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"] {
+        assert!(
+            !set.iter().any(|name| name == kept_out),
+            "{kept_out} reached it"
+        );
+    }
+    let empty = Lookup::new([dir.join("nothing")]);
+    assert!(installer(&install, &empty, &env, &reader, []).is_none());
+    drop(std::fs::remove_dir_all(&dir));
+}

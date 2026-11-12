@@ -180,3 +180,48 @@ pub fn command(
     }
     Ok(command)
 }
+
+/// The command that runs `install` (one of the four's documented
+/// installers, `crate::installs`) on the node, for `agent.install`
+/// (protocol 11): its program found on `lookup`, in the user's home, from
+/// the environment an added agent starts with (`PATH`, the home,
+/// [`PASSED_ON`]) plus the node's `npm_config_*` variables (`node_vars`,
+/// the node's whole environment), so a package's install script sees no
+/// provider key. `None` when its program (`npm`) is not found.
+///
+/// Does filesystem lookups; call it from a blocking context.
+#[must_use]
+pub fn installer(
+    install: &crate::setup::Install,
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    node: impl Fn(&str) -> Option<OsString>,
+    node_vars: impl IntoIterator<Item = (OsString, OsString)>,
+) -> Option<CommandSpec> {
+    let program = lookup.find(install.program)?;
+    let mut command = CommandSpec::new(program)
+        .args(install.args())
+        .env_clear()
+        .cwd(env.user_home());
+    if let Some(path) = lookup.search_path() {
+        command = command.env("PATH", path);
+    }
+    let home = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    command = command.env(home, env.user_home());
+    for name in PASSED_ON {
+        if let Some(value) = node(name)
+            && passed_on(name, &value)
+        {
+            command = command.env(name, value);
+        }
+    }
+    for (name, value) in node_vars {
+        if name
+            .to_str()
+            .is_some_and(|name| name.to_ascii_lowercase().starts_with("npm_config_"))
+        {
+            command = command.env(name, value);
+        }
+    }
+    Some(command)
+}

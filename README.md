@@ -424,6 +424,8 @@ vessel agents status                         # installed? signed in? (nothing ru
 vessel agents status codex --profile codex-work --refresh
 vessel agents catalogue --refresh            # the ACP registry, fetched when you ask
 vessel agents add example --from-registry example-agent   # shows the command, asks
+vessel agents install codex                  # the vendor's npm command, shown, asked, run on the node
+vessel agents install claude --adapter       # Claude Code's ACP adapter
 ```
 
 - It starts with an empty environment: the search path, your home, the
@@ -441,6 +443,10 @@ vessel agents add example --from-registry example-agent   # shows the command, a
   Codex's own status commands (never beside a running session of that
   profile), and for the others their ACP handshake. It says how to sign
   in; it does not sign in for you.
+- An install runs the vendor's own command on the node (never beside a
+  running session of that agent), with its output printed as it runs; it
+  sees none of the node's credentials. Signing in afterwards is yours:
+  `vessel agents status` says how.
 - The catalogue lists what each registry entry would run; adding one
   writes exactly that (an `npx`/`uvx` command pinned to the version
   shown). An entry that ships only an archive is shown, not downloaded.

@@ -45,7 +45,7 @@ use vessel_proto::agents::{
 };
 use vessel_proto::{AgentName, AgentNameError, ConfigValue, EnvName, McpServerName, SecretName};
 
-pub use command::{PASSED_ON, command, passed_on};
+pub use command::{PASSED_ON, command, installer, passed_on};
 pub use edit::{EditError, add_agent, remove_agent};
 
 use crate::profile::{Position, expand, position, without_values};

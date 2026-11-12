@@ -262,6 +262,8 @@ untargeted!(
     vessel_proto::agents::RemoveAgent,
     vessel_proto::agents::GetAgentStatus,
     vessel_proto::agents::GetCatalogue,
+    vessel_proto::agents::InstallAgent,
+    vessel_proto::agents::ReadInstall,
 );
 
 guarded! {
@@ -362,6 +364,8 @@ guarded! {
     remove_agent: vessel_proto::agents::RemoveAgent => Ack;
     agent_status: vessel_proto::agents::GetAgentStatus => Vec<vessel_proto::agents::AgentReadiness>;
     agent_catalogue: vessel_proto::agents::GetCatalogue => vessel_proto::agents::Catalogue;
+    install_agent: vessel_proto::agents::InstallAgent => vessel_proto::agents::InstallJob;
+    install_output: vessel_proto::agents::ReadInstall => vessel_proto::agents::InstallOutput;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

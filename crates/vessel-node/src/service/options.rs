@@ -27,6 +27,8 @@ impl NodeService {
         request: GetHarnessOptions,
     ) -> Result<HarnessOptions, WireError> {
         let GetHarnessOptions { harness, profile } = request;
+        self.refuse_installing(&harness)
+            .map_err(|error| wire(&error))?;
         let resolved = self
             .resolve(&harness, profile.as_ref())
             .map_err(|error| wire(&error))?;

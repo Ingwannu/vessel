@@ -3489,6 +3489,7 @@ dependencies = [
  "vessel-llm",
  "vessel-lsp",
  "vessel-mcp",
+ "vessel-proc",
  "vessel-proto",
  "vessel-relay",
  "vessel-rpc",

@@ -356,6 +356,8 @@ impl Method {
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent
             | Self::GetCatalogue
+            | Self::InstallAgent
+            | Self::ReadInstall
             | Self::RemoveAgent
             | Self::StopNode
             | Self::InviteDevice

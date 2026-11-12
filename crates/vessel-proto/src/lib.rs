@@ -72,9 +72,9 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId,
-    PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SessionId,
-    SubscriptionId, ToolCallId, TransferId, UploadId, WorktreeId,
+    AttachmentId, DeviceId, EventSeq, HarnessSessionId, InstallId, ModelId, NodeId, OptionId,
+    OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
+    RequestId, SessionId, SubscriptionId, ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

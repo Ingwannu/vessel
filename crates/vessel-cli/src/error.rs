@@ -127,6 +127,9 @@ pub(crate) enum CliError {
     /// Arguments that do not fit together.
     #[error("{0}")]
     Usage(&'static str),
+    /// An install on the node did not succeed (`vessel agents install`).
+    #[error("{0}")]
+    AgentInstall(String),
     /// An agent's text breaks its rule (`vessel agents add`).
     #[error(transparent)]
     AgentText(#[from] vessel_proto::agents::InvalidAgentText),

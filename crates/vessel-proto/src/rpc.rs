@@ -325,6 +325,10 @@ rpc_methods! {
     GetAgentStatus / agent_status / "agent.status" [Read, 11]: crate::agents::GetAgentStatus => Vec<crate::agents::AgentReadiness>;
     /// The ACP registry, as the node's copy (protocol 11).
     GetCatalogue / agent_catalogue / "agent.catalogue" [Read, 11]: crate::agents::GetCatalogue => crate::agents::Catalogue;
+    /// Run one of the four's documented installers (protocol 11).
+    InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
+    /// A page of an install's output (protocol 11).
+    ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
 }
 
 /// Result of a call.
