@@ -3357,3 +3357,431 @@ schema 12 if one is needed). Rust, wire, CLI.
    deduplicated, bounded and logged without their bodies. If the ADR
    finds this cannot be made safe within the track, it is described and
    left.
+
+## Track D: contract
+
+Protocol 11, this track's part of it (track G adds its own; "Wave 2:
+tracks" says the number is raised once). Written 2026-11-12 from the
+three references' source (agent-orchestrator's `service/automation` and
+`service/cue`, GOAT's `apps/server/src/scheduledTasks` and
+`mcp/launchWatch.ts`, Paseo's `server/schedule` and
+`agent/finish-subscriptions`) and from Vessel's wire as joined in wave 1.
+ADRs: 0033 (schedules, time, who a schedule acts as, the starter told),
+0034 (webhooks). Store: schema 13.
+
+### What the references do (read 2026-11-12)
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| Cadence | RRULE, or a cron narrowed to daily and weekly times, translated to RRULE (`rrule-go`); a time zone required | an interval (at least 60 s), a time of day with weekdays in the server's own zone, or a webhook | five-field cron written by hand, a time zone (UTC when left out); an interval kept for older files |
+| How it wakes | a 15 s ticker | a 5 s loop with a due hint | a 1 s `setInterval` reading every schedule's file |
+| Missed while down | up to 3 runs, the older dropped | one run; a time of day more than 10 min late is skipped | skipped at start; one run when a tick finds one overdue |
+| A run still going when due again | the next waits behind it (pending, up to the catch-up cap) | skipped | skipped; a busy target agent fails the run |
+| Count, expiry | none (`COUNT`, `UNTIL` refused) | none | `maxRuns`, `expiresAt` |
+| Run now | none | yes | yes |
+| History | every run, unpruned | the last firing | every run, unbounded |
+| Target | a new session in a project | a new thread, or a thread it posts into (queued) | a new agent, or an existing one (a heartbeat is a schedule targeting the caller) |
+| Who it acts as | nothing stored | the creator and a ceiling stored | nothing stored; a permission to manage |
+| Starter told | not found | launch-watch: queued after the active run, once per run, a reverse watch's own run ignored, 7-day expiry | finish subscriptions: steered into the active turn, batched 2 s, one per prompt; no loop guard |
+| Saved prompts | Cues: per project, in its database, 16 KiB, sent to a session or a new one | none | none |
+| Webhooks in | none | a token in the path, an optional HMAC over the body (no signed time), filters, dedupe by template, 60 a minute, a delivery log that keeps bodies | none |
+
+### Types (`vessel_proto::automation`, new module)
+
+Ids (`id.rs`, node-minted UUIDv4): `ScheduleId`, `SavedPromptId`,
+`HookId`. `RunNumber`: a schedule's run, counted from 1.
+
+Bounded values, parsed where a frame is decoded:
+
+- `ScheduleName`, `HookName`: trimmed, 1 to 80 characters, no control
+  character.
+- `PromptName`: trimmed, 1 to 64 characters, no control character.
+- `PromptText`: 1 to 16 KiB of UTF-8, not blank, no NUL (agent-orchestrator's
+  Cue bound). A schedule's, a saved prompt's and a hook's text.
+- `TimeZoneName`: an IANA name's shape: 1 to 64 bytes of ASCII letters,
+  digits, `/ _ - +`, no empty, `.` or `..` part. Whether the zone exists is
+  the node's to say (`invalid_request`, "unknown time zone").
+- `CronExpr`: five fields, minute (0-59), hour (0-23), day of the month
+  (1-31), month (1-12 or `JAN`-`DEC`), day of the week (0-7, 0 and 7
+  Sunday, or `SUN`-`SAT`); each a list of `*`, `n`, `a-b`, `*/s` or
+  `a-b/s` (no `a/s`, which crons read differently; no wrapping range); or
+  one of `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`,
+  `@yearly`, `@annually`. No seconds, no `L`, `W`, `#` or `?`. The days
+  follow Vixie cron: when both day fields are restricted (neither starts
+  with `*`), a day matching either runs; otherwise both must match. At
+  most 256 bytes; kept as written, with runs of white space made one.
+- `EverySeconds`: 60 to 31,622,400 (366 days). `MaxRuns`: 1 to 1,000,000.
+
+A schedule:
+
+- `Cadence` (tagged `kind`): `every { seconds, anchor? }` (elapsed time:
+  due at `anchor + k × seconds`, `k ≥ 1`, `anchor` the creation when left
+  out; a day is 86,400 s whatever the wall clock does), `cron { expr,
+  zone }` (wall-clock times in `zone`), `unknown` (a newer node's).
+- `ScheduleTarget` (tagged `kind`): `new_session { spec }` (a structured
+  `SessionSpec`, as `session.create` takes it: harness, profile, title,
+  place, model and options; a terminal one is `invalid_request`) or
+  `session { session }` (an existing structured session, reached through
+  its queue); `unknown`.
+- `CatchUp`: `once` (the default) or `skip`.
+- `ScheduleDefinition { name?, cadence, target, prompt, catch_up,
+  max_runs?, ends_at? }`: what a person writes; `schedule.create` takes
+  it, `schedule.update` replaces it whole.
+- `ScheduleState` (tagged `state`): `active { next_due }`, `paused {
+  since }`, `ended { at, reason }`; `EndReason`: `max_runs`, `expired`,
+  `creator_gone` (its device was revoked, its agent's session ended),
+  `target_gone` (the session, project or worktree it names was deleted),
+  `unknown`.
+- `ScheduleInfo { id, definition, state, runs, last_run?, created_by,
+  created_at, updated_at, revision }`: `runs` counts the runs that did
+  something (`started`, `prompted`, `finished`), which `max_runs` bounds;
+  `revision` changes at every change; `created_by` is ADR 0013's
+  `Creator`.
+
+A run:
+
+- `ScheduleRun { number, due_at, at, trigger, outcome }`; `due_at` the due
+  time it ran for (the latest, after a catch-up; the moment asked, for a
+  run now).
+- `RunTrigger` (tagged `trigger`): `due`, `caught_up { missed }` (`missed`
+  the due times it stood for, counted up to 1,000), `asked { by }`.
+- `RunOutcome` (tagged `outcome`):
+  - `started { session }`: a new session, its prompt sent, its first
+    turn under way; becomes `finished { session, end }` when that turn
+    ends or the session does, `end` (tagged `end`) `turn { reason }` (a
+    `StopReason`), `failed { message }`, `session { status }`.
+  - `prompted { session, delivered }`: the prompt went into an existing
+    session's queue (`Delivered`: `started` or `queued { entry }`).
+  - `skipped { reason }`, `SkipReason` (tagged `reason`):
+    `previous_running` (the previous run's session is still in its first
+    turn), `previous_waiting` (the previous run's prompt still waits in
+    the queue), `missed { count }` (due times passed while the node could
+    not run them, not caught up), `unknown`.
+  - `failed { error, session? }`: the call the run made, refused, as
+    `WireError` (its code typed, its message cut at 512 bytes).
+  - `unknown`.
+
+Saved prompts:
+
+- `SavedPrompt { id, name, text, project?, session?, created_by,
+  created_at, updated_at, revision }`: `project` absent is the machine's;
+  `session` a structured `SessionSpec`, what a session started from it
+  runs with. A name is unique within its project (or the machine's).
+
+The starter told:
+
+- `WatchSession { session, from }` (below). No reply type of its own.
+
+Webhooks (ADR 0034):
+
+- `HookDefinition { name?, target, prompt, enabled }` (`target` a
+  `ScheduleTarget`).
+- `HookInfo { id, definition, path, created_by, created_at, revision }`:
+  `path` is `/hooks/<id>` on the node's hook listener.
+- `HookSecret`: 32 random bytes, base64url; a secret type (redacted in
+  `Debug`), returned once.
+- `HookCreated { hook, secret }`.
+- `HookListener` (tagged `state`): `off` (the node was not started with a
+  hook listener), `listening { address }`, `failed { message }`.
+- `DeliveryKey`: the sender's `Vessel-Delivery` header, 1 to 128 visible
+  ASCII characters.
+- `HookDelivery { at, key?, bytes, outcome }`, `DeliveryOutcome` (tagged
+  `outcome`): `accepted { run }`, `duplicate`, `rate_limited`,
+  `rejected { why }` (`why`: `signature`, `stale`, `too_large`,
+  `disabled`), `failed { error }`, `unknown`. No body and no header is
+  kept.
+
+### Calls
+
+Every method is protocol 11, in `vessel-web`'s list, and forwardable
+through `fleet.forward`, where the rules under "Who may" apply to the
+delegated caller.
+
+| Method | Scope | Request | Reply |
+| --- | --- | --- | --- |
+| `schedule.list` | read | `ListSchedules {}` | `ScheduleList { schedules }` |
+| `schedule.get` | read | `GetSchedule { schedule }` | `ScheduleInfo` |
+| `schedule.create` | operate | `CreateSchedule { definition, paused }` | `ScheduleInfo` |
+| `schedule.update` | operate | `UpdateSchedule { schedule, revision, definition }` | `ScheduleInfo` |
+| `schedule.pause` | operate | `PauseSchedule { schedule }` | `ScheduleInfo` |
+| `schedule.resume` | operate | `ResumeSchedule { schedule }` | `ScheduleInfo` |
+| `schedule.run` | operate | `RunSchedule { schedule }` | `ScheduleRun` |
+| `schedule.delete` | operate | `DeleteSchedule { schedule }` | `Ack` |
+| `schedule.runs` | read | `ListRuns { schedule }` | `RunList { runs }` |
+| `prompt.list` | read | `ListPrompts { project? }` | `PromptList { prompts }` |
+| `prompt.create` | operate | `CreatePrompt { name, text, project?, session? }` | `SavedPrompt` |
+| `prompt.update` | operate | `UpdatePrompt { prompt, revision, name, text, session? }` | `SavedPrompt` |
+| `prompt.delete` | operate | `DeletePrompt { prompt }` | `Ack` |
+| `session.watch` | operate | `WatchSession { session, from }` | `Ack` |
+| `hook.list` | read | `ListHooks {}` | `HookList { listener, hooks }` |
+| `hook.create` | admin | `CreateHook { definition }` | `HookCreated` |
+| `hook.update` | admin | `UpdateHook { hook, revision, definition }` | `HookInfo` |
+| `hook.rotate` | admin | `RotateHook { hook }` | `HookCreated` |
+| `hook.delete` | admin | `DeleteHook { hook }` | `Ack` |
+| `hook.deliveries` | read | `ListDeliveries { hook }` | `DeliveryList { deliveries }` |
+
+**`schedule.create`**: the node checks the zone exists, that a cron has a
+due time within the next 8 years (`0 0 30 2 *` never does:
+`invalid_request`), that `ends_at` is in the future, and the target as it
+would at a run: a `new_session` spec is structured, its profile and its
+place exist (`not_found`); a `session` target exists and is structured
+(`not_found`, `unsupported`). `paused` makes it paused from the start.
+Failures: `invalid_request` (above; an agent's cadence or target outside
+its rules), `not_found`, `unsupported`, `forbidden` (below), `conflict`
+(the node has 256 schedules).
+
+**`schedule.update`**: replaces the definition; `conflict` when `revision`
+is not the current one, `not_found`, and `create`'s checks. A changed
+cadence (or zone) computes the next due time from the moment of the
+update, so a due time that has passed is not run (agent-orchestrator,
+Paseo); anything else keeps it. A run already under way finishes with
+what it started with. `runs` is kept, so lowering `max_runs` to or below
+it ends the schedule. An ended schedule cannot be updated (`conflict`).
+
+**`schedule.pause`** stops its runs; **`schedule.resume`** computes the
+next due time from now (a paused stretch is not caught up, as in all
+three). Both idempotent; `conflict` for an ended schedule.
+
+**`schedule.run`** runs it once now, outside its cadence, as its creator
+(below), and answers with the run's record once it has its outcome
+(`started`, `prompted`, `skipped`, `failed`). Its next due time does not
+move; it counts toward `max_runs` if it did something. Allowed while
+paused; `conflict` while one of its runs is still being made, and for an
+ended schedule.
+
+**`schedule.delete`**: gone with its runs; a session it started is not
+touched. **`schedule.runs`**: the newest 50, newest first.
+
+**`prompt.create`** / **`prompt.update`**: `conflict` for a name its
+project (or the machine) already has, or an old `revision`; `not_found`
+for an unknown project; `invalid_request` for a terminal `session` spec;
+`conflict` at 1,000 saved prompts. A prompt's project is fixed at
+creation. **`prompt.list`**: the machine's and every project's, or with
+`project` that project's and the machine's, by name. Removing a project
+does not remove its prompts (they name a project that is gone; a person
+deletes them).
+
+**`session.watch`** (the starter told; ADR 0033):
+
+- Only a session's agent calls it: an agent of this node, through its
+  credential (`invalid_request` for the owner and devices, who are told
+  by the page; `forbidden` for an agent of another node, whose session
+  this node cannot reach to tell). The session told is always the
+  caller's own, which must be structured (`unsupported`).
+- `session` must descend from the caller's session (ADR 0013's
+  ownership: `forbidden` otherwise) and be structured (`unsupported`);
+  not the caller's own (`invalid_request`). Notices therefore only ever
+  go up the tree of who started whom, which has no cycle: two sessions
+  cannot wake each other.
+- `from`: the record to look from (what `create_session` and `send_input`
+  return); past the session's end of log is `invalid_request`. What
+  happened at or after it already counts, so a watch armed after a fast
+  turn ended still tells.
+- It tells, each as a prompt queued into the caller's session
+  (`Delivery::Queue`: never steered into a running turn, never
+  interrupting one), at most once per event:
+  - `needs_you`, for each permission or question asked at or after
+    `from`, at most 8 per watch;
+  - then `finished` (the first turn end or failure at or after `from`) or
+    `ended` (the session's final status), after which the watch is over.
+- One watch per pair: a new one for the same session replaces the old
+  (Paseo's supersede). A watch also ends with either session. Nothing is
+  stored: no session outlives a node's restart.
+- The text, from the node, bounded:
+  `vessel: session "<title>" (<id>) finished its turn (end_turn).` and
+  the last 1,500 characters of that turn's reply, then how to read the
+  rest (`read_events` from the turn's first record); `... is waiting for
+  an answer: <the permission's title or the question's message>`;
+  `... ended (<status>).` A told session whose queue is full drops the
+  notice (logged on the node).
+
+**Hooks** (ADR 0034) are the last slice; the ADR decides whether the
+listener is built (below, "Webhooks").
+
+### Who a schedule acts as, and who may change it
+
+- A run acts as the schedule's creator **as that creator is when it
+  runs**: the owner; a device with its scopes now (revoked: the schedule
+  ends `creator_gone`); an agent whose session is still live, with its
+  grant (ended: `creator_gone`). A run goes through the same checks a
+  call of that creator would: the scope (`operate`), ADR 0013's
+  ownership and limits (8 live sessions, depth 3, scopes that only
+  shrink), ADR 0027's place rules (an agent's `cwd` inside the node's
+  data folder, a worktree it does not own). A refused run is
+  `failed { error }`; the schedule goes on.
+- An agent's schedules: at most 8 not ended per agent session; a
+  `new_session` target (its child) or a `session` target it owns, or its
+  own session (a heartbeat: the one exception to "an agent does not own
+  its own session", for a prompt through its own queue). Every schedule
+  an agent made ends (`creator_gone`) when its session ends, and at the
+  node's start, since no session survives a restart: a session cannot
+  use a schedule to outlive or outgrow what it was given.
+- A delegated caller (`fleet.forward`) may read, pause, resume, run and
+  delete, but not create or update (`forbidden`): what it is allowed
+  depends on the home's grant and on an agent on another node this node
+  cannot see, so it cannot be rebuilt when the schedule runs. The page
+  and the CLI reach each node directly.
+- The owner and devices with `operate` manage every schedule; an agent
+  only its own (`forbidden`). Saved prompts: agents may list them, not
+  create, update or delete (`forbidden`): a saved prompt is a person's
+  text, later sent by a person who may not read it again.
+
+### How a run goes
+
+1. The creator is rebuilt (above). A `session` target that was deleted,
+   or a `new_session` spec whose project or worktree was removed, ends
+   the schedule `target_gone`.
+2. Overlap: a `new_session` schedule whose previous run's session is
+   still live and in its first turn is `skipped { previous_running }`; a
+   `session` schedule whose previous prompt still waits in that queue is
+   `skipped { previous_waiting }` (so a slow agent never gathers a
+   backlog from one schedule; GOAT and Paseo skip too).
+3. `new_session`: `session.create`'s path with the spec, as the creator;
+   if the spec has no title the session takes the schedule's name, else
+   its prompt's first line; its log starts with `vessel: started by
+   schedule "<name>" (run <n>)`. The prompt goes once the agent is ready
+   (`queue`, which starts a turn on an idle session). `started`, then
+   followed to `finished`.
+4. `session`: `session.prompt { delivery: queue }` as the creator: a turn
+   starts on an idle session with nothing waiting; otherwise it waits its
+   turn, held if the queue is held. It never steers, interrupts or
+   answers a permission. `prompted`. An ended target session is
+   `failed { conflict }` (it may be started again).
+5. The queue entry's `by` is the creator. `runs` counts it; at
+   `max_runs` the schedule ends; a next due time past `ends_at` ends it
+   `expired`.
+
+### Time (ADR 0033)
+
+- **Zones**: the IANA database bundled with the node (`jiff`), the same
+  on every platform and in every test.
+- **A wall-clock time that does not exist** (clocks go forward over it)
+  runs once at the first instant after the gap: `30 2 * * *` in New York
+  on the spring night runs at 03:00 EDT; several times in one gap make
+  one run. **A time that happens twice** (clocks go back) runs once, the
+  first time. `every` counts elapsed seconds and knows no zone.
+- **Due times are instants.** A schedule keeps the due time of its last
+  run; the next is the first after it. The clock stepped back therefore
+  never runs a due time twice (the next waits for the clock to reach
+  it); the clock stepped forward over due times counts them as missed.
+- **Missed** (the node stopped, the machine slept, the clock jumped): one
+  run at most per schedule, however many were missed. With `once`, if
+  the latest missed time is less than 24 hours old, one run
+  (`caught_up { missed }`); otherwise, or with `skip`, one record
+  `skipped { missed }`. A due time noticed less than 60 s late is simply
+  `due`. The next due time is then the first after now.
+- **Two due at once** both run, in due order, then by id. At most 4 runs
+  are made at once on a node; the rest wait, oldest due first.
+- **The scheduler sleeps** until the earliest due time, at most 10
+  minutes at a time (so a clock stepped forward is noticed within 10
+  minutes), and is woken by every change. It keeps due times in an
+  ordered index: a wake looks at the first entry, never at every
+  schedule. With no active schedule it has no timer at all.
+
+### Webhooks (ADR 0034)
+
+- **Off unless configured**: the node opens a hook listener only when
+  started with one (`vesseld --hooks [ADDR]`, `vessel node start --hooks
+  [ADDR]`), on `127.0.0.1:7078` unless an address is given; another
+  address logs a warning, as `--bind` does. Hooks can be made without it;
+  `hook.list` says the listener is `off`.
+- **A request**: `POST /hooks/<id>` with `Vessel-Timestamp` (Unix
+  seconds), `Vessel-Signature: sha256=<hex>` (HMAC-SHA256 under the
+  hook's secret over `<timestamp>.<body>`), and optionally
+  `Vessel-Delivery: <key>`. Checked cheapest first: the method, the size
+  (64 KiB, by `Content-Length` and by a capped read: `413`), the
+  rejected-request budget (`429`), the hook (unknown or disabled: `404`,
+  the same answer), the timestamp (within 5 minutes: else `401`), the
+  signature in constant time (`401`), the key (or the signature) seen in
+  the last 24 hours (`200`, `duplicate`, nothing run), the accepted
+  budget (30 a minute per hook: `429`), then the run (`202`).
+- **The secret** is made by the node, returned by `hook.create` and
+  `hook.rotate` only, kept in an owner-only file under the node's data
+  folder (never in the database, never logged), compared in constant
+  time; rotating refuses the old one at once.
+- **What reaches the agent**: the hook's prompt, then a `vessel:` line
+  saying the request came from outside this machine and is data, not
+  instructions, then the body (UTF-8, cut at 16 KiB; otherwise only its
+  size) between `<vessel-hook-data-<random>>` tags whose random part the
+  sender cannot know, so the body cannot close them. A hook's run is a
+  schedule's run in every other way (who it acts as, its target, its
+  record in `hook.deliveries`).
+- **The log**: every delivery that passed the signature, and rejected
+  ones at most 10 a minute per hook; time, key, size and outcome only.
+- If ADR 0034 finds a part of this cannot be made safe in the track, the
+  listener is not built and the ADR says what is missing.
+
+### Events
+
+None. A scheduled prompt and a notice are prompts: they appear as
+`queue_changed` and `turn_started`, as any prompt does, with the
+creator as the entry's `by`. A page reads `schedule.list` and
+`schedule.runs` again when it wants the newest (no subscription in this
+track).
+
+### Old clients, old nodes
+
+- `PROTOCOL_VERSION` is 11; nothing else on that line changes. A client
+  asks no protocol 11 method of a node that speaks 10 or less
+  (`NotInProtocol`, before sending), and a node refuses one on an older
+  connection.
+- A protocol 2-10 client reading a protocol 11 node sees a scheduled
+  session as a session its creator made, a scheduled prompt and a notice
+  as prompts in the queue. No shared type gains a field, so no stand-in
+  is needed.
+
+### Bounds
+
+| What | Bound | Beyond it |
+| --- | --- | --- |
+| Schedules on a node (any state) | 256 | `conflict` |
+| Schedules an agent session has, not ended | 8 | `forbidden` |
+| How often | `every` at least 60 s; a cron at most once a minute | `invalid_request` |
+| A cron with no due time | none within 8 years | `invalid_request` |
+| Runs being made at once | 4 per node | wait, oldest due first |
+| Runs kept | 50 per schedule | the oldest dropped |
+| Catch-up | one run per schedule, for a time missed by less than 24 h | `skipped { missed }` |
+| A prompt (schedule, saved, hook) | 16 KiB | `invalid_request` |
+| Saved prompts | 1,000 per node; a name 64 characters | `conflict`; `invalid_request` |
+| Watches | 256 per node, 32 per told session, one per pair; 8 `needs_you` per watch | `conflict`; not told (logged) |
+| A notice's excerpt | the last 1,500 characters of the reply | cut |
+| A failed run's message | 512 bytes | cut |
+| Hooks | 64 per node | `conflict` |
+| A hook's body | 64 KiB read, 16 KiB given to the agent | `413`; cut |
+| A hook's deliveries | 30 accepted a minute; 60 rejected a minute per hook; 100 kept | `429`; not logged; the oldest dropped |
+| Delivery keys remembered | 24 hours, 1,024 per hook | the oldest forgotten |
+| The scheduler's sleep | until the earliest due time, at most 10 minutes | wakes and looks again |
+
+### The CLI and the agent tools
+
+- `vessel schedule list|show|runs|create|edit|pause|resume|run|delete`:
+  `create --every 30m | --cron "0 9 * * 1-5" [--tz ZONE]` (the zone this
+  machine is in when left out), the target `--session ID` or a new
+  session's `--harness`, `--profile`, `--project`/`--worktree`,
+  `--model`, the prompt `--prompt TEXT | --prompt-file FILE`, and
+  `--name`, `--max-runs`, `--ends-at`, `--catch-up`, `--paused`; `edit`
+  reads the schedule, changes what it is told and sends it back with its
+  revision.
+- `vessel prompt list|show|save|delete|run`: `save NAME (--text | --file)
+  [--project]` creates or replaces; `run NAME --session ID` queues its
+  text, `run NAME --new` starts a session with its `session` (in its
+  project when the spec names no place) and sends it.
+- Agent tools (`vessel mcp`), on the agent's own node only:
+  `create_session` and `send_input` gain `notify` (default false: an
+  agent that will call `wait_turn` does not want a second report);
+  `watch_session`; `create_schedule`, `create_heartbeat` (the target is
+  the caller's own session), `list_schedules`, `schedule_runs`,
+  `pause_schedule`, `resume_schedule`, `run_schedule`,
+  `delete_schedule`; `list_saved_prompts`. No hook tool: hooks need
+  `admin`, which an agent never has.
+
+### Store and numbers
+
+- Schema 13 (given out in "Wave 2: tracks"; 10 to 12 are tracks B2, C
+  and G's, empty on this branch until they are joined): `schedules` (id,
+  created_at, the info as JSON, the last due time), `schedule_runs`
+  (schedule, number, the run as JSON; deleted with their schedule),
+  `saved_prompts` (id, scope: the project or `''`, name, unique per
+  scope), `hooks`, `hook_deliveries`, `hook_keys`. Hook secrets are files
+  (`hooks/<id>.key`, owner-only), not rows.
+- ADRs 0033 and 0034.
