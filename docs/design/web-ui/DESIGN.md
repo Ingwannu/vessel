@@ -1218,9 +1218,10 @@ approval (§6.7):
   dock, `queue-dock.tsx`): over the box, 16px narrower on each side, 8px
   above it, radius 20; a 32px head "2 Queued Messages" (12px medium,
   muted) with a chevron that folds it; a 40px row per prompt, a hollow
-  12px circle and its first line, its files' count, then Steer (where the
-  agent takes it), Edit, Delete and a grip, at most five rows before it
-  scrolls. The grip moves a row by drag (a 2px line shows where it will
+  12px circle and its first line, its files' count, then Steer (Send now
+  where the agent cannot steer: between turns it starts the next turn,
+  during one it interrupts it), Edit, Delete and a grip, at most five
+  rows before it scrolls. The grip moves a row by drag (a 2px line shows where it will
   land, GOAT's) or by Up and Down. Edit opens the prompt in the box with
   "Editing queued message" and "Cancel edit" over the text; saving sends
   `edit` with the revision the row had, so an edit that crossed another
