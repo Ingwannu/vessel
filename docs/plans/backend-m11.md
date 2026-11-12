@@ -365,6 +365,10 @@ book, typed and versioned, and builds on it.
 
 ### Wave 2 (after wave 1's wire is merged)
 
+Written out, with its two halves and the numbers each track takes, in
+"Wave 2: tracks" at the end of this plan; this list is the outline it
+was written from.
+
 - **A-page**, **B-page**: the screens for tracks A and B, taken from the
   references as milestone 10's were: the queue above the composer, the
   attachment tray, `/` and `@` menus, questions, the context meter; the
@@ -3075,3 +3079,210 @@ reproduced, not explained.
   log's are alike); the outline's jump with thousands of prompts.
 - The first entry drawn about 50 ms later than track P alone, in every
   pair: the session screen mounts more; not separated further.
+
+## Wave 1 joined (2026-11-12)
+
+The node's integration (`backend/m11-int-node`) and the page's
+(`backend/m11-int-web`) were merged into `backend/m11` by the
+coordinator, in that order.
+
+**What conflicted in text** (seven files): this plan, `README.md`,
+`docs/ARCHITECTURE.md`, `docs/PROTOCOL.md` (each side had added to the
+same place; every section kept, in the order contracts, progress,
+integrations), `crates/vessel-session/Cargo.toml` (the benches' `serde_json`
+was already a dependency for the queue's bound), and the timeline's
+reducer and model (the conversation's state and the id indexes both
+kept).
+
+**What did not conflict in text and was still wrong together**, each
+found by a check and not by reading:
+
+- The generator's test listed 27 primitive aliases of protocol 10 in no
+  class. Classified in `ts/aliases.rs` by its rule: handles are the ids
+  the node mints, the two hashes the page only hands back, a question's
+  field name and the page's search key; a commit id stays plain because
+  a person may type an abbreviated one; a project's command line is
+  content.
+- Two types named `Conversation`: the protocol's (a session's queue,
+  commands and questions) and the bridge's preference (how tool calls
+  are shown). The bridge's is `ConversationDisplay`; its field and its
+  change's tag keep their names, so a preferences file written before
+  reads the same.
+- The compiler found the speed track's load test and one agent test
+  written against the wire as it was before protocol 10: a turn's
+  `usage`, a cancel's `turn`, three new session events in an exhaustive
+  match.
+- The lint found the reducer one line over its budget once both sides
+  were in it; joining text chunks moved to the model module, where what
+  an entry is already lives.
+
+**Found by looking at the captures**, fixed on the page's integration
+branch before the merge: a tool call's card sat in a second box. The
+timeline's row and the card shared the class name `tool`, so the row
+drew the card's border again around it (since milestone 10). The card is
+`tool-card`, and an end-to-end test holds the row to no border.
+
+**The gate on the merged tree** (`79de0d3`):
+
+| Step | Result |
+| --- | --- |
+| `cargo fmt --all --check` | clean |
+| `cargo clippy --workspace --all-targets -- -D warnings` | clean |
+| `cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets -- -D warnings` | clean |
+| `cargo test --workspace --no-fail-fast` | 95 suites, 1,339 passed, 0 failed, 9 ignored |
+| the wire's TypeScript, regenerated | no difference |
+| `npm run lint`, `typecheck` | clean, no file over its budget |
+| `npm run test` | 236 passed |
+| `npm run build` | 13 files, 1,359 KiB, 338 KiB as brotli |
+| `npm run e2e` | 36 passed |
+
+**Open, carried into wave 2**:
+
+- From the node integration's review (its section lists all nineteen
+  findings): a project folder's own `.git/config` can name programs git
+  runs; a `.git` directory or a bare repository is accepted as a
+  project's root; a short gap between checking a place and starting a
+  session in it; clones share the slots of other git runs. Track B2,
+  with an ADR.
+- Not verified on this machine: Windows and macOS (the node tracks list
+  what only CI can confirm), Firefox and Safari, a real remote for a
+  clone (a loopback HTTP server stands in), a real agent's turn (a turn
+  costs money; the fakes are free).
+- Protocol 10 has no screen yet beyond what wave 1's page track drew
+  from protocol 9. Tracks A-page and B-page.
+- The session list is still polled every two seconds; a subscription is
+  a call of its own (the speed track's note), not scheduled.
+
+## Wave 2: tracks (written 2026-11-12, after wave 1 was joined)
+
+Wave 1 left the node able to do things no screen shows, three board lanes
+that nothing fills, and a review's open points. Wave 2 is in two halves
+because four workers at once is what there is room for. Each half is two
+page tracks or two node tracks beside two of the other kind; a half's
+tracks are joined (as wave 1's were: the node tracks together, the page
+tracks together, then the two) before the next half starts from the
+result.
+
+The rules of wave 1 hold ("Rules for every feature track"), with these
+added from what wave 1 taught:
+
+- **Protocol 11 is wave 2's.** One number for the whole wave, raised once.
+- **Numbers are given out here, not taken**: ADRs and store schemas are in
+  each track's entry below. A track that needs one more asks.
+- **Every commit passes the whole gate**, the end-to-end tests included,
+  not only the crate it touches (wave 1's node integration has a stretch
+  of commits where seven end-to-end tests fail, found only at the end).
+- **A file that passes the budget is divided in the track that grew it**,
+  not left for the join.
+- **Every primitive alias a track adds to the wire is classified** in
+  `crates/vessel-proto/src/ts/aliases.rs` in the commit that adds it; the
+  generator's test fails otherwise.
+- **A page track is judged by looking** (milestone 10's rule): captures
+  beside the references' screens, light, dark and at 390px, before it
+  reports.
+
+### Half 1
+
+**Track A-page: the conversation on the page** (`backend/m11-a-page`).
+Everything protocol 10's conversation can do, in the session's page and
+the new-session page, taken from the three references' composers:
+
+1. The queue above the composer: each waiting prompt, edit, move, remove,
+   send now; held, and why, with resume. The send button's choice while a
+   turn runs (queue, steer, interrupt), offering steer only where
+   `abilities.steer` says so, and the default kept in preferences.
+2. Attachments: paste, drop and pick; a tray of what is attached with
+   progress and failure per file; images shown in the prompt they went
+   with; offered by `abilities` and bounded by `limits` before anything
+   is uploaded.
+3. `/` and `@`: one suggestion menu in the composer; `/` lists the
+   agent's commands (`commands_changed`), `@` finds files of the
+   session's project (`file.find`, one search key per field, the
+   previous search replaced). Where the session has no project, `@` says
+   so instead of offering nothing.
+4. Questions the agent asks, as a form over the composer in the place
+   the permission dock has, each field by its kind, declined or answered.
+5. The context meter beside the model, with what it counts on hover; a
+   turn's tokens in the timeline's turn line.
+6. A session's own actions: pin, archive, bring back, start again
+   (`session.resume`, and what it says when the agent cannot), delete
+   (and what became of its worktree), unread marks in the sidebar and on
+   the board; the board's archive showing archived sessions, and ended
+   ones staying in their lane.
+7. Left over from wave 1's captures: a machine's sessions in the sidebar
+   are not set in from the machine's own row, so the two read as one
+   list.
+
+**Track B-page: code on the page** (`backend/m11-b-page`). Projects,
+worktrees, git and files, from the references' workspace screens:
+
+1. Projects: a list (the sidebar's group and a Settings section), add a
+   folder, clone with progress, start new; a project's commands shown to
+   be approved, with what changed since the last approval.
+2. Where a session runs, on the new-session page: the folder as it is, a
+   new worktree from a base branch, or an existing branch; setup's output
+   as it runs; the session's branch on its card, its row and its page.
+3. A panel beside the conversation (the inspector's place, as tabs with
+   the summary): Changes (working, staged, everything since the base;
+   per file, typed hunks, added and removed counts), Files (the tree,
+   open by name, search in files, a viewer, an editor with the content
+   hash as the guard against overwriting), and git's actions (stage,
+   commit, push, pull, branch, stash, discard) with each typed failure
+   said plainly.
+4. A selection in a diff or a file sent to the composer as a reference.
+5. Removing a worktree that would lose work: what would be lost, and the
+   choice to snapshot or discard.
+
+**Track B2: pull requests** (`backend/m11-forge`; ADRs 0029 and 0030,
+schema 10). Rust, wire, CLI, agent tools.
+
+1. A forge behind one trait; GitHub first, through the machine's own
+   `gh` or a token the machine already holds (decided in ADR 0029 after
+   reading how each reference authenticates; Vessel stores no forge
+   token of its own unless the ADR finds it must).
+2. Open a pull request from a session's branch; read one (draft, checks,
+   reviews, mergeable, merged or closed); merge one (the method given,
+   the head it was looked at given, so a push in between refuses).
+3. The node watches the pull requests of its live sessions, bounded and
+   backing off, and their facts become the session's board placement:
+   the three lanes ADR 0019 left empty are filled by the reducer already
+   ported for them.
+4. Failing checks, requested changes and unresolved comments sent to the
+   session that owns the branch, once per distinct event, off by
+   default per session.
+5. From wave 1's review, with ADR 0030: git never takes configuration a
+   repository's own folder supplies as a reason to run a program
+   (`core.fsmonitor`, `core.sshCommand`, external diff and the like in a
+   project's `.git/config`), a folder that is itself a `.git` directory
+   or a bare repository is refused as a project, the gap between
+   checking a place and starting a session in it is closed, and clones
+   have slots of their own.
+
+**Track C: shells and scripts** (`backend/m11-shells`; ADR 0031, schema
+11). Rust, wire, CLI, agent tools.
+
+1. Shell terminals beside a session or in a project, with no agent:
+   created, listed, renamed, ended, their output read back; they outlive
+   the page and are ended with their session's deletion.
+2. A project's named scripts (the file shaped in wave 1 gains them):
+   run, stop, restart, their output; a script that is a service, kept
+   running, restarted on failure within a bound.
+3. The ports a session's or a script's processes listen on, found and
+   reported; a port offered to the page only through the bridge, never
+   by opening it to the network.
+4. Agent tools for terminals: create, read, type, end, within what an
+   agent may already do.
+5. A script is a repository's command: it runs under the approval of ADR
+   0027, the same digest covering it.
+
+### Half 2 (after half 1 is joined)
+
+- **C-page**: shell tabs, the script runner, a preview panel for a
+  reported port. **B2-page**: the pull request on a session's page and
+  card, a pull requests page.
+- **D**: schedules, the recurring prompt, saved prompts, webhooks; the
+  starter told when its session finishes. **E**: one inbox, push.
+  **G**: any ACP agent, the registry, install and sign-in. Their pages
+  with them or after, decided when half 1 is in.
+- **A2**: rewind, fork, import from the agent's history, search across
+  sessions, parking idle agents.
