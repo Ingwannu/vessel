@@ -4,7 +4,13 @@
 // worktree is made and set up, `start-worktree.ts`), and what the page
 // shows meanwhile (the approval, setup's output, a refusal).
 
-import { type ReactNode, useCallback, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { createSession } from "../../data/calls";
@@ -19,7 +25,10 @@ import {
   projectPlace,
 } from "../../data/workspace/place";
 import { projectIn, useProjects } from "../../data/workspace/project-store";
-import { wantedPlace } from "../../data/workspace/wanted-place";
+import {
+  type WantedPlace,
+  wantedPlace,
+} from "../../data/workspace/wanted-place";
 import { Spinner } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { SessionInfo, SessionSpec } from "../../wire/proto";
@@ -61,23 +70,43 @@ export function useStarter(machine: NodeKey | null): Starter {
     machine === null ? "" : labelOf(state, machine),
   );
   const projects = useProjects(fleet, machine);
-  // A place is a machine's: another machine starts from no project.
-  const [held, setHeld] = useState<{ machine: NodeKey | null; place: Place }>({
-    machine,
-    place: NO_PLACE,
-  });
-  // A project asked for from the sidebar, until the person chooses.
+  // A project asked for from the sidebar's "+", until the person chooses
+  // (or leaves the page: it is not asked for again next time).
   const wanted = useStore(wantedPlace, (value) => value);
+  useEffect(
+    () => () => {
+      wantedPlace.set(null);
+    },
+    [],
+  );
+  // A place is a machine's: another machine starts from no project. A
+  // project asked for from the sidebar (a new `wanted`, compared by
+  // identity: each "+" sets a new one) wins over what was held, even
+  // while the page is already open.
+  const [held, setHeld] = useState<{
+    machine: NodeKey | null;
+    place: Place;
+    wanted: WantedPlace | null;
+  }>({ machine, place: NO_PLACE, wanted: null });
   const place =
-    held.machine === machine
-      ? held.place
-      : wanted !== null && wanted.node === machine
-        ? projectPlace(wanted.project)
+    wanted !== null && wanted !== held.wanted && wanted.node === machine
+      ? projectPlace(wanted.project)
+      : held.machine === machine
+        ? held.place
         : NO_PLACE;
   const [step, setStep] = useState<Step>({ kind: "idle" });
   // Who waits on the person's answer to the question on screen: the
   // dialog's and the card's buttons answer it.
   const [asking, setAsking] = useState<Asking>(NOT_ASKING);
+  // The worktree being made: aborted when the page goes away or another
+  // place is chosen, so no session starts that nobody waits for.
+  const running = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      running.current?.abort();
+    },
+    [],
+  );
 
   const project =
     place.kind === "project" ? projectIn(projects, place.project) : null;
@@ -95,7 +124,9 @@ export function useStarter(machine: NodeKey | null): Starter {
         return null;
       }
       setStep({ kind: "idle" });
-      wantedPlace.set(null);
+      // The place sent is the one held from now on (a sidebar's request
+      // taken, not asked again).
+      setHeld({ machine, place, wanted });
       const part = placeSpec(place);
       if (part !== null) {
         return createSession(fleet, machine, {
@@ -107,17 +138,41 @@ export function useStarter(machine: NodeKey | null): Starter {
       if (place.kind !== "project") {
         return null;
       }
-      const made = await makeWorktree(fleet, machine, place, {
-        show: setStep,
-        approve: () =>
-          new Promise<Approval>((resolve) => {
-            setAsking({ approval: resolve, failure: null });
-          }),
-        failed: () =>
-          new Promise<Failure>((resolve) => {
-            setAsking({ approval: null, failure: resolve });
-          }),
-      });
+      running.current?.abort();
+      const controller = new AbortController();
+      running.current = controller;
+      const { signal } = controller;
+      const made = await makeWorktree(
+        fleet,
+        machine,
+        place,
+        {
+          show: (shown) => {
+            if (!signal.aborted) {
+              setStep(shown);
+            }
+          },
+          approve: () =>
+            new Promise<Approval>((resolve) => {
+              signal.addEventListener("abort", () => {
+                resolve("cancel");
+              });
+              setAsking({ approval: resolve, failure: null });
+            }),
+          failed: () =>
+            new Promise<Failure>((resolve) => {
+              signal.addEventListener("abort", () => {
+                resolve("stop");
+              });
+              setAsking({ approval: null, failure: resolve });
+            }),
+        },
+        signal,
+      );
+      if (signal.aborted) {
+        return null;
+      }
+      running.current = null;
       switch (made.kind) {
         case "stopped":
           return null;
@@ -132,7 +187,7 @@ export function useStarter(machine: NodeKey | null): Starter {
           });
       }
     },
-    [fleet, machine, place],
+    [fleet, machine, place, wanted],
   );
 
   const approve = (choice: Approval) => () => {
@@ -181,8 +236,11 @@ export function useStarter(machine: NodeKey | null): Starter {
   return {
     place,
     setPlace: (next) => {
+      running.current?.abort();
+      running.current = null;
+      setAsking(NOT_ASKING);
       setStep({ kind: "idle" });
-      setHeld({ machine, place: next });
+      setHeld({ machine, place: next, wanted });
     },
     ready,
     create,

@@ -25,6 +25,7 @@ import type { ProjectId, ProjectInfo, ProjectList } from "../../wire/proto";
 import type { Fleet } from "../fleet";
 import type { Problem } from "../outcome";
 import { Store, useStore } from "../store";
+import { quiet } from "./pace";
 import { listProjects, readProject } from "./projects";
 
 /** What the page knows of a machine's projects. */
@@ -77,6 +78,7 @@ async function follow(fleet: Fleet, node: NodeKey, project: ProjectInfo) {
   let revision = project.revision;
   try {
     for (;;) {
+      const asked = performance.now();
       const read = await readProject(fleet, node, project.id, revision);
       if (!read.ok) {
         return;
@@ -84,6 +86,10 @@ async function follow(fleet: Fleet, node: NodeKey, project: ProjectInfo) {
       replace(node, read.value);
       if (read.value.state.state !== "cloning") {
         return;
+      }
+      if (read.value.revision === revision) {
+        // Answered without waiting, with nothing new (pace.ts).
+        await quiet(asked, null);
       }
       revision = read.value.revision;
     }
