@@ -1,6 +1,6 @@
 //! Protocol 10 over the wire (milestone 11, track B, ADR 0027): a project,
 //! a worktree, and a session started in it, as the owner and as an agent,
-//! who gets only what orchestration needs.
+//! who gets only what orchestration needs; a repository cloned.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -8,13 +8,14 @@ use std::process::Command;
 use vessel_client::NodeClient;
 use vessel_harness::Lookup;
 use vessel_proto::workspace::{
-    AddProject, ApproveCommands, CreateWorktree, CreateWorktreeOutcome, GetStatus, ListProjects,
-    ReadFile, SessionPlace, SetupChoice, WorkspaceRoot, WorktreeBranch, WorktreeInfo,
+    AddProject, ApproveCommands, CloneProject, CreateWorktree, CreateWorktreeOutcome, GetProject,
+    GetStatus, ListProjects, ProjectState, ReadFile, SessionPlace, SetupChoice, WorkspaceRoot,
+    WorktreeBranch, WorktreeInfo,
 };
 use vessel_proto::{ErrorCode, HarnessKind, ProjectId, SessionSpec};
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
-use crate::support::{Fixture, terminal_spec, within};
+use crate::support::{Fixture, step, terminal_spec, within};
 
 /// A repository with one commit, made with the machine's git and a fixed
 /// identity.
@@ -225,6 +226,156 @@ async fn an_agent_gets_projects_and_worktrees_and_nothing_else() {
         );
         agent.kill(started.id).await.unwrap();
         owner.kill(first.id).await.unwrap();
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A bare copy of a one-commit repository, ready for git's "dumb" HTTP
+/// transport (`update-server-info`), in `dir/app.git`.
+fn served_repository(dir: &Path) -> PathBuf {
+    let work = dir.join("work");
+    std::fs::create_dir(&work).unwrap();
+    repository(&work);
+    let bare = dir.join("app.git");
+    let git = |args: &[&str]| {
+        let status = Command::new("git").args(args).status().unwrap();
+        assert!(status.success(), "git {args:?}");
+    };
+    git(&[
+        "clone",
+        "-q",
+        "--bare",
+        &work.display().to_string(),
+        &bare.display().to_string(),
+    ]);
+    git(&["-C", &bare.display().to_string(), "update-server-info"]);
+    bare
+}
+
+/// Serve `root`'s files over plain HTTP on loopback, one request per
+/// connection, until the test ends: git's dumb HTTP transport needs only
+/// files. A path that climbs is not found.
+async fn serve_files(root: PathBuf) -> std::net::SocketAddr {
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    drop(tokio::spawn(async move {
+        while let Ok((mut stream, _)) = listener.accept().await {
+            let root = root.clone();
+            drop(tokio::spawn(async move {
+                let mut request = Vec::new();
+                let mut piece = [0_u8; 1024];
+                while !request.windows(4).any(|end| end == b"\r\n\r\n") {
+                    let Ok(read) = stream.read(&mut piece).await else {
+                        return;
+                    };
+                    if read == 0 {
+                        return;
+                    }
+                    request.extend_from_slice(&piece[..read]);
+                }
+                let request = String::from_utf8_lossy(&request);
+                let path = request
+                    .split(' ')
+                    .nth(1)
+                    .unwrap_or("/")
+                    .split('?')
+                    .next()
+                    .unwrap_or("/")
+                    .trim_start_matches('/');
+                let file = (!path.split('/').any(|part| part == ".."))
+                    .then(|| root.join(path))
+                    .and_then(|file| std::fs::read(file).ok());
+                let reply = match file {
+                    Some(body) => {
+                        let mut reply = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                            body.len()
+                        )
+                        .into_bytes();
+                        reply.extend_from_slice(&body);
+                        reply
+                    }
+                    None => {
+                        b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                            .to_vec()
+                    }
+                };
+                let _sent = stream.write_all(&reply).await;
+                let _closed = stream.shutdown().await;
+            }));
+        }
+    }));
+    address
+}
+
+/// A clone that succeeds (track B could test only failing ones): over
+/// HTTP from a repository served on loopback, since a clone URL is never
+/// a local path or `file://`, not even for a test. The project answers
+/// `cloning` at once, then becomes `ready` in its folder, with the
+/// repository's files and no temporary folder left beside it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_repository_is_cloned_into_a_project() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture
+            .start_with(|config| config.harness_lookup = lookup(&fixture))
+            .await;
+        let owner = fixture.connect(&node).await;
+        let served = tempfile::tempdir().unwrap();
+        let bare = served_repository(served.path());
+        let address = serve_files(served.path().to_path_buf()).await;
+        assert!(bare.join("info").join("refs").exists());
+        let parent = tempfile::tempdir().unwrap();
+        let parent = std::fs::canonicalize(parent.path()).unwrap();
+
+        let url = format!("http://{address}/app.git").parse().unwrap();
+        let mut project = owner
+            .call(CloneProject {
+                url,
+                parent: parent.clone(),
+                folder: None,
+                name: None,
+            })
+            .await
+            .unwrap();
+        assert_eq!(project.root, parent.join("app"));
+        while matches!(project.state, ProjectState::Cloning { .. }) {
+            project = step(
+                "the clone's next state",
+                owner.call(GetProject {
+                    project: project.id,
+                    changed_from: Some(project.revision),
+                }),
+            )
+            .await
+            .unwrap();
+        }
+        assert_eq!(project.state, ProjectState::Ready, "{project:?}");
+        assert_eq!(
+            std::fs::read_to_string(project.root.join("README.md")).unwrap(),
+            "hello\n"
+        );
+        let left: Vec<_> = std::fs::read_dir(&parent)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(
+            left,
+            [std::ffi::OsString::from("app")],
+            "no temporary folder"
+        );
+        let status = owner
+            .call(GetStatus {
+                root: WorkspaceRoot::Project {
+                    project: project.id,
+                },
+            })
+            .await
+            .unwrap();
+        assert!(status.files.is_empty(), "{status:?}");
         node.stop().await.unwrap();
     })
     .await;
