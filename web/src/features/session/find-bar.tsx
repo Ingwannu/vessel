@@ -2,8 +2,9 @@
 // the conversation's top right: a search field with the count inside it,
 // then previous, next and close. Enter goes to the next match, Shift+Enter
 // to the previous, Escape closes and gives focus back; matching wraps and
-// says so. What matches is `data/find.ts`'s, over the session's model;
-// putting a match on screen is the timeline's (`reveal.ts`).
+// says so. What matches is `data/find.ts`'s, over the session's model,
+// searched when `use-search.ts` says; putting a match on screen is the
+// timeline's (`reveal.ts`).
 
 import "./find-bar.css";
 
@@ -12,20 +13,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   countSpoken,
   countText,
-  findInSlices,
   type Match,
   MAX_QUERY,
   step,
 } from "../../data/find";
 import type { Entry } from "../../data/timeline-model";
 import { IconButton, TextField, Tooltip } from "../../ui/kit";
-
-/** How long typing settles before a search (GOAT's 100 ms). */
-const SETTLE_MS = 100;
-
-/** How long a growing conversation settles before the search is run
- * again (GOAT's live refresh). */
-const REFRESH_MS = 300;
+import { useSearch } from "./use-search";
 
 export function FindBar({
   entries,
@@ -41,25 +35,18 @@ export function FindBar({
   focusRequest: number;
 }) {
   const [query, setQuery] = useState("");
-  // The matches and the query they were found for: the field can be
-  // ahead of them while a search runs.
-  const [found, setFound] = useState<{
-    query: string;
-    matches: readonly Match[];
-  }>({ query: "", matches: [] });
-  const matches = found.matches;
-  const [index, setIndex] = useState(0);
+  const { searched, searching } = useSearch(entries, query);
+  const matches = searched.matches;
+  // The current match: a new query starts at its first (the field's
+  // change sets 0); a refresh of the same query keeps the place, clamped.
+  const [chosen, setChosen] = useState(0);
+  const index = Math.min(chosen, Math.max(0, matches.length - 1));
   // Every press of Enter, previous or next: the same match asked for again
   // is gone to again (the reader may have scrolled away from it).
   const [asked, setAsked] = useState(0);
-  const [searching, setSearching] = useState(false);
   const [said, setSaid] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const before = useRef<Element | null>(null);
-  const searched = useRef<{ query: string; entries: readonly Entry[] }>({
-    query: "",
-    entries: [],
-  });
 
   useEffect(() => {
     before.current ??= document.activeElement;
@@ -67,40 +54,14 @@ export function FindBar({
     input.current?.select();
   }, [focusRequest]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const sameQuery = searched.current.query === query;
-    const wait = sameQuery ? REFRESH_MS : SETTLE_MS;
-    const timer = setTimeout(() => {
-      setSearching(true);
-      void findInSlices(entries, query, () => cancelled).then((result) => {
-        if (result === null || cancelled) {
-          return;
-        }
-        searched.current = { query, entries };
-        setSearching(false);
-        setFound({ query, matches: result });
-        // A new query starts at its first match; a refresh of the same
-        // query keeps the place, clamped.
-        setIndex((current) =>
-          sameQuery ? Math.min(current, Math.max(0, result.length - 1)) : 0,
-        );
-      });
-    }, wait);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [entries, query]);
-
   // The match to show, by what it is rather than by its object: a search
-  // run again as the session grows (REFRESH_MS) finds the same match as a
+  // run again as the session grows (use-search.ts) finds the same match as a
   // new object, and must not take the reader back to it each time.
   const key = matches[index]?.key ?? null;
   const nth = matches[index]?.nth ?? 0;
   useEffect(() => {
-    onReveal(key === null ? null : { key, nth }, found.query);
-  }, [key, nth, found.query, asked, onReveal]);
+    onReveal(key === null ? null : { key, nth }, searched.query);
+  }, [key, nth, searched.query, asked, onReveal]);
 
   const close = () => {
     onClose();
@@ -110,7 +71,7 @@ export function FindBar({
   };
   const move = (by: 1 | -1) => {
     const next = step(matches.length, index, by);
-    setIndex(next.index);
+    setChosen(next.index);
     setAsked((count) => count + 1);
     setSaid(
       next.wrapped
@@ -132,6 +93,7 @@ export function FindBar({
         value={query}
         onChange={(text) => {
           setQuery(text.slice(0, MAX_QUERY));
+          setChosen(0);
         }}
         inputRef={input}
         onKeyDown={(event) => {
