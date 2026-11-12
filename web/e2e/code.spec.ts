@@ -106,7 +106,7 @@ test("the Changes tab lists the work, stages it, and says a refusal plainly", as
   await page.keyboard.press("Escape");
 });
 
-test("an edit saved after the file changed on disk shows both sides and overwrites nothing", async ({
+test("an edit is saved, and one saved after the file changed on disk shows both sides and overwrites nothing", async ({
   page,
 }) => {
   const env = loadEnv();
@@ -120,11 +120,19 @@ test("an edit saved after the file changed on disk shows both sides and overwrit
     .getByRole("button", { name: /tax\.ts/ })
     .click();
   await expect(page.locator(".f-line").first()).toContainText("RATE");
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const file = join(env.root, "repos", "shop", "src", "tax.ts");
   const editor = page.getByRole("textbox", { name: "Edit src/tax.ts" });
+  // A file nobody else touched is written, though the page cannot hold
+  // its time to the nanosecond.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await editor.fill("export const RATE = 0.21;\n");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.locator(".f-line").first()).toContainText("0.21");
+  expect(readFileSync(file, "utf8")).toBe("export const RATE = 0.21;\n");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await editor.fill("export const RATE = 0.2;\n");
   // Meanwhile, someone else changes it on disk.
-  const file = join(env.root, "repos", "shop", "src", "tax.ts");
   writeFileSync(file, "export const RATE = 0.25; // from elsewhere\n");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("alert")).toContainText("File changed on disk.");
@@ -171,7 +179,7 @@ test("projects are added from Settings, and a failed clone says why", async ({
   writeFileSync(join(folder, "README.md"), "# Added\n");
   const parent = join(env.root, "clones");
   mkdirSync(parent, { recursive: true });
-  await openUi(page);
+  const origin = await openUi(page);
   await page.getByRole("button", { name: "Add project" }).click();
   await expect(
     page.getByRole("heading", { name: "Projects on laptop" }),
@@ -200,4 +208,14 @@ test("projects are added from Settings, and a failed clone says why", async ({
     timeout: 60_000,
   });
   await expect(page.getByText(/^nothing: /)).toBeVisible();
+  // The sidebar's "+" on a project starts the next session there, also
+  // when the new-session page is already open.
+  await page.goto(`${origin}/new`);
+  await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
+    /No project/,
+  );
+  await page.getByRole("button", { name: "New session in shop" }).click();
+  await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
+    /shop/,
+  );
 });
