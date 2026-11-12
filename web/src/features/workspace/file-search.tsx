@@ -64,8 +64,14 @@ export function FindResults({
   const [key] = useState(newSearchKey);
   const [answer, setAnswer] = useState<Answer<FoundFiles>>({ kind: "waiting" });
   useEffect(() => {
+    // An answer to a query typed over is not taken, whether or not the
+    // node marked it superseded (it may have answered first).
+    let current = true;
     const timer = window.setTimeout(() => {
       void findFiles(fleet, node, root, query, key).then((outcome) => {
+        if (!current) {
+          return;
+        }
         if (!outcome.ok) {
           setAnswer({ kind: "failed", message: outcome.problem.message });
         } else if (outcome.value.superseded !== true) {
@@ -74,6 +80,7 @@ export function FindResults({
       });
     }, REST_MS);
     return () => {
+      current = false;
       window.clearTimeout(timer);
     };
   }, [fleet, node, root, query, key]);

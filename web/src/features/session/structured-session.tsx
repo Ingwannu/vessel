@@ -138,7 +138,7 @@ export function StructuredSession({
           </div>
         </div>
       </div>
-      {inspector === "shown" ? (
+      {inspector === "shown" && !panel.narrow ? (
         <Inspector
           node={node}
           label={label}

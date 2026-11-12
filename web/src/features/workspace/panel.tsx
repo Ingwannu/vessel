@@ -5,7 +5,7 @@
 // folder, or the project whose folder holds the session's own; a session
 // in no project's folder is offered to add its folder as one.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useFleet } from "../../context";
 import {
@@ -15,7 +15,7 @@ import {
   useProjects,
 } from "../../data/workspace/project-store";
 import { addProject } from "../../data/workspace/projects";
-import { sessionRoot } from "../../data/workspace/root";
+import { rootKey, sessionRoot } from "../../data/workspace/root";
 import { Button, EmptyState, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionInfo, WorkspaceRoot } from "../../wire/proto";
@@ -82,8 +82,22 @@ export function WorkspacePanel({
   const projects = useProjects(fleet, node);
   const placed = sessionRoot(session);
   const found = placed === null ? projectAt(projects, session.spec.cwd) : null;
-  const root: WorkspaceRoot | null =
-    placed ?? (found === null ? null : { kind: "project", project: found.id });
+  // The root as one object while it names the same place: the session's
+  // page draws again on every record the agent streams, and the tabs'
+  // reads (the comparison's poll, a file's pages, a search's settle) are
+  // effects of the root, which a new object each time would start again.
+  const projectId =
+    placed?.kind === "project" ? placed.project : (found?.id ?? null);
+  const worktreeId = placed?.kind === "worktree" ? placed.worktree : null;
+  const root = useMemo<WorkspaceRoot | null>(
+    () =>
+      worktreeId !== null
+        ? { kind: "worktree", worktree: worktreeId }
+        : projectId === null
+          ? null
+          : { kind: "project", project: projectId },
+    [projectId, worktreeId],
+  );
   if (root === null) {
     return projects.kind === "loading" ? (
       <div className="changes-pad">
@@ -93,16 +107,17 @@ export function WorkspacePanel({
       <NoProject node={node} session={session} />
     );
   }
-  const projectId =
+  const owner =
     root.kind === "project"
       ? root.project
       : (session.workspace?.project ?? null);
-  const project = projectId === null ? null : projectIn(projects, projectId);
+  const project = owner === null ? null : projectIn(projects, owner);
   const open = (path: RelPath) => {
     onOpened({ path, goTo: null });
   };
   return tab === "changes" ? (
     <ChangesTab
+      key={rootKey(root)}
       node={node}
       session={session.id}
       root={root}
@@ -111,6 +126,7 @@ export function WorkspacePanel({
     />
   ) : (
     <FilesTab
+      key={rootKey(root)}
       node={node}
       root={root}
       session={session.id}
