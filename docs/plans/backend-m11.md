@@ -3357,3 +3357,447 @@ schema 12 if one is needed). Rust, wire, CLI.
    deduplicated, bounded and logged without their bodies. If the ADR
    finds this cannot be made safe within the track, it is described and
    left.
+
+## Track G: contract
+
+Protocol 11, wave 2's number: this track raises `PROTOCOL_VERSION` to
+11 and changes nothing else on that line. Written 2026-11-12 from the
+three references and from what ACP itself carries; ADR 0032 records the
+choices that could have gone another way. No store schema is taken: an
+added agent is configuration (`agents.toml`), and a session's spec
+already keeps its agent inside the JSON the store holds.
+
+### What the references do (read 2026-11-12)
+
+- **Agents outside a fixed set.** agent-orchestrator has none: 36
+  adapters compiled in. GOAT adds any agent from the ACP registry or a
+  local ACP command as an instance of its ACP driver in its settings
+  file (id `[a-zA-Z][a-zA-Z0-9_-]`, up to 64), launched without a shell,
+  its environment the server's with the instance's on top (sensitive
+  values as references to its secret store). Paseo adds
+  `agents.providers.<id>` with `extends: "acp"`, `command` (the whole
+  argument vector) and `env`, in its config file (written owner-only and
+  atomically); the command gets the daemon's environment minus four of
+  Claude Code's own variables; a built-in id overrides, never collides.
+- **What such an agent gets.** In both: models, modes and options from
+  ACP; resuming where the agent offers `loadSession`; the orchestrator's
+  MCP tools in `session/new`. In neither: rewinding, the agent's own
+  conversation files, or the orchestrator's text generation (titles).
+- **Who may add one.** GOAT: `providers:manage`; an agent inside GOAT
+  only through an approval card, or from a full-access thread. Paseo:
+  `daemon.manage`; the local owner has every permission.
+- **The ACP registry.** Published at
+  `https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json`:
+  `{ version, agents: [ { id, name, version, description, authors?,
+  license?, website?, repository?, icon?, distribution: { npx?: {
+  package, args?, env? }, uvx?: { ... }, binary?: { "<os>-<arch>": {
+  archive, cmd, sha256?, args?, env? } } } } ] }`, packages pinned to an
+  exact version. GOAT fetches it only when asked (search, add), within
+  30 s and 1 MiB, https only; the envelope is strict, an entry it cannot
+  read is dropped and counted; a disk copy without expiry stands in when
+  the network fails, and its age is never shown. It installs on "Add"
+  (npm or uv into a folder of its own; a binary downloaded, its SHA-256
+  checked when the registry gives one, extracted and kept inside its
+  folder) without showing the command first. Paseo does not fetch the
+  registry: it ships about 35 entries pinned by version (`npx -y
+  pkg@x.y.z --acp`), adding one writes the command, and `npx` downloads
+  it at the first session.
+- **Installed and signed in.** agent-orchestrator keeps typed readiness:
+  installation `installed | not_installed | unknown`, authentication
+  `authorized | unauthorized | unknown | not_applicable | configured`,
+  each with a reason (`install_check_timeout`, `auth_check_unsupported`,
+  ...) and its time, checked without a model call (a status command, 3 to
+  10 s), cached five minutes for display, refreshed on request, four
+  checks at once; minimum versions are enforced at launch from
+  `--version` or ACP's `agentInfo.version`. GOAT reports `installed`,
+  `version`, `auth.status authenticated | unauthenticated | unknown` from
+  a probe of the agent: `auth_required` means signed out, and a probe
+  that succeeds is not taken as proof of being signed in. Paseo prints a
+  diagnostic per provider (command, resolved path, version, each ACP
+  step), 20 s a step.
+- **Installing.** agent-orchestrator: a fixed list of each vendor's
+  installers per agent (npm, the vendor's script, brew); the client picks
+  one, never a command; a job runs at most 15 minutes, keeps the last
+  4,000 bytes of output, is polled, and is refused while the agent has
+  live sessions. GOAT installs registry agents on add. Paseo links to the
+  agent's page.
+- **Signing in.** agent-orchestrator: a terminal running the agent's own
+  login (`claude auth login`, `codex login`, `opencode auth login`), and
+  for Claude Code and Codex a login run in the background whose URL and
+  device code (hosts from an allowlist) are relayed to the page, a code
+  typed back into it, a key typed into the page piped to the login's
+  standard input (16 KiB, never logged). GOAT: ACP's methods (`terminal`:
+  the agent's command with the method's arguments in a terminal;
+  `agent`: ACP `authenticate`, then a check), keys as secret references.
+  Paseo: none ("does not manage their authentication").
+
+### Naming an agent outside the four (`vessel_proto::agents`)
+
+`HarnessKind` stays the four, closed and `Copy`: what Vessel knows of
+Claude Code, Codex, Gemini CLI and OpenCode (homes, logins, session
+files, fleet sync, routing) stays matched on it. A new type names any
+agent a node can run:
+
+```rust
+pub enum HarnessRef {
+    Known(HarnessKind),
+    Added(AgentName),
+}
+```
+
+- **On the wire** a known agent is the string it always was
+  (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`); an added one
+  is an object, `{"added": "<name>"}`. TypeScript: `HarnessKind | {
+  added: AgentName }`. An object rather than another string: a client
+  tells the two apart by shape, and a stored spec keeps its meaning if
+  Vessel later knows a fifth agent by a name someone had used for an
+  added one.
+- **`AgentName`**: the profile name rule (`[A-Za-z0-9._-]`, 1 to 64),
+  and not a name of one of the four in any case or spelling (`claude`,
+  `Claude-Code`, `opencode`), refused when parsed. An added agent's
+  default profile has its name, as the four's have theirs (ADR 0011), so
+  a profile may not take an added agent's name. Where a person types one
+  word (the CLI, an agent tool's argument, `harness = "..."` in
+  `profiles.toml`), it is read as one of the four first, then as an
+  added agent.
+- **Where `HarnessRef` replaces `HarnessKind`**: `SessionSpec.harness`,
+  `Harness.kind` (`harness.list`), `ProfileInfo.harness`,
+  `ListProfiles.harness`, `GetHarnessOptions.harness`. It stays
+  `HarnessKind` where only the four can be: `TransferDetail::Session`
+  (exporting an added agent's session is refused) and the page's
+  per-agent defaults (`vessel-web`).
+- `Harness` gains `terminal: TerminalSupport` (`available`, or
+  `unavailable { reason }`), left out when available and absent from
+  older nodes, whose every harness runs in a terminal.
+
+### What an added agent has, and what it does not
+
+| | The four | An added agent |
+|---|---|---|
+| A structured session over ACP | yes | yes, its only mode |
+| A terminal session | yes | no: `terminal: unavailable`; `session.create` in terminal mode is `unsupported` |
+| `harness.options` (the probe, ADR 0022) | yes | yes |
+| Profiles (ADR 0011) | `env`, `unset`, `args`, `model` | `env` and `unset`; `args` (terminal only) and `model` (Vessel does not know how to point it at the proxy) refused when the file is read |
+| The `vessel` MCP server and the agent credential (ADR 0013) | in `session/new` | the same, the same way |
+| `session.resume` | where the agent offers `loadSession` | the same |
+| `session.move_profile`, `session.export` | where Vessel knows the home and the session files | `unsupported`: Vessel does not know where it keeps conversations |
+| Fleet sync of instructions, skills, memory (ADR 0012) | into each profile's home | none: no home is known |
+| Installed | found on the search path, `--version` | its program found (on the search path, or the absolute path written) or missing; its version from the handshake's `agentInfo` once probed |
+| Signed in | the agent's status command, or the handshake | the handshake only |
+| Installed by Vessel | the vendor's documented command | no |
+
+Nothing about an added agent is guessed: what ACP gives (the
+handshake, its options, abilities and sign-in methods) is what Vessel
+has, and a feature that needs more is not offered and says why.
+
+### Where an added agent is kept, and who may change it
+
+`<data_dir>/agents.toml`, owner-only (written 0600 atomically through
+`toml_edit`, so comments stay; a file others can read is used with a
+warning, as `profiles.toml` is), read at start (a file that does not
+parse stops the node) and again with `profiles.toml` on
+`profile.reload`: profiles may name an added agent, so the two are read
+together and a reload keeps both or neither.
+
+```toml
+[agents.goose]
+label = "Goose"
+program = "goose"         # a name found on the node's search path, or an absolute path
+args = ["acp"]
+env = { GOOSE_MODE = "auto", ANTHROPIC_API_KEY = { secret = "anthropic" } }
+inherit = ["HTTPS_PROXY"] # passed on from the node's own environment, by name
+source = { registry = "goose", version = "1.9.0" }   # when added from the registry
+```
+
+- **Who.** `agent.add` and `agent.remove` need `admin` and are refused
+  (`forbidden`) to an agent principal whatever its scopes (ADR 0013 lets
+  a profile grant an agent `admin`; choosing a command to run is not
+  something an agent may give itself) and to a call delivered from
+  another node: an added agent is this machine's, set by its owner or
+  its own devices. Editing the file and `profile.reload` stays the
+  owner's other way.
+- **What it is given.** Not the node's environment. The command starts
+  from an empty environment, then gets: `PATH` (the node's search path,
+  on which its program was found); the user's home (`HOME` on Unix,
+  `USERPROFILE` on Windows, from the node's `HarnessEnv`); the system's
+  own non-credential variables the node has (Unix: `USER`, `LOGNAME`,
+  `SHELL`, `LANG`, `LANGUAGE`, `LC_ALL`, `LC_CTYPE`, `LC_MESSAGES`,
+  `TERM`, `TZ`, `TMPDIR`; Windows: `USERNAME`, `USERDOMAIN`,
+  `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `PATHEXT`, `TEMP`,
+  `TMP`, `APPDATA`, `LOCALAPPDATA`, `ProgramData`, `ProgramFiles`,
+  `ProgramFiles(x86)`, `ProgramW6432`, `CommonProgramFiles`,
+  `NUMBER_OF_PROCESSORS`, `PROCESSOR_ARCHITECTURE`, `OS`; both:
+  `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS`); the variables
+  its `inherit` names, as the node has them; its `env` (text, or a
+  secret of the node's `secrets.toml` by name, ADR 0012; a secret not
+  set there fails the launch, naming it); then its profile's `env` and
+  `unset`. No provider key, token or Vessel variable of the node reaches
+  it unless its definition names one. The agent credential reaches it
+  only inside the `vessel` MCP server's definition in `session/new`, as
+  it reaches the four.
+- **The command** runs without a shell: the program and its arguments as
+  written, `~` and a leading `~/` expanded as in profiles. A program
+  written with a path separator must be absolute. Arguments are shown to
+  every client and visible in the process table, so a secret belongs in
+  `env` as `{ secret = "..." }` (the CLI's help says so).
+- **The fleet copies none.** A command names programs and paths of the
+  machine it was written for, and a home whose pushes became commands
+  that run whenever any session starts could run anything on every
+  member. Adding the same agent on another machine is one call there.
+
+### Types (`vessel_proto::agents`)
+
+```rust
+/// One agent as `agent.list` reports it.
+pub struct AgentInfo { pub agent: HarnessRef, pub detail: AgentDetail }
+
+pub enum AgentDetail {                       // tag "kind"
+    /// One of the four: how it is installed (each command shown before
+    /// it runs) and how a person signs in.
+    Known { installs: Vec<InstallOffer>, sign_in: SignInHelp },
+    /// Added on this node.
+    Added { added: AddedAgent },
+}
+
+/// An added agent as clients see it: its command whole, its environment
+/// by name (values never leave the node, as for profiles).
+pub struct AddedAgent {
+    pub label: Option<AgentLabel>,           // one line, at most 80 characters
+    pub program: AgentProgram,               // as written, at most 4 KiB
+    pub args: Vec<String>,
+    pub env: Vec<EnvName>,                   // set as text
+    pub secrets: Vec<SecretEnv>,             // { variable: EnvName, secret: SecretName }
+    pub inherit: Vec<EnvName>,
+    pub source: AgentSource,                 // by_command | registry { id, version }
+}
+
+/// What `agent.add` writes.
+pub struct AgentDefinition {
+    pub label: Option<AgentLabel>,
+    pub program: AgentProgram,
+    pub args: Vec<String>,
+    pub env: BTreeMap<EnvName, ConfigValue>, // text, or { secret = NAME }
+    pub inherit: Vec<EnvName>,
+    pub source: AgentSource,
+}
+
+pub struct InstallOffer { pub part: InstallPart, pub command: String }
+pub enum InstallPart { Harness, Adapter }
+
+/// Facts about one agent under one profile.
+pub struct AgentStatus {
+    pub agent: HarnessRef,
+    pub profile: ProfileName,
+    pub installed: Installed,
+    pub signed_in: SignedIn,
+    pub checked_at: DateTime<Utc>,           // when the older of the two was found
+}
+
+pub enum Installed {                         // tag "state"
+    Found { path: PathBuf, version: Option<String>, structured: StructuredSupport },
+    Missing { program: String },
+    /// Its ACP version is older than Vessel speaks (`initialize`).
+    TooOld { path: PathBuf, version: Option<String>, speaks: u16, needs: u16 },
+    Unknown { reason: Unknown },
+}
+
+pub enum SignedIn {                          // tag "state"
+    Yes,
+    No { help: SignInHelp },
+    Unknown { reason: Unknown },
+}
+
+pub enum Unknown {                           // tag "reason"
+    NotInstalled,
+    /// Only a probe asks this agent (Gemini CLI, OpenCode, added ones);
+    /// `refresh` runs one.
+    NotChecked,
+    /// The profile's home variable is relative: whose login is unknown.
+    NoHome,
+    TimedOut { after: DurationMs },
+    Failed { message: String },              // the agent's last lines, cut
+}
+
+pub struct SignInHelp {
+    /// The agent's own command, to run on that machine as the profile's
+    /// account; none when it signs in inside its own interface.
+    pub command: Option<String>,
+    /// The variable that chooses the account (`CLAUDE_CONFIG_DIR`), by
+    /// name: run the command with the profile's value of it.
+    pub home: Option<EnvName>,
+    /// The methods its last handshake offered (ACP `authMethods`).
+    pub methods: Vec<AuthMethod>,
+}
+
+pub enum AuthMethod {                        // tag "type"
+    Agent { id: AuthMethodId, name: String, description: Option<String> },
+    Terminal { id: AuthMethodId, name: String, description: Option<String>,
+               args: Vec<String>, env: Vec<EnvName> },
+}
+
+pub struct Catalogue {
+    pub fetched_at: Option<DateTime<Utc>>,   // None: not fetched since the node started
+    pub version: Option<String>,             // the registry's own
+    pub entries: Vec<CatalogueEntry>,
+    pub skipped: u32,                        // entries Vessel could not read
+}
+
+pub struct CatalogueEntry {
+    pub id: RegistryId, pub name: String, pub version: RegistryVersion,
+    pub description: String, pub website: Option<HttpUrl>,
+    pub repository: Option<HttpUrl>, pub license: Option<String>,
+    pub runs: CatalogueRun,
+}
+
+pub enum CatalogueRun {                      // tag "kind"
+    /// Started by a package runner (`npx`, `uvx`) that fetches the pinned
+    /// package at its first session: exactly this would be added.
+    Command { definition: AgentDefinition, runner_found: bool },
+    /// Only as an archive for this platform, which Vessel does not
+    /// download: a person installs it, then adds it by command.
+    Download { archive: HttpUrl, sha256: Option<String> },
+    /// Nothing for this platform.
+    Unavailable,
+}
+
+pub struct InstallJob { pub id: InstallId, pub agent: HarnessKind,
+                        pub part: InstallPart, pub command: String,
+                        pub started_at: DateTime<Utc> }
+
+pub struct InstallOutput {
+    pub job: InstallId,
+    pub state: InstallState,                 // running | succeeded | failed { code } | timed_out
+    pub text: String,                        // from `from`, lossy UTF-8
+    pub next: Offset,
+    pub dropped: Offset,                     // where what is kept begins
+}
+```
+
+New ids and names for `ts/aliases.rs`: `AgentName`, `AgentLabel`,
+`AgentProgram`, `RegistryId`, `RegistryVersion`, `AuthMethodId` are
+plain (a person types or reads them); `InstallId` is a handle (the node
+mints it).
+
+### Calls
+
+All protocol 11. "Not an agent": refused with `forbidden` to an agent
+principal (local, or delegated from another node) and to any call
+delivered from another node.
+
+| Method | Scope | Request | Reply | Failures |
+|---|---|---|---|---|
+| `agent.list` | read | `ListAgents {}` | `Vec<AgentInfo>` | – |
+| `agent.status` | read | `GetAgentStatus { agent?: HarnessRef, profile?: ProfileName, refresh: bool }` | `Vec<AgentStatus>` | `not_found` (no such agent or profile), `invalid_request` (a profile of another agent) |
+| `agent.add` | admin, not an agent | `AddAgent { name: AgentName, definition: AgentDefinition, replace: bool }` | `AgentInfo` | `conflict` (the name is taken and `replace` is false, or a profile has it), `invalid_request` (a relative program with a separator, an empty one, a variable twice or both set and inherited, past a bound), `internal` (the file cannot be written) |
+| `agent.remove` | admin, not an agent | `RemoveAgent { name: AgentName }` | `Ack` | `not_found`; `conflict` while a profile of `profiles.toml` extends it (the file would no longer read) |
+| `agent.catalogue` | read | `GetCatalogue { refresh: bool }` | `Catalogue` | `forbidden` (`refresh` from an agent: a fetch is a person's ask), `unavailable` (the registry could not be reached, answered late, or was not the registry's shape; the previous copy stays) |
+| `agent.install` | admin, not an agent | `InstallAgent { agent: HarnessKind, part: InstallPart }` | `InstallJob` | `invalid_request` (that agent has no such part), `harness_not_installed` (the installer's own program, `npm`, is missing), `conflict` (an install is running, or the agent has live sessions) |
+| `agent.install_output` | admin | `ReadInstall { job: InstallId, from: Offset, wait: bool }` | `InstallOutput` | `not_found` (another install replaced it, or the node restarted) |
+
+- `agent.list` starts no process: the four, then the added agents by
+  name.
+- `agent.status` with no `agent` answers for every agent's default
+  profile; with one, for its `profile` (its default when absent). It
+  answers from what it knows when fresh enough (below) and checks the
+  rest: the program's lookup and `--version`, and for Claude Code and
+  Codex their status command (`claude auth status`, `codex login
+  status`, exit status only, output never read) under the profile's
+  environment. Gemini CLI, OpenCode and added agents are asked by a
+  probe only (ADR 0022's, sharing its cache, so a recent
+  `harness.options` answers here too): with `refresh` it runs one;
+  without, a recent probe's outcome is used or the answer is
+  `unknown { not_checked }`. A probe that ends with `auth_required`
+  (ACP's `-32000` to `session/new`) is `signed_in: no`, with the methods
+  the agent listed; one that completes is `yes`.
+- `agent.add` checks the definition, writes it, reads both files again,
+  and answers with what is now in effect. Running sessions keep what
+  they started with; `replace` changes what the next session starts.
+  Nothing is started or fetched.
+- `agent.remove` leaves running sessions running; an ended session of
+  it cannot be started again (`session.resume` says the agent is not
+  defined here).
+- `agent.catalogue` without `refresh` answers the copy (empty, with no
+  `fetched_at`, before the first fetch); with it, fetches first, unless
+  the copy is younger than a minute. Nothing is run or installed by
+  listing; an entry is added only by `agent.add` with the definition the
+  entry showed, recorded with its `source`.
+- `agent.install` runs the vendor's documented command for that agent
+  or its adapter (the one `vessel init` offers, shown in `agent.list`),
+  as the node's user with the node's environment, without a shell,
+  standard input closed. Its output is read with `agent.install_output`;
+  `wait` holds the read until there is more, the job ends, or 30 s pass.
+
+The CLI: `vessel agents` (each agent and its status),
+`vessel agents status [agent] [--profile p] [--refresh]`,
+`vessel agents add <name> [--label l] [--env K=V] [--secret K=NAME]
+[--inherit K] [--replace] -- <program> [args...]`,
+`vessel agents add <name> --from-registry <id>` (shows the definition,
+asks; `--yes` to skip the question), `vessel agents remove <name>`,
+`vessel agents catalogue [--refresh]`,
+`vessel agents install <agent> [--adapter]` (shows the command, asks,
+prints the output as it runs). `vessel run`, `vessel profiles
+--harness` and the agent tool that starts a session take an added
+agent's name too. No new agent tool: adding, removing and installing
+are a person's.
+
+### Older clients and older nodes
+
+- **A client of protocol 2 to 10 is never handed an added agent.**
+  `harness.list`, `profile.list` and `session.list` leave them out, in
+  replies nested in the fleet's envelope too. A reply that would hold
+  one (`session.get` of such a session, say) becomes `unsupported`
+  ("this session runs an agent added on this machine; a client of
+  protocol 11 or later sees it"). Calls that would change such a session
+  or open a subscription to it (the guard's ownership targets, and
+  `session.subscribe`) are refused the same way before they run, so
+  nothing happens that the client cannot see. `session.read` of one
+  still answers: events name no agent.
+- **A newer client asks an older node nothing it cannot read.**
+  `Call::since` makes a call naming an added agent (`session.create`,
+  `harness.options`, `profile.list` filtered by one) need 11; the seven
+  methods are 11. Through the fleet's envelope the inner call is checked
+  where it is delivered, as before.
+- **No event is added.** An install's output is read by its call; an
+  added agent's session logs what any structured session logs.
+
+### Bounded, and by how much
+
+| What | Bound | Beyond it |
+|---|---|---|
+| The registry's fetch | https only, no redirect, no proxy; 10 s to connect, 30 s in all; 2 MiB | `unavailable`; the previous copy stays |
+| Fetches | one at a time; a `refresh` within a minute of the last fetch answers the copy | the copy, with its time |
+| Catalogue entries | 1,000; each string bounded (id 128, name 160, version 64, description 1,024 characters, a package 256, 64 arguments of 1 KiB, 64 variables) | the entry skipped and counted; past 1,000 not read |
+| The copy | in memory until the node stops | – |
+| `agents.toml` | 256 agents; 64 arguments of 4 KiB, 64 `env`, 64 `inherit` each | refused when read, naming the agent and key |
+| Installed checks | lookup and `--version` within 5 s, 4 KiB read (as `harness.list`); kept 60 s | `version: None` |
+| Sign-in checks | a status command within 10 s, its output not read; a probe within the handshake timeout; kept five minutes | `unknown { timed_out }` |
+| `refresh` | at most once per 10 s per agent and profile | the kept answer |
+| Checks at once | 4 | the rest wait |
+| An install | one at a time on a node; 15 minutes; the last 64 KiB of output kept; a waiting read 30 s | killed as a group, `timed_out`; `dropped` says where the kept output begins |
+| Install jobs | the last one, until the next or the node stops | `not_found` |
+
+### Not in this track, and why
+
+- **Downloading a registry agent's archive** (GOAT downloads it, checks
+  its SHA-256 when given, extracts it, keeps it inside its folder):
+  extracting archives from the network is an attack surface of its own
+  (paths that leave the folder, links, sizes) that wants its own
+  review. The catalogue shows such an entry with its archive, for a
+  person to install and add by command.
+- **Signing in from the node** (agent-orchestrator's relayed logins,
+  GOAT's ACP flows). A login acts as the account, and its output carries
+  one-time codes; Claude Code's `--mcp-config` takes every word after
+  it (checked with `claude --mcp-config <json> auth login --help`, which
+  prints the top-level help), so a terminal session running `claude auth
+  login` would need a launch without MCP servers, which the session
+  runtime does not have. The node says how instead: the command, the
+  profile's home variable by name, the agent's ACP methods. ADR 0032
+  describes the next step.
+- **Minimum versions of the four**: none is recorded that Vessel has
+  verified. The one version Vessel checks is ACP's own.
+- **Copying added agents between machines** (above).
+
+### Store and numbers
+
+ADR 0032. No schema (12 stays free). New files: `agents.toml` in the
+data directory.
