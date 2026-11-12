@@ -7,12 +7,17 @@
 
 /// The last lines of `text` (at most [`TAIL_BYTES`]), every URL's user
 /// information replaced by `***`.
+///
+/// Redacted whole, then cut: a cut through a URL would leave the end of
+/// its user information without the `://` that marks it.
 pub(crate) fn tail(text: &str) -> String {
+    let redacted = redact(text);
+    let text = redacted.trim();
     let start = text.len().saturating_sub(TAIL_BYTES);
     let start = (start..text.len())
         .find(|index| text.is_char_boundary(*index))
         .unwrap_or(text.len());
-    redact(text.get(start..).unwrap_or_default().trim())
+    text.get(start..).unwrap_or_default().to_owned()
 }
 
 /// How much of a message is kept.
@@ -63,5 +68,15 @@ mod tests {
         let cut = tail(&long);
         assert!(cut.len() <= TAIL_BYTES + 3);
         assert!(!cut.contains("a:b"), "{cut}");
+    }
+
+    #[test]
+    fn a_cut_through_a_url_leaves_none_of_its_user_information() {
+        // The cut falls inside the token: the start of the URL is gone.
+        let token = "t".repeat(64);
+        let text = format!("https://me:{token}@host/x {}", "y".repeat(TAIL_BYTES - 40));
+        let cut = tail(&text);
+        assert!(cut.len() <= TAIL_BYTES, "{}", cut.len());
+        assert!(!cut.contains("tttt"), "{cut}");
     }
 }
