@@ -151,6 +151,16 @@ Devices are sections there too (milestone 10, track W2).
   sessions under it; Settings and the theme switch at the foot. The
   sidebar hides with its shortcut (`⌘B`) or the title bar's button, and
   stays hidden across launches (ADR 0028).
+- **Projects** (agent-orchestrator's project tree), above the machines:
+  each connected machine's projects, a 32px row each (a folder whose mark
+  turns into a chevron on hover, the name, the machine in the passive ink
+  when two or more machines have projects, the live count), the first ten
+  then "Show N more projects". A row opens to its live sessions, 14px in;
+  its "+" (on hover) starts a session there (the new-session page opens
+  with the project chosen); the heading's "+" leads to Settings ›
+  Projects. The group takes at most two fifths of the sidebar and scrolls
+  on its own. A session's row ends with its worktree's branch (mono 11px,
+  at most 36% of the row), when it has one.
 - **Display** (Paseo's sidebar menu, in agent-orchestrator's menu):
   Grouping (Machine, Status), Sort (Created, Last activity, newest first
   either way) and a "Show ended sessions" switch. Grouping by status
@@ -295,6 +305,20 @@ move between sections. Below 768px the column's padding is 12px.
   state, how it is reached, what it runs on, its Vessel and protocol,
   its id; its agents (each opening its card in Agents); its live
   sessions.
+- **Projects** (Paseo's projects, agent-orchestrator's add-project
+  flow): "Projects on <machine>" with the machine picker and "Add
+  project" (Add a folder…, Clone a repository…, Start a new project…);
+  a row per project (its folder, its state while it clones or after a
+  clone failed, its default branch or "no git"); the machine's git when
+  it is missing or too old, as a warning above. The chosen project's
+  detail under the list: Folder, Default branch, Added; Commands (what
+  its `vessel.toml` names for a new worktree, Approved or Not approved,
+  Review… opening the approval, Withdraw); Worktrees (branch, setup's
+  state, live sessions, why it was kept; Run setup, Remove…); Snapshots
+  (Drop). Adding: agent-orchestrator's clone dialog (Repository URL,
+  Clone into, "Repository will be created at …"); a clone answers at once
+  and its progress and failure are the row's ("Receiving objects ·
+  42%", the reason in words with git's last lines).
 - **Agents**: every agent Vessel drives, installed first, as GOAT's
   provider rows: the agent's letter, its name and version, a dot and one
   headline: Available, Needs attention (with the machine's reason:
@@ -369,24 +393,28 @@ the session. Below 1024px of pane the board scrolls sideways (lanes keep
 **Session with a timeline.**
 
 ```
-title bar 36px (the frame's): mark · title (rename in place) · state · ⋯
-┌──────────  minmax(0, 1fr)  ───────────┬── 340px ──┐
-│      timeline, a column ≤ 768px       │ Summary   │
-│                                       │ ▸ Plan    │
-│                                       │ ▸ Files   │
-│  ┌ permission, docked over the box ┐  │ ▸ Model … │
-│  ┌ composer ──────────────────────┐   │ ▸ Details │
-│  └────────────────────────────────┘   │           │
-└───────────────────────────────────────┴───────────┘
+title bar 36px (the frame's): mark · title (rename in place) · ⎇ branch · state · ⋯
+┌──────────  minmax(0, 1fr)  ───────────┬── 340px (500px for code) ──┐
+│      timeline, a column ≤ 768px       │ ☰  ⇄  ▢   (icon tabs)      │
+│                                       │ ▸ Plan                     │
+│                                       │ ▸ Files                    │
+│  ┌ permission, docked over the box ┐  │ ▸ Model calls              │
+│  ┌ composer ──────────────────────┐   │ ▸ Details                  │
+│  └────────────────────────────────┘   │                            │
+└───────────────────────────────────────┴────────────────────────────┘
 ```
 
 The log and the composer share one column, at most 768px and centred
 (agent-orchestrator's transcript; Appearance's Wide is 1152px and Full
 the frame's width); the composer's dock is 16px in and 12px off the
-frame's foot. The summary (§6.7, inspector) is 340px, the reference's
-narrowest, leaves below 1280px of window, and hides with its shortcut
-(`⌘⇧B`). Over the log: the find bar at its top right and the outline
-on its left edge (§6.16).
+frame's foot. The panel beside it is agent-orchestrator's inspector: a
+36px head of icon tabs (the kit's `PanelTabs`), Summary, Changes and
+Files. Summary is 340px of sections (plan, files touched, model calls,
+Details); Changes and Files are the code panel (§6.18), 500px (the
+reference's default) and never past 45% of the window. The panel leaves
+below 1280px of window, where the branch's chip opens it as a sheet from
+the right instead, and hides with its shortcut (`⌘⇧B`). Over the log:
+the find bar at its top right and the outline on its left edge (§6.16).
 
 **Terminal session.** The same title bar, a reconnecting banner if
 needed, then the terminal consumes all remaining height. No summary.
@@ -1023,6 +1051,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Checkbox | 16px, radius 6, the strong hairline on the field fill; checked: the primary fill with a 12px check |
 | Segmented | a radio group: a track on the field fill and edge, 2px inside and between, radius 12; 13px segments 32px tall at radius 10 (`sm`: 24px); the chosen one is GOAT's thumb, the surface lifted by a hairline. Icons alone only with every option's icon (its label is the name) |
 | Tabs | 14px medium labels 36px tall and 20px apart over a hairline; the chosen one in the ink over a 2px underline that slides to it |
+| PanelTabs | agent-orchestrator's inspector strip: a 36px head, 28px icon tabs (14px icons) 4px apart, radius 8, the passive ink; hover and focus the 4% wash, the chosen one the full ink with no fill; a count on a corner (a 12px circle, 7px mono); each icon's name its tooltip and accessible name; arrows, Home and End move |
+| SplitButton | GOAT's git control: an action and a chevron that opens its menu, one shape (square inner corners, a hairline between); the action's reason in a tooltip when it is off |
 | Badge | §6.4; `word`, `accent` or `mono` |
 | Avatar | an agent's mark: a letter in an 18px tile, radius 5, the well's fill, 11px semibold |
 | Collapsible | agent-orchestrator's inspector section: a 14px title in the muted colour with an optional count, a 12px chevron that turns while open, the sidebar row's growing pill (radius 10); the body 12px in, grows over 220ms (none under reduced motion) |
@@ -1030,7 +1060,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
 | CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
 | EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
-| Sheet | §6.17: a dialog from the left edge, the sidebar's on a phone |
+| Sheet | §6.17: a dialog from the left edge (the sidebar's on a phone), or the right (a session's panel) |
+| TextArea `fill` | fills its container and scrolls inside, without measuring its text on each key (the file editor) |
 | TextField `look="popup"` | the field shell on the popup surface, its edge and shadow (the find bar's, §6.16) |
 | Command palette | a dialog (§6.9) up to 720px wide, 14vh from the top, radius 14, solid where the reference's is glass: a 16px search line, 14px rows 28px tall inset 6px, the highlighted one on a 9% wash, at most 420px of rows in groups, a foot of keys. `⌘K` or `/` (not while typing) |
 
@@ -1176,7 +1207,106 @@ through its one seam (`reveal.ts`).
 The kit's `Sheet`: a dialog from the left edge, full height, the window
 less 12px and at most 320px wide, on the sidebar's surface over the
 dialog scrim, sliding in over 200ms (none under reduced motion); Escape
-or the scrim closes it. The sidebar uses it below 768px (§2.2).
+or the scrim closes it. The sidebar uses it below 768px (§2.2). From the
+right (`side="right"`) it is as wide as the window less 12px, at most
+560px, on the page's surface: a session's panel below 1280px.
+
+### 6.18 The code panel
+
+A session's Changes and Files (`features/workspace/`, a chunk loaded the
+first time one of them opens). It reads the session's worktree, its
+project's folder, or the project whose folder holds the session's own; a
+session in no project's folder says so and offers "Add the folder as a
+project".
+
+**Changes** (agent-orchestrator's review pane, GOAT's git control):
+
+- The git bar, 40px: the branch in mono 12px after its mark, how far it
+  is from its upstream (↑2 ↓1, "not pushed") and its base ("3 ahead of
+  origin/main"); at the right GOAT's split button: the action that fits
+  now (Commit when there are changes, else Push when ahead, Pull when
+  behind, else Fetch; `data/workspace/git-quick.ts`) and the menu:
+  Commit…, Push (and set upstream), Pull, Fetch, Switch branch…, New
+  branch…, Rename branch…, Stash changes, Stash with untracked files,
+  Stashes…; an action that cannot run is off with GOAT's reason.
+- A 36px toolbar: the comparison (agent-orchestrator's picker: Changes,
+  everything since the base; Uncommitted; Staged; Unstaged; Commits ›
+  the latest twenty) with its +N −M, then whitespace, fold or unfold
+  every file, and refresh. A worktree opens on Changes, a project's own
+  folder on Uncommitted.
+- Every changed file one under another: a 36px header (a chevron, the
+  file's mark, its folder in the passive ink and its name in the ink at
+  13px, the status letter 12px semibold, A green, D red, M orange, R
+  blue, "+N −M" 12px tabular; on hover Stage or Unstage, Discard, Open
+  full file), then its diff: a hunk's band on the well's fill, lines mono
+  12/20 with one 36px number column over a hairline and a 16px +/−
+  column, added lines on the green wash and removed on the red, in
+  syntax colour. Binary, oversized, submodule and mode-only files say so
+  in a line in place of the diff.
+- One windowed list (the timeline's window, read from its top): only the
+  rows near the view exist; a file's diff, and each next page of 5,000
+  lines, is asked for when its row is drawn. The comparison is read again
+  every five seconds while the page is in front, and a diff kept while
+  its file's counts stay the same.
+- A refusal is said above the list until the next action (`GitNotice`:
+  what happened, what to do, the paths it names, a hook's or the
+  remote's output), never a toast; a success is a toast. The dialogs:
+  "Commit changes" (GOAT's summary box: Branch, with "Default branch" in
+  the warning colour, Files; Stage first: Staged only, Tracked files,
+  Everything; the message, ⌘/Ctrl+Enter commits), Switch branch (a
+  filter and the branches with current, default, remote and worktree
+  badges), New branch and Rename branch (a name checked with git's rules
+  as it is typed), Stashes (Apply, Pop, Drop), and "Discard changes?"
+  (Paseo's, saying a file git does not track is deleted).
+
+**Files** (agent-orchestrator's file explorer and file pane):
+
+- A 40px toolbar: "Go to file" (by name, `data/workspace/find.ts`; the
+  letters matched in bold, "Some paths are not shown" past the node's
+  bound), the switch to "Search in files" (lines by content, under their
+  file, the first 500), and "Show ignored files".
+- The tree: 28px rows, 6px in and 16px more per level, a folder's open
+  or closed mark or a file's, 13px names; a folder is listed when first
+  opened; past 5,000 entries a line says to find by name. Windowed.
+- A file: a 36px head (back, the path with its folders muted, Edit), its
+  lines numbered in syntax colour, windowed, the next page read as the
+  reader nears the end; a line found by content is put in the middle of
+  the view on the active wash. Binary: "Binary file preview is not
+  available." Edit reads the rest of the file (at most 1 MiB; past it,
+  "File is too large to edit"), then Cancel and Save (⌘/Ctrl+S) and an
+  8px dot while there are unsaved edits. Save sends the version read;
+  a change on disk since keeps the edits and shows both sides (what was
+  read, what is on disk now, how many lines differ) with "Reload from
+  disk" and "Overwrite".
+
+**A selection to the composer.** Lines selected in a diff or a file show
+agent-orchestrator's floating "Add to chat" beside the selection's end;
+it appends its captured-code reference to the session's draft (a line
+saying it is context, `"path"#L12-L18 (new side)`, the lines fenced as
+`diff` or in the file's language, at most 8,192 characters).
+
+**Syntax colour** is the page's own lexer (`data/workspace/syntax.ts`) on
+the `--syn-*` tokens (§4.4): comments, strings, numbers, keywords,
+constants, called names and markup's tags, a block comment carried from
+line to line in a file.
+
+**A worktree's setup** (agent-orchestrator's script run panel): a card
+with a 32px head (a spinner, "Setting up · <branch>", the time), the
+output as it comes in mono 11px (at most 240px, the end kept, colours
+and cursor moves taken out), and when it failed the command that failed
+and three ways on: Run setup again, Start anyway, Stop here.
+
+**The approval of a project's commands** (no reference asks; ADR 0027):
+"Run this project's commands?", where they run, Setup and Teardown in
+order (a command new since the folder's approved set marked "new", one
+gone struck through), a warning that a script they run runs whatever it
+says, the digest; Approve and run, Start without setup, Cancel.
+
+**Removing a worktree that would lose work** (Paseo's warning, GOAT's
+snapshot): `Remove "<branch>"?`, one line per reason the node gave ("2
+files with uncommitted changes", "1 commit on no other branch"), then
+"Keep a snapshot and remove" (only when a snapshot keeps all of it) or
+"Discard and remove", which says first what it deletes.
 
 ---
 
@@ -1279,9 +1409,14 @@ before it has a session. Every "New" leads here (the title bar, the
 sidebar's row, an empty Building lane, the palette, `n`), carrying the
 machine in view.
 
-1. **Where it runs**, in the tray: the machine named in the address, else
-   the one last chosen, else the book's default, else the first; only a
-   connected one. The folder field suggests where sessions already ran.
+1. **Where it runs**, in the tray (GOAT's workspace selector beside the
+   machine): the machine named in the address, else the one last chosen,
+   else the book's default, else the first; only a connected one. Then
+   the project ("No project" keeps the folder field, which suggests where
+   sessions already ran) and, in a git project, Local (its folder as it
+   is), New worktree with the base it starts from ("From main"), or
+   Existing branch. A project still cloning, a branch name git refuses,
+   or no branch chosen holds Send with the reason under the box.
 2. **The agent**: the machine's first that runs with a timeline, else its
    first; chosen in the agent control's Agent submenu.
 3. **What it runs with**: the machine asks the agent (`harness.options`,
@@ -1295,7 +1430,10 @@ machine in view.
    options in the spec), sends the prompt (`session.send`), and opens it.
    A terminal takes no prompt: the box's first line becomes its title.
    A refusal is said under the box, in the danger colour; the page keeps
-   what was typed.
+   what was typed. In a new worktree, Send first makes it: the commands
+   are asked about when the set is not approved (§6.18), setup's output
+   is shown under the box as it runs, a failed setup waits for the
+   person, and the session starts once setup is no longer running.
 
 The decisions are `data/new-session.ts`'s; the page draws them.
 
@@ -1530,11 +1668,11 @@ control, GOAT), on purpose:
 10. **Terminal or timeline is chosen once, at creation** ("Open as
     terminal"). The reference switches a session's interface later; a
     Vessel session's mode is fixed by the protocol.
-11. **The summary has one view.** The reference's inspector has tabs
-    (Summary, Files, Reviews, Browser, …); Vessel has the summary's
-    sections alone, so it heads them with "Summary" and draws no tab
-    strip. It is 340px, the reference's narrowest, not its 500px default:
-    the timeline's column keeps 768px beside it at 1440px.
+11. **The inspector has three tabs** (Summary, Changes, Files) where the
+    reference has more (Reviews, Browser, Side chat, Artifacts: other
+    tracks' or not built), and Summary keeps 340px, the reference's
+    narrowest, so the timeline's column keeps 768px beside it at 1440px;
+    Changes and Files take the reference's 500px. It is not resizable.
 12. **A session is named in the frame's title bar**, as the page's
     heading, where the reference has a strip of session tabs.
 13. **Settings is a column, not the full pane.** agent-orchestrator's
@@ -1564,3 +1702,28 @@ control, GOAT), on purpose:
 20. **One page-wide width for the conversation** (Comfortable, Wide,
     Full) where GOAT has a slider: three widths cover its range and keep
     the composer and the log aligned.
+21. **A repository's commands are approved first** (ADR 0027). None of
+    the references asks: Paseo and GOAT run a repository's setup file,
+    agent-orchestrator only commands typed into its page. The approval
+    compares with the set approved for the project's folder, since the
+    node keeps only the digests it approved.
+22. **The diff is the page's own rows, not a diff library.** The
+    references draw with `@pierre/diffs` (agent-orchestrator, GOAT) or a
+    canvas (Paseo); Vessel draws the node's typed hunks in the timeline's
+    window, one number column (agent-orchestrator's fallback view), no
+    split view and no word-level marks. Its syntax colour is a small lexer,
+    not Shiki's grammars.
+23. **No line comments, no "viewed" marks, no image or rich previews.**
+    agent-orchestrator's review pane sends a comment on a line and marks
+    files viewed; a selection sent to the draft is what Vessel offers.
+24. **"Add to chat" has no shortcut.** agent-orchestrator's is ⌘L; in a
+    browser Ctrl+L is the address bar's.
+25. **The editor is a text area.** agent-orchestrator edits in its diff
+    library's editor with colour; Vessel's editor is plain mono text, the
+    colour back once saved. GOAT's conflict choices (Reload from disk,
+    Overwrite) are taken, with both sides' state, where agent-orchestrator
+    has none.
+26. **The new-session tray names the place** (Local, New worktree,
+    Existing branch, and the base) where agent-orchestrator makes a
+    worktree for every task without asking; GOAT's selector is the model.
+27. **Stash is in the git menu** (Paseo's); GOAT has none.
