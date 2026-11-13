@@ -40,7 +40,6 @@ pub struct Text {
     pub ready: &'static str,
     // A session.
     pub terminal_not_yet: &'static str,
-    pub composer_placeholder: &'static str,
     pub send: &'static str,
     pub queue: &'static str,
     pub stop: &'static str,
@@ -59,7 +58,6 @@ pub struct Text {
     pub folder: &'static str,
     pub folder_placeholder: &'static str,
     pub first_prompt: &'static str,
-    pub prompt_placeholder: &'static str,
     pub start: &'static str,
     pub starting: &'static str,
     pub no_machine_yet: &'static str,
@@ -265,6 +263,26 @@ impl Text {
         }
     }
 
+    /// A session's composer while empty, naming the key that sends
+    /// (`key`, Settings' send shortcut as a person reads it).
+    #[must_use]
+    pub fn composer_placeholder(&self, key: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Ask the agent… ({key} sends)"),
+            Lang::Ko => format!("에이전트에게 요청하세요… ({key}로 보내기)"),
+        }
+    }
+
+    /// The new chat's composer while empty and no suggestion is shown,
+    /// naming the key that starts.
+    #[must_use]
+    pub fn prompt_placeholder(&self, key: &str) -> String {
+        match self.lang {
+            Lang::En => format!("What should the agent do? ({key} starts)"),
+            Lang::Ko => format!("에이전트가 할 일을 적으세요 ({key}로 시작)"),
+        }
+    }
+
     /// The status line while a new session's agent starts.
     #[must_use]
     pub fn starting_on(&self, agent: &str, machine: &str) -> String {
@@ -309,7 +327,6 @@ const EN: Text = Text {
     ],
     home_folder: "Home folder",
     getting_ready: "gets ready…",
-    composer_placeholder: "Ask the agent… (Enter sends)",
     send: "Send",
     queue: "Queue",
     stop: "Stop",
@@ -323,7 +340,6 @@ const EN: Text = Text {
     folder: "Folder",
     folder_placeholder: "A folder on the machine (empty: its home folder)",
     first_prompt: "First prompt",
-    prompt_placeholder: "What should the agent do? (Enter starts)",
     start: "Start",
     starting: "Starting…",
     no_machine_yet: "No machine yet: add one first.",
@@ -375,7 +391,6 @@ const KO: Text = Text {
     ],
     home_folder: "홈 폴더",
     getting_ready: "준비하는 중…",
-    composer_placeholder: "에이전트에게 요청하세요… (Enter로 보내기)",
     send: "보내기",
     queue: "대기열에 넣기",
     stop: "멈추기",
@@ -389,7 +404,6 @@ const KO: Text = Text {
     folder: "폴더",
     folder_placeholder: "머신의 폴더 (비우면 홈 폴더)",
     first_prompt: "첫 프롬프트",
-    prompt_placeholder: "에이전트가 할 일을 적으세요 (Enter로 시작)",
     start: "시작",
     starting: "시작하는 중…",
     no_machine_yet: "머신이 없습니다. 먼저 머신을 추가하세요.",

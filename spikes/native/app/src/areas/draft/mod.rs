@@ -171,12 +171,11 @@ pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
     shell.probe(true);
     let t = shell.t;
     let draft = &shell.areas.draft;
-    let placeholder = t
-        .suggestions
-        .get(draft.suggestion)
-        .copied()
-        .unwrap_or(t.prompt_placeholder);
-    draft.composer.set_placeholder(placeholder, window, cx);
+    let placeholder = t.suggestions.get(draft.suggestion).map_or_else(
+        || t.prompt_placeholder(&super::settings::send_key_words(shell)),
+        |suggestion| (*suggestion).to_owned(),
+    );
+    draft.composer.set_placeholder(&placeholder, window, cx);
     draft.composer.focus(window, cx);
 }
 

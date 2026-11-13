@@ -109,11 +109,13 @@ impl Shell {
         self.areas.session.resuming = None;
         self.areas.session.resume_error = None;
         self.follow(open, cx);
-        let t = self.t;
+        let placeholder = self
+            .t
+            .composer_placeholder(&super::settings::send_key_words(self));
         self.areas
             .session
             .composer
-            .set_placeholder(t.composer_placeholder, window, cx);
+            .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
         }
