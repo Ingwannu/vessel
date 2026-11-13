@@ -22,6 +22,7 @@
 
 mod nodes;
 mod prefs;
+mod session;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -38,6 +39,7 @@ use vessel_proto::{
 
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
 pub use prefs::{Kept, Prefs, UpdateNotes};
+pub use session::{Act, ActAnswer, ActFailed, ActKind, Acted};
 
 /// How often the sessions of every machine are listed again. The page
 /// reads its list on the same cadence (`docs/PERFORMANCE.md`); a pushed
@@ -159,6 +161,16 @@ pub enum Command {
     },
     /// Remember the person's choices (machine, agent, folders).
     SavePrefs(Prefs),
+    /// Act on a session: rename, mark, start again, delete, kill, move,
+    /// terminal input (answered by `Event::Acted`).
+    Act {
+        /// The machine.
+        machine: String,
+        /// The session.
+        session: SessionId,
+        /// What to do.
+        act: Act,
+    },
     /// Pair with a node from a pairing link, as `name` in the book.
     Pair {
         /// The decoded link.
@@ -199,6 +211,8 @@ pub enum Event {
     },
     /// Pairing failed; the words to show beside the form.
     PairFailed(String),
+    /// A session act's answer.
+    Acted(ActAnswer),
     /// What an agent offers, or why the node could not say.
     Options {
         /// The machine.
@@ -336,6 +350,11 @@ impl State {
                 }
                 Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
             },
+            Command::Act {
+                machine,
+                session,
+                act,
+            } => self.act(&machine, session, act),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
                 match saved {

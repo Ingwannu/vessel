@@ -5,8 +5,8 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_updater::UpdateState;
@@ -20,11 +20,37 @@ pub(crate) fn title_bar(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
+    let narrow = vessel_app_kit::breakpoint::phone(window);
     let content = div()
         .flex()
         .flex_row()
         .items_center()
         .gap(px(7.0))
+        // At a phone's width the sidebar is a sheet, opened from here
+        // (ADR 0036). The button occludes the bar so a press is the
+        // button's, not the bar's drag.
+        .when(narrow, |content| {
+            content.child(
+                div()
+                    .id("open-sidebar")
+                    .w(px(32.0))
+                    .h(px(28.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .rounded(px(vessel_app_kit::theme::radius::R2))
+                    .when(shell.sidebar_open(), |button| button.bg(tokens.bg_active))
+                    .occlude()
+                    .cursor_pointer()
+                    .child(
+                        vessel_app_kit::ui::svg()
+                            .path(Glyph::Menu.path())
+                            .size(px(14.0))
+                            .text_color(tokens.text_secondary),
+                    )
+                    .on_click(cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx))),
+            )
+        })
         // The mark in the text's colour at the text's size, beside the name
         // (docs/design/brand/README.md: "In the interface").
         .child(vessel_app_kit::mark_mono(14.0, tokens.text_primary))
@@ -41,7 +67,6 @@ pub(crate) fn title_bar(
                 .child(crate::LABEL),
         )
         .into_any_element();
-    let narrow = vessel_app_kit::breakpoint::phone(window);
     let status = update_status(shell, narrow, tokens, cx).map(IntoElement::into_any_element);
     vessel_app_kit::chrome::title_bar(content, status, tokens, window)
 }
