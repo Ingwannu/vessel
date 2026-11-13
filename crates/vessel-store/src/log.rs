@@ -132,10 +132,14 @@ impl Projection {
             SessionEvent::OptionsChanged { options } => {
                 self.choices = Some(options.iter().filter_map(SessionOption::choice).collect());
             }
+            // A parked agent is the live session's state only: a node
+            // restart interrupts it as any live session (protocol 12).
             SessionEvent::Agent { .. }
             | SessionEvent::Terminal(_)
             | SessionEvent::ModelCall(_)
-            | SessionEvent::CommandsChanged { .. } => {}
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken => {}
         }
     }
 }

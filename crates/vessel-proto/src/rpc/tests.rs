@@ -219,7 +219,11 @@ fn protocol_eleven_methods_know_their_version_and_scope() {
 }
 
 /// Protocol 12's methods (milestone 11, track A2), in table order.
-const PROTOCOL_TWELVE: &[(&str, Scope)] = &[("session.search", Scope::Read)];
+const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
+    ("session.search", Scope::Read),
+    ("session.park", Scope::Operate),
+    ("session.wake", Scope::Operate),
+];
 
 #[test]
 fn protocol_twelve_methods_know_their_version_and_scope() {
@@ -379,6 +383,8 @@ const FORWARDABLE: &[&str] = &[
     "prompt.update",
     "prompt.delete",
     "session.search",
+    "session.park",
+    "session.wake",
 ];
 
 #[test]

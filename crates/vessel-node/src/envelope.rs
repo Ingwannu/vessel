@@ -644,6 +644,12 @@ async fn run_here(
         Call::SearchMessages(request) => {
             Reply::SearchMessages(guard.search_messages(connection, request).await?)
         }
+        Call::ParkSession(request) => {
+            Reply::ParkSession(guard.park_session(connection, request).await?)
+        }
+        Call::WakeSession(request) => {
+            Reply::WakeSession(guard.wake_session(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::AddAgent(_)
         | Call::GetCatalogue(_)

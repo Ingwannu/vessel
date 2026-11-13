@@ -8249,3 +8249,139 @@ node to rebuild their actors at start, which no session does today.
 `send_input` wakes a session as a person's prompt does).
 
 ADR 0038 records the choice.
+
+### 2. Parking: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) found four blockers, six
+should-fix and a batch of minor points. What changed; where this
+section and the contract above disagree, this one holds:
+
+1. **Prompts could not reach a parked session**: a move's way of
+   holding input (`route` empty, `SessionError::Moving`) refuses every
+   order. The route becomes typed (`Live(input)`, `Moving`, `Parked`):
+   orders pass while parked and the actor wakes for what needs the
+   agent; `session.options` answers the last reported options;
+   `turn_running` answers false; an answer to a permission or question
+   is refused (nothing waits on a parked session). Park is a control
+   message of the actor's, so a prompt that arrives while the agent is
+   being stopped waits its turn instead of being refused.
+2. **A wake would restore old options** (the launch keeps the choices
+   from creation or the last move): a wake starts with the session's
+   current choices and its harness session id, as a move does.
+3. **Older peers and a new status**: `SessionStatus::Parked` would reach
+   protocol 10 and 11 peers through replies `Reply::for_protocol` passes
+   on unchanged (a mark's answer, an export's manifest, an import) and
+   through status records (`since` 2). Taken: the status stays `running`
+   throughout; `SessionInfo.parked?: Parked { since, reason }` says it
+   (absent otherwise, ignored by older peers), and two records,
+   `parked { reason }` and `woken`, both `since 12`, reach older peers as
+   `vessel:` log lines. `is_live`, the page's composer, terminals' status
+   and the board are untouched; the board shows a parked session where it
+   shows an idle one.
+4. **The actor's loop**: while parked the agent's exit and outputs are
+   not waited on; a kill ends the session at once (`exited`, no code), a
+   node stop `interrupted`; park and wake run with the move's flag set,
+   so the old agent's disconnect does not end the session; the published
+   pid is cleared while parked.
+5. **Statuses the compiler does not catch** no longer apply (item 3).
+   A node draining for an update does not wait for parked sessions (they
+   hold no process; its restart interrupts them as any live session).
+6. **A failed wake and automatic prompts**: after `wake_failed`, a
+   prompt delivered `queue` (pull request feedback, a schedule, a
+   starter's notice) goes into the queue, held `failed`, instead of
+   trying again; a person's prompt of another delivery, `session.wake`
+   or the queue's `resume` tries again.
+7. **"No shell beside it running"** cannot be seen by the actor and
+   would keep any session with an open shell awake forever. Replaced by
+   what the brief asks ("never while ... a terminal is attached"),
+   read as agent-orchestrator's view lease: not while anyone follows the
+   session live (a page that has it open, `vessel attach`, an agent's
+   `wait_turn`). A port the agent's processes listen on (a dev server it
+   started) is a real sign of background work; the node's port scan is
+   not wired to sessions' actors yet, so it is left as a known limit.
+8. **The wake's launch**: the session's own (its command, environment
+   and MCP servers as at its start or last move); a profile or agent
+   removed since makes the wake fail (`wake_failed`), and `session.resume`
+   after ending it re-resolves them as it does for an ended session.
+9. **A move while parked** wakes first (under the current profile), then
+   moves; a failed wake fails the move.
+10. **The wake's sequence**: the agent's replay and its `ready` are
+    dropped, as for a move; the actor publishes `woken` once it is ready.
+    A cancel on a parked session holds the queue and answers at once
+    (nothing runs). A kill during a wake ends the session; the call that
+    woke it answers `ended`.
+11. **What restarts the idle clock**: a delivery, a queue change, a
+    cancel, an option change, and the agent's timeline records; not its
+    stderr, usage or commands reports, model calls, forge views or
+    renames (a chatty adapter would never park). The timer is the last
+    arm of the actor's biased `select`.
+12. **Minor**: `Config.park_after` is a duration (`--park-after`
+    minutes on the command line; tests use milliseconds); a wake's
+    failure message is cut at 1 KiB; a parked session keeps its record
+    ring as a running one does; parked sessions an agent started count
+    toward its eight live sessions (ADR 0013); `session.resume` on a
+    parked session is `conflict` (it is live); a parent session is parked
+    while sessions it started work, unlike Paseo, and a starter's notice
+    wakes it (deliberate: the notice is the reason to wake).
+
+Rejected: telling the woken agent in a prompt that its background
+processes were stopped (a line in its conversation the person did not
+write); a veto from the agent (ACP has none).
+
+### 2. Park an idle agent and wake it (built 2026-11-13)
+
+Protocol 12 (no new version: slice 1 raised it), no schema change, ADR
+0038. The design is the contract as its review amended it (above).
+
+- **Wire** (`vessel_proto::parking`): `session.park` and `session.wake`
+  (operate, `since 12`, ownership-checked, forwardable, allowed through
+  `vessel-web`'s bridge and to agents for their own sessions),
+  `ParkSession`, `WakeSession`, `SessionInfo.parked?: Parked { since,
+  reason }`, `ParkReason` (`idle`, `asked`, `wake_failed { message }`,
+  `unknown`), the records `parked { reason }` and `woken` with their
+  `vessel:` log lines for versions 2 to 11.
+- **Session runtime** (`vessel-session/src/parking.rs`): `Route`
+  (`Live`, `Moving`, `Parked`) replaces the move's empty route; the
+  actor's `Parking` (its timer, the last activity, the parked state, the
+  harness session id and the current choices, both kept from the agent's
+  output); park and wake as control messages, reusing the move's
+  `stop_agent` and `start_agent`; a delivery, a queue change, an option
+  change or a move wakes first; after a failed wake a `queue` delivery is
+  queued and the queue held `failed`; reads answer from what was kept.
+  `RuntimeConfig.park_after`.
+- **Node**: `service/parking.rs`; the guard's targets; `--park-after`
+  (`DEFAULT_PARK_AFTER`, 60 minutes); the drain for an update skips
+  parked sessions.
+- **CLI**: `vessel session park|wake ID`; `vessel sessions` shows
+  `(parked)`; `vessel log` and attach show both records.
+- **Agents**: no new tool; `session.park`/`wake` are in the agents'
+  policy for their own sessions (the MCP tools stay as they were).
+
+**Checked**: the proto's (a failure message cut on a character, the
+reason's round trip and a newer reason read as `unknown`, older peers'
+log lines); the session runtime's with the fake agent (an idle agent
+parked by its timer with its process gone and its status `running`,
+reads not waking it, the next prompt waking it with `session/load` and
+the mode a person chose, only two status records; by hand: refused
+before the handshake and while a turn runs, a wake of a running agent
+doing nothing, parked once quiet and parked twice still parked, a cancel
+waking nothing, a kill ending a parked session at once with no exit
+code; a followed session never parked over several periods); the
+node's end to end
+(parked by hand and woken by a prompt over the wire, `parked` and
+`woken` in the log, the conversation going on; an agent that cannot
+load again: `session.wake` answering `spawn_failed`, the session still
+parked saying why, and a `queue` delivery waiting in the queue held
+`failed`).
+
+**Not built, and why**: no port or shell check for the agent's
+background work (the node's port scan is not wired to sessions' actors);
+parked state is not kept across a node restart (a restart interrupts
+live sessions anyway); a family of sessions is not kept awake together
+(a starter's notice wakes the parent).
+
+**For the page track**: `SessionInfo.parked` shows "parked" beside a
+running session (the composer stays enabled: a prompt wakes it); the
+`parked` and `woken` records are timeline marks; `session.wake` is a
+button for a session whose wake failed (`reason: wake_failed` carries
+the message).

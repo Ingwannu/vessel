@@ -30,6 +30,7 @@ mod name;
 mod node;
 mod options;
 mod pairing;
+pub mod parking;
 pub mod ports;
 mod profile;
 mod proxy;

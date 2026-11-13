@@ -242,7 +242,10 @@ impl Reply {
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
-            | Self::SearchMessages(_) => None,
+            | Self::SearchMessages(_)
+            // Protocol 12's: asked only by peers that read them.
+            | Self::ParkSession(_)
+            | Self::WakeSession(_) => None,
         }
     }
 }

@@ -53,7 +53,9 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => Said::Nothing,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken => Said::Nothing,
     }
 }
 

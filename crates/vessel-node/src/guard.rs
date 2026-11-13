@@ -143,6 +143,9 @@ macro_rules! untargeted {
 // upload's later pieces name the upload, whose holder check keeps them to
 // the caller that began it (`uploads`).
 targets!(
+    // Protocol 12: parking and waking act on a session as a prompt does.
+    vessel_proto::parking::ParkSession,
+    vessel_proto::parking::WakeSession,
     SendInput,
     KillSession,
     MoveProfile,
@@ -454,6 +457,8 @@ guarded! {
     update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
     delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
     search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
+    park_session: vessel_proto::parking::ParkSession => SessionInfo;
+    wake_session: vessel_proto::parking::WakeSession => SessionInfo;
 
     @through_the_guard {
         forward: Forward => Forwarded;

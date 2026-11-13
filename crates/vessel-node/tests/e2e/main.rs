@@ -58,6 +58,8 @@ mod options;
 #[cfg(test)]
 mod page_wire;
 #[cfg(test)]
+mod parking;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 mod prompts;

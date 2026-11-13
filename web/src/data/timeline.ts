@@ -163,6 +163,13 @@ class Work {
       case "renamed":
         this.title = event.title;
         return;
+      case "parked":
+      case "woken":
+        // Protocol 12 (ADR 0038): the agent's process was stopped while
+        // idle, or started again. Nothing in the conversation changes and
+        // the status stays running; `SessionInfo.parked` carries the state
+        // for whoever shows it.
+        return;
     }
   }
 

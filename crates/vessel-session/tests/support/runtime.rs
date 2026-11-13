@@ -40,6 +40,11 @@ pub(crate) struct Fixture {
 
 impl Fixture {
     pub(crate) fn new() -> Self {
+        Self::parking_after(None)
+    }
+
+    /// A runtime that parks idle agents after `after` (protocol 12).
+    pub(crate) fn parking_after(after: Option<Duration>) -> Self {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let bin =
@@ -71,6 +76,7 @@ impl Fixture {
                 ring_capacity: DEFAULT_RING_CAPACITY,
                 durable_capacity: DEFAULT_DURABLE_CAPACITY,
                 agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                park_after: after,
             },
             CancellationToken::new(),
         );

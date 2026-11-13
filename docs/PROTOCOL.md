@@ -66,6 +66,33 @@ event, no change to an existing type. Types in `vessel_proto::search`.
 - Not ownership-checked: agents read the fleet's sessions (ADR 0013), so
   they search them (the `search_sessions` tool).
 
+### Parking an idle agent (track A2, ADR 0038)
+
+Two methods, one optional field, two records; types in
+`vessel_proto::parking`. The status is unchanged: a parked session is
+`running`.
+
+- `SessionInfo.parked?: Parked { since, reason: ParkReason }`; absent
+  while the agent runs, for an ended session, and from older nodes.
+  `ParkReason` (tagged `reason`): `idle`, `asked`, `wake_failed { message
+  }` (at most 1 KiB), `unknown`.
+- Records `parked { reason }` and `woken` (`since 12`); a version 2-11
+  client gets `vessel: the agent's process was stopped (...)` and
+  `vessel: the agent was started again` as `harness_log` lines.
+- `session.park { session }` and `session.wake { session }` (operate,
+  ownership-checked, forwardable; answer `SessionInfo`). `park`:
+  `conflict` while starting or moving, while a turn runs, while a
+  permission or question waits, or while the queue would move;
+  `unsupported` for a terminal session or an agent that cannot resume.
+  `wake`: answered once the agent is ready; `spawn_failed` when it does
+  not start (the session stays parked, saying why).
+- A prompt of any delivery, a queue change that starts one, an option
+  change and a move wake a parked session first; after a failed wake a
+  `queue` delivery is queued with the queue held `failed`. Reads and a
+  cancel do not wake it.
+- The node parks idle sessions on its own after `--park-after` minutes
+  (60 by default; 0 never), never one that someone follows live.
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;
