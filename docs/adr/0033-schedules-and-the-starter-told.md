@@ -199,10 +199,12 @@ is later sent by a person who may not read it again.
 
 ## Consequences
 
-- Protocol 11: the `automation` module, fourteen methods for schedules and
-  saved prompts (six more for hooks, ADR 0034), `PromptSession.notify`.
-  Schema 13.
-- `vessel-node` depends on `jiff` (bundled database; Unlicense or MIT).
+- Protocol 11: the `automation` module, thirteen methods for schedules
+  and saved prompts (the six for hooks are designed in ADR 0034 and not
+  built), `PromptSession.notify`. Schema 13.
+- `vessel-node` depends on `jiff` (bundled database; Unlicense or MIT);
+  `vessel-cli` too, with `tz-system`, to name the zone the machine is in
+  when `--tz` is left out.
 - `vessel-session`'s actor reports which turn a delivered prompt started
   (a small addition to its delivery: a ticket per prompt).
 - A wall-clock rule that differs from Cronie's for `*`-hour expressions in

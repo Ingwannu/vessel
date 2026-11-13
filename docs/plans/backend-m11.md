@@ -3748,7 +3748,8 @@ is gone; a person deletes them).
 
 - **Off unless configured**: the node opens a hook listener only when
   started with one (`vesseld --hooks [ADDR]`, `vessel node start --hooks
-  [ADDR]`), on `127.0.0.1:7078` unless an address is given; another
+  [ADDR]`), on `127.0.0.1:7080` (7078 is the relay's: corrected in ADR
+  0034) unless an address is given; another
   address logs a warning, as `--bind` does. Hooks can be made without it;
   `hook.list` says the listener is `off`.
 - **A request** follows Standard Webhooks: `POST /hooks/<id>` with
@@ -3797,8 +3798,9 @@ is gone; a person deletes them).
 
 None. A scheduled prompt and a notice are prompts: they appear as
 `queue_changed` and `turn_started`, as any prompt does. A queue entry's
-`by` is the schedule's or hook's `defined_by`, or for a notice the told
-session's own agent (it asked to be told). A page reads `schedule.list`
+`by` is the schedule's or hook's `defined_by`, or for a notice the
+session that finished (`Creator::Agent` of that session: what the notice
+is about). A page reads `schedule.list`
 and `schedule.runs` again when it wants the newest (no subscription in
 this track).
 
@@ -4017,6 +4019,40 @@ whole gate (the end-to-end tests of the node and of the page included).
   `delete_schedule` and `list_saved_prompts`, on the agent's own node
   (`vessel-mcp`'s `tools/automation.rs`); `create_session`'s arguments
   now make a spec in one place (`spec`), which `create_schedule` uses.
+- **The code review's findings** (an independent reviewer read slices 1
+  to 4; fixed in one commit after slice 5):
+  1. *A skip hid the run still running*: the overlap check and the
+     restart's settling read `last_run`, which a skip recorded above a
+     running run replaces, so the run after a skip started beside it.
+     The scheduler now keeps each schedule's newest run that did
+     something (`Entry::current`) for both.
+  2. *A failed first turn left its session live*: a `new_session` run
+     whose turn failed (the agent alive) was not archived; it is now, as
+     one that ended is.
+  3. *`ends_at` did not bound a catch-up*: due times past it, missed
+     while the node was stopped, could be caught up; they are now cut at
+     `ends_at` (how old the latest is still counts from now).
+  4. *An agent's schedule that ended by `max_runs` or `ends_at` stayed*,
+     counting toward the node's 64; an agent's schedule that ends for any
+     reason now goes.
+  5. *A told session that ended kept its places* until the turns it
+     waited on moved: each follower now also listens for that end; the
+     hourly count forgets sessions told nothing for an hour.
+  6. `schedule.run` without a slot in 30 s answers `unavailable` (the run
+     is still recorded `failed`); a store that cannot be read fails the
+     run alone instead of ending the schedule `target_gone`; the plan's
+     line on a notice's `by` now says what the node does (the session
+     that finished).
+
+  Not taken: *runs waiting for a slot are not started oldest first*
+  (tasks race for the semaphore; the four slots are a bound on load, not
+  a queue, and a run's due time is recorded either way); *a schedule
+  made while the clock was days ahead keeps that far due time* until the
+  clock gets there (the correction applies to a run made in that state;
+  one made by a person at a wrong clock is theirs to edit).
+  `actor.rs` was divided by responsibility on the way: its calls
+  (`calls.rs`), a run's task (`task.rs`), the state's pure rules
+  (`state.rs`).
 
 ### Checked, and how
 
@@ -4077,3 +4113,56 @@ whole gate (the end-to-end tests of the node and of the page included).
   schedule in a zone that starts sessions, `every_secs` and `cron` at
   once refused, the list, pause, resume, runs and delete of its own, a
   person's schedule refused (`forbidden`), the saved prompts read.
+- The review's findings (`automation::schedules::tests::after_review`, 4
+  tests, on the hand-moved clock): the run after a skip is given the run
+  that started a session as `previous`; at start a `making` run under a
+  skip becomes `interrupted` and the skip stays the newest record; a
+  node stopped from 08:00 to 12:00 catches up the 10:00 due time of a
+  schedule ending at 10:00 (five missed) and ends it `expired`; an
+  agent's schedule with `max_runs: 1` goes after its run. The hourly
+  count forgetting quiet sessions (`automation::notices` tests).
+
+### Not built, and why
+
+- **The hook listener** (ADR 0034): the wire's shapes and schema 13's
+  tables are in place and the design is recorded; nothing listens. The
+  node cannot tell whether a hook session's agent asks before it acts
+  (permission modes are each harness's own values, and a profile may
+  approve tools in advance), so a sender's relayed text could run
+  commands with the definer's access; and the time went to the rest.
+  ADR 0034's "Where it stands" lists what remains and what would close
+  the first reason.
+- **`vessel hook`** and the six `hook.*` methods: they come with the
+  listener; no client can make a hook meanwhile.
+- **Agents**: no `run_schedule` tool (an agent would pump its own
+  heartbeat past its cadence), no saved-prompt writes (a person's text,
+  sent later by a person), no hook tool, `notify` on the agent's own node
+  only, and schedules on its own node only (another node cannot rebuild
+  the agent when the run comes).
+
+### What the page track must know
+
+- Protocol 11's schedule and saved-prompt calls are in `vessel-web`'s
+  list and in `web/src/wire/proto.ts`; nothing in the page draws them yet,
+  and `web/src/data` gained nothing.
+- `ScheduleInfo.state` is tagged `state` (`active { next_due }`, `paused
+  { since }`, `ended { at, reason }`, `unknown`); `last_run` is the
+  newest run; `schedule.update` takes the whole definition under its
+  `revision`, and whoever updates becomes `defined_by` (the runs act as
+  them: say so beside the save button).
+- `Cadence` and `ScheduleTarget` are tagged `kind`; a run's `trigger`,
+  `outcome` and `end` are tagged by those names; `failed.error.code` is a
+  `RunErrorCode` that reads codes it does not know as `unknown`.
+- `PromptSession.notify` is an agent's: the node answers the page
+  `invalid_request` for it, so the page never sets it.
+- `Cadence.cron.zone` is an IANA name the node checks; the page should
+  default it to the browser's zone (`Intl.DateTimeFormat().resolvedOptions().timeZone`).
+- A queued prompt's `by` is the schedule's `defined_by`, or, for a
+  notice, the session that finished (`Creator::Agent`); a scheduled new
+  session's log starts with `vessel: started by schedule "<name>" (run
+  <n>)`.
+- Saved prompts: unique per scope, 256 per node; `prompt.list { project
+  }` gives that project's and the machine's; agents read only.
+- Webhooks: when the listener is built, show a hook's secret once and
+  never keep it; say beside a hook session's permission mode what ADR
+  0034's first consequence says.
