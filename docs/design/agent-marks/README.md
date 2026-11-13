@@ -53,14 +53,6 @@ Apache-2.0 licence (text beside this file), with trademark rights reserved.
 - Terms: https://brand.github.com/foundations/logo and https://brand.github.com/brand-identity/copilot
 - Terms summary: GitHub permits its current mark to identify integration, subordinate to the app brand and without implied affiliation, and states that prior written permission is required for artwork use. The standalone Invertocat is used where the GitHub brand is explicit in the agent name; the retired Copilot head is never used.
 
-## For the owner
-
-Anthropic requires prior approval: "You may only use our trademarks as specifically permitted by us and only in materials we approve beforehand."
-
-GitHub: "Do not use GitHub trademarks, logos, or artwork without GitHub’s prior written permission."
-
-The relevant terms addresses are above. Shipping implementation is the
-owner's decision; this record does not assert that either approval exists.
 ## Gemini CLI
 
 - Mark: the vendor's official Gemini CLI application icon (PNG, not traced).
@@ -75,6 +67,21 @@ tracing it into an unofficial vector; the existing image renderer already
 supports it. Its pixels and SHA-256 are unchanged in the app. No vector
 asset was fabricated from the empty SVG in Google's older JS sample.
 
+
+## For the owner
+
+Anthropic requires prior approval: "You may only use our trademarks as specifically permitted by us and only in materials we approve beforehand."
+
+GitHub: "Do not use GitHub trademarks, logos, or artwork without GitHub’s prior written permission."
+
+The relevant terms addresses are listed with each mark. Shipping implementation is the
+owner's decision; this record does not assert that these approvals exist.
+
+Google product-icon approval is also for the owner: the current guidance
+at https://about.google/brand-resource-center/brand-elements/ says to
+“create a Partner Marketing Hub account to find assets and request
+permission through our approval form.” This is a separate condition from
+the source repository's Apache-2.0 redistribution licence.
 
 ## Drawing boxes and optical alignment
 
@@ -99,14 +106,36 @@ It is drawn in image boxes 10.5, 12.25, 14 and 17.5 points inside nominal
 `GITHUB` is the one artwork source; `COPILOT` aliases it, and the forge
 control uses the same data through a separate typed API.
 
-Google product-icon approval is also for the owner: the current guidance
-at https://about.google/brand-resource-center/brand-elements/ says to
-“create a Partner Marketing Hub account to find assets and request
-permission through our approval form.” This is a separate condition from
-the source repository's Apache-2.0 redistribution licence.
+
 
 In provider rows the reserved mark column is 32 points for every brand and
 for Generic, so labels align with OpenCode's necessary clear-space box.
 The requested 14/16/20 mark sizes and the reference's 8-point gap remain;
 this 32-point column is a documented width difference from Paseo's compact
-14-point column. Inline and toolbar slots retain their requested width.
+14-point column. Ordinary inline and toolbar slots retain their requested width; the
+touch OpenCode exception is recorded below.
+
+The audit window's OpenCode original is always drawn at its 16 × 20
+minimum inside the same 32 × 36 clear-space box, even beside a requested
+12/14/16/20 compact slot that correctly falls back to Generic. Brand rules
+also apply to the comparison fixture; it is never scaled below minimum
+merely to match a requested size label.
+
+Provider headers reserve the reference's 16-point slot for ordinary marks.
+OpenCode alone needs its 32 × 36 clear-space box there, so its title starts
+16 points farther right. This uses the existing header's vertical padding;
+it does not reduce the artwork or its quiet zone. The audit exercises the
+actual back/title/artwork header with a long title in both themes and widths.
+
+Disabled provider rows retain the artwork's approved colours at full
+opacity. Only their words, check and trailing controls receive the
+reference's 55% disabled opacity. Generic/glyph rows keep their previous
+whole-row opacity; the exception prevents a disabled state from inventing
+an unofficial translucent brand variant. The audit includes a disabled
+Gemini row beside active marks.
+
+The 44-point touch model pill can contain OpenCode's 32 × 36 box and uses
+it unchanged; only the 28-point pointer pill falls back to Generic. The
+touch icon slot is 12 points wider than Paseo's nominal 20 for this brand,
+with the reference's 4-point label gap retained. Its icon-only 44-square
+button also holds the required box without changing its target or height.

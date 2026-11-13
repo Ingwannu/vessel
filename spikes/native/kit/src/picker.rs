@@ -209,12 +209,14 @@ pub fn pill_parts(
             } else {
                 crate::agent_mark::Size::Sixteen
             };
-            crate::agent_mark::agent_mark(
-                Some(art),
-                size,
-                crate::agent_mark::Space::Compact,
-                tokens,
-            )
+            // The touch pill's existing 44-point height can hold the
+            // OpenCode minimum plus quiet zone; the 28-point pill cannot.
+            let space = if touch {
+                crate::agent_mark::Space::Lockup
+            } else {
+                crate::agent_mark::Space::Compact
+            };
+            crate::agent_mark::agent_mark(Some(art), size, space, tokens)
         }))
         .children(
             parts
@@ -545,6 +547,13 @@ impl ComboboxState {
             }
         }
     }
+
+    fn choice(&self, rows: &[ComboRow]) -> Option<usize> {
+        // A query/probe can replace rows after the highlight was set.
+        // Recheck availability at activation rather than trusting its index.
+        self.highlighted
+            .filter(|index| rows.get(*index).is_some_and(|row| !row.disabled))
+    }
 }
 
 /// What a screen does with a chosen row, by index.
@@ -734,7 +743,7 @@ fn key_handler<V: 'static>(
             "down" => list.step(&key_rows, true),
             "up" => list.step(&key_rows, false),
             "enter" => {
-                if let Some(index) = list.highlighted {
+                if let Some(index) = list.choice(&key_rows) {
                     chose(view, index, window, cx);
                 }
             }
@@ -832,10 +841,19 @@ fn title_row<V: 'static>(
         }
     }
     if let Some(leading) = leading {
-        let mark = row_leading(leading, false, crate::agent_mark::Size::Sixteen, tokens);
+        let mark = row_leading(
+            leading,
+            false,
+            crate::agent_mark::Size::Sixteen,
+            crate::agent_mark::Space::Lockup,
+            tokens,
+        );
         row = row.gap(px(crate::theme::spacing::S2)).child(mark);
     }
-    row.child(title).into_any_element()
+    // Paseo's sheet header uses one line with an ellipsis; constrain the
+    // text slot so a long provider name cannot run through the panel edge.
+    row.child(div().flex_1().min_w_0().truncate().child(title))
+        .into_any_element()
 }
 
 /// A row's words: its label, its detail on the same line, its note under
@@ -892,18 +910,14 @@ fn row_leading(
     leading: Leading,
     compact: bool,
     mark_size: crate::agent_mark::Size,
+    space: crate::agent_mark::Space,
     tokens: &Tokens,
 ) -> AnyElement {
     let neutral = tokens.neutral;
     match leading {
         Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
         Leading::AgentMark(art) => {
-            let mark = crate::agent_mark::agent_mark(
-                art,
-                mark_size,
-                crate::agent_mark::Space::Row,
-                tokens,
-            );
+            let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical
             // padding too. Top alignment keeps its edges on whole pixels
             // when the Body line is 21 points high; centring would add half
@@ -950,7 +964,10 @@ fn combo_row<V: 'static>(
     // is also at most the row's width, so a name longer than the row ends
     // in an ellipsis. (A small shrink factor is not enough: any shrink at
     // all cuts the label, "Workspace acce…" beside a whole description.)
-    let words = row_words(row, tokens);
+    // Disabled text follows Paseo's opacity, but official artwork must
+    // retain its owner's approved colours instead of being faded with it.
+    let fade_text = row.disabled && matches!(row.leading, Some(Leading::AgentMark(Some(_))));
+    let words = row_words(row, tokens).when(fade_text, |words| words.opacity(0.55));
     let mut element = div()
         .id(ElementId::NamedInteger(
             "combobox-row".into(),
@@ -964,18 +981,18 @@ fn combo_row<V: 'static>(
         .min_h(px(if compact { 44.0 } else { 36.0 }))
         .px(px(12.0))
         .py(px(8.0))
-        .when(row.disabled, |element| element.opacity(0.55))
+        .when(row.disabled && !fade_text, |element| element.opacity(0.55))
         .when(highlighted && !row.disabled, |element| element.bg(wash))
         .children(
             row.leading
                 .clone()
-                .map(|leading| row_leading(leading, compact, crate::agent_mark::Size::Fourteen, tokens)),
+                .map(|leading| row_leading(leading, compact, crate::agent_mark::Size::Fourteen, crate::agent_mark::Space::Row, tokens)),
         )
         .child(words)
         // Paseo's trailing slot: the check, then the row's own words (a
         // value at most 45% of the row, one line).
         .when(row.checked, |element| {
-            element.child(glyph(Glyph::Check, 16.0, neutral.foreground_muted))
+            element.child(glyph(Glyph::Check, 16.0, neutral.foreground_muted).when(fade_text, |check| check.opacity(0.55)))
         })
         .children(row.trailing.clone().map(|trailing| {
             div()
@@ -985,13 +1002,14 @@ fn combo_row<V: 'static>(
                 .truncate()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
+                .when(fade_text, |trailing| trailing.opacity(0.55))
                 .child(trailing)
         }))
         .when(row.opens, |element| {
-            element.child(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted))
+            element.child(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted).when(fade_text, |chevron| chevron.opacity(0.55)))
         })
         .children(row.switch.map(|on| {
-            crate::settings::switch(
+            let control = crate::settings::switch(
                 ElementId::NamedInteger(
                     "combobox-switch".into(),
                     u64::try_from(index).unwrap_or(u64::MAX),
@@ -1001,7 +1019,12 @@ fn combo_row<V: 'static>(
                 compact,
                 0,
                 tokens,
-            )
+            );
+            if fade_text {
+                div().opacity(0.55).child(control).into_any_element()
+            } else {
+                control.into_any_element()
+            }
         }));
     if !row.disabled {
         let chose = Rc::clone(&handlers.chose);
@@ -1042,6 +1065,7 @@ mod tests {
         state: ComboboxState,
         rows: Vec<ComboRow>,
         seen: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+        choices: Rc<RefCell<Vec<usize>>>,
     }
 
     impl Render for Probe {
@@ -1049,16 +1073,21 @@ mod tests {
             let tokens = Tokens::of(Scheme::Dark);
             let handlers = ComboHandlers {
                 state: |probe: &mut Self| &mut probe.state,
-                chose: Rc::new(|_probe: &mut Self, _index, _window, _cx| {}),
+                chose: Rc::new(|probe: &mut Self, index, _window, _cx| {
+                    probe.choices.borrow_mut().push(index);
+                }),
                 back: None,
             };
             let seen = Rc::clone(&self.seen);
             let mut list = div()
+                .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds)
+                .id("picker-probe")
+                .track_focus(&self.state.focus)
+                .capture_key_down(key_handler(&self.rows, &handlers, cx))
                 .w(px(360.0))
                 .type_(Type::Body)
                 .flex()
-                .flex_col()
-                .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds);
+                .flex_col();
             for (index, row) in self.rows.iter().enumerate() {
                 list = list.child(combo_row(
                     index,
@@ -1100,6 +1129,73 @@ mod tests {
     }
 
     #[gpui::test]
+    fn disabled_marks_and_stale_highlights_never_call_the_selection_handler(
+        cx: &mut TestAppContext,
+    ) {
+        let choices = Rc::new(RefCell::new(Vec::new()));
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let (probe, cx) = cx.add_window_view({
+            let choices = Rc::clone(&choices);
+            let seen = Rc::clone(&seen);
+            move |window, cx| {
+                let mut rows = vec![ComboRow::new("Available before")];
+                for leading in [
+                    Leading::AgentMark(Some(crate::agent_mark::GEMINI)),
+                    Leading::AgentMark(None),
+                    Leading::Glyph(Glyph::Bot),
+                ] {
+                    let mut row = ComboRow::new("Unavailable");
+                    row.leading = Some(leading);
+                    row.disabled = true;
+                    rows.push(row);
+                }
+                rows.push(ComboRow::new("Available after"));
+                let mut state = ComboboxState::new(window, cx);
+                state.open(None, window, cx);
+                Probe {
+                    state,
+                    rows,
+                    seen,
+                    choices,
+                }
+            }
+        });
+        cx.run_until_parked();
+        for index in 1..=3 {
+            let at = seen.borrow().get(index).unwrap().center();
+            cx.simulate_click(at, gpui::Modifiers::default());
+            cx.run_until_parked();
+            assert!(choices.borrow().is_empty(), "disabled pointer row {index}");
+        }
+        cx.simulate_keystrokes("down down enter");
+        assert_eq!(*choices.borrow(), [4]);
+        cx.simulate_keystrokes("up enter");
+        assert_eq!(*choices.borrow(), [4, 0]);
+        assert!(cx.update(|_, cx| probe.read(cx).state.is_open()));
+        for index in 1..=4 {
+            cx.update(|_, cx| {
+                probe.update(cx, |probe, cx| {
+                    probe.rows[index].disabled = true;
+                    probe.state.highlighted = Some(index);
+                    cx.notify();
+                });
+            });
+            cx.simulate_keystrokes("enter");
+            assert_eq!(*choices.borrow(), [4, 0], "disabled Enter row {index}");
+        }
+        cx.update(|_, cx| {
+            probe.update(cx, |probe, cx| {
+                probe.rows.clear();
+                cx.notify();
+            });
+        });
+        cx.simulate_keystrokes("enter");
+        assert_eq!(*choices.borrow(), [4, 0], "removed/out-of-range row");
+        cx.simulate_keystrokes("escape");
+        assert!(!cx.update(|_, cx| probe.read(cx).state.is_open()));
+    }
+
+    #[gpui::test]
     fn rows_of_long_descriptions_are_one_line_and_never_overlap(cx: &mut TestAppContext) {
         let seen = Rc::new(RefCell::new(Vec::new()));
         let (_, cx) = cx.add_window_view({
@@ -1108,6 +1204,7 @@ mod tests {
                 state: ComboboxState::new(window, cx),
                 rows: rows(),
                 seen,
+                choices: Rc::default(),
             }
         });
         cx.run_until_parked();
@@ -1154,6 +1251,7 @@ mod tests {
                     state: ComboboxState::new(window, cx),
                     rows,
                     seen,
+                    choices: Rc::default(),
                 }
             }
         });

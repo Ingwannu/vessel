@@ -33,16 +33,22 @@ pub(super) fn overlay(
             1 => ("Claude Code", Some(agent_mark::CLAUDE)),
             2 => ("Codex", Some(agent_mark::CODEX)),
             3 => ("Gemini CLI", Some(agent_mark::GEMINI)),
+            4 => ("사용자 추가 / unknown (disabled)", None),
+            5 => ("기존 글리프 / glyph (disabled)", None),
             _ => ("한국어와 긴 에이전트 이름 / long custom agent name", None),
         };
         let mut row = ComboRow::new(label);
         row.leading = Some(Leading::AgentMark(art));
         row.checked = preview.selected == index;
+        row.disabled = matches!(index, 3..=5);
+        if index == 5 {
+            row.leading = Some(Leading::Glyph(vessel_app_kit::assets::Glyph::Bot));
+        }
         rows.push(row);
     }
     let header = ComboHeader {
-        title: None,
-        back: false,
+        title: preview.header.map(|(_, title)| title.into()),
+        back: preview.header.is_some(),
         search: false,
         empty: "".into(),
         side: Side::Above,
@@ -53,7 +59,10 @@ pub(super) fn overlay(
             preview.selected = index;
             cx.notify();
         }),
-        back: None,
+        back: Some(Rc::new(|preview: &mut Preview, _, cx| {
+            preview.picker.close();
+            cx.notify();
+        })),
     };
     combobox(
         "mark-rows",

@@ -20,6 +20,7 @@ struct Preview {
     originals: Option<PathBuf>,
     picker: vessel_app_kit::ComboboxState,
     selected: usize,
+    header: Option<(Artwork, &'static str)>,
 }
 impl Render for Preview {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
@@ -100,7 +101,11 @@ impl Preview {
                 Some(agent_mark::GEMINI),
                 "google/gemini-cli-icon.png",
             ),
-            ("OpenCode", Some(agent_mark::OPENCODE), "opencode/light.svg"),
+            (
+                "OpenCode (min16x20)",
+                Some(agent_mark::OPENCODE),
+                "opencode/light.svg",
+            ),
             (
                 "GitHub Copilot",
                 Some(agent_mark::COPILOT),
@@ -145,6 +150,18 @@ fn cell(art: Option<Artwork>, size: Size, tokens: &Tokens, original: Option<Path
         .child(format!("{}", size.points()))
         .child(agent_mark::agent_mark(art, size, Space::Compact, tokens))
         .children(original.map(|path| {
+            if art == Some(agent_mark::OPENCODE) {
+                // The comparison itself must obey the original's minimum
+                // ink size and quiet zone, even when the requested slot
+                // is too small and the production side shows Generic.
+                return div()
+                    .w(px(32.0))
+                    .h(px(36.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(img(path).w(px(16.0)).h(px(20.0)));
+            }
             // The only located OpenAI source is white, so the genuine
             // original is compared on black even in the light-theme run.
             let background = if art == Some(agent_mark::CODEX) {
@@ -165,6 +182,17 @@ fn main() {
         Scheme::Dark
     };
     let originals = std::env::var_os("VESSEL_MARK_ORIGINALS").map(PathBuf::from);
+    let header = match std::env::var("VESSEL_MARK_HEADER").as_deref() {
+        Ok("claude") => Some((
+            agent_mark::CLAUDE,
+            "Claude Code · Reviewing authentication and editor recovery across reconnects",
+        )),
+        Ok("opencode") => Some((
+            agent_mark::OPENCODE,
+            "OpenCode · 연결이 끊긴 뒤 저장하지 않은 편집 내용과 인증 상태 복구",
+        )),
+        _ => None,
+    };
     gpui_platform::application()
         .with_assets(Assets)
         .run(move |cx| {
@@ -191,11 +219,18 @@ fn main() {
                 ..WindowOptions::default()
             };
             if let Err(error) = cx.open_window(options, |window, cx| {
-                cx.new(|cx| Preview {
-                    scheme,
-                    originals,
-                    picker: vessel_app_kit::ComboboxState::new(window, cx),
-                    selected: 0,
+                cx.new(|cx| {
+                    let mut picker = vessel_app_kit::ComboboxState::new(window, cx);
+                    picker.set_header_leading(
+                        header.map(|(art, _)| vessel_app_kit::Leading::AgentMark(Some(art))),
+                    );
+                    Preview {
+                        scheme,
+                        originals,
+                        picker,
+                        selected: 0,
+                        header,
+                    }
                 })
             }) {
                 tracing::error!(%error, "mark audit window could not start");

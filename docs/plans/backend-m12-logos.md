@@ -174,3 +174,41 @@ are distinct from the app-surface captures, which belong to the next slice.
 The temporary original-comparison files and captures are review artifacts,
 not bundled application assets. Every painted path matches the vendor's
 original path sequence; the source PNG remains byte-identical.
+
+## Control correction after first review
+
+This supersedes the first control validation's original-comparison and
+header evidence. OpenCode's comparison original now always uses its
+16 × 20 minimum ink in 32 × 36 clear space. The header uses ordinary
+16-point artwork, with a 32 × 36 exception for OpenCode; it no longer
+reserves the row's 32-point column for every brand. Its long title now
+uses the reference header's single-line ellipsis (Paseo
+`adaptive-modal-sheet.tsx`, title `numberOfLines={1}`), so it cannot run
+under the popup's edge. Actual back/title/artwork headers are captured.
+
+Disabled official artwork keeps its approved opacity and colours. The
+55% treatment applies to its words, selection check and trailing control;
+Generic and previous glyph rows retain their whole-row treatment. An
+actual GPUI click/key regression proves disabled Artwork, Generic and
+Glyph rows do not call back; navigation skips them, enabled selection
+still works, stale disabled/out-of-range highlights cannot activate, and
+Escape closes. Enter rechecks current rows rather than trusting an old
+highlight. The touch pill's existing 44-point target can hold OpenCode's
+full box; the short pointer pill and inline rows retain Generic.
+
+The corrected production sources passed native fmt, clippy (all targets,
+warnings denied) and all 375 tests: app 3, kit 25, link 14, view 244,
+extras 89. The gate also includes the following app slice's uncommitted
+sources; the kit files in that manifest match this control commit. It is
+not a separate claim of a clean control-only 375-test tree. A separate
+normal binary build was interrupted while waiting for a machine slot;
+only that build stage is resumed, with no repeat of the passing gate.
+
+Forty replacement captures were inspected: four complete mark families
+at scale 1/2 and dark/light; 28 provider-row captures (first/last,
+selected/hover/scroll, disabled pointer and keyboard); and eight actual
+long-title Claude/OpenCode headers at desktop and 390, both themes.
+The source and binary hashes and exact file list accompany the review.
+These prove this picker and pill control, not a Settings ProviderRow:
+its distinct 56-point/padded geometry needs a separate fitted adapter and
+actual card/adjacent-row evidence before that consumer replaces Bot.

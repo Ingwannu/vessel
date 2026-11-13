@@ -45,7 +45,8 @@ attributions are kept in `docs/design/agent-marks/README.md`.
   never by changing, a path. No recolouring with UI accent tokens.
 - A mark's minimum size and clear space override Paseo's slot. A 36-point
   row can hold OpenCode's 16 × 20 mark plus its 8-point clear space on all
-  sides (32 × 36 total). A compact toolbar/inline slot uses Generic.
+  sides (32 × 36 total). A 28-point pointer toolbar or short inline slot
+  uses Generic; a 44-point touch pill holds the full 32 × 36 box.
   GitHub Copilot is identified by the current official bare GitHub
   Invertocat beside the explicit product name. It is the same embedded
   source the separately typed forge control uses; the retired mascot head

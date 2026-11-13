@@ -62,7 +62,8 @@ struct Image {
     bytes: &'static [u8],
 }
 /// Reviewed artwork. Its private construction prevents a node from supplying
-/// arbitrary SVG or a URL. Identities and their mapping belong to the app.
+/// arbitrary SVG or a URL. Identities and their mapping belong to the view;
+/// the app only adapts that result to these reviewed constants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Artwork {
     light: Image,

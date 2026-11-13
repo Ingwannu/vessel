@@ -331,3 +331,12 @@ second typed use without a second copy. An agent mark's identity still
 belongs to `view`; the kit knows no node or session. The Invertocat's agent
 use requires explicit GitHub Copilot wording in the same row or tooltip
 (ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
+
+The artwork picker header uses its own ordinary 16-point slot rather than
+its rows' common 32-point column. A long header title follows the reference's
+single-line ellipsis. Disabled artwork retains its approved colour/opacity;
+the words and controls are muted separately. Enter validates the current
+row's availability and bounds before dispatch. The 44-point touch model
+pill holds OpenCode's 32 × 36 clear-space box; the short pointer pill and
+inline spots use Generic. A Settings ProviderRow needs a fitted adapter,
+not an unconstrained 36-high child inside its padded content band.
