@@ -13,6 +13,7 @@ workspace = true
 
 [dependencies]
 gpui.workspace = true
+gpui-base.workspace = true
 gpui-component.workspace = true
 thiserror.workspace = true
 # The window's icon drawn from the mark (assets::window_icon): GPUI's own

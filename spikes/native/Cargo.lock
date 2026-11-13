@@ -7248,6 +7248,7 @@ dependencies = [
 name = "vessel-app-kit"
 version = "0.0.0"
 dependencies = [
+ "gpui-base",
  "gpui-component",
  "gpui-pre",
  "image",

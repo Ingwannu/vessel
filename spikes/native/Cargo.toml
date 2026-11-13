@@ -111,6 +111,10 @@ gpui = { package = "gpui-pre", version = "=0.3.10" }
 # (question 9, problem 2).
 gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", features = ["x11", "wayland"] }
 gpui-component = { version = "=0.8.1", default-features = false }
+# The component layer's editing engine, used directly by the kit's field
+# for its unstyled inputs (the component layer's own input repaints its
+# theme over a field's colours every frame).
+gpui-base = { version = "=0.8.1", default-features = false }
 
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }

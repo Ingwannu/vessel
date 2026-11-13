@@ -75,7 +75,7 @@ impl SessionView {
             pending: None,
             conversation: Conversation::default(),
             entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
-            composer: TextField::new(
+            composer: TextField::composer(
                 "",
                 |shell: &mut Shell, text, window, cx| shell.submit_prompt(text, window, cx),
                 window,
@@ -258,7 +258,7 @@ impl Shell {
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let t = shell.t;
@@ -315,7 +315,7 @@ pub(crate) fn render(
                 .map(|asked| permission(asked, shell, tokens, cx)),
         )
         .when(open.structured && open.live, |frame| {
-            frame.child(composer(shell, tokens, working, cx))
+            frame.child(composer(shell, tokens, working, window, cx))
         })
         .when(open.structured && !open.live, |frame| {
             frame.child(
@@ -369,44 +369,52 @@ fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
         )
 }
 
-fn composer(shell: &Shell, tokens: &Tokens, working: bool, cx: &mut Context<'_, Shell>) -> Div {
-    let t = shell.t;
+/// The composer, as Paseo's (`composer/input/input.tsx`): the card is the
+/// input; the round button at the right sends (queued while a turn runs:
+/// Paseo's queue is the same arrow), and while a turn runs with nothing
+/// typed it is the red stop.
+fn composer(
+    shell: &Shell,
+    tokens: &Tokens,
+    working: bool,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let touch = crate::areas::draft::compact(window);
+    let field = &shell.areas.session.composer;
+    let typed = !field.text(cx).trim().is_empty();
+    let stop = working && !typed;
+    let button = vessel_app_kit::send_button(
+        "session-send",
+        if stop {
+            vessel_app_kit::SendKind::Stop
+        } else {
+            vessel_app_kit::SendKind::Send
+        },
+        stop || typed,
+        touch,
+        tokens,
+    )
+    .on_click(cx.listener(move |this, _event, window, cx| {
+        if stop {
+            this.stop_turn(cx);
+        } else {
+            let text = this.areas.session.composer.text(cx);
+            this.submit_prompt(text, window, cx);
+        }
+    }));
     div()
-        .p(px(12.0))
-        .border_t_1()
-        .border_color(tokens.border_faint)
+        .w_full()
+        .flex()
+        .justify_center()
+        .px(px(16.0))
+        .pb(px(12.0))
         .child(
-            div()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(8.0))
-                .child(div().flex_1().child(shell.areas.session.composer.element()))
-                .when(working, |row| {
-                    row.child(
-                        button("stop", t.stop, false, tokens)
-                            .on_click(cx.listener(|this, _event, _window, cx| this.stop_turn(cx))),
-                    )
-                })
-                .child(
-                    button("send", if working { t.queue } else { t.send }, true, tokens).on_click(
-                        cx.listener(|this, _event, window, cx| {
-                            let text = this.areas.session.composer.text(cx);
-                            this.submit_prompt(text, window, cx);
-                        }),
-                    ),
-                ),
-        )
-        .child(
-            div()
-                .pt(px(6.0))
-                .type_(Type::Tiny)
-                .text_color(tokens.text_tertiary)
-                .child(if working {
-                    t.working_queues
-                } else {
-                    t.enter_sends
-                }),
+            div().w_full().max_w(px(820.0)).child(
+                vessel_app_kit::composer_card(tokens, touch)
+                    .child(field.element(tokens, touch, cx))
+                    .child(div().flex().flex_row().justify_end().child(button)),
+            ),
         )
 }
 

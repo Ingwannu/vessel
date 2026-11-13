@@ -431,7 +431,7 @@ impl State {
     ) -> Result<Connected, LinkError> {
         let client = nodes::connect(entry, nodes::client_info(&self.label)).await?;
         let agents = match client.harnesses().await {
-            Ok(harnesses) => Agent::conversational(&harnesses),
+            Ok(harnesses) => Agent::all(&harnesses),
             Err(error) => {
                 tracing::warn!(%error, "could not list the machine's agents");
                 Vec::new()

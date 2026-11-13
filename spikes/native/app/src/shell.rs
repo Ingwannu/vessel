@@ -248,7 +248,7 @@ impl Render for Shell {
                                     .size_full()
                                     .flex()
                                     .flex_col()
-                                    .bg(tokens.bg_base)
+                                    .bg(tokens.neutral.surface0)
                                     .border_1()
                                     .border_color(tokens.border_faint)
                                     .rounded(px(vessel_app_kit::theme::radius::R5))

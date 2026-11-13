@@ -168,7 +168,13 @@ impl Shell {
     }
 }
 
-pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+pub(crate) fn render(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let narrow = crate::areas::draft::compact(window);
     let t = shell.t;
     let pair = &shell.areas.pair;
     let mut form = div()
@@ -190,7 +196,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .flex_col()
                 .gap(px(6.0))
                 .child(kicker(t.pairing_link, tokens))
-                .child(pair.link.element())
+                .child(pair.link.element(tokens, narrow, cx))
                 .children(pair.link_error.clone().map(|error| beside(error, tokens))),
         );
     if let Some(offer) = &pair.offer {
@@ -200,7 +206,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .flex_col()
                 .gap(px(6.0))
                 .child(kicker(t.name_label, tokens))
-                .child(pair.name.element())
+                .child(pair.name.element(tokens, narrow, cx))
                 .child(match pair.name_problem {
                     Some(problem) => beside(problem_words(problem, shell).to_owned(), tokens),
                     None => div()

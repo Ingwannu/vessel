@@ -30,6 +30,7 @@ pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod menu;
+pub mod picker;
 pub mod popup;
 pub mod segmented;
 pub mod sheet;
@@ -43,9 +44,13 @@ use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 pub use assets::Assets;
 pub use code::CodeTokens;
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
-pub use field::TextField;
+pub use field::{TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use picker::{
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, SendKind, combobox, glyph, pill,
+    send_button,
+};
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use virtual_list::{Reveal, VirtualList};

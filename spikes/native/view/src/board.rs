@@ -128,22 +128,36 @@ pub struct Agent {
     pub harness: HarnessRef,
     /// Its name for people (the page's `agentName`).
     pub name: String,
+    /// Why it cannot start a conversation now, in the node's words (an
+    /// adapter missing, not signed in); `None` when it can.
+    pub unavailable: Option<String>,
 }
 
 impl Agent {
-    /// The agents among `harnesses` that run a conversation (an ACP
-    /// adapter is there); a harness that only runs in a terminal is left
-    /// out until the app draws terminals.
+    /// Every agent of a machine, the four's installed ones and those added
+    /// on it, in the node's order; one that cannot start a conversation
+    /// now is kept, with why (the owner: every agent is listed, as Paseo
+    /// lists every provider, a disabled one with its reason, none left out
+    /// silently).
     #[must_use]
-    pub fn conversational(harnesses: &[Harness]) -> Vec<Self> {
+    pub fn all(harnesses: &[Harness]) -> Vec<Self> {
         harnesses
             .iter()
-            .filter(|harness| matches!(harness.structured, StructuredSupport::Available))
             .map(|harness| Self {
                 harness: harness.kind.clone(),
                 name: agent_name(&harness.kind),
+                unavailable: match &harness.structured {
+                    StructuredSupport::Available => None,
+                    StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                },
             })
             .collect()
+    }
+
+    /// Whether it can start a conversation now.
+    #[must_use]
+    pub const fn available(&self) -> bool {
+        self.unavailable.is_none()
     }
 }
 
