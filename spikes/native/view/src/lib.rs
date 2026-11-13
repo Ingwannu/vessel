@@ -12,6 +12,7 @@
 pub mod about;
 pub mod agent_status;
 pub mod ago;
+pub mod badge;
 pub mod board;
 mod conversation;
 pub mod devices;
