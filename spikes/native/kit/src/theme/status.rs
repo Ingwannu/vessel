@@ -21,6 +21,9 @@ pub struct Status {
     pub blue_300: Hsla,
     /// Paseo's `palette.amber[500]`, the alert warning accent in both themes.
     pub amber_500: Hsla,
+    /// Paseo's `statusDotRunning`: what is under way now (a task started,
+    /// a running dot), blue at hue 250.
+    pub running_dot: Hsla,
     /// Success, such as access granted or a finished run.
     pub success: Signal,
     /// A state that needs attention.
@@ -37,6 +40,7 @@ impl Status {
             Scheme::Light => Self {
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
+                running_dot: rgb(0x0026_8ae0).into(),
                 success: Signal {
                     foreground: rgb(0x003e_704a).into(),
                     tint: rgba(0x3e70_4a1f).into(),
@@ -53,6 +57,7 @@ impl Status {
             Scheme::Dark => Self {
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
+                running_dot: rgb(0x005c_aaf6).into(),
                 success: Signal {
                     foreground: rgb(0x006c_b17b).into(),
                     tint: rgba(0x6cb1_7b29).into(),

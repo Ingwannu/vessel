@@ -67,6 +67,13 @@ pub enum Glyph {
     CircleCheck,
     /// An error alert: a cross inside a circle, drawn on the kit's own grid.
     CircleX,
+    /// A task not started (Paseo's `Circle`): a ring on the same grid as
+    /// [`Self::CircleCheck`].
+    Circle,
+    /// A task under way (Paseo's `CircleDot`): the ring with a dot.
+    CircleDot,
+    /// A task list (Paseo's `CheckSquare`): a check in a rounded square.
+    SquareCheck,
     /// Scheduling: a calendar with a clock, on the shared 24-unit line grid.
     /// One asset serves navigation and empty states; no screen draws a second.
     CalendarClock,
@@ -157,7 +164,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 62] = [
+const ALL: [Glyph; 65] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -179,6 +186,9 @@ const ALL: [Glyph; 62] = [
     Glyph::Alert,
     Glyph::CircleCheck,
     Glyph::CircleX,
+    Glyph::Circle,
+    Glyph::CircleDot,
+    Glyph::SquareCheck,
     Glyph::CalendarClock,
     Glyph::Folder,
     Glyph::Machine,
@@ -260,6 +270,9 @@ impl Glyph {
             Self::Alert => "kit/alert.svg",
             Self::CircleCheck => "kit/circle-check.svg",
             Self::CircleX => "kit/circle-x.svg",
+            Self::Circle => "kit/circle.svg",
+            Self::CircleDot => "kit/circle-dot.svg",
+            Self::SquareCheck => "kit/square-check.svg",
             Self::CalendarClock => "kit/calendar-clock.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
@@ -354,6 +367,13 @@ impl Glyph {
             Self::CircleX => {
                 line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
             }
+            Self::Circle => line_glyph!(r#"<circle cx="12" cy="12" r="9"/>"#),
+            Self::CircleDot => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1"/>"#)
+            }
+            Self::SquareCheck => line_glyph!(
+                r#"<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>"#
+            ),
             // Own calendar/clock composition; the macro supplies the same
             // stroke, caps and joins as the neighbouring kit line drawings.
             Self::CalendarClock => line_glyph!(
