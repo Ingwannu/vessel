@@ -84,6 +84,7 @@
 //!     `unreadable`), then `end_turn`;
 //!   - `usage-burst`: 101 cumulative cost updates, for sparse read-only pages;
 //!     `FAKE_ACP_LOAD_USAGE` replays .5 USD while loading, before Ready.
+//!   - `usage-reasoning`: as `usage`, with reported zero reasoning/write and 12 cached reads;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
 //!     20 in, 10 out);
@@ -520,7 +521,7 @@ async fn serve() -> ExitCode {
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
-                    if prompt == "usage" {
+                    if prompt == "usage" || prompt == "usage-reasoning" {
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::UsageUpdate(
@@ -531,9 +532,16 @@ async fn serve() -> ExitCode {
                             request.session_id.clone(),
                             SessionUpdate::AgentMessageChunk(ContentChunk::new(text("used"))),
                         ))?;
-                        return responder.respond(
-                            PromptResponse::new(StopReason::EndTurn).usage(Usage::new(30, 20, 10)),
-                        );
+                        let usage = if prompt == "usage-reasoning" {
+                            Usage::new(30, 20, 10)
+                                .thought_tokens(0)
+                                .cached_read_tokens(12)
+                                .cached_write_tokens(0)
+                        } else {
+                            Usage::new(30, 20, 10)
+                        };
+                        return responder
+                            .respond(PromptResponse::new(StopReason::EndTurn).usage(usage));
                     }
                     if prompt == "fail" {
                         // The agent stays up: only this turn's request

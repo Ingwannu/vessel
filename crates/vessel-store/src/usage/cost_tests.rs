@@ -1,6 +1,7 @@
 //! Temporal attribution and native-session continuity fixtures.
 use super::tests::{cost, db, report};
 use super::*;
+use vessel_proto::conversation::FiniteNumber;
 use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
 use vessel_proto::{AgentEvent, EventSeq, HarnessSessionId, SessionEvent, SessionStatus};
 

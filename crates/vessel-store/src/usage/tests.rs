@@ -1,6 +1,7 @@
 use super::*;
 use crate::{log, schema};
 use vessel_proto::conversation::Cost;
+use vessel_proto::conversation::FiniteNumber;
 use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
 use vessel_proto::{
     ContextUsage, EventSeq, HarnessKind, HarnessSessionId, SessionInfo, SessionMode, SessionSpec,
@@ -279,16 +280,14 @@ fn money_outside_decimal_range_and_token_overflow_are_explicit_gaps() {
         report.current_costs[0].amount,
         FiniteNumber::new(1.0).unwrap()
     );
-    let mut total = vessel_proto::usage::UsageTotals::default();
+    let mut total = totals::Total::default();
     let mut huge = tokens();
     huge.total = TokenCount::new(u64::MAX);
-    totals::add(&mut total, &UsageSampleKind::Turn { usage: Some(huge) });
-    totals::add(
-        &mut total,
-        &UsageSampleKind::Turn {
-            usage: Some(tokens()),
-        },
-    );
+    total.add(&UsageSampleKind::Turn { usage: Some(huge) });
+    total.add(&UsageSampleKind::Turn {
+        usage: Some(tokens()),
+    });
+    let total = total.finish();
     assert_eq!(
         total.token_accounting,
         vessel_proto::usage::TokenAccounting::Overflow
@@ -353,17 +352,15 @@ fn zero_cost_and_alternating_currencies_keep_their_own_baselines() {
 
 #[test]
 fn optional_token_fields_expose_their_missing_turns() {
-    let mut total = vessel_proto::usage::UsageTotals::default();
+    let mut total = totals::Total::default();
     let first = tokens();
     let mut second = tokens();
     second.cached_read = None;
-    totals::add(&mut total, &UsageSampleKind::Turn { usage: Some(first) });
-    totals::add(
-        &mut total,
-        &UsageSampleKind::Turn {
-            usage: Some(second),
-        },
-    );
+    total.add(&UsageSampleKind::Turn { usage: Some(first) });
+    total.add(&UsageSampleKind::Turn {
+        usage: Some(second),
+    });
+    let total = total.finish();
     assert_eq!(total.tokens.unwrap().cached_read, Some(TokenCount::new(12)));
     assert_eq!(total.reported.get(), 2);
     assert_eq!(total.optional_reports.cached_read.get(), 1);

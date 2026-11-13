@@ -4,6 +4,9 @@
 mod cost;
 #[cfg(test)]
 mod cost_tests;
+mod money;
+#[cfg(test)]
+mod precision_tests;
 mod read;
 #[cfg(test)]
 mod tests;
@@ -11,8 +14,6 @@ mod totals;
 
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
-use rust_decimal::Decimal;
-use vessel_proto::conversation::FiniteNumber;
 use vessel_proto::usage::{UsageSample, UsageSampleKind};
 use vessel_proto::{AgentEvent, EventRecord, SessionEvent, SessionId, SessionSpec};
 
@@ -145,14 +146,6 @@ fn prune_to(connection: &Connection, now: DateTime<Utc>, maximum: u32) -> Result
 
 use rusqlite::OptionalExtension as _;
 
-/// The JSON decimal spelling, not the binary float's approximation, is
-/// the provider's reported amount. Oversized amounts remain explicit gaps.
-pub(super) fn decimal(value: FiniteNumber) -> Option<Decimal> {
-    let text = value.get().to_string();
-    text.parse()
-        .or_else(|_| Decimal::from_scientific(&text))
-        .ok()
-}
 pub(super) fn before(now: DateTime<Utc>, days: i64) -> DateTime<Utc> {
     now.checked_sub_signed(chrono::TimeDelta::days(days))
         .unwrap_or(DateTime::<Utc>::MIN_UTC)

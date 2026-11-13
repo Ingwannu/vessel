@@ -92,14 +92,39 @@ a fleet home: rejected because routing does not confer credential custody.
 Automatic fallback without consent: rejected because it changes the
 account that spends money and may change the agent's behaviour.
 
-### Checked cost arithmetic
+### Exact cost arithmetic and bounded reads
 
-`rust_decimal` 1.43 (MIT, default features off, std only) replaces binary
-floating point arithmetic for cost increments and sums. It has checked
-addition/subtraction; the existing wire still carries the agent's finite
-JSON number. Values outside its range become explicit unaccounted-cost
-samples, never a persistence failure or a guessed price. Totals keep at
-most 32 currencies and count anything they cannot total.
+The input domain is each finite wire number's decimal spelling, rather
+than the binary float's expansion. `rust_decimal` 1.43 (MIT, default
+features off, std only) validates that spelling with `from_str_exact`;
+ordinary parsing and scale-reducing arithmetic can silently round tiny
+values. Inputs outside its exact range become explicit cost gaps.
+
+`num-bigint` 0.4 (MIT OR Apache-2.0, std only) holds integer multiples of
+1e-28 for differences and accumulation. The active dependency closure is
+`num-integer`, `num-traits` and the latter's build helper `autocfg` (all
+MIT OR Apache-2.0); randomness, serialization and property-test features
+are off. With at most 100,000 samples and 32 cost units, each accumulator
+needs fewer than 210 bits. An unbounded-sized vendor number never enters
+it. This replaces repeated Decimal-to-float partial sums, which lose
+independent small costs, and avoids an order-dependent intermediate
+rescale or overflow. Maintaining only a checked Decimal sum was rejected
+because checked arithmetic can still reduce its scale.
+
+Only the final sum or increment crosses back to a finite wire number.
+Its decimal spelling must parse exactly to the expected Decimal value.
+A result outside that range or without a lossless wire representation
+is omitted, never rounded; an omitted unit counts all its contributing
+cost samples in `unaccounted_costs`. Other units remain independent.
+Current cumulative reports stay the provider's original observations.
+
+The general reader reuses idle connections; that cache does not limit
+concurrent jobs. Usage scans therefore have a separate two-job admission
+limit shared by every Store clone on the node. An excess call is refused
+immediately with a typed busy error and retry advice. A permit belongs
+to its blocking closure while queued and running, so aborting the RPC or
+closing its connection cannot admit replacement scans before old work
+ends. Other legacy reads keep their existing behavior.
 
 ## Consequences and verification
 

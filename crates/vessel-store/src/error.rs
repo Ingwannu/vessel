@@ -217,6 +217,9 @@ pub enum StoreError {
     /// The writer thread could not be started.
     #[error("could not start the store writer thread")]
     Thread(#[source] std::io::Error),
+    /// The node already has its maximum queued or running usage scans.
+    #[error("usage is being read on this machine; try again shortly")]
+    UsageBusy(#[source] tokio::sync::TryAcquireError),
     /// A blocking read task failed.
     #[error("a store read task failed")]
     Task(#[source] tokio::task::JoinError),
@@ -238,7 +241,7 @@ impl StoreError {
             | Self::Attachment(AttachmentFileError::Changed { .. })
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
-            Self::Closed => ErrorCode::Unavailable,
+            Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
             Self::Io { .. }
             | Self::NotPrivate { .. }
             | Self::Locked { .. }

@@ -6,7 +6,7 @@ use crate::error::{Column, StoreError};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use serde::{Deserialize, Serialize};
-use vessel_proto::conversation::{Cost, FiniteNumber};
+use vessel_proto::conversation::Cost;
 use vessel_proto::usage::UsageSampleKind;
 use vessel_proto::{HarnessSessionId, SessionId, SessionInfo, SessionMode};
 
@@ -176,7 +176,9 @@ pub(super) fn increment(
             at,
         });
         match (state.origin, state.phase) {
-            (Origin::Fresh, Phase::Ready) if super::decimal(current.amount).is_none() => {
+            (Origin::Fresh, Phase::Ready)
+                if super::money::Amount::reported(current.amount).is_none() =>
+            {
                 Some(UsageSampleKind::CostUnavailable)
             }
             (Origin::Fresh, Phase::Ready) => {
@@ -213,10 +215,10 @@ fn change(
             cost: current.clone(),
         });
     }
-    let amount = super::decimal(current.amount)
-        .zip(super::decimal(previous.cost.amount))
-        .and_then(|(current, previous)| current.checked_sub(previous))
-        .and_then(|amount| FiniteNumber::new(amount.as_f64()));
+    let amount = super::money::Amount::reported(current.amount)
+        .zip(super::money::Amount::reported(previous.cost.amount))
+        .and_then(|(current, previous)| current.difference(&previous))
+        .and_then(super::money::Amount::wire);
     Some(match amount {
         Some(amount) => UsageSampleKind::Cost {
             cost: Cost {

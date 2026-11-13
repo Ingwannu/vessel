@@ -1033,8 +1033,12 @@ records each server's execution risks and the full-analysis opt-in.
 
 `vessel-store::usage` projects ACP turn counts and positive running cost
 increments into `usage_samples` in the event append's transaction (schema
-13, migration named `USAGE_LEDGER`). The existing bounded writer queue
-and blocking reader pool own all I/O. A same-native-session ready record preserves the
+13, migration named `USAGE_LEDGER`). The existing writer queue owns
+atomic writes. Readers reuse an idle connection cache; it is not a
+concurrency bound. Usage scans have two shared try-acquired slots whose
+permits stay inside queued/running blocking closures, including after
+caller cancellation. Excess scans receive a typed busy refusal with retry
+advice. A same-native-session ready record preserves the
 cost baseline; repeated cumulative reports add nothing. Loaded or reset
 counters and increments spanning the queried period carry explicit gaps. No context size,
 proxy report or transcript is added to ACP tokens. Profile assignment is
@@ -1047,4 +1051,9 @@ indexed read returns the totals, per-agent/profile groups and one session
 page. `service::usage` applies principal restrictions and strips every
 cost projection without operate scope. `vessel-client::usage` and
 `vessel usage machine|agent|session` share that destination-side contract.
-`rust_decimal` (MIT) supplies checked decimal cost arithmetic. No provider access is involved in reported accounting.
+`usage::money` validates exact Decimal inputs (`rust_decimal`, MIT),
+accumulates bounded integer multiples of 1e-28 (`num-bigint`, MIT OR
+Apache-2.0), and checks the final finite-number decimal spelling. A unit
+whose sum cannot be represented is omitted with all its contributing
+reports counted as unaccounted. Intermediate sums never return to binary
+floats. No provider access is involved in reported accounting.

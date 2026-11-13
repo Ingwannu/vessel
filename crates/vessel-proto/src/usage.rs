@@ -90,7 +90,8 @@ pub struct UsageTotals {
     pub reported: ReportCount,
     /// Ended turns without a token report.
     pub unreported: ReportCount,
-    /// Cost reports outside the checked decimal range; totals are partial.
+    /// Cost samples omitted for unknown timing or numerical precision.
+    /// An unrepresentable unit sum counts every contributing cost sample.
     pub unaccounted_costs: ReportCount,
     /// How many turns supplied each optional token field. Compare each
     /// count with reported + unreported before calling it a complete sum.
@@ -161,7 +162,7 @@ pub enum UsageSampleKind {
         /// Exactly what the agent reported.
         usage: Option<TurnUsage>,
     },
-    /// An agent reported cost outside the bounded decimal arithmetic range.
+    /// An agent reported cost outside exact arithmetic or wire precision.
     CostUnavailable,
     /// The first observation of an existing/unknown/reset counter. It
     /// is shown as a cumulative report, never charged to today.

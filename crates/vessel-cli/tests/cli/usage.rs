@@ -17,20 +17,23 @@ async fn usage_selectors_print_reported_counts_and_cumulative_session_cost() {
             let record = stream.next().await.expect("fake session ended before ready").unwrap();
             if matches!(record.event, SessionEvent::Status { status: vessel_proto::SessionStatus::Running }) { break; }
         }
-        owner.send(id, SessionInput::Prompt { content: vec![ContentBlock::Text { text: "usage".to_owned() }] }).await.unwrap();
-        while let Some(record) = stream.next().await {
-            if matches!(record.unwrap().event, SessionEvent::Agent { event: AgentEvent::TurnEnded { .. } }) { break; }
+        for prompt in ["usage-reasoning", "usage"] {
+            owner.send(id, SessionInput::Prompt { content: vec![ContentBlock::Text { text: prompt.to_owned() }] }).await.unwrap();
+            while let Some(record) = stream.next().await {
+                if matches!(record.unwrap().event, SessionEvent::Agent { event: AgentEvent::TurnEnded { .. } }) { break; }
+            }
         }
         let report = owner.usage(QueryUsage { scope: UsageScope::Session { session: id }, period: UsagePeriod::Session, after: None }).await.unwrap();
         let accounting = format!("Accounting began {}. Data kept for at most 90 days.\n", report.accounting_started.format("%Y-%m-%d %H:%M UTC"));
-        let counts = "20 input, 10 output, 30 total tokens (reported turns: 1; unreported turns: 0)\n0.5 USD reported cost\n";
+        let counts = "40 input, 20 output, 60 total tokens (reported turns: 2; unreported turns: 0)\n0 reasoning tokens\nReasoning reported for 1 of 2 turns\n12 tokens read from cache\nCache reads reported for 1 of 2 turns\n0 tokens written to cache\nCache writes reported for 1 of 2 turns\n0.5 USD reported cost\n";
         let first = report.samples.first().unwrap().seq;
         let vessel_proto::usage::UsageSampleKind::Cost { since, .. } = report.samples.first().unwrap().kind else { panic!("first fixture sample is a cost increase"); };
         let since = since.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M %Z");
+        let first_turn = report.samples[1].seq;
         let last = report.samples.last().unwrap().seq;
         let session = fixture.vessel(&["usage", "session", &id.to_string()], b"").await;
         assert!(session.ok, "{}", session.stderr);
-        assert_eq!(session.stdout, format!("Retained session usage\n{counts}0.5 USD latest cumulative session cost\n{accounting}claude-code / default\n{counts}Report {first}: +0.5 USD since {since}\nReport {last}: 20 input, 10 output, 30 total tokens\n"));
+        assert_eq!(session.stdout, format!("Retained session usage\n{counts}0.5 USD latest cumulative session cost\n{accounting}claude-code / default\n{counts}Report {first}: +0.5 USD since {since}\nReport {first_turn}: 20 input, 10 output, 30 total tokens\n  0 reasoning tokens\n  12 tokens read from cache\n  0 tokens written to cache\nReport {last}: 20 input, 10 output, 30 total tokens\n  reasoning tokens not reported\n  cache reads not reported\n  cache writes not reported\n"));
         let machine = fixture.vessel(&["usage", "machine", "--period", "day"], b"").await;
         assert!(machine.ok, "{}", machine.stderr);
         assert_eq!(machine.stdout, format!("Past 24 hours\n{counts}{accounting}claude-code / default\n{counts}"));

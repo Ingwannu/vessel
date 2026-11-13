@@ -77,7 +77,10 @@ str_to_string = "warn"
 wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
-# Checked decimal money arithmetic, ADR 0042 (MIT).
+# Exact bounded cost accumulators (ADR 0042); no random/serde features.
+num-bigint = { version = "0.4", default-features = false, features = ["std"] }
+num-traits = "0.2"
+# Exact input/range validation, ADR 0042 (MIT).
 rust_decimal = { version = "1.43", default-features = false, features = ["std"] }
 vessel-agent = { path = "crates/vessel-agent" }
 vessel-client = { path = "crates/vessel-client" }

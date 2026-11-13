@@ -3,7 +3,9 @@
 ## Before implementation
 
 Decision: **modify and reuse** ACP `TurnUsage`/`ContextUsage`, the store's
-atomic append, the bounded reader pool and the existing scope guard.
+atomic append, the idle reader cache and the existing scope guard.
+Usage scans need their own cancellation-safe admission limit; the idle
+cache is not a bound on queued or running jobs.
 There is no aggregate query yet. SQLite and chrono already cover the
 storage and time requirements; no new external service is needed for
 reported usage. ADR 0042 owns the additional credential boundary.
@@ -57,7 +59,8 @@ Pagination and accounting coverage are explicit, never silent truncation.
 ## Progress and checks
 
 Node accounting slice implemented and checked on Linux. It uses
-`rust_decimal` (MIT) for checked cost increments and sums; values outside
+`rust_decimal` (MIT) for exact input/range validation and `num-bigint`
+(MIT OR Apache-2.0) for lossless integer differences and sums; values outside
 its range stay explicit gaps. Reported zero costs and independent currency
 baselines are preserved. Token overflow is flagged. This first slice does
 not yet collect account limits, schedule recovery, draw a Usage page or
@@ -181,7 +184,7 @@ by the accounting slice.
 
 ### Accounting slice verification
 
-The final whole workspace run used `--no-fail-fast`: 1,651 passed,
+The first node commit's final whole workspace run used `--no-fail-fast`: 1,651 passed,
 2 failed and 9 intentionally ignored. The only failures were the two
 integration exceptions assigned elsewhere: the member stopping during a
 grant, and the shell beside a scheduled session still being observed as
@@ -199,3 +202,70 @@ they do not replace the whole run above. No native gate or screen approval
 is claimed by this node-only slice. Tests and builds ran as the workspace
 owner; no service permissions changed. No real sign-in or vendor endpoint
 was accessed.
+
+### Accounting review corrections
+
+The first source review returned three issues; its earlier gate is not
+approval. Exact Decimal parsing must reject underflow, and partial money
+sums must remain integers until the final checked wire conversion. The
+regressions include 1e-29 reports, 1e-28, a large cumulative increase,
+separate 1e16 + 1 + 1 costs in every order, and an unrepresentable final
+sum whose contributing reports are all marked unaccounted.
+
+Usage scans are admitted by two shared, immediately acquired permits.
+Their blocking closures own those permits even after cancellation,
+including time spent queued in the blocking pool. A deterministic fixture
+holds one blocking worker, cancels both running and queued callers, checks
+an immediate typed refusal, then releases work and queries the real store.
+The ordinary idle connection cache is not a concurrency limit.
+
+The CLI now includes reported reasoning counts and turn coverage, retains
+unreported-turn counts when no token report exists, and shows optional
+reasoning/cache fields per turn. Whole outputs distinguish reported zero,
+missing fields and partially reported aggregates; the process fixture
+supplies one reported-zero turn and one turn omitting the optional fields.
+These corrections require a fresh gate and review before being called
+passed. Account-limit lookup, recovery and native screens remain pending.
+
+### Resume after the overnight credit cap
+
+The first node-only commit is `cb267035` on `backend/m12-usage`. V1
+returned it for exact cost arithmetic, cancellation-safe scan admission,
+and CLI reasoning/turn coverage. The correction remains part of that first
+slice. Gate results above belong to the first commit; a correction without
+its own completed gate is not approved. The review is with track V1; the
+coordinator and node integrator must approve before integration.
+
+No account lookup, wait-and-continue recovery, native usage page, meter or
+conversation usage renderer is complete. No live-account check was made.
+After the accounting correction passes review, merge the lead at a clean
+point, keep the search migration before the named usage migration, and
+cover parking's load-before-Ready boundary without resetting same-session
+cost. Then continue the external-limit node contract before its consumers.
+The planned saved-login lookup defaults off until an administrator opts in;
+its actual setting and disclosure row still need implementation.
+
+Track E2 reserves the Usage settings section and renderer registry seam;
+this track supplies `usage::render(&Shell, &Tokens, bool, &mut Context<Shell>)`.
+Track C reserves two optional elements at the front of the conversation
+dock: session totals, then a limit notice. Its existing turn tokens and
+context meter remain separate. Both tracks are waiting for these renderers.
+The read-only meter is reserved with V1, but no new control or branch merge
+is started after the credit watcher's finish-current-slice instruction.
+
+### Correction checkpoint under the finish-current-slice instruction
+
+The correction is preserved as work in progress because the previous whole
+suite needed about 39 minutes of test execution alone, before compilation
+and the shared build queue. Formatting has passed. At this checkpoint,
+the full-workspace, all-target Clippy retry is queued; the new accounting,
+admission and CLI regressions, TypeScript comment regeneration and web
+rerun are not yet verified. The correction's whole workspace test is also
+unverified. The earlier whole results are not evidence for this correction.
+Subsequent verification is recorded separately; this checkpoint is not a
+review pass or permission to integrate.
+
+All three requested grant cases passed once alone on the original commit:
+reinstall, slow grant and stopping during a grant. These isolated passes
+do not erase the original whole-run failures or change their ownership.
+No grant test, timeout or product policy was changed by this track.

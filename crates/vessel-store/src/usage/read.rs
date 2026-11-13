@@ -66,6 +66,7 @@ pub(crate) fn query(
         next: None,
     };
     let mut more_samples = false;
+    let mut aggregation = totals::Aggregation::default();
     while let Some(row) = rows.next()? {
         let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
         let harness: HarnessRef = decode(id, Column::Spec, &row.get::<_, String>(1)?)?;
@@ -76,7 +77,7 @@ pub(crate) fn query(
             Some(decode(id, Column::Profile, &encode(&profile_text)?)?)
         };
         let sample: UsageSample = decode(id, Column::Usage, &row.get::<_, String>(3)?)?;
-        totals::add_selected(&mut report, &sample, harness, profile, from);
+        aggregation.add_selected(&sample, harness, profile, from);
         if session.is_some() && request.after.is_none_or(|after| sample.seq > after) {
             let at = report
                 .samples
@@ -93,6 +94,7 @@ pub(crate) fn query(
             }
         }
     }
+    aggregation.finish(&mut report);
     // Sequence, not wall clock, is the only stable session cursor. Keep
     // just the lowest 100 matching sequences even if time moves backwards.
     if more_samples {

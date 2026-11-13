@@ -97,6 +97,18 @@ fn totals(text: &mut String, total: &UsageTotals) -> Result<(), std::fmt::Error>
             total.reported.get(),
             total.unreported.get()
         )?;
+        if let Some(thought) = tokens.thought {
+            writeln!(text, "{} reasoning tokens", thought.get())?;
+            if total.optional_reports.thought.get() < turns {
+                writeln!(
+                    text,
+                    "Reasoning reported for {} of {turns} turns",
+                    total.optional_reports.thought.get()
+                )?;
+            }
+        } else {
+            text.push_str("Reasoning tokens not reported.\n");
+        }
         if let Some(read) = tokens.cached_read {
             writeln!(text, "{} tokens read from cache", read.get())?;
             if total.optional_reports.cached_read.get() < turns {
@@ -118,7 +130,12 @@ fn totals(text: &mut String, total: &UsageTotals) -> Result<(), std::fmt::Error>
             }
         }
     } else {
-        text.push_str("No recorded token counts for this period.\n");
+        writeln!(
+            text,
+            "No recorded token counts for this period (reported turns: {}; unreported turns: {}).",
+            total.reported.get(),
+            total.unreported.get()
+        )?;
     }
     if total.unaccounted_costs.get() > 0 {
         text.push_str("Some reported costs could not be totaled.\n");
@@ -135,13 +152,33 @@ fn sample_line(
 ) -> Result<(), std::fmt::Error> {
     write!(text, "Report {}: ", sample.seq)?;
     match &sample.kind {
-        UsageSampleKind::Turn { usage: Some(usage) } => writeln!(
-            text,
-            "{} input, {} output, {} total tokens",
-            usage.input.get(),
-            usage.output.get(),
-            usage.total.get()
-        )?,
+        UsageSampleKind::Turn { usage: Some(usage) } => {
+            writeln!(
+                text,
+                "{} input, {} output, {} total tokens",
+                usage.input.get(),
+                usage.output.get(),
+                usage.total.get()
+            )?;
+            sample_optional(
+                text,
+                usage.thought,
+                "reasoning tokens",
+                "reasoning tokens not reported",
+            )?;
+            sample_optional(
+                text,
+                usage.cached_read,
+                "tokens read from cache",
+                "cache reads not reported",
+            )?;
+            sample_optional(
+                text,
+                usage.cached_write,
+                "tokens written to cache",
+                "cache writes not reported",
+            )?;
+        }
         UsageSampleKind::Turn { usage: None } => text.push_str("tokens not reported\n"),
         UsageSampleKind::CostUnavailable => {
             text.push_str("cost cannot be totaled at this precision\n");
@@ -167,4 +204,104 @@ fn sample_line(
         }
     }
     Ok(())
+}
+
+fn sample_optional(
+    text: &mut String,
+    value: Option<vessel_proto::TokenCount>,
+    label: &str,
+    absent: &str,
+) -> Result<(), std::fmt::Error> {
+    if let Some(value) = value {
+        writeln!(text, "  {} {label}", value.get())
+    } else {
+        writeln!(text, "  {absent}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vessel_proto::usage::{OptionalUsageReports, ReportCount, UsageSample};
+    use vessel_proto::{EventSeq, TokenCount, TurnUsage};
+
+    #[test]
+    fn missing_counts_preserve_the_number_of_unreported_turns() {
+        let mut text = String::new();
+        totals(
+            &mut text,
+            &UsageTotals {
+                unreported: ReportCount::new(3),
+                ..UsageTotals::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            text,
+            "No recorded token counts for this period (reported turns: 0; unreported turns: 3).\n"
+        );
+    }
+
+    #[test]
+    fn reasoning_zero_absence_and_partial_coverage_are_distinct() {
+        let base = TurnUsage {
+            total: TokenCount::new(30),
+            input: TokenCount::new(20),
+            output: TokenCount::new(10),
+            thought: Some(TokenCount::new(0)),
+            cached_read: None,
+            cached_write: None,
+        };
+        let mut text = String::new();
+        totals(
+            &mut text,
+            &UsageTotals {
+                tokens: Some(base),
+                reported: ReportCount::new(2),
+                unreported: ReportCount::new(1),
+                optional_reports: OptionalUsageReports {
+                    thought: ReportCount::new(1),
+                    ..OptionalUsageReports::default()
+                },
+                ..UsageTotals::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            text,
+            "20 input, 10 output, 30 total tokens (reported turns: 2; unreported turns: 1)\n0 reasoning tokens\nReasoning reported for 1 of 3 turns\n"
+        );
+        let mut absent = base;
+        absent.thought = None;
+        text.clear();
+        totals(
+            &mut text,
+            &UsageTotals {
+                tokens: Some(absent),
+                reported: ReportCount::new(1),
+                ..UsageTotals::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            text,
+            "20 input, 10 output, 30 total tokens (reported turns: 1; unreported turns: 0)\nReasoning tokens not reported.\n"
+        );
+        text.clear();
+        for (seq, usage) in [(0, Some(base)), (1, Some(absent)), (2, None)] {
+            sample_line(
+                &mut text,
+                &UsageSample {
+                    seq: EventSeq::new(seq),
+                    at: chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap(),
+                    kind: UsageSampleKind::Turn { usage },
+                },
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            text,
+            "Report 0: 20 input, 10 output, 30 total tokens\n  0 reasoning tokens\n  cache reads not reported\n  cache writes not reported\nReport 1: 20 input, 10 output, 30 total tokens\n  reasoning tokens not reported\n  cache reads not reported\n  cache writes not reported\nReport 2: tokens not reported\n"
+        );
+    }
 }

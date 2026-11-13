@@ -1319,3 +1319,11 @@ For `UsageScope::Agent`, an omitted profile includes every recorded profile
 of that agent. A supplied name restricts the historical profile recorded
 with the sample. Account quota lookup is a different scope: its default
 profile identifies a configured login, never an aggregate of accounts.
+
+Usage scans admit at most two queued or running blocking jobs per node;
+excess calls receive `unavailable` with advice to retry shortly. Cancellation
+does not release admission until the blocking job finishes. Cost arithmetic
+uses exact decimal inputs and integer accumulation. Final sums or increments
+that cannot survive the finite wire number's decimal spelling are omitted.
+For an omitted unit sum, `unaccounted_costs` counts every contributing cost
+sample, rather than silently presenting a rounded subtotal.
