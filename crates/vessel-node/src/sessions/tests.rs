@@ -149,7 +149,7 @@ async fn a_session_the_store_cannot_record_is_killed_and_forgotten() {
     fixture.store.close().await;
     let refused = fixture
         .sessions
-        .create(fixture.spec(), LaunchOptions::default())
+        .create(fixture.spec(), LaunchOptions::default(), None)
         .await;
     assert!(
         matches!(refused, Err(ServiceError::Store(_))),
@@ -172,7 +172,7 @@ async fn a_finished_session_is_handed_over_to_the_store() {
     let fixture = Fixture::new().await;
     let id = fixture
         .sessions
-        .create(fixture.spec(), LaunchOptions::default())
+        .create(fixture.spec(), LaunchOptions::default(), None)
         .await
         .unwrap()
         .id;
@@ -258,7 +258,7 @@ async fn a_stored_subscription_finds_a_session_started_again() {
     let fixture = Fixture::new().await;
     let id = fixture
         .sessions
-        .create(fixture.structured(), LaunchOptions::default())
+        .create(fixture.structured(), LaunchOptions::default(), None)
         .await
         .unwrap()
         .id;

@@ -94,6 +94,7 @@ mod server;
 mod service;
 mod sessions;
 mod shutdown;
+mod side_questions;
 mod subscribe;
 mod terminals;
 mod tidying;

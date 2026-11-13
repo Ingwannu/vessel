@@ -48,6 +48,8 @@ pub enum Column {
     Usage,
     /// `sessions.queue` (`PromptQueue`, schema 7).
     Queue,
+    /// The bounded latest plan (schema 13, ADR 0045).
+    LatestPlan,
 }
 
 /// Anything that can go wrong in the store.

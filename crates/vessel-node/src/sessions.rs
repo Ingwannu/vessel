@@ -125,10 +125,14 @@ impl Sessions {
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
-            .spawn(async move { sessions.start(spec, options).await })
+            .spawn(async move {
+                let _lease = lease;
+                sessions.start(spec, options).await
+            })
             .await
             .map_err(ServiceError::Task)?
     }
@@ -462,6 +466,7 @@ pub(crate) mod again;
 mod conversation;
 mod marks;
 mod read;
+mod side_questions;
 
 #[cfg(test)]
 mod tests;

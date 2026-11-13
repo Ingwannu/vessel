@@ -200,6 +200,9 @@ untargeted!(
     ListSessions,
     GetSession,
     CreateSession,
+    vessel_proto::side_questions::OpenSideQuestion,
+    vessel_proto::side_questions::PromptSideQuestion,
+    vessel_proto::side_questions::ResetSideQuestion,
     ReadEvents,
     Subscribe,
     Unsubscribe,
@@ -320,6 +323,9 @@ guarded! {
     list_sessions: ListSessions => Vec<SessionInfo>;
     get_session: GetSession => SessionInfo;
     create_session: CreateSession => SessionInfo;
+    open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
+    prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
+    reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
     send_input: SendInput => Ack;
     kill_session: KillSession => Ack;
     read_events: ReadEvents => EventPage;

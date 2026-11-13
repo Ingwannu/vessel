@@ -143,6 +143,11 @@ const fn refused(method: Method) -> bool {
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
+        // Side-question policy refuses agents before reading a parent;
+        // its typed reason belongs to that domain, not file/git policy.
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::GetProject
         | Method::ProjectCommands
         | Method::ListWorktrees

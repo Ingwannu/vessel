@@ -26,6 +26,8 @@ mod nodes;
 #[cfg(test)]
 mod reconnect;
 #[cfg(test)]
+mod side_questions;
+#[cfg(test)]
 mod support;
 #[cfg(test)]
 #[cfg(unix)]

@@ -363,9 +363,28 @@ WHEN new.first_seq > old.first_seq BEGIN
 END;
 ";
 
+/// Side context (schema 14): the latest bounded plan survives log
+/// retention and is independent of the partial transcript tail.
+const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13];
+const MIGRATIONS: &[&str] = &[
+    V1,
+    V2,
+    V3,
+    V4,
+    V5,
+    V6,
+    V7,
+    V8,
+    V9,
+    V10,
+    V11,
+    V12,
+    V13,
+    SIDE_CONTEXT,
+];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

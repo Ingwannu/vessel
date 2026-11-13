@@ -21,6 +21,9 @@ pub enum AgentError {
 /// Input the agent session cannot accept.
 #[derive(Debug, thiserror::Error)]
 pub enum InputError {
+    /// A side prompt's context or final provider request exceeded its cap.
+    #[error("the side question and context exceed the request limit; ask a shorter question")]
+    ContextLimit,
     /// The ACP connection has ended.
     #[error("the agent connection has ended")]
     Closed,

@@ -168,6 +168,12 @@ impl Desk {
         self.abilities
     }
 
+    /// Both normal and context-bearing prompts must advance this counter
+    /// only after the driver accepted their complete request.
+    pub(crate) fn started_one(&mut self) {
+        self.started = self.started.saturating_add(1);
+    }
+
     /// Turns the actor started.
     pub(crate) const fn started(&self) -> u64 {
         self.started
@@ -281,7 +287,7 @@ impl StructuredActor {
         self.pump(async move { input.prompt_with(content, attachments).await })
             .await
             .map_err(|_stopped| SessionError::Ended)??;
-        self.desk.started = self.desk.started.saturating_add(1);
+        self.desk.started_one();
         Ok(())
     }
 

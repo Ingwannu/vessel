@@ -447,6 +447,12 @@ async fn serve() -> ExitCode {
                     say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
                         &format!("replayed {}", request.session_id.0),
                     ))))?;
+                    if let Ok(replay) = std::env::var("FAKE_ACP_REPLAY_USER") {
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::UserMessageChunk(ContentChunk::new(text(&replay))),
+                        ))?;
+                    }
                     let response = {
                         let mut state = lock(&state);
                         state.mcp_servers.clone_from(&request.mcp_servers);

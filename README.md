@@ -142,6 +142,29 @@ vessel search parser --before 1763031235000000000   # the next page, from the la
   searched; a reply is found once it has ended.
 - Agents have the same as the `search_sessions` tool.
 
+### A side question beside the running turn
+
+```bash
+vessel session side 3f2a                    # open/reuse a separate side; prints its id
+vessel session side 3f2a "What is the agent doing?"
+vessel session side 91ab "Explain that plan" # ask again using the side id
+vessel attach 91ab                          # read its replies and answer approvals
+vessel session resume 91ab                  # explicitly resume an ended side
+```
+
+A side gets the original conversation's latest status, recorded plan and
+limited recent messages. Its questions and answers never enter the
+original conversation or stop its running turn. It shares normal project
+tools/permissions, as another session in that folder does. It starts with
+recent context rather than a full provider-history fork. Read and operate
+access are both required; agents cannot open sides. Use `session side`
+for every question: ordinary `send` and queue operations refuse sides so
+that their context cannot become stale. Existing side logs remain readable
+if their parent disappears, but new questions and resume then fail.
+Vessel records only the visible question as user input. The provider may
+retain the supplied parent context in its own conversation files, which
+can be included in a native session export.
+
 ### Another machine, over SSH
 
 Any machine you can `ssh` to with a key works (Linux or macOS,

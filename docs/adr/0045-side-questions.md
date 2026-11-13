@@ -1,6 +1,6 @@
 # 0045: Side questions in a separate conversation
 
-Date: 2026-11-13. Status: proposed for contract review.
+Date: 2026-11-13. Status: contract accepted; implementation under verification.
 
 ## Context
 
@@ -16,18 +16,19 @@ its side provider host.
 
 Reuse Vessel's structured sessions with an optional parent link in the
 stored SessionSpec. A side never resumes the parent's native conversation.
-Protocol 12 adds side_open, side_prompt and side_reset. Read plus operate is needed;
+Protocol 13 adds side_open, side_prompt and side_reset. Read plus operate is needed;
 agent principals are refused. Every side question gets a bounded, labelled
 partial parent snapshot. Neither its question nor its answer is sent to
 the parent. Existing secure transport, grants and fleet forwarding apply.
 
 The track plan specifies wire types, limits, failures and older peers.
-The store already persists the parent link in the spec. Schema 13 adds a
+The store already persists the parent link in the spec. Schema 14 adds a
 bounded latest-plan projection so that transcript paging does not erase
 the parent's current plan. General prompt and queue ingress refuse side
 sessions; only side_prompt refreshes context and starts their turns.
 Opening reuses ended/interrupted sides; restarting is explicit. Parent
-deletion leaves side logs readable but prevents new questions or resume.
+deletion does not cascade to side logs and prevents new questions or resume.
+Side logs remain subject to normal independent retention and deletion.
 The complete prompt is capped in UTF-8 bytes, including all metadata.
 
 ## Alternatives
@@ -55,3 +56,52 @@ created. If creation fails after deletion, the old side is gone; opening
 again retries creation. This is serialized, not an all-or-nothing rollback.
 The screen follows GOAT's structure using Vessel's shared kit; text and
 pure decisions remain in view, node calls in link.
+
+
+## Provider-only context and native commands
+
+A question and its prepared context travel in one actor command. The
+provider request receives a context prefix; TurnStarted and the persisted
+user message contain only the person's question, like GOAT SideChatNote.
+Context is consumed by that one request even on busy, cancellation or send
+failure, never set as sticky state. The driver checks the final serialized
+ACP request against 48 KiB before sending it. Its prefix, escaping and
+request envelope count too: the driver reserves the actual request id
+before measuring and publishes only after the check. Ordinary prompt and
+attachment limits stay as-is.
+The context's Debug representation contains only its size.
+
+GOAT bypasses its prefix for provider-native slash commands so they remain
+at the start. Vessel instead refuses slash questions with a typed reason:
+its current side contract requires fresh parent context on every question.
+Silently turning a slash command into prose is not acceptable. Run a native
+command in a normal conversation. This deliberate restriction is tested;
+it creates no turn. Replay during resume of an existing Vessel session or a profile move
+remains suppressed until Ready, including UserMessageChunk containing
+provider-stored generated context.
+An agent can still echo its input: provider-only describes request/event
+placement, not secrecy from that agent.
+
+Vessel's event log, log reads, subscriptions and CLI event output retain
+only the visible question as user input. The existing session.export is a
+different boundary ([ADR 0012](0012-fleet-sync.md)): it transfers the provider's native conversation files
+unchanged. A provider may persist the generated context there, and that
+context can travel with a native export/import or resume. Vessel neither
+promises context-free native exports nor rewrites an opaque provider
+transcript. Imported native sessions lose their node-local side link;
+they become ordinary sessions, as the existing import contract requires.
+A new native import can replay that provider history, including its context;
+the question-only guarantee does not extend to those opaque imports.
+
+A side call or a session template carrying its parent link needs protocol
+13 on every fleet decoding hop, including envelopes. A protocol-12 home
+would discard the optional parent link before forwarding session.create,
+changing it into an ordinary session. Clients therefore refuse that route
+before sending; the older-hop behavior for pre-13 calls stays unchanged.
+
+The integrated baseline already speaks protocol 12 (search and parking).
+Side calls and optional parent links therefore require protocol 13, including
+all forwarding envelopes; minimum version remains 2. Schema 14 follows the
+search index migration. A parked side is live and its dedicated prompt wakes
+it through the existing actor path with replay suppressed. A failed wake
+fails the one command and does not preserve context for a later prompt.

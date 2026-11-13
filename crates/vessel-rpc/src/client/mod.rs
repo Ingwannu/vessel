@@ -65,6 +65,9 @@ impl Unary for ListHarnesses {}
 impl Unary for ListSessions {}
 impl Unary for GetSession {}
 impl Unary for CreateSession {}
+impl Unary for vessel_proto::side_questions::OpenSideQuestion {}
+impl Unary for vessel_proto::side_questions::PromptSideQuestion {}
+impl Unary for vessel_proto::side_questions::ResetSideQuestion {}
 impl Unary for SendInput {}
 impl Unary for KillSession {}
 impl Unary for ReadEvents {}
@@ -268,6 +271,9 @@ const fn is_unary(method: Method) -> bool {
         | Method::ListSessions
         | Method::GetSession
         | Method::CreateSession
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::SendInput
         | Method::KillSession
         | Method::ReadEvents

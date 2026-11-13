@@ -382,6 +382,15 @@ async fn run_here(
         Call::CreateSession(request) => {
             Reply::CreateSession(guard.create_session(connection, request).await?)
         }
+        Call::OpenSideQuestion(request) => {
+            Reply::OpenSideQuestion(guard.open_side_question(connection, request).await?)
+        }
+        Call::PromptSideQuestion(request) => {
+            Reply::PromptSideQuestion(guard.prompt_side_question(connection, request).await?)
+        }
+        Call::ResetSideQuestion(request) => {
+            Reply::ResetSideQuestion(guard.reset_side_question(connection, request).await?)
+        }
         Call::SendInput(request) => Reply::SendInput(guard.send_input(connection, request).await?),
         Call::KillSession(request) => {
             Reply::KillSession(guard.kill_session(connection, request).await?)

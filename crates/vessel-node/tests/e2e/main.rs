@@ -87,6 +87,8 @@ mod secrets_across;
 #[cfg(test)]
 mod secure;
 #[cfg(test)]
+mod side_questions;
+#[cfg(test)]
 mod status;
 #[cfg(test)]
 mod structured;

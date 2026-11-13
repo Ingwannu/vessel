@@ -92,6 +92,7 @@ struct Projection {
     usage: Option<ContextUsage>,
     queue: Option<PromptQueue>,
     attention: Option<EventSeq>,
+    plan: Option<crate::LatestPlan>,
     bytes: u64,
 }
 
@@ -122,6 +123,11 @@ impl Projection {
                 if abilities.is_some() {
                     self.abilities = *abilities;
                 }
+            }
+            SessionEvent::Agent {
+                event: AgentEvent::Plan { entries },
+            } => {
+                self.plan = Some(crate::LatestPlan::bounded(entries));
             }
             SessionEvent::UsageChanged { usage } => self.usage = Some(usage.clone()),
             SessionEvent::QueueChanged { queue } => self.queue = Some(queue.clone()),
@@ -203,7 +209,8 @@ pub(crate) fn append<'a>(
                  abilities = COALESCE(?12, abilities),
                  usage = COALESCE(?13, usage),
                  queue = COALESCE(?14, queue),
-                 attention_seq = COALESCE(?15, attention_seq)
+                 attention_seq = COALESCE(?15, attention_seq),
+                 latest_plan = COALESCE(?16, latest_plan)
              WHERE id = ?1",
         )?
         .execute(params![
@@ -228,6 +235,7 @@ pub(crate) fn append<'a>(
             projection.usage.as_ref().map(encode).transpose()?,
             projection.queue.as_ref().map(encode).transpose()?,
             projection.attention.map(seq_to_sql).transpose()?,
+            projection.plan.as_ref().map(encode).transpose()?,
         ])?;
     Ok(Appended { ended })
 }

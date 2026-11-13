@@ -1085,3 +1085,41 @@ wire method or store is introduced. Startup, tick, reload, retry and edit reads
 share a fixed book path and the same typed boundary. Syntax failures reuse the
 shared safe `FileFault` projection; other file failures use closed reasons.
 A failed edit does not refresh or mutate the existing clients or session follow.
+## Side questions (milestone 12, protocol 13)
+
+ADR 0045 keeps side questions in a separate native session. The optional
+parent id lives in the stored SessionSpec. `vessel-node::service::side_questions`
+serializes discovery, creation and expected-id reset; a creation lease
+moves into the session creation task so request cancellation cannot start
+an unseen duplicate. Ordinary creation naming a side link follows that
+same path. `side_questions` owns the person/read policy and bounded
+snapshot formatting; `sessions::side_questions` waits for persistence and
+provides the dedicated Start-only ingress. Generic prompt/tracked/queue
+paths refuse sides centrally, including automation.
+
+`vessel-store::side_context` projects bounded latest plans with their log
+commit (schema 14), and reads a bounded newest-first transcript tail on
+the existing blocking reader pool. Retention can prune the plan's event
+without erasing its projection. Current status/attention is read separately;
+no goal is fabricated. The snapshot and complete prompt have UTF-8 byte
+limits, including metadata and truncation markers. Nothing is sent back
+into the parent session. This isolates conversation context, not project
+tools or filesystem rights.
+
+`vessel-client::side_questions` holds typed calls; the CLI's `session side`
+opens/reuses or asks, printing the side id. Existing read, subscription,
+approval, cancellation and explicit-resume paths serve that id. An older
+client may read a side, but ordinary prompts are refused; an older node
+refuses the new calls. Side logs survive a missing parent, while questions
+and resume require it. Imports clear the local parent link. The track plan
+records the reference acceptance list and remaining verification.
+
+
+Provider context is one typed actor control with its bounded question.
+`vessel-agent::PromptContext` bounds UTF-8 bytes and redacts Debug. Only
+ACP receives the prefix; the driver emits TurnStarted with the question
+alone and checks the actual serialized ACP request before sending. The
+ordinary prompt/attachment path is unchanged. No sticky context survives
+failure, cancellation or a busy refusal. Existing restart/profile-move replay suppression continues to cover
+UserMessageChunk until Ready. A new native import transfers and may replay
+provider history, including generated context; it has no local side link.

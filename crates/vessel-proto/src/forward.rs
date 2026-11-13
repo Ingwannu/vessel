@@ -275,6 +275,9 @@ impl Method {
             | Self::ListHarnesses
             | Self::ListSessions
             | Self::GetSession
+            | Self::OpenSideQuestion
+            | Self::PromptSideQuestion
+            | Self::ResetSideQuestion
             | Self::CreateSession
             | Self::SendInput
             | Self::KillSession

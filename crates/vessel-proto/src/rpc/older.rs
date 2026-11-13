@@ -45,6 +45,8 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
+            Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
             Self::ListDevices(devices) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
@@ -113,7 +115,8 @@ impl Reply {
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
-            Self::NodeInfo(_)
+            Self::PromptSideQuestion(_)
+            | Self::NodeInfo(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)

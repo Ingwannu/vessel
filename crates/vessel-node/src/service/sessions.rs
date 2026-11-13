@@ -81,6 +81,30 @@ impl NodeService {
         origin: Option<SessionOrigin>,
         unattended: Option<String>,
     ) -> Result<SessionInfo, WireError> {
+        if origin.is_some() {
+            spec.side_question_of = None;
+        }
+        if let Some(parent) = spec.side_question_of {
+            if unattended.is_some() {
+                return Err(crate::side_questions::SideError::Template.wire());
+            }
+            return self.open_side_as(principal, parent).await;
+        }
+        self.create_core_as(principal, spec, origin, unattended, None)
+            .await
+    }
+
+    /// Resolved creation, also used by `side_open` after it derives the
+    /// parent's current configuration. The optional lease moves into the
+    /// creation task, so cancelling a caller cannot release it too soon.
+    pub(super) async fn create_core_as(
+        &self,
+        principal: &Principal,
+        mut spec: SessionSpec,
+        origin: Option<SessionOrigin>,
+        unattended: Option<String>,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+    ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
@@ -136,7 +160,7 @@ impl NodeService {
                 return Err(wire(&error));
             }
         }
-        let created = self.sessions.create(spec, options).await;
+        let created = self.sessions.create(spec, options, lease).await;
         if created.is_err() {
             self.agents.forget(id);
             self.models.retire(id);
