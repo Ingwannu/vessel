@@ -8789,3 +8789,65 @@ a rewind to the turn before it with the prompt back in the composer; a
 fork's view shows its source's records up to `after` above its own
 (`forked`); a `rewound` record folds the records between `after` and it,
 and says `files_changed` when it is not 0.
+
+## Track A2: contract, 4. Import from the agent's own history
+
+**What the references do.**
+
+| | Paseo | agent-orchestrator | GOAT |
+| --- | --- | --- | --- |
+| What is listed | each provider's recent sessions, newest first, 20 a page; a search scans up to 500; sessions already imported left out (and counted); a provider's error listed beside the others | the agents' own history, read by a reader per harness (Claude Code, Codex, OpenCode and nine others), and a first-run offer (`BE/service/sessionimport/*`, `FE/components/SessionImportDialog.tsx`) | Claude Code, Codex and Pi conversations, 200 messages each within a time window, from the welcome wizard (`apps/server/src/project/AgentSessionImporter.ts`) |
+| How, for an ACP agent | a probe process: `initialize`; nothing unless `sessionCapabilities.list`; `session/list` paged by cursor (filtered by `cwd`); for each, with `loadSession`, `session/load` to read its first and last prompts as previews, within 60 s for the whole listing; a session with no conversation is dropped (`server/agent/providers/acp-agent.ts`, `listImportableSessions`) | its own readers of each harness's files | its own reader of each harness's files |
+| A listed session | id, folder, title, first and last prompt previews, last activity (`ImportableProviderSession`) | | |
+| Import | `importProviderSession`: the agent resumes the provider session and its timeline is read in (`server/agent/import-sessions.ts`) | a session that resumes it | a thread with the messages copied in |
+
+Vessel follows Paseo's ACP path: the agent lists its own conversations,
+so no reader of another program's files is kept (agent-orchestrator's
+and GOAT's break when a harness changes its format; ACP's `session/list`
+is the agent's own answer).
+
+**What Vessel already has.** `session.create` with `SessionMode::Structured
+{ resume: Some(id) }` starts the agent with `session/load` of that
+conversation, and a new session's actor keeps the load's replay as its
+records: the history becomes the session's log (`vessel run --structured
+--resume ID`). What is missing is the list.
+
+**What Vessel adds** (protocol 12, ADR 0053, no schema change):
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (read; not
+  forwardable; refused to agents: an account's other conversations are
+  not the fleet's sessions): a page of the agent's own conversations, as
+  the agent lists them over ACP. The node starts the agent as a probe
+  does (`vessel_agent`, in the probe directory, under the profile's
+  account), `initialize`, and asks `session/list { cwd?, cursor? }`;
+  `unsupported` when the agent does not advertise
+  `sessionCapabilities.list` (or `loadSession`, without which an import
+  could not load it). One page per call: the agent's own page size; the
+  node passes its `nextCursor` on as an opaque string.
+- `AgentHistoryPage { conversations: [HistoryEntry], next? }`;
+  `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?:
+  SessionId }`: `in_vessel` names the newest Vessel session already on
+  that conversation (from the node's sessions' `harness_session`), so a
+  client opens it instead of importing it twice. Titles are cut at a
+  title's bound; an entry with a relative `cwd` is left out.
+- No previews: Paseo loads every listed conversation (seconds each, up
+  to 60 s a listing) to show its first and last prompts; Vessel shows the
+  agent's title and time, and the import shows the whole conversation.
+  (Previews could come later from one `session/load` per entry a person
+  expands.)
+- **Import** is `session.create` with `resume` and the entry's `cwd` (a
+  client builds it from the entry); a folder that does not exist on the
+  node is `invalid_request` as for any session. The new session's log
+  starts with the conversation's replay; `SessionInfo.origin` is not
+  changed (an import from the agent's history is this node's own
+  session).
+- **Bounds**: one listing at a time per profile (a second waits); the
+  probe's handshake timeout bounds it; at most 200 entries kept from one
+  page.
+- **CLI**: `vessel history [AGENT] [--profile P] [--cwd DIR] [--more
+  CURSOR]` prints each conversation (id, folder, title, time, "in vessel
+  <id>"); `vessel run AGENT --structured --resume ID --cwd DIR` imports
+  (exists).
+- **Older peers**: `since 12`; nothing reaches an older peer.
+
+ADR 0053 records the choice.
