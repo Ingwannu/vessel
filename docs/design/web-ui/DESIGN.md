@@ -1637,7 +1637,13 @@ machine in view.
    secret set since, or an install ended, is not noticed otherwise.
 3. **What it runs with**: the machine asks the agent (`harness.options`,
    under the chosen profile); the controls fill in as it answers, without
-   blocking the page (§6.15).
+   blocking the page (§6.15). Send while it is still asking waits for
+   the answer, at most 10 s (agent-orchestrator's wait for its page),
+   saying "Starting once … says what it offers", so the choices the
+   machine kept are applied (a choice the agent does not offer fails the
+   session, so none is sent unchecked). A start keeps every choice the
+   agent offers, one equal to its default today included; one that could
+   not check them keeps what was kept, never fewer (`keptChoices`).
 4. **"+"**: a profile (an account, or a model route, ADR 0015: each says
    its route) and "Open as terminal" with the arguments the agent's
    command gets (split as a shell would, not expanded), only where the

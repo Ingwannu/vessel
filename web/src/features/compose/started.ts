@@ -5,7 +5,9 @@
 
 import { rememberStart } from "../../data/defaults";
 import type { Fleet } from "../../data/fleet";
+import type { Draft, OptionsState } from "../../data/new-session";
 import { deliverOpening } from "../../data/openings";
+import { keptChoices } from "../../data/picks";
 import { prefer } from "../../data/prefs";
 import { handOver, sendWhenReady, trayOf } from "../../data/trays";
 import { toast } from "../../ui/toasts";
@@ -51,16 +53,26 @@ export function sendFirst(
   });
 }
 
-/** Keep what `spec` started `agent` with on `node`. */
+/** Keep `agent` and what `draft` started it with as what a new session
+ * on `node` starts with: every choice the agent offers (`keptChoices`),
+ * or the remembered ones as they were when the agent had not said what
+ * it offers. Only the four are kept per machine (`agent` is `null` for
+ * an added one). */
 export function rememberStarted(
   fleet: Fleet,
-  node: NodeId,
-  agent: HarnessKind,
-  profile: string,
-  spec: SessionSpec,
+  node: NodeId | null,
+  agent: HarnessKind | null,
+  draft: Pick<Draft, "profile" | "picks">,
+  options: OptionsState,
 ): void {
-  const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
-  for (const kept of rememberStart(node, agent, profile, chosen)) {
+  if (node === null || agent === null) {
+    return;
+  }
+  const choices = keptChoices(
+    options.kind === "ready" ? options.options : null,
+    draft.picks,
+  );
+  for (const kept of rememberStart(node, agent, draft.profile, choices)) {
     void prefer(fleet, kept);
   }
 }

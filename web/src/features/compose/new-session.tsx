@@ -44,6 +44,7 @@ import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
+import { useOptionsWait } from "./use-options-wait";
 import { rememberStarted, sendFirst } from "./started";
 import { useStarter } from "./use-starter";
 import { WhereTray } from "./where-tray";
@@ -159,13 +160,12 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     });
   };
 
-  const send = () => {
-    if (!ready.ok || harness === null || machine === null || busy) {
+  const start = () => {
+    if (harness === null || machine === null) {
+      setBusy(false);
       return;
     }
     const spec = specOf(effective, harness, options);
-    setBusy(true);
-    setError(null);
     void starter.create(spec).then((created) => {
       if (created?.ok !== true) {
         setBusy(false);
@@ -175,9 +175,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       const id = created.value.id;
       saved.clear();
       sendFirst(fleet, machine, id, spec, effective.prompt.trim());
-      if (nodeId !== null && known !== null) {
-        rememberStarted(fleet, nodeId, known, effective.profile, spec);
-      }
+      rememberStarted(fleet, nodeId, known, effective, options);
       fleet.select(machine);
       void fleet.refreshSessions(machine);
       // agent-orchestrator's: in place of this page, and not for someone
@@ -190,6 +188,20 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
         });
       }
     });
+  };
+  // Send during "Loading models…" waits for them (use-options-wait.ts).
+  const optionsWait = useOptionsWait(options.kind === "loading", start);
+  const send = () => {
+    if (!ready.ok || harness === null || machine === null || busy) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    if (!terminal && options.kind === "loading") {
+      optionsWait.wait();
+      return;
+    }
+    start();
   };
 
   return (
@@ -267,7 +279,15 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           }
         />
         <NewSessionNotes
-          starting={starter.view}
+          starting={
+            optionsWait.waiting ? (
+              <p className="new-session-note">
+                Starting once {agentLabel} says what it offers…
+              </p>
+            ) : (
+              starter.view
+            )
+          }
           error={error}
           blocked={ready.ok ? null : ready.reason}
           controls={controls}
