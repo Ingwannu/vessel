@@ -96,7 +96,7 @@ pub(crate) fn mode(mode: &SessionMode) -> String {
 
 pub(crate) fn node(node: &NodeInfo) -> String {
     format!(
-        "node      {} ({})\nhost      {} {}/{}\nversion   {} (protocol {}..={})\nstarted   {}\n",
+        "node      {} ({})\nhost      {} {}/{}\nversion   {} (protocol {}..={})\nstarted   {}\ntimezone  {}\n",
         node.name,
         node.id,
         node.hostname,
@@ -106,6 +106,9 @@ pub(crate) fn node(node: &NodeInfo) -> String {
         node.protocol.min,
         node.protocol.max,
         node.started_at.to_rfc3339(),
+        node.timezone
+            .as_ref()
+            .map_or("unknown", |zone| zone.as_str()),
     )
 }
 

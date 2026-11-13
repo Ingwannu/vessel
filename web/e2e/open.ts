@@ -5,6 +5,55 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { expect, type Page } from "@playwright/test";
 import { loadEnv } from "./fleet";
+import { parse } from "../src/bridge/frames";
+import type { Preferences, PreferencesState } from "../src/wire/bridge";
+
+// One last acknowledgement per page: no frame recording or capabilities.
+const acknowledgements = new WeakMap<
+  Page,
+  { serial: number; state: PreferencesState }
+>();
+const observed = new WeakSet<Page>();
+
+function observePreferences(page: Page): void {
+  if (observed.has(page)) return;
+  observed.add(page);
+  page.on("websocket", (socket) => {
+    socket.on("framereceived", ({ payload }) => {
+      try {
+        const frame = parse(payload.toString());
+        if (frame.type !== "op_reply" || !("ok" in frame.outcome)) return;
+        const result = frame.outcome.ok;
+        if (result.op !== "prefer") return;
+        acknowledgements.set(page, {
+          serial: (acknowledgements.get(page)?.serial ?? 0) + 1,
+          state: result.preferences,
+        });
+      } catch {
+        // This observer owns only valid preference acknowledgements.
+      }
+    });
+  });
+}
+
+/** A dependent change or cleanup must reach the bridge before the tab's
+ * launch is closed; optimistic DOM paint is not a persistence receipt. */
+export async function acknowledgePreference(
+  page: Page,
+  action: () => Promise<void>,
+  matches: (values: Preferences) => boolean,
+): Promise<void> {
+  const before = acknowledgements.get(page)?.serial ?? 0;
+  await action();
+  await expect
+    .poll(() => {
+      const now = acknowledgements.get(page);
+      return (
+        now !== undefined && now.serial > before && matches(now.state.values)
+      );
+    })
+    .toBe(true);
+}
 
 /** `root` is where the UI's user keeps its book and data: the fleet's
  * own by default; another directory gives a UI with an empty book and no
@@ -14,6 +63,7 @@ export async function launchUi(
   port = 0,
   root: string = loadEnv().root,
 ): Promise<{ url: string; origin: string }> {
+  observePreferences(page);
   const env = loadEnv();
   const child = spawn(env.vessel, ["ui", "--no-open", "--port", String(port)], {
     env: {
@@ -63,5 +113,13 @@ export async function openUi(page: Page): Promise<string> {
     throw new Error("Could not open the UI");
   }
   await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+  // The shell renders while the one-use bootstrap is still authenticating.
+  // A full navigation is safe only after its replacement is saved for reload;
+  // inspect existence alone, never return or print the capability.
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem("vessel.session") !== null),
+    )
+    .toBe(true);
   return origin;
 }

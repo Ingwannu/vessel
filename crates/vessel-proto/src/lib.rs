@@ -63,7 +63,7 @@ pub use device::{
     DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
     PreambleReply, RefusalReason, RevokeDevice, Scope,
 };
-pub use error::{ErrorCode, WireError};
+pub use error::{ErrorCode, ErrorDetail, WireError};
 pub use event::{EventRecord, SessionEvent};
 pub use fleet::{
     BlobChunk, BlobHash, BundleFile, BundlePath, BundlePathRule, ConfigValue, FleetMember,

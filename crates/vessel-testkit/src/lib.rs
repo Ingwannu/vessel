@@ -93,6 +93,7 @@ pub mod model;
 #[cfg(feature = "relay")]
 pub mod relay;
 mod report;
+pub mod schedule_fixtures;
 #[cfg(feature = "upstream")]
 pub mod upstream;
 mod vesseld;

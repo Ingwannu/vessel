@@ -63,6 +63,7 @@ mod terminals;
 // through the service's own checks.
 mod notices;
 mod prompts;
+mod schedule_preview;
 mod scheduled;
 mod schedules;
 
@@ -117,6 +118,7 @@ pub(crate) struct NodeService {
     installs: crate::install::Installs,
     /// The scheduler (protocol 11, `automation::schedules`).
     schedules: Schedules,
+    preview_slots: Arc<tokio::sync::Semaphore>,
     /// Saved prompts (protocol 11, `automation::prompts`).
     prompts: SavedPrompts,
     /// Turns followed for their starters (protocol 11,
@@ -206,6 +208,7 @@ impl NodeService {
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,
+            preview_slots: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
             notices: Arc::default(),
         }

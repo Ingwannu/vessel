@@ -234,6 +234,7 @@ impl Reply {
             // method, which a node refuses on an older connection before it
             // runs (the client does not send it either), so an older peer
             // is never handed one. A run names its session by id.
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)

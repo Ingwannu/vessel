@@ -20,6 +20,47 @@ use crate::workspace;
 pub(crate) async fn schedule(target: &Target, command: ScheduleCommand) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     match command {
+        ScheduleCommand::Preview {
+            cron,
+            every,
+            tz,
+            after,
+            count,
+        } => {
+            let cadence = if let Some(every) = every {
+                Cadence::Every {
+                    seconds: EverySeconds::try_from(seconds(&every)?)
+                        .map_err(|error| CliError::Automation(error.to_string()))?,
+                    anchor: None,
+                }
+            } else {
+                let zone = match tz {
+                    Some(zone) => parse(&zone, "--tz")?,
+                    None => this_zone()?,
+                };
+                Cadence::Cron {
+                    expr: parse(
+                        cron.as_deref()
+                            .ok_or(CliError::Usage("give --cron or --every"))?,
+                        "--cron",
+                    )?,
+                    zone,
+                }
+            };
+            let preview = client
+                .preview_schedule(vessel_proto::automation::PreviewSchedule {
+                    cadence,
+                    after,
+                    count: vessel_proto::automation::PreviewCount::try_from(count)
+                        .map_err(|error| CliError::Automation(error.to_string()))?,
+                })
+                .await?;
+            let mut text = String::new();
+            for at in preview.runs {
+                let _infallible = writeln!(text, "{}", at.to_rfc3339());
+            }
+            out(&text).await
+        }
         ScheduleCommand::List => {
             let text: String = client.schedules().await?.iter().map(line).collect();
             out(&text).await

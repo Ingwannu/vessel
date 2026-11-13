@@ -6,7 +6,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { startSession } from "./kit";
-import { openUi } from "./open";
+import { acknowledgePreference, openUi } from "./open";
 import { applyConditions, PROFILES } from "./perf/conditions";
 
 const SETTINGS = (origin: string, section: string): string =>
@@ -31,7 +31,9 @@ test("a theme is kept by the bridge and painted on the index before any script",
   const scheme = page.getByRole("radiogroup", { name: "Colour scheme" });
   await scheme.getByRole("radio", { name: "Dark" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  expect(await paintedTheme(page, origin)).toBe("dark");
+  // The DOM updates optimistically; the served index changes after the
+  // bridge acknowledges its persisted preference. Wait for that boundary.
+  await expect.poll(() => paintedTheme(page, origin)).toBe("dark");
   // A reload is drawn dark from the first paint.
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -46,7 +48,7 @@ test("a theme is kept by the bridge and painted on the index before any script",
     .getByRole("radio", { name: "System" })
     .click();
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
-  expect(await paintedTheme(page, origin)).toBeNull();
+  await expect.poll(() => paintedTheme(page, origin)).toBeNull();
 });
 
 test("a dark theme is drawn from the first frame over a slow link", async ({
@@ -65,6 +67,7 @@ test("a dark theme is drawn from the first frame over a slow link", async ({
     .getByRole("radio", { name: "Dark" })
     .click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect.poll(() => paintedTheme(page, origin)).toBe("dark");
   const slow = PROFILES.find((profile) => profile.name === "slow-link");
   if (slow === undefined) throw new Error("No slow-link profile");
   const cdp = await context.newCDPSession(page);
@@ -116,6 +119,7 @@ test("a dark theme is drawn from the first frame over a slow link", async ({
       .getByRole("radio", { name: "System" })
       .click();
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
+    await expect.poll(() => paintedTheme(page, origin)).toBeNull();
   }
 });
 
@@ -155,11 +159,16 @@ test("with the sidebar hidden, Mod+K still opens the command palette", async ({
   page,
 }) => {
   // The palette and its shortcut are the shell's, not the sidebar's.
-  const origin = await openUi(page);
-  await page.goto(`${origin}/sessions`);
+  // openUi already lands on the board after authentication. Reloading
+  // here replaced its ready shell with one whose key effects were pending.
+  await openUi(page);
   const side = page.getByRole("navigation", { name: "Sidebar" });
   await expect(side).toBeVisible();
-  await page.keyboard.press("Control+b");
+  await acknowledgePreference(
+    page,
+    () => page.keyboard.press("Control+b"),
+    (values) => values.layout.sidebar === "hidden",
+  );
   await expect(side).toHaveCount(0);
   try {
     await page.keyboard.press("Control+k");
@@ -169,7 +178,11 @@ test("with the sidebar hidden, Mod+K still opens the command palette", async ({
     await expect(palette).toHaveCount(0);
   } finally {
     // The fleet's one `vessel ui` keeps the choice for the whole run.
-    await page.keyboard.press("Control+b");
+    await acknowledgePreference(
+      page,
+      () => page.keyboard.press("Control+b"),
+      (values) => values.layout.sidebar === "shown",
+    );
     await expect(side).toBeVisible();
   }
 });
@@ -229,7 +242,11 @@ test("a shortcut is rebound in Settings, a clash is offered to move, and Reset a
   await expect(
     page.getByText("Use Ctrl or Alt with another key."),
   ).toBeVisible();
-  await page.keyboard.press("Control+j");
+  await acknowledgePreference(
+    page,
+    () => page.keyboard.press("Control+j"),
+    (values) => values.shortcuts["find"]?.includes("Mod+J") === true,
+  );
   await expect(session.getByText("Ctrl+J")).toBeVisible();
   await expect(session.getByText("Modified")).toBeVisible();
   // A key the palette holds: "Shortcut already in use", Reassign.
@@ -241,13 +258,22 @@ test("a shortcut is rebound in Settings, a clash is offered to move, and Reset a
   await expect(dialog).toContainText(
     "Ctrl+K is assigned to Open the command palette. Reassign it to Find in the session?",
   );
-  await dialog.getByRole("button", { name: "Reassign" }).click();
+  await acknowledgePreference(
+    page,
+    () => dialog.getByRole("button", { name: "Reassign" }).click(),
+    (values) => values.shortcuts["find"]?.includes("Mod+K") === true,
+  );
   await expect(session.getByText("Ctrl+K")).toBeVisible();
   await page.getByRole("button", { name: "Reset all" }).click();
-  await page
-    .getByRole("dialog", { name: "Reset all" })
-    .getByRole("button", { name: "Reset all" })
-    .click();
+  await acknowledgePreference(
+    page,
+    () =>
+      page
+        .getByRole("dialog", { name: "Reset all" })
+        .getByRole("button", { name: "Reset all" })
+        .click(),
+    (values) => Object.keys(values.shortcuts).length === 0,
+  );
   await expect(session.getByText("Ctrl+F")).toBeVisible();
   await expect(page.getByText("Modified", { exact: true })).toHaveCount(0);
 });
@@ -258,7 +284,11 @@ test("with Mod+Enter chosen, Enter starts a line and Ctrl+Enter sends", async ({
   const origin = await openUi(page);
   await page.goto(SETTINGS(origin, "general"));
   await page.getByRole("combobox", { name: "Send shortcut" }).click();
-  await page.getByRole("option", { name: "Ctrl+Enter" }).click();
+  await acknowledgePreference(
+    page,
+    () => page.getByRole("option", { name: "Ctrl+Enter" }).click(),
+    (values) => values.composer.send === "mod_enter",
+  );
   try {
     await startSession(page, "laptop", "Structured", "plain");
     await expect(page.getByText("echo: plain", { exact: true })).toBeVisible();
@@ -272,7 +302,11 @@ test("with Mod+Enter chosen, Enter starts a line and Ctrl+Enter sends", async ({
   } finally {
     await page.goto(SETTINGS(origin, "general"));
     await page.getByRole("combobox", { name: "Send shortcut" }).click();
-    await page.getByRole("option", { name: "Enter", exact: true }).click();
+    await acknowledgePreference(
+      page,
+      () => page.getByRole("option", { name: "Enter", exact: true }).click(),
+      (values) => values.composer.send === "enter",
+    );
   }
 });
 
@@ -284,7 +318,11 @@ test("the sidebar groups by status from its Display menu", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(sidebar.getByText("Sessions", { exact: true })).toBeVisible();
   await sidebar.getByRole("button", { name: "Display" }).click();
-  await page.getByRole("menuitemradio", { name: "Machine" }).click();
+  await acknowledgePreference(
+    page,
+    () => page.getByRole("menuitemradio", { name: "Machine" }).click(),
+    (values) => values.sidebar.group === "machine",
+  );
   await page.keyboard.press("Escape");
   await expect(sidebar.getByText("Machines", { exact: true })).toBeVisible();
 });

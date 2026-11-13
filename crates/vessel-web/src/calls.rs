@@ -197,6 +197,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
         | Method::CreateSchedule

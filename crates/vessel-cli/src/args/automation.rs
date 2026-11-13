@@ -13,6 +13,24 @@ use vessel_proto::{HarnessKind, ProfileName};
 pub(crate) enum ScheduleCommand {
     /// List the node's schedules, newest first.
     List,
+    /// Compute upcoming runs on the node without saving a schedule.
+    Preview {
+        /// Five-field cron expression.
+        #[arg(long, conflicts_with = "every", required_unless_present = "every")]
+        cron: Option<String>,
+        /// Elapsed interval (for example 30m).
+        #[arg(long)]
+        every: Option<String>,
+        /// IANA zone; defaults to this CLI machine's zone, as create does.
+        #[arg(long, requires = "cron")]
+        tz: Option<String>,
+        /// Start strictly after this RFC 3339 instant; defaults to node time.
+        #[arg(long)]
+        after: Option<DateTime<Utc>>,
+        /// Number of upcoming runs, from 1 to 10.
+        #[arg(long, default_value_t = 5)]
+        count: u32,
+    },
     /// Show one schedule and its last run.
     Show {
         /// The schedule.

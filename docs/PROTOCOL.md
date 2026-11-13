@@ -30,6 +30,21 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 12 (2026-11-13, milestone 12, N3)
+
+Nodes speak 2..=12; the minimum is unchanged. Additive N3 calls are gated at
+12. `NodeInfo.timezone` is an optional IANA name, absent when detection fails
+or from old nodes, and omitted on negotiated older connections.
+
+`schedule.preview` (Read) takes `cadence`, optional UTC `after`, and bounded
+`count` (1–10, default 5). It returns `after`, the effective `cadence` (an
+interval's resolved anchor), and exactly `count` next UTC `runs`. Reuse the
+returned cadence when saving. No schedule or session is created. Errors
+are `invalid_request` with optional typed `detail: { kind: schedule_preview,
+reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
+or `unavailable` for the bounded worker pool. Existing errors omit detail;
+future unknown detail kinds decode as unknown. Clients never parse messages.
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;

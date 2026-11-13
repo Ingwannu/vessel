@@ -155,6 +155,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
     ("PresentedToken", Alias::Secret),
+    ("PreviewCount", Alias::Quantity),
     ("ProcessName", Alias::Content),
     ("ProfileName", Alias::Named),
     ("ProjectCommand", Alias::Content),

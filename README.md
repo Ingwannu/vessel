@@ -474,6 +474,7 @@ vessel schedule create --name nightly --cron "0 9 * * 1-5" --tz Asia/Seoul \
   --harness claude --project app --prompt "Look at last night's failures"
 vessel schedule create --every 30m --session 3f2a --prompt-file check.md
 vessel schedule list
+vessel schedule preview --cron "0 9 * * 1-5" --tz Asia/Seoul --count 5
 vessel schedule runs nightly                # what each run came to
 vessel schedule run nightly                 # once now
 vessel schedule edit nightly --cron "0 8 * * 1-5"
@@ -1109,3 +1110,11 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+A schedule preview is calculated on the target node without saving or
+starting work (`vessel schedule preview --every 30m`, or `--cron` with an
+optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;
+if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
+reproducible preview; `--count` is 1–10. API callers reuse the returned
+cadence when saving so an interval keeps its preview anchor. `vessel status`
+also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
