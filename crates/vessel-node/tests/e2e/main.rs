@@ -76,6 +76,8 @@ mod routing;
 // Where track D's schedules meet pull requests, terminals and added
 // agents (Unix: the terminals' shell is `/bin/sh`).
 #[cfg(test)]
+mod schedule_preview;
+#[cfg(test)]
 #[cfg(unix)]
 mod scheduled;
 #[cfg(test)]

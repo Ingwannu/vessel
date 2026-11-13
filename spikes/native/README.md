@@ -420,3 +420,7 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+The fake fleet also checks N3's node timezone and schedule preview through
+`wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
+and an impossible-expression refusal. No schedule is saved by this check.

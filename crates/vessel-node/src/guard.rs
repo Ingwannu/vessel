@@ -179,6 +179,7 @@ untargeted!(
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
     vessel_proto::automation::DeletePrompt,
+    vessel_proto::automation::PreviewSchedule,
     vessel_proto::automation::ListSchedules,
     vessel_proto::automation::GetSchedule,
     vessel_proto::automation::CreateSchedule,
@@ -443,6 +444,7 @@ guarded! {
     run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
     restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
     list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
+    preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
     list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
     get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
     create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
