@@ -229,7 +229,7 @@ pub(crate) async fn pair(
     offer: &Offer,
     name: &str,
     prefer_node_name: bool,
-) -> Result<(String, String), LinkError> {
+) -> Result<(String, vessel_app_view::Via, String), LinkError> {
     let name = name
         .trim()
         .parse::<NodeName>()
@@ -287,7 +287,13 @@ pub(crate) async fn pair(
     })
     .await
     .map_err(|error| LinkError::Io(error.to_string()))??;
-    Ok((node_name, route.to_string()))
+    let (via, address) = match route {
+        vessel_client::secure::Route::Direct(url) => {
+            (vessel_app_view::Via::Direct, url.to_string())
+        }
+        vessel_client::secure::Route::Relay(url) => (vessel_app_view::Via::Relay, url.to_string()),
+    };
+    Ok((node_name, via, address))
 }
 
 #[cfg(test)]

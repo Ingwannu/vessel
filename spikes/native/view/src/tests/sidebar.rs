@@ -4,10 +4,8 @@
 use vessel_proto::{SessionInfo, SessionStatus};
 
 use super::fixture::{at, fleet, id, in_folder, machine, session, short};
-use crate::sidebar::{
-    Group, SIDEBAR_SESSIONS, SIDEBAR_STATUS_SESSIONS, SessionMark, SidebarView, Sort, Step,
-    step_session,
-};
+use crate::prefs::{Grouping, SessionSort, SidebarView};
+use crate::sidebar::{SIDEBAR_SESSIONS, SIDEBAR_STATUS_SESSIONS, SessionMark, Step, step_session};
 use crate::{Card, Fleet, Lang};
 
 fn running(short: &str, when: &str) -> SessionInfo {
@@ -69,8 +67,8 @@ fn links_to_the_board_for_the_rest() {
 fn lists_ended_sessions_when_asked_and_sorts_by_activity() {
     let fleet = state();
     let view = SidebarView {
-        group: Group::Machine,
-        sort: Sort::Activity,
+        group: Grouping::Machine,
+        sort: SessionSort::Activity,
         ended: true,
     };
     let machines = fleet.sidebar_machines(view, SIDEBAR_SESSIONS);
@@ -93,7 +91,7 @@ fn lists_ended_sessions_when_asked_and_sorts_by_activity() {
 fn groups_by_status_across_machines_leaving_empty_groups_out() {
     let fleet = state();
     let view = SidebarView {
-        group: Group::Status,
+        group: Grouping::Status,
         ..SidebarView::default()
     };
     let groups = fleet.sidebar_statuses(view, SIDEBAR_STATUS_SESSIONS);

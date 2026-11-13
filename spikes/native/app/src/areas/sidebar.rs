@@ -3,11 +3,15 @@
 //! book with their live sessions (DESIGN.md section 6: rows on the shell,
 //! no edge of its own), adding a machine, and the build's label.
 
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use vessel_app_kit::ui::{
     Context, Div, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Stateful,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, dot, kicker};
+use vessel_app_kit::{Tokens, Tooltips, Type, TypeExt as _, dot, kicker};
 use vessel_app_view::settings::Section;
 use vessel_app_view::{Card, Machine, Reach};
 
@@ -16,7 +20,40 @@ use super::session::Open;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+/// The sidebar's own state: its tooltips, and where each unreachable
+/// machine's line is drawn (by machine name).
+pub(crate) struct SidebarState {
+    tips: Tooltips,
+    places: RefCell<HashMap<String, vessel_app_kit::tooltip::Place>>,
+}
+
+impl SidebarState {
+    pub(crate) fn new() -> Self {
+        Self {
+            tips: Tooltips::new(),
+            places: RefCell::new(HashMap::new()),
+        }
+    }
+
+    /// `machine`'s place for its tooltip, kept across frames.
+    fn place(&self, machine: &str) -> vessel_app_kit::tooltip::Place {
+        Rc::clone(
+            self.places
+                .borrow_mut()
+                .entry(machine.to_owned())
+                .or_insert_with(|| Rc::new(Cell::new(None))),
+        )
+    }
+}
+
+/// The sidebar; `touch`: drawn in the phone's sheet (no tooltips there,
+/// as Paseo's).
+pub(crate) fn render(
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let t = shell.t;
     let mut nav = div().flex().flex_col().gap(px(2.0));
     for route in Route::NAV {
@@ -32,7 +69,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
     }
     let mut machines = div().flex().flex_col().gap(px(14.0));
     for machine in &shell.fleet.machines {
-        machines = machines.child(machine_rows(machine, shell, tokens, cx));
+        machines = machines.child(machine_rows(machine, shell, tokens, touch, cx));
     }
     if shell.loaded && shell.fleet.machines.is_empty() {
         machines = machines.child(
@@ -52,7 +89,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .px(px(8.0))
         .pb(px(8.0))
         .gap(px(12.0))
-        .child(nav)
+        .child(nav.children(schedules(shell, tokens, cx)))
         .children(projects(shell, tokens, cx))
         .child(
             div()
@@ -79,6 +116,19 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .map(|status| div().px(px(10.0)).child(status)),
         )
         .child(foot(shell, tokens, cx))
+        .children(shell.areas.sidebar.tips.render(tokens))
+}
+
+/// The slot for Schedules among the navigation rows, where Paseo's
+/// sidebar has it (after its pages, before the projects): the schedules
+/// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
+/// side of the slot.
+const fn schedules(
+    _shell: &Shell,
+    _tokens: &Tokens,
+    _cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    None
 }
 
 /// The slot between the navigation rows and the machines: the projects
@@ -159,10 +209,24 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         )
 }
 
+/// A machine's name, its state, and its live sessions.
+///
+/// [Decision Log]
+/// - Purpose: a stopped node showed the transport's English text and the
+///   endpoint under the machine's name on a Korean screen (track G2's
+///   find, 2026-11-13).
+/// - Choice: the reason is typed (`Reach::Unreachable`), so the row says
+///   it in the app's words in both languages (the state beside the name,
+///   one line of what to do under it); the transport's text is only the
+///   tooltip on that line, for whoever needs the detail.
+/// - Trade-off: on touch (no tooltips) the transport's text is not on
+///   screen at all; the line says what to check, which is what a phone's
+///   owner can act on.
 fn machine_rows(
     machine: &Machine,
     shell: &Shell,
     tokens: &Tokens,
+    touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let t = shell.t;
@@ -188,12 +252,19 @@ fn machine_rows(
             ),
     );
     if let Reach::Unreachable(why) = &machine.reach {
+        let state = &shell.areas.sidebar;
+        let line = div()
+            .id(ElementId::Name(
+                format!("unreachable-{}", machine.name).into(),
+            ))
+            .px(px(10.0))
+            .type_(Type::Tiny)
+            .text_color(tokens.text_tertiary)
+            .child(t.unreachable_hint);
         rows = rows.child(
-            div()
-                .px(px(10.0))
-                .type_(Type::Tiny)
-                .text_color(tokens.text_tertiary)
-                .child(why.clone()),
+            state
+                .tips
+                .on(line, &state.place(&machine.name), why.clone(), touch),
         );
     }
     for card in machine.sessions.iter().filter(|card| card.lane.is_some()) {

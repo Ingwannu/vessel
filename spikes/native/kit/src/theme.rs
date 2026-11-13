@@ -66,6 +66,8 @@ pub struct Neutrals {
     pub interaction_highlight: Hsla,
     /// `destructive`: the stop button, a destructive row.
     pub destructive: Hsla,
+    /// `destructiveForeground`: white in both reference themes.
+    pub destructive_foreground: Hsla,
     /// The accent: Vessel's brand colour (Paseo's is its green): the send
     /// button.
     pub accent: Hsla,
@@ -90,6 +92,7 @@ impl Neutrals {
             border_accent: rgb(0x00ec_ecf1).into(),
             interaction_highlight: rgba(0x0000_000f).into(),
             destructive: rgb(0x00b0_4138).into(),
+            destructive_foreground: rgb(0x00ff_ffff).into(),
             accent: rgb(crate::assets::BRAND).into(),
             accent_foreground: rgb(0x00ff_ffff).into(),
         }
@@ -111,6 +114,7 @@ impl Neutrals {
             border_accent: rgb(0x002f_3534).into(),
             interaction_highlight: rgba(0xffff_ff14).into(),
             destructive: rgb(0x00c6_4f43).into(),
+            destructive_foreground: rgb(0x00ff_ffff).into(),
             accent: rgb(crate::assets::BRAND).into(),
             accent_foreground: rgb(0x00ff_ffff).into(),
         }

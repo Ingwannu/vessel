@@ -535,3 +535,37 @@ fn a_paired_node_is_written_and_read_back() {
     );
     assert!(!text.contains("direct"), "{text}");
 }
+
+/// The book is owner-only whatever mode an older one had, and a folder
+/// the save makes is owner-only; a folder that was there keeps its mode.
+#[cfg(unix)]
+#[test]
+fn the_book_is_written_owner_only() {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vessel").join("nodes.toml");
+    let mut file = BookFile::open(&path).unwrap();
+    let entry = BookEntry {
+        address: NodeAddress::Ssh("ssh://ci@build:2222".parse().unwrap()),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    file.add(&name("build"), &entry).unwrap();
+    assert_eq!(mode(&path), 0o600);
+    assert_eq!(mode(path.parent().unwrap()), 0o700);
+
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o664)).unwrap();
+    std::fs::set_permissions(
+        path.parent().unwrap(),
+        std::fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let mut file = BookFile::open(&path).unwrap();
+    file.remove("build").unwrap();
+    assert_eq!(mode(&path), 0o600);
+    assert_eq!(mode(path.parent().unwrap()), 0o755);
+    assert!(BookFile::open(&path).unwrap().book().get("build").is_none());
+}

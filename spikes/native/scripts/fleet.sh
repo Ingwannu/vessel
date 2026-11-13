@@ -47,6 +47,8 @@ free_port() {
   python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
 }
 
+python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+
 : > "$root/pids"
 for name in laptop build-server; do
   port=$(free_port)
@@ -68,6 +70,8 @@ for name in laptop build-server; do
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
     "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
 done
+
+python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
@@ -120,7 +124,30 @@ check_shapes() { # node id answered|asking
   [ "$startup" -eq 10 ] || problems+=("the start-up log's ten lines before the prompt (got: $startup)")
   # The entries: the thought, the message's table (header, rule, four
   # rows), three tool calls, the permission with four answers.
-  grep -q '^(thinking) The failure is in the timeline' <<<"$log" || problems+=("the thought")
+  # The thought, streamed a few characters at a time (one syllable
+  # alone among them) and put back together from `vessel log`, which
+  # prints each chunk as a `(thinking) …` line and a chunk's own line
+  # breaks as lines without it, up to the message's heading: many chunks,
+  # its Korean sentence and English whole, and no Hangul letter loose from
+  # its syllable (the owner's "생가ㄱ").
+  local thought
+  thought=$(python3 -c '
+import sys
+chunks, text, inside = 0, "", False
+for line in sys.stdin.read().split("\n"):
+    if line.startswith("(thinking) "):
+        inside, chunks, text = True, chunks + 1, text + line[len("(thinking) "):]
+    elif inside and line.startswith("## "):
+        break
+    elif inside:
+        text += "\n" + line
+loose = any("\u3131" <= c <= "\u318e" or "\u1100" <= c <= "\u11ff" for c in text)
+whole = "생각을 정리하면, 묶음의 끝이 메시지 안에 걸릴 때 두 번째 조각이 빠집니다." in text
+english = "The failure is in the timeline" in text
+print("ok" if chunks > 100 and whole and english and not loose else
+      f"chunks={chunks} korean={whole} english={english} loose={loose}")
+' <<<"$log")
+  [ "$thought" = ok ] || problems+=("the thought streamed whole ($thought)")
   [ "$(grep -c '^| ' <<<"$log")" -eq 6 ] || problems+=("the table's six lines")
   [ "$(grep -c '^\[tool\] ' <<<"$log")" -eq 3 ] || problems+=("three tool calls")
   grep -q '^  4) Never allow commands' <<<"$log" || problems+=("the permission's four answers")
@@ -288,6 +315,51 @@ if [ ${#problems[@]} -gt 0 ]; then
   printf 'fleet: the workspace shapes are missing: %s\n' "${problems[*]}" >&2
   exit 1
 fi
+
+# Questions the agent asks, as Claude's adapter sends its
+# `AskUserQuestion` (fake-acp's `ask questions` and `ask one`): three
+# questions (one choosing several, one in Korean, each with its "Other"
+# box) and one. Both are left waiting, and checked through `vessel log`.
+start_session laptop questions "ask questions"
+questions=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop question "ask one"
+question=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$questions" "[question "
+wait_for laptop "$question" "[question "
+asked=$(log_of laptop "$questions")
+grep -q '^\[question [^]]*\] Please answer the following questions\.$' <<<"$asked" &&
+  [ "$(grep -c '^  question_[0-9]_custom: Other (text)$' <<<"$asked")" -eq 3 ] &&
+  grep -q '^  question_1: Checks (choose, several)$' <<<"$asked" &&
+  grep -q '^  question_2: 언어 (choose)$' <<<"$asked" || {
+  echo "fleet: session $questions lacks Claude's three questions" >&2
+  exit 1
+}
+grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of laptop "$question")" || {
+  echo "fleet: session $question lacks Claude's one question" >&2
+  exit 1
+}
+
+# Prompts waiting their turn (the queue above the composer): a turn that
+# runs until it is stopped (`wait`, which also takes a steer) and three
+# prompts queued behind it, one long, one Korean, one short. Checked
+# through `vessel session queue`, one line per entry after its heading.
+start_session laptop queued "wait"
+queued=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$queued" "> wait"
+for prompt in \
+  "After this, read the fold again and write down every place a batch that ends inside a message can lose a chunk, with the lines that do it" \
+  "끝나면 한글 세션의 제목도 같이 바꿔 주세요" \
+  "Then run the tests"; do
+  for _ in $(seq 1 50); do
+    cli --node laptop send "$queued" "$prompt" --queue > /dev/null 2>&1 && break
+    sleep 0.1
+  done
+done
+waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || true)
+[ "$waiting" -eq 3 ] || {
+  echo "fleet: session $queued lacks its three queued prompts (got: $waiting)" >&2
+  exit 1
+}
 
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash

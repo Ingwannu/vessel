@@ -143,7 +143,7 @@ impl UpdateText {
     pub fn updated_to(&self, label: &str) -> String {
         match self.lang {
             Lang::En => format!("Updated to {label}"),
-            Lang::Ko => format!("{label}(으)로 업데이트했습니다"),
+            Lang::Ko => format!("업데이트를 마쳤습니다: {label}"),
         }
     }
 
@@ -165,7 +165,7 @@ impl UpdateText {
         let version = self.version(label);
         match self.lang {
             Lang::En => format!("Update to {version}"),
-            Lang::Ko => format!("{version}(으)로 업데이트"),
+            Lang::Ko => format!("업데이트 설치: {version}"),
         }
     }
 

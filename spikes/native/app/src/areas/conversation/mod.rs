@@ -30,6 +30,8 @@ mod entries;
 mod find;
 mod look;
 mod outline;
+mod question;
+mod queue;
 mod rename;
 mod timeline;
 mod tool;
@@ -123,6 +125,10 @@ pub(crate) struct ConversationArea {
     pub(crate) outline: Vec<OutlineItem>,
     /// Where the pointer is on the rail.
     pub(crate) outline_pointer: outline::Pointer,
+    /// A queued message edited in its row.
+    pub(crate) queue_edit: Option<queue::QueueEdit>,
+    /// The question waiting first, being answered over the composer.
+    pub(crate) answering: Option<question::Answering>,
     /// The find bar, while it is open.
     pub(crate) find: Option<find::FindBar>,
     /// Each entry's folded text for find, kept between searches of the
@@ -154,6 +160,8 @@ impl ConversationArea {
             confirm: None,
             dialog: DialogState::new(cx),
             rename: None,
+            queue_edit: None,
+            answering: None,
             outline: Vec::new(),
             outline_pointer: outline::Pointer::default(),
             find: None,
@@ -221,6 +229,8 @@ impl Shell {
         area.find = None;
         area.find_cache = FindCache::default();
         area.outline.clear();
+        area.queue_edit = None;
+        area.answering = None;
         area.outline_pointer = outline::Pointer::default();
         self.command(Command::Act {
             machine: machine.to_owned(),

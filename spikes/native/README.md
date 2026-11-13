@@ -100,6 +100,11 @@ app/src/
    sidebar lists it. An event from the link for it: one arm in
    `Shell::on_event` calling the area's method.
 
+The Devices page keeps invitation text outside text fields: only an
+explicit reveal projects it for up to thirty seconds or until expiry,
+whichever comes first. Copy, focus loss and navigation mask it. Its pure
+state and stale-response tests live in `view/src/devices/`.
+
 ### Adding a kit control
 
 One file per control in `kit/src/` (`widgets.rs` holds the smallest),
@@ -113,6 +118,21 @@ built from `kit::settings`: Paseo's section with its small title, the
 card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
+
+The kit's `qr.rs` draws a supplied module matrix on a white tile in both
+themes, with a four-module quiet zone. `view::devices::qr` encodes with
+`qrcode` 0.14 (MIT OR Apache-2.0, default features off); neither layer
+writes a matrix or a link. QR and text share the invitation reveal gate.
+
+`kit::button_with_kind` is the filled entry: typed primary, secondary and
+destructive kinds plus enabled/disabled state. Destructive fill/border use
+`neutral.destructive`, text its separate `destructive_foreground`; hover
+keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
+no handler. The existing bool `button` delegates and stays until the lead
+retires it after moving its callers.
+
+`kit::breakpoint::TOUCH_TARGET` is the shared minimum touch target;
+screens take gaps and insets from `kit::theme::spacing`.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
@@ -262,8 +282,19 @@ Look at every picker with it before a build; `kit::picker`'s test lays
 out rows of those shapes and fails if one grows past a line or runs into
 the next.
 
+Settings also has checked shapes (`scripts/settings-fixtures.py`): many
+paired devices, long and Korean names, a never-seen and a revoked device;
+a home bundle with instructions, skills and MCP names; a synthetic member
+behind version zero with kept edits. These fixture reports do not run a
+real member sync loop. The second machine has no paired devices.
+
+Normal-build captures always mask the invitation. Revealed-state model
+checks use inert, test-only invitations in `view/src/tests/devices.rs`;
+no app feature can substitute a fake invitation in an installable build.
+
 Screens are checked against the two `shapes` sessions the fleet makes on
-`laptop`: a long thought, Markdown with a table, a 240-character code
+`laptop`: a long thought streamed a few characters at a time (Korean
+first, a syllable alone in a chunk), Markdown with a table, a 240-character code
 line and Korean, a long path, a wide diff, a command on one long line
 asking for permission with four answers, and 2,400 lines of output.
 `shapes` has its permission answered (the output in the timeline),
@@ -274,7 +305,14 @@ fails if either `shapes` session lacks any of it (it reads them back
 with `vessel log`), so a fake-acp built before these existed is caught:
 rebuild it. A third session on `laptop`, `turns`, holds five turns (one
 long prompt, one Korean; each tool's permission allowed): the outline of
-prompts and read marks are checked against it.
+prompts and read marks are checked against it. A fourth, `queued`,
+runs a turn that waits until stopped (`wait`, which takes a steer) with
+three prompts queued behind it (one long, one Korean, one short),
+checked through `vessel session queue`: the queue above the composer is
+checked against it. Two more, `ask questions` and `ask one`, are left
+waiting on what Claude's adapter sends for its `AskUserQuestion` (three
+questions, one choosing several and one in Korean, and one question):
+the question card is checked against them.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

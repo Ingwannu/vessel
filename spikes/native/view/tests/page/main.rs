@@ -9,6 +9,10 @@ mod find;
 #[cfg(test)]
 mod outline;
 #[cfg(test)]
+mod permission;
+#[cfg(test)]
+mod question;
+#[cfg(test)]
 mod rows;
 #[cfg(test)]
 mod session;
