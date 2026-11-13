@@ -24,12 +24,15 @@
 
 pub mod assets;
 pub mod breakpoint;
+pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
+pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod menu;
+pub mod output;
 pub mod picker;
 pub mod popup;
 pub mod segmented;
@@ -43,11 +46,14 @@ mod widgets;
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use chat_markdown::chat_markdown;
 pub use code::CodeTokens;
+pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use output::{Start, lines_box, output_box};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
     anchor_probe, combobox, glyph, pill, pill_parts, send_button,

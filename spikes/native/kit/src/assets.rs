@@ -71,10 +71,12 @@ pub enum Glyph {
     Sliders,
     /// Settings (Paseo's `Settings`: a gear).
     Gear,
+    /// Copy: two sheets, one over the other (a code block's copy).
+    Copy,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 23] = [
+const ALL: [Glyph; 24] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -98,6 +100,7 @@ const ALL: [Glyph; 23] = [
     Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
+    Glyph::Copy,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -140,6 +143,7 @@ impl Glyph {
             Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
+            Self::Copy => "kit/copy.svg",
         }
     }
 
@@ -199,6 +203,9 @@ impl Glyph {
             ),
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
+            ),
+            Self::Copy => line_glyph!(
+                r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
             ),
         }
     }

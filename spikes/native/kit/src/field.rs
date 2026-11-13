@@ -353,4 +353,8 @@ pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     colors.popover_foreground = neutral.foreground;
     colors.accent = neutral.surface2;
     colors.accent_foreground = neutral.foreground;
+    // A reply's links: GOAT's `--info-foreground` (its blue), the page's
+    // nearest token. Read by `chat_markdown`, which resolves its style
+    // from this theme on every layout.
+    colors.link = tokens.st_building;
 }
