@@ -130,6 +130,17 @@ pub enum Reach {
     Unreachable(String),
 }
 
+/// How a machine answered when it was paired: its own address, or a
+/// relay it keeps registered with (said in words; the address itself
+/// goes only in a tooltip).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Via {
+    /// The machine's own address.
+    Direct,
+    /// A relay.
+    Relay,
+}
+
 /// A machine in the sidebar.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Machine {

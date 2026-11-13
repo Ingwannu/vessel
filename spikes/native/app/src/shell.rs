@@ -7,8 +7,8 @@ use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
-    AsyncApp, Context, FluentBuilder as _, IntoElement, ParentElement as _, Render, Styled as _,
-    WeakEntity, Window, div, px,
+    AnyElement, AsyncApp, Context, FluentBuilder as _, InteractiveElement as _, IntoElement,
+    ParentElement as _, Render, Styled as _, WeakEntity, Window, div, px,
 };
 use vessel_app_link::{Command, Event, Link, Prefs};
 use vessel_app_view::{Fleet, Text};
@@ -30,6 +30,12 @@ pub(crate) struct Shell {
     /// The last thing that happened that belongs to no control, shown in
     /// the frame's foot. Errors about a control are shown beside it.
     pub(crate) notice: Option<String>,
+    /// A tooltip's detail for one notice: shown while `notice` is still
+    /// that text (any other notice replaces it, so no other caller has to
+    /// clear it). Pairing's address is the only one today.
+    pub(crate) notice_detail: Option<(String, String)>,
+    /// The foot's tooltip and where its line is drawn.
+    foot_tips: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// Whether the book has been read once (an empty fleet before then is
     /// not "no machines").
     pub(crate) loaded: bool,
@@ -74,6 +80,11 @@ impl Shell {
             areas,
             prefs: Prefs::load(),
             notice,
+            notice_detail: None,
+            foot_tips: (
+                vessel_app_kit::Tooltips::new(),
+                std::rc::Rc::new(std::cell::Cell::new(None)),
+            ),
             loaded: false,
             arrive_pending: false,
             updates: None,
@@ -143,7 +154,7 @@ impl Shell {
             Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
-            Event::Paired { node, route } => self.paired(&node, &route, cx),
+            Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),
             Event::Acted(answer) => {
                 if let Some(answer) = self.board_acted(answer, cx) {
@@ -217,6 +228,27 @@ async fn receive(this: WeakEntity<Shell>, mut events: mpsc::Receiver<Event>, cx:
     }
 }
 
+impl Shell {
+    /// The frame's foot with `notice`; its detail, when it has one, as the
+    /// line's tooltip (none on touch, as Paseo's tooltips).
+    fn foot(&self, notice: String, tokens: &vessel_app_kit::Tokens, touch: bool) -> AnyElement {
+        let detail = self
+            .notice_detail
+            .as_ref()
+            .filter(|(of, _)| *of == notice)
+            .map(|(_, detail)| detail.clone());
+        let line = areas::common::foot(notice, tokens);
+        let Some(detail) = detail else {
+            return line.into_any_element();
+        };
+        let (tips, place) = &self.foot_tips;
+        div()
+            .child(tips.on(line.id("foot"), place, detail, touch))
+            .children(tips.render(tokens))
+            .into_any_element()
+    }
+}
+
 /// The most events folded in one update of the view.
 const BATCH: usize = 512;
 
@@ -238,6 +270,7 @@ impl Render for Shell {
         {
             self.sidebar_sheet = None;
         }
+        let touch = areas::draft::compact(window);
         let frame = routes::render(self.route, self, &tokens, window, cx);
         let sheet = self.sidebar_sheet.is_some().then(|| {
             vessel_app_kit::sheet(
@@ -297,9 +330,9 @@ impl Render for Shell {
                                     }))
                                     .child(frame)
                                     .children(
-                                        self.notice
-                                            .clone()
-                                            .map(|notice| areas::common::foot(notice, &tokens)),
+                                        self.notice.clone().map(|notice| {
+                                            self.foot(notice, &tokens, touch)
+                                        }),
                                     ),
                             ),
                     )

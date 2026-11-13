@@ -264,8 +264,10 @@ pub enum Event {
     Paired {
         /// The node's own name for itself.
         node: String,
-        /// The route the pairing went through.
-        route: String,
+        /// How the machine answered, said in words.
+        via: vessel_app_view::Via,
+        /// The address it answered at (a tooltip's detail only).
+        address: String,
     },
     /// Pairing failed; the words to show beside the form.
     PairFailed(String),
@@ -441,8 +443,8 @@ impl State {
                 name,
                 prefer_node_name,
             } => match nodes::pair(&offer, &name, prefer_node_name).await {
-                Ok((node, route)) => {
-                    self.emit(Event::Paired { node, route }).await;
+                Ok((node, via, address)) => {
+                    self.emit(Event::Paired { node, via, address }).await;
                     self.reload().await;
                 }
                 Err(error) => self.emit(Event::PairFailed(error.to_string())).await,

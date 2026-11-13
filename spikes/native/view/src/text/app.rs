@@ -297,14 +297,20 @@ impl Text {
         }
     }
 
-    /// The status line once a machine is paired (`name` the machine,
-    /// `route` how it is reached). No particle follows the name (a name's
-    /// last sound decides the particle; ADR 0039's interim rule).
+    /// The status line (the frame's foot) once a machine is paired:
+    /// `name` the machine, `via` how it answered, in words (the address
+    /// is the line's tooltip). No particle follows the name (a name's
+    /// last sound decides the particle; ADR 0039's interim rule): the
+    /// particle follows the word 머신.
     #[must_use]
-    pub fn paired(&self, name: &str, route: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Paired with {name} via {route}"),
-            Lang::Ko => format!("머신 연결됨: {name} ({route})"),
+    pub fn paired(&self, name: &str, via: crate::Via) -> String {
+        match (self.lang, via) {
+            (Lang::En, crate::Via::Direct) => format!("Paired with {name}, connected directly"),
+            (Lang::En, crate::Via::Relay) => {
+                format!("Paired with {name}, connected through a relay")
+            }
+            (Lang::Ko, crate::Via::Direct) => format!("{name} 머신에 직접 연결됨"),
+            (Lang::Ko, crate::Via::Relay) => format!("{name} 머신에 릴레이로 연결됨"),
         }
     }
 }

@@ -40,7 +40,7 @@ pub mod toasts;
 pub mod workspace;
 
 pub use board::{
-    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll,
+    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
 };
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
