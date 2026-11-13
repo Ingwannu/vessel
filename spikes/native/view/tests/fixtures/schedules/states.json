@@ -4,30 +4,32 @@
       "state": "active",
       "next_due": "2026-11-14T09:00:00Z"
     },
-    "bucket": "Active",
+    "bucket": "active",
     "actions": [
-      "Edit",
-      "Pause",
-      "RunNow",
-      "Delete"
+      "edit",
+      "pause",
+      "run-now",
+      "delete"
     ],
     "en": "Active",
-    "ko": "활성"
+    "ko": "활성",
+    "badge": "success"
   },
   {
     "state": {
       "state": "paused",
       "since": "2026-11-13T09:00:00Z"
     },
-    "bucket": "Active",
+    "bucket": "active",
     "actions": [
-      "Edit",
-      "Resume",
-      "RunNow",
-      "Delete"
+      "edit",
+      "resume",
+      "run-now",
+      "delete"
     ],
     "en": "Paused",
-    "ko": "일시 정지됨"
+    "ko": "일시 정지됨",
+    "badge": "muted"
   },
   {
     "state": {
@@ -35,12 +37,13 @@
       "at": "2026-11-13T09:00:00Z",
       "reason": "max_runs"
     },
-    "bucket": "Ended",
+    "bucket": "ended",
     "actions": [
-      "Delete"
+      "delete"
     ],
     "en": "Finished",
-    "ko": "완료됨"
+    "ko": "완료됨",
+    "badge": "muted"
   },
   {
     "state": {
@@ -48,12 +51,13 @@
       "at": "2026-11-13T09:00:00Z",
       "reason": "expired"
     },
-    "bucket": "Ended",
+    "bucket": "ended",
     "actions": [
-      "Delete"
+      "delete"
     ],
     "en": "Expired",
-    "ko": "기간 만료됨"
+    "ko": "기간 만료됨",
+    "badge": "muted"
   },
   {
     "state": {
@@ -61,12 +65,13 @@
       "at": "2026-11-13T09:00:00Z",
       "reason": "creator_gone"
     },
-    "bucket": "Ended",
+    "bucket": "ended",
     "actions": [
-      "Delete"
+      "delete"
     ],
     "en": "Creator no longer has access",
-    "ko": "작성자의 접근 권한이 사라짐"
+    "ko": "작성자의 접근 권한이 사라짐",
+    "badge": "error"
   },
   {
     "state": {
@@ -74,12 +79,13 @@
       "at": "2026-11-13T09:00:00Z",
       "reason": "target_gone"
     },
-    "bucket": "Ended",
+    "bucket": "ended",
     "actions": [
-      "Delete"
+      "delete"
     ],
     "en": "Target gone",
-    "ko": "대상이 사라짐"
+    "ko": "대상이 사라짐",
+    "badge": "error"
   },
   {
     "state": {
@@ -87,22 +93,24 @@
       "at": "2026-11-13T09:00:00Z",
       "reason": "unknown"
     },
-    "bucket": "Ended",
+    "bucket": "ended",
     "actions": [
-      "Delete"
+      "delete"
     ],
-    "en": "Unknown — update the app",
-    "ko": "알 수 없음 — 앱을 업데이트하세요"
+    "en": "Unknown",
+    "ko": "알 수 없음",
+    "badge": "muted"
   },
   {
     "state": {
       "state": "new_state"
     },
-    "bucket": "Unknown",
+    "bucket": "unknown",
     "actions": [
-      "Delete"
+      "delete"
     ],
-    "en": "Unknown — update the app",
-    "ko": "알 수 없음 — 앱을 업데이트하세요"
+    "en": "Unknown",
+    "ko": "알 수 없음",
+    "badge": "muted"
   }
 ]

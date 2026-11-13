@@ -1,14 +1,19 @@
 //! Portable contract cases: the page has no schedules tests. These JSON inputs
 //! and expected decisions are deliberately independent of GPUI and Rust enums.
 
+use super::authority::Authority;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use vessel_proto::automation::{EverySeconds, RunOutcome, ScheduleInfo, ScheduleState};
-use vessel_proto::{SessionId, SessionSpec};
+use vessel_proto::{Scope, SessionId, SessionSpec};
 
+mod cases;
+mod errors;
+mod formatting;
 use super::*;
+use cases::{ExpectedAction, ExpectedBadge, ExpectedBucket, ExpectedOutcome};
 
-fn info() -> ScheduleInfo {
+pub(super) fn info() -> ScheduleInfo {
     serde_json::from_str(
         r#"{
         "id":"00000000-0000-4000-8000-000000000001",
@@ -29,31 +34,37 @@ fn info() -> ScheduleInfo {
 #[derive(Deserialize)]
 struct StateCase {
     state: ScheduleState,
-    bucket: String,
-    actions: Vec<String>,
+    bucket: ExpectedBucket,
+    badge: ExpectedBadge,
+    actions: Vec<ExpectedAction>,
     en: String,
     ko: String,
 }
 
 #[test]
 fn node_states_define_buckets_actions_and_next_due() {
-    let cases: Vec<StateCase> =
-        serde_json::from_str(include_str!("../../tests/fixtures/schedules/states.json")).unwrap();
+    let cases: Vec<StateCase> = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/schedules/states.json"
+    ))
+    .unwrap();
     for case in cases {
         let schedule = ScheduleInfo {
             state: case.state,
             ..info()
         };
+        assert_eq!(Status::of(&schedule.state).bucket(), case.bucket.into());
+        assert_eq!(Status::of(&schedule.state).badge(), case.badge.into());
+        let expected: Vec<Action> = case.actions.into_iter().map(Into::into).collect();
         assert_eq!(
-            format!("{:?}", Status::of(&schedule.state).bucket()),
-            case.bucket
+            actions(
+                &schedule,
+                &Authority::Scopes(vec![Scope::Read, Scope::Operate])
+            ),
+            expected
         );
-        let actual: Vec<_> = actions(&schedule, Access::Operate)
-            .iter()
-            .map(|action| format!("{action:?}"))
-            .collect();
-        assert_eq!(actual, case.actions);
-        assert!(actions(&schedule, Access::Read).is_empty());
+        assert!(actions(&schedule, &Authority::Scopes(vec![Scope::Read])).is_empty());
+        assert!(actions(&schedule, &Authority::Scopes(vec![Scope::Admin])).is_empty());
+        assert!(actions(&schedule, &Authority::Scopes(vec![])).is_empty());
         assert_eq!(
             crate::Lang::En
                 .schedules()
@@ -76,7 +87,7 @@ fn node_states_define_buckets_actions_and_next_due() {
 #[derive(Deserialize)]
 struct OutcomeCase {
     value: RunOutcome,
-    expected: String,
+    expected: ExpectedOutcome,
     session: Option<SessionId>,
     en: String,
     ko: String,
@@ -84,13 +95,12 @@ struct OutcomeCase {
 
 #[test]
 fn every_run_shape_keeps_its_result_and_session_link() {
-    let cases: Vec<OutcomeCase> =
-        serde_json::from_str(include_str!("../../tests/fixtures/schedules/outcomes.json")).unwrap();
+    let cases: Vec<OutcomeCase> = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/schedules/outcomes.json"
+    ))
+    .unwrap();
     for case in cases {
-        assert_eq!(
-            format!("{:?}", history::outcome(&case.value)),
-            case.expected
-        );
+        assert_eq!(history::outcome(&case.value), case.expected.into());
         assert_eq!(history::session(&case.value), case.session);
         assert_eq!(
             crate::Lang::En
@@ -155,7 +165,12 @@ fn cadence_is_parsed_once_without_rounding_or_resetting_phase_on_save() {
     for seconds in [60, 90, EverySeconds::MAX] {
         let text = seconds.to_string();
         assert_eq!(
-            CadenceInput::Every(&text).parse().unwrap(),
+            CadenceInput::Every {
+                count: &text,
+                unit: editor::IntervalUnit::Seconds
+            }
+            .parse()
+            .unwrap(),
             Cadence::Every {
                 seconds: EverySeconds::try_from(seconds).unwrap(),
                 anchor: None
@@ -163,7 +178,15 @@ fn cadence_is_parsed_once_without_rounding_or_resetting_phase_on_save() {
         );
     }
     for text in ["59", "31622401", "0", "-1", "1.5", "", "9999999999999"] {
-        assert!(CadenceInput::Every(text).parse().is_err(), "{text}");
+        assert!(
+            CadenceInput::Every {
+                count: text,
+                unit: editor::IntervalUnit::Seconds
+            }
+            .parse()
+            .is_err(),
+            "{text}"
+        );
     }
     let parsed = CadenceInput::Cron {
         expression: "0   9 * * MON-FRI",
@@ -186,11 +209,11 @@ fn cadence_is_parsed_once_without_rounding_or_resetting_phase_on_save() {
     assert_eq!(update.schedule, opened.id);
     assert_eq!(
         crate::Lang::En.schedule_cadence(&update.definition.cadence),
-        "Every 90 seconds"
+        "Every 1 minute 30 seconds"
     );
     assert_eq!(
         crate::Lang::Ko.schedule_cadence(&update.definition.cadence),
-        "90초마다"
+        "1분 30초마다"
     );
 }
 
@@ -224,7 +247,7 @@ fn unknown_definition_variants_and_ended_states_cannot_be_overwritten() {
             definition,
             ..schedule.clone()
         };
-        assert!(!actions(&newer, Access::Operate).contains(&Action::Edit));
+        assert!(!actions(&newer, &Authority::Scopes(vec![Scope::Operate])).contains(&Action::Edit));
         assert_eq!(
             editor::replacement(&newer, schedule.definition.clone()),
             Err(editor::EditError::Unknown)

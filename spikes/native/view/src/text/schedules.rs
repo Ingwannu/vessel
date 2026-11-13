@@ -1,6 +1,9 @@
 //! Schedule words, including every node state and run result, in both languages.
 
-use vessel_proto::automation::{Cadence, EndReason};
+mod errors;
+mod format;
+
+use vessel_proto::automation::EndReason;
 
 use super::Lang;
 use crate::schedules::history::Outcome;
@@ -18,8 +21,12 @@ pub struct ScheduleWords {
     pub active: &'static str,
     /// Ended filter.
     pub ended: &'static str,
-    /// Unknown filter and fallback for newer values.
-    pub unknown: &'static str,
+    /// Filter for states a newer machine has.
+    pub unknown_filter: &'static str,
+    /// Short state badge.
+    pub unknown_badge: &'static str,
+    /// Explanation when this app cannot understand a machine value.
+    pub newer_machine: &'static str,
     /// Paused badge.
     pub paused: &'static str,
     /// Maximum-runs ended badge.
@@ -66,12 +73,12 @@ pub struct ScheduleWords {
     pub session_ended: &'static str,
     /// Node/session interrupted.
     pub interrupted: &'static str,
-    /// Invalid interval input.
-    pub interval_number: &'static str,
     /// Ended schedule edit refusal.
     pub edit_ended: &'static str,
     /// Invalid automatic-session spec.
     pub structured_only: &'static str,
+    /// Known insufficient authority or an actual Forbidden response.
+    pub read_only: &'static str,
 }
 
 impl Lang {
@@ -81,23 +88,6 @@ impl Lang {
         match self {
             Self::En => &EN,
             Self::Ko => &KO,
-        }
-    }
-
-    /// Exact elapsed interval or the original typed cron and its chosen zone.
-    /// No second cron parser and no rounding an elapsed interval into minutes.
-    #[must_use]
-    pub fn schedule_cadence(self, cadence: &Cadence) -> String {
-        match cadence {
-            Cadence::Every { seconds, .. } => match self {
-                Self::En => format!("Every {} seconds", seconds.get()),
-                Self::Ko => format!("{}초마다", seconds.get()),
-            },
-            Cadence::Cron { expr, zone } => match self {
-                Self::En => format!("At scheduled times: {} ({})", expr.as_str(), zone.as_str()),
-                Self::Ko => format!("정해진 시각: {} ({})", expr.as_str(), zone.as_str()),
-            },
-            Cadence::Unknown => self.schedules().unknown.to_owned(),
         }
     }
 }
@@ -114,9 +104,9 @@ impl ScheduleWords {
                 EndReason::Expired => self.expired,
                 EndReason::CreatorGone => self.creator_gone,
                 EndReason::TargetGone => self.target_gone,
-                EndReason::Unknown => self.unknown,
+                EndReason::Unknown => self.unknown_badge,
             },
-            Status::Unknown => self.unknown,
+            Status::Unknown => self.unknown_badge,
         }
     }
 
@@ -150,7 +140,7 @@ impl ScheduleWords {
             Outcome::Refused => self.refused,
             Outcome::SessionEnded => self.session_ended,
             Outcome::Interrupted => self.interrupted,
-            Outcome::Unknown => self.unknown,
+            Outcome::Unknown => self.unknown_badge,
         }
     }
 }
@@ -160,7 +150,9 @@ const EN: ScheduleWords = ScheduleWords {
     create: "New schedule",
     active: "Active",
     ended: "Ended",
-    unknown: "Unknown — update the app",
+    unknown_filter: "Other states",
+    unknown_badge: "Unknown",
+    newer_machine: "This machine uses a newer format. Update the app to view it.",
     paused: "Paused",
     finished: "Finished",
     expired: "Expired",
@@ -184,27 +176,29 @@ const EN: ScheduleWords = ScheduleWords {
     refused: "Request refused",
     session_ended: "Session ended",
     interrupted: "Interrupted",
-    interval_number: "Enter a whole number of seconds",
     edit_ended: "An ended schedule cannot be edited",
-    structured_only: "Choose a structured session without resume",
+    structured_only: "A schedule starts a new chat each time; it cannot continue an old one or open a terminal session",
+    read_only: "This device can only view this machine's schedules.",
 };
 
 const KO: ScheduleWords = ScheduleWords {
-    title: "일정",
-    create: "새 일정",
+    title: "예약",
+    create: "새 예약",
     active: "활성",
     ended: "종료됨",
-    unknown: "알 수 없음 — 앱을 업데이트하세요",
+    unknown_filter: "기타 상태",
+    unknown_badge: "알 수 없음",
+    newer_machine: "기계에서 더 새로운 형식을 사용합니다. 앱을 업데이트하면 볼 수 있습니다.",
     paused: "일시 정지됨",
     finished: "완료됨",
     expired: "기간 만료됨",
     creator_gone: "작성자의 접근 권한이 사라짐",
     target_gone: "대상이 사라짐",
-    edit: "일정 수정",
-    pause: "일정 일시 정지",
-    resume: "일정 재개",
+    edit: "예약 수정",
+    pause: "예약 일시 정지",
+    resume: "예약 재개",
     run_now: "지금 실행",
-    delete: "일정 삭제",
+    delete: "예약 삭제",
     making: "준비 중",
     running: "실행 중",
     waiting: "권한 승인이 필요함",
@@ -218,7 +212,7 @@ const KO: ScheduleWords = ScheduleWords {
     refused: "요청이 거절됨",
     session_ended: "세션이 끝남",
     interrupted: "중단됨",
-    interval_number: "초 단위의 정수를 입력하세요",
-    edit_ended: "끝난 일정은 수정할 수 없습니다",
-    structured_only: "이어서 시작하지 않는 구조화 세션을 선택하세요",
+    edit_ended: "끝난 예약은 수정할 수 없습니다",
+    structured_only: "예약은 실행할 때마다 새 대화를 시작합니다. 이전 대화를 이어서 시작하거나 터미널 세션을 열 수는 없습니다.",
+    read_only: "이 기계의 예약은 이 기기에서 조회만 할 수 있습니다.",
 };

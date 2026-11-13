@@ -40,8 +40,9 @@ does that reaches a node is a `link::Command`.
 
 Schedule decisions live in `view/src/schedules/`: authoritative node state,
 typed cadence, revision-preserving edits and run/session navigation. The
-page has no schedule fixtures yet; portable cases for its future screen
-are in `view/tests/fixtures/schedules/` (G2's notes describe the contract gaps).
+page has no schedule screen. Paseo's schedule-format tests supply formatting
+cases; portable cases for the future page are in `view/tests/fixtures/schedules/`
+(G2's notes describe deliberate differences and the contract gaps).
 
 ## The app's layout
 

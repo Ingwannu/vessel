@@ -2,7 +2,8 @@
 //!
 //! [Decision Log]
 //! - Purpose: reproduce Paseo's active/ended list and editable schedule rows.
-//! - Constraint: the page has no schedule screen or fixtures. The node already
+//! - Constraint: the page has no schedule screen. Paseo schedule-format tests
+//!   provide the formatting cases; the node already
 //!   supplies authoritative states, typed cadence and bounded run history.
 //! - Alternatives: infer expiry or missing targets from a client clock/cache;
 //!   duplicate the cron parser; reuse the node's protocol values.
@@ -11,6 +12,10 @@
 //! - Why: local caches and clocks cannot overrule a node's runnable state.
 //! - Cost: a newer unknown variant is readable but cannot be edited here.
 
+pub mod authority;
+pub mod cadence;
+pub use crate::badge::Variant;
+pub mod description;
 pub mod editor;
 pub mod history;
 
@@ -46,13 +51,25 @@ pub enum Action {
     Delete,
 }
 
-/// The authority of the device's connection; the node still checks each call.
+/// Product meaning of a schedule target, for row and editor titles/actions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Access {
-    /// Lists and history only.
-    Read,
-    /// The device can operate schedules.
-    Operate,
+pub enum Product {
+    /// Starts a new chat on each run.
+    Schedule,
+    /// Sends a recurring prompt into an existing chat's queue.
+    RecurringPrompt,
+    /// Target format from a newer machine.
+    Unknown,
+}
+
+/// Classify a target without a raw wire tag becoming the feature's name.
+#[must_use]
+pub const fn product(target: &ScheduleTarget) -> Product {
+    match target {
+        ScheduleTarget::NewSession { .. } => Product::Schedule,
+        ScheduleTarget::Session { .. } => Product::RecurringPrompt,
+        ScheduleTarget::Unknown => Product::Unknown,
+    }
 }
 
 /// The node's state, with its ended reason retained for a precise badge.
@@ -69,6 +86,18 @@ pub enum Status {
 }
 
 impl Status {
+    /// Which shared status badge variant draws this state.
+    #[must_use]
+    pub const fn badge(self) -> Variant {
+        match self {
+            Self::Active => Variant::Success,
+            Self::Paused | Self::Unknown => Variant::Muted,
+            Self::Ended(reason) => match reason {
+                EndReason::MaxRuns | EndReason::Expired | EndReason::Unknown => Variant::Muted,
+                EndReason::CreatorGone | EndReason::TargetGone => Variant::Error,
+            },
+        }
+    }
     /// Derive solely from the node, never from the session cache or local time.
     #[must_use]
     pub const fn of(state: &ScheduleState) -> Self {
@@ -140,8 +169,8 @@ pub const fn editable(definition: &ScheduleDefinition) -> bool {
 /// Actions for a row, in Paseo's menu order. Node semantics additionally allow
 /// run-now, pause and resume for an existing-session target (ADR 0033).
 #[must_use]
-pub fn actions(schedule: &ScheduleInfo, access: Access) -> Vec<Action> {
-    if access == Access::Read {
+pub fn actions(schedule: &ScheduleInfo, authority: &authority::Authority) -> Vec<Action> {
+    if !authority.allows_actions() {
         return Vec::new();
     }
     let cadence_action = match Status::of(&schedule.state) {

@@ -4,74 +4,22 @@
 use thiserror::Error;
 use vessel_proto::SessionMode;
 use vessel_proto::automation::{
-    Cadence, CronExpr, EverySeconds, InvalidAutomationText, InvalidCron, OutOfRange,
-    ScheduleDefinition, ScheduleInfo, ScheduleState, TimeZoneName, UpdateSchedule,
+    ScheduleDefinition, ScheduleInfo, ScheduleState, ScheduleTarget, UpdateSchedule,
 };
 
-/// Cadence form input, before parsing; no string encodes the selected kind.
-#[derive(Debug, Clone, Copy)]
-pub enum CadenceInput<'a> {
-    /// Elapsed seconds (including intervals that do not divide a day).
-    Every(&'a str),
-    /// Wall-clock rule and its explicitly selected zone.
-    Cron {
-        /// Five-field expression or a supported shorthand.
-        expression: &'a str,
-        /// IANA name (existence and possible due times are checked by the node).
-        zone: &'a str,
-    },
-}
-
-/// Why a cadence cannot be put into the form's typed value.
-#[derive(Debug, Error)]
-pub enum CadenceError {
-    /// Seconds were not a whole positive integer.
-    #[error("{}", crate::Lang::En.schedules().interval_number)]
-    Number(#[source] std::num::ParseIntError),
-    /// Seconds were outside the node's supported interval.
-    #[error(transparent)]
-    Range(#[from] OutOfRange),
-    /// Cron did not match the wire's grammar.
-    #[error(transparent)]
-    Cron(#[from] InvalidCron),
-    /// Zone name was malformed.
-    #[error(transparent)]
-    Zone(#[from] InvalidAutomationText),
-}
-
-impl CadenceInput<'_> {
-    /// Parse at the form edge; neither the renderer nor submission reparses it.
-    ///
-    /// # Errors
-    /// Malformed seconds, an out-of-range interval, cron syntax or zone shape.
-    pub fn parse(self) -> Result<Cadence, CadenceError> {
-        match self {
-            Self::Every(text) => {
-                let seconds = text.trim().parse::<u32>().map_err(CadenceError::Number)?;
-                Ok(Cadence::Every {
-                    seconds: EverySeconds::try_from(seconds)?,
-                    anchor: None,
-                })
-            }
-            Self::Cron { expression, zone } => Ok(Cadence::Cron {
-                expr: expression.parse::<CronExpr>()?,
-                zone: zone.parse::<TimeZoneName>()?,
-            }),
-        }
-    }
-}
+pub use super::cadence::{CadenceError, CadenceInput, IntervalParts, IntervalUnit};
 
 /// Why a whole definition cannot be safely replaced by this client.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum EditError {
     /// At least one field is a newer node's variant.
-    #[error("{}", crate::Lang::En.schedules().unknown)]
+    #[error("unknown schedule state or definition")]
     Unknown,
     /// The node has ended it; updates would conflict.
-    #[error("{}", crate::Lang::En.schedules().edit_ended)]
+    #[error("an ended schedule cannot be edited")]
     Ended,
     /// Automatic runs only support structured sessions without resume.
-    #[error("{}", crate::Lang::En.schedules().structured_only)]
+    #[error("a scheduled session must be structured without resume")]
     SessionMode,
 }
 
@@ -84,7 +32,7 @@ pub fn check_definition(definition: &ScheduleDefinition) -> Result<(), EditError
     if !super::editable(definition) {
         return Err(EditError::Unknown);
     }
-    if let vessel_proto::automation::ScheduleTarget::NewSession { spec, .. } = &definition.target {
+    if let ScheduleTarget::NewSession { spec, .. } = &definition.target {
         match &spec.mode {
             SessionMode::Structured { resume: None, .. } => {}
             SessionMode::Structured {

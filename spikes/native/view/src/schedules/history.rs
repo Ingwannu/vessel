@@ -70,9 +70,8 @@ const fn ended(end: &RunEnd) -> Outcome {
         },
         RunEnd::Failed { .. } => Outcome::Failed,
         RunEnd::Session { status } => match status {
-            SessionStatus::Starting
-            | SessionStatus::Running
-            | SessionStatus::Exited {
+            SessionStatus::Starting | SessionStatus::Running => Outcome::Unknown,
+            SessionStatus::Exited {
                 code: None | Some(0),
             } => Outcome::SessionEnded,
             SessionStatus::Exited { code: Some(_) } | SessionStatus::Failed { .. } => {
