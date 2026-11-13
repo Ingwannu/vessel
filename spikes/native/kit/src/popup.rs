@@ -104,7 +104,7 @@ pub const DIALOG_RADIUS: f32 = 12.0;
 pub const SHEET_RADIUS: f32 = 16.0;
 
 /// The reference's shared minimum touch target (control-sizing.ts).
-pub const TOUCH_TARGET: f32 = 44.0;
+pub use crate::control_sizing::TOUCH_TARGET;
 
 /// A row's height: Paseo's tight row, 28 points with a pointer, 44 on a
 /// phone (a finger's target).

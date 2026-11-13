@@ -177,7 +177,12 @@ no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
 compact is one-line 16/500 with a 44-point menu button. Chrome integration
 and avoiding duplicate sidebar toggles stay with the desktop lead.
 
-### Rules every screen follows
+#The typed button also has `button_with_kind_at(..., ControlSizing, ...)`:
+MD pointer minimum32/padding16, touch minimum44/padding24. Legacy entries
+remain pointer-sized. `menu::TriggerSizing` names the same shared type;
+`popup::TOUCH_TARGET` keeps its compatibility name for the shared44 value.
+
+## Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
 keys in the constant names (`S0_5`, `S1`, …) and values in logical points.

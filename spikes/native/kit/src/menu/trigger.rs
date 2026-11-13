@@ -9,14 +9,8 @@ use crate::{
 use gpui::prelude::*;
 use gpui::{Div, ElementId, Hsla, MouseButton, Pixels, Stateful, Svg, div, px, svg};
 
-/// The reference's pointer/touch geometry gate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TriggerSizing {
-    /// Pointer minimum20; glyph14/padding4 produce a 22-point visual frame.
-    Pointer,
-    /// A 44-point visual frame; outside hit allowance is separate.
-    Touch,
-}
+/// Backwards-compatible name for the one shared input-sizing type.
+pub use crate::control_sizing::ControlSizing as TriggerSizing;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Geometry {
     pub minimum: Pixels,

@@ -29,6 +29,7 @@ pub mod breakpoint;
 pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
+pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
 pub mod field;
@@ -55,6 +56,7 @@ use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 pub use assets::Assets;
 pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
+pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
@@ -74,8 +76,8 @@ pub use toast::{ToastLook, toast, toasts};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
-    ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
-    mark_mono, markdown, outline_button,
+    ButtonKind, ButtonState, TypeExt, button, button_with_kind, button_with_kind_at, choice, dot,
+    kicker, mark, mark_mono, markdown, outline_button,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so

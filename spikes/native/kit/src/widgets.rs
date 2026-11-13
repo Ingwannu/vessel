@@ -4,6 +4,7 @@
 use gpui::prelude::*;
 use gpui::{Div, FontStyle, Hsla, SharedString, Stateful, div, px};
 
+use crate::control_sizing::ControlSizing;
 use crate::fonts::{self, Type};
 use crate::theme::{Tokens, radius};
 
@@ -75,6 +76,24 @@ const BUTTON_HEIGHT: gpui::Pixels = px(32.0);
 const BUTTON_HORIZONTAL: gpui::Pixels = px(16.0);
 const BUTTON_GAP: gpui::Pixels = px(8.0);
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ButtonGeometry {
+    height: gpui::Pixels,
+    horizontal: gpui::Pixels,
+}
+const fn button_geometry(sizing: ControlSizing) -> ButtonGeometry {
+    match sizing {
+        ControlSizing::Pointer => ButtonGeometry {
+            height: BUTTON_HEIGHT,
+            horizontal: BUTTON_HORIZONTAL,
+        },
+        ControlSizing::Touch => ButtonGeometry {
+            height: px(crate::control_sizing::TOUCH_TARGET),
+            horizontal: px(crate::theme::spacing::S6),
+        },
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum ButtonPhase {
     Idle,
@@ -140,6 +159,21 @@ pub fn button_with_kind(
     state: ButtonState,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    button_with_kind_at(id, label, kind, state, ControlSizing::Pointer, tokens)
+}
+
+/// The same shared button at the source's explicit pointer/touch geometry.
+/// Legacy entries remain Pointer until their owners migrate their callers.
+#[must_use]
+pub fn button_with_kind_at(
+    id: impl Into<gpui::ElementId>,
+    label: impl Into<SharedString>,
+    kind: ButtonKind,
+    state: ButtonState,
+    sizing: ControlSizing,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let geometry = button_geometry(sizing);
     let phase = match state {
         ButtonState::Enabled => ButtonPhase::Idle,
         ButtonState::Disabled => ButtonPhase::Disabled,
@@ -153,10 +187,10 @@ pub fn button_with_kind(
         .items_center()
         .justify_center()
         .gap(BUTTON_GAP)
-        .min_h(BUTTON_HEIGHT)
+        .min_h(geometry.height)
         .min_w_0()
         .max_w_full()
-        .px(BUTTON_HORIZONTAL)
+        .px(geometry.horizontal)
         .rounded_full()
         .border_1()
         .border_color(paint.border)
