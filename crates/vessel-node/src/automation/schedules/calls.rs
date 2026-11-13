@@ -81,6 +81,10 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 asker,
                 reply,
             } => self.run_now(schedule, asker, reply).await,
+            Command::StartingAgain { session, reply } => {
+                self.session_ended(session).await;
+                let _gone = reply.send(());
+            }
         }
     }
 

@@ -159,42 +159,63 @@ fn every_method_knows_its_first_version() {
     }
 }
 
+/// Every protocol 11 method and its scope, by track: B2's pull requests
+/// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with
+/// `read` and act with `operate`; G's agents (ADR 0032) are read with
+/// `read` and added, removed and installed with `admin`; D's schedules and
+/// saved prompts (ADR 0033) are read with `read` and written with
+/// `operate`. Written out, so a method added to protocol 11 fails here
+/// until its scope is decided.
+const PROTOCOL_ELEVEN: &[(&str, Scope)] = &[
+    ("forge.status", Scope::Read),
+    ("pr.list", Scope::Read),
+    ("pr.get", Scope::Read),
+    ("pr.open", Scope::Operate),
+    ("pr.merge", Scope::Operate),
+    ("pr.feedback", Scope::Operate),
+    ("terminal.create", Scope::Operate),
+    ("terminal.list", Scope::Read),
+    ("terminal.get", Scope::Read),
+    ("terminal.read", Scope::Read),
+    ("terminal.subscribe", Scope::Read),
+    ("terminal.send", Scope::Operate),
+    ("terminal.rename", Scope::Operate),
+    ("terminal.kill", Scope::Operate),
+    ("terminal.close", Scope::Operate),
+    ("script.list", Scope::Read),
+    ("script.run", Scope::Operate),
+    ("script.restart", Scope::Operate),
+    ("port.list", Scope::Read),
+    ("agent.list", Scope::Read),
+    ("agent.add", Scope::Admin),
+    ("agent.remove", Scope::Admin),
+    ("agent.status", Scope::Read),
+    ("agent.catalogue", Scope::Read),
+    ("agent.install", Scope::Admin),
+    ("agent.install_output", Scope::Admin),
+    ("schedule.list", Scope::Read),
+    ("schedule.get", Scope::Read),
+    ("schedule.create", Scope::Operate),
+    ("schedule.update", Scope::Operate),
+    ("schedule.pause", Scope::Operate),
+    ("schedule.resume", Scope::Operate),
+    ("schedule.run", Scope::Operate),
+    ("schedule.delete", Scope::Operate),
+    ("schedule.runs", Scope::Read),
+    ("prompt.list", Scope::Read),
+    ("prompt.create", Scope::Operate),
+    ("prompt.update", Scope::Operate),
+    ("prompt.delete", Scope::Operate),
+];
+
 #[test]
 fn protocol_eleven_methods_know_their_version_and_scope() {
-    // Track B2's pull requests (ADR 0029) and track C's terminals, scripts
-    // and ports (ADR 0031): reading is `read`; opening, merging, the
-    // feedback switch, typing, ending and running are `operate`.
-    let reads = [
-        "forge.status",
-        "pr.list",
-        "pr.get",
-        "terminal.list",
-        "terminal.get",
-        "terminal.read",
-        "terminal.subscribe",
-        "script.list",
-        "port.list",
-    ];
-    let mut seen = 0_usize;
-    for method in Method::ALL {
-        let name = method.as_str();
-        let eleven = ["forge.", "pr.", "terminal.", "script.", "port."]
-            .iter()
-            .any(|prefix| name.starts_with(prefix));
-        if !eleven {
-            continue;
-        }
-        seen += 1;
-        assert_eq!(method.since(), ProtocolVersion::new(11), "{method:?}");
-        let expected = if reads.contains(&name) {
-            Scope::Read
-        } else {
-            Scope::Operate
-        };
-        assert_eq!(method.scope(), expected, "{method:?}");
-    }
-    // Six of B2's, thirteen of C's.
-    assert_eq!(seen, 19);
+    let eleven: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(11))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(eleven, PROTOCOL_ELEVEN);
 }
 
 #[test]

@@ -175,6 +175,12 @@ pub(crate) enum Command {
         asker: Asker,
         reply: oneshot::Sender<Result<ScheduleRun, AutomationError>>,
     },
+    /// An agent's session is about to start again: the schedules of its
+    /// last run go now, answered once they are gone.
+    StartingAgain {
+        session: SessionId,
+        reply: oneshot::Sender<()>,
+    },
 }
 
 /// The handle every call holds: commands to the scheduler's task.
@@ -304,6 +310,27 @@ impl Schedules {
             reply,
         })
         .await
+    }
+
+    /// `session` starts again (`session.resume`): the schedules its agent
+    /// made in its last run are deleted before the new run's agent gets
+    /// its credential.
+    ///
+    /// The session's end already deletes them (`Sessions::ends`), but a
+    /// scheduler that fell behind the ends' channel misses some, and an
+    /// agent's schedule is found gone only when its agent is: a session
+    /// started again under the same id would take its last run's heartbeat
+    /// over. Asked here, it cannot, whatever the channel did.
+    ///
+    /// # Errors
+    /// `unavailable`: the scheduler has stopped (the node is stopping).
+    pub(crate) async fn starting_again(&self, session: SessionId) -> Result<(), AutomationError> {
+        let (reply, answer) = oneshot::channel();
+        self.commands
+            .send(Command::StartingAgain { session, reply })
+            .await
+            .map_err(|_closed| gone())?;
+        answer.await.map_err(|_dropped| gone())
     }
 }
 

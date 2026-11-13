@@ -24,7 +24,7 @@ use vessel_proto::automation::{
 };
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{
-    ContentBlock, Creator, Delivered, Delivery, DisplayStatus, ErrorCode, EventSeq, Mark, Method,
+    ContentBlock, Creator, Delivered, Delivery, DisplayStatus, ErrorCode, EventSeq, Method,
     SessionId, SessionMode, SessionSpec, SessionStatus, SessionTitle, WireError,
 };
 
@@ -339,7 +339,9 @@ impl NodeService {
     }
 
     /// Archive a run's session (ADR 0026: it stops, its log stays) unless
-    /// something waits in its queue, which someone else put there.
+    /// something waits in its queue, which someone else put there; by the
+    /// service's one path, so its terminals and services end and its pull
+    /// request is no longer watched, as a person's archive does.
     async fn archive_if_idle(&self, session: SessionId) {
         let idle = self
             .sessions
@@ -349,7 +351,7 @@ impl NodeService {
         if !idle {
             return;
         }
-        if let Err(error) = self.sessions.mark(session, Mark::Archive).await {
+        if let Err(error) = self.put_away(session).await {
             tracing::warn!(%session, %error, "cannot archive a schedule's session");
         }
     }

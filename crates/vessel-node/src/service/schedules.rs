@@ -191,8 +191,10 @@ impl NodeService {
             .launcher
             .options(&self.profiles, spec, principal)
             .map_err(|error| wire(&error))?;
+        // Resolved as a start would resolve it (ownership, the folder, a
+        // worktree's setup), then let go: nothing starts here.
         let mut placed = spec.clone();
-        let _notices = self.place(principal, &mut placed).await?;
+        let _placed = self.place(principal, &mut placed).await?;
         Ok(())
     }
 

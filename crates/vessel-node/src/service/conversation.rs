@@ -9,7 +9,7 @@ use vessel_proto::conversation::{
     WriteUpload, Written,
 };
 use vessel_proto::{
-    AttachmentRef, BlobChunk, Conversation, Delivered, Mark, SessionInfo, WireError,
+    AttachmentRef, BlobChunk, Conversation, Delivered, Mark, SessionId, SessionInfo, WireError,
 };
 
 use super::{Connection, NodeService, wire};
@@ -93,20 +93,32 @@ impl NodeService {
         if reading && connection.principal().agent().is_some() {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
-        let archived = matches!(mark, Mark::Archive);
-        let marked = self
-            .sessions
-            .mark(session, mark)
-            .await
+        let marked = match mark {
+            Mark::Archive => self.put_away(session).await,
+            Mark::Read { .. } | Mark::Unread | Mark::Pin | Mark::Unpin | Mark::Unarchive => {
+                self.sessions.mark(session, mark).await
+            }
+        };
+        marked
             .map(|info| self.with_workspace(info))
-            .map_err(|error| wire(&error))?;
-        // An archived session is not watched, and what runs beside it ends
-        // (protocol 11; kept, with its output): the session was put away.
-        if archived {
-            self.unwatch_session(session);
-            self.terminals.end_beside(session).await;
-        }
-        Ok(marked)
+            .map_err(|error| wire(&error))
+    }
+
+    /// Archive `session` (stopping it first when live) and end what runs
+    /// beside it: the one way a session is put away, a person's
+    /// `session.mark` and a schedule's run after its first turn (protocol
+    /// 11) alike.
+    ///
+    /// An archived session is not watched, and its terminals and services
+    /// end (kept, with their output): a service beside a session put away
+    /// would hold its port and its worktree unseen ("Integration 2
+    /// (node)", meeting point 3). A schedule's session must not outlive
+    /// what a person's own would ("Integration 3 (node)").
+    pub(super) async fn put_away(&self, session: SessionId) -> Result<SessionInfo, ServiceError> {
+        let archived = self.sessions.mark(session, Mark::Archive).await?;
+        self.unwatch_session(session);
+        self.terminals.end_beside(session).await;
+        Ok(archived)
     }
 
     /// `session.delete`: remove an ended session whole, and the worktree
