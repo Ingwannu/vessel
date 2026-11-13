@@ -13,6 +13,7 @@
 
 mod screens;
 mod shell;
+mod update;
 
 use gpui::{AppContext as _, Bounds, WindowBounds, WindowOptions, px, size};
 use vessel_app_kit::{Scheme, SchemeChoice};
@@ -57,6 +58,7 @@ fn main() {
         };
         let opened = cx.open_window(options, |window, cx| {
             let shell = cx.new(|cx| shell::Shell::new(window, cx));
+            update::start(shell.downgrade(), cx);
             vessel_app_kit::root(shell, window, cx)
         });
         match opened {
