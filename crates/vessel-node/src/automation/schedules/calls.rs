@@ -13,7 +13,7 @@ use vessel_proto::{Creator, ScheduleId, SessionId};
 use super::actor::Actor;
 use super::book::Entry;
 use super::check::{node_anchor, settle};
-use super::rules::{AGENT_SCHEDULES, Act, Asker};
+use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES};
 use super::state::{advanced, ended_refused, ends_an_agents};
 use super::{Clock, Command, Runner};
 use crate::automation::error::AutomationError;
@@ -194,6 +194,15 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 info.revision
             )));
         }
+        // A person taking an agent's schedule over makes it a person's,
+        // which their bound counts.
+        let to_people = matches!(info.defined_by, Creator::Agent { .. })
+            && !matches!(asker.by, Creator::Agent { .. });
+        if to_people && self.book.counts().0 >= PEOPLE_SCHEDULES {
+            return Err(AutomationError::Conflict(
+                "the node has as many schedules as it keeps (256); delete some first".to_owned(),
+            ));
+        }
         let now = self.clock.now();
         node_anchor(asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
@@ -261,6 +270,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         info.state = state;
         info.revision = info.revision.wrapping_add(1);
         info.updated_at = now;
+        // Resumed past its end: an agent's goes, as at any other end.
+        if ends_an_agents(&info) {
+            self.forget(schedule).await;
+            return Ok(info);
+        }
         self.store.put_schedule(info.clone(), None).await?;
         self.book.put(info.clone());
         Ok(info)
