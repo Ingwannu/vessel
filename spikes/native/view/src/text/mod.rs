@@ -24,12 +24,16 @@
 
 mod app;
 mod conversation;
+mod machines;
 mod options;
+mod settings;
 mod update;
 
 pub use app::Text;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
+pub use machines::MachinesText;
 pub use options::OptionsText;
+pub use settings::SettingsText;
 pub use update::UpdateText;
 
 /// A language the app speaks.

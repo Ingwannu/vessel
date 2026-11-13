@@ -9,11 +9,19 @@
 //! thing. Nothing of a UI toolkit's may be used here (ADR 0035): the
 //! screens draw these values through Vessel's kit, whatever is under it.
 
+pub mod agent_status;
+pub mod ago;
 mod board;
 mod conversation;
+pub mod devices;
 mod links;
+pub mod machines;
+pub mod models;
 mod options;
+pub mod prefs;
 pub mod session;
+pub mod settings;
+pub mod sync;
 pub mod terminal;
 #[cfg(test)]
 mod tests;
@@ -30,5 +38,6 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
 pub use text::{
-    ConversationWords, Lang, OptionsText, Text, UpdateText, grouped, meter_tokens, short_tokens,
+    ConversationWords, Lang, MachinesText, OptionsText, SettingsText, Text, UpdateText, grouped,
+    meter_tokens, short_tokens,
 };
