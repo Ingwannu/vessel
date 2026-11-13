@@ -108,8 +108,10 @@ What is drawn, as the page's (`board-page.tsx`, `lane.tsx`,
 
 - The machine scope (All machines, then each machine) when the book has
   more than one; a scope whose machine left the book is All again.
-- Four lanes in one surface divided by hairlines, at least 256 points
-  each, scrolling sideways when narrower (vertical wheel stays vertical);
+- Four lanes in one surface divided by hairlines, at least 240 points
+  each (the page's 256 would cut the fourth lane in the default 1280
+  window beside the 264 sidebar: 1016 left; 240 lets the four share it,
+  as the page's grid does), scrolling sideways when narrower (vertical wheel stays vertical);
   each lane's head (dot, name in the lane's colour, count) and its own
   scroll. Under 768 points (a phone) the lanes stack and the page
   scrolls as one, every card's actions shown.
@@ -155,8 +157,11 @@ by machine, session and kind, and hands any other to the conversation's
   close button, error tone) at the top centre under the title bar,
   Paseo's place for it.
 - Stand-ins inside the area: a ghost button (`board::ghost`, for "+ New
-  session", the archive's bar and "Show N more") until the kit has one;
-  no tooltips on the card's icon buttons (the tooltip is the lead's).
+  session", the archive's bar and "Show N more") until the kit has one.
+- The card's icon buttons say what they do when pointed at, by the kit's
+  tooltip (Paseo's: above the button, at once, none on a phone), in the
+  page's words (Kill, Archive session, Restore session or Unarchive's
+  sentence, Delete permanently).
 - The "Merged" tone has no token: a local purple (#9333ea light, #c084fc
   dark, the page's values).
 - The needs-you pulse is not drawn (the tint and border are).
@@ -208,6 +213,15 @@ confirm), `board-archived-dark-en` (the count to 1), `archive-dark-en`,
   restore), added only the board's own (Terminal, Message, Archive,
   Trash, Pin); `Route::Archive` arrives beside the lead's Settings. fmt
   clean; clippy clean; `cargo test`: 3, 10, 10, 215, 73, 0, 0, 0 passed,
+  none failed.
+
+- Merged `backend/m12-spike` at 5b934da (640f9b0), clean.
+- The coordinator's look at the board (brief, "Added the same
+  afternoon"): the fourth lane was cut at 1280 (lane minimum 240 now) and
+  the card's buttons had no tooltip (the kit's now). Captured
+  `board-fit-dark-en` (four lanes at 1280) and `board-tip-dark-en` (Kill
+  over its button). Gate with the palette's view additions below: fmt
+  clean; clippy clean; `cargo test`: 3, 10, 10, 222, 73, 0, 0, 0 passed,
   none failed.
 
 ## Notes for later slices

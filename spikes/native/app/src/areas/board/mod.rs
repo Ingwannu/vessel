@@ -17,6 +17,10 @@
 mod acts;
 pub(crate) mod card;
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use chrono::Utc;
 use gpui::FontWeight;
 use vessel_app_kit::assets::Glyph;
@@ -27,18 +31,22 @@ use vessel_app_kit::ui::{
     IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{DialogState, TextField, Tokens, Type, TypeExt as _, button, glyph};
+use vessel_app_kit::{
+    DialogState, TextField, Tokens, Tooltips, Type, TypeExt as _, button, glyph, tooltip,
+};
 use vessel_app_view::Lane;
 use vessel_app_view::board::{ArchivePage, Board, TICK};
 
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The least width of a lane (the page's `--lane-min-w`).
-const LANE_MIN: f32 = 256.0;
+/// The least width of a lane. The page's `--lane-min-w` is 256; here it
+/// is 240 so that the four lanes fit beside the 264 sidebar in the
+/// default 1280 window (1016 left) and share it, as the page's grid does.
+const LANE_MIN: f32 = 240.0;
 
 /// Four lanes at their least: past it the board scrolls sideways.
-const LANES_MIN: f32 = 1024.0;
+const LANES_MIN: f32 = 960.0;
 
 /// A lane's heading (the page's `--lane-head-h`).
 const LANE_HEAD: f32 = 48.0;
@@ -62,6 +70,10 @@ pub(crate) struct BoardArea {
     pub(crate) page: ArchivePage,
     /// Acts asked from a card, until the node answers.
     pub(crate) asked: Vec<acts::Asked>,
+    /// The cards' buttons' tooltips (one shown at most).
+    pub(crate) tips: Tooltips,
+    /// Where each card's button was drawn, by the button's id.
+    places: RefCell<HashMap<String, tooltip::Place>>,
 }
 
 impl BoardArea {
@@ -90,7 +102,20 @@ impl BoardArea {
             search: String::new(),
             page: ArchivePage::default(),
             asked: Vec::new(),
+            tips: Tooltips::new(),
+            places: RefCell::default(),
         }
+    }
+
+    /// The cell where the button `key` is drawn, kept across frames.
+    pub(crate) fn place(&self, key: &str) -> tooltip::Place {
+        let mut places = self.places.borrow_mut();
+        if let Some(place) = places.get(key) {
+            return Rc::clone(place);
+        }
+        let place = tooltip::Place::default();
+        drop(places.insert(key.to_owned(), Rc::clone(&place)));
+        place
     }
 }
 
@@ -154,6 +179,7 @@ pub(crate) fn render(
         .child(body)
         .children(archive.map(|dialog| div().id("board-archive").child(dialog)))
         .children(confirm.map(|dialog| div().id("board-confirm").child(dialog)))
+        .children(shell.areas.board.tips.render(tokens))
         .into_any_element()
 }
 
