@@ -674,7 +674,7 @@ impl Shell {
             Err(failed) => area.refused = Some((answer.kind, failed.message)),
         }
         // The node answered: the connection works.
-        area.lost = None;
+        self.areas.conversation.lost = None;
         cx.notify();
     }
 
