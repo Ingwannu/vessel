@@ -519,3 +519,28 @@ separately; the unchanged gate is not repeated. Earlier compile attempts caught
 BranchName/RefName comparisons (including three test constructors) and two
 Markdown documentation lints; typed name comparisons and fixtures were corrected
 without relaxing validation. No screen, node-write or live IME claim follows.
+
+
+## Shared form path type step
+
+[Decision Log]
+- Purpose: reproduce GOAT's `GitActionsControl.tsx` text-sm summary inherited by
+  its font-mono file rows: 14/20, normal.
+- Existing constraint: the kit's Mono12/20 is already used by paths/logs and
+  must stay unchanged; UI and code preferences are independent.
+- Alternatives: area font literals, or a UI-scaled label with a code family.
+- Choice: `Type::MonoBody` adds 14/20 normal on the code scale and mono face;
+  `TypeExt` continues to supply the existing fallback list.
+- Why: both metrics follow the same independent setting, without changing old
+  Mono callers or adding a second typography policy in the Git area.
+- Cost: one public type step. No font asset, font loader or input engine changes.
+
+The same production metrics resolver is tested with injected independent
+UI14/code18 scales (Mono18/30, MonoBody21/30, ordinary Body14/21), without
+mutating process-wide atomics in parallel tests. Default exact values and both
+code families are checked. Actual long-path Git first use, both languages and
+widths plus unequal preferences, remains required before visual approval.
+
+Validation: the same whole native 506 runtime plus two documentation-test gate
+as the preceding independent view correction; no unchanged-source rerun. Actual
+Git first-use captures remain pending.

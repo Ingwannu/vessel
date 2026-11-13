@@ -440,3 +440,7 @@ Git's commit scope count, path preview and submit share one eligibility rule;
 a partial zero remains unknown. Failed and unread facts give retry/read guidance,
 and only a pending read says it is refreshing. Keyed success receipts retain the
 original stash intention and protect the one-second success reset from late timers.
+
+`Type::MonoBody` is the form path's 14/20 normal code step (GOAT's commit
+summary). Existing `Mono` remains 12/20. Both use the independent code scale and
+same embedded face/fallbacks; ordinary type continues to use the UI scale.
