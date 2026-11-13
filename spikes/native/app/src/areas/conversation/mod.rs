@@ -69,11 +69,11 @@ use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::session::MarkAction;
 use vessel_app_view::timeline::{
-    FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, outline,
+    FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, ToolView, outline,
 };
 use vessel_proto::{
     EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer, QuestionId,
-    SessionId, SessionInfo,
+    SessionId, SessionInfo, ToolCallId,
 };
 
 pub(crate) use bar::bar;
@@ -178,6 +178,14 @@ pub(crate) trait Place: 'static {
     /// is still on its way). By default, never.
     fn busy(_shell: &Shell) -> bool {
         false
+    }
+
+    /// The tool call a request is for, as its card shows it (its title,
+    /// its command or diff): by default the conversation's own fold of
+    /// it. An area holding a request without its session's log (the
+    /// inbox) gives the call it keeps, never a record made up for it.
+    fn tool<'a>(shell: &'a Shell, id: &ToolCallId) -> Option<&'a ToolView> {
+        (Self::SEAT.get)(shell).and_then(|area| area.timeline.tool_call(id))
     }
 }
 

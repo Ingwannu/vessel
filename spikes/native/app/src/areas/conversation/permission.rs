@@ -108,15 +108,17 @@ pub(crate) fn card<P: Place>(
     let permission = if let Some((_entry, permission)) = area.timeline.pending() {
         permission
     } else {
+        let request = *unseen.first()?;
         live = Permission {
-            request: (*unseen.first()?).clone(),
-            title: None,
+            request: request.clone(),
+            // Named as the fold names a request: its tool call's title.
+            title: P::tool(shell, &request.tool_call).map(|tool| tool.title.clone()),
             outcome: None,
         };
         &live
     };
     let words = shell.t.lang.conversation();
-    let tool = area.timeline.tool_call(&permission.request.tool_call);
+    let tool = P::tool(shell, &permission.request.tool_call);
     let card = permission_card(
         permission,
         tool,
