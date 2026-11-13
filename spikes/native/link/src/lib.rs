@@ -33,6 +33,7 @@ mod session;
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
+pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
@@ -187,6 +188,16 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// A request for one machine’s Agents settings.
+    Agents {
+        /// Validated book key.
+        machine: agents::MachineKey,
+        /// Correlation ticket.
+        request: vessel_proto::RequestId,
+        /// The operation.
+        ask: agents::Ask,
+    },
+
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
@@ -309,6 +320,16 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An Agents response, including background install progress.
+    Agents {
+        /// Originating machine.
+        machine: agents::MachineKey,
+        /// Original request ticket.
+        request: vessel_proto::RequestId,
+        /// Facts or typed failure.
+        answer: Result<agents::Answer, agents::AgentsError>,
+    },
+
     /// A saved-machine operation completed.
     Machines(machines::Answer),
     /// The machines and their sessions, read again.
@@ -418,6 +439,8 @@ impl Link {
             follow_machine: None,
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
+            agents: agents::Hub::default(),
+
             device_calls: devices::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -478,6 +501,8 @@ struct State {
     follow_machine: Option<String>,
     book_path: machines::BookPath,
     workspace: workspace::Hub,
+    agents: agents::Hub,
+
     device_calls: devices::Hub,
 }
 
@@ -510,6 +535,20 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Agents {
+                machine,
+                request,
+                ask,
+            } => {
+                let client = self
+                    .clients
+                    .get(machine.as_str())
+                    .map(|connected| connected.client.clone());
+                self.agents
+                    .ask(client, machine, request, ask, self.events.clone())
+                    .await;
+            }
+
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::Devices {
                 machine,

@@ -84,6 +84,14 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Agents {
+                machine, request, ..
+            } => self.emit(Event::Agents {
+                machine,
+                request,
+                answer: Err(crate::agents::AgentsError::NoTransport),
+            }),
+
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),

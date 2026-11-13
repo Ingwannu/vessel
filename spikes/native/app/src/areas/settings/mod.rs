@@ -23,6 +23,7 @@
 //! - A setting is shown once something reads it ([`applied`]); the send
 //!   shortcut is read by both composers ([`apply_composer`]).
 
+mod agents;
 mod appearance;
 mod book;
 mod choices;
@@ -30,7 +31,7 @@ mod devices;
 mod general;
 mod language;
 mod nav;
-mod page;
+pub(crate) mod page;
 
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
@@ -69,6 +70,8 @@ pub(crate) struct SettingsState {
     pub(crate) anchors: Anchors,
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
+    pub(crate) agents: agents::AgentSettings,
+
     pub(crate) devices: devices::Devices,
     language: language::State,
 }
@@ -84,6 +87,8 @@ impl SettingsState {
             open: None,
             anchors: Anchors::default(),
             refused: None,
+            agents: agents::AgentSettings::new(window, cx),
+
             devices: devices::Devices::new(window, cx),
             language: language::State::new(window, cx),
         }
@@ -141,6 +146,7 @@ impl Shell {
         state.pushed = section.is_some();
         state.refused = None;
         self.go(Route::Settings, window, cx);
+        self.agent_load(false, cx);
     }
 
     /// Show `section` (from the list).
@@ -153,6 +159,7 @@ impl Shell {
         };
         state.pushed = true;
         state.refused = None;
+        self.agent_load(false, cx);
         cx.notify();
     }
 
@@ -279,6 +286,7 @@ impl Shell {
                 // The row after the machines: adding one.
                 None => self.go(Route::Pair, window, cx),
             }
+            self.agent_load(false, cx);
             cx.notify();
         } else if let Some(change) = choices::change(list, index) {
             self.prefer(&change, window, cx);
@@ -373,7 +381,7 @@ pub(crate) fn render(
         let section = state.section;
         let words = shell.t.lang.settings();
         let title = words.section(section);
-        let body = content(section, shell, tokens, phone, cx)
+        let body = content(section, shell, tokens, phone, window, cx)
             .unwrap_or_else(|| page::elsewhere(words.elsewhere, tokens));
         let body = div()
             .flex()
@@ -388,7 +396,17 @@ pub(crate) fn render(
             }))
             .child(body)
             .into_any_element();
-        page::layout(title, body, phone, tokens, cx).into_any_element()
+        let scroll_id = if section == Section::Agents {
+            agents::scroll_id(shell)
+        } else {
+            "settings-page".into()
+        };
+        let detail = if section == Section::Agents {
+            agents::header(shell)
+        } else {
+            None
+        };
+        page::layout(title, body, phone, scroll_id, detail, tokens, cx).into_any_element()
     };
     div()
         .size_full()
@@ -398,6 +416,7 @@ pub(crate) fn render(
         .children(list(shell, tokens, phone, window, cx))
         .children(language::picker(shell, tokens, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
+        .children(agents::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
 }
 
@@ -413,6 +432,7 @@ pub(crate) const fn drawn(section: Section) -> bool {
             | Section::Appearance
             | Section::About
             | Section::Projects
+            | Section::Agents
             | Section::Devices
     )
 }
@@ -441,9 +461,11 @@ fn content(
     shell: &Shell,
     tokens: &Tokens,
     phone: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     match section {
+        Section::Agents => Some(agents::render(shell, tokens, phone, window, cx)),
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
@@ -455,7 +477,6 @@ fn content(
         // sections are this track's next slice.
         Section::Shortcuts
         | Section::Notifications
-        | Section::Agents
         | Section::Models
         | Section::Machines
         | Section::Sync => None,

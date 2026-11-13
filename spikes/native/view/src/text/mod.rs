@@ -14,6 +14,7 @@
 //!   move. The app ships complete English and Korean catalogs today.
 
 mod about;
+mod agents;
 mod app;
 mod board;
 mod conversation;

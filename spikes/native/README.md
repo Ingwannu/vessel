@@ -32,6 +32,16 @@ Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
 
+Settings' agent discovery remains in `view::agent_status` (the page's
+fixtures). `agent_status::readiness` separately describes the node's
+installation, conversation support and authentication facts from
+`agent.status` (ADR 0032). Unknown sign-in is never inferred from a
+successful handshake; installer offers target only the missing part.
+Its row explanation includes a typed short badge and keeps the machine's
+diagnostic separate from translated instructions. Sign-in help is typed
+as labelled account, command and method steps, so a screen can copy the
+exact node-provided command without inventing a login flow.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches
@@ -90,6 +100,13 @@ app/src/
    sidebar lists it. An event from the link for it: one arm in
    `Shell::on_event` calling the area's method.
 
+Settings areas with nested pages can supply a scroll identity at the
+`scroll_id` slot next to their content registration. Agents uses one for
+its machine list and one per agent detail; a detail’s offset therefore
+cannot hide a different page’s title. Other sections retain their existing
+scroll identity. This is the frame’s one outer scroller, not an area-local
+parallel page layout.
+
 The Devices page keeps invitation text outside text fields: only an
 explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
@@ -109,17 +126,19 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
+
 The kit's `qr.rs` draws a supplied module matrix on a white tile in both
 themes, with a four-module quiet zone. `view::devices::qr` encodes with
 `qrcode` 0.14 (MIT OR Apache-2.0, default features off); neither layer
 writes a matrix or a link. QR and text share the invitation reveal gate.
 
-`kit::button_with_kind` is the filled entry: typed primary, secondary and
-destructive kinds plus enabled/disabled state. Destructive fill/border use
-`neutral.destructive`, text its separate `destructive_foreground`; hover
-keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
-no handler. The existing bool `button` delegates and stays until the lead
-retires it after moving its callers.
+`kit::button_with_kind` is the shared entry: typed primary, secondary,
+destructive and ghost kinds plus enabled/disabled state. Destructive fill
+and border use `neutral.destructive`, text its separate foreground. Ghost
+has transparent fill/border and muted text, turning foreground on hover;
+filled kinds set no hover override. Pressed is 85% and disabled 50%.
+Disabled callers attach no handler. The existing bool `button` delegates
+and stays until the lead retires it after moving its callers.
 
 `kit::breakpoint::TOUCH_TARGET` is the shared minimum touch target;
 screens take gaps and insets from `kit::theme::spacing`.
@@ -127,6 +146,13 @@ screens take gaps and insets from `kit::theme::spacing`.
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.
+
+`PanelLeft` is the desktop sidebar mark. `MenuCompact` is the compact
+sidebar's original 16×12 vector: two full bars and one half bar, each 1.5
+high. Its filled round rectangles keep the painted footprint exact; legacy
+`Menu` and `PanelRight` are unchanged.
+`Upload` and `Download` are the shared transfer arrows/trays for push/pull,
+with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 
 
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
@@ -138,6 +164,10 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+Provider error detail follows Paseo's fixed palette red[300] through
+`Tokens::status().red_300`; its semantic status dot still uses the ordinary
+status error signal. Areas use the shared token rather than a local colour.
+
 `kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
 with optional title, wrapping description and an indented action. It uses
 existing semantic/neutral colours and palette blue 300 / amber 500 in
@@ -145,14 +175,43 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
+
+`kit::settings::section_with_trailing` is the shared section head with an
+optional trailing action (Paseo’s `SettingsSection`); `section` delegates
+with no action. Areas supply the action’s state and tooltip, rather than
+copying the heading/card gap into another header. `row_with_content` is
+its row frame for custom contents (such as a provider’s mark and inline
+status); ordinary `row_at` delegates to the same padding, border and
+compact wrapping frame.
+
+`kit::skeleton::pulse` owns one mounted animation phase. Its draw closure
+receives one `Opacity` to pass to every `shape`; only the neutral surface2
+shapes fade, leaving cards and borders solid. Callers supply typed shape
+sizes/corner steps and compose existing settings/card frames. The pulse
+stops scheduling frames when unmounted; reduced motion follows GPUI.
 
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and
 after twelve lines the editor scrolls. Its marked-text regression also
 exercises the composer; platform input-method support remains shared.
+
+`kit::screen_header::frame` is the shared screen/back-header renderer:
+`Content { title, leading, actions }` and typed desktop/compact density.
+The ordinary header and compact callback entry points delegate to it.
+Navigation controls/actions are already wired by the caller; the kit owns
+no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
+compact is one-line 16/500 with a 44-point menu button. Chrome integration
+and avoiding duplicate sidebar toggles stay with the desktop lead.
+
+The settings page accepts one optional `page::DetailHeader` (title and
+caller-owned back callback). Ordinary page calls pass None; detail headers
+use the same shared `kit::screen_header` frame as other areas. The existing
+`compact_header` wrapper supplies its navigation callback to that renderer,
+so ordinary and detail navigation keep one compact look.
 
 ### Rules every screen follows
 
@@ -260,7 +319,7 @@ Environment:
 cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 # here: two nodes with fake agents and a book naming them
 scripts/fleet.sh start /tmp/fleet <the main workspace's target>/debug
-VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app
+(umask 077; VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app)
 /tmp/fleet/pair.sh                # a pairing link for `laptop`
 scripts/fleet.sh stop /tmp/fleet
 ```
@@ -311,6 +370,21 @@ the question card is checked against them. Three more, `permit plan`,
 in the real adapters' shapes (Claude Code leaving plan mode with five
 "always" answers, Codex's five answers, two at once): the permission card
 is checked against them and the `shapes-asking` session's long command.
+
+The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
+an added agent with a long name and argument, a definition whose program
+is missing, Codex signed out, a failed status check, agent-supplied sign-in
+steps, a missing Codex adapter on `build-server`, and a long model route.
+Each node has its own fake program directory. Its `npm`, `npx` and `uvx`
+never download or execute packages. To hold an app-started install for a
+capture, create a FIFO at `<fleet>/<machine>-home/install-gate` before
+pressing Install. Write `fail` to it to release exit 7, or `success` for
+success. The fake installer prints its output but changes no installation.
+The fleet uses private scratch directories (`umask 077`); run it as the
+same development account that runs the app. Opening the registry allows
+the node’s ordinary public catalogue fetch; all other fixture traffic is
+local. The current SDK cannot exercise older/newer-agent readiness over
+the wire; see `docs/plans/backend-m12-agents.md` for the source boundary.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:
@@ -517,3 +591,8 @@ The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
 or `settings-errors` for the real pill_parts and shared-frame fit fixtures.
 The measured reference ink and per-brand boxes are in the artwork source
 record. No restricted vendor original is bundled by those fixtures.
+
+For an initial Agents-loading capture, a FIFO named `discovery-gate` in a
+fake node's scratch home holds fake Codex's version probe until the node's
+own five-second bound ends it. Remove the FIFO before ordinary probes.
+The fleet checks this fixture in an isolated scratch home using `timeout`.

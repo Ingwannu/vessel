@@ -26,7 +26,8 @@
 
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
-use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Unsent, devices};
+use vessel_app_link::agents::AgentsError;
+use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
 use vessel_app_view::machine_book::Failure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::{ErrorCode, SessionId};
@@ -55,6 +56,18 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        // As the devices page: a full queue is the page's own "busy, try
+        // again", a stopped link the machine's lost connection.
+        Command::Agents {
+            machine, request, ..
+        } => Event::Agents {
+            machine,
+            request,
+            answer: Err(match unsent.why {
+                Rejected::Full => AgentsError::Busy,
+                Rejected::Closed => AgentsError::Disconnected,
+            }),
+        },
         Command::Machines(ask) => Event::Machines(ask.refused(Failure::Unsent)),
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
