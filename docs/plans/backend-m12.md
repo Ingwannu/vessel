@@ -448,6 +448,8 @@ do nothing); each is for a node track:
 | Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 | A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
+| A pairing link from a machine with no public address and no relay: `device.invite` succeeds and the link leads nowhere | Settings › Devices | the app refuses to show such a link and says what to set up |
+| An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
 
 ### Translations as data files (2026-11-13)
 
