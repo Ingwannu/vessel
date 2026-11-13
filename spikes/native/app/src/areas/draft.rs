@@ -285,6 +285,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .gap(px(14.0))
+        .child(vessel_app_kit::mark(40.0, tokens))
         .child(
             div()
                 .type_(Type::Title)

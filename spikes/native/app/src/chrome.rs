@@ -1,5 +1,6 @@
 //! The app's title bar (the kit draws the bar and the window's controls;
-//! this says what is in it): the app's name and the build's label.
+//! this says what is in it): the mark, the app's name and the build's
+//! label.
 
 use vessel_app_kit::ui::{
     Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
@@ -17,8 +18,11 @@ pub(crate) fn title_bar(
     let content = div()
         .flex()
         .flex_row()
-        .items_baseline()
-        .gap(px(8.0))
+        .items_center()
+        .gap(px(7.0))
+        // The mark in the text's colour at the text's size, beside the name
+        // (docs/design/brand/README.md: "In the interface").
+        .child(vessel_app_kit::mark_mono(14.0, tokens.text_primary))
         .child(
             div()
                 .type_(Type::Label)
