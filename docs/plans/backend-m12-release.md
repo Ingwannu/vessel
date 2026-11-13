@@ -463,9 +463,11 @@ publish then check, a changed artifact caught, signed sums).
 ### The Windows swap, under wine
 
 The updater's tests built for `x86_64-pc-windows-msvc` (`cargo xwin test
---no-run`) and run under wine 9.0: the 22 unit tests pass, and the five
-end-to-end ones (loopback HTTP, a real download and swap) pass once the
-first one expects what Windows does: the old executable is renamed to
+--no-run`) and run under wine 9.0: the unit tests pass (26 on
+2026-11-13, the "Installed apps" entry's included), and the end-to-end
+ones (loopback HTTP, a real download and swap; 7 on 2026-11-13, both
+`set_automatic` tests included) pass once the first one expects what
+Windows does: the old executable is renamed to
 `vessel-app.old-0.0.0.0.1` beside the new one (Windows will not delete
 an executable file in use), to be removed at the next start; on Linux
 the old file is simply replaced. Wine emulates Windows' file semantics
