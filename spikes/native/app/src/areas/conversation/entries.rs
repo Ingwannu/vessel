@@ -20,6 +20,7 @@ use vessel_app_view::timeline::{
 };
 use vessel_proto::{Question, QuestionOutcome};
 
+use super::Seat;
 use super::find::Marking;
 use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
 use super::tool;
@@ -32,6 +33,8 @@ pub(super) struct Paint<'a> {
     pub(super) look: Look,
     /// What find marks, while its bar shows matches.
     pub(super) find: Option<Marking<'a>>,
+    /// Where the conversation drawn is kept: its rows' toggles change it.
+    pub(super) seat: Seat,
 }
 
 /// Entry `index` as its row.
@@ -87,6 +90,12 @@ pub(super) fn entry(
         EntryKind::Plan { entries } => {
             let (done, total) = plan_progress(entries);
             meta(paint, words.plan_line(done, total))
+        }
+        // While it waits its card is over the composer, with the command
+        // in its box: here only a quiet line, so the command is not read
+        // twice more.
+        EntryKind::Permission(permission) if permission.outcome.is_none() => {
+            meta(paint, words.permission_waiting().to_owned())
         }
         EntryKind::Permission(permission) => meta(
             paint,
@@ -195,6 +204,7 @@ pub(super) fn work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
+    let seat = paint.seat;
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -209,7 +219,9 @@ pub(super) fn work_row(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_entry(index, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| {
+            shell.toggle_entry(seat, index, cx);
+        }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))
         .children(detail.map(|(detail, color)| {

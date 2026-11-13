@@ -36,9 +36,11 @@ mod diff;
 mod entry;
 mod find;
 mod fold;
+mod live;
 mod logs;
 mod meter;
 mod outline;
+mod permission;
 mod question;
 mod rows;
 mod runs;
@@ -56,9 +58,11 @@ pub use find::{
     query_of, readable_text, searchable, spans_of, step,
 };
 pub use fold::{Change, Facts, Timeline};
+pub use live::Live;
 pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
+pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,

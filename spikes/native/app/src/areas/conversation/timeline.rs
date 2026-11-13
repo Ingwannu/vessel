@@ -18,38 +18,21 @@ use vessel_app_view::timeline::Logs;
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
-use super::{Confirm, ConversationArea};
+use super::{Confirm, ConversationArea, Seat};
 use crate::shell::Shell;
 
 /// The conversation's body: its rows in the long list, or the empty
-/// lane's words.
+/// lane's words; the find bar and the outline rail over them.
 pub(crate) fn timeline(
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let area = &shell.areas.conversation;
-    area.bench
-        .frame(area.timeline.entries().len(), &area.list, window);
-    let paint = Paint {
-        words: shell.t.lang.conversation(),
-        tokens,
-        look: Look::of(tokens),
-        find: area
-            .find
-            .as_ref()
-            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
-    };
-    if area.timeline.entries().is_empty() {
-        return entries::empty(&paint).into_any_element();
+    let list = rows(shell, Seat::SESSION, tokens, window, cx);
+    if shell.areas.conversation.timeline.entries().is_empty() {
+        return list;
     }
-    let list = area
-        .list
-        .element(cx.processor(|shell: &mut Shell, row: usize, window, cx| {
-            let tokens = vessel_app_kit::tokens(cx);
-            row_element(shell, row, &tokens, window, cx)
-        }));
     let bar = super::find::bar(shell, tokens, window, cx);
     if breakpoint::phone(window) {
         return div()
@@ -77,17 +60,46 @@ pub(crate) fn timeline(
         .into_any_element()
 }
 
-/// Row `row`: its entry, in the lane; a folded run's lead with the run's
-/// summary over it.
-fn row_element(
+/// The conversation kept at `seat` as its rows: the long list, or the
+/// empty lane's words; every toggle changes the state at `seat`. Another
+/// area embedding a conversation (a side question's panel) places this
+/// inside an element with an id of its own, so its rows' ids do not meet
+/// the session area's, and gives it a height (the list fills its parent).
+pub(crate) fn rows(
     shell: &Shell,
-    row: usize,
+    seat: Seat,
     tokens: &Tokens,
-    window: &mut Window,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let area = &shell.areas.conversation;
-    let paint = Paint {
+    let Some(area) = (seat.get)(shell) else {
+        return div().into_any_element();
+    };
+    area.bench
+        .frame(area.timeline.entries().len(), &area.list, window);
+    if area.timeline.entries().is_empty() {
+        let paint = paint(shell, area, seat, tokens, window);
+        return entries::empty(&paint).into_any_element();
+    }
+    area.list
+        .element(
+            cx.processor(move |shell: &mut Shell, row: usize, window, cx| {
+                let tokens = vessel_app_kit::tokens(cx);
+                row_element(shell, seat, row, &tokens, window, cx)
+            }),
+        )
+        .into_any_element()
+}
+
+/// How the rows of `area` (kept at `seat`) are drawn.
+fn paint<'a>(
+    shell: &Shell,
+    area: &'a ConversationArea,
+    seat: Seat,
+    tokens: &'a Tokens,
+    window: &Window,
+) -> Paint<'a> {
+    Paint {
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
@@ -95,7 +107,24 @@ fn row_element(
             .find
             .as_ref()
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
+        seat,
+    }
+}
+
+/// Row `row`: its entry, in the lane; a folded run's lead with the run's
+/// summary over it.
+fn row_element(
+    shell: &Shell,
+    seat: Seat,
+    row: usize,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let Some(area) = (seat.get)(shell) else {
+        return div().into_any_element();
     };
+    let paint = paint(shell, area, seat, tokens, window);
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
     };
@@ -159,14 +188,15 @@ fn row_element(
 }
 
 /// Whether entry `index`'s disclosure is open: a tool call while it
-/// works, else closed; turned by the person.
+/// works, else closed; turned by the person. A tool call whose permission
+/// waits stays closed: the card over the composer shows its detail.
 fn open(area: &ConversationArea, index: usize) -> bool {
     let default = area
         .timeline
         .entries()
         .get(index)
         .and_then(|entry| entry.kind.as_tool())
-        .is_some_and(vessel_app_view::timeline::ToolView::working);
+        .is_some_and(|tool| tool.working() && !area.timeline.asks_permission(&tool.id));
     default != area.toggled.contains(&index)
 }
 
@@ -184,10 +214,11 @@ fn run_header(
     (name, lead): (&'static str, usize),
     summary: String,
     open: bool,
-    toggle: fn(&mut Shell, usize, &mut Context<'_, Shell>),
+    toggle: fn(&mut Shell, Seat, usize, &mut Context<'_, Shell>),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
+    let seat = paint.seat;
     div()
         .id(ElementId::NamedInteger(name.into(), id(lead)))
         .flex()
@@ -202,7 +233,7 @@ fn run_header(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, lead, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, seat, lead, cx)))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()

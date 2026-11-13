@@ -99,6 +99,10 @@
 //!     first (`$/cancel_request`). Without the capability, one message
 //!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
 //!     whatever the client advertised, reported the same way;
+//!   - `permit plan`, `permit codex`, `permit two`: permission requests in
+//!     the real adapters' shapes (Claude Code leaving plan mode, Codex's
+//!     five answers, two at once; `permits` module), then one message
+//!     chunk `permitted: <option>` per request;
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;
@@ -139,6 +143,8 @@ mod ask;
 mod describe;
 #[path = "fake_acp/options.rs"]
 mod options;
+#[path = "fake_acp/permits.rs"]
+mod permits;
 #[path = "fake_acp/real.rs"]
 mod real;
 #[path = "fake_acp/shapes.rs"]
@@ -664,6 +670,9 @@ async fn run_turn(
         "flood" => return flood(cx, session, turn).await,
         "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
+    }
+    if let Some(permit) = permits::wanted(prompt) {
+        return permits::turn(cx, session, permit, turn).await;
     }
     if let Some(count) = prompt.strip_prefix("entries ") {
         return entries(cx, session, count, turn).await;
