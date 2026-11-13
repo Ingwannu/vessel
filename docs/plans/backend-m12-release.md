@@ -708,6 +708,21 @@ never rebuilt.
     with a matching debuglink, symbols kept, the shipped exe starts and
     logs without escape codes or the feed's path.
 
+- **0.0.0.0.9**:
+  - Built from exactly `7081463`, the desktop lead's gated head, which
+    holds this track's branch. It speaks node protocol 13.
+  - The set went into place at 21:17 UTC. It is not published yet.
+  - Files: setup 12,353,161, exe 44,480,512, zip 18,004,043, linux
+    81,060,120, tar.gz 28,165,806 bytes.
+  - No new crates. The two added faces are embedded in the executable,
+    and their OFL texts are the bundle's existing three.
+  - The usual checks passed: the signature's comment names 0.0.0.0.9,
+    icons, version block, stripped Linux exe with a matching debuglink,
+    symbols kept. The shipped exe starts and its log has no escape
+    codes, no ERROR line and no feed path.
+  - In Korean, About showed "앱이 최신 상태입니다." with 확인 enabled
+    and 업데이트 disabled, because the feed held 0.0.0.0.8.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
