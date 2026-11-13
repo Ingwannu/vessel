@@ -63,8 +63,10 @@ mod terminals;
 // through the service's own checks.
 mod notices;
 mod prompts;
+// Protocol 12 (track A2): the conversation, further.
 mod scheduled;
 mod schedules;
+mod search;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -119,6 +121,8 @@ pub(crate) struct NodeService {
     schedules: Schedules,
     /// Saved prompts (protocol 11, `automation::prompts`).
     prompts: SavedPrompts,
+    /// Places for searches running at once (protocol 12, `search`).
+    searches: tokio::sync::Semaphore,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
@@ -207,6 +211,7 @@ impl NodeService {
             installs: crate::install::Installs::default(),
             schedules,
             prompts: SavedPrompts::new(store),
+            searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             notices: Arc::default(),
         }
     }

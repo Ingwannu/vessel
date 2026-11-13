@@ -15,6 +15,7 @@ mod fleet;
 mod forge;
 mod node;
 mod nodes;
+mod search;
 mod terminals;
 mod workspace;
 
@@ -25,6 +26,7 @@ pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
+pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
@@ -119,6 +121,10 @@ pub(crate) enum Command {
     },
     /// Send a line (terminal session) or a prompt (structured session).
     Send(Send),
+    /// Search every session's messages, newest first (protocol 12): what
+    /// was asked and what the agents answered, in sessions live, ended or
+    /// archived.
+    Search(Search),
     /// Print a session's log.
     Log {
         /// Session id, or a unique prefix of one.

@@ -209,7 +209,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
-        | Method::DeletePrompt => true,
+        | Method::DeletePrompt
+        // Protocol 12: searching every session's messages.
+        | Method::SearchMessages => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

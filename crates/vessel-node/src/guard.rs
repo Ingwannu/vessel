@@ -170,6 +170,8 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    // Protocol 12: a search reads, and reads are not ownership-checked.
+    vessel_proto::search::SearchMessages,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -451,6 +453,7 @@ guarded! {
     create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
     update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
     delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
+    search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
 
     @through_the_guard {
         forward: Forward => Forwarded;

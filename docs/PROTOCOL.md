@@ -30,6 +30,42 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 12 (2026-11-13, milestone 11, wave 2's second half)
+
+Nodes speak 2..=12. Track A2's (`docs/plans/backend-m11.md`, "Track A2:
+contract"); later tracks of the wave add to it. A client sends none of
+these calls to an older node (`Call::since`); a node refuses them on an
+older connection (`unsupported`, "needs protocol 12").
+
+### Searching every session's messages (track A2, ADR 0037)
+
+One method, `since 12`, read, forwardable, in `vessel-web`'s list; no
+event, no change to an existing type. Types in `vessel_proto::search`.
+
+- `session.search { query: SearchQuery, session?, before?: SearchCursor,
+  limit?: SearchLimit }` → `SearchPage { hits: SearchHit[], next?,
+  reached? }`. `SearchQuery`: 1 to 256 characters once trimmed, at most
+  16 words, no control characters. `SearchLimit`: 1 to 100, 20 when
+  absent. `SearchCursor`: the node's handle, a decimal number in a
+  string.
+- `SearchHit { session, seq, at, role: prompt | reply, snippet }`: `seq`
+  is the record where the message's run starts. `Snippet { parts:
+  SnippetPart { text, matched }[], cut_before, cut_after }`, at most 240
+  characters, white space runs as one space, matches marked by part.
+- Every word must be in a message, in any order, as a substring, without
+  case (not without diacritics). Prompts and the agent's replies only;
+  never thoughts, tool calls or output. A reply is found once it ends.
+- Newest first. `next` while older messages may still match; a page may
+  hold fewer hits than asked and still have it, when its work ran out
+  (10,000 candidates through the index; 20,000 messages when every word
+  is under three characters or `session` is given), with `reached` the
+  time of the oldest message it read.
+- Failures: `invalid_request` (query, limit or cursor), `not_found` (the
+  `session`), `unavailable` (two searches already run on the node),
+  `internal`.
+- Not ownership-checked: agents read the fleet's sessions (ADR 0013), so
+  they search them (the `search_sessions` tool).
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;

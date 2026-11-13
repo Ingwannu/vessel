@@ -241,7 +241,8 @@ impl Reply {
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
-            | Self::DeletePrompt(_) => None,
+            | Self::DeletePrompt(_)
+            | Self::SearchMessages(_) => None,
         }
     }
 }

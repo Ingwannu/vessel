@@ -641,6 +641,9 @@ async fn run_here(
         Call::DeletePrompt(request) => {
             Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
         }
+        Call::SearchMessages(request) => {
+            Reply::SearchMessages(guard.search_messages(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::AddAgent(_)
         | Call::GetCatalogue(_)

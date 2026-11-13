@@ -396,7 +396,9 @@ impl Method {
             | Self::ListPrompts
             | Self::CreatePrompt
             | Self::UpdatePrompt
-            | Self::DeletePrompt => true,
+            | Self::DeletePrompt
+            // Protocol 12: a search reads, as `session.read` does.
+            | Self::SearchMessages => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent

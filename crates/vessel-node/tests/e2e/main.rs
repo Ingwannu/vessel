@@ -79,6 +79,8 @@ mod scheduled;
 #[cfg(test)]
 mod schedules;
 #[cfg(test)]
+mod search;
+#[cfg(test)]
 mod secrets_across;
 #[cfg(test)]
 mod secure;

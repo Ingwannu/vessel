@@ -395,6 +395,9 @@ rpc_methods! {
     UpdatePrompt / update_prompt / "prompt.update" [Operate, 11]: crate::automation::UpdatePrompt => crate::automation::SavedPrompt;
     /// Remove a saved prompt (protocol 11).
     DeletePrompt / delete_prompt / "prompt.delete" [Operate, 11]: crate::automation::DeletePrompt => Ack;
+    // Protocol 12, track A2: the conversation, further.
+    /// Search every session's messages (protocol 12, ADR 0037).
+    SearchMessages / search_messages / "session.search" [Read, 12]: crate::search::SearchMessages => crate::search::SearchPage;
 }
 
 /// Result of a call.

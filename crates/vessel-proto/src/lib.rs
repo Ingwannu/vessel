@@ -37,6 +37,7 @@ mod raw;
 mod relay;
 mod rpc;
 pub mod scripts;
+pub mod search;
 mod secret;
 mod session;
 mod terminal;

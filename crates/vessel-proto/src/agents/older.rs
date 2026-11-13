@@ -246,7 +246,9 @@ impl Reply {
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
-            | Self::DeletePrompt(_) => None,
+            | Self::DeletePrompt(_)
+            // A hit names a session; the session itself comes from a list.
+            | Self::SearchMessages(_) => None,
         }
     }
 }

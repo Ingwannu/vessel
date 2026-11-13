@@ -271,6 +271,7 @@ pub(crate) fn prune_session(
     let _rows = connection
         .prepare_cached("DELETE FROM events WHERE session_id = ?1 AND seq <= ?2")?
         .execute(params![id, cut])?;
+    crate::search::index::pruned(connection, session, cut)?;
     let _rows = connection
         .prepare_cached(
             "UPDATE sessions SET first_seq = ?2, retained_bytes = retained_bytes - ?3

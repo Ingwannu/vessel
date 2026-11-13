@@ -7853,11 +7853,12 @@ agent.
 | | agent-orchestrator | GOAT | Paseo |
 | --- | --- | --- | --- |
 | Over | finished chat messages (external-content FTS5, `porter unicode61`) | finished messages (contentless FTS5, `trigram remove_diacritics 1`) | titles, branches, project names only ("never an incomplete subset of transcripts"); in-session find apart |
-| Words | all must match, the last by prefix; if none matches, any may | all, as substrings; words under three characters (two-syllable Hangul) scan the newest 20,000 messages | typo-tolerant over names |
+| Words | all must match, the last by prefix; if none matches, any may | all, as substrings; one two-character CJK word sends the whole query to a scan of the newest 20,000 messages; Latin words under three characters only narrow; no word of three characters (and no CJK) finds nothing | typo-tolerant over names |
 | Order | bm25, by recency past 2,000 matches | its own ranking over at most 2,000 hits | by score |
 | Page | 8 hits, no paging | 50 matches, 2,000 hits read, 10,000 candidates | all |
 | Snippet | 24 tokens, matches wrapped in control characters | 240 characters, the match 24 in | none |
 | A message still being written | not indexed until it ends | not indexed until it ends | – |
+| Left out | cancelled and rolled-back turns, other branches | generated notices, attachment placeholders, subagent threads, archived threads | – |
 
 Vessel takes GOAT's tokenizer (substrings, so a Korean word with its
 particle and an identifier inside a longer one are both found), both
@@ -7884,29 +7885,23 @@ plans, permissions, questions, terminal output and harness logs are not
 indexed: they are what the agent did, not what was said, and a tool's
 output would drown every word in file contents.
 
-**The index** (schema 13, `vessel-store`, ADR 0037):
+**The index** (schema 13, `vessel-store`, ADR 0037; amended by the
+review below):
 
 - `search_messages (id INTEGER PRIMARY KEY, session_id, seq, role, at,
-  text)`: one row a message piece; `id` is the message's time in
+  text, indexed)`: one row a message piece; `id` is the message's time in
   nanoseconds, moved forward past one already taken, so the index's own
-  order is newest first and a page is a walk of it, never a sort.
-- `search_index`: FTS5 over `text`, external content (`search_messages`
-  keeps the text once, for snippets and for the short-word scan),
-  `tokenize = 'trigram remove_diacritics 1'` (case-insensitive).
-- `sessions.search_seq`: the first record the index has not taken in
-  for good (the start of a run still open, else the next record). Every
-  session stored before schema 13 starts at its first record.
-- Built by the store's writer in the transaction that appends the
-  records, from the records it already holds; the run still open is kept
-  in the writer's memory as a cache of `[search_seq, next)`, rebuilt
-  from the log (at most one piece) after a restart or a failed batch.
-- Catching up (sessions stored before schema 13, a session whose index
-  fell behind): the writer, when nothing else is queued, indexes 2,048
-  records a step from `search_seq`, so an upgrade never delays the
-  node's start or its appends by more than one step.
-- Removed with what it indexes: `session.delete` and retention's pruning
-  delete a session's rows; the per-session byte cap's pruning deletes the
-  rows of the records it removes.
+  order is newest first and a page is a walk of it, never a sort. No
+  foreign key: what a removed session or pruned records leave is hidden
+  by a join and deleted later.
+- `search_index`: FTS5 over `text`, external content, `tokenize =
+  'trigram'` (case-insensitive; diacritics kept).
+- `sessions.search_seq` (the next record the index has not read) and
+  `sessions.search_open` (where the run held in memory starts).
+  Every session stored before schema 13 starts at 0.
+- An append's records are read into plain rows inside its savepoint;
+  every FTS5 write and every deletion happens in the writer's idle
+  steps, bounded; sessions stored before schema 13 are caught up there.
 
 **Types** (`vessel_proto::search`, new module):
 
@@ -7936,17 +7931,17 @@ output would drown every word in file contents.
 
 - Forwardable, like every read. Not ownership-checked: an agent reads
   the fleet's sessions (ADR 0013), so it may search them.
-- Every word must be in the message, in any order, as a substring;
-  case-insensitive (the tokenizer's Unicode folding for words of three
-  characters or more; ASCII folding for shorter ones, which SQLite's
-  `lower` does; Hangul has no case).
+- Every word must be in the message (the piece), in any order, as a
+  substring, without case: every candidate is checked by one Rust fold,
+  whichever walk found it.
 - Newest first, by the message's time. `next` is present while older
   messages may still match; a page can hold fewer than `limit` hits and
   still have `next` when a bound below stopped it.
 - `session` keeps the search to one session (`not_found` when unknown).
 - Failures: `invalid_request` (the query or the cursor does not parse),
-  `not_found` (the session), `internal` (the store), `unsupported` on a
-  connection older than 12 ("needs protocol 12").
+  `not_found` (the session), `unavailable` (two searches already run),
+  `internal` (the store), `unsupported` on a connection older than 12
+  ("needs protocol 12").
 
 **Bounds.**
 
@@ -7957,7 +7952,8 @@ output would drown every word in file contents.
 | Candidates read when some word is under three characters (the index finds the longer words, the short ones filter) | 10,000 a page | the page ends, `next` set |
 | A query whose every word is under three characters (no index can serve it) | 20,000 newest messages scanned a page | the page ends, `next` set |
 | An indexed piece | 8 KiB of text or 512 records | the next piece |
-| Catching up | 2,048 records a step, only while the writer is idle | the next step |
+| An idle step | 32 KiB of text and 128 rows taken in or deleted; or 256 records (256 KiB) of a log read; only while the writer's queue is empty | the next step |
+| Searches at once on a node | 2 | `unavailable` |
 
 **Older peers.** A client sends `session.search` only to a node of
 protocol 12 or later (`Call::since`); an older node is a typed "needs
@@ -7968,10 +7964,168 @@ connection. No event and no existing type changes.
 **CLI and agents.** `vessel search <query> [--session <id>] [--limit
 <n>] [--before <cursor>]` (with the usual `--node`), one line a hit:
 session, record, time, role, the snippet with its matches marked, and
-the cursor to go on with; `--json` prints the page. The agent tool
+the cursor to go on with (no other command prints JSON, so this one does
+not either). The agent tool
 `search_sessions { query, session?, limit?, before? }` returns the page.
 
 **What it costs** is measured on a store of tens of thousands of
 messages (in "Track A2: progress"): the index's size beside the log's,
 an append's time with and without it, a query's time for a rare word, a
 common word, a two-character Hangul word, and catching up.
+
+### 1. Search: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against the
+store, the wire and the references, and probed SQLite (the system's
+3.45.1, the contract's schema, one commit per message). Two blockers,
+eight should-fix, three minor. What changed (the code is the amended
+design; ADR 0037 records it):
+
+1. **Blocker: deleting a session's index rows stalled the writer** (6.1 s
+   for a session of 2,000 messages through the cascade and trigger). Now
+   nothing of the index is deleted in the deleting transaction: a query
+   joins `sessions` and its `first_seq`, so rows of a removed session or
+   of pruned records are hidden at once; triggers on `sessions` note what
+   is gone (`search_gone`) and the writer's idle steps delete it, 32 KiB
+   and 128 rows a step. `search_messages` has no foreign key.
+2. **Blocker: indexing in the append** cost 14 ms a commit on average and
+   up to a second with FTS5's merges. Now the append writes plain rows
+   only; every FTS5 write (taking rows in, deleting them, the merges that
+   come with them) happens in idle steps of 32 KiB of text. Measured:
+   the appends' median and tails are the same with the index as without
+   ("Track A2: progress").
+3. **Catch-up**: the cursor is two columns (`search_seq`, the next record
+   not read; `search_open`, the start of the run held in memory), so a
+   session mid-reply is never "behind". A step that fails or finds
+   nothing stops the steps until the next commit (no spinning). A step
+   is bounded by bytes as well as records (256 records or 256 KiB). An
+   append to a session still behind indexes nothing; the steps reach its
+   end and hand the open run over to the appends.
+4. **An indexing failure fails the append**: indexing now runs in a
+   nested savepoint of its own; a failure is logged and left to the idle
+   steps. A run cached for an append whose savepoint rolled back is
+   dropped (taken out before, given back only after).
+5. **The FTS5 query**: every word goes in as a quoted string; a word
+   under three characters never goes in (it would match everything).
+   Every candidate is checked again in Rust, so the index only narrows.
+6. **Three foldings**: one now. The tokenizer folds case only
+   (`remove_diacritics` dropped), and Rust's per-character fold (lower
+   case when that is one character, never a change of length) checks
+   every candidate and marks every snippet, so a hit always has its words
+   marked. Diacritics and Unicode normalisation are not folded (ADR 0037
+   says why: a table of Vessel's own would be needed to agree with the
+   tokenizer).
+7. **Unbounded work**: a search kept to one session walks that session's
+   rows (its index), bounded like a scan; every walk counts what it reads
+   and stops at its bound; at most two searches run at once on a node
+   (`unavailable`).
+8. **The cursor**: `next` is the last piece read, so a page that ran out
+   moves on; `reached` (new) is that piece's time, so a client merging
+   machines knows how far a short page looked. Rows indexed later above a
+   cursor are seen only by a new search (said in `PROTOCOL.md`).
+9. **Pieces**: cut after white space near 8 KiB; matching is per piece
+   (said); the 512-record bound counts every record in a run's span, not
+   only its chunks.
+10. **The references**: GOAT's row corrected, and what each leaves out
+    added. Vessel indexes every prompt, including the node's own (a pull
+    request's feedback, a schedule's prompt): they are what the agent was
+    told. Messages a later rewind removes are the rewind slice's to hide.
+11. **Disk**: measured; the index does not count toward retention's caps.
+12. **Time as the id**: replayed and imported messages carry the time
+    they were logged; a clock stepping back sorts new messages lower
+    (said in ADR 0037).
+13. **Prune**: a run whose start was pruned now starts after it (the
+    cache no longer matches the row and is read again); recovery's
+    `interrupted` records are left to the idle steps; titles are not
+    searched (the client has them).
+
+Rejected, and why:
+
+- **A `unicode61` side index for two-syllable Hangul** (review item 12).
+  Measured, a common two-character word is found in under a millisecond
+  by the scan (it stops at its page); only a word that matches nothing
+  reads the whole bound (about 130 ms). A second index would double the
+  index's size for that case.
+- **A progress-handler time budget on the reader** (item 7). FTS5's work
+  between two rows is not interruptible by it, and every walk already
+  counts its rows; the two-at-once bound caps what a caller can hold.
+- **Rebuilding the index on demand** (item 4's repair path). The index is
+  derived: deleting `search_messages` and resetting the cursors makes the
+  idle steps build it again, which is what the measurement does.
+
+
+## Track A2: progress
+
+### 1. Search every session's messages (built 2026-11-13)
+
+Protocol 12 raised (`PROTOCOL_VERSION` 12, range 2..=12), schema 13, ADR
+0037. The design is the contract as its review amended it (above).
+
+- **Wire** (`vessel_proto::search`): `session.search` (read, `since 12`,
+  forwardable, allowed through `vessel-web`'s bridge and to agents),
+  `SearchQuery`, `SearchLimit`, `SearchCursor` (aliases classified:
+  handle, plain, quantity), `SearchHit`, `Snippet` as typed parts,
+  `SearchPage { hits, next?, reached? }`.
+- **Store** (`vessel-store/src/search/`): `said` (what a record is to the
+  index), `index` (the append's side: runs, pieces, the cursor, a nested
+  savepoint), `idle` (the writer's idle steps: take in, delete what is
+  gone, catch up), `query` (the walks and their bounds; the index's walk
+  merged with the rows it has not taken in yet, so a message is found the
+  moment it is written), `snippet` (one fold, the window, the marks).
+  `Store::search`, `Store::indexed`.
+- **Node**: `service/search.rs` (a named session must exist; two
+  searches at once).
+- **CLI**: `vessel search <words> [--session] [--limit] [--before]`.
+- **Agents**: `search_sessions`.
+
+**Checked**: unit tests (record classes, pieces cut after white space,
+snippets with Hangul inside words, the quoting of a person's words, every
+walk an index walk without a sort); the store's (a reply found once it
+ends and split over two appends, short and Hangul words, paging newest
+first without a gap or a repeat over 26 hits in pages of 10, pieces of a
+long message, deletion and retention hiding and then deleting rows with
+the FTS5 integrity check passing, a reply cut by a restart indexed whole,
+a schema-12 database caught up while idle; the older-schema migration
+tests now walk through 13); the node's end to end (two sessions asked
+through the fake agent, found after a restart with their records and
+roles, a Hangul word, one session's, an unknown session `not_found`, an
+agent searching, a protocol-11 connection refused `unsupported`); the
+CLI's line and the tool's arguments.
+
+**Measured** (`cargo test -p vessel-store --release --test search_measure --
+--ignored --nocapture`; the shared 16-core machine, load average 2 to 16
+during the runs; two stores fed the same 220,000 appends one at a time,
+100 sessions of 100 turns of a prompt, 20 reply chunks and a turn's end,
+20,000 messages; in one the replies are `thought_chunk`, which the index
+passes over):
+
+| What | With the index | Without |
+| --- | --- | --- |
+| An append: median, p99, p99.9, max | 107 µs, 1.6 ms, 41 ms, 271 ms | 104 µs, 1.2 ms, 47 ms, 251 ms |
+| Idle work left after the last append | none (1 µs) | – |
+| The database | 76.1 MiB | 49.7 MiB |
+
+The appends are the same within the machine's noise (three runs: the
+"without" store was the slower in two). Queries on the 20,000 messages
+(20 runs each, median and max): a rare word 1.0 ms, 3.8 ms; a common one
+1.2 ms, 2.2 ms; two words 1.5 ms, 3.4 ms; a two-character Hangul word
+(the plain walk, stopping at its page) 0.57 ms, 0.65 ms; the same with a
+second word 0.62 ms, 0.74 ms; a two-letter word that matches nothing
+(its whole bound, 20,000 messages) 126 ms, 143 ms (740 ms in a run under
+load); one session's 0.57 ms, 0.82 ms. Catching up the whole store from
+nothing (as after an upgrade) took 13.6 s while idle; appends to another
+session meanwhile waited a median of 1 to 4 ms, p99 50 to 360 ms, at
+most 450 ms (each waits for at most one step; the first steps were
+longer). The bounds of an idle step were halved twice from 2,048 records
+and 256 KiB to these after the first measurement showed appends waiting
+up to 100 ms a step during a catch-up.
+
+**Not built, and why**: diacritics and Unicode normalisation are not
+folded (ADR 0037); titles are not searched (clients have them); hits are
+per piece, not merged per message.
+
+**For the page track**: a hit opens its session at `seq` (`session.read`
+from there); `next` with fewer hits than asked means "the node looked
+this far" (`reached`), not "no more"; a machine older than 12 answers
+"needs protocol 12", so search is offered per machine; `unavailable`
+means ask again.

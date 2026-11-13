@@ -297,9 +297,75 @@ CREATE TABLE hook_keys (
 ) STRICT, WITHOUT ROWID;
 ";
 
+/// Version 13 (milestone 11, protocol 12, track A2): the index of what was
+/// said in every session (ADR 0037; see `search`).
+///
+/// - `search_messages`: one row a message piece (a prompt, or a run of the
+///   agent's reply chunks, at most 8 KiB of text a piece). `id` is the
+///   piece's time in nanoseconds, moved forward past one already taken, so
+///   walking it by `id` is newest first. `seq` is the record where the
+///   piece's run starts; `role` is `prompt` or `reply`; `indexed` says
+///   whether `search_index` has it yet. No foreign key: a removed
+///   session's rows are hidden at once (a search joins `sessions` and its
+///   `first_seq`) and deleted later, a bounded step at a time, so removing
+///   a session never waits on the index.
+/// - `search_index`: FTS5 over `text`, external content (the text is kept
+///   in `search_messages`), trigram tokens without case. Fed and pruned
+///   only by the writer's idle steps, never inside an append.
+/// - `search_gone`: what the idle steps still have to delete: a session's
+///   rows through `through` (the session gone: every row). Filled by the
+///   two triggers on `sessions`, so every way a session or its records are
+///   removed (deleting it, retention) is covered.
+/// - `sessions.search_seq`: the next record the index has not read;
+///   `sessions.search_open`: where the run it has read but not yet written
+///   starts (a reply still arriving), or `NULL`. Every session stored
+///   before this version starts at 0 and is caught up by the idle steps
+///   (`sessions_search_behind` finds them).
+const V13: &str = "
+ALTER TABLE sessions ADD COLUMN search_seq INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sessions ADD COLUMN search_open INTEGER;
+CREATE INDEX sessions_search_behind ON sessions (created_at) WHERE search_seq < next_seq;
+
+CREATE TABLE search_messages (
+    id         INTEGER PRIMARY KEY,
+    session_id TEXT    NOT NULL,
+    seq        INTEGER NOT NULL,
+    role       TEXT    NOT NULL CHECK (role IN ('prompt', 'reply')),
+    at         INTEGER NOT NULL,
+    text       TEXT    NOT NULL,
+    indexed    INTEGER NOT NULL DEFAULT 0
+) STRICT;
+
+CREATE INDEX search_messages_session ON search_messages (session_id, id);
+CREATE INDEX search_messages_pending ON search_messages (id) WHERE indexed = 0;
+
+CREATE VIRTUAL TABLE search_index USING fts5(
+    text,
+    content = 'search_messages',
+    content_rowid = 'id',
+    tokenize = 'trigram'
+);
+
+CREATE TABLE search_gone (
+    session_id TEXT    NOT NULL PRIMARY KEY,
+    through    INTEGER NOT NULL
+) STRICT, WITHOUT ROWID;
+
+CREATE TRIGGER sessions_search_gone AFTER DELETE ON sessions BEGIN
+    INSERT INTO search_gone (session_id, through) VALUES (old.id, 9223372036854775807)
+    ON CONFLICT (session_id) DO UPDATE SET through = excluded.through;
+END;
+
+CREATE TRIGGER sessions_search_pruned AFTER UPDATE OF first_seq ON sessions
+WHEN new.first_seq > old.first_seq BEGIN
+    INSERT INTO search_gone (session_id, through) VALUES (new.id, new.first_seq - 1)
+    ON CONFLICT (session_id) DO UPDATE SET through = max(through, excluded.through);
+END;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
