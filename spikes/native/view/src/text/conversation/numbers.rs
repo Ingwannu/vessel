@@ -5,7 +5,8 @@
 
 use chrono::{DateTime, FixedOffset, Utc};
 
-use crate::{Lang, Text};
+use super::ConversationWords;
+use crate::Lang;
 
 /// `count` with thousands grouped by commas: `1,234,567` (`en-US`, which
 /// the page's turn line uses in both languages).
@@ -83,7 +84,7 @@ pub fn meter_tokens(count: u64) -> String {
     }
 }
 
-impl Text {
+impl ConversationWords {
     /// A duration in milliseconds, short: `40 ms`, `1.2 s`, `2 m 5 s`.
     #[must_use]
     pub fn duration(&self, ms: u64) -> String {

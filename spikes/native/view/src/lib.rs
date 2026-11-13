@@ -29,4 +29,6 @@ pub use links::is_web_url;
 pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
-pub use text::{Lang, OptionsText, Text, UpdateText};
+pub use text::{
+    ConversationWords, Lang, OptionsText, Text, UpdateText, grouped, meter_tokens, short_tokens,
+};

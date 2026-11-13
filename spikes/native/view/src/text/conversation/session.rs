@@ -9,12 +9,13 @@ use std::fmt::Write as _;
 use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
 use vessel_proto::{InvalidTitle, SessionTitle};
 
+use super::ConversationWords;
 use super::numbers::meter_tokens;
+use crate::Lang;
 use crate::session::MarkAction;
-use crate::timeline::meter::{Fullness, Meter};
-use crate::{Lang, Text};
+use crate::timeline::{Fullness, Meter};
 
-impl Text {
+impl ConversationWords {
     /// The find bar's count: "3/12" (agent-orchestrator's and GOAT's), or
     /// "No results".
     #[must_use]

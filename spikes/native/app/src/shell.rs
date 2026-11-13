@@ -124,12 +124,12 @@ impl Shell {
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
+            Event::Acted(answer) => self.acted(answer, cx),
             Event::Options {
                 machine,
                 harness,
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
-            Event::Acted(answer) => self.acted(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

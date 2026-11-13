@@ -41,9 +41,6 @@ mod rows;
 mod runs;
 mod usage;
 mod window;
-pub mod words;
-
-pub use words::{grouped, meter_tokens, short_tokens};
 
 pub use approval::{Answers, Settled, allows, answers_of, settled};
 pub use entry::{

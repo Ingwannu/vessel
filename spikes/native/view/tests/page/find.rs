@@ -203,7 +203,7 @@ fn a_find_over_5000_entries_stays_well_under_a_frame_once_folded() {
         })
         .collect();
     warm.sort();
-    let median = warm[warm.len().div_euclid(2)];
+    let median = warm[warm.len().checked_div(2).unwrap()];
     // The slices the screen runs: the longest one, cold.
     let mut fresh = FindCache::default();
     let mut finder = Finder::new("suite again");

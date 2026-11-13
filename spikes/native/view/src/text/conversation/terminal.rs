@@ -2,12 +2,13 @@
 //! link confirm (the page's `features/session/terminal-view.tsx`,
 //! `data/models.ts`'s `usageLine`, `data/links.ts`).
 
+use super::ConversationWords;
 use super::numbers::short_tokens;
+use crate::Lang;
 use crate::terminal::Liveness;
 use crate::timeline::ModelUsage;
-use crate::{Lang, Text};
 
-impl Text {
+impl ConversationWords {
     /// A session's model calls in one line: `3 model calls · 1.2k in ·
     /// 300 out`, failures counted when there are any.
     #[must_use]

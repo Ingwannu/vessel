@@ -211,6 +211,8 @@ pub enum Event {
     },
     /// Pairing failed; the words to show beside the form.
     PairFailed(String),
+    /// A session act's answer.
+    Acted(ActAnswer),
     /// What an agent offers, or why the node could not say.
     Options {
         /// The machine.
@@ -220,8 +222,6 @@ pub enum Event {
         /// Its options in its order, or the words of the failure.
         outcome: Result<Vec<SessionOption>, String>,
     },
-    /// A session act's answer.
-    Acted(ActAnswer),
     /// Something failed; the words to show.
     Failed(String),
 }
