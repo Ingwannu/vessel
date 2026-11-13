@@ -72,7 +72,7 @@ pub(crate) fn sidebar(
     match route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
         Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
-            areas::sidebar::render(shell, tokens, cx).into_any_element()
+            areas::sidebar::render(shell, tokens, false, cx).into_any_element()
         }
     }
 }

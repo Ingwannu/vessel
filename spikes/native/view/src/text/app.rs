@@ -31,7 +31,12 @@ pub struct Text {
     pub add_machine: &'static str,
     pub no_machines: &'static str,
     pub online: &'static str,
+    /// A machine's state beside its name in the sidebar when it did not
+    /// answer (the transport's own text is only the tooltip's detail).
     pub unreachable: &'static str,
+    /// The line under an unreachable machine's name in the sidebar, and
+    /// its row's detail in the composer's machine list: what to do.
+    pub unreachable_hint: &'static str,
     pub reload: &'static str,
     // The board.
     pub building: &'static str,
@@ -314,6 +319,7 @@ const EN: Text = Text {
     no_machines: "No machines yet. Add one to begin.",
     online: "online",
     unreachable: "unreachable",
+    unreachable_hint: "Check that the machine is on and its node is running.",
     reload: "reload",
     building: "Building",
     validating: "Validating",
@@ -377,7 +383,8 @@ const KO: Text = Text {
     add_machine: "머신 추가",
     no_machines: "아직 머신이 없습니다. 머신을 추가해 시작하세요.",
     online: "연결됨",
-    unreachable: "연결 안 됨",
+    unreachable: "연결할 수 없음",
+    unreachable_hint: "머신이 켜져 있고 노드가 실행 중인지 확인하세요.",
     reload: "새로고침",
     building: "작업 중",
     validating: "검증 중",

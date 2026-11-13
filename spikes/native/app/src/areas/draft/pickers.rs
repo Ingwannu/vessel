@@ -885,9 +885,11 @@ fn machine_rows(shell: &Shell, query: &str, tokens: &Tokens, built: &mut Built) 
             Reach::Online => tokens.st_ready,
             Reach::Unreachable(_) => tokens.danger,
         }));
-        if let Reach::Unreachable(why) = &machine.reach {
+        // The app's words, not the transport's (the sidebar's tooltip
+        // keeps those).
+        if matches!(machine.reach, Reach::Unreachable(_)) {
             row.disabled = true;
-            row.detail = Some(why.clone().into());
+            row.detail = Some(shell.t.unreachable_hint.into());
         }
         row.checked = shell.areas.draft.machine.as_deref() == Some(machine.name.as_str());
         built.rows.push(row);
