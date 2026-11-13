@@ -170,5 +170,9 @@ debug = "line-tables-only"
 # GPUI's Windows platform with its build script corrected for a build on
 # another system, and Direct Manipulation made optional
 # (spikes/release/patches/README.md). Only Windows builds compile it.
+# GPUI's Linux platform with one XIM input context per window, focused and
+# unfocused with it (Hangul stays on across a switch of windows; the same
+# README). Only Linux and FreeBSD builds compile it.
 [patch.crates-io]
 gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
+gpui-pre-linux = { path = "../release/patches/gpui-pre-linux" }
