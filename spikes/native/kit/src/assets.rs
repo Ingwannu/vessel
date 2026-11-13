@@ -93,6 +93,8 @@ pub enum Glyph {
     Copy,
     /// Appearance (a painter's palette, Paseo's `Palette`).
     Palette,
+    /// Diagnostics: an original stethoscope on the shared 24-unit line grid.
+    Stethoscope,
     /// Shortcuts (a keyboard, Paseo's `Keyboard`).
     Keyboard,
     /// Notifications (a bell, Paseo's `Bell`).
@@ -170,7 +172,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 69] = [
+const ALL: [Glyph; 70] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -204,6 +206,7 @@ const ALL: [Glyph; 69] = [
     Glyph::Gear,
     Glyph::Copy,
     Glyph::Palette,
+    Glyph::Stethoscope,
     Glyph::Keyboard,
     Glyph::Bell,
     Glyph::Sparkles,
@@ -292,6 +295,7 @@ impl Glyph {
             Self::Gear => "kit/gear.svg",
             Self::Copy => "kit/copy.svg",
             Self::Palette => "kit/palette.svg",
+            Self::Stethoscope => "kit/stethoscope.svg",
             Self::Keyboard => "kit/keyboard.svg",
             Self::Bell => "kit/bell.svg",
             Self::Sparkles => "kit/sparkles.svg",
@@ -426,6 +430,10 @@ impl Glyph {
             ),
             Self::Palette => line_glyph!(
                 r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#
+            ),
+            // Original tubing/earpiece drawing in the kit's 24/1.5 line style.
+            Self::Stethoscope => line_glyph!(
+                r#"<path d="M5 3.75v5a4.25 4.25 0 0 0 8.5 0v-5M3.5 4.5h3M12 4.5h3M9.25 13v3a4.625 4.625 0 0 0 9.25 0v-2.25"/><circle cx="18.5" cy="11.5" r="2.25"/>"#
             ),
             Self::Keyboard => line_glyph!(
                 r#"<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>"#
@@ -845,5 +853,43 @@ mod transfer_glyph_tests {
         }
         assert_eq!(Glyph::ArrowUp.path(), "kit/arrow-up.svg");
         assert_eq!(Glyph::Update.path(), "kit/update.svg");
+    }
+}
+
+#[cfg(test)]
+mod diagnostics_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    #[test]
+    fn stethoscope_loads_and_clears_edges_at_both_sidebar_sizes() {
+        let glyph = Glyph::Stethoscope;
+        assert_eq!(glyph.path(), "kit/stethoscope.svg");
+        assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        assert_eq!(
+            Assets.list(glyph.path()).unwrap(),
+            vec![gpui::SharedString::from(glyph.path())]
+        );
+        let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        for size in [16_u16, 20, 24] {
+            let side = u32::from(size);
+            let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::from_scale(
+                    f32::from(size) / 24.0,
+                    f32::from(size) / 24.0,
+                ),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+            let edge = side.checked_sub(1).unwrap();
+            for at in 0..side {
+                for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0);
+                }
+            }
+        }
     }
 }

@@ -191,6 +191,9 @@ It uses the existing CircleCheck16 and fixed palette GREEN_500 (#22c55e),
 both themes, at disabled opacity0.5 and without activation or hover. The
 caller owns result timing/reset; no second success alert is added.
 
+Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
+consumed at16 for pointer and20 for compact settings navigation.
+
 ## Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
