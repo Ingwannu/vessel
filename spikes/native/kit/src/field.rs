@@ -175,6 +175,16 @@ impl TextField {
         self.set_text("", window, cx);
     }
 
+    /// Its focus handle: to hear it lose the keys (a title edited in
+    /// place saves when the person leaves the field).
+    #[must_use]
+    pub fn focus_handle(&self, cx: &App) -> gpui::FocusHandle {
+        match &self.kind {
+            Kind::Line(state) => state.read(cx).focus_handle(cx),
+            Kind::Lines(state) => state.read(cx).focus_handle(cx),
+        }
+    }
+
     /// Give it the keys.
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         let handle = match &self.kind {

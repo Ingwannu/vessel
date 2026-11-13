@@ -27,6 +27,7 @@ mod bar;
 mod bench;
 mod entries;
 mod look;
+mod rename;
 mod timeline;
 mod tool;
 
@@ -104,6 +105,8 @@ pub(crate) struct ConversationArea {
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
+    /// The title, while it is renamed in place.
+    pub(crate) rename: Option<rename::Rename>,
     /// The scrolling measurement, when it is on.
     bench: bench::Bench,
 }
@@ -124,6 +127,7 @@ impl ConversationArea {
             menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
+            rename: None,
             bench: bench::Bench::default(),
         }
     }
@@ -158,6 +162,7 @@ impl Shell {
         area.refused = None;
         area.menu.close();
         area.confirm = None;
+        area.rename = None;
         self.command(Command::Act {
             machine: machine.to_owned(),
             session,
