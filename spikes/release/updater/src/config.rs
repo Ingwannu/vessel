@@ -7,7 +7,7 @@
 //!
 //! | variable                | what                                   |
 //! |-------------------------|----------------------------------------|
-//! | `VESSEL_APP_LABEL`      | the build's label (`0.0.0.0.1`)        |
+//! | `VESSEL_BUILD_LABEL`    | the build's label (`0.0.0.0.1`)        |
 //! | `VESSEL_UPDATE_FEED`    | the feed's base (`https://...`)        |
 //! | `VESSEL_UPDATE_KEY`     | the release key's public base64 line   |
 //! | `VESSEL_UPDATE_CHANNEL` | the channel, `preview` when unset      |
@@ -29,14 +29,14 @@ use crate::{
 /// The label compiled in; `None` for a development build.
 #[must_use]
 pub fn build_label() -> Option<Label> {
-    option_env!("VESSEL_APP_LABEL").and_then(|text| text.parse().ok())
+    option_env!("VESSEL_BUILD_LABEL").and_then(|text| text.parse().ok())
 }
 
 /// Why the compiled-in settings do not parse (`build.rs` refuses these at
 /// build time, so this is only reached by a build that skipped it).
 #[derive(Debug, thiserror::Error)]
 pub enum SettingsError {
-    /// `VESSEL_APP_LABEL` is not a label.
+    /// `VESSEL_BUILD_LABEL` is not a label.
     #[error("the build's label does not parse")]
     Label(#[source] LabelError),
     /// `VESSEL_UPDATE_FEED` is not a feed's address.
@@ -58,7 +58,7 @@ pub enum SettingsError {
 /// [`SettingsError`] when a setting was given but does not parse.
 pub fn settings_from_build() -> Result<Option<Settings>, SettingsError> {
     let (Some(label), Some(feed), Some(key), Some(target)) = (
-        option_env!("VESSEL_APP_LABEL"),
+        option_env!("VESSEL_BUILD_LABEL"),
         option_env!("VESSEL_UPDATE_FEED"),
         option_env!("VESSEL_UPDATE_KEY"),
         Target::current(),

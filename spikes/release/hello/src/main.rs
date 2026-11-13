@@ -24,7 +24,7 @@ use gpui::{
 
 /// The build's display label (`0.0.0.0.1`, ...), set by the release
 /// script; not the crate's version, which stays `0.0.0` in a spike.
-const LABEL: &str = match option_env!("VESSEL_APP_LABEL") {
+const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
     Some(label) => label,
     None => "dev",
 };

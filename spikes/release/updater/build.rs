@@ -13,7 +13,7 @@ type Check = fn(&str) -> bool;
 
 fn main() {
     for name in [
-        "VESSEL_APP_LABEL",
+        "VESSEL_BUILD_LABEL",
         "VESSEL_UPDATE_FEED",
         "VESSEL_UPDATE_KEY",
         "VESSEL_UPDATE_CHANNEL",
@@ -21,7 +21,7 @@ fn main() {
         println!("cargo::rerun-if-env-changed={name}");
     }
     let checks: [(&str, Check); 4] = [
-        ("VESSEL_APP_LABEL", label),
+        ("VESSEL_BUILD_LABEL", label),
         ("VESSEL_UPDATE_FEED", feed),
         ("VESSEL_UPDATE_KEY", key),
         ("VESSEL_UPDATE_CHANNEL", channel),

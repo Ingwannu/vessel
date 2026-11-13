@@ -124,3 +124,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # numbers in the report are taken from this build. Symbols kept, as there.
 lto = "fat"
 codegen-units = 1
+
+# GPUI's Windows platform with its build script corrected for a build on
+# another system, and Direct Manipulation made optional
+# (spikes/release/patches/README.md). Only Windows builds compile it.
+[patch.crates-io]
+gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
