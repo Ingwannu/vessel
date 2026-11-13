@@ -22,6 +22,7 @@
 mod entries;
 mod numbers;
 mod session;
+mod terminal;
 
 pub use numbers::{grouped, meter_tokens, short_tokens};
 

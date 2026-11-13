@@ -7,6 +7,7 @@ mod outline;
 mod rows;
 mod session;
 mod support;
+mod terminal;
 mod timeline;
 mod window;
 mod words;
