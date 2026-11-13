@@ -153,6 +153,11 @@ targets!(
     vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
     vessel_proto::conversation::BeginUpload,
+    // Protocol 11: opening, merging and the feedback switch act on a
+    // session's branch and its conversation.
+    vessel_proto::forge::OpenPullRequest,
+    vessel_proto::forge::MergePullRequest,
+    vessel_proto::forge::SetFeedback,
 );
 
 // `session.create` is limited by `agents` instead (count and depth), and so
@@ -253,6 +258,28 @@ untargeted!(
     vessel_proto::workspace::DeletePath,
     vessel_proto::workspace::FindFiles,
     vessel_proto::workspace::SearchFiles,
+    // Protocol 11: reads; `pr.get`'s refresh is held to ownership by the
+    // service (ADR 0029).
+    vessel_proto::forge::GetForgeStatus,
+    vessel_proto::forge::ListPullRequests,
+    vessel_proto::forge::GetPullRequest,
+    // Protocol 11 (ADR 0031): a terminal names a session it is beside, not
+    // one it operates; who may open one and use it is the terminals' rule
+    // (`service::terminals`), which checks an agent's ownership of the
+    // session it opens one beside.
+    vessel_proto::terminals::CreateTerminal,
+    vessel_proto::terminals::ListTerminals,
+    vessel_proto::terminals::GetTerminal,
+    vessel_proto::terminals::ReadTerminal,
+    vessel_proto::terminals::SubscribeTerminal,
+    vessel_proto::terminals::SendTerminal,
+    vessel_proto::terminals::RenameTerminal,
+    vessel_proto::terminals::KillTerminal,
+    vessel_proto::terminals::CloseTerminal,
+    vessel_proto::scripts::ListScripts,
+    vessel_proto::scripts::RunScript,
+    vessel_proto::scripts::RestartScript,
+    vessel_proto::ports::ListPorts,
 );
 
 guarded! {
@@ -348,6 +375,12 @@ guarded! {
     delete_path: vessel_proto::workspace::DeletePath => Ack;
     find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
     search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
+    forge_status: vessel_proto::forge::GetForgeStatus => vessel_proto::forge::ForgeStatus;
+    list_pull_requests: vessel_proto::forge::ListPullRequests => vessel_proto::forge::PullRequestList;
+    get_pull_request: vessel_proto::forge::GetPullRequest => vessel_proto::forge::PullRequestView;
+    open_pull_request: vessel_proto::forge::OpenPullRequest => vessel_proto::forge::OpenOutcome;
+    merge_pull_request: vessel_proto::forge::MergePullRequest => vessel_proto::forge::MergeOutcome;
+    set_feedback: vessel_proto::forge::SetFeedback => vessel_proto::forge::SessionPullRequest;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;
@@ -358,6 +391,19 @@ guarded! {
     lsp_incoming_calls: vessel_proto::lsp::IncomingCalls => vessel_proto::lsp::Page<vessel_proto::lsp::Call>;
     lsp_outgoing_calls: vessel_proto::lsp::OutgoingCalls => vessel_proto::lsp::Page<vessel_proto::lsp::Call>;
     lsp_diagnostics: vessel_proto::lsp::Diagnostics => vessel_proto::lsp::Page<vessel_proto::lsp::Diagnostic>;
+    create_terminal: vessel_proto::terminals::CreateTerminal => vessel_proto::terminals::TerminalInfo;
+    list_terminals: vessel_proto::terminals::ListTerminals => vessel_proto::terminals::TerminalList;
+    get_terminal: vessel_proto::terminals::GetTerminal => vessel_proto::terminals::TerminalInfo;
+    read_terminal: vessel_proto::terminals::ReadTerminal => EventPage;
+    subscribe_terminal: vessel_proto::terminals::SubscribeTerminal => vessel_proto::terminals::TerminalSubscribed;
+    send_terminal: vessel_proto::terminals::SendTerminal => Ack;
+    rename_terminal: vessel_proto::terminals::RenameTerminal => vessel_proto::terminals::TerminalInfo;
+    kill_terminal: vessel_proto::terminals::KillTerminal => Ack;
+    close_terminal: vessel_proto::terminals::CloseTerminal => Ack;
+    list_scripts: vessel_proto::scripts::ListScripts => vessel_proto::scripts::ScriptList;
+    run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
+    restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
+    list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
 
     @through_the_guard {
         forward: Forward => Forwarded;

@@ -14,6 +14,7 @@ use vessel_proto::{
 
 use crate::activity::Tracker;
 use crate::conversation::Seen;
+use crate::forge::ForgeView;
 use crate::handle::Shared;
 
 /// The actor's write side of a session.
@@ -85,6 +86,11 @@ impl Publisher {
     /// The session it publishes for.
     pub(crate) fn session(&self) -> SessionId {
         self.shared.id
+    }
+
+    /// The session's program is now `pid` (a move started another agent).
+    pub(crate) fn running(&self, pid: u32) {
+        self.shared.pid.store(pid, Ordering::Release);
     }
 
     /// Number `event`, hand it to the store, append it to the ring,
@@ -166,6 +172,26 @@ impl Publisher {
         let board = self.activity.board(Utc::now());
         let _notified = self.info.send_if_modified(|info| place(info, board));
     }
+
+    /// What the node knows of the session's pull request now (protocol
+    /// 11, ADR 0029): its summary in the info, its facts in the board.
+    /// Not a record: the log keeps none of a forge (the store places a
+    /// stored session without it). Ignored once the session has ended,
+    /// whose info has none.
+    pub(crate) fn forge(&mut self, view: Option<&ForgeView>) {
+        if self.shared.ended.load(Ordering::Acquire) {
+            return;
+        }
+        self.activity.forge(view);
+        let board = self.activity.board(Utc::now());
+        let summary = view.map(|view| Box::new(view.info.clone()));
+        let _notified = self.info.send_if_modified(|info| {
+            let changed = info.pull_request != summary;
+            info.pull_request = summary;
+            let moved = place(info, board);
+            changed || moved
+        });
+    }
 }
 
 /// Put `board` in `info`; returns whether watchers should be woken.
@@ -236,6 +262,9 @@ impl InfoChange {
             Self::Status(status) => {
                 if !status.is_live() {
                     info.ended_at = Some(at);
+                    // Nothing watches an ended session; the store keeps no
+                    // pull request, so the two agree (ADR 0029).
+                    info.pull_request = None;
                 }
                 info.status = status;
                 true

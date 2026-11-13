@@ -396,6 +396,13 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     };
     let env = HarnessEnv::from_vars(user_home, |name| std::env::var_os(name));
     let mut config = Config::new(dir, env);
+    // Terminals (protocol 11): the shell and the credentials, from this
+    // binary's own environment.
+    config.terminals = vessel_node::TerminalsConfig::detect(
+        |name| std::env::var_os(name),
+        std::env::vars_os().map(|(name, _)| name),
+        |name| config.harness_lookup.find(name),
+    );
     config.bind = match args.bind {
         Bind::Tcp(address) => Some(address),
         Bind::None => None,
@@ -432,6 +439,10 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     config.client_address_header = args.client_address_header;
     config.trusted_proxies = args.trusted_proxies;
     config.vessel_mcp = vessel_beside_me();
+    // Pull requests (ADR 0029): this environment's tokens and the
+    // machine's `gh`, found here (the library reads no environment).
+    config.forge =
+        vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
 
     // Before the node starts, so a hang-up during start-up cannot kill it.
     #[cfg(unix)]

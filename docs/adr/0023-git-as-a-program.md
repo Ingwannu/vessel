@@ -141,3 +141,20 @@ Questions:
   why): a read runs the filters the repository's configuration names,
   and an agent can write that configuration there. A worktree's `.git`
   is checked against its repository's record of it before every call.
+
+## Amended by ADR 0030 (2026-11-12)
+
+- The amendment above left a project's own folder open: ADR 0030 closes
+  it. Before every run in a repository the node lists the repository's
+  own configuration and turns off on the command line every filter and
+  merge driver it defines; it refuses a network, commit or push run whose
+  repository names the `ssh`, proxy, credential helper, upload or receive
+  program, or signing program it would start, and every run whose
+  repository moves its working tree. Filter drivers named only by the
+  user's global configuration (`git lfs install`) still run, as for the
+  user's own `git status`.
+- Every run also gets `--no-pager`, `GIT_SEQUENCE_EDITOR=true`,
+  `GIT_ALLOW_PROTOCOL=file:git:http:https:ssh`, `submodule.recurse=false`
+  and `fetch.recurseSubmodules=false`; every diff `--no-ext-diff
+  --no-textconv`.
+- Clones have a pool of their own (2 at once, 16 waiting).

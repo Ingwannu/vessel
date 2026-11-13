@@ -24,14 +24,16 @@
 
 mod error;
 mod files;
+mod forge;
 mod git;
 mod policy;
 mod projects;
 mod roots;
+mod scripts;
 mod setup;
 mod worktrees;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
@@ -41,7 +43,9 @@ use crate::transfers::Holder;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_proto::workspace::{CommandsDigest, GitSupport, ProjectInfo, WorktreeInfo};
+use vessel_proto::workspace::{
+    ApprovedCommands, CommandSet, CommandsDigest, GitSupport, ProjectInfo, WorktreeInfo,
+};
 use vessel_proto::{Creator, ProjectId, WorktreeId};
 use vessel_store::{Store, StoreError};
 use vessel_workspace::find::Indexes;
@@ -50,7 +54,9 @@ use vessel_workspace::{Git, GitSetup};
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
-pub(crate) use worktrees::{Placed, TidyScope};
+pub(crate) use projects::Occupant;
+pub(crate) use scripts::{DirError, ScriptRoot};
+pub(crate) use worktrees::{Placed, Starting, TidyScope};
 
 /// The most projects, and the most worktrees, one node keeps.
 pub(crate) const MAX_PROJECTS: usize = 1000;
@@ -89,6 +95,10 @@ pub(crate) struct Opening {
     /// Added to git's environment: nothing for a node; the tests' own
     /// configuration, so a developer's settings never change a result.
     pub(crate) git_env: Vec<(String, OsString)>,
+    /// Removed from the environment of setup and teardown (protocol 11):
+    /// what a terminal's loses too (`TerminalsConfig::removed`), since
+    /// both are a repository's commands the node starts.
+    pub(crate) removed: Arc<[OsString]>,
 }
 
 /// Where the node runs and what roots it refuses.
@@ -118,6 +128,9 @@ struct WorktreeEntry {
     written: Arc<watch::Sender<u64>>,
     /// Stops its setup or teardown, while one runs.
     running: Option<CancellationToken>,
+    /// Sessions that passed `place` (or `session.resume`'s check) and are
+    /// not live yet (ADR 0030): a removal counts them as sessions in it.
+    starting: usize,
 }
 
 #[derive(Debug, Default)]
@@ -125,6 +138,14 @@ pub(super) struct State {
     projects: HashMap<ProjectId, ProjectEntry>,
     worktrees: HashMap<WorktreeId, WorktreeEntry>,
     approvals: HashSet<(ProjectId, CommandsDigest)>,
+    /// What the newest approvals of each project covered, newest first,
+    /// at most `vessel_store::MAX_APPROVED_SETS` (protocol 11): the first
+    /// is shown beside a set that is not approved.
+    approved_sets: HashMap<ProjectId, Vec<ApprovedCommands>>,
+    /// The sets described lately, by digest, newest last, at most
+    /// `projects::commands::DESCRIBED`: what an approval of a digest
+    /// covers (the digest is of the set, so one found here is exactly it).
+    described: VecDeque<(CommandsDigest, Arc<CommandSet>)>,
     /// Who is making a worktree now, one entry each, counted with the
     /// worktrees against the limits, so creations at once cannot all pass
     /// the check before any is recorded.
@@ -146,6 +167,8 @@ pub(crate) struct Workspaces {
     searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
     /// Numbers each `file.find`, so one removes only its own entry.
     search_count: AtomicU64,
+    /// Taken out of setup's and teardown's environment (`Opening`).
+    removed: Arc<[OsString]>,
     tasks: TaskTracker,
     stop: CancellationToken,
 }
@@ -168,6 +191,7 @@ impl Workspaces {
             home,
             git,
             git_env,
+            removed,
         } = found;
         let (places, dirs) = tokio::task::spawn_blocking(move || {
             // Absolute, always: git takes `no_hooks` as `core.hooksPath`,
@@ -211,6 +235,7 @@ impl Workspaces {
             indexes: Arc::new(Indexes::default()),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
+            removed,
             tasks,
             stop,
         });

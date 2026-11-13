@@ -6,6 +6,7 @@ use std::fmt::Write as _;
 use std::time::Duration;
 
 use vessel_client::NodeClient;
+use vessel_proto::scripts::ScriptKind;
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateWorktree, CreateWorktreeOutcome, GetProject,
     GetProjectCommands, GitSupport, InitProject, ListProjects, ListSnapshots, ListWorktrees,
@@ -343,7 +344,10 @@ async fn follow(client: &NodeClient, worktree: WorktreeId) -> Result<SetupState,
     }
 }
 
-async fn find_project(client: &NodeClient, given: &str) -> Result<ProjectInfo, CliError> {
+pub(crate) async fn find_project(
+    client: &NodeClient,
+    given: &str,
+) -> Result<ProjectInfo, CliError> {
     let projects = client.call(ListProjects {}).await?.projects;
     let matching: Vec<ProjectInfo> = projects
         .into_iter()
@@ -366,7 +370,7 @@ async fn find_worktree(client: &NodeClient, given: &str) -> Result<WorktreeInfo,
     one(matching, given, "worktree")
 }
 
-fn one<T>(mut matching: Vec<T>, given: &str, what: &str) -> Result<T, CliError> {
+pub(crate) fn one<T>(mut matching: Vec<T>, given: &str, what: &str) -> Result<T, CliError> {
     match matching.len() {
         1 => matching
             .pop()
@@ -378,7 +382,7 @@ fn one<T>(mut matching: Vec<T>, given: &str, what: &str) -> Result<T, CliError> 
     }
 }
 
-fn parse<T: std::str::FromStr>(text: &str, what: &str) -> Result<T, CliError>
+pub(crate) fn parse<T: std::str::FromStr>(text: &str, what: &str) -> Result<T, CliError>
 where
     T::Err: std::fmt::Display,
 {
@@ -386,7 +390,7 @@ where
         .map_err(|error| CliError::Workspace(format!("{what}: {error}")))
 }
 
-async fn out(text: &str) -> Result<(), CliError> {
+pub(crate) async fn out(text: &str) -> Result<(), CliError> {
     Ok(io::out(text.as_bytes()).await?)
 }
 
@@ -458,17 +462,20 @@ fn setup_text(state: &SetupState) -> String {
     }
 }
 
-fn commands_text(commands: &ProjectCommands) -> String {
+pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
     match commands {
         ProjectCommands::None => {
-            "no commands (no vessel.toml, or nothing under [worktree])\n".to_owned()
+            "no commands (no vessel.toml, or nothing under [worktree], [scripts] or [services])\n"
+                .to_owned()
         }
         ProjectCommands::Invalid { message } => format!("vessel.toml cannot be used: {message}\n"),
         ProjectCommands::Listed {
             setup,
             teardown,
+            scripts,
             digest,
             approved,
+            last_approved,
         } => {
             let mut text = String::new();
             for (list, name) in [(setup, "setup"), (teardown, "teardown")] {
@@ -476,11 +483,41 @@ fn commands_text(commands: &ProjectCommands) -> String {
                     let _written = writeln!(text, "{name}: {}", command.as_str());
                 }
             }
+            // Protocol 11: the approval covers the scripts and services
+            // too, so they are shown with the rest (ADR 0031).
+            for script in scripts {
+                let _written = writeln!(
+                    text,
+                    "{} {}: {}{}",
+                    match script.kind {
+                        ScriptKind::Script => "script",
+                        ScriptKind::Service => "service",
+                    },
+                    script.name,
+                    script.command.as_str(),
+                    script
+                        .dir
+                        .as_ref()
+                        .map_or_else(String::new, |dir| format!("  (in {dir})"))
+                );
+            }
             let _written = writeln!(
                 text,
                 "digest: {digest}\napproved: {}",
                 if *approved { "yes" } else { "no" }
             );
+            // Protocol 11: what was approved last, when this set is not.
+            if let Some(last) = last_approved {
+                let _written = writeln!(
+                    text,
+                    "last approved: {} ({}), {} setup, {} teardown, {} scripts and services",
+                    last.digest,
+                    last.approved_at.to_rfc3339(),
+                    last.commands.setup.len(),
+                    last.commands.teardown.len(),
+                    last.commands.scripts.len()
+                );
+            }
             text
         }
     }

@@ -14,7 +14,7 @@ use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
 use crate::waits::Waiter;
-use crate::workspace::Placed;
+use crate::workspace::{Placed, Starting};
 
 impl NodeService {
     /// `worktree.list`.
@@ -81,9 +81,8 @@ impl NodeService {
         _: &Connection,
         request: RemoveWorktree,
     ) -> Result<RemoveWorktreeOutcome, WireError> {
-        let live = self.sessions.live_folders();
         self.workspaces
-            .remove_worktree(request.worktree, request.if_lost, &live)
+            .remove_worktree(request.worktree, request.if_lost, || self.occupied())
             .await
             .map_err(|error| wire(&error))
     }
@@ -127,7 +126,7 @@ impl NodeService {
         &self,
         connection: &Connection,
         spec: &mut SessionSpec,
-    ) -> Result<Vec<String>, WireError> {
+    ) -> Result<(Vec<String>, Option<Starting>), WireError> {
         let Some(place) = spec.place.as_deref() else {
             if connection.principal().agent().is_some()
                 && let Some(cwd) = &spec.cwd
@@ -139,7 +138,7 @@ impl NodeService {
                      nothing else of the node's data folder is a session's folder",
                 ));
             }
-            return Ok(Vec::new());
+            return Ok((Vec::new(), None));
         };
         if spec.cwd.is_some() {
             return Err(WireError::new(
@@ -170,13 +169,17 @@ impl NodeService {
                 self.check_owner(connection.principal(), session).await?;
             }
         }
-        let Placed { cwd, notices } = self
+        let Placed {
+            cwd,
+            notices,
+            starting,
+        } = self
             .workspaces
             .place(place)
             .await
             .map_err(|error| wire(&error))?;
         spec.cwd = Some(cwd);
-        Ok(notices)
+        Ok((notices, starting))
     }
 
     /// `info` with its project, worktree and branch filled from its spec's

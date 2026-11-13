@@ -3324,6 +3324,7 @@ dependencies = [
  "vessel-store",
  "vessel-testkit",
  "vessel-web",
+ "which",
 ]
 
 [[package]]
@@ -3364,6 +3365,25 @@ dependencies = [
  "tracing",
  "unicode-normalization",
  "vessel-harness",
+ "vessel-proto",
+]
+
+[[package]]
+name = "vessel-forge"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "reqwest",
+ "rustls",
+ "rustls-native-certs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "vessel-proc",
  "vessel-proto",
 ]
 
@@ -3482,10 +3502,12 @@ dependencies = [
  "url",
  "vessel-client",
  "vessel-fleet",
+ "vessel-forge",
  "vessel-harness",
  "vessel-llm",
  "vessel-lsp",
  "vessel-mcp",
+ "vessel-proc",
  "vessel-proto",
  "vessel-relay",
  "vessel-rpc",
@@ -3625,13 +3647,16 @@ dependencies = [
  "bytes",
  "chrono",
  "criterion",
+ "nix 0.31.3",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
  "tracing",
  "vessel-agent",
  "vessel-harness",
+ "vessel-proc",
  "vessel-proto",
  "vessel-pty",
  "vessel-testkit",

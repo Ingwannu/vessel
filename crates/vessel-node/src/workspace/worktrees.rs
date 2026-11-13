@@ -19,11 +19,11 @@ use chrono::Utc;
 use vessel_proto::workspace::{SetupFailure, SetupState, WorktreeInfo, WorktreeList};
 use vessel_proto::{ProjectId, WorktreeId};
 
-use super::projects::Live;
+use super::projects::{Live, Occupant};
 use super::setup::note;
 use super::{MAX_WORKTREES, WorkspaceError, Workspaces, WorktreeEntry};
 
-pub(crate) use place::Placed;
+pub(crate) use place::{Placed, Starting};
 pub(crate) use removal::TidyScope;
 
 impl Workspaces {
@@ -51,6 +51,7 @@ impl Workspaces {
                         info,
                         written: Arc::new(written),
                         running: None,
+                        starting: 0,
                     },
                 ));
             }
@@ -96,12 +97,16 @@ impl Workspaces {
     }
 }
 
-/// A worktree's own sessions: the live ones whose folder is in it.
+/// A worktree's own sessions: the live ones whose folder is in it (its
+/// terminals are not sessions, and are listed by `terminal.list`).
 fn with_sessions(mut info: WorktreeInfo, live: &Live) -> WorktreeInfo {
     info.sessions = live
         .iter()
         .filter(|(_, cwd)| cwd.starts_with(&info.path))
-        .map(|(id, _)| *id)
+        .filter_map(|(occupant, _)| match occupant {
+            Occupant::Session(id) => Some(*id),
+            Occupant::Terminal(_) => None,
+        })
         .collect();
     info
 }

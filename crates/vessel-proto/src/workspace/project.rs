@@ -141,6 +141,16 @@ pub enum ProjectCommands {
         digest: CommandsDigest,
         /// Whether a person approved it for this project.
         approved: bool,
+        /// Its scripts and services, in name order (protocol 11, ADR
+        /// 0031); the digest covers them. Left out when there are none.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        scripts: Vec<crate::scripts::ScriptEntry>,
+        /// The set last approved for this project, to show what changed
+        /// (protocol 11): only while this set is not approved, and only
+        /// when the node kept what that approval covered (approvals given
+        /// from protocol 11 on). Bounded as this set is.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_approved: Option<Box<super::ApprovedCommands>>,
     },
     /// The file does not parse; nothing in it runs.
     Invalid {

@@ -5,7 +5,7 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use tokio::sync::broadcast;
-use vessel_proto::{EventRecord, EventSeq};
+use vessel_proto::{EventRecord, EventSeq, SessionEvent};
 
 /// The last `capacity` records of a session and the sender of its live
 /// stream.
@@ -20,6 +20,10 @@ use vessel_proto::{EventRecord, EventSeq};
 pub(crate) struct Ring {
     records: VecDeque<Arc<EventRecord>>,
     capacity: NonZeroUsize,
+    /// A terminal's ring (protocol 11, ADR 0031) is also bounded by the
+    /// output it holds: `Some((most, held))`. A session's is not: the
+    /// store keeps its log, and its ring is a cache of record count.
+    bytes: Option<(usize, usize)>,
     /// Sequence number of the next record (the end of the log).
     next: EventSeq,
     /// `None` once the session has ended, so live receivers see `Closed`
@@ -37,6 +41,23 @@ impl Ring {
         Self {
             records: VecDeque::with_capacity(capacity.get()),
             capacity,
+            bytes: None,
+            next,
+            live: Some(live),
+        }
+    }
+
+    /// A terminal's ring: at most `records` records and `bytes` of output,
+    /// the oldest dropped first (always keeping the newest), and a live
+    /// buffer of [`TERMINAL_LIVE`] records, so a stalled follower holds at
+    /// most that many chunks (16 KiB each at most) before it is told it
+    /// lagged and pages from the ring instead.
+    pub(crate) fn bounded(records: NonZeroUsize, bytes: usize, next: EventSeq) -> Self {
+        let (live, _) = broadcast::channel(TERMINAL_LIVE.min(records.get()).max(1));
+        Self {
+            records: VecDeque::new(),
+            capacity: records,
+            bytes: Some((bytes, 0)),
             next,
             live: Some(live),
         }
@@ -44,8 +65,19 @@ impl Ring {
 
     /// Append the next record (seqs are consecutive) and broadcast it.
     pub(crate) fn append(&mut self, record: Arc<EventRecord>) {
-        if self.records.len() >= self.capacity.get() {
-            drop(self.records.pop_front());
+        if self.records.len() >= self.capacity.get()
+            && let Some(dropped) = self.records.pop_front()
+        {
+            self.unweigh(&dropped);
+        }
+        if let Some((most, held)) = &mut self.bytes {
+            *held = held.saturating_add(weight(&record));
+            while *held > *most && !self.records.is_empty() {
+                let Some(dropped) = self.records.pop_front() else {
+                    break;
+                };
+                *held = held.saturating_sub(weight(&dropped));
+            }
         }
         // The publisher never hands out the last `u64`, so `next` exists.
         self.next = record.seq.next().unwrap_or(record.seq);
@@ -55,6 +87,41 @@ impl Ring {
             drop(live.send(Arc::clone(&record)));
         }
         self.records.push_back(record);
+    }
+
+    /// A dropped record's output no longer counts against the bytes held.
+    fn unweigh(&mut self, record: &EventRecord) {
+        if let Some((_, held)) = &mut self.bytes {
+            *held = held.saturating_sub(weight(record));
+        }
+    }
+
+    /// The oldest record kept, or the end when none is.
+    pub(crate) fn oldest(&self) -> EventSeq {
+        self.records.front().map_or(self.next, |record| record.seq)
+    }
+
+    /// Kept records from `from` (from the oldest when older): at most
+    /// `limit`, and about `max_bytes` of output (always the first).
+    pub(crate) fn page(
+        &self,
+        from: EventSeq,
+        limit: usize,
+        max_bytes: usize,
+    ) -> Vec<Arc<EventRecord>> {
+        let skip =
+            usize::try_from(from.get().saturating_sub(self.oldest().get())).unwrap_or(usize::MAX);
+        let mut taken = 0_usize;
+        let mut page = Vec::new();
+        for record in self.records.iter().skip(skip).take(limit) {
+            let size = weight(record);
+            if !page.is_empty() && taken.saturating_add(size) > max_bytes {
+                break;
+            }
+            taken = taken.saturating_add(size);
+            page.push(Arc::clone(record));
+        }
+        page
     }
 
     /// End the live stream: current and future receivers see `Closed` after
@@ -96,6 +163,26 @@ impl Ring {
             None => broadcast::channel(1).1,
         };
         Ok(Follow { cached, live })
+    }
+}
+
+/// How many records a terminal's live buffer holds (`Ring::bounded`).
+pub(crate) const TERMINAL_LIVE: usize = 64;
+
+/// What a record weighs against a terminal's bound: its output's bytes;
+/// any other record a small constant (a status, a notice).
+fn weight(record: &EventRecord) -> usize {
+    match &record.event {
+        SessionEvent::Terminal(output) => output.data.bytes().len(),
+        SessionEvent::Status { .. }
+        | SessionEvent::Agent { .. }
+        | SessionEvent::ProfileChanged { .. }
+        | SessionEvent::ModelCall(_)
+        | SessionEvent::OptionsChanged { .. }
+        | SessionEvent::Renamed { .. }
+        | SessionEvent::QueueChanged { .. }
+        | SessionEvent::CommandsChanged { .. }
+        | SessionEvent::UsageChanged { .. } => 64,
     }
 }
 
@@ -244,6 +331,38 @@ mod tests {
         ring.append(record(7));
         assert_eq!(seqs(&ring.follow(EventSeq::new(7)).unwrap().cached), [7]);
         assert_eq!(ring.next(), EventSeq::new(8));
+    }
+
+    fn output(seq: u64, bytes: usize) -> Arc<EventRecord> {
+        Arc::new(EventRecord {
+            seq: EventSeq::new(seq),
+            at: DateTime::UNIX_EPOCH,
+            event: SessionEvent::Terminal(vessel_proto::TerminalOutput {
+                data: vessel_proto::TerminalBytes::new(vec![b'x'; bytes].into()),
+            }),
+        })
+    }
+
+    /// A terminal's ring drops its oldest output past its bytes, keeps the
+    /// newest record however large, and pages within a byte budget.
+    #[test]
+    fn a_terminals_ring_is_bounded_by_bytes() {
+        let mut ring = Ring::bounded(NonZeroUsize::new(100).unwrap(), 1000, EventSeq::ZERO);
+        for seq in 0..10 {
+            ring.append(output(seq, 300));
+        }
+        assert_eq!(ring.oldest(), EventSeq::new(7), "3 x 300 bytes fit in 1000");
+        ring.append(output(10, 5000));
+        assert_eq!(ring.oldest(), EventSeq::new(10), "the newest stays");
+        ring.append(output(11, 10));
+        assert_eq!(seqs(&ring.page(EventSeq::ZERO, 10, 1_000_000)), [11]);
+        let mut ring = Ring::bounded(NonZeroUsize::new(100).unwrap(), 10_000, EventSeq::ZERO);
+        for seq in 0..5 {
+            ring.append(output(seq, 100));
+        }
+        assert_eq!(seqs(&ring.page(EventSeq::new(1), 10, 250)), [1, 2]);
+        assert_eq!(seqs(&ring.page(EventSeq::new(1), 1, 1_000_000)), [1]);
+        assert_eq!(seqs(&ring.page(EventSeq::new(4), 10, 1)), [4], "always one");
     }
 
     #[test]

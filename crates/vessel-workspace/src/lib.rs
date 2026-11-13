@@ -23,4 +23,4 @@ mod regular;
 mod testing;
 mod text;
 
-pub use git::{Found, Git, GitError, GitSetup};
+pub use git::{Checkout, Found, Git, GitError, GitSetup, RemoteAddress};

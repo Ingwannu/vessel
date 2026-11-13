@@ -7,8 +7,15 @@
 //! - A worktree is made before its session (the three steps of ADR 0027),
 //!   so the first session started in one made for no session claims it
 //!   (`claim`), and tidying then removes it with that session.
+//! - Between `place`'s check and the session being live, a removal could
+//!   take the folder (wave 1's review, finding 7). The check takes a
+//!   [`Starting`] count on the worktree in the same lock, and the caller
+//!   holds it until the session is live or failed to start; a removal
+//!   counts it as a session in the worktree (ADR 0030). A count, not a
+//!   flag: two sessions may start in one worktree at once.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use vessel_proto::workspace::{
     ProjectState, SessionPlace, SessionWorkspace, SetupFailure, SetupState, WorktreeInfo,
@@ -25,6 +32,25 @@ pub(crate) struct Placed {
     pub(crate) cwd: PathBuf,
     /// The lines its log starts with.
     pub(crate) notices: Vec<String>,
+    /// Held until the session is live (or failed to start), for a place
+    /// in a worktree.
+    pub(crate) starting: Option<Starting>,
+}
+
+/// A session (or, protocol 11, a terminal) starting in a worktree: counted
+/// until dropped, so no removal takes the worktree meanwhile (ADR 0030).
+#[derive(Debug)]
+pub(crate) struct Starting {
+    workspaces: Arc<Workspaces>,
+    worktree: WorktreeId,
+}
+
+impl Drop for Starting {
+    fn drop(&mut self) {
+        if let Some(entry) = self.workspaces.state().worktrees.get_mut(&self.worktree) {
+            entry.starting = entry.starting.saturating_sub(1);
+        }
+    }
 }
 
 impl Workspaces {
@@ -34,7 +60,10 @@ impl Workspaces {
     /// # Errors
     /// `not_found`; `conflict` for a project not ready, a worktree whose
     /// setup runs, or a folder gone.
-    pub(crate) async fn place(&self, place: &SessionPlace) -> Result<Placed, WorkspaceError> {
+    pub(crate) async fn place(
+        self: &Arc<Self>,
+        place: &SessionPlace,
+    ) -> Result<Placed, WorkspaceError> {
         match place {
             SessionPlace::Project { project, dir } => {
                 let (root, name) = {
@@ -71,14 +100,18 @@ impl Workspaces {
                     ));
                 }
                 let notices = vec![format!("vessel: in project {name} ({})", cwd.display())];
-                Ok(Placed { cwd, notices })
+                Ok(Placed {
+                    cwd,
+                    notices,
+                    starting: None,
+                })
             }
             SessionPlace::Worktree { worktree } => {
-                let info = {
-                    let state = self.state();
+                let (info, starting) = {
+                    let mut state = self.state();
                     let entry = state
                         .worktrees
-                        .get(worktree)
+                        .get_mut(worktree)
                         .ok_or(WorkspaceError::UnknownWorktree(*worktree))?;
                     if entry.running.is_some() {
                         return Err(WorkspaceError::Conflict(
@@ -87,7 +120,12 @@ impl Workspaces {
                                 .to_owned(),
                         ));
                     }
-                    entry.info.clone()
+                    entry.starting = entry.starting.saturating_add(1);
+                    let starting = Starting {
+                        workspaces: Arc::clone(self),
+                        worktree: *worktree,
+                    };
+                    (entry.info.clone(), starting)
                 };
                 if !tokio::fs::try_exists(&info.path).await.unwrap_or(false) {
                     return Err(WorkspaceError::Conflict(
@@ -98,19 +136,60 @@ impl Workspaces {
                 Ok(Placed {
                     cwd: info.path,
                     notices,
+                    starting: Some(starting),
                 })
             }
         }
     }
 
-    /// Whether setup, teardown or a removal holds `worktree` now: a
-    /// session does not start in it then (`session.resume` asks, as
-    /// `place` does).
-    pub(crate) fn busy(&self, worktree: WorktreeId) -> bool {
-        self.state()
+    /// A session starting again in `worktree` (`session.resume`): `None`
+    /// while setup, teardown or a removal holds it, else the count a
+    /// removal sees until the session is live (ADR 0030), as `place`
+    /// takes it.
+    pub(crate) fn start_in(self: &Arc<Self>, worktree: WorktreeId) -> Option<Starting> {
+        let mut state = self.state();
+        let entry = state.worktrees.get_mut(&worktree)?;
+        if entry.running.is_some() {
+            return None;
+        }
+        entry.starting = entry.starting.saturating_add(1);
+        Some(Starting {
+            workspaces: Arc::clone(self),
+            worktree,
+        })
+    }
+
+    /// A terminal or a script's run starting in `folder` (protocol 11, ADR
+    /// 0031): when the folder is in a worktree, the count a removal sees
+    /// until the terminal is registered (and from then on is one of the
+    /// live terminals the removal reads), as `place` takes it for a
+    /// session (ADR 0030); `None` when no worktree holds the folder.
+    ///
+    /// # Errors
+    /// `conflict` while setup, teardown or a removal holds the worktree:
+    /// nothing starts under them.
+    pub(crate) fn hold_folder(
+        self: &Arc<Self>,
+        folder: &std::path::Path,
+    ) -> Result<Option<Starting>, WorkspaceError> {
+        let mut state = self.state();
+        let Some(entry) = state
             .worktrees
-            .get(&worktree)
-            .is_some_and(|entry| entry.running.is_some())
+            .values_mut()
+            .find(|entry| folder.starts_with(&entry.info.path))
+        else {
+            return Ok(None);
+        };
+        if entry.running.is_some() {
+            return Err(WorkspaceError::Conflict(
+                "the worktree is being set up, torn down or removed".to_owned(),
+            ));
+        }
+        entry.starting = entry.starting.saturating_add(1);
+        Ok(Some(Starting {
+            workspaces: Arc::clone(self),
+            worktree: entry.info.id,
+        }))
     }
 
     async fn worktree_notices(&self, info: &WorktreeInfo) -> Vec<String> {

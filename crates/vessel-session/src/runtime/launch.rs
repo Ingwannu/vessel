@@ -271,7 +271,12 @@ impl SessionRuntime {
         }
 
         let (begin, notices) = record.begin(spec);
-        let parts = self.parts(begin, notices, Input::Terminal(pty.input()), None);
+        let parts = self.parts(
+            begin,
+            notices,
+            (Input::Terminal(pty.input()), pty.pid()),
+            None,
+        );
         let actor = TerminalActor {
             pty,
             output,

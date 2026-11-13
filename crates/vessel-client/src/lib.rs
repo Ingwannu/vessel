@@ -69,12 +69,13 @@ pub use credential::{CredentialError, CredentialMismatch, CredentialSource, Devi
 pub use error::{ConnectError, StreamError};
 pub use local::{LocalConnectError, LocalCredential};
 pub use pinned::{Pinned, PinnedError};
-pub use resume::{Backoff, ResumingStream, follow_resuming};
-pub use stream::SessionStream;
+pub use resume::{Backoff, ResumingStream, follow_resuming, follow_terminal_resuming};
+pub use stream::{Log, LogStream, SessionLog, SessionStream, TerminalLog, TerminalStream};
 pub use token::{BearerToken, InvalidToken};
 pub use url::{InvalidNodeUrl, NodeUrl};
 pub use vessel_rpc::{
-    CallError, ClientConfig, NotUnary, Subscription, SubscriptionItem, Unary, UnaryCall,
+    CallError, ClientConfig, NotUnary, Subscription, SubscriptionItem, TerminalSubscription, Unary,
+    UnaryCall,
 };
 /// The short fingerprint people compare to recognise a node's key.
 pub use vessel_secure::fingerprint;

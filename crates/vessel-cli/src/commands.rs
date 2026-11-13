@@ -18,7 +18,8 @@ use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
 use crate::selector::SessionSelector;
 use crate::{
-    conversation, devices, fleet, init, io, nodes, remote, render, transfer, ui, workspace,
+    conversation, devices, fleet, init, io, nodes, remote, render, terminals, transfer, ui,
+    workspace,
 };
 
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
@@ -83,6 +84,10 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Run(run) => run_session(target, run).await,
         Command::Project { command } => workspace::project(target, command).await,
         Command::Worktree { command } => workspace::worktree(target, command).await,
+        Command::Pr { command } => crate::forge::pr(target, command).await,
+        Command::Shell(shell) => terminals::shell(target, shell).await,
+        Command::Script { command } => terminals::script(target, command).await,
+        Command::Ports(ports) => terminals::ports(target, &ports).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
@@ -185,6 +190,13 @@ async fn node_start(
         std::env::var_os(name)
     });
     let mut config = Config::new(data_dir(target)?, env);
+    // Terminals (protocol 11): the shell and the credentials, from this
+    // binary's own environment.
+    config.terminals = vessel_node::TerminalsConfig::detect(
+        |name| std::env::var_os(name),
+        std::env::vars_os().map(|(name, _)| name),
+        |name| config.harness_lookup.find(name),
+    );
     config.bind = Some(bind);
     config.name = name;
     config.lsp.registry.search_path = std::env::var_os("PATH").unwrap_or_default();
@@ -207,6 +219,10 @@ async fn node_start(
     // Sessions' agents reach this node through this executable's `mcp`
     // command (ADR 0013).
     config.vessel_mcp = std::env::current_exe().ok().map(VesselMcp::vessel);
+    // Pull requests (ADR 0029): this environment's tokens and the
+    // machine's `gh`, found here (the library reads no environment).
+    config.forge =
+        vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
     let node = Node::start(config).await?;
     let address = node.address().unwrap_or(bind);
     let started = format!(

@@ -85,26 +85,16 @@ async fn a_write_holds_to_what_it_expects() {
         write(&root, &rel("new.txt"), "x".to_owned(), WriteExpect::Absent).await,
         Err(FileError::Exists(_))
     ));
-    let replaced = write(
-        &root,
-        &rel("new.txt"),
-        "two".to_owned(),
-        WriteExpect::Version {
-            version: created.clone(),
-        },
-    )
-    .await
-    .unwrap();
+    let guard = |version: &FileVersion| WriteExpect::Content {
+        hash: version.hash.clone().unwrap(),
+    };
+    let replaced = write(&root, &rel("new.txt"), "two".to_owned(), guard(&created))
+        .await
+        .unwrap();
     // The same size, maybe the same tick of a coarse clock: the hash still
     // tells the versions apart.
     assert!(matches!(
-        write(
-            &root,
-            &rel("new.txt"),
-            "six".to_owned(),
-            WriteExpect::Version { version: created }
-        )
-        .await,
+        write(&root, &rel("new.txt"), "six".to_owned(), guard(&created)).await,
         Err(FileError::Changed(_))
     ));
     assert_eq!(
@@ -144,6 +134,73 @@ async fn a_write_holds_to_what_it_expects() {
         .filter(|name| name.contains("vessel-"))
         .collect();
     assert!(left.is_empty(), "{left:?}");
+}
+
+/// The guard is the content's hash (protocol 11), which a page holds
+/// exactly: a touch that keeps the content passes, nothing there or a file
+/// grown past the hashed bound is `changed`, and `modified` is
+/// milliseconds, which a JavaScript number holds exactly.
+#[tokio::test]
+async fn a_write_is_guarded_by_the_content_it_read() {
+    let (_temp, root, _) = setup();
+    let first = write(
+        &root,
+        &rel("note.txt"),
+        "one".to_owned(),
+        WriteExpect::Absent,
+    )
+    .await
+    .unwrap();
+    let hash = first.hash.clone().unwrap();
+    assert!(first.modified < 1 << 53, "{}", first.modified);
+    // Touched, not changed: the content is what was read, so it replaces.
+    let file = File::options()
+        .write(true)
+        .open(root.path().join("note.txt"))
+        .unwrap();
+    file.set_modified(std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1))
+        .unwrap();
+    drop(file);
+    let second = write(
+        &root,
+        &rel("note.txt"),
+        "two".to_owned(),
+        WriteExpect::Content { hash: hash.clone() },
+    )
+    .await
+    .unwrap();
+    assert_ne!(second.hash, first.hash);
+    // Nothing there is not the content read.
+    fs::remove_file(root.path().join("note.txt")).unwrap();
+    assert!(matches!(
+        write(
+            &root,
+            &rel("note.txt"),
+            "three".to_owned(),
+            WriteExpect::Content { hash: hash.clone() }
+        )
+        .await,
+        Err(FileError::Changed(_))
+    ));
+    assert!(!root.path().join("note.txt").exists());
+    // Grown past the bound, a file has no hash, so it is not the content
+    // read; it is left as it is.
+    let big = vec![b'a'; usize::try_from(MAX_HASHED).unwrap() + 1];
+    fs::write(root.path().join("note.txt"), &big).unwrap();
+    assert!(matches!(
+        write(
+            &root,
+            &rel("note.txt"),
+            "four".to_owned(),
+            WriteExpect::Content { hash }
+        )
+        .await,
+        Err(FileError::Changed(_))
+    ));
+    assert_eq!(
+        fs::metadata(root.path().join("note.txt")).unwrap().len(),
+        MAX_HASHED + 1
+    );
 }
 
 #[cfg(unix)]

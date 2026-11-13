@@ -30,6 +30,199 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 11 (2026-11-12, milestone 11, wave 2)
+
+Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;
+its tracks add to it side by side (`docs/plans/backend-m11.md`, "Wave 2:
+tracks"), each with its part here, and the join of the first half fixed
+two gaps the page found ("Integration 2 (node)").
+
+### Pull requests (track B2, ADR 0029)
+
+Six methods, one optional field, no event. Every type is in
+`vessel_proto::forge`; every enum a forge may grow has `unknown`.
+
+- `SessionInfo.pull_request?: SessionPullRequest { access, summary?,
+  feedback }`: for a live session with a place. `access` says whether the
+  node can see the session's pull request and why not (`ready { login? }`,
+  `not_placed`, `no_branch`, `on_base`, `no_remote`, `not_supported {
+  host }`, `signed_out { host, gh }`, `refused { host, reason, login? }`,
+  `rate_limited { host, until }`, `unreachable { host, retry_at }`,
+  `limit`, `ended`); `summary` (`PullSummary`: repository, number,
+  address, title, state, draft, head commit, checks, review decision,
+  mergeability, updated at) is the last one read. Cleared when the
+  session ends. A forge's text (a title, a check's name, an address) is
+  made lossy by the node, so it always decodes.
+- `forge.status {}` (read): every host and how the node is signed in to
+  it (`source: environment | gh`), at most 16; never a token.
+- `pr.list {}` (read): every watched session's pull request.
+- `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
+  with the failing ones named, people's reviews, times, the repository's
+  merge methods). `refresh` reads now, at most once per 10 s per session
+  (more often is answered from memory); an agent may refresh only a
+  session it may operate. A session that has ended answers `access:
+  ended`; one the node does not watch (not placed) `not_placed`.
+- `pr.open { session, title, body?, base?, draft }` (operate): from the
+  branch the session's folder is on, into `base` or the project's default
+  branch; a person's call pushes the branch first (never forced), an
+  agent's never pushes (`not_pushed`). Answers `opened`, `exists` or
+  `refused { not_pushed | no_commits | push { refusal } | access {
+  access } | rejected { message } }`.
+- `pr.merge { session, number, method, head }` (operate, a person only):
+  `head` a full commit id; refused `no_pull_request`,
+  `other_pull_request`, `not_open`, `draft`, `head_moved { head }`,
+  `not_mergeable`, `method_not_allowed`, `merge_queue`, `cannot_pin`,
+  `access`, `rejected`. The head is pinned in the forge's request too.
+- `pr.feedback { session, enabled }` (operate, a person only): failing
+  checks, changes requested, unresolved comments and conflicts sent to the
+  session through its queue; off by default; `unsupported` for a terminal
+  session. Each event is sent once, as one prompt beginning `Vessel: pull
+  request feedback` (at most 20 events and 16 KiB, then `and N more`),
+  queued as the owner's; while it waits, newer events are added to it.
+  A review's or comment's words are quoted only when their author may
+  write to the repository; nothing is sent while the session waits on a
+  permission or a question.
+- All forwardable and in the web bridge's list. Agents: `pr.get`, and
+  `pr.open` on a session they may operate; the rest is `forbidden`.
+- The board: a watched session's pull request places it in Validating,
+  In review or Ready by the reducer of ADR 0019, which every client of
+  protocol 8 and later already draws.
+
+### Git apart from a repository's own configuration (track B2, ADR 0030)
+
+- `GitRefusal::repository_config { key?: ConfigKey, reason }`: the
+  repository's own configuration (its `.git/config`, `config.worktree`
+  and what they include) sets something the node's git does not run
+  with: `program` (an `ssh`, a credential helper, a proxy, a signing
+  program, an upload or receive program, on a run that would start it),
+  `credential` (a proxy, a TLS check, a resolver, a header or a cookie
+  file that could send a network run's credential elsewhere), `layout`
+  (`core.worktree`), `unnamable`, `too_many` (drivers), `too_large`;
+  never the value. On a read the same refusal is `conflict` with the key
+  in its message. A protocol 10 client reads it as `unknown`.
+- `ConfigKey`: one line, at most 256 characters.
+- Folders that are git's own (a `.git` folder by git's own naming rules,
+  a folder inside one, a bare repository) are `invalid_request` for
+  `project.add`, `project.init` and a clone's target.
+
+### Two gaps the page found, closed in the join (ADR 0027's amendment)
+
+- **A file's write is guarded by its content.** `WriteExpect` is
+  `absent` (create only), `content { hash }` or `any`; protocol 10's
+  `version`, which compared `FileVersion.modified` in nanoseconds (past
+  what a JavaScript number holds) exactly, is gone (protocol 10 was
+  never released). A page that saves an edit sends `file.write { root,
+  path, text, expect: { kind: "content", hash } }`, `hash` being
+  `FileVersion.hash` of the version it read or last wrote (a string,
+  held exactly). Failures: `conflict` when nothing is there, or its
+  content is not that (another write landed, the file grew past 8 MiB);
+  nothing is written, and the page reads the file again to show both.
+  `absent` answers `conflict` when something is there. A version without
+  `hash` (a file over 8 MiB) cannot be guarded: the editor offers no
+  guarded save for it. `FileVersion.modified` is milliseconds since the
+  epoch, for showing only, never compared. A `content` write needs
+  protocol 11 (`Call::since`).
+- **`ProjectCommands::Listed.last_approved?: ApprovedCommands { commands:
+  CommandSet { setup, teardown, scripts }, digest, approved_at }`**: the
+  set last approved for the project, while the listed set is not
+  approved, so a page can show what changed. Present only when the node
+  kept what that approval covered: from protocol 11 an approval of a
+  digest the node described lately (16 sets remembered by digest) keeps
+  its set (store schema 11); an older approval has none and is never
+  shown. Bounded as the listed set is (a file of at most 64 KiB). A
+  protocol 10 client is sent the set without it.
+
+### Terminals, scripts and ports (track C, ADR 0031)
+
+Thirteen methods, one optional field and no event; ADR 0031 and the
+plan's "Track C: contract" (with its review) say why each choice.
+
+- A terminal is its own thing, carried by the sessions' terminal
+  transport: its records are `EventRecord`s numbered from 0 (`status`,
+  `terminal` output, and `agent { harness_log }` for Vessel's own
+  `vessel:` lines), followed with `ServerFrame::Event` and ended with
+  `SubscriptionEnd` as a session's are, paged as `EventPage`. Kept in
+  the node's memory only (no store schema change); it ends with the node.
+- Types (`vessel_proto::terminals`, `scripts`, `ports`): `TerminalId`;
+  `TerminalPlace` (`session { session }` or `project { project, dir? }`);
+  `TerminalKind` (`shell { program }`, `script { script, command }`,
+  `service { script, command }`, `unknown`); `TerminalInfo { id, place,
+  folder, kind, title?, created_by, created_at, ended_at?, status,
+  service?, size?, oldest_seq, next_seq, revision }`; `ServiceState`
+  (`starting`, `running`, `backing_off { attempt, code?, restart_at }`,
+  `exited { code }`, `failed { reason }`, `stopped`, `unknown`) with
+  `ServiceFailure` (`gave_up { restarts }`, `not_approved`, `spawn`,
+  `unknown`); `ScriptName` (1 to 64 of letters, digits, `-`, `_`, `.`),
+  `ScriptEntry { name, kind: script | service, command, dir? }`;
+  `ListeningPort { port, address, pid, process?, owner: session |
+  terminal }`, `PortList { ports, scan: pending | scanned { at } |
+  unavailable { reason }, revision, more }`.
+- `ProjectCommands::Listed.scripts`: the `[scripts.<name>]` and
+  `[services.<name>]` tables of `vessel.toml` (`command`, optional `dir`
+  inside the root; at most 32). The approval's digest covers them: a
+  file without scripts keeps version 1's digest exactly (approvals given
+  before stay), one with scripts is digested as version 2, which no
+  earlier approval matches. A protocol 10 client is answered `invalid`
+  for a set with scripts, since it could not show what it would approve.
+- Methods (all in `vessel-web`'s list; all but `terminal.subscribe`
+  forwardable; long polls wait at most 30 s in the caller's wait shares,
+  and never when forwarded):
+  - `terminal.create { place, size?, title? }` (operate): the account's
+    shell in the session's folder, or in the project's (`dir` inside
+    it); `unsupported` on a node without one. `terminal.list { place? }`,
+    `terminal.get { terminal, changed_from? }`, `terminal.read { terminal,
+    from, limit, wait? }` (at most 512 records and 1 MiB a page),
+    `terminal.subscribe { terminal, from }` (read; answers
+    `TerminalSubscribed { subscription, terminal }`); `terminal.send {
+    terminal, input }` (at most 64 KiB; a script takes none:
+    `unsupported`), `terminal.rename`, `terminal.kill` (ended, kept with
+    its output), `terminal.close` (ended and forgotten) (operate).
+  - `script.list { place }` (read; the checkout's commands with their
+    approval, and its runs), `script.run { place, script }` and
+    `script.restart { terminal }` (operate) answering `started {
+    terminal }`, `needs_approval { commands }` or `refused { reason:
+    no_project | no_such_script | no_such_dir | invalid_file { message } |
+    already_running { terminal } }`. A run's command is the very parse
+    whose digest was approved; a service is started again after a
+    failure (1, 2, 4, 8, 16 s; it gives up after 5 restarts without a
+    60 s run; an exit with 0 is not restarted) only while its set is
+    still approved.
+  - `port.list { changed_from? }` (read): the TCP listeners of the live
+    sessions' and terminals' process trees, found without privilege
+    (`/proc` on Linux, `lsof` on macOS, `netstat` on Windows), at most
+    every 3 s and only within 60 s of a `port.list`; at most 256.
+- Limits: 64 live terminals a node, 8 beside a session, 16 in a project;
+  32 ended ones kept; a terminal's scrollback 4,096 records and 1 MiB
+  (the oldest go, which a reader sees as a pruned range).
+- Agents: `script.*` are `forbidden`. `terminal.create` only beside its
+  own session or one it may operate, and only when both that session's
+  profile and the agent's own session's set `agent_terminals = true`
+  (`profiles.toml`; off for every default profile; the agent's node
+  checks its own before forwarding); at most 4 at once; every other call
+  and `port.list` only on its own terminals; they end when its session,
+  or the session they are beside, ends.
+- A terminal's environment is the node's without Vessel's credentials
+  (`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
+  `VESSEL_NODE_SOCKET`, and a model route's variables when the node runs
+  inside a session) and without the forge's sign-in (`GH_TOKEN`,
+  `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`), with
+  `TERM=xterm-256color` and `COLORTERM=truecolor`; a script's adds
+  `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`, `VESSEL_BRANCH` and
+  `VESSEL_SCRIPT`. Setup and teardown (protocol 10) lose the same
+  variables.
+- Where they meet the rest: `session.delete` (and retention) ends and
+  forgets the session's terminals before its worktree is tidied;
+  `session.mark { archive }` ends them and keeps them, with their output;
+  a session's end alone ends only agents' terminals tied to it. A live
+  terminal inside a worktree keeps it (`kept { in_use }`), and so does one
+  starting there (it holds the worktree until registered; a removal that
+  holds it first makes the start `conflict`, before anything runs); one
+  in a project makes `project.remove` `conflict`.
+- A session's terminals are not on `SessionInfo`: `terminal.list {}` (at
+  most 96) grouped by `place` gives every session's at once.
+- The bridge: `follow_terminal { stream, node, terminal, from }`, whose
+  records and states come as a followed session's do.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with
@@ -223,7 +416,8 @@ Forty of the methods, two optional fields and no event.
     repository's record of it, is `conflict`, and git is not run in it.
   - Files: `file.list`, `file.read`, `file.find { query, key? }` (by
     name; a newer search with the same key replaces a running one),
-    `file.grep` (read); `file.write { expect: absent | version | any }`,
+    `file.grep` (read); `file.write { expect: absent | version | any }`
+    (protocol 11 replaces `version` with `content { hash }`, below),
     `file.create_dir`, `file.rename`, `file.delete` (operate). A path
     that leads out of the root, one that cannot be followed (a link to
     nowhere, a file where a folder should be, no permission) and one

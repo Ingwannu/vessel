@@ -2,7 +2,7 @@
 //! runs: where its records start, its info watch, ring, channels and
 //! lifecycle; then the actor spawned and the handle registered.
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU32};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use chrono::{DateTime, Utc};
@@ -15,6 +15,7 @@ use super::{Created, SessionRuntime};
 use crate::activity::Tracker;
 use crate::conversation::Seen;
 use crate::delivery::Desk;
+use crate::forge::ForgeView;
 use crate::handle::{Input, SessionHandle, Shared};
 use crate::lifecycle::{Lifecycle, Rename};
 use crate::marks::Marks;
@@ -73,13 +74,21 @@ pub(super) struct Parts {
 /// room (each also waits for its own to be published).
 const RENAME_CAPACITY: usize = 8;
 
+/// The senders the shared state holds, for the actor's receivers: model
+/// calls, renames, and the node's view of the session's pull request.
+type Channels = (
+    mpsc::Sender<ModelCall>,
+    mpsc::Sender<Rename>,
+    watch::Sender<Option<Arc<ForgeView>>>,
+);
+
 impl SessionRuntime {
     /// Everything a session needs besides its process.
     pub(super) fn parts(
         &self,
         begin: Begin,
         notices: Vec<String>,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
     ) -> Parts {
         let Begin {
@@ -95,8 +104,10 @@ impl SessionRuntime {
         let titled = info.title.is_some();
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (renames, renaming) = mpsc::channel(RENAME_CAPACITY);
+        let (forge, forge_view) = watch::channel(None);
         let state = (seen, Marks::after(attention));
-        let (info, kill, shared) = self.shared(info, input, control, (model_calls, renames), state);
+        let channels = (model_calls, renames, forge);
+        let (info, kill, shared) = self.shared(info, (input, pid), control, channels, state);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
         Parts {
             life: Lifecycle {
@@ -105,6 +116,7 @@ impl SessionRuntime {
                 notices,
                 model_calls: recorded,
                 renames: renaming,
+                forge: forge_view,
                 titled,
             },
             shared,
@@ -116,9 +128,9 @@ impl SessionRuntime {
     fn shared(
         &self,
         info: SessionInfo,
-        input: Input,
+        (input, pid): (Input, u32),
         control: Option<mpsc::Sender<Control>>,
-        (model_calls, renames): (mpsc::Sender<ModelCall>, mpsc::Sender<Rename>),
+        (model_calls, renames, forge): Channels,
         (seen, marks): (Seen, Marks),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
@@ -140,6 +152,8 @@ impl SessionRuntime {
             // A new session has no marks; one started again takes the
             // store's once its row is reopened.
             marks: Mutex::new(marks),
+            forge,
+            pid: AtomicU32::new(pid),
         });
         (info, kill, shared)
     }

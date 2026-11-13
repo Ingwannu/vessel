@@ -73,8 +73,10 @@ impl NodeService {
         if origin.is_some() {
             spec.place = None;
         }
-        // A place resolves to the folder `cwd` names (protocol 10).
-        let notices = self.place(connection, &mut spec).await?;
+        // A place resolves to the folder `cwd` names (protocol 10). In a
+        // worktree, `_starting` keeps a removal out until the session is
+        // live, or failed to start (ADR 0030); it is dropped on return.
+        let (notices, _starting) = self.place(connection, &mut spec).await?;
         let mut options = self
             .launcher
             .options(&self.profiles, &spec, &connection.principal)
@@ -120,6 +122,10 @@ impl NodeService {
         let info = created.map_err(|error| wire(&error))?;
         if let Some(SessionPlace::Worktree { worktree }) = info.spec.place.as_deref() {
             self.workspaces.claim(*worktree, info.id).await;
+        }
+        // Its pull request, when it is placed (protocol 11).
+        if let Some(handle) = self.sessions.live(info.id) {
+            self.watch_session(&handle, &connection.principal);
         }
         Ok(self.with_workspace(info))
     }

@@ -81,6 +81,17 @@ impl Reply {
                 subscribed.info = info;
                 Self::Subscribe(subscribed)
             }),
+            // A set naming scripts reaches an older client as one it cannot
+            // approve (protocol 11, ADR 0031).
+            Self::ProjectCommands(commands) => {
+                commands.for_protocol(protocol).map(Self::ProjectCommands)
+            }
+            Self::ApproveCommands(commands) => {
+                commands.for_protocol(protocol).map(Self::ApproveCommands)
+            }
+            Self::CreateWorktree(outcome) => {
+                outcome.for_protocol(protocol).map(Self::CreateWorktree)
+            }
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
             Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
@@ -146,10 +157,7 @@ impl Reply {
             | Self::CloneProject(_)
             | Self::InitProject(_)
             | Self::RemoveProject(_)
-            | Self::ProjectCommands(_)
-            | Self::ApproveCommands(_)
             | Self::ListWorktrees(_)
-            | Self::CreateWorktree(_)
             | Self::SetupOutput(_)
             | Self::RunSetup(_)
             | Self::RemoveWorktree(_)
@@ -179,7 +187,27 @@ impl Reply {
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            // Protocol 11's are newer than every older peer.
+            | Self::ForgeStatus(_)
+            | Self::ListPullRequests(_)
+            | Self::GetPullRequest(_)
+            | Self::OpenPullRequest(_)
+            | Self::MergePullRequest(_)
+            | Self::SetFeedback(_)
+            | Self::CreateTerminal(_)
+            | Self::ListTerminals(_)
+            | Self::GetTerminal(_)
+            | Self::ReadTerminal(_)
+            | Self::SubscribeTerminal(_)
+            | Self::SendTerminal(_)
+            | Self::RenameTerminal(_)
+            | Self::KillTerminal(_)
+            | Self::CloseTerminal(_)
+            | Self::ListScripts(_)
+            | Self::RunScript(_)
+            | Self::RestartScript(_)
+            | Self::ListPorts(_) => None,
         }
     }
 }

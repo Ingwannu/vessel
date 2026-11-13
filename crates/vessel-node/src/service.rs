@@ -17,6 +17,7 @@ use crate::attachments::Attachments;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
+use crate::forge::Forges;
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::principal::Principal;
@@ -24,10 +25,11 @@ use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::Launcher;
 use crate::sessions::Sessions;
+use crate::terminals::{Ports, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::Transfers;
 use crate::waits::{ConnectionWaits, Share, WaitSlot, Waits};
-use crate::workspace::Workspaces;
+use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
 mod fleet;
@@ -45,6 +47,12 @@ mod files;
 mod git;
 mod projects;
 mod worktrees;
+// Protocol 11's calls: pull requests (`forge`, ADR 0029).
+mod forge;
+// Protocol 11's calls: terminals beside sessions, a project's scripts, and
+// the ports their trees listen on (`terminals`, ADR 0031).
+mod scripts;
+mod terminals;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -82,6 +90,13 @@ pub(crate) struct NodeService {
     workspaces: Arc<Workspaces>,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
+    /// Pull requests (protocol 11, `forge`).
+    forges: Arc<Forges>,
+    /// Terminals beside sessions and scripts' runs (protocol 11,
+    /// `terminals`).
+    terminals: Arc<Terminals>,
+    /// The ports their trees and the sessions' listen on (protocol 11).
+    ports: Arc<Ports>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -104,6 +119,9 @@ pub(crate) struct Parts {
     pub(crate) probes: Probes,
     pub(crate) workspaces: Arc<Workspaces>,
     pub(crate) tidying: Arc<Tidying>,
+    pub(crate) forges: Arc<Forges>,
+    pub(crate) terminals: Arc<Terminals>,
+    pub(crate) ports: Arc<Ports>,
 }
 
 impl NodeService {
@@ -127,6 +145,9 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            forges,
+            terminals,
+            ports,
         } = parts;
         Self {
             lsp,
@@ -148,7 +169,18 @@ impl NodeService {
             probes,
             workspaces,
             tidying,
+            forges,
+            terminals,
+            ports,
         }
+    }
+
+    /// What runs where: live sessions and (protocol 11) live terminals,
+    /// each of which keeps a worktree or a project from being removed.
+    pub(crate) fn occupied(&self) -> Vec<(Occupant, std::path::PathBuf)> {
+        let mut live = self.sessions.live_folders();
+        live.extend(self.terminals.live_folders());
+        live
     }
 
     /// A place for the wait of a read on `connection` in `shares`, if it

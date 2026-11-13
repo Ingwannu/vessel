@@ -3,7 +3,7 @@
 
 mod input;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use tokio::sync::{mpsc, oneshot, watch};
@@ -17,6 +17,7 @@ use vessel_pty::PtyInput;
 
 use crate::conversation::Seen;
 use crate::error::{ModeKind, SessionError};
+use crate::forge::ForgeView;
 use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
@@ -64,6 +65,13 @@ pub(crate) struct Shared {
     /// mutex held for one assignment or one copy, never across an
     /// `.await`.
     pub(crate) marks: Mutex<Marks>,
+    /// The session's pull request as the node gives it (protocol 11,
+    /// `forge`): the latest wins, the actor reads it.
+    pub(crate) forge: watch::Sender<Option<Arc<ForgeView>>>,
+    /// The process id of the session's program (its PTY's or its agent's),
+    /// replaced when a move starts another agent (protocol 11: the ports a
+    /// session listens on are found from it, ADR 0031).
+    pub(crate) pid: AtomicU32,
 }
 
 impl Shared {
@@ -197,6 +205,26 @@ impl SessionHandle {
         Ok(self.info())
     }
 
+    /// Give the session what the node knows of its pull request now
+    /// (protocol 11, ADR 0029), `None` when it no longer watches it. The
+    /// actor puts the summary in the info and the facts in its board, as
+    /// the latest value of a watch: a view given twice before the actor
+    /// looks is read once, and an unchanged one wakes nothing. Never
+    /// waits; ignored once the session has ended.
+    pub fn set_pull_request(&self, view: Option<ForgeView>) {
+        if self.has_ended() {
+            return;
+        }
+        let view = view.map(Arc::new);
+        let _changed = self.0.forge.send_if_modified(|current| {
+            if *current == view {
+                return false;
+            }
+            *current = view;
+            true
+        });
+    }
+
     /// The live agent's input, for the option calls.
     fn agent(&self) -> Result<AgentInput, SessionError> {
         if !self.0.info.borrow().status.is_live() {
@@ -216,6 +244,15 @@ impl SessionHandle {
     #[must_use]
     pub fn has_ended(&self) -> bool {
         self.0.ended.load(Ordering::Acquire)
+    }
+
+    /// The process id of its program while it runs: the root of the
+    /// process tree whose listening ports `port.list` reports (ADR 0031).
+    /// `None` once it ended (the id may be another process's by then).
+    #[must_use]
+    pub fn pid(&self) -> Option<u32> {
+        let pid = self.0.pid.load(Ordering::Acquire);
+        (pid != 0 && !self.has_ended()).then_some(pid)
     }
 
     /// Record one model call the node's proxy made for this session

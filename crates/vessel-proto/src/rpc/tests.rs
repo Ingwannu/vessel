@@ -156,6 +156,44 @@ fn every_method_knows_its_first_version() {
 }
 
 #[test]
+fn protocol_eleven_methods_know_their_version_and_scope() {
+    // Track B2's pull requests (ADR 0029) and track C's terminals, scripts
+    // and ports (ADR 0031): reading is `read`; opening, merging, the
+    // feedback switch, typing, ending and running are `operate`.
+    let reads = [
+        "forge.status",
+        "pr.list",
+        "pr.get",
+        "terminal.list",
+        "terminal.get",
+        "terminal.read",
+        "terminal.subscribe",
+        "script.list",
+        "port.list",
+    ];
+    let mut seen = 0_usize;
+    for method in Method::ALL {
+        let name = method.as_str();
+        let eleven = ["forge.", "pr.", "terminal.", "script.", "port."]
+            .iter()
+            .any(|prefix| name.starts_with(prefix));
+        if !eleven {
+            continue;
+        }
+        seen += 1;
+        assert_eq!(method.since(), ProtocolVersion::new(11), "{method:?}");
+        let expected = if reads.contains(&name) {
+            Scope::Read
+        } else {
+            Scope::Operate
+        };
+        assert_eq!(method.scope(), expected, "{method:?}");
+    }
+    // Six of B2's, thirteen of C's.
+    assert_eq!(seen, 19);
+}
+
+#[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
     // when its owner asked; `relay` opens nothing but passing calls on.
@@ -184,6 +222,10 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the pinned list is one line per method; splitting it would hide the decision"
+)]
 fn the_forwardable_set_is_pinned() {
     // Changing this list is a decision about what other nodes may do here
     // (`Method::forwardable` says why each group is in or out).
@@ -277,7 +319,25 @@ fn the_forwardable_set_is_pinned() {
             "file.rename",
             "file.delete",
             "file.find",
-            "file.grep"
+            "file.grep",
+            "forge.status",
+            "pr.list",
+            "pr.get",
+            "pr.open",
+            "pr.merge",
+            "pr.feedback",
+            "terminal.create",
+            "terminal.list",
+            "terminal.get",
+            "terminal.read",
+            "terminal.send",
+            "terminal.rename",
+            "terminal.kill",
+            "terminal.close",
+            "script.list",
+            "script.run",
+            "script.restart",
+            "port.list"
         ]
     );
 }
@@ -310,6 +370,32 @@ fn a_forwarded_call_nests_its_inner_call() {
     // where it is delivered.
     assert_eq!(call.since(), V6);
     assert_eq!(inner.since(), V6);
+}
+
+/// Protocol 11's write guard (the join of wave 2's first half): a write
+/// guarded by its content needs 11, which a protocol 10 node could not
+/// decode; one that creates only, or writes whatever is there, does not.
+#[test]
+fn a_write_guarded_by_its_content_needs_protocol_eleven() {
+    use crate::workspace::{ContentHash, WorkspaceRoot, WriteExpect, WriteFile};
+    let write = |expect| {
+        WriteFile {
+            root: WorkspaceRoot::Project {
+                project: crate::id::ProjectId::random(),
+            },
+            path: "a.txt".parse().unwrap(),
+            text: String::new(),
+            expect,
+        }
+        .into_call()
+    };
+    assert_eq!(write(WriteExpect::Absent).since(), V10);
+    assert_eq!(write(WriteExpect::Any).since(), V10);
+    let hash = ContentHash::from_sha256([7; 32]);
+    assert_eq!(
+        write(WriteExpect::Content { hash }).since(),
+        ProtocolVersion::new(11)
+    );
 }
 
 #[test]

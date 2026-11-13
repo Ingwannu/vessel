@@ -12,6 +12,22 @@
 //!   list and a new method does not compile until it says whether agents
 //!   get it (it was a `matches!`, whose other methods were open to agents
 //!   by default).
+//! - Scripts (protocol 11, ADR 0031): a repository's commands run where a
+//!   person approved them and a person asked, so `script.*` refuse agents
+//!   too; an agent runs commands with its own tools. The terminal calls
+//!   and `port.list` are open to them here, and held to their own rule
+//!   (`service::terminals`: a profile that allows it, four at once, only
+//!   their own).
+//! - Pull requests (protocol 11, ADR 0029): `pr.merge`, `pr.feedback`,
+//!   `pr.list` and `forge.status` refuse agents (a merge publishes to a
+//!   shared branch; what is sent into a session, the node's sign-in and
+//!   every session's pull request are a person's); `pr.get` and `pr.open`
+//!   are open here and held to the forge's own rule (`refresh` and opening
+//!   only on a session the agent may operate; an agent's open never
+//!   pushes).
+//! - This `match` is the one list of what an agent may call through the
+//!   node: every method of every track is in it, either refused here or
+//!   named with the rule that holds it instead.
 //! - Roots: a project's root is everything a reader of it can read. A
 //!   file system's root, the user's home folder and any folder holding the
 //!   node's data folder are refused, for every caller.
@@ -28,13 +44,30 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     if principal.agent().is_none() || !refused(method) {
         return Ok(());
     }
+    // The reason by family; `refused` decides, exhaustively, which methods.
+    let why = if matches!(
+        method,
+        Method::ListScripts | Method::RunScript | Method::RestartScript
+    ) {
+        "a repository's scripts run where a person approved them and a person asked; an agent \
+         runs commands with its own tools"
+    } else if matches!(
+        method,
+        Method::ForgeStatus
+            | Method::ListPullRequests
+            | Method::MergePullRequest
+            | Method::SetFeedback
+    ) {
+        "a merge publishes to a shared branch, and what is sent into a session, the node's \
+         sign-in and every session's pull request are a person's; an agent reads a pull request \
+         and opens one for a session it may operate"
+    } else {
+        "an agent uses its own file and git tools; through the node it may list projects and \
+         start a session in a worktree"
+    };
     Err(WireError::new(
         ErrorCode::Forbidden,
-        format!(
-            "agents may not call `{}`: an agent uses its own file and git tools; through the \
-             node it may list projects and start a session in a worktree",
-            method.as_str()
-        ),
+        format!("agents may not call `{}`: {why}", method.as_str()),
     ))
 }
 
@@ -83,7 +116,18 @@ const fn refused(method: Method) -> bool {
         | Method::RenamePath
         | Method::DeletePath
         | Method::FindFiles
-        | Method::SearchFiles => true,
+        | Method::SearchFiles
+        // Protocol 11 (ADR 0029): a merge publishes to a shared branch and
+        // is a person's to decide, as is what is sent into a session; the
+        // node's sign-in and the whole list are a person's view.
+        | Method::ForgeStatus
+        | Method::ListPullRequests
+        | Method::MergePullRequest
+        | Method::SetFeedback
+        // A repository's scripts (protocol 11): a person's.
+        | Method::ListScripts
+        | Method::RunScript
+        | Method::RestartScript => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -92,6 +136,11 @@ const fn refused(method: Method) -> bool {
         | Method::ListWorktrees
         | Method::CreateWorktree
         | Method::SetupOutput
+        // Protocol 11: an agent reads a session's pull request, and opens
+        // one for a session it may operate (the guard's ownership), never
+        // pushing (`forge::open`).
+        | Method::GetPullRequest
+        | Method::OpenPullRequest
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
         | Method::NodeInfo
@@ -158,7 +207,18 @@ const fn refused(method: Method) -> bool {
         | Method::BeginUpload
         | Method::WriteUpload
         | Method::FinishUpload
-        | Method::ReadAttachment => false,
+        | Method::ReadAttachment
+        // Terminals and ports (protocol 11): held to their own rule.
+        | Method::CreateTerminal
+        | Method::ListTerminals
+        | Method::GetTerminal
+        | Method::ReadTerminal
+        | Method::SubscribeTerminal
+        | Method::SendTerminal
+        | Method::RenameTerminal
+        | Method::KillTerminal
+        | Method::CloseTerminal
+        | Method::ListPorts => false,
     }
 }
 
@@ -182,7 +242,26 @@ pub(super) fn check_root(places: &Places, root: &Path) -> Result<(), WorkspaceEr
     if root.starts_with(&places.data) {
         return refuse("it is inside the node's data folder");
     }
+    // ADR 0030: git's own folder is not a working tree; its `config` and
+    // `hooks` would be files the file calls write.
+    // By git's own rules for what names `.git` (any case, trailing dots
+    // or spaces, `git~1`, ignored zero-width characters).
+    if root.components().any(|part| {
+        part.as_os_str()
+            .to_str()
+            .is_some_and(vessel_proto::workspace::is_git_dir)
+    }) {
+        return refuse("it is a `.git` folder or inside one");
+    }
     Ok(())
+}
+
+/// Whether `root` holds what makes a folder git's own (`HEAD`, `objects`
+/// and `refs`): a bare repository or a `.git` folder under another name,
+/// told apart without git (a node may have none). Blocking: call it on the
+/// blocking pool.
+pub(super) fn looks_like_git_dir(root: &Path) -> bool {
+    root.join("HEAD").is_file() && root.join("objects").is_dir() && root.join("refs").is_dir()
 }
 
 #[cfg(test)]
@@ -211,6 +290,21 @@ mod tests {
             // Not workspace calls: other rules decide (`guard`).
             Method::PromptSession,
             Method::DeleteSession,
+            // Terminals: their own rule decides (ADR 0031).
+            Method::CreateTerminal,
+            Method::ListTerminals,
+            Method::GetTerminal,
+            Method::ReadTerminal,
+            Method::SubscribeTerminal,
+            Method::SendTerminal,
+            Method::RenameTerminal,
+            Method::KillTerminal,
+            Method::CloseTerminal,
+            Method::ListPorts,
+            // A pull request: read, and opened without a push, on a session
+            // the agent may operate (the forge's rule, ADR 0029).
+            Method::GetPullRequest,
+            Method::OpenPullRequest,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
@@ -222,9 +316,17 @@ mod tests {
             Method::ReadFile,
             Method::GitPush,
             Method::WriteFile,
+            Method::ListScripts,
+            Method::RunScript,
+            Method::RestartScript,
+            Method::ForgeStatus,
+            Method::ListPullRequests,
+            Method::MergePullRequest,
+            Method::SetFeedback,
         ] {
             let error = refuse_agents(&agent, refused).unwrap_err();
             assert_eq!(error.code, ErrorCode::Forbidden);
+            assert!(!error.message.contains("  "), "{}", error.message);
         }
         assert!(refuse_agents(&Principal::Owner, Method::ApproveCommands).is_ok());
     }
@@ -261,5 +363,16 @@ mod tests {
             );
         }
         assert!(check_root(&places, Path::new("/home/me/code/app")).is_ok());
+        for refused in [
+            "/home/me/code/app/.git",
+            "/home/me/code/app/.GIT/hooks",
+            "/home/me/code/app/.git./x",
+            "/home/me/code/app/git~1",
+        ] {
+            assert!(
+                check_root(&places, Path::new(refused)).is_err(),
+                "{refused}"
+            );
+        }
     }
 }

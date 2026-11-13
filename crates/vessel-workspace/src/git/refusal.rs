@@ -6,9 +6,9 @@
 //! last lines, credentials removed: shown to a person, never parsed by a
 //! client.
 
-use vessel_proto::workspace::{GitRefusal, RelPath};
+use vessel_proto::workspace::{GitRefusal, RelPath, RepositoryConfigReason};
 
-use super::{GitError, GitOutput, redact};
+use super::{GitError, GitOutput, OwnConfigRefusal, redact};
 
 /// The most paths a refusal carries.
 pub(crate) const MAX_PATHS: usize = 100;
@@ -84,12 +84,38 @@ pub(crate) fn of(output: &GitOutput) -> GitRefusal {
     })
 }
 
-/// A run that did not finish, as a refusal where one fits.
+/// A run that did not finish, or was refused before it started, as a
+/// refusal where one fits.
 pub(crate) fn of_error(error: GitError) -> Result<GitRefusal, GitError> {
-    if let GitError::TimedOut { .. } = error {
-        Ok(GitRefusal::TimedOut)
-    } else {
-        Err(error)
+    match error {
+        GitError::TimedOut { .. } => Ok(GitRefusal::TimedOut),
+        GitError::OwnConfig { key, why } => Ok(GitRefusal::RepositoryConfig {
+            key: key.parse().ok(),
+            reason: reason(why),
+        }),
+        GitError::OwnConfigTooLarge => Ok(GitRefusal::RepositoryConfig {
+            key: None,
+            reason: RepositoryConfigReason::TooLarge,
+        }),
+        GitError::Spawn(_)
+        | GitError::Wait(_)
+        | GitError::Cancelled
+        | GitError::Closed
+        | GitError::Busy
+        | GitError::OutputLimit
+        | GitError::Failed { .. }
+        | GitError::Unexpected { .. } => Err(error),
+    }
+}
+
+/// The wire's reason for a refusal of the repository's own configuration.
+const fn reason(why: OwnConfigRefusal) -> RepositoryConfigReason {
+    match why {
+        OwnConfigRefusal::Program => RepositoryConfigReason::Program,
+        OwnConfigRefusal::Layout => RepositoryConfigReason::Layout,
+        OwnConfigRefusal::Credential => RepositoryConfigReason::Credential,
+        OwnConfigRefusal::Unnamable => RepositoryConfigReason::Unnamable,
+        OwnConfigRefusal::TooMany => RepositoryConfigReason::TooMany,
     }
 }
 

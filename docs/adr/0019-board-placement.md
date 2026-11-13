@@ -2,7 +2,9 @@
 
 Status: accepted, 2026-11-11 (milestone 9, track A,
 `docs/plans/backend-m9.md`; the contract is protocol 8,
-`crates/vessel-proto/src/board.rs`).
+`crates/vessel-proto/src/board.rs`). Amended 2026-11-12 by ADR 0029: the
+node's pull request facts are the one input besides the session's
+records (the amendment at the end).
 
 ## Context
 
@@ -175,3 +177,25 @@ How the facts are gathered:
   Validating, In review and Ready fill with no change to the reducer, and
   `SessionBoard` gains the evidence for the card. An archive action, to
   take an ended session off the board, is not decided.
+
+## Amendment (2026-11-12, protocol 11, ADR 0029)
+
+The node now gives a live session placed in a project or a worktree its
+pull request. The session's actor receives a `ForgeView` through a
+`watch` (`SessionHandle::set_pull_request`; the latest wins, nothing
+queues), keeps the facts in its activity tracker and passes
+`PullRequests::Seen` (the branch's one pull request, or none once the
+node has looked) to the same `board::derive`; `Unseen` before the first
+look and for a session the node cannot see, so such a session is placed
+exactly as before. A session's feedback switch sets `auto_inject_ci` and
+`auto_inject_review`, as agent-orchestrator's one flag drives both its
+routing and its lane; `auto_review` stays off.
+
+The board is therefore no longer only a projection of the session's
+records: the node's pull request facts are the one other input, and they
+are not records (the log keeps none of a forge). An ended session drops
+them at its final status, before that record's board, so it is `exited`
+in building as the store places a stored one, and the test that holds the
+two equal still holds. The "Next" item above is done; `SessionBoard`
+gained no evidence of its own: a card's summary is
+`SessionInfo.pull_request`.

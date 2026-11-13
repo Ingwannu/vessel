@@ -157,7 +157,13 @@ impl Git {
         }
         let staged = self
             .command(dir)
-            .args(["diff", "--cached", "--quiet", "--no-ext-diff"])
+            .args([
+                "diff",
+                "--cached",
+                "--quiet",
+                "--no-ext-diff",
+                "--no-textconv",
+            ])
             .output()
             .await?;
         if staged.code == Some(0) && self.operation(dir).await? != Some(GitOperation::Merge) {
@@ -210,7 +216,7 @@ impl Git {
     }
 
     /// The remote of the branch checked out, else `origin`.
-    async fn remote_of_branch(&self, dir: &Path, branch: Option<&BranchName>) -> String {
+    pub(super) async fn remote_of_branch(&self, dir: &Path, branch: Option<&BranchName>) -> String {
         if let Some(branch) = branch
             && let Ok(output) = self
                 .command(dir)

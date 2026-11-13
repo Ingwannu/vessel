@@ -6,9 +6,10 @@
 //! and are generic over [`Stoppable`] (two implementations: the PTY program
 //! and the ACP agent), so there is no dynamic dispatch.
 
+use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use tokio::time::Instant;
 use vessel_agent::AgentProcess;
 use vessel_proto::{
@@ -16,6 +17,7 @@ use vessel_proto::{
 };
 use vessel_pty::{PtyProcess, Signal};
 
+use crate::forge::ForgeView;
 use crate::publish::Publisher;
 use crate::stop::{Step, Stopper};
 
@@ -81,6 +83,10 @@ pub(crate) struct Lifecycle {
     /// Renames to publish (`SessionHandle::rename`, protocol 9); open while
     /// the actor runs, as `model_calls` is.
     pub(crate) renames: mpsc::Receiver<Rename>,
+    /// The node's view of the session's pull request (protocol 11,
+    /// `SessionHandle::set_pull_request`); the shared state holds the
+    /// sender, so it stays open while the actor runs.
+    pub(crate) forge: watch::Receiver<Option<Arc<ForgeView>>>,
     /// Whether the session has a title (given, renamed, or taken from a
     /// prompt): only an untitled session takes one from its prompt.
     pub(crate) titled: bool,
@@ -127,6 +133,12 @@ impl Lifecycle {
             }
         };
         self.out.commit(slot, event);
+    }
+
+    /// The node gave a new view of the session's pull request.
+    pub(crate) fn forge_changed(&mut self) {
+        let view = self.forge.borrow_and_update().clone();
+        self.out.forge(view.as_deref());
     }
 
     /// Record the model calls still queued, once the process has exited and

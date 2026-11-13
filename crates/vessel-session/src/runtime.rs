@@ -118,6 +118,19 @@ impl SessionRuntime {
             .cloned()
     }
 
+    /// The process ids of this run's live sessions' programs, each with
+    /// its session: the roots of the trees whose listening ports the node
+    /// reports (protocol 11, ADR 0031).
+    #[must_use]
+    pub fn pids(&self) -> Vec<(u32, SessionId)> {
+        self.sessions
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .values()
+            .filter_map(|handle| Some((handle.pid()?, handle.id())))
+            .collect()
+    }
+
     /// Every session of this run, live and ended (until removed), newest
     /// first.
     #[must_use]

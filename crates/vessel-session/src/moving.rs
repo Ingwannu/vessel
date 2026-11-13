@@ -340,6 +340,7 @@ impl StructuredActor {
                 Ok(started) => started,
                 Err(error) => return Ok(Err(Restart::Spawn(error))),
             };
+        self.life.out.running(agent.pid());
         self.agent = agent;
         self.input = input;
         self.outputs = outputs;

@@ -171,6 +171,23 @@ digest: CommandsDigest,
 approved: boolean, };
 
 /**
+ * A set a person approved for a project, and when.
+ */
+export type ApprovedCommands = { 
+/**
+ * What was approved.
+ */
+commands: CommandSet, 
+/**
+ * Its digest, as `project.approve` was given it.
+ */
+digest: CommandsDigest, 
+/**
+ * When (the newest approval of it).
+ */
+approved_at: string, };
+
+/**
  * Shared fields for a query at a saved source position.
  */
 export type AtPosition = { 
@@ -393,7 +410,7 @@ export type BundlePath = string;
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts };
 
 /**
  * What `fleet.callback` answers.
@@ -457,6 +474,67 @@ delivery: Delivery, } | { "change": "hold" } | { "change": "resume" } | { "chang
 export type ChangeStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "type_changed" | "conflicted" | "unknown";
 
 /**
+ * A check's or a status context's name.
+ */
+export type CheckName = string;
+
+/**
+ * One check, as a card names it.
+ */
+export type CheckRun = { 
+/**
+ * Its name.
+ */
+name: CheckName, 
+/**
+ * Its result.
+ */
+state: CheckState, 
+/**
+ * Its page on the forge, when it gave an `https` one.
+ */
+url?: ForgeUrl | null, };
+
+/**
+ * One check's result (agent-orchestrator's table).
+ */
+export type CheckState = "pending" | "passed" | "failed" | "cancelled" | "skipped" | "unknown";
+
+/**
+ * A head commit's checks.
+ */
+export type Checks = { 
+/**
+ * All of them together.
+ */
+state: ChecksState, 
+/**
+ * How many passed (neutral and skipped included).
+ */
+passed: number, 
+/**
+ * How many failed.
+ */
+failed: number, 
+/**
+ * How many run or wait.
+ */
+pending: number, 
+/**
+ * More were reported than one read takes (100).
+ */
+truncated: boolean, 
+/**
+ * The failing ones, at most [`Checks::MAX_FAILING`].
+ */
+failing: Array<CheckRun>, };
+
+/**
+ * All of a head commit's checks together.
+ */
+export type ChecksState = "none" | "pending" | "passing" | "failing" | "cancelled" | "unknown";
+
+/**
  * One option of a choice.
  */
 export type ChoiceOption = { 
@@ -510,6 +588,15 @@ export type CloneStage = "connecting" | "counting" | "compressing" | "receiving"
 export type CloneUrl = string;
 
 /**
+ * `terminal.close`: end it if it runs, and forget it.
+ */
+export type CloseTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, };
+
+/**
  * `transfer.close` (protocol 6): drop the snapshot. Only the caller that
  * opened it may close it. Needs `read`.
  */
@@ -525,6 +612,25 @@ transfer: TransferId, };
  * space: what follows the first space is the command's input.
  */
 export type CommandName = string;
+
+/**
+ * What a project's file names to run: setup and teardown, and its
+ * scripts and services (protocol 11). Bounded by the file it was parsed
+ * from: at most 64 KiB, 32 commands of each kind, 32 scripts.
+ */
+export type CommandSet = { 
+/**
+ * Run when a worktree is created.
+ */
+setup: Array<ProjectCommand>, 
+/**
+ * Run before a worktree is removed.
+ */
+teardown: Array<ProjectCommand>, 
+/**
+ * Its scripts and services, in name order; left out when none.
+ */
+scripts?: Array<ScriptEntry>, };
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
@@ -614,6 +720,13 @@ more: boolean, };
  * What a commit takes.
  */
 export type CommitStage = "staged" | "tracked" | "everything";
+
+/**
+ * A key of a repository's git configuration (`core.sshcommand`), named
+ * when a run is refused for it (protocol 11, ADR 0030); never its
+ * value.
+ */
+export type ConfigKey = string;
 
 /**
  * A value in an MCP server definition: literal text, or the name of a
@@ -785,6 +898,23 @@ export type CreateSession = {
  * What to run.
  */
 spec: SessionSpec, };
+
+/**
+ * `terminal.create`: open the user's shell in a place.
+ */
+export type CreateTerminal = { 
+/**
+ * Where it runs.
+ */
+place: TerminalPlace, 
+/**
+ * Its window; 80×24 when absent.
+ */
+size?: TerminalSize | null, 
+/**
+ * What to call it.
+ */
+title?: SessionTitle | null, };
 
 /**
  * `worktree.create`: a worktree with no session yet.
@@ -1376,8 +1506,27 @@ content: FileContent, };
 export type FileState = "unmodified" | "modified" | "added" | "deleted" | "renamed" | "copied" | "type_changed" | "untracked" | "conflicted" | "unknown";
 
 /**
- * What a write expects to find, so it never overwrites a change it did
- * not see.
+ * A file as it was read or written: what a page shows, and the hash a
+ * later write is guarded by ([`WriteExpect::Content`]).
+ *
+ * [Decision Log]
+ * - Purpose: a write must never overwrite a change it did not see, and a
+ *   page must be able to say exactly which version it saw.
+ * - Constraint: the page is JavaScript, whose numbers hold integers to
+ *   2^53 only; protocol 10 had `modified` in nanoseconds (past 2^53 since
+ *   1970 plus 104 days) and compared it exactly, so a page's guard almost
+ *   never matched and the page wrote with `any` after a check of its
+ *   own, which a change landing in between could be lost to.
+ * - Alternatives: the time as text (exact, but a guard by the clock is
+ *   still wrong on a coarse file system, FAT's 2 s); the whole version
+ *   echoed back with `modified` ignored (a field sent and not compared
+ *   misleads); the content hash alone (chosen).
+ * - Choice (the join of wave 2's first half): the guard is the content's
+ *   SHA-256, which a page holds exactly as text; `modified` is shown only,
+ *   in milliseconds, which a JavaScript number holds exactly.
+ * - Cost: a file over 8 MiB has no hash, so it can be replaced only with
+ *   `any` (the editor edits at most 1 MiB anyway); a guarded write hashes
+ *   the file once more (at most 8 MiB, on the blocking pool).
  */
 export type FileVersion = { 
 /**
@@ -1385,12 +1534,14 @@ export type FileVersion = {
  */
 size: number, 
 /**
- * When it was last changed, in nanoseconds since the Unix epoch.
+ * When it was last changed, in milliseconds since the Unix epoch, as
+ * the file system says (0 when it does not, and for a blob): for
+ * showing only, never compared. A JavaScript number holds it exactly.
  */
 modified: number, 
 /**
- * SHA-256 of its content, for a file of at most 8 MiB: a change
- * within one tick of a coarse clock keeps the size and the time.
+ * SHA-256 of its content, for a file of at most 8 MiB: what a later
+ * write is guarded by ([`WriteExpect::Content`]).
  */
 hash?: ContentHash | null, };
 
@@ -1488,6 +1639,94 @@ reachable: boolean, };
  * The name of one folder to create (a clone's).
  */
 export type FolderName = string;
+
+/**
+ * Whether the node can see a session's pull request, and why not.
+ */
+export type ForgeAccess = { "access": "ready", 
+/**
+ * Who the node is signed in as, when the forge said.
+ */
+login?: ForgeLogin | null, } | { "access": "not_placed" } | { "access": "no_branch" } | { "access": "on_base" } | { "access": "no_remote" } | { "access": "not_supported", 
+/**
+ * The host.
+ */
+host: ForgeHost, } | { "access": "signed_out", 
+/**
+ * The host.
+ */
+host: ForgeHost, 
+/**
+ * What `gh` said.
+ */
+gh: GhState, } | { "access": "refused", 
+/**
+ * The host.
+ */
+host: ForgeHost, 
+/**
+ * Why.
+ */
+reason: RefusedReason, 
+/**
+ * Who the node is signed in as, when known.
+ */
+login?: ForgeLogin | null, } | { "access": "rate_limited", 
+/**
+ * The host.
+ */
+host: ForgeHost, 
+/**
+ * When reading starts again.
+ */
+until: string, } | { "access": "unreachable", 
+/**
+ * The host.
+ */
+host: ForgeHost, 
+/**
+ * When the node tries again.
+ */
+retry_at: string, } | { "access": "limit" } | { "access": "ended" } | { "access": "unknown" };
+
+/**
+ * A forge's host as a remote names it (`github.com`, `git.example.org:8443`).
+ */
+export type ForgeHost = string;
+
+/**
+ * Which kind of forge a repository is on.
+ */
+export type ForgeKind = "github" | "unknown";
+
+/**
+ * A person's or a bot's login on a forge.
+ */
+export type ForgeLogin = string;
+
+/**
+ * `forge.status`'s answer.
+ */
+export type ForgeStatus = { 
+/**
+ * Every host the node watched or was asked about, at most
+ * [`ForgeStatus::MAX_HOSTS`].
+ */
+hosts: Array<HostStatus>, 
+/**
+ * Pull requests watched now.
+ */
+watched: number, 
+/**
+ * The most it watches.
+ */
+limit: number, };
+
+/**
+ * A page on a forge: `https` (or `http` on a loopback host, the
+ * tests' fake), with no user information.
+ */
+export type ForgeUrl = string;
 
 /**
  * `fleet.forget` (protocol 6): on the home, forget member node `node`'s
@@ -1650,6 +1889,11 @@ ignore_whitespace: boolean,
 from_hunk?: number | null, };
 
 /**
+ * `forge.status`: how the node is signed in to each forge.
+ */
+export type GetForgeStatus = Record<symbol, never>;
+
+/**
  * `harness.options` (protocol 9): what a harness's agent offers before
  * any session of it exists, for a new-session form. The node starts the
  * agent as a structured session would (under `profile`, in a scratch
@@ -1710,6 +1954,20 @@ project: ProjectId,
 base?: WorktreeBase | null, };
 
 /**
+ * `pr.get`: a session's pull request, whole.
+ */
+export type GetPullRequest = { 
+/**
+ * The session.
+ */
+session: SessionId, 
+/**
+ * Read it from the forge now (at most once per 10 s per session;
+ * otherwise the watcher's copy).
+ */
+refresh: boolean, };
+
+/**
  * `session.get`: one session.
  */
 export type GetSession = { 
@@ -1736,6 +1994,24 @@ export type GetStatus = {
  * Where.
  */
 root: WorkspaceRoot, };
+
+/**
+ * `terminal.get`: one terminal, at once or after its next change.
+ */
+export type GetTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, 
+/**
+ * Wait (at most 30 s) until its `revision` differs from this one.
+ */
+changed_from?: number | null, };
+
+/**
+ * What looking for the machine's `gh` found.
+ */
+export type GhState = "missing" | "signed_out" | "failed" | "unknown";
 
 /**
  * A git operation that leaves a repository between two states.
@@ -1769,7 +2045,16 @@ operation: GitOperation, } | { "kind": "remote_failed",
 /**
  * git's last lines, credentials removed.
  */
-message: string, } | { "kind": "unknown" };
+message: string, } | { "kind": "repository_config", 
+/**
+ * The key, as git lists it; absent when the whole configuration
+ * was refused (`too_large`).
+ */
+key?: ConfigKey | null, 
+/**
+ * Why.
+ */
+reason: RepositoryConfigReason, } | { "kind": "unknown" };
 
 /**
  * A root's git status.
@@ -1969,6 +2254,27 @@ export type HarnessSessionId = string & { readonly __brand: "HarnessSessionId" }
  * An HTTP header field name.
  */
 export type HeaderName = string;
+
+/**
+ * How the node is signed in to one host.
+ */
+export type HostStatus = { 
+/**
+ * The host.
+ */
+host: ForgeHost, 
+/**
+ * Its kind.
+ */
+kind: ForgeKind, 
+/**
+ * What signing in found.
+ */
+access: ForgeAccess, 
+/**
+ * Where the token came from, when there is one.
+ */
+source?: TokenSource | null, };
 
 /**
  * Hover text is untrusted content; clients must not render raw HTML.
@@ -2185,6 +2491,16 @@ export type KillSession = {
 session: SessionId, };
 
 /**
+ * `terminal.kill`: end its process (a service is not started again); the
+ * terminal is kept, ended, with its output.
+ */
+export type KillTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, };
+
+/**
  * A supported server family; JavaScript uses the TypeScript server.
  */
 export type Language = "rust" | "type_script" | "python" | "go" | "cpp";
@@ -2255,6 +2571,15 @@ export type ListNodes = null;
 export type ListPeers = null;
 
 /**
+ * `port.list`: the listeners found, at once or after the next change.
+ */
+export type ListPorts = { 
+/**
+ * Wait (at most 30 s) until the `revision` differs from this one.
+ */
+changed_from?: number | null, };
+
+/**
  * `profile.list` (protocol 5): the node's profiles, the implicit default
  * of each harness included. Needs `Read`.
  */
@@ -2268,6 +2593,20 @@ harness?: HarnessKind | null, };
  * `project.list`: every project.
  */
 export type ListProjects = Record<symbol, never>;
+
+/**
+ * `pr.list`: every watched session's pull request.
+ */
+export type ListPullRequests = Record<symbol, never>;
+
+/**
+ * `script.list`: a place's scripts, their approval and their runs.
+ */
+export type ListScripts = { 
+/**
+ * Whose checkout.
+ */
+place: ScriptPlace, };
 
 /**
  * `secret.list` (protocol 6): the names of this node's secrets, never
@@ -2300,6 +2639,15 @@ export type ListStashes = {
 root: WorkspaceRoot, };
 
 /**
+ * `terminal.list`: the node's terminals, or one place's.
+ */
+export type ListTerminals = { 
+/**
+ * Only this session's or project's.
+ */
+place?: TerminalPlace | null, };
+
+/**
  * `worktree.list`: every worktree, or one project's.
  */
 export type ListWorktrees = { 
@@ -2307,6 +2655,32 @@ export type ListWorktrees = {
  * Only this project's.
  */
 project?: ProjectId | null, };
+
+/**
+ * A TCP socket in the listening state.
+ */
+export type ListeningPort = { 
+/**
+ * The port.
+ */
+port: number, 
+/**
+ * The local address it listens on (`127.0.0.1`, `::1`, `0.0.0.0`,
+ * `::`): loopback only, or every interface. Text on the wire.
+ */
+address: string, 
+/**
+ * The listening process.
+ */
+pid: number, 
+/**
+ * Its name, where the system said.
+ */
+process?: ProcessName | null, 
+/**
+ * Whose tree it is in.
+ */
+owner: PortOwner, };
 
 /**
  * A location relative to the authorized workspace.
@@ -2437,9 +2811,83 @@ profile?: ProfileName | null,
 project?: string | null, };
 
 /**
+ * How a pull request is merged.
+ */
+export type MergeMethod = "merge" | "squash" | "rebase";
+
+/**
+ * `pr.merge`'s answer.
+ */
+export type MergeOutcome = { "outcome": "merged", 
+/**
+ * The commit the merge made on the base.
+ */
+commit: CommitId, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: MergeRefusal, } | { "outcome": "unknown" };
+
+/**
+ * `pr.merge`: merge the session's pull request, as the caller saw it.
+ */
+export type MergePullRequest = { 
+/**
+ * The session.
+ */
+session: SessionId, 
+/**
+ * The pull request the caller looked at.
+ */
+number: PullNumber, 
+/**
+ * The method.
+ */
+method: MergeMethod, 
+/**
+ * The head the caller looked at, in full (40 or 64 digits): a push
+ * since refuses the merge.
+ */
+head: CommitId, };
+
+/**
+ * Why `pr.merge` merged nothing.
+ */
+export type MergeRefusal = { "kind": "no_pull_request" } | { "kind": "other_pull_request", 
+/**
+ * Its number.
+ */
+number: PullNumber, } | { "kind": "not_open", 
+/**
+ * What it is.
+ */
+state: PullState, } | { "kind": "draft" } | { "kind": "head_moved", 
+/**
+ * The head now.
+ */
+head: CommitId, } | { "kind": "not_mergeable", 
+/**
+ * The forge's words, when it gave some.
+ */
+message?: string | null, } | { "kind": "method_not_allowed" } | { "kind": "merge_queue" } | { "kind": "cannot_pin" } | { "kind": "access", 
+/**
+ * Why.
+ */
+access: ForgeAccess, } | { "kind": "rejected", 
+/**
+ * Its message, at most 2 KiB.
+ */
+message: string, } | { "kind": "unknown" };
+
+/**
+ * Whether it can be merged now.
+ */
+export type Mergeable = "mergeable" | "conflicting" | "blocked" | "unstable" | "behind" | "unknown";
+
+/**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -2660,6 +3108,67 @@ export type OfferVersion = 1;
  * A best-effort offset into sorted results; edits may shift later pages.
  */
 export type Offset = number;
+
+/**
+ * `pr.open`'s answer.
+ */
+export type OpenOutcome = { "outcome": "opened", 
+/**
+ * It.
+ */
+pull_request: PullRequest, } | { "outcome": "exists", 
+/**
+ * It.
+ */
+pull_request: PullRequest, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+refusal: OpenRefusal, } | { "outcome": "unknown" };
+
+/**
+ * `pr.open`: open a pull request from the branch a session's folder is
+ * on.
+ */
+export type OpenPullRequest = { 
+/**
+ * The session.
+ */
+session: SessionId, 
+/**
+ * Its title.
+ */
+title: PullTitle, 
+/**
+ * Its description.
+ */
+body?: PullBody | null, 
+/**
+ * The branch it merges into; the project's default branch when
+ * absent.
+ */
+base?: BranchName | null, 
+/**
+ * Open it as a draft.
+ */
+draft: boolean, };
+
+/**
+ * Why `pr.open` made nothing.
+ */
+export type OpenRefusal = { "kind": "not_pushed" } | { "kind": "no_commits" } | { "kind": "push", 
+/**
+ * Why.
+ */
+refusal: GitRefusal, } | { "kind": "access", 
+/**
+ * Why.
+ */
+access: ForgeAccess, } | { "kind": "rejected", 
+/**
+ * Its message, at most 2 KiB.
+ */
+message: string, } | { "kind": "unknown" };
 
 /**
  * What an option is about, as the agent labels it. For placing a control
@@ -2941,6 +3450,53 @@ export type PlanPriority = "high" | "medium" | "low";
 export type PlanStatus = "pending" | "in_progress" | "completed";
 
 /**
+ * `port.list`'s answer.
+ */
+export type PortList = { 
+/**
+ * The listeners the caller may see, by owner, then port.
+ */
+ports: Array<ListeningPort>, 
+/**
+ * How the last scan went.
+ */
+scan: PortScan, 
+/**
+ * Changes when the list or the scan's state does.
+ */
+revision: number, 
+/**
+ * Whether there were more than 256.
+ */
+more: boolean, };
+
+/**
+ * Whose process tree a listener is in.
+ */
+export type PortOwner = { "kind": "session", 
+/**
+ * Which.
+ */
+session: SessionId, } | { "kind": "terminal", 
+/**
+ * Which.
+ */
+terminal: TerminalId, };
+
+/**
+ * How the last scan went.
+ */
+export type PortScan = { "state": "pending" } | { "state": "scanned", 
+/**
+ * When.
+ */
+at: string, } | { "state": "unavailable", 
+/**
+ * Why.
+ */
+reason: string, } | { "state": "unknown" };
+
+/**
  * A 1-based Unicode scalar position; the line's exclusive end is valid.
  */
 export type Position = { 
@@ -2952,6 +3508,13 @@ line: number,
  * One-based Unicode scalar column, not a byte or UTF-16 offset.
  */
 column: number, };
+
+/**
+ * What the system calls a process (`comm` on Linux, `lsof`'s command on
+ * macOS, the image name on Windows): at most 64 characters, no control
+ * character. Content a person reads, kept plain.
+ */
+export type ProcessName = string;
 
 /**
  * A profile as a node reports it. Names of the variables it sets are
@@ -3013,7 +3576,19 @@ digest: CommandsDigest,
 /**
  * Whether a person approved it for this project.
  */
-approved: boolean, } | { "state": "invalid", 
+approved: boolean, 
+/**
+ * Its scripts and services, in name order (protocol 11, ADR
+ * 0031); the digest covers them. Left out when there are none.
+ */
+scripts?: Array<ScriptEntry>, 
+/**
+ * The set last approved for this project, to show what changed
+ * (protocol 11): only while this set is not approved, and only
+ * when the node kept what that approval covered (approvals given
+ * from protocol 11 on). Bounded as this set is.
+ */
+last_approved?: ApprovedCommands | null, } | { "state": "invalid", 
 /**
  * Why.
  */
@@ -3182,6 +3757,17 @@ export type Pull = {
 root: WorkspaceRoot, };
 
 /**
+ * A pull request's description.
+ */
+export type PullBody = string;
+
+/**
+ * A pull request's number in its repository (GitLab's merge request
+ * `iid`): 1 to 2^53 − 1, what a page's JavaScript holds exactly.
+ */
+export type PullNumber = number;
+
+/**
  * `git.pull`'s answer.
  */
 export type PullOutcome = { "outcome": "pulled", 
@@ -3197,6 +3783,140 @@ to: CommitId, } | { "outcome": "up_to_date" } | { "outcome": "refused",
  * Why.
  */
 refusal: GitRefusal, };
+
+/**
+ * A pull request, whole: what `pr.get` answers.
+ */
+export type PullRequest = { 
+/**
+ * What a card shows.
+ */
+summary: PullSummary, 
+/**
+ * Who opened it, when the forge named a login.
+ */
+author?: ForgeLogin | null, 
+/**
+ * Its head branch.
+ */
+head_branch: BranchName, 
+/**
+ * The branch it merges into.
+ */
+base: BranchName, 
+/**
+ * Its head commit's checks.
+ */
+checks: Checks, 
+/**
+ * People's reviews.
+ */
+reviews: Reviews, 
+/**
+ * When it was opened.
+ */
+created_at: string, 
+/**
+ * When it was merged.
+ */
+merged_at?: string | null, 
+/**
+ * When it was closed (merged or not).
+ */
+closed_at?: string | null, 
+/**
+ * The methods its repository allows.
+ */
+merge_methods: Array<MergeMethod>, 
+/**
+ * When this node last read it.
+ */
+read_at: string, };
+
+/**
+ * `pr.list`'s answer.
+ */
+export type PullRequestList = { 
+/**
+ * Every watched (live) session's, at most the watch limit.
+ */
+entries: Array<SessionPullEntry>, };
+
+/**
+ * `pr.get`'s answer: the pull request whole.
+ */
+export type PullRequestView = { 
+/**
+ * Whether the node can see it.
+ */
+access: ForgeAccess, 
+/**
+ * The last one read.
+ */
+pull_request?: PullRequest | null, 
+/**
+ * Whether its failing checks and reviews are sent to the session.
+ */
+feedback: boolean, };
+
+/**
+ * Where a pull request is in its life.
+ */
+export type PullState = "open" | "merged" | "closed" | "unknown";
+
+/**
+ * What a card needs of a pull request; carried in `SessionInfo`.
+ */
+export type PullSummary = { 
+/**
+ * Its repository.
+ */
+repo: RepoRef, 
+/**
+ * Its number there.
+ */
+number: PullNumber, 
+/**
+ * Its page.
+ */
+url: ForgeUrl, 
+/**
+ * Its title.
+ */
+title: PullTitle, 
+/**
+ * Open, merged or closed.
+ */
+state: PullState, 
+/**
+ * A draft.
+ */
+draft: boolean, 
+/**
+ * The commit its head is at.
+ */
+head_commit: CommitId, 
+/**
+ * Its checks, together.
+ */
+checks: ChecksState, 
+/**
+ * The forge's review verdict.
+ */
+review: ReviewDecision, 
+/**
+ * Whether it can merge now.
+ */
+mergeable: Mergeable, 
+/**
+ * When it last changed on the forge.
+ */
+updated_at: string, };
+
+/**
+ * A pull request's title: one line.
+ */
+export type PullTitle = string;
 
 /**
  * `git.push`.
@@ -3566,6 +4286,30 @@ from: number,
 wait?: number | null, };
 
 /**
+ * `terminal.read`: a page of a terminal's log. Answered with an
+ * `EventPage`, as `session.read` is.
+ */
+export type ReadTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, 
+/**
+ * The first record wanted; a page starts at the oldest kept one when
+ * this is older.
+ */
+from: EventSeq, 
+/**
+ * The most records; the node caps it at [`ReadTerminal::MAX_LIMIT`].
+ */
+limit: number, 
+/**
+ * With nothing at `from` yet, wait this many seconds for something
+ * (at most 30).
+ */
+wait?: number | null, };
+
+/**
  * `transfer.read` (protocol 6): part of one file of an open transfer, from
  * `offset`, as `fleet.blob` reads the bundle. Only the caller that opened
  * it may read it. Needs `read`. Answers a `BlobChunk`.
@@ -3614,6 +4358,15 @@ position: Position,
  * Sorted result page (unused by hover).
  */
 page: PageRequest, };
+
+/**
+ * Why a forge refused the node's token.
+ */
+export type RefusedReason = { "kind": "unauthorized" } | { "kind": "no_access" } | { "kind": "sso", 
+/**
+ * Where to authorise it, when the forge said.
+ */
+url?: ForgeUrl | null, } | { "kind": "forbidden" } | { "kind": "unknown" };
 
 /**
  * A relative path inside a root, parts separated by `/`. The empty path is
@@ -3784,9 +4537,45 @@ session: SessionId,
 title: SessionTitle, };
 
 /**
+ * `terminal.rename`: give a terminal a title.
+ */
+export type RenameTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, 
+/**
+ * The title.
+ */
+title: SessionTitle, };
+
+/**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList };
+
+/**
+ * A repository's path on its forge: `owner/name`, or GitLab's
+ * `group/subgroup/name`.
+ */
+export type RepoPath = string;
+
+/**
+ * A repository on a forge.
+ */
+export type RepoRef = { 
+/**
+ * Which kind of forge.
+ */
+kind: ForgeKind, 
+/**
+ * Its host, as the remote names it.
+ */
+host: ForgeHost, 
+/**
+ * `owner/name` (or GitLab's nested groups).
+ */
+path: RepoPath, };
 
 /**
  * `fleet.report` (protocol 5): a member says what it applied and which
@@ -3803,6 +4592,22 @@ generation: Generation,
 conflicts?: Array<BundlePath>, };
 
 /**
+ * Why a git run was refused for its repository's own configuration
+ * (protocol 11, ADR 0030).
+ */
+export type RepositoryConfigReason = "program" | "layout" | "credential" | "unnamable" | "too_many" | "too_large" | "unknown";
+
+/**
+ * `script.restart`: run a script's run again (in place while it runs, in
+ * a new terminal once it ended).
+ */
+export type RestartScript = { 
+/**
+ * The run.
+ */
+terminal: TerminalId, };
+
+/**
  * `session.resume`: start an ended structured session again with its
  * conversation. Needs `operate`.
  */
@@ -3811,6 +4616,33 @@ export type ResumeSession = {
  * Which session.
  */
 session: SessionId, };
+
+/**
+ * The forge's review verdict.
+ */
+export type ReviewDecision = "approved" | "changes_requested" | "review_required" | "none" | "unknown";
+
+/**
+ * People's reviews on the current head, the latest per person, bots
+ * left out (agent-orchestrator's `ExternalReviewFacts`).
+ */
+export type Reviews = { 
+/**
+ * A person's approval stands.
+ */
+approved: boolean, 
+/**
+ * A person requested changes.
+ */
+changes_requested: boolean, 
+/**
+ * An unresolved thread holds a person's comment.
+ */
+commented: boolean, 
+/**
+ * Unresolved review threads.
+ */
+unresolved: number, };
 
 /**
  * `device.revoke` (protocol 4): revoke a device and close its connections.
@@ -3828,6 +4660,19 @@ device: DeviceId, };
 export type RouteUrl = string;
 
 /**
+ * `script.run`: run a script or start a service.
+ */
+export type RunScript = { 
+/**
+ * Whose checkout.
+ */
+place: ScriptPlace, 
+/**
+ * Which.
+ */
+script: ScriptName, };
+
+/**
  * `worktree.setup`: run setup now.
  */
 export type RunSetup = { 
@@ -3842,6 +4687,99 @@ worktree: WorktreeId, };
  * The node token and the local socket hold every scope.
  */
 export type Scope = "read" | "operate" | "admin" | "sync" | "relay";
+
+/**
+ * One script or service of `vessel.toml`.
+ */
+export type ScriptEntry = { 
+/**
+ * Its name.
+ */
+name: ScriptName, 
+/**
+ * Script or service.
+ */
+kind: ScriptKind, 
+/**
+ * What runs, through the platform's shell.
+ */
+command: ProjectCommand, 
+/**
+ * Where it runs, inside the root; the root when absent.
+ */
+dir?: RelPath | null, };
+
+/**
+ * Run once, or kept running.
+ */
+export type ScriptKind = "script" | "service";
+
+/**
+ * `script.list`'s answer.
+ */
+export type ScriptList = { 
+/**
+ * The folder `vessel.toml` was read in.
+ */
+root: string, 
+/**
+ * What it names, as it is now, and whether that set is approved.
+ */
+commands: ProjectCommands, 
+/**
+ * The runs in this root, live and kept.
+ */
+runs: Array<TerminalInfo>, };
+
+/**
+ * A script's or a service's name in `vessel.toml`: 1 to 64 bytes of ASCII
+ * letters, digits, `-`, `_` and `.`, starting with a letter or a digit.
+ * A person types it (`vessel script run dev`), so it is kept plain.
+ */
+export type ScriptName = string;
+
+/**
+ * Whose checkout a script runs in.
+ */
+export type ScriptPlace = { "kind": "session", 
+/**
+ * Which.
+ */
+session: SessionId, } | { "kind": "project", 
+/**
+ * Which.
+ */
+project: ProjectId, };
+
+/**
+ * Why a script did not run.
+ */
+export type ScriptRefusal = { "kind": "no_project" } | { "kind": "no_such_script" } | { "kind": "no_such_dir" } | { "kind": "invalid_file", 
+/**
+ * Why.
+ */
+message: string, } | { "kind": "already_running", 
+/**
+ * That run.
+ */
+terminal: TerminalId, } | { "kind": "unknown" };
+
+/**
+ * What `script.run` and `script.restart` did.
+ */
+export type ScriptRunOutcome = { "outcome": "started", 
+/**
+ * The run.
+ */
+terminal: TerminalInfo, } | { "outcome": "needs_approval", 
+/**
+ * The set to approve (`project.approve`).
+ */
+commands: ProjectCommands, } | { "outcome": "refused", 
+/**
+ * Why.
+ */
+reason: ScriptRefusal, };
 
 /**
  * `file.grep`: search inside files.
@@ -3901,6 +4839,66 @@ session: SessionId,
  * What to send.
  */
 input: SessionInput, };
+
+/**
+ * `terminal.send`: keystrokes or a resize, for a shell.
+ */
+export type SendTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, 
+/**
+ * What.
+ */
+input: TerminalInput, };
+
+/**
+ * Why a service is not started again.
+ */
+export type ServiceFailure = { "kind": "gave_up", 
+/**
+ * Restarts tried.
+ */
+restarts: number, } | { "kind": "not_approved" } | { "kind": "spawn" } | { "kind": "unknown" };
+
+/**
+ * What a service is doing (protocol 11). Also a record of its log
+ * (`SessionEvent::Service`), at every change.
+ */
+export type ServiceState = { "state": "starting", 
+/**
+ * Which start, from 1.
+ */
+attempt: number, } | { "state": "running", 
+/**
+ * Which start, from 1.
+ */
+attempt: number, 
+/**
+ * Since when.
+ */
+since: string, } | { "state": "backing_off", 
+/**
+ * The start that failed.
+ */
+attempt: number, 
+/**
+ * Its exit code (none for a signal, or a start that failed).
+ */
+code?: number | null, 
+/**
+ * When the next start is.
+ */
+restart_at: string, } | { "state": "exited", 
+/**
+ * The exit code (0).
+ */
+code: number, } | { "state": "failed", 
+/**
+ * Why.
+ */
+reason: ServiceFailure, } | { "state": "stopped" } | { "state": "unknown" };
 
 /**
  * A session's place on the board, derived by the node (protocol 8).
@@ -4117,7 +5115,14 @@ abilities?: AgentAbilities | null,
  * Its project, worktree and branch (protocol 10), when its spec named
  * a place. Absent from older nodes. Boxed, as `SessionSpec.place` is.
  */
-workspace?: SessionWorkspace | null, };
+workspace?: SessionWorkspace | null, 
+/**
+ * Its pull request, for a live session with a project or a worktree
+ * (protocol 11, ADR 0029): whether the node can see it, the last one
+ * read, and whether feedback goes to the session. Set by the node;
+ * cleared when the session ends.
+ */
+pull_request?: SessionPullRequest | null, };
 
 /**
  * Something a client sends into a live session. Body of `session.send`.
@@ -4265,6 +5270,36 @@ dir?: RelPath | null, } | { "kind": "worktree",
 worktree: WorktreeId, };
 
 /**
+ * One watched session's pull request (`pr.list`).
+ */
+export type SessionPullEntry = { 
+/**
+ * The session.
+ */
+session: SessionId, 
+/**
+ * Its pull request.
+ */
+pull_request: SessionPullRequest, };
+
+/**
+ * What a session carries of its pull request (`SessionInfo.pull_request`).
+ */
+export type SessionPullRequest = { 
+/**
+ * Whether the node can see it.
+ */
+access: ForgeAccess, 
+/**
+ * The last one read, kept while access fails later.
+ */
+summary?: PullSummary | null, 
+/**
+ * Whether its failing checks and reviews are sent to the session.
+ */
+feedback: boolean, };
+
+/**
  * A session on a node of the fleet.
  */
 export type SessionRef = { 
@@ -4376,6 +5411,20 @@ worktree?: WorktreeId | null,
  * The worktree's branch when the session started.
  */
 branch?: BranchName | null, };
+
+/**
+ * `pr.feedback`: send the pull request's failing checks and reviews to
+ * the session, or stop.
+ */
+export type SetFeedback = { 
+/**
+ * The session.
+ */
+session: SessionId, 
+/**
+ * On or off.
+ */
+enabled: boolean, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -4713,6 +5762,20 @@ session: SessionId,
 from: EventSeq, };
 
 /**
+ * `terminal.subscribe`: a terminal's records from `from`, then live ones,
+ * as `ServerFrame::Event` frames; ended with `session.unsubscribe`.
+ */
+export type SubscribeTerminal = { 
+/**
+ * Which.
+ */
+terminal: TerminalId, 
+/**
+ * The first record wanted (the oldest kept one when this is older).
+ */
+from: EventSeq, };
+
+/**
  * Reply to `session.subscribe`. Events follow as `ServerFrame::Event`.
  */
 export type Subscribed = { 
@@ -4812,6 +5875,80 @@ export type SymbolKind = "file" | "module" | "namespace" | "package" | "class" |
 export type TerminalBytes = string;
 
 /**
+ * A terminal beside a session: a shell, or a run of a project's script
+ * (protocol 11, ADR 0031).
+ */
+export type TerminalId = string & { readonly __brand: "TerminalId" };
+
+/**
+ * A terminal as the node reports it.
+ *
+ * `#[non_exhaustive]` with a constructor, for the reason `SessionInfo`
+ * gives: a field added later would break every struct literal.
+ */
+export type TerminalInfo = { 
+/**
+ * Its id.
+ */
+id: TerminalId, 
+/**
+ * Where it was placed.
+ */
+place: TerminalPlace, 
+/**
+ * The absolute folder it started in.
+ */
+folder: string, 
+/**
+ * What it runs.
+ */
+kind: TerminalKind, 
+/**
+ * What a person called it.
+ */
+title?: SessionTitle | null, 
+/**
+ * Who opened it (ADR 0013).
+ */
+created_by: Creator, 
+/**
+ * When it was opened.
+ */
+created_at: string, 
+/**
+ * When its process ended for good, if it has.
+ */
+ended_at?: string | null, 
+/**
+ * Its process's state: `running`, then `exited`, `failed` or
+ * `interrupted` (a service is `running` while it is kept running,
+ * restarts included).
+ */
+status: SessionStatus, 
+/**
+ * A service's state.
+ */
+service?: ServiceState | null, 
+/**
+ * A shell's window.
+ */
+size?: TerminalSize | null, 
+/**
+ * The oldest record still kept: older output was dropped (the
+ * scrollback is bounded).
+ */
+oldest_seq: EventSeq, 
+/**
+ * The number the next record will get.
+ */
+next_seq: EventSeq, 
+/**
+ * Changes with every field but the two sequence numbers, for
+ * `terminal.get`'s `changed_from`.
+ */
+revision: number, };
+
+/**
  * Input to a terminal-mode session.
  */
 export type TerminalInput = { "kind": "data", 
@@ -4825,6 +5962,41 @@ data: TerminalBytes, } | { "kind": "resize",
 size: TerminalSize, };
 
 /**
+ * What a terminal runs.
+ */
+export type TerminalKind = { "kind": "shell", 
+/**
+ * The program started.
+ */
+program: string, } | { "kind": "script", 
+/**
+ * Its name in `vessel.toml`.
+ */
+script: ScriptName, 
+/**
+ * What runs.
+ */
+command: ProjectCommand, } | { "kind": "service", 
+/**
+ * Its name in `vessel.toml`.
+ */
+script: ScriptName, 
+/**
+ * What runs.
+ */
+command: ProjectCommand, } | { "kind": "unknown" };
+
+/**
+ * `terminal.list`'s answer: live terminals first, then kept ones, each
+ * newest first.
+ */
+export type TerminalList = { 
+/**
+ * At most 96 (64 live, 32 ended).
+ */
+terminals: Array<TerminalInfo>, };
+
+/**
  * A chunk of PTY output.
  */
 export type TerminalOutput = { 
@@ -4832,6 +6004,23 @@ export type TerminalOutput = {
  * The bytes, as read from the PTY.
  */
 data: TerminalBytes, };
+
+/**
+ * Where a terminal runs.
+ */
+export type TerminalPlace = { "kind": "session", 
+/**
+ * Which.
+ */
+session: SessionId, } | { "kind": "project", 
+/**
+ * Which.
+ */
+project: ProjectId, 
+/**
+ * A folder inside the project's root; the root when absent.
+ */
+dir?: RelPath | null, };
 
 /**
  * Terminal window size in character cells.
@@ -4845,6 +6034,19 @@ cols: number,
  * Rows.
  */
 rows: number, };
+
+/**
+ * `terminal.subscribe`'s answer.
+ */
+export type TerminalSubscribed = { 
+/**
+ * Tags the subscription's events.
+ */
+subscription: SubscriptionId, 
+/**
+ * The terminal when the subscription opened.
+ */
+terminal: TerminalInfo, };
 
 /**
  * A shape free text must have.
@@ -4879,6 +6081,11 @@ reasons: Array<KeptReason>, });
  * A number of tokens.
  */
 export type TokenCount = number;
+
+/**
+ * Where a node's token for a host came from (never the token).
+ */
+export type TokenSource = "environment" | "gh" | "unknown";
 
 /**
  * The tokens one call used.
@@ -5373,13 +6580,14 @@ commit: CommitId,
 name?: RefName | null, };
 
 /**
- * What a write expects.
+ * What a write expects to find; a write that finds anything else
+ * changes nothing and is `conflict`.
  */
-export type WriteExpect = { "kind": "absent" } | { "kind": "version", 
+export type WriteExpect = { "kind": "absent" } | { "kind": "content", 
 /**
- * The version read.
+ * The SHA-256 of the content expected.
  */
-version: FileVersion, } | { "kind": "any" };
+hash: ContentHash, } | { "kind": "any" };
 
 /**
  * `file.write`: a whole text file.

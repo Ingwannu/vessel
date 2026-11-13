@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 use crate::id::{ProjectId, WorktreeId};
 
 pub use outcomes::{
-    CommitOutcome, FetchOutcome, GitRefusal, PullOutcome, PushOutcome, RenameOutcome, StashOutcome,
-    SwitchOutcome,
+    CommitOutcome, FetchOutcome, GitRefusal, PullOutcome, PushOutcome, RenameOutcome,
+    RepositoryConfigReason, StashOutcome, SwitchOutcome,
 };
 pub use requests::{
     Commit, CommitStage, Discard, Fetch, GetStatus, ListBranches, ListStashes, PathSet, Pull, Push,

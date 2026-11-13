@@ -2,7 +2,7 @@
 //! and tidying the worktree made for a session (`retire`), with the
 //! sessions tidying may still look at (`tidy_candidates`). It decides
 //! nothing about when to tidy (`crate::tidying` does), and never removes
-//! a worktree a live session is in.
+//! a worktree a live session or a live terminal is in.
 //!
 //! [Decision Log]
 //! - Removal follows one rule for a person's `worktree.remove` and for
@@ -13,6 +13,17 @@
 //! - Removing a worktree runs as a task of the node's, awaited by the
 //!   call: a caller that goes away (a cancelled call, a closed page)
 //!   leaves no worktree claimed by a removal that stopped halfway.
+//! - What runs in a worktree is read after the claim, never before (ADR
+//!   0030), and a session, a terminal or a script's run starting there
+//!   holds the worktree by the "starting" count until it is live or
+//!   registered (`place`, `start_in`, `hold_folder`); a start checks the
+//!   claim after taking the count. So, whatever the order, the removal
+//!   sees the start (`kept { in_use }`) or the start sees the claim and is
+//!   refused before anything runs: teardown never runs under it. (Track C
+//!   checked after its start instead, which left a window: a reading
+//!   before the start's reservation and a claim after its last check. The
+//!   join of wave 2's first half closed it with B2's count; the e2e test
+//!   `meeting` races the two.)
 //! - Tidying is `retire`, called when the session a worktree was made for
 //!   is deleted or dropped by retention, never when it only ends or is
 //!   archived (`crate::tidying` says when, and why). A worktree it keeps
@@ -28,7 +39,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{SessionId, WorktreeId};
 
-use crate::workspace::projects::Live;
+use crate::workspace::projects::Occupant;
 use crate::workspace::setup::Kind;
 use crate::workspace::{WorkspaceError, Workspaces};
 
@@ -58,7 +69,7 @@ impl Workspaces {
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         Ok(match self.remove(worktree, if_lost, live).await? {
             Removal::Done(snapshot) => RemoveWorktreeOutcome::Removed { snapshot },
@@ -73,7 +84,7 @@ impl Workspaces {
     pub(crate) async fn retire(
         self: &Arc<Self>,
         session: SessionId,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Option<TidiedWorktree> {
         let worktree = self
             .state()
@@ -81,12 +92,12 @@ impl Workspaces {
             .values()
             .find(|entry| entry.info.created_for == Some(session))
             .map(|entry| entry.info.id)?;
-        let others: Vec<(SessionId, PathBuf)> = live
-            .iter()
-            .filter(|(id, _)| *id != session)
-            .cloned()
-            .collect();
-        let outcome = match self.remove(worktree, IfLost::Keep, &others).await {
+        let others = move || {
+            let mut live = live();
+            live.retain(|(occupant, _)| *occupant != Occupant::Session(session));
+            live
+        };
+        let outcome = match self.remove(worktree, IfLost::Keep, others).await {
             Ok(Removal::Done(snapshot)) => RemoveWorktreeOutcome::Removed { snapshot },
             Ok(Removal::Kept(reasons)) => RemoveWorktreeOutcome::Kept { reasons },
             Err(error) => {
@@ -144,11 +155,19 @@ impl Workspaces {
     /// The removal runs as a task of the node's: a caller that goes away
     /// mid-teardown neither stops it halfway nor leaves the worktree
     /// claimed.
+    ///
+    /// What runs where (`live`: live sessions, live terminals and the
+    /// terminals starting) is read after the claim, not before: one that
+    /// began between a reading and the claim would be seen by neither
+    /// (ADR 0030). Once claimed, no `place`, start again, terminal or
+    /// script gets in (each checks the claim after it counts itself, so
+    /// it is either read here or refused there; ADR 0031); a session that
+    /// passed its check before is `starting`.
     async fn remove(
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
-        live: &Live,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<Removal, WorkspaceError> {
         let git = self.git()?.clone();
         let claim = self.stop.child_token();
@@ -169,15 +188,21 @@ impl Workspaces {
                 .worktrees
                 .get_mut(&worktree)
                 .ok_or(WorkspaceError::UnknownWorktree(worktree))?;
-            let in_use = live
-                .iter()
-                .any(|(_, cwd)| cwd.starts_with(&entry.info.path));
-            if in_use || entry.running.is_some() {
+            // A session that passed its place's check and is not live yet
+            // counts as one in it (ADR 0030).
+            if entry.running.is_some() || entry.starting > 0 {
                 return Ok(Removal::Kept(vec![KeptReason::InUse]));
             }
             entry.running = Some(claim.clone());
             (entry.info.clone(), root, Arc::clone(&entry.written))
         };
+        let in_use = live().iter().any(|(_, cwd)| cwd.starts_with(&info.path));
+        if in_use {
+            if let Some(entry) = self.state().worktrees.get_mut(&worktree) {
+                entry.running = None;
+            }
+            return Ok(Removal::Kept(vec![KeptReason::InUse]));
+        }
         let workspaces = Arc::clone(self);
         self.tasks
             .spawn(async move {

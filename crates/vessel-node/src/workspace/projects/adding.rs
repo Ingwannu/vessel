@@ -29,6 +29,7 @@ impl Workspaces {
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
         let folder = existing_folder(path).await?;
+        self.refuse_git_dir(&folder).await?;
         let (root, git) = match &self.git {
             Some(git) => match git.toplevel(&folder).await? {
                 Some(top) => (canonical(top).await, true),
@@ -93,6 +94,7 @@ impl Workspaces {
         .map_err(|_panicked| WorkspaceError::Io("making the folder stopped".to_owned()))??;
         let root = canonical(path).await;
         policy::check_root(&self.places, &root)?;
+        self.refuse_git_dir(&root).await?;
         git.init(&root).await?;
         self.insert_project(root, true, name, ProjectState::Ready)
             .await
@@ -183,6 +185,33 @@ impl Workspaces {
             }
         }));
         Ok(info)
+    }
+
+    /// `invalid_request` for a folder that is git's own (a `.git` folder,
+    /// inside one, or a bare repository): ADR 0030, wave 1's review
+    /// finding 17. Asked of git when the node has one, and by its files
+    /// either way.
+    async fn refuse_git_dir(&self, folder: &Path) -> Result<(), WorkspaceError> {
+        let refused = || {
+            Err(WorkspaceError::Invalid(
+                "this folder cannot be a project: it is git's own folder (a `.git` folder or a \
+                 bare repository), not a working tree"
+                    .to_owned(),
+            ))
+        };
+        let probe = folder.to_path_buf();
+        let looks = tokio::task::spawn_blocking(move || policy::looks_like_git_dir(&probe))
+            .await
+            .map_err(|_panicked| WorkspaceError::Io("looking at the folder stopped".to_owned()))?;
+        if looks {
+            return refused();
+        }
+        if let Some(git) = &self.git
+            && git.is_git_dir(folder).await?
+        {
+            return refused();
+        }
+        Ok(())
     }
 
     async fn insert_project(

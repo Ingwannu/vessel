@@ -155,6 +155,14 @@ impl Reader {
         self.with(crate::workspace::load)
     }
 
+    /// A session's pull request feedback (protocol 11).
+    pub(crate) fn feedback(
+        &self,
+        session: SessionId,
+    ) -> Result<crate::forge::StoredFeedback, StoreError> {
+        self.with(|connection| crate::forge::load(connection, session))
+    }
+
     /// Every paired device, oldest first.
     pub(crate) fn devices(&self) -> Result<Vec<DeviceInfo>, StoreError> {
         self.with(devices::list)

@@ -1,9 +1,10 @@
 //! One live subscription on the client side.
 
 use tokio::sync::{mpsc, oneshot};
+use vessel_proto::terminals::TerminalInfo;
 use vessel_proto::{EventRecord, SessionInfo, SubscriptionEnd, SubscriptionId};
 
-use super::driver::{Command, Opened};
+use super::driver::{Command, Opened, Subject};
 
 /// What [`Subscription::next`] yields.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,30 +27,57 @@ enum Finished {
     Disconnected,
 }
 
-/// A session event stream opened by [`Connection::subscribe`]. Dropping it
-/// unsubscribes on the node.
+/// A session event stream opened by [`Connection::subscribe`], or (with
+/// `I` a [`TerminalInfo`]) a terminal's opened by
+/// [`Connection::subscribe_terminal`] (protocol 11): the same records and
+/// ends either way. Dropping it unsubscribes on the node.
 ///
 /// [`Connection::subscribe`]: super::Connection::subscribe
+/// [`Connection::subscribe_terminal`]: super::Connection::subscribe_terminal
 #[derive(Debug)]
-pub struct Subscription {
+pub struct Subscription<I = SessionInfo> {
     id: SubscriptionId,
-    info: SessionInfo,
+    info: I,
     records: mpsc::Receiver<EventRecord>,
     end: oneshot::Receiver<SubscriptionEnd>,
     finished: Option<Finished>,
     commands: mpsc::Sender<Command>,
 }
 
-impl Subscription {
-    pub(super) fn new(opened: Opened, commands: mpsc::Sender<Command>) -> Self {
-        Self {
-            id: opened.subscribed.subscription,
-            info: opened.subscribed.info,
-            records: opened.records,
-            end: opened.end,
+/// A terminal's records (protocol 11, ADR 0031).
+pub type TerminalSubscription = Subscription<TerminalInfo>;
+
+impl<I> Subscription<I> {
+    /// The subscription `opened` describes, if it follows what `pick`
+    /// takes; otherwise it is dropped (and so unsubscribed) and `None`.
+    pub(super) fn new(
+        opened: Opened,
+        commands: mpsc::Sender<Command>,
+        pick: impl FnOnce(Subject) -> Option<I>,
+    ) -> Option<Self> {
+        let Opened {
+            subscription,
+            subject,
+            records,
+            end,
+        } = opened;
+        let Some(info) = pick(subject) else {
+            if commands
+                .try_send(Command::Unsubscribe(subscription))
+                .is_err()
+            {
+                tracing::trace!(%subscription, "could not queue unsubscribe");
+            }
+            return None;
+        };
+        Some(Self {
+            id: subscription,
+            info,
+            records,
+            end,
             finished: None,
             commands,
-        }
+        })
     }
 
     /// The node's id for this subscription.
@@ -58,9 +86,9 @@ impl Subscription {
         self.id
     }
 
-    /// The session as it was when the subscription opened.
+    /// What it follows, as it was when the subscription opened.
     #[must_use]
-    pub const fn info(&self) -> &SessionInfo {
+    pub const fn info(&self) -> &I {
         &self.info
     }
 
@@ -93,7 +121,7 @@ impl From<Finished> for SubscriptionItem {
     }
 }
 
-impl Drop for Subscription {
+impl<I> Drop for Subscription<I> {
     fn drop(&mut self) {
         if self.finished.is_some() {
             return;

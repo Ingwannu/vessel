@@ -26,6 +26,9 @@ mod reconnect;
 #[cfg(test)]
 mod support;
 #[cfg(test)]
+#[cfg(unix)]
+mod terminals;
+#[cfg(test)]
 mod transfers;
 #[cfg(test)]
 mod ui;

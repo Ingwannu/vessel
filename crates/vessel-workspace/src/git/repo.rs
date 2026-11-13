@@ -32,6 +32,39 @@ impl Git {
         Ok((!line.is_empty()).then(|| PathBuf::from(line)))
     }
 
+    /// Whether `dir` is git's own folder rather than a working tree: a
+    /// `.git` folder or a folder inside one, or a bare repository (ADR
+    /// 0030). Such a folder is never a project: its `config` and `hooks`
+    /// would be files the file calls write.
+    ///
+    /// # Errors
+    /// As the run's.
+    pub async fn is_git_dir(&self, dir: &Path) -> Result<bool, GitError> {
+        let output = self
+            .command(dir)
+            .args(["rev-parse", "--is-inside-git-dir", "--is-bare-repository"])
+            .output()
+            .await;
+        let output = match output {
+            Ok(output) => output,
+            // A repository whose own configuration moves its working tree
+            // is as much git's own folder as a bare one.
+            Err(GitError::OwnConfig {
+                why: super::OwnConfigRefusal::Layout,
+                ..
+            }) => {
+                return Ok(true);
+            }
+            Err(error) => return Err(error),
+        };
+        if output.code != Some(0) {
+            return Ok(false);
+        }
+        Ok(String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|line| line.trim() == "true"))
+    }
+
     /// The commit `HEAD` names; `None` before the first commit.
     ///
     /// # Errors
@@ -154,6 +187,7 @@ impl Git {
     /// As the run's, and [`GitError::Failed`] when git refuses.
     pub async fn init(&self, dir: &Path) -> Result<(), GitError> {
         self.command(dir)
+            .outside_repository()
             .args(["init", "--quiet"])
             .output()
             .await?

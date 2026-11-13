@@ -265,6 +265,12 @@ pub struct SessionInfo {
     /// a place. Absent from older nodes. Boxed, as `SessionSpec.place` is.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace: Option<Box<SessionWorkspace>>,
+    /// Its pull request, for a live session with a project or a worktree
+    /// (protocol 11, ADR 0029): whether the node can see it, the last one
+    /// read, and whether feedback goes to the session. Set by the node;
+    /// cleared when the session ends.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pull_request: Option<Box<crate::forge::SessionPullRequest>>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -328,6 +334,7 @@ impl SessionInfo {
             marks: SessionMarks::default(),
             abilities: None,
             workspace: None,
+            pull_request: None,
         }
     }
 

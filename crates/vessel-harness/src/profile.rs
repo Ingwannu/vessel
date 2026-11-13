@@ -19,12 +19,19 @@
 //! [profiles.claude-qwen]
 //! harness = "claude"
 //! model = "qwen-coder"               # a route of `models.toml` (ADR 0015)
+//! agent_terminals = true             # its agents may open terminals (ADR 0031)
 //! ```
 //!
 //! A profile with `model` runs its harness against the node's model proxy,
 //! pinned to the route's models (`routing`); only harnesses that can be
 //! pointed there may have one, and such a profile may not set the
 //! variables the route sets or removes.
+//!
+//! `agent_terminals` lets the agents of a session with this profile open
+//! terminals beside it, or beside a session they started whose profile
+//! sets it too (ADR 0031). It is off for every default profile and
+//! unless written: a terminal the node starts is outside the harness's own
+//! sandbox, so a person turns it on knowing that sandbox.
 //!
 //! Values may be secrets (an API key in `env`): `Debug` and
 //! [`Profile::info`] show variable names only, and parse errors never quote
@@ -69,6 +76,7 @@ pub struct Profile {
     unset: BTreeSet<EnvName>,
     args: Vec<String>,
     model: Option<ModelRouteName>,
+    agent_terminals: bool,
 }
 
 impl Profile {
@@ -85,6 +93,7 @@ impl Profile {
             unset: BTreeSet::new(),
             args: Vec::new(),
             model: None,
+            agent_terminals: false,
         }
     }
 
@@ -156,6 +165,13 @@ impl Profile {
         self.model.as_ref()
     }
 
+    /// Whether the agents of its sessions may open terminals beside them
+    /// (ADR 0031). Off unless the file turns it on.
+    #[must_use]
+    pub const fn agent_terminals(&self) -> bool {
+        self.agent_terminals
+    }
+
     /// What a node reports about it: names, never values.
     #[must_use]
     pub fn info(&self) -> ProfileInfo {
@@ -180,6 +196,7 @@ impl fmt::Debug for Profile {
             .field("unset", &self.unset)
             .field("args", &self.args)
             .field("model", &self.model)
+            .field("agent_terminals", &self.agent_terminals)
             .finish()
     }
 }
@@ -283,6 +300,8 @@ struct RawProfile {
     args: Vec<String>,
     #[serde(default)]
     model: Option<String>,
+    #[serde(default)]
+    agent_terminals: bool,
 }
 
 /// `profiles.toml` could not be read.
@@ -514,6 +533,7 @@ fn profile(
         unset,
         args,
         model,
+        agent_terminals: raw.agent_terminals,
     })
 }
 
@@ -668,6 +688,29 @@ mod tests {
         harness = "codex"
         env = { CODEX_HOME = "~" }
     "#;
+
+    /// ADR 0031: agents' terminals are off unless a person wrote them on.
+    #[test]
+    fn agent_terminals_are_off_unless_written() {
+        let text = "[profiles.on]\nharness = \"claude\"\nagent_terminals = true\n\n[profiles.off]\nharness = \"codex\"\n";
+        let profiles = parse_profiles(text, home()).unwrap();
+        let get = |name: &str| profiles.get(&name.parse().unwrap()).unwrap();
+        assert!(get("on").agent_terminals());
+        assert!(!get("off").agent_terminals());
+        assert!(
+            profiles
+                .all()
+                .filter(|p| p.is_default())
+                .all(|p| !p.agent_terminals())
+        );
+        assert!(matches!(
+            parse_profiles(
+                "[profiles.x]\nharness = \"claude\"\nagent_terminals = \"yes\"\n",
+                home()
+            ),
+            Err(ProfilesError::Toml { .. })
+        ));
+    }
 
     #[test]
     fn the_adr_example_parses() {

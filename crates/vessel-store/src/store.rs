@@ -3,6 +3,7 @@
 
 mod attached;
 mod conversation;
+mod forge;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -22,7 +23,7 @@ use crate::devices::{CredentialHash, StoredDevice};
 use crate::error::StoreError;
 use crate::log;
 use crate::reader::Reader;
-use crate::workspace::{StoredWorkspace, WorkspaceWrite};
+use crate::workspace::{ApprovalChange, StoredWorkspace, WorkspaceWrite};
 use crate::writer::{self, Done, Setup, Write, WriteOp};
 use crate::{attachments, files, recovery, schema};
 
@@ -291,7 +292,8 @@ impl Store {
             .await
     }
 
-    /// Approve the command set `digest` for `project`, or withdraw it.
+    /// Approve the command set `digest` for `project` (with the set, from
+    /// schema 11), or withdraw it.
     ///
     /// # Errors
     /// The write failed.
@@ -299,12 +301,12 @@ impl Store {
         &self,
         project: ProjectId,
         digest: CommandsDigest,
-        approved: bool,
+        change: ApprovalChange,
     ) -> Result<(), StoreError> {
         self.workspace_write(WorkspaceWrite::Approval {
             project,
             digest,
-            approved,
+            change,
         })
         .await
     }

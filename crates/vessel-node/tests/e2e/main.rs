@@ -25,6 +25,10 @@ mod crowd;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod forge;
+#[cfg(test)]
+mod forge_rules;
+#[cfg(test)]
 mod grants;
 #[cfg(test)]
 mod isolation;
@@ -34,15 +38,25 @@ mod local;
 mod lsp;
 #[cfg(test)]
 mod marks;
+// Where protocol 11's pull requests and terminals meet (Unix: the
+// terminals' shell is `/bin/sh`).
+#[cfg(test)]
+#[cfg(unix)]
+mod meeting;
 #[cfg(test)]
 mod moving;
 #[cfg(test)]
 mod options;
 #[cfg(test)]
+mod page_wire;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 #[cfg(unix)]
 mod remote;
+#[cfg(test)]
+#[cfg(unix)]
+mod removal_race;
 #[cfg(test)]
 mod resume;
 #[cfg(test)]
@@ -57,6 +71,9 @@ mod structured;
 mod support;
 #[cfg(test)]
 mod terminal;
+#[cfg(test)]
+#[cfg(unix)]
+mod terminals;
 #[cfg(test)]
 mod tidying;
 #[cfg(test)]

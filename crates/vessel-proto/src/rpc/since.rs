@@ -63,6 +63,12 @@ impl Call {
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
                 SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
             },
+            // A write guarded by its content came in 11: a protocol 10 node
+            // cannot decode it (its guard compared a time instead).
+            Self::WriteFile(request) => match request.expect {
+                crate::workspace::WriteExpect::Content { .. } => Some(11),
+                crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
+            },
             Self::NodeInfo(_)
             | Self::ListHarnesses(_)
             | Self::ListSessions(_)
@@ -160,12 +166,30 @@ impl Call {
             | Self::GitStash(_)
             | Self::ListDir(_)
             | Self::ReadFile(_)
-            | Self::WriteFile(_)
             | Self::CreateDir(_)
             | Self::RenamePath(_)
             | Self::DeletePath(_)
             | Self::FindFiles(_)
-            | Self::SearchFiles(_) => None,
+            | Self::SearchFiles(_)
+            | Self::ForgeStatus(_)
+            | Self::ListPullRequests(_)
+            | Self::GetPullRequest(_)
+            | Self::OpenPullRequest(_)
+            | Self::MergePullRequest(_)
+            | Self::SetFeedback(_)
+            | Self::CreateTerminal(_)
+            | Self::ListTerminals(_)
+            | Self::GetTerminal(_)
+            | Self::ReadTerminal(_)
+            | Self::SubscribeTerminal(_)
+            | Self::SendTerminal(_)
+            | Self::RenameTerminal(_)
+            | Self::KillTerminal(_)
+            | Self::CloseTerminal(_)
+            | Self::ListScripts(_)
+            | Self::RunScript(_)
+            | Self::RestartScript(_)
+            | Self::ListPorts(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

@@ -202,8 +202,10 @@ impl FromStr for RelPath {
 /// Whether a part names a repository's `.git` on some platform, by git's own
 /// rules (`verify_path` in git's `read-cache.c`): `.git` in any case; with
 /// trailing dots or spaces, which Windows drops; `git~1`, its 8.3 short
-/// name; and with the zero-width characters HFS+ ignores in names.
-fn is_git_dir(part: &str) -> bool {
+/// name; and with the zero-width characters HFS+ ignores in names. Also
+/// what a project's root may not contain (ADR 0030).
+#[must_use]
+pub fn is_git_dir(part: &str) -> bool {
     let visible: String = part
         .chars()
         .filter(|c| !matches!(c, '\u{200c}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{206a}'..='\u{206f}' | '\u{feff}'))

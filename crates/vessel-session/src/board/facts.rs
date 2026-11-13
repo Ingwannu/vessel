@@ -3,8 +3,8 @@
 //! them (`KanbanSessionFacts`, `KanbanPRFacts` and what they hold).
 //!
 //! Plain data with public fields: whoever knows a fact sets it (the
-//! session actor its worker's activity; the node, later, its pull
-//! requests). Not wire types.
+//! session actor its worker's activity; the node its pull requests and
+//! the policy its feedback switch makes, protocol 11). Not wire types.
 
 use chrono::{DateTime, Utc};
 use vessel_proto::Activity;
@@ -33,8 +33,11 @@ pub struct WorkerFacts {
 }
 
 /// Which follow-up loops the fleet drives on a session's behalf: whether
-/// its review-feedback loop is turned by the fleet or by a person. No
-/// Vessel session has any yet; all are false.
+/// its review-feedback loop is turned by the fleet or by a person. A
+/// session's pull request feedback (protocol 11, ADR 0029) sets both
+/// injections while it is on, as agent-orchestrator's one flag drives
+/// both its routing and its lane; `auto_review` stays false (Vessel has no
+/// reviewing agent).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Policy {
     /// The fleet reviews each new head itself and holds the pull request
@@ -217,9 +220,130 @@ impl PullRequestFacts {
 /// What the node knows about a session's pull requests.
 #[derive(Debug, Clone, Copy)]
 pub enum PullRequests<'a> {
-    /// It cannot see them (no Vessel node can yet). Unlike an empty
+    /// It cannot see them: the session is not placed, is on no branch or
+    /// on the base, has no remote, or the node has no access to its forge,
+    /// or has not read it yet (protocol 11). Unlike an empty
     /// [`Seen`](Self::Seen), this makes no claim that there are none.
     Unseen,
     /// These, all of them; empty when the session has none.
     Seen(&'a [PullRequestFacts]),
+}
+
+impl PullRequestFacts {
+    /// The facts of a pull request as a node read it from its forge
+    /// (protocol 11, ADR 0029), in the reducer's terms. A forge's
+    /// "behind" is unknown to the reducer, whose mergeability has no such
+    /// value; checks that are none, cancelled or truncated are unknown
+    /// too. The fleet's own review passes stay empty: Vessel has no
+    /// reviewing agent.
+    #[must_use]
+    pub fn from_pull(pull: &vessel_proto::forge::PullRequest) -> Self {
+        use vessel_proto::forge as wire;
+        let summary = &pull.summary;
+        let ci = match summary.checks {
+            wire::ChecksState::Pending => CiState::Pending,
+            wire::ChecksState::Passing => CiState::Passing,
+            wire::ChecksState::Failing => CiState::Failing,
+            wire::ChecksState::None | wire::ChecksState::Cancelled | wire::ChecksState::Unknown => {
+                CiState::Unknown
+            }
+        };
+        let review = match summary.review {
+            wire::ReviewDecision::Approved => ReviewDecision::Approved,
+            wire::ReviewDecision::ChangesRequested => ReviewDecision::ChangesRequested,
+            wire::ReviewDecision::ReviewRequired => ReviewDecision::ReviewRequired,
+            wire::ReviewDecision::None | wire::ReviewDecision::Unknown => ReviewDecision::None,
+        };
+        let mergeability = match summary.mergeable {
+            wire::Mergeable::Mergeable => Mergeability::Mergeable,
+            wire::Mergeable::Conflicting => Mergeability::Conflicting,
+            wire::Mergeable::Blocked => Mergeability::Blocked,
+            wire::Mergeable::Unstable => Mergeability::Unstable,
+            wire::Mergeable::Behind | wire::Mergeable::Unknown => Mergeability::Unknown,
+        };
+        let merged = summary.state == wire::PullState::Merged;
+        Self {
+            url: PullRequestUrl::new(summary.url.as_str()),
+            draft: summary.draft,
+            merged,
+            closed: merged || summary.state == wire::PullState::Closed,
+            ci,
+            review,
+            mergeability,
+            updated_at: summary.updated_at,
+            review_run: ReviewRunFacts::default(),
+            external_review: ExternalReviewFacts {
+                approved: pull.reviews.approved,
+                changes_requested: pull.reviews.changes_requested,
+                comments: pull.reviews.commented,
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{DateTime, Utc};
+    use vessel_proto::forge as wire;
+
+    use super::*;
+
+    fn pull(checks: wire::ChecksState, mergeable: wire::Mergeable) -> wire::PullRequest {
+        let at = DateTime::<Utc>::UNIX_EPOCH;
+        wire::PullRequest {
+            summary: wire::PullSummary {
+                repo: wire::RepoRef {
+                    kind: wire::ForgeKind::Github,
+                    host: "github.com".parse().unwrap(),
+                    path: "o/n".parse().unwrap(),
+                },
+                number: wire::PullNumber::new(1).unwrap(),
+                url: "https://github.com/o/n/pull/1".parse().unwrap(),
+                title: wire::PullTitle::lossy("t"),
+                state: wire::PullState::Merged,
+                draft: true,
+                head_commit: "0123456789abcdef0123456789abcdef01234567".parse().unwrap(),
+                checks,
+                review: wire::ReviewDecision::Unknown,
+                mergeable,
+                updated_at: at,
+            },
+            author: None,
+            head_branch: "topic".parse().unwrap(),
+            base: "main".parse().unwrap(),
+            checks: wire::Checks::unknown(),
+            reviews: wire::Reviews {
+                approved: true,
+                changes_requested: false,
+                commented: true,
+                unresolved: 1,
+            },
+            created_at: at,
+            merged_at: Some(at),
+            closed_at: Some(at),
+            merge_methods: Vec::new(),
+            read_at: at,
+        }
+    }
+
+    /// What the reducer has no value for is unknown to it, never guessed.
+    #[test]
+    fn a_forge_s_pull_request_becomes_the_reducer_s_facts() {
+        let facts = PullRequestFacts::from_pull(&pull(
+            wire::ChecksState::Cancelled,
+            wire::Mergeable::Behind,
+        ));
+        assert!(facts.merged && facts.closed && facts.draft);
+        assert_eq!(facts.ci, CiState::Unknown);
+        assert_eq!(facts.mergeability, Mergeability::Unknown);
+        assert_eq!(facts.review, ReviewDecision::None);
+        assert!(facts.external_review.approved && facts.external_review.comments);
+        assert_eq!(facts.review_run, ReviewRunFacts::default());
+        let failing = PullRequestFacts::from_pull(&pull(
+            wire::ChecksState::Failing,
+            wire::Mergeable::Conflicting,
+        ));
+        assert_eq!(failing.ci, CiState::Failing);
+        assert_eq!(failing.mergeability, Mergeability::Conflicting);
+    }
 }

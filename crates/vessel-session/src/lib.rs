@@ -87,6 +87,13 @@
 //!   the publisher notes each record that asks for attention.
 //!   [`SessionHandle::info`] adds both to the info, so a session the
 //!   runtime has carries the marks the store would give it.
+//! - Pull requests (protocol 11, ADR 0029, `forge`): the node reads a
+//!   session's pull request from its forge and hands its view to
+//!   [`SessionHandle::set_pull_request`], a `watch` the actor reads in its
+//!   loop (the latest wins; nothing queues). The tracker keeps the facts,
+//!   so the one reducer that places the session places it by its pull
+//!   request too; the summary goes in `SessionInfo::pull_request`. Both
+//!   are dropped at the final status: nothing watches an ended session.
 //! - Attachments (protocol 10, ADR 0025, `attachments`): a structured
 //!   session checks a prompt's attachments before it queues or sends it
 //!   and, right before it sends it, asks the node's loader
@@ -113,6 +120,7 @@ mod config;
 mod conversation;
 mod delivery;
 mod error;
+mod forge;
 mod handle;
 mod lifecycle;
 mod marks;
@@ -124,11 +132,13 @@ mod runtime;
 mod stop;
 mod structured;
 mod terminal;
+pub mod terminals;
 
 pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
 pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
 pub use error::{DeliveryError, InputKind, ModeKind, RemoveError, SessionError};
+pub use forge::ForgeView;
 pub use handle::SessionHandle;
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;

@@ -215,3 +215,79 @@ fn every_end_is_exited_in_building() {
     tracker.observe(&status(SessionStatus::Interrupted), at(3));
     assert_eq!(tracker.board(at(9)), SessionBoard::exited(at(3)));
 }
+
+/// The node's view of a session's pull request: `seen` its facts (`None`
+/// unseen), `feedback` its feedback switch.
+fn view(seen: Option<Vec<PullRequestFacts>>, feedback: bool) -> ForgeView {
+    use vessel_proto::forge::{ForgeAccess, SessionPullRequest};
+    ForgeView {
+        info: SessionPullRequest {
+            access: ForgeAccess::Ready { login: None },
+            summary: None,
+            feedback,
+        },
+        seen: seen.map(Arc::from),
+        policy: Policy {
+            auto_review: false,
+            auto_inject_review: feedback,
+            auto_inject_ci: feedback,
+        },
+    }
+}
+
+/// Protocol 11 (ADR 0029): the node's pull request places the session
+/// through the same reducer; its feedback switch is the fleet policy, so
+/// an agent being sent its failing checks is fixing them in validating;
+/// and the end drops both, so an ended session is placed as a stored one.
+#[test]
+fn a_pull_request_places_the_session_until_it_ends() {
+    let place = |tracker: &Tracker| {
+        let board = tracker.board(at(9));
+        (board.column, board.display_status)
+    };
+    let mut tracker = Tracker::new(at(0));
+    tracker.observe(&started(), at(1));
+    tracker.observe(&ended(StopReason::EndTurn), at(2));
+    assert_eq!(
+        place(&tracker),
+        (KanbanColumn::Building, DisplayStatus::Idle)
+    );
+
+    tracker.forge(Some(&view(Some(Vec::new()), false)));
+    assert_eq!(
+        place(&tracker),
+        (KanbanColumn::Building, DisplayStatus::AwaitingPr),
+        "watched, none yet"
+    );
+
+    let failing = PullRequestFacts {
+        ci: board::CiState::Failing,
+        ..PullRequestFacts::new(
+            board::PullRequestUrl::new("https://github.com/o/n/pull/1"),
+            at(0),
+        )
+    };
+    tracker.forge(Some(&view(Some(vec![failing.clone()]), false)));
+    assert_eq!(
+        place(&tracker),
+        (KanbanColumn::NeedsReview, DisplayStatus::CiFailing)
+    );
+
+    tracker.forge(Some(&view(Some(vec![failing]), true)));
+    tracker.observe(&started(), at(3));
+    assert_eq!(
+        place(&tracker),
+        (KanbanColumn::Validating, DisplayStatus::FixingCi)
+    );
+
+    tracker.forge(None);
+    assert_eq!(
+        place(&tracker),
+        (KanbanColumn::Building, DisplayStatus::Working),
+        "no longer watched: placed as before"
+    );
+
+    tracker.forge(Some(&view(Some(Vec::new()), true)));
+    tracker.observe(&status(SessionStatus::Exited { code: Some(0) }), at(4));
+    assert_eq!(tracker.board(at(9)), SessionBoard::exited(at(4)));
+}

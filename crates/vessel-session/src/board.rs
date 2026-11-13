@@ -31,9 +31,10 @@
 //!   1. Between turns with nothing delivered, a session is
 //!      [`DisplayStatus::AwaitingPr`] only when the node can see pull
 //!      requests ([`PullRequests::Seen`]); otherwise it is
-//!      [`DisplayStatus::Idle`]. agent-orchestrator always sees them; no
-//!      Vessel node does yet, and "awaiting PR" would be a claim about
-//!      something it cannot see.
+//!      [`DisplayStatus::Idle`]. agent-orchestrator always sees them; a
+//!      Vessel node sees them only for a session it watches (protocol 11,
+//!      ADR 0029), and "awaiting PR" would be a claim about something it
+//!      cannot see.
 //!   2. Activity is Vessel's four-valued [`Activity`]. The reference also
 //!      has `blocked`, which every one of its phrase functions treats
 //!      exactly as `waiting_input`; Vessel's only way of waiting on the

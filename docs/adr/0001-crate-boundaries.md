@@ -35,11 +35,11 @@ vessel-pty      -> proc
 vessel-agent    -> proto, proc
 vessel-lsp      -> proto, proc            (milestone 6)
 vessel-workspace -> proto, proc           (milestone 11)
-vessel-session  -> proto, harness, pty, agent
+vessel-session  -> proto, harness, pty, agent, proc (milestone 11)
 vessel-store    -> proto
 vessel-node     -> proto, rpc, harness, session, store, secure, relay,
                    fleet, client (milestone 4), lsp (milestone 6),
-                   llm (milestone 5), workspace (milestone 11)
+                   llm (milestone 5), workspace, forge, proc (milestone 11)
 vessel-client   -> proto, rpc, secure, relay
 vessel-remote   -> proto, rpc, client      (milestone 2)
 vessel-secure   -> proto                   (milestone 3)
@@ -47,6 +47,7 @@ vessel-relay    -> proto, secure           (milestone 3)
 vessel-fleet    -> proto, harness          (milestone 4)
 vessel-mcp      -> proto, client           (milestone 4)
 vessel-llm      -> proto                   (milestone 5)
+vessel-forge    -> proto, proc             (milestone 11)
 vessel-web      -> proto, client           (milestone 7)
 vessel-cli      -> proto, client, node, remote, mcp, harness, web
 vessel-testkit  (fake harness binaries for tests; dev-dependency only)
@@ -160,3 +161,24 @@ store or session; its tests need only git. `vessel-node -> workspace`: the
 node decides who may call, keeps projects, worktrees and approvals in its
 store (schema 9), runs clones and setups as its tasks, and ties worktrees
 to sessions, as it does for `vessel-lsp`.
+
+`vessel-forge -> proto, proc` (track B2, ADR 0029, 2026-11-12): pull
+requests on a forge behind one trait (GitHub first), signing in with a
+token the binary found or the machine's `gh` (run through `vessel-proc`,
+no shell), conditional reads and rate limits, and an in-memory forge for
+tests (feature `fake`). It knows no session, store or principal: which
+sessions are watched, what is sent to them and who may call is the
+node's.
+
+`vessel-node -> forge`: the node decides which sessions are watched,
+when, for whom, and what becomes of the answers (the board, feedback
+through the queue, the calls); the provider makes the requests.
+
+Wave 2, track C (2026-11-12, ADR 0031): `vessel-session -> proc`, since a
+project script's run is spawned piped in its own process group (a
+kill-on-close job object on Windows) by the same runtime that keeps its
+log, and a shell's session is swept after it exits; `vessel-node ->
+proc`, for the command a terminal runs (`CommandSpec`), the account's
+shell and the ports its trees listen on (`vessel_proc::listening`). Both
+are mechanism the crates already used through others; the node still
+decides who may open a terminal and where.

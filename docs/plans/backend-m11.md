@@ -3357,3 +3357,1849 @@ schema 12 if one is needed). Rust, wire, CLI.
    deduplicated, bounded and logged without their bodies. If the ADR
    finds this cannot be made safe within the track, it is described and
    left.
+
+## Track B2: contract
+
+Protocol 11 (wave 2's; track C raises the same number, once).
+ADR 0029 (the forge, and how the node signs in to it), ADR 0030 (git
+runs independent of what a repository's folder supplies), store schema
+10. Everything below is new except where it says which shared type it
+touches.
+
+### What the references do (read 2026-11-12)
+
+agent-orchestrator (AO), GOAT and Paseo at the revisions the feature
+tables were read from; their paths are in the inventories.
+
+- **Signing in.** None keeps a forge token of its own for pull
+  requests. AO reads `AO_GITHUB_TOKEN`, then `GITHUB_TOKEN`, then runs
+  `gh auth token`; the token is kept five minutes and dropped on a 401;
+  requests are its own HTTP (REST and GraphQL). GOAT: a token saved in
+  its settings (a file, mode 0600), else `GH_TOKEN` or `GITHUB_TOKEN`
+  for `github.com` and `*.ghe.com` only, else `gh auth token --hostname
+  <host>` with `GH_DEBUG` blanked (it would print the token) and
+  `GH_PROMPT_DISABLED=1`, ten seconds, four `gh` at once; hits kept five
+  minutes, misses ten seconds; its own HTTP, and a redirect to another
+  origin drops the header. Paseo runs `gh` for every call (`gh api`,
+  `gh pr …`), with `GH_HOST` set to the repository's host. Signed in as
+  someone else: AO reads `GET /user` and follows only pull requests that
+  login authored; GOAT falls back to `gh`'s default account; Paseo does
+  not look. `gh` missing or signed out: each reports it (`unavailable`,
+  `missing-tool`, `cli_missing`) and tries again later. A host is
+  GitHub when it is `github.com` (or `*.ghe.com`), or when `gh` is
+  signed in to it; none sends a credential to a host it is not signed in
+  to.
+- **The abstraction.** AO: a read port (parse a repository, a
+  conditional list of open pull requests, a conditional check of a
+  commit's checks, read pull requests in a batch, failed-check logs,
+  review threads) and write ports (merge, request review, resolve).
+  GOAT: a provider (list by head, get, create, check out) and a pull
+  request API (detail with head, checks and merge capabilities,
+  actions with an optional pinned head). Paseo: list, get, the current
+  pull request of a branch, create, merge, auto-merge. GitLab differs in
+  the same places for all three: the number is the merge request's
+  `iid`, checks are the head pipeline's, there is no "changes
+  requested" (approvals only), mergeability is `detailed_merge_status`,
+  and a pinned head is honoured for merge and squash but not rebase.
+  Gitea and Forgejo: no pinned head, states named differently.
+- **Which pull request is the session's.** AO lists a repository's open
+  pull requests and matches their head branch to a session (and `claim-pr`
+  by URL); GOAT links them explicitly (created from its page, parsed
+  from an agent's `gh pr create`, or by hand); Paseo asks for the
+  branch's (`head` and the repository's owner), preferring an open one,
+  then a closed one whose head is the local `HEAD`, then the most
+  recently updated. Forks: AO and Paseo require the head owner.
+- **Reading.** All three read with GraphQL: draft, state, mergeable and
+  `mergeStateStatus`, review decision, head and base, updated at, the
+  head commit's check rollup; AO and GOAT also review threads. AO maps
+  GitHub's values to the facts its board reducer (Vessel's, ported in
+  milestone 9) reads; that table is taken whole below.
+- **Watching.** AO every 30 s, review threads at most every 2 minutes,
+  a full read of any pull request older than 5 minutes (its two ETag
+  checks, the open list and a commit's check runs fetched as a full
+  page, notice neither a merge nor a close). GOAT every 2 minutes
+  through a cheap fingerprint, a full read every 30; 4 at once, 8
+  requests at once; stops background reads below 10 % of the quota.
+  Paseo only while someone looks, 20 s with checks pending, else 120 s,
+  errors doubling to 300 s; pauses a host at 40 % of its quota. Rate
+  limits: AO treats a 429, or a 403 with no requests left, a
+  `retry-after` or "rate limit / abuse / secondary" in the body, as a
+  limit; waits `retry-after`, else until the reset, else about 60 s,
+  clamped to 30 s to 10 minutes. GOAT doubles from 30 s to 15 minutes.
+  Every request 30 s at most. AO stops at a merge, a close, or the
+  session's end.
+- **Opening.** AO: none (its agents run `gh pr create`). GOAT: the branch
+  must be pushed; an open pull request for it is answered as it is.
+  Paseo pushes first (`git push -u origin <branch>`). Neither offers a
+  draft; both generate a title and body.
+- **Merging.** AO: squash only, with the head the caller saw; a fresh
+  read must still show that head; REST `PUT .../merge {sha,
+  merge_method}`; 409 is "head changed", 405 and 422 "not mergeable".
+  GOAT: merge, squash or rebase, GraphQL with `expectedHeadOid`. Paseo:
+  `gh pr merge` without a pinned head. None deletes the branch with it.
+- **Feedback.** AO sends failing checks, each counting unresolved
+  comment and each changes-requested review, and a conflict, to the
+  session; identity: `ci:<url>` with each failed check's name, commit,
+  status and URL; `comment:<url>:<comment id>`; `review:<url>:<review
+  id>`; on by default; refused (not marked sent) while the session waits
+  on its user. GOAT wakes the agent per event kind (newly failed checks,
+  checks passed, others' comments, a conflict), after the running turn
+  ends, never steering it; on by default; bots ignored. Paseo: none.
+- **Agents.** AO's agents run `gh` themselves and are told not to merge
+  (a prompt, no check). GOAT's agents open and merge through its tools
+  unless read-only. Paseo's agents have no pull request tool.
+
+### Where it lives
+
+- **`vessel-forge`**, a new crate (depends on `vessel-proto` and
+  `vessel-proc`; `reqwest` and `rustls` as `vessel-llm` has them): the
+  `Forge` trait, a remote's URL read into a repository, GitHub over
+  REST and GraphQL with conditional requests and rate limits, signing in
+  (ADR 0029), and a test double (`fake`, behind a feature only tests
+  enable). No session, store or principal. ADR 0001's map gains the
+  edge `vessel-node -> vessel-forge`.
+- **`vessel-node`'s `forge` module**: which sessions are watched, the
+  watcher task, the calls, feedback through the queue, and the store's
+  schema 10.
+- **`vessel-session`**: one watch per session carrying its pull
+  request, read by its actor; the facts live in its activity tracker,
+  so the reducer that already places it (`board::derive`) gets them. No
+  second place decides a lane.
+- **`vessel-workspace`**: ADR 0030 (how every git run is made), a
+  third pool for clones, and the branch, remote and push `pr.open`
+  needs.
+
+### Types (`vessel_proto::forge`)
+
+Parsed on decode (a bad one does not decode). Every one of them that
+comes from a forge (a title, a check's name, a login, a URL) is made by
+the node with a lossy constructor that cuts and replaces what the rule
+refuses (or drops an optional one), so a forge's text can never make a
+reply fail to decode (`session.list` carries the summary):
+
+- `PullNumber`: 1 to 2^53 − 1 (what JavaScript holds exactly).
+- `ForgeHost`: a host name as a remote names it, lower case, 1 to 253
+  bytes of `a-z 0-9 . -`, labels not starting or ending with `-`, an
+  optional `:port`.
+- `RepoPath`: `owner/name`, 2 to 8 segments (GitLab's nested groups),
+  each 1 to 100 bytes of `A-Z a-z 0-9 . _ -`, not `.` or `..`, no
+  leading `-`; `.git` taken off the end by whoever parses a remote.
+- `ForgeLogin`: 1 to 100 bytes of `A-Z a-z 0-9 - _ .` and a trailing
+  `[bot]`.
+- `PullTitle`: one line, 1 to 256 characters, no control character.
+- `PullBody`: at most 64 KiB, no NUL.
+- `ForgeUrl`: an `https` URL (`http` only for a loopback host, for the
+  tests' fake), at most 2 KiB, with no user information.
+- `CheckName`: 1 to 256 characters, one line.
+- `ConfigKey` (ADR 0030): a git configuration key named in a refusal,
+  1 to 256 characters, one line; never its value.
+
+Every reply enum that will grow has `unknown`, as protocol 10's do.
+
+- `ForgeKind`: `github`, `unknown`. GitLab and Gitea are later
+  implementations of the same trait.
+- `RepoRef { kind, host, path }`.
+- `PullState`: `open`, `merged`, `closed`, `unknown`.
+- `CheckState`: `pending`, `passed`, `failed`, `cancelled`, `skipped`,
+  `unknown` (AO's table, below).
+- `ChecksState`: `none` (no checks reported), `pending`, `passing`,
+  `failing`, `cancelled` (cancelled with nothing running), `unknown`.
+- `CheckRun { name, state, url? }`.
+- `Checks { state, passed, failed, pending, truncated, failing:
+  Vec<CheckRun> }`, counts `u32`, `failing` at most 20, `truncated` when
+  more checks were reported than one read takes (100).
+- `ReviewDecision`: `approved`, `changes_requested`, `review_required`,
+  `none`, `unknown`.
+- `Mergeable`: `mergeable`, `conflicting`, `blocked`, `unstable`,
+  `behind`, `unknown`.
+- `Reviews { approved, changes_requested, commented, unresolved }`:
+  people's reviews on the current head, the latest per person, bots left
+  out (AO's `ExternalReviewFacts`); `unresolved` the count of unresolved
+  review threads.
+- `MergeMethod`: `merge`, `squash`, `rebase`.
+- `PullSummary { repo, number, url, title, state, draft, head_commit,
+  checks: ChecksState, review, mergeable, updated_at }`: what a card
+  needs, carried in `SessionInfo`.
+- `PullRequest { summary, author?, head_branch: BranchName, base:
+  BranchName, checks: Checks, reviews, created_at, merged_at?,
+  closed_at?, merge_methods: Vec<MergeMethod>, read_at }`: everything
+  `pr.get` answers; `merge_methods` what the repository allows, `read_at`
+  when this node last read it.
+- `RefusedReason`: `unauthorized` (401), `no_access` (404 or 410 for a
+  repository the login cannot see, 451), `sso { url? }` (403 asking for
+  single sign-on), `forbidden` (another 403), `unknown`.
+- `GhState`: `missing`, `signed_out`, `failed`, `unknown`.
+- `ForgeAccess`, why the node can or cannot see a session's pull
+  request: `ready { login? }`; `not_placed` (no project or worktree, so no
+  repository); `no_branch` (the session's folder is on no branch);
+  `on_base` (it is on the project's default branch, where no pull request
+  starts); `no_remote` (the branch's remote, or `origin`, does not
+  exist); `not_supported { host }` (no provider for that host on this
+  node); `signed_out { host, gh }`; `refused { host, reason, login? }`;
+  `rate_limited { host, until }`; `unreachable { host, retry_at }`;
+  `limit` (the node watches as many as it allows); `ended` (the session is
+  not live, so nothing is watched); `unknown`.
+- `SessionPullRequest { access, summary?, feedback }`: what
+  `SessionInfo.pull_request` holds; `summary` the last one read (kept
+  while access fails later, so the card says what was last known),
+  `feedback` whether feedback is on.
+- `PullRequestView { access, pull_request?, feedback }`: `pr.get`'s
+  answer, the whole pull request.
+- `OpenOutcome`: `opened { pull_request }`; `exists { pull_request }`
+  (an open one has that head already; nothing new was made); `refused {
+  refusal: OpenRefusal }`; `unknown`. `OpenRefusal`: `not_pushed` (an
+  agent's call, whose branch is not on the remote at the folder's
+  `HEAD`), `no_commits`, `push { refusal: GitRefusal }`, `access {
+  access: ForgeAccess }`, `rejected { message }` (the forge's own words,
+  cut to 2 KiB), `unknown`.
+- `MergeOutcome`: `merged { commit }`; `refused { refusal: MergeRefusal
+  }`; `unknown`. `MergeRefusal`: `no_pull_request`, `other_pull_request
+  { number }` (the session's pull request is not the one named),
+  `not_open { state }`, `draft`, `head_moved { head }` (the head now;
+  nothing was merged), `not_mergeable { message? }`,
+  `method_not_allowed`, `merge_queue` (the repository merges through a
+  queue, which this node does not drive), `cannot_pin` (this forge cannot
+  pin the head for that method), `access { access }`, `rejected { message
+  }`, `unknown`.
+- `ForgeStatus { hosts: Vec<HostStatus>, watched, limit }`, `HostStatus
+  { host, kind, access: ForgeAccess, source?: TokenSource }`,
+  `TokenSource`: `environment`, `gh`, `unknown`. At most 16 hosts
+  (remotes an agent controls could add hosts); never a token.
+- `PullRequestList { entries: Vec<SessionPullEntry { session,
+  pull_request: SessionPullRequest }> }`: watched (live) sessions only.
+
+On shared types (the smallest additions):
+
+- `SessionInfo.pull_request?: Box<SessionPullRequest>`: set by the
+  session's actor from what the node gives it, for a live session whose
+  place is a project or a worktree; absent otherwise, and cleared when
+  the session ends (the store keeps none, so a stored session and the
+  node's last view of it agree).
+- `GitRefusal::repository_config { key?: ConfigKey, reason }` (ADR
+  0030), `reason` one of `program`, `layout`, `credential`, `unnamable`,
+  `too_many`, `too_large`, `unknown`.
+
+### Calls
+
+All protocol 11, forwardable through `fleet.forward`, and in
+`vessel-web`'s list. "Agents": whether an agent principal (ADR 0013)
+may call it; `own` means only on a session it may operate (its own, or
+one it started), by the guard's ownership rule.
+
+| Method | Scope | Agents | Request | Reply |
+|---|---|---|---|---|
+| `forge.status` | read | no | `GetForgeStatus {}` | `ForgeStatus` |
+| `pr.list` | read | no | `ListPullRequests {}` | `PullRequestList` |
+| `pr.get` | read | yes; `refresh` own | `GetPullRequest { session, refresh }` | `PullRequestView` |
+| `pr.open` | operate | own, no push | `OpenPullRequest { session, title, body?, base?, draft }` | `OpenOutcome` |
+| `pr.merge` | operate | no | `MergePullRequest { session, number, head }` | `MergeOutcome` |
+| `pr.feedback` | operate | no | `SetFeedback { session, enabled }` | `SessionPullRequest` |
+
+Every call can also answer `forbidden`, `not_found` (no such session),
+`invalid_request` (a head that is not a full commit id), `unsupported`
+(feedback for a terminal session), `unavailable` (the watcher's call
+channel is full) and `internal`.
+
+- `forge.status`: every host the node has watched or been asked about
+  (at most 16), `github.com` always, each with what signing in found
+  (`GET /user` once per token, kept five minutes). Asks nothing of a
+  host it has no token for.
+- `pr.list`: every watched session's pull request (at most 64).
+- `pr.get`: the session's pull request as the watcher holds it, whole.
+  An agent may read any session's, as it reads every session's info
+  (ADR 0013); `refresh` (read now, conditional requests, so cheap when
+  nothing changed; at most once per 10 s per session, else answered from
+  memory) only on one it may operate, and an agent's refresh is
+  background traffic (below). A session that is not live answers
+  `access: ended`.
+- `pr.open`: a live session only (`access: ended` otherwise). The branch
+  is the one checked out in the session's folder now; the remote is the
+  branch's upstream remote, else `origin`; the base is `base`, else the
+  project's default branch (without its remote's name).
+  - A person's call pushes first, `git push --set-upstream <remote>
+    HEAD:refs/heads/<branch>` (never forced, whatever the branch's name),
+    the repository's hooks running as for `git.push`, ADR 0030's
+    refusals applying.
+  - An agent's call never pushes (the node would run the repository's
+    hooks and the user's credentials for it, which `git.push` refuses
+    agents): the branch must be on the remote at the folder's `HEAD`, or
+    the answer is `not_pushed`. The agent pushes with its own tools.
+  - Then, if an open pull request has that head, `exists`; else it is
+    created (`draft` as asked) and watched. The forge's "no commits
+    between" is `no_commits`; its other refusals `rejected` with its
+    message. Forks (a head in another repository) are not offered.
+- `pr.merge`: a person only, a live session only. `head` must be a full
+  commit id (40 or 64 digits: GitHub matches it exactly). Reads the pull
+  request fresh; refuses `other_pull_request` when the session's is not
+  `number`, `not_open`, `draft`, or `head_moved` when its head is not
+  `head`; then asks the forge to merge with `method` and the head pinned
+  (`sha`), so a push between the read and the merge is refused by the
+  forge too (409 is `head_moved`, with the head read again). A 405 is
+  `merge_queue` when the forge says a merge queue is required,
+  `method_not_allowed` when it says the method is not allowed, else
+  `not_mergeable`. Never deletes the branch, never retries, never waits
+  for checks (GitHub's own branch rules decide), never automatic:
+  nothing in the node calls it.
+- `pr.feedback`: turns feedback on or off for a structured session
+  (`unsupported` for a terminal session, which has no queue); kept in
+  the store; off by default.
+
+### Signing in (ADR 0029)
+
+- A token for `github.com` is, in order: `GH_TOKEN`, then `GITHUB_TOKEN`
+  from the node's environment (read by the binary, handed to the node in
+  its configuration; a library reads no environment); else `gh auth
+  token --hostname github.com`. For another host: `GH_ENTERPRISE_TOKEN`
+  or `GITHUB_ENTERPRISE_TOKEN` only when `GH_HOST` names that host (a
+  token is never sent to a host taken from a remote's URL by default),
+  else `gh auth token --hostname <host>`; a host `gh` has no token for is
+  `not_supported`, and nothing is sent to it.
+- `gh` is the one on the node's search path, run with no shell, its
+  working folder the node's data folder (outside any repository), its
+  environment `GH_DEBUG=` (it would print the token), `GH_PROMPT_DISABLED
+  =1`, `GH_NO_UPDATE_NOTIFIER=1`, `NO_COLOR=1`; ten seconds; two at once.
+  Its standard output (the token) is never logged; its standard error is
+  reduced to `missing`, `signed_out` or `failed`.
+- A token is held in memory in a type whose `Debug` says only that it is
+  one, kept five minutes (a miss ten seconds), dropped on a 401 (asked
+  again at most once a minute per host); it travels only in an
+  `Authorization` header marked sensitive, never in a URL, an argument,
+  an error, a log or an event. Nothing of it is stored.
+- Signed in as someone else: `GET /user` names the login, shown in
+  `ready { login }` and `forge.status`; a repository that login cannot
+  see answers `refused { no_access, login }`.
+
+### How the node watches (bounded)
+
+- **Per repository and branch.** A watch is keyed by `(repository,
+  branch)`; every live session on that branch (in any folder) is given
+  its facts. A session is watched when it is live, has a place, is on a
+  branch that is not the project's default branch, and the branch's
+  remote is on a host the node has a provider and a token for. At most
+  64 watches per node; sessions a person started are given watches
+  before sessions an agent started; past that, `access: limit`.
+- **One task** owns every watch. It is told (a bounded channel, 64) when
+  a session starts, is resumed, ends, is archived or is deleted, and
+  drops a session at once on the last three; calls reach it through the
+  same channel (`unavailable` when it is full).
+- **The folder**: each cycle, one git read per session folder
+  (`rev-parse HEAD --symbolic-full-name HEAD`, so the commit and the
+  branch, plus ADR 0030's listing), at most 2 of the watcher's git reads
+  at once; the remote's URL read again when the branch changes and every
+  10 minutes. A branch that changed is found again.
+- **Finding the pull request**: `GET /repos/{owner}/{repo}/pulls?head=
+  {owner}:{branch}&state=all&sort=updated&direction=desc&per_page=10`,
+  conditional (`If-None-Match`), every 120 s until one is found. The
+  pick (Paseo's): the most recently updated open one; else the most
+  recently updated closed or merged one whose head is the folder's
+  `HEAD` now (so an old pull request of a reused branch name is not
+  shown for new work).
+- **Watching it**: every 60 s three conditional requests, the pull
+  request itself (`GET .../pulls/{n}`) and its head commit's check runs
+  (`.../commits/{sha}/check-runs?per_page=100`, the full page, AO's
+  trap) and statuses (`.../commits/{sha}/status`); a 304 costs nothing
+  against GitHub's limit. When any of them changed, or the last full
+  read is older than 5 minutes (neither ETag notices everything), one
+  GraphQL read gets the rest (review decision, review threads, the latest
+  reviews, mergeability, the repository's merge methods). After 30
+  minutes without a change the interval is 300 s; any change brings it
+  back to 60 s. Every interval is jittered by up to 10 %. A merged or
+  closed pull request is read once more, then the branch is found again
+  every 300 s (a new pull request may be opened on it).
+- **Requests**: at most 4 at once per node; a person's call goes before
+  background reads (the watcher's, and an agent's refresh); per host a
+  token bucket of 5 requests a second (10 at once) for background reads,
+  under GitHub's secondary limit; 30 s each (10 s to connect); bodies at
+  most 4 MiB; a redirect followed only to the same origin, at most 3 (a
+  renamed repository); the token only in its header.
+- **Rate limits** (AO's detection, GOAT's floor): `x-ratelimit-*` read
+  on every answer, per resource (`x-ratelimit-resource`: `core`,
+  `graphql`); background reads of a resource stop while less than 10 %
+  of its quota remains, until its reset. A 429, a 403 with nothing
+  remaining, a `retry-after`, "rate limit" or "abuse" in a body, or a
+  GraphQL error of type `RATE_LIMITED`, puts the host in a cooldown:
+  `retry-after`, else until the reset, else 60 s doubling to 15 minutes.
+  Watches wait by being scheduled after it (nothing queues); a person's
+  call answers `access: rate_limited { until }` at once.
+- **Errors**: a read that fails (a network error, a 5xx) backs that
+  watch off 60 s doubling to 30 minutes, its last facts kept, `access:
+  unreachable`. A 401 drops the cached token and asks for it again.
+- **What the node keeps**: in memory, per watch, the repository, the
+  pull request's number, the last facts, and an ETag per request (a few
+  hundred bytes); nothing of a forge is stored but feedback (below).
+
+### The facts, and the board (ADR 0019)
+
+The node gives each watched session's actor its `SessionPullRequest`
+through a watch (latest wins; no queue). The actor keeps the facts in
+its activity tracker, puts the summary in `SessionInfo.pull_request`,
+and derives the board again; watchers wake when the lane, the phrase,
+or the summary (not `read_at`) changes. The reducer gets
+`PullRequests::Seen` with the one pull request (or none) once the node
+has read the session's repository at least once; `Unseen` before that,
+and for a session the node cannot see (not placed, no branch, on the
+base, no remote, no provider, signed out). So a session with no pull
+request, or on a node with no forge access, is placed as today; a
+watched one with none yet is `awaiting_pr` between turns, as in
+agent-orchestrator.
+
+The fleet-policy facts follow the feedback switch, as in
+agent-orchestrator, where one flag drives both the routing and the lane:
+with feedback on, `auto_inject_ci` and `auto_inject_review` are set, so a
+session whose agent is being sent its failing checks is "fixing CI" in
+Validating, not "CI failing" in In review. `auto_review` stays off
+(Vessel has no reviewing agent).
+
+An ended session is not watched: the tracker drops the pull request's
+facts at the final status, before that record's board is derived, and
+the actor clears `SessionInfo.pull_request`, so an ended session is
+`exited` in building, exactly as the store places a stored one (ADR
+0026), and the test that holds the two equal keeps holding. (agent-
+orchestrator keeps an exited worker in its pull request's lane; a Vessel
+session ends with its process, and nothing watches it then.) ADR 0019 is
+amended: the board is no longer only a projection of the session's
+records; the node's pull request facts are the one other input.
+
+The mapping, AO's (`provider.go`, `observer_provider.go`), into the
+reducer's facts:
+
+- A check: `SUCCESS`, `NEUTRAL` passed; `FAILURE`, `TIMED_OUT`,
+  `ACTION_REQUIRED`, `STARTUP_FAILURE` failed; `CANCELLED` cancelled;
+  `SKIPPED`, `STALE` skipped; `QUEUED`, `PENDING`, `REQUESTED`,
+  `WAITING`, `IN_PROGRESS` pending; a status context's `SUCCESS`
+  passed, `FAILURE` and `ERROR` failed, `PENDING` and `EXPECTED`
+  pending. Only the newest run of each check name counts (a superseded
+  run does not fail the head).
+- Checks: any failed is failing; else any pending is pending; else a
+  cancelled one is `cancelled`; else none at all is `none`; else
+  passing; truncated is unknown to the reducer. The reducer's `CiState`
+  takes `unknown` for `none`, `cancelled` and truncated.
+- Review decision: as GitHub says; none is `none`.
+- Mergeable, first rule that holds: `DIRTY` or `CONFLICTING` is
+  conflicting; `BLOCKED` blocked; `UNSTABLE` unstable; a draft, failing
+  checks, changes requested or a review required is blocked; `MERGEABLE`
+  with `CLEAN`, `HAS_HOOKS` or nothing is mergeable; else unknown.
+  `BEHIND` alone is `behind` on the wire and unknown to the reducer (its
+  fact has no "behind").
+- People's reviews: approved and changes requested on the current head,
+  the latest per person, bots left out; `commented` when an unresolved
+  thread has a person's comment.
+
+### Feedback to the session
+
+Off by default per session (`pr.feedback`); AO and GOAT have theirs on
+by default, the owner asked for off.
+
+- **Events**, and what makes two the same (each event's signature,
+  prefixed with the repository, `<host>/<owner>/<name>#<number>:`):
+  - a failing check: `check:<head commit>:<check name>`; the same check
+    failing again on the same head is the same event, on a new head a
+    new one;
+  - changes requested: `review:<review id>`;
+  - an unresolved comment: `comment:<comment id>`, for each comment of
+    an unresolved thread;
+  - a conflict with the base: `conflict:<head commit>`, dropped when the
+    pull request is mergeable again (so a later conflict is sent, AO's
+    re-arming).
+- **Who is quoted**: a review's or a comment's text only when its
+  author has write access to the repository (`admin`, `maintain` or
+  `write`, asked of `GET /repos/{owner}/{repo}/collaborators/{login}/
+  permission` and kept an hour per repository and login); others' and
+  bots' are counted ("2 comments by others, not quoted") and linked,
+  never quoted: on a public repository anyone can review or comment, and
+  the text becomes the agent's prompt. Quoted text has control and
+  format characters (Unicode `Cc` and `Cf`: bidirectional and zero-width
+  ones) removed, and is set apart as quoted data, each quote at most
+  1 KiB.
+- **How**: after a read finds events whose signatures were not sent,
+  the node sends one prompt listing them (at most 20, the whole at most
+  16 KiB, then "and N more" with the pull request's address), through
+  track A's queue (`Delivery::Queue`, as the owner: the person who
+  turned it on; it begins "Vessel: pull request feedback"). At most one
+  such prompt waits in a session's queue: while it waits, newer events
+  are added to it (`QueueChange::Edit`, within its 16 KiB) rather than
+  queued again, so feedback never fills the person's queue. Never typed
+  into a running turn (it waits in the queue for the turn's end), never
+  started while the session waits on a permission or a question (the
+  node does not send then; the next read tries again), and held with the
+  queue when a person holds it.
+- **Kept**: the signatures sent, per session, in the store (schema 10),
+  at most 1,000 per session: past that, those of events the last read no
+  longer saw go first, then the oldest; deleted with the session. A
+  signature is recorded once the prompt was accepted (started, queued, or
+  added to the waiting one); a refusal (the queue full) records nothing,
+  so the next read tries again.
+
+### ADR 0030: git independent of the repository's folder
+
+From wave 1's review (plan, "Integration (node)", findings 1, 7, 11,
+17). Measured on git 2.43 before deciding: a `-c <key>=` given on the
+command line wins over the repository's configuration and every file it
+includes; an empty filter command turns a filter off, and an empty
+merge driver makes git's merge of that file fail; an empty diff driver
+command is run as an empty program and fails (so diffs pass
+`--no-ext-diff --no-textconv` instead); `GIT_ATTR_SOURCE` (git 2.40+)
+does not cover `.git/info/attributes`; aliases never shadow git's own
+commands; a pager runs only on a terminal; `GIT_ALLOW_PROTOCOL` stops
+`ext::`, a remote's `vcs` helper and a repository's `protocol.allow`.
+
+- **Before every git run** in a repository the node lists the
+  repository's own configuration (`git config --local --list -z
+  --includes`, and `--worktree` when `extensions.worktreeConfig` is on):
+  its `.git/config`, a worktree's `config.worktree`, and every file they
+  include. The user's global and system configuration are the user's
+  and are left alone.
+- **Turned off on the command line**: every
+  `filter.<driver>.{clean,smudge,process}` (and `required=false`) and
+  `merge.<driver>.driver` the repository's configuration defines; and,
+  on every run whatever it sets, `core.fsmonitor`, `core.hooksPath` (but
+  for commit and push), `diff.external`, `submodule.recurse`,
+  `fetch.recurseSubmodules`, `merge.verifySignatures`, `tag.gpgSign`,
+  `push.gpgSign`, `commit.gpgSign` (but for commit), `--no-pager`,
+  `GIT_EDITOR`, `GIT_SEQUENCE_EDITOR`, `GIT_ASKPASS` (empty) and
+  `GIT_ALLOW_PROTOCOL=file:git:http:https:ssh` (a clone keeps its
+  narrower `https:http:ssh:git`). Diffs pass `--no-ext-diff
+  --no-textconv`; status, diffs and the removal's inspection never go
+  into a submodule's working tree (`--ignore-submodules=dirty`; a gitlink
+  keeps a worktree anyway).
+- **Refused** when the repository's own configuration sets one of these,
+  for the runs that would use it, because turning it off would lose the
+  user's own global value: on network runs (fetch, pull, push, a
+  person's `pr.open` push) `core.sshCommand`, `core.gitProxy`,
+  `core.alternateRefsCommand`, `credential.helper` and
+  `credential.<url>.helper`, `remote.<name>.uploadpack`,
+  `.receivepack`, `.vcs` (a program), and `http.proxy`, `http.sslVerify`,
+  `http.sslCAInfo`, `http.sslCAPath`, `http.sslCert`, `http.sslKey`,
+  `http.sslBackend`, `http.curloptResolve`, `http.extraHeader`,
+  `http.cookieFile` (each also per URL) and `remote.<name>.proxy` (where
+  the credential would go); on commit and push `gpg.program`,
+  `gpg.<format>.program`, `gpg.ssh.defaultKeyCommand`; on every run
+  `core.worktree` (it moves the working tree out of the project's
+  folder), a driver whose name holds `=` (git's `-c` would split it),
+  more than 64 drivers, a configuration over 256 KiB. A typed refusal
+  names the key (`GitRefusal::repository_config`, or `conflict` on a
+  read), never the value. The user moves such a setting to their global
+  configuration (`includeIf "gitdir:…"`) if they want Vessel to use it.
+- **Kept, and said**: commit and push run the repository's hooks (its
+  `.git/hooks`, or the `core.hooksPath` its configuration names), as the
+  user's own `git commit` would; those two calls are a person's only
+  (agents are refused them, and an agent's `pr.open` does not push). A
+  key git adds later that names a program is not on the list until it is
+  added with a test that plants it. A process of the user's that rewrites
+  the configuration between the listing and the run is not stopped
+  (ADR 0027: checks inside the node, not a sandbox).
+- **A project's root**: refused when any part of its path names `.git`
+  by git's own rules (any case, trailing dots or spaces, `git~1`, ignored
+  zero-width characters), when it holds `HEAD`, `objects` and `refs` (a
+  bare repository, told apart without git), or when git says it is inside
+  a git directory or bare, for `project.add`, `project.init` and a
+  clone's target.
+- **Between checking a place and starting in it**: `place` (and
+  `session.resume`'s check) takes a "starting" count on the worktree in
+  the same lock as its check, given back once the session is live or
+  failed to start; a removal claims the worktree first, then counts the
+  starting ones and reads the live sessions, so a session is either seen
+  or refused.
+- **Clones**: a pool of their own, 2 at once and 16 waiting, apart
+  from fetch, push and pull's 4.
+
+### Agents, the CLI
+
+- Agent tools (`vessel mcp`): `get_pull_request` (any session; refresh
+  its own) and `open_pull_request` (its own; no push). No merge, no
+  feedback switch: a merge publishes to a shared branch and the owner
+  asked for merging to be explicit; ADR 0029 says why the node does not
+  merge or push for an agent.
+- CLI: `vessel pr list`, `vessel pr show <session> [--refresh]`,
+  `vessel pr open <session> --title <t> [--body <b> | --body-file <f>]
+  [--base <b>] [--draft]`, `vessel pr merge <session> --number <n>
+  --method merge|squash|rebase --head <commit>` (the number and the full
+  head are required: the ones `show` printed), `vessel pr feedback
+  <session> on|off`, `vessel forge status`.
+
+### What an older client and an older node see
+
+- A protocol 8 to 10 client gets `SessionInfo` with a field it does not
+  know (`pull_request`), which it ignores, and boards whose lanes and
+  phrases are protocol 8's enums, all of which it already draws: a
+  watched session can now be in Validating, In review or Ready, the
+  lanes those enums were made for (ADR 0019). `GitRefusal::
+  repository_config` reaches it as `unknown` (`serde(other)`).
+- A client asks no protocol 11 method of a node that speaks 10 or less:
+  `NotInProtocol` before sending.
+- No event is added.
+
+### Bounded, and by how much
+
+| What | Bound | Beyond it |
+|---|---|---|
+| Watches | 64 per node, a person's sessions first | `access: limit` |
+| Forge requests | 4 at once, a person's first; 5 a second per host in the background; 30 s each (10 s to connect); 4 MiB a body; 3 same-origin redirects | waits its turn; `unreachable` |
+| Finding a pull request | every 120 s, conditional; 300 s after a merge or close | — |
+| Watching one | every 60 s (300 s after 30 quiet minutes), ±10 %, three conditional requests, a full read on change or every 5 minutes | — |
+| The folder | one git read per session per cycle, 2 at once; the remote's URL every 10 minutes or on a new branch | — |
+| A refresh | once per 10 s per session | answered from memory |
+| Rate limit | background stops under 10 % of a resource; cooldown 60 s doubling to 15 min, or as the forge says | `rate_limited` |
+| Errors | 60 s doubling to 30 min per watch | `unreachable` |
+| Token | kept 5 min, a miss 10 s, dropped on 401 (asked again at most once a minute) | `signed_out` |
+| `gh` | 2 at once, 10 s each | `signed_out { gh: failed }` |
+| Write access asked | once an hour per repository and login | counted, not quoted |
+| Feedback | one waiting prompt per session, 16 KiB, 20 events, 1 KiB a quote; 1,000 signatures per session | "and N more"; unseen, then oldest dropped |
+| Failing checks named | 20 per pull request; 100 checks read | counted; `truncated` |
+| Hosts in `forge.status` | 16 | left out |
+| The watcher's channel | 64 | `unavailable` |
+| A repository's configuration listing | 256 KiB, inside the run's time and slot | the run refused |
+| Clones | 2 at once, 16 waiting | `unavailable` |
+
+### Store (schema 10)
+
+- `forge_feedback_on (session_id PRIMARY KEY REFERENCES sessions ON
+  DELETE CASCADE)`: the sessions with feedback on.
+- `forge_feedback_sent (session_id REFERENCES sessions ON DELETE
+  CASCADE, signature, sent_at, PRIMARY KEY (session_id, signature))`.
+
+Nothing else of a forge is stored: the pull request is found again by
+its branch after a restart.
+
+### Review (2026-11-12)
+
+An independent reviewer (Opus, read only) read the first version of this
+section against the references, the existing wire and code, and found
+twelve problems. Taken, as written above:
+
+1. `pr.open` let an agent make the node push, running the repository's
+   hooks and the user's credentials: an agent's call never pushes now
+   (`not_pushed`), a person's pushes `HEAD:refs/heads/<branch>` (a name
+   starting with `+` cannot force); the repository's proxy, TLS,
+   resolver, header and cookie keys refuse a network run (`credential`).
+2. Nested repositories: status, diffs and the removal's inspection no
+   longer go into a submodule's working tree, where its own configuration
+   would run.
+3. Signature checks and signing on runs other than a commit are turned
+   off; the protocols list is the code's (`file` kept, its `uploadpack`
+   refused); the race between the listing and the run is stated; the
+   root's `.git` test is git's own rule.
+4. Feedback: reviews quoted by the same rule as comments; write access
+   asked of the forge (an association does not say it); format
+   characters removed and quotes set apart; one waiting prompt per
+   session, edited, so the queue never fills; signatures carry the
+   repository and are dropped unseen-first; conflicts are an event.
+5. A forge's text is made lossy by the node, so a title or a check name
+   never breaks `session.list`.
+6. The policy facts follow the feedback switch (AO's one flag); the
+   facts live in the tracker and are dropped at the end, before the
+   final board, and `pull_request` is cleared then, so the runtime and
+   the store agree; ended sessions answer `ended`; ADR 0019 amended.
+7. The removal claims the worktree before it reads the live sessions.
+8. A watch per repository and branch, sessions on the base branch not
+   watched, a person's sessions first for the 64 watches.
+9. Per-resource rate limits, GraphQL's own limit, typed 403s (single
+   sign-on), same-origin redirects, cooldowns that reschedule rather than
+   queue, a person's calls first, a token bucket per host, jitter.
+10. The folder's git read per cycle bounded and counted; a changed
+    branch found again; finding again after a merge.
+11. `pr.merge` names the number and takes a full head; `unknown` on the
+    outcomes; `merge_queue` and `cannot_pin`; `cancelled` and `truncated`
+    checks; an optional login; the failure codes; a summary in
+    `SessionInfo`, the whole in `pr.get`; times and merge methods.
+12. The token rules stated here, not only in the references paragraph;
+    `gh` run outside any repository; `forge.status` bounded.
+
+Not taken, and why:
+
+- *Feedback to the branch's owner session only.* Feedback is turned on
+  per session by a person; two sessions on one branch both get it only
+  if a person turned both on, which is their choice, and "the owner" of
+  a branch in a project's own folder has no record to come from.
+- *A principal of the node's own for feedback prompts.* `Creator` is
+  protocol 5's shared enum, matched by every client; the prompt is sent
+  on behalf of the person who turned feedback on, and says it comes from
+  Vessel's pull request feedback.
+- *Keeping an ended session's pull request in the store.* It is cleared
+  at the end instead: nothing watches an ended session, and a summary
+  kept without a watch would go stale.
+- *Driving merge queues.* Refused as `merge_queue`; a later track.
+- *Measuring the empty-driver behaviour on git 2.25.* Not available on
+  this machine; CI runs the runners' git, and the planted tests fail if
+  a driver runs.
+
+## Track C: contract
+
+Protocol 11 (shared with track B2, raised once). ADR 0031 holds the
+decisions that could have gone another way. Store schema 11 was set
+aside for this track and is **not used**: nothing below is kept on disk
+(why under "What is kept, and for how long").
+
+### What the references do (read 2026-11-12)
+
+- **Shell terminals.** agent-orchestrator: shell tabs per session or
+  standalone, surviving its daemon (a terminal host of their own); the
+  shell is the user's login shell (`--login -i`), on Windows `pwsh.exe`,
+  then `powershell.exe` (both `-NoLogo`), then `%ComSpec%`, then
+  `cmd.exe`; titles at most 80 characters. GOAT: terminals per thread,
+  `$SHELL` (else `bash`; `-l` for bash on macOS, `-o nopromptsp` for
+  zsh), `pwsh.exe -NoLogo` on Windows; history kept per terminal, 5,000
+  lines and 8 MiB; its own variables and `VITE_*` removed from the
+  shell's environment and `COLORTERM=truecolor` added; 128 ended terminals
+  kept. Paseo: terminals per working folder, `$SHELL` (else `/bin/sh`),
+  `%ComSpec%` on Windows; a headless emulator per terminal with 10,000
+  lines of scrollback; its own control variables removed.
+- **Scripts and services.** Paseo: `paseo.json` `scripts.<name> {
+  command, type?: "service", port? }`; a service gets a port Paseo picks
+  (`PASEO_PORT`, `HOST`, its peers' ports as `PASEO_SERVICE_<NAME>_PORT`),
+  a route on Paseo's own proxy by host name (`<script>--<branch>--<project>
+  .localhost`), and a TCP health probe every 3 s (two failures: stopped);
+  no restart. agent-orchestrator: post-create and pre-remove steps with a
+  time limit, and `ao preview` running `.ao/launch.json` with a readiness
+  probe (30 s, at most 55) and no restart. GOAT: `goat.json` scripts, run
+  in terminals.
+- **Ports.** GOAT scans every 3 s while a page holds the list: `lsof
+  -iTCP -sTCP:LISTEN -P -n -F pcn` (5 s limit), a walk of `/proc` (at most
+  50,000 descriptors) where `lsof` is missing, `netstat.exe -ano` on
+  Windows (16 MiB of output at most). Paseo knows its services' ports
+  because it chose them. agent-orchestrator waits for the port a preview
+  was told to use.
+- **Agent tools.** Paseo: `list_terminals`, `create_terminal` (any
+  folder), `capture_terminal` (lines, escape sequences removed by
+  default), `send_terminal_keys` (tmux key names), `kill_terminal`, and
+  the workspace scripts' list, start and stop; no ownership: an agent
+  can type into any terminal. GOAT: its agent reads at most 32 KiB and
+  writes at most 16 KiB a call, lists at most 100.
+
+### The decision this track turns on: what a terminal is
+
+A shell terminal is a terminal-mode session without an agent, so it
+could be a kind of session. It is **a thing of its own beside sessions,
+carried by the sessions' terminal transport** (ADR 0031):
+
+- As a session it would be on the board (a card with no turns), in every
+  session list (a protocol 10 client cannot decode a spec without a
+  harness, so its whole `session.list` would fail unless the node hid
+  shells from it), counted in an agent's eight live sessions, offered to
+  export, import, archive, resume and marks, given an agent credential and
+  `vessel mcp`, and written to the store: every byte a shell prints
+  (`env`, `cat .env`) kept on disk under the sessions' retention.
+- Beside sessions, none of that happens, and what the session's terminal
+  already does is reused, not copied: `vessel-pty` runs the shell; the
+  session runtime's ring keeps the scrollback and broadcasts it; a
+  terminal's log is made of the same `EventRecord`s a terminal session's
+  is (`terminal` output, `status`, `vessel:` notices as `harness_log`),
+  numbered gap-free from zero; it is followed through the same
+  subscription frames (`ServerFrame::Event`, `SubscriptionEnded`,
+  `lagged` and `resume_from`) and paged with the same `EventPage`; input
+  is the same `TerminalInput`. The page's terminal view therefore draws a
+  shell exactly as it draws a terminal session.
+- The wire is shared; the code that follows a log is not yet. The rpc
+  client's driver opens only `session.subscribe`'s routes, and
+  `vessel-client`'s streams page with `session.read`; both are taught a
+  terminal (a subscription answered with `TerminalSubscribed`, catching
+  up with `terminal.read`), and the node's forwarder for a terminal reads
+  its ring only (there is no store behind it). Listed as work, not
+  assumed.
+
+### Types (`vessel_proto::terminals`, `vessel_proto::scripts`, `vessel_proto::ports`; new modules)
+
+Ids (`id.rs`): `TerminalId`, node-minted UUIDv4 (a handle in
+`ts/aliases.rs`).
+
+Parsed on decode:
+
+- `ScriptName`: a script's or a service's name in `vessel.toml`: 1 to 64
+  bytes of ASCII letters, digits, `-`, `_` and `.`, starting with a letter
+  or a digit (a plain name in `aliases.rs`: a person types it).
+- `ProcessName`: what the system calls a listening process (`comm` on
+  Linux, `lsof`'s command on macOS, the image name on Windows), at most 64
+  characters, control characters removed (plain: content).
+- Titles are `SessionTitle` (one line, at most 120 characters).
+
+Terminals:
+
+- `TerminalPlace`: `session { session }` (the session's folder: its
+  `cwd`, the node's home when it has none) or `project { project, dir?:
+  RelPath }` (the project's folder, or a folder in it, checked as every
+  `RelPath` is: resolved, inside the root, not under `.git`).
+- `TerminalKind`: `shell { program }` (the program started), `script {
+  script, command }` or `service { script, command }` (a run of a project
+  script; `command` the `ProjectCommand` that runs), `unknown`.
+- `TerminalInfo { id, place, folder, kind, title?, created_by,
+  created_at, ended_at?, status, service?, size?, oldest_seq, next_seq,
+  revision }`: `folder` the absolute folder it runs in; `created_by` ADR
+  0013's `Creator`; `status` the process state, the session's own
+  `SessionStatus` (`running`, then `exited { code }`, `failed { message
+  }` or `interrupted`); `service` a service's `ServiceState`; `size` a
+  shell's window; `oldest_seq` the first record still kept (older output
+  has been dropped, below) and `next_seq` the next one; `revision` changes
+  with any field but the two sequence numbers, for waiting.
+- `ServiceState`: `starting { attempt }`,
+  `running { attempt, since }`, `backing_off { attempt, code?, restart_at
+  }`, `exited { code }` (it ended by itself with 0: not restarted),
+  `failed { reason }` with `ServiceFailure` one of `gave_up { restarts }`,
+  `not_approved` (the set it came from is no longer approved), `spawn`,
+  `unknown`; `stopped` (a person, its session's deletion, its project's
+  removal, or the node stopped it); `unknown`. `attempt` counts from 1.
+- `TerminalList { terminals }` (at most 96: 64 live and 32 ended).
+
+Scripts:
+
+- `ScriptKind`: `script` or `service`.
+- `ScriptEntry { name, kind, command, dir? }`.
+- `ProjectCommands::Listed` gains `scripts: Vec<ScriptEntry>` (left out
+  when empty).
+- `ScriptPlace`: `session { session }` (its project's checkout: the
+  worktree it runs in, or its project's folder) or `project { project }`.
+- `ScriptList { root, commands, runs }`: `root` the folder the file was
+  read in; `commands` what `project.commands` would answer for it, as it
+  is now; `runs` the live and kept runs in that root, as `TerminalInfo`.
+- `ScriptRunOutcome`: `started { terminal }`, `needs_approval { commands
+  }` (nothing ran), `refused { reason }` with `ScriptRefusal` one of
+  `no_project` (a session with no project), `no_such_script`,
+  `no_such_dir` (its `dir` is not a folder in the root), `invalid_file {
+  message }`, `already_running { terminal }`, `unknown`.
+
+Ports:
+
+- `ListeningPort { port, address, pid, process?, owner }`: a TCP socket
+  in the listening state; `address` the local address as text
+  (`127.0.0.1`, `::`, `0.0.0.0`), so a client tells loopback from every
+  interface; `owner` a `PortOwner`: `session { session }` or `terminal {
+  terminal }`, the root of the process tree the listener is in.
+- `PortList { ports, scan, revision, more }`; `PortScan`: `pending` (none
+  yet), `scanned { at }`, `unavailable { reason }` (the system's tool is
+  missing or failed), `unknown`.
+
+No event is added. A service's state is typed on its `TerminalInfo`
+(`service`), every change bumps `revision`, and `terminal.get {
+changed_from }` and `terminal.list` deliver the changes, as `project.get`
+delivers a clone's progress; the run's log gets a `vessel:` line at each
+change (`vessel: service exited with 1; restarting`), for a person
+reading the output. A `SessionEvent` variant was considered and dropped
+(review item 14): only protocol 11 calls serve a terminal's log, so its
+stand-in could never be sent, and it would add an arm to about ten
+exhaustive matches in other tracks' code.
+
+### Calls
+
+All protocol 11. Every one but `terminal.subscribe` is forwardable
+through `fleet.forward` and in `vessel-web`'s list of calls a page may
+make; `terminal.subscribe` is a stream, which is neither (as
+`session.subscribe` is not): the bridge follows a terminal for the page
+(`follow_terminal`, below), and another node's terminal is read with
+`terminal.read`. "Agents": what an agent principal (ADR 0013, local or delivered)
+may do; the guard refuses the rest with `forbidden` before the call
+runs.
+
+| Method | Scope | Agents | Request | Reply |
+|---|---|---|---|---|
+| `terminal.create` | operate | when allowed (below) | `CreateTerminal { place, size?, title? }` | `TerminalInfo` |
+| `terminal.list` | read | its own | `ListTerminals { place? }` | `TerminalList` |
+| `terminal.get` | read | its own | `GetTerminal { terminal, changed_from? }` | `TerminalInfo` |
+| `terminal.read` | read | its own | `ReadTerminal { terminal, from, limit, wait? }` | `EventPage` |
+| `terminal.subscribe` | read | its own | `SubscribeTerminal { terminal, from }` | `TerminalSubscribed { subscription, terminal }` |
+| `terminal.send` | operate | its own | `SendTerminal { terminal, input }` | `Ack` |
+| `terminal.rename` | operate | its own | `RenameTerminal { terminal, title }` | `TerminalInfo` |
+| `terminal.kill` | operate | its own | `KillTerminal { terminal }` | `Ack` |
+| `terminal.close` | operate | its own | `CloseTerminal { terminal }` | `Ack` |
+| `script.list` | read | no | `ListScripts { place }` | `ScriptList` |
+| `script.run` | operate | no | `RunScript { place, script }` | `ScriptRunOutcome` |
+| `script.restart` | operate | no | `RestartScript { terminal }` | `ScriptRunOutcome` |
+| `port.list` | read | its own | `ListPorts { changed_from? }` | `PortList` |
+
+"Its own" means terminals the agent created, and ports owned by its own
+session or by those terminals. A subscription is ended with
+`session.unsubscribe`, which already takes any subscription of the
+connection.
+
+Every call can answer `forbidden`, `not_found` (no such terminal,
+session, project or folder, and a terminal an agent did not create is
+`forbidden`, not `not_found`), `unavailable` (a limit below, or the
+node's wait shares) and `internal`. Beyond that:
+
+- `terminal.create`: starts the shell in a PTY of `size` (80×24 when
+  absent) and answers once it runs. `not_found` for a place whose
+  session, project or folder is gone; `conflict` while the session's
+  worktree is being set up, torn down or removed (`Workspaces::busy`);
+  `spawn_failed` when the shell does not start. A session that has ended
+  but is not deleted still has a folder, and a terminal can be opened in
+  it.
+- `terminal.list`: live terminals first, then kept ones, each newest
+  first; with `place`, those of that session or project only.
+- `terminal.get`: with `changed_from`, waits (at most 30 s, in the node's
+  wait shares, at once when forwarded) until `revision` differs.
+- `terminal.read`: a page from `from`, at most `limit` records (capped at
+  512) and 1 MiB of output; with `from` older than `oldest_seq`, the page
+  starts at `oldest_seq` (the scrollback that was dropped is gone, as a
+  pruned session log is); `wait` (at most 30 s, against `session.read`'s
+  60: a terminal is followed by subscription, a wait is for a tool's
+  poll; in the wait shares, and answered at once when forwarded) waits
+  for a record at `from`. `invalid_request` for `from` past `next_seq`.
+- `terminal.subscribe`: the records from `from` (from `oldest_seq` when
+  older), then live ones, then `subscription_ended { session_ended }` once
+  the terminal ended and its last record was sent (also when it was
+  closed: its final status comes first); `lagged { resume_from }` for a
+  follower further behind than the live buffer (64 records), as for
+  sessions, after which the client pages with `terminal.read`.
+- `terminal.send`: `data` written to the shell (at most 64 KiB a call),
+  or a `resize`. `unsupported` for a script or a service (they have no
+  terminal input; standard input is closed); `conflict` once it ended.
+- `terminal.kill`: a shell gets `SIGHUP` and, two seconds later, its
+  group `SIGKILL` (as a terminal session); a script or a service its
+  group's `SIGTERM` and, five seconds later, `SIGKILL`; on Windows the
+  process (a shell) or its job (a script) is terminated at once. A
+  service is not restarted after it. The terminal is kept, ended, with
+  its output. Nothing for one already ended.
+- `terminal.close`: kills it if it runs, waits for its end (at most the
+  grace and 5 s more; a process stuck in the kernel is forgotten anyway,
+  and logged), and forgets it; its subscriptions end after its final
+  status.
+- `script.list`: the place's root (a session's worktree, or its or the
+  given project's folder), its `vessel.toml` as it is now, its approval,
+  and its runs. `invalid_request` for a session without a project.
+- `script.run`: reads the root's `vessel.toml` as it is now (a bounded
+  regular file inside the root, as ADR 0027 reads it), and runs the named
+  script only when that file's set is approved for the project
+  (`needs_approval` otherwise, carrying it); the command that runs is the
+  one parsed from the file whose digest matched, never a second read. It
+  runs in `<root>/<dir>`, through the platform's shell as setup commands
+  do (`/bin/sh -c`; `cmd.exe /d /c` on a temporary `.cmd` file on
+  Windows), piped, standard input closed, its standard output and error
+  into the run's log as `terminal` records, as one process group
+  (`vessel-proc`: a group on Unix, a job object on Windows). One live run
+  per root and script (`already_running`).
+- `script.restart`: a live run is stopped and run again in the same
+  terminal (its log continues, a `vessel: restarted` notice between, a
+  service's count starts again); an ended run's log is closed, so it runs
+  again in a new terminal, as `script.run` would (the old one stays kept
+  until closed or evicted). Either way with the command it ran, and only
+  if the set it came from is still approved (`needs_approval`
+  otherwise).
+- `port.list`: the last scan's listeners whose owner the caller may see;
+  each call counts as interest (below). With `changed_from`, waits (at
+  most 30 s, in the wait shares) for another revision.
+
+### A shell: what runs, where, and with what
+
+- **The program** is found once, by the binary at start (library code
+  never reads the process's environment, AGENTS.md section 8), and given
+  to the node in its `Config`: on Unix `$SHELL` when it is an absolute
+  path to an executable file, else the account's shell (the password
+  database), else `/bin/sh`; started with `-l` on macOS (as its Terminal
+  starts every shell, so `~/.zprofile` and Homebrew's `PATH` apply) and
+  with no argument elsewhere (a Linux terminal emulator starts an
+  interactive shell that is not a login one). On Windows `pwsh.exe -NoLogo`
+  when found on `PATH`, else `powershell.exe -NoLogo`, else `%ComSpec%`,
+  else `cmd.exe` (agent-orchestrator's order). A node whose `Config` has
+  no shell answers `terminal.create` with `unsupported`.
+- **The folder** is the place's, resolved when the terminal starts; the
+  shell may `cd` anywhere afterwards: a folder is where it starts, not a
+  sandbox (ADR 0013's limit for everything run as the node's user).
+- **The environment** is the node's own, as a terminal the user opens has
+  it, with `TERM=xterm-256color` and `COLORTERM=truecolor` (what the
+  page's terminal draws), less every credential of Vessel's: any
+  `VESSEL_*` variable whose name ends in `TOKEN` or `SECRET`
+  (`VESSEL_TOKEN`, `VESSEL_AGENT_SECRET`, `VESSEL_MODEL_SECRET`,
+  `VESSEL_MCP_<n>_<m>_SECRET`) and the two that name an agent's
+  connection (`VESSEL_AGENT_SESSION`, `VESSEL_NODE_SOCKET`); and, when
+  any of those is there, the variables a model route sets for a harness
+  (`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, ADR 0015). The node never
+  puts a credential in its own environment, so these are there only when
+  it was started from inside a session's process tree, and then they
+  belong to that other session; a node started normally leaves the
+  user's own `ANTHROPIC_*` alone, as the user's terminal has them. The
+  binary works out the list from its own environment at start (library
+  code reads no process environment); a node in a test removes the fixed
+  names. A
+  session's agent credential (ADR 0013) and a routed session's model
+  token (ADR 0015) are given to that session's harness only, never to a
+  terminal beside it. Scripts get the same, plus setup's
+  `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE` and `VESSEL_BRANCH`, and
+  `VESSEL_SCRIPT` (its name).
+- **The process tree.** A shell is a session leader in its PTY
+  (`vessel-pty`), stopped as a group on Unix. An interactive shell puts
+  each job in a process group of its own, which a signal to the shell's
+  group misses: the polite `SIGHUP` is resent to every job by bash and
+  zsh, and the kernel sends `SIGHUP` to the foreground job when the
+  session's leader exits; on Linux, once the shell has exited, every
+  process still in its session is killed too (the session id is the
+  shell's pid, which the system does not hand out again while the
+  session has members), so `npm run dev &` ends with its terminal. On
+  macOS a background job that ignores `SIGHUP` can outlive it; on Windows
+  the pseudo console's closing ends what is attached to it (the gap ADR
+  0003's terminal sessions have). A script or a service runs through
+  `vessel_proc::spawn`: a process group on Unix, a kill-on-close job
+  object on Windows, so its children end with it, except, on Unix, one
+  that left the group on purpose (`setsid`, a daemon). If the node itself
+  crashes, nothing stops a Unix group: a service keeps its port, and the
+  same service started again fails to bind it (Windows closes the job
+  with the node's handle).
+- **The window.** Every client's resize is applied; the last one wins
+  (Paseo arbitrates between attached clients; Vessel's terminal sessions
+  never have, and a shell is one more of them).
+- **Piped, not a terminal.** A script or a service has no PTY: a program
+  that checks for a terminal prints without colour, and one that buffers
+  when piped (Python without `-u`) shows its output late. Paseo and GOAT
+  run scripts in a PTY; Vessel cannot put a PTY's program in a job object
+  before it starts (`vessel-pty`'s Decision Log), and a service's
+  children must end with it on Windows too.
+
+### A service is kept running
+
+- Exit with a code other than 0, or by a signal Vessel did not send: a
+  restart after 1, 2, 4, 8, then 16 s; a run that lasted 60 s resets
+  the count; the sixth failure without such a run gives up (`failed {
+  gave_up { restarts: 5 } }`). Exit with 0: `exited`, not restarted (a
+  service that ends cleanly is done, or misconfigured; restarting it
+  forever would hide that).
+- Before every restart the node checks that the set the command came
+  from is still approved for its project (`failed { not_approved }`
+  otherwise): withdrawing an approval stops what it allowed, at the next
+  start, without killing what runs.
+- Each change is a `service` record in the run's log and on its
+  `TerminalInfo`; the log's `status` ends only when the service is given
+  up, exits, or is stopped.
+- Its output is the run's log, bounded as every terminal's (below), across
+  restarts.
+- Stopped by `terminal.kill`, `terminal.close`, its session's deletion
+  or removal by retention, and the node's stop. Not by its session's end:
+  a session that ended can be started again (ADR 0026) in the same
+  folder, and a dev server is often what a person is still looking at.
+- `running` means the process started, nothing more: no readiness or
+  health probe (agent-orchestrator waits for its preview's URL, Paseo
+  probes its services' ports every 3 s). The ports below say whether it
+  listens.
+- No port is assigned (Paseo gives each service `PASEO_PORT`): the same
+  service run in two worktrees binds the same port, and the second fails
+  until the first stops. Assigning one would make every command depend
+  on a variable Vessel invents; left for the preview track.
+- `node.stop { when: idle }` waits for sessions only: terminals and
+  services are not work an agent is in the middle of, and end with the
+  node as everything else does.
+
+### Ports
+
+- Found without a privileged call, for the process trees of the node's
+  live sessions (their PTY program or agent) and terminals:
+  - **Linux**: `/proc/<pid>/stat` for parents, `/proc/<pid>/fd` for the
+    socket inodes of each process in a tree, `/proc/net/tcp` and
+    `/proc/net/tcp6` for those in the listening state. Every process of
+    the node's user can be read, which is every process Vessel started.
+  - **macOS**: `ps -A -o pid=,ppid=` for parents and `lsof -nP -iTCP
+    -sTCP:LISTEN -a -p <pids> -F pcn` for the listeners of the trees'
+    processes; `lsof` sees the user's own processes without privilege.
+  - **Windows**: `netstat -ano -p TCP` and `-p TCPv6` for listeners and
+    their process ids (no privilege needed for the ids), and one
+    PowerShell `Get-CimInstance Win32_Process` for parents and image
+    names. Where PowerShell is not allowed to run, the scan is
+    `unavailable`.
+- Bounded: at most one scan every 3 s (GOAT's period), and only while
+  someone asked `port.list` in the last 60 s; a scan stops at 4,096
+  processes in the trees and 50,000 descriptors, the tools at 5 s and 4
+  MiB of output; at most 256 ports are reported (`more`). A scan runs on
+  the blocking pool, one at a time.
+- Reported as facts only: nothing is opened, forwarded or proxied, and no
+  listener is opened to the network. How a page reaches a port is the
+  preview track's ADR, with one rule fixed now (review item 12): a
+  previewed app is repository code, so it is served on an origin other
+  than the page's (another port or host, as Paseo's `*.localhost`), never
+  under the page's own origin, and it never holds a credential of the
+  bridge.
+- Only TCP listeners. A port is the owner whose tree holds the listening
+  process at the scan; a process that moved out of the tree (a daemon that
+  detached) is not reported, and is not Vessel's to stop either.
+
+### The project's file
+
+`vessel.toml` gains two tables beside `[worktree]`, which is unchanged:
+
+```toml
+[scripts.test]
+command = "cargo test --workspace"
+
+[services.web]
+command = "npm run dev"
+dir = "web"            # optional: where it runs, inside the root
+```
+
+- `command`: one `ProjectCommand`; `dir`: a `RelPath`. A name in both
+  tables, an entry without a `command`, a name that is not a
+  `ScriptName`, or more than 32 scripts and services together makes the
+  file invalid (`invalid { message }`): nothing in it runs, setup
+  included. An unknown key inside an entry is ignored, as ADR 0027
+  ignores every key it does not read (a later node's key must not stop
+  this one's setup); the digest covers what runs. `[env]` stays unread.
+- **The digest grows only where the file does.** A file that names no
+  script and no service keeps its version 1 digest exactly, so every
+  approval given in protocol 10 still covers what it showed. A file that
+  names one is digested as version 2: `vessel.toml commands 2\n`, setup
+  and teardown as in version 1, then the count of scripts and services
+  and, for each in name order, its name, its kind (`script` or
+  `service`), its command and its folder (empty when none), every count
+  and length 8 bytes little-endian. No version 1 approval can match it,
+  so adding a first script asks again, and so does any later change to a
+  script's name, kind, command or folder, and any script added or
+  removed (entries are digested in name order, so their order in the
+  file does not matter). Setup and teardown are
+  approved with the scripts, as one set: one approval per set, as ADR
+  0027 says.
+- **An old client never approves what it could not show.** A protocol 10
+  connection reading a listed set that has scripts gets `invalid {
+  message: "this project's file names scripts or services, which this
+  client cannot show; approve it from a newer client" }` instead
+  (`Reply::for_protocol`, in `project.commands`, `project.approve` and
+  `worktree.create`'s `needs_approval`), so it never sees the digest of
+  a set it cannot display.
+- **And the page must not either** (review item 2). The page speaks
+  protocol 11, and its approval view is track B-page's, built beside this
+  track. **A condition of the join**: B-page's approval shows `scripts`
+  (name, kind, command, folder) when there are any, or refuses to approve
+  a set that has them. Track C draws nothing, so it cannot close this
+  itself; the report says so to the coordinator.
+
+### Agents (ADR 0013), and what stops one leaving what it was given
+
+- **Off unless a person turned it on** (review item 1). An agent's own
+  shell tool may be sandboxed (Codex's sandbox, Claude Code's sandbox
+  and command allowlists); a terminal the node starts is not, so it would
+  give a sandboxed agent more than it has. An agent may open a terminal
+  only beside a session whose profile says so (`agent_terminals = true`
+  in its `[profiles.<name>]`, `profiles.toml`, ADR 0011): its own
+  session, or one it may operate (ADR 0013's ownership, so a session it
+  started on another node works through `fleet.forward`). The default
+  profile of every harness has it off. `forbidden` otherwise.
+- At most 4 of its terminals live at once (`forbidden` past that, as its
+  session limit is). Every other terminal call works only on terminals it
+  created; `port.list` shows only its own session's and terminals' ports.
+  Its terminals end when its own session ends (its credential dies then,
+  and nothing it started should outlive what it may still answer for).
+  `script.*` are refused: a repository's commands run where a person
+  approved them and a person asked; an agent runs commands with its own
+  tools.
+- Typing into a terminal is running a program, so the rule is that a
+  terminal gives an agent nothing its own command tool does not:
+  - a person turned it on for that profile, knowing what the agent's own
+    sandbox was;
+  - it starts in the session's folder, as the same user;
+  - the shell holds no credential: not the node's token, not the agent's
+    own credential, not a model token, so it cannot act through the node
+    as the agent or the node;
+  - the agent reaches only terminals it made, never a person's (which may
+    hold an `ssh` login, a `sudo` timestamp, another folder) or another
+    agent's;
+  - every `write_terminal` is a tool call of the agent's harness, held to
+    the session's permission mode as its own shell tool is (Vessel does
+    not pre-approve its own MCP tools), and is marked destructive and
+    open-world in its MCP annotations, so a harness that asks before such
+    tools asks;
+  - its terminals are counted, named as its own (`created_by`), and end
+    with its session.
+  What it cannot stop, stated as ADR 0013 states it: a process of the
+  node's user can read the node's files, its token included. A terminal
+  is attribution and least privilege, not containment.
+
+### What an older client and an older node see
+
+- A client asks no protocol 11 method of a node that speaks 10 or less
+  (`NotInProtocol` before sending); the CLI and the agent tools say the
+  node is too old.
+- A protocol 10 client of a protocol 11 node sees no terminal (they are
+  not sessions), no new event (a `service` record exists only in a
+  service's log, which only `terminal.*` serve), and a project file with
+  scripts as `invalid` (above).
+- `PROTOCOL_VERSION` goes to 11; nothing else in that line.
+
+### What is kept, and for how long
+
+Nothing on disk. A terminal, its scrollback and its runs live in the
+node's memory: they outlive the page and every connection, and end with
+the node (its stop marks them `interrupted`; a new node has none). Kept
+on disk, a shell's output would be a second copy of whatever a person
+printed in it, read back by anyone who reads the data folder later; and a
+terminal reopened after a restart would be a new shell anyway. So the
+store's schema is not raised.
+
+### Bounded, and by how much
+
+| What | Bound | Beyond it |
+|---|---|---|
+| Live terminals (shells and runs) | 64 a node, 8 a session, 16 a project's folder, 4 an agent's | `unavailable` (`forbidden` for an agent) |
+| Ended terminals kept | 32 a node | the oldest ended one is forgotten |
+| Scrollback | 1 MiB of output and 4,096 records a terminal | the oldest records are dropped; `oldest_seq` moves; a reader from before gets from `oldest_seq` |
+| Live followers | 64 records behind (the broadcast's buffer: at most 1 MiB of 16 KiB chunks held for a stalled follower) | `lagged { resume_from }`, then pages |
+| Input | 64 KiB a `terminal.send` | `invalid_request` |
+| A page | 512 records, 1 MiB of output | `next` |
+| Long polls | 30 s, in the node's wait shares | answered as it is |
+| A service | restarts after 1 to 16 s; 5 without a run of 60 s | `failed { gave_up }` |
+| Stopping | 2 s (shell), 5 s (script) from the polite signal to `SIGKILL` | killed as a group |
+| `vessel.toml` | 32 scripts and services; names of 64 bytes | `invalid` |
+| Port scans | one per 3 s, only within 60 s of a `port.list`; 4,096 processes, 50,000 descriptors, 5 s and 4 MiB per tool; 256 ports | `more`; `unavailable` |
+
+### The CLI, the agent tools, the page
+
+- `vessel shell [--session S | --project P [--dir D]] [--title T]` opens
+  a shell and attaches to it (the attach of a terminal session: raw mode,
+  resize, the detach key); `vessel shell list | attach | kill | close |
+  rename`. `vessel script list | run | restart | stop | output` with
+  `--session` or `--project`; `vessel ports`.
+- Agent tools (`vessel mcp`): `create_terminal`, `list_terminals`,
+  `read_terminal` (the text of whole records from a cursor, a record's
+  sequence number, escape sequences removed (one split across two records
+  may leave a stray character), at most 32 KiB a call, with an optional
+  wait, and the cursor for the next),
+  `write_terminal` (text, at most 16 KiB, and optional named keys:
+  `enter`, `tab`, `escape`, `backspace`, `up`, `down`, `left`, `right`,
+  `ctrl_c`, `ctrl_d`, `ctrl_z`), `close_terminal`, and `list_ports`. Each
+  takes `node`, as every session tool does. No tool renders a screen
+  (Vessel has no terminal emulator on the node): `read_terminal` gives the
+  output, not the picture a full-screen program draws.
+- The bridge (`vessel ui`) follows a terminal as it follows a session:
+  `follow_terminal { stream, node, terminal, from }`, answered with the
+  same `event` and `stream` frames, reconnecting as a session's stream
+  does. The page's data layer gets the generated types and nothing drawn
+  (track C-page draws).
+
+### Where terminals meet the other tracks
+
+- **Deleting a session** (`session.delete`) ends its terminals and runs
+  before its worktree is tidied, so they never hold it; **retention**
+  dropping a session does the same, from the node's tidying sweep.
+- **Removing a worktree** (`worktree.remove`, and tidying) counts a live
+  terminal whose folder is inside it as `in_use`, as a live session is: a
+  person's shell or a service there keeps it (and teardown, `docker
+  compose down`, never runs under a live service).
+- **Removing a project** (`project.remove`) answers `conflict` while a
+  live terminal is placed in it or runs inside its folder, as it does for
+  a live session; ended ones are forgotten with it.
+- **A session or project going away while a terminal starts for it**:
+  the terminal is registered, then its place is looked up again; gone, it
+  is killed and the call answers `not_found`. Deletion ends what is
+  registered, so one of the two always ends it.
+
+### Review (2026-11-12)
+
+An independent reviewer (Opus, read only) read the first version of this
+contract against the references, the code it claims to reuse and the
+other tracks' contracts, and found fifteen problems. Each one's fate:
+
+1. Agent terminals would give a sandboxed agent an unsandboxed shell.
+   **Taken**: off unless a person turns it on in the session's profile
+   (`agent_terminals`); `write_terminal` annotated destructive and
+   open-world.
+2. The protocol 11 page could approve scripts it never shows. **Taken as
+   a join condition** for B-page's approval view (this track draws
+   nothing).
+3. Removing a worktree or a project ignored live terminals; retention did
+   not end them. **Taken** ("Where terminals meet the other tracks").
+4. The reuse held on the wire only, and streams are not forwardable.
+   **Taken**: `terminal.subscribe` is neither forwardable nor a page call;
+   the client's and the bridge's following are listed as work. **Not
+   taken**: dropping the subscription for `terminal.read { wait }` polls,
+   which would hold one of the bridge's eight waiting reads (the node's
+   wait shares per origin) for every terminal a page shows, where a
+   subscription holds none.
+5. The memory bound was by record count only. **Taken**: the ring is
+   bounded by bytes and records, the live buffer is 64 records.
+6. Restarting "in the same terminal" had no mechanism once its log was
+   closed. **Taken**: in place while it runs, a new terminal once ended.
+7. A shell's jobs survive a signal to its group. **Taken** for Linux (the
+   shell's session is swept); stated for macOS, Windows and a node that
+   crashes.
+8. `node.stop { when: idle }` did not say. **Taken**: terminals do not
+   hold it.
+9. The agent tools' `node` could never work, and agent terminals outlived
+   their agent. **Taken**: beside sessions the agent may operate; its
+   terminals end with its session.
+10. A routed session's model token was not scrubbed. **Taken**, for a
+    node running inside a session's tree.
+11. Behaviour of the references dropped without saying. **Taken**: piped
+    output, no port assignment, no readiness or health probe, the last
+    resize wins, each stated.
+12. A preview's origin. **Taken** as a rule for the preview track.
+13. Races and an unbounded wait. **Taken**: looked up again after
+    registering; `terminal.close` waits at most the grace and 5 s; the
+    subscription's end is named.
+14. The `service` event was overreach. **Taken**: no event; the typed
+    state is on `TerminalInfo`, read by revision.
+15. Smaller points. **Taken**: `IpAddr` for addresses; unknown keys inside
+    an entry ignored; `terminal.read`'s wait stated; `read_terminal`'s
+    cursor defined; "order" removed from the digest's description.
+
+## Track B2: progress
+
+2026-11-12, on `backend/m11-forge`. ADRs 0029 (the forge and signing in)
+and 0030 (git apart from a repository's own configuration); ADRs 0001,
+0019, 0023 and 0027 amended; store schema 10; protocol 11; crate
+`vessel-forge`.
+
+Built, each slice with its tests, each commit through the whole gate:
+
+- ADR 0030: every git run judges the repository's own configuration
+  (`.git/config`, `config.worktree` and what they include, read once per
+  run, at most 256 KiB): drivers turned off with `-c`, programs,
+  credential-moving settings and `core.worktree` refused with the key
+  named; git's own folders refused as projects; a worktree held from
+  removal while a session starts in it; clones in a pool of their own.
+  Planted tests per vector, against the real git.
+- The wire (protocol 11): `vessel_proto::forge`, the six calls in every
+  table a method passes, `SessionInfo.pull_request`; the page's types
+  regenerated, nothing drawn.
+- `vessel-forge`: the trait, GitHub (REST conditional reads, one GraphQL
+  read, writes; a merge pinned to its head), signing in, the bounded
+  HTTP client with quotas, cooldowns and a token bucket, remotes read
+  into repositories, and the in-memory forge (feature `fake`). 23 tests,
+  GitHub's against a stand-in on loopback.
+- `vessel-session`: the pull request watch, the tracker's facts and
+  policy, the info's summary, both dropped at the end.
+- `vessel-store`: schema 10 (the feedback switch and the signatures
+  sent, deleted with the session); the rollback tests undo it too.
+- `vessel-workspace`: the checkout in one run, a branch's remote and its
+  address (kept out of `Debug`: it may hold credentials), its
+  remote-tracking commit.
+- The node (`forge`): the watcher, hosts and sign-in, folder reads,
+  looks, the views, feedback through the queue, `pr.open` and
+  `pr.merge`, the hooks on create, start again, archive and delete; the
+  binaries hand it the environment's tokens and the machine's `gh`.
+  End-to-end tests against the in-memory forge: a watched session's card
+  and board, an exact merge, a person's open pushing to a bare repository
+  on disk (the remote's fetch address names the forge, its push address
+  the disk), an agent's open refused `not_pushed`, an agent refused
+  merge, feedback and status, a forge that is down holding nothing, an
+  end clearing the pull request, feedback sent once.
+- `vessel pr` (list, show, open, merge, feedback, status) and the
+  `vessel` tools `get_pull_request` and `open_pull_request`.
+
+Not offered to agents, and why: merging (it publishes to a shared
+branch: a person's decision), the feedback switch (what is sent into a
+session is a person's to decide), the node's sign-in and the whole list
+(a person's view), and a push by the node for an agent (the node would
+run the repository's hooks and the user's credentials for it).
+
+Deviations from the contract, each deliberate:
+
+- An end is not told to the watcher: the session's actor clears its pull
+  request itself at the final status, and the watcher drops the session
+  at its next turn (within a minute).
+- A person's request is never conditional (the `ETag`s are shared with
+  the watcher's looks, and a 304 would answer a person with nothing): a
+  person's refresh, open or merge costs its requests; an agent's refresh
+  stays background traffic.
+- A conflict is re-armed when the forge knows the pull request does not
+  conflict (mergeable, blocked, unstable or behind), not while it is
+  still computing it (unknown), which would send the same conflict twice.
+
+Found while building, and fixed:
+
+- A feedback switch turned on while the session's first folder read was
+  loading the store's copy was undone by that load (seen once under
+  load): the switch is unknown until either answers, and a person's
+  stands.
+- A waiting feedback prompt took an "and N more" line as an addition
+  when no note fitted; it now takes nothing then, and its old count is
+  replaced, not repeated.
+- Checked against the contract after the node slice: the bound of 1,000
+  signatures now drops those a read no longer has before the store drops
+  the oldest; `unreachable.retry_at` is the next look's time, not a
+  guess; a watch with nothing to look with is put off instead of being
+  due at once.
+
+For the page track (B2-page):
+
+- `SessionInfo.pull_request` is set only for a live session placed in a
+  project or a worktree, a moment after it starts (the watcher's first
+  folder read), and cleared when it ends; draw nothing from its absence.
+  `access` says why there is no summary; `summary` stays while a later
+  look fails (`unreachable`, `rate_limited`), so draw the reason beside
+  the last facts, not instead of them.
+- `pr.get { refresh: true }` reads now, at most once per 10 s per
+  session (more often answers from memory); a person's refresh costs
+  requests, so call it on a person's action, not on a timer.
+- `pr.merge` needs the full `head_commit` the page showed and the method
+  from `merge_methods`; `head_moved { head }` carries the head now, to
+  show and ask again. Nothing merges on its own.
+- `pr.feedback` answers `unsupported` for a terminal session; the switch
+  also changes the board (failing checks with feedback on are "fixing
+  CI" in Validating while the agent works).
+- Feedback prompts begin `Vessel: pull request feedback` and are queued
+  as the owner's: the queue shows them like any other entry.
+
+Not verified here:
+
+- A real GitHub: every forge request in the tests goes to the in-memory
+  forge or to a stand-in on loopback (the brief's rule). The REST and
+  GraphQL shapes are GitHub's documented ones, as the references read
+  them; GitHub Enterprise Server's API addresses are GOAT's.
+- `gh` signed in for a real account: the tests run a stand-in `gh`
+  script.
+- The page e2e suite is flaky under this machine's load: each run of the
+  slices' gates had 35 of 36 passing, the one failing different each time
+  and always in `web/e2e/page.spec.ts` (a theme kept by the bridge, the
+  Mod+Enter and shortcut-rebinding tests), code this track did not
+  touch. The theme test failed 2 of 6 times alone: after clicking System
+  it fetches the index before the bridge has written the change.
+
+## Track C: progress
+
+2026-11-12, on `backend/m11-shells`. ADR 0031 (and ADR 0001's two new
+edges, `vessel-session -> proc` and `vessel-node -> proc`); protocol 11;
+store schema 11 not used (terminals are kept in memory only).
+
+Built, each with its tests:
+
+- The wire: `vessel_proto::{terminals, scripts, ports}`, the thirteen
+  methods with `Call::since`, the forwardable list (all but
+  `terminal.subscribe`), the stand-ins (`project.commands` and
+  `project.approve` answer `invalid` to a protocol 10 client for a set
+  with scripts, `worktree.create`'s `needs_approval` the same), the
+  aliases classified (`TerminalId` a handle, `ScriptName` named,
+  `ProcessName` content), the TypeScript regenerated.
+- `vessel-workspace`: `[scripts]` and `[services]` read and checked, the
+  version 2 digest only for a file that names one (a test pins version
+  1's digest unchanged), `shell_command` shared by setup and scripts.
+- `vessel-proc`: `listening::scan` (Linux `/proc`; macOS `ps` and
+  `lsof`; Windows a CIM query and `netstat`; bounded in processes, file
+  descriptors, time and output), `kill_session` (Linux), `account_shell`.
+- `vessel-session::terminals`: the shell actor in a PTY and the script
+  actor piped in its own process group, the ring bounded by bytes as well
+  as records (`Ring::bounded`), a service's backoff and its approval asked
+  again before every restart, a restart in place, `SessionHandle::pid`
+  for the ports; 9 tests against real processes (a script's grandchild
+  ends with it; a shell's job in a group of its own ends with it on
+  Linux; the scrollback drops its oldest output; the node's stop
+  interrupts both kinds).
+- `vessel-rpc` and `vessel-client`: `Connection::subscribe_terminal` (the
+  driver and the server's writer announce a terminal's subscription as a
+  session's), `Subscription<I>` over what it follows, `LogStream<L: Log>`
+  with `SessionStream` and `TerminalStream`, `ResumingStream<C, L>` with
+  `follow_terminal_resuming`.
+- The node: `terminals` (registry with reservations against the limits,
+  the environment without Vessel's credentials, `TerminalsConfig::detect`
+  for the binaries, the scripts' plans, the port scanner), the guard's
+  rows, `script.*` refused to agents in the workspace policy, the agents'
+  rule in `service::terminals`, `Occupant` (a live terminal keeps a
+  worktree, `kept { in_use }`, and a project, `conflict`), tidying ending
+  a deleted or dropped session's terminals first; 6 tests end to end over
+  the wire (a shell typed into, read, renamed, killed and closed; a node
+  without a shell; scripts approved, run, refused while running, a
+  service restarted in place and holding its project; an agent refused
+  without the profile, limited to 4 and to its own, its terminals ending
+  with its session; a port found and owned by its terminal; a deleted
+  session's terminal forgotten).
+- `vessel-web`: the call list (and the pinned test), `follow_terminal`
+  frames sharing the session streams' code; no `web/src/data` change was
+  needed (the page typechecks against the regenerated types).
+- `vessel mcp`: `create_terminal`, `list_terminals`, `read_terminal`,
+  `write_terminal` (destructive, open world), `close_terminal`,
+  `list_ports`; the agent's own session from its environment; a test
+  through a node (refused without the profile, then opened, typed into,
+  read, closed).
+- The CLI: `vessel shell [--session | --project [--dir]] [--title]
+  [--detached]`, `vessel shell list | attach | rename | kill | close`,
+  `vessel script list | run | restart | stop | output`, `vessel ports
+  [--watch]`; the terminal attach serves a session and a terminal alike;
+  `vessel project commands` shows the scripts; 2 tests against the
+  binary.
+
+Changed from the contract while building, and why:
+
+- `ShellStart.size` is the wire's `TerminalSize`, so the node needs no
+  `vessel-pty` edge.
+- `TerminalsConfig::detect` takes the binary's environment as closures
+  (the library reads none), and removes the known credential names as
+  well as those found.
+- Removal checks take what runs where as `Occupant` (a session or a
+  terminal) instead of session ids alone; a worktree's `sessions` still
+  lists sessions only.
+
+### Review of the code (2026-11-12)
+
+An independent reviewer (Opus, read only) read the commits against ADR
+0031 and the contract, and found seven defects; areas 3 (the
+environment), 5 (the wire) and 6 (path checks) clean. All seven taken:
+
+1. The switch was read on the target session's profile only: an agent
+   without it could start a session with a profile that has it and open
+   a shell beside that. Now its own session's profile must allow it too
+   (its own node checks before forwarding).
+2. An agent's terminals could outlive it: another node's agent's always,
+   a local one's when the call was cancelled before the watcher started.
+   Now one watcher a session, started right after registering and before
+   anything else is awaited, ends an agent's terminals when its own
+   session or the session they are beside ends; a create beside an ended
+   session is refused.
+3. A script could start in a worktree being removed. Now `script.*`
+   refuse a busy worktree, a start in progress counts as occupying its
+   folder, and a terminal that started as a removal began is ended.
+4. Two `script.run` at once could both start. The check is now in the
+   reservation, under the registry's one lock.
+5. A terminal beside a session in a project did not count against the
+   project's 16 once started. The counted owner is now kept with it.
+6. Approval was not asked again at the spawn itself. The run's actor now
+   asks before every start, the first and a person's restart included.
+7. Linux's socket tables were read unbounded. Now at most 4 MiB each,
+   cut at a whole line, the scan marked truncated.
+
+Measured (`docs/PERFORMANCE.md`, "Track C"): the benchmarks of the
+event frames, the session's fan-out and the board's reducer, before and
+after alternated twice, are within the spread of one tree's runs; the
+load test's paced and flood workloads are the same at the same load,
+the burst moves between runs of one build as before; `vesseld` holds
+0.5–1.4 MiB more. Nothing on the record path got slower that the
+machine's own variation could not explain.
+
+What remains: a removal whose look at what runs in a worktree precedes a
+terminal's reservation by a hair, and whose claim follows the terminal's
+last check, can still run its teardown under that terminal; closing it
+needs track B's removal to read the occupants under its own claim.
+
+What agents cannot do through Vessel: run, restart or list a project's
+scripts and services; open a terminal unless both its own session's
+profile and that of the session it is beside set `agent_terminals = true`
+(every default profile does not), or beside a session it may not operate;
+hold more than 4 live terminals; see, read, type into, kill or close a
+terminal it did not open; see ports of terminals it did not open or of
+sessions other than its own; keep a terminal past the end of its own
+session or of the session it is beside.
+
+Only CI can confirm: Windows (`pwsh.exe`/`powershell.exe`/`%ComSpec%`
+detection, the ConPTY shell, scripts through `cmd.exe /d /c` in a job
+object, the CIM and `netstat` port scan, the `.cmd` scratch file's
+removal) and macOS (`ps`/`lsof` port scan, `-l` login shells, a job
+ignoring `SIGHUP` outliving its shell). The terminal tests are Unix-only
+(`#[cfg(unix)]`); the parsers of every platform's tool output are
+unit-tested on every platform.
+
+Not verified: a real interactive attach from a terminal emulator (the
+tests attach with piped input); a service crash-looping to `gave_up`
+end to end (the backoff policy is unit-tested, a restart in place and a
+refusal to restart unapproved are tested with real processes); the page
+drawing any of it (track C-page).
+
+For the page track:
+
+- A terminal is followed with `follow_terminal { stream, node, terminal,
+  from }` and drawn as a terminal session is; `TerminalInfo.revision`
+  moves on every change (`terminal.get { changed_from }` waits for it),
+  `service` carries a service's typed state and `oldest_seq` where the
+  kept scrollback starts.
+- `script.run` answers `needs_approval { commands }`: show the scripts
+  (name, kind, command, folder) with setup and teardown before
+  `project.approve`. **A condition of the join**: B-page's approval view
+  shows `ProjectCommands::Listed.scripts` when there are any, or refuses
+  to approve such a set.
+- `port.list { changed_from }` is a long poll; the first answer may be
+  `pending` until the first scan. A port is reported, never opened:
+  previews are the preview track's, on an origin other than the page's.
+
+## Integration 2 (node): tracks B2 and C
+
+2026-11-12, on `backend/m11-int2-node`: track B2's branch
+(`backend/m11-forge`) with track C's (`backend/m11-shells`) merged in.
+The page's tracks (A-page, B-page) are joined apart; the coordinator
+joins the two. Every track's commit is kept; the merge commit builds
+and passes, and each follow-up is a commit of its own.
+
+### What conflicted, and how each was resolved
+
+The merge conflicted in 33 files: the wire (`vessel-proto`: `rpc.rs`,
+`rpc/older.rs`, `rpc/since.rs`, `rpc/tests.rs`, `forward.rs`,
+`ts/aliases.rs`), the node (`service.rs`, `service/worktrees.rs`,
+`guard.rs`, `envelope.rs`, `node.rs`, `config.rs`, `tidying.rs`,
+`workspace/{mod,policy,tests}.rs`, `workspace/worktrees/removal.rs`),
+the session runtime (`handle.rs`, `runtime/parts.rs`), the agent tools
+(`vessel-mcp`'s `tools.rs` and its test), the CLI (`args.rs`,
+`commands.rs`, `main.rs`), `vessel-rpc` (the client's unary list, its
+test handler), `vessel-client`'s test handler, `vessel-web/src/calls.rs`,
+ADR 0001, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, this plan and the
+generated `web/src/wire/proto.ts`.
+
+- Where both tracks added to the same list (the method table and every
+  list naming each method: `Call::since`, `Reply::for_protocol`, the
+  forwardable list, the unary calls, the web bridge's list, the guard's
+  rows, the envelope's dispatch, the test handlers, the agents' list,
+  the agent tools, the CLI's commands, `Config`, the node's parts, the
+  session's shared state), both stay, B2's first. The agent tools are
+  session, conversation, workspace, pull request, terminal, then the
+  language server's (34).
+- A worktree's removal: B2 read the live sessions after its claim
+  (ADR 0030); C passed what runs where (`Occupant`: sessions and
+  terminals) read before. The merge keeps B2's order with C's occupants:
+  `remove_worktree` and `retire` take a closure called after the claim,
+  returning live sessions, live terminals and terminals starting.
+- Code written against a type the other side changed, with no textual
+  conflict, found by `cargo check --workspace --all-targets` right after
+  the merge: C's terminals and scripts called `Workspaces::busy`, which
+  B2 had replaced with the "starting" count. Resolved by giving terminals
+  the same count (below, meeting point 2).
+- `ProtocolVersion` 11 raised once; schema 10 (B2) kept. Track C was
+  given schema 11 and needed none; the join's set last approved took it
+  (below), and the store's tests walk 9, 10, 11 in order
+  (`tests/approvals.rs`; the rollback SQL of the older tests is
+  `UNDO_SCHEMAS_7_TO_11`).
+- The plan keeps every section: contracts B2, C; progress B2, C; then
+  this one. `web/src/wire/proto.ts` regenerated, never hand-merged;
+  `Cargo.lock` merged clean and did not change when built.
+- In the merge commit, beyond resolving: B2's protocol 11 reads sat in a
+  test list that only ever saw protocol 10's prefixes, so their scope was
+  never checked; protocol 11's nineteen methods have a test of their own.
+  C's refusal of `script.*` to agents had a broken line continuation (18
+  spaces in the message); the agents' refusal now says why by family.
+
+### Where the two tracks met, and what was decided
+
+1. **How git runs, and what C starts (ADR 0030 with ADR 0031).** A
+   terminal, a script, a service, setup and teardown are not git runs of
+   the node's: they run only where a person asked (a terminal; an
+   agent's only where a person set `agent_terminals` on both profiles) or
+   approved (the digest, which covers scripts), and git inside them runs
+   under the repository's configuration as in the user's own terminal.
+   ADR 0030 is amended to say so. Checked that nothing C starts runs
+   unapproved: `script.run` runs the command of the very parse whose
+   digest is approved, a service asks again before every restart, a
+   restart of a run asks again; no git is run to build a script's
+   environment. The environment: besides Vessel's credentials (C's list),
+   the variables the forge's token is read from (`GH_TOKEN`,
+   `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, now
+   `vessel_forge::SIGN_IN_VARIABLES`) are removed from every terminal,
+   script and service, and from setup and teardown, which removed
+   nothing before. Tested: the removal list (`env.rs`), setup's command
+   without a removed variable (`commands.rs`). Not closed, and said in
+   ADRs 0029 and 0031: an agent's own harness inherits the node's
+   environment (ADR 0013), and `gh`'s stored login is readable by any
+   process of the user.
+2. **A terminal starting in a worktree being removed (C's open
+   window).** Closed inside the removal's own claim: a terminal or a
+   script's run whose folder is in a worktree takes ADR 0030's "starting"
+   count (`Workspaces::hold_folder`) before its reservation and its
+   spawn, and gives it back once registered, when it is one of the live
+   terminals the removal reads after its claim. Either the removal sees
+   it (`kept { in_use }`) or the start finds the claim and is refused
+   (`conflict`) before anything runs. C's check after the start, which
+   killed a terminal that started under a removal, is gone. Tests:
+   `git_apart.rs` (a held worktree is kept; inside the removal's reading
+   a start is refused) and the e2e `meeting` race (six rounds of a
+   terminal opened beside a session in a worktree while the worktree is
+   removed; with the hold taken out, it fails in the first round on
+   every run, three of three).
+3. **B2's watcher and feedback beside C's terminals and services.**
+   Decided, for a session with a pull request and a service and a shell
+   beside it:
+   - its end: the watch and `SessionInfo.pull_request` end (B2); the
+     service and the shell run on (C: `session.resume` starts it again in
+     the same folder), so its worktree is kept;
+   - archived: the watch ends (B2) and now the terminals and runs beside
+     it end too, kept with their output (a service beside a session put
+     away would hold its port and its worktree unseen); the worktree can
+     then go;
+   - deleted: terminals and runs end and are forgotten, then its
+     worktree is tidied (C), its watch dropped and its feedback rows
+     deleted with it (B2);
+   - its worktree removed: never while anything live is in it; a removal
+     ends nothing.
+   Tested end to end in `meeting` (archive; end then delete), against the
+   in-memory forge and `/bin/sh`. The meeting test found a bug of C's:
+   a script beside a session and a terminal's count against a project
+   read the session's place from the runtime's info, which never carries
+   it, so `script.run { place: session }` answered `no_project` for
+   every session; both take it from the workspace registry now.
+4. **The agent's limits in one place.** `workspace/policy.rs`'s
+   exhaustive `refused` is the one list of what an agent may call through
+   the node: refused `forge.status`, `pr.list`, `pr.merge`,
+   `pr.feedback`, `script.list`, `script.run`, `script.restart` (and
+   protocol 10's workspace calls); open here and held to their own rule
+   `pr.get` (refresh only on a session it may operate), `pr.open` (same,
+   never pushing), every `terminal.*` and `port.list` (both profiles,
+   four at once, only its own). No method is undecided (a new one does
+   not compile); the test names every protocol 11 method.
+5. **`SessionInfo` and the board.** Every reply that carries a session
+   carries its pull request while it is watched (`session.list`,
+   `session.get`, a mark's reply: checked in `meeting`); an ended
+   session's is cleared, as the store has none. A session's terminals are
+   not put on `SessionInfo`: a page lists `terminal.list {}` (at most 96)
+   once and groups by `place`, since a terminal's change moves its own
+   `revision`, not the session's, and a count on the session would be
+   stale between reads. Older peers: a protocol 8 to 10 client ignores
+   `pull_request` and draws the board's lanes it knows; it sees no
+   terminal.
+
+### The two gaps the page found, fixed in protocol 11
+
+- **`ProjectCommands::Listed.last_approved`** (`ApprovedCommands {
+  commands: CommandSet { setup, teardown, scripts }, digest, approved_at
+  }`), while the listed set is not approved. The node remembers the last
+  16 sets it described by digest; an approval of one stores the set with
+  it (schema 11: `approvals.commands`; approved again, the newest time);
+  the four newest per project are held in memory. An approval from
+  before, or of a digest the node never described, has no set and is
+  never shown. Bounded as the set it mirrors. A protocol 10 client gets
+  the set without it. A page shows `last_approved.commands` beside the
+  listed set.
+- **A write guarded by the content hash.** A page sends `file.write {
+  root, path, text, expect: { kind: "content", hash } }` with
+  `FileVersion.hash` of what it read or last wrote. `conflict`: nothing
+  is there, or the content is not that (another write landed, or the
+  file grew past 8 MiB and has no hash); nothing is written. `absent`:
+  `conflict` when something is there. `version`, which compared
+  nanoseconds no page can hold, is gone (protocol 10 was never
+  released); `modified` is milliseconds, shown only. B-page's
+  workaround (`any` after a check of its own) can be removed in the
+  page's join: `{ kind: "version", version }` no longer typechecks.
+- ADR 0027 amended for both; tests: `approvals.rs` (node), the store's
+  schema walk and bound, `a_write_is_guarded_by_the_content_it_read`
+  (workspace), `Call::since` (a `content` write needs 11), the stand-in
+  for protocol 10, and `page_wire` through a node for both.
+
+### New aliases on the wire
+
+All twelve were classified by their tracks; the join added none
+(`CommandSet` and `ApprovedCommands` are structs of existing ones):
+
+- B2: `CheckName`, `ConfigKey`, `ForgeHost`, `ForgeLogin`, `ForgeUrl`,
+  `PullNumber`, `PullTitle`, `RepoPath` named; `PullBody` content.
+- C: `TerminalId` a handle; `ScriptName` named; `ProcessName` content.
+
+### The independent review
+
+One reviewer (Opus, read only, security first) read `git diff
+backend/m11` at `35ab1fc` and found ten problems. Each one's fate, most
+severe first:
+
+1. **High: `gh` handed the node's enterprise token to any host.** `gh
+   auth token --hostname <host>` answers from `GH_ENTERPRISE_TOKEN` (and
+   `GH_TOKEN` for `*.ghe.com`) before its stored logins, and the node
+   asks it for every host a remote names, which an agent can set: the
+   token went to the agent's host in a request's header. **Fixed**: `gh`
+   runs without the token variables and `GH_HOST` (`Gh::token_spec`,
+   tested); the node reads them itself for their own hosts.
+2. **High (design): an agent without `agent_terminals` can start a
+   session under a profile that has it, and prompt that agent.**
+   **Not taken as a change here**: the child's terminal is held to the
+   child's profile and permission mode, which is what a person allowed
+   that profile; which profiles an agent may start sessions under is ADR
+   0013's question. ADR 0031's amendment now says so instead of claiming
+   more.
+3. **Medium: commit and push hooks run with the forge's token
+   variables.** **Not taken**: they run with the user's environment as
+   the user's own `git push` does (a person's calls only); removing the
+   variables would break pushes through `gh auth git-credential`, and a
+   hook could still ask the credential helper. Said in ADR 0030.
+4. **Medium: another node's agent's terminal outlives the agent's
+   session.** **Left, and said** (ADR 0031): this node sees only the end
+   of the session the terminal is beside; the agent's credential ends
+   with it, so it cannot reach the terminal, which a person sees in
+   `terminal.list`. Closing it needs the agent's node to close what it
+   opened elsewhere, a fleet change of its own.
+5. **Low: a resumed session's new agent terminal may go unwatched**
+   while the old watch is still ending the previous terminals (the set
+   of watched sessions is by id). **Left, and said here**: it needs the
+   watch keyed by the runtime's handle, not the session's id; the window
+   is the ten seconds the old terminals take to end.
+6. **Low: a terminal or a script could start beside an archived
+   session.** **Fixed**: `conflict` until it is brought back, and a start
+   racing the archiving ends itself (`meeting` checks both calls).
+7. **Low: turning `agent_terminals` off leaves open terminals running.**
+   **Not taken**: the switch is asked at each start, as an approval is
+   for a service; said in ADR 0031.
+8. **Low: an agent's `port.list` was filtered after the node-wide bound
+   of 256**, so its own ports could be cut by others'. **Fixed**: a scan
+   keeps up to 4,096, and each caller's are picked out before the reply's
+   bound (`ports.rs` test).
+9. **Low: unbounded keeping.** `gh`'s answers and the hosts refused a
+   moment ago were kept per host a remote names: **fixed**, at most 64
+   each (tested). Every approval kept its set forever: **fixed**, only
+   the newest four per project keep theirs, every approval keeps its
+   digest (store test).
+10. **Low: `SessionInfo.pull_request` reaches agents.** **Not taken**: an
+    agent reads any session's pull request by B2's contract (`pr.get`);
+    said in ADR 0029.
+
+Areas the reviewer checked and found clean: scripts' approval (the
+approved parse runs, every restart asks again, agents refused), the
+environments, terminal ownership on every call, the races of removal and
+start and of deletion and start, git's overrides and listing, the forge's
+token handling over HTTP, the bounds of the forge, terminals and port
+scans, and the wire for older peers. Not read deeply: `vessel mcp`'s
+terminal tools, GraphQL decoding, `own_config`'s tests, Windows paths.
+
+### Tests that fail only under load
+
+The machine ran at load 10 to 18 for most of the join (other workers
+building). The page's end-to-end tests are fixed in the page's join, so
+they are reported here, not changed:
+
+- On the merge commit: `page.spec.ts:255` ("with Mod+Enter chosen, Enter
+  starts a line…") failed once, a strict-mode violation: `getByText("echo:
+  plain", { exact: true })` matched the Timeline's paragraph and the live
+  region's visually hidden copy (`aria-live="polite"`). It races on
+  whether the live region still holds the announcement when the
+  assertion runs; the locator wants scoping to the Timeline region, as
+  B-page did for another.
+- On the first follow-up, at load 15: three failed in one cascade.
+  `page.spec.ts:154` ("with the sidebar hidden, Mod+K still opens the
+  command palette") pressed Control+B to show the sidebar again and did
+  not see it within 15 s; one `vessel ui` keeps preferences for the whole
+  run, so the sidebar stayed hidden for the tests after it,
+  `page.spec.ts:279` (the Display button detached while the sidebar went
+  away) and `reconnect.spec.ts:10` (the sidebar's "Connected" mark not
+  found). Its `finally` presses Control+B right after Escape closed the
+  palette: under load the keypress most likely lands while the closing
+  palette still holds focus, and is lost; a page that kept the preference hidden
+  then hides the sidebar for every later test. Waiting for focus to come
+  back (or setting the preference through the bridge in the `finally`)
+  would close it. Run again at load 2 on the same binaries: 36 of 36
+  passed.
+- On the second follow-up, at load 15: `app.spec.ts:61` ("a terminal
+  session runs and echoes keys") timed out clicking the agent menu's
+  "Claude Code" item, which re-rendered under the pointer ("not stable",
+  then "detached"); `page.spec.ts:122` ("a screen asked for while
+  Settings loads…") waits for Settings' chunk with `waitForResponse`
+  registered after `release()`, so a chunk that arrives in between is
+  never seen. Run again at load 1.5: those two passed and
+  `timeline.spec.ts:101` failed instead, a row held 1.28 px from where it
+  was (the bound is 1 px) while the window settled.
+- None touches terminals, pull requests or files; no node code was
+  involved. `vessel-remote`'s connection test passed in every run here.
+
+### Commits
+
+- `207fce6` the merge (33 files resolved; the removal's reading after its
+  claim with C's occupants; terminals and scripts on B2's "starting"
+  count; protocol 11's scope test; the agents' refusal by family).
+- `1532826` where the tracks meet: the window closed and raced, archive
+  ends what runs beside a session, no forge sign-in in a repository's
+  processes, a script beside a session finds its project, the agents'
+  list tested; two files divided.
+- `35ab1fc` the two wire gaps: a write guarded by the content hash, the
+  set last approved (schema 11).
+- The review's fixes: `gh` without the environment's tokens, nothing new
+  beside an archived session, an agent's ports picked out before the
+  bound, bounded token and approval keeping; the ADRs and this section.
+
+### The gate, on the final tree
+
+Run on the final tree under load 7 to 12, binaries and bundle rebuilt
+first:
+
+- `cargo fmt --all --check`: clean.
+- `cargo clippy --workspace --all-targets -- -D warnings`: clean.
+- `cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets
+  -- -D warnings`: clean.
+- `cargo test --workspace --no-fail-fast`: 1,486 passed, 0 failed, 9
+  ignored, over 102 test binaries.
+- The TypeScript regeneration (`VESSEL_WRITE_TS=1 cargo test -p
+  vessel-proto -p vessel-web --features ts --lib typescript`): passes;
+  `web/src/wire/proto.ts` committed with the wire's change.
+- In `web/`: `npm ci`, `npm run lint`, `npm run typecheck`, `npm run
+  test` (238 passed, 54 files), `npm run build`, then
+  `VESSEL_WEB_REQUIRE_BUNDLE=1 cargo build -p vessel-cli -p vessel-node
+  -p vessel-testkit --bins` and `npm run e2e` (36 passed). Nothing under
+  `web/` changed but the generated declarations.
+
+### For the page's join
+
+- B-page's editor saves with `{ kind: "content", hash }` (its `version`
+  guard no longer typechecks), and drops its check-then-`any` workaround;
+  on `conflict` it reads again and shows both.
+- B-page's approval dialog shows `last_approved.commands` beside the
+  listed set, and shows `scripts` (C's join condition) or refuses a set
+  that has them.
+- A session's terminals: `terminal.list {}` once, grouped by `place`.
+- Archiving a session ends its terminals and services; say so where a
+  person archives.

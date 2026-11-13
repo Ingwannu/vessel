@@ -524,6 +524,75 @@ machine. The terminal was not touched by track W; its figures moved
 both ways between the pairs (the 51 MB flood 8,598 ms P, 9,313 ms
 merged in the last; 8,563 and 8,323 in the one before).
 
+## Track C: terminals, scripts and ports (2026-11-12)
+
+Protocol 11 added terminals beside sessions (ADR 0031). What it touched
+on the paths measured here: the session ring gained an optional byte
+bound (a terminal's; a session's ring has none and skips it), a
+session's handle keeps its program's process id in an atomic, the
+client's and the bridge's streams became generic over the log they
+follow, and the `Reply` and `Call` enums grew thirteen variants. The
+port scanner runs only within 60 s of a `port.list`, so nothing here
+exercises it.
+
+Measured before (the tree this track started from, `15b79a2`) and after
+(`6956b1c`), back to back on the same machine, release builds
+throughout.
+
+### The node's hot paths
+
+Criterion medians, before and after alternated twice (A B A B) within
+eleven minutes, load average 8–12 throughout (other builds on the
+machine):
+
+| Benchmark | Before, 1st / 2nd | After, 1st / 2nd |
+| --- | --- | --- |
+| proto: encode an event frame, terminal 4 KiB | 6.91 / 6.45 µs | 6.50 / 6.41 µs |
+| proto: decode it | 5.56 / 5.39 µs | 5.72 / 5.42 µs |
+| proto: encode an event frame, message chunk | 705 / 665 ns | 744 / 672 ns |
+| proto: decode it | 1.64 / 1.58 µs | 1.63 / 1.65 µs |
+| session: 200 KB of terminal output to 1 follower | 2.93 / 3.19 ms | 3.14 / 2.99 ms |
+| … to 4 followers | 3.30 / 2.98 ms | 3.20 / 3.23 ms |
+| … to 16 followers | 3.91 / 3.27 ms | 3.56 / 3.63 ms |
+| session: the board's reducer | 4.52 / 4.43 ns | 4.47 / 4.62 ns |
+
+Every pair is within the spread of the same tree's two runs: nothing
+moved. A comparison against a baseline saved hours earlier at a lower
+load had flagged the decode of a terminal frame (+4.6%, then +10.4%)
+and the fan-out (+8%, then +50–90% at load 10); the alternated runs
+above show those were the machine, not the change. Against that same
+earlier baseline `rpc/framed` and the bridge's forward came out 9% and
+4% faster, also within what the machine does between runs.
+
+### The load test
+
+Two back-to-back pairs (after, then before), release binaries, one run
+each. The first pair ran while the machine's load fell from 12 to 3, the
+second at 2.5–3.5:
+
+| Workload | Before (1st pair / 2nd) | After (1st pair / 2nd) |
+| --- | --- | --- |
+| burst: records/s | 33,873 / 38,718 | 30,928 / 23,952 |
+| burst: latency p50 / p99 | 24.5 / 41.3 · 32.9 / 81.0 ms | 53.7 / 99.9 · 36.8 / 75.8 ms |
+| paced: latency p50 / p99 | 2.24 / 41.4 · 2.35 / 41.5 ms | 5.25 / 43.3 · 2.29 / 41.3 ms |
+| agent flood: records/s | 37,581 / 37,637 | 34,188 / 37,458 |
+| agent flood: latency p50 / p99 | 5.92 / 10.8 · 6.07 / 11.6 ms | 9.01 / 23.3 · 5.98 / 11.0 ms |
+
+| `vesseld` resident memory | Before (2nd pair) | After (2nd pair) |
+| --- | --- | --- |
+| started, no sessions | 18.6 MiB | 19.1 MiB |
+| 32 terminal sessions, idle | 23.4 MiB | 24.0 MiB |
+| after the burst | 42.9 MiB | 44.3 MiB |
+| after the agent flood | 57.9 MiB | 58.9 MiB |
+
+At the same quiet load (the second pair) the paced and the flood
+workloads are the same within a few percent; the first pair's after
+run had the busier machine. The burst lasts 0.15–0.32 s and moves by
+tens of percent between runs of one build (as above). What moved:
+`vesseld` holds 0.5–1.4 MiB more, the code the node gained (thirteen
+calls, the terminals' registry and actors, the port scanner's tables)
+and nothing kept per session.
+
 ## Tried, did not help
 
 - **The reducer's index of tool calls, on its own** (before memoised
