@@ -79,3 +79,47 @@
   color: var(--text-primary);
   font: var(--t-meta);
 }
+
+/* A command edited since the set approved last: what it was, beneath. */
+.command.changed {
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+}
+
+.command-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.command-was {
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.command-was code {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+/* A script or a service: its name and kind above what it runs. */
+.script-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.script-name {
+  color: var(--text-primary);
+  font: 500 13px / 20px var(--font-sans);
+}
+
+.script-kind {
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.command.removed .script-name {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}

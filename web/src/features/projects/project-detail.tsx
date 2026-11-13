@@ -10,7 +10,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useFleet } from "../../context";
 import { when } from "../../data/format";
-import type { ListedCommands } from "../../data/workspace/command-changes";
+import {
+  compareApproved,
+  type ListedCommands,
+} from "../../data/workspace/command-changes";
 import {
   approveCommands,
   projectCommands,
@@ -237,7 +240,7 @@ export function ProjectDetail({
       {approving === null ? null : (
         <ApprovalDialog
           commands={approving}
-          compared={{ kind: "none" }}
+          compared={compareApproved(approving, null)}
           where={`in each new worktree of ${project.name} on ${label}`}
           busy={false}
           onApprove={() => {

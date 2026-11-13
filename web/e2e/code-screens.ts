@@ -1,6 +1,7 @@
 // `npm run screens`: the code on the page (milestone 11, track B-page):
 // the new-session page's places, the approval of a project's commands
-// and a worktree's setup as it runs; a session's Changes and Files, a
+// (and of a set changed since, with scripts) and a worktree's setup as
+// it runs; a session's Changes and Files, a
 // file open, the git menu and the commit dialog; the projects in the
 // sidebar and in Settings; light, dark and at 390px wide. Each step only
 // waits for what the picture needs; behaviour is code.spec.ts's.
@@ -75,6 +76,29 @@ test("the code on the page", async ({ page }) => {
     .click();
   await expect(tab(page, "Changes")).toHaveAttribute("aria-selected", "true");
   await shot(page, "43-session-worktree");
+  const worktreeSession = page.url();
+
+  // A base whose `vessel.toml` changed since the set approved above: what
+  // changed is said, every script is shown; light, dark and on a phone.
+  const changed = await newSessionPage(page, "laptop", "Structured");
+  await place(page, "shop", /^New worktree/);
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Base branch" }),
+    /^From next\/tooling/,
+  );
+  await changed.getByRole("textbox", { name: "Prompt" }).fill("Run the tests");
+  await changed.getByRole("button", { name: "Send" }).click();
+  await expect(approval).toContainText("Since the set approved");
+  await shot(page, "42d-approve-changed");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await shot(page, "42e-approve-changed-dark");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await shot(page, "42f-approve-changed-phone");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await approval.getByRole("button", { name: "Cancel" }).click();
+  await page.goto(worktreeSession);
 
   // A session in the project's own folder, with work not committed.
   const again = await newSessionPage(page, "laptop", "Structured");

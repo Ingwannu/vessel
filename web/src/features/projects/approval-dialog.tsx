@@ -1,9 +1,14 @@
 // A repository's commands, shown before they may run (ADR 0027): exactly
-// what will run, in order, and what changed from the set approved for the
-// project's folder, then Approve (the digest shown is the one sent), or
-// start without them. No reference asks this (each runs a repository's
-// setup unasked, or only commands typed into its own page); Vessel does,
-// because a repository's file is someone else's code.
+// what will run, in order (setup, teardown, and the scripts and services
+// the digest covers, ADR 0031), and what changed since the set approved
+// last, then Approve (the digest shown is the one sent), or start without
+// them. No reference asks this (each runs a repository's setup unasked,
+// or only commands typed into its own page); Vessel does, because a
+// repository's file is someone else's code.
+//
+// The dialog never offers to approve a set without every script in view:
+// the scripts are drawn from the very set whose digest Approve sends, in
+// full (at most 32, the file's bound), not summarised.
 
 import "./projects.css";
 
@@ -11,51 +16,16 @@ import {
   type CommandLine,
   type Compared,
   type ListedCommands,
+  type ScriptLine,
 } from "../../data/workspace/command-changes";
-import { Badge, Banner, Button, Dialog } from "../../ui/kit";
+import { comparedWords } from "../../data/workspace/command-words";
+import { Banner, Button, Dialog } from "../../ui/kit";
+import { CommandList } from "./command-list";
+import { ScriptList } from "./script-list";
 
-function CommandList({
-  title,
-  commands,
-  compared,
-}: {
-  title: string;
-  commands: readonly string[];
-  compared: readonly CommandLine[] | null;
-}) {
-  const lines: readonly CommandLine[] =
-    compared ?? commands.map((command) => ({ change: "same", command }));
-  return (
-    <section className="commands" aria-label={title}>
-      <h3>{title}</h3>
-      {lines.length === 0 ? (
-        <p className="commands-none">None.</p>
-      ) : (
-        <ol className="commands-list">
-          {lines.map((line, index) => (
-            <li
-              key={`${String(index)}:${line.command}`}
-              className={`command ${line.change}`}
-            >
-              <span className="command-mark" aria-hidden="true">
-                {line.change === "added"
-                  ? "+"
-                  : line.change === "removed"
-                    ? "−"
-                    : ""}
-              </span>
-              <code>{line.command}</code>
-              {line.change === "same" ? null : (
-                <Badge tone={line.change === "added" ? "warn" : "neutral"}>
-                  {line.change === "added" ? "new" : "removed"}
-                </Badge>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
+/** Each list as it is when nothing is known to compare it with. */
+function asListed(commands: readonly string[]): CommandLine[] {
+  return commands.map((command) => ({ change: "same", command }));
 }
 
 export function ApprovalDialog({
@@ -69,8 +39,8 @@ export function ApprovalDialog({
 }: {
   commands: ListedCommands;
   compared: Compared;
-  /** Where they would run, in words ("in a new worktree of shop on
-   * laptop"). */
+  /** Where setup and teardown would run, in words ("in a new worktree of
+   * shop on laptop"). */
   where: string;
   busy: boolean;
   onApprove: () => void;
@@ -79,6 +49,10 @@ export function ApprovalDialog({
   onSkip?: () => void;
   onClose: () => void;
 }) {
+  const changed = compared.kind === "changed" ? compared : null;
+  const scripts: readonly ScriptLine[] =
+    changed?.scripts ??
+    (commands.scripts ?? []).map((script) => ({ change: "same", script }));
   return (
     <Dialog
       title="Run this project's commands?"
@@ -100,29 +74,23 @@ export function ApprovalDialog({
     >
       <p className="dialog-copy">
         The repository&apos;s <code>vessel.toml</code> names these commands.
-        They run {where}, as you, with your environment. Approving covers this
-        exact set; if any command changes, you are asked again.
+        Setup and teardown run {where}
+        {scripts.length === 0
+          ? ""
+          : "; a script or service runs when someone starts it"}
+        , as you, with your environment. Approving covers this exact set; if any
+        command changes, you are asked again.
       </p>
-      {compared.kind === "changed" ? (
-        <p className="commands-note">
-          Compared with the set approved for the project&apos;s folder: new and
-          removed commands are marked.
-        </p>
-      ) : (
-        <p className="commands-note">
-          No approved set of this project is known to compare with.
-        </p>
-      )}
+      <p className="commands-note">{comparedWords(compared)}</p>
       <CommandList
         title="Setup"
-        commands={commands.setup}
-        compared={compared.kind === "changed" ? compared.setup : null}
+        lines={changed?.setup ?? asListed(commands.setup)}
       />
       <CommandList
         title="Teardown"
-        commands={commands.teardown}
-        compared={compared.kind === "changed" ? compared.teardown : null}
+        lines={changed?.teardown ?? asListed(commands.teardown)}
       />
+      {scripts.length === 0 ? null : <ScriptList lines={scripts} />}
       <Banner>
         A command that runs a script of the repository (<code>./setup.sh</code>,{" "}
         <code>npm ci</code> running package scripts) runs whatever that script

@@ -2,8 +2,9 @@
 // the fleet's temporary directory (never under a path of the machine that
 // matters) and added as projects of laptop with the CLI, as a person
 // would: `shop`, a small TypeScript repository with commits, a branch, a
-// `vessel.toml` whose setup prints a few lines, and uncommitted, staged
-// and untracked changes; `notes`, a folder without git.
+// `vessel.toml` whose setup prints a few lines (and a branch where it
+// gained scripts), and uncommitted, staged and untracked changes;
+// `notes`, a folder without git.
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -89,6 +90,28 @@ export function makeRepos(
   git(shop, ["add", "-A"], env);
   git(shop, ["commit", "-q", "-m", "Tax rate"], env);
   git(shop, ["branch", "feature/discounts"], env);
+  // A branch whose `vessel.toml` changed since main's: one setup command
+  // edited, a script and a service added (the approval's comparison).
+  git(shop, ["switch", "-q", "-c", "next/tooling"], env);
+  write(
+    shop,
+    "vessel.toml",
+    [
+      "[worktree]",
+      'setup = ["echo installing packages", "sleep 2", "echo setup finished"]',
+      'teardown = "echo bye"',
+      "",
+      "[scripts.test]",
+      'command = "npm test"',
+      "",
+      "[services.web]",
+      'command = "npm run dev"',
+      'dir = "src"',
+      "",
+    ].join("\n"),
+  );
+  git(shop, ["commit", "-q", "-am", "Scripts for the shop"], env);
+  git(shop, ["switch", "-q", "main"], env);
   // Work not committed yet: a change, a staged file, a new file.
   write(
     shop,

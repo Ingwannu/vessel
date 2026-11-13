@@ -34,7 +34,8 @@ import { decodeBytes } from "../../data/terminal";
 import type { Fleet } from "../../data/fleet";
 import type { Problem } from "../../data/outcome";
 import {
-  compareWithFolder,
+  compareApproved,
+  needsFolder,
   type Compared,
   type ListedCommands,
 } from "../../data/workspace/command-changes";
@@ -200,13 +201,17 @@ export async function makeWorktree(
         });
         return { kind: "stopped" };
       }
-      const folder = await projectCommands(fleet, node, place.project);
+      // The folder's set is read only from a node that does not say which
+      // set was approved last (protocol 10, or an approval from before).
+      const folder = needsFolder(listed)
+        ? await projectCommands(fleet, node, place.project)
+        : null;
       if (halted(signal)) {
         return { kind: "stopped" };
       }
-      const compared = compareWithFolder(
+      const compared = compareApproved(
         listed,
-        folder.ok ? folder.value : null,
+        folder?.ok === true ? folder.value : null,
       );
       steps.show({ kind: "approval", commands: listed, compared, busy: false });
       const choice = await steps.approve();

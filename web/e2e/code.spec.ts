@@ -1,10 +1,12 @@
 // The code on the page (milestone 11, track B-page), against the fleet's
 // real repositories (e2e/repos.ts): where a session runs, the approval
-// of a project's commands and setup's output, the Changes and Files tabs,
+// of a project's commands (and what changed since the set approved
+// last) and setup's output, the Changes and Files tabs,
 // git's refusals in words, an edit that meets a change on disk, a
 // selection sent to the draft, a worktree that would lose work, and
 // projects added and cloned from Settings.
 
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -71,6 +73,71 @@ test("a session starts in a new worktree once its commands are approved, setup s
   await chip.click();
   await expect(tab(page, "Changes")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No changes against base.")).toBeVisible();
+});
+
+/** `vessel` as the UI's own user runs it: the same book and data. */
+function cli(args: string[]): string {
+  const env = loadEnv();
+  return execFileSync(env.vessel, args, {
+    encoding: "utf8",
+    env: {
+      PATH: process.env["PATH"],
+      HOME: env.root,
+      USERPROFILE: env.root,
+      VESSEL_CONFIG_DIR: join(env.root, "config"),
+      VESSEL_DATA_DIR: join(env.root, "ui-data"),
+    },
+  });
+}
+
+test("a set changed since its approval says what changed, its scripts shown with it", async ({
+  page,
+}) => {
+  // main's set approved, as a person would from the CLI (again, if the
+  // first test approved it already: the newest time is kept).
+  const digest = /^digest: ([0-9a-f]{64})$/m.exec(
+    cli(["project", "commands", "shop"]),
+  )?.[1];
+  expect(digest).toBeDefined();
+  cli(["project", "approve", "shop", digest ?? ""]);
+  await openUi(page);
+  const box = await newSessionPage(page, "laptop", "Structured");
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Project" }),
+    /^shop\b/,
+  );
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Where it runs" }),
+    /^New worktree/,
+  );
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Base branch" }),
+    /^From next\/tooling/,
+  );
+  await box.getByRole("textbox", { name: "Prompt" }).fill("Run the tests");
+  await box.getByRole("button", { name: "Send" }).click();
+  const approval = page.getByRole("dialog", {
+    name: "Run this project's commands?",
+  });
+  await expect(approval).toBeVisible();
+  await expect(approval).toContainText(
+    /Since the set approved .*: setup commands: 1 changed; script test added; service web added\./,
+  );
+  const setup = approval.getByRole("region", { name: "Setup" });
+  await expect(setup).toContainText("echo setup finished");
+  await expect(setup).toContainText("was echo setup done");
+  // Every script the digest covers, with what it runs and where.
+  const scripts = approval.getByRole("region", {
+    name: "Scripts and services",
+  });
+  await expect(scripts).toContainText("npm test");
+  await expect(scripts).toContainText("service in src/");
+  await expect(scripts).toContainText("npm run dev");
+  await approval.getByRole("button", { name: "Cancel" }).click();
+  await expect(approval).toHaveCount(0);
 });
 
 test("the Changes tab lists the work, stages it, and says a refusal plainly", async ({

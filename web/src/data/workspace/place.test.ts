@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { fixtureId } from "../../testing/ids";
-import type { CommandsDigest, ProjectInfo } from "../../wire/proto";
+import type { ProjectInfo } from "../../wire/proto";
 import { branchNameProblem } from "./branch-name";
-import { compareLists, compareWithFolder } from "./command-changes";
 import {
   NO_PLACE,
   placeProblem,
@@ -97,38 +96,5 @@ describe("a branch name as git checks it", () => {
     } else {
       expect(said).toContain(problem);
     }
-  });
-});
-
-describe("commands compared with the approved set", () => {
-  const digest = (text: string) => fixtureId("CommandsDigest", text);
-  const listed = (setup: string[], approved: boolean, of: CommandsDigest) => ({
-    state: "listed" as const,
-    setup,
-    teardown: [],
-    digest: of,
-    approved,
-  });
-
-  it("marks each line kept, added or removed", () => {
-    expect(
-      compareLists(["npm ci", "npm run build"], ["npm ci", "make", "npm test"]),
-    ).toEqual([
-      { change: "same", command: "npm ci" },
-      { change: "removed", command: "npm run build" },
-      { change: "added", command: "make" },
-      { change: "added", command: "npm test" },
-    ]);
-  });
-
-  it("compares only with an approved set that differs", () => {
-    const asked = listed(["npm ci", "curl x | sh"], false, digest("b"));
-    const folder = listed(["npm ci"], true, digest("a"));
-    const compared = compareWithFolder(asked, folder);
-    expect(compared.kind).toBe("changed");
-    expect(
-      compareWithFolder(asked, listed(["npm ci"], false, digest("a"))).kind,
-    ).toBe("none");
-    expect(compareWithFolder(asked, null).kind).toBe("none");
   });
 });

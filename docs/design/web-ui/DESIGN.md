@@ -312,8 +312,9 @@ move between sections. Below 768px the column's padding is 12px.
   clone failed, its default branch or "no git"); the machine's git when
   it is missing or too old, as a warning above. The chosen project's
   detail under the list: Folder, Default branch, Added; Commands (what
-  its `vessel.toml` names for a new worktree, Approved or Not approved,
-  Review… opening the approval, Withdraw); Worktrees (branch, setup's
+  its `vessel.toml` names for a new worktree and as scripts and
+  services, Approved or Not approved, Review… opening the approval,
+  Withdraw); Worktrees (branch, setup's
   state, live sessions, why it was kept; Run setup, Remove…); Snapshots
   (Drop, asked again in place: Keep or "Drop for good"). What the machine
   refuses there (removing a worktree or the project, approving, setup, a
@@ -1310,11 +1311,24 @@ when it failed the command that failed and three ways on: Run setup
 again, Start anyway, Stop here. Leaving the page stops the start: no
 session begins after it, and the worktree stays in Settings › Projects.
 
-**The approval of a project's commands** (no reference asks; ADR 0027):
-"Run this project's commands?", where they run, Setup and Teardown in
-order (a command new since the folder's approved set marked "new", one
-gone struck through), a warning that a script they run runs whatever it
-says, the digest; Approve and run, Start without setup, Cancel.
+**The approval of a project's commands** (no reference asks; ADR 0027,
+ADR 0031): "Run this project's commands?", where setup and teardown run
+and that a script or service runs when someone starts it; one line of
+what changed since the set approved last, by its time ("Since the set
+approved today 09:30: setup commands: 1 changed; script test added;
+service web added."), from the node's `last_approved` (protocol 11). A
+node that does not say (protocol 10, or an approval from before it kept
+sets) is compared with the project folder's approved set and the line
+says so; with neither, "No earlier approval … is known, so every command
+is shown as it is." Then Setup and Teardown in order and Scripts and
+services by name (its kind, its folder, what it runs), every one of the
+set's scripts, never summarised: approving a set approves its scripts.
+A line new since is marked "+" and "new", an edited one "~" and
+"changed" with what it was beneath, struck through, a gone one "−",
+"removed" and struck through. Then the warning that a script they run
+runs whatever it says, the digest; Approve and run, Start without setup,
+Cancel (wrapping from the right on a phone). Settings › Projects' row
+counts the scripts with setup and teardown.
 
 **Removing a worktree that would lose work** (Paseo's warning, GOAT's
 snapshot): `Remove "<branch>"?`, one line per reason the node gave ("2
@@ -1719,8 +1733,9 @@ control, GOAT), on purpose:
 21. **A repository's commands are approved first** (ADR 0027). None of
     the references asks: Paseo and GOAT run a repository's setup file,
     agent-orchestrator only commands typed into its page. The approval
-    compares with the set approved for the project's folder, since the
-    node keeps only the digests it approved.
+    compares with the set the node says was approved last (protocol 11),
+    and with the project folder's approved set only where the node does
+    not say.
 22. **The diff is the page's own rows, not a diff library.** The
     references draw with `@pierre/diffs` (agent-orchestrator, GOAT) or a
     canvas (Paseo); Vessel draws the node's typed hunks in the timeline's
