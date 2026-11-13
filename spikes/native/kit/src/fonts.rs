@@ -104,3 +104,34 @@ impl Type {
         }
     }
 }
+
+/// How wide `text` is drawn in `step` (shaped by the window's text
+/// system, the same shaping the screen draws with): for a layout that has
+/// to know whether words fit before it draws them (the composer's
+/// controls choose their step of Paseo's ladder from it).
+#[must_use]
+pub fn measure(window: &gpui::Window, text: &str, step: Type) -> f32 {
+    if text.is_empty() {
+        return 0.0;
+    }
+    let (size, _, weight) = step.metrics();
+    let run = gpui::TextRun {
+        len: text.len(),
+        font: gpui::Font {
+            family: step.family(),
+            features: gpui::FontFeatures::default(),
+            fallbacks: Some(fallbacks()),
+            weight,
+            style: gpui::FontStyle::Normal,
+        },
+        color: gpui::black(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+    let line =
+        window
+            .text_system()
+            .shape_line(text.to_owned().into(), gpui::px(size), &[run], None);
+    f32::from(line.width)
+}

@@ -453,7 +453,14 @@ pub(crate) fn render(
                 .items_end()
                 .justify_between()
                 .gap(px(8.0))
-                .child(pickers::controls(shell, shown.as_ref(), touch, tokens, cx))
+                .child(pickers::controls(
+                    shell,
+                    shown.as_ref(),
+                    touch,
+                    tokens,
+                    window,
+                    cx,
+                ))
                 .child(
                     send_button("send-draft", SendKind::Send, can_send, touch, tokens).on_click(
                         cx.listener(|this, _event, window, cx| {
@@ -508,26 +515,37 @@ pub(crate) fn render(
         .justify_center()
         .px(px(if touch { 12.0 } else { 32.0 }))
         .child(column)
-        .children(features::sheet(
-            shell,
-            match &shown {
-                Some(Shown::Ready(controls)) => Some(controls.as_ref()),
-                Some(Shown::Loading | Shown::Failed(_)) | None => None,
-            },
-            tokens,
-            window,
-            touch,
-            cx,
-        ))
-        .children(shell.areas.draft.features.tips.render(tokens))
-        .children(pickers::open_list(
+        .children(overlays(
             shell,
             &online,
             shown.as_ref(),
             tokens,
+            touch,
             window,
             cx,
         ))
+}
+
+/// What is drawn over the new chat: the features sheet, the composer's
+/// tooltip, and the open list.
+fn overlays(
+    shell: &Shell,
+    online: &[&Machine],
+    shown: Option<&Shown>,
+    tokens: &Tokens,
+    touch: bool,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<vessel_app_kit::ui::AnyElement> {
+    let ready = match shown {
+        Some(Shown::Ready(controls)) => Some(controls.as_ref()),
+        Some(Shown::Loading | Shown::Failed(_)) | None => None,
+    };
+    let mut over = Vec::new();
+    over.extend(features::sheet(shell, ready, tokens, window, touch, cx));
+    over.extend(shell.areas.draft.features.tips.render(tokens));
+    over.extend(pickers::open_list(shell, online, shown, tokens, window, cx));
+    over
 }
 
 /// A sentence under the composer.

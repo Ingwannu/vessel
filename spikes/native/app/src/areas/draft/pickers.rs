@@ -14,7 +14,7 @@ use vessel_app_kit::ui::{
     Window, div, px,
 };
 use vessel_app_kit::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, Side, Tokens,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, Side, Tokens, Type,
 };
 use vessel_app_view::{Agent, Controls, Machine, Reach, SelectControl, agent_name, controls_of};
 use vessel_proto::{HarnessRef, OptionChoice, OptionId};
@@ -188,6 +188,7 @@ pub(super) fn controls(
     shown: Option<&Shown>,
     touch: bool,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let draft = &shell.areas.draft;
@@ -198,11 +199,11 @@ pub(super) fn controls(
     };
     let density = ready.map_or(Density::Full, |controls| {
         let (model, agent) = model_words(shell, shown);
-        let characters = model
-            .chars()
-            .count()
-            .saturating_add(agent.map_or(0, |agent| agent.chars().count()));
-        draft.features.density(controls, characters, touch)
+        let measure = |text: &str| vessel_app_kit::fonts::measure(window, text, Type::Body);
+        let width = [measure(&model), agent.as_deref().map_or(0.0, measure)]
+            .iter()
+            .sum();
+        draft.features.density(controls, width, touch, window)
     });
     let caret = density.carets();
     // The row takes the card's width less the send button, and measures

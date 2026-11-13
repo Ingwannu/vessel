@@ -96,7 +96,13 @@ impl FeatureState {
 
     /// The step for `controls` at the width measured last frame (Full
     /// until the controls have been drawn once).
-    pub(crate) fn density(&self, controls: &Controls, model_words: usize, touch: bool) -> Density {
+    pub(crate) fn density(
+        &self,
+        controls: &Controls,
+        model: f32,
+        touch: bool,
+        window: &Window,
+    ) -> Density {
         let width = f32::from(self.toolbar.get());
         if width <= 0.0 {
             return self.density.get();
@@ -104,7 +110,7 @@ impl FeatureState {
         let density = density::resolve(
             width,
             self.density.get(),
-            &presence(controls, model_words),
+            &presence(controls, model, window),
             Geometry::of(touch),
         );
         self.density.set(density);
@@ -146,35 +152,34 @@ fn active_colour(id: &OptionId, otherwise: vessel_app_kit::ui::Hsla) -> vessel_a
     }
 }
 
-/// What the controls have to show, as the floors count it; `model_words`
-/// the model control's characters.
-fn presence(controls: &Controls, model_words: usize) -> Presence {
+/// What the controls have to show, their words measured as drawn;
+/// `model` the model control's words' width.
+fn presence(controls: &Controls, model: f32, window: &Window) -> Presence {
+    let width = |text: &str| vessel_app_kit::fonts::measure(window, text, Type::Body);
     let mut features: Vec<density::Feature> = controls
         .toggles
         .iter()
-        .map(|toggle| {
-            density::Feature::Toggle(feature_name(&toggle.name, &toggle.id).chars().count())
-        })
+        .map(|toggle| density::Feature::Toggle(width(feature_name(&toggle.name, &toggle.id))))
         .collect();
     features.extend(
         controls
             .selects
             .iter()
             .map(|select| density::Feature::Select {
-                name: feature_name(&select.name, &select.id).chars().count(),
-                value: select.current_name().chars().count(),
+                name: width(feature_name(&select.name, &select.id)),
+                value: width(select.current_name()),
             }),
     );
     Presence {
-        model: Some(model_words),
+        model: Some(model),
         thinking: controls
             .effort
             .as_ref()
-            .map(|effort| effort.current_name().chars().count()),
+            .map(|effort| width(effort.current_name())),
         mode: controls
             .permissions
             .as_ref()
-            .map(|mode| mode.current_name().chars().count()),
+            .map(|mode| width(mode.current_name())),
         features,
     }
 }
