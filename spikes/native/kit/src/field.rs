@@ -261,6 +261,28 @@ impl TextField {
         }
     }
 
+    /// Whether this field holds the keys and an input method is composing
+    /// in it (marked text, a Hangul syllable not yet committed): a
+    /// shortcut must leave the keys to the input method then (S2's
+    /// shortcut listener asks this of the focused field). Only the
+    /// focused field answers yes: marked text left in a field without the
+    /// keys says nothing about the keys being typed now.
+    pub fn composing(&self, window: &mut Window, cx: &mut App) -> bool {
+        use gpui::EntityInputHandler as _;
+
+        if !self.focus_handle(cx).is_focused(window) {
+            return false;
+        }
+        match &self.kind {
+            Kind::Line(state) => state.update(cx, |state, cx| {
+                state.marked_text_range(window, cx).is_some()
+            }),
+            Kind::Lines(state) => state.update(cx, |state, cx| {
+                state.marked_text_range(window, cx).is_some()
+            }),
+        }
+    }
+
     /// Give it the keys.
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         let handle = match &self.kind {
@@ -482,5 +504,78 @@ mod tests {
         assert!(SendOn::Enter.sends(true));
         assert!(!SendOn::ModEnter.sends(false));
         assert!(SendOn::ModEnter.sends(true));
+    }
+}
+
+#[cfg(test)]
+mod composing_tests {
+    use gpui::{EntityInputHandler as _, Render, TestAppContext};
+
+    use super::*;
+
+    struct Probe {
+        line: TextField,
+        lines: TextField,
+    }
+
+    /// The fields' submit (nothing to do in this test).
+    fn submit(_: &mut Probe, _: String, _: &mut Window, _: &mut Context<'_, Probe>) {}
+
+    impl Render for Probe {
+        fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+            let tokens = Tokens::of(crate::theme::Scheme::Dark);
+            div()
+                .child(self.line.element(&tokens, false, cx))
+                .child(self.lines.element(&tokens, false, cx))
+        }
+    }
+
+    /// Marked text in `field` (an input method's syllable in progress).
+    fn mark(field: &TextField, text: &str, window: &mut Window, cx: &mut App) {
+        match &field.kind {
+            Kind::Line(state) => state.update(cx, |state, cx| {
+                state.replace_and_mark_text_in_range(None, text, None, window, cx);
+            }),
+            Kind::Lines(state) => state.update(cx, |state, cx| {
+                state.replace_and_mark_text_in_range(None, text, None, window, cx);
+            }),
+        }
+    }
+
+    fn unmark(field: &TextField, window: &mut Window, cx: &mut App) {
+        match &field.kind {
+            Kind::Line(state) => state.update(cx, |state, cx| state.unmark_text(window, cx)),
+            Kind::Lines(state) => state.update(cx, |state, cx| state.unmark_text(window, cx)),
+        }
+    }
+
+    /// Composing is the focused field's marked text only: marked text in a
+    /// field without the keys does not count, and committing ends it
+    /// (S2's request through V1, 2026-11-13).
+    #[gpui::test]
+    fn only_the_focused_field_composes(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            crate::init(cx, crate::SchemeChoice::Fixed(crate::theme::Scheme::Dark))
+                .expect("the faces register");
+        });
+        let (probe, cx) = cx.add_window_view(|window, cx| Probe {
+            line: TextField::new("", submit, window, cx),
+            lines: TextField::composer("", submit, window, cx),
+        });
+        cx.run_until_parked();
+        probe.update_in(cx, |probe, window, cx| {
+            for (focused, other) in [(&probe.line, &probe.lines), (&probe.lines, &probe.line)] {
+                focused.focus(window, cx);
+                assert!(!focused.composing(window, cx), "nothing marked yet");
+                mark(other, "ㅎ", window, cx);
+                assert!(!other.composing(window, cx), "the other field has no keys");
+                assert!(!focused.composing(window, cx), "the other's marked text");
+                mark(focused, "하", window, cx);
+                assert!(focused.composing(window, cx), "a syllable in progress");
+                unmark(focused, window, cx);
+                assert!(!focused.composing(window, cx), "committed");
+                unmark(other, window, cx);
+            }
+        });
     }
 }
