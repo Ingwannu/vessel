@@ -129,6 +129,10 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
 ### Rules every screen follows
 
+`kit::theme::spacing` contains Paseo's complete spacing scale, with its
+keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
+Its exact-value test keeps every step comparable with `styles/theme.ts`.
+
 - Words through `view/src/text/` only; English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
