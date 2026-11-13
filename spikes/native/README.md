@@ -186,6 +186,11 @@ The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
 Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
 its caller owns the callback and pending state, with no extra paint.
 
+An acknowledged menu result is `MenuItem::success(label)` / typed Success.
+It uses the existing CircleCheck16 and fixed palette GREEN_500 (#22c55e),
+both themes, at disabled opacity0.5 and without activation or hover. The
+caller owns result timing/reset; no second success alert is added.
+
 ## Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

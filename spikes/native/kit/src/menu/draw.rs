@@ -18,6 +18,7 @@ pub(super) const MAX_WIDTH: Pixels = px(320.0);
 pub(super) const LEADING_SLOT: Pixels = px(16.0);
 pub(super) const LEADING_GLYPH: Pixels = px(14.0);
 pub(super) const SPINNER_SIZE: Pixels = px(16.0);
+pub(super) const SUCCESS_GLYPH: Pixels = px(16.0);
 pub(super) const OFFSET: f32 = 4.0;
 pub(super) const ROW_LINE: f32 = 18.0;
 
@@ -234,6 +235,12 @@ fn leading(index: usize, item: &MenuItem, ink: gpui::Hsla) -> Option<AnyElement>
         Leading::Glyph(glyph) => {
             crate::picker::glyph(glyph, f32::from(LEADING_GLYPH), ink).into_any_element()
         }
+        Leading::SuccessCheck => crate::picker::glyph(
+            crate::assets::Glyph::CircleCheck,
+            f32::from(SUCCESS_GLYPH),
+            ink,
+        )
+        .into_any_element(),
         Leading::Spinner => crate::slider::spinner(
             ElementId::NamedInteger(
                 "menu-pending".into(),

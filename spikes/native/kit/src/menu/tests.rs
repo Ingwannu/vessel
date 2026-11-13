@@ -284,7 +284,13 @@ fn pending_disabled_and_stale_choices_do_not_activate_or_dismiss(cx: &mut gpui::
         assert_eq!(pending.dismissal, Dismissal::KeepOpen);
         let mut disabled = MenuItem::new("Write");
         disabled.disabled = true;
-        for item in [pending, disabled] {
+        for item in [
+            pending,
+            disabled,
+            MenuItem::new("Write")
+                .with_dismissal(Dismissal::KeepOpen)
+                .success("Done"),
+        ] {
             for keyboard in [false, true] {
                 let mut state = MenuState::new(cx);
                 state.at = Some(Placement::Pointer(point(px(10.0), px(20.0))));
@@ -306,4 +312,35 @@ fn pending_disabled_and_stale_choices_do_not_activate_or_dismiss(cx: &mut gpui::
             }
         }
     });
+}
+
+#[test]
+fn success_uses_the_existing_circle_check_and_fixed_green_not_semantic_success() {
+    for scheme in [Scheme::Light, Scheme::Dark] {
+        let surfaces = Surfaces::of(&Tokens::of(scheme));
+        for base in [MenuItem::new("Push"), MenuItem::danger("Delete")] {
+            let item = base.with_dismissal(Dismissal::KeepOpen).success("Done");
+            assert_eq!(item.words().as_ref(), "Done");
+            assert_eq!(item.leading(), Leading::SuccessCheck);
+            assert!(!item.selectable());
+            assert_eq!(item.dismissal, Dismissal::KeepOpen);
+            assert_eq!(draw::SUCCESS_GLYPH, px(16.0));
+            assert_eq!(
+                item::paint(&item, true, &surfaces),
+                Paint {
+                    ink: gpui::rgb(0x0022_c55e).into(),
+                    glyph: gpui::rgb(0x0022_c55e).into(),
+                    fill: gpui::transparent_black(),
+                    opacity: 0.5,
+                }
+            );
+            assert_eq!(selected_index(std::slice::from_ref(&item), Some(0)), None);
+            assert_eq!(
+                next_index(&[item, MenuItem::new("Other")], Some(1), Direction::Next),
+                Some(1)
+            );
+        }
+    }
+    assert_eq!(crate::theme::palette::GREEN_500, 0x0022_c55e);
+    assert_eq!(Glyph::CircleCheck.path(), "kit/circle-check.svg");
 }

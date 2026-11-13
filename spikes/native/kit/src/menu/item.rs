@@ -11,7 +11,7 @@ pub enum Tone {
     Danger,
 }
 
-/// Pending always carries its complete translated label; no press is allowed.
+/// Pending and acknowledged success carry complete translated labels and refuse input.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ItemStatus {
     /// Ready unless explicitly disabled.
@@ -19,6 +19,8 @@ pub enum ItemStatus {
     Idle,
     /// Spinner replaces the leading glyph and these words replace the label.
     Pending(SharedString),
+    /// Acknowledged success, with complete caller-localized words.
+    Success(SharedString),
 }
 
 /// Whether activation dismisses the surface before invoking its caller.
@@ -44,7 +46,7 @@ pub struct MenuItem {
     pub starts_group: bool,
     /// A 14-point kit glyph inside the 16-point leading slot.
     pub leading: Option<Glyph>,
-    /// Idle or in progress. Pending remains non-selectable even if disabled is false.
+    /// Typed feedback; pending/success stay non-selectable even when disabled is false.
     pub status: ItemStatus,
     /// Default Close; direct writes opt into staying on the same surface.
     pub dismissal: Dismissal,
@@ -101,6 +103,14 @@ impl MenuItem {
             ..self
         }
     }
+    /// An acknowledged result; timing/reset stays in the caller's view model.
+    #[must_use]
+    pub fn success(self, label: impl Into<SharedString>) -> Self {
+        Self {
+            status: ItemStatus::Success(label.into()),
+            ..self
+        }
+    }
     /// Both pointer and keyboard paths use this guard, including Enter on a stale highlight.
     #[must_use]
     pub fn selectable(&self) -> bool {
@@ -109,12 +119,13 @@ impl MenuItem {
     pub(super) fn words(&self) -> &SharedString {
         match &self.status {
             ItemStatus::Idle => &self.label,
-            ItemStatus::Pending(label) => label,
+            ItemStatus::Pending(label) | ItemStatus::Success(label) => label,
         }
     }
     pub(super) fn leading(&self) -> Leading {
         match &self.status {
             ItemStatus::Pending(_) => Leading::Spinner,
+            ItemStatus::Success(_) => Leading::SuccessCheck,
             ItemStatus::Idle => self.leading.map_or(Leading::None, Leading::Glyph),
         }
     }
@@ -124,6 +135,7 @@ pub(super) enum Leading {
     None,
     Glyph(Glyph),
     Spinner,
+    SuccessCheck,
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Paint {
@@ -137,9 +149,13 @@ pub(super) fn paint(item: &MenuItem, highlighted: bool, surfaces: &Surfaces) -> 
         Tone::Plain => (surfaces.foreground, surfaces.foreground_muted),
         Tone::Danger => (surfaces.destructive, surfaces.destructive),
     };
-    let glyph = match &item.status {
-        ItemStatus::Idle => glyph,
-        ItemStatus::Pending(_) => surfaces.foreground_muted,
+    let (ink, glyph) = match &item.status {
+        ItemStatus::Idle => (ink, glyph),
+        ItemStatus::Pending(_) => (ink, surfaces.foreground_muted),
+        ItemStatus::Success(_) => {
+            let green = gpui::rgb(crate::theme::palette::GREEN_500).into();
+            (green, green)
+        }
     };
     Paint {
         ink,
