@@ -7843,7 +7843,8 @@ reported: ReportCount,
  */
 unreported: ReportCount, 
 /**
- * Cost reports outside the checked decimal range; totals are partial.
+ * Cost samples omitted for unknown timing or numerical precision.
+ * An unrepresentable unit sum counts every contributing cost sample.
  */
 unaccounted_costs: ReportCount, 
 /**

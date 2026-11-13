@@ -289,3 +289,23 @@ context-usage JSON regression covers these numbers. This changes JSON
 decoding and requires fresh verification; the earlier Clippy pass applies
 to `017ff192` before that dependency-feature correction. No failure is
 relabeled a pass. The focused rerun is recorded separately.
+
+### Final scoped verification checkpoint
+
+The current production correction is `1e227b55`, after `017ff192` and
+`7032f3cd`. With JSON round-trip parsing enabled, all 21 store usage
+tests and both selected protocol tests passed (23 total). This includes
+all three precision cases that failed before the parser correction,
+exact accumulation/order tests and queued/running cancellation admission.
+The previous all-workspace/all-target Clippy pass was before that final
+JSON-feature change, so latest full Clippy remains unverified.
+
+TypeScript regeneration completed with 2 selected tests passed.
+
+The correction's whole workspace execution, CLI/node process regressions,
+web rerun, live-account behavior and native usage/limits surfaces remain
+unverified or unimplemented. Earlier whole/web results apply only to the
+first node commit. V1 resolved its three original production source
+findings; this is not gate or integration approval. No branch merge or
+new control was started after the finish-current-slice instruction.
+All work runs as the workspace owner; no service permission changed.
