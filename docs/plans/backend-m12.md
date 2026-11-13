@@ -184,6 +184,31 @@ In order:
 - The page's own new-session flow is brought to the references' in the
   same pass, so the two clients do not differ.
 
+## One experience everywhere, and the second set of tracks (2026-11-13)
+
+The owner's main requirement, said after the above: the desktop app,
+the web and the phone app feel the same everywhere. ADR 0036 decides
+how: one UI crate draws the desktop and the phone (Android was seen
+working in the emulator, Hangul composition included:
+`backend-m12-phone.md`); the browser gets the same UI if a track shows
+it holds there, else the page, bound to the app by shared tokens, words,
+keys and behaviour fixtures; a person's settings follow the person.
+
+The page's surface was inventoried (cut into six groups) and the tracks
+grew accordingly. Each app track ports its view logic first, in the
+crate without GPUI, against the page's test cases, then draws, from 360
+points wide.
+
+| Track | Branch | Takes |
+|---|---|---|
+| Lead (desktop) | `backend/m12-spike` | the shell, the kit, the title bar, the new chat and the composer, pairing, the string table, the layout of `app`; merges the app tracks |
+| C, conversation | `backend/m12-app-conversation` | the timeline in full, the session's bar and actions, find, outline, the inspector's summary, the terminal view |
+| F, workspace | `backend/m12-app-workspace` | projects, worktrees, the approval, the code panel (changes, files), where a new session runs; then pull requests, shells, scripts, ports |
+| Browser | `backend/m12-browser` | the same UI crate in a browser: does it draw, does Hangul compose, what a phone browser and a browser without WebGPU get (question 6; ADR 0036's open point) |
+| M, phone | `backend/m12-phone` | the native Android app from the UI crate; the shell as the fallback |
+| R, release | `backend/m12-release` | builds for every system, the installer, the updater |
+| next | | the board and a session's lifecycle; machines, devices, sync, agents, models and the settings; what the page never drew (agent install, schedules, export); settings kept on a node (ADR 0036) |
+
 ## After the first builds (written out as the tracks report)
 
 - **View models** in Rust (`vessel-view`): the conversation folded from
