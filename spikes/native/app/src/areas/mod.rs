@@ -36,7 +36,7 @@ impl Areas {
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
-            conversation: conversation::ConversationArea::default(),
+            conversation: conversation::ConversationArea::new(cx),
         }
     }
 }

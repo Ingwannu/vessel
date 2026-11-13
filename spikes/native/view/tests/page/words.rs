@@ -210,3 +210,38 @@ fn a_time_today_and_a_date_with_the_time_otherwise() {
     assert_eq!(KO.when(today, now), "오늘 14:07");
     assert_eq!(EN.when(earlier, now), "2026-11-07 21:00");
 }
+
+#[test]
+fn a_diff_as_the_card_shows_it() {
+    use vessel_app_view::timeline::{Side, diff_lines};
+    let (lines, cut) = diff_lines(Some("a\n\nb"), "a\nc");
+    let shown: Vec<(Side, usize, &str)> = lines
+        .iter()
+        .map(|line| (line.side, line.number, line.text))
+        .collect();
+    assert_eq!(
+        shown,
+        [
+            (Side::Removed, 1, "a"),
+            (Side::Removed, 3, "b"),
+            (Side::Added, 1, "a"),
+            (Side::Added, 2, "c"),
+        ]
+    );
+    assert!(!cut);
+    let long = "x\n".repeat(3000);
+    let (lines, cut) = diff_lines(None, &long);
+    assert_eq!(lines.len(), vessel_app_view::timeline::MAX_LINES);
+    assert!(cut);
+}
+
+#[test]
+fn json_as_the_card_shows_it() {
+    use vessel_app_view::timeline::json_text;
+    let raw = |text: &str| vessel_proto::RawJson::from_text(text).unwrap();
+    assert_eq!(json_text(&raw(r#""plain""#)), "plain");
+    assert_eq!(
+        json_text(&raw(r#"{"path":"a.rs"}"#)),
+        "{\n  \"path\": \"a.rs\"\n}"
+    );
+}

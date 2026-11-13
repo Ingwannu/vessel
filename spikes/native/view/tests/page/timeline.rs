@@ -392,3 +392,52 @@ fn gives_the_same_timeline_however_the_records_are_batched() {
     assert_eq!(piecewise.entries(), whole.entries());
     assert_eq!(piecewise.plan(), whole.plan());
 }
+
+/// A 20,000-entry session (the page's bench) folded as the app receives
+/// it, in batches of 256 records, with the runs and rows worked out again
+/// after each batch as the conversation area does. The numbers go in the
+/// track's notes; `VESSEL_FOLD_TIMINGS=1` prints them.
+#[test]
+fn twenty_thousand_entries_fold_in_batches() {
+    use std::collections::HashSet;
+    use std::io::Write as _;
+    use std::time::Instant;
+    use vessel_app_view::timeline::{Folds, Rows};
+
+    let mut log = Log::default();
+    let mut records = vec![log.agent(&json!({
+        "event": "turn_started", "content": [{ "type": "text", "text": "entries 20000" }]
+    }))];
+    for n in 0..20_000_u32 {
+        records.push(match n % 3 {
+            0 => log.agent(&json!({ "event": "message_chunk", "content": { "type": "text",
+                "text": format!("**Entry {n}.** A short paragraph naming `src/module_{n}.rs`.") } })),
+            1 => log.agent(&json!({ "event": "thought_chunk", "content": { "type": "text", "text": "thinking" } })),
+            _ => log.agent(&json!({ "event": "tool_call", "id": format!("call-{n}"), "title": format!("Read module_{n}.rs"),
+                "kind": "read", "status": "completed", "content": [], "locations": [] })),
+        });
+    }
+    let started = Instant::now();
+    let mut timeline = Timeline::default();
+    let mut longest = std::time::Duration::ZERO;
+    for batch in records.chunks(256) {
+        let at = Instant::now();
+        let _change = timeline.apply(batch);
+        let folds = Folds::of(timeline.entries());
+        let rows = Rows::of(timeline.entries().len(), Some(&folds), &HashSet::new());
+        assert!(rows.len() <= timeline.entries().len());
+        longest = longest.max(at.elapsed());
+    }
+    let total = started.elapsed();
+    if std::env::var("VESSEL_FOLD_TIMINGS").is_ok_and(|value| value == "1") {
+        let _shown = writeln!(
+            std::io::stderr(),
+            "fold 20,001 records in batches of 256: {total:?} in all, longest batch {longest:?}, {} entries",
+            timeline.entries().len()
+        );
+    }
+    // Message, thought and tool call in turn: no two of a kind follow
+    // each other, so every record is an entry of its own.
+    assert_eq!(timeline.entries().len(), 20_001);
+    assert!(total < std::time::Duration::from_secs(10), "{total:?}");
+}

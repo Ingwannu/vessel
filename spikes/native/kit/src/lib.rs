@@ -64,9 +64,10 @@ pub use widgets::{
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Bounds, Context, Div, ElementId, Entity, Hsla, ListAlignment,
-        ListState, Pixels, SharedString, Stateful, WeakEntity, Window, canvas, div, list, px,
-        relative, svg, uniform_list,
+        AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity, Hsla,
+        ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point, SharedString,
+        Stateful, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
+        uniform_list,
     };
 }
 

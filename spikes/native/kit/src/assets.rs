@@ -64,6 +64,8 @@ pub enum Glyph {
     Folder,
     /// A machine.
     Machine,
+    /// Three dots: a menu of more actions (the Session actions).
+    More,
     /// An agent's feature, and the features (Paseo's `Settings2`: two
     /// sliders).
     Sliders,
@@ -72,7 +74,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 22] = [
+const ALL: [Glyph; 23] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -93,6 +95,7 @@ const ALL: [Glyph; 22] = [
     Glyph::Alert,
     Glyph::Folder,
     Glyph::Machine,
+    Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
 ];
@@ -134,6 +137,7 @@ impl Glyph {
             Self::Alert => "kit/alert.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
+            Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
         }
@@ -186,6 +190,9 @@ impl Glyph {
             ),
             Self::Machine => line_glyph!(
                 r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
+            ),
+            Self::More => line_glyph!(
+                r#"<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>"#
             ),
             Self::Sliders => line_glyph!(
                 r#"<path d="M19.5 7H10M14 17H4.5"/><circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="17" r="2.75"/>"#

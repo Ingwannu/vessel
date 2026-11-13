@@ -14,11 +14,11 @@
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
-    Styled as _, Window, div, list, px,
+    Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button, markdown};
+use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
-use vessel_app_view::{Asked, Card, Conversation, Speaker, ToolState};
+use vessel_app_view::{Asked, Card, Conversation};
 use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
 
 use super::common::title_bar;
@@ -121,6 +121,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.conversation_opened(&open.machine, open.session);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
@@ -196,6 +197,7 @@ impl Shell {
 
     /// Records of the session followed.
     pub(crate) fn records(&mut self, session: &SessionId, records: &[EventRecord]) {
+        self.conversation_records(session, records);
         let view = &mut self.areas.session;
         if view
             .open
@@ -326,21 +328,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        let entries = list(
-            view.entries.clone(),
-            cx.processor(|this: &mut Shell, index: usize, _window, cx| {
-                entry(this, index, &vessel_app_kit::tokens(cx))
-            }),
-        )
-        .flex_1()
-        .size_full();
-        div()
-            .flex_1()
-            .min_h(px(0.0))
-            .flex()
-            .flex_col()
-            .child(entries)
-            .into_any_element()
+        super::conversation::timeline(shell, tokens, window, cx)
     } else {
         div()
             .flex_1()
@@ -355,10 +343,13 @@ pub(crate) fn render(
         .size_full()
         .flex()
         .flex_col()
-        .child(title_bar(
+        .child(super::conversation::bar(
+            shell,
             t.title(&open.title).to_owned(),
-            Some(detail),
+            detail,
             tokens,
+            window,
+            cx,
         ))
         .child(body)
         .children(
@@ -371,6 +362,7 @@ pub(crate) fn render(
         .when(open.structured, |frame| {
             frame.child(composer(shell, tokens, working, window, cx))
         })
+        .children(super::conversation::overlays(shell, tokens, window, cx))
 }
 
 /// Under an ended session's conversation: that sending starts it again;
@@ -545,7 +537,7 @@ const COLUMN_WIDTH: f32 = 820.0;
 const COLUMN_INSET: f32 = 16.0;
 
 /// `content` in the chat column.
-fn column(content: impl IntoElement) -> Div {
+pub(crate) fn column(content: impl IntoElement) -> Div {
     div()
         .w_full()
         .flex()
@@ -573,68 +565,6 @@ fn bubble(text: &str, tokens: &Tokens) -> Div {
             .text_color(tokens.text_primary)
             .child(text.to_owned()),
     )
-}
-
-/// A conversation's entry, in the chat column.
-fn entry(shell: &Shell, index: usize, tokens: &Tokens) -> AnyElement {
-    column(entry_content(shell, index, tokens)).into_any_element()
-}
-
-fn entry_content(shell: &Shell, index: usize, tokens: &Tokens) -> AnyElement {
-    let t = shell.t;
-    let Some(entry) = shell.areas.session.conversation.entries().get(index) else {
-        return div().into_any_element();
-    };
-    let row = div().w_full().py(px(6.0));
-    match entry.speaker {
-        Speaker::Person => bubble(&entry.text, tokens).into_any_element(),
-        Speaker::Agent => row
-            .type_(Type::Body)
-            .text_color(tokens.text_primary)
-            .child(markdown(
-                ElementId::Name(format!("entry-{index}").into()),
-                entry.text.clone(),
-            ))
-            .into_any_element(),
-        Speaker::Thought => row
-            .type_(Type::Meta)
-            .text_color(tokens.text_tertiary)
-            .child(entry.text.clone())
-            .into_any_element(),
-        Speaker::Tool => {
-            let state = entry.tool.unwrap_or(ToolState::Pending);
-            let color = match state {
-                ToolState::Pending | ToolState::Running => tokens.st_building,
-                ToolState::Done => tokens.st_ready,
-                ToolState::Failed => tokens.danger,
-            };
-            row.child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(8.0))
-                    .items_center()
-                    .child(
-                        div()
-                            .type_(Type::Meta)
-                            .text_color(color)
-                            .child(t.tool_state(state)),
-                    )
-                    .child(
-                        div()
-                            .type_(Type::Meta)
-                            .text_color(tokens.text_secondary)
-                            .child(entry.text.clone()),
-                    ),
-            )
-            .into_any_element()
-        }
-        Speaker::Notice => row
-            .type_(Type::Meta)
-            .text_color(tokens.text_tertiary)
-            .children(entry.notice.as_ref().map(|notice| t.notice(notice)))
-            .into_any_element(),
-    }
 }
 
 use vessel_app_kit::ui::FluentBuilder as _;

@@ -87,6 +87,69 @@ start_session laptop 한글-세션 "plain"
 start_session build-server ci-fixes "entries 12"
 start_session build-server docs "wait"
 
+# Real conversation shapes (fake-acp's `shapes`; the real agent's options
+# are above): a long thought; Markdown with a table, code wider than any
+# window and Korean; a read of a long path; an edit with a wide diff; a
+# command on one long line asking for permission with four answers, and
+# once allowed 2,400 lines of output. Two copies: `shapes` answered (the
+# output in the timeline), `shapes-asking` left asking (the permission
+# card with the long command). Screens are checked against these, so the
+# sessions are checked to really hold them, through what `vessel log`
+# prints; a tool's output is not printed there, and its line count is
+# held by the verb's own tests (crates/vessel-testkit/src/bin/fake_acp/
+# shapes.rs). Older fake-acp binaries echo `shapes` instead: rebuild.
+log_of() { # node id
+  cli --node "$1" log "$2" 2>&1
+}
+wait_for() { # node id text
+  for _ in $(seq 1 300); do
+    if log_of "$1" "$2" | grep -qF -- "$3"; then return 0; fi
+    sleep 0.1
+  done
+  echo "fleet: session $2 never showed \"$3\" (is fake-acp built with \`shapes\`?)" >&2
+  return 1
+}
+check_shapes() { # node id answered|asking
+  local log problems=()
+  log=$(log_of "$1" "$2")
+  # The entries: the thought, the message's table (header, rule, four
+  # rows), three tool calls, the permission with four answers.
+  grep -q '^(thinking) The failure is in the timeline' <<<"$log" || problems+=("the thought")
+  [ "$(grep -c '^| ' <<<"$log")" -eq 6 ] || problems+=("the table's six lines")
+  [ "$(grep -c '^\[tool\] ' <<<"$log")" -eq 3 ] || problems+=("three tool calls")
+  grep -q '^  4) Never allow commands' <<<"$log" || problems+=("the permission's four answers")
+  # The longest line: the code line, 240 characters (ASCII, so bytes).
+  local widest
+  widest=$(LC_ALL=C awk '/^let a_name_long_enough/ { print length($0) }' <<<"$log")
+  [ "$widest" = 240 ] || problems+=("the 240-character code line (got: ${widest:-none})")
+  if [ "$3" = answered ]; then
+    grep -q '^\[tool shapes-run\] done' <<<"$log" || problems+=("the command done")
+    grep -q '테스트를 모두 돌렸습니다' <<<"$log" || problems+=("the closing Korean message")
+  else
+    ! grep -q '^\[tool shapes-run\] ' <<<"$log" || problems+=("the command still asking")
+  fi
+  if [ ${#problems[@]} -gt 0 ]; then
+    printf 'fleet: session %s lacks:' "$2" >&2
+    printf ' %s;' "${problems[@]}" >&2
+    echo >&2
+    return 1
+  fi
+}
+start_session laptop shapes "shapes"
+shapes=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop shapes-asking "shapes"
+asking=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$shapes" "[permission]"
+wait_for laptop "$asking" "[permission]"
+# `vessel log` does not print a request's id; the one request waiting is
+# named by the hex digit its id starts with.
+for digit in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+  cli --node laptop session answer "$shapes" "$digit" allow-once 2> /dev/null && break
+done
+wait_for laptop "$shapes" "테스트를 모두 돌렸습니다"
+check_shapes laptop "$shapes" answered
+check_shapes laptop "$asking" asking
+
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash
 # A pairing link for laptop (single use, ten minutes).

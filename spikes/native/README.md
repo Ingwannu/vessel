@@ -202,14 +202,24 @@ scripts/fleet.sh stop /tmp/fleet
 ```
 
 The fake agent answers `plain` with an echo, `entries <n>` with `n`
-entries, `wait` by waiting; any other prompt runs a tool that asks for
-permission. The fleet's Claude Code adapter offers what the real one
-sends (`FAKE_ACP_OPTIONS=real`, `crates/vessel-testkit/src/bin/fake_acp/real.rs`):
+entries, `wait` by waiting, `shapes` with a real conversation's shapes;
+any other prompt runs a tool that asks for permission. The fleet's
+Claude Code adapter offers what the real one sends
+(`FAKE_ACP_OPTIONS=real`, `crates/vessel-testkit/src/bin/fake_acp/real.rs`):
 sixteen models, subagents (`ocx-*`) with descriptions of several lines,
 names longer than a list and Korean ones, an on/off option with no name.
 Look at every picker with it before a build; `kit::picker`'s test lays
 out rows of those shapes and fails if one grows past a line or runs into
 the next.
+
+Screens are checked against the two `shapes` sessions the fleet makes on
+`laptop`: a long thought, Markdown with a table, a 240-character code
+line and Korean, a long path, a wide diff, a command on one long line
+asking for permission with four answers, and 2,400 lines of output.
+`shapes` has its permission answered (the output in the timeline),
+`shapes-asking` is left asking. `fleet.sh start` fails if either session
+lacks them (it reads them back with `vessel log`), so a fake-acp built
+before the verb existed is caught: rebuild it.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

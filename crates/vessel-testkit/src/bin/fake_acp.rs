@@ -60,6 +60,7 @@
 //!     input, one text content), and again; then `end_turn`. A count that
 //!     is not a number gives one message chunk `error: entries <n>` (the
 //!     page's timeline measurement, `docs/PERFORMANCE.md`);
+//!   - `shapes`: a turn with a real conversation's shapes (`shapes` module);
 //!   - `env NAME`: one message chunk `env NAME=<value>` or `env NAME
 //!     unset`, from the fake's own environment, then `end_turn`;
 //!   - `mcp`: one message chunk `mcp <JSON>`, the MCP servers of the last
@@ -139,6 +140,8 @@ mod describe;
 mod options;
 #[path = "fake_acp/real.rs"]
 mod real;
+#[path = "fake_acp/shapes.rs"]
+mod shapes;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
@@ -652,6 +655,7 @@ async fn run_turn(
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
+        "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
     }
     if let Some(count) = prompt.strip_prefix("entries ") {
