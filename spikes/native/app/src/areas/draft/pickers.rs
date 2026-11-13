@@ -13,7 +13,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
-use vessel_app_kit::{ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, Tokens};
+use vessel_app_kit::{ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, Side, Tokens};
 use vessel_app_view::{Agent, Controls, Machine, Reach, SelectControl, agent_name, controls_of};
 use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 
@@ -362,6 +362,12 @@ fn build(shell: &Shell, which: Picker, query: &str, cx: &Context<'_, Shell>) -> 
             back: false,
             search: false,
             empty: words.no_matches.into(),
+            // The controls in the card open above it, those under it below
+            // (Paseo's `top-start` and `bottom-start`).
+            side: match which {
+                Picker::Machine | Picker::Folder => Side::Below,
+                Picker::Model | Picker::Thinking | Picker::Mode | Picker::Features => Side::Above,
+            },
         },
         rows: Vec::new(),
         meanings: Vec::new(),

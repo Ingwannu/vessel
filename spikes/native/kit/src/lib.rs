@@ -49,8 +49,8 @@ pub use field::{TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use picker::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, SendKind, combobox, glyph, pill,
-    send_button,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, SendKind, Side, combobox, glyph,
+    pill, send_button,
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};

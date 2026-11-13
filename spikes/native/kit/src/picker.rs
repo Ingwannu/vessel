@@ -66,8 +66,22 @@ pub fn one_line(text: &SharedString) -> SharedString {
     }
 }
 
-/// How far above its trigger a list opens (up, so negative).
+/// How far from its trigger a list opens (Paseo's `offset(5)`).
+const OFFSET: f32 = 5.0;
+
+/// The same, upward.
 const LIFT: f32 = -5.0;
+
+/// How far a list keeps from the window's edges (Paseo's
+/// `collisionPadding`).
+const EDGE: f32 = 16.0;
+
+/// The offset and the edge's margin, taken from the room on a side.
+const BEYOND: f32 = -21.0;
+
+/// A list is never shorter than this, even with little room on its side
+/// (it then overlaps the window's edge margin rather than vanish).
+const MIN_HEIGHT: f32 = 120.0;
 
 /// The tallest a list is.
 const MAX_HEIGHT: f32 = 400.0;
@@ -228,6 +242,22 @@ pub struct ComboHeader {
     pub search: bool,
     /// Shown when no row is left (the search matched nothing).
     pub empty: SharedString,
+    /// Which side of its trigger the list opens on.
+    pub side: Side,
+}
+
+/// Which side of its trigger a list opens on: Paseo's `desktopPlacement`,
+/// chosen by the caller and never flipped on a wide window (Paseo's web
+/// combobox has no `flip`): the composer's controls open above
+/// (`top-start`), the controls under a card below (`bottom-start`, the
+/// host and folder pickers of its new-workspace form).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Side {
+    /// Above the trigger, its left edge on the trigger's.
+    #[default]
+    Above,
+    /// Below the trigger, its left edge on the trigger's.
+    Below,
 }
 
 /// A list's state, kept by the screen that shows it.
@@ -405,6 +435,8 @@ pub fn combobox<V: 'static>(
         .overflow_hidden()
         .type_(Type::Body)
         .text_color(surfaces.foreground);
+    let anchor = state.anchor.get();
+    let room = room(anchor, header.side, window);
     panel = if compact {
         panel
             .w_full()
@@ -414,7 +446,7 @@ pub fn combobox<V: 'static>(
     } else {
         panel
             .w(px(width))
-            .max_h(px(MAX_HEIGHT))
+            .max_h(px(room))
             .rounded(px(popup::MENU_RADIUS))
             .shadow(popup::shadow_md(tokens))
             .on_mouse_down_out(on_outside)
@@ -461,19 +493,38 @@ pub fn combobox<V: 'static>(
                 .child(panel),
         )
     } else {
-        let at = state.anchor.get().map_or_else(
+        // Paseo's `offset(5)` from the trigger, on the caller's side.
+        let (at, corner, offset) = match (header.side, anchor) {
             // Not drawn yet (the first frame): near the window's middle.
-            || point(px(8.0), px(240.0)),
-            |bounds| point(bounds.left(), bounds.top()),
-        );
+            (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
+            (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
+            (Side::Below, Some(bounds)) => (bounds.bottom_left(), Anchor::TopLeft, OFFSET),
+        };
         anchored()
             .position(at)
-            .offset(point(px(0.0), px(LIFT)))
-            .anchor(Anchor::BottomLeft)
-            .snap_to_window_with_margin(px(8.0))
+            .offset(point(px(0.0), px(offset)))
+            .anchor(corner)
+            .snap_to_window_with_margin(px(EDGE))
             .child(panel)
     };
     Some(deferred(element).with_priority(1).into_any_element())
+}
+
+/// Paseo's `size` middleware: a list is at most 400 tall and never taller
+/// than the room on its side of `anchor`, less the offset and the 16 kept
+/// from the window's edge (`collisionPadding`).
+fn room(anchor: Option<Bounds<Pixels>>, side: Side, window: &Window) -> f32 {
+    anchor.map_or(MAX_HEIGHT, |bounds| {
+        let top = f32::from(bounds.top());
+        let bottom = f32::from(bounds.bottom());
+        let height = f32::from(window.viewport_size().height);
+        // `mul_add`: the distance without an arithmetic operator.
+        let room = match side {
+            Side::Above => top.mul_add(1.0, BEYOND),
+            Side::Below => bottom.mul_add(-1.0, height).mul_add(1.0, BEYOND),
+        };
+        room.clamp(MIN_HEIGHT, MAX_HEIGHT)
+    })
 }
 
 /// Arrows (wrapping), Enter, Escape, and Backspace in an empty search to
