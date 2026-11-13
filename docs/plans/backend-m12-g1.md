@@ -221,3 +221,13 @@ Clippy with warnings denied, and 341 tests (none failed or ignored).
 No G1 screen registration or captures are included; its in-progress
 changes are kept outside this integration. No main-workspace source,
 service, production account or permission changed.
+## Shared spacing scale
+
+`kit::theme::spacing` exports all sixteen steps of Paseo's `SPACING`
+table, including fractional keys. The constant names retain the keys;
+the values are logical points. An exact-value test checks the complete
+table. The module's Decision Log records why a shared complete scale
+replaces private inset and gap literals. This slice registers the scale
+and documents it; consumption belongs to the git screen slice. Existing
+areas retain their geometry. There is no difference from the reference
+scale and no screen change to capture in this slice.
