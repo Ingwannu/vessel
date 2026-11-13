@@ -98,7 +98,7 @@ pub type Chose<V> = Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
 pub struct MenuHandlers<V> {
     /// The screen's menu state.
     pub state: fn(&mut V) -> &mut MenuState,
-    /// A row was chosen (the menu has closed).
+    /// A selectable row was activated; its dismissal policy is already applied.
     pub chose: Chose<V>,
 }
 

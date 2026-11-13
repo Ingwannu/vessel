@@ -37,7 +37,9 @@ and shadow remain shared. Legacy width is min 180/max 320; explicit width
 supports the schedule menu's 220. All sizes are logical points.
 
 The kebab uses vertical dots at 14, radius 4 and padding 4. Its minimum is 20
-for a pointer (intrinsic content is 22), 44 for touch, from control-geometry.
+for a pointer (visual frame 22), 44 for touch, from control-geometry.
+The reference's hitSlop8 is now represented outside that visual/layout frame:
+actual hit38/60 before parent clipping, with the same inner visual anchor.
 Its hover fill is surface2 and ink foreground; idle is transparent/muted.
 Only hover changes it, as the reference's trigger callback does. The existing
 horizontal More glyph is retained. The original Pause, Play and RotateCw
@@ -87,3 +89,21 @@ hover group to change its vector to foreground; GitHeader stays muted.
 A regression checks the actual SVG style, not merely a palette helper, in
 both themes, profiles, densities and enabled/disabled states. The original
 probe captures remain excluded evidence; corrected captures must be rebuilt.
+
+
+## Schedule hit allowance correction
+
+The initial source-only trigger omitted schedule-row.tsx's hitSlop 8.
+"Schedule unchanged" meant preserving its visual/hover geometry while
+adding GitHeader, not retaining this omission. The Schedule frame remains
+22/44, glyph14, radius4 and padding4; its expanded input region is38/60.
+Negative margins retain the layout footprint, the inner bounds remain the
+end anchor and the hover wash stays on the inner frame. Enabled triggers
+stop mouse-down propagation so a containing row does not also activate;
+disabled triggers install no handler. Parent clipping/adjacent hit priority
+and native inside/outside/anchor/paint behaviour require explicit probes.
+Earlier22/44 descriptions were visual sizes, not verified hit sizes; no
+Schedule trigger visual approval had been given before this correction.
+
+The public chose callback now documents that the per-item dismissal policy
+has been applied. KeepOpen is allowed; closing is no longer promised.

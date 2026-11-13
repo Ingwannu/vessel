@@ -160,6 +160,14 @@ fn menu_and_trigger_geometry_keep_the_reference_values() {
             trigger::geometry(sizing),
             trigger::Geometry {
                 minimum,
+                visual: match sizing {
+                    TriggerSizing::Pointer => px(22.0),
+                    TriggerSizing::Touch => px(44.0),
+                },
+                hit: match sizing {
+                    TriggerSizing::Pointer => px(38.0),
+                    TriggerSizing::Touch => px(60.0),
+                },
                 padding: px(4.0),
                 glyph: px(14.0),
                 radius: px(4.0)

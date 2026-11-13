@@ -123,8 +123,9 @@ and stays until the lead retires it after moving its callers.
 14-point leading glyph or typed pending label/spinner; pending is blocked
 for pointer and keyboard, including a stale highlight. `menu_with(Content)`
 accepts a reference width; the shared vertical kebab captures its real
-bounds for `MenuState::open_end`. Its pointer minimum is 20 (22 intrinsic)
-and touch target 44; `popup::TOUCH_TARGET` is the shared constant. Menu
+bounds for `MenuState::open_end`. Its pointer minimum is 20 (visual 22)
+and touch visual frame 44; outside hit allowance 8 gives input38/60 before
+parent clipping. Paint/layout/anchor stay22/44. `popup::TOUCH_TARGET` is shared. Menu
 surface, state and drawing remain one control, split into small modules.
 Labels shrink on one line, as Paseo's menu does; a stale keyboard position
 from a shortened list restarts at the appropriate end.

@@ -7,19 +7,21 @@ use crate::{
     theme::{Tokens, spacing},
 };
 use gpui::prelude::*;
-use gpui::{Div, ElementId, Hsla, Pixels, Stateful, Svg, div, px, svg};
+use gpui::{Div, ElementId, Hsla, MouseButton, Pixels, Stateful, Svg, div, px, svg};
 
 /// The reference's pointer/touch geometry gate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TriggerSizing {
-    /// Pointer minimum20; the 14 glyph and 4 padding produce a 22-point hit box.
+    /// Pointer minimum20; glyph14/padding4 produce a 22-point visual frame.
     Pointer,
-    /// One 44-point touch target.
+    /// A 44-point visual frame; outside hit allowance is separate.
     Touch,
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Geometry {
     pub minimum: Pixels,
+    pub visual: Pixels,
+    pub hit: Pixels,
     pub padding: Pixels,
     pub glyph: Pixels,
     pub radius: Pixels,
@@ -29,6 +31,14 @@ pub(super) const fn geometry(sizing: TriggerSizing) -> Geometry {
         minimum: match sizing {
             TriggerSizing::Pointer => px(20.0),
             TriggerSizing::Touch => px(popup::TOUCH_TARGET),
+        },
+        visual: match sizing {
+            TriggerSizing::Pointer => px(22.0),
+            TriggerSizing::Touch => px(popup::TOUCH_TARGET),
+        },
+        hit: match sizing {
+            TriggerSizing::Pointer => px(38.0),
+            TriggerSizing::Touch => px(60.0),
         },
         padding: px(spacing::S1),
         glyph: px(14.0),
@@ -85,6 +95,26 @@ fn schedule_trigger(
     let geometry = geometry(sizing);
     let idle = paint(tokens, false);
     let hover = paint(tokens, true);
+    let visual = div()
+        .relative()
+        .flex()
+        .items_center()
+        .justify_center()
+        .flex_none()
+        .min_w(geometry.minimum)
+        .min_h(geometry.minimum)
+        .size(geometry.visual)
+        .p(geometry.padding)
+        .rounded(geometry.radius)
+        .bg(idle.fill)
+        .when(state == crate::ButtonState::Enabled, |visual| {
+            visual.group_hover(TRIGGER_GROUP, move |style| style.bg(hover.fill))
+        })
+        .child(anchor_probe(anchor))
+        .child(icon(TriggerProfile::Schedule, sizing, state, tokens));
+    // Source hitSlop=8 expands input, never layout, paint or menu anchor.
+    // Group hover paints only the inner22/44 frame, even when its hit area
+    // reaches into a row's padding. The parent's content mask still clips it.
     div()
         .id(id)
         .group(TRIGGER_GROUP)
@@ -93,19 +123,17 @@ fn schedule_trigger(
         .items_center()
         .justify_center()
         .flex_none()
-        .min_w(geometry.minimum)
-        .min_h(geometry.minimum)
-        .p(geometry.padding)
-        .rounded(geometry.radius)
-        .text_color(idle.ink)
-        .bg(idle.fill)
+        .size(geometry.hit)
+        .m(px(spacing::S2.copysign(-1.0)))
+        .p(px(spacing::S2))
         .when(state == crate::ButtonState::Enabled, |element| {
             element
                 .cursor_pointer()
-                .hover(move |style| style.text_color(hover.ink).bg(hover.fill))
+                .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+                    cx.stop_propagation();
+                })
         })
-        .child(anchor_probe(anchor))
-        .child(icon(TriggerProfile::Schedule, sizing, state, tokens))
+        .child(visual)
 }
 
 /// The reference surface that owns this trigger's visual geometry.
@@ -180,7 +208,9 @@ fn git_trigger(
         .m(px(spacing::S2.copysign(-1.0)))
         .p(geometry.outset)
         .text_color(tokens.neutral.foreground_muted)
-        .when(state == crate::ButtonState::Enabled, Styled::cursor_pointer)
+        .when(state == crate::ButtonState::Enabled, |element| {
+            element.cursor_pointer().on_mouse_down(MouseButton::Left, |_event, _window, cx| { cx.stop_propagation(); })
+        })
         // Paseo's overflow style is static: schedule's hover wash/ink callback
         // must not be inherited by this profile.
         .child(
