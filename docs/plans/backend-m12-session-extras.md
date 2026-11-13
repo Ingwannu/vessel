@@ -1,6 +1,6 @@
 # Milestone 12: session extras (N5)
 
-Status: reference and contract pass, 2026-11-13. No implementation claimed.
+Status: row 1 backend checkpointed as WIP, 2026-11-13. Root gate passed; wire/web verification and implementation review are separate. Native work is preparation only.
 This track takes each row through node, wire, CLI, tests, link, view and
 screen before starting the next. Node and app slices are reviewed separately.
 
@@ -391,6 +391,12 @@ Committed before this checkpoint:
 - 0633dc3: contract documentation, passed by V1 for the contract only.
 - 117deb38: integration of the coordinator-specified lead commit 74dfde8e,
   including search/parking, protocol 12 and the known test race fixes.
+- a44ab316: node-only WIP checkpoint, with the passing root gate below;
+  TypeScript/web verification was not complete at that commit.
+- e9645adf: control-only WIP checkpoint of inline_status. Native whole gate
+  and captures are unrun; no control implementation approval or adoption.
+- c709a82d: pre-existing link/view/text preparation checkpoint. Unregistered,
+  uncompiled and untested as a native feature; no screen or app hooks.
 
 The node implementation is being verified separately. Its final source pin
 covers 69 crate files. Root formatting and whole clippy passed (3m 03s).
@@ -401,9 +407,18 @@ unchanged through the run. Node unit tests passed 188/188 and end-to-end
 cases 160/160, including multibyte newest-message selection, placed-parent
 open/reset, failed wake and replay isolation. The earlier integrated
 attempt's old-schema fixture failure remains recorded separately.
-TypeScript generation and web checks are still in progress.
-The implementation commit and final gate results will replace this paragraph
-before cleanup ends. V1 reviews the immutable node diff first, then routes
+TypeScript generation passed both declaration tests after the node WIP
+checkpoint. On those declarations, web lint, typecheck, all 417 tests in
+81 files (maxWorkers=2) and the production bundle build passed. The bundle
+is a local development artifact, not a release or deployment.
+
+NOT RUN: embedding that bundle into fresh Rust CLI/node binaries and web
+E2E. The TypeScript command alone waited 616 seconds for a build slot;
+cleanup time did not allow another such queue plus build and E2E. The
+backend and generated-wire commits therefore stay WIP and are not ready
+to merge. Do not label the web gate complete. Generated proto.ts retains
+the generator's canonical line-end whitespace (already present in the
+baseline); do not hand-edit it away from the declaration check. V1 reviews the immutable node diff first, then routes
 it to the coordinator and node integrator. No code approval is implied by
 its earlier contract approval.
 
@@ -432,6 +447,12 @@ Other tracks' pending seams:
   method; Followup::ReadWaiting must ask Act::Conversation at its own seat.
   Read the latest C and lead source on resumption rather than applying
   these older call shapes blindly. Do not copy the renderer.
+- Lead later supplied 1b517995: Link::submit returns Result<(), Unsent>
+  with Rejected::Full/Closed and the original command, while send remains.
+  Shell::command settles a rejected command on the next update through
+  crate::unsent::settle. Registering the new side Command also needs an
+  exhaustive settle arm: answer a pending key with its event, otherwise
+  use Settle::Say. This was not merged during cleanup.
 - E2: a post-success book-edit call is reserved. Supply one pub(crate)
   hook taking machine_book::Edit/Name, plus a gated hash. Rename moves the
   current conversation and target and invalidates or moves old request
@@ -452,6 +473,10 @@ screen and the book-edit hook, run the native whole gate and fake-fleet
 captures, inspect every capture and report the app slice to V1. Start no
 second feature before row 1's complete pass is reported.
 
-No fake fleet or virtual display has been started by this track. Test
-processes use isolated fake agents. Cleanup must verify no test processes
-remain; never stop another track's fleet, display or the preview node.
+No fake fleet or virtual display was started by this track. Tests used
+isolated fake agents. Cleanup found no remaining build/test/fake processes
+under this worktree or its own target directory; no process needed a stop.
+The preview node, services, permissions and account configuration were not
+changed. No repository push or release build was performed. Local web/dist
+and web/node_modules are untracked artifact symlinks and must not be added;
+keep both local cargo configurations and the supplied fonts uncommitted.
