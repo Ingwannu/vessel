@@ -207,7 +207,135 @@ points wide.
 | Browser | `backend/m12-browser` | the same UI crate in a browser: does it draw, does Hangul compose, what a phone browser and a browser without WebGPU get (question 6; ADR 0036's open point) |
 | M, phone | `backend/m12-phone` | the native Android app from the UI crate; the shell as the fallback |
 | R, release | `backend/m12-release` | builds for every system, the installer, the updater |
-| next | | the board and a session's lifecycle; machines, devices, sync, agents, models and the settings; what the page never drew (agent install, schedules, export); settings kept on a node (ADR 0036) |
+| S, shell furniture (branch made, not started: waits for a free worker) | `backend/m12-app-shell` | the board and the archive in full, the sidebar in full, the command palette, the shortcut registry with its listener and settings page, notices and toasts, the system's notifications |
+| E, settings (branch made, not started: waits for a free worker) | `backend/m12-app-settings` | the settings frame and its sections, the preference model behind one interface, machine management, devices and pairing links, sync, agents, models; then installing agents |
+| next | | schedules and saved prompts, export and import; settings kept on a node (ADR 0036); the inbox and push |
+
+Who owns which area and which kit control is kept in one place for the
+workers (the tracks' brief, outside the repository) and repeated in
+`spikes/native/README.md` by the lead. In short: the lead owns the
+window, the routes, the title bar, the kit's base, the new chat and the
+composer, pairing and the update notice, and merges every track; a
+control another track owns is never written twice.
+
+Builds so far: 0.0.0.0.1 (pairing, machines, sessions, a session);
+0.0.0.0.2 (the app opens on a composer and a send opens the chat at
+once; pairing in two steps; the app's own title bar; the owner's mark;
+Korean by the system's language); 0.0.0.0.3 brings automatic updates,
+as the owner asked ("as Zed has them"): the updater track R built, a
+signed feed, the notice in the title bar.
+
+## Build 0.0.0.0.3 and the look (2026-11-13)
+
+The owner ran 0.0.0.0.3 on Windows 11 and said, in short:
+
+1. Minimise, maximise and close need a double click (a defect of the
+   app-drawn title bar on Windows).
+2. The composer's text field is "the default one": a boxed input with a
+   bright focus ring. It must be as Paseo's: one types straight into the
+   card. The same holds for dropdowns from now on.
+3. Only Claude Code is offered; and the model selector and the rest of
+   the tray were made as the builder pleased. They must be as Paseo's,
+   with GOAT.
+4. Are settings and the rest being laid out as in Paseo, "with a Paseo +
+   GOAT UI"?
+
+So the look has a named measure, for the app and, after it, for the
+page (ADR 0036 keeps them one):
+
+- **The app's layout and controls follow Paseo's app and GOAT, cloned
+  closely**: Paseo first (it is one UI on desktop, web and phone), GOAT
+  where Paseo has nothing or for the conversation's details. Values,
+  structure and behaviour are reproduced; each deliberate difference is
+  written down with its reason.
+- **Nothing looks like a component library's default.** Every control
+  has one look, defined in the kit after the references.
+- **Every agent a machine has is offered**, the built-in ones and the
+  added ones, those that cannot start shown with the reason.
+- The page's `DESIGN.md` stays the specification for behaviour the
+  references lack (the board's lanes) and is brought to the same look
+  afterwards.
+
+A value-level specification drawn from both references' source is kept
+for the workers beside their briefs.
+
+0.0.0.0.4 carries: the title bar's buttons answering one click, the
+composer and the pickers after Paseo, every agent listed, the update
+notice in the title bar, the corrected mark. A build's number, once
+published, is never built again.
+
+**Why the buttons needed a double click** (track R, read from the
+code): Windows asks the app what is under the pointer, and GPUI answers
+with the first window control area, in paint order, that the pointer is
+inside. The bar (the area that drags the window) is the buttons' parent
+and is painted first, and the buttons did not occlude it, so over a
+button Windows was told "caption". One click was therefore a press on
+the caption (nothing happens); two were a caption double click, which
+maximises or restores whichever button is under the pointer. The
+buttons' hover colour is drawn by the app, so they looked right. The
+fix is for each caption button to occlude what is under it, as Zed's
+do, and a test in the kit that fails when the bar is hit over a button.
+The rule for the title bar from now on: anything clickable drawn inside
+the drag area occludes it.
+
+## Builds 0.0.0.0.4 and 0.0.0.0.5, and what the owner saw (2026-11-13)
+
+0.0.0.0.4: the window's buttons answer one click, the composer is the
+card itself, the pickers and the combined model selector after Paseo,
+every agent of the machine listed. 0.0.0.0.5: a session that ended or
+was interrupted is continued by sending in it; agents that are not
+installed are listed with how to install them.
+
+**Updates work on real Windows**: the owner's installed 0.0.0.0.4 took
+0.0.0.0.5 from the feed in two seconds and reopened as 0.0.0.0.5. The
+0.0.0.0.3 before it read the feed twice and never fetched the artifact;
+it shows nothing on failure and writes no log, so the cause is not
+known. 0.0.0.0.6 adds a log file, the updater's steps in it, and
+retries after a transient failure.
+
+**The owner on 0.0.0.0.5** (Windows 11, dark): the model selector and
+the other pickers look bad, the settings look bad, the version and
+update screen looks very bad. Their captures show a list whose long
+descriptions are drawn over the rows below (the real agent's options
+have several-line descriptions; the fake fleet's are short), a bright
+focus ring around a whole popup and around a whole panel, and an About
+page that is loose text with a chip where a switch belongs.
+
+What changes in how builds are checked:
+
+- Every picker, every level of it, and every settings screen is opened
+  against the real node's agents before a build is named, in the
+  owner's theme; the coordinator looks at every capture, not a sample.
+- The fake fleet carries the real shapes (long descriptions, many
+  values, long names, Korean), with a test.
+- No container, popup, panel or page can show a focus ring: removed at
+  the root, not screen by screen.
+- Settings pages, About included, are Paseo's settings layout.
+
+## The browser, first report (2026-11-13)
+
+The browser track built the same `app` crate for `wasm32` (GPUI's web
+platform, single thread, the pinned stable toolchain) and showed, in
+headless Chromium with WebGPU:
+
+- **It draws**: the new chat with its pickers and the mark, the sidebar,
+  a session's conversation.
+- **Hangul composes** in the new chat's composer and in a session's:
+  marked text underlined at the caret, the final consonant carried to
+  the next syllable, a cancelled composition not inserted, Enter sends.
+
+Not shown yet, and stated so: the data was a built-in demo (no
+connection to a node from a browser); the renderer was software WebGPU;
+the composition was driven through the browser's debugging interface,
+not typed with a real input method. ADR 0036 lists what must still be
+seen before the browser gets the native UI; until then the page stays
+the web client.
+
+What it taught the desktop: a character the app's typefaces lack (the
+pickers' small triangle) shows only by the system's fallback on the
+desktop and as a missing-glyph box in a browser, so carets and marks are
+drawn as vector glyphs from the kit, never as characters; and the title
+bar's window buttons belong to the desktop only.
 
 ## After the first builds (written out as the tracks report)
 
