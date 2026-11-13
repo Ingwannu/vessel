@@ -309,3 +309,15 @@ first node commit. V1 resolved its three original production source
 findings; this is not gate or integration approval. No branch merge or
 new control was started after the finish-current-slice instruction.
 All work runs as the workspace owner; no service permission changed.
+
+### Web closeout after generated declarations
+
+- Web lint: passed.
+- Web typecheck: passed.
+- Web unit tests: passed.
+- Web build: passed.
+
+The page end-to-end exceptions remain with integration; they were not
+rerun during closeout. Latest full Rust Clippy/test and CLI/node process
+regressions after the JSON-feature correction remain unverified. No native
+gate or screen approval is claimed. No service permission was changed.
