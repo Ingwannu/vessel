@@ -34,6 +34,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod host_rename;
 pub mod menu;
 pub mod output;
 pub mod picker;
@@ -61,6 +62,7 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
+pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,

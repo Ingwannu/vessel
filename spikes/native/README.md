@@ -182,6 +182,10 @@ MD pointer minimum32/padding16, touch minimum44/padding24. Legacy entries
 remain pointer-sized. `menu::TriggerSizing` names the same shared type;
 `popup::TOUCH_TARGET` keeps its compatibility name for the shared44 value.
 
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
+its caller owns the callback and pending state, with no extra paint.
+
 ## Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
