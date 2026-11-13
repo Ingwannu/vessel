@@ -11,7 +11,7 @@
 
 use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, InteractiveElement as _, ParentElement as _,
+    Context, Div, ElementId, InteractiveElement as _, ParentElement as _, Stateful,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
@@ -23,7 +23,7 @@ use vessel_proto::ProjectId;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo, ProjectState};
 
 use super::detail::{self, Detail};
-use super::widgets::{Tone, badge, banner, empty, page, row, rows, section, title};
+use super::widgets::{Tone, badge, banner, divided, empty, page, row, rows, section, title};
 use crate::shell::Shell;
 
 /// The page's state.
@@ -191,7 +191,7 @@ impl Shell {
         }
     }
 
-    fn forget_project(&mut self, project: ProjectId, cx: &mut Context<'_, Self>) {
+    pub(super) fn forget_project(&mut self, project: ProjectId, cx: &mut Context<'_, Self>) {
         if let Some(machine) = self.projects_machine() {
             self.ask(&machine, Ask::Project(ProjectAsk::Remove(project)));
         }
@@ -287,6 +287,35 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         column = column.child(banner(git, false, None, tokens));
     }
     let state = &shell.areas.workspace.page;
+    // A project open is its own page, as Paseo opens a project's settings:
+    // a way back to the list, then the project.
+    let chosen = state.detail.as_ref().and_then(|open| {
+        view.and_then(|view| view.project(&open.project))
+            .map(|project| (open, project))
+    });
+    if let Some((open, project)) = chosen {
+        let back = div()
+            .id("projects-back")
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(4.0))
+            .mb(px(12.0))
+            .type_(Type::Body)
+            .text_color(tokens.text_secondary)
+            .cursor_pointer()
+            .hover(|style| style.text_color(tokens.text_primary))
+            .child(format!("\u{2039} {}", words.projects_on(&machine)))
+            .on_click(cx.listener(|this, _event, _window, cx| {
+                this.areas.workspace.page.detail = None;
+                cx.notify();
+            }));
+        return scrolled(
+            column
+                .child(back)
+                .child(detail::render(shell, &machine, project, open, tokens, cx)),
+        );
+    }
     let mut action = div().flex().flex_row().items_center().gap(px(8.0));
     let online: Vec<String> = shell
         .fleet
@@ -332,13 +361,6 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         body,
         tokens,
     ));
-    let chosen = state.detail.as_ref().and_then(|open| {
-        view.and_then(|view| view.project(&open.project))
-            .map(|project| (open, project))
-    });
-    if let Some((open, project)) = chosen {
-        column = column.child(detail::render(shell, &machine, project, open, tokens, cx));
-    }
     scrolled(column)
 }
 
@@ -434,26 +456,36 @@ fn project_row(
     project: &ProjectInfo,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> Stateful<Div> {
     let words = shell.words();
-    let labels = words.labels();
-    let open = shell
-        .areas
-        .workspace
-        .page
-        .detail
-        .as_ref()
-        .is_some_and(|detail| detail.project == project.id);
     let opened = project.clone();
-    let id = project.id;
-    let name = div()
-        .id(ElementId::Name(format!("project-{index}").into()))
-        .type_(Type::Label)
-        .text_color(tokens.text_primary)
-        .cursor_pointer()
-        .hover(vessel_app_kit::ui::Styled::underline)
-        .child(project.name.to_string())
-        .on_click(cx.listener(move |this, _event, _window, cx| this.open_project(&opened, cx)));
+    let name = project.name.to_string();
+    // Paseo's project row: the project's mark (its initial on a tile, 16),
+    // its name, its state as a badge, a chevron; the whole row opens the
+    // project's page.
+    let initial = name
+        .chars()
+        .next()
+        .map_or_else(|| "?".to_owned(), |first| first.to_uppercase().collect());
+    let title_line = div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .child(
+            div()
+                .size(px(16.0))
+                .flex_none()
+                .flex()
+                .items_center()
+                .justify_center()
+                .rounded(px(4.0))
+                .bg(tokens.bg_active)
+                .type_(Type::Tiny)
+                .text_color(tokens.text_secondary)
+                .child(initial),
+        )
+        .child(title(name, tokens));
     let mut controls = div();
     match &project.state {
         ProjectState::CloneFailed { .. } => {
@@ -473,16 +505,22 @@ fn project_row(
         ProjectState::Ready | ProjectState::Cloning { .. } | ProjectState::Unknown => {}
     }
     controls = controls.child(
-        button(
-            ElementId::Name(format!("remove-project-{index}").into()),
-            labels.remove_project,
-            false,
-            tokens,
-        )
-        .on_click(cx.listener(move |this, _event, _window, cx| this.forget_project(id, cx))),
+        div()
+            .type_(Type::Label)
+            .text_color(tokens.text_tertiary)
+            .child("\u{203a}"),
     );
-    row(name, &facts(shell, project), Some(controls), tokens)
-        .when(open, |row| row.bg(tokens.bg_active))
+    let hover = tokens.bg_hover;
+    div()
+        .id(ElementId::Name(format!("project-{index}").into()))
+        .cursor_pointer()
+        .hover(move |style| style.bg(hover))
+        .child(divided(
+            row(title_line, &facts(shell, project), Some(controls), tokens),
+            index,
+            tokens,
+        ))
+        .on_click(cx.listener(move |this, _event, _window, cx| this.open_project(&opened, cx)))
 }
 
 /// The add menu's three ways, in place under the heading.

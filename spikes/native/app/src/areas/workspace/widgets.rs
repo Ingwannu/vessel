@@ -1,8 +1,10 @@
-//! Pieces the workspace's screens draw more than once, in the page's
-//! settings look (`settings-page.tsx`, `ui/kit/row.tsx`, `badge.tsx`,
-//! `banner.tsx`): a section with its title and action, a row of facts, a
-//! badge, a banner. Drawn from the kit's tokens; kept here until the kit
-//! has its own (the coordinator decides whose they are).
+//! Pieces the workspace's screens draw more than once, in Paseo's settings
+//! look (`components/settings/headings/settings-section.tsx`,
+//! `styles/settings.ts`; the spec's appendix P, C4): a section with a
+//! small muted title and its action, a card of rows (each 16 in, a
+//! hairline between), a badge, a banner. Drawn from the kit's tokens; kept
+//! here until track E's settings frame brings its own, which these then
+//! become.
 
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
@@ -43,26 +45,28 @@ pub(super) fn badge(text: impl Into<SharedString>, tone: Tone, tokens: &Tokens) 
         .child(text.into())
 }
 
-/// A page of sections, as Settings draws one: its lead, then the sections,
-/// in a column no wider than a reading line, scrolled by the caller.
+/// A page of sections, as Paseo's settings draw one: its lead, then the
+/// sections, no wider than Paseo's content (820), scrolled by the caller.
 pub(super) fn page(lead: &'static str, tokens: &Tokens) -> Div {
     div()
         .w_full()
-        .max_w(px(760.0))
+        .max_w(px(820.0))
         .flex()
         .flex_col()
-        .gap(px(20.0))
         .px(px(16.0))
-        .py(px(16.0))
+        .py(px(24.0))
         .child(
             div()
+                .mb(px(24.0))
+                .ml(px(4.0))
                 .type_(Type::Body)
                 .text_color(tokens.text_secondary)
                 .child(lead),
         )
 }
 
-/// A section: its title, an action at the right, and what it holds.
+/// A section: its title (12, muted, 4 in) with an action at the right, 12
+/// above what it holds; 24 under it.
 pub(super) fn section(
     title: impl Into<SharedString>,
     action: Option<Div>,
@@ -72,7 +76,8 @@ pub(super) fn section(
     div()
         .flex()
         .flex_col()
-        .gap(px(8.0))
+        .gap(px(12.0))
+        .mb(px(24.0))
         .child(
             div()
                 .flex()
@@ -80,12 +85,12 @@ pub(super) fn section(
                 .flex_wrap()
                 .items_center()
                 .gap(px(8.0))
-                .min_h(px(32.0))
+                .ml(px(4.0))
                 .child(
                     div()
                         .flex_1()
-                        .type_(Type::Label)
-                        .text_color(tokens.text_primary)
+                        .type_(Type::Meta)
+                        .text_color(tokens.text_secondary)
                         .child(title.into()),
                 )
                 .children(action),
@@ -93,20 +98,21 @@ pub(super) fn section(
         .child(body)
 }
 
-/// A list of rows on a card.
+/// A card of rows: the first surface, 8 corners, a hairline edge.
 pub(super) fn rows(tokens: &Tokens) -> Div {
     div()
         .flex()
         .flex_col()
-        .rounded(px(radius::R4))
+        .rounded(px(radius::R2))
         .border_1()
         .border_color(tokens.border_subtle)
         .bg(tokens.bg_surface)
         .overflow_hidden()
 }
 
-/// One row: its title (any element), the facts under it, and its controls
-/// at the right; 44 points tall at least, as a touch target.
+/// One row: its title (any element), the facts under it (12, muted, 4
+/// below), its controls at the right; 16 in on every side, 44 tall at least
+/// as a touch target ([`divided`] adds the hairline between rows).
 pub(super) fn row(
     title: impl IntoElement,
     facts: &[String],
@@ -120,17 +126,14 @@ pub(super) fn row(
         .items_center()
         .gap(px(10.0))
         .min_h(px(44.0))
-        .px(px(12.0))
-        .py(px(8.0))
-        .border_b_1()
-        .border_color(tokens.border_faint)
+        .p(px(16.0))
         .child(
             div()
                 .flex_1()
                 .min_w(px(160.0))
                 .flex()
                 .flex_col()
-                .gap(px(2.0))
+                .gap(px(4.0))
                 .child(title)
                 .when(!facts.is_empty(), |column| {
                     column.child(
@@ -149,6 +152,13 @@ pub(super) fn row(
                 .items_center()
                 .gap(px(6.0))
         }))
+}
+
+/// `row` with the hairline above it that every row but a card's first has.
+pub(super) fn divided(row: Div, index: usize, tokens: &Tokens) -> Div {
+    row.when(index > 0, |row| {
+        row.border_t_1().border_color(tokens.border_subtle)
+    })
 }
 
 /// A row's title.

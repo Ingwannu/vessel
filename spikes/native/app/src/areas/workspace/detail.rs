@@ -24,7 +24,7 @@ use vessel_proto::{ProjectId, WorktreeId};
 
 use super::approval::{self, Actions, Panel};
 use super::remove::{self, Removing, branch_name};
-use super::widgets::{Tone, badge, banner, empty, fact, row, rows, section, title};
+use super::widgets::{Tone, badge, banner, divided, empty, fact, row, rows, section, title};
 use crate::shell::Shell;
 
 /// An open project's lists and what is being done to them.
@@ -366,27 +366,45 @@ pub(super) fn render(
         labels.not_git_repository.to_owned()
     };
     let facts = rows(tokens)
-        .child(row(
-            title(labels.folder, tokens),
-            &[],
-            Some(div().child(fact(project.root.display().to_string(), true, tokens))),
+        .child(divided(
+            row(
+                title(labels.folder, tokens),
+                &[],
+                Some(div().child(fact(project.root.display().to_string(), true, tokens))),
+                tokens,
+            ),
+            0,
             tokens,
         ))
-        .child(row(
-            title(labels.default_branch, tokens),
-            &[],
-            Some(div().child(fact(branch, project.git, tokens))),
+        .child(divided(
+            row(
+                title(labels.default_branch, tokens),
+                &[],
+                Some(div().child(fact(branch, project.git, tokens))),
+                tokens,
+            ),
+            1,
             tokens,
         ))
-        .child(row(
-            title(labels.added, tokens),
-            &[],
-            Some(div().child(fact(added, false, tokens))),
+        .child(divided(
+            row(
+                title(labels.added, tokens),
+                &[],
+                Some(div().child(fact(added, false, tokens))),
+                tokens,
+            ),
+            2,
             tokens,
         ));
-    let mut column = div().flex().flex_col().gap(px(20.0)).child(section(
+    let id = project.id;
+    let remove = div().child(
+        button("project-remove", labels.remove_project, false, tokens)
+            .text_color(tokens.danger)
+            .on_click(cx.listener(move |this, _event, _window, cx| this.forget_project(id, cx))),
+    );
+    let mut column = div().flex().flex_col().child(section(
         project.name.to_string(),
-        None,
+        Some(remove),
         facts,
         tokens,
     ));
@@ -593,10 +611,14 @@ fn worktrees(shell: &Shell, detail: &Detail, tokens: &Tokens, cx: &mut Context<'
                 );
             })),
         );
-        list = list.child(row(
-            title(branch_name(worktree, labels.detached), tokens),
-            &facts,
-            Some(controls),
+        list = list.child(divided(
+            row(
+                title(branch_name(worktree, labels.detached), tokens),
+                &facts,
+                Some(controls),
+                tokens,
+            ),
+            index,
             tokens,
         ));
     }
@@ -681,10 +703,14 @@ fn snapshots(
                 })),
             )
         };
-        list = list.child(row(
-            title(snapshot_name(snapshot), tokens),
-            &facts,
-            Some(controls),
+        list = list.child(divided(
+            row(
+                title(snapshot_name(snapshot), tokens),
+                &facts,
+                Some(controls),
+                tokens,
+            ),
+            index,
             tokens,
         ));
     }
