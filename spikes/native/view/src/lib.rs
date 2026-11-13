@@ -43,7 +43,8 @@ pub use board::{
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
 pub use options::{
-    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
+    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
+    own_name, with_picks,
 };
 pub use text::ScheduleWords;
 pub use text::{
