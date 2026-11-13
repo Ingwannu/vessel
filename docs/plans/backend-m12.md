@@ -158,7 +158,17 @@ owner typed the key into the name field (the screen's wording invited
 it), and the machine the node ran on had no `vessel` command to compare
 the key with.
 
-So the milestone's scope is the page's whole surface, not a few screens:
+And, a little later: nearly everything Paseo and GOAT support must be
+supported.
+
+So the milestone's scope is not a few screens. It is the page's whole
+surface and, beyond the page, the feature tables of milestone 11
+(`backend-m11.md`: what GOAT, Paseo and agent-orchestrator do, and
+whether Vessel does): what those tables mark as built on the node but
+not yet drawn is drawn in the app first, and what they mark as not
+built is built on the node and drawn in the app.
+
+In order:
 
 - **0.0.0.0.2**: a new session by typing and sending (the references'
   flow, reproduced; `new-session-flow-compare` is the side-by-side the
