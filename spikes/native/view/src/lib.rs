@@ -11,6 +11,8 @@
 
 mod board;
 mod conversation;
+#[cfg(test)]
+mod tests;
 mod text;
 
 pub use board::{

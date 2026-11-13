@@ -1,51 +1,14 @@
-//! Every word the app shows, in one table per language (English and
-//! Korean), so the language follows the system's and a screen never holds
-//! a sentence of its own.
-//!
-//! [Decision Log]
-//! - Purpose: the owner and most of the app's users read Korean (the
-//!   coordinator's report on build 0.0.0.0.1): every string goes through
-//!   one table that can be switched, from the first screens on.
-//! - Alternatives: `rust-i18n` (already in the tree through the component
-//!   layer: keys are strings, a missing translation is found at run time);
-//!   Fluent (a new dependency and a runtime format).
-//! - Choice: a struct with one field per sentence and one constant per
-//!   language. A sentence added to one language and not the other does not
-//!   compile; a typo in a key cannot happen. Sentences with values in them
-//!   are methods, written per language, so word order is the language's.
-//! - Cost: a new language is a new constant of every field; plural rules
-//!   are written by hand (English needs few here, Korean none).
-//! - Not translated yet: the link's errors (they come from `vessel-client`
-//!   and the node, in English).
+//! The words of the lead's areas (the sidebar, the board, the archive, the
+//! new chat, a session's frame and composer, pairing) and the shared
+//! frame, in English and Korean. See `text/mod.rs` for the convention.
 
 use vessel_proto::DisplayStatus;
 
+use super::Lang;
 use crate::{Lane, Notice, Phrase, ToolState};
 
-/// A language the app speaks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Lang {
-    /// English.
-    En,
-    /// Korean.
-    Ko,
-}
-
 impl Lang {
-    /// The language for a BCP 47 tag (`ko-KR`, `en_US.UTF-8`): Korean for
-    /// any `ko`, English otherwise.
-    #[must_use]
-    pub fn from_tag(tag: &str) -> Self {
-        let tag = tag.to_ascii_lowercase();
-        if tag == "ko" || tag.starts_with("ko-") || tag.starts_with("ko_") || tag.starts_with("ko.")
-        {
-            Self::Ko
-        } else {
-            Self::En
-        }
-    }
-
-    /// The table of this language.
+    /// The words of the lead's areas in this language.
     #[must_use]
     pub const fn text(self) -> &'static Text {
         match self {
