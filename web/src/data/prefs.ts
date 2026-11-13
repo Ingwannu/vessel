@@ -17,9 +17,33 @@
 //   can arrive in either order; a state older than the one shown is
 //   dropped by its revision. A refused change puts back the last state
 //   the bridge confirmed.
+//
+// [Decision Log: a change made before the bridge answers]
+// - Problem (found under load in the end-to-end runs): a change made
+//   while the page is still connecting was sent at once, refused as "not
+//   connected", and taken back; and a state that arrived while a change
+//   was on its way (the one pushed after the welcome, or another
+//   change's) showed the bridge's document without it until its own
+//   answer came. So Ctrl+B pressed as the page loaded hid the sidebar for
+//   a moment and put it back, and the next Ctrl+B, reading the sidebar as
+//   shown, hid it, and the bridge kept it hidden.
+// - Alternatives: the bridge client queueing every op until its link
+//   opens (ops a person retries by hand, the book's and pairing's, would
+//   then run late and unseen); refusing changes until the link opens (a
+//   key does nothing for a second after each load).
+// - Choice: a change waits for the link to open (not past a refusal or
+//   the client giving up, which take it back), and the changes not yet
+//   answered are applied over every state that arrives, oldest first,
+//   until each one's own answer. Every change sets a value (none toggles
+//   or adds), so one applied over a state that holds it already is that
+//   state.
+// - Cost: a change made while the link stays down is shown and not kept
+//   until the link opens; the list of unanswered changes is as long as a
+//   person can press between two answers.
 // - No read or write on a render path: screens read the store; a write is
 //   one op, on a person's action.
 
+import type { LinkState } from "../bridge/client";
 import type { Fleet } from "./fleet";
 import { attempt, type Outcome } from "./outcome";
 import { applyChange, DEFAULT_PREFERENCES, keepSections } from "./prefs-change";
@@ -27,6 +51,8 @@ import { Store } from "./store";
 import type {
   ContentWidth,
   Kept,
+  Op,
+  OpResult,
   PreferenceChange,
   Preferences,
   PreferencesState,
@@ -126,18 +152,27 @@ export function startPreferences(): void {
   prefs.set({ ...prefs.get(), values, confirmed: values });
 }
 
+/** The changes shown and not answered yet, oldest first. */
+let unanswered: readonly PreferenceChange[] = [];
+
+/** `values` with every unanswered change applied over it. */
+function withUnanswered(values: Preferences): Preferences {
+  return unanswered.reduce(applyChange, values);
+}
+
 /** A state from the bridge (a reply or a push): shown unless an older
- * revision than the one shown. */
+ * revision than the one shown, with the changes not answered yet applied
+ * over it. */
 export function takePreferences(state: PreferencesState): void {
   const current = prefs.get();
   if (state.revision < current.revision) {
     return;
   }
-  const values = keepSections(current.values, state.values);
+  const confirmed = keepSections(current.confirmed, state.values);
   show({
-    values,
+    values: keepSections(current.values, withUnanswered(confirmed)),
     kept: state.kept,
-    confirmed: values,
+    confirmed,
     revision: state.revision,
   });
 }
@@ -147,25 +182,87 @@ export function followPreferences(fleet: Fleet): () => void {
   return fleet.bridge.onPreferences(takePreferences);
 }
 
-/** Change one setting: shown at once, then as the bridge answers. */
-export async function prefer(
-  fleet: Fleet,
+/** What a change needs of the fleet: its link to `vessel ui`, and the
+ * bridge's op. Given by `prefer` (a test gives its own). */
+export interface PrefsLink {
+  link: () => LinkState;
+  onLink: (listener: (link: LinkState) => void) => () => void;
+  op: (op: Op) => Promise<OpResult>;
+}
+
+/** Whether `link` lets a change go: `true` open, `false` given up on
+ * (refused, or no longer redialled), `null` not yet. */
+function linkReady(link: LinkState): boolean | null {
+  switch (link.kind) {
+    case "open":
+      return true;
+    case "refused":
+    case "disconnected":
+      return false;
+    case "connecting":
+    case "closed":
+      return null;
+  }
+}
+
+/** Once the link opens, or is given up on: whether it opened. */
+function opened(through: PrefsLink): Promise<boolean> {
+  return new Promise((resolve) => {
+    const now = linkReady(through.link());
+    if (now !== null) {
+      resolve(now);
+      return;
+    }
+    const stop = through.onLink((link) => {
+      const ready = linkReady(link);
+      if (ready !== null) {
+        stop();
+        resolve(ready);
+      }
+    });
+  });
+}
+
+/** Change one setting: shown at once, sent once the link is open, then
+ * as the bridge answers. */
+export async function preferThrough(
+  through: PrefsLink,
   change: PreferenceChange,
 ): Promise<Outcome<void>> {
   const before = prefs.get();
   show({ ...before, values: applyChange(before.values, change) });
+  unanswered = [...unanswered, change];
   const outcome = await attempt(async () => {
-    const result = await fleet.bridge.op({ op: "prefer", change });
+    if (!(await opened(through))) {
+      throw new Error("The page is not connected to vessel ui.");
+    }
+    const result = await through.op({ op: "prefer", change });
     if (result.op !== "prefer") {
       throw new Error("vessel ui answered another op");
     }
     takePreferences(result.preferences);
   });
+  unanswered = unanswered.filter((pending) => pending !== change);
   if (!outcome.ok) {
     const now = prefs.get();
-    show({ ...now, values: now.confirmed });
+    show({ ...now, values: withUnanswered(now.confirmed) });
   }
   return outcome;
+}
+
+/** Change one setting through `fleet` (`preferThrough`). */
+export function prefer(
+  fleet: Fleet,
+  change: PreferenceChange,
+): Promise<Outcome<void>> {
+  return preferThrough(
+    {
+      link: () => fleet.store.get().link,
+      onLink: (listener) => fleet.bridge.onLink(listener),
+      op: (op) => fleet.bridge.op(op),
+    },
+    change,
+  );
 }
 
 /** Where the bridge keeps the preferences, in a sentence for Settings;
