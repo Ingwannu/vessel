@@ -303,8 +303,8 @@ do nothing); each is for a node track:
 |---|---|---|
 | Open pull requests of a project with no live session (`pr.list` walks watched sessions only) | the pull request page | the page is "pull requests of this machine's sessions" and says so |
 | The webhook calls (`hook.*`): ADR 0034 has the types and the store, not the calls, the listener or the CLI | schedules | no webhook screen |
-| ~~A machine's time zone~~ | schedules | N3 row 1: `NodeInfo.timezone`; built in `f81798c3` (protocol 12; review pending) |
-| ~~The next runs of an expression before it is saved~~ | the schedule editor | N3 row 1: `schedule.preview`; shared scheduler calculation, returned cadence reused on save; `f81798c3` (review pending) |
+| ~~A machine's time zone~~ | schedules | N3 row 1: `NodeInfo.timezone`; built in `f81798c3`; V1 source/contract passed, integrated as protocol 13 in `187dc847` |
+| ~~The next runs of an expression before it is saved~~ | the schedule editor | N3 row 1: `schedule.preview`; shared scheduler calculation, returned cadence reused on save; `f81798c3`; V1 source/contract passed, integrated in `187dc847` |
 | Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | N3 row 2 implementation awaits its full gate and review; app stays read-only |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 | A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |

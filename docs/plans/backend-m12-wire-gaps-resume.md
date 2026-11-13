@@ -21,7 +21,7 @@ new slice or branch merge until the next session explicitly resumes work.
   member's grant from joining, after node creation. Existing 10/20-second
   bounds remain. Their final validation is not claimed by this note.
 
-## Current row 2, awaiting gate and review
+## Current row 2, awaiting final TS generation and review
 
 Credit-stop checkpoint: preserved as the commit titled `wip: fleet membership
 controls and bounded sync status`. It is not an approved/ready slice. At that
@@ -186,3 +186,35 @@ credential and both node books 0600, all owned 1000:1000. No chmod/chown fix
 was needed. Both recorded node PIDs were stopped and absent afterward. No
 pairing link or credential output was displayed. Native screen rendering and
 other OS execution are not verified by this backend check.
+
+### Final root gate and grant checks
+
+The exact original root gate completed successfully on the current source:
+fmt, `cargo clippy --workspace --all-targets -- -D warnings`, then
+`cargo test --workspace` (RUST_TEST_THREADS=2), each build/test through the
+machine slot helper. The test result is 105 suites, 1,666 passed, zero failed,
+nine ignored. Node unit tests: 198; node E2E: 151. Log:
+`row2-final-workspace-test.log`. Changed crates are explicitly recompiled in
+the log. This supersedes earlier incomplete whole-run checkpoints.
+
+The earlier TS-enabled whole run remains recorded as 1,669 passed / four
+failed / nine ignored. The three new-fixture failures are corrected; all pass
+in the final root run. The existing remote release-fallback test also passed
+in the final root run without any change to its code or 60-second timeout.
+Its earlier timeout remains an unexplained prior failure, not a waived
+known-load exception.
+
+On the exact node E2E executable named in the final root log, reinstalled
+member grant passed four consecutive runs and grant-stop passed eight. Each
+ran with CARGO removed so the locator used existing binaries. The whole
+workspace continued through unrelated later tests while these checks ran;
+no second Cargo command was started. `row2-grant-repeats.json` records each
+argv/log/exit, UID/GID 1000, pre/post executable SHA256 equality and no Rust
+source changes. No timing bound or assertion changed.
+
+The literal requested filtered TS regeneration command is now running:
+`VESSEL_WRITE_TS=1 cargo test -p vessel-proto -p vessel-web --features ts
+--lib typescript`, with the same slot helper; log `row2-final-typescript.log`.
+Do not report it passed until its result is recorded below. The previous
+TS-enabled whole run did pass the generator tests. The owned-process audit
+found no remaining fixture/node/UI process; no preview or real agent used.
