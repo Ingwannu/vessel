@@ -51,13 +51,17 @@ app/src/
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
-    draft/         the new chat: Paseo's composer card, its pickers (pickers.rs)
+    draft/         the new chat: Paseo's composer card, its pickers (pickers.rs), the
+                   step of Paseo's ladder the card's width allows (density.rs), the
+                   features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
-    board.rs, archive.rs, sidebar.rs, pair.rs
+    pair.rs        adding a machine: Paseo's paste-link modal, then its host
+                   confirmation, over the new chat
+    board.rs, archive.rs, sidebar.rs
 ```
 
 ### Adding a screen (an area)

@@ -378,6 +378,45 @@ screen, every picker at every level for Claude Code, Codex and OpenCode
 search across agents; 사고; 모드; 기능 and each feature's own list; the
 machine; the folder and a typed path), About up to date, a session.
 
+## Build 0.0.0.0.7 (the differences from Paseo left in 0.0.0.0.6)
+
+In the order the owner meets them, each as Paseo has it:
+
+- The composer's controls take the step of Paseo's ladder their width
+  allows (`composer/agent-controls/layout.ts`, `app/src/areas/draft/density.rs`):
+  `full` with carets, the thinking and mode values, and a control per
+  feature (an on/off feature a square that switches it; a choice its value,
+  opening its list with Paseo's search row); `condensed` without carets,
+  thinking as its glyph, the features as one control opening the features
+  sheet; `tight` the mode as its glyph too. Paseo's floors (a control 28,
+  its glyph 16, a caret 14, 7 per character of a label) and its 12 of
+  hysteresis; the controls' width is measured each frame. The features
+  sheet is Paseo's `AdaptiveModalSheet` (a card on a wide window): a row per
+  feature with its value, each opening its list below it with the name
+  above. Not here: Paseo's two narrowest steps (thinking, mode and
+  features folded into the model control's sheet; the model as its glyph
+  alone), and a feature's own icon and its highlight when on (ACP sends no
+  icon: every feature shows Paseo's default, muted).
+- A list opens on the side its caller names, as Paseo's combobox (no flip
+  on a wide window): the controls in the card above them, the machine and
+  folder under the card below them, 5 from the trigger, at most 400 tall
+  and never taller than the room on that side less 16.
+- Adding a machine is Paseo's two modals over the new chat: "페어링 링크
+  붙여넣기" (its helper, the field, Cancel and Pair) and "이 호스트에 연결할까요?"
+  (what connecting allows; the host, its key fingerprint and its relay in a
+  settings card; Cancel and Connect). Vessel's own in them: the warning to
+  treat the link like a password (Paseo shows it where a link is made, not
+  where it is pasted; the coordinator asked for it here, where the link is
+  in the person's hands), and the name the book will use, in the second.
+- About: Paseo's confirm ("데스크톱 업데이트 설치") before the update restarts
+  the app; "새로운 소식" opening the running build's notes (the feed's,
+  kept by the build that downloaded it; Paseo's lists every version from
+  its website); "경로 복사" beside "로그 열기"; the switch's thumb slides in
+  180 ms once switched (the track's colour changes at once).
+- The sidebar's foot is Paseo's: a hairline over one line, Settings (a
+  gear) at its right end, opening About until the settings track's frame
+  lands. Its other icons (a project, usage, hosts, help) are not here.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,
