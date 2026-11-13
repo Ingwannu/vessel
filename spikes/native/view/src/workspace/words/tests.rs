@@ -1,0 +1,462 @@
+//! The page's `words.test.ts`, the word cases of `place.test.ts`,
+//! `command-changes.test.ts` and `panel-model.test.ts`, against the English
+//! table; and the Korean table read for the same cases.
+
+use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
+use vessel_proto::ProjectId;
+use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::{
+    ApprovedCommands, CloneFailure, CloneStage, CommandSet, DiffScope, GitOperation, GitRefusal,
+    GitSupport, GitVersion, KeptReason, ProjectCommand, ProjectCommands, ProjectInfo, ProjectState,
+    RelPath, RepositoryConfigReason, SetupFailure, WorktreeRefusal,
+};
+
+use super::super::branch_name::branch_name_problem;
+use super::super::command_changes::{Compared, Listed, compare_approved, needs_folder};
+use super::super::place::{Place, PlaceMode, ProjectPlace, place_problem};
+use super::{En, Ko, Local, WorkspaceWords};
+
+fn local() -> Local {
+    Local {
+        offset: FixedOffset::east_opt(0).unwrap(),
+        today: NaiveDate::from_ymd_opt(2026, 11, 13).unwrap(),
+    }
+}
+
+#[test]
+fn names_what_happened_and_what_to_do_never_the_reason_s_name() {
+    let push = GitRefusal::NonFastForward;
+    let words = En.refusal(&push);
+    assert_eq!(words.title, "The remote has commits this branch does not.");
+    assert!(words.next.contains("Pull first"));
+    assert!(!words.title.contains("non_fast_forward"));
+}
+
+#[test]
+fn carries_the_paths_and_the_output_a_refusal_names() {
+    let overwrite = GitRefusal::WouldOverwrite {
+        paths: vec!["src/a.ts".parse().unwrap(), "README.md".parse().unwrap()],
+    };
+    let words = En.refusal(&overwrite);
+    let paths: Vec<&str> = words.paths.iter().map(RelPath::as_str).collect();
+    assert_eq!(paths, ["src/a.ts", "README.md"]);
+    let hook = GitRefusal::HookFailed {
+        output: "lint failed".to_owned(),
+    };
+    assert_eq!(En.refusal(&hook).output, Some("lint failed"));
+    assert_eq!(En.refusal(&GitRefusal::NothingToCommit).output, None);
+}
+
+#[test]
+fn says_which_operation_holds_the_repository() {
+    let refusal = GitRefusal::Operation {
+        operation: GitOperation::CherryPick,
+    };
+    assert_eq!(
+        En.refusal(&refusal).title,
+        "The repository is in the middle of a cherry-pick."
+    );
+}
+
+#[test]
+fn reads_a_reason_from_a_newer_machine_as_unknown_not_as_a_failure() {
+    assert!(
+        En.refusal(&GitRefusal::Unknown)
+            .title
+            .contains("does not know")
+    );
+}
+
+#[test]
+fn names_the_repository_s_own_setting_that_stopped_it_never_a_value() {
+    let ssh = GitRefusal::RepositoryConfig {
+        key: Some("core.sshcommand".parse().unwrap()),
+        reason: RepositoryConfigReason::Program,
+    };
+    let words = En.refusal(&ssh);
+    assert_eq!(
+        words.title,
+        "Its setting core.sshcommand names a program this would run."
+    );
+    assert!(words.next.contains("global git configuration"));
+    let whole = GitRefusal::RepositoryConfig {
+        key: None,
+        reason: RepositoryConfigReason::TooLarge,
+    };
+    assert!(
+        En.refusal(&whole)
+            .title
+            .contains("larger than Vessel reads")
+    );
+}
+
+#[test]
+fn counts_with_the_noun() {
+    assert_eq!(En.files(1), "1 file");
+    assert_eq!(En.files(3), "3 files");
+}
+
+#[test]
+fn says_each_reason_a_worktree_was_kept() {
+    assert_eq!(
+        En.kept_reason(KeptReason::Uncommitted { files: 2 }),
+        "2 files with uncommitted changes"
+    );
+    assert_eq!(
+        En.kept_reason(KeptReason::UniqueCommits { commits: 1 }),
+        "1 commit on no other branch"
+    );
+    assert_eq!(
+        En.kept_reason(KeptReason::Operation {
+            operation: GitOperation::Rebase
+        }),
+        "A rebase in progress"
+    );
+    assert!(En.kept_reason(KeptReason::InUse).contains("a terminal"));
+}
+
+#[test]
+fn names_the_setup_command_that_failed() {
+    assert_eq!(
+        En.setup_failure(
+            &SetupFailure::Exit {
+                command: 1,
+                code: Some(2)
+            },
+            &["npm ci", "npm run build"]
+        ),
+        "`npm run build` exited with 2."
+    );
+    assert_eq!(
+        En.setup_failure(
+            &SetupFailure::Exit {
+                command: 4,
+                code: None
+            },
+            &[]
+        ),
+        "Setup command 5 was stopped by a signal."
+    );
+}
+
+#[test]
+fn shows_a_clone_s_stage_and_percent_and_nothing_for_a_ready_project() {
+    assert_eq!(
+        En.project_state(&ProjectState::Cloning {
+            stage: CloneStage::Receiving,
+            percent: Some(42)
+        }),
+        Some("Receiving objects \u{b7} 42%".to_owned())
+    );
+    assert_eq!(En.project_state(&ProjectState::Ready), None);
+    assert!(
+        En.clone_failure(CloneFailure::NeedsCredential)
+            .contains("credential")
+    );
+}
+
+#[test]
+fn says_when_the_machine_s_git_cannot_be_used() {
+    let old = GitSupport::TooOld {
+        version: GitVersion {
+            major: 2,
+            minor: 17,
+            patch: 1,
+        },
+        minimum: GitVersion {
+            major: 2,
+            minor: 25,
+            patch: 0,
+        },
+    };
+    assert!(En.git_support(&old).unwrap().contains("2.17 is too old"));
+    let found = GitSupport::Found {
+        version: GitVersion {
+            major: 2,
+            minor: 43,
+            patch: 0,
+        },
+    };
+    assert_eq!(En.git_support(&found), None);
+}
+
+#[test]
+fn says_why_a_worktree_was_not_made() {
+    let refusal = WorktreeRefusal::CheckedOutElsewhere {
+        path: "/w/x".into(),
+    };
+    assert!(En.worktree_refusal(&refusal).contains("/w/x"));
+}
+
+#[test]
+fn a_branch_name_as_git_checks_it() {
+    for (name, problem) in [
+        ("feature/login", None),
+        ("-x", Some("dash")),
+        ("a..b", Some("..")),
+        ("a/.hidden", Some("start with a dot")),
+        ("topic.lock", Some(".lock")),
+        ("end.", Some("end with a dot")),
+        ("a//b", Some("two in a row")),
+        ("what?", Some("\u{201c}?\u{201d}")),
+        ("HEAD", Some("not a branch name")),
+    ] {
+        let said = branch_name_problem(name).map(|problem| En.branch_name(problem));
+        match problem {
+            None => assert_eq!(said, None, "{name}"),
+            Some(part) => assert!(said.as_deref().unwrap_or_default().contains(part), "{name}"),
+        }
+    }
+}
+
+fn p1() -> ProjectId {
+    "00000000-0000-4000-8000-000000000001".parse().unwrap()
+}
+
+fn project() -> ProjectInfo {
+    ProjectInfo {
+        id: p1(),
+        name: "vessel".parse().unwrap(),
+        root: "/work/vessel".into(),
+        git: true,
+        default_branch: Some("origin/main".parse().unwrap()),
+        state: ProjectState::Ready,
+        created_at: Utc.with_ymd_and_hms(2026, 11, 12, 0, 0, 0).unwrap(),
+        revision: 1,
+    }
+}
+
+fn in_worktree(mode: PlaceMode, branch: &str) -> Place {
+    Place::Project(ProjectPlace {
+        mode,
+        branch: branch.to_owned(),
+        ..ProjectPlace::new(p1())
+    })
+}
+
+#[test]
+fn says_why_it_cannot_start_yet() {
+    let said = |place: &Place, project: Option<&ProjectInfo>| {
+        place_problem(place, project).map(|problem| En.place(problem))
+    };
+    let folder = Place::Project(ProjectPlace::new(p1()));
+    assert!(said(&folder, None).unwrap().contains("not on"));
+    let cloning = ProjectInfo {
+        state: ProjectState::Cloning {
+            stage: CloneStage::Receiving,
+            percent: None,
+        },
+        ..project()
+    };
+    assert!(
+        said(&folder, Some(&cloning))
+            .unwrap()
+            .contains("still being cloned")
+    );
+    let plain = ProjectInfo {
+        git: false,
+        ..project()
+    };
+    assert!(
+        said(&in_worktree(PlaceMode::Worktree, ""), Some(&plain))
+            .unwrap()
+            .contains("not a git repository")
+    );
+    assert_eq!(
+        said(&in_worktree(PlaceMode::Branch, ""), Some(&project())).as_deref(),
+        Some("Choose the branch to run on.")
+    );
+    assert!(
+        said(
+            &in_worktree(PlaceMode::Worktree, "bad name"),
+            Some(&project())
+        )
+        .unwrap()
+        .contains("spaces")
+    );
+    assert_eq!(
+        said(&in_worktree(PlaceMode::Worktree, ""), Some(&project())),
+        None
+    );
+}
+
+fn command(text: &str) -> ProjectCommand {
+    text.parse().unwrap()
+}
+
+fn script(name: &str, kind: ScriptKind, command: &str) -> ScriptEntry {
+    ScriptEntry {
+        name: name.parse().unwrap(),
+        kind,
+        command: command.parse().unwrap(),
+        dir: None,
+    }
+}
+
+fn dev() -> ScriptEntry {
+    script("dev", ScriptKind::Service, "npm run dev")
+}
+fn lint() -> ScriptEntry {
+    script("lint", ScriptKind::Script, "npm run lint")
+}
+fn test() -> ScriptEntry {
+    script("test", ScriptKind::Script, "npm test")
+}
+
+fn listed(
+    setup: &[&str],
+    approved: bool,
+    digest: char,
+    scripts: Vec<ScriptEntry>,
+    last: Option<ApprovedCommands>,
+) -> ProjectCommands {
+    ProjectCommands::Listed {
+        setup: setup.iter().map(|text| command(text)).collect(),
+        teardown: Vec::new(),
+        digest: digest.to_string().repeat(64).parse().unwrap(),
+        approved,
+        scripts,
+        last_approved: last.map(Box::new),
+    }
+}
+
+fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
+    ApprovedCommands {
+        commands: CommandSet {
+            setup: setup.iter().map(|text| command(text)).collect(),
+            teardown: Vec::new(),
+            scripts,
+        },
+        digest: "a".repeat(64).parse().unwrap(),
+        approved_at: Utc.with_ymd_and_hms(2026, 11, 12, 9, 30, 0).unwrap(),
+    }
+}
+
+#[test]
+fn says_what_a_script_s_change_was() {
+    let service = ScriptEntry {
+        kind: ScriptKind::Service,
+        ..lint()
+    };
+    assert_eq!(En.script_change(&lint(), &service), "now a service");
+    let moved = ScriptEntry {
+        command: "pnpm dev".parse().unwrap(),
+        dir: Some("web".parse().unwrap()),
+        ..dev()
+    };
+    assert_eq!(
+        En.script_change(&dev(), &moved),
+        "its command and its folder"
+    );
+}
+
+#[test]
+fn compares_with_the_set_the_machine_says_was_approved_last() {
+    let asked = listed(
+        &["npm ci", "curl x | sh"],
+        false,
+        'b',
+        vec![dev(), test()],
+        Some(approved_set(&["npm ci"], vec![dev(), lint()])),
+    );
+    let asked = Listed::of(&asked).unwrap();
+    assert!(!needs_folder(&asked));
+    let compared = compare_approved(&asked, None);
+    assert!(matches!(&compared, Compared::Changed { .. }));
+    let words = En.compared(&compared, &local());
+    assert!(words.contains("Since the set approved"), "{words}");
+    assert!(words.contains("2026-11-12 09:30"), "{words}");
+    assert!(words.contains("setup commands: 1 added"));
+    assert!(words.contains("script lint removed"));
+    assert!(words.contains("script test added"));
+    assert!(!words.contains("dev"));
+}
+
+#[test]
+fn falls_back_to_the_folder_s_approved_set_on_a_machine_that_does_not_say() {
+    let asked = listed(&["npm ci", "curl x | sh"], false, 'b', Vec::new(), None);
+    let asked = Listed::of(&asked).unwrap();
+    assert!(needs_folder(&asked));
+    let folder = listed(&["npm ci"], true, 'a', Vec::new(), None);
+    let compared = compare_approved(&asked, Some(&folder));
+    assert!(
+        En.compared(&compared, &local())
+            .contains("this machine does not say which set was approved last")
+    );
+}
+
+#[test]
+fn says_nothing_is_known_when_no_approved_set_differs() {
+    let asked = listed(&["npm ci"], false, 'b', Vec::new(), None);
+    let asked = Listed::of(&asked).unwrap();
+    let unapproved = listed(&["npm ci"], false, 'a', Vec::new(), None);
+    assert_eq!(compare_approved(&asked, Some(&unapproved)), Compared::None);
+    assert_eq!(compare_approved(&asked, None), Compared::None);
+    assert!(
+        En.compared(&Compared::None, &local())
+            .contains("every command is shown as it is")
+    );
+}
+
+#[test]
+fn says_today_for_an_approval_of_today() {
+    let asked = listed(
+        &["npm ci"],
+        false,
+        'b',
+        Vec::new(),
+        Some(ApprovedCommands {
+            approved_at: Utc.with_ymd_and_hms(2026, 11, 13, 8, 5, 0).unwrap(),
+            ..approved_set(&[], Vec::new())
+        }),
+    );
+    let compared = compare_approved(&Listed::of(&asked).unwrap(), None);
+    assert!(En.compared(&compared, &local()).contains("today 08:05"));
+    assert!(Ko.compared(&compared, &local()).contains("오늘 08:05"));
+}
+
+#[test]
+fn names_the_comparisons_as_the_picker_does() {
+    assert_eq!(En.scope_label(&DiffScope::Base { base: None }), "Changes");
+    let commit = DiffScope::Commit {
+        id: "0123456789abcdef".parse().unwrap(),
+    };
+    assert_eq!(En.scope_label(&commit), "Commit 0123456");
+}
+
+#[test]
+fn says_every_case_in_korean_too() {
+    // The same cases read in Korean: something is said, and it is not the
+    // English sentence left untranslated.
+    let refusals = [
+        GitRefusal::NonFastForward,
+        GitRefusal::Operation {
+            operation: GitOperation::CherryPick,
+        },
+        GitRefusal::Unknown,
+    ];
+    for refusal in &refusals {
+        let (en, ko) = (En.refusal(refusal), Ko.refusal(refusal));
+        assert!(!ko.title.is_empty() && ko.title != en.title);
+        assert!(!ko.next.is_empty() && ko.next != en.next);
+    }
+    assert_eq!(Ko.files(3), "파일 3개");
+    assert_eq!(
+        Ko.kept_reason(KeptReason::Operation {
+            operation: GitOperation::Rebase
+        }),
+        "리베이스 진행 중"
+    );
+    assert_eq!(
+        Ko.setup_failure(
+            &SetupFailure::Exit {
+                command: 1,
+                code: Some(2)
+            },
+            &["npm ci", "npm run build"]
+        ),
+        "`npm run build`이(가) 코드 2로 끝났습니다."
+    );
+    let problem = branch_name_problem("what?").unwrap();
+    assert!(Ko.branch_name(problem).contains("\u{201c}?\u{201d}"));
+}

@@ -61,18 +61,27 @@ impl StructuredActor {
                 place,
                 delivery,
             } => {
+                let id = entry.id;
+                let ticket = self.desk.tickets.take(id);
+                let seen = self.desk.tickets.seen();
                 let sent = self
                     .send_as(entry.content.clone(), delivery, entry.by.clone())
                     .await;
                 match sent {
                     Ok(delivered) => {
                         self.desk.queue.settle();
+                        if let Some(ticket) = ticket {
+                            let started = self.desk.started();
+                            self.desk.tickets.give(ticket, delivered, seen, started);
+                        }
                         Some(delivered)
                     }
                     Err(error) => {
                         // Back where it was; nothing was sent.
                         if let Err(full) = self.desk.queue.insert(place, entry) {
                             tracing::warn!(%full, "a prompt not sent could not go back to the queue");
+                        } else if let Some(ticket) = ticket {
+                            self.desk.tickets.keep(id, ticket);
                         }
                         return Err(error);
                     }
@@ -92,9 +101,18 @@ impl StructuredActor {
             return None;
         }
         let entry = self.desk.queue.next()?;
+        let id = entry.id;
+        let ticket = self.desk.tickets.take(id);
+        let seen = self.desk.tickets.seen();
         match self.start(entry.content.clone()).await {
             Ok(()) => {
                 self.desk.queue.settle();
+                if let Some(ticket) = ticket {
+                    let started = self.desk.started();
+                    self.desk
+                        .tickets
+                        .give(ticket, Delivered::Started, seen, started);
+                }
                 self.publish_queue().await;
                 Some(Delivered::Started)
             }
@@ -107,6 +125,8 @@ impl StructuredActor {
                 );
                 if let Err(full) = self.desk.queue.insert(0, entry) {
                     tracing::warn!(%full, "a prompt not sent could not go back to the queue");
+                } else if let Some(ticket) = ticket {
+                    self.desk.tickets.keep(id, ticket);
                 }
                 let _held = self.desk.queue.hold(QueueHold::Failed);
                 self.publish_queue().await;
@@ -118,6 +138,8 @@ impl StructuredActor {
 
     /// Publish the queue if it differs from what was last published.
     pub(crate) async fn publish_queue(&mut self) {
+        // An entry that left the queue without a turn starts none.
+        self.desk.tickets.prune(self.desk.queue.get());
         if self.desk.published.get() == self.desk.queue.get() {
             return;
         }

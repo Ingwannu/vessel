@@ -24,7 +24,7 @@ use vessel_testkit::Fake;
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::support::{Fixture, client, prompt, read_until, status_of, url, within};
 
-fn name(text: &str) -> AgentName {
+pub(crate) fn name(text: &str) -> AgentName {
     text.parse().unwrap()
 }
 
@@ -50,7 +50,7 @@ fn definition(env_file: &std::path::Path) -> AgentDefinition {
     }
 }
 
-fn add(agent: &str, env_file: &std::path::Path) -> AddAgent {
+pub(crate) fn add(agent: &str, env_file: &std::path::Path) -> AddAgent {
     AddAgent {
         name: name(agent),
         agent: AgentToAdd::Command {
@@ -61,14 +61,14 @@ fn add(agent: &str, env_file: &std::path::Path) -> AddAgent {
 }
 
 /// A node that takes up `secrets.toml` within 50 ms (5 s by default).
-async fn quick(fixture: &Fixture) -> vessel_node::Node {
+pub(crate) async fn quick(fixture: &Fixture) -> vessel_node::Node {
     fixture
         .start_with(|config| config.fleet.poll = std::time::Duration::from_millis(50))
         .await
 }
 
 /// Set the agent's secret and wait until the node has taken it up.
-async fn set_secret(owner: &NodeClient, value: &str) {
+pub(crate) async fn set_secret(owner: &NodeClient, value: &str) {
     owner
         .secret_set(
             "FAKE_SECRET".parse().unwrap(),

@@ -6,8 +6,8 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
-    AsyncApp, Context, IntoElement, ParentElement as _, Render, Styled as _, WeakEntity, Window,
-    div, px,
+    AsyncApp, Context, FluentBuilder as _, IntoElement, ParentElement as _, Render, Styled as _,
+    WeakEntity, Window, div, px,
 };
 use vessel_app_link::{Command, Event, Link, Prefs};
 use vessel_app_view::{Fleet, Text};
@@ -49,6 +49,9 @@ pub(crate) struct Shell {
     pub(crate) update_asked: bool,
     /// The note shown once after an update, until dismissed.
     pub(crate) updated: Option<crate::update::Updated>,
+    /// At a phone's width, the sidebar's sheet is open, over what was on
+    /// screen when it opened: going anywhere else closes it.
+    sidebar_sheet: Option<(Route, Option<vessel_proto::SessionId>)>,
 }
 
 impl Shell {
@@ -76,6 +79,7 @@ impl Shell {
             update_state: crate::update::UpdateState::Idle,
             update_asked: false,
             updated: None,
+            sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
         shell.announce_update();
@@ -124,6 +128,7 @@ impl Shell {
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
+            Event::Acted(answer) => self.acted(answer, cx),
             Event::Options {
                 machine,
                 harness,
@@ -139,6 +144,27 @@ impl Shell {
 
     pub(crate) fn reload(&self) {
         self.command(Command::Reload);
+    }
+
+    /// Where the person is: the route, and the session open on it.
+    fn place(&self) -> (Route, Option<vessel_proto::SessionId>) {
+        let session = self.areas.session.open.as_ref().map(|open| open.session);
+        (self.route, session)
+    }
+
+    /// Open or close the sidebar's sheet (a phone's width; the title bar's
+    /// menu button).
+    pub(crate) fn toggle_sidebar(&mut self, cx: &mut Context<'_, Self>) {
+        self.sidebar_sheet = match self.sidebar_sheet {
+            Some(_) => None,
+            None => Some(self.place()),
+        };
+        cx.notify();
+    }
+
+    /// Whether the sidebar's sheet is open.
+    pub(crate) const fn sidebar_open(&self) -> bool {
+        self.sidebar_sheet.is_some()
     }
 }
 
@@ -176,7 +202,27 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         let tokens = tokens(cx);
+        // ADR 0036: below the phone's width the sidebar is a sheet from the
+        // title bar; it closes when the person goes anywhere from it, and
+        // when the window grows past the width.
+        let phone = vessel_app_kit::breakpoint::phone(window);
+        if !phone
+            || self
+                .sidebar_sheet
+                .is_some_and(|opened| opened != self.place())
+        {
+            self.sidebar_sheet = None;
+        }
         let frame = routes::render(self.route, self, &tokens, window, cx);
+        let sheet = self.sidebar_sheet.is_some().then(|| {
+            vessel_app_kit::sheet(
+                "sidebar-sheet",
+                vessel_app_kit::Edge::Left,
+                areas::sidebar::render(self, &tokens, cx).into_any_element(),
+                &tokens,
+                cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx)),
+            )
+        });
         let content = div()
             .size_full()
             .flex()
@@ -188,31 +234,43 @@ impl Render for Shell {
                 div()
                     .flex_1()
                     .min_h(px(0.0))
+                    .relative()
                     .flex()
                     .flex_row()
-                    .child(areas::sidebar::render(self, &tokens, cx))
+                    .when(!phone, |row| {
+                        row.child(areas::sidebar::render(self, &tokens, cx))
+                    })
                     .child(
-                        div().flex_1().h_full().pb(px(8.0)).pr(px(8.0)).child(
-                            div()
-                                .size_full()
-                                .flex()
-                                .flex_col()
-                                .bg(tokens.bg_base)
-                                .border_1()
-                                .border_color(tokens.border_faint)
-                                .rounded(px(vessel_app_kit::theme::radius::R5))
-                                .overflow_hidden()
-                                .children(self.updated.as_ref().map(|updated| {
-                                    areas::about::updated(self, updated, &tokens, cx)
-                                }))
-                                .child(frame)
-                                .children(
-                                    self.notice
-                                        .clone()
-                                        .map(|notice| areas::common::foot(notice, &tokens)),
-                                ),
-                        ),
-                    ),
+                        div()
+                            .flex_1()
+                            .h_full()
+                            .pb(px(8.0))
+                            .pr(px(8.0))
+                            .when(phone, |frame| frame.pl(px(8.0)))
+                            .child(
+                                div()
+                                    .size_full()
+                                    .flex()
+                                    .flex_col()
+                                    .bg(tokens.bg_base)
+                                    .border_1()
+                                    .border_color(tokens.border_faint)
+                                    .rounded(px(vessel_app_kit::theme::radius::R5))
+                                    .overflow_hidden()
+                                    .children(self.updated.as_ref().map(|updated| {
+                                        areas::about::updated(self, updated, &tokens, cx)
+                                    }))
+                                    .child(frame)
+                                    .children(
+                                        self.notice
+                                            .clone()
+                                            .map(|notice| areas::common::foot(notice, &tokens)),
+                                    ),
+                            ),
+                    )
+                    // Under the title bar, so its menu button stays to close
+                    // it with.
+                    .children(sheet),
             );
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

@@ -23,10 +23,12 @@
 //!   `vessel-client` and the node, in English).
 
 mod app;
+mod conversation;
 mod options;
 mod update;
 
 pub use app::Text;
+pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
 pub use options::OptionsText;
 pub use update::UpdateText;
 

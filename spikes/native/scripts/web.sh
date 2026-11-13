@@ -8,8 +8,11 @@
 # Needs: the wasm32-unknown-unknown target of the pinned toolchain
 # (`rustup target add wasm32-unknown-unknown`), and `wasm-bindgen` of the
 # exact version in Cargo.lock (`cargo install wasm-bindgen-cli --version
-# <it> --locked`; on PATH or in $WASM_BINDGEN). Optional: `wasm-opt`
-# (binaryen) on PATH or in $WASM_OPT, which shrinks the module.
+# <it> --locked`; on PATH or in $WASM_BINDGEN). Optional: `wasm-opt` in
+# $WASM_OPT, which shrinks the module. Not taken from PATH: binaryen 108
+# (Ubuntu 24.04's package) rewrites wasm-bindgen 0.2.130's externref table
+# into a module the browser refuses ("WebAssembly.Table.set(): Argument 1
+# is invalid for table"), so the optimiser is chosen, never found.
 #
 # Usage (from spikes/native): scripts/web.sh [--debug]
 set -euo pipefail
@@ -44,7 +47,7 @@ rm -rf "$out"
 mkdir -p "$out"
 "$bindgen" --target web --no-typescript --out-dir "$out" --out-name vessel-app "$module"
 
-optimizer=${WASM_OPT:-$(command -v wasm-opt || true)}
+optimizer=${WASM_OPT:-}
 if [ "$profile" = release ] && [ -n "$optimizer" ]; then
   # -Oz: size first (what a browser downloads); the feature flags are the
   # ones rustc's wasm32 target emits by default.

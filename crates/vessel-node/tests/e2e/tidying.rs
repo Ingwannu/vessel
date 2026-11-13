@@ -33,7 +33,7 @@ async fn start(fixture: &Fixture) -> Node {
 
 /// A repository with one commit as a project of `client`'s node; its
 /// folder lives as long as the returned guard.
-async fn project(client: &NodeClient) -> (tempfile::TempDir, ProjectInfo) {
+pub(crate) async fn project(client: &NodeClient) -> (tempfile::TempDir, ProjectInfo) {
     let folder = tempfile::tempdir().unwrap();
     let root: PathBuf = std::fs::canonicalize(folder.path()).unwrap();
     repository(&root);

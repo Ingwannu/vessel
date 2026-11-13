@@ -10,6 +10,7 @@
 mod agents;
 mod args;
 mod attach;
+mod automation;
 mod commands;
 mod connect;
 mod conversation;
@@ -115,6 +116,8 @@ async fn cli() -> ExitCode {
         | Command::Shell(_)
         | Command::Script { .. }
         | Command::Ports(_)
+        | Command::Schedule { .. }
+        | Command::Prompt { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

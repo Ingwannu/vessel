@@ -14,6 +14,7 @@ workspace = true
 [dependencies]
 vessel-app-view.workspace = true
 vessel-proto.workspace = true
+bytes.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true

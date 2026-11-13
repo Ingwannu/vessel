@@ -379,7 +379,24 @@ impl Method {
             | Self::ListPorts
             // Protocol 11: what a node can run is read like its harnesses.
             | Self::ListAgents
-            | Self::GetAgentStatus => true,
+            | Self::GetAgentStatus
+            // Schedules (protocol 11): forwardable; who may do what from
+            // another node is the target's scheduler's rule (ADR 0033).
+            | Self::ListSchedules
+            | Self::GetSchedule
+            | Self::CreateSchedule
+            | Self::UpdateSchedule
+            | Self::PauseSchedule
+            | Self::ResumeSchedule
+            | Self::RunSchedule
+            | Self::DeleteSchedule
+            | Self::ListRuns
+            // Saved prompts: readable from another node; written only on
+            // their own (the service refuses a delegated writer).
+            | Self::ListPrompts
+            | Self::CreatePrompt
+            | Self::UpdatePrompt
+            | Self::DeletePrompt => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent

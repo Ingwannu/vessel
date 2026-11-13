@@ -22,10 +22,10 @@ use std::cell::RefCell;
 
 use chrono::Utc;
 use tokio::sync::mpsc;
-use vessel_proto::PairingLink;
+use vessel_proto::{ErrorCode, PairingLink};
 
 use crate::demo::Demo;
-use crate::{CHANNEL, Command, Event, LinkError};
+use crate::{ActAnswer, ActFailed, CHANNEL, Command, Event, LinkError};
 
 /// The link: the demo fleet and the channel its answers go out on.
 #[derive(Debug)]
@@ -89,6 +89,19 @@ impl Link {
                 harness,
                 outcome: Ok(crate::demo::options()),
             }),
+            Command::Act {
+                machine,
+                session,
+                act,
+            } => self.emit(Event::Acted(ActAnswer {
+                machine,
+                session,
+                kind: act.kind(),
+                result: Err(ActFailed {
+                    code: Some(ErrorCode::Unsupported),
+                    message: "Not in the browser's demo".to_owned(),
+                }),
+            })),
             // The demo's turns end as they start: nothing runs to stop.
             Command::Stop { .. } | Command::SavePrefs(_) => {}
             Command::Answer {

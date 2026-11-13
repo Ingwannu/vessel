@@ -25,6 +25,18 @@
 //!   are open here and held to the forge's own rule (`refresh` and opening
 //!   only on a session the agent may operate; an agent's open never
 //!   pushes).
+//! - Schedules and saved prompts (protocol 11, ADR 0033) are open here
+//!   and held to their own rules (`automation::schedules::rules`: at most
+//!   8 per agent session, a target that is its own child or its own
+//!   session, only its own to manage, never run now, never through
+//!   `fleet.forward`; `service::prompts`: saved prompts read, never
+//!   written). A run acts as the agent through the checks a call of its
+//!   own would meet (`service::scheduled`: the scope, ownership, the
+//!   agent's limits and its place's), so a schedule gives an agent nothing
+//!   it could not get directly: no terminal (a terminal session is refused
+//!   as a target, and a scheduled session's agent gets terminals only as
+//!   any session's would), no merge and no approval (no run opens or
+//!   merges a pull request, makes a worktree, runs setup or a script).
 //! - This `match` is the one list of what an agent may call through the
 //!   node: every method of every track is in it, either refused here or
 //!   named with the rule that holds it instead.
@@ -143,6 +155,21 @@ const fn refused(method: Method) -> bool {
         | Method::OpenPullRequest
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
+        // Schedules (protocol 11) are held to theirs (ADR 0033,
+        // `automation::schedules::rules`).
+        | Method::ListSchedules
+        | Method::GetSchedule
+        | Method::CreateSchedule
+        | Method::UpdateSchedule
+        | Method::PauseSchedule
+        | Method::ResumeSchedule
+        | Method::RunSchedule
+        | Method::DeleteSchedule
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
