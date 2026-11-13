@@ -322,3 +322,12 @@ book. `BookFile` is reopened immediately before each atomic edit; the app does
 not maintain a second machine list on disk. A forget ends the app's watched
 stream only, leaving the remote session running. Original file errors remain
 at the file boundary because a malformed book can contain credentials.
+
+The actor resolves the book path once and reads it on the blocking pool for
+startup, tick, reload, retry and edits. Syntax failures share `FileFault` with
+pairing; no transient raw parser error reaches an event. Failed edits leave
+clients and the session follow untouched. Browser refusals retain the original
+Read/Edited response shape. Actor regressions use real framed RPC clients on
+bounded in-process streams, including client-preserving rename and watched
+forget; no real agent or network endpoint is contacted. Other areas' aliases
+and project follows must be integrated before the Machines screen is delivered.

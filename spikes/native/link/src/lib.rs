@@ -347,6 +347,7 @@ impl Link {
             clients: HashMap::new(),
             follow: None,
             follow_machine: None,
+            book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             device_calls: devices::Hub::default(),
         };
@@ -377,6 +378,7 @@ struct State {
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
     follow_machine: Option<String>,
+    book_path: machines::BookPath,
     workspace: workspace::Hub,
     device_calls: devices::Hub,
 }
@@ -496,14 +498,15 @@ impl State {
 
     /// List every machine's sessions, connecting to those not connected.
     async fn refresh(&mut self) {
-        let book = match nodes::read_book() {
+        let book = match self.saved_entries().await {
             Ok(book) => book,
-            Err(LinkError::BookFault(fault)) => {
+            Err(vessel_app_view::machine_book::Failure::File(fault)) => {
                 self.emit(Event::BookUnreadable(fault)).await;
                 return;
             }
-            Err(error) => {
-                self.emit(Event::Failed(error.to_string())).await;
+            Err(failure) => {
+                self.emit(Event::Machines(machines::Answer::Read(Err(failure))))
+                    .await;
                 return;
             }
         };

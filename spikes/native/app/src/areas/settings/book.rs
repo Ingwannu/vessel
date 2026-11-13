@@ -7,18 +7,16 @@ impl Shell {
         match answer {
             Answer::Read(result) => {
                 if let Err(failure) = result {
-                    self.notice = Some(self.t.lang.machine_book_failure(failure).to_owned());
+                    self.notice = Some(self.t.lang.machine_book_failure(&failure));
                 }
             }
-            Answer::Edited { edit, result } => match result {
-                Ok(()) => {
-                    self.areas.settings.machine =
-                        edit.selected_after(self.areas.settings.machine.as_deref());
+            Answer::Edited { edit, result } => {
+                self.areas.settings.machine =
+                    edit.selected_after(&result, self.areas.settings.machine.as_deref());
+                if let Err(failure) = result {
+                    self.notice = Some(self.t.lang.machine_book_failure(&failure));
                 }
-                Err(failure) => {
-                    self.notice = Some(self.t.lang.machine_book_failure(failure).to_owned());
-                }
-            },
+            }
         }
     }
 }

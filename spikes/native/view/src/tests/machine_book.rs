@@ -27,20 +27,23 @@ fn selection_follows_only_the_edited_machine() {
         from: name("old"),
         to: name("new"),
     };
-    assert_eq!(rename.selected_after(Some("old")), Some("new".to_owned()));
     assert_eq!(
-        rename.selected_after(Some("other")),
+        rename.selected_after(&Ok(()), Some("old")),
+        Some("new".to_owned())
+    );
+    assert_eq!(
+        rename.selected_after(&Ok(()), Some("other")),
         Some("other".to_owned())
     );
-    assert_eq!(rename.selected_after(None), None);
+    assert_eq!(rename.selected_after(&Ok(()), None), None);
     let forget = Edit::Forget(name("old"));
-    assert_eq!(forget.selected_after(Some("old")), None);
+    assert_eq!(forget.selected_after(&Ok(()), Some("old")), None);
     assert_eq!(
-        forget.selected_after(Some("other")),
+        forget.selected_after(&Ok(()), Some("other")),
         Some("other".to_owned())
     );
     assert_eq!(
-        Edit::MakeDefault(name("new")).selected_after(Some("old")),
+        Edit::MakeDefault(name("new")).selected_after(&Ok(()), Some("old")),
         Some("old".to_owned())
     );
 }
@@ -59,8 +62,8 @@ fn errors_are_whole_localized_sentences_without_raw_values() {
         ),
         (
             Failure::InvalidBook,
-            "The machine list has an invalid entry. Correct the node book, then try again.",
-            "머신 목록에 잘못된 항목이 있습니다. 노드 목록 파일을 고치고 다시 시도하세요.",
+            "The machine list has an invalid entry. Correct the machine list file, then try again.",
+            "머신 목록에 잘못된 항목이 있습니다. 머신 목록 파일을 고치고 다시 시도하세요.",
         ),
         (
             Failure::Missing,
@@ -89,7 +92,52 @@ fn errors_are_whole_localized_sentences_without_raw_values() {
         ),
     ];
     for (failure, en, ko) in cases {
-        assert_eq!(Lang::En.machine_book_failure(failure), en);
-        assert_eq!(Lang::Ko.machine_book_failure(failure), ko);
+        assert_eq!(Lang::En.machine_book_failure(&failure), en);
+        assert_eq!(Lang::Ko.machine_book_failure(&failure), ko);
     }
+}
+
+#[test]
+fn every_failed_edit_preserves_selection() {
+    for edit in [
+        Edit::Rename {
+            from: name("old"),
+            to: name("new"),
+        },
+        Edit::MakeDefault(name("new")),
+        Edit::Forget(name("old")),
+    ] {
+        for selected in [None, Some("old"), Some("other")] {
+            for why in [
+                Failure::Read,
+                Failure::Taken,
+                Failure::Write,
+                Failure::Worker,
+            ] {
+                assert_eq!(
+                    edit.selected_after(&Err(why), selected),
+                    selected.map(str::to_owned)
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_shared_file_fault_is_a_complete_sentence_in_each_language() {
+    use crate::files::{FileFault, FileProblem};
+    let failure = Failure::File(FileFault {
+        path: "nodes.toml".to_owned(),
+        at: Some((3, 1)),
+        problem: FileProblem::WrongKind,
+        field: Some("token".to_owned()),
+    });
+    assert_eq!(
+        Lang::En.machine_book_failure(&failure),
+        "The machine list nodes.toml does not read (line 3, column 1: `token` names the file that holds the token, token = { file = \"…\" }, never the token itself). Fix it, then reload."
+    );
+    assert_eq!(
+        Lang::Ko.machine_book_failure(&failure),
+        "머신 목록 파일을 읽지 못했습니다: nodes.toml (3번째 줄 1번째 칸: `token`에는 토큰 자체가 아니라 토큰이 든 파일을 적습니다: token = { file = \"…\" }). 고친 뒤 새로고침하세요."
+    );
 }

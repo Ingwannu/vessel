@@ -258,3 +258,37 @@ Merge gate: native formatting, Clippy and tests all exited 0; app 3,
 kit 19, link 21, view 243 and page parity 89 (375 passed), plus empty doc
 tests. Root client/protocol changes are the lead's; no independent root
 workspace gate is claimed for this integration.
+
+## Review follow-up: the actor boundary, not only the writer
+
+Review held `36b9139` for the legacy refresh error bypass, browser reply shape,
+internal vocabulary and missing connection-lifetime evidence. The lead's safe
+`FileFault` projection is reused for every actor read (tick/reload/retry/edit).
+The actor resolves its book path once, then performs file reads on the blocking
+pool; tests inject that path rather than changing process-wide environment.
+Failed edits skip refresh and cannot alter clients or the watched stream.
+Selection consumes the complete edit result in view, including failures.
+
+Tests use actual `NodeClient` connections over the existing framed RPC on
+bounded duplex streams. The peer answers and records typed protocol messages;
+it implements no book or app logic. `vessel-rpc` is an existing transitive
+library, now a direct dev-dependency only; no new shipped external dependency
+or real agent is introduced. Tests cover rename preserving connections and
+agents, failed edits preserving both clients and follow, watched forget closing
+only its app connection, another forget preserving the active follow, and all
+actor error events with a synthetic canary. Browser refusals preserve Read vs
+Edited and the exact edit. UI aliases remain required before screen delivery.
+
+Follow-up gate: native fmt, Clippy and tests all exited 0. App 3, kit 19,
+link 29, view 245 and page parity 89 (385 passed), plus empty doc tests.
+The first attempt stopped at Clippy on an unnecessary qualification and test
+result/index-access lints; those were corrected before the passing full gate.
+The denied-write actor test ran as uid/gid 1000 with its own parent at 0500,
+restored to 0700 for cleanup. No deployed file modes or service data changed.
+
+This is a boundary slice, with no new screen or capture claim. Open draft,
+session and conversation aliases still need success-only integration. Review
+also found workspace clone-follow tasks retain client clones: that owner's
+cancel/rekey seam is required before whole-app disconnect is claimed. The
+watched-forget regression here covers the session follow and two real RPC
+clients, not every area's background work.

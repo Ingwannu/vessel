@@ -3,10 +3,12 @@ use super::Lang;
 use crate::machine_book::Failure;
 
 impl Lang {
-    /// Inline book read/edit failure. No values; allow wrapping.
+    /// Inline machine-list read/edit failure; file faults may include their safe
+    /// path, line, column and known field. Allow wrapping.
     #[must_use]
-    pub const fn machine_book_failure(self, failure: Failure) -> &'static str {
-        match (self, failure) {
+    pub fn machine_book_failure(self, failure: &Failure) -> String {
+        let text = match (self, failure) {
+            (_, Failure::File(fault)) => return self.machines_unreadable(fault),
             (Self::En, Failure::NoConfiguration) => {
                 "The configuration folder could not be found. Choose a configuration folder and restart Vessel."
             }
@@ -20,10 +22,10 @@ impl Lang {
                 "머신 목록을 읽을 수 없습니다. 현재 계정의 설정 폴더 읽기 권한을 확인하고 다시 시도하세요."
             }
             (Self::En, Failure::InvalidBook) => {
-                "The machine list has an invalid entry. Correct the node book, then try again."
+                "The machine list has an invalid entry. Correct the machine list file, then try again."
             }
             (Self::Ko, Failure::InvalidBook) => {
-                "머신 목록에 잘못된 항목이 있습니다. 노드 목록 파일을 고치고 다시 시도하세요."
+                "머신 목록에 잘못된 항목이 있습니다. 머신 목록 파일을 고치고 다시 시도하세요."
             }
             (Self::En, Failure::Missing) => {
                 "This machine is no longer in the list. Refresh the list and choose another machine."
@@ -53,6 +55,7 @@ impl Lang {
                 "Machine management is available in the desktop app."
             }
             (Self::Ko, Failure::Unavailable) => "머신 관리는 데스크톱 앱에서 사용할 수 있습니다.",
-        }
+        };
+        text.to_owned()
     }
 }

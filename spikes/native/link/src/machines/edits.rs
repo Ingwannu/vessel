@@ -2,7 +2,7 @@
 use super::Machine;
 use std::path::Path;
 use vessel_app_view::machine_book::{Edit, Failure, Name};
-use vessel_client::book::{BookError, BookFile, NodeName};
+use vessel_client::book::{BookEntry, BookError, BookFile, NodeName};
 
 /// An error kept at the file boundary, never formatted for a screen or a log.
 #[derive(Debug, thiserror::Error)]
@@ -18,7 +18,7 @@ pub(super) enum BookFailure {
 }
 
 impl BookFailure {
-    pub(super) const fn failure(&self) -> Failure {
+    pub(super) fn failure(&self) -> Failure {
         let error = match self {
             Self::Read(error) | Self::Write(error) => error,
             Self::Name(_) | Self::BookName => return Failure::InvalidBook,
@@ -31,9 +31,10 @@ impl BookFailure {
             },
             BookError::Exists { .. } => Failure::Taken,
             BookError::Missing { .. } => Failure::Missing,
-            BookError::Syntax { .. }
-            | BookError::ProjectSyntax { .. }
-            | BookError::Entry { .. }
+            BookError::Syntax { path, fault } | BookError::ProjectSyntax { path, fault } => {
+                Failure::File(crate::nodes::toml_file_fault(path, *fault))
+            }
+            BookError::Entry { .. }
             | BookError::UnknownDefault { .. }
             | BookError::Unknown { .. }
             | BookError::PinnedElsewhere { .. } => Failure::InvalidBook,
@@ -85,3 +86,14 @@ pub(super) fn write(path: &Path, edit: &Edit) -> Result<(), BookFailure> {
 
 #[cfg(test)]
 mod tests;
+
+/// Fleet refresh shares this typed file boundary with editor snapshots.
+pub(super) fn entries(path: &Path) -> Result<Vec<(NodeName, BookEntry)>, BookFailure> {
+    let file = BookFile::open(path).map_err(BookFailure::Read)?;
+    Ok(file
+        .book()
+        .nodes
+        .iter()
+        .map(|(name, entry)| (name.clone(), entry.clone()))
+        .collect())
+}

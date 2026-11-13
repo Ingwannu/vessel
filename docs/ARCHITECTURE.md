@@ -1038,4 +1038,7 @@ models edits and safe failure reasons. `link::machines` applies those edits
 through the existing CLI `BookFile` on the blocking pool, then publishes a fresh
 snapshot. Selection follows a successful write only; raw book errors stay at
 the file boundary because malformed content may contain credentials. No new
-wire method or store is introduced.
+wire method or store is introduced. Startup, tick, reload, retry and edit reads
+share a fixed book path and the same typed boundary. Syntax failures reuse the
+shared safe `FileFault` projection; other file failures use closed reasons.
+A failed edit does not refresh or mutate the existing clients or session follow.

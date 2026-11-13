@@ -7438,6 +7438,7 @@ dependencies = [
  "vessel-app-view",
  "vessel-client",
  "vessel-proto",
+ "vessel-rpc",
 ]
 
 [[package]]

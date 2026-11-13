@@ -128,7 +128,7 @@ fn malformed_books_and_missing_files_have_safe_typed_results() {
     )
     .unwrap();
     let error = read(&path, |_| None).unwrap_err();
-    assert_eq!(error.failure(), Failure::InvalidBook);
+    assert!(matches!(error.failure(), Failure::File(_)));
     assert_eq!(error.to_string(), "the machine book could not be read");
     std::fs::remove_file(&path).unwrap();
     std::fs::create_dir(&path).unwrap();

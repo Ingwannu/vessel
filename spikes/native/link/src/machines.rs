@@ -39,7 +39,7 @@ pub enum Ask {
 }
 
 /// The result of one operation. Original errors never cross into screen text.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Answer {
     /// Snapshot of the saved list.
     Read(Result<Vec<Machine>, Failure>),
@@ -56,3 +56,43 @@ pub enum Answer {
 mod edits;
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
+
+impl Ask {
+    /// Refuse in the same response shape as the request, including on the browser.
+    #[must_use]
+    pub fn refused(self, why: Failure) -> Answer {
+        match self {
+            Self::Read | Self::Retry => Answer::Read(Err(why)),
+            Self::Edit(edit) => Answer::Edited {
+                edit,
+                result: Err(why),
+            },
+        }
+    }
+}
+
+/// The app's machine-list path, resolved once at startup. A test supplies an
+/// isolated path through the same type; it never changes process-wide env.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone)]
+pub(crate) enum BookPath {
+    File(std::path::PathBuf),
+    NoConfiguration,
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl BookPath {
+    pub(crate) fn discover() -> Self {
+        match crate::nodes::config_dir() {
+            Ok(dir) => Self::File(vessel_client::book::NodeBook::path_in(&dir)),
+            Err(_no_configuration) => Self::NoConfiguration,
+        }
+    }
+    pub(super) fn path(&self) -> Result<&std::path::Path, Failure> {
+        match self {
+            Self::File(path) => Ok(path),
+            Self::NoConfiguration => Err(Failure::NoConfiguration),
+        }
+    }
+}
+#[cfg(test)]
+mod tests;

@@ -50,9 +50,16 @@ pub enum Edit {
 }
 
 impl Edit {
-    /// Selection after a successful write. Failure never calls this method.
+    /// Selection for a completed write; a failed write keeps it exactly as it was.
     #[must_use]
-    pub fn selected_after(&self, selected: Option<&str>) -> Option<String> {
+    pub fn selected_after(
+        &self,
+        result: &Result<(), Failure>,
+        selected: Option<&str>,
+    ) -> Option<String> {
+        if result.is_err() {
+            return selected.map(str::to_owned);
+        }
         match self {
             Self::Rename { from, to } if selected == Some(from.as_str()) => {
                 Some(to.as_str().to_owned())
@@ -66,8 +73,10 @@ impl Edit {
 }
 
 /// Safe, language-independent reasons. Raw file content is never carried here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Failure {
+    /// Safe file location and problem, shared with the app's file boundary.
+    File(crate::files::FileFault),
     /// No configuration directory was found.
     NoConfiguration,
     /// The book could not be read.

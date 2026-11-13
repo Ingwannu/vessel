@@ -1,10 +1,11 @@
-//! Commands stay ordered with link's other state changes; only file I/O leaves
-//! its actor, so a rename cannot race a refresh of the same connection map.
+//! Commands remain ordered with the link actor. The configured book path is
+//! fixed at startup, so every operation reads the same file and tests need no
+//! process-wide environment changes. File I/O always uses the blocking pool.
 use super::{Answer, Ask, Machine, edits};
-use crate::{Event, State, nodes};
+use crate::{Event, State};
 use std::collections::HashMap;
 use vessel_app_view::machine_book::{Edit, Failure};
-use vessel_client::book::NodeBook;
+use vessel_client::book::{BookEntry, NodeName};
 
 impl State {
     pub(crate) async fn machine_book(&mut self, ask: Ask) {
@@ -16,21 +17,37 @@ impl State {
             }
             Ask::Edit(edit) => {
                 let result = self.machine_edit(edit.clone()).await;
+                let succeeded = result.is_ok();
+                if let Err(Failure::File(fault)) = &result {
+                    self.emit(Event::BookUnreadable(fault.clone())).await;
+                }
                 self.emit(Event::Machines(Answer::Edited { edit, result }))
                     .await;
-                self.refresh().await;
+                // A failed local write must not touch clients or the active
+                // stream, even if an unrelated connection has since dropped.
+                if succeeded {
+                    self.refresh().await;
+                }
                 self.machine_snapshot().await;
             }
         }
     }
 
     async fn machine_snapshot(&self) {
-        let result = self.read_machines().await;
-        self.emit(Event::Machines(Answer::Read(result))).await;
+        self.emit(Event::Machines(Answer::Read(self.read_machines().await)))
+            .await;
+    }
+
+    /// Tick, reload and explicit retry all use the same safe file boundary.
+    pub(crate) async fn saved_entries(&self) -> Result<Vec<(NodeName, BookEntry)>, Failure> {
+        let path = self.book_path.path()?.to_owned();
+        tokio::task::spawn_blocking(move || edits::entries(&path).map_err(|error| error.failure()))
+            .await
+            .map_err(|_stopped| Failure::Worker)?
     }
 
     async fn read_machines(&self) -> Result<Vec<Machine>, Failure> {
-        let dir = nodes::config_dir().map_err(|_error| Failure::NoConfiguration)?;
+        let path = self.book_path.path()?.to_owned();
         let known: HashMap<_, _> = self
             .clients
             .iter()
@@ -42,21 +59,20 @@ impl State {
             })
             .collect();
         tokio::task::spawn_blocking(move || {
-            edits::read(&NodeBook::path_in(&dir), |name| known.get(name).cloned())
-                .map_err(|error| error.failure())
+            edits::read(&path, |name| known.get(name).cloned()).map_err(|error| error.failure())
         })
         .await
-        .map_err(|_error| Failure::Worker)?
+        .map_err(|_stopped| Failure::Worker)?
     }
 
     async fn machine_edit(&mut self, edit: Edit) -> Result<(), Failure> {
-        let dir = nodes::config_dir().map_err(|_error| Failure::NoConfiguration)?;
+        let path = self.book_path.path()?.to_owned();
         let writing = edit.clone();
         tokio::task::spawn_blocking(move || {
-            edits::write(&NodeBook::path_in(&dir), &writing).map_err(|error| error.failure())
+            edits::write(&path, &writing).map_err(|error| error.failure())
         })
         .await
-        .map_err(|_error| Failure::Worker)??;
+        .map_err(|_stopped| Failure::Worker)??;
         match edit {
             Edit::Rename { from, to } => {
                 if self.follow_machine.as_deref() == Some(from.as_str()) {
@@ -68,8 +84,8 @@ impl State {
             }
             Edit::Forget(name) => {
                 let _removed = self.clients.remove(name.as_str());
-                // A watched conversation owns another client clone. Forgetting
-                // must stop that stream too; the node's session keeps running.
+                // A watched conversation owns another client clone. Only
+                // the app's stream is cancelled; no remote mutation is sent.
                 if self.follow_machine.as_deref() == Some(name.as_str()) {
                     if let Some(follow) = self.follow.take() {
                         follow.abort();
@@ -82,3 +98,6 @@ impl State {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
