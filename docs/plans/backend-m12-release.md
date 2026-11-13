@@ -711,7 +711,14 @@ never rebuilt.
 - **0.0.0.0.9**:
   - Built from exactly `7081463`, the desktop lead's gated head, which
     holds this track's branch. It speaks node protocol 13.
-  - The set went into place at 21:17 UTC. It is not published yet.
+  - The set went into place at 21:17 UTC. It was published to
+    `preview` at 21:21:43 UTC, after the coordinator paired it with the
+    real node, which still speaks protocol 11.
+  - The notes gained three lines: what was checked against the older
+    node, what was not checked, and what is known.
+  - From outside, the public feed serves the 0.0.0.0.9 manifest and
+    all five files with matching sums and signature. The published
+    0.0.0.0.8 Linux build took 0.0.0.0.9 by itself at 21:22:46 UTC.
   - Files: setup 12,353,161, exe 44,480,512, zip 18,004,043, linux
     81,060,120, tar.gz 28,165,806 bytes.
   - No new crates. The two added faces are embedded in the executable,
