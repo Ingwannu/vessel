@@ -449,13 +449,23 @@ Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
     `invalid_request`.
 - Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
   `.update` (the whole definition, under its `revision`), `.pause`,
-  `.resume`, `.run` (once now, answered with the run's outcome),
-  `.delete` (operate).
+  `.resume`, `.run` (once now, answered with the run's outcome; after 30
+  s with no room, `unavailable`), `.delete` (operate).
+- `invalid_request` besides the contract's: a new session's spec over 16
+  KiB encoded (as a saved prompt's), and an `after` the node does not
+  know (it would neither archive the session nor wait for it).
+- Room: at most 4 runs are made at once and at most 8 scheduled sessions
+  are in their first turn and not waiting for a person; runs wait, the
+  oldest due first, then by id, the first that fits going first.
 - A run acts as the schedule's `defined_by` as they are when it runs (a
-  revoked device ends it; an agent's schedules go with its session), and
-  meets the checks a call of theirs would. Agents: 8 schedules per
-  session, their own session as a heartbeat's target, never `run` now;
-  delegated callers may only read, pause, resume and delete.
+  revoked device ends it; an agent's schedules go with its session, and
+  with its run when the session is started again), and meets the checks
+  a call of theirs would. Agents: 8 schedules per session, their own
+  session as a heartbeat's target, never `run` now, an `every` anchored
+  by the node; delegated callers may only read, pause, resume and
+  delete. A run's session is archived after its first turn as a person's
+  archive does it: its terminals and services end, its pull request is
+  no longer watched.
 - What happens at a daylight-saving gap or fold, after a stopped node, on
   a clock stepped either way, and to a run under way when the node stops,
   is the contract's "Time" and ADR 0033.
@@ -501,7 +511,10 @@ Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
   end, the last 1,500 characters of its reply, and the record to read
   from) or `ended` (the session's final status). Text only, from the
   node, starting `vessel: session`; the queue entry's `by` is the
-  finished session (`Creator::Agent`).
+  finished session (`Creator::Agent`). The session's own words in it
+  (its reply's end, what it asks, why its turn failed) are between
+  `<vessel-session-output-…>` tags whose name is random, with a line
+  saying they are that session's output, not instructions.
 - Bounded: 32 turns followed per told session and 256 on the node
   (`conflict` beyond), 60 notices an hour into one session (the rest
   dropped and logged), none into a session a person stopped. Nothing is
