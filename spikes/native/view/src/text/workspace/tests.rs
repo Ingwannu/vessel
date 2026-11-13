@@ -11,10 +11,10 @@ use vessel_proto::workspace::{
     RelPath, RepositoryConfigReason, SetupFailure, WorktreeRefusal,
 };
 
-use super::super::branch_name::branch_name_problem;
-use super::super::command_changes::{Compared, Listed, compare_approved, needs_folder};
-use super::super::place::{Place, PlaceMode, ProjectPlace, place_problem};
 use super::{En, Ko, Local, WorkspaceWords};
+use crate::workspace::branch_name::branch_name_problem;
+use crate::workspace::command_changes::{Compared, Listed, compare_approved, needs_folder};
+use crate::workspace::place::{Place, PlaceMode, ProjectPlace, place_problem};
 
 fn local() -> Local {
     Local {

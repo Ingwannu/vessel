@@ -7,6 +7,10 @@
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
+pub mod spacing;
+mod status;
+pub use status::{Signal, Status};
+
 use gpui::{Hsla, rgb, rgba};
 
 /// Which half of each token is used.
@@ -175,6 +179,12 @@ pub struct Tokens {
 }
 
 impl Tokens {
+    /// Semantic status signals for badges and status text, after Paseo.
+    #[must_use]
+    pub fn status(&self) -> Status {
+        Status::of(self.scheme)
+    }
+
     /// The tokens of `scheme`.
     #[must_use]
     pub fn of(scheme: Scheme) -> Self {

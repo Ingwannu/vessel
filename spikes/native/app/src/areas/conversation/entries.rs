@@ -105,7 +105,7 @@ pub(super) fn entry(
         EntryKind::Log { line } => div()
             .px(px(4.0))
             .type_(Type::Mono)
-            .text_size(px(12.0))
+            .text_size(px(vessel_app_kit::fonts::ui(12.0)))
             .text_color(paint.look.secondary)
             .child(line.clone())
             .into_any_element(),
@@ -204,8 +204,8 @@ pub(super) fn work_row(
         .px(px(4.0))
         .rounded(px(6.0))
         .face(Type::Meta)
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
@@ -227,8 +227,8 @@ fn meta(paint: &Paint<'_>, text: String) -> AnyElement {
     div()
         .px(px(4.0))
         .face(Type::Meta)
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .child(text)
         .into_any_element()
@@ -259,7 +259,7 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
             div()
                 .min_w(px(0.0))
                 .truncate()
-                .text_size(px(12.0))
+                .text_size(px(vessel_app_kit::fonts::ui(12.0)))
                 .text_color(ink)
                 .child(text),
         )
@@ -308,7 +308,7 @@ fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutco
         }))
         .child(
             div()
-                .text_size(px(WORK_SIZE))
+                .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
                 .text_color(paint.look.secondary)
                 .child(words.question_line(outcome)),
         )

@@ -242,7 +242,7 @@ impl TextField {
                     .flex_1()
                     .min_w(px(0.0))
                     .type_(Type::Body)
-                    .line_height(px(20.0))
+                    .line_height(px(fonts::ui(20.0)))
                     .text_color(tokens.neutral.foreground)
                     .child(Input::new(state))
                     .into_any_element()
@@ -295,7 +295,7 @@ impl TextField {
                     })
                     .hover(move |style| style.border_color(neutral.border_accent))
                     .type_(Type::Body)
-                    .line_height(px(20.0))
+                    .line_height(px(fonts::ui(20.0)))
                     .text_color(neutral.foreground)
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
@@ -306,8 +306,8 @@ impl TextField {
                     .w_full()
                     .min_h(px(COMPOSER_MIN))
                     .type_(Type::Body)
-                    .text_size(px(15.0))
-                    .line_height(px(21.0))
+                    .text_size(px(fonts::ui(15.0)))
+                    .line_height(px(fonts::ui(21.0)))
                     .text_color(neutral.foreground)
                     .child(Textarea::new(state))
                     .into_any_element()
@@ -324,7 +324,7 @@ impl TextField {
         let text = div()
             .w_full()
             .type_(Type::Body)
-            .line_height(px(20.0))
+            .line_height(px(fonts::ui(20.0)))
             .text_color(neutral.foreground);
         match &self.kind {
             Kind::Line(state) => {
@@ -448,7 +448,9 @@ pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     let theme = gpui_component::Theme::global_mut(cx);
     theme.font_family = fonts::SANS.into();
     theme.mono_font_family = fonts::MONO.into();
-    theme.font_size = px(14.0);
+    theme.font_size = px(fonts::ui(14.0));
+    // Code in Markdown at the code size (the page's `--code-px`).
+    theme.mono_font_size = px(fonts::code(12.0));
     theme.radius = px(8.0);
     let neutral = tokens.neutral;
     let colors = &mut theme.colors;

@@ -12,10 +12,14 @@
 //!   replaces an action's defaults whole (an empty list unbinds it); ids
 //!   the registry does not know are kept, so an older or newer build's
 //!   overrides survive a round trip.
+//! - The overrides are the preferences' (`Preferences::shortcuts`, track
+//!   E's one model, the bridge's document): read here, changed only
+//!   through a `PreferenceChange`.
 
 use std::collections::BTreeMap;
 
 use super::keys::{Binding, Chord};
+use crate::prefs::{ActionId, Bindings, MAX_BINDINGS};
 
 /// What a shortcut can run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -68,9 +72,6 @@ impl ShortcutGroup {
     pub const ALL: [Self; 4] = [Self::General, Self::Navigation, Self::Session, Self::Panels];
 }
 
-/// An action's most bindings.
-pub const MAX_KEYS: usize = 2;
-
 impl Action {
     /// Every action, in the registry's order.
     pub const ALL: [Self; 14] = [
@@ -109,6 +110,13 @@ impl Action {
             Self::ToggleSidebar => "toggle-sidebar",
             Self::ToggleInspector => "toggle-inspector",
         }
+    }
+
+    /// Its id as the preferences keep it (every registry id is one; a
+    /// test says so).
+    #[must_use]
+    pub fn action_id(self) -> Option<ActionId> {
+        self.id().parse().ok()
     }
 
     /// The action an id names, if the registry knows it.
@@ -198,35 +206,36 @@ pub fn jump_shown() -> Chord {
     }
 }
 
-/// The person's keys, by action id: an action listed replaces its
-/// defaults whole, an empty list unbinds it.
-pub type Overrides = BTreeMap<String, Vec<String>>;
-
-/// Whether the person changed an action's keys.
+/// Whether the person changed an action's keys (`overrides`: the
+/// preferences' shortcuts, an action listed replacing its defaults whole,
+/// an empty list unbinding it).
 #[must_use]
-pub fn modified(action: Action, overrides: &Overrides) -> bool {
-    overrides.contains_key(action.id())
+pub fn modified(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> bool {
+    overrides.keys().any(|id| id.as_str() == action.id())
 }
 
 /// An action's bindings: the person's, else its defaults; at most
-/// [`MAX_KEYS`], any that does not parse left out.
+/// [`MAX_BINDINGS`], any that does not parse left out.
 #[must_use]
-pub fn bindings_of(action: Action, overrides: &Overrides) -> Vec<Binding> {
-    overrides.get(action.id()).map_or_else(
-        || {
-            action
-                .defaults()
-                .iter()
-                .take(MAX_KEYS)
-                .filter_map(|text| Binding::parse(text))
-                .collect()
-        },
-        |texts| {
-            texts
-                .iter()
-                .take(MAX_KEYS)
-                .filter_map(|text| Binding::parse(text))
-                .collect()
-        },
-    )
+pub fn bindings_of(action: Action, overrides: &BTreeMap<ActionId, Bindings>) -> Vec<Binding> {
+    overrides
+        .iter()
+        .find(|(id, _)| id.as_str() == action.id())
+        .map_or_else(
+            || {
+                action
+                    .defaults()
+                    .iter()
+                    .take(MAX_BINDINGS)
+                    .filter_map(|text| Binding::parse(text))
+                    .collect()
+            },
+            |(_, keys)| {
+                keys.keys()
+                    .iter()
+                    .take(MAX_BINDINGS)
+                    .filter_map(|key| Binding::parse(key.as_str()))
+                    .collect()
+            },
+        )
 }

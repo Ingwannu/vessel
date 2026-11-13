@@ -1,0 +1,261 @@
+//! The code panel beside a session (Paseo's Explorer: Changes and Files,
+//! `docs/explorer-sidebar.md`, `git/diff-pane.tsx`, `panels/files-panel.tsx`;
+//! the page's code panel for what it does): the session's changes with
+//! each file's diff in place, and the session's files as a tree with a
+//! file shown when chosen.
+//!
+//! [Decision Log]
+//! - Purpose: see what an agent changed and read the code it works on
+//!   beside the conversation, without leaving the session.
+//! - Constraint: the session screen is the lead's and its bar track C's:
+//!   the panel is drawn through two slots (`code_panel` beside the
+//!   conversation column, `code_toggle` in the bar's actions). The
+//!   session's root is not on its card: the panel reads the session
+//!   (`session.get`) when it opens on one.
+//! - Alternatives: diffs opened in a pane of their own (Paseo's desktop
+//!   opens a diff tab in the main pane; Vessel has no panes); every
+//!   file's diff read at once (a hundred calls for a monorepo).
+//! - Choice: Paseo's Explorer at its default place and width; Changes as
+//!   Paseo's diff pane draws it (files expanded, folded by a click), each
+//!   file's diff read when its row first comes into view; Files as a tree
+//!   read folder by folder, a file shown in the panel with Back.
+//! - Cost: the panel follows the open session only while it is open;
+//!   reopening it reads the session again (one call).
+
+mod changes;
+mod files;
+mod frame;
+
+use std::collections::{HashMap, HashSet};
+
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::{ComboboxState, VirtualList};
+use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
+use vessel_app_view::workspace::file_tree::{Listing, TreeRow, tree_rows};
+use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::root::session_root;
+use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
+use vessel_proto::{SessionId, SessionInfo};
+
+pub(crate) use frame::{code_panel, code_toggle};
+
+use crate::shell::Shell;
+use vessel_app_link::workspace::Ask;
+
+/// Which tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tab {
+    Changes,
+    Files,
+}
+
+/// Where the open session runs, as far as the panel knows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Place {
+    /// `session.get` is out.
+    Reading,
+    /// In a project's folder or a worktree.
+    Root(WorkspaceRoot),
+    /// In no project: nothing to show.
+    Outside,
+    /// The read failed.
+    Failed(String),
+}
+
+/// The session the panel shows.
+struct Target {
+    machine: String,
+    session: SessionId,
+    place: Place,
+}
+
+/// A comparison's files.
+enum Summary {
+    Loading,
+    Ready(DiffSummary),
+    Failed(String),
+}
+
+/// The Changes tab.
+struct Changes {
+    scope: ScopeKind,
+    summary: Summary,
+    /// Files folded by the person.
+    closed: HashSet<RelPath>,
+    states: HashMap<RelPath, FileState>,
+    rows: Vec<ChangeRow>,
+    list: VirtualList,
+    picker: ComboboxState,
+}
+
+/// A file shown in the Files tab.
+struct Viewer {
+    path: RelPath,
+    text: Shown,
+    list: VirtualList,
+}
+
+/// What a file shows.
+enum Shown {
+    Loading,
+    Text {
+        lines: Vec<String>,
+        states: Vec<vessel_app_view::workspace::syntax::LineState>,
+        more: bool,
+    },
+    Binary,
+    Failed(String),
+}
+
+/// The Files tab.
+struct Files {
+    listings: HashMap<RelPath, Listing>,
+    open: HashSet<RelPath>,
+    rows: Vec<TreeRow>,
+    list: VirtualList,
+    viewer: Option<Viewer>,
+}
+
+/// The panel's state.
+pub(crate) struct CodePanel {
+    /// Whether it is out.
+    pub(crate) open: bool,
+    tab: Tab,
+    target: Option<Target>,
+    changes: Changes,
+    files: Files,
+}
+
+impl CodePanel {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        Self {
+            open: false,
+            tab: Tab::Changes,
+            target: None,
+            changes: Changes {
+                scope: ScopeKind::Uncommitted,
+                summary: Summary::Loading,
+                closed: HashSet::new(),
+                states: HashMap::new(),
+                rows: Vec::new(),
+                list: VirtualList::new(false),
+                picker: ComboboxState::new(window, cx),
+            },
+            files: Files {
+                listings: HashMap::new(),
+                open: HashSet::new(),
+                rows: Vec::new(),
+                list: VirtualList::new(false),
+                viewer: None,
+            },
+        }
+    }
+
+    /// The root shown, when the session is in one.
+    fn root(&self) -> Option<(&str, &WorkspaceRoot)> {
+        let target = self.target.as_ref()?;
+        match &target.place {
+            Place::Root(root) => Some((target.machine.as_str(), root)),
+            Place::Reading | Place::Outside | Place::Failed(_) => None,
+        }
+    }
+}
+
+impl Changes {
+    /// The rows again, after the summary, a fold or a diff changed.
+    fn relist(&mut self) {
+        self.rows = match &self.summary {
+            Summary::Ready(summary) => change_rows(&summary.files, &self.closed, &self.states),
+            Summary::Loading | Summary::Failed(_) => Vec::new(),
+        };
+        self.list.reset(self.rows.len());
+    }
+}
+
+impl Files {
+    fn relist(&mut self) {
+        self.rows = tree_rows(&self.listings, &self.open);
+        self.list.reset(self.rows.len());
+    }
+}
+
+impl Shell {
+    /// The session the panel should show: the open one.
+    fn code_session(&self) -> Option<(String, SessionId)> {
+        let open = self.areas.session.open.as_ref()?;
+        Some((open.machine.clone(), open.session))
+    }
+
+    /// Open or close the panel.
+    pub(crate) fn toggle_code(&mut self, cx: &mut Context<'_, Self>) {
+        let panel = &mut self.areas.workspace.code;
+        panel.open = !panel.open;
+        if panel.open {
+            self.code_follow();
+        }
+        cx.notify();
+    }
+
+    /// Follow the open session: read where it runs when it is not the one
+    /// shown (the panel open only).
+    pub(crate) fn code_follow(&mut self) {
+        if !self.areas.workspace.code.open {
+            return;
+        }
+        let Some((machine, session)) = self.code_session() else {
+            return;
+        };
+        let panel = &mut self.areas.workspace.code;
+        if panel
+            .target
+            .as_ref()
+            .is_some_and(|target| target.machine == machine && target.session == session)
+        {
+            return;
+        }
+        panel.target = Some(Target {
+            machine: machine.clone(),
+            session,
+            place: Place::Reading,
+        });
+        panel.changes.summary = Summary::Loading;
+        panel.changes.states.clear();
+        panel.changes.closed.clear();
+        panel.changes.relist();
+        panel.files.listings.clear();
+        panel.files.open.clear();
+        panel.files.viewer = None;
+        panel.files.relist();
+        self.ask(&machine, Ask::Session(session));
+    }
+
+    /// Where a session runs arrived.
+    pub(super) fn code_session_read(
+        &mut self,
+        session: SessionId,
+        result: Result<Box<SessionInfo>, Problem>,
+    ) {
+        let words = self.words();
+        let panel = &mut self.areas.workspace.code;
+        let Some(target) = panel
+            .target
+            .as_mut()
+            .filter(|target| target.session == session)
+        else {
+            return;
+        };
+        target.place = match result {
+            Ok(info) => session_root(&info).map_or(Place::Outside, Place::Root),
+            Err(problem) => Place::Failed(words.problem(&problem)),
+        };
+        self.code_read_tab();
+    }
+
+    /// Read what the chosen tab shows, if not read yet.
+    fn code_read_tab(&mut self) {
+        match self.areas.workspace.code.tab {
+            Tab::Changes => self.read_changes(),
+            Tab::Files => self.read_folder(&RelPath::root()),
+        }
+    }
+}

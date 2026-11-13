@@ -295,7 +295,7 @@ fn row<V: 'static>(
         .py(px(4.0))
         .rounded(px(popup::ROW_RADIUS))
         .type_(Type::Body)
-        .line_height(px(ROW_LINE))
+        .line_height(px(crate::fonts::ui(ROW_LINE)))
         .text_color(ink)
         .when(item.disabled, |row| row.opacity(0.5))
         .when(highlighted && !item.disabled, |row| row.bg(wash))

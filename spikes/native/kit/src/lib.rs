@@ -22,7 +22,9 @@
 //!   text input (selection, clipboard, input methods), hidden behind
 //!   [`TextField`].
 
+pub mod alert;
 pub mod assets;
+pub mod badge;
 pub mod breakpoint;
 pub mod chat_markdown;
 pub mod chrome;
@@ -39,8 +41,10 @@ pub mod segmented;
 pub mod select;
 pub mod settings;
 pub mod sheet;
+pub mod slider;
 pub mod tabs;
 pub mod theme;
+pub mod toast;
 pub mod tooltip;
 pub mod virtual_list;
 mod widgets;
@@ -55,13 +59,16 @@ pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
-pub use output::{Start, lines_box, output_box};
+pub use output::{
+    Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
+};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
-    anchor_probe, combobox, glyph, pill, pill_parts, send_button,
+    anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
+pub use toast::{ToastLook, toast, toasts};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
@@ -134,6 +141,18 @@ pub const fn scheme_of(appearance: WindowAppearance) -> Scheme {
     match appearance {
         WindowAppearance::Light | WindowAppearance::VibrantLight => Scheme::Light,
         WindowAppearance::Dark | WindowAppearance::VibrantDark => Scheme::Dark,
+    }
+}
+
+/// Draw text at `interface` and `code` points (Settings › Appearance):
+/// every step of the type scale, and the component layer's text (the
+/// replies' Markdown) with them; the windows are drawn again when either
+/// changed.
+pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
+    if fonts::set_sizes(interface, code) {
+        let tokens = tokens(cx);
+        field::apply_tokens(cx, &tokens);
+        cx.refresh_windows();
     }
 }
 

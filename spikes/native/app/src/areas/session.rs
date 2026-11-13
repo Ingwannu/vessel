@@ -12,12 +12,15 @@
 //! (agent-orchestrator's local echo and its "gets ready" line), and the
 //! conversation takes its place when the first record arrives.
 
+use std::cell::Cell;
+
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
+use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::{Asked, Card, Conversation};
 use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
 
@@ -328,7 +331,7 @@ pub(crate) fn render(
     if let Some(pending) = &view.pending
         && view.conversation.entries().is_empty()
     {
-        return starting(pending, shell, tokens);
+        return starting(pending, shell, tokens, window, cx);
     }
     let Some(open) = &view.open else {
         return div();
@@ -346,7 +349,7 @@ pub(crate) fn render(
             .into_any_element()
     };
     let working = view.conversation.turn_running();
-    div()
+    let screen = div()
         .size_full()
         .flex()
         .flex_col()
@@ -374,7 +377,18 @@ pub(crate) fn render(
                 .children(dock.map(column))
                 .child(composer(shell, tokens, working, window, cx))
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::conversation::overlays(shell, tokens, window, cx));
+    // Track F's slot beside the conversation column: the code panel.
+    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
+        Some(panel) => div()
+            .size_full()
+            .relative()
+            .flex()
+            .flex_row()
+            .child(screen.flex_1().min_w(px(0.0)))
+            .child(panel),
+        None => screen,
+    }
 }
 
 /// Under an ended session's conversation: that sending starts it again;
@@ -402,9 +416,17 @@ fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     )))
 }
 
-/// The first prompt, shown while the session starts.
-fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
+/// The first prompt, shown while the session starts; in a new worktree,
+/// track F's card of its steps in place of the line that says so.
+fn starting(
+    pending: &Pending,
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let t = shell.t;
+    let card = crate::areas::workspace::start_card(shell, tokens, window, cx);
     let title: String = pending
         .prompt
         .lines()
@@ -429,13 +451,16 @@ fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
                 .flex_col()
                 .justify_end()
                 .child(person(&pending.prompt, tokens))
-                .child(column(
-                    div()
-                        .py(px(8.0))
-                        .type_(Type::Meta)
-                        .text_color(tokens.st_building)
-                        .child(t.starting_on(&pending.agent, &pending.machine)),
-                )),
+                .child(column(card.map_or_else(
+                    || {
+                        div()
+                            .py(px(8.0))
+                            .type_(Type::Meta)
+                            .text_color(tokens.st_building)
+                            .child(t.starting_on(&pending.agent, &pending.machine))
+                    },
+                    |card| div().py(px(8.0)).child(card),
+                ))),
         )
 }
 
@@ -549,15 +574,49 @@ const COLUMN_WIDTH: f32 = 820.0;
 /// The column's distance from the window's edges.
 const COLUMN_INSET: f32 = 16.0;
 
+thread_local! {
+    /// How wide the chat column grows (Settings › Appearance › Content
+    /// width); `None`: the window's width.
+    ///
+    /// [Decision Log]
+    /// - Purpose: the person's content width, for the conversation and
+    ///   the composer under it together (the page's `--content-width` on
+    ///   `.timeline-column` and `.session-dock-column`).
+    /// - Choice: one value read by [`column`], which every row of the
+    ///   conversation and the composer is drawn in, set by
+    ///   [`set_content_width`]. Kept beside the column rather than passed
+    ///   to it: the conversation's rows are drawn by its list where the
+    ///   settings are not at hand, and one value keeps the composer and
+    ///   the messages on the same edges.
+    /// - Difference: "Comfortable" is Paseo's chat column, 820, where the
+    ///   page takes agent-orchestrator's 768 (the owner's rule: Paseo's
+    ///   app); "Wide" is GOAT's 1152 as the page's, "Full" the window's.
+    static CONTENT_WIDTH: Cell<Option<f32>> = const { Cell::new(Some(COLUMN_WIDTH)) };
+}
+
+/// The chat column grows to `width` (the next frame draws it).
+pub(crate) fn set_content_width(width: ContentWidth) {
+    let points = match width {
+        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
+        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    };
+    CONTENT_WIDTH.set(points);
+}
+
 /// `content` in the chat column.
 pub(crate) fn column(content: impl IntoElement) -> Div {
+    let inner = div().w_full().child(content);
+    let inner = match CONTENT_WIDTH.get() {
+        Some(width) => inner.max_w(px(width)),
+        None => inner,
+    };
     div()
         .w_full()
         .flex()
         .flex_row()
         .justify_center()
         .px(px(COLUMN_INSET))
-        .child(div().w_full().max_w(px(COLUMN_WIDTH)).child(content))
+        .child(inner)
 }
 
 /// A person's message, in the chat column.

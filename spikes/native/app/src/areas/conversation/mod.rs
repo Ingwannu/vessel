@@ -43,6 +43,7 @@ use vessel_app_kit::ui::{App, Context, Subscription};
 use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
+use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::session::MarkAction;
 use vessel_app_view::timeline::{FindCache, Folds, Logs, OutlineItem, Rows, Timeline, outline};
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
@@ -148,7 +149,7 @@ impl ConversationArea {
             open_runs: HashSet::new(),
             logs: Logs::default(),
             open_logs: HashSet::new(),
-            collapse: collapsing(),
+            collapse: collapsing(None),
             toggled: HashSet::new(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
@@ -182,14 +183,19 @@ impl ConversationArea {
     }
 }
 
-/// Whether the conversation collapses tool calls: until the app reads
-/// the person's display setting (the settings track's preference, whose
-/// default is "Full"), it collapses them, as it has since its first
-/// build; `VESSEL_APP_CONVERSATION=full` shows it as "Full" does (every
-/// tool call a row, an agent's log as one folded row), so that setting's
-/// screens can be seen and checked now.
-fn collapsing() -> bool {
-    std::env::var("VESSEL_APP_CONVERSATION").map_or(true, |display| display != "full")
+/// Whether the conversation collapses tool calls: as Settings ›
+/// Appearance › Conversation display says (`display`; "Full": every tool
+/// call a row, an agent's log as one folded row; "Collapse tool calls":
+/// runs of tool calls one row each, the log not shown), unless
+/// `VESSEL_APP_CONVERSATION` (`full` or `collapse`) pins it for a run, for
+/// captures. Before the preferences are read (`None`), collapsed, as the
+/// app has drawn it since its first build.
+fn collapsing(display: Option<ConversationDisplay>) -> bool {
+    match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
+        Ok("full") => false,
+        Ok("collapse") => true,
+        _ => display.is_none_or(|display| display == ConversationDisplay::CollapseTools),
+    }
 }
 
 impl Shell {
@@ -231,6 +237,21 @@ impl Shell {
             session,
             act: Act::Info,
         });
+    }
+
+    /// The conversation as Settings' display says: its runs folded or
+    /// not, every row measured again (the list starts over at the end).
+    pub(crate) fn conversation_display(&mut self, display: ConversationDisplay) {
+        let collapse = collapsing(Some(display));
+        let area = &mut self.areas.conversation;
+        if area.collapse == collapse {
+            return;
+        }
+        area.collapse = collapse;
+        area.folds = collapse.then(|| Folds::of(area.timeline.entries()));
+        area.open_runs.clear();
+        area.rows_again();
+        area.list.reset(area.rows.len());
     }
 
     /// Records of the session followed.
