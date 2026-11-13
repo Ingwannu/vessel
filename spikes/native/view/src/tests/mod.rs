@@ -4,3 +4,4 @@
 //! test it follows.
 
 mod board;
+mod options;

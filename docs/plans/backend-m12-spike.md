@@ -199,7 +199,7 @@ written after a send.
 | Focus on open | Met. `Mod+L` not bound yet. |
 | Machine | Partly: the last chosen (the app's own prefs), else the first connected. No address, caller or book default yet. |
 | Agent | Partly: the pick, else the remembered one, else the machine's first agent that runs a conversation (the node's order, not the page's "first of the four"). |
-| Profile and choices; the options probe | Not yet: sessions start on the agent's defaults. Next. |
+| Profile and choices; the options probe | Partly (after 0.0.0.0.2): the options probe, the agent/model/effort control and the permissions control laid out by the page's rules (`view/src/options.rs`, the page's option tests ported), the last start's choices per machine and agent. No profile yet. |
 | The spec | Partly: structured, `model: null`, `cwd` from the folder; no profile, no options; terminals not offered. |
 | Place | Partly: a folder (home, typed, or one used before on that machine). Projects and worktrees are track F's, embedded where the folder chip is. |
 | Send enabled | Partly: a machine, an agent and a prompt. |
@@ -249,6 +249,9 @@ against the fake fleet:
 | The prompt in the conversation in the interface face (Pretendard behind Geist), as the page draws it; monospace is for code and the terminal only | `b3-session-prompt.png` |
 | `VESSEL_APP_TITLEBAR=system`: no app-drawn bar | `b3-system-titlebar.png` |
 | Pairing a fresh app and keeping the filled-in `machine`: the book's entry is the node's own name, `laptop` | `b3-paired-own-name.png` |
+| The new chat laid out as the page's: the agent, model and effort control ("Fake-small High") and the permissions control ("Default") in the box's foot, the machine and folder under it | `b3-draft-options.png` |
+| The control opened: the agent, the model, the effort under its groups, the agent's other settings under "Claude Code 설정" | `b3-agent-panel.png` |
+| Fake-large chosen and sent: the session starts with `model = fake-large` (the fake answers that model's way), and `app-prefs.json` keeps the choice for that machine and agent | `b3-sent-with-model.png` |
 
 The node's name cannot fill the field: a pairing link carries the node's
 id, not its name, and the node says its name only in the pairing answer.
