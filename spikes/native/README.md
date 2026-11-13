@@ -144,6 +144,9 @@ Labels remain whole and explanations belong below their row.
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
 
+Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
+is the explicit 14-point slot used by Paseo’s branch switcher.
+
 `kit/toolbar_label.rs` supplies Paseo’s compact current/base branch trigger:
 12-point muted label and caret, highlighted fill, typed open/disabled state,
 and explicit single-line or wrapping text. Composer pills keep their shape.

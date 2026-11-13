@@ -298,6 +298,8 @@ pub fn send_button(
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
+    /// A 14-point leading glyph, as Paseo’s branch-switcher renderOption.
+    SmallGlyph(Glyph),
     /// A state's dot (a machine).
     Dot(Hsla),
     /// A project's mark: its initial on a tile ([`initial_tile`]).
@@ -842,11 +844,23 @@ fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
     words
 }
 
+/// Existing picker rows keep their 16-point leading glyph.
+const ROW_GLYPH: f32 = 16.0;
+/// Paseo’s branch-switcher supplies its own 14-point leading slot.
+const SMALL_ROW_GLYPH: f32 = 14.0;
+
 /// What leads a row.
 fn row_leading(leading: Leading, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     match leading {
-        Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
+        Leading::Glyph(which) => {
+            glyph(which, ROW_GLYPH, neutral.foreground_muted).into_any_element()
+        }
+        // BranchSwitcher's explicit 14-point slot must not resize every
+        // existing 16-point picker glyph merely because this caller needs it.
+        Leading::SmallGlyph(which) => {
+            glyph(which, SMALL_ROW_GLYPH, neutral.foreground_muted).into_any_element()
+        }
         Leading::Dot(color) => div()
             .size(px(14.0))
             .flex()
@@ -1061,5 +1075,16 @@ mod tests {
         assert_eq!(one_line(&"a\n\nb  c\td".into()).as_ref(), "a b c d");
         let plain: SharedString = "plain words".into();
         assert_eq!(one_line(&plain), plain);
+    }
+}
+
+#[cfg(test)]
+mod glyph_size_tests {
+    use super::{ROW_GLYPH, SMALL_ROW_GLYPH};
+
+    #[test]
+    fn a_branch_switcher_does_not_resize_existing_picker_glyphs() {
+        assert_eq!(ROW_GLYPH.to_bits(), 16.0_f32.to_bits());
+        assert_eq!(SMALL_ROW_GLYPH.to_bits(), 14.0_f32.to_bits());
     }
 }

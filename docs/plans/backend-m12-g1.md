@@ -323,3 +323,16 @@ is a single line with the reference’s truncation; a typed wrapping option
 is the requested departure for long branch names in the Changes head.
 Touch takes the shared TOUCH_TARGET minimum instead of changing text size.
 The six-argument frame leaves content, state, layout and tokens visible.
+
+## Branch picker’s shared leading size
+
+[Decision Log]
+- Purpose: match the 14-point branch glyph supplied by Paseo’s
+  `components/branch-switcher.tsx` renderOption without an area-owned row.
+- Constraint: the kit’s existing `Leading::Glyph` is 16 points everywhere.
+- Alternatives: resize every picker glyph, or draw another branch row.
+- Choice: backwards-compatible `Leading::SmallGlyph`, preserving every
+  existing caller and the rest of the combobox’s layout and behaviour.
+- Why: the reference chooses this size explicitly; a generic picker’s
+  existing size must not change as a side effect of one new caller.
+- Cost: one additional typed leading form; no additional surface or engine.
