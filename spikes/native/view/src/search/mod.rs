@@ -1,4 +1,5 @@
-//! Command Center matching, specified by Paseo's protocol text matcher.
+//! Ranked matching shared by commands and provider catalogs, specified
+//! by Paseo's protocol text matcher and `provider-catalog-search.ts`.
 //!
 //! [Decision Log]
 //! - Purpose: a query such as `lbl dsgn` must find Label as Design, with
@@ -10,7 +11,9 @@
 //! - Alternative: a general fuzzy-search dependency has different scoring
 //!   and would make reference parity harder. No dependency is added.
 //! - Cost: each candidate is folded for the scan; highlight ranges are
-//!   computed only for rows being drawn, not while ranking the fleet.
+//!   computed only for rows being drawn, not while ranking results.
+//! - Sharing: one matcher serves every consumer; its opaque ordered score
+//!   keeps callers from inventing incompatible relevance weights.
 
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -54,14 +57,17 @@ enum FieldRole {
     Keyword,
 }
 
+/// Total ranking: visible fields before hidden keywords, then token
+/// match tier, UTF-16 offset and spread. Its fields are intentionally
+/// opaque; callers compare scores without inventing another scale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(super) struct Score {
+pub struct Score {
     role: FieldRole,
     weight: Weight,
 }
 
 impl Score {
-    pub(super) fn built_in_cmp(self, other: Self) -> Ordering {
+    pub(crate) fn built_in_cmp(self, other: Self) -> Ordering {
         (self.role, self.weight.tier).cmp(&(other.role, other.weight.tier))
     }
 }
@@ -214,11 +220,14 @@ fn whitespace(value: char) -> bool {
     )
 }
 
-/// Parsed once for a palette projection, rather than once per candidate.
-pub(super) struct Query(Vec<Vec<char>>);
+/// Parsed once for a result projection, rather than once per candidate.
+#[derive(Debug)]
+pub struct Query(Vec<Vec<char>>);
 
 impl Query {
-    pub(super) fn new(text: &str) -> Self {
+    /// Parse case-folded, whitespace-separated query tokens.
+    #[must_use]
+    pub fn new(text: &str) -> Self {
         Self(
             text.to_lowercase()
                 .split(whitespace)
@@ -228,7 +237,9 @@ impl Query {
         )
     }
 
-    pub(super) fn is_empty(&self) -> bool {
+    /// Whether the query contains no tokens.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
@@ -249,7 +260,12 @@ impl Query {
         Some(total)
     }
 
-    pub(super) fn score(&self, visible: &[&str], hidden: Option<&str>) -> Option<Score> {
+    /// Score every token against visible fields, falling back to the
+    /// visible fields plus hidden keywords only when a visible match is
+    /// impossible. Subsequence matching stays inside each word; typo
+    /// tolerance is disabled, as in Paseo's Command Center and catalog.
+    #[must_use]
+    pub fn score(&self, visible: &[&str], hidden: Option<&str>) -> Option<Score> {
         let mut fields: Vec<_> = visible.iter().map(|text| Field::new(text)).collect();
         if let Some(weight) = self.fields(&fields) {
             return Some(Score {
@@ -264,7 +280,10 @@ impl Query {
         })
     }
 
-    pub(super) fn marks(&self, text: &str) -> Vec<Range<usize>> {
+    /// Matching tokens and scattered runs in original UTF-8 bytes.
+    /// Overlaps share one mark; nonmatching tokens add no ranges.
+    #[must_use]
+    pub fn marks(&self, text: &str) -> Vec<Range<usize>> {
         let field = Field::new(text);
         let mut ranges = Vec::new();
         for token in &self.0 {

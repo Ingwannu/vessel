@@ -334,6 +334,21 @@ older claims are not substituted for independent review.
 
 ### Takeover audit (2026-11-13)
 
+The matcher is now `view::search::{Query, Score}`, shared with the
+provider catalog instead of copied into it. `Query::new`, `is_empty`,
+`score(visible, hidden)` and `marks` are public; score fields stay opaque
+and ordered, with the palette's recency-tier comparison crate-private.
+The existing matcher tests move unchanged, and an external consumer
+contract uses the six entries and queries from Paseo's
+`components/provider-catalog-search.test.ts`. Alphabetical tie breaking
+belongs to the catalog; no locale comparator or new matching rule is
+introduced here. Foreign seam: one `pub mod search` registration in
+`view/src/lib.rs`; palette imports now point to this shared module.
+Shared-source gate: native `cargo fmt --check` and whole-workspace
+`cargo clippy --all-targets -- -D warnings` clean; 433 tests and two
+compile-fail documentation tests pass. This extraction changes no UI;
+it does not resolve or approve the pending palette path/motion work.
+
 Follow-up integration takes lead `d050e7e9`, including the always-visible
 desktop sidebar toggle, the focused-window composition query, the X11
 input-context fix, shared form/action controls and localization

@@ -4,8 +4,8 @@
 
 use std::cmp::Ordering;
 
-use super::search::{Query, Score};
 use super::{PaletteEntry, PaletteGroup};
+use crate::search::{Query, Score};
 
 type Group<'a, S, T> = (PaletteGroup, Vec<&'a PaletteEntry<S, T>>);
 

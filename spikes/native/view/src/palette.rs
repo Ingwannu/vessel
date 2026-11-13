@@ -14,7 +14,6 @@
 
 mod cursor;
 mod ranking;
-mod search;
 
 pub use cursor::{Direction, PaletteCursor};
 
@@ -25,6 +24,7 @@ use chrono::{DateTime, Utc};
 use vessel_proto::SessionId;
 
 use crate::board::{Fleet, Reach};
+use crate::search;
 use crate::text::Lang;
 
 /// The palette's groups, in the order it lists them.
