@@ -369,6 +369,7 @@ const FORWARDABLE: &[&str] = &[
     "port.list",
     "agent.list",
     "agent.status",
+    "schedule.preview",
     "schedule.list",
     "schedule.get",
     "schedule.create",

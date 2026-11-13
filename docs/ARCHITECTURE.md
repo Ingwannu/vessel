@@ -1075,3 +1075,26 @@ rejected after the release-size experiment, recorded in ADR 0039.
 Legacy area tables stay until their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
+
+## Protocol 13: schedule preview (N3)
+
+`NodeInfo.timezone` carries the startup-detected system IANA name; unknown
+stays absent. The RPC handshake and `node.info` omit it below protocol 13.
+`service/schedule_preview` computes `schedule.preview` through the same
+`automation::time::Due` as the scheduler. Its four-slot semaphore is acquired
+before `spawn_blocking`; the worker owns the permit through cancellation.
+The result includes the effective interval anchor for create/update reuse.
+The request count is parsed as 1–10; every search has the existing eight-year
+bound, and failure returns no partial list. Typed reasons use optional
+`WireError.detail`, leaving existing error encodings unchanged when absent.
+The protocol crate uses the workspace's `thiserror` for this typed error;
+no runtime or I/O is added there. The CLI and client expose the same call. The web registry boxes the status
+inside a queued connection change so this larger metadata does not inflate
+its small removal notification; the serialized page frame is unchanged.
+Testkit carries Paseo's cron cases; the fake fleet checks machine timezone,
+ten runs, target-zone defaults and impossible-expression refusal.
+
+The member loop treats cancellation after a grant or state write as shutdown,
+clears its cached home connection, and checks again before each new pull.
+This prevents timer/watch readiness from admitting fresh disk work after
+shutdown; an apply already started retains its normal completion semantics.

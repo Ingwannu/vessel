@@ -47,6 +47,24 @@ pub struct WireError {
     pub code: ErrorCode,
     /// Human-readable explanation. Never contains secrets.
     pub message: String,
+    /// Optional machine-readable reason (protocol 13); older errors omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<ErrorDetail>,
+}
+
+/// Further typed context for a refusal. Unknown future reasons stay readable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ErrorDetail {
+    /// A schedule preview could not be computed.
+    SchedulePreview {
+        /// The stable preview reason.
+        reason: crate::automation::SchedulePreviewError,
+    },
+    /// A reason introduced by a newer node.
+    #[serde(other)]
+    Unknown,
 }
 
 impl WireError {
@@ -56,6 +74,7 @@ impl WireError {
         Self {
             code,
             message: message.into(),
+            detail: None,
         }
     }
 }
@@ -67,3 +86,29 @@ impl fmt::Display for WireError {
 }
 
 impl std::error::Error for WireError {}
+
+#[cfg(test)]
+mod detail_tests {
+    use super::*;
+
+    #[test]
+    fn old_error_shape_and_future_reasons_stay_readable() {
+        let old = r#"{"code":"invalid_request","message":"choose another time"}"#;
+        let error: WireError = serde_json::from_str(old).unwrap();
+        assert_eq!(error.detail, None);
+        assert_eq!(serde_json::to_string(&error).unwrap(), old);
+        let future = r#"{"code":"invalid_request","message":"update","detail":{"kind":"schedule_preview","reason":"future_reason"}}"#;
+        let error: WireError = serde_json::from_str(future).unwrap();
+        assert_eq!(
+            error.detail,
+            Some(ErrorDetail::SchedulePreview {
+                reason: crate::automation::SchedulePreviewError::Unknown
+            })
+        );
+        let future = r#"{"code":"invalid_request","message":"update","detail":{"kind":"future_kind","reason":"future_reason"}}"#;
+        assert_eq!(
+            serde_json::from_str::<WireError>(future).unwrap().detail,
+            Some(ErrorDetail::Unknown)
+        );
+    }
+}

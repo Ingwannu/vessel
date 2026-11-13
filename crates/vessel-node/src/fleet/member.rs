@@ -292,7 +292,18 @@ pub(crate) async fn run<C: Connector>(
         tracing::info!(home = %client.node().id, "connected to the fleet's home");
         links.connected_home(client.clone());
         let granted = links.grant(&client, &membership, &stop).await;
+        // A cancelled grant is shutdown, not admission to the first pull.
+        // Keep the cached connection's lifetime aligned with this loop even
+        // when cancellation arrives during the state write below.
+        if stop.is_cancelled() {
+            links.lost_home();
+            return;
+        }
         note_grant(&local, granted.err().map(|error| error.message)).await;
+        if stop.is_cancelled() {
+            links.lost_home();
+            return;
+        }
         // A member called back through its home's relays asks for a newer
         // ticket while connected (`fleet.callback`); the connection's end
         // stops that.
@@ -318,6 +329,12 @@ async fn session(
     timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     let _first = timer.tick().await;
     loop {
+        // Watch/timer and cancellation may be ready together. A select arm
+        // is not permission to begin new disk work after shutdown; an apply
+        // already admitted still finishes normally.
+        if stop.is_cancelled() {
+            return;
+        }
         if due {
             match pull(client, local).await {
                 Ok(generation) => {

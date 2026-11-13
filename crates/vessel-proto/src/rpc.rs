@@ -369,6 +369,8 @@ rpc_methods! {
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
+    /// Compute a bounded schedule preview without saving or starting work.
+    PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;
     /// Every schedule on the node (protocol 11).
     ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;
     /// One schedule (protocol 11).

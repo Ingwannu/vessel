@@ -605,3 +605,21 @@ used. New screens are drawn in the native app first.
   macOS notarisation, an Apple developer account for iOS.
 - Whether CI may build what this machine cannot (Windows, macOS, iOS):
   it needs branches pushed, which `AGENTS.md` forbids today.
+
+## Wire gaps carried by N3
+
+What the node does not send yet, found by these tracks in their first
+hour. The app draws none of it until the node has it (nothing shown may
+do nothing); each is for a node track:
+
+| Missing | Where it shows | Until then |
+|---|---|---|
+| Open pull requests of a project with no live session (`pr.list` walks watched sessions only) | the pull request page | the page is "pull requests of this machine's sessions" and says so |
+| The webhook calls (`hook.*`): ADR 0034 has the types and the store, not the calls, the listener or the CLI | schedules | no webhook screen |
+| ~~A machine's time zone~~ | schedules | N3 row 1: `NodeInfo.timezone`; built in `HEAD^{/node: preview schedules using the scheduler}` (protocol 13 on `backend/m12-node`) |
+| ~~The next runs of an expression before it is saved~~ | the schedule editor | N3 row 1: `schedule.preview`; shared scheduler calculation, returned cadence reused on save; `HEAD^{/node: preview schedules using the scheduler}` (protocol 13 on `backend/m12-node`) |
+| Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
+| The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
+| A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
+| A pairing link from a machine with no public address and no relay: `device.invite` succeeds and the link leads nowhere | Settings › Devices | the app refuses to show such a link and says what to set up |
+| An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |

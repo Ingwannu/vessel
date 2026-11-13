@@ -22,5 +22,8 @@ pub(crate) fn node_info(id: NodeId, name: Option<String>, key: NodePublicKey) ->
         // Shown by `vessel node status`, and how a client already
         // connected (token or SSH) learns the key (ADR 0009).
         public_key: Some(key),
+        timezone: jiff::tz::TimeZone::try_system()
+            .ok()
+            .and_then(|zone| zone.iana_name().and_then(|name| name.parse().ok())),
     }
 }

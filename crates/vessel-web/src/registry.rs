@@ -129,8 +129,15 @@ impl Cancelled {
 /// up later. A separate removal also bounds each tab's remembered keys.
 #[derive(Clone, Debug)]
 pub(crate) enum Change {
-    State { node: NodeKey, status: NodeStatus },
-    Removed { node: NodeKey },
+    // Node metadata grows additively; keep every queued change from
+    // paying its inline size, especially the small removal variant.
+    State {
+        node: NodeKey,
+        status: Box<NodeStatus>,
+    },
+    Removed {
+        node: NodeKey,
+    },
 }
 
 /// Every node's connection.
@@ -326,7 +333,7 @@ impl<S: NodeSource> Registry<S> {
         let _previous = entry.link.send_replace(link);
         let _listeners = self.changes.send(Change::State {
             node: key.clone(),
-            status,
+            status: Box::new(status),
         });
     }
 

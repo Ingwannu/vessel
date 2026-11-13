@@ -400,3 +400,7 @@ released-catalog test requires every shipped catalog to be complete.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+The fake fleet also checks N3's node timezone and schedule preview through
+`wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
+and an impossible-expression refusal. No schedule is saved by this check.

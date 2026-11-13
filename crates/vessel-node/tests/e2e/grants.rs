@@ -686,7 +686,7 @@ async fn stopping_a_member_does_not_wait_for_its_grant() {
             .start_with(|config| {
                 config.name = Some("unreachable".to_owned());
                 config.public = silent;
-                config.fleet = fleet_config(HarnessKind::Codex, applied);
+                config.fleet = fleet_config(HarnessKind::Codex, applied.clone());
             })
             .await;
         let offer = home
@@ -715,6 +715,11 @@ async fn stopping_a_member_does_not_wait_for_its_grant() {
         assert!(dialed.load(std::sync::atomic::Ordering::Acquire) > 0);
         let stopped = tokio::time::timeout(Duration::from_secs(5), node.stop()).await;
         assert!(stopped.is_ok(), "stopping waited for the grant");
+        stopped.unwrap().unwrap();
+        assert!(
+            !applied.join("AGENTS.md").exists(),
+            "shutdown admitted a first pull after cancelling the grant"
+        );
         relay.stop().await;
     })
     .await;
