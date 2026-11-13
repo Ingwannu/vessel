@@ -263,7 +263,7 @@ pub(crate) async fn pair(
         id: Some(offer.node),
     };
     let node_name = paired.node.name.clone();
-    let name = if prefer_node_name {
+    let name: NodeName = if prefer_node_name {
         let taken: Vec<String> = read_book()?
             .iter()
             .map(|(taken, _)| taken.as_str().to_owned())
@@ -275,6 +275,10 @@ pub(crate) async fn pair(
     } else {
         name
     };
+    // The status line names the machine as the sidebar does: by its name
+    // in the book (the node's own name may differ when the person typed
+    // another).
+    let shown = name.as_str().to_owned();
     tokio::task::spawn_blocking(move || -> Result<(), LinkError> {
         paired
             .credential
@@ -293,7 +297,7 @@ pub(crate) async fn pair(
         }
         vessel_client::secure::Route::Relay(url) => (vessel_app_view::Via::Relay, url.to_string()),
     };
-    Ok((node_name, via, address))
+    Ok((shown, via, address))
 }
 
 #[cfg(test)]
