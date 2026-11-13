@@ -48,8 +48,14 @@
 //!   that maximum, rather than GOAT's pixel-based cap. Enter starts a
 //!   line and Mod+Enter submits. The existing engine owns scrolling.
 //! - Size: engine wiring and colour projection stay together here so
-//!   the three presentations cannot acquire separate handlers; layout
+//!   the original presentations cannot acquire separate handlers; layout
 //!   and marked-text regressions live in the separate `form_tests` module.
+
+mod numeric;
+mod rename;
+mod settings_frame;
+pub use numeric::{NumberField, NumberWidth};
+pub use rename::Editability;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -696,6 +702,7 @@ mod composing_tests {
         line: TextField,
         lines: TextField,
         form: TextField,
+        rename: TextField,
     }
 
     /// The fields' submit (nothing to do in this test).
@@ -708,6 +715,7 @@ mod composing_tests {
                 .child(self.line.element(&tokens, false, cx))
                 .child(self.lines.element(&tokens, false, cx))
                 .child(self.form.element(&tokens, false, cx))
+                .child(self.rename.rename_element(&tokens, cx))
         }
     }
 
@@ -743,13 +751,15 @@ mod composing_tests {
             line: TextField::new("", submit, window, cx),
             lines: TextField::composer("", submit, window, cx),
             form: TextField::form_multiline("", submit, window, cx),
+            rename: TextField::new("", submit, window, cx),
         });
         cx.run_until_parked();
         probe.update_in(cx, |probe, window, cx| {
             for (focused, other) in [
                 (&probe.line, &probe.lines),
                 (&probe.lines, &probe.form),
-                (&probe.form, &probe.line),
+                (&probe.form, &probe.rename),
+                (&probe.rename, &probe.line),
             ] {
                 focused.focus(window, cx);
                 assert!(!focused.composing(window, cx), "nothing marked yet");

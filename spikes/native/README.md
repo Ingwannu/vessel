@@ -420,3 +420,18 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+Settings number inputs use the kit's `NumberField` over the existing registered
+`TextField` engine. `NumberWidth` selects Paseo's 64-point font field or 80-point
+width field; both layouts use a 36-point minimum, 8/12 insets, radius 6, a neutral
+border and surface2, with right-aligned digits. Focus selects the value; Enter
+and blur commit. The caller owns draft filtering, parsing, bounds and external
+preference synchronization in `view`/`app`.
+
+The separate `TextField::rename_element` profile follows Paseo's rename modal:
+surface0, padding 12, radius 6 and a neutral border. `Editability::ReadOnly`
+rejects user changes in the engine, including paste and marked-text replacement,
+while retaining selection/copy; `select_all` supports the modal's initial value.
+The ordinary line, composer and multiline form entries retain their geometry.
+Both settings profiles use the same IME registration and composition query.
+These controls need consuming-screen captures before visual acceptance.

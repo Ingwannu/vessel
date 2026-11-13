@@ -317,3 +317,54 @@ localization integration 9 and page parity 97 (429 passed), plus 2 passing doc
 tests. Root protocol/node changes belong to their lead-authored commits; no
 independent root-workspace test claim is made here. No new settings UI or
 runtime font/IME approval is implied by this integration gate.
+
+## Settings input profiles (control-only)
+
+The reserved numeric and rename profiles reuse the registered `TextField`
+engine; no second editing engine, dependency or area-local shell is added.
+Numeric follows Paseo `screens/settings/appearance/appearance-section.tsx`
+`FontSizeRow`, `sizeInput` and `widthInput`: widths 64/80, minimum height 36 on
+both layouts, padding 8/12, radius 6, border 1, surface2, body text and right
+alignment. The engine receives right alignment explicitly; a container's text
+style alone would not position its caret correctly. Focus selection is deferred
+until the pointer's initial caret placement finishes. Enter and blur report the
+draft without interpreting it; parsing and clamping remain the view's job.
+
+Rename follows `components/rename-modal.tsx`: surface0, padding 12, radius 6,
+neutral border and body text. The shared editing capability is typed as
+`Editability`; read-only is enforced by the existing engine, rather than only
+by button state. Original field entries are unchanged. The rename profile is
+included in the existing composing regression, and the numeric wrapper also
+checks the shared focused-composing query. New GPUI regressions exercise
+selection, submit/blur, narrow-parent bounds, keyboard/paste/IME rejection and
+editing again after read-only. These are engine/layout tests, not live X11 or
+Windows IME proof. No screen, numeric preference model or capture is added in
+this control-only slice; first-use dark/light and 1280/390 evidence follows in
+the consuming settings pages.
+
+Focus probes explicitly activate the test window: GPUI's inactive test window
+can hold a focus handle while suppressing Focus/Blur events. Initial paint
+alone was insufficient; both original replacement/event assertions stay. The
+same tests exercise text and both padding insets for each numeric profile.
+The reserved shells forward an unconsumed padding press to the existing
+engine, respecting disabled/read-only and touch-keyboard eligibility. A rename
+regression also checks padding focus before and during read-only. Original
+field entries and handlers are unchanged. Live OS input-method behavior is
+still outside the headless tests' claim.
+
+
+Validation on the final input-profile source: native `cargo fmt --check`,
+whole-workspace `cargo clippy --all-targets -- -D warnings`, and `cargo test`
+all exited0. Tests: app3, kit32, link29, view265, localization9 and page parity97
+(435 passed), plus2 passing doc tests. Both changed crates were recompiled in
+the final test log. The six added input regressions passed, including explicit
+active-window focus/selection and actual text/padding clicks. Ordered selected
+source:1358 files, SHA-256
+`6a4ddc4d648558a5f108cc70fc36a992ca54b911a9696801718352aede54b57c`.
+Evidence is in the track scratch `input-profiles-gate-5/`, including the ordered
+source manifest. Earlier failures are retained in the prior gate folders.
+No consuming settings screen or live OS input-method capture is claimed.
+No permissions were changed; validation ran under the development account
+(uid1000). Both ignored Cargo configurations remain intact and uncommitted.
+The credit watcher limits this closeout to this slice; no new control, page or
+branch merge was started after that notice.
