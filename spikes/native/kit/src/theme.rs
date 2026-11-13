@@ -75,14 +75,6 @@ pub struct Tokens {
     pub btn_secondary_bg: Hsla,
     /// `--btn-secondary-bg-hover`.
     pub btn_secondary_bg_hover: Hsla,
-    /// `--field-bg`: a field's or a segmented track's fill.
-    pub field_bg: Hsla,
-    /// `--field-edge`.
-    pub field_edge: Hsla,
-    /// `--segment-thumb`: the chosen segment.
-    pub segment_thumb: Hsla,
-    /// `--segment-edge`: its hairline.
-    pub segment_edge: Hsla,
 }
 
 impl Tokens {
@@ -126,10 +118,6 @@ impl Tokens {
             btn_primary_fg: rgb(0x00ff_ffff).into(),
             btn_secondary_bg: rgb(0x00f0_f0f0).into(),
             btn_secondary_bg_hover: rgb(0x00e4_e4e4).into(),
-            field_bg: rgba(0x1212_120a).into(),
-            field_edge: rgba(0x0000_0014).into(),
-            segment_thumb: rgb(0x00ff_ffff).into(),
-            segment_edge: rgba(0x0000_0014).into(),
         }
     }
 
@@ -163,11 +151,6 @@ impl Tokens {
             btn_primary_fg: rgb(0x0018_1818).into(),
             btn_secondary_bg: rgb(0x002c_2c2c).into(),
             btn_secondary_bg_hover: rgb(0x0036_3636).into(),
-            // 4%, 3%, 10%, 6%.
-            field_bg: rgba(0xffff_ff0a).into(),
-            field_edge: rgba(0xffff_ff08).into(),
-            segment_thumb: rgba(0xffff_ff1a).into(),
-            segment_edge: rgba(0xffff_ff0f).into(),
         }
     }
 }

@@ -1,33 +1,38 @@
-//! A side panel's tabs (the page's `ui/kit/panel-tabs.tsx`, DESIGN.md
-//! 6.13): agent-orchestrator's inspector head, 36px over a hairline, its
-//! tabs 28px tall, 8px corners, 4px apart, in the passive ink; hovered on
-//! a 4% wash, chosen in the full ink with no fill; a count rides on a
-//! tab's corner (past 99, "99+").
+//! A panel's tabs, as Paseo's app draws its workspace tab row
+//! (`screens/workspace/workspace-desktop-tabs-row.tsx`, `constants/
+//! layout.ts`): a row 36 tall over a hairline, 4 in from each side; each
+//! tab a chip 28 tall, 8 across, 6 corners, 4 apart, its label at 14 in
+//! the muted ink; the chosen one filled with the second surface in the
+//! full ink, a hovered one on the first. A count follows the label in the
+//! muted ink at 12.
 //!
 //! [Decision Log]
 //! - Purpose: the inspector beside a session switches what it shows
 //!   (Summary, Changes, Files); track C's Summary and this track's code
-//!   panel share the strip.
-//! - Constraint: the page's tabs are icons only, named by tooltips; the
-//!   kit has no icon set yet (its only drawings are the window's four
-//!   glyphs), and no tooltip (the lead's).
-//! - Choice: a tab carries its label, drawn as the tab until the kit has
-//!   icons, then as the icon with the label as its tooltip; the strip and
-//!   its measures are the page's either way.
-//! - Cost: labelled tabs are wider than the page's squares; three fit in
-//!   the narrowest inspector (360 points).
+//!   panel share the row.
+//! - Constraint: the owner's rule (the brief's "The look"): Paseo's app is
+//!   the model; the page's strip (icon squares named by tooltips) differs,
+//!   and the kit has no icons yet.
+//! - Choice: Paseo's labelled chips, which fit three in the narrowest
+//!   inspector (360 points) and need no icon or tooltip; Paseo's close
+//!   buttons and dragging are for its editor tabs and are not drawn here.
+//!   Until the theme carries Paseo's surfaces, the chosen fill is
+//!   `bg_hover` (Paseo's second surface is the ink at about 4% on white)
+//!   and a hovered one the same.
+//! - Cost: the page's corner badge for a count becomes a number after the
+//!   label (the page is brought to the same, ADR 0036).
 
 use gpui::prelude::*;
 use gpui::{Div, ElementId, SharedString, Stateful, div, px};
 
 use crate::fonts::Type;
-use crate::theme::{Tokens, radius};
+use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
-/// The strip's height (`--topbar-h`).
+/// The row's height (Paseo's bar, pointer-sized).
 pub const HEAD_HEIGHT: f32 = 36.0;
 
-/// The head the tabs sit in, with the panel's own actions at its right
+/// The row the tabs sit in, with the panel's own actions at its right
 /// (`end`).
 #[must_use]
 pub fn tab_head(tabs: Div, end: Option<Div>, tokens: &Tokens) -> Div {
@@ -38,10 +43,9 @@ pub fn tab_head(tabs: Div, end: Option<Div>, tokens: &Tokens) -> Div {
         .items_center()
         .gap(px(4.0))
         .h(px(HEAD_HEIGHT))
-        .pl(px(4.0))
-        .pr(px(6.0))
+        .px(px(4.0))
         .border_b_1()
-        .border_color(tokens.border_faint)
+        .border_color(tokens.border_subtle)
         .child(
             tabs.flex()
                 .flex_row()
@@ -59,7 +63,7 @@ pub fn tab_head(tabs: Div, end: Option<Div>, tokens: &Tokens) -> Div {
         }))
 }
 
-/// A count as the badge writes it.
+/// A count as a tab writes it (past 99, "99+").
 #[must_use]
 pub fn count_text(count: u64) -> String {
     if count > 99 {
@@ -81,39 +85,30 @@ pub fn tab(
     let hover = tokens.bg_hover;
     div()
         .id(id)
-        .relative()
         .flex()
         .flex_row()
+        .flex_none()
         .items_center()
+        .gap(px(4.0))
         .h(px(28.0))
         .px(px(8.0))
-        .rounded(px(radius::R2))
-        .type_(Type::Label)
-        .text_size(px(13.0))
+        .rounded(px(6.0))
+        .type_(Type::Body)
+        .text_size(px(14.0))
         .text_color(if chosen {
             tokens.text_primary
         } else {
-            tokens.text_tertiary
+            tokens.text_secondary
         })
-        .cursor_pointer()
-        .hover(move |style| style.bg(hover))
+        .when(chosen, |tab| tab.bg(tokens.bg_hover))
+        .when(!chosen, |tab| {
+            tab.cursor_pointer().hover(move |style| style.bg(hover))
+        })
         .child(label.into())
         .children(count.filter(|count| *count > 0).map(|count| {
             div()
-                .absolute()
-                .top(px(-2.0))
-                .right(px(-4.0))
-                .min_w(px(12.0))
-                .h(px(12.0))
-                .px(px(2.0))
-                .rounded_full()
-                .bg(tokens.text_primary)
-                .text_color(tokens.bg_base)
-                .type_(Type::Mono)
-                .text_size(px(7.0))
-                .line_height(px(12.0))
-                .flex()
-                .justify_center()
+                .type_(Type::Meta)
+                .text_color(tokens.text_tertiary)
                 .child(count_text(count))
         }))
 }
@@ -123,7 +118,7 @@ mod tests {
     use super::count_text;
 
     #[test]
-    fn writes_a_count_as_the_badge_does() {
+    fn writes_a_count_as_a_tab_does() {
         assert_eq!(count_text(7), "7");
         assert_eq!(count_text(99), "99");
         assert_eq!(count_text(100), "99+");
