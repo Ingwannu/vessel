@@ -15,7 +15,8 @@
 # half-written set. The last step checks the sums again where they landed.
 # Contents:
 #   vessel-LABEL-windows-x64.zip        Vessel.exe, LICENSE.md, README.txt,
-#                                       licenses/ (the embedded fonts' OFL)
+#                                       licenses/ (the embedded fonts' OFL,
+#                                       the agents' marks' licences)
 #   vessel-LABEL-windows-x64-setup.exe  per-user installer (NSIS)
 #   vessel-LABEL-windows-x64.exe        the executable alone: the update
 #   vessel-LABEL-linux-x64.tar.gz       vessel-app, LICENSE.md, README.txt,
@@ -137,12 +138,21 @@ else
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
 fi
 
-# The SIL Open Font License asks that each copy of the fonts carry the
-# licence; the app embeds Geist, Geist Mono and Pretendard, so every
-# package carries their texts (fonts.sh puts them beside the fonts).
+# The licences of what the app embeds that is not Vessel's, one text per
+# file in licenses/:
+# - The SIL Open Font License asks that each copy of the fonts carry the
+#   licence; the app embeds Geist, Geist Mono and Pretendard (fonts.sh
+#   puts their texts beside the fonts).
+# - The agents' marks (docs/design/agent-marks/README.md): from 0.0.0.0.10
+#   the app embeds the official Gemini CLI icon unchanged, redistributed
+#   under Apache-2.0, whose section 4(a) asks that recipients of the
+#   object form get a copy of the licence. Every text beside the marks is
+#   carried, so a mark added later brings its licence without a change
+#   here. (The restricted marks keep only path data and ship no text.)
 licenses() {
     mkdir -p "$1/licenses"
     cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
+    cp "$repo"/docs/design/agent-marks/*.txt "$1/licenses/"
 }
 
 # Every icon, from the owner's mark (docs/design/brand/, whose README says
