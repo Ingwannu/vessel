@@ -190,6 +190,45 @@ label's directory also holds the desktop track's Linux tarball
   DirectWrite), SmartScreen's warning (Windows only), DPI scaling on a
   real display.
 
+## Icons (from build 0.0.0.0.2)
+
+The owner gave the mark on 2026-11-13 (`docs/design/brand/`, merged from
+`backend/m11` at `ad783be`; its README says how it is used). Every icon
+is made from `vessel-mark.svg` by `tools/make-icons.py` at build time
+into the build's stage; nothing generated is committed.
+
+- **The tile**: the mark in white on a `#1a5868` square with corners
+  rounded at 18.75% of its side, the mark filling 86% of it.
+- **Rasteriser**: resvg 0.50 (installed under the tools directory with
+  `cargo install`; MPL-2.0, a build tool only). ImageMagick 6 here
+  renders SVG with its own MSVG renderer: drawn at 256 px beside
+  resvg's, its nested lines come out thicker and merged, unlike the
+  owner's paths; at 16 to 24 px it looks bolder only because it is not
+  the mark. Each size is rasterised from the vector at that size.
+- **What the small sizes look like** (frames of the `.ico`, enlarged):
+  at 16 and 20 px the nested lines merge into a pale V on the tile and
+  the star is a white dot; at 24 px the star reads as a star and the V
+  as one band; at 32 px the V shows a hint of its lines; from 40 px the
+  lines separate and from 64 px it is the mark. As the brand README
+  says, a version drawn for small sizes would be the owner's to give.
+- **Windows**: `vessel.ico` (16, 20, 24, 32, 40, 48, 64, 256; PNG
+  frames, which Windows reads from Vista on) is compiled with a version
+  block (`FileDescription` Vessel, the label as product and file
+  version, so Task Manager says "Vessel") by `llvm-rc` into a `.res`
+  that lld-link links beside GPUI's manifest. `build.sh` refuses an exe
+  without the icon, the group icon, the version block and the manifest.
+  The installer and its uninstaller use the same `.ico`; its pages show
+  the mark in the brand colour on the white header (150 x 57) and in
+  white on the brand colour beside the finish page (164 x 314). Seen
+  under wine: the directory page with the header mark at the right.
+- **Linux**: the tile at 16, 24, 32, 48, 64, 128, 256 and 512 px under
+  `icons/hicolor/<n>x<n>/apps/vessel-app.png` in the tarball, a
+  `vessel-app.desktop.in`, and `install-desktop-entry.sh`, which copies
+  the icons into `~/.local/share/icons` and writes a menu entry pointing
+  at the unpacked `vessel-app` (`--remove` takes both away).
+- **Not mine**: the app's own drawing of the mark (title bar, sidebar,
+  the window's icon at run time) is the desktop track's.
+
 ## The installer
 
 NSIS (`windows/installer.nsi`, the Decision Log is at its top), built on

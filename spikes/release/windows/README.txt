@@ -8,11 +8,12 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   실행합니다.
 - 코드 서명이 아직 없는 빌드라서 처음 실행할 때 Windows가 "Windows의 PC 보호"
   창을 띄울 수 있습니다. "추가 정보" > "실행"을 누릅니다.
-- 처음 열면 기계가 없으므로 "Add a machine" 화면이 나옵니다. 추가할 기계에서
-  `vessel node pair` 를 실행해 나온 링크를 그 칸에 붙여 넣고 Enter, 키가
-  그 기계의 `vessel node status` 와 같은지 확인한 뒤 이름을 붙여 Pair 를
-  누릅니다. 노드 목록과 기기 자격 증명은 vessel CLI와 같은 곳
-  (%APPDATA%\vessel)에 둡니다.
+- 처음 열면 머신이 없으므로 "머신 추가"(영문 Windows에서는 "Add a machine")
+  화면이 나옵니다. 추가할 머신에서 `vessel node pair` 를 실행해 나온 링크를
+  붙여 넣고 Enter 를 누릅니다(링크는 10분 동안 한 번만 쓸 수 있습니다).
+  화면에 나온 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고,
+  이름을 정한 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel
+  CLI와 같은 곳(%APPDATA%\vessel)에 둡니다.
 - {UPDATES_KO}
 
 [English]
@@ -24,11 +25,12 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   Vessel\Vessel.exe.
 - This build is not code-signed yet: on first run Windows may show
   "Windows protected your PC"; choose "More info" > "Run anyway".
-- With no machine yet, the app opens on "Add a machine": run
-  `vessel node pair` on the machine to add, paste the link it prints into
-  the field and press Enter, check the key against `vessel node status`
-  there, name it and press Pair. The node book and device credentials are
-  the vessel CLI's (%APPDATA%\vessel).
+- With no machine yet, the app opens on "Add a machine" ("머신 추가" on a
+  Korean Windows): run `vessel node pair` on the machine to add, paste the
+  link it prints and press Enter (a link works once, for ten minutes).
+  Check that the key shown is the key the machine printed with the link,
+  name the machine and press "Pair". The node book and device credentials
+  are the vessel CLI's (%APPDATA%\vessel).
 - {UPDATES_EN}
 
 Vessel is source-available under PolyForm Strict 1.0.0 (LICENSE.md).
