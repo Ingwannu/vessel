@@ -1,0 +1,10 @@
+/* "Add to chat" (features/workspace/selection-ask.tsx): agent-
+   orchestrator's floating button, fixed at the selection's end, over the
+   panel on the popup layer. */
+
+.selection-ask {
+  position: fixed;
+  z-index: 40;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow);
+}

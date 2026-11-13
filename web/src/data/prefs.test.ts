@@ -1,7 +1,15 @@
 import { describe, expect, test } from "vitest";
 
-import type { PreferencesState } from "../wire/bridge";
-import { firstPaint, keptNote, prefs, takePreferences } from "./prefs";
+import type { LinkState } from "../bridge/client";
+import type { Op, PreferencesState } from "../wire/bridge";
+import {
+  firstPaint,
+  keptNote,
+  preferThrough,
+  type PrefsLink,
+  prefs,
+  takePreferences,
+} from "./prefs";
 import { applyChange, DEFAULT_PREFERENCES, keepSections } from "./prefs-change";
 import { fixtureId } from "../testing/ids";
 
@@ -37,6 +45,15 @@ describe("a change applied as the bridge applies it", () => {
     });
     expect(next.composer.send).toBe("mod_enter");
     expect(next.appearance).toBe(DEFAULT_PREFERENCES.appearance);
+  });
+
+  test("the send key and the delivery are the composer's two settings", () => {
+    const steer = applyChange(DEFAULT_PREFERENCES, {
+      set: "delivery",
+      value: "steer",
+    });
+    const both = applyChange(steer, { set: "send", value: "mod_enter" });
+    expect(both.composer).toEqual({ send: "mod_enter", delivery: "steer" });
   });
 
   test("shortcut edits together; default removes the override", () => {
@@ -148,5 +165,138 @@ describe("a push keeps what did not change", () => {
     expect(kept.shortcuts).toBe(before.shortcuts);
     // Nothing changed: the same document.
     expect(keepSections(before, structuredClone(before))).toBe(before);
+  });
+});
+
+describe("a change made before the bridge answers", () => {
+  /** A link to `vessel ui` that a test opens, and the ops sent on it. */
+  function fakeLink(first: LinkState) {
+    let link = first;
+    const listeners = new Set<(link: LinkState) => void>();
+    const sent: Op[] = [];
+    let answer: (state: PreferencesState) => void = () => undefined;
+    const through: PrefsLink = {
+      link: () => link,
+      onLink: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      op: (op) => {
+        sent.push(op);
+        return new Promise((resolve) => {
+          answer = (preferences) => {
+            resolve({ op: "prefer", preferences });
+          };
+        });
+      },
+    };
+    return {
+      through,
+      sent,
+      move: (next: LinkState) => {
+        link = next;
+        for (const listener of [...listeners]) {
+          listener(next);
+        }
+      },
+      answer: (state: PreferencesState) => {
+        answer(state);
+      },
+    };
+  }
+
+  /** The bridge's document at `revision`, the sidebar `sidebar`. */
+  function withSidebar(
+    revision: number,
+    sidebar: "shown" | "hidden",
+  ): PreferencesState {
+    return {
+      revision,
+      kept: { kind: "file", path: "/tmp/ui-preferences.json" },
+      values: {
+        ...DEFAULT_PREFERENCES,
+        layout: { ...DEFAULT_PREFERENCES.layout, sidebar },
+      },
+    };
+  }
+
+  const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  test("waits for the link, is kept over a state sent before it, and goes once the link opens", async () => {
+    prefs.set({
+      values: DEFAULT_PREFERENCES,
+      kept: null,
+      confirmed: DEFAULT_PREFERENCES,
+      revision: 0,
+    });
+    const link = fakeLink({ kind: "connecting", attempt: 1 });
+    const hide = preferThrough(link.through, {
+      set: "sidebar_panel",
+      value: "hidden",
+    });
+    expect(prefs.get().values.layout.sidebar).toBe("hidden");
+    // The state pushed after the welcome, from before the change.
+    takePreferences(withSidebar(10, "shown"));
+    expect(prefs.get().values.layout.sidebar).toBe("hidden");
+    expect(link.sent).toEqual([]);
+    link.move({ kind: "open", version: "0.1.0" });
+    await settled();
+    expect(link.sent).toEqual([
+      { op: "prefer", change: { set: "sidebar_panel", value: "hidden" } },
+    ]);
+    // Pressed again before the first answer: the second goes after it.
+    const show = preferThrough(link.through, {
+      set: "sidebar_panel",
+      value: "shown",
+    });
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+    link.answer(withSidebar(11, "hidden"));
+    expect((await hide).ok).toBe(true);
+    // The first answer does not take back the second change.
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+    link.answer(withSidebar(12, "shown"));
+    expect((await show).ok).toBe(true);
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+    expect(prefs.get().confirmed.layout.sidebar).toBe("shown");
+  });
+
+  test("answered after a newer state, stops being applied over it", async () => {
+    prefs.set({
+      values: DEFAULT_PREFERENCES,
+      kept: null,
+      confirmed: DEFAULT_PREFERENCES,
+      revision: 0,
+    });
+    const link = fakeLink({ kind: "open", version: "0.1.0" });
+    const hide = preferThrough(link.through, {
+      set: "sidebar_panel",
+      value: "hidden",
+    });
+    await settled();
+    // Another tab hid it and showed it again: its push (revision 12)
+    // arrives before this change's own answer (revision 11).
+    takePreferences(withSidebar(12, "shown"));
+    expect(prefs.get().values.layout.sidebar).toBe("hidden");
+    link.answer(withSidebar(11, "hidden"));
+    expect((await hide).ok).toBe(true);
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+  });
+
+  test("is taken back when the link is given up on", async () => {
+    prefs.set({
+      values: DEFAULT_PREFERENCES,
+      kept: null,
+      confirmed: DEFAULT_PREFERENCES,
+      revision: 0,
+    });
+    const link = fakeLink({ kind: "connecting", attempt: 1 });
+    const hide = preferThrough(link.through, {
+      set: "sidebar_panel",
+      value: "hidden",
+    });
+    link.move({ kind: "refused" });
+    expect((await hide).ok).toBe(false);
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+    expect(link.sent).toEqual([]);
   });
 });

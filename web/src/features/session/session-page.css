@@ -6,7 +6,9 @@
 .session {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(0, 1fr) var(--inspect-w);
+  /* The panel sets its own width (inspector.css): 340px, or wider for
+     code. */
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 0;
 }
 

@@ -11,7 +11,7 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, Grouping,
-    InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme,
+    InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery,
 };
 #[cfg(doc)]
 use super::{
@@ -42,6 +42,8 @@ pub enum PreferenceChange {
     InspectorPanel(Panel),
     /// [`Composer::send`].
     Send(SendKey),
+    /// [`Composer::delivery`].
+    Delivery(TurnDelivery),
     /// [`Notifications::alerts`].
     Alerts(Alerts),
     /// [`Notifications::title`].
@@ -127,6 +129,9 @@ mod tests {
             serde_json::from_str(r#"{"set":"theme","value":"dark"}"#).unwrap();
         assert_eq!(change, PreferenceChange::Theme(Theme::Dark));
         let change: PreferenceChange =
+            serde_json::from_str(r#"{"set":"delivery","value":"steer"}"#).unwrap();
+        assert_eq!(change, PreferenceChange::Delivery(TurnDelivery::Steer));
+        let change: PreferenceChange =
             serde_json::from_str(r#"{"set":"reset_shortcuts"}"#).unwrap();
         assert_eq!(change, PreferenceChange::ResetShortcuts);
         let change: PreferenceChange = serde_json::from_str(
@@ -141,6 +146,7 @@ mod tests {
             r#"{"set":"interface_size","value":21}"#,
             r#"{"set":"code_size","value":9}"#,
             r#"{"set":"theme","value":"sepia"}"#,
+            r#"{"set":"delivery","value":"start"}"#,
             r#"{"set":"shortcuts","value":{"edits":[{"action":"palette","to":{"kind":"bindings","keys":["Mod+K","/","N"]}}]}}"#,
             r#"{"set":"shortcuts","value":{"edits":[{"action":"palette","to":{"kind":"bindings","keys":["mod+k"]}}]}}"#,
             r#"{"set":"what","value":1}"#,

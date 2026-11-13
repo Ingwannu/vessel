@@ -1,17 +1,21 @@
 // A session's actions, in a menu at the end of its title bar ("If a
 // control is not needed this minute, it is in a menu", DESIGN.md §1):
-// move to another profile, copy its id, kill. Moving and killing ask
-// first, in a dialog.
+// its marks where the machine keeps them (protocol 10: pin, read or
+// unread, start again, archive or unarchive, delete; use-mark-actions.tsx),
+// move to another profile, copy its id, kill. Moving, archiving, deleting
+// and killing ask first, in a dialog.
 
 import { useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
+import { type MarkAction, markActions } from "../../data/marks";
 import { killSession } from "../../data/calls";
 import { isLive, shortId } from "../../data/format";
 import {
   Button,
   Dialog,
   IconButton,
+  type IconName,
   Menu,
   MenuItem,
   MenuSeparator,
@@ -20,6 +24,7 @@ import {
 import { toast } from "../../ui/toasts";
 import type { SessionInfo } from "../../wire/proto";
 import { MoveProfile } from "./move-profile";
+import { useMarkActions } from "./use-mark-actions";
 import type { NodeKey } from "../../wire/bridge";
 
 export function SessionActions({
@@ -35,6 +40,25 @@ export function SessionActions({
   const fleet = useFleet();
   const [dialog, setDialog] = useState<"kill" | "move" | null>(null);
   const live = isLive(session);
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
+  const marks = useMarkActions(node, session, label);
+  const offered = markActions(session, protocol);
+  const item = (action: MarkAction) =>
+    offered.includes(action) ? (
+      <MenuItem
+        key={action}
+        icon={markIcon(action)}
+        tone={action === "delete" ? "danger" : "default"}
+        onSelect={() => {
+          marks.run(action);
+        }}
+      >
+        {markLabel(action)}
+      </MenuItem>
+    ) : null;
   const close = () => {
     setDialog(null);
   };
@@ -59,6 +83,13 @@ export function SessionActions({
           </Tooltip>
         }
       >
+        {item("pin")}
+        {item("unpin")}
+        {item("mark-unread")}
+        {item("mark-read")}
+        {item("start-again")}
+        {item("archive")}
+        {item("unarchive")}
         {session.spec.mode === "structured" && live ? (
           <MenuItem
             icon="move"
@@ -84,6 +115,12 @@ export function SessionActions({
         >
           Copy session id
         </MenuItem>
+        {offered.includes("delete") ? (
+          <>
+            <MenuSeparator />
+            {item("delete")}
+          </>
+        ) : null}
         {live ? (
           <>
             <MenuSeparator />
@@ -120,6 +157,7 @@ export function SessionActions({
           </p>
         </Dialog>
       ) : null}
+      {marks.dialog}
       {dialog === "move" ? (
         <MoveProfile
           node={node}
@@ -133,4 +171,43 @@ export function SessionActions({
       ) : null}
     </>
   );
+}
+
+function markLabel(action: MarkAction): string {
+  switch (action) {
+    case "pin":
+      return "Pin session";
+    case "unpin":
+      return "Unpin session";
+    case "mark-unread":
+      return "Mark as unread";
+    case "mark-read":
+      return "Mark as read";
+    case "start-again":
+      return "Start again";
+    case "archive":
+      return "Archive session";
+    case "unarchive":
+      return "Unarchive";
+    case "delete":
+      return "Delete permanently";
+  }
+}
+
+function markIcon(action: MarkAction): IconName {
+  switch (action) {
+    case "pin":
+    case "unpin":
+      return "pin";
+    case "mark-unread":
+    case "mark-read":
+      return "dot";
+    case "start-again":
+      return "restore";
+    case "archive":
+    case "unarchive":
+      return "archive";
+    case "delete":
+      return "trash";
+  }
 }

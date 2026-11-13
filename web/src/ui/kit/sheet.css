@@ -21,6 +21,18 @@
   transform: translateX(-100%);
 }
 
+/* From the right (a side panel): wider, on the page's own surface. */
+.sheet.right {
+  inset: 0 0 0 auto;
+  width: min(560px, calc(100vw - 12px));
+  background: var(--bg-base);
+}
+
+.sheet.right[data-starting-style],
+.sheet.right[data-ending-style] {
+  transform: translateX(100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet {
     transition: none;

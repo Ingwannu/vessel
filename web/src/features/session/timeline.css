@@ -263,3 +263,61 @@
 .fold-row[aria-expanded="true"] .ico {
   transform: rotate(90deg);
 }
+
+/* A settled question (question-entry.tsx), agent-orchestrator's answered
+   card: a hairline box on a faint fill, 12px inside; the question in
+   medium, each answer as its field then its value, how it ended last. */
+.question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 78ch;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-4);
+  background: color-mix(in srgb, var(--bg-hover) 45%, transparent);
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.question-card-ask {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.question-card-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.question-card-answers > div {
+  display: flex;
+  gap: 6px;
+}
+
+.question-card-answers dt {
+  color: var(--text-tertiary);
+}
+
+.question-card-answers dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.question-card-outcome {
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+/* A message steered into a turn reads as a prompt, its glyph hollow. */
+.t-item.user.steer .glyph {
+  background: transparent;
+  border-color: var(--accent);
+}
+
+.turn-tokens {
+  font-variant-numeric: tabular-nums;
+}

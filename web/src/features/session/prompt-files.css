@@ -1,0 +1,113 @@
+/* A prompt's files (features/session/prompt-files.tsx), agent-
+   orchestrator's attachment row: tiles 64px tall with a gap of 8, radius
+   8, a hairline; an image 64 to 128 wide, cropped to fill; a file a 128
+   by 64 card with its icon, name and "type · size". The tile keeps its
+   height before its image is drawn, so the windowed rows keep theirs. */
+
+.prompt-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.image-tile {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  min-width: 64px;
+  max-width: 128px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-hover);
+  cursor: zoom-in;
+}
+
+.image-tile:disabled {
+  width: 96px;
+  cursor: default;
+}
+
+.image-tile img {
+  display: block;
+  height: 64px;
+  min-width: 64px;
+  max-width: 128px;
+  object-fit: cover;
+}
+
+.image-tile:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.image-tile-note {
+  padding: 0 6px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.file-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 128px;
+  height: 64px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-hover);
+}
+
+.file-tile-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg-active);
+  color: var(--text-secondary);
+}
+
+.file-tile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-tile-name {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: 500 12px / 16px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tile-meta {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: 400 11px / 14px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-full {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100svh - 8rem);
+  margin: 0 auto;
+  border-radius: var(--r-2);
+}
+
+.image-full-note {
+  display: block;
+  padding: 24px 0;
+  color: var(--text-tertiary);
+  font: 400 12px / 16px var(--font-sans);
+  text-align: center;
+}

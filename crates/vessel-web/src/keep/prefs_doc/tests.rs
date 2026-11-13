@@ -3,7 +3,7 @@ use vessel_proto::HarnessKind;
 use super::*;
 use crate::wire::{
     Choices, InterfaceSize, KeyBinding, Notifications, Panel, SendKey, ShortcutEdit, ShortcutEdits,
-    Theme,
+    Theme, TurnDelivery,
 };
 
 fn read(text: &str) -> PrefsDoc {
@@ -65,6 +65,24 @@ fn unknown_keys_at_every_level_are_kept_on_rewrite() {
                 "defaults":{{"{NODE}":{{"agent":"codex","pinned":3}}}},"later":{{"x":[1,2]}}}}"#
         ))
     );
+}
+
+#[test]
+fn the_delivery_is_the_composers_and_keeps_the_send_key() {
+    let mut doc = read(r#"{"version":1,"composer":{"send":"mod_enter"}}"#);
+    assert_eq!(doc.values().composer.delivery, TurnDelivery::Queue);
+    doc = doc
+        .changed(&PreferenceChange::Delivery(TurnDelivery::Interrupt))
+        .unwrap();
+    assert_eq!(doc.values().composer.send, SendKey::ModEnter);
+    assert_eq!(doc.values().composer.delivery, TurnDelivery::Interrupt);
+    assert_eq!(
+        compact(&written(&doc)),
+        compact(r#"{"version":1,"composer":{"send":"mod_enter","delivery":"interrupt"}}"#)
+    );
+    // A value a newer page wrote reads as the default and is kept.
+    let doc = read(r#"{"version":1,"composer":{"delivery":"later"}}"#);
+    assert_eq!(doc.values().composer.delivery, TurnDelivery::Queue);
 }
 
 #[test]

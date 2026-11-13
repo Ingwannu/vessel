@@ -15,8 +15,9 @@
 //   the position stops moving (visible steps).
 // - Choice: the pin. After every commit of the window (a layout effect,
 //   before paint) the pinned row's box (or the match's range in it) is
-//   read and `scrollTop` corrected by what `offBy` says, so every painted
-//   frame shows it where it was put. While a pin is held the scroller
+//   read and `scrollTop` corrected by what `offBy` says, to the nearest
+//   whole pixel (`holdStep`), so every painted frame shows it where it
+//   was put, within half a pixel. While a pin is held the scroller
 //   carries `data-pinned`, which turns the browser's anchoring off
 //   (timeline.css), so only this correction moves the view. The pin is
 //   let go when the reader takes the scroll back (a wheel, a touch, a
@@ -27,7 +28,7 @@
 // - Cost: a `getBoundingClientRect` of one box per commit while pinned,
 //   which forces the layout the browser was about to do anyway.
 
-import { type Align, offBy } from "../../data/window";
+import { type Align, holdStep, offBy } from "../../data/window";
 
 /** What the window was asked to show. */
 export interface Target {
@@ -91,8 +92,9 @@ export function hold(scroller: HTMLElement, pin: Pin): boolean {
     pin.target.align,
   );
   const before = scroller.scrollTop;
-  if (Math.abs(by) >= 1) {
-    scroller.scrollTop = before + by;
+  const step = holdStep(by);
+  if (step !== 0) {
+    scroller.scrollTop = before + step;
   }
   pin.at = scroller.scrollTop;
   return pin.at !== before;

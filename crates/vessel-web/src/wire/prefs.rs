@@ -273,6 +273,8 @@ pub enum Panel {
 pub struct Composer {
     /// Which key sends.
     pub send: SendKey,
+    /// What Send does while a turn runs.
+    pub delivery: TurnDelivery,
 }
 
 /// Which key sends a prompt.
@@ -285,6 +287,36 @@ pub enum SendKey {
     Enter,
     /// Mod+Enter sends; Enter starts a line.
     ModEnter,
+}
+
+/// What Send does with a prompt while the agent's turn runs: protocol
+/// 10's ways of delivering one, less `start` (what Send does between
+/// turns).
+///
+/// [Decision Log]
+/// - Purpose: agent-orchestrator, GOAT and Paseo each let a person choose
+///   whether a message typed during a turn waits for it, joins it or
+///   stops it; GOAT and T3 Code keep the default as a setting.
+/// - Choice: the default kept here, with the bridge's other preferences
+///   (ADR 0028), so every tab and every launch sends the same way. Its
+///   name is not the protocol's for the same set: the page's two
+///   generated files share one namespace of type names, and the
+///   protocol's has `start` too. (Nor is that name written here: the
+///   generator imports every protocol type a comment mentions.)
+/// - Steer stays a choice even for an agent that cannot steer: the page
+///   then queues and says so, and the person's choice holds for the next
+///   agent that can.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum TurnDelivery {
+    /// It waits in the session's queue for the turn to end.
+    #[default]
+    Queue,
+    /// It joins the running turn, where the agent can steer.
+    Steer,
+    /// The turn is stopped and it starts the next.
+    Interrupt,
 }
 
 /// How the page tells about sessions.
@@ -395,7 +427,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

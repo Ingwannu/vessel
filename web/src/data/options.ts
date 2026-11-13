@@ -234,23 +234,13 @@ export function toggleChoice(
   return { id: control.id, kind: "toggle", on };
 }
 
-/** What the agent/model/effort control reads when closed: the model's
- * name (or the agent's, when it offers no model), then the effort's. */
-export function pickerLabel(
-  controls: Controls,
-  agent: string,
-): { main: string; effort: string | null } {
-  return {
-    main: controls.model === null ? agent : currentName(controls.model),
-    effort: controls.effort === null ? null : currentName(controls.effort),
-  };
-}
-
 /** What the composer's controls can show: the agent's options, or why
  * they are not there. */
 export type ControlsState =
   | { kind: "loading" }
   | { kind: "failed"; message: string }
+  /** The machine will not start the agent now; the message says why. */
+  | { kind: "refused"; message: string }
   | { kind: "ready"; controls: Controls }
   /** A terminal session: the agent's own TUI, which takes no options. */
   | { kind: "terminal" };
@@ -276,25 +266,4 @@ export function reportedControls(
           "This machine runs an older Vessel, which does not report them.",
       }
     : { kind: "loading" };
-}
-
-/** The agent/model/effort control's accessible name: what it is for,
- * then what it shows, which its visible text alone does not say. */
-export function pickerName(state: ControlsState, agent: string): string {
-  switch (state.kind) {
-    case "loading":
-      return `Agent, model and effort: ${agent}, loading models`;
-    case "failed":
-    case "terminal":
-      return `Agent, model and effort: ${agent}`;
-    case "ready": {
-      const label = pickerLabel(state.controls, agent);
-      const parts = [
-        agent,
-        ...(label.main === agent ? [] : [label.main]),
-        ...(label.effort === null ? [] : [label.effort]),
-      ];
-      return `Agent, model and effort: ${parts.join(", ")}`;
-    }
-  }
 }

@@ -17,11 +17,15 @@
   font-variant-ligatures: none;
 }
 
+/* A flex box held to its row's width, so a long reason (an added agent's
+   program, "Runs as a conversation…") ends in an ellipsis on a phone
+   rather than pushing the list past the screen. */
 .agent-status {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .agent-status > span:last-child {

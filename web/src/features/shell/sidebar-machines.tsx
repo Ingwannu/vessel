@@ -16,6 +16,7 @@ import { sidebarMachines } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
 import { IconButton, StatusDot, Tooltip } from "../../ui/kit";
+import { BranchChip } from "../workspace/branch-chip";
 import { SessionMark } from "./session-mark";
 import { SidebarViewMenu } from "./sidebar-view-menu";
 import { rowClass } from "./sidebar";
@@ -68,15 +69,16 @@ export function SidebarMachines() {
                   place === "sessions" &&
                     node === machine.key &&
                     id === session.id,
-                  " sub",
+                  session.unread ? " sub unread" : " sub",
                 )}
                 to="/sessions/$node/$id"
                 params={{ node: machine.key, id: session.id }}
               >
                 <span className="slot">
-                  <SessionMark mark={session.mark} />
+                  <SessionMark mark={session.mark} unread={session.unread} />
                 </span>
                 <span className="label">{session.title}</span>
+                <BranchChip branch={session.branch} />
               </Link>
             ))}
             {machine.more > 0 ? (
