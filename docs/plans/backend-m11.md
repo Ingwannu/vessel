@@ -3533,3 +3533,191 @@ A machine speaking protocol 9 or older gets the page of wave 1: Send and
 Stop, no attach, no `/` or `@` menu, no meter, Kill and Copy id. A
 newer page against a protocol 10 node shows all of it. The preference
 is the bridge's, not the node's.
+
+## Track A-page: progress
+
+Written 2026-11-12 on `backend/m11-a-page`, at the end of the track.
+
+### Built
+
+Every screen of the contract above, on protocol 10's calls as track A
+built them; nothing was added to the wire.
+
+- **The node's queue over the composer** (`queue-dock.tsx`,
+  `data/queue-view.ts`): edit in the box (with the row's revision, so an
+  edit that crossed another is refused, not overwritten), move by drag
+  or by Up and Down on the grip, delete, Steer or Send now, a held
+  queue's reason and Resume. The send button's three ways while a turn
+  runs, steer only where `abilities.steer` says so (and not again after
+  the agent refused it once), the other way one modifier away
+  (`data/delivery.ts`, `send-button.tsx`). The default is the bridge's
+  `composer.delivery` (ADR 0028), Settings › General's "Default send".
+- **Files** (`data/attach.ts`, `upload.ts`, `tray.ts`, `trays.ts`,
+  `images.ts`, `thumbnail.ts`): paste, drop and pick; a chip each with
+  its progress, failure, Retry (going on from what the node has) and
+  Remove; checked as the node checks them, uploaded when the message is
+  sent, two at a time; the new-session page's files go with the first
+  message once the agent has said what it takes. A sent prompt shows its
+  files; an image is read with `attachment.read` only near the view.
+- **`/` and `@`** in one kit list (`ui/kit/suggestions.tsx`,
+  `data/suggest.ts`, `use-suggest.tsx`, `use-file-search.ts`): the
+  agent's commands from `commands_changed`; files through
+  `data/workspace/find.ts` only (a search key per field from
+  `newSearchKey`, `superseded` dropped, asked again once when this
+  field's own answer was superseded with no newer search of its own);
+  nothing else under `data/workspace/`. A session with no project says
+  so.
+- **Questions** (`question-dock.tsx`, `question-field.tsx`,
+  `data/question-form.ts`, `question-answers.ts`): one step per field,
+  kit controls by kind, Claude's `question_N_custom` as its question's
+  "Other" row, the node's checks first and its `invalid_request` at the
+  field; the answered card in the timeline.
+- **The context meter** beside the model and a turn's tokens in its
+  ended line (`context-ring.tsx`, `data/context-meter.ts`).
+- **A session's marks and actions** (`data/marks.ts`, `read-hold.ts`,
+  `use-mark-actions.tsx`, `use-read-marks.ts`, `ended-banner.tsx`, the
+  board's `card-actions.tsx` and `card-marks.tsx`): pin, unread, start
+  again, archive, unarchive or restore, delete and what became of the
+  worktree; `read` sent as the contract says (`through` the last record
+  shown plus one, when in front and seen, at most once a second); the
+  board keeps an ended session in its lane until it is archived; the
+  sidebar shows pinned first and unread.
+- **The sidebar's sessions set in** from their machine's row (22px, the
+  mark under the machine's name).
+- The fake agent's `ask claude` (Claude's `AskUserQuestion` form) in
+  `crates/vessel-testkit`.
+
+Found while looking at the captures, and fixed:
+
+- The page's content policy (`img-src 'self' data:`, ADR 0017) refuses
+  `blob:` images, so every image preview was empty. Images are drawn
+  from `data:` thumbnails made on a canvas; the full image is read into
+  a `data:` address only when opened.
+- A dock opening over the composer (a question, the queue), or a phone's
+  keyboard, shortened the timeline's view, and the window read that as a
+  scroll up past `NEAR_END`: the last row stayed under the dock.
+  `use-window.ts` keeps a reader at the end there on a resize.
+- Claude's free text was a line of its own in the answered card; it
+  joins its question's line.
+- The composer took the whole timeline and was drawn again, with its
+  docks, controls and tooltips, for every frame of a long log being
+  read. It is drawn again only when something it shows changed
+  (`composer-props.ts`); measured below.
+
+### Checked
+
+- Unit tests for every module under `data/` named above; end-to-end
+  against real nodes and the fake agent: `e2e/conversation.spec.ts`
+  (the queue, steer by key, Default send, files and their previews, a
+  new session's files, `/` and `@`, a question and Skip, a question's
+  dock at 390px, the meter and tokens) and `e2e/marks.spec.ts` (pin,
+  unread, start again, archive, restore, delete).
+- Captures: `e2e/conversation-screens.ts` (`npm run screens`), light,
+  dark and 390px, looked at beside agent-orchestrator's and GOAT's.
+
+### Measured (`npm run perf`, release binaries)
+
+This branch against `backend/m11` (its own release build, run with
+`VESSEL_TARGET_DIR`), one after the other on the same machine; medians
+(minimum–maximum) of the suite's runs. Two pairs of the whole suite
+(the first with this branch first, the second with the base first),
+then two more pairs of the timeline after the composer stopped drawing
+for every frame.
+
+| Figure | Base | This branch, before | This branch, after |
+| --- | --- | --- | --- |
+| Board load, script bytes | 183,990 | 189,418, then 189,374 | not measured again |
+| Board load, stylesheet bytes | 24,255 | 26,178, then 26,197 | not measured again |
+| Session screen's script (gzip) | 133.6 KB | 144.2 KB | 144.4 KB |
+| 5,000 entries, first entry drawn | 144, 160, 128, 145 ms | 178, 175 ms | 176, 129 ms |
+| 5,000 entries, last entry drawn | 759, 727, 729, 759 ms | 840, 808 ms | 795, 742 ms |
+| 20,000 entries, first entry drawn | 129, 128, 128, 129 ms | 161, 161 ms | 146, 146 ms |
+| 20,000 entries, last entry drawn | 2,711, 2,728, 2,478, 2,459 ms | 2,628, 2,926 ms | 2,492, 2,529 ms |
+
+- Worse, and still worse: a long session's first entry is drawn about
+  17 ms later (it was 32 ms later before the composer change), and the
+  page loads 7 KB more (the conversation's screens). A CPU profile of
+  opening a 5,000-entry session shows no single function behind it: the
+  page's JavaScript time is about 5% more, spread over the session
+  screen, the shell and the preferences module; the timeline's fold
+  itself is the same as the base's (a unit measurement of `reduce` over
+  the same records: 5,000 in about 4 ms, 20,000 in about 45 ms, both
+  trees).
+- Within the runs' spread, not counted: the loads' paint and usable
+  times (each pair disagreed in sign), find, the terminal, the board of
+  500 cards.
+
+### Gate (final tree)
+
+```
+cargo fmt --all --check                                   fmt exit 0
+cargo clippy --workspace --all-targets -- -D warnings     Finished; exit 0
+cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets -- -D warnings
+                                                          Finished; exit 0
+cargo test --workspace --no-fail-fast                     95 suites: 1,340 passed, 0 failed, 9 ignored
+cargo test -p vessel-proto -p vessel-web --features ts --lib typescript
+                                                          2 passed (declarations current)
+web: npm run lint                                         exit 0 (prettier, fonts: 132 stacks, controls, size: within budget)
+web: npm run typecheck                                    exit 0
+web: npm run test                                         66 files, 302 tests passed
+web: npm run build                                        exit 0
+web: npm run e2e                                          47 passed (2.1m)
+web: npm run screens                                      6 passed (3.1m)
+web: VESSEL_CARGO_PROFILE=release npm run perf            5 passed (each run)
+```
+
+### Not built, and why
+
+- No "Compact context" button, no Undo after archive, a long paste kept
+  as text, files uploaded on Send (DESIGN.md §12, 21–24).
+- No pointer test of dragging a queued row: the end-to-end test moves it
+  by key; the drag shares the same `move` call.
+
+### Not verified
+
+- A real agent: steering, images and Claude's own question form were
+  run against the fake agent only (no prompt was sent to a real agent).
+- Paste and drop: the tests pick files through the file chooser; paste
+  and drop go through the same `Tray.add`.
+- A protocol 9 node in the browser: the page's older path (no queue,
+  attach, menu, meter or marks) is decided by `hasConversation` and
+  unit-tested, not run against an older node.
+- The worktree's fate after delete with a worktree to keep: the toast's
+  words are unit-tested, the fleet's sessions have no worktree.
+
+### For the join
+
+- `ui/kit/icon.tsx`: this track added `file` and `trash` (with
+  paperclip, pin, grip, steer, queue, restore, enter, circle, help);
+  B-page added `file` and `trash` too. Keep one of each.
+- `data/workspace/find.ts`: every tab's first search key is 1, so two
+  tabs searching one machine at once replace each other's searches; the
+  file's owner may want a per-tab start.
+- Under `crates/`, besides `vessel-testkit` and `wire/prefs*`, the new
+  preference needed `keep/prefs_doc*` (the document that keeps it) and
+  the re-export in `wire.rs`.
+- `features/session/use-window.ts`: this track changed the resize
+  observer (`watch`); B-page changed the `Reading` type and the scroll
+  handler's condition. Different lines; with B-page's `follow: false`
+  nothing here takes effect.
+- `docs/design/web-ui/DESIGN.md`: §2.2, §6.5, §6.7, §6.12, §6.15, §7.4,
+  §9 and §12 (21–26) are this track's.
+- `e2e/kit.ts`: `startSession` waits for a structured session's timeline
+  before anything is typed into it.
+- Commit `ac9243b` does not pass the type check (a test's type, fixed in
+  the next, `600f9d5`), and from `c53d44f` to `b9289a3` image previews
+  are empty under the content policy; the branch was not rewritten.
+- Around this branch since it was cut (not merged here): the node's
+  join changed `file.write` (`expect: { kind: "content", hash }`) and
+  `ProjectCommands::Listed` (`last_approved`), and track G opened the
+  set of agents (`HarnessRef`, compared by key; an agent a person added
+  shown by its label). This track's code names an agent through
+  `data/agents.ts`'s `agentName(harness)` in the composer (which hands
+  the name to the refusal lines and the tray) and in the new-session
+  page's controls (moved there from `new-session.tsx`, where the base
+  calls it once); it compares no harness by kind. The join should run
+  those calls through G's rule.
+- Flaky once each in full runs, passing alone: `timeline.spec.ts` (a
+  1.09px drift against 1), `reconnect.spec.ts`, and the first test of a
+  run waiting on the agent menu's radio item that kept being redrawn
+  (`kit.ts`'s `chooseAgent`).
