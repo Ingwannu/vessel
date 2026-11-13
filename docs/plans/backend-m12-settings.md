@@ -292,3 +292,16 @@ also found workspace clone-follow tasks retain client clones: that owner's
 cancel/rekey seam is required before whole-app disconnect is claimed. The
 watched-forget regression here covers the session follow and two real RPC
 clients, not every area's background work.
+
+## Shared platform and localization integration
+
+The desktop lead through `d050e7e9` is merged before new field profiles.
+Both conflict sides are retained: the architecture's machine-book section and
+localization section, and both text-module registrations. This brings the
+shared focused-composing registry, multiline form, code-faced settings row,
+session-lost notice and XIM lifetime patch; no parallel control is introduced.
+
+Native gate: fmt, Clippy and tests all exited 0. App 3, kit 26, link 29,
+view 265, localization integration 9 and page parity 89 (421 passed), plus
+2 passing compile-fail doc tests. The gate source remained fixed throughout;
+no whole-app UI or runtime IME approval is implied by these tests.

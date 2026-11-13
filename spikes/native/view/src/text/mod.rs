@@ -28,6 +28,7 @@ mod board;
 mod conversation;
 mod devices;
 mod files;
+pub mod localization;
 mod machine_book;
 mod machines;
 mod notices;
