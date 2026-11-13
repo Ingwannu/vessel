@@ -148,6 +148,13 @@ screens take gaps and insets from `kit::theme::spacing`.
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.
 
+`PanelLeft` is the desktop sidebar mark. `MenuCompact` is the compact
+sidebar's original 16×12 vector: two full bars and one half bar, each 1.5
+high. Its filled round rectangles keep the painted footprint exact; legacy
+`Menu` and `PanelRight` are unchanged.
+`Upload` and `Download` are the shared transfer arrows/trays for push/pull,
+with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
+
 
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
