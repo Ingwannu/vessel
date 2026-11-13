@@ -36,7 +36,8 @@ pub(super) const WORK_LINE: f32 = 20.0;
 /// scale, which GOAT's chat matches within a step): a person's message
 /// on `surface2` (GOAT's `--message-surface`, #f3f3f3 against Paseo's
 /// #f4f4f5), the work log's words in `foregroundMuted` (GOAT's
-/// `--secondary-label`), rules in `border`, code on `surface1`.
+/// `--secondary-label`), rules in `border`. Code and a tool's text are
+/// the kit's (`chat_markdown`, `output`), on GOAT's code surface.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Look {
     /// A person's message.
@@ -45,11 +46,6 @@ pub(super) struct Look {
     pub(super) secondary: Hsla,
     /// A rule.
     pub(super) border: Hsla,
-    /// A tool's input and output.
-    pub(super) code: Hsla,
-    /// Lines added and removed in a diff.
-    pub(super) added: Hsla,
-    pub(super) removed: Hsla,
 }
 
 impl Look {
@@ -59,9 +55,6 @@ impl Look {
             message: neutral.surface2,
             secondary: neutral.foreground_muted,
             border: neutral.border,
-            code: neutral.surface1,
-            added: tokens.st_ready,
-            removed: neutral.destructive,
         }
     }
 }

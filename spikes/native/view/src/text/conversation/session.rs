@@ -407,6 +407,15 @@ impl ConversationWords {
     pub const fn output(&self) -> &'static str {
         self.either("Output", "출력")
     }
+
+    /// Under a diff cut at its first lines.
+    #[must_use]
+    pub fn diff_cut(&self, shown: usize) -> String {
+        match self.lang {
+            Lang::En => format!("Only the first {shown} lines are shown"),
+            Lang::Ko => format!("처음 {shown}줄만 보입니다"),
+        }
+    }
 }
 
 fn git_operation(operation: GitOperation) -> &'static str {

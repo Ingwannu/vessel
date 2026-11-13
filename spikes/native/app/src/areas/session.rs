@@ -477,7 +477,8 @@ fn composer(
 /// The oldest permission waiting: what it is for, and a button per answer
 /// (the allowing ones primary).
 fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let mut answers = div().flex().flex_row().gap(px(8.0));
+    // Wrapped: four long answers do not fit a phone's width.
+    let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
     for (index, (option, words, allows)) in asked.options.iter().enumerate() {
         let id = asked.id;
         let option = option.clone();

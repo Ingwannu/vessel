@@ -244,8 +244,13 @@ impl Render for Shell {
                         row.child(routes::sidebar(self.route, self, &tokens, cx))
                     })
                     .child(
+                        // `min_w` 0: GPUI measures a text's least width
+                        // unwrapped, so without it one long line (a
+                        // permission's command) widens the whole area past
+                        // the window instead of wrapping.
                         div()
                             .flex_1()
+                            .min_w(px(0.0))
                             .h_full()
                             .pb(px(8.0))
                             .pr(px(8.0))

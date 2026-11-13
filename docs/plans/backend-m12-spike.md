@@ -416,6 +416,15 @@ In the order the owner meets them, each as Paseo has it:
 - The sidebar's foot is Paseo's: a hairline over one line, Settings (a
   gear) at its right end, opening About until the settings track's frame
   lands. Its other icons (a project, usage, hosts, help) are not here.
+- A button's label wider than the room the button has wraps inside it,
+  centred, as Paseo's `Text` does; a button is never wider than its
+  container (a permission's longest answer, "Never allow …", was cut by
+  the panel on a phone). On the new chat at a phone's width the send
+  button sits 6 inside the card's edge, Paseo's `buttonRow` bleed of 6
+  past its 12 of padding.
+- The native release profile has line tables (`debug = "line-tables-only"`);
+  the Linux executable ships without them (split into `vessel-app.debug`,
+  kept with the Windows .pdb): 73,265,496 bytes before, 71,425,872 after.
 
 ## Packages installed on the machine
 

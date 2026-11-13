@@ -276,8 +276,24 @@ impl Shell {
         if !area.open_runs.remove(&lead) {
             let _new = area.open_runs.insert(lead);
         }
+        let before = area.rows.len();
         area.rows_again();
-        area.list.reset(area.rows.len());
+        let after = area.rows.len();
+        // Only the run's own rows change: its lead's row stays where it
+        // was and its members come or go right after it. Splicing there
+        // (not resetting the list) keeps the view where the person is.
+        match area.rows.row_index(lead, area.folds.as_ref()) {
+            Some(row) => {
+                let next = row.saturating_add(1);
+                let gone = before.saturating_sub(after);
+                area.list.splice(
+                    next..next.saturating_add(gone),
+                    after.saturating_sub(before),
+                );
+                area.list.changed(row..next);
+            }
+            None => area.list.reset(after),
+        }
         cx.notify();
     }
 

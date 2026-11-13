@@ -10,10 +10,10 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
-    relative,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
+    div, px, relative,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, markdown};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{Entry, EntryKind, Prompt, plan_progress, settled};
 
@@ -34,6 +34,7 @@ pub(super) fn entry(
     index: usize,
     entry: &Entry,
     open: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = paint.words;
@@ -54,9 +55,10 @@ pub(super) fn entry(
             .py(px(2.0))
             .type_(Type::Body)
             .text_color(paint.tokens.neutral.foreground)
-            .child(markdown(
+            .child(chat_markdown(
                 ElementId::NamedInteger("message".into(), id(index)),
                 text.clone(),
+                paint.tokens,
             ))
             .into_any_element(),
         EntryKind::Thought { text } => {
@@ -75,7 +77,7 @@ pub(super) fn entry(
                 })
                 .into_any_element()
         }
-        EntryKind::Tool(view) => tool::card(paint, index, view, open, cx),
+        EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
         EntryKind::Question { question, outcome } => question_card(
             paint,
             &question.message,

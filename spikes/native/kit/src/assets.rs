@@ -71,6 +71,8 @@ pub enum Glyph {
     Sliders,
     /// Settings (Paseo's `Settings`: a gear).
     Gear,
+    /// Copy: two sheets, one over the other (a code block's copy).
+    Copy,
     /// Appearance (a painter's palette, Paseo's `Palette`).
     Palette,
     /// Shortcuts (a keyboard, Paseo's `Keyboard`).
@@ -94,7 +96,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 33] = [
+const ALL: [Glyph; 34] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -118,6 +120,7 @@ const ALL: [Glyph; 33] = [
     Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
+    Glyph::Copy,
     Glyph::Palette,
     Glyph::Keyboard,
     Glyph::Bell,
@@ -170,6 +173,7 @@ impl Glyph {
             Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
+            Self::Copy => "kit/copy.svg",
             Self::Palette => "kit/palette.svg",
             Self::Keyboard => "kit/keyboard.svg",
             Self::Bell => "kit/bell.svg",
@@ -239,6 +243,9 @@ impl Glyph {
             ),
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
+            ),
+            Self::Copy => line_glyph!(
+                r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
             ),
             Self::Palette => line_glyph!(
                 r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#

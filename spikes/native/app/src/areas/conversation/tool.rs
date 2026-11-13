@@ -4,11 +4,14 @@
 //! the output (the page's `features/session/tool-card.tsx`). Open while
 //! the call runs, closed once it has ended, unless the person turned it.
 
+use vessel_app_kit::output::{Line, Lines, Tone};
+use vessel_app_kit::ui::FluentBuilder as _;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, Hsla, IntoElement as _, ParentElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
+    div, px,
 };
-use vessel_app_kit::{Type, TypeExt as _};
-use vessel_app_view::timeline::{Side, ToolView, block_text, diff_lines, json_text};
+use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box};
+use vessel_app_view::timeline::{MAX_LINES, Side, ToolView, block_text, diff_lines, json_text};
 use vessel_proto::{ToolCallContent, ToolCallStatus};
 
 use super::entries::{Paint, work_row};
@@ -20,6 +23,7 @@ pub(super) fn card(
     index: usize,
     tool: &ToolView,
     open: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = paint.words;
@@ -41,7 +45,7 @@ pub(super) fn card(
     let head = work_row(paint, index, title, Some((detail, color)), open, cx);
     let mut row = div().flex().flex_col().child(head);
     if open {
-        row = row.child(body(paint, tool));
+        row = row.child(body(paint, index, tool, window, cx));
     }
     row.into_any_element()
 }
@@ -59,7 +63,24 @@ fn tail(path: &str) -> String {
     }
 }
 
-fn body(paint: &Paint<'_>, tool: &ToolView) -> Div {
+fn body(
+    paint: &Paint<'_>,
+    index: usize,
+    tool: &ToolView,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    // Each box's id: the entry and the box's place in the card, so a box
+    // keeps its scroll while the card grows.
+    let key = |part: usize| {
+        ElementId::NamedInteger(
+            "tool-text".into(),
+            u64::try_from(index)
+                .unwrap_or(u64::MAX)
+                .saturating_mul(64)
+                .saturating_add(u64::try_from(part).unwrap_or(63)),
+        )
+    };
     let words = paint.words;
     let mut body = div()
         .ml(px(28.0))
@@ -69,11 +90,16 @@ fn body(paint: &Paint<'_>, tool: &ToolView) -> Div {
         .flex_col()
         .gap(px(6.0));
     if let Some(input) = &tool.input {
-        body = body
-            .child(label(paint, words.input()))
-            .child(code(paint, json_text(input)));
+        body = body.child(label(paint, words.input())).child(output_box(
+            key(0),
+            &json_text(input),
+            Start::Top,
+            paint.tokens,
+            window,
+            cx,
+        ));
     }
-    for content in &tool.content {
+    for (part, content) in (1..).zip(&tool.content) {
         body = match content {
             ToolCallContent::Diff {
                 path,
@@ -81,14 +107,33 @@ fn body(paint: &Paint<'_>, tool: &ToolView) -> Div {
                 new_text,
             } => body
                 .child(label(paint, &words.diff_of(&path.to_string_lossy())))
-                .child(diff(paint, old_text.as_deref(), new_text)),
-            ToolCallContent::Content { content } => body.child(code(paint, block_text(content))),
+                .child(diff(
+                    paint,
+                    key(part),
+                    old_text.as_deref(),
+                    new_text,
+                    window,
+                    cx,
+                )),
+            ToolCallContent::Content { content } => body.child(output_box(
+                key(part),
+                &block_text(content),
+                Start::End,
+                paint.tokens,
+                window,
+                cx,
+            )),
         };
     }
     if let Some(output) = &tool.output {
-        body = body
-            .child(label(paint, words.output()))
-            .child(code(paint, json_text(output)));
+        body = body.child(label(paint, words.output())).child(output_box(
+            key(63),
+            &json_text(output),
+            Start::Top,
+            paint.tokens,
+            window,
+            cx,
+        ));
     }
     body
 }
@@ -100,76 +145,54 @@ fn label(paint: &Paint<'_>, text: &str) -> Div {
         .child(text.to_owned())
 }
 
-/// Text in the code surface (GOAT's `pre`: radius 8, a hairline, mono 12).
-fn code(paint: &Paint<'_>, text: String) -> Div {
+/// A diff in a box of numbered lines, at most the view's
+/// [`MAX_LINES`]; a word under it when it was cut.
+fn diff(
+    paint: &Paint<'_>,
+    id: ElementId,
+    old: Option<&str>,
+    new: &str,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    // The texts only change by being replaced; their lengths tell the
+    // versions apart.
+    let version =
+        u64::try_from(old.map_or(0, str::len).saturating_add(new.len())).unwrap_or(u64::MAX);
+    let lines = lines_box(
+        id,
+        version,
+        || {
+            let (lines, _) = diff_lines(old, new);
+            Lines {
+                lines: lines
+                    .into_iter()
+                    .map(|line| Line {
+                        text: line.text.to_owned().into(),
+                        tone: match line.side {
+                            Side::Removed => Tone::Removed,
+                            Side::Added => Tone::Added,
+                        },
+                        number: Some(line.number),
+                    })
+                    .collect(),
+                copy: None,
+            }
+        },
+        Start::Top,
+        paint.tokens,
+        window,
+        cx,
+    );
+    // Whether it was cut, asked again each frame: the lines borrow the
+    // texts and cost no copy, unlike the box's own.
+    let (_, cut) = diff_lines(old, new);
     div()
-        .max_h(px(240.0))
-        .overflow_hidden()
-        .p(px(8.0))
-        .rounded(px(8.0))
-        .border_1()
-        .border_color(paint.look.border)
-        .bg(paint.look.code)
-        .type_(Type::Mono)
-        .text_size(px(12.0))
-        .text_color(paint.tokens.neutral.foreground)
-        .child(text)
-}
-
-fn diff(paint: &Paint<'_>, old: Option<&str>, new: &str) -> Div {
-    let (lines, cut) = diff_lines(old, new);
-    let mut block = div()
         .flex()
         .flex_col()
-        .rounded(px(8.0))
-        .border_1()
-        .border_color(paint.look.border)
-        .bg(paint.look.code)
-        .py(px(4.0))
-        .type_(Type::Mono)
-        .text_size(px(12.0));
-    for line in lines {
-        let (mark, ink, wash): (&str, Hsla, Hsla) = match line.side {
-            Side::Removed => (
-                "-",
-                paint.look.removed,
-                Hsla {
-                    a: 0.08,
-                    ..paint.look.removed
-                },
-            ),
-            Side::Added => (
-                "+",
-                paint.look.added,
-                Hsla {
-                    a: 0.08,
-                    ..paint.look.added
-                },
-            ),
-        };
-        block = block.child(
-            div()
-                .flex()
-                .gap(px(8.0))
-                .px(px(8.0))
-                .bg(wash)
-                .child(
-                    div()
-                        .w(px(32.0))
-                        .flex_shrink_0()
-                        .text_color(paint.look.secondary)
-                        .child(line.number.to_string()),
-                )
-                .child(div().text_color(ink).child(format!("{mark} {}", line.text))),
-        );
-    }
-    if cut {
-        block = block.child(
-            div()
-                .px(px(8.0))
-                .text_color(paint.look.secondary)
-                .child("…"),
-        );
-    }
-    block
+        .gap(px(4.0))
+        .child(lines)
+        .when(cut, |block| {
+            block.child(label(paint, &paint.words.diff_cut(MAX_LINES)))
+        })
 }
