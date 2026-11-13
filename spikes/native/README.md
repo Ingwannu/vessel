@@ -447,6 +447,40 @@ paths, without this harness.
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
 
+### Official agent artwork (ADR 0048)
+
+`kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
+constants carry reviewed vendor vectors, `Size` the requested logical
+size, and `Space` the surface's existing room. Unlike `glyph`, it preserves
+colours. A brand minimum/clear space that does not fit produces the bot
+fallback. No URL or SVG from the wire reaches this control. Source hashes,
+terms and permission requirements are in `docs/design/agent-marks/README.md`.
+
+`agent_mark::GITHUB` is shared artwork for Copilot identification and
+GitHub forge pages. `forge_mark(Forge::GitHub, size, tokens)` supplies the
+second typed use without a second copy. An agent mark's identity still
+belongs to `view`; the kit knows no node or session. The Invertocat's agent
+use requires explicit GitHub Copilot wording in the same row or tooltip
+(ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
+
+The artwork picker header requests16-point ink and reserves the official
+image viewport width, rather than its rows' common32-point column. A long header title follows the reference's
+single-line ellipsis. Disabled artwork retains its approved colour/opacity;
+the words and controls are muted separately. Enter validates the current
+row's availability and bounds before dispatch. The 44-point touch model
+pill holds OpenCode's 32 × 36 clear-space box; the short pointer pill and
+inline spots use Generic. A Settings ProviderRow needs a fitted adapter,
+not an unconstrained 36-high child inside its padded content band.
+
+`view::AgentMark::of` maps only typed node identities; `app::agent_mark`
+adapts them to kit artwork once. The draft, sidebar and board call that
+adapter. Added agents retain Generic even if their labels mention a brand.
+Settings › About lists vendor sources, trademark terms and the Gemini
+original's separate software licence. For long-name capture fixtures,
+after `scripts/fleet.sh start ROOT TARGET`, run
+`bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
+bilingual titles and full custom-agent labels before captures.
+
 Machine management uses `view::machine_book` for validated names, edit outcomes
 and safe localized failures, and `link::machines` for the CLI's existing node
 book. `BookFile` is reopened immediately before each atomic edit; the app does
@@ -466,3 +500,20 @@ and project follows must be integrated before the Machines screen is delivered.
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.
+
+The reviewed settings controls from G3's263d4a5/70bcfd5 supply the section
+trailing slot and shared custom-content frame. Integration keeps the
+lead's code_row and hint-face delegation; its private row_faced delegates
+to that same frame. G3's64167097 supplies red_300 unchanged in both themes
+for ProviderRow error detail; semantic danger/status signals stay put.
+
+`agent_mark::settings_mark(art, Size::Sixteen, SettingsRowEdge, tokens)`
+fits reviewed artwork inside the unchanged shared settings row frame.
+Its24/23-high first/following layout slot uses the existing padding for
+OpenCode's32 ×36 quiet box; the image's integer edges and name baselines
+are checked against the previous Chevron14/Bot16 composition. Generic
+keeps that setting row's foreground colour. The kit still imports no view.
+The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
+or `settings-errors` for the real pill_parts and shared-frame fit fixtures.
+The measured reference ink and per-brand boxes are in the artwork source
+record. No restricted vendor original is bundled by those fixtures.

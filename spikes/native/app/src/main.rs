@@ -14,6 +14,7 @@
 //! `VESSEL_APP_NO_UPDATE` no updates for one run; `RUST_LOG` the log
 //! filter (stderr and the log file, `vessel_app_log::dir()`).
 
+mod agent_mark;
 mod areas;
 pub mod badge;
 mod chrome;

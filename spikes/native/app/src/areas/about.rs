@@ -28,6 +28,8 @@
 //!   page, then Vessel's licence and the parts the app is built from with
 //!   theirs, as the page's About; its own screen and route are gone.
 
+mod marks;
+
 use std::path::PathBuf;
 
 use crate::update::UpdateState;
@@ -149,6 +151,7 @@ pub(crate) fn content(
         // The page's name for it: the page's title says About already.
         .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
         .child(settings::section(about.software, licences, tokens))
+        .child(marks::section(shell, tokens, compact, cx))
         .into_any_element()
 }
 

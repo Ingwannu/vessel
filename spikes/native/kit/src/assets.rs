@@ -483,7 +483,9 @@ pub struct Assets;
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
         let glyph = ALL.into_iter().find(|glyph| glyph.path() == path);
-        Ok(glyph.map(|glyph| Cow::Borrowed(glyph.svg().as_bytes())))
+        Ok(glyph
+            .map(|glyph| Cow::Borrowed(glyph.svg().as_bytes()))
+            .or_else(|| crate::agent_mark::load(path).map(Cow::Borrowed)))
     }
 
     fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
@@ -492,6 +494,11 @@ impl AssetSource for Assets {
             .map(Glyph::path)
             .filter(|asset| asset.starts_with(path))
             .map(SharedString::from)
+            .chain(
+                crate::agent_mark::asset_paths()
+                    .filter(|asset| asset.starts_with(path))
+                    .map(SharedString::from),
+            )
             .collect())
     }
 }

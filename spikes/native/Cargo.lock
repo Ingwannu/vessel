@@ -7514,6 +7514,7 @@ dependencies = [
  "gpui-base",
  "gpui-component",
  "gpui-pre",
+ "gpui-pre-platform",
  "image",
  "resvg 0.46.0",
  "thiserror 2.0.21",

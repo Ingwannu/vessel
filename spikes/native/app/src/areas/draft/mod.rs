@@ -31,10 +31,10 @@
 //! something, and the choices a start was made with are what the next
 //! start on that machine begins from, until the person chooses again.
 //!
-//! Differences from Paseo, each with its reason: the model pill shows a
-//! generic agent glyph where Paseo shows each provider's logo (Vessel
-//! carries no other company's marks), so when a machine has more than one
-//! agent the pill names the agent after the model; no profiles (Vessel's
+//! Official provider artwork comes through `app::agent_mark` (ADR 0048);
+//! unknown agents and marks whose brand minimum does not fit use Generic.
+//! When a machine has more than one agent the pill names the agent after
+//! the model. Differences from Paseo: no profiles (Vessel's
 //! profiles are the node's, not in this build); no attachments button
 //! yet. The choices are kept only once the agent's options are known: a
 //! start sent while they load keeps the earlier ones.
