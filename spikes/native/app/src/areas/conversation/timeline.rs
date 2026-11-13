@@ -38,9 +38,9 @@ pub(crate) fn timeline(
     }
     let list = area
         .list
-        .element(cx.processor(|shell: &mut Shell, row: usize, _window, cx| {
+        .element(cx.processor(|shell: &mut Shell, row: usize, window, cx| {
             let tokens = vessel_app_kit::tokens(cx);
-            row_element(shell, row, &tokens, cx)
+            row_element(shell, row, &tokens, window, cx)
         }));
     div()
         .flex_1()
@@ -56,6 +56,7 @@ fn row_element(
     shell: &Shell,
     row: usize,
     tokens: &Tokens,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let area = &shell.areas.conversation;
@@ -87,7 +88,14 @@ fn row_element(
         ));
     }
     if run.is_none() || run_open {
-        content = content.child(entries::entry(&paint, index, entry, open(area, index), cx));
+        content = content.child(entries::entry(
+            &paint,
+            index,
+            entry,
+            open(area, index),
+            window,
+            cx,
+        ));
     }
     lane(content.into_any_element())
 }
