@@ -148,6 +148,13 @@ Gorhom5.2.14, Reanimated4.5.5 and RNW0.21.2, all MIT.
   Theme Job2/ADR0049 has NOT started: Theme/ALL remain System, Light,
   Dark. Do not assume eight themes. Preserve K's small official-mark
   insertion points when a reviewed hash arrives.
+- G3: the one shared alphabetical comparator remains G3-owned, prepared
+  outside the repository and uncompiled, with no API hash to consume.
+  Coordinate before adding or importing it next session; do not duplicate
+  it or introduce ICU work. `8cdc7ea6` search is source-cleared, but G3
+  reports it was not imported into its unfinished registry slice. The
+  coordinator's comparator policy remains Unicode lowercase followed by
+  original code-point ties, with locale-tailoring differences explicit.
 - G2/V1: there is NO S2 shared NavRow/leading API or reservation. V1 is
   coordinating the existing row owner for CalendarClock in the schedules
   slot. Preserve that seam later. Sidebar menus must reuse G2's single
