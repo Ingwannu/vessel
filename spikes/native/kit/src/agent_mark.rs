@@ -266,10 +266,12 @@ mod tests {
     fn approved_viewports_yield_the_measured_reference_ink() {
         // Width cannot also match when official aspect ratios differ from
         // the reference's redraws; preserve geometry and record that delta.
+        // Use true cubic extrema: a renderer's approximate ink rectangle
+        // can omit the Invertocat foot's interior vertical maximum.
         for (art, expected) in [
             (CLAUDE, (16.0_f32, 16.0_f32)),
             (CODEX, (14.80, 14.67)),
-            (GITHUB, (16.0, 15.45)),
+            (GITHUB, (16.0, 15.50)),
         ] {
             let svg = std::str::from_utf8(art.image(Scheme::Light).bytes).unwrap();
             let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).unwrap();

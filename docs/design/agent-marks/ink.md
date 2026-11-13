@@ -2,8 +2,10 @@
 
 Rechecked 2026-11-13. Measurements use the SVG viewBox and painted path
 bounds through librsvg's vector geometry API, with SVG width/height
-props overridden as Paseo's `SvgXml` does. Bounds are resolved to 1/256
-source unit; these are geometric measurements, not screenshot estimates.
+props overridden as Paseo's `SvgXml` does. Reference values below use that geometric result, not screenshot
+estimates. Official C/L/M/H/V paths are also checked by solving cubic
+derivative roots: an approximate renderer rectangle can omit an interior
+curve extremum, as the Invertocat foot demonstrated.
 No Paseo path is an artwork source or a committed asset. The reference
 files are `components/icons/{claude,codex,copilot,opencode}-icon.tsx` and
 `assets/acp-provider-icons/gemini.svg` under Paseo's app source.
@@ -22,14 +24,14 @@ and clear space. No path or proportion is altered. Exact matching in both
 axes is impossible where the official mark differs from the reference:
 OpenAI's official Blossom matches its height (14.67 at 16), with width
 14.80 rather than 14.63; the current Invertocat matches the retired head's
-16-wide box, with its own 15.45-high proportions rather than 13. These
+16-wide box, with its own 15.498-high proportions rather than 13. These
 are deliberate differences, not stretched substitutes.
 
 | Official artwork | Image/clear-space box at requested 12 / 14 / 16 / 20 | Ink at 16 |
 | --- | --- | --- |
 | Claude Spark, 93.6 ink inside its 141 clear-space viewport | 18.077 / 21.090 / 24.103 / 30.128 square | 16 × 16 |
 | OpenAI Blossom, 484.137 × 479.816 in 721 square | 16.530 / 19.285 / 22.040 / 27.550 square | 14.800 × 14.667 |
-| GitHub Invertocat, 96 × 92.719 in 128 square | 16 / 18.667 / 21.333 / 26.667 square | 16 × 15.453 |
+| GitHub Invertocat, 96 × 92.989 in 128 square | 16 / 18.667 / 21.333 / 26.667 square | 16 × 15.498 |
 | Gemini CLI unchanged 1645-square PNG | 12 / 14 / 16 / 20 square | 16-square plate |
 | OpenCode | 32 × 36 at every requested size that has room | 16 × 20 |
 

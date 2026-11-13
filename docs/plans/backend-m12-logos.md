@@ -431,3 +431,36 @@ new tests, replacement control captures and final app captures are not
 claimed as passed. This checkpoint prevents the credit stop from leaving
 coherent source uncommitted. Verification of this same slice may continue
 until closeout; its result and immutable hash follow in the next record.
+
+### Closeout validation after the checkpoint
+
+The native gate for `e8ffeaa2` finished fmt and all-target Clippy with exit0,
+but whole `cargo test` exited101: 37 kit tests passed and the new ink-bound
+fixture failed. The actual padded first/following/last/error row comparison,
+name-baseline/frame checks, all-brand row pitch and disabled pointer/key
+regressions passed. This is scoped evidence, not a whole-workspace pass.
+
+The failure exposed an inaccurate expected GitHub height. Solving the
+unchanged path's cubic derivative extrema gives bounds96 ×92.9886843692,
+which at the unchanged display box yields16 ×15.498114. The earlier
+approximate rectangle gave92.71875 and the fixture expected15.45. The
+fixture now expects15.50 with its original0.02 tolerance; no production
+viewport, path, fill or proportion is changed. The source record is
+corrected. This corrected test data still needs the full native gate;
+time-limited closeout must not turn the earlier failure into a pass.
+
+The normal example binary was rebuilt by that test invocation from the
+checkpoint's production code. Any final-family snapshots taken during
+closeout identify that immutable binary/input, not a newly passed suite.
+The final app rebuild,72 app images, full pill/Settings visual approval,
+owner-facing brand review and full Job1 acceptance remain incomplete.
+Job2 remains unstarted. Consumers retain their existing fallbacks until
+V1 accepts a corrected immutable control.
+
+Closeout family evidence: four new light/dark scale1/2 comparison images
+were captured and inspected. Their exact binary/input and PNG hashes are
+in the track scratch `ink-family-closeout-manifest.json`. They are the
+checkpoint production code; only the corrected test data differs in the
+current source. This is standalone family evidence only. New row/header,
+pill, fitted Settings and final app visual evidence remains incomplete.
+The capture driver closed its application and virtual display.
