@@ -131,6 +131,10 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+`kit/dialog.rs` keeps a fitting dialog at its natural size. When its
+content exceeds the card's existing height limit, only the body scrolls;
+the heading and footer actions retain their size and remain reachable.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

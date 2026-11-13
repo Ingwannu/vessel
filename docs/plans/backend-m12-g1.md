@@ -231,3 +231,21 @@ replaces private inset and gap literals. This slice registers the scale
 and documents it; consumption belongs to the git screen slice. Existing
 areas retain their geometry. There is no difference from the reference
 scale and no screen change to capture in this slice.
+
+## Shared dialog overflow
+
+A real hook refusal with 120 lines exposed that the dialog card clipped
+its actions when its content exceeded the existing maximum height.
+`kit/dialog.rs` now gives only the body an automatic flex basis, a zero
+minimum height and vertical scrolling. The automatic basis keeps short
+dialogs at their natural height; a zero basis would change their fit.
+The header and footer cannot shrink. The card's dimensions, surfaces,
+callers and maximum height are unchanged. A GPUI layout regression uses
+one-line and 120-line bodies at 1280 and 390 and checks that actions keep
+their height and remain inside the window.
+
+The existing session-kill and archive confirmations are the fitting
+cases: both were captured before the change, dark and light, at 1280
+and 390. Those checks use the fake node and dismiss each decision; they
+do not stop or archive a session. The following captures compare those
+same dialogs and exercise the real hook refusal with its actions.
