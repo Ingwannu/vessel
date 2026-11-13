@@ -20,6 +20,7 @@ use vessel_app_view::timeline::{
 };
 use vessel_proto::{Question, QuestionOutcome};
 
+use super::Seat;
 use super::find::Marking;
 use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
 use super::tool;
@@ -32,6 +33,8 @@ pub(super) struct Paint<'a> {
     pub(super) look: Look,
     /// What find marks, while its bar shows matches.
     pub(super) find: Option<Marking<'a>>,
+    /// Where the conversation drawn is kept: its rows' toggles change it.
+    pub(super) seat: Seat,
 }
 
 /// Entry `index` as its row.
@@ -201,6 +204,7 @@ pub(super) fn work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
+    let seat = paint.seat;
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -215,7 +219,9 @@ pub(super) fn work_row(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_entry(index, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| {
+            shell.toggle_entry(seat, index, cx);
+        }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))
         .children(detail.map(|(detail, color)| {
