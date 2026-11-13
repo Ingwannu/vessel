@@ -143,6 +143,9 @@ pub struct PillParts {
     /// The glyph's and the label's colour, when not the muted one (an
     /// on/off feature that is on).
     pub tint: Option<Hsla>,
+    /// A word after them in a colour of its own (the effort's level, in
+    /// its colour at the top step); the foreground's when `None`.
+    pub after: Option<(SharedString, Option<Hsla>)>,
     /// The caret after them.
     pub caret: bool,
 }
@@ -216,6 +219,12 @@ pub fn pill_parts(
                 .truncate()
                 .text_color(neutral.foreground_extra_muted)
                 .child(quiet)
+        }))
+        .children(parts.after.map(|(word, colour)| {
+            div()
+                .flex_shrink_0()
+                .text_color(colour.unwrap_or(neutral.foreground))
+                .child(word)
         }))
         .when(parts.caret, |pill| {
             pill.child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted).flex_shrink_0())
@@ -345,6 +354,11 @@ pub struct ComboRow {
     pub disabled: bool,
     /// A heading drawn above it (a group's name).
     pub heading: Option<SharedString>,
+    /// A switch at its right, on or off (choosing the row flips it): an
+    /// agent's on/off option at the top of the model list.
+    pub switch: Option<bool>,
+    /// A line under the label, muted, that may wrap (what an option is).
+    pub note: Option<SharedString>,
 }
 
 impl ComboRow {
@@ -360,6 +374,8 @@ impl ComboRow {
             checked: false,
             disabled: false,
             heading: None,
+            switch: None,
+            note: None,
         }
     }
 }
@@ -777,6 +793,71 @@ fn title_row<V: 'static>(
     row.child(title).into_any_element()
 }
 
+/// A row's words: its label, its detail on the same line, its note under
+/// them.
+fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    let label = div()
+        .flex_shrink_0()
+        .max_w_full()
+        .truncate()
+        .text_color(neutral.foreground)
+        .child(one_line(&row.label));
+    let mut words = div()
+        .flex_1()
+        .min_w_0()
+        .overflow_hidden()
+        .flex()
+        .flex_row()
+        .items_baseline()
+        .gap(px(8.0))
+        .child(label);
+    if let Some(note) = &row.note {
+        // The label, and under it what the option is, wrapping.
+        words = div()
+            .flex_1()
+            .min_w_0()
+            .flex()
+            .flex_col()
+            .child(words)
+            .child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(neutral.foreground_muted)
+                    .whitespace_normal()
+                    .child(note.clone()),
+            );
+    }
+    if let Some(detail) = &row.detail {
+        words = words.child(
+            div()
+                .flex_shrink(1.0)
+                .min_w_0()
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(neutral.foreground_muted)
+                .child(one_line(detail)),
+        );
+    }
+    words
+}
+
+/// What leads a row.
+fn row_leading(leading: Leading, tokens: &Tokens) -> AnyElement {
+    let neutral = tokens.neutral;
+    match leading {
+        Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
+        Leading::Dot(color) => div()
+            .size(px(14.0))
+            .flex()
+            .items_center()
+            .justify_center()
+            .child(div().size(px(6.0)).rounded_full().bg(color))
+            .into_any_element(),
+        Leading::Initial(initial) => initial_tile(initial, tokens).into_any_element(),
+    }
+}
+
 fn combo_row<V: 'static>(
     index: usize,
     row: &ComboRow,
@@ -799,32 +880,7 @@ fn combo_row<V: 'static>(
     // is also at most the row's width, so a name longer than the row ends
     // in an ellipsis. (A small shrink factor is not enough: any shrink at
     // all cuts the label, "Workspace acce…" beside a whole description.)
-    let label = div()
-        .flex_shrink_0()
-        .max_w_full()
-        .truncate()
-        .text_color(neutral.foreground)
-        .child(one_line(&row.label));
-    let mut words = div()
-        .flex_1()
-        .min_w_0()
-        .overflow_hidden()
-        .flex()
-        .flex_row()
-        .items_baseline()
-        .gap(px(8.0))
-        .child(label);
-    if let Some(detail) = &row.detail {
-        words = words.child(
-            div()
-                .flex_shrink(1.0)
-                .min_w_0()
-                .truncate()
-                .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
-                .child(one_line(detail)),
-        );
-    }
+    let words = row_words(row, tokens);
     let mut element = div()
         .id(ElementId::NamedInteger(
             "combobox-row".into(),
@@ -840,21 +896,11 @@ fn combo_row<V: 'static>(
         .py(px(8.0))
         .when(row.disabled, |element| element.opacity(0.55))
         .when(highlighted && !row.disabled, |element| element.bg(wash))
-        .children(row.leading.clone().map(|leading| {
-            match leading {
-                Leading::Glyph(which) => {
-                    glyph(which, 16.0, neutral.foreground_muted).into_any_element()
-                }
-                Leading::Dot(color) => div()
-                    .size(px(14.0))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .child(div().size(px(6.0)).rounded_full().bg(color))
-                    .into_any_element(),
-                Leading::Initial(initial) => initial_tile(initial, tokens).into_any_element(),
-            }
-        }))
+        .children(
+            row.leading
+                .clone()
+                .map(|leading| row_leading(leading, tokens)),
+        )
         .child(words)
         // Paseo's trailing slot: the check, then the row's own words (a
         // value at most 45% of the row, one line).
@@ -873,7 +919,20 @@ fn combo_row<V: 'static>(
         }))
         .when(row.opens, |element| {
             element.child(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted))
-        });
+        })
+        .children(row.switch.map(|on| {
+            crate::settings::switch(
+                ElementId::NamedInteger(
+                    "combobox-switch".into(),
+                    u64::try_from(index).unwrap_or(u64::MAX),
+                ),
+                on,
+                !row.disabled,
+                compact,
+                0,
+                tokens,
+            )
+        }));
     if !row.disabled {
         let chose = Rc::clone(&handlers.chose);
         element = element
