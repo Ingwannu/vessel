@@ -73,6 +73,9 @@ fn result_row(
         }
     };
     let (folder, name) = split_path(path.as_str());
+    // The name first and whole where it fits (a hundred files can share
+    // a long beginning); the line's number at the right, never cut; the
+    // folder on the line under it.
     let head = div()
         .flex()
         .flex_row()
@@ -81,25 +84,28 @@ fn result_row(
         .child(glyph(Glyph::File, 14.0, neutral.foreground_muted))
         .child(
             div()
-                .flex_none()
-                .max_w(px(240.0))
+                .flex_1()
+                .min_w_0()
                 .truncate()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .child(name.to_owned()),
         )
-        .child(
+        .children(line.map(|line| {
             div()
-                .flex_1()
-                .min_w_0()
-                .truncate()
+                .flex_none()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
-                .child(match line {
-                    Some(line) => format!("{folder}:{line}"),
-                    None => folder.to_owned(),
-                }),
-        );
+                .child(line.to_string())
+        }));
+    let place = (!folder.is_empty()).then(|| {
+        div()
+            .pl(px(20.0))
+            .truncate()
+            .type_(Type::Meta)
+            .text_color(neutral.foreground_muted)
+            .child(folder.to_owned())
+    });
     div()
         .id(("code-found", index))
         .w_full()
@@ -111,6 +117,7 @@ fn result_row(
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .child(head)
+        .children(place)
         .children(text.map(|text| {
             div()
                 .pl(px(20.0))
