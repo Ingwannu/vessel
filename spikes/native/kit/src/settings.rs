@@ -292,6 +292,12 @@ fn row_faced(
     row_with_content(words.into_any_element(), control, first, compact, tokens)
 }
 
+/// On a phone, a settings row's content box is the window's width less
+/// this: the page's margin, the card's hairline and the row's padding, each
+/// side (measured on a 390-point window: a 306-point content box, the card
+/// at 27–366). A value given a set width there (a path cut to fit) uses it.
+pub const PHONE_ROW_INSET: f32 = 84.0;
+
 /// The shared settings row frame around custom content, with an optional
 /// trailing control. The content owns its title/description arrangement.
 ///

@@ -245,15 +245,11 @@ fn probe_message(agent: &HarnessRef, shell: &Shell, tokens: &Tokens) -> Div {
     });
     match message {
         Some(Probe::Failed(error)) => {
-            card = card.child(vessel_app_kit::alert::alert(
+            // The app's sentence; the machine's own words in the tooltip.
+            let alert = vessel_app_kit::alert::alert(
                 vessel_app_kit::alert::Content {
                     title: Some(words.options_failed().into()),
-                    description: Some(
-                        gpui::div()
-                            .child(words.error_detail())
-                            .child(gpui::div().child(error.clone()))
-                            .into_any_element(),
-                    ),
+                    description: None,
                     action: None,
                 },
                 crate::badge::alert_variant(
@@ -261,7 +257,8 @@ fn probe_message(agent: &HarnessRef, shell: &Shell, tokens: &Tokens) -> Div {
                 ),
                 vessel_app_kit::alert::Size::Small,
                 tokens,
-            ));
+            );
+            card = card.child(super::super::with_original(alert, error.clone(), shell));
         }
         Some(Probe::Loading) | None => {
             card =

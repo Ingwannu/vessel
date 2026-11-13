@@ -11,8 +11,8 @@ pub(crate) use state::AgentSettings;
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, settings};
 use vessel_app_link::agents::{Administration, AgentsError};
@@ -144,32 +144,41 @@ pub(super) fn note(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> Div 
         .text_color(tokens.neutral.foreground_muted)
         .child(text.into())
 }
+/// A failure, as the session's lost line says one (the coordinator's
+/// decision, 2026-11-13): the visible words are the app's sentence for its
+/// kind in the person's language (a kind the app does not tell apart gets
+/// its general sentence); the original text, the transport's or the
+/// node's, only in the alert's tooltip.
 pub(super) fn problem(error: &AgentsError, shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.t.lang.agents();
-    let message = words.problem(error.problem());
-    #[cfg(not(target_arch = "wasm32"))]
-    let description = if let AgentsError::Call(source) = error {
-        Some(
-            div()
-                .child(words.error_detail())
-                .child(div().child(source.to_string()))
-                .into_any_element(),
-        )
-    } else {
-        None
-    };
-    #[cfg(target_arch = "wasm32")]
-    let description = None;
-    vessel_app_kit::alert::alert(
+    let alert = vessel_app_kit::alert::alert(
         vessel_app_kit::alert::Content {
-            title: Some(message.into()),
-            description,
+            title: Some(words.problem(error.problem()).into()),
+            description: None,
             action: None,
         },
         crate::badge::alert_variant(error.problem().variant()),
         vessel_app_kit::alert::Size::Small,
         tokens,
-    )
+    );
+    with_original(alert, error.to_string(), shell)
+}
+
+/// `alert` with `original` (the transport's or the node's own text) in its
+/// tooltip, never in its visible body.
+pub(super) fn with_original(alert: Div, original: String, shell: &Shell) -> Div {
+    let state = &shell.areas.settings.agents;
+    let place = Rc::clone(
+        state
+            .alert_places
+            .borrow_mut()
+            .entry(original.clone())
+            .or_default(),
+    );
+    let trigger = div()
+        .id(gpui::SharedString::from(format!("agents-alert-{original}")))
+        .child(alert);
+    div().child(state.tips.on(trigger, &place, original, false))
 }
 
 pub(crate) fn dialogs(

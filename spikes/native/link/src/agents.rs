@@ -91,6 +91,11 @@ impl AgentsError {
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,
             Self::Output(_) => Problem::InvalidOutput,
+            // A call whose connection closed is the machine's lost
+            // connection, said as such; the transport's words stay out of
+            // the screen (the session's rule).
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Call(vessel_client::CallError::Disconnected) => Problem::Disconnected,
             #[cfg(not(target_arch = "wasm32"))]
             Self::Call(_) => Problem::Call,
         }

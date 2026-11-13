@@ -22,6 +22,9 @@ pub(crate) struct AgentSettings {
     /// The program's path in the details, when it is cut (its whole text
     /// in a tooltip).
     pub(super) program_place: vessel_app_kit::tooltip::Place,
+    /// Each failure alert's tooltip (its original text), by that text.
+    pub(super) alert_places:
+        std::cell::RefCell<std::collections::HashMap<String, vessel_app_kit::tooltip::Place>>,
     pub(super) defaults: ComboboxState,
     pub(super) default_id: Option<OptionId>,
     pub(super) model_anchor: Anchor,
@@ -37,6 +40,7 @@ impl AgentSettings {
             tips: vessel_app_kit::tooltip::Tooltips::new(),
             refresh_place: Rc::default(),
             program_place: Rc::default(),
+            alert_places: std::cell::RefCell::default(),
             defaults: ComboboxState::new(window, cx),
             default_id: None,
             model_anchor: Anchor::default(),
