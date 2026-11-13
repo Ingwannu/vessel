@@ -579,16 +579,67 @@ never rebuilt.
   - The checks are 0.0.0.0.4's: icon frames equal to the corrected
     mark's, version block 0.0.0.0.5, wine stops at the first text, sums
     and signature pass.
+- **0.0.0.0.5** was published to `preview` at 07:24:17 UTC.
 - **The first update on a real Windows (open, 2026-11-13)**:
   - The owner started the installed 0.0.0.0.3 and saw nothing at the
     foot.
-  - The feed's server logged two manifest reads (07:06:54 and 07:07:14 UTC) and no completed transfer of the Windows artifact.
+  - The feed's server logged two manifest reads (07:06:54 and 07:07:14
+    UTC) and no completed transfer of the Windows artifact.
   - 0.0.0.0.3 to 0.0.0.0.5 log only to stderr, which a GUI-subsystem
     process started from the Start menu does not have. So a Windows
-    failure is lost, and in 0.0.0.0.3 it is not shown either. It is
-    retried at the next start or hourly.
-  - A log file is the next build's (see the coordinator's report of
-    2026-11-13).
+    failure was lost, and 0.0.0.0.3 does not show it either. It retried
+    at the next start or an hour later.
+  - The candidates, ranked, went to the coordinator: the app closed
+    during the download, an antivirus stopping an unsigned download, or
+    the staging file refused beside `Vessel.exe`. A redirected stderr
+    (`Vessel.exe 2> file` from cmd) gets the error from 0.0.0.0.3.
+
+## Logs and retries (from the build after 0.0.0.0.5)
+
+- **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
+  calls `vessel_app_log::init(LABEL)` first thing in `main`.
+  - Output goes to stderr as before, and to `vessel.log` in
+    `vessel_app_log::dir()`:
+    - Windows: `%LOCALAPPDATA%\Vessel\logs`
+    - macOS: `~/Library/Logs/Vessel`
+    - Linux: `$XDG_STATE_HOME/vessel/logs`
+  - The file is rotated past 1 MiB, keeping `vessel.1.log` and
+    `vessel.2.log`.
+  - It is written line by line, and a panic hook records the message,
+    the place and a backtrace.
+  - `RUST_LOG` filters; by default everything at info and the updater
+    at debug.
+  - The About screen's "open the log folder" calls `dir()`. That screen
+    is the desktop track's.
+  - The Decision Log, with the alternatives, is at the top of
+    `applog/src/lib.rs`.
+- **What the updater records**:
+  - its start (label, channel, target, packaging, the feed's host only)
+  - each check, and the newest label
+  - the artifact and its size
+  - the staging file's name
+  - the feed's answer to the download (status, length)
+  - the bytes received when a download breaks off or stalls
+  - each rename of the swap, and leftovers removed or kept
+  - each failure with its whole cause chain (`report::chain`), which
+    carries an `io::Error`'s OS code
+  - file names only, because the directory carries the account's name
+- **The feed's address never reaches a log**:
+  - `FeedUrl` prints its scheme and host only, and reqwest errors are
+    kept without their URL.
+  - `tests/update.rs::the_log_never_names_the_feeds_path` runs a good
+    update, a 404 download and an unreachable feed under a token path,
+    with every updater record at trace. It fails if the token appears;
+    it did fail with the URL left in reqwest's error.
+- **Retries**:
+  - After a transient failure the next checks come 1, 5 and 15 minutes
+    later, then hourly (`RETRY_AFTER`, `Settings::retry_after`).
+  - A manifest that does not verify, or no build for this machine,
+    waits the hour, because only a new publish changes it.
+  - Tests check the schedule's count and that a retry installs a build
+    the failed check could not reach.
+- Verified on Linux, and on Windows under wine: the log crate's 3
+  tests, the updater's 27 unit tests and its 10 end-to-end tests.
 
 ## Licences of what this track pulls in (ADR 0014)
 
