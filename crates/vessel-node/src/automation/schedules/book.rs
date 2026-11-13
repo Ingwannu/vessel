@@ -11,7 +11,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use chrono::{DateTime, Utc};
-use vessel_proto::automation::{ScheduleInfo, ScheduleState};
+use vessel_proto::automation::{RunOutcome, ScheduleInfo, ScheduleRun, ScheduleState};
 use vessel_proto::{Creator, ScheduleId, SessionId};
 
 /// A schedule and what the scheduler knows of it besides.
@@ -21,6 +21,11 @@ pub(super) struct Entry {
     /// A run of it is being made (from its `making` record to its
     /// outcome): a due time meanwhile is skipped, one run at a time.
     pub(super) making: bool,
+    /// Its newest run that did something (any outcome but `skipped`): what
+    /// the next run checks for overlap and what a restart settles. Skips
+    /// are recorded above it, so `info.last_run` alone would lose it, and
+    /// the run after a skip would start beside one still running.
+    pub(super) current: Option<ScheduleRun>,
 }
 
 /// Every schedule, and the active ones by due time.
@@ -43,19 +48,50 @@ impl Book {
     /// being made stays so.
     pub(super) fn put(&mut self, info: ScheduleInfo) {
         let id = info.id;
-        let making = match self.entries.get(&id) {
+        let (making, current) = match self.entries.get(&id) {
             Some(old) => {
                 if let Some(due) = due_of(&old.info.state) {
                     let _was = self.due.remove(&(due, id));
                 }
-                old.making
+                (old.making, old.current.clone())
             }
-            None => false,
+            None => (false, None),
         };
         if let Some(due) = due_of(&info.state) {
             let _new = self.due.insert((due, id));
         }
-        drop(self.entries.insert(id, Entry { info, making }));
+        drop(self.entries.insert(
+            id,
+            Entry {
+                info,
+                making,
+                current,
+            },
+        ));
+    }
+
+    /// Note `run` (made, or a later outcome of one): it becomes `id`'s
+    /// current run unless it is a skip or older than the current one (a
+    /// late word about a run since overtaken).
+    pub(super) fn noted(&mut self, id: ScheduleId, run: &ScheduleRun) {
+        let Some(entry) = self.entries.get_mut(&id) else {
+            return;
+        };
+        let skip = matches!(run.outcome, RunOutcome::Skipped { .. });
+        let older = entry
+            .current
+            .as_ref()
+            .is_some_and(|current| current.number > run.number);
+        if !skip && !older {
+            entry.current = Some(run.clone());
+        }
+    }
+
+    /// Set `id`'s current run (at start, from its stored runs).
+    pub(super) fn set_current(&mut self, id: ScheduleId, run: Option<ScheduleRun>) {
+        if let Some(entry) = self.entries.get_mut(&id) {
+            entry.current = run;
+        }
     }
 
     /// Mark whether a run of `id` is being made.

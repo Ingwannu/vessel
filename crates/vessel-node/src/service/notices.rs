@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::oneshot;
+use tokio::sync::{broadcast, oneshot};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::conversation::PromptSession;
@@ -63,6 +63,9 @@ impl NodeService {
             ));
         }
         let following = self.notices.follow(told).map_err(|error| error.to_wire())?;
+        // Heard before the prompt goes, so the told session's end is never
+        // missed: its follower then stops and gives back its place.
+        let told_ends = self.sessions.ends();
         let (delivered, turn) = self
             .sessions
             .prompt_tracked(
@@ -82,7 +85,7 @@ impl NodeService {
             prompted: request.session,
         };
         let stop = self.lifecycle.stopping();
-        drop(tokio::spawn(teller.run(turn, stop)));
+        drop(tokio::spawn(teller.run(turn, told_ends, stop)));
         Ok(delivered)
     }
 }
@@ -99,11 +102,40 @@ struct Teller {
 }
 
 impl Teller {
-    async fn run(self, turn: oneshot::Receiver<EventSeq>, stop: CancellationToken) {
+    async fn run(
+        self,
+        turn: oneshot::Receiver<EventSeq>,
+        mut told_ends: broadcast::Receiver<SessionId>,
+        stop: CancellationToken,
+    ) {
         tokio::select! {
             biased;
             () = stop.cancelled() => {}
+            () = self.told_ended(&mut told_ends) => self.notices.forget(self.told),
             () = self.follow(turn) => {}
+        }
+    }
+
+    /// Once the told session has ended: nobody is left to tell, so the
+    /// turn is not followed further.
+    async fn told_ended(&self, ends: &mut broadcast::Receiver<SessionId>) {
+        loop {
+            match ends.recv().await {
+                Ok(ended) if ended == self.told => return,
+                Ok(_other) => {}
+                // Ends were missed: look at the session itself.
+                Err(broadcast::error::RecvError::Lagged(_)) => {
+                    let live = self
+                        .sessions
+                        .get(self.told)
+                        .await
+                        .is_ok_and(|info| info.status.is_live());
+                    if !live {
+                        return;
+                    }
+                }
+                Err(broadcast::error::RecvError::Closed) => std::future::pending::<()>().await,
+            }
         }
     }
 

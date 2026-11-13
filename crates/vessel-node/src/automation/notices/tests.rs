@@ -146,4 +146,6 @@ fn at_most_sixty_notices_an_hour_go_into_one_session() {
     assert!(notices.may_send(SessionId::random(), start), "per session");
     let later = start.checked_add(Duration::from_secs(3_600)).unwrap();
     assert!(notices.may_send(told, later), "an hour on, again");
+    // Sessions told nothing for an hour are not kept.
+    assert_eq!(notices.state().sent.len(), 1);
 }

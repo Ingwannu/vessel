@@ -37,7 +37,7 @@ use jiff::Timestamp;
 use jiff::tz::{TimeZone, TimeZoneDatabase};
 use vessel_proto::automation::{Cadence, CronExpr, EverySeconds, TimeZoneName};
 
-pub(crate) use missed::{Decision, missed};
+pub(crate) use missed::{Decision, missed, too_old};
 
 /// How far ahead a cron's next time is looked for. Every expression the
 /// grammar takes that matches some day matches one within 8 years (a

@@ -17,16 +17,21 @@
 //!   time, and woken by every command. Runs are made by tasks of their own,
 //!   at most [`SLOTS`] at once, through a [`Runner`]: the node's own
 //!   (`node_runner`) acts through the service's checks; the tests' fake
-//!   records what it was asked. Who may change what is pure ([`rules`]).
+//!   records what it was asked. Who may change what is pure ([`rules`]),
+//!   as is what a schedule's state becomes ([`state`]); the calls the
+//!   actor answers are [`calls`], a run's own task [`task`].
 //! - Cost: the runner is a generic parameter, so the actor's tests run
 //!   without a node and on a clock they move ([`Clock`]); one more trait,
 //!   with the node's and the tests' implementations.
 
 mod actor;
 mod book;
+mod calls;
 mod check;
 pub(crate) mod node_runner;
 pub(crate) mod rules;
+mod state;
+mod task;
 
 use std::future::Future;
 use std::time::Duration;

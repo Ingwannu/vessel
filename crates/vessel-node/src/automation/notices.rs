@@ -105,8 +105,14 @@ impl Notices {
     /// Whether one more notice may go into `told` at `now`; counted if so.
     pub(crate) fn may_send(&self, told: SessionId, now: Instant) -> bool {
         let mut state = self.state();
-        let sent = state.sent.entry(told).or_default();
         let hour = Duration::from_secs(3_600);
+        // A session told nothing for an hour is forgotten, so the map
+        // holds only sessions told within the hour, however many ended.
+        state.sent.retain(|_, sent| {
+            sent.back()
+                .is_some_and(|at| now.saturating_duration_since(*at) < hour)
+        });
+        let sent = state.sent.entry(told).or_default();
         while sent
             .front()
             .is_some_and(|at| now.saturating_duration_since(*at) >= hour)

@@ -31,6 +31,7 @@ use vessel_proto::{
 use super::{NodeService, wire};
 use crate::automation::schedules::{FollowSender, Followed, Job, Made};
 use crate::automation::turns::{Signal, signal};
+use crate::error::ServiceError;
 use crate::principal::Principal;
 
 /// Records a follow reads at a time.
@@ -206,7 +207,12 @@ impl NodeService {
         }
         let info = match self.sessions.get(session).await {
             Ok(info) => info,
-            Err(error) => return ends(&wire(&error), EndReason::TargetGone),
+            // Only a session the node no longer has ends the schedule; a
+            // store that cannot be read now fails this run alone.
+            Err(error @ ServiceError::NotFound(_)) => {
+                return ends(&wire(&error), EndReason::TargetGone);
+            }
+            Err(error) => return Made::outcome(failed(&wire(&error), None)),
         };
         let own = principal.agent().is_some_and(|(_, agent)| agent == session);
         if !own && let Err(error) = self.check_owner(principal, session).await {
@@ -323,7 +329,9 @@ impl NodeService {
             }
             from = page.next;
         };
-        let turned = matches!(end, RunEnd::Turn { .. });
+        // A turn that failed leaves its session live as one that ended
+        // does; either is archived, or each run would leave one more.
+        let turned = matches!(end, RunEnd::Turn { .. } | RunEnd::Failed { .. });
         send(&follow, &job, RunOutcome::Finished { session, end }).await;
         if turned && after == AfterRun::Archive {
             self.archive_if_idle(session).await;
