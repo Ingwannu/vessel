@@ -116,6 +116,12 @@ pub(crate) enum Write {
         write: crate::forge::ForgeWrite,
         done: Done,
     },
+    /// Change the record of schedules, saved prompts and hooks (protocol
+    /// 11): every change in `writes` or none.
+    Automation {
+        writes: Vec<crate::automation::AutomationWrite>,
+        done: Done,
+    },
 }
 
 /// What the writer needs besides its connection and its queue.
@@ -350,6 +356,14 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
         Write::Forge { write, done } => {
             let applied = isolated(transaction, |connection| {
                 crate::forge::apply(connection, &write)
+            });
+            Answer::Done(done, applied)
+        }
+        Write::Automation { writes, done } => {
+            let applied = isolated(transaction, |connection| {
+                writes
+                    .iter()
+                    .try_for_each(|write| crate::automation::apply(connection, write))
             });
             Answer::Done(done, applied)
         }

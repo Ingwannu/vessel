@@ -1,6 +1,6 @@
 //! Approved command sets across the schemas (protocol 10's schema 9,
-//! protocol 11's 10 and 11): an approval kept before the store held what
-//! it covered survives the walk from 9 to 11 in order, with no set; one
+//! protocol 11's 10 to 12): an approval kept before the store held what
+//! it covered survives the walk from 9 to 12 in order, with no set; one
 //! given after keeps its set across a restart.
 
 use build::{digest, project};
@@ -16,9 +16,16 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
-/// Undoes schemas 11 and 10: the set an approval covered, and pull
-/// request feedback's tables.
-const UNDO_SCHEMAS_10_AND_11: &str = "ALTER TABLE approvals DROP COLUMN commands;
+/// Undoes schemas 12 to 10: the schedules', saved prompts' and hooks'
+/// tables, the set an approval covered, and pull request feedback's
+/// tables.
+const UNDO_SCHEMAS_10_TO_12: &str = "DROP TABLE hook_keys;
+     DROP TABLE hook_deliveries;
+     DROP TABLE hooks;
+     DROP TABLE saved_prompts;
+     DROP TABLE schedule_runs;
+     DROP TABLE schedules;
+     ALTER TABLE approvals DROP COLUMN commands;
      DROP TABLE forge_feedback_sent;
      DROP TABLE forge_feedback_on;";
 
@@ -49,7 +56,7 @@ mod build {
 }
 
 #[tokio::test]
-async fn an_approval_from_schema_9_walks_to_11_and_new_ones_keep_their_set() {
+async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;
     let app = project();
@@ -59,7 +66,7 @@ async fn an_approval_from_schema_9_walks_to_11_and_new_ones_keep_their_set() {
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_AND_11).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_10_TO_12).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",
@@ -73,13 +80,16 @@ async fn an_approval_from_schema_9_walks_to_11_and_new_ones_keep_their_set() {
     let walked = store.workspace().await.unwrap();
     assert_eq!(walked.approvals, [(app.id, digest('a'))]);
     assert!(walked.approved_sets.is_empty(), "it covered nothing known");
-    // Feedback's tables came back with schema 10.
+    // Feedback's tables came back with schema 10, the schedules' with 12.
     assert!(
         store
             .feedback(vessel_proto::SessionId::random())
             .await
             .is_ok()
     );
+    let automation = store.automation().await.unwrap();
+    assert!(automation.schedules.is_empty());
+    assert!(store.saved_prompts(None).await.unwrap().is_empty());
 
     let set = CommandSet {
         setup: vec!["npm ci".parse().unwrap()],

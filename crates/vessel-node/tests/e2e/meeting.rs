@@ -29,7 +29,7 @@ use crate::support::{Fixture, step, within};
 use crate::workspace::{lookup, new_worktree};
 
 /// A node that finds git, reaches only `forge`, and opens `/bin/sh`.
-async fn start(fixture: &Fixture, forge: &Arc<FakeForge>) -> Node {
+pub(crate) async fn start(fixture: &Fixture, forge: &Arc<FakeForge>) -> Node {
     let forge = Arc::clone(forge);
     fixture
         .start_with(move |config| {
@@ -44,7 +44,7 @@ async fn start(fixture: &Fixture, forge: &Arc<FakeForge>) -> Node {
 }
 
 /// The project's file, committed (so a worktree has it) and approved.
-async fn with_a_service(owner: &NodeClient, root: &std::path::Path, project: ProjectId) {
+pub(crate) async fn with_a_service(owner: &NodeClient, root: &std::path::Path, project: ProjectId) {
     std::fs::write(
         root.join("vessel.toml"),
         "[services.web]\ncommand = 'echo web-up; exec sleep 300'\n",
@@ -139,7 +139,7 @@ async fn project_of(owner: &NodeClient) -> ProjectId {
     listed.projects.first().map(|project| project.id).unwrap()
 }
 
-async fn terminal(owner: &NodeClient, info: &TerminalInfo) -> TerminalInfo {
+pub(crate) async fn terminal(owner: &NodeClient, info: &TerminalInfo) -> TerminalInfo {
     owner
         .call(GetTerminal {
             terminal: info.id,
@@ -160,7 +160,7 @@ async fn remove(owner: &NodeClient, worktree: WorktreeId) -> RemoveWorktreeOutco
 }
 
 /// The watcher has let go of every session.
-async fn nothing_watched(owner: &NodeClient) {
+pub(crate) async fn nothing_watched(owner: &NodeClient) {
     step("the watcher lets the session go", async {
         loop {
             let list = owner.call(ListPullRequests {}).await.unwrap();
