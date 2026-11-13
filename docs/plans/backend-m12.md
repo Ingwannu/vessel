@@ -424,6 +424,17 @@ that nobody builds the same thing twice:
   are written by these tracks, not by the lead, and the lead may ask
   for them reshaped.
 
+The first two slices (view logic of schedules and of agent readiness)
+were read line by line and sent back the same hour: a cadence shown as
+raw seconds and a raw cron expression where the reference says "Every
+hour" and "Weekdays at 09:00"; errors that could only speak English;
+words only this project knows; tests that checked a prefix; the
+reference's own test files not used as cases. The reasons are the last
+section of the strict brief, so the other two tracks check themselves
+against them first. A status badge was missing from the kit and three
+tracks needed it: one track adds it once (the control in `kit`, the
+variant type in `view`, one mapping in the app).
+
 What the node does not send yet, found by these tracks in their first
 hour. The app draws none of it until the node has it (nothing shown may
 do nothing); each is for a node track:
@@ -436,6 +447,7 @@ do nothing); each is for a node track:
 | The next runs of an expression before it is saved | the schedule editor | a preview computed in the app with the node's library and the node's test cases; the lasting fix is one implementation both call |
 | Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
+| A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
 
 ## The browser, first report (2026-11-13)
 
