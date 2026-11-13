@@ -224,7 +224,8 @@ out rows of those shapes and fails if one grows past a line or runs into
 the next.
 
 Screens are checked against the two `shapes` sessions the fleet makes on
-`laptop`: a long thought, Markdown with a table, a 240-character code
+`laptop`: a long thought streamed a few characters at a time (Korean
+first, a syllable alone in a chunk), Markdown with a table, a 240-character code
 line and Korean, a long path, a wide diff, a command on one long line
 asking for permission with four answers, and 2,400 lines of output.
 `shapes` has its permission answered (the output in the timeline),

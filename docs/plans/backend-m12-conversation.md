@@ -32,7 +32,9 @@ binary at `70e9cf2`), with a 20,000-entry fold among them.
 ## Real shapes
 
 Screens are checked against fake-acp's `shapes` turn (`200de4c`): a long
-thought; Markdown with a table, a 240-character code line, a list, a
+thought, Korean first, streamed a few characters at a time (174 chunks,
+the first two one syllable each, as finely as a real stream can cut
+Hangul); Markdown with a table, a 240-character code line, a list, a
 link and Korean; a read of a long path; an edit with a wide diff; a
 command on one long line asking for permission with four answers, and
 2,400 lines of output. `scripts/fleet.sh start` makes two copies on
@@ -65,6 +67,7 @@ Paseo screen it follows.
 | `59-queue-dark-1280`, `68-queue-light-1280`, `70-queue-phone-dark-390`, `71-queue-phone-light-390` | the fleet's `queued` session: three prompts waiting behind a running turn above the composer, each a row with a grip, its text on two lines (an ellipsis past them), and round buttons for edit, steer, send now and remove; on a phone the buttons on a line of their own | Paseo `composer/index.tsx` `QueuedMessageRow` (surface1, a hairline, radius 8, 12 by 8, buttons of 32 on surface2, send on the accent); GOAT `QueuedRunsControl.tsx` (grip, steer, remove, edit in place) |
 | `60`–`62` (edit), `63-drag`, `64-dropped`, `65-removed`, `66-steered`, `67-sent-now` | a queued prompt edited in its row in the kit's field and saved (the node's revision r0 to r1); a row dragged by its grip onto the first (the drop row outlined, the dragged text following the pointer) and the order the node then holds; a row taken out; a row steered into the running turn (the fake echoes "steered: …"); the last sent now, which stopped the turn ("Turn ended · cancelled") and started its own | GOAT `QueuedRunsControl.tsx`; the node's `session.queue` |
 | `72-queue-held-ko-dark-1280` | a held queue (`vessel session queue … hold`): "대기 중 · 3개 · 멈춤" with resume and clear; resume lets it move (`[queue: 3 waiting]`, no longer held) | the node's `QueueHold` |
+| `73-before-thought-ko-dark-1280`, `74-after-thought-ko-dark-1280`, `75-thought-open-ko-dark-1280`, `76-thought-ko-light-390` | the folded thought row in Korean: "생가ㄱ" before, "생각" after; the thought opened, its Korean paragraph (streamed in 174 chunks) whole | — |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -200,6 +203,25 @@ only.
   fleet's Claude Code) and the fleet checks its ten lines come before the
   first prompt. The fakes had never written such lines, which is why the
   real shapes missed it.
+- The folded thought row read "생가ㄱ" for "생각" (the lead, in the fake
+  fleet). The text was whole: the label is the area's own word, and a
+  streamed thought is whole at every chunk (ACP's text is JSON, so a
+  chunk never ends inside a character, and a Hangul syllable is one).
+  The font was not: the work row, a run's header and the meta lines set
+  a size but no face, and with no face above them in the window they
+  had no Pretendard behind Geist; the system's fallback drew the Hangul,
+  and at 12.5 points it split "각" into "가" and "ㄱ". The kit gains
+  `TypeExt::face` (a type's family and weight with Pretendard behind it,
+  the size left to the element); the timeline, those rows, the outline's
+  card and the kit's mono boxes (`output`, a code block's language) now
+  set it, where `font_family(MONO)` had set the family alone. The shapes
+  turn now streams its thought, Korean first, a syllable alone in its
+  first chunks; the fleet puts it back together from `vessel log` and
+  fails on a chunk count under 100, a sentence not whole, or a Hangul
+  letter loose from its syllable; a view test folds the same stream in
+  batches of 1, 2 and 7 and checks the text at every step. The window's
+  root sets no face either (the lead's `shell.rs`): any area's text
+  without one still has no Pretendard.
 - Opening a run of tool calls reset the list and threw the view to the
   session's start; it now splices the run's rows where they are.
 - A permission request with a long command widened the whole main area

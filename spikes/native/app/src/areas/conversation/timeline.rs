@@ -56,16 +56,20 @@ pub(crate) fn timeline(
             .flex_1()
             .min_h(px(0.0))
             .size_full()
+            .face(Type::Body)
             .flex()
             .flex_col()
             .children(bar)
             .child(div().flex_1().min_h(px(0.0)).child(list))
             .into_any_element();
     }
+    // Every row draws its words in the kit's faces with Pretendard behind
+    // them, whether or not the row names its own type.
     div()
         .flex_1()
         .min_h(px(0.0))
         .size_full()
+        .face(Type::Body)
         .relative()
         .child(list)
         .children(super::outline::rail(shell, tokens, window, cx))
@@ -192,6 +196,7 @@ fn run_header(
         .pb(px(6.0))
         .border_b_1()
         .border_color(paint.look.border)
+        .face(Type::Meta)
         .text_size(px(WORK_SIZE))
         .line_height(px(WORK_LINE))
         .text_color(paint.look.secondary)

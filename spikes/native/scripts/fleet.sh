@@ -120,7 +120,30 @@ check_shapes() { # node id answered|asking
   [ "$startup" -eq 10 ] || problems+=("the start-up log's ten lines before the prompt (got: $startup)")
   # The entries: the thought, the message's table (header, rule, four
   # rows), three tool calls, the permission with four answers.
-  grep -q '^(thinking) The failure is in the timeline' <<<"$log" || problems+=("the thought")
+  # The thought, streamed a few characters at a time (one syllable
+  # alone among them) and put back together from `vessel log`, which
+  # prints each chunk as a `(thinking) …` line and a chunk's own line
+  # breaks as lines without it, up to the message's heading: many chunks,
+  # its Korean sentence and English whole, and no Hangul letter loose from
+  # its syllable (the owner's "생가ㄱ").
+  local thought
+  thought=$(python3 -c '
+import sys
+chunks, text, inside = 0, "", False
+for line in sys.stdin.read().split("\n"):
+    if line.startswith("(thinking) "):
+        inside, chunks, text = True, chunks + 1, text + line[len("(thinking) "):]
+    elif inside and line.startswith("## "):
+        break
+    elif inside:
+        text += "\n" + line
+loose = any("\u3131" <= c <= "\u318e" or "\u1100" <= c <= "\u11ff" for c in text)
+whole = "생각을 정리하면, 묶음의 끝이 메시지 안에 걸릴 때 두 번째 조각이 빠집니다." in text
+english = "The failure is in the timeline" in text
+print("ok" if chunks > 100 and whole and english and not loose else
+      f"chunks={chunks} korean={whole} english={english} loose={loose}")
+' <<<"$log")
+  [ "$thought" = ok ] || problems+=("the thought streamed whole ($thought)")
   [ "$(grep -c '^| ' <<<"$log")" -eq 6 ] || problems+=("the table's six lines")
   [ "$(grep -c '^\[tool\] ' <<<"$log")" -eq 3 ] || problems+=("three tool calls")
   grep -q '^  4) Never allow commands' <<<"$log" || problems+=("the permission's four answers")

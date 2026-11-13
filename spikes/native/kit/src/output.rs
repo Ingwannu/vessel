@@ -47,8 +47,9 @@ use gpui_component::scroll::ScrollableMask;
 
 use crate::chat_markdown::Look;
 use crate::copy::copy_button;
-use crate::fonts::MONO;
+use crate::fonts::Type;
 use crate::theme::Tokens;
+use crate::widgets::TypeExt as _;
 
 /// The box's height by its number of lines, up to the cap (GOAT's
 /// `max-h-48`, 192): 20 a line and 8 above and below.
@@ -247,7 +248,7 @@ pub fn lines_box(
         .border_1()
         .border_color(look.edge)
         .bg(look.fill)
-        .font_family(MONO)
+        .face(Type::Mono)
         .text_size(px(SIZE))
         .line_height(px(LINE))
         .text_color(look.text.opacity(0.8))

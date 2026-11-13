@@ -196,6 +196,7 @@ pub(super) fn work_row(
         .min_h(px(WORK_LINE))
         .px(px(4.0))
         .rounded(px(6.0))
+        .face(Type::Meta)
         .text_size(px(WORK_SIZE))
         .line_height(px(WORK_LINE))
         .text_color(paint.look.secondary)
@@ -218,6 +219,7 @@ pub(super) fn work_row(
 fn meta(paint: &Paint<'_>, text: String) -> AnyElement {
     div()
         .px(px(4.0))
+        .face(Type::Meta)
         .text_size(px(WORK_SIZE))
         .line_height(px(WORK_LINE))
         .text_color(paint.look.secondary)
