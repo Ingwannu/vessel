@@ -36,16 +36,19 @@ pub enum Glyph {
     /// An update: an arrow down into a tray (the title bar's update
     /// status at a phone's width).
     Update,
+    /// Three lines: opens the sidebar's sheet at a phone's width.
+    Menu,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 6] = [
+const ALL: [Glyph; 7] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
     Glyph::Restore,
     Glyph::Close,
     Glyph::Update,
+    Glyph::Menu,
 ];
 
 impl Glyph {
@@ -59,6 +62,7 @@ impl Glyph {
             Self::Restore => "kit/restore.svg",
             Self::Close => "kit/close.svg",
             Self::Update => "kit/update.svg",
+            Self::Menu => "kit/menu.svg",
         }
     }
 
@@ -79,6 +83,9 @@ impl Glyph {
             }
             Self::Update => {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M6 1.5v6.5M3.2 5.4L6 8.2l2.8-2.8M1.5 10.5h9" fill="none" stroke="black" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>"#
+            }
+            Self::Menu => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M1.5 3h9M1.5 6h9M1.5 9h9" fill="none" stroke="black" stroke-width="1.2" stroke-linecap="round"/></svg>"#
             }
         }
     }

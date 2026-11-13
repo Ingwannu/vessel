@@ -27,6 +27,7 @@ pub mod breakpoint;
 pub mod chrome;
 pub mod field;
 pub mod fonts;
+pub mod sheet;
 pub mod theme;
 mod widgets;
 
@@ -35,6 +36,7 @@ use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 pub use assets::Assets;
 pub use field::TextField;
 pub use fonts::Type;
+pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown};
 
