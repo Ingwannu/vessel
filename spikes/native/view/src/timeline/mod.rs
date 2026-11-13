@@ -32,6 +32,7 @@
 
 mod agent;
 mod approval;
+mod diff;
 mod entry;
 mod find;
 mod fold;
@@ -43,6 +44,7 @@ mod usage;
 mod window;
 
 pub use approval::{Answers, Settled, allows, answers_of, settled};
+pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
     Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
     prompt_parts,

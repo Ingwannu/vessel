@@ -50,8 +50,9 @@ pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdow
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Context, Div, ElementId, Entity, Hsla, ListAlignment, ListState,
-        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, svg, uniform_list,
+        AnyElement, App, AsyncApp, ClipboardItem, Context, Div, ElementId, Entity, Hsla,
+        ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point, SharedString,
+        Stateful, WeakEntity, Window, div, list, point, px, relative, rgb, rgba, svg, uniform_list,
     };
 }
 

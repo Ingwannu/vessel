@@ -14,11 +14,11 @@
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
-    Styled as _, Window, div, list, px,
+    Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button, markdown};
+use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
-use vessel_app_view::{Asked, Card, Conversation, Speaker, ToolState};
+use vessel_app_view::{Asked, Card, Conversation};
 use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
 
 use super::common::title_bar;
@@ -108,6 +108,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.conversation_opened(&open.machine, open.session);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
@@ -183,6 +184,7 @@ impl Shell {
 
     /// Records of the session followed.
     pub(crate) fn records(&mut self, session: &SessionId, records: &[EventRecord]) {
+        self.conversation_records(session, records);
         let view = &mut self.areas.session;
         if view
             .open
@@ -258,7 +260,7 @@ impl Shell {
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let t = shell.t;
@@ -273,21 +275,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        let entries = list(
-            view.entries.clone(),
-            cx.processor(|this: &mut Shell, index: usize, _window, cx| {
-                entry(this, index, &vessel_app_kit::tokens(cx))
-            }),
-        )
-        .flex_1()
-        .size_full();
-        div()
-            .flex_1()
-            .min_h(px(0.0))
-            .flex()
-            .flex_col()
-            .child(entries)
-            .into_any_element()
+        super::conversation::timeline(shell, tokens, cx)
     } else {
         div()
             .flex_1()
@@ -302,10 +290,13 @@ pub(crate) fn render(
         .size_full()
         .flex()
         .flex_col()
-        .child(title_bar(
+        .child(super::conversation::bar(
+            shell,
             t.title(&open.title).to_owned(),
-            Some(detail),
+            detail,
             tokens,
+            window,
+            cx,
         ))
         .child(body)
         .children(
@@ -329,6 +320,7 @@ pub(crate) fn render(
                     .child(t.ended),
             )
         })
+        .children(super::conversation::overlays(shell, tokens, window, cx))
 }
 
 /// The first prompt, shown while the session starts.
@@ -474,63 +466,6 @@ fn person(text: &str, tokens: &Tokens) -> Div {
             .text_color(tokens.text_primary)
             .child(text.to_owned()),
     )
-}
-
-fn entry(shell: &Shell, index: usize, tokens: &Tokens) -> AnyElement {
-    let t = shell.t;
-    let Some(entry) = shell.areas.session.conversation.entries().get(index) else {
-        return div().into_any_element();
-    };
-    let row = div().w_full().px(px(24.0)).py(px(6.0));
-    match entry.speaker {
-        Speaker::Person => person(&entry.text, tokens).into_any_element(),
-        Speaker::Agent => row
-            .type_(Type::Body)
-            .text_color(tokens.text_primary)
-            .child(markdown(
-                ElementId::Name(format!("entry-{index}").into()),
-                entry.text.clone(),
-            ))
-            .into_any_element(),
-        Speaker::Thought => row
-            .type_(Type::Meta)
-            .text_color(tokens.text_tertiary)
-            .child(entry.text.clone())
-            .into_any_element(),
-        Speaker::Tool => {
-            let state = entry.tool.unwrap_or(ToolState::Pending);
-            let color = match state {
-                ToolState::Pending | ToolState::Running => tokens.st_building,
-                ToolState::Done => tokens.st_ready,
-                ToolState::Failed => tokens.danger,
-            };
-            row.child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(8.0))
-                    .items_center()
-                    .child(
-                        div()
-                            .type_(Type::Meta)
-                            .text_color(color)
-                            .child(t.tool_state(state)),
-                    )
-                    .child(
-                        div()
-                            .type_(Type::Meta)
-                            .text_color(tokens.text_secondary)
-                            .child(entry.text.clone()),
-                    ),
-            )
-            .into_any_element()
-        }
-        Speaker::Notice => row
-            .type_(Type::Meta)
-            .text_color(tokens.text_tertiary)
-            .children(entry.notice.as_ref().map(|notice| t.notice(notice)))
-            .into_any_element(),
-    }
 }
 
 use vessel_app_kit::ui::FluentBuilder as _;
