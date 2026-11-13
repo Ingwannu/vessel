@@ -111,7 +111,9 @@ pub(crate) fn card(
         .on_click(cx.listener(move |shell, _event, window, cx| {
             shell.open_session(open.clone(), window, cx);
         }))
-        .child(head)
+        // In the archive's grid a card is as tall as its row, its foot
+        // at the bottom.
+        .child(head.when(place.archive, Styled::flex_1))
         .child(foot)
         .children(error)
         .into_any_element()
@@ -287,6 +289,7 @@ fn title_row(
                 .type_(Type::Card)
                 .text_color(neutral.foreground)
                 .line_clamp(2)
+                .text_ellipsis()
                 .child(shell.t.title(&card.title).to_owned()),
         )
         .when(marks, |row| {

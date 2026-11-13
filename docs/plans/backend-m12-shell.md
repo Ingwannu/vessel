@@ -90,6 +90,92 @@ session ids that start with them.
   takes track E's `Section` and the kit's `SchemeChoice` without a second
   enum of either.
 
+## 2. The board's screen
+
+`app/src/areas/board/` (`mod.rs` the area, the scope, the lanes, the
+archive's bar and the empty state; `card.rs` a card; `acts.rs` what a
+card asks of its node and the answers), `app/src/areas/archive.rs` (the
+archive's dialog), `app/src/areas/toasts.rs` (the shell's toasts), on
+`view::board` (`CardActions`, `Card::actions`, `Fleet::put_session`,
+`drop_session`, `protocol_of`) and `view::toasts` (the stack, four
+seconds each). The kit gains `toast.rs` (a toast and the stack, under
+the title bar), `spinner.rs` and twelve glyphs (plus, terminal, message,
+archive, branch, trash, pin, reopen, board, keyboard, bell, spinner).
+
+What is drawn, as the page's (`board-page.tsx`, `lane.tsx`,
+`session-card.tsx`, `card-actions.tsx`, `archive.tsx`,
+`use-mark-actions.tsx`):
+
+- The machine scope (All machines, then each machine) when the book has
+  more than one; a scope whose machine left the book is All again.
+- Four lanes in one surface divided by hairlines, at least 256 points
+  each, scrolling sideways when narrower (vertical wheel stays vertical);
+  each lane's head (dot, name in the lane's colour, count) and its own
+  scroll. Under 768 points (a phone) the lanes stack and the page
+  scrolls as one, every card's actions shown.
+- A card: the origin line (another device, or the agent that started it
+  with its parent's short id to open it), the agent's letter, the title
+  clamped to two lines, the pin and the unread dot, the folder (or the
+  conversation's glyph), the branch, the short id and who; the foot with
+  a spinner while working, the phrase in its tone and "machine · 6m ago"
+  (the machine left out when scoped) on the one 15-second tick; the
+  failure's line; the needs-you tint and border.
+- Its actions on hover: Kill (live; a confirm), Archive (ended; the
+  conversation's confirm, which says what ends beside it from protocol
+  11); in the archive, Restore (start again when it can, else back to
+  its lane) and Delete (a confirm). Each answer is put on the board (the
+  session's new state, or gone) and said in a toast: "Killed 78e7" and a
+  reload, "Session deleted" and the worktree's line, the node's refusal
+  as an error toast; a refused start again in the page's words.
+- The archive's bar under the lanes (glyph, "Archive", count; quiet at
+  zero) opens the archive: a wide dialog (a sheet on a phone) with the
+  search, three cards a row (one on a phone) in 60% of the window's
+  height, thirty at a time and "Show N more", "No archived sessions" or
+  "No results.".
+- The empty board: the page's title and words and New session, which
+  opens the draft on the scoped machine.
+
+The shell's hooks (the lead's files, one line each): `routes.rs` draws
+Board and Archive with `areas::board::render` and arrives at the archive
+with `areas::archive::arrive`; `shell.rs` gives an act's answer to
+`board_acted` first (it keeps the answers to the acts the board asked,
+by machine, session and kind, and hands any other to the conversation's
+`acted`) and draws `areas::toasts::render` over the content.
+
+### What differs from the page, and why
+
+- The look is Paseo's neutrals (surface1 cards on the surface0 board,
+  `neutral.border` hairlines, 8-point radius as Paseo's popups): neither
+  Paseo nor GOAT has a board, so the page's structure and spacing are
+  kept and its colours are the kit's.
+- The archive is a route (`Route::Archive`, as the sidebar's Archive row)
+  drawn as a dialog over the board, not the page's local state; closing
+  it goes back to Board.
+- The toast stack is the page's behaviour (four seconds, newest last,
+  close button, error tone) at the top centre under the title bar,
+  Paseo's place for it.
+- Stand-ins inside the area: a ghost button (`board::ghost`, for "+ New
+  session", the archive's bar and "Show N more") until the kit has one;
+  no tooltips on the card's icon buttons (the tooltip is the lead's).
+- The "Merged" tone has no token: a local purple (#9333ea light, #c084fc
+  dark, the page's values).
+- The needs-you pulse is not drawn (the tint and border are).
+- GPUI clamps a title to two lines and ends it with "…" when it is cut
+  mid-word; when the cut falls between words it can end without the
+  ellipsis (seen at 390 points). The page's `line-clamp` always shows it.
+
+### Captures (`/tmp/work/m12-shell/shots/`, fake fleet plus the board's shapes)
+
+The fleet (`scripts/fleet.sh`) with, added by a scratch script, a long
+English title and a long Korean one with branches, a terminal session,
+five more sessions and two killed ones. `board-dark-en`,
+`board-hover-dark-en` (the action), `board-confirm-dark-en` (archive's
+confirm), `board-archived-dark-en` (the count to 1), `archive-dark-en`,
+`kill-confirm-dark-en`, `kill-toast-dark-en` (the card moved to Exited),
+`archive-hover-dark-en`, `delete-confirm-dark-en` (over the archive),
+`delete-toast-dark-en`, `board-light-ko`, `phone-board-dark-en`,
+`phone-board-light-ko`, `phone-archive-dark-en` (the sheet).
+
 ## Run log
 
 - Merged `backend/m12-spike` at edd22cd (fast-forward).
@@ -107,13 +193,22 @@ session ids that start with them.
 - Slice 3 (the sidebar's view and the shortcut keys as the preferences';
   a machine's protocol): fmt clean; clippy clean; `cargo test`: 3, 5, 10,
   200, 72, 0, 0, 0 passed, none failed.
+- Merged `backend/m12-spike` at 2c8dcef (a94daff), clean.
+- Slice 4 (the board's screen, toasts; 057a672): fmt clean; clippy clean
+  (a long function split, a redundant closure, a float sum through a
+  const); `cargo test`: 3, 7, 10, 205, 72, 0, 0, 0 passed, none failed.
+  A fake fleet with the board's shapes: lanes, hover actions, archive,
+  kill, delete and their toasts tried by clicks on an Xvfb, desktop and
+  phone, dark and light, English and Korean.
+- The title's ellipsis and the archive card's foot at the bottom, after
+  the captures: same gate.
 
 ## Notes for later slices
 
 - `notify-rust` 4.19 is already in the dependency tree (through the pinned
   GPUI snapshot): the operating system's notifications may need no new
   crate; its licence is to be checked against ADR 0014.
-- Kit stand-ins: none yet.
+- Kit stand-ins: the board's ghost button (`board::ghost`).
 - The seam with track E (settings): E writes `view/src/settings.rs`
   (`Section`), `view/src/prefs/` (the preferences) and `kit/settings.rs`
   (the rows). The sidebar's view and the shortcuts are E's types now (no
