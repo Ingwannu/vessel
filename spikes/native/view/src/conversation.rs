@@ -1,0 +1,248 @@
+//! A structured session's conversation, folded from its records as they
+//! arrive: what a person reads, in order.
+//!
+//! [Decision Log]
+//! - Purpose: the session screen shows the conversation growing; the page
+//!   folds records in TypeScript (`web/src/data/conversation.ts`), and the
+//!   app needs the same fold in Rust, once, for every surface.
+//! - Constraint: records arrive one at a time and the fold must cost
+//!   little per record (a 20,000-entry conversation is the page's bench).
+//! - Alternatives: rebuilding the entry list from every record each time
+//!   (quadratic); keeping raw records and folding while drawing (the
+//!   screen would then hold protocol types).
+//! - Choice: an append-mostly list of entries plus an index from a tool
+//!   call's id to its entry, so a chunk extends the last entry and an
+//!   update finds its call without a scan.
+//! - Cost: only what the first build shows is folded (messages, thoughts,
+//!   tool calls by title and state, turn ends, permissions as notices);
+//!   plans, questions, attachments and a tool call's content wait for the
+//!   real port of the page's reducer, with its tests' cases.
+
+use std::collections::HashMap;
+
+use vessel_proto::{
+    AgentEvent, ContentBlock, EventRecord, EventSeq, SessionEvent, SessionStatus, ToolCallId,
+    ToolCallStatus,
+};
+
+/// Who an entry is from, which decides how it is drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Speaker {
+    /// The person (a prompt).
+    Person,
+    /// The agent's reply.
+    Agent,
+    /// The agent's reasoning.
+    Thought,
+    /// A tool call.
+    Tool,
+    /// Something that happened (a turn ended, the process stopped).
+    Notice,
+}
+
+/// A tool call's state, as its entry shows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToolState {
+    /// Announced, not started.
+    Pending,
+    /// Running.
+    Running,
+    /// Finished.
+    Done,
+    /// Failed.
+    Failed,
+}
+
+impl ToolState {
+    /// The word drawn beside its title.
+    #[must_use]
+    pub const fn word(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Running => "running",
+            Self::Done => "done",
+            Self::Failed => "failed",
+        }
+    }
+
+    const fn from_status(status: ToolCallStatus) -> Self {
+        match status {
+            ToolCallStatus::Pending => Self::Pending,
+            ToolCallStatus::InProgress => Self::Running,
+            ToolCallStatus::Completed => Self::Done,
+            ToolCallStatus::Failed => Self::Failed,
+        }
+    }
+}
+
+/// One entry of the conversation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Entry {
+    /// Who it is from.
+    pub speaker: Speaker,
+    /// Its text (a tool call's title).
+    pub text: String,
+    /// A tool call's state; `None` for every other entry.
+    pub tool: Option<ToolState>,
+}
+
+/// The conversation so far.
+#[derive(Debug)]
+pub struct Conversation {
+    entries: Vec<Entry>,
+    tools: HashMap<ToolCallId, usize>,
+    next: EventSeq,
+    turn_running: bool,
+}
+
+impl Default for Conversation {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            tools: HashMap::new(),
+            next: EventSeq::new(0),
+            turn_running: false,
+        }
+    }
+}
+
+impl Conversation {
+    /// The entries, oldest first.
+    #[must_use]
+    pub fn entries(&self) -> &[Entry] {
+        &self.entries
+    }
+
+    /// Where the log continues: the sequence number of the next record.
+    #[must_use]
+    pub const fn next_seq(&self) -> EventSeq {
+        self.next
+    }
+
+    /// Whether a turn is running (the composer then queues).
+    #[must_use]
+    pub const fn turn_running(&self) -> bool {
+        self.turn_running
+    }
+
+    /// Fold one record in. Records already folded (a resumed stream
+    /// repeats none, but a reload might) are ignored by sequence number.
+    pub fn apply(&mut self, record: &EventRecord) {
+        if record.seq < self.next {
+            return;
+        }
+        // `None` only once u64 is spent: the log is then full and nothing
+        // follows, so stopping here loses nothing.
+        let Some(next) = record.seq.next() else {
+            return;
+        };
+        self.next = next;
+        match &record.event {
+            SessionEvent::Agent { event } => self.agent(event),
+            SessionEvent::Status { status } => self.status(status),
+            SessionEvent::Terminal(_)
+            | SessionEvent::ProfileChanged { .. }
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::QueueChanged { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. } => {}
+        }
+    }
+
+    fn agent(&mut self, event: &AgentEvent) {
+        match event {
+            AgentEvent::TurnStarted { content } | AgentEvent::Steered { content } => {
+                self.turn_running = true;
+                self.push(Speaker::Person, text_of(content));
+            }
+            AgentEvent::UserMessageChunk { content } => self.extend(Speaker::Person, content),
+            AgentEvent::MessageChunk { content } => self.extend(Speaker::Agent, content),
+            AgentEvent::ThoughtChunk { content } => self.extend(Speaker::Thought, content),
+            AgentEvent::ToolCall(call) => {
+                let index = self.entries.len();
+                self.entries.push(Entry {
+                    speaker: Speaker::Tool,
+                    text: call.title.clone(),
+                    tool: Some(ToolState::from_status(call.status)),
+                });
+                let _earlier = self.tools.insert(call.id.clone(), index);
+            }
+            AgentEvent::ToolCallUpdate(update) => {
+                if let Some(entry) = self
+                    .tools
+                    .get(&update.id)
+                    .and_then(|index| self.entries.get_mut(*index))
+                {
+                    if let Some(title) = &update.title {
+                        entry.text.clone_from(title);
+                    }
+                    if let Some(status) = update.status {
+                        entry.tool = Some(ToolState::from_status(status));
+                    }
+                }
+            }
+            AgentEvent::PermissionRequested(_) => {
+                self.push(Speaker::Notice, "The agent asks for permission".to_owned());
+            }
+            AgentEvent::TurnEnded { .. } => {
+                self.turn_running = false;
+            }
+            AgentEvent::TurnFailed { message } => {
+                self.turn_running = false;
+                self.push(Speaker::Notice, format!("The turn failed: {message}"));
+            }
+            AgentEvent::Ready { .. }
+            | AgentEvent::Plan { .. }
+            | AgentEvent::PermissionResolved { .. }
+            | AgentEvent::HarnessLog { .. }
+            | AgentEvent::QuestionAsked(_)
+            | AgentEvent::QuestionResolved { .. } => {}
+        }
+    }
+
+    fn status(&mut self, status: &SessionStatus) {
+        let notice = match status {
+            SessionStatus::Starting | SessionStatus::Running => return,
+            SessionStatus::Exited { .. } => "The session ended".to_owned(),
+            SessionStatus::Failed { message } => format!("The session failed: {message}"),
+            SessionStatus::Interrupted => "The session was interrupted".to_owned(),
+        };
+        self.turn_running = false;
+        self.push(Speaker::Notice, notice);
+    }
+
+    fn push(&mut self, speaker: Speaker, text: String) {
+        self.entries.push(Entry {
+            speaker,
+            text,
+            tool: None,
+        });
+    }
+
+    /// A chunk continues the last entry when it is the same speaker's.
+    fn extend(&mut self, speaker: Speaker, content: &ContentBlock) {
+        let chunk = text_of(std::slice::from_ref(content));
+        match self.entries.last_mut() {
+            Some(last) if last.speaker == speaker => last.text.push_str(&chunk),
+            Some(_) | None => self.push(speaker, chunk),
+        }
+    }
+}
+
+/// The text of a prompt or a chunk; a link by its name, anything else by
+/// a placeholder (attachments are not drawn yet).
+fn text_of(content: &[ContentBlock]) -> String {
+    let mut text = String::new();
+    for block in content {
+        match block {
+            ContentBlock::Text { text: part } => text.push_str(part),
+            ContentBlock::ResourceLink { name, .. } => text.push_str(name),
+            ContentBlock::Opaque { .. } | ContentBlock::Attachment { .. } => {
+                text.push_str("[attachment]");
+            }
+        }
+    }
+    text
+}

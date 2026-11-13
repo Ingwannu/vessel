@@ -1,0 +1,13 @@
+# Per machine: where this workspace builds (the main workspace's own is
+# excluded the same way, outside the repository).
+/.cargo/config.toml
+# Fonts converted from the page's packages by scripts/fonts.sh: generated,
+# and large; the page's own licences cover them (web/public/licenses).
+/assets/fonts/
+# The browser build's output (scripts/web.sh).
+/web/dist/
+# The Android project's build output and the native libraries copied in.
+/android/app/build/
+/android/app/src/main/jniLibs/
+/android/.gradle/
+/android/local.properties
