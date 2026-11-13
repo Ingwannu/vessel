@@ -10,6 +10,7 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
+pub mod agents;
 mod base64_bytes;
 mod board;
 pub mod conversation;
@@ -50,6 +51,7 @@ pub use agent::{
     PermissionRequest, PlanEntry, PlanPriority, PlanStatus, StopReason, ToolCall, ToolCallContent,
     ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
 };
+pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
 pub use conversation::{
     AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,
@@ -74,9 +76,9 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, OptionId, OptionValueId,
-    PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId, RequestId, SessionId,
-    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorktreeId,
+    AttachmentId, DeviceId, EventSeq, HarnessSessionId, InstallId, ModelId, NodeId, OptionId,
+    OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
+    RequestId, SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

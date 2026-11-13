@@ -8,12 +8,13 @@ use std::sync::Arc;
 use vessel_proc::CommandSpec;
 use vessel_proto::{McpServerName, ResolvedMcpServers, SessionMode, SessionSpec};
 
+use crate::added::AddedAgent;
 use crate::env::HarnessEnv;
 use crate::error::HarnessError;
 use crate::harnesses::{Structured, descriptor};
 use crate::lookup::Lookup;
 use crate::mcp::{McpError, McpFile, TerminalMcp};
-use crate::profile::{Profile, same_variable};
+use crate::profile::{Base, Profile, same_variable};
 use crate::routing::{ModelProxy, Routed};
 
 /// What [`launch`] decided: the command, and what it needs around it.
@@ -88,24 +89,11 @@ pub fn launch(
     mcp: &ResolvedMcpServers,
     mcp_dir: Option<&Path>,
 ) -> Result<Launch, HarnessError> {
-    let harness = spec.harness;
-    if profile.harness() != harness {
-        return Err(HarnessError::ProfileMismatch {
-            profile: profile.name().clone(),
-            profile_harness: profile.harness(),
-            harness,
-        });
-    }
-    let requested = match &spec.profile {
-        Some(name) => name == profile.name(),
-        None => profile.is_default(),
+    checked(spec, profile)?;
+    let harness = match profile.base() {
+        Base::Known(kind) => *kind,
+        Base::Added(agent) => return added(lookup, env, spec, profile, agent, proxy),
     };
-    if !requested {
-        return Err(HarnessError::ProfileNotRequested {
-            requested: spec.profile.clone(),
-            given: profile.name().clone(),
-        });
-    }
     let descriptor = descriptor(harness);
     let routed = match (profile.model(), proxy, &descriptor.model_proxy) {
         (None, None, _) => Routed::default(),
@@ -194,6 +182,70 @@ pub fn launch(
         mcp_file,
         unattached,
     })
+}
+
+/// The launch of an agent added on the node (ADR 0032): structured only,
+/// on no route, its command from an empty environment
+/// ([`crate::added::command`], reading the node's own environment for what
+/// it passes on), then its profile's changes. Its MCP servers go over ACP,
+/// as for the four.
+fn added(
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    spec: &SessionSpec,
+    profile: &Profile,
+    agent: &AddedAgent,
+    proxy: Option<&ModelProxy>,
+) -> Result<Launch, HarnessError> {
+    if matches!(spec.mode, SessionMode::Terminal { .. }) {
+        return Err(HarnessError::NoTerminal {
+            name: agent.name().clone(),
+        });
+    }
+    // A profile of an added agent has no route (refused when it is read);
+    // a proxy given anyway is the caller's mistake.
+    if profile.model().is_some() || proxy.is_some() {
+        return Err(HarnessError::Unrouted {
+            profile: profile.name().clone(),
+        });
+    }
+    let command = crate::added::command(agent, lookup, env, profile.secret_values(), |name| {
+        std::env::var_os(name)
+    })?;
+    let command = with_profile(command, profile);
+    let command = match working_dir(spec, env)? {
+        Some(cwd) => command.cwd(cwd),
+        None => command,
+    };
+    Ok(Launch {
+        command,
+        mcp_file: None,
+        unattached: Vec::new(),
+    })
+}
+
+/// Check that `profile` is the one `spec` asks for: of its harness, and
+/// the profile it names (or the harness's default).
+fn checked(spec: &SessionSpec, profile: &Profile) -> Result<(), HarnessError> {
+    let profile_harness = profile.harness();
+    if spec.harness != profile_harness {
+        return Err(HarnessError::ProfileMismatch {
+            profile: profile.name().clone(),
+            profile_harness,
+            harness: spec.harness.clone(),
+        });
+    }
+    let requested = match &spec.profile {
+        Some(name) => name == profile.name(),
+        None => profile.is_default(),
+    };
+    if !requested {
+        return Err(HarnessError::ProfileNotRequested {
+            requested: spec.profile.clone(),
+            given: profile.name().clone(),
+        });
+    }
+    Ok(())
 }
 
 /// `command` with `profile`'s environment changes: removals first, then

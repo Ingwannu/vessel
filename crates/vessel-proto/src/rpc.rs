@@ -354,6 +354,20 @@ rpc_methods! {
     RestartScript / restart_script / "script.restart" [Operate, 11]: crate::scripts::RestartScript => crate::scripts::ScriptRunOutcome;
     /// The ports the node's sessions and terminals listen on (protocol 11).
     ListPorts / list_ports / "port.list" [Read, 11]: crate::ports::ListPorts => crate::ports::PortList;
+    /// The agents the node can run (protocol 11, ADR 0032).
+    ListAgents / list_agents / "agent.list" [Read, 11]: crate::agents::ListAgents => Vec<crate::agents::AgentInfo>;
+    /// Add an agent by its command (protocol 11).
+    AddAgent / add_agent / "agent.add" [Admin, 11]: crate::agents::AddAgent => crate::agents::AgentInfo;
+    /// Forget an added agent (protocol 11).
+    RemoveAgent / remove_agent / "agent.remove" [Admin, 11]: crate::agents::RemoveAgent => Ack;
+    /// Whether agents are installed and signed in (protocol 11).
+    GetAgentStatus / agent_status / "agent.status" [Read, 11]: crate::agents::GetAgentStatus => Vec<crate::agents::AgentReadiness>;
+    /// The ACP registry, as the node's copy (protocol 11).
+    GetCatalogue / agent_catalogue / "agent.catalogue" [Read, 11]: crate::agents::GetCatalogue => crate::agents::Catalogue;
+    /// Run one of the four's documented installers (protocol 11).
+    InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
+    /// A page of an install's output (protocol 11).
+    ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
 }
 
 /// Result of a call.

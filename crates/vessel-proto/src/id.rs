@@ -162,6 +162,12 @@ uuid_id! {
 }
 
 uuid_id! {
+    /// An install a node started (`agent.install`, protocol 11, ADR 0032):
+    /// minted by the node, kept until the next install or a restart.
+    InstallId
+}
+
+uuid_id! {
     /// A prompt waiting in a session's queue (protocol 10), minted by the
     /// node when it is queued.
     QueueEntryId

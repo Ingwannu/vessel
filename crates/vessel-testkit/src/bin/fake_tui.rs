@@ -3,10 +3,12 @@
 //! Behaviour, in order:
 //!
 //! 1. `fake-tui --version` prints `fake-tui <version>` and exits 0, like the
-//!    version probe expects of a real harness. `fake-tui auth status` and
-//!    `fake-tui login status` (the login checks of `claude` and `codex`)
-//!    print `logged in` and exit 0, or `not logged in` and exit 1 when
-//!    `FAKE_TUI_LOGGED_OUT` is set (a profile's environment can set it).
+//!    version probe expects of a real harness. `fake-tui auth status` (the
+//!    login check of `claude`) prints JSON as Claude Code does,
+//!    `{"loggedIn":true}` and exit 0, or `{"loggedIn":false}` and exit 1
+//!    when `FAKE_TUI_LOGGED_OUT` is set (a profile's environment can set
+//!    it); `fake-tui login status` (`codex`'s) prints `Logged in using a
+//!    fake` or `Not logged in`, in Codex's words.
 //! 2. Otherwise it starts a grandchild (`fake-tui --sleeper`) that inherits
 //!    stdout and sleeps forever, and prints `grandchild <pid>`. The
 //!    grandchild stays in the process group, so it dies only if the group is
@@ -51,12 +53,17 @@ fn main() -> ExitCode {
         }
         // The guard consumes one argument; `run` reads none, so a failed
         // match changes nothing.
-        Some("auth" | "login") if args.next().as_deref() == Some("status") => {
-            if std::env::var_os("FAKE_TUI_LOGGED_OUT").is_some() {
-                say("not logged in");
+        Some(command @ ("auth" | "login")) if args.next().as_deref() == Some("status") => {
+            let out = std::env::var_os("FAKE_TUI_LOGGED_OUT").is_some();
+            say(match (command, out) {
+                ("auth", false) => r#"{"loggedIn":true,"authMethod":"fake"}"#,
+                ("auth", true) => r#"{"loggedIn":false}"#,
+                (_, false) => "Logged in using a fake",
+                (_, true) => "Not logged in",
+            });
+            if out {
                 ExitCode::FAILURE
             } else {
-                say("logged in");
                 ExitCode::SUCCESS
             }
         }

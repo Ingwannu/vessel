@@ -12,7 +12,11 @@ use super::*;
 struct OneServer;
 
 impl McpSource for OneServer {
-    fn servers(&self, spec: &SessionSpec) -> McpServers {
+    fn secret(&self, _name: &SecretName) -> Option<ResolvedValue> {
+        None
+    }
+
+    fn servers(&self, spec: &SessionSpec, _only: Option<&[McpServerName]>) -> McpServers {
         let mut servers = ResolvedMcpServers::new();
         let _none = servers.insert(
             "docs".parse().unwrap(),

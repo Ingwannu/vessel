@@ -37,6 +37,7 @@ impl NodeService {
         }
         let claim = self.sessions.claim(id)?;
         let ended = self.sessions.ended(id).await?;
+        self.refuse_installing(&ended.info.spec.harness)?;
         // Not into a worktree a removal (or setup) holds: the removal may
         // take the folder from under the agent. Held, once checked, until
         // the session is live (ADR 0030), so no removal starts meanwhile.

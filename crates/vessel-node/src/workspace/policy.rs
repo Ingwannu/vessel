@@ -159,6 +159,15 @@ const fn refused(method: Method) -> bool {
         | Method::RevokeDevice
         | Method::ListProfiles
         | Method::ReloadProfiles
+        // `agent.add` and `agent.remove` refuse every agent themselves
+        // (`crate::added::person`); `agent.list` reads.
+        | Method::ListAgents
+        | Method::AddAgent
+        | Method::RemoveAgent
+        | Method::GetAgentStatus
+        | Method::GetCatalogue
+        | Method::InstallAgent
+        | Method::ReadInstall
         | Method::MoveProfile
         | Method::GetManifest
         | Method::ReadBlob

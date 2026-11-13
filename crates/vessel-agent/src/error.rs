@@ -7,6 +7,7 @@ use vessel_proto::{
     AttachmentId, AttachmentKind, OptionId, PermissionId, PermissionOptionId, QuestionId,
 };
 
+use crate::introduction::Refused;
 use crate::options::OptionError;
 
 /// The agent process could not be started.
@@ -119,6 +120,8 @@ pub enum Disconnect {
     Handshake {
         /// What went wrong, for people.
         message: String,
+        /// Why, when Vessel can tell (protocol 11's `agent.status`).
+        refused: Option<Box<Refused>>,
     },
     /// The connection failed (a protocol or transport error).
     Protocol {
@@ -131,7 +134,7 @@ impl fmt::Display for Disconnect {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Closed => f.write_str("the agent closed its connection"),
-            Self::Handshake { message } => write!(f, "the ACP handshake failed: {message}"),
+            Self::Handshake { message, .. } => write!(f, "the ACP handshake failed: {message}"),
             Self::Protocol { message } => write!(f, "the ACP connection failed: {message}"),
         }
     }

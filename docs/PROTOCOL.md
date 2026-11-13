@@ -223,6 +223,131 @@ plan's "Track C: contract" (with its review) say why each choice.
 - The bridge: `follow_terminal { stream, node, terminal, from }`, whose
   records and states come as a followed session's do.
 
+### Agents beyond the four (track G, ADR 0032)
+
+- `HarnessRef`: an agent a node can run, one of the four as the string it
+  always was (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`) or
+  an agent added on that node by its command, `{"added": "<name>"}`.
+  `AgentName` is the profile name rule, never a name of the four in any
+  case (`claude`, `opencode`, `open-code` included). It replaces
+  `HarnessKind` in `SessionSpec.harness`, `Harness.kind`,
+  `ProfileInfo.harness`, `ListProfiles.harness` and
+  `GetHarnessOptions.harness`.
+- `Harness.terminal?`: `{ state: "available" }` (left out) or
+  `{ state: "unavailable", reason }`; an added agent has no terminal.
+- A client of protocol 2 to 10 is never handed an added agent:
+  `harness.list`, `profile.list`, `profile.reload` and `session.list`
+  leave them out; a reply about one (`session.get`, `session.create`,
+  `session.move_profile`, `session.rename`, `session.resume`,
+  `session.mark`, `session.subscribe`, `session.import`) is replaced by
+  `unsupported`, inside the fleet's envelope too; calls acting on one,
+  and `session.subscribe`, are refused before they run. A call naming an
+  added agent needs 11 (`Call::since`).
+- `agent.list` (`read`) → `AgentInfo[]`: the four first, then the agents
+  added on the node by name. `AgentInfo { agent: HarnessRef, detail }`,
+  `detail` tagged by `kind`:
+  - `known { installs: InstallOffer[], sign_in: SignInHelp }`: the
+    vendor's install commands (`part` `harness` or `adapter`) and how a
+    person signs in (`command?`, `home?`, the variable a profile sets for
+    another account, `methods`);
+  - `added { added: AddedAgent }`: `label?`, `program` (`AgentProgram`, a
+    name on the search path or an absolute path), `args`, `env` (the
+    names it sets, never a value), `secrets` (`{ variable, secret }`, the
+    variable and the node secret it is filled from), `inherit`, `mcp`
+    (the fleet servers it gets), `source` (`{ from: "command" }`).
+- `agent.add` (`admin`, never an agent principal: `forbidden`) `{ name,
+  agent: { from: "command", definition }, replace? }` → `AgentInfo`.
+  `definition`: `AgentDefinition { label?, program, args, env:
+  { name, value: string | { secret } }[], inherit, mcp }`. Names are one
+  space with profiles, compared ignoring case: a taken one is `conflict`
+  unless `replace`. The node writes `agents.toml` (0600) and the change
+  is in effect for the next session; one breaking the file's rules is
+  `invalid_request`, one `profiles.toml` would no longer read with is
+  `conflict`. Never forwarded across the fleet.
+- `agent.remove` (`admin`, as `agent.add`) `{ name }` → `Ack`;
+  `not_found` for a name not defined (exact case); `conflict` while a
+  profile extends it. Running sessions of the agent go on.
+- An added agent's session is structured only (`session.create` with a
+  terminal mode: `unsupported`), cannot move profiles or be exported or
+  imported (`unsupported`), and starts in an environment of its own: the
+  search path it was found on, the user's home, the system's variables
+  listed in `vessel_harness::PASSED_ON` (a proxy only without a user and
+  password in it), `inherit`, then `env`, a secret filled in from the
+  node's `secrets.toml`. A secret the node lacks makes `session.create`,
+  `session.resume` and `harness.options` a `conflict` naming it. It gets
+  the `vessel` MCP server and, of the fleet's, only those its `mcp`
+  names. `harness.list` lists one whose program is found, with no
+  version (an unknown program is never run to ask).
+- `agent.status` (`read`; `refresh` refused to an agent and to a call
+  delivered from another node: `forbidden`) `{ agent?, profile?,
+  refresh? }` → `AgentReadiness[]`, each `{ agent, profile, installed,
+  signed_in, checked_at }`. Without `agent`, every agent's default
+  profile, from what the node knows (`refresh` and `profile` then are
+  `invalid_request`); with it, its `profile` (its default when absent;
+  `not_found` for an agent or profile the node lacks, `invalid_request`
+  for a profile of another agent).
+  - `installed`, tagged by `state`: `found { path, version?, structured }`
+    (an added agent's version is its handshake's `agentInfo.version`; it
+    is never run with `--version`), `missing { program }`, `too_old` /
+    `too_new { path, version?, speaks, needs }` (its handshake's ACP
+    version), `unknown { reason }`.
+  - `signed_in`, tagged by `state`: `yes`, `no { help: SignInHelp }`
+    (`methods` are the `agent` sign-in methods its handshake listed),
+    `not_required` (a routed profile), `unknown { reason }`, `reason`
+    tagged by `reason`: `not_installed`, `not_checked`, `in_use`,
+    `not_said`, `no_home`, `unread`, `timed_out { after }`, `failed {
+    step }` (`spawn`, `initialize`, `session_new`, `exited`).
+  - `refresh` runs, for Claude Code and Codex, the agent's own status
+    command (`claude auth status`, read by its JSON `loggedIn`; `codex
+    login status`, by its words) within 10 s, never beside a running
+    session of that profile (`unknown { in_use }`), its output never
+    logged or sent; for Gemini CLI, OpenCode and added agents, a handshake
+    with no prompt (`harness.options`'s probe and its ten minutes):
+    `auth_required` (-32000) to `session/new` is `no`, a completed one
+    `unknown { not_said }`. A status command's answer is kept five
+    minutes, a handshake's ten; a refresh within ten seconds of the last
+    answers what was kept.
+- `agent.catalogue` (`read`; `refresh` as `agent.status`'s) `{ refresh? }`
+  → `Catalogue { fetched_at?, version?, entries, skipped }`: the node's
+  copy of the ACP registry, empty until a person asks for a fetch. A
+  fetch: https only (plain http only to a loopback address), no redirect,
+  no proxy, 10 s to connect, 30 s in all, 2 MiB; at most 1,000 entries,
+  each bounded, and one not pinned to an exact version is skipped and
+  counted; a failure is `unavailable` and keeps the copy; a refresh
+  within a minute of the last fetch answers the copy. Each
+  `CatalogueEntry { id, name, version, description, website?,
+  repository?, license?, runs }`, `runs` tagged by `kind`: `known {
+  harness }` (one of the four by its npm package), `command { program,
+  args, env, runner_found }` (`npx -y <package>@<version>` or `uvx
+  <package>`, exactly what would be added), `download { archive,
+  sha256? }` (never downloaded), `unavailable`. Not forwarded across the
+  fleet.
+- `agent.install` (`admin`, never an agent principal nor a delivered
+  call: `forbidden`) `{ agent: HarnessKind, part: "harness" | "adapter" }`
+  → `InstallJob { id: InstallId, agent, part, command, started_at }`: the
+  vendor's documented command (the one `agent.list` shows), its program
+  found on the node's search path, run as the node's user in the user's
+  home with the environment an added agent gets plus `npm_config_*`,
+  standard input closed. `invalid_request` for a part the agent does not
+  have, `harness_not_installed` when the installer's program (`npm`) is
+  missing, `conflict` while an install runs or the agent has live
+  sessions. One at a time; 15 minutes, then stopped with its children.
+  While it runs, `session.create`, `session.resume` and `harness.options`
+  for that agent answer `conflict`.
+- `agent.install_output` (`admin`) `{ job, from?, wait? }` →
+  `InstallOutput { from, bytes, next, truncated, state }`, the shape of
+  `worktree.output`: standard output and error as printed, the first 1 MiB
+  kept, 64 KiB a page, `wait` holding the read (30 s at most) until there
+  is more or it ends; `state` tagged by `state`: `running`, `succeeded`,
+  `failed { code? }`, `timed_out`. `not_found` for a job that is not the
+  last one (the node keeps only the last, until it stops). Neither call
+  is forwarded across the fleet.
+- `AgentToAdd::Registry { id, version, mcp }` (`from: "registry"`): the
+  node builds the definition from its own copy (`not_found` when the
+  entry is not there at that version; `invalid_request` when it runs no
+  command here), with the entry's `env` as text and `source: { from:
+  "registry", id, version }`.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

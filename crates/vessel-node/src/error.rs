@@ -4,7 +4,8 @@
 use std::net::SocketAddr;
 
 use vessel_proto::{
-    ErrorCode, EventSeq, HarnessKind, ModelRouteName, ProfileName, SessionId, WireError,
+    AgentName, ErrorCode, EventSeq, HarnessKind, HarnessRef, ModelRouteName, ProfileName,
+    SecretName, SessionId, WireError,
 };
 use vessel_rpc::OutboundError;
 use vessel_session::SessionError;
@@ -230,15 +231,33 @@ pub(crate) enum ServiceError {
     /// `spec.profile` names no profile on this node.
     #[error("this node has no profile `{0}` (see `profile.list`)")]
     UnknownProfile(ProfileName),
+    /// A call names an agent this node has not added (protocol 11, ADR
+    /// 0032).
+    #[error("this node has no agent `{0}` (see `agent.list`)")]
+    UnknownAgent(AgentName),
+    /// An install of this agent is running (`agent.install`, ADR 0032):
+    /// it replaces the program a session would start.
+    #[error("an install of {0} is running on this node; start it once the install ends")]
+    Installing(HarnessKind),
+    /// An added agent names a secret this node has not set (ADR 0032).
+    #[error(
+        "agent `{agent}` needs secret {secret}, which is not set on this node (vessel fleet secret set {secret})"
+    )]
+    AgentSecret {
+        /// The agent.
+        agent: AgentName,
+        /// The secret its environment names.
+        secret: SecretName,
+    },
     /// `spec.profile` names a profile of another harness.
     #[error("profile `{profile}` is for {profile_harness}, not {harness}")]
     ProfileHarness {
         /// The profile.
         profile: ProfileName,
         /// The harness it extends.
-        profile_harness: HarnessKind,
+        profile_harness: HarnessRef,
         /// The session's harness.
-        harness: HarnessKind,
+        harness: HarnessRef,
     },
     /// A session runs under a profile `profiles.toml` no longer defines, so
     /// its files cannot be found to move.
@@ -285,6 +304,10 @@ pub(crate) enum ServiceError {
     /// stay.
     #[error("the profiles in effect stay")]
     Profiles(#[source] ProfilesFileError),
+    /// `agent.add` or `agent.remove` was refused or failed (protocol 11,
+    /// ADR 0032); it says why.
+    #[error(transparent)]
+    Added(crate::added::AddedError),
     /// `profile.reload` found a `models.toml` it cannot use; the routes in
     /// effect stay.
     #[error("the model routes in effect stay")]
@@ -336,11 +359,15 @@ impl ServiceError {
     /// chain of causes as text (none of which contains secrets).
     pub(crate) fn to_wire(&self) -> WireError {
         let code = match self {
-            Self::NotFound(_) => ErrorCode::NotFound,
+            Self::NotFound(_) | Self::UnknownAgent(_) => ErrorCode::NotFound,
             // `Profiles(Parse)`: the call is fine; the node's file is not
             // (and stays unused).
             Self::Ended(_)
-            | Self::Profiles(ProfilesFileError::Parse(_))
+            | Self::Profiles(
+                ProfilesFileError::Parse(_)
+                | ProfilesFileError::ParseAgents(_)
+                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Unsafe { .. }),
+            )
             | Self::ProfileGone(_)
             | Self::HomeUnknown(_)
             | Self::NotLoggedIn(_)
@@ -352,6 +379,8 @@ impl ServiceError {
             | Self::StartingAgain(_)
             | Self::FolderGone { .. }
             | Self::WorktreeBusy(_)
+            | Self::AgentSecret { .. }
+            | Self::Installing(_)
             | Self::Models(_) => ErrorCode::Conflict,
             Self::AgentDepth { .. }
             | Self::AgentLimit { .. }
@@ -371,7 +400,12 @@ impl ServiceError {
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),
-            Self::Store(error) | Self::Profiles(ProfilesFileError::Read(error)) => error.code(),
+            Self::Store(error)
+            | Self::Profiles(
+                ProfilesFileError::Read(error)
+                | ProfilesFileError::ReadAgents(vessel_store::AgentsFileError::Read(error)),
+            ) => error.code(),
+            Self::Added(error) => error.code(),
             Self::Outbound(error) => error.code(),
             Self::Unpersisted(_)
             | Self::Task(_)

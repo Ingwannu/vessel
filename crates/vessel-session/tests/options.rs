@@ -78,7 +78,9 @@ async fn a_given_title_is_kept() {
 /// in the log too, and is what the session carries on.
 #[tokio::test]
 async fn a_session_logs_its_options_and_their_changes() {
-    within(async {
+    // Boxed: with protocol 11's pull requests, terminals and added agents
+    // in a session's state, this test's future passed the lint's size.
+    within(Box::pin(async {
         let fixture = Fixture::new();
         let handle = fixture.start(structured(vec![select("mode", "plan")])).await;
         // Before any report, what the spec chose.
@@ -103,7 +105,7 @@ async fn a_session_logs_its_options_and_their_changes() {
         assert_eq!(error.code(), ErrorCode::InvalidRequest, "not offered");
         handle.kill();
         let _end = handle.ended().await;
-    })
+    }))
     .await;
 }
 

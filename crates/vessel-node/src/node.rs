@@ -525,6 +525,7 @@ async fn core(
         forges,
         terminals,
         ports,
+        catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
     })));
     Ok(Core {
         runtime,

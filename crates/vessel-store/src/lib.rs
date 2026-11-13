@@ -49,6 +49,7 @@
 //! [`EventRecord`]: vessel_proto::EventRecord
 
 mod again;
+mod agents_file;
 mod attachments;
 mod codec;
 mod config;
@@ -70,6 +71,7 @@ mod workspace;
 mod writer;
 
 pub use again::EndedSession;
+pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use config::{ByteCount, Retention, StoreConfig};

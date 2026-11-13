@@ -160,6 +160,9 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::CommandsChanged { commands })
                     .await;
             }
+            // What the agent said of itself is `agent.status`'s, read from
+            // probes; a session has nothing to keep of it.
+            AgentOutput::Introduced(_) => {}
             AgentOutput::Usage(usage) => {
                 self.life
                     .publish(&mut self.agent, SessionEvent::UsageChanged { usage })
@@ -284,6 +287,7 @@ mod tests {
     fn start_failures_say_what_happened() {
         let handshake = Disconnect::Handshake {
             message: "the agent does not offer model `x`".to_owned(),
+            refused: None,
         };
         assert_eq!(
             start_failure(Some(&handshake), Some(0)),

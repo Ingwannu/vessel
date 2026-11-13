@@ -30,8 +30,8 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessKind, OptionChoice, SessionId, SessionInfo, SessionOption,
-    SessionSpec, SessionTitle,
+    EventRecord, EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
+    SessionOption, SessionSpec, SessionTitle,
 };
 use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
@@ -272,6 +272,17 @@ impl Sessions {
         Ok(list)
     }
 
+    /// The agent and profile of every live session (`None`: its agent's
+    /// default): what `agent.status` does not check beside (protocol 11).
+    pub(crate) fn live_profiles(&self) -> Vec<(HarnessRef, Option<ProfileName>)> {
+        self.runtime
+            .list()
+            .into_iter()
+            .filter(|info| info.status.is_live())
+            .map(|info| (info.spec.harness, info.profile))
+            .collect()
+    }
+
     /// The live sessions and the folders they run in (a session without
     /// one runs in the node's home, which no worktree is in): what keeps a
     /// worktree from being removed (protocol 10).
@@ -399,7 +410,7 @@ impl Sessions {
     /// What `harness`'s agent offers (`SessionRuntime::probe`).
     pub(crate) async fn probe(
         &self,
-        harness: HarnessKind,
+        harness: HarnessRef,
         profile: Profile,
         proxy: Option<ModelProxy>,
         dir: PathBuf,

@@ -26,6 +26,7 @@ use vessel_proto::{AgentAbilities, AgentEvent, SessionOption};
 
 use crate::error::{AgentError, Disconnect};
 use crate::handshake::AgentSetup;
+use crate::introduction::Introduction;
 use crate::output::AgentOutput;
 use crate::process::AgentProcess;
 
@@ -82,6 +83,8 @@ pub struct Probed {
     pub options: Vec<SessionOption>,
     /// What it says it can do (protocol 10).
     pub abilities: AgentAbilities,
+    /// What it said of itself in `initialize` (protocol 11).
+    pub introduction: Introduction,
 }
 
 /// How the handshake ended, before the log is attached.
@@ -112,16 +115,19 @@ pub async fn probe(command: &CommandSpec, setup: AgentSetup) -> Result<Probed, P
         AgentProcess::spawn(command, setup).map_err(ProbeError::Spawn)?;
     let mut log: Vec<String> = Vec::new();
     let mut options = None;
+    let mut introduction = Introduction::default();
     // The handshake has its own deadline (the same `limit`); this one only
     // covers an agent whose outputs stay open after a failure.
     let read = async {
         while let Some(output) = outputs.next().await {
             match output {
                 AgentOutput::Options(listed) => options = Some(listed),
+                AgentOutput::Introduced(said) => introduction = *said,
                 AgentOutput::Event(AgentEvent::Ready { abilities, .. }) => {
                     return Ok(Probed {
                         options: options.take().unwrap_or_default(),
                         abilities: abilities.unwrap_or_default(),
+                        introduction: std::mem::take(&mut introduction),
                     });
                 }
                 AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),

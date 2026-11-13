@@ -395,6 +395,12 @@ async fn run_here(
         Call::ListProfiles(request) => {
             Reply::ListProfiles(guard.list_profiles(connection, request).await?)
         }
+        Call::ListAgents(request) => {
+            Reply::ListAgents(guard.list_agents(connection, request).await?)
+        }
+        Call::GetAgentStatus(request) => {
+            Reply::GetAgentStatus(guard.agent_status(connection, request).await?)
+        }
         Call::ExportSession(request) => {
             Reply::ExportSession(guard.export_session(connection, request).await?)
         }
@@ -599,6 +605,11 @@ async fn run_here(
         }
         Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
         Call::StopNode(_)
+        | Call::AddAgent(_)
+        | Call::GetCatalogue(_)
+        | Call::InstallAgent(_)
+        | Call::ReadInstall(_)
+        | Call::RemoveAgent(_)
         | Call::InviteDevice(_)
         | Call::ListDevices(_)
         | Call::RevokeDevice(_)

@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentProcess, AgentSetup, CommandSpec};
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    HarnessKind, ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionSpec,
+    HarnessRef, ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionSpec,
 };
 
 use super::parts::{ActorStart, Begin};
@@ -136,7 +136,7 @@ impl SessionRuntime {
     /// began.
     pub async fn probe(
         &self,
-        harness: HarnessKind,
+        harness: HarnessRef,
         profile: Option<Profile>,
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
@@ -149,8 +149,8 @@ impl SessionRuntime {
             resume: None,
             options: Vec::new(),
         };
+        let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
         let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
-        let profile = profile.unwrap_or_else(|| Profile::default_for(harness));
         if !profile.is_default() {
             spec = spec.with_profile(profile.name().clone());
         }
@@ -228,7 +228,7 @@ impl SessionRuntime {
                 .clone()
                 .or_else(|| std::env::current_dir().ok())
                 .ok_or(SessionError::NoWorkingDirectory)?;
-            let files = vessel_harness::session_files(spec.harness, &from, &cwd, &session)
+            let files = vessel_harness::session_files(&spec.harness, &from, &cwd, &session)
                 .map_err(MoveError::Files)?;
             Ok::<_, SessionError>((command, cwd, files))
         })

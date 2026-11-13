@@ -534,8 +534,8 @@ fn another_harness_profile_is_refused() {
             "{:?}",
             HarnessError::ProfileMismatch {
                 profile: "codex-work".parse().unwrap(),
-                profile_harness: HarnessKind::Codex,
-                harness: HarnessKind::ClaudeCode,
+                profile_harness: HarnessKind::Codex.into(),
+                harness: HarnessKind::ClaudeCode.into(),
             }
         )
     );
@@ -889,7 +889,7 @@ fn routes_are_checked_when_profiles_are_read() {
     assert!(matches!(
         problem("[profiles.g]\nharness = \"gemini\"\nmodel = \"qwen-coder\"\n"),
         vessel_harness::ProfileProblem::NotRoutable {
-            harness: HarnessKind::Gemini
+            harness: vessel_proto::HarnessRef::Known(HarnessKind::Gemini)
         }
     ));
     assert!(matches!(

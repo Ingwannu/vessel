@@ -42,7 +42,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::harness::HarnessKind;
+use crate::agents::HarnessRef;
 use crate::id::{OptionId, OptionValueId, SessionId};
 use crate::name::ProfileName;
 
@@ -231,8 +231,8 @@ pub struct OptionChoice {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetHarnessOptions {
-    /// Which harness.
-    pub harness: HarnessKind,
+    /// Which harness; an added agent needs protocol 11.
+    pub harness: HarnessRef,
     /// Under this profile; `None` is the harness's default. A profile can
     /// change what an agent offers (another account, another provider).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn the_requests_read_as_their_wire_form() {
         let probe = GetHarnessOptions {
-            harness: HarnessKind::ClaudeCode,
+            harness: crate::HarnessKind::ClaudeCode.into(),
             profile: None,
         };
         assert_eq!(

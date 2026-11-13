@@ -23,6 +23,7 @@
 //!   lane.
 
 use super::Reply;
+use crate::agents::{harnesses_for, profiles_for, readable};
 use crate::board::{KanbanColumn, SessionBoard};
 use crate::device::Scope;
 use crate::forward::Forwarded;
@@ -62,15 +63,30 @@ impl Reply {
                 })
             }
             Self::ListSessions(sessions) => {
-                let changed = sessions.iter().any(|session| info(session).is_some());
+                // An added agent's session is left out of a list an older
+                // peer could not decode with it (protocol 11, ADR 0032).
+                let shown = |session: &SessionInfo| readable(session, protocol);
+                let changed = sessions
+                    .iter()
+                    .any(|session| !shown(session) || info(session).is_some());
                 changed.then(|| {
                     Self::ListSessions(
                         sessions
                             .iter()
+                            .filter(|session| shown(session))
                             .map(|session| info(session).unwrap_or_else(|| session.clone()))
                             .collect(),
                     )
                 })
+            }
+            Self::ListHarnesses(harnesses) => {
+                harnesses_for(harnesses, protocol).map(Self::ListHarnesses)
+            }
+            Self::ListProfiles(profiles) => {
+                profiles_for(profiles, protocol).map(Self::ListProfiles)
+            }
+            Self::ReloadProfiles(profiles) => {
+                profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
@@ -98,15 +114,12 @@ impl Reply {
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
             Self::NodeInfo(_)
-            | Self::ListHarnesses(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
             | Self::InviteDevice(_)
             | Self::RevokeDevice(_)
-            | Self::ListProfiles(_)
-            | Self::ReloadProfiles(_)
             | Self::GetManifest(_)
             | Self::ReadBlob(_)
             | Self::WatchFleet(_)
@@ -207,7 +220,15 @@ impl Reply {
             | Self::ListScripts(_)
             | Self::RunScript(_)
             | Self::RestartScript(_)
-            | Self::ListPorts(_) => None,
+            | Self::ListPorts(_)
+            // Protocol 11's: asked only by peers that read them.
+            | Self::ListAgents(_)
+            | Self::AddAgent(_)
+            | Self::RemoveAgent(_)
+            | Self::GetAgentStatus(_)
+            | Self::GetCatalogue(_)
+            | Self::InstallAgent(_)
+            | Self::ReadInstall(_) => None,
         }
     }
 }

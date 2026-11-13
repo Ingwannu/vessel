@@ -24,14 +24,16 @@ use crate::profile::Profile;
 ///
 /// `None` when the home cannot be known: the variable holds a relative
 /// path, which the harness would resolve against each session's working
-/// directory.
+/// directory, or the profile is of an added agent, whose home Vessel does
+/// not know (ADR 0032).
 #[must_use]
 pub fn home(
     profile: &Profile,
     user_home: &Path,
     inherited: impl Fn(&str) -> Option<OsString>,
 ) -> Option<PathBuf> {
-    let home = &descriptor(profile.harness()).home;
+    // An added agent's home is not known (ADR 0032): nothing is guessed.
+    let home = &descriptor(profile.known()?).home;
     // The descriptor's names are constants that parse; one that did not
     // would mean no variable, as for a harness without one.
     let variable = home
@@ -79,7 +81,10 @@ pub fn login_check(
     env: &HarnessEnv,
     profile: &Profile,
 ) -> Result<Option<CommandSpec>, HarnessError> {
-    let harness = profile.harness();
+    // An added agent has no status command Vessel knows (ADR 0032).
+    let Some(harness) = profile.known() else {
+        return Ok(None);
+    };
     let descriptor = descriptor(harness);
     let Some(args) = descriptor.login else {
         return Ok(None);

@@ -115,7 +115,8 @@ mod support {
                 let seen = match output {
                     AgentOutput::Event(AgentEvent::HarnessLog { .. })
                     | AgentOutput::Commands(_)
-                    | AgentOutput::Usage(_) => continue,
+                    | AgentOutput::Usage(_)
+                    | AgentOutput::Introduced(_) => continue,
                     AgentOutput::Event(event) => Seen::Event(event),
                     AgentOutput::Options(options) => Seen::Options(options),
                     AgentOutput::Disconnected(disconnect) => {
@@ -270,7 +271,7 @@ async fn a_choice_not_offered_or_refused_fails_the_handshake() {
         ] {
             let mut run = Run::start(&fake(), setup(vec![choice]));
             assert!(!run.ready_or_end().await, "never ready");
-            let Some(Disconnect::Handshake { message }) = &run.disconnect else {
+            let Some(Disconnect::Handshake { message, .. }) = &run.disconnect else {
                 panic!("a handshake failure: {:?}", run.disconnect);
             };
             assert!(message.contains(says), "{message}");

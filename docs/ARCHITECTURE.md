@@ -38,7 +38,7 @@ and 0013).
 
 | Crate | Job | Depends on |
 | --- | --- | --- |
-| `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10). No I/O. | - |
+| `vessel-proto` | Wire contract: ids, sessions, events, agent timeline, errors, typed RPC table; keys, devices, pairing links, relay control (milestone 3); validated names, profiles, creators, agent credentials, fleet manifests and MCP server definitions (milestone 4); protocol 6's envelope (`forward`: `Origin`, `fleet.forward`/`relay`/`deliver`), transfers (`transfer`, with the size limits) and secrets on the wire (`secret`: `SecretValue`, redacted); a session's place on the board (`board`, protocol 8); what a session runs with and its title (`options`, `title`: the agent's config options, choices, `SessionTitle`, protocol 9); projects, worktrees, git and files (`workspace`: `RelPath`, `CloneUrl`, bounded names, typed outcomes and refusals, `SessionPlace`, `SessionWorkspace`, protocol 10); agents beyond the four (`agents`: `HarnessRef`, `AgentName`, protocol 11). No I/O. | - |
 | `vessel-rpc` | Moves `ClientFrame`/`ServerFrame` over any frame transport; handshake, correlation, concurrency limits, generic over `Handler`. From protocol 5 it holds both sides to the negotiated version: a call newer than the connection (`Call::since`) is refused by the client before sending and by the server before dispatch, and outgoing frames are adapted to an older client where they are encoded (`ServerFrame::for_protocol`). | proto |
 | `vessel-proc` | Command specs, spawning in a process group (a kill-on-close job object on Windows), killing the group; since milestone 11 (ADR 0031) the TCP ports a process tree listens on (`listening`: `/proc` on Linux, `lsof` on macOS, `netstat` and CIM on Windows, bounded), a terminal session's leftovers (`kill_session`, Linux) and the account's login shell. | - |
 | `vessel-harness` | Everything harness-specific, one module per harness: discovery, version probe, terminal and ACP launch commands; `HarnessEnv` (the account harnesses run as, given by the binaries, never read from the process by a library); since milestone 4 harness profiles and `profiles.toml`, each harness's home and login check, a session's files and linking them between homes, a profile's memory files and renaming a path for another working directory (transfers, protocol 6), MCP servers for terminal sessions, and what `vessel init` offers (install and login commands, other accounts' homes); since milestone 5 a profile's `model` route and pointing its harness at the node's model proxy (`routing`: Claude Code by its gateway variables, Codex by a `vessel` provider in `-c` overrides). | proto, proc |
@@ -369,7 +369,7 @@ bounds and platform tradeoffs.
 
 In the crate table's order.
 
-- `vessel-proto`: the wire contract, versions 2 to 9 (`docs/PROTOCOL.md`).
+- `vessel-proto`: the wire contract, versions 2 to 11 (`docs/PROTOCOL.md`).
   Protocol 2, milestone 1: typed RPC, the event log, the ACP-shaped agent
   timeline. 3: `node.stop` and `NodeInfo.state`. 4: devices, scopes on
   every method, the node's public key. 5: profiles, `session.move_profile`,
@@ -391,7 +391,14 @@ In the crate table's order.
   (`conversation`: delivery and the queue, the agent's commands and
   context, questions, attachments, marks; `SessionInfo.marks` and
   `abilities`), and projects, worktrees, git and files (`workspace`),
-  `SessionSpec.place` and `SessionInfo.workspace`.
+  `SessionSpec.place` and `SessionInfo.workspace`. 11 (track G, ADR
+  0032): agents beyond the four (`agents`: `HarnessRef`, the four or an
+  added agent by `AgentName`, in `SessionSpec`, `Harness`, profiles and
+  `harness.options`; `Harness.terminal`; what an older peer is handed,
+  `agents/older.rs`: lists without added agents, `Reply::withheld` for a
+  reply about one, applied where frames are written; `agent.list`,
+  `agent.add`, `agent.remove` and their types, `agents/added.rs`, with
+  the bounded texts of `agents/text.rs`).
   Every method has a first version (`since`), and a call that uses a
   later field needs that version (`Call::since`, `rpc/since.rs`; the
   table's macro is `rpc/methods.rs`, the table itself stays in `rpc.rs`).
@@ -438,6 +445,16 @@ In the crate table's order.
   owner-only per-session file). No MCP value is ever an argument: Claude
   Code reads an owner-only `--mcp-config=` file, Codex gets `-c
   mcp_servers.<name>` overrides that name variables in its environment.
+  Protocol 11 (ADR 0032): `added` (`agents.toml` parsed by
+  `parse_agents`, with the file's bounds; `add_agent`/`remove_agent`
+  change its text in place with `toml_edit`; `added/command.rs` builds an
+  added agent's command from an empty environment, `PASSED_ON` being the
+  system variables it gets), `discover_added` (found by path, never run
+  for a version), and a `Profile` whose base is one of the four or an
+  added agent (`parse_profiles_with`; the profile module is
+  `profile/{parse,tests}.rs` under `profile.rs`); `login_status` reads
+  Claude Code's and Codex's status commands' output into a typed answer
+  (`binary` names the program `agent.status` looks for).
   `setup` holds what `vessel init` offers (install and login commands,
   other accounts' homes). The `fakes` feature installs testkit binaries
   under real harness names. Model selection is not here: it goes over ACP
@@ -492,7 +509,12 @@ In the crate table's order.
   `config_option_update` / `current_mode_update`), and makes a mode
   option from ACP's older `modes`. `probe` starts an agent, takes the
   options from its handshake and stops it, bounded by the handshake
-  timeout.
+  timeout. Protocol 11 (`introduction`): what `initialize` said of the
+  agent (`agentInfo.version`, its `agent` sign-in methods, bounded) is
+  reported once (`AgentOutput::Introduced`, which a session ignores and a
+  probe keeps), and a failed handshake carries a typed `Refused` beside
+  its message (another ACP version, `auth_required`, a step's failure, its
+  time limit).
 - `vessel-session`: `SessionRuntime`, `SessionHandle`, `Follow`, records
   shared as `Arc<EventRecord>`; terminal and structured actors share the
   `lifecycle` module (stop-responsive publishing, two-step stop).
@@ -571,7 +593,9 @@ In the crate table's order.
   recorded size and SHA-256, hashing it again only when its identity
   (device, inode, size, times) changed since the caller last verified it;
   at open, every folder no row names is removed. `DataDir::probe_dir` is where the node probes
-  agents. `models.toml` is read with whether other users
+  agents. `agents.toml` (protocol 11, ADR 0032: commands the node runs)
+  is refused when another user owns it or may write it or the data
+  directory (`DataDir::read_agents`), and written atomically, 0600. `models.toml` is read with whether other users
   can read it (`DataDir::read_models`), which the node refuses.
 - `vessel-node` (`vesseld`):
   - The service (`service`): one inherent method per call, routing to the
@@ -579,8 +603,34 @@ In the crate table's order.
     calls in a module per area (`sessions`, `profiles` with the agents'
     ownership rule, `fleet` with this node's secrets, `transfers`,
     `options`, `conversation`, `again`, `projects`, `worktrees`, `git`,
-    `files`); `service.rs` keeps the service's parts and a connection's
-    state.
+    `files`, `agents` for protocol 11's); `service.rs` keeps the
+    service's parts and a connection's state (its protocol among them).
+  - Added agents (protocol 11, ADR 0032): `added` changes `agents.toml`
+    one change at a time (`NodeProfiles::editing`), parsed with
+    `profiles.toml` before it is written, and refuses an agent principal
+    or a delivered call; `NodeProfiles` reads both files together. The
+    launcher (`profiles/launch.rs`) gives an added agent's session its
+    default profile, its secrets from `secrets.toml` (`McpSource::secret`)
+    and only the fleet's MCP servers it names.
+  - `agent.status` (`readiness`, `service/status.rs`): installed facts on
+    every call; sign-in facts only on a person's `refresh`, from the
+    agent's status command (Claude Code, Codex; never beside a running
+    session of that profile) or a probe's handshake (the others), kept
+    per agent and profile for five and ten minutes. `probes` keeps each
+    probe's options and what its handshake said together (`Answer`), so
+    `harness.options` and `agent.status` share one probe.
+  - `agent.install` (`install`): the last install as a job of the node's
+    (`vessel_proc` process group, 15 minutes, the first 1 MiB of output
+    kept with a `watch` for waiting reads), started from
+    `vessel_harness::installer` (the vendor's command in the clean
+    environment plus `npm_config_*`); while it runs, the service refuses
+    to start that agent (`refuse_installing`).
+  - `agent.catalogue` (`catalogue`): the node's copy of the ACP registry,
+    fetched only on a person's `refresh` (`catalogue/fetch.rs`: `reqwest`,
+    https or loopback http, bounded) and read entry by entry
+    (`catalogue/registry.rs`: exact pins only, the four told by their npm
+    packages); `agent.add` from the registry takes the entry from that
+    copy.
   - Sessions: axum `/health` and token-checked `/rpc`, the `Handler`
     routing to `sessions` (live runtime sessions plus stored ones; a
     session whose log is complete is served from the store, and a live

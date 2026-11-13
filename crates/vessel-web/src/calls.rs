@@ -189,7 +189,14 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListScripts
         | Method::RunScript
         | Method::RestartScript
-        | Method::ListPorts => true,
+        | Method::ListPorts
+        | Method::ListAgents
+        | Method::AddAgent
+        | Method::RemoveAgent
+        | Method::GetAgentStatus
+        | Method::GetCatalogue
+        | Method::InstallAgent
+        | Method::ReadInstall => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

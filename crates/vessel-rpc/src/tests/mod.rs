@@ -178,12 +178,13 @@ impl Handler for Fake {
     ) -> Result<Vec<Harness>, WireError> {
         self.saw(request.into_call());
         Ok(vec![Harness {
-            kind: HarnessKind::Gemini,
+            kind: HarnessKind::Gemini.into(),
             path: PathBuf::from("/bin/gemini"),
             version: Some("1.0".to_owned()),
             structured: StructuredSupport::Unavailable {
                 reason: "adapter missing".to_owned(),
             },
+            terminal: vessel_proto::TerminalSupport::Available,
         }])
     }
 
@@ -362,6 +363,62 @@ impl Handler for Fake {
         _context: &Context,
         request: ReloadProfiles,
     ) -> Result<Vec<ProfileInfo>, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn list_agents(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::ListAgents,
+    ) -> Result<Vec<vessel_proto::agents::AgentInfo>, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn add_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::AddAgent,
+    ) -> Result<vessel_proto::agents::AgentInfo, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn remove_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::RemoveAgent,
+    ) -> Result<Ack, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn agent_status(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::GetAgentStatus,
+    ) -> Result<Vec<vessel_proto::agents::AgentReadiness>, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn agent_catalogue(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::GetCatalogue,
+    ) -> Result<vessel_proto::agents::Catalogue, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn install_agent(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::InstallAgent,
+    ) -> Result<vessel_proto::agents::InstallJob, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn install_output(
+        &self,
+        _context: &Context,
+        request: vessel_proto::agents::ReadInstall,
+    ) -> Result<vessel_proto::agents::InstallOutput, WireError> {
         self.unsupported(request)
     }
 

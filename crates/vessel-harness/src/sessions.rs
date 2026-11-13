@@ -33,7 +33,7 @@ use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 
-use vessel_proto::{HarnessKind, HarnessSessionId};
+use vessel_proto::{HarnessKind, HarnessRef, HarnessSessionId};
 
 use crate::harnesses::descriptor;
 
@@ -98,8 +98,9 @@ pub enum SessionFilesError {
     /// database, or a layout not known yet).
     #[error("{harness} sessions cannot be moved between profiles")]
     Unsupported {
-        /// Which harness.
-        harness: HarnessKind,
+        /// Which harness: an added agent's sessions never can (ADR 0032),
+        /// Vessel does not know where it keeps them.
+        harness: HarnessRef,
     },
     /// The harness session id cannot name a file (separators, `..`).
     #[error("`{id}` is not a session id that can name a file")]
@@ -152,13 +153,17 @@ pub enum SessionFilesError {
 /// # Errors
 /// See [`SessionFilesError`].
 pub fn session_files(
-    harness: HarnessKind,
+    harness: &HarnessRef,
     home: &Path,
     cwd: &Path,
     id: &HarnessSessionId,
 ) -> Result<SessionFiles, SessionFilesError> {
+    let unsupported = || SessionFilesError::Unsupported {
+        harness: harness.clone(),
+    };
+    let harness = harness.known().ok_or_else(unsupported)?;
     let Some(find) = descriptor(harness).sessions else {
-        return Err(SessionFilesError::Unsupported { harness });
+        return Err(unsupported());
     };
     if !is_file_name(id.as_str()) {
         return Err(SessionFilesError::InvalidId { id: id.clone() });

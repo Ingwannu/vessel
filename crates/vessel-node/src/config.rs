@@ -93,6 +93,10 @@ pub struct Config {
     /// shell by default, so `terminal.create` is `unsupported` until a
     /// binary finds one (`TerminalsConfig::shell`); scripts run anyway.
     pub terminals: crate::TerminalsConfig,
+    /// Where `agent.catalogue` fetches the ACP registry (protocol 11, ADR
+    /// 0032): its published index. https only, or plain http to this
+    /// machine (what a test serves).
+    pub registry_url: String,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -158,6 +162,7 @@ impl Config {
             trusted_proxies: Vec::new(),
             forge: crate::ForgeSetup::default(),
             terminals: crate::TerminalsConfig::default(),
+            registry_url: crate::catalogue::REGISTRY_URL.to_owned(),
         }
     }
 }

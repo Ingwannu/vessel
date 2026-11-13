@@ -52,6 +52,13 @@
 //!   handle: `TerminalId`, which the node mints. Plain: `ScriptName`, which
 //!   a person types (`vessel script run dev`). Content: `ProcessName`, what
 //!   the system called a listening process, shown and never handed back.
+//! - Protocol 11's (track G, ADR 0032), by the same rule. Plain: an added
+//!   agent's name, label and program, which a person chooses and types,
+//!   an agent's version, an ACP registry entry's id and version, which a
+//!   person reads and may type, and an archive's SHA-256, which a person
+//!   compares. Handles: `InstallId`, which the node mints for an install,
+//!   and `AuthMethodId`, which the agent names and the page only hands
+//!   back, as an `OptionId`.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -85,8 +92,13 @@ pub enum Alias {
 /// sorted by name.
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
+    ("AgentLabel", Alias::Named),
+    ("AgentName", Alias::Named),
+    ("AgentProgram", Alias::Named),
+    ("AgentVersion", Alias::Named),
     ("AttachmentId", Alias::Handle),
     ("AttachmentName", Alias::Named),
+    ("AuthMethodId", Alias::Handle),
     ("BlobHash", Alias::Handle),
     ("BookName", Alias::Named),
     ("BranchName", Alias::Named),
@@ -120,6 +132,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
+    ("InstallId", Alias::Handle),
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
     ("KeyBinding", Alias::Named),
@@ -152,6 +165,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QuestionId", Alias::Handle),
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
+    ("RegistryId", Alias::Named),
+    ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
     ("RepoPath", Alias::Named),
@@ -164,6 +179,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SecretValue", Alias::Secret),
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
+    ("Sha256Hex", Alias::Named),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
     ("TerminalBytes", Alias::Content),

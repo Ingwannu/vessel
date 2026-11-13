@@ -128,6 +128,7 @@ mod support {
                     report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
                         self.reports.push(report);
                     }
+                    AgentOutput::Introduced(_) => {}
                     AgentOutput::Event(event) => {
                         self.events.push(event.clone());
                         return Some(event);
@@ -169,6 +170,7 @@ mod support {
                     report @ (AgentOutput::Commands(_) | AgentOutput::Usage(_)) => {
                         self.reports.push(report);
                     }
+                    AgentOutput::Introduced(_) => {}
                     AgentOutput::Event(event) => self.events.push(event),
                     AgentOutput::Disconnected(disconnect) => {
                         self.disconnect = Some(disconnect.clone());
@@ -509,7 +511,7 @@ async fn a_model_the_agent_does_not_offer_fails_the_handshake() {
             model: Some(ModelId::new("gpt-imaginary")),
             ..setup(None)
         });
-        let Disconnect::Handshake { message } = agent.until_end().await else {
+        let Disconnect::Handshake { message, .. } = agent.until_end().await else {
             panic!("expected a handshake failure");
         };
         assert!(
@@ -560,7 +562,7 @@ async fn an_agent_stuck_in_the_handshake_fails_at_the_deadline() {
                     ..setup(None)
                 },
             );
-            let Disconnect::Handshake { message } = agent.disconnected().await else {
+            let Disconnect::Handshake { message, .. } = agent.disconnected().await else {
                 panic!("a stuck {step} must fail the handshake");
             };
             assert!(

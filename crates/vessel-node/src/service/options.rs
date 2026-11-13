@@ -6,13 +6,13 @@
 
 use chrono::Utc;
 use vessel_proto::{
-    GetHarnessOptions, GetSessionOptions, HarnessOptions, RenameSession, SessionId, SessionInfo,
-    SessionOption, SetSessionOption, StructuredSupport, WireError,
+    GetHarnessOptions, GetSessionOptions, HarnessOptions, HarnessRef, ProfileName, RenameSession,
+    SessionId, SessionInfo, SessionOption, SetSessionOption, StructuredSupport, WireError,
 };
 
 use super::{Connection, NodeService, wire};
-use crate::probes::ProbeKey;
-use crate::transfers::export::named;
+use crate::probes::{Answer, ProbeKey};
+use crate::readiness::HandshakeFailure;
 
 impl NodeService {
     /// `harness.options`: what `harness`'s agent offers under `profile`,
@@ -27,9 +27,24 @@ impl NodeService {
         request: GetHarnessOptions,
     ) -> Result<HarnessOptions, WireError> {
         let GetHarnessOptions { harness, profile } = request;
-        let resolved =
-            named(&self.profiles, Some(harness), profile.as_ref()).map_err(|error| wire(&error))?;
-        let installed = vessel_harness::discover(&self.lookup)
+        self.refuse_installing(&harness)
+            .map_err(|error| wire(&error))?;
+        let resolved = self
+            .resolve(&harness, profile.as_ref())
+            .map_err(|error| wire(&error))?;
+        self.probed(harness, resolved, profile).await.options
+    }
+
+    /// What a probe of `harness` under `resolved` (the profile `profile`,
+    /// its default when `None`) found: a recent one's, or a new one's.
+    pub(crate) async fn probed(
+        &self,
+        harness: HarnessRef,
+        resolved: vessel_harness::Profile,
+        profile: Option<ProfileName>,
+    ) -> Answer {
+        let installed = self
+            .harnesses()
             .await
             .into_iter()
             .find(|found| found.kind == harness);
@@ -40,16 +55,23 @@ impl NodeService {
         match installed.structured {
             StructuredSupport::Unavailable { reason } => {
                 tracing::debug!(%harness, %reason, "no structured sessions here; it offers nothing");
-                Ok(HarnessOptions {
-                    options: Vec::new(),
-                    probed_at: Utc::now(),
-                    abilities: None,
-                })
+                Answer {
+                    options: Ok(HarnessOptions {
+                        options: Vec::new(),
+                        probed_at: Utc::now(),
+                        abilities: None,
+                    }),
+                    // No adapter: nothing was started to say anything.
+                    said: Err(HandshakeFailure::Spawn),
+                }
             }
             StructuredSupport::Available => {
-                let key = ProbeKey { harness, profile };
+                let key = ProbeKey {
+                    harness: harness.clone(),
+                    profile,
+                };
                 self.probes
-                    .options(key, installed.version, async || {
+                    .answer(key, installed.version, async || {
                         self.probe(harness, resolved).await
                     })
                     .await
@@ -60,26 +82,34 @@ impl NodeService {
     /// Ask `harness`'s agent now. A routed profile's agent gets a model
     /// token of its own for the probe, retired with it: it makes no model
     /// call (no prompt is sent), but it is started as a session would be.
-    async fn probe(
-        &self,
-        harness: vessel_proto::HarnessKind,
-        profile: vessel_harness::Profile,
-    ) -> Result<HarnessOptions, WireError> {
+    async fn probe(&self, harness: HarnessRef, profile: vessel_harness::Profile) -> Answer {
         let probe = SessionId::random();
-        let proxy = self
-            .models
-            .launch(Some(&profile), probe)
-            .map_err(|error| wire(&error))?
-            .map(|(_model, proxy)| proxy);
+        let proxy = match self.models.launch(Some(&profile), probe) {
+            Ok(launched) => launched.map(|(_model, proxy)| proxy),
+            Err(error) => {
+                return Answer {
+                    options: Err(wire(&error)),
+                    said: Err(HandshakeFailure::Spawn),
+                };
+            }
+        };
         let dir = self.probes.dir().clone();
         let probed = self.sessions.probe(harness, profile, proxy, dir).await;
         self.models.retire(probe);
-        let probed = probed.map_err(|error| wire(&error))?;
-        Ok(HarnessOptions {
-            options: probed.options,
-            probed_at: Utc::now(),
-            abilities: Some(probed.abilities),
-        })
+        match probed {
+            Ok(probed) => Answer {
+                options: Ok(HarnessOptions {
+                    options: probed.options,
+                    probed_at: Utc::now(),
+                    abilities: Some(probed.abilities),
+                }),
+                said: Ok(probed.introduction),
+            },
+            Err(error) => Answer {
+                said: Err(crate::readiness::failure_of(&error)),
+                options: Err(wire(&error)),
+            },
+        }
     }
 
     /// `session.options`: a live session's options as its agent last

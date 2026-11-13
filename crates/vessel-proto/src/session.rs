@@ -6,9 +6,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::agent::{ContentBlock, PermissionOutcome};
+use crate::agents::HarnessRef;
 use crate::board::SessionBoard;
 use crate::conversation::{AgentAbilities, QuestionAnswer, SessionMarks};
-use crate::harness::HarnessKind;
 use crate::id::{
     DeviceId, EventSeq, HarnessSessionId, ModelId, NodeId, PermissionId, QuestionId, SessionId,
 };
@@ -85,8 +85,9 @@ impl SessionMode {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct SessionSpec {
-    /// Harness to launch.
-    pub harness: HarnessKind,
+    /// Harness to launch: one of the four, or (protocol 11) an agent added
+    /// on the node.
+    pub harness: HarnessRef,
     /// Working directory. Defaults to the node's home directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<PathBuf>,
@@ -116,9 +117,9 @@ impl SessionSpec {
     /// Run `harness` in `mode`, in the node's home directory, with the
     /// default profile.
     #[must_use]
-    pub const fn new(harness: HarnessKind, mode: SessionMode) -> Self {
+    pub fn new(harness: impl Into<HarnessRef>, mode: SessionMode) -> Self {
         Self {
-            harness,
+            harness: harness.into(),
             cwd: None,
             profile: None,
             title: None,

@@ -68,6 +68,8 @@ impl NodeService {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
+        self.refuse_installing(&spec.harness)
+            .map_err(|error| wire(&error))?;
         // An imported session's place named its own machine's project; it
         // runs in the folder it brings (carrying worktrees is wave 2's).
         if origin.is_some() {
@@ -183,6 +185,9 @@ impl NodeService {
         connection: &Connection,
         request: Subscribe,
     ) -> Result<Subscribed, WireError> {
+        // Before it opens: an older client must not be subscribed to what
+        // it cannot decode (protocol 11's added agents).
+        self.refuse_older(connection, request.session).await?;
         subscribe::open(
             &self.sessions,
             &connection.outbound,

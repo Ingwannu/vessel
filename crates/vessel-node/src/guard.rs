@@ -81,6 +81,7 @@ macro_rules! guarded {
                     )?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
+                        self.0.refuse_older(connection, session).await?;
                     }
                     self.0.$handler(connection, request).await
                 }
@@ -95,6 +96,7 @@ macro_rules! guarded {
                     connection.principal().permit(<$through_request as Request>::METHOD)?;
                     if let Some(session) = Target::target(&request) {
                         self.0.check_owner(connection.principal(), session).await?;
+                        self.0.refuse_older(connection, session).await?;
                     }
                     self.0.$through(connection, request, self).await
                 }
@@ -280,6 +282,15 @@ untargeted!(
     vessel_proto::scripts::RunScript,
     vessel_proto::scripts::RestartScript,
     vessel_proto::ports::ListPorts,
+    // Protocol 11's agents act on no session; adding and removing one is
+    // refused to agents by the service itself (ADR 0032).
+    vessel_proto::agents::ListAgents,
+    vessel_proto::agents::AddAgent,
+    vessel_proto::agents::RemoveAgent,
+    vessel_proto::agents::GetAgentStatus,
+    vessel_proto::agents::GetCatalogue,
+    vessel_proto::agents::InstallAgent,
+    vessel_proto::agents::ReadInstall,
 );
 
 guarded! {
@@ -381,6 +392,13 @@ guarded! {
     open_pull_request: vessel_proto::forge::OpenPullRequest => vessel_proto::forge::OpenOutcome;
     merge_pull_request: vessel_proto::forge::MergePullRequest => vessel_proto::forge::MergeOutcome;
     set_feedback: vessel_proto::forge::SetFeedback => vessel_proto::forge::SessionPullRequest;
+    list_agents: vessel_proto::agents::ListAgents => Vec<vessel_proto::agents::AgentInfo>;
+    add_agent: vessel_proto::agents::AddAgent => vessel_proto::agents::AgentInfo;
+    remove_agent: vessel_proto::agents::RemoveAgent => Ack;
+    agent_status: vessel_proto::agents::GetAgentStatus => Vec<vessel_proto::agents::AgentReadiness>;
+    agent_catalogue: vessel_proto::agents::GetCatalogue => vessel_proto::agents::Catalogue;
+    install_agent: vessel_proto::agents::InstallAgent => vessel_proto::agents::InstallJob;
+    install_output: vessel_proto::agents::ReadInstall => vessel_proto::agents::InstallOutput;
     lsp_workspace_symbols: vessel_proto::lsp::WorkspaceSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_document_symbols: vessel_proto::lsp::DocumentSymbols => vessel_proto::lsp::Page<vessel_proto::lsp::Symbol>;
     lsp_definition: vessel_proto::lsp::Definition => vessel_proto::lsp::Page<vessel_proto::lsp::Location>;

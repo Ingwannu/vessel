@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 use vessel_proto::{AgentCommand, AgentEvent, ContextUsage, SessionOption};
 
 use crate::error::Disconnect;
+use crate::introduction::Introduction;
 
 /// One output of an agent session.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,6 +25,10 @@ pub enum AgentOutput {
     /// How full the agent's context is (protocol 10), each time the
     /// agent's report differs from its last. Logged as `usage_changed`.
     Usage(ContextUsage),
+    /// What the agent said of itself in `initialize` (protocol 11, ADR
+    /// 0032): once, before the session's first `Options`. A session
+    /// ignores it; a probe keeps it for `agent.status`.
+    Introduced(Box<Introduction>),
     /// The ACP connection ended; the driver sends nothing after this.
     /// Harness log lines may still follow until the process's stderr ends.
     Disconnected(Disconnect),

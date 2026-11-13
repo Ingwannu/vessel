@@ -13,6 +13,27 @@ export type Ack = null;
 export type Activity = "active" | "idle" | "waiting_input" | "exited";
 
 /**
+ * `agent.add`: define an agent on the node by its command (`agents.toml`),
+ * and answer with it as now in effect. Starts and fetches nothing. Needs
+ * `admin`, and is refused to an agent and to a call from another node.
+ */
+export type AddAgent = { 
+/**
+ * Its name; agents' and profiles' names are one space, compared
+ * ignoring case.
+ */
+name: AgentName, 
+/**
+ * What to add.
+ */
+agent: AgentToAdd, 
+/**
+ * Replace an agent of that name (sessions running keep what they
+ * started with).
+ */
+replace?: boolean, };
+
+/**
  * `project.add`: a folder on the node.
  */
 export type AddProject = { 
@@ -24,6 +45,46 @@ path: string,
  * What to call it; its folder's name otherwise.
  */
 name?: ProjectName | null, };
+
+/**
+ * An added agent as clients see it: its command whole, its environment by
+ * name. Values never leave the node (as for profiles, ADR 0011): a text
+ * value may be a credential someone wrote there.
+ */
+export type AddedAgent = { 
+/**
+ * What a person calls it.
+ */
+label?: AgentLabel | null, 
+/**
+ * Its program as written.
+ */
+program: AgentProgram, 
+/**
+ * Its arguments as written (`~` expanded).
+ */
+args: Array<string>, 
+/**
+ * The variables it sets to text, by name.
+ */
+env: Array<EnvName>, 
+/**
+ * The variables it takes from the node's secrets.
+ */
+secrets: Array<SecretEnv>, 
+/**
+ * The variables passed on from the node's own environment.
+ */
+inherit: Array<EnvName>, 
+/**
+ * The fleet's MCP servers it gets, by name (ADR 0012); it gets no
+ * other but the `vessel` server.
+ */
+mcp: Array<McpServerName>, 
+/**
+ * Where its definition came from.
+ */
+source: AgentSource, };
 
 /**
  * What an agent can do, from its ACP `initialize` answer.
@@ -76,6 +137,55 @@ description: string,
  * [`AgentCommand::MAX_HINT`] bytes).
  */
 hint?: string | null, };
+
+/**
+ * What `agent.add` writes when a person gives the command.
+ */
+export type AgentDefinition = { 
+/**
+ * What a person calls it.
+ */
+label?: AgentLabel | null, 
+/**
+ * Its program: a name found on the node's search path, or an absolute
+ * path.
+ */
+program: AgentProgram, 
+/**
+ * Its arguments. Every client sees them, and the process table shows
+ * them: a secret belongs in `env` as a secret's name.
+ */
+args?: Array<string>, 
+/**
+ * The variables it sets: text, or a secret of the node by name.
+ */
+env?: Array<AgentVariable>, 
+/**
+ * The variables passed on from the node's own environment.
+ */
+inherit?: Array<EnvName>, 
+/**
+ * The fleet's MCP servers it gets, by name.
+ */
+mcp?: Array<McpServerName>, };
+
+/**
+ * What a node knows of one agent.
+ */
+export type AgentDetail = { "kind": "known", 
+/**
+ * Its vendor's documented installs: the agent, and its ACP adapter
+ * when it needs one.
+ */
+installs: Array<InstallOffer>, 
+/**
+ * How a person signs in.
+ */
+sign_in: SignInHelp, } | { "kind": "added", 
+/**
+ * Its definition, values left out.
+ */
+added: AddedAgent, };
 
 /**
  * One entry in a structured session's timeline.
@@ -147,6 +257,122 @@ id: QuestionId,
  * How it was settled.
  */
 outcome: QuestionOutcome, };
+
+/**
+ * One agent as `agent.list` reports it.
+ */
+export type AgentInfo = { 
+/**
+ * Which agent.
+ */
+agent: HarnessRef, 
+/**
+ * What the node knows of it.
+ */
+detail: AgentDetail, };
+
+/**
+ * What a person calls an added agent (`Goose`), shown on the page.
+ */
+export type AgentLabel = string;
+
+/**
+ * The name of an agent added on a node by its command (protocol 11, ADR
+ * 0032): the profile name rule (`[A-Za-z0-9._-]`, 1 to 64), and never a
+ * name of one of the four known agents, in any case or spelling
+ * (`claude`, `Claude-Code`, `opencode`).
+ *
+ * Why the profile rule: an added agent's default profile is named after
+ * it, as the four's are (ADR 0011), so every agent name must be a profile
+ * name. Why the four are refused: a word a person types is read as one of
+ * the four first ([`HarnessRef::from_str`]), so an added agent called
+ * `codex` could never be named.
+ */
+export type AgentName = string;
+
+/**
+ * An added agent's program as written: a name looked up on the node's
+ * search path (`goose`, `npx`), or an absolute path.
+ */
+export type AgentProgram = string;
+
+/**
+ * One agent under one profile.
+ */
+export type AgentReadiness = { 
+/**
+ * Which agent.
+ */
+agent: HarnessRef, 
+/**
+ * Which profile (the agent's default has the agent's name).
+ */
+profile: ProfileName, 
+/**
+ * Whether it is installed.
+ */
+installed: Installed, 
+/**
+ * Whether it is signed in.
+ */
+signed_in: SignedIn, 
+/**
+ * When the older of the two facts was found.
+ */
+checked_at: string, };
+
+/**
+ * Where an added agent's definition came from.
+ */
+export type AgentSource = { "from": "command" } | { "from": "registry", 
+/**
+ * The entry's id.
+ */
+id: RegistryId, 
+/**
+ * The entry's version.
+ */
+version: RegistryVersion, };
+
+/**
+ * What `agent.add` adds.
+ */
+export type AgentToAdd = { "from": "command", 
+/**
+ * The definition.
+ */
+definition: AgentDefinition, } | { "from": "registry", 
+/**
+ * The entry.
+ */
+id: RegistryId, 
+/**
+ * Its version, as the catalogue showed it.
+ */
+version: RegistryVersion, 
+/**
+ * The fleet's MCP servers it gets.
+ */
+mcp?: Array<McpServerName>, };
+
+/**
+ * One variable an added agent sets.
+ */
+export type AgentVariable = { 
+/**
+ * The variable.
+ */
+name: EnvName, 
+/**
+ * Its value: text, or `{ secret = "NAME" }`.
+ */
+value: ConfigValue, };
+
+/**
+ * An agent's version as it reports it (ACP `agentInfo.version`, or the
+ * first line of a known agent's `--version`).
+ */
+export type AgentVersion = string;
 
 /**
  * The value given for one field.
@@ -285,6 +511,33 @@ mime: MimeType,
 size: number, };
 
 /**
+ * A sign-in method an agent offers in its handshake (ACP `authMethods`, of
+ * the `agent` type: Vessel advertises no other, so it is offered no
+ * other). The node keeps at most [`AuthMethod::MAX`], each cut.
+ */
+export type AuthMethod = { 
+/**
+ * Its id, as the agent gave it.
+ */
+id: AuthMethodId, 
+/**
+ * Its name, in the agent's words (cut at [`AuthMethod::MAX_NAME`]
+ * characters).
+ */
+name: string, 
+/**
+ * What it does, in the agent's words (cut at
+ * [`AuthMethod::MAX_DESCRIPTION`] characters).
+ */
+description?: string | null, };
+
+/**
+ * The id of a sign-in method an agent offers (ACP `authMethods[].id`),
+ * echoed back as given.
+ */
+export type AuthMethodId = string & { readonly __brand: "AuthMethodId" };
+
+/**
  * `attachment.begin`: declare a file to upload to a live structured
  * session. Needs `operate`.
  */
@@ -410,7 +663,7 @@ export type BundlePath = string;
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall };
 
 /**
  * What `fleet.callback` answers.
@@ -426,6 +679,112 @@ relays: Array<RouteUrl>,
  * A ticket for the member's key, with `relays`.
  */
 ticket?: RelayTicket | null, };
+
+/**
+ * The node's copy of the registry.
+ */
+export type Catalogue = { 
+/**
+ * When it was fetched; absent before the first fetch since the node
+ * started.
+ */
+fetched_at?: string | null, 
+/**
+ * The registry's own version.
+ */
+version?: RegistryVersion | null, 
+/**
+ * Its entries Vessel reads, in the registry's order.
+ */
+entries: Array<CatalogueEntry>, 
+/**
+ * Entries left out: unreadable, past a bound, or pinning no exact
+ * version.
+ */
+skipped: number, };
+
+/**
+ * One registry entry.
+ */
+export type CatalogueEntry = { 
+/**
+ * Its id.
+ */
+id: RegistryId, 
+/**
+ * Its name.
+ */
+name: string, 
+/**
+ * The version the registry pins.
+ */
+version: RegistryVersion, 
+/**
+ * What it says of itself.
+ */
+description: string, 
+/**
+ * Its site.
+ */
+website?: HttpUrl | null, 
+/**
+ * Its source.
+ */
+repository?: HttpUrl | null, 
+/**
+ * Its licence, as the registry says.
+ */
+license?: string | null, 
+/**
+ * What would run on this node.
+ */
+runs: CatalogueRun, };
+
+/**
+ * What a registry entry would run on this node.
+ */
+export type CatalogueRun = { "kind": "known", 
+/**
+ * Which.
+ */
+harness: HarnessKind, } | { "kind": "command", 
+/**
+ * The runner.
+ */
+program: AgentProgram, 
+/**
+ * Its arguments, the pinned package among them.
+ */
+args: Array<string>, 
+/**
+ * The variables the entry sets, as text.
+ */
+env: Array<CatalogueVariable>, 
+/**
+ * Whether the runner is on the node's search path.
+ */
+runner_found: boolean, } | { "kind": "download", 
+/**
+ * The archive.
+ */
+archive: HttpUrl, 
+/**
+ * Its SHA-256, when the registry gives one.
+ */
+sha256?: Sha256Hex | null, } | { "kind": "unavailable" };
+
+/**
+ * A variable a registry entry sets.
+ */
+export type CatalogueVariable = { 
+/**
+ * Its name.
+ */
+name: EnvName, 
+/**
+ * Its value, as the registry gives it.
+ */
+value: string, };
 
 /**
  * `session.queue`: change a session's queue. Needs `operate`.
@@ -499,6 +858,11 @@ url?: ForgeUrl | null, };
  * One check's result (agent-orchestrator's table).
  */
 export type CheckState = "pending" | "passed" | "failed" | "cancelled" | "skipped" | "unknown";
+
+/**
+ * Where a check failed.
+ */
+export type CheckStep = "spawn" | "initialize" | "session_new" | "exited";
 
 /**
  * A head commit's checks.
@@ -1818,6 +2182,25 @@ export type Freshness = "saved" | "cached" | "unknown";
 export type Generation = number;
 
 /**
+ * `agent.status`: the facts of every agent and profile, or of one agent
+ * (and one of its profiles). Needs `read`; `refresh`, which runs checks,
+ * is refused to an agent and needs `agent`.
+ */
+export type GetAgentStatus = { 
+/**
+ * Only this agent.
+ */
+agent?: HarnessRef | null, 
+/**
+ * Only this profile of it (its default without one).
+ */
+profile?: ProfileName | null, 
+/**
+ * Check now: run its status command and its handshake (no prompt).
+ */
+refresh?: boolean, };
+
+/**
  * `fleet.callback` (protocol 6): what a member with no route of its own
  * needs for its home to call it back: the relays the home registers with,
  * and a ticket that registers this member's own node key there for a while
@@ -1835,6 +2218,16 @@ node: NodeId,
  * Its key, which the ticket names.
  */
 key: NodePublicKey, };
+
+/**
+ * `agent.catalogue`: the node's copy of the registry. Needs `read`;
+ * `refresh`, which fetches it, is refused to an agent.
+ */
+export type GetCatalogue = { 
+/**
+ * Fetch it first (unless the copy is younger than a minute).
+ */
+refresh?: boolean, };
 
 /**
  * `git.changes`: the changed files of a scope.
@@ -1902,9 +2295,9 @@ export type GetForgeStatus = Record<symbol, never>;
  */
 export type GetHarnessOptions = { 
 /**
- * Which harness.
+ * Which harness; an added agent needs protocol 11.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Under this profile; `None` is the harness's default. A profile can
  * change what an agent offers (another account, another provider).
@@ -2196,9 +2589,10 @@ more: boolean, };
  */
 export type Harness = { 
 /**
- * Which harness.
+ * Which harness: one of the four, or (protocol 11) an agent added on
+ * the node, which a node leaves out for an older client.
  */
-kind: HarnessKind, 
+kind: HarnessRef, 
 /**
  * Resolved executable path.
  */
@@ -2208,10 +2602,15 @@ path: string,
  */
 version: string | null, 
 /**
- * Structured-mode availability. Terminal mode is always available for an
- * installed harness.
+ * Structured-mode availability.
  */
-structured: StructuredSupport, };
+structured: StructuredSupport, 
+/**
+ * Terminal-mode availability (protocol 11): every one of the four
+ * installed runs in a terminal; an added agent does not. Left out
+ * when available.
+ */
+terminal?: TerminalSupport, };
 
 /**
  * An agent harness Vessel knows how to drive.
@@ -2243,6 +2642,18 @@ probed_at: string,
  * nodes, and for a harness without structured sessions here.
  */
 abilities?: AgentAbilities | null, };
+
+/**
+ * Any agent a node can run (protocol 11, ADR 0032): one of the four Vessel
+ * knows, or one added on that node by its command.
+ *
+ * On the wire a known agent is the string it was before protocol 11
+ * (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`), so every spec
+ * and list an older node or client wrote reads the same; an added agent is
+ * `{"added": "<name>"}`, an object, so it can never be read as one of the
+ * four.
+ */
+export type HarnessRef = HarnessKind | { added: AgentName, };
 
 /**
  * The harness's own session id (an ACP `sessionId`). Kept so a
@@ -2422,6 +2833,162 @@ path: string,
 name?: ProjectName | null, };
 
 /**
+ * `agent.install`: run the vendor's documented command for `agent`'s
+ * `part` (the one `agent.list` shows). Needs `admin`; refused to an
+ * agent and to a call from another node.
+ */
+export type InstallAgent = { 
+/**
+ * Which of the four.
+ */
+agent: HarnessKind, 
+/**
+ * It, or its ACP adapter.
+ */
+part: InstallPart, };
+
+/**
+ * An install a node started (`agent.install`, protocol 11, ADR 0032):
+ * minted by the node, kept until the next install or a restart.
+ */
+export type InstallId = string & { readonly __brand: "InstallId" };
+
+/**
+ * An install the node started.
+ */
+export type InstallJob = { 
+/**
+ * Its id, for `agent.install_output`.
+ */
+id: InstallId, 
+/**
+ * Which of the four.
+ */
+agent: HarnessKind, 
+/**
+ * It, or its adapter.
+ */
+part: InstallPart, 
+/**
+ * The command, as a person would type it.
+ */
+command: string, 
+/**
+ * When it started.
+ */
+started_at: string, };
+
+/**
+ * One install a known agent's vendor documents.
+ */
+export type InstallOffer = { 
+/**
+ * What it installs.
+ */
+part: InstallPart, 
+/**
+ * The whole command, as a person would type it.
+ */
+command: string, };
+
+/**
+ * A page of an install's output, the shape of `worktree.output`.
+ */
+export type InstallOutput = { 
+/**
+ * Where this page starts.
+ */
+from: number, 
+/**
+ * Standard output and error together, as printed.
+ */
+bytes: TerminalBytes, 
+/**
+ * Where the next page starts.
+ */
+next: number, 
+/**
+ * Whether the output reached its limit and the rest was not kept.
+ */
+truncated: boolean, 
+/**
+ * The install now.
+ */
+state: InstallState, };
+
+/**
+ * What an install puts in place.
+ */
+export type InstallPart = "harness" | "adapter";
+
+/**
+ * An install's state.
+ */
+export type InstallState = { "state": "running" } | { "state": "succeeded" } | { "state": "failed", 
+/**
+ * Its exit code.
+ */
+code?: number | null, } | { "state": "timed_out" };
+
+/**
+ * Whether an agent is installed.
+ */
+export type Installed = { "state": "found", 
+/**
+ * Where.
+ */
+path: string, 
+/**
+ * Its version: the four's `--version`, an added agent's own word
+ * in its handshake (never run with `--version`).
+ */
+version?: AgentVersion | null, 
+/**
+ * Whether it runs conversations here.
+ */
+structured: StructuredSupport, } | { "state": "missing", 
+/**
+ * The program looked for.
+ */
+program: AgentProgram, } | { "state": "too_old", 
+/**
+ * Where.
+ */
+path: string, 
+/**
+ * Its version, when known.
+ */
+version?: AgentVersion | null, 
+/**
+ * The ACP version it speaks.
+ */
+speaks: number, 
+/**
+ * The one Vessel speaks.
+ */
+needs: number, } | { "state": "too_new", 
+/**
+ * Where.
+ */
+path: string, 
+/**
+ * Its version, when known.
+ */
+version?: AgentVersion | null, 
+/**
+ * The ACP version it speaks.
+ */
+speaks: number, 
+/**
+ * The one Vessel speaks.
+ */
+needs: number, } | { "state": "unknown", 
+/**
+ * Why.
+ */
+reason: UnknownReason, };
+
+/**
  * Reply to `device.invite`.
  */
 export type Invitation = { 
@@ -2511,6 +3078,12 @@ export type Language = "rust" | "type_script" | "python" | "go" | "cpp";
 export type LineKind = "context" | "added" | "removed" | "no_newline";
 
 /**
+ * `agent.list`: every agent the node can run, the four then the added ones
+ * by name. Starts no process. Needs `read`.
+ */
+export type ListAgents = Record<symbol, never>;
+
+/**
  * `git.branches`.
  */
 export type ListBranches = { 
@@ -2585,9 +3158,9 @@ changed_from?: number | null, };
  */
 export type ListProfiles = { 
 /**
- * Only this harness's profiles.
+ * Only this harness's profiles; an added agent needs protocol 11.
  */
-harness?: HarnessKind | null, };
+harness?: HarnessRef | null, };
 
 /**
  * `project.list`: every project.
@@ -2887,7 +3460,7 @@ export type Mergeable = "mergeable" | "conflicting" | "blocked" | "unstable" | "
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -3531,9 +4104,10 @@ name: ProfileName,
  */
 label?: string | null, 
 /**
- * The harness it applies to.
+ * The harness it applies to: one of the four, or (protocol 11) an
+ * agent added on the node.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Names of the environment variables it sets.
  */
@@ -4248,6 +4822,23 @@ offset: number,
 limit?: number | null, };
 
 /**
+ * `agent.install_output`: a page of an install's output. Needs `admin`.
+ */
+export type ReadInstall = { 
+/**
+ * Which install.
+ */
+job: InstallId, 
+/**
+ * From this byte of its output.
+ */
+from: number, 
+/**
+ * Wait this many seconds (at most 30) for more output or its end.
+ */
+wait?: number | null, };
+
+/**
  * `git.log`: a page of history.
  */
 export type ReadLog = { 
@@ -4369,6 +4960,16 @@ export type RefusedReason = { "kind": "unauthorized" } | { "kind": "no_access" }
 url?: ForgeUrl | null, } | { "kind": "forbidden" } | { "kind": "unknown" };
 
 /**
+ * An agent's id in the ACP registry (`goose`).
+ */
+export type RegistryId = string;
+
+/**
+ * A version in the ACP registry: the registry's own, or an entry's.
+ */
+export type RegistryVersion = string;
+
+/**
  * A relative path inside a root, parts separated by `/`. The empty path is
  * the root itself.
  */
@@ -4438,6 +5039,18 @@ id: DeviceId, };
  * A remote's name (`origin`).
  */
 export type RemoteName = string;
+
+/**
+ * `agent.remove`: forget an added agent. Running sessions keep running;
+ * an ended one cannot be started again. Refused while a profile extends
+ * it. Needs `admin`, and is refused to an agent and to a call from
+ * another node.
+ */
+export type RemoveAgent = { 
+/**
+ * Which agent.
+ */
+name: AgentName, };
 
 /**
  * `project.remove`: forget a project (its files stay).
@@ -4552,7 +5165,7 @@ title: SessionTitle, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput };
 
 /**
  * A repository's path on its forge: `owner/name`, or GitLab's
@@ -4815,6 +5428,20 @@ limit?: number | null, };
  * replaces it (`file.find`).
  */
 export type SearchKey = number & { readonly __brand: "SearchKey" };
+
+/**
+ * A variable an added agent gets from one of the node's secrets
+ * (`secrets.toml`, ADR 0012).
+ */
+export type SecretEnv = { 
+/**
+ * The variable.
+ */
+variable: EnvName, 
+/**
+ * The secret it is set from.
+ */
+secret: SecretName, };
 
 /**
  * A secret's name in a node's `secrets.toml`; definitions refer to
@@ -5322,9 +5949,10 @@ session: SessionId, };
  */
 export type SessionSpec = { 
 /**
- * Harness to launch.
+ * Harness to launch: one of the four, or (protocol 11) an agent added
+ * on the node.
  */
-harness: HarnessKind, 
+harness: HarnessRef, 
 /**
  * Working directory. Defaults to the node's home directory.
  */
@@ -5526,6 +6154,11 @@ finished_at: string, } | { "state": "unknown" };
 export type Severity = "error" | "warning" | "information" | "hint" | "unknown";
 
 /**
+ * A SHA-256 digest, as 64 hexadecimal digits (lower case).
+ */
+export type Sha256Hex = string;
+
+/**
  * `git.show`: a page of a file at a commit or ref (a diff's old side).
  */
 export type ShowFile = { 
@@ -5549,6 +6182,39 @@ offset: number,
  * At most this many bytes (at most 1 MiB, 256 KiB when absent).
  */
 limit?: number | null, };
+
+/**
+ * How a person signs in to an agent. The node only says how (ADR 0032):
+ * a login acts as the account, and runs where its account is.
+ */
+export type SignInHelp = { 
+/**
+ * The agent's own command, to run on that machine as the profile's
+ * account; absent when it signs in inside its own interface.
+ */
+command?: string | null, 
+/**
+ * The variable that chooses the account (`CLAUDE_CONFIG_DIR`), by
+ * name: its value is the profile's, in `profiles.toml`.
+ */
+home?: EnvName | null, 
+/**
+ * The sign-in methods its last handshake offered (ACP `authMethods`).
+ */
+methods?: Array<AuthMethod>, };
+
+/**
+ * Whether an agent is signed in under a profile.
+ */
+export type SignedIn = { "state": "yes" } | { "state": "no", 
+/**
+ * How a person signs in.
+ */
+help: SignInHelp, } | { "state": "not_required" } | { "state": "unknown", 
+/**
+ * Why.
+ */
+reason: UnknownReason, };
 
 /**
  * A worktree's working state kept as a commit before it was removed.
@@ -6049,6 +6715,16 @@ subscription: SubscriptionId,
 terminal: TerminalInfo, };
 
 /**
+ * Whether a harness runs as a terminal session on a node (protocol 11).
+ * Absent from older nodes, whose every harness runs in one.
+ */
+export type TerminalSupport = { "state": "available" } | { "state": "unavailable", 
+/**
+ * Human-readable reason.
+ */
+reason: string, };
+
+/**
  * A shape free text must have.
  */
 export type TextFormat = "email" | "uri" | "date" | "date_time";
@@ -6335,6 +7011,19 @@ cached_write?: TokenCount | null, };
  * Type definitions at a saved source position.
  */
 export type TypeDefinition = AtPosition;
+
+/**
+ * Why a fact is not known.
+ */
+export type UnknownReason = { "reason": "not_installed" } | { "reason": "not_checked" } | { "reason": "in_use" } | { "reason": "not_said" } | { "reason": "no_home" } | { "reason": "unread" } | { "reason": "timed_out", 
+/**
+ * The limit.
+ */
+after: DurationMs, } | { "reason": "failed", 
+/**
+ * Where.
+ */
+step: CheckStep, };
 
 /**
  * `git.unstage`.

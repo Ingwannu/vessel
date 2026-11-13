@@ -508,6 +508,52 @@ vessel session move-profile 3f2a claude-work # at a usage limit: same conversati
   written: a terminal the node starts is outside the harness's own
   sandbox, so turn it on knowing what that sandbox would have stopped.
 
+### Any agent that speaks ACP
+
+Besides the four, a node runs any agent that speaks the Agent Client
+Protocol, added by the command that starts it (ADR 0032). It is kept in
+`agents.toml` beside `profiles.toml`, offered wherever the four are, and
+runs conversations only (no terminal).
+
+```bash
+vessel fleet secret set GOOSE_KEY            # read from standard input
+vessel agents add goose --label Goose --env GOOSE_MODE=auto \
+  --secret ANTHROPIC_API_KEY=GOOSE_KEY -- goose acp
+vessel agents                                # the four, then the added ones
+vessel run goose
+vessel agents remove goose
+
+vessel agents status                         # installed? signed in? (nothing runs)
+vessel agents status codex --profile codex-work --refresh
+vessel agents catalogue --refresh            # the ACP registry, fetched when you ask
+vessel agents add example --from-registry example-agent   # shows the command, asks
+vessel agents install codex                  # the vendor's npm command, shown, asked, run on the node
+vessel agents install claude --adapter       # Claude Code's ACP adapter
+```
+
+- It starts with an empty environment: the search path, your home, the
+  system's own variables (locale, terminal, time zone, temporary folder,
+  proxies without a password), then what you give: `--inherit NAME` from
+  the node's environment, `--env NAME=VALUE`, `--secret NAME=SECRET`
+  from the node's secrets. Keys never go in its arguments: every client
+  sees them, and so does the process table.
+- Of the fleet's MCP servers it gets only those named with `--mcp`;
+  Vessel's own tools always.
+- Only a person adds or removes one (the `admin` scope; an agent never).
+  An agent's session cannot move to another profile or be copied to
+  another node.
+- `vessel agents status --refresh` asks without a turn: Claude Code's and
+  Codex's own status commands (never beside a running session of that
+  profile), and for the others their ACP handshake. It says how to sign
+  in; it does not sign in for you.
+- An install runs the vendor's own command on the node (never beside a
+  running session of that agent), with its output printed as it runs; it
+  sees none of the node's credentials. Signing in afterwards is yours:
+  `vessel agents status` says how.
+- The catalogue lists what each registry entry would run; adding one
+  writes exactly that (an `npx`/`uvx` command pinned to the version
+  shown). An entry that ships only an archive is shown, not downloaded.
+
 ### A fleet: one home, many members
 
 One node keeps your instructions and skills: the home. Every other node is

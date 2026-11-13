@@ -310,6 +310,62 @@ impl Handler for FakeNode {
         Err(unsupported())
     }
 
+    async fn list_agents(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::ListAgents,
+    ) -> Result<Vec<vessel_proto::agents::AgentInfo>, WireError> {
+        Err(unsupported())
+    }
+
+    async fn add_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::AddAgent,
+    ) -> Result<vessel_proto::agents::AgentInfo, WireError> {
+        Err(unsupported())
+    }
+
+    async fn remove_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::RemoveAgent,
+    ) -> Result<Ack, WireError> {
+        Err(unsupported())
+    }
+
+    async fn agent_status(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::GetAgentStatus,
+    ) -> Result<Vec<vessel_proto::agents::AgentReadiness>, WireError> {
+        Err(unsupported())
+    }
+
+    async fn agent_catalogue(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::GetCatalogue,
+    ) -> Result<vessel_proto::agents::Catalogue, WireError> {
+        Err(unsupported())
+    }
+
+    async fn install_agent(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::InstallAgent,
+    ) -> Result<vessel_proto::agents::InstallJob, WireError> {
+        Err(unsupported())
+    }
+
+    async fn install_output(
+        &self,
+        _context: &Context,
+        _request: vessel_proto::agents::ReadInstall,
+    ) -> Result<vessel_proto::agents::InstallOutput, WireError> {
+        Err(unsupported())
+    }
+
     async fn move_profile(
         &self,
         _context: &Context,

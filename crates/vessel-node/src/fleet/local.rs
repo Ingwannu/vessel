@@ -65,11 +65,11 @@ fn profile_targets(profiles: &NodeProfiles) -> Vec<Target> {
         .into_iter()
         .filter_map(|info| profiles.get(&info.name))
         .filter_map(|profile| {
+            // An added agent's home is its own business (ADR 0032): the
+            // fleet's instructions and skills go to the four's.
+            let harness = profile.known()?;
             let root = profiles.home(&profile)?;
-            Some((
-                profile.harness(),
-                Target::for_harness(profile.harness(), root)?,
-            ))
+            Some((harness, Target::for_harness(harness, root)?))
         })
         .collect();
     let claude_default = canonical(&user_home.join(".claude"));

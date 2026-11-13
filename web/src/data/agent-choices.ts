@@ -3,8 +3,13 @@
 // profiles, and where a running session may move among them. The agent's
 // name and kinds are `agents.ts`'s.
 
-import type { Harness, HarnessKind, ProfileInfo } from "../wire/proto";
-import { agentName, runsTimeline } from "./agents";
+import type {
+  Harness,
+  HarnessKind,
+  HarnessRef,
+  ProfileInfo,
+} from "../wire/proto";
+import { agentKey, agentName, knownAgent, runsTimeline } from "./agents";
 
 /** One agent to choose, in the kit's choice shape. */
 export interface AgentChoice {
@@ -13,24 +18,40 @@ export interface AgentChoice {
   detail?: string;
 }
 
-/** The agents a machine has, each with its version as the detail. */
+/** The four of a machine's agents, each with its version as the detail.
+ * An agent added on the machine (protocol 11) is not offered here until
+ * the page draws what it needs (its terminal, its defaults). */
 export function agentChoices(harnesses: readonly Harness[]): AgentChoice[] {
-  return harnesses.map((harness) => {
+  return knownOf(harnesses).map(({ harness, kind }) => {
     const version = harness.version?.split(/\s+/)[0] ?? null;
     return {
-      value: harness.kind,
-      label: agentName(harness.kind),
+      value: kind,
+      label: agentName(kind),
       ...(version === null || version === "" ? {} : { detail: version }),
     };
   });
 }
 
-/** The agent a new session starts with: the first that runs with a
- * timeline, else the first installed. */
+/** The agent a new session starts with: the first of the four that runs
+ * with a timeline, else the first of them installed. */
 export function startingAgent(
   harnesses: readonly Harness[],
 ): HarnessKind | null {
-  return (harnesses.find(runsTimeline) ?? harnesses[0])?.kind ?? null;
+  const known = knownOf(harnesses);
+  return (
+    (known.find(({ harness }) => runsTimeline(harness)) ?? known[0])?.kind ??
+    null
+  );
+}
+
+/** The machine's harnesses that are one of the four, with which. */
+function knownOf(
+  harnesses: readonly Harness[],
+): { harness: Harness; kind: HarnessKind }[] {
+  return harnesses.flatMap((harness) => {
+    const kind = knownAgent(harness.kind);
+    return kind === null ? [] : [{ harness, kind }];
+  });
 }
 
 /** One profile to choose: `""` is the agent's default. */
@@ -45,12 +66,12 @@ export interface ProfileChoice {
  * on another provider's model. */
 export function profileChoices(
   profiles: readonly ProfileInfo[],
-  agent: HarnessKind,
+  agent: HarnessRef,
 ): ProfileChoice[] {
   return [
     { value: "", label: "Default" },
     ...profiles
-      .filter((profile) => profile.harness === agent)
+      .filter((profile) => agentKey(profile.harness) === agentKey(agent))
       .map((profile) => {
         const route = profile.model ?? null;
         return {
@@ -71,7 +92,7 @@ export type MoveChoice = ProfileChoice & { disabled: boolean };
  * the others; the list says so before it is asked. */
 export function moveChoices(
   profiles: readonly ProfileInfo[],
-  agent: HarnessKind,
+  agent: HarnessRef,
   route: string | null,
 ): MoveChoice[] {
   const routeOf = (name: string): string | null =>

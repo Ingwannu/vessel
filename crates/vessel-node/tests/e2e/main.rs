@@ -11,6 +11,8 @@
 #[cfg(test)]
 mod across;
 #[cfg(test)]
+mod added;
+#[cfg(test)]
 mod agents;
 #[cfg(test)]
 mod attachments;
@@ -18,6 +20,8 @@ mod attachments;
 mod attachments_sent;
 #[cfg(test)]
 mod callback;
+#[cfg(test)]
+mod catalogue;
 #[cfg(test)]
 mod conversation;
 #[cfg(test)]
@@ -30,6 +34,8 @@ mod forge;
 mod forge_rules;
 #[cfg(test)]
 mod grants;
+#[cfg(test)]
+mod install;
 #[cfg(test)]
 mod isolation;
 #[cfg(test)]
@@ -65,6 +71,8 @@ mod routing;
 mod secrets_across;
 #[cfg(test)]
 mod secure;
+#[cfg(test)]
+mod status;
 #[cfg(test)]
 mod structured;
 #[cfg(test)]

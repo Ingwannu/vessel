@@ -7,6 +7,13 @@
 //!   set it writes `fake-acp: not logged in` to stderr and exits 3 before
 //!   speaking ACP (a harness that fails at start). Otherwise it writes
 //!   `fake-acp starting` to stderr and serves ACP v1 until stdin closes.
+//! - With `FAKE_ACP_ENV_FILE` set, it first writes the names (never the
+//!   values) of its environment's variables there, sorted, one a line: what
+//!   a test of an added agent's clean environment reads (ADR 0032).
+//! - With `FAKE_ACP_SIGN_IN` set, `initialize` lists one sign-in method
+//!   (`fake-login`, "Fake login") and `session/new` answers ACP's
+//!   `auth_required` (what `agent.status` reads, ADR 0032). `initialize`
+//!   always names it: `fake-acp` and the crate's version.
 //! - With `FAKE_ACP_HANG` set to `initialize` or `session/new`, that request
 //!   is never answered (an adapter stuck at start); stuck at `session/new`,
 //!   it says so on stderr first (`fake-acp: stuck at session/new`), so a
@@ -106,16 +113,16 @@ use std::process::ExitCode;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use agent_client_protocol::v1::schema::{
-    AgentCapabilities, AvailableCommand, AvailableCommandInput, AvailableCommandsUpdate,
-    CancelNotification, Content, ContentBlock, ContentChunk, Cost, ElicitationCapabilities,
-    Implementation, InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
-    McpCapabilities, McpServer, NewSessionRequest, NewSessionResponse, PermissionOption,
-    PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities,
-    PromptRequest, PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionId,
-    SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
-    SetSessionConfigOptionResponse, SetSessionModeRequest, SetSessionModeResponse, StopReason,
-    TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
-    ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
+    AgentCapabilities, AuthMethod, AuthMethodAgent, AvailableCommand, AvailableCommandInput,
+    AvailableCommandsUpdate, CancelNotification, Content, ContentBlock, ContentChunk, Cost,
+    ElicitationCapabilities, Implementation, InitializeRequest, InitializeResponse,
+    LoadSessionRequest, LoadSessionResponse, McpCapabilities, McpServer, NewSessionRequest,
+    NewSessionResponse, PermissionOption, PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority,
+    PlanEntryStatus, PromptCapabilities, PromptRequest, PromptResponse, RequestPermissionOutcome,
+    RequestPermissionRequest, SessionId, SessionNotification, SessionUpdate,
+    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SetSessionModeRequest,
+    SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
+    ToolCallUpdate, ToolCallUpdateFields, ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
 };
 use agent_client_protocol::{Agent, ByteStreams, Error, UntypedMessage};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
@@ -141,6 +148,20 @@ fn main() -> ExitCode {
     if std::env::var_os("FAKE_ACP_EXIT_EARLY").is_some() {
         complain("fake-acp: not logged in");
         return ExitCode::from(3);
+    }
+    if let Some(file) = std::env::var_os("FAKE_ACP_ENV_FILE") {
+        let mut names: Vec<String> = std::env::vars_os()
+            .map(|(name, _value)| name.to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        let mut text = names.join("\n");
+        text.push('\n');
+        if let Err(error) = std::fs::write(&file, text) {
+            complain(&format!(
+                "fake-acp: cannot write the environment's names: {error}"
+            ));
+            return ExitCode::FAILURE;
+        }
     }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -280,6 +301,7 @@ async fn serve() -> ExitCode {
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
+    let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -314,6 +336,11 @@ async fn serve() -> ExitCode {
                                 .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
+                    if signs_in {
+                        answer = answer.auth_methods(vec![AuthMethod::Agent(
+                            AuthMethodAgent::new("fake-login", "Fake login"),
+                        )]);
+                    }
                     if steer {
                         answer.meta = serde_json::json!({ "steering": { "supported": true } })
                             .as_object()
@@ -331,6 +358,9 @@ async fn serve() -> ExitCode {
                     if hang_at_new {
                         complain("fake-acp: stuck at session/new");
                         std::future::pending::<()>().await;
+                    }
+                    if signs_in {
+                        return responder.respond_with_error(Error::auth_required());
                     }
                     let response = {
                         let mut state = lock(&state);

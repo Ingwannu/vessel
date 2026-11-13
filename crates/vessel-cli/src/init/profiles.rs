@@ -12,8 +12,9 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use vessel_harness::{
-    AccountHome, HarnessEnv, InstallPart, Profile, Profiles, account_homes, add_profile,
-    home_variable, login_check, login_command, missing, parse_profiles,
+    AccountHome, AddedAgents, HarnessEnv, InstallPart, Profile, Profiles, account_homes,
+    add_profile, home_variable, login_check, login_command, missing, parse_agents,
+    parse_profiles_with,
 };
 use vessel_proto::{HarnessKind, ProfileName};
 
@@ -33,7 +34,16 @@ pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
         .map(|file| file.text)
         .unwrap_or_default();
     let path = init.data_dir.profiles_path();
-    let profiles = match parse_profiles(&text, Some(&home_dir)) {
+    // A profile may extend an agent added on this node (ADR 0032): the
+    // profiles read with `agents.toml`, as the node reads them.
+    let added = match added_agents(init, &home_dir) {
+        Ok(added) => added,
+        Err(detail) => {
+            init.report(Outcome::Skipped, "profiles", &detail).await?;
+            return Ok(());
+        }
+    };
+    let profiles = match parse_profiles_with(&text, Some(&home_dir), added) {
         Ok(profiles) => profiles,
         Err(error) => {
             let detail = format!(
@@ -137,7 +147,7 @@ async fn propose(
             .map_err(CliError::AddProfile)?;
     }
     // Checked before writing: a node must be able to load the result.
-    let profiles = parse_profiles(&updated, Some(&init.options.home))
+    let profiles = parse_profiles_with(&updated, Some(&init.options.home), current.added().clone())
         .map_err(|error| CliError::ProfilesAfterAdd(error.to_string()))?;
     init.data_dir
         .write_profiles(&updated)
@@ -167,6 +177,22 @@ fn home_value(dir: &Path, home_dir: &Path) -> String {
 
 /// The account `vessel init` sets up: this binary's own environment (the
 /// library is never handed the process's, `HarnessEnv`), under `home`.
+/// The agents added on this node, from `agents.toml`; why it cannot be
+/// used, as the step's detail, otherwise.
+fn added_agents(init: &Init, home: &Path) -> Result<AddedAgents, String> {
+    let path = init.data_dir.agents_path();
+    let text = match init.data_dir.read_agents() {
+        Ok(file) => file.map(|file| file.text).unwrap_or_default(),
+        Err(error) => return Err(format!("{} cannot be read ({error})", shown(init, &path))),
+    };
+    parse_agents(&text, Some(home)).map_err(|error| {
+        format!(
+            "{} does not load ({error}); fix it and run again",
+            shown(init, &path)
+        )
+    })
+}
+
 fn own_env(home: &Path) -> HarnessEnv {
     HarnessEnv::from_vars(home.to_owned(), |name| std::env::var_os(name))
 }
@@ -182,7 +208,11 @@ async fn check_logins(init: &mut Init, profiles: &Profiles) -> Result<(), CliErr
         .map(|install| install.harness)
         .collect();
     for profile in profiles.all() {
-        if absent.contains(&profile.harness()) {
+        // An added agent's sign-in is its own (`agent.status`, ADR 0032).
+        let Some(harness) = profile.known() else {
+            continue;
+        };
+        if absent.contains(&harness) {
             continue;
         }
         let step = format!("login {}", profile.name());
@@ -234,12 +264,13 @@ async fn check_logins(init: &mut Init, profiles: &Profiles) -> Result<(), CliErr
 /// command, with the profile's home variable in front when it sets one
 /// (the only value of a profile ever shown).
 fn login_hint(init: &Init, profile: &Profile) -> Option<String> {
-    let (binary, args) = login_command(profile.harness())?;
+    let harness = profile.known()?;
+    let (binary, args) = login_command(harness)?;
     let command = std::iter::once(binary)
         .chain(args.iter().copied())
         .collect::<Vec<_>>()
         .join(" ");
-    let home_set = home_variable(profile.harness())
+    let home_set = home_variable(harness)
         .and_then(|variable| profile.get(&variable.parse().ok()?).map(|_value| variable));
     let Some(variable) = home_set else {
         return Some(command);

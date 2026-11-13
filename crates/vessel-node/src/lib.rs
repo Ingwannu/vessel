@@ -59,10 +59,12 @@
 //!   flush their last frames; close the store. Subscribers therefore see
 //!   the final status, and a restart finds every log complete.
 
+mod added;
 mod agents;
 pub mod attach;
 mod attachments;
 mod auth;
+mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
@@ -72,6 +74,7 @@ pub mod fleet;
 mod forge;
 mod guard;
 mod identity;
+mod install;
 mod ipc;
 mod lifecycle;
 mod lsp;
@@ -82,6 +85,7 @@ mod persist;
 mod principal;
 mod probes;
 mod profiles;
+mod readiness;
 mod relays;
 mod secret_copy;
 mod secure;

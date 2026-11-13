@@ -17,7 +17,7 @@ import {
   profileChoices,
   startingAgent,
 } from "../../data/agent-choices";
-import { agentName, runsTimeline } from "../../data/agents";
+import { agentName, knownAgent, runsTimeline } from "../../data/agents";
 import { createSession, sendPrompt } from "../../data/calls";
 import { folderSuggestions } from "../../data/folders";
 import {
@@ -95,8 +95,9 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const status = machine === null ? undefined : state.statuses[machine];
   const nodeId = status?.state === "connected" ? status.node.id : null;
   const defaults = useStore(prefs, (value) => value.values.defaults);
+  const chosen = harnesses.find((harness) => harness.kind === draft.agent);
   const agent: HarnessKind | null =
-    harnesses.find((harness) => harness.kind === draft.agent)?.kind ??
+    (chosen === undefined ? null : knownAgent(chosen.kind)) ??
     rememberedAgent(defaults, nodeId, harnesses) ??
     startingAgent(harnesses);
   const harness =

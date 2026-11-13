@@ -8,7 +8,7 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_proto::{
     Ack, DeviceInfo, GetNode, Harness, Invitation, InviteDevice, ListDevices, ListHarnesses,
-    NodeInfo, RevokeDevice, StopNode, WireError,
+    NodeInfo, ProtocolVersion, RevokeDevice, StopNode, WireError,
 };
 use vessel_rpc::{Outbound, Peer};
 
@@ -42,6 +42,9 @@ mod options;
 // again.
 mod again;
 mod conversation;
+// Protocol 11's calls: agents beyond the four (ADR 0032).
+mod agents;
+mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
@@ -97,6 +100,12 @@ pub(crate) struct NodeService {
     terminals: Arc<Terminals>,
     /// The ports their trees and the sessions' listen on (protocol 11).
     ports: Arc<Ports>,
+    /// What `agent.status` found (protocol 11, `readiness`).
+    readiness: crate::readiness::Readiness,
+    /// The node's copy of the ACP registry (protocol 11, `catalogue`).
+    catalogue: crate::catalogue::Catalogues,
+    /// The last install (protocol 11, `install`).
+    installs: crate::install::Installs,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -122,6 +131,7 @@ pub(crate) struct Parts {
     pub(crate) forges: Arc<Forges>,
     pub(crate) terminals: Arc<Terminals>,
     pub(crate) ports: Arc<Ports>,
+    pub(crate) catalogue: crate::catalogue::Catalogues,
 }
 
 impl NodeService {
@@ -148,6 +158,7 @@ impl NodeService {
             forges,
             terminals,
             ports,
+            catalogue,
         } = parts;
         Self {
             lsp,
@@ -172,6 +183,9 @@ impl NodeService {
             forges,
             terminals,
             ports,
+            readiness: crate::readiness::Readiness::default(),
+            catalogue,
+            installs: crate::install::Installs::default(),
         }
     }
 
@@ -211,6 +225,9 @@ impl NodeService {
 pub(crate) struct Connection {
     outbound: Outbound,
     principal: Principal,
+    /// The protocol the client negotiated: an older client is never handed
+    /// what it cannot decode (protocol 11's added agents).
+    protocol: ProtocolVersion,
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
 }
@@ -226,6 +243,7 @@ impl Connection {
         Self {
             outbound: peer.outbound,
             principal,
+            protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
         }
     }
@@ -240,12 +258,18 @@ impl Connection {
         &self.principal
     }
 
+    /// The protocol the client speaks.
+    pub(crate) const fn protocol(&self) -> ProtocolVersion {
+        self.protocol
+    }
+
     /// This connection, calling as `principal`: a call delivered from
     /// another node runs as its delegated principal (protocol 6).
     pub(crate) fn acting_as(&self, principal: Principal) -> Self {
         Self {
             outbound: self.outbound.clone(),
             principal,
+            protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
         }
     }
@@ -276,7 +300,7 @@ impl NodeService {
         _: &Connection,
         _: ListHarnesses,
     ) -> Result<Vec<Harness>, WireError> {
-        Ok(vessel_harness::discover(&self.lookup).await)
+        Ok(self.harnesses().await)
     }
 
     /// `node.stop` (protocol 3, ADR 0008): stop now, or drain and stop once

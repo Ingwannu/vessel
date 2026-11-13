@@ -7,12 +7,13 @@ use std::path::PathBuf;
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
 use vessel_proto::{
-    EventSeq, HarnessKind, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
+    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
 };
 
 use vessel_client::book::Resolved;
 
-use crate::args::{Cli, Command, NodeCommand, Run, SessionCommand, Target};
+use crate::agents;
+use crate::args::{AgentsCommand, Cli, Command, NodeCommand, Run, SessionCommand, Target};
 use crate::attach::{self, terminal};
 use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
@@ -71,6 +72,13 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             Ok(io::out(text.as_bytes()).await?)
         }
         Command::Profiles { harness, reload } => Box::pin(profiles(target, harness, reload)).await,
+        Command::Agents { command } => {
+            Box::pin(agents::agents(
+                target,
+                command.unwrap_or(AgentsCommand::List),
+            ))
+            .await
+        }
         Command::Models => {
             let client = connect(target).await?.client;
             let text = render::models(&client.models().await?);
@@ -157,7 +165,7 @@ async fn move_profile(
 /// `vessel profiles`: list them, after a reload if asked.
 async fn profiles(
     target: &Target,
-    harness: Option<HarnessKind>,
+    harness: Option<HarnessRef>,
     reload: bool,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
@@ -241,8 +249,17 @@ async fn node_start(
 
 async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     // The spec is checked before connecting, so a bad `--cwd` fails without
-    // touching the network.
-    let mode = if run.structured {
+    // touching the network. An added agent has no terminal (ADR 0032): it
+    // runs as a conversation without `--structured`, and its arguments are
+    // its definition's.
+    let added = run.harness.added().is_some();
+    if added && !run.args.is_empty() {
+        return Err(CliError::Usage(
+            "an added agent runs only as a conversation; its arguments are in its definition \
+             (`vessel agents add --replace`)",
+        ));
+    }
+    let mode = if run.structured || added {
         SessionMode::Structured {
             model: run.model.map(ModelId::new),
             resume: run.resume.map(HarnessSessionId::new),

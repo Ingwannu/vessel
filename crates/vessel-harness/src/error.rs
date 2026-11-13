@@ -3,7 +3,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use vessel_proto::{HarnessKind, ProfileName};
+use vessel_proto::agents::AgentProgram;
+use vessel_proto::{AgentName, HarnessKind, HarnessRef, ProfileName, SecretName};
 
 use crate::mcp::McpError;
 
@@ -51,9 +52,40 @@ pub enum HarnessError {
         /// The profile.
         profile: ProfileName,
         /// The harness it extends.
-        profile_harness: HarnessKind,
+        profile_harness: HarnessRef,
         /// The session's harness.
-        harness: HarnessKind,
+        harness: HarnessRef,
+    },
+    /// The session names an agent this node has not added (protocol 11,
+    /// ADR 0032).
+    #[error("no agent named `{name}` is added on this node")]
+    NotDefined {
+        /// The name asked for.
+        name: AgentName,
+    },
+    /// An added agent's program is not found: not on the search path, or
+    /// no file at the absolute path written.
+    #[error("the agent `{name}` cannot start: its program `{program}` was not found")]
+    AgentMissing {
+        /// The agent.
+        name: AgentName,
+        /// Its program as written.
+        program: AgentProgram,
+    },
+    /// An added agent's definition names a secret the node has no value
+    /// for.
+    #[error("the agent `{name}` needs the secret `{secret}`, which this node does not have")]
+    SecretMissing {
+        /// The agent.
+        name: AgentName,
+        /// The secret.
+        secret: SecretName,
+    },
+    /// An added agent in terminal mode: Vessel knows only its ACP command.
+    #[error("the agent `{name}` runs only as a conversation (ACP); it has no terminal of its own")]
+    NoTerminal {
+        /// The agent.
+        name: AgentName,
     },
     /// The profile is not the one the spec asks for (`spec.profile`, or the
     /// harness's default when it names none). The caller resolves the name;

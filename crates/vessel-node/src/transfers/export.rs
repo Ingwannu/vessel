@@ -28,7 +28,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_fleet::{Limits, Snapshot};
-use vessel_harness::Profile;
+use vessel_harness::{Profile, SessionFilesError};
 use vessel_proto::{
     ExportMemory, ExportSession, HarnessKind, ProfileName, SessionMode, TransferDetail,
     TransferManifest,
@@ -76,7 +76,13 @@ impl Exporter<'_> {
             .harness_session
             .clone()
             .ok_or(TransferError::NotReady)?;
-        let harness = info.spec.harness;
+        // An added agent's conversation cannot be copied: Vessel does not
+        // know where it keeps it (ADR 0032).
+        let harness = info.spec.harness.known().ok_or_else(|| {
+            TransferError::Files(SessionFilesError::Unsupported {
+                harness: info.spec.harness.clone(),
+            })
+        })?;
         let profile = match &info.profile {
             None => Profile::default_for(harness),
             Some(name) => self
@@ -95,7 +101,7 @@ impl Exporter<'_> {
             let (transfers, cwd, session) =
                 (Arc::clone(self.transfers), cwd.clone(), session.clone());
             tokio::task::spawn_blocking(move || {
-                let files = vessel_harness::session_files(harness, &home, &cwd, &session)?
+                let files = vessel_harness::session_files(&harness.into(), &home, &cwd, &session)?
                     .regular_files(&home)?;
                 take(&transfers, &home, &files)
             })
@@ -133,7 +139,13 @@ impl Exporter<'_> {
         {
             return Err(TransferError::RelativeDirectory(project.clone()).into());
         }
-        let harness = profile.harness();
+        // An added agent's memory is its own files, unknown to Vessel
+        // (ADR 0032): there is nothing to export.
+        let harness = profile.known().ok_or_else(|| {
+            TransferError::Files(SessionFilesError::Unsupported {
+                harness: profile.harness(),
+            })
+        })?;
         let home = home(self.profiles, &profile)?;
         let (staged, snapshot) = {
             let (transfers, project) = (Arc::clone(self.transfers), request.project.clone());
@@ -201,7 +213,7 @@ pub(crate) fn named(
         Some(harness) if profile.harness() != harness => Err(ServiceError::ProfileHarness {
             profile: name.clone(),
             profile_harness: profile.harness(),
-            harness,
+            harness: harness.into(),
         }),
         Some(_) | None => Ok(profile),
     }

@@ -117,7 +117,7 @@ async fn running(
     profile: &str,
 ) -> (SessionInfo, SessionStream, Vec<EventRecord>) {
     let mut spec = structured_spec(fixture, None);
-    spec.harness = harness;
+    spec.harness = harness.into();
     spec.profile = Some(name(profile));
     let info = client.create_session(spec).await.unwrap();
     let mut stream = client.follow(info.id, EventSeq::ZERO).await.unwrap();

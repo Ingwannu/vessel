@@ -17,7 +17,7 @@
 
 use std::sync::{Arc, PoisonError, RwLock};
 
-use vessel_proto::{McpDefinitions, SessionSpec};
+use vessel_proto::{McpDefinitions, McpServerName, ResolvedValue, SecretName, SessionSpec};
 
 use super::secrets::Secrets;
 use crate::profiles::launch::{McpServers, McpSource};
@@ -72,10 +72,24 @@ impl FleetMcp {
 }
 
 impl McpSource for FleetMcp {
-    fn servers(&self, _spec: &SessionSpec) -> McpServers {
+    fn servers(&self, _spec: &SessionSpec, only: Option<&[McpServerName]>) -> McpServers {
         let snapshot = self.current();
-        let (servers, missing) =
-            vessel_fleet::resolve(&snapshot.definitions, |name| snapshot.secrets.get(name));
+        let (servers, missing) = match only {
+            None => vessel_fleet::resolve(&snapshot.definitions, |name| snapshot.secrets.get(name)),
+            Some(only) => {
+                let named: McpDefinitions = snapshot
+                    .definitions
+                    .iter()
+                    .filter(|(name, _definition)| only.contains(name))
+                    .map(|(name, definition)| (name.clone(), definition.clone()))
+                    .collect();
+                vessel_fleet::resolve(&named, |name| snapshot.secrets.get(name))
+            }
+        };
         McpServers { servers, missing }
+    }
+
+    fn secret(&self, name: &SecretName) -> Option<ResolvedValue> {
+        self.current().secrets.get(name)
     }
 }
