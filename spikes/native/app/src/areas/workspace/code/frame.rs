@@ -8,19 +8,38 @@
 //! opens a file's diff in the main pane; here the diff is in the panel,
 //! so the panel starts wider (it does not resize yet).
 
+use gpui::AppContext as _;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::tabs::{tab, tab_head};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, DragMoveEvent, InteractiveElement as _, IntoElement,
+    ParentElement as _, Pixels, Render, StatefulInteractiveElement as _, Styled as _, Window, div,
+    px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
 
 use super::{Place, Tab};
 use crate::shell::Shell;
 
-/// The panel's width beside the conversation.
-const WIDTH: f32 = 440.0;
+/// The panel's width beside the conversation, until dragged.
+pub(super) const WIDTH: Pixels = px(440.0);
+
+/// The narrowest it is dragged to (Paseo's Explorer: 240; a diff needs
+/// more) and the conversation's least width beside it.
+const MIN_WIDTH: Pixels = px(320.0);
+const MIN_CONVERSATION: Pixels = px(480.0);
+
+/// What is dragged at the panel's left edge.
+struct Edge;
+
+/// The drag's picture: nothing (the panel itself moves).
+struct NoGhost;
+
+impl Render for NoGhost {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
+        div()
+    }
+}
 
 /// The session bar's toggle (track C's bar, its right actions): Paseo's
 /// panel glyph, filled while the panel is out. `None` without an open
@@ -56,7 +75,7 @@ pub(crate) fn code_toggle(
                     neutral.foreground_muted
                 },
             ))
-            .on_click(cx.listener(|this, _event, _window, cx| this.toggle_code(cx)))
+            .on_click(cx.listener(|this, _event, window, cx| this.toggle_code(window, cx)))
             .into_any_element(),
     )
 }
@@ -132,7 +151,7 @@ pub(crate) fn code_panel(
             .cursor_pointer()
             .hover(move |style| style.bg(neutral.surface2))
             .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted))
-            .on_click(cx.listener(|this, _event, _window, cx| this.toggle_code(cx))),
+            .on_click(cx.listener(|this, _event, window, cx| this.toggle_code(window, cx))),
     );
     let body: AnyElement = match panel.target.as_ref().map(|target| &target.place) {
         None | Some(Place::Reading) => note(labels.loading, tokens).into_any_element(),
@@ -154,13 +173,54 @@ pub(crate) fn code_panel(
     Some(if phone {
         frame.absolute().inset_0().size_full().into_any_element()
     } else {
-        frame
-            .w(px(WIDTH))
-            .flex_none()
-            .border_l_1()
-            .border_color(neutral.border)
-            .into_any_element()
+        beside(frame, panel.width, tokens, cx).into_any_element()
     })
+}
+
+/// The panel beside the conversation: its hairline, its width, and a
+/// 6-wide strip over the hairline that resizes it (Paseo's Explorer is
+/// resized at its edge), between [`MIN_WIDTH`] and the window less
+/// [`MIN_CONVERSATION`].
+fn beside(
+    frame: Div,
+    width: Pixels,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> vessel_app_kit::ui::Stateful<Div> {
+    frame
+        .id("code-panel")
+        .relative()
+        .w(width)
+        .flex_none()
+        .border_l_1()
+        .border_color(tokens.neutral.border)
+        .child(
+            div()
+                .id("code-edge")
+                .absolute()
+                .top_0()
+                .bottom_0()
+                .left(px(-3.0))
+                .w(px(6.0))
+                .cursor_col_resize()
+                .on_drag(Edge, |_edge, _at, _window, cx| cx.new(|_| NoGhost)),
+        )
+        .on_drag_move(
+            cx.listener(|this, event: &DragMoveEvent<Edge>, window, cx| {
+                // In plain numbers through `mul_add`: the lints deny operators
+                // on floats and on pixels.
+                let right = f32::from(event.bounds.right());
+                let pointer = f32::from(event.event.position.x);
+                let most = f32::from(MIN_CONVERSATION)
+                    .mul_add(-1.0, f32::from(window.viewport_size().width));
+                let width = pointer
+                    .mul_add(-1.0, right)
+                    .min(most)
+                    .max(f32::from(MIN_WIDTH));
+                this.areas.workspace.code.width = px(width);
+                cx.notify();
+            }),
+        )
 }
 
 /// A line where the panel has nothing else to show.

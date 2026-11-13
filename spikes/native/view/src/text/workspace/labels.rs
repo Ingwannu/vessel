@@ -119,6 +119,16 @@ pub struct Labels {
     pub back: &'static str,
     pub read_failed: &'static str,
     pub list_failed: &'static str,
+    /// The Files tab's search field, finding a file by its name.
+    pub go_to_file: &'static str,
+    /// The Files tab's search field, searching inside files (Enter runs it).
+    pub search_in_files: &'static str,
+    /// The Files tab's search: the segment that finds files by name.
+    pub by_name: &'static str,
+    /// The Files tab's search: the segment that searches inside files.
+    pub by_content: &'static str,
+    /// The Files tab's search results when nothing matched.
+    pub nothing_found: &'static str,
 }
 
 /// English (the page's words).
@@ -235,6 +245,11 @@ pub const EN: Labels = Labels {
     back: "Back",
     read_failed: "This file could not be read",
     list_failed: "This folder could not be listed",
+    go_to_file: "Go to a file by name",
+    search_in_files: "Search inside files, then press Enter",
+    by_name: "Name",
+    by_content: "Content",
+    nothing_found: "Nothing matches",
 };
 
 /// Korean.
@@ -351,4 +366,9 @@ pub const KO: Labels = Labels {
     back: "뒤로",
     read_failed: "이 파일을 읽지 못했습니다",
     list_failed: "이 폴더의 목록을 읽지 못했습니다",
+    go_to_file: "이름으로 파일 찾기",
+    search_in_files: "파일 내용 검색 후 Enter",
+    by_name: "이름",
+    by_content: "내용",
+    nothing_found: "일치하는 것이 없습니다",
 };

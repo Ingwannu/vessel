@@ -25,6 +25,7 @@
 mod changes;
 mod files;
 mod frame;
+mod search;
 
 use std::collections::{HashMap, HashSet};
 
@@ -93,6 +94,10 @@ struct Viewer {
     path: RelPath,
     text: Shown,
     list: VirtualList,
+    /// The line to bring to the top once read (from 1: a search's hit).
+    goto: Option<u32>,
+    /// The lines chosen for the composer (from 0, first and last).
+    chosen: Option<(usize, usize)>,
 }
 
 /// What a file shows.
@@ -114,6 +119,7 @@ struct Files {
     rows: Vec<TreeRow>,
     list: VirtualList,
     viewer: Option<Viewer>,
+    search: search::Search,
 }
 
 /// The panel's state.
@@ -124,6 +130,8 @@ pub(crate) struct CodePanel {
     target: Option<Target>,
     changes: Changes,
     files: Files,
+    /// Its width beside the conversation (dragged at its left edge).
+    width: vessel_app_kit::ui::Pixels,
 }
 
 impl CodePanel {
@@ -147,7 +155,9 @@ impl CodePanel {
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 viewer: None,
+                search: search::Search::new(window, cx),
             },
+            width: frame::WIDTH,
         }
     }
 
@@ -186,11 +196,14 @@ impl Shell {
         Some((open.machine.clone(), open.session))
     }
 
-    /// Open or close the panel.
-    pub(crate) fn toggle_code(&mut self, cx: &mut Context<'_, Self>) {
+    /// Open or close the panel; opening it says the search field's words
+    /// in the person's language (the field is made before the language is
+    /// known).
+    pub(crate) fn toggle_code(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let panel = &mut self.areas.workspace.code;
         panel.open = !panel.open;
         if panel.open {
+            self.search_words(window, cx);
             self.code_follow();
         }
         cx.notify();
@@ -249,6 +262,29 @@ impl Shell {
             Err(problem) => Place::Failed(words.problem(&problem)),
         };
         self.code_read_tab();
+    }
+
+    /// Track G1's call after a git write it made succeeded (a commit, a
+    /// switch, a stash, a discard): when the panel shows `root` on
+    /// `machine`, what it shows is read again; what is shown stays until
+    /// the new answers replace it (no flash of an empty panel). Otherwise
+    /// nothing.
+    pub(crate) fn code_git_changed(
+        &mut self,
+        machine: &str,
+        root: &WorkspaceRoot,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let panel = &self.areas.workspace.code;
+        if panel.root() != Some((machine, root)) {
+            return;
+        }
+        let tab = panel.tab;
+        match tab {
+            Tab::Changes => self.reread_changes(),
+            Tab::Files => self.reread_files(),
+        }
+        cx.notify();
     }
 
     /// Read what the chosen tab shows, if not read yet.

@@ -1,0 +1,437 @@
+//! The Files tab's search: a file by its name as it is typed (`file.find`,
+//! the node's fuzzy index, a newer search replacing an older one by the
+//! field's key), or lines inside files on Enter (`file.grep`); a result
+//! opens the file at its line. And a viewed file's lines sent to the
+//! session's composer (agent-orchestrator's "Add to chat", the page's
+//! `reference.ts`): click a line's number, Shift-click another, then "Add
+//! to chat".
+//!
+//! [Decision Log]
+//! - Purpose: open by name and search in files, as Paseo's Cmd+P and
+//!   agent-orchestrator's file search do, inside the panel.
+//! - Constraint: a search in files costs the machine a walk of the tree;
+//!   a find is cheap and the node stops an older one with the same key.
+//! - Choice: the name searched as typed; the content searched on Enter,
+//!   the two kinds chosen by a segmented control beside the field.
+//! - Cost: a content search waits for Enter (Paseo's searches as typed
+//!   with a pause; the node's grep has no key to stop an older one).
+
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
+use vessel_app_kit::ui::{
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+};
+use vessel_app_kit::{Reveal, TextField, Tokens, Type, TypeExt as _, VirtualList, glyph};
+use vessel_app_link::workspace::{Ask, FileAsk};
+use vessel_app_view::workspace::changes::split_path;
+use vessel_app_view::workspace::find::SearchKeys;
+use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::reference::{file_reference, with_reference};
+use vessel_proto::workspace::{
+    FindFiles, FoundFiles, GrepCase, GrepMode, GrepResult, RelPath, SearchFiles, SearchKey,
+};
+
+use super::frame::note;
+use crate::shell::Shell;
+
+/// Which search.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Mode {
+    Name,
+    Content,
+}
+
+/// What the search shows.
+pub(super) enum Results {
+    /// Nothing typed: the tree.
+    Idle,
+    Loading,
+    Found(FoundFiles),
+    Grepped(GrepResult),
+    Failed(String),
+}
+
+/// The search's state.
+pub(super) struct Search {
+    pub(super) field: TextField,
+    pub(super) mode: Mode,
+    key: SearchKey,
+    pub(super) results: Results,
+    pub(super) list: VirtualList,
+}
+
+impl Search {
+    pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        let mut keys = SearchKeys::default();
+        Self {
+            field: TextField::with_change(
+                "",
+                |shell: &mut Shell, text, _window, cx| shell.search_submitted(&text, cx),
+                |shell: &mut Shell, text, cx| shell.search_typed(&text, cx),
+                window,
+                cx,
+            ),
+            mode: Mode::Name,
+            key: keys.next(),
+            results: Results::Idle,
+            list: VirtualList::new(false),
+        }
+    }
+
+    fn rows(&self) -> usize {
+        match &self.results {
+            Results::Found(found) => found.matches.len(),
+            Results::Grepped(grepped) => grepped.matches.len(),
+            Results::Idle | Results::Loading | Results::Failed(_) => 0,
+        }
+    }
+}
+
+impl Shell {
+    fn search_typed(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+        let search = &mut self.areas.workspace.code.files.search;
+        if text.trim().is_empty() {
+            search.results = Results::Idle;
+            search.list.reset(0);
+        } else if search.mode == Mode::Name {
+            self.run_search(text);
+        }
+        cx.notify();
+    }
+
+    fn search_submitted(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+        if !text.trim().is_empty() {
+            self.run_search(text);
+        }
+        cx.notify();
+    }
+
+    fn run_search(&mut self, text: &str) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        let search = &mut panel.files.search;
+        let ask = match search.mode {
+            Mode::Name => {
+                let Ok(query) = text.trim().parse() else {
+                    return;
+                };
+                FileAsk::Find(FindFiles {
+                    root,
+                    query,
+                    key: Some(search.key),
+                    limit: Some(100),
+                })
+            }
+            Mode::Content => {
+                let Ok(query) = text.parse() else {
+                    return;
+                };
+                FileAsk::Grep(SearchFiles {
+                    root,
+                    query,
+                    mode: GrepMode::Literal,
+                    case: GrepCase::Smart,
+                    dir: None,
+                    limit: Some(200),
+                })
+            }
+        };
+        search.results = Results::Loading;
+        search.list.reset(0);
+        self.ask(&machine, Ask::File(ask));
+    }
+
+    /// The field's placeholder for its search, in the person's language.
+    pub(super) fn search_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let labels = self.words().labels();
+        let search = &self.areas.workspace.code.files.search;
+        search.field.set_placeholder(
+            match search.mode {
+                Mode::Name => labels.go_to_file,
+                Mode::Content => labels.search_in_files,
+            },
+            window,
+            cx,
+        );
+    }
+
+    fn search_mode(&mut self, mode: Mode, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.areas.workspace.code.files.search.mode = mode;
+        self.search_words(window, cx);
+        let search = &mut self.areas.workspace.code.files.search;
+        let text = search.field.text(cx);
+        search.results = Results::Idle;
+        search.list.reset(0);
+        if mode == Mode::Name && !text.trim().is_empty() {
+            self.run_search(&text);
+        }
+        search_focus(self, window, cx);
+        cx.notify();
+    }
+
+    /// Files found by name.
+    pub(in crate::areas::workspace) fn files_found(
+        &mut self,
+        ask: &FindFiles,
+        result: Result<FoundFiles, Problem>,
+    ) {
+        let words = self.words();
+        let search = &mut self.areas.workspace.code.files.search;
+        if ask.key != Some(search.key) || search.mode != Mode::Name {
+            return;
+        }
+        search.results = match result {
+            Ok(found) if found.superseded => return,
+            Ok(found) => Results::Found(found),
+            Err(problem) => Results::Failed(words.problem(&problem)),
+        };
+        let rows = search.rows();
+        search.list.reset(rows);
+    }
+
+    /// Lines found in files.
+    pub(in crate::areas::workspace) fn files_grepped(
+        &mut self,
+        result: Result<GrepResult, Problem>,
+    ) {
+        let words = self.words();
+        let search = &mut self.areas.workspace.code.files.search;
+        if search.mode != Mode::Content {
+            return;
+        }
+        search.results = match result {
+            Ok(grepped) => Results::Grepped(grepped),
+            Err(problem) => Results::Failed(words.problem(&problem)),
+        };
+        let rows = search.rows();
+        search.list.reset(rows);
+    }
+
+    /// Send the viewed file's chosen lines to the session's composer.
+    pub(super) fn add_lines_to_chat(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(viewer) = self.areas.workspace.code.files.viewer.as_ref() else {
+            return;
+        };
+        let Some((first, last)) = viewer.chosen else {
+            return;
+        };
+        let super::Shown::Text { lines, .. } = &viewer.text else {
+            return;
+        };
+        let chosen: Vec<&str> = lines
+            .get(first..=last)
+            .map(|lines| lines.iter().map(String::as_str).collect())
+            .unwrap_or_default();
+        let start = u32::try_from(first.saturating_add(1)).unwrap_or(u32::MAX);
+        let fence = viewer
+            .path
+            .as_str()
+            .rsplit_once('.')
+            .map_or("", |(_, extension)| extension);
+        let reference = file_reference(viewer.path.as_str(), start, &chosen, fence);
+        let composer = &self.areas.session.composer;
+        let draft = composer.text(cx);
+        composer.set_text(&with_reference(&draft, &reference), window, cx);
+        composer.focus(window, cx);
+        if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
+            viewer.chosen = None;
+        }
+        cx.notify();
+    }
+}
+
+fn search_focus(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    shell
+        .areas
+        .workspace
+        .code
+        .files
+        .search
+        .field
+        .focus(window, cx);
+}
+
+/// The field and the kind of search, over the tree or the results.
+pub(super) fn bar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let search = &shell.areas.workspace.code.files.search;
+    let labels = shell.words().labels();
+    let neutral = tokens.neutral;
+    let size = SegmentSize::Small;
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .px(px(8.0))
+        .py(px(6.0))
+        .border_b_1()
+        .border_color(neutral.border)
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(6.0))
+                .h(px(28.0))
+                .px(px(8.0))
+                .rounded(px(6.0))
+                .bg(neutral.surface1)
+                .child(glyph(Glyph::Search, 14.0, neutral.foreground_muted))
+                .child(search.field.input(tokens, cx)),
+        )
+        .child(
+            segmented(size)
+                .child(
+                    segment(
+                        "code-search-name",
+                        labels.by_name,
+                        search.mode == Mode::Name,
+                        true,
+                        size,
+                        tokens,
+                    )
+                    .on_click(cx.listener(|this, _event, window, cx| {
+                        this.search_mode(Mode::Name, window, cx);
+                    })),
+                )
+                .child(
+                    segment(
+                        "code-search-content",
+                        labels.by_content,
+                        search.mode == Mode::Content,
+                        true,
+                        size,
+                        tokens,
+                    )
+                    .on_click(cx.listener(|this, _event, window, cx| {
+                        this.search_mode(Mode::Content, window, cx);
+                    })),
+                ),
+        )
+}
+
+/// The results in the tree's place, `None` when nothing is searched.
+pub(super) fn results(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let search = &shell.areas.workspace.code.files.search;
+    let words = shell.words();
+    let labels = words.labels();
+    Some(match &search.results {
+        Results::Idle => return None,
+        Results::Loading => note(labels.loading, tokens).into_any_element(),
+        Results::Failed(why) => note(why.clone(), tokens).into_any_element(),
+        Results::Found(found) if found.matches.is_empty() => {
+            note(labels.nothing_found, tokens).into_any_element()
+        }
+        Results::Grepped(grepped) if grepped.matches.is_empty() => {
+            note(labels.nothing_found, tokens).into_any_element()
+        }
+        Results::Found(_) | Results::Grepped(_) => search
+            .list
+            .element(
+                cx.processor(|shell: &mut Shell, index: usize, _window, cx| {
+                    let tokens = vessel_app_kit::tokens(cx);
+                    result_row(shell, index, &tokens, cx)
+                }),
+            )
+            .into_any_element(),
+    })
+}
+
+fn result_row(
+    shell: &Shell,
+    index: usize,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let neutral = tokens.neutral;
+    let hover = neutral.surface2;
+    let search = &shell.areas.workspace.code.files.search;
+    let (path, line, text): (RelPath, Option<u32>, Option<String>) = match &search.results {
+        Results::Found(found) => match found.matches.get(index) {
+            Some(found) => (found.path.clone(), None, None),
+            None => return div().into_any_element(),
+        },
+        Results::Grepped(grepped) => match grepped.matches.get(index) {
+            Some(hit) => (hit.path.clone(), Some(hit.line), Some(hit.text.clone())),
+            None => return div().into_any_element(),
+        },
+        Results::Idle | Results::Loading | Results::Failed(_) => return div().into_any_element(),
+    };
+    let (folder, name) = split_path(path.as_str());
+    let head = div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .child(glyph(Glyph::File, 14.0, neutral.foreground_muted))
+        .child(
+            div()
+                .flex_none()
+                .max_w(px(240.0))
+                .truncate()
+                .type_(Type::Body)
+                .text_color(neutral.foreground)
+                .child(name.to_owned()),
+        )
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(neutral.foreground_muted)
+                .child(match line {
+                    Some(line) => format!("{folder}:{line}"),
+                    None => folder.to_owned(),
+                }),
+        );
+    div()
+        .id(("code-found", index))
+        .w_full()
+        .flex()
+        .flex_col()
+        .gap(px(2.0))
+        .px(px(8.0))
+        .py(px(6.0))
+        .cursor_pointer()
+        .hover(move |style| style.bg(hover))
+        .child(head)
+        .children(text.map(|text| {
+            div()
+                .pl(px(20.0))
+                .truncate()
+                .type_(Type::Mono)
+                .text_color(neutral.foreground_muted)
+                .child(text.trim().to_owned())
+        }))
+        .on_click(cx.listener(move |this, _event, _window, cx| {
+            this.open_file_at(path.clone(), line, cx);
+        }))
+        .into_any_element()
+}
+
+/// Bring line `line` (from 1) of the viewed file to the top, once read.
+pub(super) fn reveal_line(list: &VirtualList, line: u32) {
+    let row = usize::try_from(line.saturating_sub(1)).unwrap_or(0);
+    list.reveal(row, Reveal::Top);
+}
+
+/// The viewed file's chosen lines, in words, for its button.
+pub(super) fn chosen_words(shell: &Shell, chosen: (usize, usize)) -> String {
+    let (first, last) = chosen;
+    shell
+        .words()
+        .add_lines(first.saturating_add(1), last.saturating_add(1))
+}

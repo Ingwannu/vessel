@@ -660,6 +660,14 @@ impl WorkspaceWords for En {
         }
     }
 
+    fn add_lines(&self, first: usize, last: usize) -> String {
+        if first == last {
+            format!("Add line {first} to chat")
+        } else {
+            format!("Add lines {first}\u{2013}{last} to chat")
+        }
+    }
+
     fn digest(&self, digest: &str) -> String {
         format!("Digest {digest}")
     }

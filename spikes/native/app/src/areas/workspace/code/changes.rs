@@ -72,6 +72,27 @@ impl Shell {
         );
     }
 
+    /// Ask for the comparison again, what is shown kept until it answers
+    /// (`code_git_changed`).
+    pub(super) fn reread_changes(&mut self) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        let scope = panel.changes.scope.scope();
+        self.ask(
+            &machine,
+            Ask::Git(GitAsk::Changes(GetChanges {
+                root,
+                scope,
+                ignore_whitespace: false,
+            })),
+        );
+    }
+
     /// The comparison's files arrived.
     pub(in crate::areas::workspace) fn changes_read(
         &mut self,
@@ -286,6 +307,31 @@ fn toolbar(
         .child(pill)
         .child(div().flex_1())
         .children(counts)
+        .child(
+            // Paseo's diff pane's refresh: the comparison read again.
+            div()
+                .id("code-refresh")
+                .size(px(28.0))
+                .flex()
+                .flex_none()
+                .items_center()
+                .justify_center()
+                .rounded(px(6.0))
+                .cursor_pointer()
+                .hover(move |style| style.bg(neutral.surface2))
+                .child(glyph(Glyph::Refresh, 14.0, neutral.foreground_muted))
+                .on_click(cx.listener(|this, _event, _window, cx| {
+                    let target = this
+                        .areas
+                        .workspace
+                        .code
+                        .root()
+                        .map(|(machine, root)| (machine.to_owned(), *root));
+                    if let Some((machine, root)) = target {
+                        this.code_git_changed(&machine, &root, cx);
+                    }
+                })),
+        )
 }
 
 /// The comparison's list (Paseo's diff mode menu, the kit's list).

@@ -642,6 +642,14 @@ impl WorkspaceWords for Ko {
         }
     }
 
+    fn add_lines(&self, first: usize, last: usize) -> String {
+        if first == last {
+            format!("{first}번 줄 채팅에 추가")
+        } else {
+            format!("{first}\u{2013}{last}번 줄 채팅에 추가")
+        }
+    }
+
     fn digest(&self, digest: &str) -> String {
         format!("다이제스트 {digest}")
     }
