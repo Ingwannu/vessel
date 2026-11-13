@@ -27,6 +27,7 @@ mod app;
 mod board;
 mod conversation;
 mod devices;
+mod files;
 mod machines;
 mod notices;
 mod options;

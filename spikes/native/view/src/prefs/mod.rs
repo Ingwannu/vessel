@@ -392,11 +392,10 @@ pub enum LaunchOnly {
         message: String,
     },
     /// The file could not be read; it is not touched in this launch.
+    /// Where and what, never the file's text (`crate::files`).
     Unreadable {
-        /// The file, as display text.
-        path: String,
-        /// Why.
-        message: String,
+        /// The file, where and what.
+        fault: crate::files::FileFault,
     },
     /// The file was written by a newer Vessel; it is left as it is.
     Newer {

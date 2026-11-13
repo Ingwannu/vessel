@@ -86,13 +86,14 @@ pub enum CredentialError {
         #[source]
         source: io::Error,
     },
-    /// The file does not hold a credential.
-    #[error("{} is not a device credential: {message}", path.display())]
+    /// The file does not hold a credential: where and what, never the
+    /// file's text (it holds the device's secret).
+    #[error("{} is not a device credential: {fault}", path.display())]
     Invalid {
         /// Which file.
         path: PathBuf,
-        /// What is wrong.
-        message: String,
+        /// What, where.
+        fault: crate::file_fault::TomlFault,
     },
 }
 
@@ -167,7 +168,12 @@ impl DeviceCredential {
         })?;
         toml_edit::de::from_str(&text).map_err(|error| CredentialError::Invalid {
             path: path.to_owned(),
-            message: error.message().to_owned(),
+            fault: crate::file_fault::TomlFault::of(
+                error.message(),
+                error.span(),
+                &text,
+                &["node", "key", "device", "secret"],
+            ),
         })
     }
 
@@ -291,6 +297,15 @@ mod tests {
             DeviceCredential::read(&path),
             Err(CredentialError::Invalid { .. })
         ));
+        // A damaged secret is never repeated by the error.
+        let damaged = "node = \"x\"\nsecret = \"s3cr3t-value-never-shown\"\n";
+        std::fs::write(&path, damaged).unwrap();
+        let error = DeviceCredential::read(&path).unwrap_err();
+        assert!(
+            !error.to_string().contains("s3cr3t-value-never-shown"),
+            "{error}"
+        );
+        assert!(!format!("{error:?}").contains("s3cr3t-value-never-shown"));
         let leftovers = std::fs::read_dir(path.parent().unwrap()).unwrap().count();
         assert_eq!(leftovers, 1, "no temporary file is left behind");
     }

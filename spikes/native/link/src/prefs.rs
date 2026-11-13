@@ -188,10 +188,20 @@ impl Prefs {
 
     fn load_at(path: &Path) -> Self {
         let shown = path.display().to_string();
-        let unreadable = |message: String| prefs::Kept::ThisLaunch {
+        let unreadable = |error: &serde_json::Error| prefs::Kept::ThisLaunch {
             why: prefs::LaunchOnly::Unreadable {
-                path: shown.clone(),
-                message,
+                fault: vessel_app_view::files::FileFault {
+                    path: shown.clone(),
+                    at: Some((error.line(), error.column())),
+                    problem: vessel_app_view::files::FileProblem::of_json(
+                        &error.to_string(),
+                        matches!(
+                            error.classify(),
+                            serde_json::error::Category::Syntax | serde_json::error::Category::Eof
+                        ),
+                    ),
+                    field: None,
+                },
             },
         };
         let (read, kept) = match std::fs::read(path) {
@@ -203,8 +213,13 @@ impl Prefs {
                     },
                 ),
                 Err(error) => {
-                    tracing::warn!(%error, "the app's remembered choices could not be read");
-                    (Self::default(), unreadable(error.to_string()))
+                    // Where only: the reader's message may quote the file.
+                    tracing::warn!(
+                        line = error.line(),
+                        column = error.column(),
+                        "the app's remembered choices could not be read"
+                    );
+                    (Self::default(), unreadable(&error))
                 }
             },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => (
@@ -215,7 +230,18 @@ impl Prefs {
             ),
             Err(error) => {
                 tracing::warn!(%error, "the app's remembered choices could not be read");
-                (Self::default(), unreadable(error.to_string()))
+                let fault = vessel_app_view::files::FileFault {
+                    path: shown.clone(),
+                    at: None,
+                    problem: vessel_app_view::files::FileProblem::CannotOpen,
+                    field: None,
+                };
+                (
+                    Self::default(),
+                    prefs::Kept::ThisLaunch {
+                        why: prefs::LaunchOnly::Unreadable { fault },
+                    },
+                )
             }
         };
         Self { kept, ..read }

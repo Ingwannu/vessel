@@ -19,6 +19,7 @@ mod conversation;
 pub mod devices;
 pub mod effort;
 pub mod extras;
+pub mod files;
 mod links;
 pub mod machines;
 pub mod models;
