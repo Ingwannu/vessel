@@ -154,3 +154,24 @@ export function deletedLine(deleted: SessionDeleted): string | null {
       return `Its worktree was kept: ${worktree.reasons.map(keptReason).join(", ")}.`;
   }
 }
+
+/** The protocol from which archiving a session also ends the terminals
+ * and services beside it (the node's join of wave 2's first half). */
+const ENDS_BESIDE = 11;
+
+/** What the archive's confirmation says it does: stop the agent first on
+ * `machine` when the session is live, end what runs beside it on a node
+ * that has terminals (`protocol`, `null` when not known), and that it can
+ * be restored. */
+export function archiveWords(
+  live: boolean,
+  machine: string,
+  protocol: number | null,
+): string {
+  const stops = live ? `Archiving stops the agent on ${machine} first. ` : "";
+  const beside =
+    protocol !== null && protocol >= ENDS_BESIDE
+      ? "The terminals and services running beside it end too; their output is kept. "
+      : "";
+  return `${stops}${beside}You can always restore it from the Archive section later.`;
+}

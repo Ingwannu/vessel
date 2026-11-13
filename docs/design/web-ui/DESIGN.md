@@ -1088,7 +1088,9 @@ the agent is doing.
   without moving the title: Kill, for a live session (it asks first);
   Archive, for an ended one (it asks as agent-orchestrator does: "Are
   you sure you want to archive this session?", "You can always restore
-  it from the Archive section later.", No and Confirm); in the archive,
+  it from the Archive section later.", No and Confirm; on a machine of
+  protocol 11 it says first that "The terminals and services running
+  beside it end too; their output is kept."); in the archive,
   Restore and Delete permanently. Restore starts the session again where
   its agent can (`session.resume`, which unarchives it), else it only
   unarchives it ("Unarchive").
@@ -1576,7 +1578,7 @@ The rest is in a menu at the bar's end, "Session actions":
 | Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
 | Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
 | Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
-| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first.") |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too |
 | Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy session id | |

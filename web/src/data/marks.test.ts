@@ -5,6 +5,7 @@ import type { SessionInfo } from "../wire/proto";
 import { liveSession } from "./fixtures/machines";
 import {
   canStartAgain,
+  archiveWords,
   deletedLine,
   markActions,
   readThrough,
@@ -123,4 +124,15 @@ test("what became of the worktree, in words", () => {
   ).toBe(
     "Its worktree was kept: 2 uncommitted files, 1 commit no other branch has.",
   );
+});
+
+describe("the archive's confirmation", () => {
+  test("says the agent stops, and on a node with terminals that they end", () => {
+    expect(archiveWords(true, "laptop", 11)).toBe(
+      "Archiving stops the agent on laptop first. The terminals and services running beside it end too; their output is kept. You can always restore it from the Archive section later.",
+    );
+    expect(archiveWords(false, "laptop", 10)).toBe(
+      "You can always restore it from the Archive section later.",
+    );
+  });
 });

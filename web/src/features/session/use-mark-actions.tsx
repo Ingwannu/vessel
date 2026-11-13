@@ -1,21 +1,22 @@
 // A session's mark actions, as one hook for every place that offers them
 // (the title bar's menu, the ended session's banner, the archive):
 // pin, read or unread, start again, archive (agent-orchestrator's
-// confirmation first, which says when it stops the agent), unarchive, and
+// confirmation first, which says when it stops the agent and, from
+// protocol 11, that the terminals and services beside it end), unarchive, and
 // delete (its confirmation, then what became of the worktree). Each
 // answer is put into the machine's list at once.
 
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
 import {
   deleteSession,
   markSession,
   resumeSession,
 } from "../../data/conversation-calls";
 import { isLive } from "../../data/format";
-import { deletedLine, type MarkAction } from "../../data/marks";
+import { archiveWords, deletedLine, type MarkAction } from "../../data/marks";
 import { errorCode, type Problem } from "../../data/outcome";
 import { holdRead } from "../../data/read-hold";
 import { trayOf } from "../../data/trays";
@@ -63,6 +64,10 @@ export function useMarkActions(
   const navigate = useNavigate();
   const [busy, setBusy] = useState<MarkAction | null>(null);
   const [asking, setAsking] = useState<"archive" | "delete" | null>(null);
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
   const done = (action: MarkAction, value: SessionInfo | null) => {
     setBusy(null);
     if (value !== null) {
@@ -147,12 +152,7 @@ export function useMarkActions(
           </>
         }
       >
-        <p className="hint">
-          {isLive(session)
-            ? `Archiving stops the agent on ${label} first. `
-            : ""}
-          You can always restore it from the Archive section later.
-        </p>
+        <p className="hint">{archiveWords(isLive(session), label, protocol)}</p>
       </Dialog>
     ) : asking === "delete" ? (
       <Dialog
