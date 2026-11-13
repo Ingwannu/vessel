@@ -171,49 +171,6 @@ pub fn installation<'a>(
     }
 }
 
-/// The list explains the state without naming a control hidden in details.
-/// The detail sentence, from the same facts, names its visible install/check action.
-#[must_use]
-pub fn summary(
-    lang: Lang,
-    agent: &HarnessRef,
-    installed: &Installed,
-    agents: &[AgentInfo],
-) -> String {
-    let words = lang.agents();
-    match installed {
-        Installed::Found {
-            structured: StructuredSupport::Available,
-            ..
-        } => words.ready.to_owned(),
-        Installed::Found {
-            structured: StructuredSupport::Unavailable { .. },
-            ..
-        } => {
-            if installs(agent, installed, agents).is_empty() {
-                words.cannot_chat.to_owned()
-            } else {
-                words.adapter_absent().to_owned()
-            }
-        }
-        Installed::Missing { .. } => words.not_installed.to_owned(),
-        Installed::TooOld { .. } => words.too_old.to_owned(),
-        Installed::TooNew { .. } => words.too_new.to_owned(),
-        Installed::Unknown {
-            reason: UnknownReason::Failed { .. } | UnknownReason::TimedOut { .. },
-        } => words.row_check_failed().to_owned(),
-        Installed::Unknown {
-            reason:
-                UnknownReason::NotInstalled
-                | UnknownReason::NotChecked
-                | UnknownReason::InUse
-                | UnknownReason::NotSaid
-                | UnknownReason::NoHome
-                | UnknownReason::Unread,
-        } => words.row_unknown().to_owned(),
-    }
-}
-
 /// Authentication is reported only as far as the machine knows it.
 #[must_use]
 pub fn authentication(lang: Lang, signed_in: &SignedIn) -> String {
@@ -223,32 +180,6 @@ pub fn authentication(lang: Lang, signed_in: &SignedIn) -> String {
         SignedIn::No { .. } => words.signed_out.to_owned(),
         SignedIn::NotRequired => words.not_required.to_owned(),
         SignedIn::Unknown { reason } => words.auth_unknown(reason),
-    }
-}
-
-/// Short sign-in fact in the list, without an action hidden in details.
-#[must_use]
-pub const fn authentication_summary(lang: Lang, signed_in: &SignedIn) -> &'static str {
-    let words = lang.agents();
-    match signed_in {
-        SignedIn::Yes => words.row_credentials(),
-        SignedIn::No { .. } => words.row_signed_out(),
-        SignedIn::NotRequired => words.row_no_sign_in(),
-        SignedIn::Unknown {
-            reason: UnknownReason::Failed { .. },
-        } => words.row_auth_failed(),
-        SignedIn::Unknown {
-            reason: UnknownReason::TimedOut { .. },
-        } => words.row_auth_timeout(),
-        SignedIn::Unknown {
-            reason:
-                UnknownReason::NotInstalled
-                | UnknownReason::NotChecked
-                | UnknownReason::InUse
-                | UnknownReason::NotSaid
-                | UnknownReason::NoHome
-                | UnknownReason::Unread,
-        } => words.row_auth_unknown(),
     }
 }
 

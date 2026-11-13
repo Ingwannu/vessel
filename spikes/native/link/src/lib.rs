@@ -461,7 +461,6 @@ impl State {
                     .await;
             }
 
-
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::Devices {
                 machine,

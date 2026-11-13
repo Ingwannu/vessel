@@ -264,8 +264,13 @@ fn known_sign_out_is_warning_has_no_model_count_and_never_overrides_a_missing_pr
 }
 #[test]
 fn positive_known_counts_use_the_same_words_as_the_model_selector_and_compact_omits_them() {
+    // Paseo providers-section.test.tsx row-composition fixture: 3 models.
     let installed = found();
-    for (count, en, ko) in [(1, "1 model", "모델 1개"), (12, "12 models", "모델 12개")] {
+    for (count, en, ko) in [
+        (1, "1 model", "모델 1개"),
+        (3, "3 models", "모델 3개"),
+        (12, "12 models", "모델 12개"),
+    ] {
         let options = models(count);
         for (lang, text, label) in [(Lang::En, en, "Available"), (Lang::Ko, ko, "사용 가능")] {
             let row = project(lang, &installed, None, Some(&options), Activity::Idle);

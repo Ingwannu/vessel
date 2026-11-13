@@ -1,5 +1,6 @@
 //! Per-machine requests live in view; GPUI retains only picker geometry.
 use crate::shell::Shell;
+use std::rc::Rc;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, select::Anchor};
 use vessel_app_link::{
@@ -16,6 +17,8 @@ pub(crate) struct AgentSettings {
     pub(super) machine: Option<MachineKey>,
     pub(super) pages: Pages<AgentsError>,
     pub(super) refused: Option<StartProblem>,
+    pub(super) tips: vessel_app_kit::tooltip::Tooltips,
+    pub(super) refresh_place: vessel_app_kit::tooltip::Place,
     pub(super) defaults: ComboboxState,
     pub(super) default_id: Option<OptionId>,
     pub(super) model_anchor: Anchor,
@@ -28,6 +31,8 @@ impl AgentSettings {
             machine: None,
             pages: Pages::default(),
             refused: None,
+            tips: vessel_app_kit::tooltip::Tooltips::new(),
+            refresh_place: Rc::default(),
             defaults: ComboboxState::new(window, cx),
             default_id: None,
             model_anchor: Anchor::default(),
@@ -52,12 +57,14 @@ impl Shell {
             state.pages.select(machine.as_str(), None);
         }
         state.defaults.close();
+        state.tips = vessel_app_kit::tooltip::Tooltips::new();
         cx.notify();
     }
 
     pub(crate) fn agent_load(&mut self, again: bool, cx: &mut Context<'_, Self>) {
         if self.areas.settings.section != vessel_app_view::settings::Section::Agents {
             self.areas.settings.agents.defaults.close();
+            self.areas.settings.agents.tips = vessel_app_kit::tooltip::Tooltips::new();
             return;
         }
         let Some(machine) = super::super::choices::chosen_machine(self)
@@ -68,6 +75,7 @@ impl Shell {
         let state = &mut self.areas.settings.agents;
         if state.machine.as_ref() != Some(&machine) {
             state.defaults.close();
+            state.tips = vessel_app_kit::tooltip::Tooltips::new();
             state.default_id = None;
             state.refused = None;
             state.machine = Some(machine.clone());
@@ -113,6 +121,7 @@ impl Shell {
             });
         state.pages.select(machine.as_str(), Some(agent.clone()));
         state.defaults.close();
+        state.tips = vessel_app_kit::tooltip::Tooltips::new();
         if probe {
             self.probe_agent((machine.as_str().to_owned(), agent), false);
         }

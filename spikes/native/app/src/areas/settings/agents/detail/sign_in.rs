@@ -3,11 +3,11 @@ use super::super::{note, page, ready};
 use super::widgets;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    Context, Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, px,
+    Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, px,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
-use vessel_app_kit::{popup, theme::spacing};
+use vessel_app_kit::{breakpoint, theme::spacing};
 use vessel_app_link::agents::Ask;
 use vessel_app_view::agent_status::{
     pages::Operation,
@@ -88,7 +88,9 @@ pub(super) fn render(
     let scope = shell.areas.settings.agents.machine.clone();
     auth = auth.child(
         outline_button("agent-check-status", words.check_status, !busy, tokens)
-            .min_h(px(popup::row_height(true)))
+            .when(breakpoint::phone(window), |button| {
+                button.min_h(px(breakpoint::TOUCH_TARGET))
+            })
             .self_start()
             .on_click(cx.listener(move |shell, _, _, cx| {
                 if !busy && shell.agent_context(scope.as_ref()) {

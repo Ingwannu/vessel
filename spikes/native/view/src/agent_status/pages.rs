@@ -156,6 +156,16 @@ impl<E> Page<E> {
     pub const fn inventory(&self) -> Option<&Inventory> {
         self.inventory.as_ref()
     }
+    /// Initial discovery has no rows to retain. A cached refresh instead
+    /// keeps its rows and their typed activity markers.
+    #[must_use]
+    pub fn initial_discovery(&self) -> bool {
+        self.inventory.is_none()
+            && self
+                .pending
+                .as_ref()
+                .is_some_and(|ticket| ticket.operation == Operation::Discovery)
+    }
     /// The agent whose details are open on this machine.
     #[must_use]
     pub const fn selected(&self) -> Option<&HarnessRef> {

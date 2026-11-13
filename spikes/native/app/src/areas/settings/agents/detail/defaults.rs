@@ -2,12 +2,12 @@
 //! chat. No parallel option cache or preference document lives here.
 
 use std::rc::Rc;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, px,
 };
 use vessel_app_kit::{ComboHandlers, ComboRow, Tokens, combobox, outline_button, select, settings};
-use vessel_app_kit::{popup, theme::spacing};
 use vessel_app_link::Command;
 use vessel_app_view::{Controls, Picks, SelectControl, choices_for, controls_of, with_picks};
 use vessel_proto::HarnessRef;
@@ -115,7 +115,7 @@ pub(super) fn render(
     } else {
         card = card.child(probe_message(agent, shell, tokens));
     }
-    card = card.child(footer(agent, shell, tokens, cx));
+    card = card.child(footer(agent, shell, tokens, compact, cx));
     settings::section(words.defaults(), card, tokens)
 }
 
@@ -272,7 +272,13 @@ fn probe_message(agent: &HarnessRef, shell: &Shell, tokens: &Tokens) -> Div {
     card
 }
 
-fn footer(agent: &HarnessRef, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+fn footer(
+    agent: &HarnessRef,
+    shell: &Shell,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let state = &shell.areas.settings.agents;
     let words = shell.t.lang.agents();
     let mut actions = gpui::div()
@@ -290,7 +296,9 @@ fn footer(agent: &HarnessRef, shell: &Shell, tokens: &Tokens, cx: &mut Context<'
         let scope = state.machine.clone();
         actions = actions.child(
             outline_button("reset-agent-defaults", words.own_defaults(), true, tokens)
-                .min_h(px(popup::row_height(true)))
+                .when(compact, |button| {
+                    button.min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                })
                 .on_click(cx.listener(move |shell, _, _, cx| {
                     if shell.agent_context(scope.as_ref()) {
                         shell.agent_defaults_reset(&target, cx);
@@ -318,7 +326,9 @@ fn footer(agent: &HarnessRef, shell: &Shell, tokens: &Tokens, cx: &mut Context<'
             !loading,
             tokens,
         )
-        .min_h(px(popup::row_height(true)))
+        .when(compact, |button| {
+            button.min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+        })
         .on_click(cx.listener(move |shell, _, _, cx| {
             if !loading
                 && shell.agent_context(scope.as_ref())

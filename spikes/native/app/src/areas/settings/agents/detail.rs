@@ -1,6 +1,7 @@
 //! Agent details reuse one source of readiness and the new-chat defaults.
-use vessel_app_kit::{popup, theme::spacing};
+use vessel_app_kit::theme::spacing;
 pub(super) mod defaults;
+mod fact_rows;
 mod facts;
 mod sign_in;
 pub(super) mod widgets;
@@ -8,7 +9,8 @@ use super::{note, page, ready};
 use crate::shell::Shell;
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{
-    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    Context, Div, FluentBuilder as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_view::agent_status::readiness;
 use vessel_proto::HarnessRef;
@@ -41,7 +43,9 @@ pub(super) fn render(
                     true,
                     tokens,
                 )
-                .min_h(px(popup::row_height(true)))
+                .when(compact, |button| {
+                    button.min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+                })
                 .self_start()
                 .on_click(cx.listener(move |shell, _, _, cx| {
                     if shell.agent_context(scope.as_ref()) {

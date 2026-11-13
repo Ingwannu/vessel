@@ -219,3 +219,33 @@ fn start_refusals_have_complete_bilingual_instructions_and_notice_variants() {
         assert_eq!(Lang::Ko.agents().start_problem(problem), ko);
     }
 }
+
+#[test]
+fn initial_discovery_stops_on_a_failed_reply_and_other_operations_are_not_list_loading() {
+    assert!(!Page::<&str>::default().initial_discovery());
+    let mut pages = Pages::<&str>::default();
+    let machine = key("one");
+    let request = pages.begin(machine.clone(), Operation::Discovery).unwrap();
+    assert!(pages.get("one").unwrap().initial_discovery());
+    pages.failed(&machine, request, "disconnected");
+    assert!(!pages.get("one").unwrap().initial_discovery());
+    let check = pages
+        .begin(
+            machine,
+            Operation::Check(HarnessRef::Known(HarnessKind::Codex)),
+        )
+        .unwrap();
+    assert_eq!(pages.get("one").unwrap().pending().unwrap().id, check);
+    assert!(!pages.get("one").unwrap().initial_discovery());
+}
+#[test]
+fn a_cached_refresh_keeps_the_rows_instead_of_replacing_them_with_placeholders() {
+    let mut pages = Pages::<&str>::default();
+    let machine = key("one");
+    let request = pages.begin(machine.clone(), Operation::Discovery).unwrap();
+    pages.loaded(&machine, request, inventory(Administration::Supported));
+    let refresh = pages.begin(machine, Operation::Discovery).unwrap();
+    assert_eq!(pages.get("one").unwrap().pending().unwrap().id, refresh);
+    assert!(!pages.get("one").unwrap().initial_discovery());
+    assert!(pages.get("one").unwrap().inventory().is_some());
+}

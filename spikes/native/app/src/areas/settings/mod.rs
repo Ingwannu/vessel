@@ -30,7 +30,7 @@ mod choices;
 mod devices;
 mod general;
 mod nav;
-mod page;
+pub(crate) mod page;
 
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
@@ -379,7 +379,12 @@ pub(crate) fn render(
         } else {
             "settings-page".into()
         };
-        page::layout(title, body, phone, scroll_id, tokens, cx).into_any_element()
+        let detail = if section == Section::Agents {
+            agents::header(shell)
+        } else {
+            None
+        };
+        page::layout(title, body, phone, scroll_id, detail, tokens, cx).into_any_element()
     };
     div()
         .size_full()

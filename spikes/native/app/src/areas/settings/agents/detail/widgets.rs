@@ -1,5 +1,5 @@
 //! A command retains its exact bytes. Horizontal scrolling leaves long
-//! values accessible; the shared copy button has a 44-pixel target.
+//! values accessible; the shared copy button uses pointer/touch target sizes.
 //!
 //! [Decision Log]
 //! - Purpose: commands and paths must remain readable and copyable on a phone.
@@ -13,7 +13,7 @@ use vessel_app_kit::ui::{
     Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, fonts};
-use vessel_app_kit::{popup, theme::spacing};
+use vessel_app_kit::{breakpoint, popup, theme::spacing};
 
 pub(in crate::areas::settings::agents) fn command_box(
     id: impl Into<gpui::ElementId>,
@@ -38,9 +38,7 @@ pub(in crate::areas::settings::agents) fn command_box(
         // The child scrolls first; a horizontal wheel must not also move
         // the settings frame, whose vertical scroller accepts either axis.
         .on_scroll(|_, _, cx| cx.stop_propagation())
-        .child(
-            value(text, width, tokens),
-        )
+        .child(value(text, width, tokens))
         .child(
             copy_button(
                 "copy",
@@ -52,14 +50,46 @@ pub(in crate::areas::settings::agents) fn command_box(
                 window,
                 cx,
             )
-            .min_w(px(popup::row_height(true)))
-            .min_h(px(popup::row_height(true))),
+            .size(px(if breakpoint::phone(window) {
+                breakpoint::TOUCH_TARGET
+            } else {
+                32.0
+            }))
+            .self_center(),
         )
 }
 
+/// A fact value carries its field identity, so two scrollable facts never
+/// share the same element state. The selector also names it in the inspector.
+pub(super) fn inline_value(
+    id: &'static str,
+    text: &str,
+    tokens: &Tokens,
+    window: &Window,
+) -> gpui::Stateful<Div> {
+    let width = fonts::measure(window, text, Type::Mono);
+    scroll_value(
+        id,
+        contents(text, width)
+            .ml_auto()
+            .debug_selector(move || format!("{id}-content")),
+        tokens,
+    )
+    .p(px(spacing::S0))
+}
 fn value(text: &str, width: f32, tokens: &Tokens) -> gpui::Stateful<Div> {
+    scroll_value("value", contents(text, width), tokens)
+}
+fn contents(text: &str, width: f32) -> Div {
+    div().w(px(width)).flex_shrink_0().child(text.to_owned())
+}
+fn scroll_value(
+    id: impl Into<gpui::ElementId>,
+    contents: Div,
+    tokens: &Tokens,
+) -> gpui::Stateful<Div> {
     div()
-        .id("value")
+        .id(id)
         .flex_1()
         .min_w_0()
         .overflow_x_scroll()
@@ -68,7 +98,7 @@ fn value(text: &str, width: f32, tokens: &Tokens) -> gpui::Stateful<Div> {
         .type_(Type::Mono)
         .whitespace_nowrap()
         .text_color(tokens.neutral.foreground)
-        .child(div().w(px(width)).flex_shrink_0().child(text.to_owned()))
+        .child(contents)
 }
 
 #[cfg(test)]

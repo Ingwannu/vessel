@@ -1,15 +1,18 @@
 //! Installation facts and exact executable arguments supplied by the node.
 use super::super::{note, page, ready};
-use super::widgets;
+use super::{
+    fact_rows::{self, Fact, Value},
+    widgets,
+};
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    Context, Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, px,
+    Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, px,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
-use vessel_app_kit::{popup, theme::spacing};
+use vessel_app_kit::{breakpoint, theme::spacing};
 use vessel_app_link::agents::Ask;
-use vessel_app_view::agent_status::{agent_label, pages::Inventory, readiness};
+use vessel_app_view::agent_status::{pages::Inventory, readiness};
 use vessel_proto::{
     HarnessRef,
     agents::{AgentDetail, InstallAgent, InstallPart},
@@ -33,79 +36,97 @@ pub(super) fn render(
         return settings::card(tokens);
     };
     let shown = readiness::installation(shell.t.lang, agent, &ready.installed, &inventory.agents);
-    let mut card = settings::card(tokens)
-        .p(px(spacing::S4))
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S3))
-        .child(note(shown.sentence, tokens));
+    let mut card = settings::card(tokens).child(fact_rows::row(
+        &Fact {
+            id: "agent-status",
+            label: words.status(),
+            value: Value::Text(&shown.sentence),
+            first: true,
+        },
+        tokens,
+        window,
+        cx,
+    ));
     if let Some(message) = shown.machine_message {
-        card = card.child(vessel_app_kit::alert::alert(
-            vessel_app_kit::alert::Content {
-                title: Some(message.label.into()),
-                description: Some(
-                    gpui::div()
-                        .child(message.text.to_owned())
-                        .into_any_element(),
-                ),
-                action: None,
-            },
-            crate::badge::alert_variant(message.variant()),
-            vessel_app_kit::alert::Size::Small,
-            tokens,
-        ));
+        card = card.child(
+            gpui::div()
+                .p(px(spacing::S4))
+                .child(vessel_app_kit::alert::alert(
+                    vessel_app_kit::alert::Content {
+                        title: Some(message.label.into()),
+                        description: Some(
+                            gpui::div()
+                                .child(message.text.to_owned())
+                                .into_any_element(),
+                        ),
+                        action: None,
+                    },
+                    crate::badge::alert_variant(message.variant()),
+                    vessel_app_kit::alert::Size::Small,
+                    tokens,
+                )),
+        );
     }
-    card = card.child(note(words.version(), tokens));
-    card = match readiness::version(&ready.installed) {
-        Some(version) => card.child(widgets::command_box(
-            "agent-version",
-            version,
+    let version = readiness::version(&ready.installed)
+        .map_or_else(|| Value::Text(words.version_unknown()), Value::Code);
+    card = card.child(fact_rows::row(
+        &Fact {
+            id: "agent-version",
+            label: words.version(),
+            value: version,
+            first: false,
+        },
+        tokens,
+        window,
+        cx,
+    ));
+    if let Some(program) = readiness::program(&ready.installed) {
+        card = card.child(fact_rows::row(
+            &Fact {
+                id: "agent-program",
+                label: words.program(),
+                value: Value::Code(&program),
+                first: false,
+            },
             tokens,
             window,
             cx,
-        )),
-        None => card.child(note(words.version_unknown(), tokens)),
-    };
-    if let Some(program) = readiness::program(&ready.installed) {
-        card = card
-            .child(note(words.program(), tokens))
-            .child(widgets::command_box(
-                "agent-path",
-                &program,
-                tokens,
-                window,
-                cx,
-            ));
+        ));
     }
-    card = added_arguments(card, agent, inventory, shell, tokens, window, cx);
-    card = card.child(installers(agent, shell, tokens, window, cx));
-    settings::section(agent_label(agent, &inventory.agents), card, tokens)
+    card = card.children(added_arguments(agent, inventory, shell, tokens, window, cx));
+    card = card.children(installers(agent, shell, tokens, window, cx));
+    settings::section(words.details(), card, tokens)
 }
 
 fn added_arguments(
-    mut card: Div,
     agent: &HarnessRef,
     inventory: &Inventory,
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,
     cx: &gpui::App,
-) -> Div {
+) -> Option<Div> {
     let words = shell.t.lang.agents();
+    let mut card = gpui::div()
+        .p(px(spacing::S4))
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S3));
     if let Some(info) = inventory.agents.iter().find(|info| info.agent == *agent)
         && let AgentDetail::Added { added } = &info.detail
     {
         if let Some(command) = inventory.command_shell.command(added) {
-            return card
-                .child(note(words.launch_command(), tokens))
-                .child(note(words.launch_note(), tokens))
-                .child(widgets::command_box(
-                    "added-command",
-                    &command,
-                    tokens,
-                    window,
-                    cx,
-                ));
+            return Some(
+                card.child(note(words.launch_command(), tokens))
+                    .child(note(words.launch_note(), tokens))
+                    .child(widgets::command_box(
+                        "added-command",
+                        &command,
+                        tokens,
+                        window,
+                        cx,
+                    )),
+            );
         }
         card = card
             .child(note(words.program(), tokens))
@@ -127,8 +148,9 @@ fn added_arguments(
                     cx,
                 ));
         }
+        return Some(card);
     }
-    card
+    None
 }
 
 fn installers(
@@ -137,23 +159,22 @@ fn installers(
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> Option<Div> {
     let words = shell.t.lang.agents();
-    let Some(page) = page(shell) else {
-        return gpui::div();
-    };
-    let Some(inventory) = page.inventory() else {
-        return gpui::div();
-    };
-    let Some(ready) = ready(agent, inventory) else {
-        return gpui::div();
-    };
+    let page = page(shell)?;
+    let inventory = page.inventory()?;
+    let ready = ready(agent, inventory)?;
+    let offers = readiness::installs(agent, &ready.installed, &inventory.agents);
+    if offers.is_empty() {
+        return None;
+    }
     let busy = page.pending().is_some();
-    let mut card = gpui::div().flex().flex_col().gap(px(spacing::S3));
-    for (index, offer) in readiness::installs(agent, &ready.installed, &inventory.agents)
-        .into_iter()
-        .enumerate()
-    {
+    let mut card = gpui::div()
+        .p(px(spacing::S4))
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S3));
+    for (index, offer) in offers.into_iter().enumerate() {
         let Some(kind) = agent.known() else {
             continue;
         };
@@ -177,7 +198,9 @@ fn installers(
             ))
             .child(
                 outline_button(format!("install-agent-{index}"), label, !busy, tokens)
-                    .min_h(px(popup::row_height(true)))
+                    .when(breakpoint::phone(window), |button| {
+                        button.min_h(px(breakpoint::TOUCH_TARGET))
+                    })
                     .self_start()
                     .on_click(cx.listener(move |shell, _, _, cx| {
                         if !busy && shell.agent_context(scope.as_ref()) {
@@ -186,5 +209,5 @@ fn installers(
                     })),
             );
     }
-    card
+    Some(card)
 }

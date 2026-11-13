@@ -11,7 +11,17 @@ agent_fixture_bin() { # fleet-root binaries machine
   ln -sf "$fleet_root/bin/claude-agent-acp" "$bin/claude-agent-acp"
   # No session uses Codex in the fleet, so its sign-out check is not
   # suppressed by the node's credential race guard.
-  printf '#!/bin/sh\nFAKE_TUI_LOGGED_OUT=1 exec "%s" "$@"\n' "$binaries/fake-tui" > "$bin/codex"
+  ln -sf "$binaries/fake-tui" "$bin/fake-codex-cli"
+  # A capture can hold initial discovery with a FIFO in this scratch home;
+  # the node's own bounded version probe still ends it after five seconds.
+  cat > "$bin/codex" <<'SH'
+#!/bin/sh
+if [ "$1" = --version ] && [ -p "$HOME/discovery-gate" ]; then
+  printf 'Fake version check: waiting for discovery gate\n' >&2
+  IFS= read -r fixture_release < "$HOME/discovery-gate"
+fi
+FAKE_TUI_LOGGED_OUT=1 exec "$(dirname "$0")/fake-codex-cli" "$@"
+SH
   chmod 755 "$bin/codex"
   if [ "$machine" = laptop ]; then ln -sf "$binaries/fake-acp" "$bin/codex-acp"; fi
   for runner in npx uvx; do ln -sf "$binaries/fake-acp" "$bin/$runner"; done
@@ -62,6 +72,7 @@ TOML
 
 agent_fixture_seed() { # fleet-root binaries; cli() supplied by fleet.sh
   local fleet_root=$1 binaries=$2
+  agent_fixture_check_discovery "$fleet_root"
   local long_arg
   long_arg=$(printf 'long-command-argument-for-a-small-settings-window-%.0s' {1..8})
   cli --node laptop agents add fake-goose --label '추가한 에이전트의 긴 이름 — ACP conversation fixture' -- "$binaries/fake-acp" "$long_arg" >/dev/null
@@ -85,4 +96,19 @@ agent_fixture_seed() { # fleet-root binaries; cli() supplied by fleet.sh
   grep -q 'not installed' "$fleet_root/ghost-check.txt" || { echo 'fleet: missing added program is missing' >&2; return 1; }
   grep -q 'codex-acp' "$fleet_root/adapter-check.txt" || { echo 'fleet: missing adapter case is missing' >&2; return 1; }
   grep -q 'example-coder-with-a-long-route-name' "$fleet_root/models-check.txt" || { echo 'fleet: model route is missing' >&2; return 1; }
+}
+
+# Exercise the optional gate in a separate scratch home, so checking the
+# fixture never delays a node that is already serving requests.
+agent_fixture_check_discovery() { # fleet-root
+  local fleet_root=$1 check_home result=0
+  check_home=$(mktemp -d "$fleet_root/discovery-check.XXXXXX")
+  mkfifo "$check_home/discovery-gate"
+  timeout 1 env HOME="$check_home" "$fleet_root/laptop-bin/codex" --version > "$fleet_root/discovery-check.txt" 2>&1 || result=$?
+  rm "$check_home/discovery-gate"
+  rmdir "$check_home"
+  if [ "$result" -ne 124 ] || ! grep -Fxq 'Fake version check: waiting for discovery gate' "$fleet_root/discovery-check.txt"; then
+    echo 'fleet: held discovery fixture is missing' >&2
+    return 1
+  fi
 }

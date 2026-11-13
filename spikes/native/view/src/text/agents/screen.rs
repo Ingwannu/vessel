@@ -12,25 +12,17 @@ macro_rules! words {
     } };
 }
 words! {
-    row_credentials, "Short sign-in fact beneath the installation badge; keep short. No values.", "Sign-in details saved.", "로그인 정보가 저장되어 있습니다.";
-    row_signed_out, "Short signed-out fact beneath the installation badge; keep short. No values.", "Signed out.", "로그아웃 상태입니다.";
-    row_no_sign_in, "Short sign-in fact for a configured model provider; keep short. No values.", "No sign-in needed.", "로그인이 필요하지 않습니다.";
-    row_auth_failed, "Short failed-check fact beneath the installation badge; keep short. No values.", "Sign-in check failed.", "로그인 확인에 실패했습니다.";
-    row_auth_timeout, "Short timed-out sign-in check fact beneath the installation badge; keep short. No values.", "Sign-in check took too long.", "로그인 확인 시간이 초과되었습니다.";
-    row_auth_unknown, "Short unknown sign-in fact beneath the installation badge; keep short. No values.", "Sign-in is not known.", "로그인 여부를 확인하지 못했습니다.";
-    adapter_absent, "Agent list summary when its chat adapter is missing; full action is in details. No values.", "Installed, but its chat adapter is missing.", "설치되어 있지만 대화에 필요한 어댑터가 없습니다.";
+    list_title, "Agents section heading when no machine is configured; keep short. No values.", "Agents", "에이전트";
     row_check_failed, "Agent list summary of a failed installation check; explanation is in details. No values.", "Could not check this agent.", "에이전트를 확인하지 못했습니다.";
-    row_unknown, "Agent list summary without an installation verdict; explanation is in details. No values.", "Installation is not known.", "설치 여부를 확인하지 못했습니다.";
     no_machine, "Empty Agents page; instruction when no machine is configured. No values.", "Add a machine to see its agents.", "에이전트를 보려면 머신을 추가하세요.";
-    loading, "Progress above the machine list while reading it. No values.", "Reading this machine…", "머신 정보를 읽는 중…";
     checking, "Progress above the agent details during an explicit status check. No values.", "Checking the agent…", "에이전트를 확인하는 중…";
     refresh, "Agents page refresh button; keep short. No values.", "Refresh", "새로 고침";
-    list_title, "Heading above the machine’s agents card; keep short. No values.", "Agents on this machine", "이 머신의 에이전트";
-    back_to_agents, "Button above agent details returning to the list; keep short. No values.", "Back to agents", "에이전트 목록으로";
     authentication, "Heading above sign-in facts and steps; keep short. No values.", "Sign-in", "로그인";
     launch_command, "Label above a safely quoted Unix launch command; keep short. No values.", "Launch command (sh, bash, zsh)", "실행 명령 (sh·bash·zsh)";
     launch_note, "Below the launch-command label; explains the command’s limited scope. No values.", "Program and arguments only. Account and environment settings stay on the machine.", "프로그램과 인수만 포함합니다. 계정과 환경 설정은 머신에 남습니다.";
     program, "Label above the exact program path or command value; keep short. No values.", "Program", "프로그램";
+    details, "Section above installation facts; keep short. No values.", "Agent details", "에이전트 정보";
+    status, "Settings-row label for the complete readiness explanation; keep short. No values.", "Status", "상태";
     version, "Label above the reported agent version; keep short. No values.", "Version", "버전";
     version_unknown, "Agent details, in place of an unreported version. No values.", "The agent has not reported a version.", "에이전트가 버전을 알려주지 않았습니다.";
     older_node, "Agents page on an older node with no administration API. No values.", "Update this machine's Vessel to manage agents and check sign-in status.", "에이전트 관리와 로그인 상태 확인을 사용하려면 이 머신의 Vessel을 업데이트하세요.";
@@ -44,8 +36,7 @@ words! {
     defaults_note, "Explains that defaults affect future chats only. No values.", "New chats start with these choices. Existing chats keep their settings.", "새 대화가 이 선택값으로 시작합니다. 기존 대화의 설정은 유지됩니다.";
     no_options, "Defaults card when a probe offers none of the three supported controls. No values.", "This agent offers no model, effort or mode choices.", "이 에이전트는 모델·추론 수준·모드 선택을 제공하지 않습니다.";
     own_defaults, "Defaults reset button; keep short. No values.", "Use the agent's defaults", "에이전트 기본값 사용";
-    options_failed, "Defaults card after a choice probe fails; diagnostic is separate. No values.", "Could not read the agent’s choices. Read them again after checking the agent.", "에이전트의 선택값을 읽지 못했습니다. 에이전트를 확인한 뒤 다시 읽으세요.";
-    options_retry, "Button to probe available defaults again; keep short. No values.", "Read choices again", "선택값 다시 읽기";
+    options_retry, "Button to probe available defaults again; keep short. No values.", "Reload the agent's options", "에이전트 옵션 새로 읽기";
     options_loading, "Defaults card while probing; explains the agent startup. No values.", "Reading the agent's choices. This starts it once; no message is sent.", "에이전트를 한 번 실행해 선택값을 읽습니다. 메시지는 보내지 않습니다.";
     status_unread, "Details when the machine did not return cached status; check action follows. No values.", "The machine has not reported this agent’s status yet.", "머신이 아직 이 에이전트의 상태를 알려주지 않았습니다.";
     error_detail, "Attribution above raw node or transport diagnostics; keep short. No values.", "Details from the machine or connection", "머신 또는 연결의 상세 정보";
@@ -57,6 +48,20 @@ words! {
 }
 
 impl AgentsWords {
+    /// Defaults probe failure above the retry control. The value is that
+    /// control's translated label; use the whole sentence as one message.
+    #[must_use]
+    pub fn options_failed(&self) -> String {
+        let reload = self.options_retry();
+        match self.lang {
+            Lang::En => format!(
+                "Could not read the agent's options. Check the agent, then select “{reload}”."
+            ),
+            Lang::Ko => format!(
+                "에이전트의 옵션을 읽지 못했습니다. 에이전트를 확인한 뒤 “{reload}” 버튼을 누르세요."
+            ),
+        }
+    }
     /// Inline failure beside its action; diagnostics follow separately.
     #[must_use]
     pub const fn problem(&self, problem: crate::agent_status::problem::Problem) -> &'static str {
@@ -69,33 +74,12 @@ impl AgentsWords {
             Problem::Call => self.call_failed(),
         }
     }
-    /// Operation progress beside the page’s Refresh action.
-    #[must_use]
-    pub const fn operation(
-        &self,
-        operation: &crate::agent_status::pages::Operation,
-    ) -> &'static str {
-        use crate::agent_status::pages::Operation;
-        match operation {
-            Operation::Discovery => self.loading(),
-            Operation::Check(_) => self.checking(),
-            Operation::Install(_) => self.install_following(),
-        }
-    }
     /// Label before one exact argv value; ordinal starts at one.
     #[must_use]
     pub fn argument(&self, ordinal: usize) -> String {
         match self.lang {
             Lang::En => format!("Argument {ordinal}"),
             Lang::Ko => format!("인수 {ordinal}"),
-        }
-    }
-    /// The machine chooser determines the page, not whichever request answered last.
-    #[must_use]
-    pub fn on_machine(&self, name: &str) -> String {
-        match self.lang {
-            Lang::En => format!("On {name}"),
-            Lang::Ko => format!("대상 머신: {name}"),
         }
     }
     /// A job remains labelled with its actual agent, independently of the open details.
@@ -122,6 +106,29 @@ impl AgentsWords {
             }
             (Lang::En, StartProblem::Exhausted) => "Close and reopen Vessel, then try again.",
             (Lang::Ko, StartProblem::Exhausted) => "Vessel을 닫고 다시 연 뒤 시도하세요.",
+        }
+    }
+}
+
+#[cfg(test)]
+mod redraw_tests {
+    use crate::Lang;
+    #[test]
+    fn options_failure_names_the_actual_retry_control_in_both_languages() {
+        for (lang, label, sentence) in [
+            (
+                Lang::En,
+                "Reload the agent's options",
+                "Could not read the agent's options. Check the agent, then select “Reload the agent's options”.",
+            ),
+            (
+                Lang::Ko,
+                "에이전트 옵션 새로 읽기",
+                "에이전트의 옵션을 읽지 못했습니다. 에이전트를 확인한 뒤 “에이전트 옵션 새로 읽기” 버튼을 누르세요.",
+            ),
+        ] {
+            assert_eq!(lang.agents().options_retry(), label);
+            assert_eq!(lang.agents().options_failed(), sentence);
         }
     }
 }

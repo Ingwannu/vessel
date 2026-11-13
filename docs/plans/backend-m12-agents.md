@@ -449,3 +449,134 @@ Skeleton control gate: native fmt, whole Clippy and all 409 tests passed,
 none failed. The earlier failed probes are not counted as a pass. The
 combined tree includes the provisionally reused Ghost control; no root
 source changes or root test run are claimed for this control-only slice.
+
+### Provider screen redraw
+
+[Decision Log]
+- Purpose: replace the rejected page layout with the actual ProviderRow and
+  ProviderDiagnosticSheet structure in Paseo, retaining the reviewed behavior.
+- Constraints: Vessel's node has installation/chat and sign-in facts, but no
+  enabled/disabled setting. Options use the composer's existing probe cache.
+- Alternatives: repeat readiness/authentication paragraphs in every list row,
+  or add an unsupported switch to resemble the source.
+- Choice: one leading chevron, the shared agent mark, name, separator and typed
+  dot/status/count line. Only errors get a paragraph. Compact rows retain the
+  marker and omit the words/count/error as the reference does.
+- Why: the row remains one press target; full facts and instructions belong in
+  details, where the shared frame owns the back chevron and agent title.
+- Costs: counts are omitted until options have been read; this never launches
+  all agents merely to obtain a number for the list.
+
+Reference test mapping, `screens/settings/providers-section.test.tsx`:
+- :419 row order maps to chevron, mark, label, status and 3 models. The exact
+  three-model fixture is included in view tests, alongside singular/plural.
+  Vessel has no enable/disable wire API, so the trailing switch is omitted.
+- :397 server-provided labels and stable snapshot order map to `agent_label`
+  and `agents_on`; Disabled itself does not exist on Vessel's wire.
+- :442 outer row opens details regardless of its readiness; a missing or
+  failed agent remains selectable. No enabled flag gates the click.
+- :462 patchConfig enable toggle is inapplicable without that wire operation.
+  No nonfunctional switch or guessed setting is drawn.
+
+The machine's name appears in the section heading, with a small trailing
+Refresh control and the kit tooltip. The Ghost button is provisional reuse of
+G2's `1698aab`: source/gate reviewed, visual review pending first-use captures.
+It is not reported as visually passed merely because it compiles.
+
+Detail facts follow `styles/settings.ts` rows: label left, fixed-width exact
+version/program right, kit copy visible on pointer hover and always on touch.
+Commands retain the local horizontal-scrolling composition and exact copy.
+Button targets use the shared 44-point touch constant and 32-point pointer
+size. The options action now says “Reload the agent's options”.
+
+The shared page receives one optional generic DetailHeader (title plus caller
+return action); it does not know Agents. None retains the ordinary page.
+The detail header remains outside scrolling content as ProviderDiagnosticSheet
+keeps its own header outside the body. Vessel uses the existing native page
+rather than opening a second modal route: its compact header and exact full-width desktop BackHeader (14-point
+light title in the 36-point ScreenHeader) supply the shared navigation
+surface. The ordinary 26-point PageLayout heading stays unchanged. E2
+chose this shared detail surface rather than combining a 26-point document
+heading with a back control. Compact detail uses the reference
+CompactHeader: 8 top padding, 56-point row, 44-point target and 16-point title.
+
+E2 requested one compact renderer for ordinary navigation and item details.
+`compact_header` retains its public signature and wraps its destination in
+the same generic header callback. Its previous 40-point target/no top inset
+is corrected to the source's 44-point target/eight-point top inset. This
+owner-requested frame correction prevents a second compact header look.
+
+The exact frame is G2's shared screen_header renderer; this area supplies
+only its back control/callback. The original header and its full-width-border correction are consumed
+only after V1's source disposition (local commits 3bcb790b and 2d3e2554).
+This is provisional first-use consumption, not visual approval.
+Initial discovery uses the shared skeleton only before a snapshot exists;
+cached refresh keeps rows with neutral spinners. The obsolete list-summary
+and auth-summary paragraphs/helpers/tests are removed; all complete detail
+sentence fixtures remain. Separate GPUI regressions exercise four-row pitch
+at both widths and independent scrolling/exact copying of version/program
+facts. A field identity scopes each fact's interactive descendants.
+
+The fake Codex --version wrapper supports a discovery-gate FIFO in its
+scratch home. Its bounded node probe creates a real initial-loading window
+for captures. The fleet checks the optional gate in a separate scratch home
+with timeout; normal version/sign-out behavior remains the same. No node
+or main-workspace source is changed for this fixture.
+
+
+The provider section keeps its source override of 16 points below it
+(`providers-section.tsx` sectionSpacing), while the shared SettingsSection
+keeps its ordinary geometry. The first-use reduced-motion regression sets
+GPUI App's flag on the production public pulse/four-row composition and
+checks static alpha/solid furniture/no scheduled frames; it is not an OS
+preference test. There is currently no OS-to-App startup/change bridge;
+the desktop lead owns that follow-up. The original skeleton gate proved
+timing fixtures, an injected phase and unmount behavior, not flag=true or
+elapsed wall-clock timing. Real normal-motion captures remain separate.
+
+The shared header requests the source's Light 300 face. Actual Light face
+selection is under the shared-control/desktop lead's investigation because
+the embedded face catalogue currently lists Regular/Medium/SemiBold. No
+source weight is silently replaced with 400, and style constants alone are
+not described as proof of font selection.
+
+The no-machine branch follows ProviderSection's empty card (16-point inset,
+centred contents under the section heading); no Refresh is drawn without a
+machine connection to ask. Its text remains a whole bilingual message.
+
+The merged Machines actor test fixture initializes the existing Agents
+hub just as production does; this is one constructor registration line,
+not a machine-book behavior change. The merge also preserves `code_row`
+through `row_faced` and the same `row_with_content` frame.
+
+### Narrow fact-copy regression and observed state limits
+
+The first actual 390-point capture exposed a long Program value whose
+desktop 420-point cap outgrew its wrapped compact row, clipping its copy
+button. Compact fact controls now also cap their width to the row's full
+content width and allow shrinking. Short values keep their existing inline
+layout; long values wrap below the label, scroll horizontally, and retain
+an accessible copy target. The regression opens an actual 390-point GPUI
+window, checks the copy bounds against its right inset, clicks the target,
+and compares the entire long clipboard value. The earlier wide scrolling
+and independent-version copy regression remains.
+
+The ordinary fake `check-failed` definition reports installation Found
+and sign-in Unknown/Failed at Initialize. It therefore remains Available
+in the list under the reviewed rule; its failure appears in sign-in details.
+This is not an installation-error-row capture. At this baseline, the node's
+`readiness::installed` falls through to Found when no handshake was retained;
+its only Unknown case needs both no discovery result and no program. Ordinary
+listed definitions supply a program, so installation Failed/Unknown rows,
+like the previously recorded version states, remain wire-fixture evidence
+rather than fabricated runtime captures. The coordinator assigned the
+reachability gap to the node track.
+
+The current inherited sidebar grouping remains an E2 integration boundary.
+E2 owns its single machine group containing Agents alongside Projects,
+Devices, Models and Sync; this area adds no parallel group. Pending official
+mark, ActivityIndicator, Light-face and sized-button integration are not
+certified by preliminary content captures. The source has no enable/disable
+operation for the provider row's switch. Removal has a node call but its
+menu, Add/registry and Models screens are still unfinished; omission of that
+menu is not represented as a missing node operation.

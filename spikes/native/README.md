@@ -208,6 +208,12 @@ no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
 compact is one-line 16/500 with a 44-point menu button. Chrome integration
 and avoiding duplicate sidebar toggles stay with the desktop lead.
 
+The settings page accepts one optional `page::DetailHeader` (title and
+caller-owned back callback). Ordinary page calls pass None; detail headers
+use the same shared `kit::screen_header` frame as other areas. The existing
+`compact_header` wrapper supplies its navigation callback to that renderer,
+so ordinary and detail navigation keep one compact look.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -488,3 +494,8 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+For an initial Agents-loading capture, a FIFO named `discovery-gate` in a
+fake node's scratch home holds fake Codex's version probe until the node's
+own five-second bound ends it. Remove the FIFO before ordinary probes.
+The fleet checks this fixture in an isolated scratch home using `timeout`.
