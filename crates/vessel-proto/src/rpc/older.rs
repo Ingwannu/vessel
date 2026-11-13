@@ -228,7 +228,20 @@ impl Reply {
             | Self::GetAgentStatus(_)
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
-            | Self::ReadInstall(_) => None,
+            | Self::ReadInstall(_)
+            | Self::ListSchedules(_)
+            | Self::GetSchedule(_)
+            | Self::CreateSchedule(_)
+            | Self::UpdateSchedule(_)
+            | Self::PauseSchedule(_)
+            | Self::ResumeSchedule(_)
+            | Self::RunSchedule(_)
+            | Self::DeleteSchedule(_)
+            | Self::ListRuns(_)
+            | Self::ListPrompts(_)
+            | Self::CreatePrompt(_)
+            | Self::UpdatePrompt(_)
+            | Self::DeletePrompt(_) => None,
         }
     }
 }

@@ -143,6 +143,21 @@ const fn refused(method: Method) -> bool {
         | Method::OpenPullRequest
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
+        // Schedules (protocol 11) are held to theirs (ADR 0033,
+        // `automation::schedules::rules`).
+        | Method::ListSchedules
+        | Method::GetSchedule
+        | Method::CreateSchedule
+        | Method::UpdateSchedule
+        | Method::PauseSchedule
+        | Method::ResumeSchedule
+        | Method::RunSchedule
+        | Method::DeleteSchedule
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

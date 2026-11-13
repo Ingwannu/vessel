@@ -64,6 +64,7 @@ mod agents;
 pub mod attach;
 mod attachments;
 mod auth;
+mod automation;
 mod catalogue;
 pub mod cleanup;
 mod config;

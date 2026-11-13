@@ -201,6 +201,20 @@ impl Unary for vessel_proto::agents::GetAgentStatus {}
 impl Unary for vessel_proto::agents::GetCatalogue {}
 impl Unary for vessel_proto::agents::InstallAgent {}
 impl Unary for vessel_proto::agents::ReadInstall {}
+// Protocol 11 (Track D): schedules and saved prompts answer once.
+impl Unary for vessel_proto::automation::ListSchedules {}
+impl Unary for vessel_proto::automation::GetSchedule {}
+impl Unary for vessel_proto::automation::CreateSchedule {}
+impl Unary for vessel_proto::automation::UpdateSchedule {}
+impl Unary for vessel_proto::automation::PauseSchedule {}
+impl Unary for vessel_proto::automation::ResumeSchedule {}
+impl Unary for vessel_proto::automation::RunSchedule {}
+impl Unary for vessel_proto::automation::DeleteSchedule {}
+impl Unary for vessel_proto::automation::ListRuns {}
+impl Unary for vessel_proto::automation::ListPrompts {}
+impl Unary for vessel_proto::automation::CreatePrompt {}
+impl Unary for vessel_proto::automation::UpdatePrompt {}
+impl Unary for vessel_proto::automation::DeletePrompt {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -374,7 +388,20 @@ const fn is_unary(method: Method) -> bool {
         | Method::GetAgentStatus
         | Method::GetCatalogue
         | Method::InstallAgent
-        | Method::ReadInstall => true,
+        | Method::ReadInstall
+        | Method::ListSchedules
+        | Method::GetSchedule
+        | Method::CreateSchedule
+        | Method::UpdateSchedule
+        | Method::PauseSchedule
+        | Method::ResumeSchedule
+        | Method::RunSchedule
+        | Method::DeleteSchedule
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt => true,
     }
 }
 

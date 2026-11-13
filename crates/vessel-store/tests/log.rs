@@ -11,11 +11,18 @@ use vessel_proto::{
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 11 to 7 (protocols 10 and 11), so a test can take a database
-/// further back: the workspace's tables (9), retention's index (schema 1's
-/// in its place, 8), the conversation's columns and the attachments table
-/// (7).
-const UNDO_SCHEMAS_7_TO_11: &str = "DROP TABLE forge_feedback_sent;
+/// Undoes schemas 12 to 7 (protocols 10 and 11), so a test can take a
+/// database further back: the schedules', saved prompts' and hooks' tables
+/// (12), pull request feedback (10; 11's column goes with `approvals`), the
+/// workspace's tables (9), retention's index (schema 1's in its place, 8),
+/// the conversation's columns and the attachments table (7).
+const UNDO_SCHEMAS_7_TO_12: &str = "DROP TABLE hook_keys;
+     DROP TABLE hook_deliveries;
+     DROP TABLE hooks;
+     DROP TABLE saved_prompts;
+     DROP TABLE schedule_runs;
+     DROP TABLE schedules;
+     DROP TABLE forge_feedback_sent;
      DROP TABLE forge_feedback_on;
      DROP TABLE approvals;
      DROP TABLE worktrees;
@@ -645,7 +652,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_11).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_12).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN via;
@@ -675,7 +682,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_11).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_12).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN profile;
@@ -717,7 +724,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     drop(store);
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_11).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_12).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN model;

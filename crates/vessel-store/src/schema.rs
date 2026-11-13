@@ -241,9 +241,65 @@ const V11: &str = "
 ALTER TABLE approvals ADD COLUMN commands TEXT;
 ";
 
+/// Version 12 (milestone 11, protocol 11, track D): schedules, their runs,
+/// saved prompts and hooks (ADRs 0033 and 0034; see `automation`).
+///
+/// - `info`, `run` and `delivery` hold `vessel-proto` types as JSON,
+///   written whole on every change (schema 9's way).
+/// - A run and a delivery go with their schedule or hook; each is trimmed
+///   to the newest when one is added (50 runs, 100 deliveries).
+/// - A saved prompt's `scope` is its project's id, or `''` for the
+///   machine's own; a name is unique within its scope.
+/// - `hook_keys` are the delivery keys a hook saw in the last day, so a
+///   request sent again after a restart still runs once. A hook's secret
+///   is not in the database (ADR 0034).
+const V12: &str = "
+CREATE TABLE schedules (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    created_at INTEGER NOT NULL,
+    info       TEXT    NOT NULL
+) STRICT;
+
+CREATE TABLE schedule_runs (
+    schedule TEXT    NOT NULL REFERENCES schedules (id) ON DELETE CASCADE,
+    number   INTEGER NOT NULL,
+    run      TEXT    NOT NULL,
+    PRIMARY KEY (schedule, number)
+) STRICT, WITHOUT ROWID;
+
+CREATE TABLE saved_prompts (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    scope      TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    created_at INTEGER NOT NULL,
+    info       TEXT    NOT NULL,
+    UNIQUE (scope, name)
+) STRICT;
+
+CREATE TABLE hooks (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    created_at INTEGER NOT NULL,
+    info       TEXT    NOT NULL
+) STRICT;
+
+CREATE TABLE hook_deliveries (
+    hook     TEXT    NOT NULL REFERENCES hooks (id) ON DELETE CASCADE,
+    seq      INTEGER NOT NULL,
+    delivery TEXT    NOT NULL,
+    PRIMARY KEY (hook, seq)
+) STRICT, WITHOUT ROWID;
+
+CREATE TABLE hook_keys (
+    hook    TEXT    NOT NULL REFERENCES hooks (id) ON DELETE CASCADE,
+    key     TEXT    NOT NULL,
+    seen_at INTEGER NOT NULL,
+    PRIMARY KEY (hook, key)
+) STRICT, WITHOUT ROWID;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11];
+const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12];
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {

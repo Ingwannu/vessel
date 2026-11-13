@@ -49,7 +49,9 @@ mod error;
 mod local;
 pub mod pairing;
 mod pinned;
+mod prompts;
 mod resume;
+mod schedules;
 pub mod secure;
 mod stream;
 #[cfg(test)]
