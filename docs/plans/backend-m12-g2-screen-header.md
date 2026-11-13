@@ -38,3 +38,14 @@ not by an area editing chrome. This commit has no app consumer changes.
 Literal geometry/palette tests cover desktop/compact and both themes, plus
 the actual SVG ink. Native first-use captures are required before visual
 approval; unit checks alone do not certify a screen.
+
+
+## Full-width desktop border correction
+
+Paseo ScreenHeader's WindowChromeSafeArea puts horizontal padding inside
+its bordered row. The native frame now returns that full-width 36-point
+row directly, with padding 12 inside it, rather than bordering a child of
+an outer padded wrapper. Compact keeps its separate top-padding wrapper.
+A regression inspects the actual returned Div's full width, total height,
+bottom border and padding; native edge-pixel captures must confirm both
+ends.
