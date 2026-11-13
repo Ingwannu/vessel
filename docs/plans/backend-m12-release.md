@@ -568,6 +568,28 @@ never rebuilt.
     - "Installed apps" showing 0.0.0.0.4.
     - The one-click buttons and the snap layouts.
 
+- **0.0.0.0.5**:
+  - Built from `0a41166`, the same code as the desktop track's
+    `83f8dd2`; only this document differs.
+  - The set went into place at 07:20 UTC and is **not published** yet:
+    the coordinator first runs the Linux build against the real node.
+    Its notes wait in a scratch file.
+  - Files: setup 10,595,011, exe 38,134,272, zip 15,312,999, linux
+    74,581,328, tar.gz 25,207,949 bytes.
+  - The checks are 0.0.0.0.4's: icon frames equal to the corrected
+    mark's, version block 0.0.0.0.5, wine stops at the first text, sums
+    and signature pass.
+- **The first update on a real Windows (open, 2026-11-13)**:
+  - The owner started the installed 0.0.0.0.3 and saw nothing at the
+    foot.
+  - The feed's server logged two manifest reads (07:06:54 and 07:07:14 UTC) and no completed transfer of the Windows artifact.
+  - 0.0.0.0.3 to 0.0.0.0.5 log only to stderr, which a GUI-subsystem
+    process started from the Start menu does not have. So a Windows
+    failure is lost, and in 0.0.0.0.3 it is not shown either. It is
+    retried at the next start or hourly.
+  - A log file is the next build's (see the coordinator's report of
+    2026-11-13).
+
 ## Licences of what this track pulls in (ADR 0014)
 
 Beyond what Vessel's main workspace already links:
