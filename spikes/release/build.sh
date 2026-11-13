@@ -42,6 +42,8 @@
 #                          vessel-app); the release workspace's
 #                          vessel-release-hello / vessel-hello tries the
 #                          pipeline without the app
+#   VESSEL_SYMBOLS_DIR     where each label's Windows .pdb is kept
+#                          (vessel-app-symbols beside the dist root)
 #   JOBS                   cargo's -j (6: /data is one spinning disk)
 #
 # Why one script for every target: the owner gets a new build after every
@@ -223,6 +225,25 @@ build_windows() {
     makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" \
         -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" "$here/windows/installer.nsi"
     echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
+    keep_symbols "$exe"
+}
+
+# The Windows build's .pdb, kept per label in the symbols directory with
+# the exe's SHA-256 beside it, never in the dist folder: it is about 20 MB
+# and only for naming a panic's frames (vessel-app-log writes them as
+# `exe+0x<rva>`; `llvm-symbolizer --obj=<exe> --relative-address 0x<rva>`
+# with this .pdb beside the exe). Taken at build time because the next
+# build overwrites the one in the target directory.
+keep_symbols() {
+    local exe="$1"
+    local pdb="${exe%/*}/${app_bin//-/_}.pdb"
+    local dir="${VESSEL_SYMBOLS_DIR:-$(dirname "$VESSEL_DIST_DIR")/vessel-app-symbols}/$label"
+    [ -f "$pdb" ] || { echo "no $pdb beside the exe" >&2; exit 1; }
+    mkdir -p "$dir"
+    cp "$pdb" "$dir/"
+    (cd "$dir" && sha256sum "${pdb##*/}" >SHA256SUMS)
+    printf '%s  %s\n' "$(sha256sum <"$exe" | cut -d' ' -f1)" "vessel-$label-windows-x64.exe" >>"$dir/SHA256SUMS"
+    echo "windows-x64: ${pdb##*/} kept in the symbols directory under $label"
 }
 
 build_linux() {
