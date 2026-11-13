@@ -115,7 +115,9 @@ stage="$(mktemp -d)"
 trap 'rm -rf "$stage" "$partial"' EXIT
 
 # The app embeds its faces; they are fetched, not committed.
-if [ -x "$app_ws/scripts/fonts.sh" ] && [ ! -f "$app_ws/assets/fonts/Pretendard-Regular.otf" ]; then
+# Checked by the newest face the kit embeds (Light, 300, added 2026-11-13),
+# so a tree fetched before it fetches again.
+if [ -x "$app_ws/scripts/fonts.sh" ] && [ ! -f "$app_ws/assets/fonts/Pretendard-Light.otf" ]; then
     (cd "$app_ws" && scripts/fonts.sh "$stage/fonts")
 fi
 
