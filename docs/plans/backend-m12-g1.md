@@ -195,3 +195,9 @@ The final control tree passed the pinned native workspace's exact gate:
 `cargo test` (339 tests passed, none failed or ignored). No main-workspace
 code, dependency, service, permission or running account changed. The
 control slice has no app registration or screenshot claim.
+
+The lead's next small shared-control correction through `7945408` was
+merged before the git screen: the effort slider's last step remains at
+the top, and other agents' lists do not gain options invented by Vessel.
+The source changes are the lead's unchanged integration. The exact
+native workspace gate was rerun on this merged tree before committing.

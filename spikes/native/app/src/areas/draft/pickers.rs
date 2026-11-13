@@ -539,8 +539,15 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
         built.header.empty = words.no_hosts.into();
         return;
     };
-    // The draft agent's other options first, while not searching.
-    let on_top = if query.is_empty() {
+    // The draft agent's other options first, while not searching and not
+    // browsing another agent's models.
+    let browsing_other = shell
+        .areas
+        .draft
+        .browsing
+        .as_ref()
+        .is_some_and(|browsing| shell.areas.draft.agent.as_ref() != Some(browsing));
+    let on_top = if query.is_empty() && !browsing_other {
         option_rows_on_top(shell, built)
     } else {
         0
