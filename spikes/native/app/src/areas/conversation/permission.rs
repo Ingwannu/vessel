@@ -287,6 +287,7 @@ fn body(
         tokens,
         look: Look::of(tokens),
         find: None,
+        seat: super::Seat::SESSION,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

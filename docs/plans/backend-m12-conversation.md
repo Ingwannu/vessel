@@ -26,6 +26,12 @@ neutral colours come only from `tokens.neutral.*`.
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
 | Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
+Other areas use the conversation through seams, each one call:
+
+| Seam | For | The call |
+| --- | --- | --- |
+| Another area's conversation | a side question's panel (track N5), drawn as GOAT's `SideChatSurface` embeds its chat view | keep a `ConversationArea` of your own; `open(machine, session)`, then `take(session, records)` for its records; draw `conversation::timeline::rows(shell, seat, tokens, window, cx)` inside an element with an id of its own, where `seat` is a `Seat { get, get_mut }` of two functions from the shell to that state (the session area's is `Seat::SESSION`); the rows' toggles change the state at `seat` |
+
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
 
