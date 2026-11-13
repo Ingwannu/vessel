@@ -491,14 +491,14 @@ fn composer(
 fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     // Wrapped: four long answers do not fit a phone's width.
     let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    for (index, (option, words, allows)) in asked.options.iter().enumerate() {
+    let buttons = asked.buttons(shell.t.lang.conversation());
+    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
         let id = asked.id;
-        let option = option.clone();
         answers = answers.child(
             button(
                 ElementId::Name(format!("answer-{index}").into()),
-                words.clone(),
-                *allows,
+                words,
+                allows,
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {

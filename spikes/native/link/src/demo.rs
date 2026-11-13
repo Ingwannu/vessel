@@ -643,7 +643,7 @@ mod tests {
         let Some(asked) = asked else {
             return;
         };
-        let option = asked.options.first().map(|(id, _, _)| id.clone());
+        let option = asked.options.first().map(|option| option.id.clone());
         let Some(option) = option else {
             return;
         };
