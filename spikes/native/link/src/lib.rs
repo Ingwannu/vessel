@@ -31,6 +31,7 @@ mod session;
 pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
+pub mod devices;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
@@ -134,6 +135,15 @@ pub enum Command {
     },
     /// Read the book again and connect to every node in it.
     Reload,
+    /// Ask about a machine's paired devices.
+    Devices {
+        /// Its name in the book.
+        machine: vessel_app_view::devices::MachineKey,
+        /// The page request identity.
+        ticket: vessel_app_view::devices::Ticket,
+        /// The device operation.
+        ask: devices::Ask,
+    },
     /// Show a session's conversation: its records from the start, then as
     /// they arrive. Replaces the session followed before.
     Open {
@@ -150,6 +160,8 @@ pub enum Command {
         session: SessionId,
         /// What was typed.
         text: String,
+        /// What it does while a turn runs (Settings' default send).
+        delivery: Delivery,
     },
     /// Start a conversation: create the session, send its first prompt,
     /// and report it [`Event::Started`].
@@ -251,6 +263,8 @@ pub enum Event {
     },
     /// The machines and their sessions, read again.
     Fleet(Fleet),
+    /// A Devices request answered, with its identity.
+    Devices(devices::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
@@ -338,6 +352,8 @@ impl Link {
             follow: None,
             workspace: workspace::Hub::default(),
             agents: agents::Hub::default(),
+
+            device_calls: devices::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -367,6 +383,8 @@ struct State {
     follow: Option<tokio::task::JoinHandle<()>>,
     workspace: workspace::Hub,
     agents: agents::Hub,
+
+    device_calls: devices::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -411,12 +429,19 @@ impl State {
                     .ask(client, machine, request, ask, self.events.clone())
                     .await;
             }
+
+            Command::Devices {
+                machine,
+                ticket,
+                ask,
+            } => self.devices(&machine, ticket, ask).await,
             Command::Open { machine, session } => self.open(&machine, session),
             Command::Prompt {
                 machine,
                 session,
                 text,
-            } => self.prompt(&machine, session, text).await,
+                delivery,
+            } => self.prompt(&machine, session, text, delivery).await,
             Command::Start {
                 machine,
                 harness,
@@ -512,6 +537,7 @@ impl State {
                                 .map(|session| Card::from_session(&name, session))
                                 .collect(),
                             agents: connected.agents.clone(),
+                            protocol: Some(connected.client.protocol()),
                             name: name.clone(),
                             reach: Reach::Online,
                         };
@@ -697,7 +723,7 @@ impl State {
         }
     }
 
-    async fn prompt(&self, machine: &str, session: SessionId, text: String) {
+    async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
                 LinkError::NotConnected(machine.to_owned()).to_string(),
@@ -706,7 +732,7 @@ impl State {
             return;
         };
         let content = vec![ContentBlock::Text { text }];
-        match client.prompt(session, content, Delivery::Queue).await {
+        match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
                 self.emit(Event::Failed(
@@ -756,6 +782,7 @@ fn unreachable(name: String, why: &str) -> Machine {
         reach: Reach::Unreachable(why.to_owned()),
         sessions: Vec::new(),
         agents: Vec::new(),
+        protocol: None,
     }
 }
 

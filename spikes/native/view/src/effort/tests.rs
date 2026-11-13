@@ -175,9 +175,29 @@ fn fast_is_a_select_or_the_older_toggle() {
     );
 }
 
+/// Codex as the preview node's sends it (read off the app's log of its
+/// probe, 2026-11-13).
 #[test]
-fn codexs_top_levels_are_its_own_steps() {
+fn codexs_top_levels_are_its_own_steps_and_fast_mode_is_its_switch() {
     let options = vec![
+        select(
+            "mode",
+            OptionCategory::Mode,
+            "agent",
+            &[("read-only", "Read only"), ("agent", "Agent")],
+        ),
+        select(
+            "collaboration_mode",
+            OptionCategory::Other,
+            "default",
+            &[("default", "Default"), ("plan", "Plan")],
+        ),
+        select(
+            "model",
+            OptionCategory::Model,
+            "gpt-6.1-sol",
+            &[("gpt-6.1-sol", "6.1 Sol")],
+        ),
         select(
             "reasoning_effort",
             OptionCategory::ThoughtLevel,
@@ -186,28 +206,28 @@ fn codexs_top_levels_are_its_own_steps() {
                 ("low", "Low"),
                 ("medium", "Medium"),
                 ("high", "High"),
+                ("xhigh", "Extra high"),
                 ("max", "Max"),
                 ("ultra", "Ultra"),
             ],
         ),
         select(
-            "fast",
-            OptionCategory::Other,
+            "fast-mode",
+            OptionCategory::ModelConfig,
             "off",
-            &[("on", "On"), ("off", "Off")],
-        ),
-        select(
-            "collaboration_mode",
-            OptionCategory::Other,
-            "default",
-            &[("default", "Default")],
+            &[("off", "Off"), ("on", "On")],
         ),
     ];
     let effort = Effort::of(Some(HarnessKind::Codex), &options).expect("levels");
-    assert_eq!(names(&effort), ["Low", "Medium", "High", "Max", "Ultra"]);
-    assert_eq!(effort.current, Some(4));
+    assert_eq!(
+        names(&effort),
+        ["Low", "Medium", "High", "Extra high", "Max", "Ultra"]
+    );
+    assert_eq!(effort.current, Some(5));
     assert!(effort.top.is_none());
-    assert!(effort.fast.is_some());
+    let fast = effort.fast.as_ref().expect("a fast switch");
+    assert_eq!(fast.choose(true), set("fast-mode", "on"));
+    assert!(effort.drives(&OptionId::new("fast-mode")));
     assert!(!effort.drives(&OptionId::new("collaboration_mode")));
 }
 

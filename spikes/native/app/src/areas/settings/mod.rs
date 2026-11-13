@@ -26,6 +26,7 @@
 mod agents;
 mod appearance;
 mod choices;
+mod devices;
 mod general;
 mod nav;
 mod page;
@@ -68,6 +69,8 @@ pub(crate) struct SettingsState {
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
     pub(crate) agents: agents::AgentSettings,
+
+    pub(crate) devices: devices::Devices,
 }
 
 impl SettingsState {
@@ -82,6 +85,8 @@ impl SettingsState {
             anchors: Anchors::default(),
             refused: None,
             agents: agents::AgentSettings::new(window, cx),
+
+            devices: devices::Devices::new(window, cx),
         }
     }
 
@@ -323,6 +328,7 @@ pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
 /// the theme is "System"; the text sizes; the composers' send shortcut;
 /// the conversation's width and display.
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    devices::start(shell, window, cx);
     apply_theme(shell, window, cx);
     apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
@@ -382,6 +388,7 @@ pub(crate) fn render(
         .children(list(shell, tokens, phone, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
         .children(agents::dialogs(shell, tokens, window, cx))
+        .children(devices::dialogs(shell, tokens, window, cx))
 }
 
 /// Whether `section` is drawn in this build: Settings lists only these.
@@ -397,6 +404,7 @@ pub(crate) const fn drawn(section: Section) -> bool {
             | Section::About
             | Section::Projects
             | Section::Agents
+            | Section::Devices
     )
 }
 
@@ -407,10 +415,13 @@ pub(crate) const fn drawn(section: Section) -> bool {
 /// they change is drawn.
 pub(crate) const fn applied(list: List) -> bool {
     match list {
-        List::Machine | List::Send | List::Interface | List::Code | List::Width | List::Display => {
-            true
-        }
-        List::Delivery => false,
+        List::Machine
+        | List::Send
+        | List::Delivery
+        | List::Interface
+        | List::Code
+        | List::Width
+        | List::Display => true,
     }
 }
 
@@ -427,6 +438,7 @@ fn content(
     match section {
         Section::Agents => Some(agents::render(shell, tokens, phone, window, cx)),
         Section::General => Some(general::render(shell, tokens, phone, cx)),
+        Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
         Section::Projects => Some(crate::areas::workspace::projects_content(
@@ -438,7 +450,6 @@ fn content(
         | Section::Notifications
         | Section::Models
         | Section::Machines
-        | Section::Devices
         | Section::Sync => None,
     }
 }

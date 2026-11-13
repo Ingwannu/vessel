@@ -446,3 +446,73 @@ fn twenty_thousand_entries_fold_in_batches() {
     assert_eq!(timeline.entries().len(), 20_001);
     assert!(total < std::time::Duration::from_secs(10), "{total:?}");
 }
+
+/// The thought a Korean agent streams, as the fake's `shapes` turn has it.
+const KOREAN_THOUGHT: &str = "생각을 정리하면, 묶음의 끝이 메시지 안에 걸릴 때 두 번째 조각이 빠집니다. \
+     먼저 접기를 읽고, 그다음 셸의 묶음을 보겠습니다.";
+
+/// Whether `text` holds a Hangul letter outside a syllable (a compatibility
+/// jamo, or a conjoining one): what a syllable split in two looks like.
+fn loose_jamo(text: &str) -> bool {
+    text.chars()
+        .any(|c| ('\u{3131}'..='\u{318e}').contains(&c) || ('\u{1100}'..='\u{11ff}').contains(&c))
+}
+
+// Not the page's: the owner saw "생가ㄱ" where "생각" was meant (the
+// folded thought row, build 0.0.0.0.7). A real agent's chunk is JSON text,
+// so it ends on a whole character, and a Hangul syllable is one character:
+// one syllable at a time is the finest a stream can cut it. The thought
+// built up a chunk at a time, in batches of any size, reads as the whole
+// syllables sent so far at every step (the row's "생가ㄱ" was the font's,
+// fixed in the app by giving every row Pretendard behind its face).
+#[test]
+fn a_korean_thought_streamed_a_syllable_at_a_time_stays_whole() {
+    let chars: Vec<char> = KOREAN_THOUGHT.chars().collect();
+    let sizes = [1_usize, 1, 2, 3, 1, 5, 8];
+    let mut chunks = Vec::new();
+    let mut at = 0_usize;
+    for size in sizes.iter().cycle() {
+        if at >= chars.len() {
+            break;
+        }
+        let end = at.saturating_add(*size).min(chars.len());
+        chunks.push(
+            chars
+                .get(at..end)
+                .unwrap_or_default()
+                .iter()
+                .collect::<String>(),
+        );
+        at = end;
+    }
+    assert!(
+        chunks.iter().any(|chunk| chunk == "각"),
+        "a chunk of one syllable"
+    );
+    for batch in [1_usize, 2, 7] {
+        let mut log = Log::default();
+        let records: Vec<EventRecord> = chunks
+            .iter()
+            .map(|chunk| {
+                log.agent(&json!({
+                    "event": "thought_chunk", "content": { "type": "text", "text": chunk }
+                }))
+            })
+            .collect();
+        let mut timeline = Timeline::default();
+        let mut sent = String::new();
+        for (records, texts) in records.chunks(batch).zip(chunks.chunks(batch)) {
+            let _change = timeline.apply(records);
+            sent.extend(texts.iter().map(String::as_str));
+            let [entry] = timeline.entries() else {
+                panic!("one thought, not {} entries", timeline.entries().len());
+            };
+            let EntryKind::Thought { text } = &entry.kind else {
+                panic!("a thought");
+            };
+            assert_eq!(text, &sent, "batches of {batch}");
+            assert!(!loose_jamo(text), "{text}");
+        }
+        assert_eq!(sent, KOREAN_THOUGHT);
+    }
+}

@@ -47,9 +47,11 @@ pub struct Shape {
     pub fast: Option<Known>,
 }
 
-/// The agents whose switches the control knows. Codex's top levels (Max,
-/// Ultra) are levels of its own; its fast switch is `fast` when it sends
-/// one.
+/// The agents whose switches the control knows, by the ids their adapters
+/// send (read off the preview node, 2026-11-13, through the app's log of
+/// each probe): Claude Code's `ultracode` and `fast` (on|off selects; its
+/// older adapter's `fast_mode` toggle), Codex's `fast-mode` (an off|on
+/// select). Codex's top levels (Max, Ultra) are levels of its own.
 pub const KNOWN: &[Shape] = &[
     Shape {
         kind: HarnessKind::ClaudeCode,
@@ -64,7 +66,7 @@ pub const KNOWN: &[Shape] = &[
         kind: HarnessKind::Codex,
         top: None,
         fast: Some(Known {
-            ids: &["fast", "fast_mode"],
+            ids: &["fast-mode"],
         }),
     },
 ];

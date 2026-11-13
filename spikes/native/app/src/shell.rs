@@ -4,6 +4,7 @@
 //! DESIGN.md section 6).
 
 use tokio::sync::mpsc;
+use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
     AsyncApp, Context, FluentBuilder as _, IntoElement, ParentElement as _, Render, Styled as _,
@@ -94,6 +95,19 @@ impl Shell {
         }
     }
 
+    /// Checked device dispatch keeps a refused queue from leaving its page pending.
+    pub(crate) fn devices_send(
+        &self,
+        machine: vessel_app_view::devices::MachineKey,
+        ticket: vessel_app_view::devices::Ticket,
+        ask: vessel_app_link::devices::Ask,
+    ) -> Result<(), vessel_app_view::devices::Problem> {
+        self.link
+            .as_ref()
+            .ok_or(vessel_app_view::devices::Problem::Offline)?
+            .request_devices(machine, ticket, ask)
+    }
+
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
@@ -110,6 +124,7 @@ impl Shell {
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Fleet(fleet) => {
                 self.fleet = fleet;
                 if !self.loaded {
@@ -138,7 +153,11 @@ impl Shell {
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
-            Event::Acted(answer) => self.acted(answer, cx),
+            Event::Acted(answer) => {
+                if let Some(answer) = self.board_acted(answer, cx) {
+                    self.acted(answer, cx);
+                }
+            }
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
@@ -214,6 +233,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
+        self.settle_devices(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and
@@ -236,10 +256,15 @@ impl Render for Shell {
                 cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx)),
             )
         });
+        // The window's face at its root (Geist, Pretendard behind it), so
+        // text an area draws without a step of its own still has
+        // Pretendard for its Hangul (the owner's font rule; a folded row
+        // without a face split "각" into "가" and "ㄱ").
         let content = div()
             .size_full()
             .flex()
             .flex_col()
+            .face(vessel_app_kit::Type::Body)
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
@@ -289,7 +314,8 @@ impl Render for Shell {
                     // Under the title bar, so its menu button stays to close
                     // it with.
                     .children(sheet),
-            );
+            )
+            .children(areas::toasts::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

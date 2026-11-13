@@ -21,9 +21,12 @@
 use std::collections::HashMap;
 
 use vessel_proto::{
-    AgentEvent, ContentBlock, EventRecord, EventSeq, PermissionId, PermissionOptionId,
-    PermissionOptionKind, SessionEvent, SessionStatus, ToolCallId, ToolCallStatus,
+    AgentEvent, ContentBlock, EventRecord, EventSeq, PermissionId, PermissionOption,
+    PermissionOptionId, SessionEvent, SessionStatus, ToolCallId, ToolCallStatus,
 };
+
+use crate::ConversationWords;
+use crate::timeline::{allows, answer_words};
 
 /// Who an entry is from, which decides how it is drawn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,8 +113,29 @@ pub struct Asked {
     pub id: PermissionId,
     /// What it is for: the tool call's title, when known.
     pub what: Option<String>,
-    /// The answers, in the agent's order: id, words, and whether it allows.
-    pub options: Vec<(PermissionOptionId, String, bool)>,
+    /// The answers, in the agent's order.
+    pub options: Vec<PermissionOption>,
+}
+
+impl Asked {
+    /// Its buttons, in the agent's order: the option, its words in the
+    /// person's language (`timeline::answer_words`), whether it allows.
+    #[must_use]
+    pub fn buttons(&self, words: &ConversationWords) -> Vec<(PermissionOptionId, String, bool)> {
+        self.options
+            .iter()
+            .zip(answer_words(&self.options, |kind| {
+                words.permission_kind(kind)
+            }))
+            .map(|(option, said)| {
+                (
+                    option.id.clone(),
+                    words.answer_words(said),
+                    allows(option.kind),
+                )
+            })
+            .collect()
+    }
 }
 
 /// The conversation so far.
@@ -229,17 +253,7 @@ impl Conversation {
                 self.asked.push(Asked {
                     id: request.id,
                     what,
-                    options: request
-                        .options
-                        .iter()
-                        .map(|option| {
-                            let allows = matches!(
-                                option.kind,
-                                PermissionOptionKind::AllowOnce | PermissionOptionKind::AllowAlways
-                            );
-                            (option.id.clone(), option.name.clone(), allows)
-                        })
-                        .collect(),
+                    options: request.options.clone(),
                 });
             }
             AgentEvent::PermissionResolved { id, .. } => {

@@ -1,13 +1,20 @@
 //! `web/src/data/shortcuts/{keys,match,edit,listing}.test.ts`: the keys'
 //! grammar, matching a press, changing a key and Settings' rows.
 
+use std::collections::BTreeMap;
+
 use crate::Lang;
-use crate::shortcuts::{
-    Action, Binding, Chord, Clash, KeyPress, KeysTo, Matched, Overrides, Platform, Refusal,
-    SEQUENCE_MS, ShortcutEdit, ShortcutFilter, ShortcutGroup, apply, assign, binding_words,
-    chord_caps, chord_of, clash_of, matched, modified_count, overlaps, refusal, remove_key,
-    restore, shortcut_row, shortcut_rows,
+use crate::prefs::{
+    ActionId, Bindings, KeyBinding, PreferenceChange, Preferences, ShortcutEdit, ShortcutEdits,
+    ShortcutTarget,
 };
+use crate::shortcuts::{
+    Action, Binding, Chord, Clash, KeyPress, Matched, Platform, Refusal, SEQUENCE_MS,
+    ShortcutFilter, ShortcutGroup, assign, binding_words, chord_caps, chord_of, clash_of, matched,
+    modified_count, overlaps, refusal, remove_key, restore, shortcut_row, shortcut_rows,
+};
+
+type Overrides = BTreeMap<ActionId, Bindings>;
 
 const MAC: Platform = Platform::Mac;
 const OTHER: Platform = Platform::Other;
@@ -28,20 +35,37 @@ fn chord(text: &str) -> Chord {
     binding(text).first
 }
 
+fn bindings(texts: &[&str]) -> Bindings {
+    let keys: Vec<KeyBinding> = texts.iter().map(|text| text.parse().unwrap()).collect();
+    Bindings::try_from(keys).unwrap()
+}
+
 fn overrides(pairs: &[(&str, &[&str])]) -> Overrides {
     pairs
         .iter()
-        .map(|(id, keys)| {
-            (
-                (*id).to_owned(),
-                keys.iter().map(|key| (*key).to_owned()).collect(),
-            )
-        })
+        .map(|(id, keys)| (id.parse().unwrap(), bindings(keys)))
         .collect()
 }
 
-fn keys(texts: &[&str]) -> KeysTo {
-    KeysTo::Bindings(texts.iter().map(|text| (*text).to_owned()).collect())
+fn keys(texts: &[&str]) -> ShortcutTarget {
+    ShortcutTarget::Bindings {
+        keys: bindings(texts),
+    }
+}
+
+fn edit(action: Action, to: ShortcutTarget) -> ShortcutEdit {
+    ShortcutEdit {
+        action: action.action_id().unwrap(),
+        to,
+    }
+}
+
+fn kept(edits: Vec<ShortcutEdit>, preferences: &Preferences) -> Preferences {
+    preferences
+        .changed(&PreferenceChange::Shortcuts {
+            edits: ShortcutEdits::try_from(edits).unwrap(),
+        })
+        .unwrap()
 }
 
 #[test]
@@ -291,14 +315,8 @@ fn a_reassignment_moves_the_key_in_one_change() {
     assert_eq!(
         edits,
         [
-            ShortcutEdit {
-                action: Action::Find,
-                to: keys(&["Mod+K"]),
-            },
-            ShortcutEdit {
-                action: Action::Palette,
-                to: keys(&["/"]),
-            },
+            edit(Action::Find, keys(&["Mod+K"])),
+            edit(Action::Palette, keys(&["/"])),
         ]
     );
 }
@@ -308,49 +326,51 @@ fn another_key_at_most_two_removing_one_the_defaults_again() {
     let none = Overrides::new();
     assert_eq!(
         assign(Action::Find, &binding("Mod+J"), &none, None, None, OTHER),
-        [ShortcutEdit {
-            action: Action::Find,
-            to: keys(&["Mod+F", "Mod+J"]),
-        }]
+        [edit(Action::Find, keys(&["Mod+F", "Mod+J"]))]
     );
     let palette = assign(Action::Palette, &binding("Mod+J"), &none, None, None, OTHER);
     assert_eq!(palette[0].to, keys(&["/", "Mod+J"]));
     assert_eq!(
         remove_key(Action::Palette, 0, &none),
-        [ShortcutEdit {
-            action: Action::Palette,
-            to: keys(&["/"]),
-        }]
+        [edit(Action::Palette, keys(&["/"]))]
     );
     assert_eq!(
         restore(Action::Find),
-        [ShortcutEdit {
-            action: Action::Find,
-            to: KeysTo::Default,
-        }]
+        [edit(Action::Find, ShortcutTarget::Default)]
     );
 }
 
 #[test]
-fn edits_kept_change_the_overrides() {
-    let mut kept = Overrides::new();
-    apply(
-        &assign(
+fn edits_kept_change_the_preferences_shortcuts() {
+    let start = Preferences::default();
+    let moved = kept(
+        assign(
             Action::Find,
             &binding("Mod+K"),
-            &kept.clone(),
+            &start.shortcuts,
             Some(0),
             Some(Action::Palette),
             OTHER,
         ),
-        &mut kept,
+        &start,
     );
     assert_eq!(
-        kept,
+        moved.shortcuts,
         overrides(&[("find", &["Mod+K"]), ("palette", &["/"])])
     );
-    apply(&restore(Action::Find), &mut kept);
-    assert_eq!(kept, overrides(&[("palette", &["/"])]));
+    let restored = kept(restore(Action::Find), &moved);
+    assert_eq!(restored.shortcuts, overrides(&[("palette", &["/"])]));
+    assert_eq!(modified_count(&restored.shortcuts), 1);
+}
+
+#[test]
+fn every_registry_id_and_default_is_one_the_preferences_keep() {
+    for action in Action::ALL {
+        assert!(action.action_id().is_some(), "{}", action.id());
+        for text in action.defaults() {
+            assert!(text.parse::<KeyBinding>().is_ok(), "{text}");
+        }
+    }
 }
 
 #[test]

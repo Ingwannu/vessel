@@ -160,6 +160,10 @@ mod tests {
         assert_eq!(dark.error.foreground, gpui::rgb(0x00d8_847b).into());
         assert_eq!(light.success.tint, gpui::rgba(0x3e70_4a1f).into());
         assert_eq!(dark.success.tint, gpui::rgba(0x6cb1_7b29).into());
+        assert_eq!(light.warning.tint, gpui::rgba(0x7b5d_391f).into());
+        assert_eq!(light.error.tint, gpui::rgba(0x9d43_3b1f).into());
+        assert_eq!(dark.warning.tint, gpui::rgba(0xc096_6429).into());
+        assert_eq!(dark.error.tint, gpui::rgba(0xd884_7b29).into());
         assert_eq!(padding(Size::Small), (8.0, 3.0));
         assert_eq!(padding(Size::ExtraSmall), (6.0, 1.0));
     }

@@ -257,3 +257,28 @@ not fixed event coordinates. The interrupted earlier run is not counted.
 The fleet’s shape assertions passed, and both shell scripts pass
 `bash -n`. No main-workspace source changed; no main-workspace gate is
 claimed. Transient request loading was not held for a synthetic capture.
+
+## Screen layout review and refreshed baseline
+
+The coordinator rejected the layout of `16d5a75`; its request tickets,
+retained output, exact copy and existing defaults store stay. The redraw
+follows Paseo's `screens/settings/providers-section.tsx` (`ProviderRow`,
+`StatusIndicator`), `components/settings/headings/settings-section.tsx`,
+and `styles/settings.ts`. Its detail follows
+`components/provider-settings-host.tsx` through
+`components/provider-diagnostic-sheet.tsx`, with the native page's shared
+header (`components/page-layout/index.tsx`, `components/headers/back-header.tsx`).
+The rejected screen captures remain review evidence, not acceptance of
+that layout.
+
+The lead baseline was merged again at `b86f0c7`. Conflicts retain both
+Agents and Devices registrations, request hubs and browser replies, both
+README additions, and the lead's current shared Badge/Alert implementations
+and complete 54-glyph inventory. The merge adds no node or wire changes;
+two testkit source changes belong to the merged lead.
+
+Merged-tree checks passed, detached: root `cargo fmt --all --check`,
+`cargo clippy --workspace --all-targets -- -D warnings`,
+`cargo test -p vessel-testkit` (14 passed), then the three whole native
+checks (396 passed). The other root-workspace tests were not run. The
+current CLI, node and fake binaries were rebuilt for the merged fleet.

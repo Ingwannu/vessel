@@ -18,6 +18,7 @@ pub mod board;
 mod conversation;
 pub mod devices;
 pub mod effort;
+pub mod extras;
 mod links;
 pub mod machines;
 pub mod models;
@@ -35,6 +36,7 @@ pub mod terminal;
 mod tests;
 mod text;
 pub mod timeline;
+pub mod toasts;
 pub mod workspace;
 
 pub use board::{

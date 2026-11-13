@@ -11,9 +11,16 @@
 //!   digit is kept by the browser and the system; with A, C, V, X or Z it
 //!   is the editing keys'. The native app's sentence names the system
 //!   rather than the browser (`text/shortcuts.rs`).
+//! - The edits are the preferences' own (`prefs::ShortcutEdit`, what the
+//!   bridge's `ShortcutEdit` is), kept through
+//!   `PreferenceChange::Shortcuts`; restoring every action is
+//!   `PreferenceChange::ResetShortcuts`.
+
+use std::collections::BTreeMap;
 
 use super::keys::{Binding, Chord, Platform, overlaps};
-use super::registry::{Action, MAX_KEYS, Overrides, bindings_of, jump_of};
+use super::registry::{Action, bindings_of, jump_of};
+use crate::prefs::{ActionId, Bindings, KeyBinding, MAX_BINDINGS, ShortcutEdit, ShortcutTarget};
 
 /// Why a recorded chord is not accepted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +73,7 @@ pub enum Clash {
 pub fn clash_of(
     action: Action,
     binding: &Binding,
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     platform: Platform,
 ) -> Option<Clash> {
     if binding.then.is_none() && jump_of(&binding.first).is_some() {
@@ -89,29 +96,18 @@ pub fn clash_of(
         })
 }
 
-/// One action's keys after a change.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum KeysTo {
-    /// These keys, as an override writes them.
-    Bindings(Vec<String>),
-    /// The action's defaults again.
-    Default,
-}
-
-/// One action's keys after a change (the bridge's `ShortcutEdit`).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShortcutEdit {
-    /// The action.
-    pub action: Action,
-    /// Its keys after it.
-    pub to: KeysTo,
-}
-
-fn set_keys(action: Action, bindings: &[Binding]) -> ShortcutEdit {
-    ShortcutEdit {
-        action,
-        to: KeysTo::Bindings(bindings.iter().take(MAX_KEYS).map(Binding::text).collect()),
-    }
+fn set_keys(action: Action, bindings: &[Binding]) -> Option<ShortcutEdit> {
+    let keys: Vec<KeyBinding> = bindings
+        .iter()
+        .take(MAX_BINDINGS)
+        .filter_map(|binding| binding.text().parse().ok())
+        .collect();
+    Some(ShortcutEdit {
+        action: action.action_id()?,
+        to: ShortcutTarget::Bindings {
+            keys: Bindings::try_from(keys).ok()?,
+        },
+    })
 }
 
 /// The edits that add `binding` to `action` (`replace`: in place of the
@@ -121,7 +117,7 @@ fn set_keys(action: Action, bindings: &[Binding]) -> ShortcutEdit {
 pub fn assign(
     action: Action,
     binding: &Binding,
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     replace: Option<usize>,
     from: Option<Action>,
     platform: Platform,
@@ -131,7 +127,7 @@ pub fn assign(
         None => {
             let mut next = current;
             next.push(binding.clone());
-            let extra = next.len().saturating_sub(MAX_KEYS);
+            let extra = next.len().saturating_sub(MAX_BINDINGS);
             next.split_off(extra)
         }
         Some(at) => current
@@ -146,50 +142,44 @@ pub fn assign(
             })
             .collect(),
     };
-    let mut edits = vec![set_keys(action, &next)];
-    if let Some(from) = from.filter(|from| *from != action) {
+    let taken = from.filter(|from| *from != action).map(|from| {
         let left: Vec<Binding> = bindings_of(from, overrides)
             .into_iter()
             .filter(|existing| !overlaps(existing, binding, platform))
             .collect();
-        edits.push(set_keys(from, &left));
-    }
-    edits
+        (from, left)
+    });
+    std::iter::once(set_keys(action, &next))
+        .chain(taken.map(|(from, left)| set_keys(from, &left)))
+        .flatten()
+        .collect()
 }
 
 /// The edits that remove the key at `index` from `action`.
 #[must_use]
-pub fn remove_key(action: Action, index: usize, overrides: &Overrides) -> Vec<ShortcutEdit> {
+pub fn remove_key(
+    action: Action,
+    index: usize,
+    overrides: &BTreeMap<ActionId, Bindings>,
+) -> Vec<ShortcutEdit> {
     let left: Vec<Binding> = bindings_of(action, overrides)
         .into_iter()
         .enumerate()
         .filter(|(at, _)| *at != index)
         .map(|(_, binding)| binding)
         .collect();
-    vec![set_keys(action, &left)]
+    set_keys(action, &left).into_iter().collect()
 }
 
 /// The edit that gives `action` its defaults again.
 #[must_use]
 pub fn restore(action: Action) -> Vec<ShortcutEdit> {
-    vec![ShortcutEdit {
-        action,
-        to: KeysTo::Default,
-    }]
-}
-
-/// The overrides after `edits` (what the page's bridge does when it keeps
-/// them).
-pub fn apply(edits: &[ShortcutEdit], overrides: &mut Overrides) {
-    for edit in edits {
-        match &edit.to {
-            KeysTo::Bindings(keys) => {
-                overrides
-                    .entry(edit.action.id().to_owned())
-                    .or_default()
-                    .clone_from(keys);
-            }
-            KeysTo::Default => overrides.retain(|id, _| id != edit.action.id()),
-        }
-    }
+    action
+        .action_id()
+        .map(|action| ShortcutEdit {
+            action,
+            to: ShortcutTarget::Default,
+        })
+        .into_iter()
+        .collect()
 }

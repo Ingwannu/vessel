@@ -3,7 +3,8 @@
 //! in English and Korean. See `text/mod.rs` for the convention.
 
 use super::Lang;
-use crate::sidebar::{Group, SessionMark, Sort};
+use crate::prefs::{Grouping, SessionSort};
+use crate::sidebar::SessionMark;
 
 impl Lang {
     /// The sidebar's words in this language.
@@ -69,19 +70,19 @@ impl SidebarWords {
 
     /// A grouping's name in the Display menu.
     #[must_use]
-    pub const fn group(&self, group: Group) -> &'static str {
+    pub const fn group(&self, group: Grouping) -> &'static str {
         match group {
-            Group::Machine => self.by_machine,
-            Group::Status => self.by_status,
+            Grouping::Machine => self.by_machine,
+            Grouping::Status => self.by_status,
         }
     }
 
     /// An order's name in the Display menu.
     #[must_use]
-    pub const fn sort_by(&self, sort: Sort) -> &'static str {
+    pub const fn sort_by(&self, sort: SessionSort) -> &'static str {
         match sort {
-            Sort::Created => self.created,
-            Sort::Activity => self.activity,
+            SessionSort::Created => self.created,
+            SessionSort::Activity => self.activity,
         }
     }
 

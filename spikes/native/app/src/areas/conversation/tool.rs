@@ -10,7 +10,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
     div, px,
 };
-use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box};
+use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, version_of};
 use vessel_app_view::timeline::{MAX_LINES, Side, ToolView, block_text, diff_lines, json_text};
 use vessel_proto::{ToolCallContent, ToolCallStatus};
 
@@ -155,10 +155,10 @@ fn diff(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    // The texts only change by being replaced; their lengths tell the
-    // versions apart.
-    let version =
-        u64::try_from(old.map_or(0, str::len).saturating_add(new.len())).unwrap_or(u64::MAX);
+    // Both texts' versions (`kit::version_of`, their hashes): a change to
+    // either splits the diff again (their lengths alone kept a first diff
+    // on screen after a second of the same lengths).
+    let version = version_of(old.unwrap_or("")).rotate_left(1) ^ version_of(new);
     let lines = lines_box(
         id,
         version,

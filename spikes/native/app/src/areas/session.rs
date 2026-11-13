@@ -21,8 +21,9 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
+use vessel_app_view::prefs::TurnDelivery;
 use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -244,10 +245,12 @@ impl Shell {
             return;
         }
         if open.live {
+            let delivery = self.delivery();
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
                 text,
+                delivery,
             });
         } else {
             // Ended or interrupted: start it again with its conversation,
@@ -262,6 +265,34 @@ impl Shell {
         }
         self.areas.session.composer.clear(window, cx);
         cx.notify();
+    }
+
+    /// What a plain send does: with no turn running, start one (or wait
+    /// behind prompts already queued); while one runs, what Settings'
+    /// default send says (wait in the queue, join the turn, or stop it and
+    /// start), joining only for an agent that takes it (`abilities.steer`;
+    /// otherwise the queue).
+    fn delivery(&self) -> Delivery {
+        if !self.areas.session.conversation.turn_running() {
+            return Delivery::Queue;
+        }
+        match self.prefs.settings.composer.delivery {
+            TurnDelivery::Steer if self.steers() => Delivery::Steer,
+            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
+            TurnDelivery::Interrupt => Delivery::Interrupt,
+        }
+    }
+
+    /// Whether the open session's agent takes a message into a running
+    /// turn.
+    pub(crate) fn steers(&self) -> bool {
+        self.areas
+            .conversation
+            .timeline
+            .facts()
+            .abilities
+            .as_ref()
+            .is_some_and(|abilities| abilities.steer)
     }
 
     /// The ended session runs again: follow it afresh (its log goes on
@@ -349,7 +380,7 @@ pub(crate) fn render(
             .into_any_element()
     };
     let working = view.conversation.turn_running();
-    div()
+    let screen = div()
         .size_full()
         .flex()
         .flex_col()
@@ -377,7 +408,18 @@ pub(crate) fn render(
                 .children(dock.map(column))
                 .child(composer(shell, tokens, working, window, cx))
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::conversation::overlays(shell, tokens, window, cx));
+    // Track F's slot beside the conversation column: the code panel.
+    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
+        Some(panel) => div()
+            .size_full()
+            .relative()
+            .flex()
+            .flex_row()
+            .child(screen.flex_1().min_w(px(0.0)))
+            .child(panel),
+        None => screen,
+    }
 }
 
 /// Under an ended session's conversation: that sending starts it again;
@@ -505,14 +547,14 @@ fn composer(
 fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     // Wrapped: four long answers do not fit a phone's width.
     let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    for (index, (option, words, allows)) in asked.options.iter().enumerate() {
+    let buttons = asked.buttons(shell.t.lang.conversation());
+    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
         let id = asked.id;
-        let option = option.clone();
         answers = answers.child(
             button(
                 ElementId::Name(format!("answer-{index}").into()),
-                words.clone(),
-                *allows,
+                words,
+                allows,
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {
@@ -520,9 +562,9 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
             })),
         );
     }
-    div()
-        .mx(px(12.0))
-        .mb(px(8.0))
+    // In the chat column (`column`), so its edges are the composer's.
+    let card = div()
+        .w_full()
         .p(px(12.0))
         .flex()
         .flex_col()
@@ -537,7 +579,8 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
                 .text_color(tokens.text_primary)
                 .child(shell.t.asks_to_run(asked.what.as_deref())),
         )
-        .child(answers)
+        .child(answers);
+    column(card).mb(px(8.0))
 }
 
 /// The first line of a prompt, at most 80 characters (the node's rule

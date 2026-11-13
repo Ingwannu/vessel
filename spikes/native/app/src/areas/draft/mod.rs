@@ -281,6 +281,30 @@ impl Shell {
         let key = (machine, harness);
         match outcome {
             Ok(options) => {
+                // Which ids an agent sends, for the effort table
+                // (`view::effort::KNOWN`): ids, categories and kinds only.
+                let shape: Vec<String> = options
+                    .iter()
+                    .map(|option| match &option.kind {
+                        vessel_proto::OptionKind::Select { values, .. } => format!(
+                            "{} ({:?}, select of {})",
+                            option.id.as_str(),
+                            option.category,
+                            values
+                                .iter()
+                                .map(|value| value.id.as_str())
+                                .collect::<Vec<_>>()
+                                .join("|")
+                        ),
+                        vessel_proto::OptionKind::Toggle { .. } => {
+                            format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
+                        }
+                        vessel_proto::OptionKind::Unknown => {
+                            format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
+                        }
+                    })
+                    .collect();
+                tracing::info!(agent = ?key.1, options = %shape.join(", "), "an agent's options");
                 let _earlier = probes.insert(key, Probe::Ready(options));
             }
             Err(why) => {
