@@ -131,6 +131,18 @@ export function offBy(
   return top + height / 2 - view / 2;
 }
 
+/** The whole pixels to scroll by to hold a box that is `by` pixels off
+ * where it was put (`offBy`): the nearest whole step, none under half a
+ * pixel. A scroll offset is whole pixels (at a device scale of one), so a
+ * hold that moved only from a whole pixel off let the box sit anywhere
+ * within a pixel either side of its place, and two painted frames differ
+ * by up to two (1.19 px seen under load); rounded, it stays within half a
+ * pixel, and any two frames within one. */
+export function holdStep(by: number): number {
+  const step = Math.round(by);
+  return step === 0 ? 0 : step;
+}
+
 /** Whether the drawn items (`span`, over `starts`) cover a view `height`
  * pixels high scrolled to `top`: when they do not, part of the view shows
  * the spacers' empty space until the window is worked out again. */
