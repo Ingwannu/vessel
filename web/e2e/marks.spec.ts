@@ -5,7 +5,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { startSession, timeline } from "./kit";
+import { closeMenu, startSession, timeline } from "./kit";
 import { openUi } from "./open";
 
 async function act(page: Page, action: string): Promise<void> {
@@ -30,7 +30,7 @@ test("pin, unread, start again, archive, restore and delete", async ({
   await expect(
     page.getByRole("menuitem", { name: "Unpin session" }),
   ).toBeVisible();
-  await page.keyboard.press("Escape");
+  await closeMenu(page);
 
   // Unread, though it is in front: the page holds its own read mark until
   // something new arrives.

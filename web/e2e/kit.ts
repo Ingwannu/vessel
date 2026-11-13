@@ -52,6 +52,23 @@ export async function newSessionPage(
   return page.getByRole("form", { name: "Prompt" });
 }
 
+/** Close the open menu with Escape, once it holds the focus: a menu
+ * draws its items before it takes the focus, and an Escape pressed in
+ * between goes to the button that opened it and is lost; the menu then
+ * stays open, and the next press on that button closes it instead of
+ * opening it (marks.spec.ts, one run in about twelve, 2026-11-13). */
+export async function closeMenu(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.activeElement?.closest('[role="menu"]') != null,
+      ),
+    )
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+}
+
 /** A session's timeline: its entries, apart from the live region that
  * repeats the newest one's text for screen readers. */
 export function timeline(page: Page): Locator {
