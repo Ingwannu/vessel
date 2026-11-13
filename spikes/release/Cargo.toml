@@ -1,0 +1,139 @@
+# Release track of milestone 12 (docs/plans/backend-m12-release.md): how
+# the native app is built for every system, packaged, published as a
+# signed feed and updated. A workspace of its own under `spikes/`, outside
+# Vessel's (the root manifest excludes `spikes`), as each track's is.
+#
+#   hello    the smallest GPUI window, to prove a target builds and runs
+#            before the app exists on it (question 4 of the plan)
+#   updater  how the app updates itself: the feed's types, verification,
+#            the download, the swap and the restart; no GPUI, so the app
+#            links it and nothing of the UI layer reaches it (question 8)
+#   feed     the tool that makes the signing key and publishes a feed
+#
+# The toolchain is the desktop track's (1.98.1): the GPUI snapshot needs
+# 1.95 or newer, and one toolchain for the app and its release keeps a
+# cross build from meeting a second compiler.
+
+[workspace]
+resolver = "3"
+members = ["hello", "updater", "feed"]
+# A crate copied from crates.io and patched (patches/README.md): not a
+# member, so the workspace's lints are not applied to code that is not ours.
+exclude = ["patches"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+license = "LicenseRef-PolyForm-Strict-1.0.0"
+license-file = "../../LICENSE.md"
+repository = "https://github.com/Team-WICKED/vessel"
+
+# The main workspace's lints, copied (the milestone's common rules).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+unused_lifetimes = "warn"
+unused_import_braces = "warn"
+unused_results = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+let_underscore_drop = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+
+# Panics and escape hatches: denied outright.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+get_unwrap = "deny"
+unwrap_in_result = "deny"
+panic_in_result_fn = "deny"
+exit = "deny"
+mem_forget = "deny"
+dbg_macro = "deny"
+
+# Lossy or surprising arithmetic and conversions
+as_conversions = "deny"
+arithmetic_side_effects = "deny"
+integer_division = "deny"
+float_arithmetic = "deny"
+float_cmp = "deny"
+lossy_float_literal = "deny"
+cast_lossless = "deny"
+
+# Suppressions must be explicit and justified
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+
+# Output goes through `tracing` (the CLI writes to a locked stdout handle instead)
+print_stdout = "deny"
+print_stderr = "deny"
+
+map_err_ignore = "warn"
+let_underscore_must_use = "warn"
+error_impl_error = "warn"
+result_large_err = "warn"
+clone_on_ref_ptr = "warn"
+same_name_method = "warn"
+str_to_string = "warn"
+wildcard_enum_match_arm = "warn"
+
+[workspace.dependencies]
+# The desktop track's pin (spikes/native/Cargo.toml says why it is this
+# snapshot and why exactly): a window built here proves the same GPUI the
+# app is written on.
+gpui = { package = "gpui-pre", version = "=0.3.10" }
+gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10" }
+
+vessel-app-updater = { path = "updater" }
+
+# The updater's and the feed tool's (ADR 0014: every one MIT, Apache-2.0
+# or both; listed with their licences in docs/plans/backend-m12-release.md).
+# The versions are the main workspace's where it has the crate, so the app,
+# which links both trees, builds one copy.
+#
+# minisign: the signature format ADR 0008 chose for `vesseld` releases and
+# Tauri's updater uses; `minisign-verify` (MIT, no dependencies of its own)
+# checks it in the app, `minisign` (MIT) makes the key and signs, in the
+# feed tool and the tests only.
+minisign = "0.10"
+minisign-verify = "0.3"
+# HTTPS as the main workspace does it (ADR 0005's amendment): rustls with
+# `ring` picked explicitly and the system's roots; no platform TLS.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "fs", "time", "sync", "macros"] }
+tracing = "0.1"
+
+[profile.release]
+# As Vessel's own release profile and the app's.
+lto = "fat"
+codegen-units = 1
+
+# GPUI's Windows platform with its build script corrected for a build on
+# another system (patches/README.md). The same lines go into the app's
+# workspace; on Linux and macOS the crate is not compiled at all.
+[patch.crates-io]
+gpui-pre-windows = { path = "patches/gpui-pre-windows" }

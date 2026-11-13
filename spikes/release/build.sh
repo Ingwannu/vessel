@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+# Build every artifact of the native app for one label, on Linux.
+#
+#   spikes/release/build.sh LABEL [TARGET...] [--publish]
+#
+# TARGETs: windows-x64, linux-x64 (both when none is named).
+# --publish also writes the channel's signed manifest (<dist>/<channel>.json),
+# which tells every installed copy that LABEL is the newest build: only
+# when the coordinator gives the word.
+#
+# Writes "$VESSEL_DIST_DIR/LABEL/" as one set: everything is built into a
+# hidden directory beside it (keeping the other targets' files of the
+# label, if any), checked with `sha256sum -c`, and only then renamed into
+# place, so the directory the owner downloads from never holds a
+# half-written set. The last step checks the sums again where they landed.
+# Contents:
+#   vessel-LABEL-windows-x64.zip        Vessel.exe, LICENSE.md, README.txt,
+#                                       licenses/ (the embedded fonts' OFL)
+#   vessel-LABEL-windows-x64-setup.exe  per-user installer (NSIS)
+#   vessel-LABEL-windows-x64.exe        the executable alone: the update
+#   vessel-LABEL-linux-x64.tar.gz       vessel-app, LICENSE.md, README.txt,
+#                                       licenses/
+#   vessel-LABEL-linux-x64              the executable alone: the update
+#   SHA256SUMS (and SHA256SUMS.minisig when a signing key is given)
+#
+# Environment (no host names or paths live in this file):
+#   VESSEL_DIST_DIR        required: the dist root (the feed's base)
+#   VESSEL_TOOLS_DIR       required for Windows: cargo-xwin (bin/), its
+#                          cache (xwin-cache/), fxc (fxc/), wine's prefix
+#                          (wineprefix/); tools/setup-windows-cross.sh fills it
+#   VESSEL_UPDATE_FEED     the feed's https:// base, compiled into the app
+#   VESSEL_UPDATE_KEY      the release key's public base64 line, compiled in
+#   VESSEL_UPDATE_SECRET   the release key's secret file: signs SHA256SUMS
+#                          and, with --publish, the manifest
+#   VESSEL_UPDATE_CHANNEL  the channel (preview)
+#   VESSEL_APP_WORKSPACE, VESSEL_APP_PACKAGE, VESSEL_APP_BIN
+#                          what to build (spikes/native, vessel-app,
+#                          vessel-app); the release workspace's
+#                          vessel-release-hello / vessel-hello tries the
+#                          pipeline without the app
+#   JOBS                   cargo's -j (6: /data is one spinning disk)
+#
+# Why one script for every target: the owner gets a new build after every
+# round of feedback, and each must carry the same label, the same update
+# settings and the same checks on every system.
+set -euo pipefail
+
+usage() {
+    sed -n '2,10p' "$0" >&2
+    exit 2
+}
+
+[ $# -ge 1 ] || usage
+label="$1"
+shift
+[[ "$label" =~ ^[0-9]+(\.[0-9]+){0,7}$ ]] || { echo "label must be dot-separated numbers: $label" >&2; exit 2; }
+
+targets=()
+publish=0
+for arg in "$@"; do
+    case "$arg" in
+        windows-x64 | linux-x64) targets+=("$arg") ;;
+        --publish) publish=1 ;;
+        *) usage ;;
+    esac
+done
+[ ${#targets[@]} -gt 0 ] || targets=(windows-x64 linux-x64)
+
+here="$(cd "$(dirname "$0")" && pwd)"
+repo="$(cd "$here/../.." && pwd)"
+: "${VESSEL_DIST_DIR:?VESSEL_DIST_DIR names the dist root}"
+app_ws="${VESSEL_APP_WORKSPACE:-$repo/spikes/native}"
+app_pkg="${VESSEL_APP_PACKAGE:-vessel-app}"
+app_bin="${VESSEL_APP_BIN:-vessel-app}"
+channel="${VESSEL_UPDATE_CHANNEL:-preview}"
+jobs="${JOBS:-6}"
+final="$VESSEL_DIST_DIR/$label"
+partial="$VESSEL_DIST_DIR/.$label.partial.$$"
+out="$partial"
+mkdir -p "$out"
+if [ -d "$final" ]; then
+    # Hard links: no copy of tens of MiB; every file this run writes is
+    # removed first (fresh) so the published one is never written through.
+    cp -al "$final/." "$out/"
+fi
+rm -f "$out/SHA256SUMS" "$out/SHA256SUMS.minisig"
+
+# The update settings go into the app together or not at all.
+if [ -n "${VESSEL_UPDATE_FEED:-}" ] || [ -n "${VESSEL_UPDATE_KEY:-}" ]; then
+    : "${VESSEL_UPDATE_FEED:?VESSEL_UPDATE_KEY is set, VESSEL_UPDATE_FEED is not}"
+    : "${VESSEL_UPDATE_KEY:?VESSEL_UPDATE_FEED is set, VESSEL_UPDATE_KEY is not}"
+    export VESSEL_UPDATE_FEED VESSEL_UPDATE_KEY
+    export VESSEL_UPDATE_CHANNEL="$channel"
+    echo "updates: channel $channel from $VESSEL_UPDATE_FEED"
+else
+    echo "updates: none compiled in (VESSEL_UPDATE_FEED and VESSEL_UPDATE_KEY unset)"
+fi
+export VESSEL_BUILD_LABEL="$label"
+
+stage="$(mktemp -d)"
+# The partial set only: after the rename it no longer exists, and the
+# published directory is never what is removed.
+trap 'rm -rf "$stage" "$partial"' EXIT
+
+# The app embeds its faces; they are fetched, not committed.
+if [ -x "$app_ws/scripts/fonts.sh" ] && [ ! -f "$app_ws/assets/fonts/Pretendard-Regular.otf" ]; then
+    (cd "$app_ws" && scripts/fonts.sh "$stage/fonts")
+fi
+
+target_dir="$(cd "$app_ws" && cargo metadata --format-version 1 --no-deps |
+    python3 -I -c 'import json, sys; print(json.load(sys.stdin)["target_directory"])')"
+
+# What the README says about updates must be true of this build: the
+# settings compiled in, and the app linking the updater that reads them.
+links_updater=0
+(cd "$app_ws" && cargo metadata --format-version 1 --locked 2>/dev/null) |
+    grep -q '"name":"vessel-app-updater"' && links_updater=1
+if [ -n "${VESSEL_UPDATE_FEED:-}" ] && [ "$links_updater" = 1 ]; then
+    updates_ko="이 빌드는 시작할 때와 한 시간마다 새 빌드를 확인하고, 받아 둔 뒤 다시 시작하라고 알립니다."
+    updates_en="This build checks for a new build at start and hourly, downloads it, and asks you to restart."
+else
+    updates_ko="이 빌드는 스스로 업데이트하지 않습니다. 새 빌드는 새로 받아 같은 방법으로 설치하면 덮어씁니다."
+    updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
+fi
+
+# The SIL Open Font License asks that each copy of the fonts carry the
+# licence; the app embeds Geist, Geist Mono and Pretendard, so every
+# package carries their texts (fonts.sh puts them beside the fonts).
+licenses() {
+    mkdir -p "$1/licenses"
+    cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
+}
+
+readme() {
+    sed -e "s/{LABEL}/$label/g" -e "s/{UPDATES_KO}/$updates_ko/" -e "s/{UPDATES_EN}/$updates_en/" "$1"
+}
+
+# Every DLL a Windows 10 (1703 or later) or 11 ships in System32, as the
+# app imports them today. A new import fails the build until someone has
+# checked it is there on a clean Windows or bundled it.
+windows_dlls='advapi32.dll api-ms-win-core-synch-l1-2-0.dll api-ms-win-core-winrt-error-l1-1-0.dll
+api-ms-win-core-winrt-l1-1-0.dll api-ms-win-core-winrt-string-l1-1-0.dll api-ms-win-shcore-scaling-l1-1-1.dll
+bcrypt.dll bcryptprimitives.dll combase.dll comctl32.dll crypt32.dll d3d11.dll d3dcompiler_47.dll dcomp.dll
+dwmapi.dll dwrite.dll dxgi.dll gdi32.dll gdiplus.dll icuuc.dll imm32.dll kernel32.dll ncrypt.dll ntdll.dll ole32.dll
+oleaut32.dll secur32.dll shell32.dll shlwapi.dll uiautomationcore.dll user32.dll userenv.dll uxtheme.dll
+version.dll winmm.dll ws2_32.dll'
+
+check_imports() {
+    local exe="$1" dll unknown=0 headers
+    # Read once into a variable: `grep -q` on a pipe would close it early
+    # and, under pipefail, fail the check of a good executable.
+    headers="$(x86_64-w64-mingw32-objdump -p "$exe")"
+    for dll in $(sed -n 's/^\s*DLL Name: //p' <<<"$headers" | tr 'A-Z' 'a-z' | sort -u); do
+        if ! grep -qw -- "$dll" <<<"$windows_dlls"; then
+            echo "imports $dll, which is not on the list of DLLs Windows ships" >&2
+            unknown=1
+        fi
+    done
+    [ "$unknown" = 0 ] || exit 1
+    grep -q 'Subsystem.*(Windows GUI)' <<<"$headers" ||
+        { echo "$exe is not a Windows GUI executable (a console would open behind it)" >&2; exit 1; }
+}
+
+build_windows() {
+    : "${VESSEL_TOOLS_DIR:?VESSEL_TOOLS_DIR names the Windows build tools}"
+    local tools="$VESSEL_TOOLS_DIR" triple=x86_64-pc-windows-msvc
+    # cargo-xwin: Microsoft's CRT and SDK libraries, linked by lld-link.
+    # The CRT is linked statically, so the app needs no Visual C++
+    # redistributable; the GUI subsystem is set at link time, so no console
+    # opens behind the window whatever the app's source says.
+    export XWIN_CACHE_DIR="$tools/xwin-cache"
+    export GPUI_FXC_PATH="$here/tools/fxc-wine" VESSEL_FXC_DIR="$tools/fxc" WINEPREFIX="$tools/wineprefix"
+    export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static -C link-arg=/IGNORE:4099 -C link-arg=/SUBSYSTEM:WINDOWS -C link-arg=/ENTRY:mainCRTStartup"
+    (cd "$app_ws" && "$tools/bin/cargo-xwin" xwin build --release --locked --target "$triple" -p "$app_pkg" -j "$jobs")
+    local exe="$target_dir/$triple/release/$app_bin.exe"
+    check_imports "$exe"
+
+    rm -f "$out"/vessel-"$label"-windows-x64*
+    local dir="$stage/windows/Vessel"
+    mkdir -p "$dir"
+    cp "$exe" "$dir/Vessel.exe"
+    cp "$repo/LICENSE.md" "$dir/LICENSE.md"
+    licenses "$dir"
+    readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
+    (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/vessel-$label-windows-x64.zip" Vessel)
+    cp "$exe" "$out/vessel-$label-windows-x64.exe"
+    makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" \
+        "$here/windows/installer.nsi"
+    echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
+}
+
+build_linux() {
+    (cd "$app_ws" && cargo build --release --locked -p "$app_pkg" -j "$jobs")
+    local bin="$target_dir/release/$app_bin"
+    local name="vessel-$label-linux-x64"
+    rm -f "$out/$name" "$out/$name.tar.gz"
+    local dir="$stage/linux/$name"
+    mkdir -p "$dir"
+    # Not `vessel`: that is the command line's name.
+    cp "$bin" "$dir/vessel-app"
+    cp "$repo/LICENSE.md" "$dir/LICENSE.md"
+    licenses "$dir"
+    readme "$here/linux/README.txt" >"$dir/README.txt"
+    tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$stage/linux" -czf "$out/$name.tar.gz" "$name"
+    cp "$bin" "$out/$name"
+    chmod 0755 "$out/$name"
+    echo "linux-x64: $(du -h "$bin" | cut -f1) executable"
+}
+
+for target in "${targets[@]}"; do
+    case "$target" in
+        windows-x64) build_windows ;;
+        linux-x64) build_linux ;;
+    esac
+done
+
+feed_tool() {
+    (cd "$here" && cargo run --quiet --locked -p vessel-app-feed -- "$@")
+}
+
+if [ -n "${VESSEL_UPDATE_SECRET:-}" ]; then
+    feed_tool sums --key "$VESSEL_UPDATE_SECRET" "$out"
+else
+    (cd "$out" && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' ! -name '.*' -printf '%f\n' | sort |
+        xargs sha256sum >SHA256SUMS)
+    echo "SHA256SUMS unsigned (VESSEL_UPDATE_SECRET unset)"
+fi
+(cd "$out" && sha256sum --quiet -c SHA256SUMS)
+
+# The set is complete and checked: put it in place. Between the two
+# renames the label's directory is briefly absent, never partial.
+if [ -d "$final" ]; then
+    old="$VESSEL_DIST_DIR/.$label.old.$$"
+    mv "$final" "$old"
+    mv "$out" "$final"
+    rm -rf "$old"
+else
+    mv "$out" "$final"
+fi
+out="$final"
+
+if [ "$publish" = 1 ]; then
+    : "${VESSEL_UPDATE_SECRET:?--publish signs the manifest: set VESSEL_UPDATE_SECRET}"
+    : "${VESSEL_UPDATE_KEY:?--publish checks the manifest with VESSEL_UPDATE_KEY}"
+    artifacts=()
+    [ -f "$out/vessel-$label-windows-x64.exe" ] &&
+        artifacts+=(--artifact "windows-x86_64:executable:$label/vessel-$label-windows-x64.exe")
+    [ -f "$out/vessel-$label-linux-x64" ] &&
+        artifacts+=(--artifact "linux-x86_64:executable:$label/vessel-$label-linux-x64")
+    notes=()
+    [ -f "$out/NOTES.txt" ] && notes=(--notes "$out/NOTES.txt")
+    feed_tool publish --key "$VESSEL_UPDATE_SECRET" --feed "$VESSEL_DIST_DIR" --channel "$channel" \
+        --label "$label" "${notes[@]}" "${artifacts[@]}"
+    feed_tool check --feed "$VESSEL_DIST_DIR" --public "$VESSEL_UPDATE_KEY" --channel "$channel"
+fi
+
+ls -l "$out"
+# Last: the sums, checked where the owner downloads from.
+(cd "$final" && sha256sum -c SHA256SUMS)
