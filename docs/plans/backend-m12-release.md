@@ -509,6 +509,65 @@ What the app uses from the crate:
 From build 0.0.0.0.3 the builds have the feed compiled in (see "Builds
 with updates" below).
 
+## Builds with updates
+
+From 0.0.0.0.3 the builds have the feed's address and the release key's
+public half compiled in. `build.sh` reads the address from a file
+outside the repository, and neither the logs nor the README print it.
+Every set is published under a new label, and a published label is
+never rebuilt.
+
+- **0.0.0.0.3**:
+  - Built from `2a14c42` and published to `preview` at 05:41 UTC.
+  - Its update UI is this track's first one: a line at the window's
+    foot, "Vessel <label>을(를) 설치했습니다. 다음에 Vessel을 열면 이
+    빌드로 시작합니다." It has none of the desktop track's `f008aa0`: no
+    "Restart to update", no remembered label, no notes.
+- **0.0.0.0.4**:
+  - Built from `ab71e0a`: the desktop track's title-bar fix `7f120ca`,
+    the kit test `aa80a37`, `set_automatic` wired to the switch, and the
+    corrected mark.
+  - The set went into place at 07:00 UTC; `preview.json` was published
+    at 07:01:55 UTC with notes.
+  - Files:
+
+    | File | Bytes |
+    |---|---|
+    | `vessel-0.0.0.0.4-windows-x64-setup.exe` | 10,580,977 |
+    | `vessel-0.0.0.0.4-windows-x64.exe` | 38,099,968 |
+    | `vessel-0.0.0.0.4-windows-x64.zip` | 15,297,027 |
+    | `vessel-0.0.0.0.4-linux-x64` | 74,510,872 |
+    | `vessel-0.0.0.0.4-linux-x64.tar.gz` | 25,189,636 |
+
+  - Checked before publishing:
+    - The eight icon frames (16 to 256) in the exe and in the installer
+      are byte for byte the frames `make-icons.py` makes now from
+      `vessel-mark.svg` (`d63f0da`, view box `170 170 1660 1660` read
+      from the file). Every frame differs from 0.0.0.0.3's.
+    - The exe's version block says 0.0.0.0.4.
+    - Under wine it gets as far as every build does: it creates the
+      Direct3D 11.1 device and stops at the first text (wine's
+      DirectWrite).
+    - `sha256sum -c` and the signature on the sums pass.
+  - **The update the owner's machine makes**, shown on Linux with the
+    published 0.0.0.0.3:
+    - Its tarball was unpacked into a scratch directory, with an empty
+      configuration, and nothing pointed at it but the feed it was built
+      with.
+    - It was started under a virtual display after the publish. Six
+      seconds later the file was 0.0.0.0.4's bytes (mode 0755, no
+      staging file left), and the window's foot said 0.0.0.0.4 is
+      installed and opens at the next start.
+    - The next start ran 0.0.0.0.4.
+  - **No "Updated to" note this time**: 0.0.0.0.3 neither remembers the
+    label it ran nor keeps the feed's notes. The note and the notes
+    appear from the next update on, which 0.0.0.0.4 downloads.
+  - **Only the owner's Windows shows**:
+    - The rename of the running `Vessel.exe` (the old file is kept as
+      `Vessel.exe.old-…` and removed at the next start).
+    - "Installed apps" showing 0.0.0.0.4.
+    - The one-click buttons and the snap layouts.
+
 ## Licences of what this track pulls in (ADR 0014)
 
 Beyond what Vessel's main workspace already links:
