@@ -23,4 +23,4 @@ pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
-pub use text::{Lang, OptionsText, Text};
+pub use text::{Lang, OptionsText, Text, UpdateText};

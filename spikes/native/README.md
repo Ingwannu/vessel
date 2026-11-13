@@ -45,12 +45,16 @@ app/src/
   main.rs          the window (the kit's chrome), language, theme
   shell.rs         the window's state: route, fleet, prefs, areas; link events dispatched; the frame
   routes.rs        THE registry: `Route`, what draws each, what arriving does, the sidebar's list
-  chrome.rs        what is in the title bar
+  chrome.rs        what is in the title bar (the mark and label; the update's status at the right)
+  update.rs        the updater (track R's crate) on the shell: its state followed, check now,
+                   automatic or only when asked, restart into a new build, "Updated to …" once
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
     draft.rs       the new chat: composer first, its tray of pickers
     session.rs     a session: the conversation, the composer, permissions, stop
+    about.rs       the running build and its updates (until the settings track's About
+                   section takes it), and the note shown once after an update
     board.rs, archive.rs, sidebar.rs, pair.rs
 ```
 
@@ -149,8 +153,11 @@ Environment:
 - `VESSEL_APP_TITLEBAR=system`: the system's title bar and frame instead
   of the app's own (the way out if the app's bar misbehaves on a
   platform).
+- `VESSEL_APP_NO_UPDATE` (any value): no updates for this run.
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
+  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
+  updates itself; without them it never does.
 
 ## Trying it against fake nodes, and capturing a screen
 

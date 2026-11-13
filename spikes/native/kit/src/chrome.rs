@@ -96,9 +96,21 @@ pub fn window_options(title: String, bounds: Bounds<Pixels>) -> WindowOptions {
 }
 
 /// The title bar: `content` on the left (after the traffic lights on
-/// macOS), the window's controls on the right (Windows, Linux). Nothing
-/// with [`system_titlebar`]: the system's bar is the window's then.
-pub fn title_bar(content: AnyElement, tokens: &Tokens, window: &mut Window) -> Stateful<Div> {
+/// macOS), `trailing` at the right before the window's controls (Windows,
+/// Linux), Zed's place for its update status. Nothing with
+/// [`system_titlebar`]: the system's bar is the window's then.
+///
+/// `trailing` is the app's to click: it occludes the bar behind it, so
+/// Windows' hit test does not read it as the bar's drag area (GPUI asks
+/// which control area's hitbox is under the mouse, and an occluding
+/// element hides the bar's) and a press on it does not move the window on
+/// Linux.
+pub fn title_bar(
+    content: AnyElement,
+    trailing: Option<AnyElement>,
+    tokens: &Tokens,
+    window: &mut Window,
+) -> Stateful<Div> {
     if system_titlebar() {
         return div().id("title-bar");
     }
@@ -133,7 +145,17 @@ pub fn title_bar(content: AnyElement, tokens: &Tokens, window: &mut Window) -> S
                     window.show_window_menu(event.position);
                 })
         })
-        .child(div().flex_1().h_full().flex().items_center().child(content));
+        .child(div().flex_1().h_full().flex().items_center().child(content))
+        .children(trailing.map(|trailing| {
+            div()
+                .id("title-bar-trailing")
+                .h_full()
+                .flex()
+                .items_center()
+                .px(px(8.0))
+                .occlude()
+                .child(trailing)
+        }));
     if macos {
         bar
     } else {

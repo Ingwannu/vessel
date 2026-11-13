@@ -1,346 +1,362 @@
-//! The app's updater (spikes/release/updater), as Zed's behaves: it checks
-//! shortly after start and then hourly, downloads in the background, and
-//! leaves the moment of restart to the person; a check can be asked for at
-//! any time; automatic updates can be turned off (then only that check
-//! runs); after an update the app says once what it was updated to; a
-//! failed check or download is quiet and tried again at the next check.
+//! The app's updates, as Zed shows them: the updater (track R's
+//! `spikes/release/updater`) runs beside the app, its state is drawn in
+//! the title bar (nothing while idle; "Checking for updates…";
+//! "Downloading update… 42%"; "Restart to update" once a build is in
+//! place; a quiet failure with "Try again"), the About screen checks now
+//! and turns automatic updates off, and the first start of a new build
+//! says "Updated to …" once, with the feed's notes.
 //!
 //! [Decision Log]
-//! - Purpose: the owner asked for automatic updates "as Zed has them".
-//! - Constraints: the updater runs on tokio, GPUI on its own executor; the
-//!   title bar that shows the state is the desktop track's to draw; the
-//!   app has no preferences store of its own yet; a build without a feed
-//!   compiled in (a development build) must not update or spend anything.
-//! - Choice: one GPUI entity, [`Updates`], set as a global so any view can
-//!   read and observe it: its [`UpdateStatus`], [`Updates::check_now`],
-//!   [`Updates::restart`], [`Updates::set_automatic`] and, once,
-//!   [`Updates::take_updated_to`]. A one-thread tokio runtime of its own
-//!   runs the updater, created only when the build can update. The
-//!   preference and the last build run are the updater's `Memory`, a small
-//!   file beside the node book (`<config>/vessel/app-updates.json`).
-//! - Why: the drawing and the state stay apart (the lead draws from this
-//!   entity, nothing else); the link's runtime stays the link's.
-//! - Cost: one more thread while updates are on. Until the title bar draws
-//!   the state, the frame's foot carries two sentences: the update
-//!   installed, and the build updated to.
+//! - Purpose: a build the owner installed finds the next one by itself
+//!   and puts it in place, and the person sees it happen and chooses when
+//!   to restart into it (the owner: "자동업데이트도 … ZED 에 있는것처럼").
+//! - Constraints: the updater is track R's crate and is not changed here;
+//!   it runs on tokio, GPUI on its own executor; it checks on a timer of
+//!   its own (five seconds after start, then hourly) and has no switch for
+//!   "only when asked". It knows a build's notes only in the process that
+//!   downloaded it, and that process ends at the restart. Nothing may run
+//!   in a build that cannot update (a development build).
+//! - Alternatives: a pause flag in the updater (track R's to add; asked
+//!   for through the coordinator); polling the state from the UI (the
+//!   updater offers a watch, which wakes the UI only on a change); the
+//!   notes read again from the feed after the restart (a request at every
+//!   start for one line of text).
+//! - Choice: the updater lives on the shell ([`Updates`]), on a one-thread
+//!   runtime of its own, and a GPUI task follows its watch into
+//!   `Shell::update_state`. "Update automatically" off starts it with a
+//!   first check and a period of a year (the timing is the one part of its
+//!   settings meant to be set by the app), so it checks only when asked;
+//!   switching the preference starts a new updater with the other timing,
+//!   once the current one is not checking or downloading (two would write
+//!   the same staging file). An installed build's notes go into the app's
+//!   preferences when it is ready, and the next start of that build shows
+//!   them once (`Shell::announce_update`).
+//! - Cost: one thread while the app runs, in a build that updates. A
+//!   switch of the preference during a download takes effect after it.
 //!
-//! Where it differs from Zed: Zed's Linux and macOS builds replace the app
-//! on disk the same way, but on Windows Zed runs its installer through a
-//! helper after the app exits; here the running executable is renamed
-//! aside and the new one put in place (spikes/release/updater, install.rs).
-//!
-//! `VESSEL_APP_NO_UPDATE` (any value) turns the updater off for one run.
+//! `VESSEL_APP_NO_UPDATE` (any value) turns updates off for one run.
 
-use std::path::PathBuf;
+use std::time::Duration;
 
-use gpui::{App, AppContext as _, AsyncApp, Context, Entity, Global, WeakEntity};
+use vessel_app_kit::ui::{AsyncApp, Context, WeakEntity};
+use vessel_app_link::{Command, UpdateNotes};
 use vessel_app_updater::{
-    ApplyError, Installation, Label, Memory, UpdateState, Updater, build_label, settings_from_build,
+    ApplyError, Installation, Settings, UpdateState, Updater, settings_from_build,
 };
 
 use crate::shell::Shell;
 
-/// What the title bar shows.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum UpdateStatus {
-    /// This build does not update itself (no feed compiled in, or turned
-    /// off for this run).
-    Off,
-    /// Waiting for the next check.
-    Idle,
-    /// Reading the feed.
-    Checking,
-    /// The feed's newest build is this one or older.
-    UpToDate {
-        /// The feed's newest label.
-        latest: Label,
-    },
-    /// Downloading a newer build.
-    Downloading {
-        /// Its label.
-        label: Label,
-        /// Bytes so far.
-        received: u64,
-        /// Its size.
-        total: u64,
-    },
-    /// A newer build is in place: "restart to update".
-    Ready {
-        /// Its label.
-        label: Label,
-    },
-    /// The last check or download failed; the next check tries again.
-    Failed {
-        /// Why, in a sentence.
-        reason: String,
-    },
-}
+/// The first check and the period when updates are only checked when
+/// asked: far enough never to come while the app runs (a timer this long
+/// is still within what tokio keeps).
+const ONLY_WHEN_ASKED: Duration = Duration::from_hours(365 * 24);
 
-/// The updater as the views see it.
-#[expect(
-    dead_code,
-    reason = "the title bar (the desktop track's) reads these; remove when it does"
-)]
+/// The updater and what it runs on, owned by the shell.
 pub(crate) struct Updates {
-    status: UpdateStatus,
-    automatic: bool,
-    updated_to: Option<Label>,
+    /// Dropped before the runtime (its task runs there).
     updater: Option<Updater>,
-    memory: Option<(PathBuf, Memory)>,
-    runtime: Runtime,
+    runtime: Option<tokio::runtime::Runtime>,
+    settings: Settings,
+    installation: Installation,
+    /// Which updater the followed state is from: a replaced one's last
+    /// states are ignored.
+    generation: u64,
+    /// Whether the running updater checks by itself.
+    automatic: bool,
+    /// The preference changed while the updater was busy: switch when it
+    /// is not.
+    wanted: Option<bool>,
 }
 
-/// The entity, as a global.
-#[expect(
-    dead_code,
-    reason = "read through Updates::global by the title bar (the desktop track's)"
-)]
-struct UpdatesGlobal(Entity<Updates>);
+impl Drop for Updates {
+    fn drop(&mut self) {
+        drop(self.updater.take());
+        // Not a blocking drop: the updater's task may be in a request.
+        if let Some(runtime) = self.runtime.take() {
+            runtime.shutdown_background();
+        }
+    }
+}
 
-impl Global for UpdatesGlobal {}
-
-#[expect(
-    dead_code,
-    reason = "the title bar (the desktop track's) calls these; remove when it does"
-)]
 impl Updates {
-    /// The app's updater, once [`start`] has run.
-    pub(crate) fn global(cx: &App) -> Option<Entity<Self>> {
-        cx.try_global::<UpdatesGlobal>()
-            .map(|global| global.0.clone())
-    }
-
-    /// What to show.
-    pub(crate) fn status(&self) -> &UpdateStatus {
-        &self.status
-    }
-
-    /// Whether the app checks by itself (the person's preference).
-    pub(crate) fn automatic(&self) -> bool {
-        self.automatic
-    }
-
-    /// Check now ("Check for updates"). Does nothing when this build does
-    /// not update or a build is already installed.
-    pub(crate) fn check_now(&mut self, cx: &mut Context<'_, Self>) {
-        if let Some(updater) = &self.updater
-            && updater.check_now()
+    /// The updater for this build, checking by itself when `automatic`;
+    /// `None` when the build cannot update or updates are off for this run.
+    fn start(automatic: bool) -> Option<Self> {
+        if std::env::var_os("VESSEL_APP_NO_UPDATE").is_some() {
+            tracing::info!("updates are off for this run");
+            return None;
+        }
+        let settings = match settings_from_build() {
+            Ok(Some(settings)) => settings,
+            Ok(None) => return None,
+            Err(error) => {
+                tracing::warn!(%error, "this build's update settings do not parse; no updates");
+                return None;
+            }
+        };
+        let installation = match Installation::from_process(settings.target.default_packaging()) {
+            Ok(installation) => installation,
+            Err(error) => {
+                tracing::warn!(%error, "the app could not find itself on disk; no updates");
+                return None;
+            }
+        };
+        let runtime = match tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .thread_name("vessel-update")
+            .enable_all()
+            .build()
         {
-            self.status = UpdateStatus::Checking;
-            cx.notify();
-        }
+            Ok(runtime) => runtime,
+            Err(error) => {
+                tracing::warn!(%error, "the updater's runtime could not start; no updates");
+                return None;
+            }
+        };
+        let mut updates = Self {
+            updater: None,
+            runtime: Some(runtime),
+            settings,
+            installation,
+            generation: 0,
+            automatic,
+            wanted: None,
+        };
+        updates.run(automatic).then_some(updates)
     }
 
-    /// Turn automatic updates on or off, and remember it.
-    pub(crate) fn set_automatic(&mut self, on: bool, cx: &mut Context<'_, Self>) {
-        self.automatic = on;
-        if let Some(updater) = &self.updater {
-            updater.set_automatic(on);
+    /// Start an updater with the timing `automatic` asks for, in place of
+    /// the one running; `false` when it could not start.
+    fn run(&mut self, automatic: bool) -> bool {
+        drop(self.updater.take());
+        let Some(runtime) = &self.runtime else {
+            return false;
+        };
+        let mut settings = self.settings.clone();
+        if !automatic {
+            settings.first_after = ONLY_WHEN_ASKED;
+            settings.every = ONLY_WHEN_ASKED;
         }
-        if let Some((path, memory)) = &mut self.memory {
-            memory.automatic = on;
-            save(path.clone(), memory.clone(), cx);
-        }
-        cx.notify();
-    }
-
-    /// Start the installed build and quit ("Restart to update").
-    ///
-    /// # Errors
-    /// [`ApplyError::NotReady`] before a build is installed, or when this
-    /// build does not update; [`ApplyError::Restart`] when the new build
-    /// does not start (the app then stays open).
-    pub(crate) fn restart(&mut self, cx: &mut Context<'_, Self>) -> Result<(), ApplyError> {
-        let updater = self.updater.as_ref().ok_or(ApplyError::NotReady)?;
-        updater.restart(std::env::args_os().skip(1))?;
-        cx.quit();
-        Ok(())
-    }
-
-    /// The build this one was updated to, the first time it is asked after
-    /// an update; `None` after that.
-    pub(crate) fn take_updated_to(&mut self) -> Option<Label> {
-        self.updated_to.take()
-    }
-}
-
-/// Start the updater, and set [`Updates`] as a global.
-pub(crate) fn start(shell: WeakEntity<Shell>, cx: &mut App) {
-    let memory = memory_path().map(|path| {
-        let mut memory = Memory::load(&path);
-        let updated_to = build_label().and_then(|running| memory.note_run(&running));
-        (path, memory, updated_to)
-    });
-    let (memory, updated_to) = match memory {
-        Some((path, memory, updated_to)) => {
-            save(path.clone(), memory.clone(), cx);
-            (Some((path, memory)), updated_to)
-        }
-        None => (None, None),
-    };
-    let automatic = memory.as_ref().is_none_or(|(_, memory)| memory.automatic);
-    let (updater, runtime) = updater(automatic);
-    let status = if updater.is_some() {
-        UpdateStatus::Idle
-    } else {
-        UpdateStatus::Off
-    };
-    let state = updater.as_ref().map(Updater::state);
-    let announce = updated_to.clone();
-    let entity = cx.new(|_| Updates {
-        status,
-        automatic,
-        updated_to,
-        updater,
-        memory,
-        runtime,
-    });
-    cx.set_global(UpdatesGlobal(entity.clone()));
-    if let Some(label) = announce {
-        say(&shell, cx, move |shell| {
-            shell.t.updated_to(&label.to_string())
-        });
-    }
-    if let Some(state) = state {
-        let weak = entity.downgrade();
-        cx.spawn(async move |cx| follow(state, weak, shell, cx).await)
-            .detach();
-    }
-}
-
-/// The updater and its runtime, when this build can update.
-fn updater(automatic: bool) -> (Option<Updater>, Runtime) {
-    if std::env::var_os("VESSEL_APP_NO_UPDATE").is_some() {
-        tracing::info!("updates are off for this run");
-        return (None, Runtime(None));
-    }
-    let mut settings = match settings_from_build() {
-        Ok(Some(settings)) => settings,
-        Ok(None) => return (None, Runtime(None)),
-        Err(error) => {
-            tracing::warn!(%error, "this build's update settings do not parse; no updates");
-            return (None, Runtime(None));
-        }
-    };
-    settings.automatic = automatic;
-    let installation = match Installation::from_process(settings.target.default_packaging()) {
-        Ok(installation) => installation,
-        Err(error) => {
-            tracing::warn!(%error, "the app could not find itself on disk; no updates");
-            return (None, Runtime(None));
-        }
-    };
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(1)
-        .thread_name("vessel-update")
-        .enable_all()
-        .build()
-    {
-        Ok(runtime) => runtime,
-        Err(error) => {
-            tracing::warn!(%error, "the updater's runtime could not start; no updates");
-            return (None, Runtime(None));
-        }
-    };
-    match Updater::start(settings, installation, runtime.handle()) {
-        Ok(updater) => (Some(updater), Runtime(Some(runtime))),
-        Err(error) => {
-            tracing::warn!(%error, "the updater could not start; no updates");
-            (None, Runtime(Some(runtime)))
+        match Updater::start(settings, self.installation.clone(), runtime.handle()) {
+            Ok(updater) => {
+                self.updater = Some(updater);
+                self.generation = self.generation.wrapping_add(1);
+                self.automatic = automatic;
+                true
+            }
+            Err(error) => {
+                tracing::warn!(%error, "the updater could not start; no updates");
+                false
+            }
         }
     }
 }
 
-/// Mirror the updater's state into the entity; say when a build is
-/// installed (until the title bar draws it).
+/// Start updates for this build, and follow them into the shell.
+pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    let Some(updates) = Updates::start(!shell.prefs.manual_updates) else {
+        return;
+    };
+    shell.updates = Some(updates);
+    follow_current(shell, cx);
+}
+
+/// Follow the state of the shell's current updater.
+fn follow_current(shell: &Shell, cx: &mut Context<'_, Shell>) {
+    let Some((state, generation)) = shell.updates.as_ref().and_then(|running| {
+        running
+            .updater
+            .as_ref()
+            .map(|updater| (updater.state(), running.generation))
+    }) else {
+        return;
+    };
+    cx.spawn(async move |this, cx| follow(state, generation, this, cx).await)
+        .detach();
+}
+
+/// Follow one updater's state until it ends or the shell goes.
 async fn follow(
     mut state: tokio::sync::watch::Receiver<UpdateState>,
-    updates: WeakEntity<Updates>,
+    generation: u64,
     shell: WeakEntity<Shell>,
     cx: &mut AsyncApp,
 ) {
     loop {
         let now = state.borrow_and_update().clone();
-        let status = match now {
-            UpdateState::Idle => UpdateStatus::Idle,
-            UpdateState::Checking => UpdateStatus::Checking,
-            UpdateState::UpToDate { latest } => UpdateStatus::UpToDate { latest },
-            UpdateState::Downloading {
-                label,
-                received,
-                total,
-            } => UpdateStatus::Downloading {
-                label,
-                received: received.get(),
-                total: total.get(),
-            },
-            UpdateState::Ready { label, .. } => UpdateStatus::Ready { label },
-            UpdateState::Failed { error } => UpdateStatus::Failed {
-                reason: error.to_string(),
-            },
+        let applied = shell.update(cx, |shell, cx| shell.update_changed(generation, now, cx));
+        if applied.is_err() {
+            break;
+        }
+        // The updater's task ends once a build is installed (or the
+        // updater is replaced); its last state stays as it was.
+        if state.changed().await.is_err() {
+            break;
+        }
+    }
+}
+
+/// Whether the updater is in the middle of something a replacement would
+/// collide with.
+const fn busy(state: &UpdateState) -> bool {
+    matches!(
+        state,
+        UpdateState::Checking | UpdateState::Downloading { .. }
+    )
+}
+
+impl Shell {
+    /// The followed updater's state changed.
+    fn update_changed(&mut self, generation: u64, state: UpdateState, cx: &mut Context<'_, Self>) {
+        let Some(updates) = &self.updates else {
+            return;
         };
-        if let UpdateStatus::Ready { label } = &status {
-            let label = label.to_string();
-            let said = shell.update(cx, |shell, cx| {
-                shell.notice = Some(shell.t.update_installed(&label));
-                cx.notify();
+        if updates.generation != generation {
+            return;
+        }
+        if let UpdateState::Ready { label, notes } = &state {
+            // Kept for the build they describe, which shows them once.
+            self.prefs.update_notes = notes.as_ref().map(|notes| UpdateNotes {
+                label: label.to_string(),
+                notes: notes.as_str().to_owned(),
             });
-            if said.is_err() {
-                return;
+            self.command(Command::SavePrefs(self.prefs.clone()));
+        }
+        let idle = !busy(&state) && !matches!(state, UpdateState::Ready { .. });
+        self.update_state = state;
+        if idle {
+            self.switch_if_wanted(cx);
+        }
+        cx.notify();
+    }
+
+    /// Check for an update now ("Check for updates", "Try again").
+    pub(crate) fn check_for_updates(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(updater) = self
+            .updates
+            .as_ref()
+            .and_then(|updates| updates.updater.as_ref())
+        else {
+            return;
+        };
+        if updater.check_now() {
+            self.update_asked = true;
+            cx.notify();
+        }
+    }
+
+    /// "Update automatically" switched.
+    pub(crate) fn set_update_automatically(&mut self, on: bool, cx: &mut Context<'_, Self>) {
+        self.prefs.manual_updates = !on;
+        self.command(Command::SavePrefs(self.prefs.clone()));
+        if let Some(updates) = &mut self.updates {
+            updates.wanted = Some(on);
+        }
+        if !busy(&self.update_state) && !matches!(self.update_state, UpdateState::Ready { .. }) {
+            self.switch_if_wanted(cx);
+        }
+        cx.notify();
+    }
+
+    /// Start the updater with the timing the preference asks for, when it
+    /// differs from the running one's.
+    fn switch_if_wanted(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(updates) = &mut self.updates else {
+            return;
+        };
+        let Some(automatic) = updates.wanted.take() else {
+            return;
+        };
+        if automatic == updates.automatic {
+            return;
+        }
+        if updates.run(automatic) {
+            self.update_state = UpdateState::Idle;
+            follow_current(self, cx);
+        } else {
+            self.updates = None;
+        }
+    }
+
+    /// "Restart to update": start the installed build with this run's
+    /// arguments, and quit.
+    pub(crate) fn restart_to_update(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(updater) = self
+            .updates
+            .as_ref()
+            .and_then(|updates| updates.updater.as_ref())
+        else {
+            return;
+        };
+        // Written here, not through the link: the app quits next, before
+        // the link's write would run.
+        if let Err(error) = self.prefs.save() {
+            tracing::warn!(%error, "the app's preferences could not be saved before the restart");
+        }
+        match updater.restart(std::env::args_os().skip(1)) {
+            Ok(()) => cx.quit(),
+            Err(ApplyError::NotReady) => {}
+            Err(error) => {
+                self.notice = Some(error.to_string());
+                cx.notify();
             }
         }
-        let mirrored = updates.update(cx, |updates, cx| {
-            updates.status = status;
-            cx.notify();
-        });
-        if mirrored.is_err() {
+    }
+
+    /// Whether this build updates itself.
+    pub(crate) const fn updates_on(&self) -> bool {
+        self.updates.is_some()
+    }
+
+    /// Whether the running updater checks by itself.
+    pub(crate) fn updates_automatic(&self) -> bool {
+        !self.prefs.manual_updates
+    }
+
+    /// At start: when this build is not the one that ran last (or the
+    /// updater restarted into it), say once that it was updated to, with
+    /// its notes when they were kept; remember it as the one that ran.
+    pub(crate) fn announce_update(&mut self) {
+        let label = crate::LABEL;
+        if label == "dev" {
             return;
         }
-        // The updater's task ends once a build is installed; the last state
-        // stays, and nothing more will change.
-        if state.changed().await.is_err() {
-            return;
+        let restarted = std::env::var_os(vessel_app_updater::RESTARTED_FROM).is_some();
+        let changed = self
+            .prefs
+            .last_label
+            .as_deref()
+            .is_some_and(|last| last != label);
+        let notes = self
+            .prefs
+            .update_notes
+            .take()
+            .filter(|kept| kept.label == label)
+            .map(|kept| kept.notes);
+        if restarted || changed {
+            self.updated = Some(Updated {
+                label: label.to_owned(),
+                notes,
+            });
         }
+        self.prefs.last_label = Some(label.to_owned());
+        self.command(Command::SavePrefs(self.prefs.clone()));
     }
 }
 
-/// Put a sentence in the frame's foot.
-fn say(shell: &WeakEntity<Shell>, cx: &mut App, text: impl FnOnce(&Shell) -> String) {
-    if let Some(shell) = shell.upgrade() {
-        shell.update(cx, |shell, cx| {
-            shell.notice = Some(text(shell));
-            cx.notify();
-        });
+/// The note shown once after an update.
+#[derive(Debug, Clone)]
+pub(crate) struct Updated {
+    pub(crate) label: String,
+    pub(crate) notes: Option<String>,
+}
+
+/// What the title bar shows for `state`, as a percentage when
+/// downloading.
+pub(crate) fn percent(received: u64, total: u64) -> u8 {
+    if total == 0 {
+        return 0;
     }
-}
-
-/// Where the updater's memory is: beside the node book, in the directory
-/// the CLI and the link read (`VESSEL_CONFIG_DIR`, else the system's).
-fn memory_path() -> Option<PathBuf> {
-    std::env::var_os("VESSEL_CONFIG_DIR")
-        .map(PathBuf::from)
-        .or_else(dirs::config_dir)
-        .map(|dir| dir.join("vessel").join("app-updates.json"))
-}
-
-/// Write the memory off the UI thread; a failure only loses the note.
-fn save(path: PathBuf, memory: Memory, cx: &App) {
-    cx.background_spawn(async move {
-        if let Err(error) = memory.save(&path) {
-            tracing::debug!(%error, "the update memory was not written");
-        }
-    })
-    .detach();
-}
-
-/// The updater's runtime, stopped without waiting when the app quits (a
-/// blocking shutdown would hold the UI thread on the way out).
-struct Runtime(Option<tokio::runtime::Runtime>);
-
-impl Drop for Runtime {
-    fn drop(&mut self) {
-        if let Some(runtime) = self.0.take() {
-            runtime.shutdown_background();
-        }
-    }
+    let percent = received.saturating_mul(100).div_euclid(total);
+    u8::try_from(percent.min(100)).unwrap_or(100)
 }

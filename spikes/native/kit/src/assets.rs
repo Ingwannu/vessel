@@ -33,7 +33,20 @@ pub enum Glyph {
     Restore,
     /// Close.
     Close,
+    /// An update: an arrow down into a tray (the title bar's update
+    /// status at a phone's width).
+    Update,
 }
+
+/// Every glyph, for the asset source.
+const ALL: [Glyph; 6] = [
+    Glyph::Mark,
+    Glyph::Minimize,
+    Glyph::Maximize,
+    Glyph::Restore,
+    Glyph::Close,
+    Glyph::Update,
+];
 
 impl Glyph {
     /// Its asset path.
@@ -45,6 +58,7 @@ impl Glyph {
             Self::Maximize => "kit/maximize.svg",
             Self::Restore => "kit/restore.svg",
             Self::Close => "kit/close.svg",
+            Self::Update => "kit/update.svg",
         }
     }
 
@@ -63,6 +77,9 @@ impl Glyph {
             Self::Close => {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9" stroke="black" stroke-width="1"/></svg>"#
             }
+            Self::Update => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M6 1.5v6.5M3.2 5.4L6 8.2l2.8-2.8M1.5 10.5h9" fill="none" stroke="black" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>"#
+            }
         }
     }
 }
@@ -73,31 +90,17 @@ pub struct Assets;
 
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
-        let glyph = [
-            Glyph::Mark,
-            Glyph::Minimize,
-            Glyph::Maximize,
-            Glyph::Restore,
-            Glyph::Close,
-        ]
-        .into_iter()
-        .find(|glyph| glyph.path() == path);
+        let glyph = ALL.into_iter().find(|glyph| glyph.path() == path);
         Ok(glyph.map(|glyph| Cow::Borrowed(glyph.svg().as_bytes())))
     }
 
     fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
-        Ok([
-            Glyph::Mark,
-            Glyph::Minimize,
-            Glyph::Maximize,
-            Glyph::Restore,
-            Glyph::Close,
-        ]
-        .into_iter()
-        .map(Glyph::path)
-        .filter(|asset| asset.starts_with(path))
-        .map(SharedString::from)
-        .collect())
+        Ok(ALL
+            .into_iter()
+            .map(Glyph::path)
+            .filter(|asset| asset.starts_with(path))
+            .map(SharedString::from)
+            .collect())
     }
 }
 

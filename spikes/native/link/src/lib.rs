@@ -37,7 +37,7 @@ use vessel_proto::{
 };
 
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
-pub use prefs::{Kept, Prefs};
+pub use prefs::{Kept, Prefs, UpdateNotes};
 
 /// How often the sessions of every machine are listed again. The page
 /// reads its list on the same cadence (`docs/PERFORMANCE.md`); a pushed

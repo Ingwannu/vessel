@@ -36,6 +36,15 @@ pub(crate) struct Shell {
     /// the link): what arriving does (focus, placeholders) runs on the
     /// next frame.
     arrive_pending: bool,
+    /// The updater, in a build that updates itself (`update.rs`).
+    pub(crate) updates: Option<crate::update::Updates>,
+    /// What it is doing, as last reported.
+    pub(crate) update_state: vessel_app_updater::UpdateState,
+    /// The person asked for a check (the About screen then says the
+    /// outcome, "up to date" included).
+    pub(crate) update_asked: bool,
+    /// The note shown once after an update, until dismissed.
+    pub(crate) updated: Option<crate::update::Updated>,
 }
 
 impl Shell {
@@ -59,7 +68,13 @@ impl Shell {
             notice,
             loaded: false,
             arrive_pending: false,
+            updates: None,
+            update_state: vessel_app_updater::UpdateState::Idle,
+            update_asked: false,
+            updated: None,
         };
+        crate::update::start(&mut shell, cx);
+        shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
     }
@@ -183,6 +198,9 @@ impl Render for Shell {
                                 .border_color(tokens.border_faint)
                                 .rounded(px(vessel_app_kit::theme::radius::R5))
                                 .overflow_hidden()
+                                .children(self.updated.as_ref().map(|updated| {
+                                    areas::about::updated(self, updated, &tokens, cx)
+                                }))
                                 .child(frame)
                                 .children(
                                     self.notice

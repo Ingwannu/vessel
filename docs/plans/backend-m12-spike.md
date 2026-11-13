@@ -261,6 +261,55 @@ other characters becomes one `-`, a letter or digit at each end, 64
 characters at most) and only if the book does not have it; a name the
 person typed is kept as typed.
 
+## Updates, as Zed shows them (for 0.0.0.0.3)
+
+The owner asked for automatic updates "as Zed has them". Track R's
+updater does the work (`spikes/release/updater`, unchanged); the app shows
+it (`app/src/update.rs`, `app/src/chrome.rs`, `app/src/areas/about.rs`):
+
+- The title bar, at the right before the window's buttons: nothing while
+  idle or up to date; "Checking for updates…" and "Downloading update…
+  42%" in quiet type; "Restart to update" as a small button once the new
+  build is in place, which starts it with the same arguments and quits; a
+  failure as quiet words with "Try again", never a dialog. Below 768
+  points wide each is an icon (the restart and the retry stay buttons).
+  With `VESSEL_APP_TITLEBAR=system` the same status sits in the sidebar's
+  foot. The bar's right slot occludes the bar behind it, so Windows' hit
+  test should not read it as the drag area (not seen on Windows).
+- About (the sidebar's foot, "Vessel <label>"): the version, what the
+  updater last did (with the failure's words), "Check for updates",
+  "Update automatically" (on by default; kept in `app-prefs.json`). Off
+  starts the updater with a first check and a period of a year, so it
+  checks only when asked (its settings' timing is the app's to set; the
+  updater has no pause switch). A temporary home until the settings
+  track's About section takes it.
+- After an update, once: "Updated to <label>" with the feed's notes, at
+  the top of the frame, dismissible. The notes are kept in the app's
+  preferences when the build is ready (only the process that downloaded
+  it knows them); the new build shows them when its label differs from
+  the one that ran last, or when the updater restarted into it.
+
+Seen on Linux against a local signed feed (a test key made with
+`vessel-app-feed keygen` in a private scratch directory; two debug
+builds labelled 0.0.0.0.91 and 0.0.0.0.92 with the feed's loopback
+address and the test key's public half; 0.0.0.0.92 published with notes;
+a loopback server that delays the channel's file 8 s and sends the build
+at 10 MB/s, so each state lasts long enough to capture):
+
+| What | Capture |
+| --- | --- |
+| Checking, five seconds after start | `u-checking.png` |
+| Downloading, 15% | `u-downloading.png` |
+| Ready: the button in the title bar; About with the same button | `u-ready.png`, `u-about-ready.png` |
+| The button pressed: 0.0.0.0.92 opens with "0.0.0.0.92(으)로 업데이트했습니다" and the notes; the preferences then hold `last_label` 0.0.0.0.92 and no notes | `u-updated.png` |
+| At 420 points wide: the icon while downloading, the filled icon button when ready | `u-phone-downloading-top.png`, `u-phone-ready-top.png` |
+| The feed down: "업데이트하지 못했습니다 · 다시 시도"; About says why and checks again on the button | `u-failed.png`, `u-about-failed.png` |
+| "Update automatically" off: no check in the first 12 s (the automatic one comes at 5 s); "Check for updates" checks once | `u-about-manual.png` |
+
+Not seen: the preference switched while the app runs (it starts a new
+updater with the other timing once the current one is not checking or
+downloading); anything on Windows or macOS.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,
