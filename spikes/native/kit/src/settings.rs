@@ -30,7 +30,7 @@ use gpui::{
 };
 
 use crate::fonts::Type;
-use crate::theme::Tokens;
+use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
 /// The switch: on or off; `enabled` false fades it; `touch` sizes it for
@@ -110,18 +110,49 @@ const MOTION_MS: u64 = 180;
 /// A settings section: its small title, then `card`.
 #[must_use]
 pub fn section(title: impl Into<SharedString>, card: Div, tokens: &Tokens) -> Div {
-    div()
+    section_with_trailing(title, card, None, tokens)
+}
+
+/// A settings section with an optional action at the end of its heading.
+///
+/// [Decision Log]
+/// - Purpose: Refresh/Add belong beside the title, as in Paseo's
+///   `components/settings/headings/settings-section.tsx`.
+/// - Constraint: existing callers must retain their title/card geometry.
+/// - Alternatives: each area draws another section head.
+/// - Choice: one trailing slot; the existing section delegates with None.
+/// - Why: the title's inset and its gap above the card stay shared.
+/// - Cost: callers own their action's state, size and tooltip.
+#[must_use]
+pub fn section_with_trailing(
+    title: impl Into<SharedString>,
+    card: Div,
+    trailing: Option<AnyElement>,
+    tokens: &Tokens,
+) -> Div {
+    let mut head = div()
         .flex()
-        .flex_col()
-        .mb(px(24.0))
+        .items_center()
+        .justify_between()
+        .gap(px(spacing::S2))
+        .mb(px(spacing::S3))
+        .ml(px(spacing::S1))
         .child(
             div()
-                .mb(px(12.0))
-                .ml(px(4.0))
+                .flex_1()
+                .min_w_0()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
                 .child(title.into()),
-        )
+        );
+    if let Some(trailing) = trailing {
+        head = head.child(div().flex_none().child(trailing));
+    }
+    div()
+        .flex()
+        .flex_col()
+        .mb(px(spacing::S6))
+        .child(head)
         .child(card)
 }
 
@@ -223,3 +254,6 @@ pub fn row_at(
         .child(words)
         .children(control)
 }
+
+#[cfg(test)]
+mod tests;

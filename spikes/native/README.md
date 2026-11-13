@@ -160,6 +160,11 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
 
+`kit::settings::section_with_trailing` is the shared section head with an
+optional trailing action (Paseo’s `SettingsSection`); `section` delegates
+with no action. Areas supply the action’s state and tooltip, rather than
+copying the heading/card gap into another header.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

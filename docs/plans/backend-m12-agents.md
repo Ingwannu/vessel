@@ -282,3 +282,19 @@ Merged-tree checks passed, detached: root `cargo fmt --all --check`,
 `cargo test -p vessel-testkit` (14 passed), then the three whole native
 checks (396 passed). The other root-workspace tests were not run. The
 current CLI, node and fake binaries were rebuilt for the merged fleet.
+
+### Shared section action slot
+
+The approved `kit::settings::section_with_trailing` follows Paseo’s
+`components/settings/headings/settings-section.tsx`: title and optional
+trailing action in one centered head, 8 between, 12 above the card, 4
+inside its left edge, and 24 below the section. Existing `section` calls
+delegate with no action. A GPUI layout regression checks the empty slot’s
+geometry, the action’s right edge/vertical alignment, and the card gap.
+This control-only change introduces no area-specific action or words;
+its first Agents use is in the redraw.
+
+Section-slot gate: all three whole native checks passed, 397 tests
+passed and none failed. No root source changes in this control slice.
+The layout regression exercises the slot without an area screen; the
+Agents redraw will supply its capture of the section action.
