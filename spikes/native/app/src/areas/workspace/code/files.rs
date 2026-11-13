@@ -67,7 +67,11 @@ impl Shell {
         }
         let listing = match result {
             Ok(listing) => Listing::Listed(listing),
-            Err(problem) => Listing::Failed(words.problem(&problem)),
+            Err(problem) => Listing::Failed(format!(
+                "{}: {}",
+                words.labels().list_failed,
+                words.problem(&problem)
+            )),
         };
         let _was = panel.files.listings.insert(ask.dir.clone(), listing);
         panel.files.relist();
@@ -141,7 +145,11 @@ impl Shell {
                 }
                 FileContent::Binary | FileContent::Unknown => Shown::Binary,
             },
-            Err(problem) => Shown::Failed(words.problem(&problem)),
+            Err(problem) => Shown::Failed(format!(
+                "{}: {}",
+                words.labels().read_failed,
+                words.problem(&problem)
+            )),
         };
         let rows = match &viewer.text {
             Shown::Text { lines, more, .. } => lines.len().saturating_add(usize::from(*more)),

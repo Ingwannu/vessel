@@ -117,6 +117,8 @@ pub struct Labels {
     pub more_entries: &'static str,
     pub file_continues: &'static str,
     pub back: &'static str,
+    pub read_failed: &'static str,
+    pub list_failed: &'static str,
 }
 
 /// English (the page's words).
@@ -231,6 +233,8 @@ pub const EN: Labels = Labels {
     more_entries: "More entries than were listed",
     file_continues: "The file continues past what was read",
     back: "Back",
+    read_failed: "This file could not be read",
+    list_failed: "This folder could not be listed",
 };
 
 /// Korean.
@@ -345,4 +349,6 @@ pub const KO: Labels = Labels {
     more_entries: "나열된 것보다 항목이 더 있습니다",
     file_continues: "읽은 부분 뒤로 파일이 더 이어집니다",
     back: "뒤로",
+    read_failed: "이 파일을 읽지 못했습니다",
+    list_failed: "이 폴더의 목록을 읽지 못했습니다",
 };
