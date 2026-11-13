@@ -20,6 +20,8 @@ vessel-app-kit.workspace = true
 vessel-app-link.workspace = true
 vessel-app-view.workspace = true
 vessel-app-updater.workspace = true
+# The updater's memory beside the node book (src/update.rs).
+dirs.workspace = true
 gpui.workspace = true
 gpui-platform.workspace = true
 chrono.workspace = true

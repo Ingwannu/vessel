@@ -193,7 +193,10 @@ impl Installation {
     pub fn replace_with(&self, staged: &Staged, running: &Label) -> Result<(), InstallError> {
         match self.packaging {
             Packaging::Executable | Packaging::AppImage => {
-                self.replace_file(staged.path(), running)
+                self.replace_file(staged.path(), running)?;
+                #[cfg(windows)]
+                record_version(&self.path, staged.label());
+                Ok(())
             }
             Packaging::AppBundle => Err(InstallError::Unsupported(Packaging::AppBundle)),
         }
@@ -247,6 +250,17 @@ impl Installation {
                 tracing::debug!(file = %name, error = %error, "an update leftover stays for now");
             }
         }
+    }
+}
+
+/// Tell the installer's "Installed apps" entry the new version, when the
+/// copy at `exe` is the installed one (`registry`, Windows only).
+#[cfg(windows)]
+fn record_version(exe: &Path, label: &Label) {
+    match crate::registry::record_version(crate::registry::UNINSTALL_KEY, exe, label) {
+        Ok(true) => tracing::info!("the installed app's entry shows the new version"),
+        Ok(false) => {}
+        Err(error) => tracing::warn!(%error, "the installed app's entry keeps its old version"),
     }
 }
 

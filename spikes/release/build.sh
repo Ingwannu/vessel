@@ -28,7 +28,11 @@
 #   VESSEL_TOOLS_DIR       required for Windows: cargo-xwin (bin/), its
 #                          cache (xwin-cache/), fxc (fxc/), wine's prefix
 #                          (wineprefix/); tools/setup-windows-cross.sh fills it
-#   VESSEL_UPDATE_FEED     the feed's https:// base, compiled into the app
+#   VESSEL_UPDATE_FEED_FILE  a file holding the feed's https:// base (one
+#                          line), compiled into the app; the address carries
+#                          a token, so it is read from a file and never
+#                          printed by this script (VESSEL_UPDATE_FEED, the
+#                          address itself, is accepted too)
 #   VESSEL_UPDATE_KEY      the release key's public base64 line, compiled in
 #   VESSEL_UPDATE_SECRET   the release key's secret file: signs SHA256SUMS
 #                          and, with --publish, the manifest
@@ -86,12 +90,17 @@ fi
 rm -f "$out/SHA256SUMS" "$out/SHA256SUMS.minisig"
 
 # The update settings go into the app together or not at all.
+if [ -n "${VESSEL_UPDATE_FEED_FILE:-}" ]; then
+    VESSEL_UPDATE_FEED="$(head -n 1 "$VESSEL_UPDATE_FEED_FILE" | tr -d '[:space:]')"
+    [ -n "$VESSEL_UPDATE_FEED" ] || { echo "VESSEL_UPDATE_FEED_FILE is empty" >&2; exit 2; }
+fi
 if [ -n "${VESSEL_UPDATE_FEED:-}" ] || [ -n "${VESSEL_UPDATE_KEY:-}" ]; then
     : "${VESSEL_UPDATE_FEED:?VESSEL_UPDATE_KEY is set, VESSEL_UPDATE_FEED is not}"
     : "${VESSEL_UPDATE_KEY:?VESSEL_UPDATE_FEED is set, VESSEL_UPDATE_KEY is not}"
     export VESSEL_UPDATE_FEED VESSEL_UPDATE_KEY
     export VESSEL_UPDATE_CHANNEL="$channel"
-    echo "updates: channel $channel from $VESSEL_UPDATE_FEED"
+    # Never the address: it carries the feed's token.
+    echo "updates: channel $channel, from the feed compiled in"
 else
     echo "updates: none compiled in (VESSEL_UPDATE_FEED and VESSEL_UPDATE_KEY unset)"
 fi
@@ -116,8 +125,8 @@ links_updater=0
 (cd "$app_ws" && cargo metadata --format-version 1 --locked 2>/dev/null) |
     grep -q '"name":"vessel-app-updater"' && links_updater=1
 if [ -n "${VESSEL_UPDATE_FEED:-}" ] && [ "$links_updater" = 1 ]; then
-    updates_ko="이 빌드는 시작할 때와 한 시간마다 새 빌드를 확인하고, 받아 둔 뒤 다시 시작하라고 알립니다."
-    updates_en="This build checks for a new build at start and hourly, downloads it, and asks you to restart."
+    updates_ko="이 빌드부터 스스로 업데이트합니다. 시작 직후와 한 시간마다 새 빌드를 확인해 뒤에서 받아 두고, 다음에 Vessel을 열면 새 빌드로 시작합니다(받아 두면 화면 아래에 알려 줍니다). 0.0.0.0.2 이하를 쓰던 경우 이번 한 번만 이 빌드를 직접 설치하세요. 자동 확인을 끄려면 노드 목록과 같은 폴더의 app-updates.json 에서 automatic 값을 false로 바꿉니다(한 번만 끄려면 VESSEL_APP_NO_UPDATE=1)."
+    updates_en="From this build on, Vessel updates itself: it checks shortly after start and hourly, downloads a new build in the background, and opens it the next time Vessel starts (the window's foot says when one is ready). Coming from 0.0.0.0.2 or earlier, install this build by hand once. To turn the automatic checks off, set automatic to false in app-updates.json beside the node book (VESSEL_APP_NO_UPDATE=1 turns updates off for one run)."
 else
     updates_ko="이 빌드는 스스로 업데이트하지 않습니다. 새 빌드는 새로 받아 같은 방법으로 설치하면 덮어씁니다."
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."

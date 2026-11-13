@@ -56,7 +56,10 @@ mod install;
 mod key;
 mod label;
 mod manifest;
+mod memory;
 mod platform;
+#[cfg(windows)]
+mod registry;
 mod restart;
 mod service;
 mod stage;
@@ -72,6 +75,7 @@ pub use manifest::{
     MAX_ARTIFACT_BYTES, MAX_ENVELOPE_BYTES, Manifest, Notes, OpenError, Published, SCHEMA, Sha256,
     Sha256Error, TooLong,
 };
+pub use memory::Memory;
 pub use platform::{Packaging, Target, UnknownPackaging, UnknownTarget};
 pub use restart::{RESTARTED_FROM, RestartError, relaunch};
 pub use service::{ApplyError, EVERY, FIRST_AFTER, Settings, UpdateError, UpdateState, Updater};
