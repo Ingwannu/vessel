@@ -44,7 +44,9 @@
 
 mod bar;
 mod bench;
-mod dock;
+/// The slot over the composer, and the requests' cards for other areas
+/// ([`dock::requests`]).
+pub(crate) mod dock;
 mod entries;
 mod find;
 mod look;
@@ -61,13 +63,18 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use vessel_app_kit::ui::{App, Context, Subscription};
-use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
+use vessel_app_kit::{DialogState, MenuHandlers, MenuState, Reveal, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::session::MarkAction;
-use vessel_app_view::timeline::{FindCache, Folds, Logs, OutlineItem, Rows, Timeline, outline};
-use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
+use vessel_app_view::timeline::{
+    FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, outline,
+};
+use vessel_proto::{
+    EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer, QuestionId,
+    SessionId, SessionInfo,
+};
 
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
@@ -100,6 +107,53 @@ impl Seat {
         get: session_seat,
         get_mut: session_seat_mut,
     };
+}
+
+/// An answer the person gave on a request's card.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Answer {
+    /// A permission request's option.
+    Permit(PermissionId, PermissionOptionId),
+    /// A question's form, filled in or declined.
+    Question(QuestionId, QuestionAnswer),
+}
+
+/// A [`Seat`] known by its type, for the parts whose controls take plain
+/// functions (a question card's text box calls a function, which cannot
+/// carry a seat): each place gets its own copy of those functions. The
+/// session area's is [`SessionPlace`]; another area answering a
+/// conversation's requests in place (the inbox) names its own, and may
+/// send the answers its own way.
+pub(crate) trait Place: 'static {
+    /// Where its conversation is kept.
+    const SEAT: Seat;
+
+    /// Send `answer` for the session the conversation shows. The card has
+    /// already marked it as going (`permit_sending`, the question's
+    /// `sent`); a failure is said on the card by setting the
+    /// conversation's `refused` to the act's kind and its words. By
+    /// default, the session's own act.
+    fn answer(shell: &mut Shell, answer: Answer, cx: &mut Context<'_, Shell>) {
+        let act = match answer {
+            Answer::Permit(id, option) => Act::Permit(id, option),
+            Answer::Question(id, answer) => Act::Answer(id, answer),
+        };
+        shell.act_at(Self::SEAT, act);
+        cx.notify();
+    }
+
+    /// Whether the cards hold every answer back (one of the place's own
+    /// is still on its way). By default, never.
+    fn busy(_shell: &Shell) -> bool {
+        false
+    }
+}
+
+/// The session area's conversation, as a [`Place`].
+pub(crate) struct SessionPlace;
+
+impl Place for SessionPlace {
+    const SEAT: Seat = Seat::SESSION;
 }
 
 #[expect(
@@ -191,6 +245,13 @@ pub(crate) struct ConversationArea {
     /// Whether a plan request's plan is folded (Paseo's plan card opens
     /// unfolded).
     pub(crate) plan_folded: bool,
+    /// What the node says waits in the session now, for the requests and
+    /// questions whose records the log read no longer holds
+    /// (`view::timeline::Live`).
+    pub(crate) live: Live,
+    /// The record to bring into view once it is read
+    /// ([`Self::reveal`]).
+    reveal: Option<EventSeq>,
     /// The find bar, while it is open.
     pub(crate) find: Option<find::FindBar>,
     /// Each entry's folded text for find, kept between searches of the
@@ -226,6 +287,8 @@ impl ConversationArea {
             answering: None,
             permit_sending: None,
             plan_folded: false,
+            live: Live::default(),
+            reveal: None,
             outline: Vec::new(),
             outline_pointer: outline::Pointer::default(),
             find: None,
@@ -263,7 +326,48 @@ impl ConversationArea {
         self.answering = None;
         self.permit_sending = None;
         self.plan_folded = false;
+        self.live = Live::default();
+        self.reveal = None;
         self.outline_pointer = outline::Pointer::default();
+    }
+
+    /// Bring record `seq` into view (the inbox opening a session at the
+    /// request it lists): now if it is read, else once it is; the first
+    /// row when the log no longer holds it (its request is then drawn from
+    /// the node's word, [`Self::live`]).
+    #[expect(
+        dead_code,
+        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
+    )]
+    pub(crate) fn reveal(&mut self, seq: EventSeq) {
+        self.reveal = Some(seq);
+        self.revealed();
+    }
+
+    /// The record to reveal, if it is read by now.
+    fn revealed(&mut self) {
+        let Some(seq) = self.reveal else {
+            return;
+        };
+        let entries = self.timeline.entries();
+        let index = match entries.first() {
+            None => return,
+            // Pruned: the log starts after it.
+            Some(first) if first.seq > seq => 0,
+            Some(_) => {
+                // The entry the record made, or extended (its first record
+                // is earlier).
+                match entries.iter().rposition(|entry| entry.seq <= seq) {
+                    Some(index) if self.timeline.next() > seq => index,
+                    // Not read this far yet.
+                    Some(_) | None => return,
+                }
+            }
+        };
+        self.reveal = None;
+        if let Some(row) = self.rows.row_index(index, self.folds.as_ref(), &self.logs) {
+            self.list.reveal(row, Reveal::Top);
+        }
     }
 
     /// Fold in `records` of `session`, when it is the session shown:
@@ -304,6 +408,7 @@ impl ConversationArea {
             .min(rows_before);
         self.list
             .splice(from..rows_before, rows_after.saturating_sub(from));
+        self.revealed();
         true
     }
 
@@ -391,11 +496,13 @@ impl Shell {
     ) {
         self.hear_find(cx);
         self.areas.conversation.open(machine, session);
-        self.command(Command::Act {
-            machine: machine.to_owned(),
-            session,
-            act: Act::Info,
-        });
+        for act in [Act::Info, Act::Conversation] {
+            self.command(Command::Act {
+                machine: machine.to_owned(),
+                session,
+                act,
+            });
+        }
     }
 
     /// The conversation as Settings' display says: its runs folded or
@@ -475,7 +582,23 @@ impl Shell {
                     |kept| format!("{}. {kept}", words.session_deleted()),
                 ));
             }
-            Ok(Acted::Done) => area.refused = None,
+            Ok(Acted::Done) => {
+                area.refused = None;
+                // An answer went: what still waits is read again, so a
+                // request drawn from the node's word goes once settled.
+                if matches!(answer.kind, ActKind::Permit | ActKind::Answer) {
+                    self.act(Act::Conversation);
+                }
+            }
+            Ok(Acted::Conversation(held)) => {
+                if area
+                    .shown
+                    .as_ref()
+                    .is_some_and(|shown| shown.session == answer.session)
+                {
+                    area.live = Live::of(&held);
+                }
+            }
             Err(failed) => area.refused = Some((answer.kind, failed.message)),
         }
         cx.notify();
@@ -483,13 +606,31 @@ impl Shell {
 
     /// Ask the node to act on the session shown.
     pub(crate) fn act(&self, act: Act) {
-        if let Some(shown) = &self.areas.conversation.shown {
+        self.act_at(Seat::SESSION, act);
+    }
+
+    /// Ask the node to act on the session the conversation at `seat`
+    /// shows.
+    pub(crate) fn act_at(&self, seat: Seat, act: Act) {
+        if let Some(shown) = (seat.get)(self).and_then(|area| area.shown.as_ref()) {
             self.command(Command::Act {
                 machine: shown.machine.clone(),
                 session: shown.session,
                 act,
             });
         }
+    }
+
+    /// Bring record `seq` of the session shown into view (the inbox
+    /// opening a session at what it lists; call it after the session area
+    /// opened the session).
+    #[expect(
+        dead_code,
+        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
+    )]
+    pub(crate) fn conversation_reveal(&mut self, seq: EventSeq, cx: &mut Context<'_, Self>) {
+        self.areas.conversation.reveal(seq);
+        cx.notify();
     }
 
     /// Open or close a run of tool calls in the conversation at `seat`.
