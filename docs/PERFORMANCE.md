@@ -706,6 +706,74 @@ the 2 MB flood 499 against 451 ms, the 10 MB 1,933 against 1,963, the
 51 MB 8,550 against 8,481), a board of 500 cards (1,225 against
 1,326 ms, at rest 0 long tasks in both).
 
+## Integration 2 (page): tracks B-page and A-page joined (2026-11-13)
+
+The page's join (`docs/plans/backend-m11.md`, "Integration 2 (page)"),
+merged with the node's third join, measured with `npm run perf` on
+release binaries with the fat-LTO profile, the machine shared with other
+workers (load averages 16 to 24). Medians (minimum–maximum) of 5 runs for
+the load, 3 for the rest. Track B-page's figures above were taken at a
+load of 2 to 4 on its own tree; the comparison is with them, so a
+difference smaller than the spread of either is not read as a change.
+
+| Figure | B-page (load 2–4) | The join (load 16–24) |
+| --- | --- | --- |
+| slow link: first contentful paint | 1,712 ms (1,704–1,728) | 1,804 ms (1,792–1,912) |
+| slow link: board usable | 2,694 ms (2,599–2,702) | 2,795 ms (2,721–2,844) |
+| phone: first contentful paint | 2,068 ms (2,024–2,192) | 2,204 ms (2,180–2,444) |
+| phone: board usable | 3,269 ms (3,221–3,521) | 3,465 ms (3,290–3,626) |
+| desktop: board usable | 414 ms (375–455) | 455 ms (393–2,908) |
+| the index | 2,954 B | 2,943 B |
+| script | 185,923 B | 191,773 B |
+| stylesheet | 26,945 B | 28,899 B |
+| HTTP total | 340,261 B | 348,054 B |
+| WebSocket received at load | 14,262 B | 19,009 B |
+| 5,000 entries: first entry drawn | 146 ms (144–170) | 160 ms (144–290) |
+| 5,000 entries: last entry drawn | 794 ms (746–937) | 810 ms (794–940) |
+| 20,000 entries: first entry drawn | 145 ms (145–178) | 145 ms (145–177) |
+| 20,000 entries: last entry drawn | 2,678 ms (2,545–2,812) | 2,760 ms (2,729–2,879) |
+| … long tasks until then | 1, 53 ms (0–1) | 0 (0–1, 55 ms) |
+| … heap; elements | 13.8 MiB; 547 | 14.1 MiB; 550 |
+| find, 20,000: typed to the count | 143 ms | 150 ms (150–152) |
+| terminal: the 10 MB flood | 1,933 ms | 2,252 ms (2,095–2,426) |
+| a board of 500 cards: all drawn | 1,326 ms | 1,611 ms (1,036–1,912) |
+| Changes: first row drawn | 764 ms (748–826) | 857 ms (851–1,036) |
+| Files: first row drawn | 390 ms (383–391) | 438 ms (386–454) |
+
+The bytes are this tree's, not the load's: the entry's script grew by
+5,850 B and the stylesheet by 1,954 B with track A-page's work (the
+composer's `/` and `@` menu, the queue, questions, marks, the board's
+archive) beside B-page's; the WebSocket by 4,747 B with A-page's reads
+at start (each machine's agents and the drafts kept by the bridge). The
+times are all within or near the spread a load of 16 to 24 adds over 2
+to 4 (the base's own numbers moved by as much between the two halves of
+B-page's first pair); none is read as a change of the code until
+measured beside its base at a like load. Long tasks while replaying
+20,000 entries: none in two runs of three, one of 55 ms in the third
+(B-page: one of 53 ms in each).
+
+### What was profiled, and what changed
+
+Track B-page's report left one cost unexplained: opening a session of
+20,000 entries took 59–132 ms longer to its last entry, with one long
+task of about 50 ms. A CPU profile of that opening (three runs, the
+page built a second time with sourcemaps from the same tree, the
+machine at load 20 to 29) found:
+
+- 39 to 51 ms in `when`, the session's details writing its start time
+  on every batch of the replay with a formatter made on every call
+  (`toLocaleTimeString`, `toLocaleDateString`). The formatters are made
+  once (`3b5bcd1`).
+- The rest of the replay's time is the window following the end: one
+  forced layout per commit while the log replays (`use-window.ts`), which
+  the base has too, and which costs more per commit by what B-page added
+  to the document (the inspector's tabs, the title bar's chip, the
+  sidebar's projects).
+- The projects' `project.list` at the page's start: on a phone the
+  sidebar beside the page is hidden, so its group, and the read, wait
+  for the sheet (`cca8f84`); on a wider window the group is on screen
+  from the start and needs the list.
+
 ## Tried, did not help
 
 - **The reducer's index of tool calls, on its own** (before memoised

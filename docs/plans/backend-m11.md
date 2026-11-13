@@ -7348,3 +7348,290 @@ whole gate (the end-to-end tests of the node and of the page included).
 - Webhooks: when the listener is built, show a hook's secret once and
   never keep it; say beside a hook session's permission mode what ADR
   0034's first consequence says.
+
+## Integration 2 (page): tracks B-page and A-page on the node of protocol 11
+
+2026-11-13, on `backend/m11-int2-web`, branched from `backend/m11`
+(`9655cea`: wave 1, the node join of tracks B2 and C, track G). Track
+B-page's branch was merged first and brought onto the node as it is
+now (part 1); track A-page's, finished meanwhile, was merged after
+(part 2). Every track's commit is kept; each merge commit builds and
+passes, and each follow-up is a commit of its own.
+
+### Part 1: track B-page on the node
+
+**The merge** (`ac38bcd`) conflicted in the plan (every section kept;
+B-page's progress after track C's), `docs/PERFORMANCE.md` (track C's
+section, then B-page's) and, where the trial merge had not, the
+new-session page (B-page's starter beside track G's known-agent filter).
+Beyond resolving, what protocol 11 no longer compiled against:
+`file.write`'s `version` guard, and `GitRefusal::repository_config`
+(ADR 0030) said in words (`git-words.ts`, the key named, never a value).
+
+**What changed in the page for the node**, read module by module
+against the wire as it is now, not only where the compiler pointed:
+
+- *A file's save* (`d0ae053`). `file.write` is guarded by the content's
+  SHA-256 the edit read (`expect: { kind: "content", hash }`); the node
+  compares it and refuses with `conflict`, writing nothing. The editor's
+  own check of the disk followed by an `any` write is gone. The decision
+  is `data/workspace/save.ts`, tested against a node double: an untouched
+  file is written; a file changed meanwhile is one refused write, read
+  back for the banner (both states: what was read, what is there now,
+  how many lines the edit differs by), never a second write; only
+  Overwrite sends `any`; a read without a hash writes nothing and says
+  why. `FileVersion.modified` is milliseconds now: the banner's times
+  were read as nanoseconds and are fixed; pages of one file are compared
+  by their hash. `code.spec.ts` checks both states and the editor kept.
+- *The approval* (`899170d`). The dialog draws every script and service
+  of the set (by name, kind, folder and command: the digest covers them,
+  so none is summarised) beside setup and teardown, and says what changed
+  since the set approved last (`last_approved`, with its time): setup and
+  teardown compared line by line, a removed command followed by an added
+  one read as one changed command with what it was, scripts by name and
+  what about them changed. A node that does not say (protocol 10, or an
+  approval from before the node kept sets) is compared with the folder's
+  approved set, read only then, and the sentence says so; with neither,
+  that nothing is known to compare with. Settings › Projects counts the
+  scripts. The test repository gained a branch whose `vessel.toml`
+  changed (a setup command edited, a script and a service added) for
+  `code.spec.ts` and the captures (42d to 42f).
+- *Agents beyond the four* (`36fcfb8`). Shown wherever agents are chosen
+  or shown: the new-session page's agent menu (after the four,
+  "added"), Settings › Agents (found, or not found naming the program),
+  a session's bar, card, details and the machine's session rows, by the
+  label `agent.list` gives, else the machine's name for it. Compared by
+  key everywhere (a profile's move list compared objects). No terminal
+  is offered where the machine offers none; an added agent is never kept
+  as the machine's default; a `conflict` from `harness.options` is said
+  in the page's words (an added agent's secrets named, one of the four's
+  install or a route's key) and Send stays off. `agent.list` is read
+  only for a machine that shows an added agent, and when Settings ›
+  Agents opens. Adding, removing, the registry and installing are not
+  drawn. The e2e fleet adds three agents to laptop (the fake ACP agent,
+  one needing a secret the node lacks, one whose program is gone):
+  `agents.spec.ts`, `agents-screens.ts`.
+- *A worktree kept in use* (`2013e5e`): from protocol 11 a terminal or a
+  service beside a session keeps it too; the reason says so.
+- Read and left as they are: `SessionInfo.pull_request` (track B2-page's
+  to draw), a session's terminals (`terminal.list`, track C-page's),
+  `project.add`'s refusal of git's own folders (said by the node's
+  message, as every refusal of a path is).
+
+**The tests that failed under load**, each cause found and fixed where
+it was:
+
+| Test | What it raced on | Fixed in |
+| --- | --- | --- |
+| `page.spec.ts` "with the sidebar hidden, Mod+K…" (and the three after it) | the page: a preference changed while the page was still connecting was sent at once, refused as not connected and taken back, and a state arriving while a change was on its way showed the document without it; Ctrl+B pressed as the page loaded hid the sidebar a moment, the next one hid it for good | the page (`e6107c8`): a change waits for the link to open, unanswered changes are applied over every state that arrives; unit tests with a link a test opens |
+| `timeline.spec.ts:101` (1.28 px against 1 px) | the page: heights are measured after layout and before paint, and the held row was corrected only after React drew them, a frame later | the page (`ef8bceb`): the observer puts the held row back before paint; `use-window.ts` divided (`window-watch.ts`) |
+| `app.spec.ts` "every New…", `page.spec.ts` "a shortcut is rebound…" | the test: `openUi` returned on the sidebar, before the bridge welcomed the page; a test navigating at once reloaded with no session and saw "Open Vessel from its address" (a bridge whose answers are held back reproduces it every time) | `e2e/open.ts` waits for the session the page keeps for reloads (`59000e2`) |
+| `page.spec.ts` Mod+Enter | the test: a strict locator matched the timeline and its live region | looked for in the timeline |
+| `page.spec.ts:122` (Settings' chunk) | the test: its wait was set after the release | set before it |
+| the theme test | the test: the index was read once, before the bridge kept the change | asked until written |
+| `app.spec.ts:61` (a menu item "not stable", then "detached") | not found in the page: slowing its processor ten and twelve times, holding the bridge's answers back, and answering the agent's options while the submenu was open did not reproduce it | `chooseAgent` chooses with Enter, the menu's keyboard path, which needs no still box |
+| `app.spec.ts:37` (the old `/fleet` address not sent on to Settings in 15 s, seen by the schedules' join) | the test: the same as "every New", a navigation before the bridge welcomed the page | the same wait in `openUi` (`59000e2`) |
+| `timeline.spec.ts:101` again, at the join's end (1.19 px) | the page: sampled every frame over five runs, the held match sat anywhere from 339.19 to 340.48 px, because a scroll offset is whole pixels and the hold moved only from a whole pixel off, so the row could rest up to a pixel either side of its place | the page (`6b2b398`): put back to the nearest whole pixel (`holdStep`, tested), within half a pixel of its place |
+| `marks.spec.ts:16` (one run in about twelve, at load 3: "Mark as unread" detached, the test's time ran out) | the test: recorded with focus and mutation events in the page, the menu drew its items (the test's check passed) before it took the focus, so the Escape went to the button and was lost, the menu stayed open, and the next press on the button closed it | `closeMenu` waits for the focus in the menu before Escape, then for the menu to go (`9bab5d3`); fifteen runs of the test passed after |
+
+**What B-page slowed down.** A CPU profile of opening a 20,000-entry
+session (three runs, sourcemaps from a separate build of the same tree,
+the machine at load 20 to 29): 39 to 51 ms in `when`, the session's
+details writing its start time on every batch of the replay with a
+formatter made per call (`toLocaleTimeString`/`toLocaleDateString`):
+the formatters are made once (`3b5bcd1`). The rest of the replay's time
+is the window's follow of the end (a forced layout per commit while the
+log replays, `use-window.ts`), which the base has too, and which costs
+more per commit by what B-page added to the document (the inspector's
+tabs, the title bar's chip, the sidebar's projects). The projects'
+`project.list` at start: on a phone the sidebar beside the page is
+hidden, so its group, and the read, wait for the sheet (`cca8f84`); on a
+wider window the group is on screen from the start and needs the list.
+
+### Part 2: track A-page joined
+
+Track A-page's progress section and gate were on its branch and its
+working tree was clean (`eccbd24`), so it was merged (`fba9997`).
+Conflicts, each kept from both sides: the README's board paragraph,
+DESIGN.md's differences from the references (A-page's renumbered 28 to
+33), the plan (A-page's contract after track C's, its progress before
+B-page's), the kit's exports, `data/calls.ts`'s imports, the session
+card, the "+", the new-session page, the session's composer and the
+window. Beyond resolving: A-page's `AgentControls` name the agent by
+`HarnessRef`; `data/fleet.ts` passed its budget with both tracks'
+additions, so a machine's session list's pure updates are
+`data/fleet-sessions.ts`, with tests. The generated declarations were
+regenerated and did not change.
+
+The join's conditions:
+
+- One module per responsibility: the new-session page's controls are
+  A-page's `NewSessionControls`, carrying B-page's place and track G's
+  agents; the window's watch on its scroller is one module
+  (`window-watch.ts`) with A-page's "a reader at the end stays there when
+  the view shortens" and this join's hold before paint; a machine's
+  session list is updated in one place for A-page's marks.
+- `@` in the composer (`use-file-search.ts`, `use-suggest.tsx`) and
+  open-by-name in the Files panel (`file-search.tsx`) both call
+  `data/workspace/find.ts`, each with its own search key.
+- A selection from the Changes or Files panel ("Add to chat") writes the
+  session's draft (`fleet.drafts`), which A-page's composer shows.
+- Archiving says that the terminals and services beside the session end
+  (`637c820`), on a node of protocol 11.
+- The board keeps an ended session in its lane until archived, the
+  archive shows the archived ones, and the cards carry A-page's marks
+  and actions beside B-page's branch chip (capture a65).
+
+### The independent review
+
+One reviewer (Opus, read only, the save guard and the approval first)
+read `git diff backend/m11` at `2013e5e` and found twelve problems. Each
+one's fate, most severe first:
+
+1. **High: `@` asked `file.find` again after every answer** while its
+   word stayed open: the composer made the session's root a new object
+   on every drawing, which the search's effect read as a new root.
+   **Fixed** (`ce40218`): the composer and the code panel read one hook,
+   `useSessionRoot`, which keeps the root one object while it names the
+   same place.
+2. **Medium: keys typed while a save was on its way were lost** when the
+   save closed the editor. **Fixed** (`ff0c839`): the editor is read-only
+   until the save answers (the kit's `TextArea` gains `readOnly`).
+3. **Medium: a preference could stay shown over another tab's newer
+   value**: the bridge sends pushes and replies from two tasks, so a
+   newer push can come before this tab's reply, which was then dropped
+   as older with the values never worked out again. **Fixed**
+   (`6e8d1c3`): once a change is answered the values are worked out
+   from what the bridge confirmed and what is still on its way; tested.
+4. **Medium-low: a conflict's two sides could be wrong or look alike**:
+   a file over one page was compared by its first page against the whole
+   edit, and two versions of one minute and like size read the same.
+   **Fixed** (`ff0c839`): sides are compared only when the edit read the
+   whole file, and each names the start of its content hash.
+5. **Medium-low: Settings' agent card asked an added agent twice**, its
+   effect keyed by an object the machine's lists replace, and said a
+   refusal in the machine's words. **Fixed** (`591211b`): keyed by the
+   card's agent, refusals in the page's words.
+6. **Medium-low: a refusal of an agent's options was never asked again**,
+   so Send stayed off after the secret was set. **Fixed** (`591211b`):
+   "Ask again" beside the refusal; `agents.spec.ts` presses it.
+7. **Low-medium: choosing another machine during a worktree's start did
+   not stop it**, and Approve then approved the first machine's project
+   under the second's name. **Fixed** (`5cb92e2`): the start stops, as
+   it does when another place is chosen.
+8. **Low: on a node before protocol 11 every save would say the file is
+   too large to be compared.** **Not taken**: `file.read` has given the
+   content's hash for every file up to 8 MiB since the file calls came
+   (protocol 10), and Edit reads at most 1 MiB, so a read without a hash
+   does not reach the editor on any node that has the file calls.
+9. **Low: a page read for the view could land after Edit read the whole
+   file** and put a part back. **Fixed** (`ff0c839`): dropped when the
+   file was read past it.
+10. **Low: two functions worked out a session's folder and disagreed**
+    (the panel takes a folder inside a project as that project, `@` did
+    not). **Fixed** with 1 (`ce40218`).
+11. **Low: an added agent was named by its machine name** in Settings ›
+    Models and the new-session page's notes and option names. **Fixed**
+    (`591211b`).
+12. **Low (efficiency): the sidebar's media query subscribed again on
+    every drawing**: **fixed** (`2cb9285`). The time formatters' zone is
+    fixed when the module loads: **not taken**, a zone changed while the
+    page is open is read again on reload, as everywhere else the page
+    writes a time.
+
+Found clean by the reviewer: the guard (`any` sent only by Overwrite, a
+conflict read back once and never followed by a write, the base set only
+when Edit starts, no draft crossing files or roots), the approval's
+comparison (line pairing, scripts by every field) and its digest, the
+agents compared by key everywhere, the window's hold against its own
+scrolls, and the A-page merge's resolutions.
+
+### Five runs of the end-to-end suite
+
+Each run is the whole suite (`npm run e2e`, 56 tests) on the binaries
+and bundle of the tree named, the machine shared with other workers:
+
+| Tree | Run | Load (1 min) | Result |
+| --- | --- | --- | --- |
+| `3868d68` (the review's fixes) | 1 | 26.6 | 56 passed |
+| | 2 | 22.1 | 56 passed |
+| | 3 | 17.1 | 56 passed |
+| | 4 | 12.1 | 55 passed, `timeline.spec.ts:101` failed (1.19 px): fixed in `6b2b398` |
+| `6b2b398` | 1 | 4.0 | 56 passed |
+| | 2 | 2.7 | 56 passed |
+| | 3 | 4.3 | 56 passed |
+| | 4 | 3.1 | 55 passed, `marks.spec.ts:16` failed (the menu's Escape): fixed in `9bab5d3` |
+| | 5 | 3.5 | 55 passed, the same |
+
+The last run of the fourth tree's was not made: the cause was found
+first (the test repeated alone, twelve runs, one failure; after the fix,
+fifteen of fifteen). The suite on the final tree is in the gate below.
+
+### Merged with the node's third join
+
+`backend/m11` at `7be51d9` (the schedules join: track D on pull
+requests, terminals and added agents; the store's schema 12; ADR 0033
+to 0036; the milestone 12 plan; the brand's files) was merged last
+(`0065591`), so that the preview is deployed from one tree. One
+conflict: the fake ACP agent's list of prompts, where this branch's
+`ask claude` (track A-page's) and the node's `fail` are both kept.
+`cargo check --workspace --all-targets` passed before anything else;
+the TypeScript regenerated from the merged wire is byte for byte the
+file the node's join committed, whose new aliases it classified; the
+page compiles and its tests pass against it. No page draws the
+schedules yet (their screens are not this pass's).
+
+### Commits
+
+- Part 1: `ac38bcd` the merge of B-page; `d0ae053` the save's guard;
+  `899170d` the approval's scripts and changes; `36fcfb8` agents beyond
+  the four; `e6107c8` a preference before the link opens; `ef8bceb` the
+  held row before paint; `59000e2` four tests' waits; `3b5bcd1` the
+  time's formatters; `cca8f84` the phone's projects read on opening.
+- Part 2: `fba9997` the merge of A-page; `637c820` archiving says what
+  ends; `2013e5e` a worktree kept in use by terminals and services.
+- The review: `ce40218` one session root for `@` and the panel;
+  `ff0c839` the editor during a save, the conflict's sides, a page read
+  past; `6e8d1c3` a preference answered after a newer state; `591211b`
+  Ask again, one probe per card, labels; `5cb92e2` another machine stops
+  a worktree's start; `2cb9285` one media subscription; `0a36a59`,
+  `3868d68` the README and DESIGN.md.
+- Under load, later: `6b2b398` the hold to the nearest pixel; `9bab5d3`
+  a menu closed once it holds the focus.
+- `0065591` the merge of `backend/m11` at `7be51d9`; this section.
+
+### The gate, on the final tree
+
+On the merge with `backend/m11` (`0065591`), page and binaries rebuilt
+first, the machine shared with other workers (load 9 to 40 while the
+Rust tests ran):
+
+- `cargo fmt --all --check`: clean.
+- `cargo clippy --workspace --all-targets -- -D warnings`: clean.
+- `cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets
+  -- -D warnings`: clean.
+- The TypeScript regeneration (`VESSEL_WRITE_TS=1 cargo test -p
+  vessel-proto -p vessel-web --features ts --lib typescript`): passes;
+  nothing to commit.
+- `cargo test --workspace --no-fail-fast`, run twice. The first: 1,619
+  passed, 6 failed, all six in `vessel-web`'s `tests/ui` `prefs::` (the
+  bridge closed its socket, 4401 "the UI was restarted or
+  authentication failed"), at a time an end-to-end test of the page on
+  the same machine was also starting `vessel ui`; that binary alone then
+  passed 29 of 29 twice. The second, with nothing of this work running
+  beside it: 1,624 passed, 1 failed, 9 ignored, over 105 test binaries;
+  the failure `vessel-node`'s `scheduled::a_scheduled_session_is_watched_and_put_away_with_what_runs_beside_it`
+  (a terminal beside the session still running when looked at, at load
+  16). The node's `tests/e2e` binary alone at the same load: 142 of 142,
+  then 141 with `grants::a_reinstalled_node_grants_again_once_the_home_forgets_it`
+  failed (its 20 s wait for a report), which had also failed once in a
+  run before the merge (as had `forge_rules::a_forge_that_is_down_holds_nothing_and_an_end_clears_it`);
+  at load 3 that binary passed twice. These are the node's own timed
+  tests, untouched here (no code under `crates/vessel-node` differs from
+  `backend/m11`): they are named for the node's track, not changed.
+- In `web/`: `npm run lint` (fonts, controls, size: within budget),
+  `npm run typecheck`, `npm run test` (401 passed, 77 files), `npm run
+  build`, then `VESSEL_WEB_REQUIRE_BUNDLE=1 cargo build -p vessel-cli -p
+  vessel-node -p vessel-testkit --bins`, `npm run e2e` (56 passed),
+  `npm run screens` (8 passed, 200 captures, looked at), and
+  `VESSEL_CARGO_PROFILE=release npm run perf` (`docs/PERFORMANCE.md`).
