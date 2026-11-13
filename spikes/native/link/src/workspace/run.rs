@@ -26,6 +26,10 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
             start::walk(client, reply, *start).await;
             return;
         }
+        Ask::Session(session) => Answer::Session {
+            session,
+            result: call(client, vessel_proto::GetSession { session }).await,
+        },
     };
     reply.send(answer).await;
 }

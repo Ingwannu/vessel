@@ -11,7 +11,7 @@ use vessel_proto::workspace::{
     SnapshotList, StashList, StashOutcome, SwitchOutcome, WorkspaceRoot, WorktreeInfo,
     WorktreeList,
 };
-use vessel_proto::{ProjectId, WorktreeId};
+use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
     Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey, WorktreeAsk,
@@ -210,6 +210,13 @@ pub enum Answer {
         /// How it ended.
         ended: StartEnded,
     },
+    /// Where a session runs.
+    Session {
+        /// Which.
+        session: SessionId,
+        /// It.
+        result: Result<SessionInfo, Problem>,
+    },
 }
 
 /// Which form added a project.
@@ -233,6 +240,10 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
         Ask::Start(start) => Answer::StartEnded {
             key: start.key,
             ended: StartEnded::Failed(problem.clone()),
+        },
+        Ask::Session(session) => Answer::Session {
+            session,
+            result: no(problem),
         },
     }
 }
