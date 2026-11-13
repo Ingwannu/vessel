@@ -89,6 +89,38 @@ pub(crate) struct Shown {
     pub(crate) session: SessionId,
 }
 
+impl Shown {
+    /// The node book renamed machine `from` to `to`: a session on it
+    /// follows the name (its acts go to the machine by its new name).
+    /// Whether it was on it.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "Settings › Machines (track E2) calls the hook; remove with its first call"
+        )
+    )]
+    fn machine_renamed(&mut self, from: &str, to: &str) -> bool {
+        if self.machine != from {
+            return false;
+        }
+        to.clone_into(&mut self.machine);
+        true
+    }
+
+    /// Whether the session is on machine `name`.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "Settings › Machines (track E2) calls the hook; remove with its first call"
+        )
+    )]
+    fn on(&self, name: &str) -> bool {
+        self.machine == name
+    }
+}
+
 /// Where a conversation's state is kept, for the rows drawn from it and
 /// the toggles they answer: the session area's ([`Seat::SESSION`]), or
 /// another area's own [`ConversationArea`] (a side question's panel).
@@ -302,10 +334,16 @@ impl ConversationArea {
     /// the session's records are folded from its first again
     /// ([`Self::take`]). Asks the node nothing.
     pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        self.clear();
         self.shown = Some(Shown {
             machine: machine.to_owned(),
             session,
         });
+    }
+
+    /// Show nothing: what was shown is dropped, here only.
+    fn clear(&mut self) {
+        self.shown = None;
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -732,6 +770,46 @@ impl Shell {
         cx.notify();
     }
 
+    /// The node book renamed machine `from` to `to` (Settings › Machines,
+    /// once the book took the edit; a failed edit calls nothing): the
+    /// session shown on it follows the name. Nothing is asked of the
+    /// machine.
+    #[expect(
+        dead_code,
+        reason = "Settings › Machines (track E2) calls it; remove with its first call"
+    )]
+    pub(crate) fn conversation_machine_renamed(
+        &mut self,
+        from: &str,
+        to: &str,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(shown) = self.areas.conversation.shown.as_mut()
+            && shown.machine_renamed(from, to)
+        {
+            cx.notify();
+        }
+    }
+
+    /// The node book forgot machine `name` (once the book took it): a
+    /// session shown on it is closed here, its state dropped. Nothing is
+    /// stopped or deleted on the machine.
+    #[expect(
+        dead_code,
+        reason = "Settings › Machines (track E2) calls it; remove with its first call"
+    )]
+    pub(crate) fn conversation_machine_forgotten(
+        &mut self,
+        name: &str,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let area = &mut self.areas.conversation;
+        if area.shown.as_ref().is_some_and(|shown| shown.on(name)) {
+            area.clear();
+            cx.notify();
+        }
+    }
+
     /// The confirm open was dismissed.
     pub(crate) fn dismiss_confirm(
         &mut self,
@@ -740,5 +818,44 @@ impl Shell {
     ) {
         self.areas.conversation.confirm = None;
         cx.notify();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_proto::SessionId;
+
+    use super::Shown;
+
+    fn shown(machine: &str) -> Shown {
+        Shown {
+            machine: machine.to_owned(),
+            session: SessionId::random(),
+        }
+    }
+
+    #[test]
+    fn a_rename_moves_the_session_on_that_machine_to_the_new_name() {
+        let mut on_laptop = shown("laptop");
+        let session = on_laptop.session;
+        assert!(on_laptop.machine_renamed("laptop", "work-laptop"));
+        assert_eq!(on_laptop.machine, "work-laptop");
+        assert_eq!(on_laptop.session, session);
+        // Acts now go to the new name; the old one is no longer this one's.
+        assert!(on_laptop.on("work-laptop"));
+        assert!(!on_laptop.on("laptop"));
+    }
+
+    #[test]
+    fn a_rename_of_another_machine_leaves_the_session_alone() {
+        let mut on_server = shown("build-server");
+        assert!(!on_server.machine_renamed("laptop", "work-laptop"));
+        assert_eq!(on_server.machine, "build-server");
+    }
+
+    #[test]
+    fn a_forget_closes_only_a_session_on_that_machine() {
+        assert!(shown("laptop").on("laptop"));
+        assert!(!shown("build-server").on("laptop"));
     }
 }
