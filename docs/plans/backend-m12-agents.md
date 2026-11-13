@@ -320,3 +320,31 @@ marker densities. Other fixtures cover every authentication outcome,
 positive/empty/unknown model counts, request identity, and machine-scoped
 section headings. These rules are not yet wired into the rejected screen;
 that is the next redraw. Native fmt, whole Clippy and all 404 tests passed.
+
+### Shared settings furniture review correction
+
+V1 returned the first section slot: title flex growth/minimum width were
+not in Paseo’s titleRow, and comparing a delegating wrapper with the same
+None call did not establish reference geometry. The extra title sizing
+is removed; the titleRow follows the reference’s row alignment and gap.
+Tests now assert fixed head/card/section bounds from the reference values
+and the existing type steps, independently for both public entry points.
+First-consumer visual approval remains pending; the rejected Agents
+captures are not used as approval for this control.
+
+The approved `row_with_content` slot follows `styles/settings.ts`’s row
+frame. `row_at` supplies its existing words/control to that same frame;
+custom provider contents therefore do not duplicate padding or borders.
+Fixed GPUI bounds check pointer insets, the 12-point control gap, the
+one-point hairline and compact wrapping for both ordinary and custom rows.
+
+The fixed row fixture uses the kit's existing Body line height of 21
+(`fonts::Type::metrics`), not an assumed 20. The first run exposed that
+wrong fixture value; implementation geometry was unchanged. The corrected
+reference bounds include half-point vertical centering for a 21-point
+label next to a 28-point control, and the wrapped row's 93-point height.
+
+Corrected control gate: native fmt, whole Clippy and whole tests passed,
+406 passed and none failed. The failed fixture run is not counted as a
+pass. First-use captures of the corrected section and custom row remain
+part of the following Agents screen review.

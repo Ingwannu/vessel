@@ -163,7 +163,10 @@ the heading and footer actions retain their size and remain reachable.
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates
 with no action. Areas supply the action’s state and tooltip, rather than
-copying the heading/card gap into another header.
+copying the heading/card gap into another header. `row_with_content` is
+its row frame for custom contents (such as a provider’s mark and inline
+status); ordinary `row_at` delegates to the same padding, border and
+compact wrapping frame.
 
 ### Rules every screen follows
 

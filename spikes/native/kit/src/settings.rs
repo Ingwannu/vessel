@@ -138,12 +138,12 @@ pub fn section_with_trailing(
         .mb(px(spacing::S3))
         .ml(px(spacing::S1))
         .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(title.into()),
+            div().flex().items_center().gap(px(spacing::S2)).child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(tokens.neutral.foreground_muted)
+                    .child(title.into()),
+            ),
         );
     if let Some(trailing) = trailing {
         head = head.child(div().flex_none().child(trailing));
@@ -241,17 +241,40 @@ pub fn row_at(
                 .child(error),
         );
     }
+    row_with_content(words.into_any_element(), control, first, compact, tokens)
+}
+
+/// The shared settings row frame around custom content, with an optional
+/// trailing control. The content owns its title/description arrangement.
+///
+/// [Decision Log]
+/// - Purpose: Paseo provider rows combine marks, inline state and counts;
+///   a string-only title cannot represent those contents.
+/// - Constraint: ordinary setting rows keep the same frame and geometry.
+/// - Alternatives: copy the padding/border into each area; widen `row_at`'s
+///   title type and break callers accepting borrowed strings.
+/// - Choice: `row_at` delegates to this frame; custom rows supply content.
+/// - Why: styles/settings.ts's row is still implemented once.
+/// - Cost: custom content owns its sizing, semantics and interaction.
+#[must_use]
+pub fn row_with_content(
+    content: AnyElement,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
+    let neutral = tokens.neutral;
     div()
         .flex()
         .flex_row()
         .items_center()
         .justify_between()
-        // Paseo's row content keeps 12 from its control (`marginRight`).
-        .gap(px(12.0))
+        .gap(px(spacing::S3))
         .when(compact, Styled::flex_wrap)
-        .p(px(16.0))
+        .p(px(spacing::S4))
         .when(!first, |row| row.border_t_1().border_color(neutral.border))
-        .child(words)
+        .child(content)
         .children(control)
 }
 
