@@ -12,6 +12,7 @@ export function composerPlaceholder({
   again,
   plan,
   modern,
+  starting = null,
 }: {
   pending: boolean;
   live: boolean;
@@ -20,9 +21,14 @@ export function composerPlaceholder({
   plan: SendPlan;
   /** Whether the machine speaks protocol 10 (`/` and `@`). */
   modern: boolean;
+  /** The agent, while the session's first prompt waits on its start. */
+  starting?: string | null;
 }): string {
   if (pending) {
     return "Answer the permission to continue";
+  }
+  if (starting !== null && live && modern) {
+    return `Queue a follow-up while ${starting} gets ready`;
   }
   if (!live) {
     return again

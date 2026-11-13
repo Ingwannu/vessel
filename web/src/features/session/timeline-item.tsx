@@ -63,7 +63,11 @@ function Item({ entry }: { entry: Entry }) {
         >
           <span className="glyph" aria-hidden="true" />
           <span className="when">
-            {entry.replayed ? "replayed" : `turn ${String(entry.turn)}`}
+            {entry.sending === true
+              ? "sending"
+              : entry.replayed
+                ? "replayed"
+                : `turn ${String(entry.turn)}`}
           </span>
           <PromptFiles files={entry.attachments} />
           {entry.text === "" ? null : (

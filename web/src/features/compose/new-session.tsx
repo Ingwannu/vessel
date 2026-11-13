@@ -1,7 +1,9 @@
 // New session (agent-orchestrator's `/new`): "What do you want to work
 // on?", one raised box for the prompt with what the session runs with in
 // its foot, and where it runs in the tray under it. Send creates the
-// session with those choices, sends the prompt, and opens the session.
+// session with those choices and opens it in place of this page as soon
+// as it exists; the prompt goes without waiting on the agent's start
+// (started.ts, data/openings.ts), as in agent-orchestrator and GOAT.
 // What each part decides is data/new-session.ts's. Until the person
 // chooses, the machine's last start fills in the agent, the profile and
 // the choices (data/defaults.ts), and a successful start is kept as that.
@@ -19,7 +21,6 @@ import {
   knownAgent,
   sameAgent,
 } from "../../data/agents";
-import { sendPrompt } from "../../data/calls";
 import {
   type Draft,
   draftControls,
@@ -30,16 +31,11 @@ import {
 import { machineChoices } from "../../data/machines";
 import { machineMeant } from "../../data/nodes";
 import { pick } from "../../data/picks";
-import {
-  rememberedAgent,
-  startingPicks,
-  rememberStart,
-} from "../../data/defaults";
-import { prefer, prefs } from "../../data/prefs";
+import { rememberedAgent, startingPicks } from "../../data/defaults";
+import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
-import { toast } from "../../ui/toasts";
 import type { OptionChoice } from "../../wire/proto";
-import { handOver, sendWhenReady, trayOf } from "../../data/trays";
+import { trayOf } from "../../data/trays";
 import { NewSessionControls } from "./new-session-controls";
 import { NewSessionNotes } from "./new-session-notes";
 import { AttachmentStrip } from "./attachment-strip";
@@ -48,6 +44,7 @@ import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
+import { rememberStarted, sendFirst } from "./started";
 import { useStarter } from "./use-starter";
 import { WhereTray } from "./where-tray";
 
@@ -83,8 +80,14 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
   useCrumbs(NO_CRUMBS);
+  // Whether the person is still on this page when the session exists.
+  const here = useRef(true);
   useEffect(() => {
+    here.current = true;
     text.current?.focus();
+    return () => {
+      here.current = false;
+    };
   }, []);
 
   const book = state.book ?? [];
@@ -163,49 +166,29 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     const spec = specOf(effective, harness, options);
     setBusy(true);
     setError(null);
-    void starter.create(spec).then(async (created) => {
+    void starter.create(spec).then((created) => {
       if (created?.ok !== true) {
         setBusy(false);
         setError(created?.problem.message ?? null);
         return;
       }
-      const prompt = effective.prompt.trim();
-      if (spec.mode === "structured" && tray.items.get().length > 0) {
-        // Files go once the session's agent can take them: its composer
-        // uploads them and sends this prompt (data/trays.ts).
-        handOver("new", created.value.id);
-        fleet.drafts.type(
-          { kind: "session", session: created.value.id },
-          prompt,
-        );
-        sendWhenReady(created.value.id);
-      } else if (spec.mode === "structured" && prompt !== "") {
-        const sent = await sendPrompt(fleet, machine, created.value.id, prompt);
-        if (!sent.ok) {
-          toast(
-            `The session started; the prompt did not: ${sent.problem.message}`,
-            "error",
-          );
-        }
-      }
+      const id = created.value.id;
       saved.clear();
+      sendFirst(fleet, machine, id, spec, effective.prompt.trim());
       if (nodeId !== null && known !== null) {
-        const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
-        for (const kept of rememberStart(
-          nodeId,
-          known,
-          effective.profile,
-          chosen,
-        )) {
-          void prefer(fleet, kept);
-        }
+        rememberStarted(fleet, nodeId, known, effective.profile, spec);
       }
       fleet.select(machine);
       void fleet.refreshSessions(machine);
-      void navigate({
-        to: "/sessions/$node/$id",
-        params: { node: machine, id: created.value.id },
-      });
+      // agent-orchestrator's: in place of this page, and not for someone
+      // who has left it meanwhile (the session is in the sidebar).
+      if (here.current) {
+        void navigate({
+          to: "/sessions/$node/$id",
+          params: { node: machine, id },
+          replace: true,
+        });
+      }
     });
   };
 

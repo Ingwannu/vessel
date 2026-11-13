@@ -340,7 +340,8 @@ export async function startFleet(): Promise<FleetEnv> {
   }
   // Agents added on laptop by their command (protocol 11, ADR 0032): the
   // fake ACP agent as one that runs, as one needing a secret the node does
-  // not have (its start is refused), and a program that is not there.
+  // not have (its start is refused), a program that is not there, and the
+  // fake again, slow to start.
   const fakeAcp = binary("fake-acp");
   const added: string[][] = [
     ["helper", "--label", "Helper", "--", fakeAcp],
@@ -354,6 +355,8 @@ export async function startFleet(): Promise<FleetEnv> {
       fakeAcp,
     ],
     ["ghost", "--", join(root, "no-such-agent")],
+    // One that takes four seconds to start (e2e/new-chat.spec.ts).
+    ["slow", "--label", "Slow starter", "--", fakeAcp, "--slow-start", "4000"],
   ];
   for (const args of added) {
     execFileSync(vessel, ["agents", "add", ...args], { env: cli });

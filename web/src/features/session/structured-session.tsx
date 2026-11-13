@@ -10,6 +10,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFleet, useFleetState } from "../../context";
 import { isLive } from "../../data/format";
 import type { Match } from "../../data/find";
+import {
+  forgetOpening,
+  openings,
+  promptLogged,
+  withOpening,
+} from "../../data/openings";
 import { outline, sameOutline } from "../../data/outline";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
@@ -47,6 +53,19 @@ export function StructuredSession({
     return status?.state === "connected" ? status.protocol : null;
   });
   useReadMarks(node, session, timeline, protocol);
+  // A first prompt sent from the new-session page, shown at the log's end
+  // until the log has it (data/openings.ts).
+  const opening = useStore(openings, (kept) => kept.get(session.id));
+  const shown = useMemo(
+    () => withOpening(timeline, opening),
+    [timeline, opening],
+  );
+  const logged = opening !== undefined && promptLogged(timeline);
+  useEffect(() => {
+    if (logged) {
+      forgetOpening(session.id);
+    }
+  }, [logged, session.id]);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
   const panel = usePanel(inspector);
   const [finding, setFinding] = useState<number | null>(null);
@@ -130,7 +149,7 @@ export function StructuredSession({
           <TimelineSourceContext value={source}>
             <FoldProvider entries={timeline.entries}>
               <Timeline
-                timeline={timeline}
+                timeline={shown}
                 reveal={reveal}
                 scrollerRef={setScroller}
               />

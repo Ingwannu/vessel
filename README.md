@@ -830,9 +830,11 @@ browser on Unix (on Windows, open the printed address).
   and where in it the session runs: its folder as it is ("Local"), a new
   worktree on a new branch from a base, or a worktree on an existing
   branch (with no project, a folder, suggesting the folders sessions
-  already ran in there). Send starts the session with those choices,
-  sends the prompt and opens it. For a new worktree it first makes the
-  worktree: if the project's `vessel.toml` names commands that were not
+  already ran in there). Send starts the session with those choices and
+  opens it at once, with the prompt in it while the agent is still
+  starting (a message typed meanwhile waits behind the first). For a new
+  worktree it first makes the worktree: if the project's `vessel.toml`
+  names commands that were not
   approved, it shows every one of them (setup, teardown, and its scripts
   and services, which the approval covers too) and what changed since
   the set approved last, for you to approve or to start without setup;

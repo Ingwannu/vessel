@@ -52,6 +52,9 @@ export type Entry =
       turn: number;
       /** The files it carried (protocol 10). */
       attachments: readonly AttachmentRef[];
+      /** A new session's first prompt shown before its log has it
+       * (data/openings.ts); never set on a record of the log. */
+      sending?: true;
     })
   /** A message added to the running turn (protocol 10's steering). */
   | (Base & {

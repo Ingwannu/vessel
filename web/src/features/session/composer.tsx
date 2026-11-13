@@ -18,8 +18,10 @@ import { agentName } from "../../data/agents";
 import { hasConversation } from "../../data/delivery";
 import { isLive } from "../../data/format";
 import { canStartAgain } from "../../data/marks";
+import { openings } from "../../data/openings";
 import { queueRows } from "../../data/queue-view";
 import { recall, type Walk } from "../../data/recall";
+import { useStore } from "../../data/store";
 import { takeFirstSend, trayOf } from "../../data/trays";
 import { AttachmentStrip } from "../compose/attachment-strip";
 import { PromptBox } from "../compose/prompt-box";
@@ -80,10 +82,18 @@ export const Composer = memo(function Composer({
     () => queueRows(conversation.queue),
     [conversation.queue],
   );
+  // While a first prompt from the new-session page is on its way, the
+  // agent is starting and that prompt's turn comes first: a message sent
+  // meanwhile is queued behind it (agent-orchestrator's "Queue a
+  // follow-up while … gets ready"; data/openings.ts).
+  const starting = useStore(
+    openings,
+    (kept) => kept.get(session.id)?.state.kind === "sending",
+  );
   const sender = useComposerSend({
     node,
     session,
-    timeline,
+    timeline: starting ? { ...timeline, inTurn: true } : timeline,
     protocol,
     draft: editing === null ? draft : { ...draft, text: editing.text },
     tray,
@@ -202,6 +212,7 @@ export const Composer = memo(function Composer({
         again: canStartAgain(session),
         plan: sender.plan,
         modern,
+        starting: starting ? agent : null,
       })}
       onSend={(other) => {
         if (editing === null) {

@@ -1638,8 +1638,15 @@ machine in view.
    switch, and no "+" when it has no profile either). An agent that runs
    only in a terminal on that machine is opened as one.
 5. **Send** creates the session with the choices (`session.create`, the
-   options in the spec), sends the prompt (`session.send`), and opens it.
-   A terminal takes no prompt: the box's first line becomes its title.
+   options in the spec) and opens it in place of this page as soon as it
+   exists (not for someone who has left the page meanwhile), as
+   agent-orchestrator does. The prompt is sent without waiting on it (the
+   node answers once the agent has started, up to a minute): the
+   session's log shows it at its end, "sending", from the first frame,
+   until the log has it (`data/openings.ts`), and a message typed
+   meanwhile is queued behind it ("Queue a follow-up while Claude Code
+   gets ready"). A terminal takes no prompt: the box's first line becomes
+   its title.
    A refusal is said under the box, in the danger colour; the page keeps
    what was typed. In a new worktree, Send first makes it: the commands
    are asked about when the set is not approved (§6.18), setup's output
