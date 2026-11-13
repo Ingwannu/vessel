@@ -90,7 +90,20 @@ Debug builds on this machine (dev-host, ten workers sharing it):
   index), later ones a median of 15.5 ms.
 - Scrolling: `VESSEL_APP_SCROLL_BENCH=<entries>` scrolls the timeline by
   itself, 40 pixels a frame for 600 frames, and logs the median, p95 and
-  longest frame. Not run yet.
+  longest frame. On 2026-11-13, debug build, Xvfb with Mesa's software
+  Vulkan (lavapipe) at 1280x800, load average about 8:
+
+  | Session | Entries (rows) | Median | p95 | Longest |
+  | --- | --- | --- | --- | --- |
+  | `entries 20000` | 20,007 (13,341) | 63.9 ms | 79.9 ms | 152.8 ms |
+  | `entries 40` | 47 (34) | 64.0 ms | 79.6 ms | 208.1 ms |
+
+  The frame costs the same at 47 entries as at 20,007: the length of the
+  conversation adds nothing measurable, and the 64 ms is the software
+  renderer's and the debug build's floor on this machine, not the list's.
+  A frame time to hold the app to needs a release build on a real GPU
+  (the release track's machines); this measurement only shows that the
+  long list does not add to it.
 
 ## Gates
 
@@ -135,7 +148,6 @@ The title's rename in place, the branch chip, find's bar, the outline
 rail, read marks drawn, the ended banner, the context ring, the
 inspector's Summary, the terminal view (§7), stream banners; copying a
 message and a conversation (a tool's text and a code block have their
-copy button); a screen-reader buffer; the in-app scroll bench run on
-20,000 entries;
+copy button); a screen-reader buffer;
 then rewind, fork, cross-session search, export and import, written
 down.
