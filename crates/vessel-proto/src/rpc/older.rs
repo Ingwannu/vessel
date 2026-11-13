@@ -246,7 +246,9 @@ impl Reply {
             | Self::SearchMessages(_)
             // Protocol 12's: asked only by peers that read them.
             | Self::ParkSession(_)
-            | Self::WakeSession(_) => None,
+            | Self::WakeSession(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_) => None,
         }
     }
 }

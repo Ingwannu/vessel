@@ -70,6 +70,7 @@ mod schedules;
 // Protocol 12 (track A2): the conversation, further.
 mod parking;
 mod search;
+mod settings;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -127,6 +128,8 @@ pub(crate) struct NodeService {
     prompts: SavedPrompts,
     /// Places for searches running at once (protocol 12, `search`).
     searches: tokio::sync::Semaphore,
+    /// The node's settings (protocol 12, `crate::settings`).
+    settings: Arc<crate::settings::Settings>,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
@@ -157,6 +160,7 @@ pub(crate) struct Parts {
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
+    pub(crate) settings: Arc<crate::settings::Settings>,
 }
 
 impl NodeService {
@@ -185,6 +189,7 @@ impl NodeService {
             ports,
             catalogue,
             schedules,
+            settings,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -217,6 +222,7 @@ impl NodeService {
             preview_slots: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
+            settings,
             notices: Arc::default(),
         }
     }

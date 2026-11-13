@@ -48,7 +48,8 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "agent.add",
             "agent.remove",
             "agent.install",
-            "agent.install_output"
+            "agent.install_output",
+            "node.set_settings"
         ]
     );
     assert_eq!(Method::SendInput.scope(), Scope::Operate);
@@ -223,6 +224,8 @@ const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
     ("session.search", Scope::Read),
     ("session.park", Scope::Operate),
     ("session.wake", Scope::Operate),
+    ("node.settings", Scope::Read),
+    ("node.set_settings", Scope::Admin),
 ];
 
 #[test]
