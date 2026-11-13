@@ -170,6 +170,18 @@ impl Shell {
             .request_devices(machine, ticket, ask)
     }
 
+    /// Checked read-only dispatch settles a full or closed command queue.
+    pub(crate) fn sync_send(
+        &self,
+        machine: vessel_app_view::devices::MachineKey,
+        ticket: vessel_app_view::devices::Ticket,
+    ) -> Result<(), vessel_app_view::sync::Problem> {
+        self.link
+            .as_ref()
+            .ok_or(vessel_app_view::sync::Problem::Offline)?
+            .request_sync(machine, ticket)
+    }
+
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
@@ -188,6 +200,7 @@ impl Shell {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
+            Event::Sync(answer) => self.sync_answer(answer),
             Event::Fleet(fleet) => {
                 self.fleet = fleet;
                 if !self.loaded {
@@ -344,6 +357,7 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         self.settle_devices(window);
+        self.settle_sync(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

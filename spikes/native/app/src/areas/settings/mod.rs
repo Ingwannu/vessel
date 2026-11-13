@@ -32,6 +32,7 @@ mod general;
 mod language;
 mod nav;
 pub(crate) mod page;
+mod sync;
 
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
@@ -74,6 +75,7 @@ pub(crate) struct SettingsState {
 
     pub(crate) devices: devices::Devices,
     language: language::State,
+    pub(crate) sync: sync::SyncState,
 }
 
 impl SettingsState {
@@ -91,6 +93,7 @@ impl SettingsState {
 
             devices: devices::Devices::new(window, cx),
             language: language::State::new(window, cx),
+            sync: sync::SyncState::new(),
         }
     }
 
@@ -434,6 +437,7 @@ pub(crate) const fn drawn(section: Section) -> bool {
             | Section::Projects
             | Section::Agents
             | Section::Devices
+            | Section::Sync
     )
 }
 
@@ -468,6 +472,7 @@ fn content(
         Section::Agents => Some(agents::render(shell, tokens, phone, window, cx)),
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
+        Section::Sync => Some(sync::render(shell, tokens, phone, window, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
         Section::Projects => Some(crate::areas::workspace::projects_content(
@@ -475,11 +480,7 @@ fn content(
         )),
         // Shortcuts and Notifications are track S's; the per-machine
         // sections are this track's next slice.
-        Section::Shortcuts
-        | Section::Notifications
-        | Section::Models
-        | Section::Machines
-        | Section::Sync => None,
+        Section::Shortcuts | Section::Notifications | Section::Models | Section::Machines => None,
     }
 }
 

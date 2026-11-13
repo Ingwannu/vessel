@@ -69,6 +69,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         },
         Command::Machines(ask) => Event::Machines(ask.refused(Failure::Unsent)),
+        Command::Sync { ticket, .. } => Event::Sync(vessel_app_link::sync::Answer {
+            ticket,
+            result: Err(vessel_app_link::sync::rejected(unsent.why)),
+        }),
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
         }
