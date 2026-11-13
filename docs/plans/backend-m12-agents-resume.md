@@ -174,3 +174,34 @@ contract and the named reference, then plan it within the Agents scope.
 
 This resume document changes no code. The code gate above is not rerun for
 this documentation-only closeout, following the overnight resource rule.
+
+## Lead's finishing work (2026-11-13, after `3795020b`)
+
+The lead merged this branch into `backend/m12-spike` (`064804b0`) and closed
+the coordinator's four detail-page findings and the marks item in
+`53c3c944`; G3 resumes from that head:
+
+1. Fact rows share one trailing edge: the copy button is drawn at every
+   width (it was hidden on a pointer's width but kept its room).
+2. The program's path is `fact_rows::Value::Path`: its own element of a set
+   width (the control's 420 less the copy button; a phone's card width),
+   cut in the middle with `fonts::elide_middle` (kit), the whole path in a
+   tooltip and in what the copy button copies.
+3. The launch command (or an added agent's program and arguments) and the
+   installers are rows of their own (`settings::row_with_content`) behind
+   the card's divider.
+4. A failed refresh is the page's machine alert (`agents::machine_alert`),
+   drawn above the list or an agent's details, whichever is open; an
+   agent's own check failure stays in its details. Regressions:
+   `alert_tests` (refresh → select → failure; a failed check is not the
+   machine's alert) and the fact row tests (one trailing edge, a path cut
+   to its width that copies whole).
+5. The list's rows draw the official marks (`settings_mark`); an added
+   agent keeps the generic glyph.
+
+An Agents request the link did not take settles as `Busy` (a full queue)
+or `Disconnected` (a stopped link), as the devices page does
+(`app/src/unsent.rs`). Captures: the lead's scratch folder `b15` (both
+themes, both languages, 1280 and 390, the long added agent, a failed
+refresh with details open). The "older node" read-only shape was not
+reachable: a protocol 11 node lists agents too.
