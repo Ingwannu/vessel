@@ -194,6 +194,14 @@ caller owns result timing/reset; no second success alert is added.
 Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
 consumed at16 for pointer and20 for compact settings navigation.
 
+
+`loading::activity_indicator(id, Size, colour)` is the additive Paseo
+ActivityIndicator profile: Small20, Large36, Numeric(Points), base ring20%,
+foreground arc,750ms linear. Points validates finite positive fractions;
+TEN/SIXTEEN are typed source numeric literals. Legacy `slider::spinner`
+keeps its24-unit vector/800ms and existing callers. Both reuse one SVG
+rotation path and the existing App reduced-motion handling.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

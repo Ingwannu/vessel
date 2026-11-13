@@ -448,19 +448,12 @@ fn sheen(id: &ElementId) -> AnyElement {
 /// the slider's motion.
 #[must_use]
 pub fn spinner(id: impl Into<ElementId>, size: f32, colour: Hsla) -> AnyElement {
-    gpui::svg()
+    let vector = gpui::svg()
         .path(crate::assets::Glyph::Spinner.path())
         .size(px(size))
         .flex_shrink_0()
-        .text_color(colour)
-        .with_animation(
-            id,
-            Animation::new(Duration::from_millis(800)).repeat(),
-            |svg, delta| {
-                svg.with_transformation(gpui::Transformation::rotate(gpui::percentage(delta)))
-            },
-        )
-        .into_any_element()
+        .text_color(colour);
+    crate::loading::rotate(id, vector, crate::loading::LEGACY_PERIOD)
 }
 
 #[cfg(test)]

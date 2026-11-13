@@ -151,6 +151,8 @@ pub enum Glyph {
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// The source `ActivityIndicator`:32-unit ring with its alpha background.
+    ActivityIndicator,
     /// A pencil: edit (a queued message).
     Pencil,
     /// An arrow turning up and right: send into the running turn (GOAT's
@@ -172,7 +174,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 70] = [
+const ALL: [Glyph; 71] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -235,6 +237,7 @@ const ALL: [Glyph; 70] = [
     Glyph::Undo2,
     Glyph::Pin,
     Glyph::Spinner,
+    Glyph::ActivityIndicator,
     Glyph::Pencil,
     Glyph::Steer,
     Glyph::Grip,
@@ -328,6 +331,7 @@ impl Glyph {
             Self::Undo2 => "kit/undo-2.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::ActivityIndicator => "kit/activity-indicator.svg",
             Self::Pencil => "kit/pencil.svg",
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
@@ -472,6 +476,12 @@ impl Glyph {
             Self::Reset => line_glyph!(
                 r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
             ),
+            // ActivityIndicator's32 grid is a deliberate profile exception.
+            // The source dash80/offset60 paints20 units of radius14: angle20/14.
+            // Original arc endpoint is (16+14*cos(angle),16+14*sin(angle)).
+            Self::ActivityIndicator => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14" opacity="0.2"/><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
@@ -890,6 +900,56 @@ mod diagnostics_glyph_tests {
                     assert_eq!(image.get_pixel(x, y).0[3], 0);
                 }
             }
+        }
+    }
+}
+#[cfg(test)]
+mod activity_indicator_asset_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    fn paint(dimension: u16, degrees: f32) -> image::RgbaImage {
+        let bytes = Assets
+            .load(Glyph::ActivityIndicator.path())
+            .unwrap()
+            .unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let side = u32::from(dimension);
+        let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+        let scale = f32::from(dimension).mul_add(32.0_f32.recip(), 0.0);
+        let transform = resvg::tiny_skia::Transform::from_scale(scale, scale).pre_concat(
+            resvg::tiny_skia::Transform::from_rotate_at(degrees, 16.0, 16.0),
+        );
+        resvg::render(&tree, transform, &mut pixels.as_mut());
+        image::RgbaImage::from_raw(side, side, pixels.take()).unwrap()
+    }
+    #[test]
+    fn activity_profile_keeps_alpha_and_foreground_arc_at_each_quarter_phase() {
+        assert_eq!(
+            Glyph::ActivityIndicator.path(),
+            "kit/activity-indicator.svg"
+        );
+        assert_eq!(
+            view_box(Glyph::ActivityIndicator.svg()),
+            Some([0.0, 0.0, 32.0, 32.0])
+        );
+        assert_eq!(view_box(Glyph::Spinner.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        for (phase, foreground, background) in [
+            (0.0, (25, 25), (16, 2)),
+            (90.0, (6, 25), (29, 16)),
+            (180.0, (6, 6), (16, 29)),
+            (270.0, (25, 6), (2, 16)),
+        ] {
+            let image = paint(32, phase);
+            assert_eq!(image.get_pixel(foreground.0, foreground.1).0[3], 255);
+            assert_eq!(image.get_pixel(background.0, background.1).0[3], 51);
+            assert_eq!(image.get_pixel(16, 16).0[3], 0);
+            assert_eq!(image.get_pixel(0, 0).0[3], 0);
+        }
+        for side in [10_u16, 16, 20, 36] {
+            let image = paint(side, 0.0);
+            assert_eq!(image.dimensions(), (u32::from(side), u32::from(side)));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 255));
+            assert!(image.pixels().any(|pixel| pixel.0[3] == 51));
         }
     }
 }

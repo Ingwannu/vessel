@@ -35,6 +35,7 @@ pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod host_rename;
+pub mod loading;
 pub mod menu;
 pub mod output;
 pub mod picker;
