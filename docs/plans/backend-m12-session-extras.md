@@ -397,8 +397,11 @@ Committed before this checkpoint:
   and captures are unrun; no control implementation approval or adoption.
 - c709a82d: pre-existing link/view/text preparation checkpoint. Unregistered,
   uncompiled and untested as a native feature; no screen or app hooks.
+- ed788696: generated protocol declarations and verification checkpoint.
+  Declaration tests and web lint/typecheck/417 tests/bundle build passed;
+  fresh bundled Rust binaries and web E2E remain unrun.
 
-The node implementation is being verified separately. Its final source pin
+The node implementation is checkpointed separately and remains WIP. Its source pin
 covers 69 crate files. Root formatting and whole clippy passed (3m 03s).
 The final whole workspace test passed: 1,691 passed, zero failed and ten
 pre-existing ignored tests across 109 test binaries/doc-test sections.
@@ -418,8 +421,11 @@ cleanup time did not allow another such queue plus build and E2E. The
 backend and generated-wire commits therefore stay WIP and are not ready
 to merge. Do not label the web gate complete. Generated proto.ts retains
 the generator's canonical line-end whitespace (already present in the
-baseline); do not hand-edit it away from the declaration check. V1 reviews the immutable node diff first, then routes
-it to the coordinator and node integrator. No code approval is implied by
+baseline); do not hand-edit it away from the declaration check. V1 has the contract pass only; implementation review is pending. Resume
+notification carries the WIP hashes and logs for its queue, without asking
+for a new review slice during cleanup. Once all remaining checks pass, V1
+reviews the immutable node diff and routes it to the coordinator and node
+integrator. No code approval is implied by
 its earlier contract approval.
 
 Native preparation remains separate and unverified: inline_status in kit,
@@ -466,8 +472,11 @@ Other tracks' pending seams:
   and real long-header captures in both sizes, languages and appearances
   remain outstanding.
 
-Next after the node slice: preserve its immutable review point, then on
-resumption integrate the shared conversation seams, gate/review the
+Next: build the Rust CLI/node/testkit binaries with the verified web bundle
+required and run web E2E. Do not rerun the passed root gate on unchanged
+Rust source. If source fixes are needed, run the gate on that changed tree.
+Then submit the completed immutable node slice for implementation review.
+After the node slice, on resumption integrate the shared conversation seams, gate/review the
 control-only change, register the side transport and view, implement the
 screen and the book-edit hook, run the native whole gate and fake-fleet
 captures, inspect every capture and report the app slice to V1. Start no
