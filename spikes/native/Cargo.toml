@@ -98,6 +98,9 @@ vessel-app-kit = { path = "kit" }
 # The release track's updater (spikes/release/updater): no GPUI in it;
 # inert unless the build compiles a feed's address in.
 vessel-app-updater = { path = "../release/updater" }
+# The release track's log (spikes/release/applog): stderr and a rotated
+# file in the platform's place for logs.
+vessel-app-log = { path = "../release/applog" }
 
 vessel-client = { path = "../../crates/vessel-client" }
 vessel-proto = { path = "../../crates/vessel-proto" }

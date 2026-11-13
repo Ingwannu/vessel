@@ -12,7 +12,7 @@
 //! language (otherwise the system's); `VESSEL_APP_SIZE=WxH` the window's
 //! size; `VESSEL_APP_TITLEBAR=system` the system's title bar;
 //! `VESSEL_APP_NO_UPDATE` no updates for one run; `RUST_LOG` the log
-//! filter.
+//! filter (stderr and the log file, `vessel_app_log::dir()`).
 
 mod areas;
 mod chrome;
@@ -41,13 +41,10 @@ pub(crate) const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .with_writer(std::io::stderr)
-        .init();
+    // stderr as before, and a file the owner can send (the release
+    // track's `vessel-app-log`: rotated, panics included, the About
+    // screen's folder is `vessel_app_log::dir()`).
+    let _log = vessel_app_log::init(LABEL);
     let choice = match std::env::var("VESSEL_APP_THEME").as_deref() {
         Ok("light") => SchemeChoice::Fixed(Scheme::Light),
         Ok("dark") => SchemeChoice::Fixed(Scheme::Dark),
