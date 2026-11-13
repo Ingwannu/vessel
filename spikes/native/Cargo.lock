@@ -7241,7 +7241,10 @@ version = "0.0.0"
 dependencies = [
  "gpui-component",
  "gpui-pre",
+ "image",
+ "resvg 0.46.0",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]

@@ -32,6 +32,10 @@ pub(crate) struct Shell {
     /// Whether the book has been read once (an empty fleet before then is
     /// not "no machines").
     pub(crate) loaded: bool,
+    /// The route was changed where no window was at hand (an event from
+    /// the link): what arriving does (focus, placeholders) runs on the
+    /// next frame.
+    arrive_pending: bool,
 }
 
 impl Shell {
@@ -54,6 +58,7 @@ impl Shell {
             prefs: Prefs::load(),
             notice,
             loaded: false,
+            arrive_pending: false,
         };
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -63,6 +68,13 @@ impl Shell {
         if let Some(link) = &self.link {
             link.send(command);
         }
+    }
+
+    /// Show `route` from where no window is at hand; what arriving does
+    /// runs on the next frame.
+    pub(crate) fn route_to(&mut self, route: Route) {
+        self.route = route;
+        self.arrive_pending = true;
     }
 
     /// Show `route`.
@@ -81,7 +93,7 @@ impl Shell {
                     // With no machine there is nothing to type to: pairing
                     // is the first thing to do.
                     if self.fleet.machines.is_empty() {
-                        self.route = Route::Pair;
+                        self.route_to(Route::Pair);
                         self.pairing_opened(cx);
                     }
                 }
@@ -136,6 +148,9 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        if std::mem::take(&mut self.arrive_pending) {
+            routes::arrive(self.route, self, window, cx);
+        }
         let tokens = tokens(cx);
         let frame = routes::render(self.route, self, &tokens, window, cx);
         let content = div()

@@ -146,7 +146,7 @@ impl Shell {
         pair.busy = false;
         pair.offer = None;
         self.notice = Some(self.t.paired(node, route));
-        self.route = Route::Draft;
+        self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
     }
@@ -167,6 +167,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .gap(px(14.0))
         .p(px(24.0))
         .max_w(px(640.0))
+        .child(vessel_app_kit::mark(40.0, tokens))
         .child(
             div()
                 .type_(Type::Body)

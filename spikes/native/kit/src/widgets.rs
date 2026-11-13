@@ -124,3 +124,30 @@ pub fn choice(
         .hover(move |style| style.bg(hover))
         .child(label.into())
 }
+
+/// Vessel's mark, `size` points square: in the brand colour on the light
+/// theme, in the text's colour on the dark one (the brand colour is too
+/// faint on near-black: `docs/design/brand/README.md`). Beside text, pass
+/// the text's size; on a first-run screen, larger.
+#[must_use]
+pub fn mark(size: f32, tokens: &Tokens) -> gpui::Svg {
+    let color = match tokens.scheme {
+        crate::Scheme::Light => gpui::rgb(crate::assets::BRAND).into(),
+        crate::Scheme::Dark => tokens.text_primary,
+    };
+    gpui::svg()
+        .path(crate::assets::Glyph::Mark.path())
+        .size(px(size))
+        .flex_shrink_0()
+        .text_color(color)
+}
+
+/// The mark in the colour of the text beside it (the title bar).
+#[must_use]
+pub fn mark_mono(size: f32, color: Hsla) -> gpui::Svg {
+    gpui::svg()
+        .path(crate::assets::Glyph::Mark.path())
+        .size(px(size))
+        .flex_shrink_0()
+        .text_color(color)
+}

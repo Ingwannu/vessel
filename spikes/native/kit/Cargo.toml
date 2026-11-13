@@ -15,3 +15,10 @@ workspace = true
 gpui.workspace = true
 gpui-component.workspace = true
 thiserror.workspace = true
+# The window's icon drawn from the mark (assets::window_icon): GPUI's own
+# SVG renderer, the same version, already in the tree.
+resvg = { version = "0.46", default-features = false }
+# The icon's pixels, as GPUI's window options take them (`image` 0.25, in
+# the tree through GPUI).
+image = { version = "0.25", default-features = false }
+tracing = "0.1"

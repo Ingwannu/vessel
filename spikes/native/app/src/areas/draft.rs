@@ -227,7 +227,7 @@ impl Shell {
     /// The start failed: back to the draft, its text restored.
     pub(crate) fn start_failed(&mut self) {
         if self.areas.draft.sending.is_some() {
-            self.route = Route::Draft;
+            self.route_to(Route::Draft);
             let text = self.areas.draft.sending.take();
             *self.areas.draft.restore.borrow_mut() = text;
         }
@@ -285,6 +285,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .gap(px(14.0))
+        .child(vessel_app_kit::mark(40.0, tokens))
         .child(
             div()
                 .type_(Type::Title)

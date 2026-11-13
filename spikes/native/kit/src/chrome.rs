@@ -69,6 +69,10 @@ pub fn window_options(title: String, bounds: Bounds<Pixels>) -> WindowOptions {
         }),
         window_decorations: Some(WindowDecorations::Client),
         app_owns_titlebar_drag: true,
+        icon: crate::assets::window_icon(128)
+            .map_err(|error| tracing::warn!(%error, "no window icon"))
+            .ok()
+            .map(std::sync::Arc::new),
         ..WindowOptions::default()
     }
 }
