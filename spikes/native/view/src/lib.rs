@@ -42,7 +42,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
 pub use text::{
-    BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText, PaletteWords,
-    SettingsText, ShortcutWords, SidebarWords, Text, UpdateText, grouped, meter_tokens,
-    short_tokens,
+    BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText, PairingWords,
+    PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText, grouped,
+    meter_tokens, short_tokens,
 };
