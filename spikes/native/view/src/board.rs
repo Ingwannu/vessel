@@ -7,12 +7,14 @@
 //! `tree.rs` (`data/tree.ts`); the lanes dealt is `deal.rs`; the archive's
 //! search and pages are `archive.rs` (`data/archive.ts`).
 
+mod actions;
 mod archive;
 mod card;
 mod deal;
 mod tone;
 mod tree;
 
+pub use actions::CardActions;
 pub use archive::{ARCHIVE_PAGE, ArchivePage, search_archive};
 pub use card::CardDetail;
 pub use deal::{Board, TICK};

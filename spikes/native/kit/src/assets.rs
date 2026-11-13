@@ -73,10 +73,34 @@ pub enum Glyph {
     Gear,
     /// Copy: two sheets, one over the other (a code block's copy).
     Copy,
+    /// Add (New session).
+    Plus,
+    /// A terminal session (a prompt's chevron and a line).
+    Terminal,
+    /// A conversation (a speech bubble).
+    Message,
+    /// The archive (a box with its lid).
+    Archive,
+    /// A worktree's branch.
+    Branch,
+    /// Delete for good.
+    Trash,
+    /// Pinned.
+    Pin,
+    /// Bring back from the archive (an arrow turning back).
+    Reopen,
+    /// The board (three lanes).
+    Board,
+    /// Shortcuts.
+    Keyboard,
+    /// Notifications.
+    Bell,
+    /// Work turning: three quarters of a ring, turned by `spinner`.
+    Spinner,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 24] = [
+const ALL: [Glyph; 36] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -101,6 +125,18 @@ const ALL: [Glyph; 24] = [
     Glyph::Sliders,
     Glyph::Gear,
     Glyph::Copy,
+    Glyph::Plus,
+    Glyph::Terminal,
+    Glyph::Message,
+    Glyph::Archive,
+    Glyph::Branch,
+    Glyph::Trash,
+    Glyph::Pin,
+    Glyph::Reopen,
+    Glyph::Board,
+    Glyph::Keyboard,
+    Glyph::Bell,
+    Glyph::Spinner,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -144,6 +180,18 @@ impl Glyph {
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
             Self::Copy => "kit/copy.svg",
+            Self::Plus => "kit/plus.svg",
+            Self::Terminal => "kit/terminal.svg",
+            Self::Message => "kit/message.svg",
+            Self::Archive => "kit/archive.svg",
+            Self::Branch => "kit/branch.svg",
+            Self::Trash => "kit/trash.svg",
+            Self::Pin => "kit/pin.svg",
+            Self::Reopen => "kit/reopen.svg",
+            Self::Board => "kit/board.svg",
+            Self::Keyboard => "kit/keyboard.svg",
+            Self::Bell => "kit/bell.svg",
+            Self::Spinner => "kit/spinner.svg",
         }
     }
 
@@ -207,6 +255,36 @@ impl Glyph {
             Self::Copy => line_glyph!(
                 r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
             ),
+            // The page's own drawings (`web/src/ui/kit/icon.css`, on a
+            // 16 grid at a stroke of 1), at one and a half times.
+            Self::Plus => line_glyph!(r#"<path d="M12 4.5v15M4.5 12h15"/>"#),
+            Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
+            Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::Archive => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
+            ),
+            Self::Branch => line_glyph!(
+                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>"#
+            ),
+            Self::Trash => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
+            ),
+            Self::Pin => line_glyph!(
+                r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
+            ),
+            Self::Reopen => line_glyph!(
+                r#"<path d="M4.5 12a7.5 7.5 0 1 0 2.25-5.4L4.5 8.85"/><path d="M4.5 3.75v5.1h5.1"/>"#
+            ),
+            Self::Board => line_glyph!(
+                r#"<rect x="3" y="3.75" width="5.25" height="16.5" rx="1.5"/><rect x="9.375" y="3.75" width="5.25" height="10.5" rx="1.5"/><rect x="15.75" y="3.75" width="5.25" height="13.5" rx="1.5"/>"#
+            ),
+            Self::Keyboard => line_glyph!(
+                r#"<rect x="2.25" y="6" width="19.5" height="12.75" rx="2.25"/><path d="M6 10.125h.015M10.005 10.125h.015M13.995 10.125h.015M18 10.125h.015M6 13.875h.015M18 13.875h.015M9 14.625h6"/>"#
+            ),
+            Self::Bell => line_glyph!(
+                r#"<path d="M6 17.25v-6.375a6 6 0 0 1 12 0v6.375l1.5 1.5H4.5z"/><path d="M10.125 20.25a2.1 2.1 0 0 0 3.75 0"/>"#
+            ),
+            Self::Spinner => line_glyph!(r#"<path d="M12 3a9 9 0 1 0 9 9"/>"#),
         }
     }
 }

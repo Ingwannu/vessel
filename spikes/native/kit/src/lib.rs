@@ -38,8 +38,10 @@ pub mod popup;
 pub mod segmented;
 pub mod settings;
 pub mod sheet;
+pub mod spinner;
 pub mod tabs;
 pub mod theme;
+pub mod toast;
 pub mod virtual_list;
 mod widgets;
 
@@ -59,7 +61,9 @@ pub use picker::{
     anchor_probe, combobox, glyph, pill, pill_parts, send_button,
 };
 pub use sheet::{Edge, sheet};
+pub use spinner::spinner;
 pub use theme::{Scheme, Tokens};
+pub use toast::{ToastLook, toast, toasts};
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown, outline_button,

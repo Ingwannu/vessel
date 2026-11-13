@@ -283,3 +283,118 @@ fn colours_a_status_line_by_its_lane_unless_the_phrase_says_more() {
         Tone::Quiet
     );
 }
+
+#[test]
+fn offers_kill_on_a_live_card_archive_on_an_ended_one_where_marks_are_kept() {
+    use crate::board::CardActions;
+    use vessel_proto::ProtocolVersion;
+    let marks = Some(ProtocolVersion::new(10));
+    let older = Some(ProtocolVersion::new(9));
+    let live = card(RUNNING, None);
+    assert_eq!(live.actions(marks, false), CardActions::Kill);
+    assert_eq!(live.actions(None, false), CardActions::Kill);
+    let ended = card(SessionStatus::Exited { code: Some(0) }, None);
+    assert_eq!(ended.actions(marks, false), CardActions::Archive);
+    assert_eq!(ended.actions(older, false), CardActions::None);
+    assert_eq!(ended.actions(None, false), CardActions::None);
+    // In the archive: only what was archived is restored or deleted, and
+    // restoring starts it again where its agent can pick up.
+    assert_eq!(ended.actions(marks, true), CardActions::None);
+    let mut archived = ended;
+    archived.detail.marks.archived_at = Some(at("2026-11-07T11:00:00Z"));
+    assert_eq!(
+        archived.actions(marks, true),
+        CardActions::Restore { again: false }
+    );
+    archived.detail.can_start_again = true;
+    assert_eq!(
+        archived.actions(marks, true),
+        CardActions::Restore { again: true }
+    );
+}
+
+#[test]
+fn reads_a_machines_protocol_only_while_it_is_connected() {
+    use vessel_proto::ProtocolVersion;
+    let machine = |name: &str, protocol| Machine {
+        name: name.to_owned(),
+        reach: Reach::Online,
+        sessions: Vec::new(),
+        agents: Vec::new(),
+        protocol,
+    };
+    let fleet = Fleet {
+        machines: vec![
+            machine("laptop", Some(ProtocolVersion::new(11))),
+            machine("old-box", None),
+        ],
+        read_at: None,
+    };
+    assert_eq!(fleet.protocol_of("laptop"), Some(ProtocolVersion::new(11)));
+    assert_eq!(fleet.protocol_of("old-box"), None);
+    assert_eq!(fleet.protocol_of("elsewhere"), None);
+}
+
+#[test]
+fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
+    let mut info = session(SessionStatus::Exited { code: Some(0) }, None);
+    let listed = Card::from_session("laptop", &info);
+    let other = card(RUNNING, None);
+    let mut fleet = Fleet {
+        machines: vec![Machine {
+            name: "laptop".to_owned(),
+            reach: Reach::Online,
+            sessions: vec![listed, other.clone()],
+            agents: Vec::new(),
+            protocol: None,
+        }],
+        read_at: None,
+    };
+    assert_eq!(fleet.board(None).lane(Lane::Building).len(), 1);
+    info.marks.archived_at = Some(at("2026-11-07T11:00:00Z"));
+    fleet.put_session("elsewhere", &info);
+    assert!(
+        fleet.machines[0].sessions[0]
+            .detail
+            .marks
+            .archived_at
+            .is_none()
+    );
+    fleet.put_session("laptop", &info);
+    assert!(
+        fleet.machines[0].sessions[0]
+            .detail
+            .marks
+            .archived_at
+            .is_some()
+    );
+    fleet.drop_session("laptop", info.id);
+    let left: Vec<_> = fleet.machines[0]
+        .sessions
+        .iter()
+        .map(|card| card.session)
+        .collect();
+    assert_eq!(left, [other.session]);
+}
+
+#[test]
+fn says_why_a_restore_could_not_start_again_in_the_pages_words() {
+    use vessel_proto::ErrorCode;
+    let words = Lang::En.board();
+    assert_eq!(
+        words.again_refused(Some(ErrorCode::Unsupported), "x"),
+        "This agent cannot pick up where it left off."
+    );
+    assert_eq!(
+        words.again_refused(Some(ErrorCode::InvalidRequest), "no profile fast"),
+        "Its profile is gone: no profile fast"
+    );
+    assert_eq!(
+        words.again_refused(Some(ErrorCode::Conflict), "its log is still being written"),
+        "its log is still being written"
+    );
+    assert_eq!(
+        words.again_refused(None, "connection lost"),
+        "connection lost"
+    );
+}

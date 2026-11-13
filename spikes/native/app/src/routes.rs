@@ -54,8 +54,8 @@ pub(crate) fn render(
 ) -> AnyElement {
     match route {
         Route::Draft => areas::draft::render(shell, tokens, window, cx).into_any_element(),
-        Route::Board => areas::board::render(shell, tokens, cx).into_any_element(),
-        Route::Archive => areas::archive::render(shell, tokens, cx).into_any_element(),
+        // The archive is a dialog over the board.
+        Route::Board | Route::Archive => areas::board::render(shell, tokens, window, cx),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
         Route::About => areas::about::render(shell, tokens, window, cx).into_any_element(),
@@ -72,6 +72,7 @@ pub(crate) fn arrive(
     match route {
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
-        Route::Board | Route::Archive | Route::Session | Route::About => {}
+        Route::Archive => areas::archive::arrive(shell, window, cx),
+        Route::Board | Route::Session | Route::About => {}
     }
 }
