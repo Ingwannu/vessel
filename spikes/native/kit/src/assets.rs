@@ -2,8 +2,9 @@
 //! four glyphs, as SVG paths on a 10 by 10 grid (Windows 11's shapes:
 //! a line, a square, two offset squares, a cross).
 //!
-//! Embedded as text, not files: four short paths need no bundle, and an
-//! app built from the kit needs no asset directory to draw its chrome.
+//! Embedded as text, not files: the kit needs no separate asset bundle.
+//! The inventory and inline drawings stay together so a registration is
+//! reviewed with its vector; that is why this file exceeds 400 lines.
 
 use std::borrow::Cow;
 
@@ -66,6 +67,9 @@ pub enum Glyph {
     CircleCheck,
     /// An error alert: a cross inside a circle, drawn on the kit's own grid.
     CircleX,
+    /// Scheduling: a calendar with a clock, on the shared 24-unit line grid.
+    /// One asset serves navigation and empty states; no screen draws a second.
+    CalendarClock,
     /// A folder.
     Folder,
     /// A machine.
@@ -138,7 +142,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 54] = [
+const ALL: [Glyph; 55] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -160,6 +164,7 @@ const ALL: [Glyph; 54] = [
     Glyph::Alert,
     Glyph::CircleCheck,
     Glyph::CircleX,
+    Glyph::CalendarClock,
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
@@ -233,6 +238,7 @@ impl Glyph {
             Self::Alert => "kit/alert.svg",
             Self::CircleCheck => "kit/circle-check.svg",
             Self::CircleX => "kit/circle-x.svg",
+            Self::CalendarClock => "kit/calendar-clock.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
@@ -319,6 +325,11 @@ impl Glyph {
             Self::CircleX => {
                 line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
             }
+            // Own calendar/clock composition; the macro supplies the same
+            // stroke, caps and joins as the neighbouring kit line drawings.
+            Self::CalendarClock => line_glyph!(
+                r#"<path d="M10 20H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M8 3v4M16 3v4M4 10h16"/><circle cx="17" cy="17" r="4.5"/><path d="M17 14.5v2.75l1.75 1"/>"#
+            ),
             Self::Folder => line_glyph!(
                 r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
             ),
@@ -517,7 +528,8 @@ pub enum IconError {
 
 #[cfg(test)]
 mod tests {
-    use super::{MARK, view_box, window_icon};
+    use super::{Assets, Glyph, MARK, view_box, window_icon};
+    use gpui::AssetSource as _;
 
     #[test]
     fn the_icon_is_drawn_from_the_marks_own_view_box() {
@@ -528,5 +540,30 @@ mod tests {
         assert_eq!(icon.get_pixel(0, 0).0[3], 0);
         let edge = icon.get_pixel(32, 2).0;
         assert_eq!((edge[0], edge[1], edge[2]), (0x1a, 0x58, 0x68));
+    }
+
+    #[test]
+    fn calendar_clock_is_registered_and_renders_unclipped_at_24() {
+        let glyph = Glyph::CalendarClock;
+        assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        assert_eq!(
+            Assets.list(glyph.path()).unwrap(),
+            [gpui::SharedString::from("kit/calendar-clock.svg")]
+        );
+        let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+        resvg::render(
+            &tree,
+            resvg::tiny_skia::Transform::identity(),
+            &mut pixels.as_mut(),
+        );
+        let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+        assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+        for at in 0..24 {
+            for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
     }
 }

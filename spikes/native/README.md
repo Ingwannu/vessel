@@ -118,6 +118,10 @@ keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
 no handler. The existing bool `button` delegates and stays until the lead
 retires it after moving its callers.
 
+`kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
+original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
+Navigation and empty states use this one registered vector.
+
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
