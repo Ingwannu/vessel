@@ -299,9 +299,11 @@ fn lock(state: &Shared) -> MutexGuard<'_, State> {
 /// How late `initialize` is answered: `--slow-start <ms>` among the
 /// arguments.
 fn slow_start() -> Option<std::time::Duration> {
-    let args: Vec<String> = std::env::args().collect();
-    let at = args.iter().position(|arg| arg == "--slow-start")?;
-    let millis = args.get(at + 1)?.parse::<u64>().ok()?;
+    let millis = std::env::args()
+        .skip_while(|arg| arg != "--slow-start")
+        .nth(1)?
+        .parse::<u64>()
+        .ok()?;
     Some(std::time::Duration::from_millis(millis))
 }
 
