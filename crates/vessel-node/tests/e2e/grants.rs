@@ -561,8 +561,12 @@ async fn a_reinstalled_node_grants_again_once_the_home_forgets_it() {
         // Its device was paired before the forget: a restart is not enough
         // (round 3: the forgotten id goes only to a device paired since).
         node.stop().await.unwrap();
-        let node = member_node(&relay, &fixture, "desktop").await;
+        // Stamped before the restart, not after: the restarted member
+        // connects, is refused and pulls (its one report) while
+        // `member_node` is still returning, and with nothing new at the
+        // home it does not report again within the test.
         let since = Utc::now();
+        let node = member_node(&relay, &fixture, "desktop").await;
         reported_after(&home, "reinstalled", since).await;
         assert!(home.owner.call_on(id, ListSessions).await.is_err());
         // Invited again and joined from there: granted.
