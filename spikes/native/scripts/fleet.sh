@@ -47,6 +47,8 @@ free_port() {
   python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
 }
 
+python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+
 : > "$root/pids"
 for name in laptop build-server; do
   port=$(free_port)
@@ -68,6 +70,8 @@ for name in laptop build-server; do
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
     "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
 done
+
+python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
@@ -332,6 +336,30 @@ grep -q '^\[question [^]]*\] Please answer the following questions\.$' <<<"$aske
 }
 grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of laptop "$question")" || {
   echo "fleet: session $question lacks Claude's one question" >&2
+  exit 1
+}
+
+# Permission requests in the real adapters' shapes (fake-acp's
+# `permit plan`, `permit codex`, `permit two`): Claude Code leaving plan
+# mode with its plan and seven answers, Codex's five answers for a
+# command, two commands asking at once. All are left waiting, and checked
+# through `vessel log` (one `[permission]` line per request).
+start_session laptop permit-plan "permit plan"
+plan=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-codex "permit codex"
+codex=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-two "permit two"
+two=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plan" "[permission]"
+wait_for laptop "$codex" "[permission]"
+for _ in $(seq 1 300); do
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -ge 2 ] && break
+  sleep 0.1
+done
+grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
+  grep -q "^  5) No, and tell Codex what to do differently" <<<"$(log_of laptop "$codex")" &&
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -eq 2 ] || {
+  echo "fleet: the permission sessions lack their real shapes" >&2
   exit 1
 }
 

@@ -215,7 +215,10 @@ impl Call {
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
-            | Self::DeletePrompt(_) => None,
+            | Self::DeletePrompt(_)
+            | Self::SearchMessages(_)
+            | Self::ParkSession(_)
+            | Self::WakeSession(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

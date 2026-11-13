@@ -215,6 +215,9 @@ impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
 impl Unary for vessel_proto::automation::DeletePrompt {}
+impl Unary for vessel_proto::search::SearchMessages {}
+impl Unary for vessel_proto::parking::ParkSession {}
+impl Unary for vessel_proto::parking::WakeSession {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -401,7 +404,10 @@ const fn is_unary(method: Method) -> bool {
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
-        | Method::DeletePrompt => true,
+        | Method::DeletePrompt
+        | Method::SearchMessages
+        | Method::ParkSession
+        | Method::WakeSession => true,
     }
 }
 

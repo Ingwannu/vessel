@@ -217,7 +217,9 @@ fn printed(record: &EventRecord) -> String {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => String::new(),
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken => String::new(),
     }
 }
 

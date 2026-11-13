@@ -204,7 +204,7 @@ pub fn compact_header(
         .flex_none()
         .items_center()
         .justify_center()
-        .size(px(crate::popup::TOUCH_TARGET))
+        .size(px(crate::breakpoint::TOUCH_TARGET))
         .rounded_full()
         .cursor_pointer()
         .occlude()
@@ -274,7 +274,10 @@ mod tests {
                 weight: FontWeight::MEDIUM
             }
         );
-        assert_eq!(crate::popup::TOUCH_TARGET.to_bits(), 44.0_f32.to_bits());
+        assert_eq!(
+            crate::breakpoint::TOUCH_TARGET.to_bits(),
+            44.0_f32.to_bits()
+        );
     }
     #[test]
     fn frame_and_actual_menu_vector_have_literal_reference_colours() {

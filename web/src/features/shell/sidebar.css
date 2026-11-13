@@ -34,11 +34,8 @@
 .mark {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
-  background: var(--text-primary);
-  display: grid;
-  place-items: center;
-  color: var(--bg-shell);
+  flex: none;
+  color: var(--text-primary);
 }
 
 .mark svg {
@@ -175,12 +172,30 @@
   margin: 0 3px;
 }
 
-/* A node's live sessions, under it. (Not named `.session`: that class is
-   the session page's grid.) */
+/* A node's live sessions, under it, set in from its row as agent-
+   orchestrator sets a project's sessions in (about 16px: the session's
+   mark sits 16px right of the machine's dot), so the two read as a tree
+   and not one list. (Not named `.session`: that class is the session
+   page's grid.) */
 .nav-item.sub {
   gap: 6px;
-  padding: 0 10px 0 6px;
+  padding: 0 10px 0 22px;
   font: var(--t-control);
+}
+
+/* Grouped by status there is no machine row above: no setting in. */
+.side-status ~ .nav-item.sub {
+  padding-left: 6px;
+}
+
+/* A session its machine marks unread: its title in the primary colour
+   and medium weight (T3 Code's and GOAT's unread titles). */
+.nav-item.sub.unread {
+  color: var(--text-primary);
+}
+
+.nav-item.sub.unread .label {
+  font-weight: 500;
 }
 
 .nav-item.sub .slot {
@@ -197,7 +212,7 @@
 
 .nav-item.more {
   height: 28px;
-  padding-left: 32px;
+  padding-left: 48px;
   font: var(--t-meta);
   color: var(--text-tertiary);
 }
@@ -214,6 +229,13 @@
 .sdot.needs-you {
   border-color: transparent;
   background: var(--st-needs-you);
+}
+
+/* Unread, neither working nor waiting: agent-orchestrator's filled dot in
+   the muted colour at 60%. */
+.sdot.unread {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
 }
 
 /* An ended session, listed only when the sidebar is asked to: a dash in

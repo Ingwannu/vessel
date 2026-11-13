@@ -633,6 +633,81 @@ never rebuilt.
       desktop track's release profile would add the lines to the
       `.pdb`; the exe itself is not changed on Windows.
 
+- **0.0.0.0.7**:
+  - Built from exactly `fd61c23`: the desktop track's line tables in
+    the release profile (`7638b83`), and the Linux debug information
+    split out by `build.sh`.
+  - The set went into place at 11:21 UTC. It is not published yet.
+  - Files: setup 10,897,729, exe 39,547,392, zip 15,789,705, linux
+    74,383,456, tar.gz 25,448,397 bytes.
+  - The shipped Linux executable is the stripped one, 309,384 bytes
+    smaller than 0.0.0.0.6's. Its only `.debug_*` section left is
+    `.debug_gdb_scripts`, a small loaded section. Its `.gnu_debuglink`
+    names `vessel-app.debug`, with a matching CRC.
+  - `vessel-app.debug` (230,620,128 bytes) and `vessel_app.pdb`
+    (117,829,632 bytes) are in `vessel-app-symbols/0.0.0.0.7/` with
+    their SHA256SUMS, and not in the dist folder.
+  - The shipped executable started under a virtual display with a
+    scratch configuration. Its `vessel.log` has no escape codes and no
+    feed path.
+  - One address resolves to a file and line on each system:
+    - `vessel_app_kit::init`+0x30 → `spikes/native/kit/src/lib.rs:122`
+      (`addr2line` with the `.debug`)
+    - the same function on Windows → `lib.rs:121` (`llvm-symbolizer
+      --relative-address` with the `.pdb`)
+  - The icons, the version block, the sums and the signature were
+    checked as before.
+
+- **The signature's comment** (fixed before 0.0.0.0.8):
+  - `SHA256SUMS.minisig` is signed while the set sits in its hidden
+    staging directory. Up to 0.0.0.0.7 its trusted comment named that
+    directory ("vessel-app .0.0.0.0.7.partial.<pid> SHA256SUMS"), and
+    anyone verifying the sums sees the comment.
+  - `vessel-app-feed sums` now takes `--label`, and the comment is
+    "vessel-app <label> SHA256SUMS" whatever directory the files are
+    in. `build.sh` and the CI file pass the label.
+  - Labels 0.0.0.0.1 to 0.0.0.0.7 keep their old comment, because
+    published labels are never rebuilt.
+
+- **0.0.0.0.8**:
+  - An earlier build from `ccfba8e` was held and set aside, never
+    published. The real build is from `c802da9`: the desktop lead's
+    `779891d4` (the permission card as Paseo's, the Linux platform
+    patch `gpui-pre-linux`, the Fluent translations) plus this track's
+    signature comment fix. Only `docs/` and `spikes/release/` differ
+    from `779891d4`.
+  - The set went into place at 18:53 UTC and was published to
+    `preview` at 18:59:58 UTC, after the coordinator ran the Linux build
+    against the real node. The notes gained one line asking the owner
+    to check Enter during Hangul composition on Windows.
+  - Checked from outside, through the public feed: the manifest names
+    0.0.0.0.8, and all five files download with matching sums and
+    signature.
+  - The published 0.0.0.0.7 Linux build, unpacked with a scratch
+    configuration, took 0.0.0.0.8 by itself at 19:01:18 UTC, and its
+    log shows each step. The held `ccfba8e` set was then deleted.
+  - The signature's comment is "vessel-app 0.0.0.0.8 SHA256SUMS".
+  - Sizes against 0.0.0.0.7:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 11,638,832 | +741,103 |
+    | exe | 42,672,128 | +3,124,736 |
+    | zip | 16,872,307 | +1,082,602 |
+    | linux | 77,856,496 | +3,473,040 |
+    | tar.gz | 26,621,127 | +1,172,730 |
+
+  - The patched `gpui-pre-linux` compiled from its path in the release
+    build.
+  - The new crates (fluent-bundle, fluent-syntax, fluent-pseudo,
+    fluent-langneg, intl-memoizer, intl_pluralrules, unic-langid,
+    type-map, self_cell) are all Apache-2.0 or MIT; for self_cell,
+    "Apache-2.0 OR GPL-2.0-only", Apache-2.0 is taken. The bundle's
+    licence files are unchanged (the three OFL texts).
+  - The usual checks passed: icons, version block, stripped Linux exe
+    with a matching debuglink, symbols kept, the shipped exe starts and
+    logs without escape codes or the feed's path.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app

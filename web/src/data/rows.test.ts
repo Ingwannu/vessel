@@ -15,6 +15,7 @@ function prompt(seq: number, text: string): Entry {
     turn: 1,
     text,
     replayed: false,
+    attachments: [],
   };
 }
 

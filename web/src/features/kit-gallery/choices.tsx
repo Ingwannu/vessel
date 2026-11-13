@@ -1,6 +1,7 @@
 // Choosing controls: Select at both sizes and looks, with groups, details,
 // a disabled option, a long Korean option, and one at the window's right
-// edge; Segmented, Switch, Checkbox and Tabs in each state.
+// edge; Segmented, Switch, Checkbox, Tabs and a panel's icon tabs in each
+// state.
 
 import { useState } from "react";
 
@@ -9,6 +10,7 @@ import {
   type Choice,
   Field,
   FieldGroup,
+  PanelTabs,
   Segmented,
   Select,
   Switch,
@@ -35,8 +37,10 @@ const MODELS: readonly Choice<Model>[] = [
 type Mode = "timeline" | "terminal";
 type Scope = "mine" | "all" | "archived";
 type Pane = "general" | "agents" | "korean";
+type Side = "summary" | "changes" | "files";
 
 export function Choices() {
+  const [side, setSide] = useState<Side>("changes");
   const [model, setModel] = useState<Model | null>("opus");
   const [none, setNone] = useState<Model | null>(null);
   const [mode, setMode] = useState<Mode>("timeline");
@@ -160,6 +164,25 @@ export function Choices() {
           },
         ]}
       />
+      <div className="kit-panel-tabs">
+        <PanelTabs
+          label="Session panel"
+          value={side}
+          onChange={setSide}
+          tabs={[
+            { value: "summary", label: "Summary", icon: "list" },
+            {
+              value: "changes",
+              label: "Changes",
+              icon: "git-compare",
+              count: 12,
+            },
+            { value: "files", label: "Files", icon: "folder" },
+          ]}
+        >
+          <p className="kit-note">The {side} tab&apos;s content.</p>
+        </PanelTabs>
+      </div>
     </Section>
   );
 }

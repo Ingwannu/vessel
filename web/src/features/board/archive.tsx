@@ -1,5 +1,9 @@
-// The ended sessions (DESIGN.md §6.12): not a lane, a dialog the archive
-// bar opens, holding the same cards newest first, with a search.
+// The archived sessions (DESIGN.md §6.12; agent-orchestrator's archive):
+// not a lane, a dialog the archive bar opens, holding the same cards
+// newest first, with a search; each card restores (starts again, or
+// comes back to its lane) or is deleted for good, where its machine keeps
+// marks (protocol 10). From an older machine it holds its ended sessions,
+// which have no such actions.
 
 import "./archive.css";
 
@@ -8,7 +12,10 @@ import { useState } from "react";
 import { searchArchive } from "../../data/archive";
 import type { Card } from "../../data/board";
 import type { FleetState } from "../../data/fleet";
+import { isArchived } from "../../data/marks";
+import { labelOf } from "../../data/nodes";
 import { Button, Dialog, TextField } from "../../ui/kit";
+import { ArchivedCardActions } from "./card-actions";
 import { SessionCard } from "./session-card";
 
 /** How many archived cards the archive shows before "Show more": a node
@@ -35,8 +42,8 @@ export function Archive({
       <TextField
         icon="search"
         role="searchbox"
-        aria-label="Search the archive"
-        placeholder="Search by title, folder, id or machine"
+        aria-label="Search archived sessions"
+        placeholder="Search archived sessions"
         value={query}
         onChange={(next) => {
           setQuery(next);
@@ -44,9 +51,11 @@ export function Archive({
         }}
       />
       {found.length === 0 ? (
-        <p className="hint">No ended session matches.</p>
+        <p className="hint">
+          {cards.length === 0 ? "No archived sessions" : "No results."}
+        </p>
       ) : (
-        <ul className="cards archive-grid" aria-label="Ended sessions">
+        <ul className="cards archive-grid" aria-label="Archived sessions">
           {found.slice(0, shown).map((card) => (
             <SessionCard
               key={card.session.id}
@@ -54,6 +63,16 @@ export function Archive({
               state={state}
               scoped={scoped}
               onKill={null}
+              {...(isArchived(card.session)
+                ? {
+                    actions: (
+                      <ArchivedCardActions
+                        card={card}
+                        label={labelOf(state, card.node)}
+                      />
+                    ),
+                  }
+                : {})}
             />
           ))}
         </ul>

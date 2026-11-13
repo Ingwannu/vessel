@@ -17,14 +17,14 @@ neutral colours come only from `tokens.neutral.*`.
 
 | Part | Where | What it holds |
 | --- | --- | --- |
-| Timeline logic | `view/src/timeline/` | records folded into entries (`fold`), runs of tool calls (`runs`), the rows drawn (`rows`), the page's window arithmetic (`window`), find (`find`), the outline (`outline`), approvals (`approval`), a question's form (`question`: its steps, drafts, checks, the answer and the answered lines, the page's `question-form.ts` and `question-answers.ts`), the context meter (`meter`), diffs (`diff`) |
+| Timeline logic | `view/src/timeline/` | records folded into entries (`fold`), runs of tool calls (`runs`), the rows drawn (`rows`), the page's window arithmetic (`window`), find (`find`), the outline (`outline`), approvals (`approval`: the buttons of a request and what each says; `permission`: what the permission card shows, its title, plan or command, primary answer, marks and count), a question's form (`question`: its steps, drafts, checks, the answer and the answered lines, the page's `question-form.ts` and `question-answers.ts`), the context meter (`meter`), diffs (`diff`) |
 | Session logic | `view/src/session/` | read marks (`marks`), titles and names (`titles`) |
 | Terminal logic | `view/src/terminal/` | the input sender and its queue (`sender`), the resize rule and the replay log (`frame`) |
 | Words | `view/src/text/conversation/` | the area's sentences, English and Korean (`lang.conversation()`) |
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a question's card (`question`) and the queue (`queue`), both in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
@@ -71,6 +71,14 @@ Paseo screen it follows.
 | `77-questions-dark-1280`, `84-questions-ko-light-1280`, `86-questions-ko-dark-390` | Claude's `AskUserQuestion` with three questions (fake-acp's `ask questions`, the real adapter's form): a tab per question by its header, the question, its options as radio rows with their descriptions, the "Other..." box, Dismiss and Next; the timeline's line "Waiting on an answer"; on a phone the buttons stacked and the options scrolling past 280 | Paseo `components/question-form-card.tsx` (surface1, a hairline, radius 8, 12 inside; tabs 28 high, radius 6; options 12 by 8, controls of 18; buttons 8 by 12, radius 6, a glyph of 14) |
 | `78-picked`, `79-step2`, `80-checks-picked`, `81-step3`, `82-answered` | a pick (its row on surface2, the radio filled), Next to the question that chooses several (checkboxes, an Other answer typed beside two picks), the tab of an answered question checked, Submit on the last; the agent's answer `{"question_0":"Start a new entry","question_1":["Unit tests","Clippy with every lint"],"question_1_custom":"and the fleet check","question_2":"한국어"}`; the settled card listing each answer by its question | the page's answered card (`question-entry.tsx`) |
 | `83-one-question-dark-1280`, `85-one-question-light-390`, `87-dismissed-dark-1280` | one question (`ask one`): no tabs, the message as the question, Submit at once; Dismiss declining it (the card then says "Skipped") | Paseo's lone question ("a single 1 of 1 tab carries no information") |
+| `88-permission-ko-dark-1280`, `89-permission-en-light-390`, `90-skip-ko` | the permission card on a Korean and an English screen: the "once" answers in the app's words (수락, 거부; Accept, Deny), the "always" answers in the agent's own words, their scope; the question card's 건너뛰기 | Paseo's Accept and Deny (`agentStream.permission`) |
+| `permit/01-long-command-en-dark-1280`, `permit/02-long-command-ko-light-390` | the permission card rebuilt as Paseo's: `surface1`, a hairline, radius 8; "Permission Required" (the adapter's title was the command itself), the command once, as `$ command` in the fixed-width box; "How would you like to proceed?"; bordered answers with a check or a cross, the primary in the foreground, the agent's "always" scopes in its words; the timeline only says "Waiting on permission" and the tool row stays closed | Paseo `agent-stream/view.tsx` `PermissionRequestCard`, `PermissionActionButton`, `permissionStyles` |
+| `permit/03-plan-ko-dark-1280`, `permit/04-plan-en-light-390` | Claude Code leaving plan mode: Paseo's plan card (a chevron of 16, "Plan", the plan's Markdown) over the same footer; five "always" answers in the agent's words (then "Accept" and "Deny" for the rest; since refined, `permit/13`); on a phone the card scrolls inside 440 | Paseo `components/plan-card.tsx` |
+| `permit/05-codex-en-light-1280`, `permit/06-codex-ko-dark-390` | Codex's five answers for `["bash", "-lc", …]`, read as its script; long answers wrap inside their buttons on a phone | `codex-acp` `commandDecisionOptions` |
+| `permit/07-two-ko-light-1280`, `permit/08-two-en-dark-390` | two requests waiting: GOAT's "1/2" at the card's top right | GOAT `ComposerPendingApprovalPanel` |
+| `permit/11-long-command-en-dark-1280`, `permit/12-long-command-ko-light-390` | the long command ends before the copy button: a box with a copy button keeps the button's column, no line enters it (before, the command showed on both sides of the button) | GOAT `CommandOutputPanel.tsx` `pe-7` |
+| `permit/13-plan-ko-dark-1280`, `permit/14-codex-ko-dark-1280` | a direction with three answers or more keeps the agent's names: the plan exit's six allows ("Yes, manually approve edits" primary), Codex's "Yes, proceed" beside its two "always" allows; a lone reject is still 거부 | Paseo's agent labels on ACP |
+| `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -135,6 +143,30 @@ Paseo screen it follows.
   A yes-or-no field is two radio rows (Paseo has none). The node's own
   check (`Question::check`) runs before the answer goes. The page
   (`backend/m11`) walks the same steps after agent-orchestrator's dock.
+- **The permission card** is Paseo's, value for value (the owner on the
+  old one: "허가 여부 ui 디자인 개떡같네 paseo나 goat 보고 배워"), in the
+  conversation's slot over the composer. Kept apart from Paseo: a title
+  that is the command itself (Claude Code's adapter titles a shell call
+  so) falls back to "Permission Required", so the command is read once,
+  in its box; the box is the kit's (GOAT's cap of 192, Paseo's 200); a
+  plan scrolls inside past 320 (200 on a phone) and the card past 520
+  (440), where Paseo's scroll with the conversation; the primary answer
+  is the one Approve would take (ACP marks none, Paseo then marks none).
+  The answer buttons are the kit's `card_button`, which the question
+  card's Dismiss and Submit now use too.
+- **A permission's buttons** (the coordinator's rule, `timeline::answer_words`):
+  a "once" allow or reject offered once says the app's words (Paseo's
+  Accept and Deny, 수락 and 거부) when its direction (allow, or reject)
+  has at most two options; with three or more of one direction every
+  option of it keeps the agent's name (a bare 수락 among Claude Code's
+  five named ways to leave plan mode did not say it means approving edits
+  by hand; Codex's "Yes, proceed" sits beside two "always" allows). An
+  "always" option keeps the agent's name, which is the scope granted
+  ("`cargo test` commands", "this session"); a "once" kind offered
+  several times keeps the agent's names (Codex's two rejects differ:
+  carry on, or say what to do instead); and if two buttons would still
+  say the same, all keep the agent's names. Paseo shows the agent's names
+  on ACP throughout.
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.

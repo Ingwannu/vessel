@@ -19,7 +19,15 @@ mod fixtures;
 /// Undoes schemas 12 to 10: the schedules', saved prompts' and hooks'
 /// tables, the set an approval covered, and pull request feedback's
 /// tables.
-const UNDO_SCHEMAS_10_TO_12: &str = "DROP TABLE hook_keys;
+const UNDO_SCHEMAS_10_TO_13: &str = "DROP TRIGGER sessions_search_gone;
+     DROP TRIGGER sessions_search_pruned;
+     DROP TABLE search_index;
+     DROP TABLE search_messages;
+     DROP TABLE search_gone;
+     DROP INDEX sessions_search_behind;
+     ALTER TABLE sessions DROP COLUMN search_open;
+     ALTER TABLE sessions DROP COLUMN search_seq;
+     DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
      DROP TABLE saved_prompts;
@@ -56,7 +64,7 @@ mod build {
 }
 
 #[tokio::test]
-async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
+async fn an_approval_from_schema_9_walks_to_the_newest_and_new_ones_keep_their_set() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;
     let app = project();
@@ -66,7 +74,7 @@ async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_TO_12).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_10_TO_13).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",
@@ -80,7 +88,8 @@ async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
     let walked = store.workspace().await.unwrap();
     assert_eq!(walked.approvals, [(app.id, digest('a'))]);
     assert!(walked.approved_sets.is_empty(), "it covered nothing known");
-    // Feedback's tables came back with schema 10, the schedules' with 12.
+    // Feedback's tables came back with schema 10, the schedules' with 12,
+    // the search index with 13.
     assert!(
         store
             .feedback(vessel_proto::SessionId::random())
@@ -90,6 +99,20 @@ async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
     let automation = store.automation().await.unwrap();
     assert!(automation.schedules.is_empty());
     assert!(store.saved_prompts(None).await.unwrap().is_empty());
+    store.indexed().await;
+    assert!(
+        store
+            .search(vessel_proto::search::SearchMessages {
+                query: "anything".parse().unwrap(),
+                session: None,
+                before: None,
+                limit: None,
+            })
+            .await
+            .unwrap()
+            .hits
+            .is_empty()
+    );
 
     let set = CommandSet {
         setup: vec!["npm ci".parse().unwrap()],

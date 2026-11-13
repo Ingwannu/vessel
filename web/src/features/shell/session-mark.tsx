@@ -1,12 +1,23 @@
 // The mark a session's row leads with (DESIGN.md §2.2): a spinner while
 // its agent works, a filled dot in the needs-you colour while it waits on
-// its owner, a hollow dot while idle, a faint dash once it has ended.
-// Decided by data/sidebar.ts.
+// its owner, a hollow dot while idle, a faint dash once it has ended; and
+// agent-orchestrator's filled muted dot for one its machine marks unread
+// (protocol 10) and that neither works nor waits. Decided by
+// data/sidebar.ts.
 
 import type { SessionMark as Mark } from "../../data/sidebar";
 import { Spinner } from "../../ui/kit";
 
-export function SessionMark({ mark }: { mark: Mark }) {
+export function SessionMark({
+  mark,
+  unread = false,
+}: {
+  mark: Mark;
+  unread?: boolean;
+}) {
+  if (unread && (mark === "idle" || mark === "ended")) {
+    return <span className="sdot unread" role="img" aria-label="unread" />;
+  }
   switch (mark) {
     case "needs-you":
       return (

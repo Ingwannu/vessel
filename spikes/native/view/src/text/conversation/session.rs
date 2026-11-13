@@ -52,7 +52,8 @@ impl ConversationWords {
         }
     }
 
-    /// The queue's heading: how many prompts wait (GOAT's "Queued").
+    /// The queue's heading over the composer: how many prompts wait
+    /// (GOAT's "Queued").
     #[must_use]
     pub fn queued(&self, count: usize) -> String {
         let count = u64::try_from(count).unwrap_or(u64::MAX);
@@ -62,16 +63,33 @@ impl ConversationWords {
         }
     }
 
-    /// Why the queue does not move on its own, and what lets it go.
+    /// The queue's heading over the composer while it is held: how many
+    /// prompts wait, and why the queue does not move on its own.
     #[must_use]
-    pub const fn queue_held(&self, why: QueueHold) -> &'static str {
-        match why {
-            QueueHold::Cancelled => {
-                self.either("Paused: the turn was stopped", "멈춤: 턴을 중지했습니다")
+    pub fn queued_held(&self, count: usize, why: QueueHold) -> String {
+        let count = u64::try_from(count).unwrap_or(u64::MAX);
+        let messages = plural(count, "message", "messages");
+        match (self.lang, why) {
+            (Lang::En, QueueHold::Cancelled) => {
+                format!("Queued · {messages} · Paused: the turn was stopped")
             }
-            QueueHold::Failed => self.either("Paused: the turn failed", "멈춤: 턴이 실패했습니다"),
-            QueueHold::Ended => self.either("Paused: the session ended", "멈춤: 세션이 끝났습니다"),
-            QueueHold::Asked => self.either("Paused", "멈춤"),
+            (Lang::En, QueueHold::Failed) => {
+                format!("Queued · {messages} · Paused: the turn failed")
+            }
+            (Lang::En, QueueHold::Ended) => {
+                format!("Queued · {messages} · Paused: the session ended")
+            }
+            (Lang::En, QueueHold::Asked) => format!("Queued · {messages} · Paused"),
+            (Lang::Ko, QueueHold::Cancelled) => {
+                format!("대기 중 · {count}개 · 멈춤: 턴을 중지했습니다")
+            }
+            (Lang::Ko, QueueHold::Failed) => {
+                format!("대기 중 · {count}개 · 멈춤: 턴이 실패했습니다")
+            }
+            (Lang::Ko, QueueHold::Ended) => {
+                format!("대기 중 · {count}개 · 멈춤: 세션이 끝났습니다")
+            }
+            (Lang::Ko, QueueHold::Asked) => format!("대기 중 · {count}개 · 멈춤"),
         }
     }
 

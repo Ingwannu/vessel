@@ -16,4 +16,4 @@ impl ControlSizing {
     }
 }
 /// Paseo's ordinary touch target, kept at one source for all consumers.
-pub const TOUCH_TARGET: f32 = 44.0;
+pub use crate::breakpoint::TOUCH_TARGET;

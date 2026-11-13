@@ -133,6 +133,9 @@ pub(crate) enum CliError {
     /// An agent's text breaks its rule (`vessel agents add`).
     #[error(transparent)]
     AgentText(#[from] vessel_proto::agents::InvalidAgentText),
+    /// A search's words break its rule (`vessel search`).
+    #[error(transparent)]
+    Search(#[from] vessel_proto::search::InvalidSearch),
     #[error(transparent)]
     Ssh(#[from] SshError),
     #[error(transparent)]

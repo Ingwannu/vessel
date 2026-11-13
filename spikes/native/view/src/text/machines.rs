@@ -124,7 +124,7 @@ impl MachinesText {
                 format!("최대 {}자입니다.", crate::machines::MAX_NAME)
             }
             (Lang::Ko, NameProblem::Taken(name)) => {
-                format!("{name}이라는 머신이 이미 있습니다.")
+                format!("같은 이름의 머신이 이미 있습니다: {name}")
             }
         }
     }
@@ -256,7 +256,7 @@ impl MachinesText {
             }
             (Lang::Ko, None) => "이 머신에 설치되어 있지 않습니다".to_owned(),
             (Lang::Ko, Some(program)) => {
-                format!("이 머신에서 프로그램 {program}을(를) 찾을 수 없습니다")
+                format!("이 머신에서 {program} 프로그램을 찾을 수 없습니다")
             }
         }
     }

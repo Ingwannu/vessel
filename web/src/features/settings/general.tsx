@@ -9,7 +9,7 @@ import { currentPlatform } from "../../data/shortcuts/platform";
 import { useStore } from "../../data/store";
 import { type Choice, Row, RowList, Select } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
-import type { SendKey } from "../../wire/bridge";
+import type { SendKey, TurnDelivery } from "../../wire/bridge";
 import { KeptNote } from "./kept-note";
 import { FactValue, SettingsPage, SettingsSection } from "./settings-page";
 
@@ -21,9 +21,28 @@ function sendChoices(): Choice<SendKey>[] {
   ];
 }
 
+const DELIVERY_CHOICES: readonly Choice<TurnDelivery>[] = [
+  { value: "queue", label: "Queue" },
+  { value: "steer", label: "Steer" },
+  { value: "interrupt", label: "Interrupt" },
+];
+
+/** What the delivery row says its choice does. */
+function deliveryNote(delivery: TurnDelivery): string {
+  switch (delivery) {
+    case "queue":
+      return "A message sent while the agent works waits, and goes when its turn ends.";
+    case "steer":
+      return "A message sent while the agent works joins its turn, where the agent can take one; it waits otherwise.";
+    case "interrupt":
+      return "A message sent while the agent works stops its turn and starts the next.";
+  }
+}
+
 export function GeneralSection() {
   const fleet = useFleet();
   const send = useStore(prefs, (state) => state.values.composer.send);
+  const delivery = useStore(prefs, (state) => state.values.composer.delivery);
   const kept = useStore(prefs, (state) => state.kept);
   return (
     <SettingsPage lead="How the composer sends, and where this page keeps what you choose.">
@@ -52,6 +71,29 @@ export function GeneralSection() {
                       toast(outcome.problem.message, "error");
                     }
                   });
+                }}
+              />
+            }
+          />
+          <Row
+            title="Default send"
+            detail={{ description: deliveryNote(delivery) }}
+            control={
+              <Select
+                aria-label="Default send"
+                size="sm"
+                width="fit"
+                align="end"
+                value={delivery}
+                options={DELIVERY_CHOICES}
+                onChange={(value) => {
+                  void prefer(fleet, { set: "delivery", value }).then(
+                    (outcome) => {
+                      if (!outcome.ok) {
+                        toast(outcome.problem.message, "error");
+                      }
+                    },
+                  );
                 }}
               />
             }

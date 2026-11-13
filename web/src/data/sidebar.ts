@@ -13,6 +13,11 @@
 //   Ended); sorting by creation (the default) or by last activity (the
 //   node's `last_activity_at`, ADR 0019); ended sessions hidden unless
 //   asked for, as now. Kept with the bridge (`data/prefs.ts`).
+// - Protocol 10's marks (milestone 11, Track A-page): an archived
+//   session is never listed (all three references leave archived ones
+//   out of their sidebars); a pinned one comes first in its group (Paseo's
+//   and GOAT's pinned sections, inside Vessel's groups); an unread one is
+//   marked on its row.
 // - The flat order the sidebar shows is also what "session 1 to 9" and
 //   "next/previous session" walk (`sidebarOrder`), so a key goes where
 //   the eye already is.
@@ -24,6 +29,7 @@ import { isWorking, needsYou } from "./phrase";
 import type { FleetState } from "./fleet";
 import { isLive, type StateTone } from "./format";
 import { machineState } from "./machines";
+import { isArchived, isPinned, isUnread } from "./marks";
 import { nodeLabel } from "./nodes";
 import { sessionName } from "./titles";
 
@@ -45,9 +51,14 @@ export const DEFAULT_VIEW: SidebarView = {
 /** A session's row. */
 export interface SidebarSession {
   node: NodeKey;
+  /** Marked unread by its machine (protocol 10). */
+  unread: boolean;
+  pinned: boolean;
   id: string;
   title: string;
   mark: SessionMark;
+  /** Its worktree's branch, when it has one (track B-page). */
+  branch: string | null;
 }
 
 /** A machine's row and the sessions under it. */
@@ -97,14 +108,15 @@ export function sessionMark(session: SessionInfo): SessionMark {
 }
 
 /** When `session` last did something, for sorting by activity. */
-function activeAt(session: SessionInfo): string {
+export function activeAt(session: SessionInfo): string {
   return (
     session.board?.last_activity_at ?? session.ended_at ?? session.created_at
   );
 }
 
 /** `sessions` as the view lists them: ended ones only when asked for,
- * newest first by the chosen time. */
+ * archived ones never, pinned ones first, then newest first by the
+ * chosen time. */
 export function listed(
   sessions: readonly SessionInfo[],
   view: SidebarView,
@@ -113,17 +125,26 @@ export function listed(
     view.sort === "activity"
       ? activeAt
       : (session: SessionInfo) => session.created_at;
+  const pinned = (session: SessionInfo) => (isPinned(session) ? 0 : 1);
   return sessions
-    .filter((session) => view.ended || isLive(session))
-    .sort((a, b) => key(b).localeCompare(key(a)));
+    .filter(
+      (session) => (view.ended || isLive(session)) && !isArchived(session),
+    )
+    .sort((a, b) => {
+      const first = pinned(a) - pinned(b);
+      return first !== 0 ? first : key(b).localeCompare(key(a));
+    });
 }
 
 function row(node: NodeKey, session: SessionInfo): SidebarSession {
   return {
     node,
+    unread: isUnread(session),
+    pinned: isPinned(session),
     id: session.id,
     title: sessionName(session),
     mark: sessionMark(session),
+    branch: session.workspace?.branch ?? null,
   };
 }
 

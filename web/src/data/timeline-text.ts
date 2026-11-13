@@ -8,6 +8,7 @@
 // would be announced as if they were new.
 
 import { settled, settledLine } from "./approval";
+import { turnTokens } from "./context-meter";
 import type { Entry } from "./timeline-model";
 
 /** `entry` as a line to announce. */
@@ -17,6 +18,12 @@ export function spoken(entry: Entry): string {
       return "Agent ready";
     case "prompt":
       return `Prompt: ${entry.text}`;
+    case "steer":
+      return `Steered: ${entry.text}`;
+    case "question":
+      return entry.outcome === null
+        ? `The agent asks: ${entry.question.message}`
+        : questionLine(entry.outcome);
     case "message":
       return entry.text;
     case "thought":
@@ -35,7 +42,9 @@ export function spoken(entry: Entry): string {
         settled(entry.request.options, entry.outcome),
       );
     case "turn_ended":
-      return `Turn ended · ${entry.reason.replace("_", " ")}`;
+      return entry.usage === null
+        ? `Turn ended · ${entry.reason.replace("_", " ")}`
+        : `Turn ended · ${entry.reason.replace("_", " ")} · ${turnTokens(entry.usage)}`;
     case "turn_failed":
       return `Turn failed · ${entry.message}`;
     case "log":
@@ -46,5 +55,19 @@ export function spoken(entry: Entry): string {
       return `Profile changed from ${entry.from ?? "default"} to ${entry.to ?? "default"}`;
     case "model":
       return `Model call · ${entry.call.route} · ${entry.call.model}`;
+  }
+}
+
+/** How a question was settled, as its line says. */
+export function questionLine(
+  outcome: Exclude<Extract<Entry, { kind: "question" }>["outcome"], null>,
+): string {
+  switch (outcome.outcome) {
+    case "answered":
+      return "Answered";
+    case "declined":
+      return "Skipped";
+    case "cancelled":
+      return "Question closed";
   }
 }

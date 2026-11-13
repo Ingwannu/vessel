@@ -39,13 +39,14 @@ mod fold;
 mod logs;
 mod meter;
 mod outline;
+mod permission;
 mod question;
 mod rows;
 mod runs;
 mod usage;
 mod window;
 
-pub use approval::{Answers, Settled, allows, answers_of, settled};
+pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
     Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
@@ -59,6 +60,7 @@ pub use fold::{Change, Facts, Timeline};
 pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
+pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,

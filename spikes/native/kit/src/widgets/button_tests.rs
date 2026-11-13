@@ -102,6 +102,14 @@ fn medium_button_geometry_and_legacy_sizing_alias_are_exact() {
             horizontal: px(24.0)
         }
     );
+    assert_eq!(
+        crate::control_sizing::TOUCH_TARGET.to_bits(),
+        crate::breakpoint::TOUCH_TARGET.to_bits()
+    );
+    assert_eq!(
+        crate::popup::TOUCH_TARGET.to_bits(),
+        crate::breakpoint::TOUCH_TARGET.to_bits()
+    );
     let alias: ControlSizing = crate::menu::TriggerSizing::Touch;
     assert_eq!(alias, ControlSizing::Touch);
     for scheme in [Scheme::Light, Scheme::Dark] {

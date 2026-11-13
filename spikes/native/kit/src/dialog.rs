@@ -123,6 +123,7 @@ pub fn dialog<V: 'static>(
     let footer = (!content.footer.is_empty()).then(|| {
         div()
             .flex()
+            .flex_shrink_0()
             .flex_wrap()
             .items_center()
             .justify_end()
@@ -169,8 +170,15 @@ pub fn dialog<V: 'static>(
         .child(header(content.title, &surfaces, narrow, close, cx))
         .child(
             div()
+                .id("dialog-body")
                 .flex()
                 .flex_col()
+                // An automatic basis preserves fitting dialogs' natural
+                // height. Only this part yields to the card's maximum:
+                // long refusals must not push their actions out of view.
+                .flex_auto()
+                .min_h(px(0.0))
+                .overflow_y_scroll()
                 .gap(px(16.0))
                 .p(px(INSIDE))
                 .type_(Type::Body)
@@ -232,6 +240,7 @@ fn header<V: 'static>(
     let hover = surfaces.surface2;
     div()
         .flex()
+        .flex_shrink_0()
         .items_center()
         .gap(px(8.0))
         .px(px(INSIDE))
@@ -267,4 +276,81 @@ fn header<V: 'static>(
                         .text_color(surfaces.foreground_muted),
                 ),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use gpui::{Bounds, Pixels, Render, TestAppContext, size};
+
+    use super::*;
+    use crate::theme::Scheme;
+
+    struct Probe {
+        state: DialogState,
+        narrow: bool,
+        lines: u16,
+        actions: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+    }
+
+    impl Render for Probe {
+        fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+            let actions = Rc::clone(&self.actions);
+            let footer = div()
+                .flex_shrink_0()
+                .on_children_prepainted(move |bounds, _, _| *actions.borrow_mut() = bounds)
+                .child(div().w(px(80.0)).h(px(32.0)));
+            dialog(
+                &self.state,
+                DialogContent {
+                    title: "A decision".into(),
+                    body: div()
+                        .h(px(f32::from(self.lines.saturating_mul(21))))
+                        .flex_shrink_0()
+                        .into_any_element(),
+                    footer: vec![footer.into_any_element()],
+                    size: DialogSize::Normal,
+                },
+                &Tokens::of(Scheme::Dark),
+                window,
+                self.narrow,
+                |_, _, _| {},
+                cx,
+            )
+        }
+    }
+
+    #[gpui::test]
+    fn a_long_body_cannot_shrink_or_hide_the_actions(cx: &mut TestAppContext) {
+        for (width, narrow) in [(1280.0, false), (390.0, true)] {
+            for lines in [1, 120] {
+                let actions = Rc::new(RefCell::new(Vec::new()));
+                let (_, window) = cx.add_window_view({
+                    let actions = Rc::clone(&actions);
+                    move |_, cx| Probe {
+                        state: DialogState::new(cx),
+                        narrow,
+                        lines,
+                        actions,
+                    }
+                });
+                window.simulate_resize(size(px(width), px(800.0)));
+                window.run_until_parked();
+                let measured = actions.borrow();
+                let action = measured.first().expect("the action was laid out");
+                assert_eq!(
+                    action.size.height,
+                    px(32.0),
+                    "the action must keep its height"
+                );
+                assert!(action.top() >= px(0.0), "the action is above the window");
+                assert!(
+                    action.bottom() <= px(800.0),
+                    "the action is clipped below the card"
+                );
+            }
+        }
+    }
 }
