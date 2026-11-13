@@ -109,6 +109,16 @@ pub enum Glyph {
     LightningFilled,
     /// Back to the default: an arrow turning back.
     Reset,
+    /// A terminal session (a prompt's chevron and a line).
+    Terminal,
+    /// A conversation (a speech bubble).
+    Message,
+    /// The archive (a box with its lid).
+    Archive,
+    /// Delete for good.
+    Trash,
+    /// Pinned.
+    Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
     /// A pencil: edit (a queued message).
@@ -128,7 +138,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 49] = [
+const ALL: [Glyph; 54] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -171,6 +181,11 @@ const ALL: [Glyph; 49] = [
     Glyph::Lightning,
     Glyph::LightningFilled,
     Glyph::Reset,
+    Glyph::Terminal,
+    Glyph::Message,
+    Glyph::Archive,
+    Glyph::Trash,
+    Glyph::Pin,
     Glyph::Spinner,
     Glyph::Pencil,
     Glyph::Steer,
@@ -241,6 +256,11 @@ impl Glyph {
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
+            Self::Terminal => "kit/terminal.svg",
+            Self::Message => "kit/message.svg",
+            Self::Archive => "kit/archive.svg",
+            Self::Trash => "kit/trash.svg",
+            Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
             Self::Pencil => "kit/pencil.svg",
             Self::Steer => "kit/steer.svg",
@@ -378,6 +398,19 @@ impl Glyph {
             ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
+            ),
+            // The page's own drawings (`web/src/ui/kit/icon.css`, on a
+            // 16 grid at a stroke of 1), at one and a half times.
+            Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
+            Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::Archive => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
+            ),
+            Self::Trash => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
+            ),
+            Self::Pin => line_glyph!(
+                r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),
         }
     }

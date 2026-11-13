@@ -478,6 +478,7 @@ impl State {
                                 .map(|session| Card::from_session(&name, session))
                                 .collect(),
                             agents: connected.agents.clone(),
+                            protocol: Some(connected.client.protocol()),
                             name: name.clone(),
                             reach: Reach::Online,
                         };
@@ -722,6 +723,7 @@ fn unreachable(name: String, why: &str) -> Machine {
         reach: Reach::Unreachable(why.to_owned()),
         sessions: Vec::new(),
         agents: Vec::new(),
+        protocol: None,
     }
 }
 

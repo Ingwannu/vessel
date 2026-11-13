@@ -36,6 +36,7 @@ pub mod terminal;
 mod tests;
 mod text;
 pub mod timeline;
+pub mod toasts;
 pub mod workspace;
 
 pub use board::{

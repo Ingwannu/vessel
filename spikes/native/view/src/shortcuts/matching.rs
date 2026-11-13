@@ -11,8 +11,11 @@
 //!   Alt and a digit is always "session N"; actions the person changed
 //!   are tried before the others.
 
+use std::collections::BTreeMap;
+
 use super::keys::{Chord, Platform, same_chord};
-use super::registry::{Action, Overrides, bindings_of, jump_of, modified};
+use super::registry::{Action, bindings_of, jump_of, modified};
+use crate::prefs::{ActionId, Bindings};
 
 /// How long a sequence's first chord waits for its second, in
 /// milliseconds.
@@ -45,7 +48,7 @@ pub enum Matched {
 }
 
 /// Every binding with its action, the person's changed actions first.
-fn every(overrides: &Overrides) -> Vec<(Action, super::keys::Binding)> {
+fn every(overrides: &BTreeMap<ActionId, Bindings>) -> Vec<(Action, super::keys::Binding)> {
     let changed = Action::ALL
         .into_iter()
         .filter(|action| modified(*action, overrides));
@@ -67,7 +70,7 @@ fn every(overrides: &Overrides) -> Vec<(Action, super::keys::Binding)> {
 pub fn matched(
     chord: &Chord,
     pending: Option<&Pending>,
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     now: u64,
     platform: Platform,
 ) -> Matched {

@@ -131,7 +131,11 @@ impl Shell {
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
-            Event::Acted(answer) => self.acted(answer, cx),
+            Event::Acted(answer) => {
+                if let Some(answer) = self.board_acted(answer, cx) {
+                    self.acted(answer, cx);
+                }
+            }
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
@@ -287,7 +291,8 @@ impl Render for Shell {
                     // Under the title bar, so its menu button stays to close
                     // it with.
                     .children(sheet),
-            );
+            )
+            .children(areas::toasts::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

@@ -44,6 +44,7 @@ pub mod sheet;
 pub mod slider;
 pub mod tabs;
 pub mod theme;
+pub mod toast;
 pub mod tooltip;
 pub mod virtual_list;
 mod widgets;
@@ -67,6 +68,7 @@ pub use picker::{
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
+pub use toast::{ToastLook, toast, toasts};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{

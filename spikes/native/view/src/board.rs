@@ -7,12 +7,14 @@
 //! `tree.rs` (`data/tree.ts`); the lanes dealt is `deal.rs`; the archive's
 //! search and pages are `archive.rs` (`data/archive.ts`).
 
+mod actions;
 mod archive;
 mod card;
 mod deal;
 mod tone;
 mod tree;
 
+pub use actions::CardActions;
 pub use archive::{ARCHIVE_PAGE, ArchivePage, search_archive};
 pub use card::CardDetail;
 pub use deal::{Board, TICK};
@@ -22,7 +24,9 @@ pub use tree::Row;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::agents::{AgentDetail, AgentInfo, InstallPart};
-use vessel_proto::{DisplayStatus, Harness, HarnessKind, HarnessRef, SessionId, StructuredSupport};
+use vessel_proto::{
+    DisplayStatus, Harness, HarnessKind, HarnessRef, ProtocolVersion, SessionId, StructuredSupport,
+};
 
 /// The board's four lanes (the archive is not drawn on the spike's screen).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,6 +141,10 @@ pub struct Machine {
     pub sessions: Vec<Card>,
     /// The agents a conversation can be started with there.
     pub agents: Vec<Agent>,
+    /// The protocol it speaks, when it answered: what it can do to a
+    /// session (marks from 10, `session::CONVERSATION_PROTOCOL`).
+    #[serde(default)]
+    pub protocol: Option<ProtocolVersion>,
 }
 
 /// An agent a machine can start a conversation with.
