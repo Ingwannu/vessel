@@ -63,6 +63,12 @@ Gate evidence in the track's scratch folder:
   whole workspace/all targets plus protocol/web TypeScript features. The
   latest frozen input record is `row2-source-last.json`. Its feature flags
   must be stated in the gate report; no whole-test result is implied.
+- Sixth attempt reached the normal CLI binary and found its JSON error
+  dependency was test-only. It has been promoted to a normal dependency,
+  keeping the same workspace version. `row2-clippy-last.log` is the seventh
+  whole workspace/all-targets attempt with protocol/web TS features; check
+  its final result. The previous source hash is superseded by this Cargo
+  dependency correction, not an unchanged-tree rerun.
 - `row2-fmt-fourth.log`: fmt check before that attempt; later formatting
   changes were made only while the command remained queued.
 - `row2-fixture-failure-check.log`: one-line assertion failure, exit 1 and

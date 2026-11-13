@@ -1098,3 +1098,6 @@ apply history with no current-home association: bare generations must not be
 compared with the current home to claim up to date. CLI `--node fleet
 join/leave/status` uses those same calls; the unselected offline form stays
 available, and `fleet sync` always addresses the selected node (ADR 0044).
+The CLI's existing test-only `serde_json` dependency is now a normal one:
+encoding the already-confirmed invitation uses the protocol's formatter and
+retains its concrete error source rather than inventing a string error.
