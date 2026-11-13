@@ -19,8 +19,15 @@ use crate::shell::Shell;
 
 /// The conversation's body: its rows in the long list, or the empty
 /// lane's words.
-pub(crate) fn timeline(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
+pub(crate) fn timeline(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let area = &shell.areas.conversation;
+    area.bench
+        .frame(area.timeline.entries().len(), &area.list, window);
     let paint = Paint {
         words: shell.t.lang.conversation(),
         tokens,

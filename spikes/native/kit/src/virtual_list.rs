@@ -123,6 +123,12 @@ impl VirtualList {
         }
     }
 
+    /// Scroll by `distance` (negative: up, which stops following the
+    /// end).
+    pub fn scroll_by(&self, distance: Pixels) {
+        self.state.scroll_by(distance);
+    }
+
     /// Go to the end and follow it.
     pub fn to_end(&self) {
         self.state.scroll_to_end();

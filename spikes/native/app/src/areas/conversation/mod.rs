@@ -24,6 +24,7 @@
 //! - Cost: a record is folded twice until then.
 
 mod bar;
+mod bench;
 mod entries;
 mod look;
 mod timeline;
@@ -103,6 +104,8 @@ pub(crate) struct ConversationArea {
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
+    /// The scrolling measurement, when it is on.
+    bench: bench::Bench,
 }
 
 impl ConversationArea {
@@ -121,6 +124,7 @@ impl ConversationArea {
             menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
+            bench: bench::Bench::default(),
         }
     }
 

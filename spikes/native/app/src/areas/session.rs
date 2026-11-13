@@ -275,7 +275,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        super::conversation::timeline(shell, tokens, cx)
+        super::conversation::timeline(shell, tokens, window, cx)
     } else {
         div()
             .flex_1()
