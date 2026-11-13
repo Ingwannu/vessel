@@ -312,6 +312,46 @@ What changes in how builds are checked:
   the root, not screen by screen.
 - Settings pages, About included, are Paseo's settings layout.
 
+## Everything the references do: who builds what (2026-11-13)
+
+The owner, after build 0.0.0.0.6: build every Paseo and GOAT feature,
+settings and the rest, quickly. The measure is the feature tables of
+milestone 11 (`backend-m11.md`, "What the references do, and what
+Vessel does"). This table says, per area, who draws it in the app and
+whether the node has it. A row with no owner is a gap; there is none
+left unassigned.
+
+| Area (the tables' sections) | In the app | The node |
+|---|---|---|
+| A session: queue, steer, interrupt-and-send, questions, context meter and compact, plans, usage line, pin, archive, delete, unread, find, outline, read marks, started sessions under their starter | track C | has it (A, W) |
+| A session as the agent's terminal; shell terminals | track C (the terminal's surface), track F (where shells sit) | has it (C) |
+| The composer: attachments, the agent's `/` commands, `@` a file, drafts per session, recall of sent messages, a selection sent as a comment | the lead (the card), track F (`@` and the selection) | has it (A, B) |
+| Agents: every agent of a machine, any ACP agent, installed and signed in, installing from the app, defaults per agent | the lead (the selector), track E (the Agents and Models pages) | has it (G) |
+| Approvals: in the session; everything waiting, from every machine, in one place | track C; track S (the board's lane, then the inbox) | the inbox is not built |
+| Projects, worktrees, the code panel, git, pull requests and their page | track F | has it (B, B2) |
+| Scripts, services, ports and what opens | track F | has it (C); a browser panel is not built |
+| Machines, devices, pairing links, sync | the lead (pairing), track E | has it |
+| Schedules, the recurring prompt, saved prompts, webhooks | track E, after the settings pages | has it (D) |
+| The board, the archive, the sidebar (group, sort, filter, pin), the command palette, shortcuts, notifications and sound | track S | has it; the inbox is not built |
+| Settings: themes, sizes, widths, shortcuts, languages, updates, logs, diagnostics | track E (the frame and the pages), track S (shortcuts), track R (updates, logs) | more themes are not built |
+| Rewind, fork, import from an agent's history, search across sessions, parking idle agents, a handoff to another agent | after the node has them: track C | track A2, started 2026-11-13 |
+| Usage and limits (tokens, cost, each account's windows; what to do at a limit) | after the node: tracks S and E | not built (F) |
+| A phone app; push | track M (paused for budget) | push is not built |
+| The browser as a surface | the browser track (paused for budget) | |
+
+Node tracks still to run, in this order: A2 (started; protocol 12,
+schema 13, ADRs 0037 and 0038), the inbox and push, usage and limits,
+the rest of the tables (interface switch, a side question, one prompt
+to several models, delivered files, a reviewing agent, spreading by
+load, diagnostics), the browser panel, themes, dictation, plugins. The
+page follows the app in look (ADR 0036) and gets each new feature in
+the same pass as the app.
+
+What limits the pace is the accounts, not the plan: three accounts give
+about an hour of four workers per five-hour window each, two of them
+with weekly room. Two app tracks (S and E) run on the stand-in capacity
+in the gaps.
+
 ## The browser, first report (2026-11-13)
 
 The browser track built the same `app` crate for `wasm32` (GPUI's web
