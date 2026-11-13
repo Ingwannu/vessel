@@ -5,6 +5,7 @@
 export { Avatar } from "./avatar";
 export { Badge, type BadgeLook, type Tone } from "./badge";
 export { Banner } from "./banner";
+export { BrandMark } from "./brand-mark";
 export {
   Button,
   type ButtonProps,

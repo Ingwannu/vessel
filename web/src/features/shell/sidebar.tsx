@@ -14,7 +14,7 @@ import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
-import { Icon, Kbd } from "../../ui/kit";
+import { BrandMark, Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
 import { SidebarProjects } from "../projects/sidebar-projects";
 import { PHONE, useMedia } from "./use-media";
@@ -25,23 +25,8 @@ import { SidebarStatuses } from "./sidebar-statuses";
 import { useShortcutWords } from "../shortcuts/use-keys";
 import { machineInView, useNewSession } from "./use-new-session";
 
-const MARK = (
-  <span className="mark" aria-hidden="true">
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 8.5 6 2.5 10 8.5" />
-      <path d="M4 8.5h4" />
-    </svg>
-  </span>
-);
+// The owner's mark at the text's size (ui/kit/brand-mark.tsx).
+const MARK = <BrandMark size={18} className="mark" />;
 
 /** A sidebar row's class: `active` marks the current place. */
 export function rowClass(active: boolean, extra = ""): string {

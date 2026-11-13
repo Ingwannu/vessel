@@ -146,7 +146,11 @@ Devices are sections there too (milestone 10, track W2).
   bar is bare chrome, without its hairline, as agent-orchestrator's is.
   The link to `vessel ui` shows only when it is not up ("vessel ui ·
   reconnecting", "disconnected", "refused").
-- **The sidebar, top to bottom** (agent-orchestrator's): the brand; Search
+- **The sidebar, top to bottom** (agent-orchestrator's): the brand (the
+  owner's mark, `docs/design/brand/`, in the text's colour at 18px, then
+  "Vessel"; the welcome draws it at 28px, and the page's icon is it in
+  white on a rounded tile of the brand colour, all made by the build from
+  the brand's file, `web/vite-mark.ts`); Search
   (a filled row with its shortcut as text); New session (with its key,
   `N`); Board, with the live count; "Machines" with Display (a sliders
   icon) and a "+" that adds one (§7.6), each machine with its live

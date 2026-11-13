@@ -34,11 +34,8 @@
 .mark {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
-  background: var(--text-primary);
-  display: grid;
-  place-items: center;
-  color: var(--bg-shell);
+  flex: none;
+  color: var(--text-primary);
 }
 
 .mark svg {
