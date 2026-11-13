@@ -272,6 +272,65 @@ Linux by `makensis` 3.09. Per user (`RequestExecutionLevel user`), into
 English. Zed's Inno Setup and WiX need a Windows-only compiler; MSIX
 needs a signing certificate to install at all.
 
+## The title bar's buttons on Windows (build 0.0.0.0.3)
+
+The owner's first report from a real Windows 11, on 0.0.0.0.3: minimise,
+maximise and close needed a double click.
+
+- **Cause** (read in `gpui-pre` 0.3.10 and the kit, 2026-11-13):
+  - GPUI answers Windows' `WM_NCHITTEST` with the first window-control
+    area, in paint order, whose hitbox is in the window's hit test
+    (`on_hit_test_window_control` in gpui's `window.rs`).
+  - The kit's bar (`Drag`) is the parent of the three buttons, so it is
+    painted first. The buttons did not occlude it, so over a button the
+    bar's hitbox was under the mouse too and Windows was told
+    `HTCAPTION`.
+  - One click was therefore a press on the caption: `DefWindowProc`
+    starts the move loop and the release ends it. A double click was a
+    caption double click, which maximises or restores whichever button
+    it is on.
+  - The platform side is not at fault. `gpui-pre-windows` records the
+    button on `WM_NCLBUTTONDOWN` and acts on `WM_NCLBUTTONUP` when the
+    same button is released. Zed's caption buttons sit inside its drag
+    bar in the same way and occlude it (read only,
+    `platform_title_bar/src/platforms/platform_windows.rs`).
+- **Fix**: the desktop track's `7f120ca`: every window control occludes
+  the bar, and on Windows the control area is all there is (no click
+  handler of the app's).
+- **The check that would have caught it**: the kit's test
+  `chrome::tests::over_the_window_controls_the_bar_is_not_the_drag_area`
+  (`aa80a37`). It puts a scroll listener on the bar, whose predicate
+  (`Hitbox::should_handle_scroll`, "the hitbox is in the hit test") is
+  the one the Windows hit test uses for each control area. It then
+  scrolls over close, maximise, minimise and the trailing element and
+  fails if the bar is reached. It fails on `7f120ca` with the occlusion
+  removed and passes with it. GPUI's test window has no public way to
+  ask the hit test itself, so this is the closest observable stand-in.
+- **Under wine 9.0**, before and after:
+  - The window had only the kit's title bar and no text. It was a
+    scratch example, not committed: `title_bar` in a window from
+    `window_options`.
+  - It ran inside wine's own virtual desktop (`explorer /desktop`), so
+    wine's user32 handles the non-client area as Windows does; under a
+    real X window manager, wine let the manager decorate the window.
+  - Each action was one `xdotool` click on display :91, logged with
+    `WINEDEBUG=+message`.
+
+  | | Before (`4a771e3`'s kit) | After (`7f120ca` + `aa80a37`) |
+  |---|---|---|
+  | Hit test over minimise, maximise, close | 2 `HTCAPTION` on all three | 8 `HTMINBUTTON`, 9 `HTMAXBUTTON`, 20 `HTCLOSE` |
+  | One click on minimise | `WM_SYSCOMMAND` `0xF012` (move), nothing | `WM_SIZE` `SIZE_MINIMIZED` |
+  | One click on maximise | the same, nothing | `WM_SIZE` `SIZE_MAXIMIZED`; one more click restores (`SIZE_RESTORED`) |
+  | One click on close | the same, nothing | `WM_CLOSE`, `WM_DESTROY` |
+  | Double click on close | `0xF030` (`SC_MAXIMIZE`): maximised | not needed |
+
+- **Only a real Windows shows**:
+  - Windows 11's snap-layout flyout when hovering maximise. It needs
+    `HTMAXBUTTON`, which is now answered.
+  - The buttons' hover and pressed colours under DWM at the owner's
+    scaling.
+  - The owner's own single clicks.
+
 ## Updates (question 8)
 
 ### What the references do (read 2026-11-13; behaviour only)
