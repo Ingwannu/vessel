@@ -447,6 +447,12 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
                         &|choice| Meaning::Agent(picked.clone(), Some(choice)),
                         built,
                     );
+                    // Paseo checks a model only under the agent in use: the
+                    // other agents' own defaults are not a choice made here.
+                    let in_use = shell.areas.draft.agent.as_ref() == Some(&agent);
+                    for row in &mut built.rows {
+                        row.checked = row.checked && in_use;
+                    }
                 } else {
                     let mut row = ComboRow::new(words.default_model);
                     row.checked = shell.areas.draft.agent.as_ref() == Some(&agent);

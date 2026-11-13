@@ -52,9 +52,11 @@ app/src/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
     draft/         the new chat: Paseo's composer card, its pickers (pickers.rs)
-    session.rs     a session: the conversation, the composer, permissions, stop
-    about.rs       the running build and its updates (until the settings track's About
-                   section takes it), and the note shown once after an update
+    session.rs     a session: the conversation and the composer in Paseo's one chat
+                   column (at most 820 wide, 16 from the edges), permissions, stop
+    about.rs       About as Paseo's settings section: the version, the app's updates
+                   (Paseo's words), automatic updates (a switch), the log file; and the
+                   note shown once after an update
     board.rs, archive.rs, sidebar.rs, pair.rs
 ```
 
@@ -92,6 +94,12 @@ drawn from `Tokens` and `Type` only, exported from `kit/src/lib.rs`. A
 control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
+
+A settings screen (About now, the settings track's sections later) is
+built from `kit::settings`: Paseo's section with its small title, the
+card, a row with its title and hint at the left and its control at the
+right, and Paseo's switch; buttons are `kit::button` (accent) and
+`kit::outline_button` (Paseo's outline).
 
 ### Rules every screen follows
 
@@ -195,7 +203,13 @@ scripts/fleet.sh stop /tmp/fleet
 
 The fake agent answers `plain` with an echo, `entries <n>` with `n`
 entries, `wait` by waiting; any other prompt runs a tool that asks for
-permission.
+permission. The fleet's Claude Code adapter offers what the real one
+sends (`FAKE_ACP_OPTIONS=real`, `crates/vessel-testkit/src/bin/fake_acp/real.rs`):
+sixteen models, subagents (`ocx-*`) with descriptions of several lines,
+names longer than a list and Korean ones, an on/off option with no name.
+Look at every picker with it before a build; `kit::picker`'s test lays
+out rows of those shapes and fails if one grows past a line or runs into
+the next.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

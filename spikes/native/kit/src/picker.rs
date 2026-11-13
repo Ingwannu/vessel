@@ -52,10 +52,6 @@ use crate::widgets::TypeExt as _;
 /// touch-sized (`constants/layout.ts`).
 pub const COMPACT: f32 = 600.0;
 
-/// How readily a row's label gives way next to its description: hardly
-/// (the description goes first).
-const LABEL_SHRINK: f32 = 0.01;
-
 /// `text` on one line: its line breaks and runs of spaces as one space.
 /// An agent's description can have several lines (Claude Code's subagents'
 /// do); GPUI starts a new line at every break even where the text does not
@@ -614,11 +610,14 @@ fn combo_row<V: 'static>(
     // gives way first and ends in an ellipsis, then the label does. A row is
     // one line high whatever an agent writes, so rows never run into each
     // other.
-    // Paseo's label does not shrink; here it gives way last, so a name
-    // longer than the row still ends in an ellipsis.
+    // Paseo's label does not shrink (`flexShrink: 0`): the description
+    // gives way first, all of it, before the label loses a letter. Here it
+    // is also at most the row's width, so a name longer than the row ends
+    // in an ellipsis. (A small shrink factor is not enough: any shrink at
+    // all cuts the label, "Workspace acce…" beside a whole description.)
     let label = div()
-        .flex_shrink(LABEL_SHRINK)
-        .min_w_0()
+        .flex_shrink_0()
+        .max_w_full()
         .truncate()
         .text_color(neutral.foreground)
         .child(one_line(&row.label));
