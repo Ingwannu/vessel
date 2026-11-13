@@ -633,6 +633,31 @@ never rebuilt.
       desktop track's release profile would add the lines to the
       `.pdb`; the exe itself is not changed on Windows.
 
+- **0.0.0.0.7**:
+  - Built from exactly `fd61c23`: the desktop track's line tables in
+    the release profile (`7638b83`), and the Linux debug information
+    split out by `build.sh`.
+  - The set went into place at 11:21 UTC. It is not published yet.
+  - Files: setup 10,897,729, exe 39,547,392, zip 15,789,705, linux
+    74,383,456, tar.gz 25,448,397 bytes.
+  - The shipped Linux executable is the stripped one, 309,384 bytes
+    smaller than 0.0.0.0.6's. Its only `.debug_*` section left is
+    `.debug_gdb_scripts`, a small loaded section. Its `.gnu_debuglink`
+    names `vessel-app.debug`, with a matching CRC.
+  - `vessel-app.debug` (230,620,128 bytes) and `vessel_app.pdb`
+    (117,829,632 bytes) are in `vessel-app-symbols/0.0.0.0.7/` with
+    their SHA256SUMS, and not in the dist folder.
+  - The shipped executable started under a virtual display with a
+    scratch configuration. Its `vessel.log` has no escape codes and no
+    feed path.
+  - One address resolves to a file and line on each system:
+    - `vessel_app_kit::init`+0x30 → `spikes/native/kit/src/lib.rs:122`
+      (`addr2line` with the `.debug`)
+    - the same function on Windows → `lib.rs:121` (`llvm-symbolizer
+      --relative-address` with the `.pdb`)
+  - The icons, the version block, the sums and the signature were
+    checked as before.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
