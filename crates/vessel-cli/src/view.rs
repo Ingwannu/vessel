@@ -89,6 +89,10 @@ impl Conversation {
                 self.line(format!("[commands: {}]", render::commands(commands)))
             }
             SessionEvent::UsageChanged { usage } => self.line(render::usage(usage)),
+            SessionEvent::Parked { reason } => {
+                self.line(format!("[agent parked: {}]", reason.describe()))
+            }
+            SessionEvent::Woken => self.line("[agent started again]".to_owned()),
         }
     }
 

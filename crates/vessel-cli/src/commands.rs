@@ -75,6 +75,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         }
         Command::Send(send) => conversation::send(target, send).await,
         Command::Log { session, from } => log(target, &session, from).await,
+        Command::Search(search) => crate::search::search(target, search).await,
         Command::Kill { session } => {
             let client = connect(target).await?.client;
             let info = session.resolve(&client).await?;

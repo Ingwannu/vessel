@@ -7831,3 +7831,557 @@ The app's new-chat screen ends with the same flow; the page's tests in
   what is kept for the machine is every choice the agent offers, or the
   remembered ones unchanged when they could not be checked
   (`picks.test.ts`).
+
+## Track A2: contract
+
+Wave 2's last node track (`backend/m11-a2`, from `backend/m11`). Protocol
+12, raised once in this track's first slice that changes the wire (every
+later track of the wave finds it raised); store schema 13; ADRs 0037 and
+0038. Five features, each its own slice, each with its contract here
+before its code: search every session's messages; park an idle agent and
+wake it on the next prompt; rewind and fork where the agent can; import
+from the agent's own history; change the agent with a handoff. What the
+references do was read in their source on 2026-11-13 (agent-orchestrator
+and GOAT at `main`, Paseo 0.15.2) and in the installed adapters
+(`claude-agent-acp` 0.100, `codex-acp` 2.6); no prompt was sent to a real
+agent.
+
+### 1. Search every session's messages
+
+**What the references do.**
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| Over | finished chat messages (external-content FTS5, `porter unicode61`) | finished messages (contentless FTS5, `trigram remove_diacritics 1`) | titles, branches, project names only ("never an incomplete subset of transcripts"); in-session find apart |
+| Words | all must match, the last by prefix; if none matches, any may | all, as substrings; one two-character CJK word sends the whole query to a scan of the newest 20,000 messages; Latin words under three characters only narrow; no word of three characters (and no CJK) finds nothing | typo-tolerant over names |
+| Order | bm25, by recency past 2,000 matches | its own ranking over at most 2,000 hits | by score |
+| Page | 8 hits, no paging | 50 matches, 2,000 hits read, 10,000 candidates | all |
+| Snippet | 24 tokens, matches wrapped in control characters | 240 characters, the match 24 in | none |
+| A message still being written | not indexed until it ends | not indexed until it ends | – |
+| Left out | cancelled and rolled-back turns, other branches | generated notices, attachment placeholders, subagent threads, archived threads | – |
+
+Vessel takes GOAT's tokenizer (substrings, so a Korean word with its
+particle and an identifier inside a longer one are both found), both
+references' rule that a message is indexed once it ends, and pages by
+time so a client can go on past the first page.
+
+**What is a message.** The node's log has no messages, only records; the
+index makes them:
+
+- a prompt: the text blocks of a `turn_started`, a `steered`, or a run of
+  `user_message_chunk` records (a resumed or imported conversation's
+  replay);
+- a reply: a run of `message_chunk` records' text.
+
+A run ends at the next timeline record that is not one of its chunks
+(a tool call, a thought, a plan, a permission, a question, a turn's end
+or failure, a status); records outside the timeline (`harness_log`,
+`usage_changed`, `commands_changed`, `queue_changed`, `model_call`,
+renames, option and profile changes) do not end it. A run longer than
+8 KiB of text, or than 512 records, is indexed as consecutive pieces,
+each pointing at the record where it starts, so one long reply is many
+hits rather than one cut short. Thoughts, tool calls and their output,
+plans, permissions, questions, terminal output and harness logs are not
+indexed: they are what the agent did, not what was said, and a tool's
+output would drown every word in file contents.
+
+**The index** (schema 13, `vessel-store`, ADR 0037; amended by the
+review below):
+
+- `search_messages (id INTEGER PRIMARY KEY, session_id, seq, role, at,
+  text, indexed)`: one row a message piece; `id` is the message's time in
+  nanoseconds, moved forward past one already taken, so the index's own
+  order is newest first and a page is a walk of it, never a sort. No
+  foreign key: what a removed session or pruned records leave is hidden
+  by a join and deleted later.
+- `search_index`: FTS5 over `text`, external content, `tokenize =
+  'trigram'` (case-insensitive; diacritics kept).
+- `sessions.search_seq` (the next record the index has not read) and
+  `sessions.search_open` (where the run held in memory starts).
+  Every session stored before schema 13 starts at 0.
+- An append's records are read into plain rows inside its savepoint;
+  every FTS5 write and every deletion happens in the writer's idle
+  steps, bounded; sessions stored before schema 13 are caught up there.
+
+**Types** (`vessel_proto::search`, new module):
+
+- `SearchQuery`: 1 to 256 characters once trimmed, at most 16 words
+  (split on whitespace); a person's text, plain in TypeScript.
+- `SearchLimit`: 1 to 100; absent means 20.
+- `SearchCursor`: where the next page starts, the node's handle (a
+  string on the wire, branded in TypeScript); only ever handed back.
+- `MessageRole`: `prompt`, `reply`.
+- `SearchHit { session: SessionId, seq: EventSeq, at, role, snippet }`:
+  `seq` is the record where the message (or its piece) starts, so a
+  client opens the session there (`session.read` from `seq`).
+- `Snippet { parts: SnippetPart[], cut_before, cut_after }`,
+  `SnippetPart { text, matched }`: at most 240 characters in all,
+  whitespace runs as one space, starting up to 24 characters before the
+  first match, every match inside it marked. Typed parts, not marker
+  characters inside a string.
+- `SearchMessages { query, session?: SessionId, before?: SearchCursor,
+  limit?: SearchLimit }` and `SearchPage { hits: SearchHit[], next?:
+  SearchCursor }`.
+
+**The call.**
+
+| Method | Scope | Request | Reply |
+| --- | --- | --- | --- |
+| `session.search` | read | `SearchMessages` | `SearchPage` |
+
+- Forwardable, like every read. Not ownership-checked: an agent reads
+  the fleet's sessions (ADR 0013), so it may search them.
+- Every word must be in the message (the piece), in any order, as a
+  substring, without case: every candidate is checked by one Rust fold,
+  whichever walk found it.
+- Newest first, by the message's time. `next` is present while older
+  messages may still match; a page can hold fewer than `limit` hits and
+  still have `next` when a bound below stopped it.
+- `session` keeps the search to one session (`not_found` when unknown).
+- Failures: `invalid_request` (the query or the cursor does not parse),
+  `not_found` (the session), `unavailable` (two searches already run),
+  `internal` (the store), `unsupported` on a connection older than 12
+  ("needs protocol 12").
+
+**Bounds.**
+
+| What | Bound | Beyond it |
+| --- | --- | --- |
+| A query | 256 characters, 16 words | `invalid_request` |
+| A page | 100 hits (20 by default) | refused |
+| Candidates read when some word is under three characters (the index finds the longer words, the short ones filter) | 10,000 a page | the page ends, `next` set |
+| A query whose every word is under three characters (no index can serve it) | 20,000 newest messages scanned a page | the page ends, `next` set |
+| An indexed piece | 8 KiB of text or 512 records | the next piece |
+| An idle step | 32 KiB of text and 128 rows taken in or deleted; or 256 records (256 KiB) of a log read; only while the writer's queue is empty | the next step |
+| Searches at once on a node | 2 | `unavailable` |
+
+**Older peers.** A client sends `session.search` only to a node of
+protocol 12 or later (`Call::since`); an older node is a typed "needs
+protocol 12" for that machine, and its sessions are left out of a
+fleet-wide search with that said. A node refuses the call on an older
+connection. No event and no existing type changes.
+
+**CLI and agents.** `vessel search <query> [--session <id>] [--limit
+<n>] [--before <cursor>]` (with the usual `--node`), one line a hit:
+session, record, time, role, the snippet with its matches marked, and
+the cursor to go on with (no other command prints JSON, so this one does
+not either). The agent tool
+`search_sessions { query, session?, limit?, before? }` returns the page.
+
+**What it costs** is measured on a store of tens of thousands of
+messages (in "Track A2: progress"): the index's size beside the log's,
+an append's time with and without it, a query's time for a rare word, a
+common word, a two-character Hangul word, and catching up.
+
+### 1. Search: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against the
+store, the wire and the references, and probed SQLite (the system's
+3.45.1, the contract's schema, one commit per message). Two blockers,
+eight should-fix, three minor. What changed (the code is the amended
+design; ADR 0037 records it):
+
+1. **Blocker: deleting a session's index rows stalled the writer** (6.1 s
+   for a session of 2,000 messages through the cascade and trigger). Now
+   nothing of the index is deleted in the deleting transaction: a query
+   joins `sessions` and its `first_seq`, so rows of a removed session or
+   of pruned records are hidden at once; triggers on `sessions` note what
+   is gone (`search_gone`) and the writer's idle steps delete it, 32 KiB
+   and 128 rows a step. `search_messages` has no foreign key.
+2. **Blocker: indexing in the append** cost 14 ms a commit on average and
+   up to a second with FTS5's merges. Now the append writes plain rows
+   only; every FTS5 write (taking rows in, deleting them, the merges that
+   come with them) happens in idle steps of 32 KiB of text. Measured:
+   the appends' median and tails are the same with the index as without
+   ("Track A2: progress").
+3. **Catch-up**: the cursor is two columns (`search_seq`, the next record
+   not read; `search_open`, the start of the run held in memory), so a
+   session mid-reply is never "behind". A step that fails or finds
+   nothing stops the steps until the next commit (no spinning). A step
+   is bounded by bytes as well as records (256 records or 256 KiB). An
+   append to a session still behind indexes nothing; the steps reach its
+   end and hand the open run over to the appends.
+4. **An indexing failure fails the append**: indexing now runs in a
+   nested savepoint of its own; a failure is logged and left to the idle
+   steps. A run cached for an append whose savepoint rolled back is
+   dropped (taken out before, given back only after).
+5. **The FTS5 query**: every word goes in as a quoted string; a word
+   under three characters never goes in (it would match everything).
+   Every candidate is checked again in Rust, so the index only narrows.
+6. **Three foldings**: one now. The tokenizer folds case only
+   (`remove_diacritics` dropped), and Rust's per-character fold (lower
+   case when that is one character, never a change of length) checks
+   every candidate and marks every snippet, so a hit always has its words
+   marked. Diacritics and Unicode normalisation are not folded (ADR 0037
+   says why: a table of Vessel's own would be needed to agree with the
+   tokenizer).
+7. **Unbounded work**: a search kept to one session walks that session's
+   rows (its index), bounded like a scan; every walk counts what it reads
+   and stops at its bound; at most two searches run at once on a node
+   (`unavailable`).
+8. **The cursor**: `next` is the last piece read, so a page that ran out
+   moves on; `reached` (new) is that piece's time, so a client merging
+   machines knows how far a short page looked. Rows indexed later above a
+   cursor are seen only by a new search (said in `PROTOCOL.md`).
+9. **Pieces**: cut after white space near 8 KiB; matching is per piece
+   (said); the 512-record bound counts every record in a run's span, not
+   only its chunks.
+10. **The references**: GOAT's row corrected, and what each leaves out
+    added. Vessel indexes every prompt, including the node's own (a pull
+    request's feedback, a schedule's prompt): they are what the agent was
+    told. Messages a later rewind removes are the rewind slice's to hide.
+11. **Disk**: measured; the index does not count toward retention's caps.
+12. **Time as the id**: replayed and imported messages carry the time
+    they were logged; a clock stepping back sorts new messages lower
+    (said in ADR 0037).
+13. **Prune**: a run whose start was pruned now starts after it (the
+    cache no longer matches the row and is read again); recovery's
+    `interrupted` records are left to the idle steps; titles are not
+    searched (the client has them).
+
+Rejected, and why:
+
+- **A `unicode61` side index for two-syllable Hangul** (review item 12).
+  Measured, a common two-character word is found in under a millisecond
+  by the scan (it stops at its page); only a word that matches nothing
+  reads the whole bound (about 130 ms). A second index would double the
+  index's size for that case.
+- **A progress-handler time budget on the reader** (item 7). FTS5's work
+  between two rows is not interruptible by it, and every walk already
+  counts its rows; the two-at-once bound caps what a caller can hold.
+- **Rebuilding the index on demand** (item 4's repair path). The index is
+  derived: deleting `search_messages` and resetting the cursors makes the
+  idle steps build it again, which is what the measurement does.
+
+
+## Track A2: progress
+
+### 1. Search every session's messages (built 2026-11-13)
+
+Protocol 12 raised (`PROTOCOL_VERSION` 12, range 2..=12), schema 13, ADR
+0037. The design is the contract as its review amended it (above).
+
+- **Wire** (`vessel_proto::search`): `session.search` (read, `since 12`,
+  forwardable, allowed through `vessel-web`'s bridge and to agents),
+  `SearchQuery`, `SearchLimit`, `SearchCursor` (aliases classified:
+  handle, plain, quantity), `SearchHit`, `Snippet` as typed parts,
+  `SearchPage { hits, next?, reached? }`.
+- **Store** (`vessel-store/src/search/`): `said` (what a record is to the
+  index), `index` (the append's side: runs, pieces, the cursor, a nested
+  savepoint), `idle` (the writer's idle steps: take in, delete what is
+  gone, catch up), `query` (the walks and their bounds; the index's walk
+  merged with the rows it has not taken in yet, so a message is found the
+  moment it is written), `snippet` (one fold, the window, the marks).
+  `Store::search`, `Store::indexed`.
+- **Node**: `service/search.rs` (a named session must exist; two
+  searches at once).
+- **CLI**: `vessel search <words> [--session] [--limit] [--before]`.
+- **Agents**: `search_sessions`.
+
+**Checked**: unit tests (record classes, pieces cut after white space,
+snippets with Hangul inside words, the quoting of a person's words, every
+walk an index walk without a sort); the store's (a reply found once it
+ends and split over two appends, short and Hangul words, paging newest
+first without a gap or a repeat over 26 hits in pages of 10, pieces of a
+long message, deletion and retention hiding and then deleting rows with
+the FTS5 integrity check passing, a reply cut by a restart indexed whole,
+a schema-12 database caught up while idle; the older-schema migration
+tests now walk through 13); the node's end to end (two sessions asked
+through the fake agent, found after a restart with their records and
+roles, a Hangul word, one session's, an unknown session `not_found`, an
+agent searching, a protocol-11 connection refused `unsupported`); the
+CLI's line and the tool's arguments.
+
+**Measured** (`cargo test -p vessel-store --release --test search_measure --
+--ignored --nocapture`; the shared 16-core machine, load average 2 to 16
+during the runs; two stores fed the same 220,000 appends one at a time,
+100 sessions of 100 turns of a prompt, 20 reply chunks and a turn's end,
+20,000 messages; in one the replies are `thought_chunk`, which the index
+passes over):
+
+| What | With the index | Without |
+| --- | --- | --- |
+| An append: median, p99, p99.9, max | 107 µs, 1.6 ms, 41 ms, 271 ms | 104 µs, 1.2 ms, 47 ms, 251 ms |
+| Idle work left after the last append | none (1 µs) | – |
+| The database | 76.1 MiB | 49.7 MiB |
+
+The appends are the same within the machine's noise (three runs: the
+"without" store was the slower in two). Queries on the 20,000 messages
+(20 runs each, median and max): a rare word 1.0 ms, 3.8 ms; a common one
+1.2 ms, 2.2 ms; two words 1.5 ms, 3.4 ms; a two-character Hangul word
+(the plain walk, stopping at its page) 0.57 ms, 0.65 ms; the same with a
+second word 0.62 ms, 0.74 ms; a two-letter word that matches nothing
+(its whole bound, 20,000 messages) 126 ms, 143 ms (740 ms in a run under
+load); one session's 0.57 ms, 0.82 ms. Catching up the whole store from
+nothing (as after an upgrade) took 13.6 s while idle; appends to another
+session meanwhile waited a median of 1 to 4 ms, p99 50 to 360 ms, at
+most 450 ms (each waits for at most one step; the first steps were
+longer). The bounds of an idle step were halved twice from 2,048 records
+and 256 KiB to these after the first measurement showed appends waiting
+up to 100 ms a step during a catch-up.
+
+**Not built, and why**: diacritics and Unicode normalisation are not
+folded (ADR 0037); titles are not searched (clients have them); hits are
+per piece, not merged per message.
+
+**For the page track**: a hit opens its session at `seq` (`session.read`
+from there); `next` with fewer hits than asked means "the node looked
+this far" (`reached`), not "no more"; a machine older than 12 answers
+"needs protocol 12", so search is offered per machine; `unavailable`
+means ask again.
+
+### Tests that fail only under load (the coordinator's condition, 2026-11-13)
+
+Slice 1's whole-workspace run (load average 20 to 30) failed seven tests
+that pass alone. Neither is this track's code; their owners make them
+load-proof. What waits, and the fix:
+
+- **`forge_rules::a_forge_that_is_down_holds_nothing_and_an_end_clears_it`**
+  (`crates/vessel-node/tests/e2e/forge_rules.rs`, the first `refresh`).
+  The test starts the session, then puts the pull request in the fake
+  forge, then asks `pr.get { refresh: true }`. The node's watcher looks
+  at a new session's branch on its own; when that look lands before the
+  `forge.put` (more likely the busier the machine), it finds nothing, and
+  its `refreshed` mark makes the test's refresh "recent"
+  (`forge/watcher.rs`, `REFRESH_EVERY` = 10 s), so the reply is the empty
+  view instead of a new look. Fix: put the pull request in the fake forge
+  before `running_in` starts the session (the branch is known from the
+  worktree already), so the watcher's first look finds it whichever comes
+  first.
+- **Six of `vessel-web`'s `ui/prefs` tests** (4401 "the UI was restarted
+  or authentication failed"). `tests/ui/support.rs` starts every test UI
+  with `hello_deadline` = 300 ms (`Ui::configured`); the bridge closes a
+  socket whose challenge and hello do not finish within it
+  (`socket.rs`). Under load the test tab's answer takes longer than 300
+  ms. Fix: the support's default to the product's 5 s (or the 30 s
+  `server.rs`'s tests already use), and the one test that wants the
+  deadline to pass (`server.rs`, "Nothing at all, past the deadline")
+  sets 300 ms itself.
+
+## Track A2: contract, 2. Park an idle agent and wake it on the next prompt
+
+**What the references do.**
+
+| | agent-orchestrator | Paseo | GOAT |
+| --- | --- | --- | --- |
+| After | 10 min without activity, swept every 30 s | 60 min, swept every 60 s | 30 min, at most 4 h held by background work |
+| On by default | off (a developer setting, off at each start) | on (`agents.idleRuntimeCleanup`) | on, no setting |
+| Not while | a turn runs or is being dispatched, anything is queued, an interaction waits, a person views the chat (a 30 s lease), the agent reports background work (a private ACP extension `_ao/session/can_hibernate`, which the stock Claude adapter lacks, so Claude never parks) | the agent is busy, a permission waits, a delivery is queued, children work, the agent vetoes (`canStopRuntime`) | a turn is busy, the adapter reports live work |
+| Stopped how | the process ended, without ACP `session/close` (which may delete what resume needs) | `session.close()` | the driver released |
+| Woken by | a send, a person opening the chat, a provider switch; reads do not wake | a prompt or opening the agent | the next turn |
+| Woken with | `session/load` (or `session/resume`) on the same conversation, 60 s | the provider's own resume | `resumeThread` |
+| Shown | `hibernated`; the composer still sends | `closed` | `stopped` |
+| A failed wake | queued turns fail, "could not wake the agent" | stays closed, retryable | – |
+
+Vessel parks like Paseo (on by default, an hour) and stops like
+agent-orchestrator (the process ends, no `session/close`), and offers it
+only where the agent can resume: an agent whose handshake says
+`loadSession` (`abilities.resume`).
+
+**What Vessel can and cannot know.** ACP has no call that asks an agent
+whether it has background work (agent-orchestrator's is its own
+extension; neither installed adapter has it). Vessel kills the agent's
+process group when it parks it, so a shell the agent left running in the
+background goes with it. That is why the default wait is long (Paseo's
+hour) and why a person can turn it off for a node.
+
+**When a session is parked.** A structured session that is live and
+ready, whose agent can resume and has a harness session id, when for
+`park_after` nothing happened in it: no turn runs, no permission or
+question waits, the queue is empty or held, no prompt, option change or
+agent output arrived, and no shell beside it (protocol 11's terminals,
+`session` scope) is running. Reads and subscriptions do not count (an
+agent's `wait_turn` or a page left open would otherwise keep every
+session awake). Each session's actor keeps its own deadline, re-armed on
+each event; there is no sweep.
+
+**Parking.** The actor stops the agent as a move to another profile
+does (`SIGTERM`, then `SIGKILL` after 5 s; no `session/close`), keeps its
+last options, commands, usage and abilities, and publishes `status:
+parked { reason }`. The session stays live: listed, on the board as an
+idle running session, its log readable, its queue kept.
+
+**Waking.** Whatever needs the agent wakes it first: a prompt (any
+delivery, `session.send`'s too), a queue change that starts a prompt
+(`send_now`, `resume` with entries), `session.set_option`, and the new
+`session.wake`. The actor publishes `status: starting`, starts the agent
+under the session's current profile with `session/load` (its replay
+dropped, as for a move), and once it is ready publishes `status: running`
+and goes on with what woke it. A `session.move_profile` on a parked
+session moves it (it starts under the new profile). `session.kill` and
+archiving end a parked session without starting it. A wake that fails
+(the agent does not start or `session/load` fails, bounded by the
+handshake timeout) leaves the session parked with `reason: wake_failed {
+message }`, and the call that woke it answers `spawn_failed`; the next
+one tries again.
+
+**Types and calls** (protocol 12):
+
+- `SessionStatus::Parked { reason: ParkReason }`, live. `ParkReason`
+  (tagged `reason`): `idle` (after `park_after`), `asked`
+  (`session.park`), `wake_failed { message }`, `unknown`.
+- `session.park { session }` (operate, ownership-checked): park now.
+  `conflict` when it is not idle (a turn runs, something waits, the queue
+  moves) or not running; `unsupported` for a terminal session or an agent
+  that cannot resume. Already parked: answered with the session.
+- `session.wake { session }` (operate, ownership-checked): wake now,
+  answered once the agent is ready. Not parked: answered at once.
+  `spawn_failed` as above.
+- Both answer `SessionInfo`; forwardable; refused on a connection older
+  than 12.
+- The node's setting: `vesseld --park-after <minutes>` (default 60; 0
+  never parks), in the node's `Config`.
+
+**Older peers.** A client of protocol 2 to 11 gets `Running` where the
+node has `Parked` (in `SessionInfo` and in a status record's stand-in);
+its prompt wakes the session as any prompt does. An older node never
+parks; a client asks it `session.park`/`wake` only at 12 (`Call::since`).
+
+**Bounds.** A wake waits for the handshake (its timeout); a stop waits 5
+s before `SIGKILL`; a parked session holds no process, only its actor
+(its last options, commands and usage in memory). A node restart
+interrupts parked sessions as it does running ones (`session.resume`
+starts them again); keeping them parked across a restart would need the
+node to rebuild their actors at start, which no session does today.
+
+**CLI and agents.** `vessel session park ID`, `vessel session wake ID`;
+`vessel sessions` shows `parked`. The agent tools: none new (an agent's
+`send_input` wakes a session as a person's prompt does).
+
+ADR 0038 records the choice.
+
+### 2. Parking: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) found four blockers, six
+should-fix and a batch of minor points. What changed; where this
+section and the contract above disagree, this one holds:
+
+1. **Prompts could not reach a parked session**: a move's way of
+   holding input (`route` empty, `SessionError::Moving`) refuses every
+   order. The route becomes typed (`Live(input)`, `Moving`, `Parked`):
+   orders pass while parked and the actor wakes for what needs the
+   agent; `session.options` answers the last reported options;
+   `turn_running` answers false; an answer to a permission or question
+   is refused (nothing waits on a parked session). Park is a control
+   message of the actor's, so a prompt that arrives while the agent is
+   being stopped waits its turn instead of being refused.
+2. **A wake would restore old options** (the launch keeps the choices
+   from creation or the last move): a wake starts with the session's
+   current choices and its harness session id, as a move does.
+3. **Older peers and a new status**: `SessionStatus::Parked` would reach
+   protocol 10 and 11 peers through replies `Reply::for_protocol` passes
+   on unchanged (a mark's answer, an export's manifest, an import) and
+   through status records (`since` 2). Taken: the status stays `running`
+   throughout; `SessionInfo.parked?: Parked { since, reason }` says it
+   (absent otherwise, ignored by older peers), and two records,
+   `parked { reason }` and `woken`, both `since 12`, reach older peers as
+   `vessel:` log lines. `is_live`, the page's composer, terminals' status
+   and the board are untouched; the board shows a parked session where it
+   shows an idle one.
+4. **The actor's loop**: while parked the agent's exit and outputs are
+   not waited on; a kill ends the session at once (`exited`, no code), a
+   node stop `interrupted`; park and wake run with the move's flag set,
+   so the old agent's disconnect does not end the session; the published
+   pid is cleared while parked.
+5. **Statuses the compiler does not catch** no longer apply (item 3).
+   A node draining for an update does not wait for parked sessions (they
+   hold no process; its restart interrupts them as any live session).
+6. **A failed wake and automatic prompts**: after `wake_failed`, a
+   prompt delivered `queue` (pull request feedback, a schedule, a
+   starter's notice) goes into the queue, held `failed`, instead of
+   trying again; a person's prompt of another delivery, `session.wake`
+   or the queue's `resume` tries again.
+7. **"No shell beside it running"** cannot be seen by the actor and
+   would keep any session with an open shell awake forever. Replaced by
+   what the brief asks ("never while ... a terminal is attached"),
+   read as agent-orchestrator's view lease: not while anyone follows the
+   session live (a page that has it open, `vessel attach`, an agent's
+   `wait_turn`). A port the agent's processes listen on (a dev server it
+   started) is a real sign of background work; the node's port scan is
+   not wired to sessions' actors yet, so it is left as a known limit.
+8. **The wake's launch**: the session's own (its command, environment
+   and MCP servers as at its start or last move); a profile or agent
+   removed since makes the wake fail (`wake_failed`), and `session.resume`
+   after ending it re-resolves them as it does for an ended session.
+9. **A move while parked** wakes first (under the current profile), then
+   moves; a failed wake fails the move.
+10. **The wake's sequence**: the agent's replay and its `ready` are
+    dropped, as for a move; the actor publishes `woken` once it is ready.
+    A cancel on a parked session holds the queue and answers at once
+    (nothing runs). A kill during a wake ends the session; the call that
+    woke it answers `ended`.
+11. **What restarts the idle clock**: a delivery, a queue change, a
+    cancel, an option change, and the agent's timeline records; not its
+    stderr, usage or commands reports, model calls, forge views or
+    renames (a chatty adapter would never park). The timer is the last
+    arm of the actor's biased `select`.
+12. **Minor**: `Config.park_after` is a duration (`--park-after`
+    minutes on the command line; tests use milliseconds); a wake's
+    failure message is cut at 1 KiB; a parked session keeps its record
+    ring as a running one does; parked sessions an agent started count
+    toward its eight live sessions (ADR 0013); `session.resume` on a
+    parked session is `conflict` (it is live); a parent session is parked
+    while sessions it started work, unlike Paseo, and a starter's notice
+    wakes it (deliberate: the notice is the reason to wake).
+
+Rejected: telling the woken agent in a prompt that its background
+processes were stopped (a line in its conversation the person did not
+write); a veto from the agent (ACP has none).
+
+### 2. Park an idle agent and wake it (built 2026-11-13)
+
+Protocol 12 (no new version: slice 1 raised it), no schema change, ADR
+0038. The design is the contract as its review amended it (above).
+
+- **Wire** (`vessel_proto::parking`): `session.park` and `session.wake`
+  (operate, `since 12`, ownership-checked, forwardable, allowed through
+  `vessel-web`'s bridge and to agents for their own sessions),
+  `ParkSession`, `WakeSession`, `SessionInfo.parked?: Parked { since,
+  reason }`, `ParkReason` (`idle`, `asked`, `wake_failed { message }`,
+  `unknown`), the records `parked { reason }` and `woken` with their
+  `vessel:` log lines for versions 2 to 11.
+- **Session runtime** (`vessel-session/src/parking.rs`): `Route`
+  (`Live`, `Moving`, `Parked`) replaces the move's empty route; the
+  actor's `Parking` (its timer, the last activity, the parked state, the
+  harness session id and the current choices, both kept from the agent's
+  output); park and wake as control messages, reusing the move's
+  `stop_agent` and `start_agent`; a delivery, a queue change, an option
+  change or a move wakes first; after a failed wake a `queue` delivery is
+  queued and the queue held `failed`; reads answer from what was kept.
+  `RuntimeConfig.park_after`.
+- **Node**: `service/parking.rs`; the guard's targets; `--park-after`
+  (`DEFAULT_PARK_AFTER`, 60 minutes); the drain for an update skips
+  parked sessions.
+- **CLI**: `vessel session park|wake ID`; `vessel sessions` shows
+  `(parked)`; `vessel log` and attach show both records.
+- **Agents**: no new tool; `session.park`/`wake` are in the agents'
+  policy for their own sessions (the MCP tools stay as they were).
+
+**Checked**: the proto's (a failure message cut on a character, the
+reason's round trip and a newer reason read as `unknown`, older peers'
+log lines); the session runtime's with the fake agent (an idle agent
+parked by its timer with its process gone and its status `running`,
+reads not waking it, the next prompt waking it with `session/load` and
+the mode a person chose, only two status records; by hand: refused
+before the handshake and while a turn runs, a wake of a running agent
+doing nothing, parked once quiet and parked twice still parked, a cancel
+waking nothing, a kill ending a parked session at once with no exit
+code; a followed session never parked over several periods); the
+node's end to end
+(parked by hand and woken by a prompt over the wire, `parked` and
+`woken` in the log, the conversation going on; an agent that cannot
+load again: `session.wake` answering `spawn_failed`, the session still
+parked saying why, and a `queue` delivery waiting in the queue held
+`failed`).
+
+**Not built, and why**: no port or shell check for the agent's
+background work (the node's port scan is not wired to sessions' actors);
+parked state is not kept across a node restart (a restart interrupts
+live sessions anyway); a family of sessions is not kept awake together
+(a starter's notice wakes the parent).
+
+**For the page track**: `SessionInfo.parked` shows "parked" beside a
+running session (the composer stays enabled: a prompt wakes it); the
+`parked` and `woken` records are timeline marks; `session.wake` is a
+button for a session whose wake failed (`reason: wake_failed` carries
+the message).

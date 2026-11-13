@@ -98,6 +98,7 @@ vessel session queue 3f2a send-now 9c --steer   # remove, hold, resume, clear to
 vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, by field
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
+vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
@@ -116,6 +117,30 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - `vessel sessions` shows each session's marks. `archive` stops a live
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
+- An idle agent is parked (protocol 12): after an hour without activity
+  (`vesseld --park-after MINUTES`, 0 never) its process is stopped while
+  the session stays running, unless a turn runs, something waits on an
+  answer, its queue moves, or someone follows it (a page that has it
+  open, `vessel attach`). The next prompt, option change or `vessel
+  session wake` starts it again on the same conversation; `vessel
+  sessions` says `(parked)`. Only an agent whose adapter can load a
+  conversation again (ACP `loadSession`) is parked; what it left running
+  in the background stops with it.
+
+Search what was said in every session (protocol 12): prompts and the
+agents' replies, live, ended or archived, newest first.
+
+```bash
+vessel search parser 오류                    # every word, inside other words, without case
+vessel search zebrafish --session 3f2a       # one session's
+vessel search parser --before 1763031235000000000   # the next page, from the last line's `more:`
+```
+
+- Each line is a session, the record where the message starts (`vessel
+  log ID --from` that number shows it in place), the time, who said it,
+  and the words in `[` `]`. Tool calls, their output and thoughts are not
+  searched; a reply is found once it has ended.
+- Agents have the same as the `search_sessions` tool.
 
 ### Another machine, over SSH
 

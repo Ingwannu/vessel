@@ -30,6 +30,69 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 12 (2026-11-13, milestone 11, wave 2's second half)
+
+Nodes speak 2..=12. Track A2's (`docs/plans/backend-m11.md`, "Track A2:
+contract"); later tracks of the wave add to it. A client sends none of
+these calls to an older node (`Call::since`); a node refuses them on an
+older connection (`unsupported`, "needs protocol 12").
+
+### Searching every session's messages (track A2, ADR 0037)
+
+One method, `since 12`, read, forwardable, in `vessel-web`'s list; no
+event, no change to an existing type. Types in `vessel_proto::search`.
+
+- `session.search { query: SearchQuery, session?, before?: SearchCursor,
+  limit?: SearchLimit }` → `SearchPage { hits: SearchHit[], next?,
+  reached? }`. `SearchQuery`: 1 to 256 characters once trimmed, at most
+  16 words, no control characters. `SearchLimit`: 1 to 100, 20 when
+  absent. `SearchCursor`: the node's handle, a decimal number in a
+  string.
+- `SearchHit { session, seq, at, role: prompt | reply, snippet }`: `seq`
+  is the record where the message's run starts. `Snippet { parts:
+  SnippetPart { text, matched }[], cut_before, cut_after }`, at most 240
+  characters, white space runs as one space, matches marked by part.
+- Every word must be in a message, in any order, as a substring, without
+  case (not without diacritics). Prompts and the agent's replies only;
+  never thoughts, tool calls or output. A reply is found once it ends.
+- Newest first. `next` while older messages may still match; a page may
+  hold fewer hits than asked and still have it, when its work ran out
+  (10,000 candidates through the index; 20,000 messages when every word
+  is under three characters or `session` is given), with `reached` the
+  time of the oldest message it read.
+- Failures: `invalid_request` (query, limit or cursor), `not_found` (the
+  `session`), `unavailable` (two searches already run on the node),
+  `internal`.
+- Not ownership-checked: agents read the fleet's sessions (ADR 0013), so
+  they search them (the `search_sessions` tool).
+
+### Parking an idle agent (track A2, ADR 0038)
+
+Two methods, one optional field, two records; types in
+`vessel_proto::parking`. The status is unchanged: a parked session is
+`running`.
+
+- `SessionInfo.parked?: Parked { since, reason: ParkReason }`; absent
+  while the agent runs, for an ended session, and from older nodes.
+  `ParkReason` (tagged `reason`): `idle`, `asked`, `wake_failed { message
+  }` (at most 1 KiB), `unknown`.
+- Records `parked { reason }` and `woken` (`since 12`); a version 2-11
+  client gets `vessel: the agent's process was stopped (...)` and
+  `vessel: the agent was started again` as `harness_log` lines.
+- `session.park { session }` and `session.wake { session }` (operate,
+  ownership-checked, forwardable; answer `SessionInfo`). `park`:
+  `conflict` while starting or moving, while a turn runs, while a
+  permission or question waits, or while the queue would move;
+  `unsupported` for a terminal session or an agent that cannot resume.
+  `wake`: answered once the agent is ready; `spawn_failed` when it does
+  not start (the session stays parked, saying why).
+- A prompt of any delivery, a queue change that starts one, an option
+  change and a move wake a parked session first; after a failed wake a
+  `queue` delivery is queued with the queue held `failed`. Reads and a
+  cancel do not wake it.
+- The node parks idle sessions on its own after `--park-after` minutes
+  (60 by default; 0 never), never one that someone follows live.
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;

@@ -70,6 +70,10 @@
 //!   interchangeable); a `#[ts(brand)]` attribute on each type (ts-rs has
 //!   none, and the rule would be spread over many files, with nothing to
 //!   say an alias was never considered).
+//! - Protocol 12's (track A2): `SearchCursor` is the node's handle for
+//!   where a search goes on (a handle, though a number inside, as
+//!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
+//!   quantity.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,7 +186,10 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ScheduleId", Alias::Handle),
     ("ScheduleName", Alias::Named),
     ("ScriptName", Alias::Named),
+    ("SearchCursor", Alias::Handle),
     ("SearchKey", Alias::Handle),
+    ("SearchLimit", Alias::Quantity),
+    ("SearchQuery", Alias::Named),
     ("SecretName", Alias::Named),
     ("SecretText", Alias::Secret),
     ("SecretValue", Alias::Secret),
