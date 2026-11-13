@@ -16,7 +16,7 @@
 //!   above its card; the card `surface1`, 8 round, a hairline of
 //!   `border`; a row 16 by 16, a hairline of `border` above every row
 //!   but the first, its title 14 in the foreground, its hint 12 muted 4
-//!   under it.
+//!   under it, 12 between the words and the control.
 //! - Differences: the switch does not animate yet (Paseo's slides in 180
 //!   ms); a focused switch shows nothing (the owner's rule: no ring).
 
@@ -119,6 +119,20 @@ pub fn row(
     first: bool,
     tokens: &Tokens,
 ) -> Div {
+    row_with_error(title, hint, None, control, first, tokens)
+}
+
+/// [`row`] with an error under its hint (Paseo's `rowError`: 12 in the
+/// danger colour, 4 under the hint).
+#[must_use]
+pub fn row_with_error(
+    title: impl Into<SharedString>,
+    hint: Option<SharedString>,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
     let mut words = div().flex_1().min_w_0().flex().flex_col().child(
         div()
@@ -135,12 +149,22 @@ pub fn row(
                 .child(hint),
         );
     }
+    if let Some(error) = error {
+        words = words.child(
+            div()
+                .mt(px(4.0))
+                .type_(Type::Meta)
+                .text_color(neutral.destructive)
+                .child(error),
+        );
+    }
     div()
         .flex()
         .flex_row()
         .items_center()
         .justify_between()
-        .gap(px(16.0))
+        // Paseo's row content keeps 12 from its control (`marginRight`).
+        .gap(px(12.0))
         .p(px(16.0))
         .when(!first, |row| row.border_t_1().border_color(neutral.border))
         .child(words)
