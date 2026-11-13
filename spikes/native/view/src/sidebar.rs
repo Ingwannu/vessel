@@ -16,44 +16,14 @@
 //! - A machine is connected or not: the link reads the book's machines
 //!   whole on each refresh and keeps no connection open, so the page's
 //!   Connecting, Reconnecting and Draining are not known here yet.
+//! - What the person chose in the Display menu is the preferences'
+//!   (`prefs::SidebarView`, track E's one model), kept and changed there.
 
 use serde::{Deserialize, Serialize};
 use vessel_proto::SessionId;
 
 use crate::board::{Card, Fleet, Machine, Reach};
-
-/// How the sidebar groups sessions.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Group {
-    /// Under their machine (the default).
-    #[default]
-    Machine,
-    /// By what they are doing.
-    Status,
-}
-
-/// What the sidebar orders sessions by, newest first either way.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Sort {
-    /// When they were created (the default).
-    #[default]
-    Created,
-    /// When they last did something.
-    Activity,
-}
-
-/// What the person chose in the Display menu.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SidebarView {
-    /// How sessions are grouped.
-    pub group: Group,
-    /// How they are ordered.
-    pub sort: Sort,
-    /// Whether ended sessions are listed.
-    pub ended: bool,
-}
+use crate::prefs::{Grouping, SessionSort, SidebarView};
 
 /// How many of a machine's sessions the sidebar lists before "N more":
 /// the sidebar is a way to switch, not a second board.
@@ -134,8 +104,8 @@ pub fn listed<'a>(cards: impl IntoIterator<Item = &'a Card>, view: SidebarView) 
         .filter(|card| (view.ended || card.live) && card.detail.marks.archived_at.is_none())
         .collect();
     let at = |card: &Card| match view.sort {
-        Sort::Created => card.detail.created_at,
-        Sort::Activity => card.detail.active_at,
+        SessionSort::Created => card.detail.created_at,
+        SessionSort::Activity => card.detail.active_at,
     };
     shown.sort_by(|one, two| {
         two.detail
@@ -197,12 +167,12 @@ impl Fleet {
     #[must_use]
     pub fn sidebar_order(&self, view: SidebarView) -> Vec<&Card> {
         match view.group {
-            Group::Machine => self
+            Grouping::Machine => self
                 .sidebar_machines(view, SIDEBAR_SESSIONS)
                 .into_iter()
                 .flat_map(|machine| machine.sessions)
                 .collect(),
-            Group::Status => self
+            Grouping::Status => self
                 .sidebar_statuses(view, SIDEBAR_STATUS_SESSIONS)
                 .into_iter()
                 .flat_map(|group| group.sessions)

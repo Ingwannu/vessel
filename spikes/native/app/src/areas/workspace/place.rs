@@ -24,7 +24,9 @@
 //!   across launches as Paseo's preference is (the lead's preferences file
 //!   is not this track's).
 
+use std::cell::Cell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboRow, ComboboxState};
@@ -52,6 +54,9 @@ pub(crate) struct DraftPlace {
     pub(crate) base: ComboboxState,
     /// Each project's branches as last read.
     pub(super) branches: HashMap<(String, ProjectId), Branches>,
+    /// Where the place, isolation and branch pills are drawn, for their
+    /// tooltips (the composer's, one shown at most).
+    pub(crate) tips: [vessel_app_kit::tooltip::Place; 3],
 }
 
 /// A project's branches, for Start from.
@@ -69,6 +74,11 @@ impl DraftPlace {
             isolation: ComboboxState::new(window, cx),
             base: ComboboxState::new(window, cx),
             branches: HashMap::new(),
+            tips: [
+                Rc::new(Cell::new(None)),
+                Rc::new(Cell::new(None)),
+                Rc::new(Cell::new(None)),
+            ],
         }
     }
 }

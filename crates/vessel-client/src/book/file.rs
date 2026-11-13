@@ -342,12 +342,19 @@ impl ProjectConfig {
 
 /// Replace `path` with `text`: write a temporary file next to it, flush it
 /// to disk, rename it over the old one. Creates the directory if needed.
+///
+/// On Unix the file is owner-only (0600) whatever the umask, and a
+/// directory this makes is owner-only (0700); one that exists keeps its
+/// mode. A book may hold a node's token, and the credential store beside
+/// it is written the same way (`credential.rs`); before this the file
+/// followed the caller's umask (0664 under a common one). Windows keeps
+/// the profile's inherited ACL.
 fn write_atomically(path: &Path, text: &str) -> std::io::Result<()> {
     let directory = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    std::fs::create_dir_all(directory)?;
+    private_dir(directory)?;
     let mut temporary = tempfile_in(directory)?;
     temporary.1.write_all(text.as_bytes())?;
     temporary.1.sync_all()?;
@@ -363,11 +370,7 @@ fn tempfile_in(directory: &Path) -> std::io::Result<(PathBuf, std::fs::File)> {
     loop {
         let name = format!(".nodes.toml.{}.{attempt}.tmp", std::process::id());
         let path = directory.join(name);
-        match std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&path)
-        {
+        match new_private_file(&path) {
             Ok(file) => return Ok((path, file)),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists && attempt < 16 => {
                 attempt = attempt.saturating_add(1);
@@ -375,4 +378,41 @@ fn tempfile_in(directory: &Path) -> std::io::Result<(PathBuf, std::fs::File)> {
             Err(error) => return Err(error),
         }
     }
+}
+
+/// `directory` and its missing parents, made owner-only when this makes
+/// them.
+#[cfg(unix)]
+fn private_dir(directory: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt as _;
+
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(directory)
+}
+
+#[cfg(not(unix))]
+fn private_dir(directory: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(directory)
+}
+
+/// A new file at `path`, owner-only on Unix.
+#[cfg(unix)]
+fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::fs::OpenOptionsExt as _;
+
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)
+}
+
+#[cfg(not(unix))]
+fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
 }

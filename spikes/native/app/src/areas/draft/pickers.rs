@@ -26,6 +26,7 @@ use super::features::feature_name;
 use super::{Probe, Shown, pill_with};
 use crate::areas::workspace::{PlacePick, PlaceRows};
 use crate::shell::Shell;
+use vessel_app_view::extras::{Extra, extra_of};
 
 /// Which picker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -355,6 +356,11 @@ pub(super) fn place(
     );
     let isolation = pills.as_ref().and_then(|pills| pills.isolation);
     let base = pills.and_then(|pills| pills.base);
+    // Each says what it is on hover too (Paseo's tooltips on the
+    // new-workspace fields), in the composer's tooltips.
+    let labels = shell.words().labels();
+    let tips = &draft.features.tips;
+    let places = &shell.areas.workspace.place.tips;
     div()
         .flex()
         .flex_row()
@@ -381,51 +387,78 @@ pub(super) fn place(
             })),
         )
         .child(
-            pill_with(
-                "pick-folder",
-                &draft.lists.folder,
-                folder_parts,
+            tips.on(
+                pill_with(
+                    "pick-folder",
+                    &draft.lists.folder,
+                    folder_parts,
+                    touch,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _event, window, cx| {
+                    this.open_picker(Picker::Folder, window, cx);
+                })),
+                &places[0],
+                labels.tip_place,
                 touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Folder, window, cx);
-            })),
+            ),
         )
-        .children(isolation.map(|(label, leading)| {
-            pill_with(
-                "pick-isolation",
-                &shell.areas.workspace.place.isolation,
-                PillParts {
-                    leading: Some(leading),
-                    label: Some(label.into()),
-                    caret: true,
-                    ..PillParts::default()
-                },
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Isolation, window, cx);
-            }))
-        }))
-        .children(base.map(|label| {
-            pill_with(
-                "pick-base",
-                &shell.areas.workspace.place.base,
-                PillParts {
-                    leading: Some(Glyph::Branch),
-                    label: Some(label),
-                    caret: true,
-                    ..PillParts::default()
-                },
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Base, window, cx);
-            }))
-        }))
+        .children(project_pills(shell, isolation, base, touch, tokens, cx))
+}
+
+/// A chosen project's Isolation and Branch pills (track F's words), each
+/// with its tooltip.
+fn project_pills(
+    shell: &Shell,
+    isolation: Option<(&'static str, Glyph)>,
+    base: Option<vessel_app_kit::ui::SharedString>,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> impl Iterator<Item = vessel_app_kit::ui::Stateful<Div>> {
+    let labels = shell.words().labels();
+    let tips = &shell.areas.draft.features.tips;
+    let places = &shell.areas.workspace.place.tips;
+    let isolation = isolation.map(|(label, leading)| {
+        let pill = pill_with(
+            "pick-isolation",
+            &shell.areas.workspace.place.isolation,
+            PillParts {
+                leading: Some(leading),
+                label: Some(label.into()),
+                caret: true,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_picker(Picker::Isolation, window, cx);
+        }));
+        tips.on(pill, &places[1], labels.tip_isolation, touch)
+    });
+    let base = base.map(|label| {
+        let pill = pill_with(
+            "pick-base",
+            &shell.areas.workspace.place.base,
+            PillParts {
+                leading: Some(Glyph::Branch),
+                // "Start from main": the branch alone could be the
+                // one the chat runs on.
+                prefix: Some(labels.start_from.into()),
+                label: Some(label),
+                caret: true,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_picker(Picker::Base, window, cx);
+        }));
+        tips.on(pill, &places[2], labels.tip_base, touch)
+    });
+    isolation.into_iter().chain(base)
 }
 
 /// What a row of a list means.
@@ -539,8 +572,15 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
         built.header.empty = words.no_hosts.into();
         return;
     };
-    // The draft agent's other options first, while not searching.
-    let on_top = if query.is_empty() {
+    // The draft agent's other options first, while not searching and not
+    // browsing another agent's models.
+    let browsing_other = shell
+        .areas
+        .draft
+        .browsing
+        .as_ref()
+        .is_some_and(|browsing| shell.areas.draft.agent.as_ref() != Some(browsing));
+    let on_top = if query.is_empty() && !browsing_other {
         option_rows_on_top(shell, built)
     } else {
         0
@@ -637,43 +677,72 @@ fn heading_after_options(on_top: usize, first: usize, heading: &str, built: &mut
 
 /// The draft agent's options the effort control does not drive, as rows
 /// at the top of the model's list (where the owner's reference has its
-/// one switch): an on/off option a switch, a choice its value opening its
-/// own list. Claude Code's "Agent" says what it is under its name. How
-/// many rows were added.
+/// one switch), in the app's words (`view::extras`): Claude Code's
+/// answering agent, a choice opening its own list; Codex's plan mode, a
+/// switch. Each says in a line what it does; an option the app has no
+/// words for gets no row. How many rows were added.
 fn option_rows_on_top(shell: &Shell, built: &mut Built) -> usize {
     let Some(Shown::Ready(controls)) = shell.shown() else {
         return 0;
     };
-    let drives = |id: &OptionId| {
-        controls
+    let kind = shell.areas.draft.agent.as_ref().and_then(super::kind_of);
+    let words = shell.t.lang.options();
+    let before = built.rows.len();
+    for select in &controls.selects {
+        if controls
             .slider
             .as_ref()
-            .is_some_and(|effort| effort.drives(id))
-    };
-    let words = shell.t.lang.options();
-    let claude = shell.areas.draft.agent.as_ref()
-        == Some(&HarnessRef::Known(vessel_proto::HarnessKind::ClaudeCode));
-    let before = built.rows.len();
-    for toggle in controls.toggles.iter().filter(|toggle| !drives(&toggle.id)) {
-        let mut row = ComboRow::new(feature_name(&toggle.name, &toggle.id).to_owned());
-        row.switch = Some(toggle.on);
-        row.note = toggle.description.clone().map(Into::into);
-        built.rows.push(row);
-        built
-            .meanings
-            .push(Meaning::Choose(toggle.choose(!toggle.on), false));
-    }
-    for select in controls.selects.iter().filter(|select| !drives(&select.id)) {
-        let mut row = ComboRow::new(feature_name(&select.name, &select.id).to_owned());
-        row.trailing = Some(select.current_name().to_owned().into());
-        row.opens = true;
-        if claude && select.id.as_str() == "agent" {
-            row.note = Some(words.claude_agent_note.into());
+            .is_some_and(|effort| effort.drives(&select.id))
+        {
+            continue;
         }
-        built.rows.push(row);
-        built.meanings.push(Meaning::Feature(select.id.clone()));
+        let Some(extra) = extra_of(kind, &select.id) else {
+            continue;
+        };
+        match extra {
+            Extra::AnsweringAgent => {
+                let mut row = ComboRow::new(words.answering_agent);
+                row.note = Some(words.answering_agent_note.into());
+                row.trailing = Some(
+                    value_words(
+                        select.current.as_str(),
+                        select.current_name(),
+                        words.default_model,
+                    )
+                    .into(),
+                );
+                row.opens = true;
+                built.rows.push(row);
+                built.meanings.push(Meaning::Feature(select.id.clone()));
+            }
+            Extra::PlanMode => {
+                let Some((on_value, off_value)) = extra.switch_values() else {
+                    continue;
+                };
+                let on = select.current.as_str() == on_value;
+                let mut row = ComboRow::new(words.plan_mode);
+                row.note = Some(words.plan_mode_note.into());
+                row.switch = Some(on);
+                built.rows.push(row);
+                let next = if on { off_value } else { on_value };
+                built.meanings.push(Meaning::Choose(
+                    select.choose(vessel_proto::OptionValueId::new(next)),
+                    false,
+                ));
+            }
+        }
     }
     built.rows.len().saturating_sub(before)
+}
+
+/// A value as a list says it: the agent's "default" in the app's words,
+/// any other by the agent's name for it.
+fn value_words<'a>(id: &str, name: &'a str, default: &'a str) -> &'a str {
+    if id == vessel_app_view::extras::DEFAULT_VALUE {
+        default
+    } else {
+        name
+    }
 }
 
 /// An agent's row in the model selector: its count of models, "Loading",
@@ -683,10 +752,18 @@ fn agent_row(shell: &Shell, machine: &str, agent: &Agent) -> ComboRow {
     let mut row = ComboRow::new(agent.name.clone());
     row.leading = Some(Leading::Glyph(Glyph::Bot));
     row.checked = shell.areas.draft.agent.as_ref() == Some(&agent.harness);
-    if let Some(why) = &agent.unavailable {
+    if agent.unavailable.is_some() {
+        // The app's own short words, not the node's sentence (which a
+        // narrow list cuts, in English in a Korean list).
         row.disabled = true;
-        row.trailing = Some(words.unavailable.into());
-        row.detail = Some(why.clone().into());
+        row.trailing = Some(
+            if agent.not_installed {
+                words.not_installed
+            } else {
+                words.unavailable
+            }
+            .into(),
+        );
         return row;
     }
     row.opens = true;
@@ -773,12 +850,19 @@ fn feature_list(shell: &Shell, controls: &Controls, id: &OptionId, query: &str, 
                 .push(Meaning::Choose(toggle.choose(on), true));
         }
     } else if let Some(select) = controls.selects.iter().find(|select| &select.id == id) {
-        built.header.title = Some(feature_name(&select.name, &select.id).to_owned().into());
+        let kind = shell.areas.draft.agent.as_ref().and_then(super::kind_of);
+        let title = match extra_of(kind, &select.id) {
+            Some(Extra::AnsweringAgent) => words.answering_agent.to_owned(),
+            Some(Extra::PlanMode) => words.plan_mode.to_owned(),
+            None => feature_name(&select.name, &select.id).to_owned(),
+        };
+        built.header.title = Some(title.into());
         for value in &select.values {
-            if !matches(&value.name, query) {
+            let shown = value_words(value.id.as_str(), &value.name, words.default_model);
+            if !matches(shown, query) {
                 continue;
             }
-            let mut row = ComboRow::new(value.name.clone());
+            let mut row = ComboRow::new(shown.to_owned());
             row.checked = value.id == select.current;
             built.rows.push(row);
             built
@@ -801,9 +885,12 @@ fn machine_rows(shell: &Shell, query: &str, tokens: &Tokens, built: &mut Built) 
             Reach::Online => tokens.st_ready,
             Reach::Unreachable(_) => tokens.danger,
         }));
-        if let Reach::Unreachable(why) = &machine.reach {
+        // The app's word for the state, not the transport's text (the
+        // sidebar's line says what to do and its tooltip keeps the
+        // transport's); the state, as the line would not fit the row.
+        if matches!(machine.reach, Reach::Unreachable(_)) {
             row.disabled = true;
-            row.detail = Some(why.clone().into());
+            row.detail = Some(shell.t.unreachable.into());
         }
         row.checked = shell.areas.draft.machine.as_deref() == Some(machine.name.as_str());
         built.rows.push(row);

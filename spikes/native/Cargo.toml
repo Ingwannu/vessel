@@ -149,6 +149,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # NFD for find's folding of accents (MIT or Apache-2.0).
 unicode-normalization = "0.1"
+qrcode = { version = "0.14", default-features = false }
 
 [profile.release]
 # Thin link-time optimisation across crates, cargo's 16 codegen units:

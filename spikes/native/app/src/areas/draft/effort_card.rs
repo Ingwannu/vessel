@@ -21,10 +21,11 @@
 //! - Colours: two points are visible in the captures, "High" (a muted
 //!   warm fill, the reference's muted text colour) and the top step (a
 //!   gradient from blue to violet with sparkles, its word violet). The
-//!   ramp between them is inferred: the lower half of the levels is the
-//!   muted text colour; above it the fill moves toward the violet, up to
-//!   two thirds of the way at the highest level; the top step is the
-//!   gradient. Fast mode makes the fill move (a sheen crossing it, the
+//!   ramp between them is inferred: the lower half of the steps below the
+//!   top is the muted text colour; above it the fill moves toward the
+//!   violet, up to two thirds of the way just below the top; the last
+//!   step (an agent's "ultra" switch, or its own highest level, as
+//!   Codex's Ultra in the captures) is the gradient. Fast mode makes the fill move (a sheen crossing it, the
 //!   sparkles quicker); with it off only the top step's sparkles drift.
 //! - Differences: when fast mode is off the control leads with Paseo's
 //!   model glyph (the captures show only the bolt, fast on); an agent with
@@ -84,9 +85,11 @@ impl CardState {
     }
 }
 
-/// Whether `index` is the top step (the agent's "ultra" switch).
+/// Whether `index` is the last step, drawn as the top: the agent's
+/// "ultra" switch (Claude Code's Ultracode) or its own highest level
+/// (Codex's Ultra, the reference's top step).
 fn is_top(effort: &Effort, index: usize) -> bool {
-    matches!(effort.steps.get(index), Some(Step::Top { .. }))
+    effort.steps.len().checked_sub(1) == Some(index)
 }
 
 /// The step's word, as the agent says it.
@@ -98,14 +101,14 @@ fn word(effort: &Effort, index: Option<usize>) -> Option<&str> {
         })
 }
 
-/// How far up the levels `index` is, 0 to 1.
+/// How far up the steps below the top `index` is, 0 to 1.
 fn height(effort: &Effort, index: usize) -> f32 {
-    let levels = effort
-        .steps
-        .iter()
-        .filter(|step| matches!(step, Step::Level { .. }))
-        .count();
-    let last = f32::from(u16::try_from(levels.saturating_sub(1)).unwrap_or(1).max(1));
+    let below_top = effort.steps.len().saturating_sub(1);
+    let last = f32::from(
+        u16::try_from(below_top.saturating_sub(1))
+            .unwrap_or(1)
+            .max(1),
+    );
     let index = f32::from(u16::try_from(index).unwrap_or(0));
     index.mul_add(last.recip(), 0.0).clamp(0.0, 1.0)
 }

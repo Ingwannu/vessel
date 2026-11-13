@@ -22,10 +22,8 @@
 //! - Cost: leaving the screen does not stop the start (the card is back on
 //!   return while it runs); Stop drops the answers' channel, which ends the
 //!   walk at its next step.
-//! - Differences from Paseo: the state's icon while running is a dot of
-//!   the building tone, not Paseo's spinner (the kit has no spinner yet);
-//!   the node streams setup as one log, so there is one item, not one per
-//!   command.
+//! - Differences from Paseo: the node streams setup as one log, so there
+//!   is one item, not one per command.
 
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{

@@ -172,11 +172,19 @@ impl Shell {
     }
 
     /// Pairing worked: the draft next, to start working there.
-    pub(crate) fn paired(&mut self, node: &str, route: &str, cx: &mut Context<'_, Self>) {
+    pub(crate) fn paired(
+        &mut self,
+        node: &str,
+        via: vessel_app_view::Via,
+        address: String,
+        cx: &mut Context<'_, Self>,
+    ) {
         let pair = &mut self.areas.pair;
         pair.busy = false;
         pair.offer = None;
-        self.notice = Some(self.t.paired(node, route));
+        let notice = self.t.paired(node, via);
+        self.notice_detail = Some((notice.clone(), address));
+        self.notice = Some(notice);
         self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
