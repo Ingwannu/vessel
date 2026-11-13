@@ -49,3 +49,10 @@ an outer padded wrapper. Compact keeps its separate top-padding wrapper.
 A regression inspects the actual returned Div's full width, total height,
 bottom border and padding; native edge-pixel captures must confirm both
 ends.
+
+## Integration with the current shared breakpoint
+
+The canonical touch target now lives in `kit::breakpoint::TOUCH_TARGET` on
+the desktop base. The menu control and its regression use that path rather
+than the removed popup re-export. This changes no numeric value, geometry,
+callback, appearance or motion profile; the target remains 44 points.

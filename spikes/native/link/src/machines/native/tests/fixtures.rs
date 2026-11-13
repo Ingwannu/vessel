@@ -47,6 +47,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             follow_machine: None,
             book_path: BookPath::File(home.book()),
             workspace: crate::workspace::Hub::default(),
+            agents: crate::agents::Hub::default(),
             device_calls: crate::devices::Hub::default(),
         },
         receiving,
