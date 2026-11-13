@@ -47,8 +47,9 @@ use gpui_component::scroll::ScrollableMask;
 
 use crate::chat_markdown::Look;
 use crate::copy::copy_button;
-use crate::fonts::MONO;
+use crate::fonts::Type;
 use crate::theme::Tokens;
+use crate::widgets::TypeExt as _;
 
 /// The box's height by its number of lines, up to the cap (GOAT's
 /// `max-h-48`, 192): 20 a line and 8 above and below.
@@ -247,7 +248,7 @@ pub fn lines_box(
         .border_1()
         .border_color(look.edge)
         .bg(look.fill)
-        .font_family(MONO)
+        .face(Type::Mono)
         .text_size(px(crate::fonts::code(SIZE)))
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(look.text.opacity(0.8))
@@ -275,10 +276,28 @@ pub fn output_box(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
-    // A text only grows or is replaced; its length tells versions apart
-    // well enough to split it once per change.
-    let version = u64::try_from(text.len()).unwrap_or(u64::MAX);
-    lines_box(id, version, || Lines::text(text), start, tokens, window, cx)
+    lines_box(
+        id,
+        version_of(text),
+        || Lines::text(text),
+        start,
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// A version of `text` for [`lines_box`]: its hash, so that any change
+/// splits it again. Its length alone was the version before, and two
+/// texts of one length shown one after the other (two errors, two tool
+/// outputs) left the first on screen. Hashing reads the text each frame:
+/// about a tenth of a millisecond for 100 KB.
+#[must_use]
+pub fn version_of(text: &str) -> u64 {
+    use std::hash::{DefaultHasher, Hash as _, Hasher as _};
+    let mut hasher = DefaultHasher::new();
+    text.hash(&mut hasher);
+    hasher.finish()
 }
 
 /// One diff line drawn on its own, as a row of a long list (the code
@@ -294,7 +313,7 @@ pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
     };
     div()
         .w_full()
-        .font_family(MONO)
+        .face(Type::Mono)
         .text_size(px(crate::fonts::code(SIZE)))
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(paint.look.text.opacity(0.8))
@@ -360,7 +379,19 @@ fn widest(lines: &[Line]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lines, Tone, widest};
+    use super::{Lines, Tone, version_of, widest};
+
+    // Two texts of one length, one after the other (two errors): each is
+    // a version of its own, so the box splits the second again; the same
+    // text again is the same version, so the box keeps what it split.
+    #[test]
+    fn texts_of_one_length_are_different_versions() {
+        let first = "error: the branch is behind";
+        let second = "error: the remote is behind";
+        assert_eq!(first.len(), second.len());
+        assert_ne!(version_of(first), version_of(second));
+        assert_eq!(version_of(first), version_of(first));
+    }
 
     #[test]
     fn a_text_keeps_its_blank_lines_and_copies_whole() {

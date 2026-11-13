@@ -29,7 +29,12 @@ pub(crate) fn title_bar(
         // At a phone's width the sidebar is a sheet, opened from here
         // (ADR 0036). The button occludes the bar so a press is the
         // button's, not the bar's drag.
-        .when(narrow, |content| {
+        // Also on a wide window while the sidebar is hidden (Mod+B or this
+        // button), to bring it back. Paseo keeps its sidebar toggle in the
+        // header at every width; here the wide title bar shows it only
+        // while the sidebar is hidden (a difference: the wide title bar
+        // stays as it was while the sidebar is there to close).
+        .when(narrow || !shell.sidebar_shown(), |content| {
             content.child(
                 div()
                     .id("open-sidebar")
@@ -48,7 +53,9 @@ pub(crate) fn title_bar(
                             .size(px(14.0))
                             .text_color(tokens.text_secondary),
                     )
-                    .on_click(cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx))),
+                    .on_click(
+                        cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
+                    ),
             )
         })
         // The mark in the text's colour at the text's size, beside the name

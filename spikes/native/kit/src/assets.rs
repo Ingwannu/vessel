@@ -2,8 +2,9 @@
 //! four glyphs, as SVG paths on a 10 by 10 grid (Windows 11's shapes:
 //! a line, a square, two offset squares, a cross).
 //!
-//! Embedded as text, not files: four short paths need no bundle, and an
-//! app built from the kit needs no asset directory to draw its chrome.
+//! Embedded as text, not files: the kit needs no separate asset bundle.
+//! The inventory and inline drawings stay together so a registration is
+//! reviewed with its vector; that is why this file exceeds 400 lines.
 
 use std::borrow::Cow;
 
@@ -62,6 +63,13 @@ pub enum Glyph {
     Bot,
     /// A failure.
     Alert,
+    /// A success alert: a check inside a circle, drawn on the kit's own grid.
+    CircleCheck,
+    /// An error alert: a cross inside a circle, drawn on the kit's own grid.
+    CircleX,
+    /// Scheduling: a calendar with a clock, on the shared 24-unit line grid.
+    /// One asset serves navigation and empty states; no screen draws a second.
+    CalendarClock,
     /// A folder.
     Folder,
     /// A machine.
@@ -105,8 +113,40 @@ pub enum Glyph {
     LightningFilled,
     /// Back to the default: an arrow turning back.
     Reset,
+    /// A terminal session (a prompt's chevron and a line).
+    Terminal,
+    /// A conversation (a speech bubble).
+    Message,
+    /// The archive (a box with its lid).
+    Archive,
+    /// Delete for good.
+    Trash,
+    /// A delete action with the two interior bin strokes (legacy Trash stays).
+    Trash2,
+    /// Restore an archived item: the archive with its upward arrow.
+    ArchiveRestore,
+    /// A horizontal minus on the shared line grid.
+    Minus,
+    /// Create another branch, with the plus beside the branch's nodes.
+    GitBranchPlus,
+    /// A commit node on its history line.
+    Commit,
+    /// Undo a file change: a returning arrow, separate from Reset.
+    Undo2,
+    /// Pinned.
+    Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// A pencil: edit (a queued message).
+    Pencil,
+    /// An arrow turning up and right: send into the running turn (GOAT's
+    /// steer, `CornerUpRight`).
+    Steer,
+    /// Six dots: a handle to drag a row by.
+    Grip,
+    /// An X on the line glyphs' grid: take a row out (a queued message;
+    /// the window's `Close` fills its box and reads heavier beside them).
+    Remove,
     /// A file (the Files tree, Paseo's `File`).
     File,
     /// The code panel's toggle (Paseo's `PanelRight`).
@@ -114,7 +154,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 43] = [
+const ALL: [Glyph; 61] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -134,6 +174,9 @@ const ALL: [Glyph; 43] = [
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
+    Glyph::CircleCheck,
+    Glyph::CircleX,
+    Glyph::CalendarClock,
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
@@ -155,7 +198,22 @@ const ALL: [Glyph; 43] = [
     Glyph::Lightning,
     Glyph::LightningFilled,
     Glyph::Reset,
+    Glyph::Terminal,
+    Glyph::Message,
+    Glyph::Archive,
+    Glyph::Trash,
+    Glyph::Trash2,
+    Glyph::ArchiveRestore,
+    Glyph::Minus,
+    Glyph::GitBranchPlus,
+    Glyph::Commit,
+    Glyph::Undo2,
+    Glyph::Pin,
     Glyph::Spinner,
+    Glyph::Pencil,
+    Glyph::Steer,
+    Glyph::Grip,
+    Glyph::Remove,
     Glyph::File,
     Glyph::PanelRight,
 ];
@@ -196,6 +254,9 @@ impl Glyph {
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
+            Self::CircleCheck => "kit/circle-check.svg",
+            Self::CircleX => "kit/circle-x.svg",
+            Self::CalendarClock => "kit/calendar-clock.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
@@ -219,7 +280,22 @@ impl Glyph {
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
+            Self::Terminal => "kit/terminal.svg",
+            Self::Message => "kit/message.svg",
+            Self::Archive => "kit/archive.svg",
+            Self::Trash => "kit/trash.svg",
+            Self::Trash2 => "kit/trash-2.svg",
+            Self::ArchiveRestore => "kit/archive-restore.svg",
+            Self::Minus => "kit/minus.svg",
+            Self::GitBranchPlus => "kit/git-branch-plus.svg",
+            Self::Commit => "kit/commit.svg",
+            Self::Undo2 => "kit/undo-2.svg",
+            Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Pencil => "kit/pencil.svg",
+            Self::Steer => "kit/steer.svg",
+            Self::Grip => "kit/grip.svg",
+            Self::Remove => "kit/remove.svg",
         }
     }
 
@@ -267,6 +343,17 @@ impl Glyph {
             Self::Alert => {
                 line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
             }
+            Self::CircleCheck => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M7.5 12l3 3 6-6"/>"#)
+            }
+            Self::CircleX => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
+            }
+            // Own calendar/clock composition; the macro supplies the same
+            // stroke, caps and joins as the neighbouring kit line drawings.
+            Self::CalendarClock => line_glyph!(
+                r#"<path d="M10 20H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M8 3v4M16 3v4M4 10h16"/><circle cx="17" cy="17" r="4.5"/><path d="M17 14.5v2.75l1.75 1"/>"#
+            ),
             Self::Folder => line_glyph!(
                 r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
             ),
@@ -281,6 +368,16 @@ impl Glyph {
             ),
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
+            ),
+            Self::Pencil => line_glyph!(
+                r#"<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/><path d="M14.5 5.5l3 3"/>"#
+            ),
+            Self::Remove => line_glyph!(r#"<path d="M18 6L6 18M6 6l12 12"/>"#),
+            Self::Steer => {
+                line_glyph!(r#"<path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>"#)
+            }
+            Self::Grip => line_glyph!(
+                r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
             ),
             Self::Copy => line_glyph!(
                 r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
@@ -336,6 +433,36 @@ impl Glyph {
             ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
+            ),
+            // The page's own drawings (`web/src/ui/kit/icon.css`, on a
+            // 16 grid at a stroke of 1), at one and a half times.
+            Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
+            Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::Archive => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
+            ),
+            Self::Trash => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
+            ),
+            Self::Trash2 => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6M9.75 9.5v8M14.25 9.5v8"/>"#
+            ),
+            Self::ArchiveRestore => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5M12 17.25v-5.5M8.75 15 12 11.75 15.25 15"/>"#
+            ),
+            Self::Minus => line_glyph!(r#"<path d="M5.25 12h13.5"/>"#),
+            Self::GitBranchPlus => line_glyph!(
+                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9M15 18h6M18 15v6"/>"#
+            ),
+            // Reuse the git track's original drawing, rather than a second Commit.
+            Self::Commit => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="4"/><path d="M3 12h5M16 12h5"/>"#)
+            }
+            Self::Undo2 => {
+                line_glyph!(r#"<path d="M9 5.5 4.5 10 9 14.5M5 10h8a6 6 0 0 1 6 6v3"/>"#)
+            }
+            Self::Pin => line_glyph!(
+                r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),
         }
     }
@@ -442,7 +569,8 @@ pub enum IconError {
 
 #[cfg(test)]
 mod tests {
-    use super::{MARK, view_box, window_icon};
+    use super::{Assets, Glyph, MARK, view_box, window_icon};
+    use gpui::AssetSource as _;
 
     #[test]
     fn the_icon_is_drawn_from_the_marks_own_view_box() {
@@ -453,5 +581,61 @@ mod tests {
         assert_eq!(icon.get_pixel(0, 0).0[3], 0);
         let edge = icon.get_pixel(32, 2).0;
         assert_eq!((edge[0], edge[1], edge[2]), (0x1a, 0x58, 0x68));
+    }
+
+    #[test]
+    fn calendar_clock_is_registered_and_renders_unclipped_at_24() {
+        let glyph = Glyph::CalendarClock;
+        assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        assert_eq!(
+            Assets.list(glyph.path()).unwrap(),
+            [gpui::SharedString::from("kit/calendar-clock.svg")]
+        );
+        let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+        resvg::render(
+            &tree,
+            resvg::tiny_skia::Transform::identity(),
+            &mut pixels.as_mut(),
+        );
+        let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+        assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+        for at in 0..24 {
+            for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
+    }
+
+    #[test]
+    fn archive_and_git_glyphs_are_registered_and_unclipped() {
+        for glyph in [
+            Glyph::Trash2,
+            Glyph::ArchiveRestore,
+            Glyph::Minus,
+            Glyph::GitBranchPlus,
+            Glyph::Commit,
+            Glyph::Undo2,
+        ] {
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::identity(),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0), "{glyph:?}");
+            for at in 0..24 {
+                for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0, "{glyph:?}");
+                }
+            }
+        }
+        assert_eq!(Glyph::Commit.path(), "kit/commit.svg");
     }
 }

@@ -11,6 +11,18 @@
 //!   [`vessel_proto::PairingLink`], whose `Debug` never prints it, so it
 //!   reaches no log, no capture's name and no test's failure message.
 
+mod details;
+mod invitation;
+mod page;
+pub mod qr;
+mod target;
+pub mod time;
+
+pub use details::{DeviceState, details, exact};
+pub use invitation::{DisplayLimit, Pairing, invitation_route};
+pub use page::{Inviting, Listing, Problem, Revoking, Ticket, Tickets};
+pub use target::{MachineKey, Page, Target};
+
 use chrono::{DateTime, Duration, Utc};
 use vessel_proto::DeviceInfo;
 
@@ -45,19 +57,26 @@ pub fn invite_label(text: &str) -> Option<String> {
 #[must_use]
 pub fn device_line(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>) -> Vec<String> {
     let words = lang.machines();
-    let may: Vec<&str> = device
-        .scopes
-        .iter()
-        .map(|scope| words.scope(*scope))
-        .collect();
     vec![
-        words.may(&may),
+        scope_line(lang, device),
         device.last_seen.map_or_else(
             || words.never_seen.to_owned(),
             |seen| words.seen(Ago::of(seen, now)),
         ),
         words.paired(Ago::of(device.created_at, now)),
     ]
+}
+
+/// The page's scope sentence, shared by compact and descriptive rows.
+#[must_use]
+pub fn scope_line(lang: Lang, device: &DeviceInfo) -> String {
+    let words = lang.machines();
+    let may: Vec<_> = device
+        .scopes
+        .iter()
+        .map(|scope| words.scope(*scope))
+        .collect();
+    words.may(&may)
 }
 
 /// Whether a pairing link is shown, and since when.
@@ -75,7 +94,10 @@ impl LinkShown {
     /// was shown it is hidden again).
     #[must_use]
     pub fn visible(self, now: DateTime<Utc>) -> bool {
-        self.hides_at().is_some_and(|hides| now < hides)
+        match self {
+            Self::Hidden => false,
+            Self::Since(at) => now >= at && self.hides_at().is_some_and(|hides| now < hides),
+        }
     }
 
     /// When it hides by itself, if shown.
@@ -87,3 +109,6 @@ impl LinkShown {
         }
     }
 }
+
+/// Password-equivalent guidance below a pairing link needs a warning notice.
+pub const PAIRING_WARNING: crate::alert::Variant = crate::alert::Variant::Warning;

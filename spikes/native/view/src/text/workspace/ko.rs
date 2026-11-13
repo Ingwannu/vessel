@@ -514,7 +514,11 @@ impl WorkspaceWords for Ko {
             Problem::Older => {
                 "이 머신의 Vessel이 너무 오래돼 쓸 수 없습니다. 업데이트하세요.".to_owned()
             }
-            Problem::Gone(why) => format!("머신에 닿지 못했습니다: {why}"),
+            // Not the transport's text (English, with the endpoint).
+            Problem::Gone(_) => {
+                "머신에 연결할 수 없습니다. 머신이 켜져 있고 노드가 실행 중인지 확인하세요."
+                    .to_owned()
+            }
         }
     }
 

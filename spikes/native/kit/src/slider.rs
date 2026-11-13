@@ -185,7 +185,7 @@ pub fn slider(
         .bottom_0()
         .left(px(INSET))
         .right(px(INSET))
-        .child(drag_listener(state, steps, on_step));
+        .child(drag_listener(state, steps));
     if shown.is_some() {
         line = line.child(fill(&id, look, fraction));
     }
@@ -220,6 +220,8 @@ pub fn slider(
                 window.refresh();
             }
         })
+        .on_mouse_up(MouseButton::Left, release(state, on_step))
+        .on_mouse_up_out(MouseButton::Left, release(state, on_step))
         .on_key_down(move |event, window, cx| {
             let last = steps.saturating_sub(1);
             let from = at.unwrap_or(0);
@@ -239,12 +241,12 @@ pub fn slider(
 }
 
 /// Records where the steps' line is drawn, and while dragging hears the
-/// pointer anywhere in the window: its moves pick the step shown, its
-/// release chooses it.
-fn drag_listener(state: &SliderState, steps: usize, on_step: &OnStep) -> AnyElement {
+/// pointer's moves anywhere in the window (they pick the step shown). The
+/// release is heard by the slider itself, over it or outside it: a quick
+/// click's release can come before this frame's listeners are painted.
+fn drag_listener(state: &SliderState, steps: usize) -> AnyElement {
     let probe_line = Rc::clone(&state.line);
     let drag = Rc::clone(&state.dragging);
-    let on_step = Rc::clone(on_step);
     canvas(
         move |bounds, _window, _cx| probe_line.set(Some(bounds)),
         move |bounds, (), window, _cx| {
@@ -261,21 +263,26 @@ fn drag_listener(state: &SliderState, steps: usize, on_step: &OnStep) -> AnyElem
                     }
                 }
             });
-            let releasing = Rc::clone(&drag);
-            let chosen = Rc::clone(&on_step);
-            window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
-                if phase.bubble() && event.button == MouseButton::Left {
-                    if let Some(step) = releasing.take() {
-                        chosen(step, window, cx);
-                    }
-                    window.refresh();
-                }
-            });
         },
     )
     .absolute()
     .size_full()
     .into_any_element()
+}
+
+/// A release: the step shown while dragging is chosen.
+fn release(
+    state: &SliderState,
+    on_step: &OnStep,
+) -> impl Fn(&MouseUpEvent, &mut Window, &mut App) + 'static {
+    let dragging = Rc::clone(&state.dragging);
+    let chosen = Rc::clone(on_step);
+    move |_event, window, cx| {
+        if let Some(step) = dragging.take() {
+            chosen(step, window, cx);
+            window.refresh();
+        }
+    }
 }
 
 /// The fill, from the track's start to the thumb at `fraction`.
@@ -321,8 +328,10 @@ fn dot(index: usize, steps: usize, filled: bool, tokens: &Tokens) -> AnyElement 
         .into_any_element()
 }
 
-/// The thumb, a white disc at `fraction`.
+/// The thumb, a white disc at `fraction`; on a light card, edged (white on
+/// white is lost: the captures are dark and show no edge).
 fn thumb(fraction: f32, tokens: &Tokens) -> AnyElement {
+    let edged = tokens.scheme == crate::theme::Scheme::Light;
     div()
         .absolute()
         .top(relative(0.5))
@@ -332,6 +341,9 @@ fn thumb(fraction: f32, tokens: &Tokens) -> AnyElement {
         .size(px(THUMB))
         .rounded_full()
         .bg(white())
+        .when(edged, |thumb| {
+            thumb.border_1().border_color(tokens.neutral.surface4)
+        })
         .shadow(crate::popup::shadow_md(tokens))
         .into_any_element()
 }
@@ -392,23 +404,31 @@ fn sparkles(id: &ElementId, motion: Motion) -> AnyElement {
         .into_any_element()
 }
 
-/// A sheen's width.
-const SHEEN: f32 = 56.0;
+/// Half a sheen's width.
+const HALF_SHEEN: f32 = 28.0;
+/// A sheen's light at its middle.
+const SHEEN_LIGHT: f32 = 0.32;
 
 /// A soft light band crossing the fill, quickly (fast mode on).
 fn sheen(id: &ElementId) -> AnyElement {
     let band = |delta: f32| {
+        // Clear, light, clear: two halves, each a two-stop gradient.
+        let half = |from: f32, to: f32| {
+            div().h_full().w(px(HALF_SHEEN)).bg(linear_gradient(
+                90.0,
+                linear_color_stop(white().opacity(from), 0.0),
+                linear_color_stop(white().opacity(to), 1.0),
+            ))
+        };
         div()
             .absolute()
             .top_0()
             .bottom_0()
             .left(relative(delta.mul_add(1.4, -0.3)))
-            .w(px(SHEEN))
-            .bg(linear_gradient(
-                90.0,
-                linear_color_stop(white().opacity(0.0), 0.0),
-                linear_color_stop(white().opacity(0.28), 1.0),
-            ))
+            .flex()
+            .flex_row()
+            .child(half(0.0, SHEEN_LIGHT))
+            .child(half(SHEEN_LIGHT, 0.0))
     };
     div()
         .absolute()

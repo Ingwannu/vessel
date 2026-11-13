@@ -40,6 +40,7 @@
 //! start sent while they load keeps the earlier ones.
 
 mod density;
+mod effort_card;
 mod features;
 mod pickers;
 
@@ -102,8 +103,10 @@ pub(crate) struct Draft {
     pub(crate) browsing: Option<HarnessRef>,
     /// The feature whose list the features list shows.
     pub(crate) feature: Option<vessel_proto::OptionId>,
-    /// The features' controls and sheet.
+    /// The row's measures and tooltips.
     pub(crate) features: features::FeatureState,
+    /// The model-and-effort control's card.
+    pub(crate) effort: effort_card::CardState,
     /// Which of the suggestions is the placeholder (one per launch).
     suggestion: usize,
     /// Why the last send did not go, shown under the composer.
@@ -152,7 +155,8 @@ impl Draft {
             },
             browsing: None,
             feature: None,
-            features: features::FeatureState::new(cx),
+            features: features::FeatureState::new(),
+            effort: effort_card::CardState::new(cx),
             suggestion,
             error: None,
             sending: None,
@@ -277,6 +281,30 @@ impl Shell {
         let key = (machine, harness);
         match outcome {
             Ok(options) => {
+                // Which ids an agent sends, for the effort table
+                // (`view::effort::KNOWN`): ids, categories and kinds only.
+                let shape: Vec<String> = options
+                    .iter()
+                    .map(|option| match &option.kind {
+                        vessel_proto::OptionKind::Select { values, .. } => format!(
+                            "{} ({:?}, select of {})",
+                            option.id.as_str(),
+                            option.category,
+                            values
+                                .iter()
+                                .map(|value| value.id.as_str())
+                                .collect::<Vec<_>>()
+                                .join("|")
+                        ),
+                        vessel_proto::OptionKind::Toggle { .. } => {
+                            format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
+                        }
+                        vessel_proto::OptionKind::Unknown => {
+                            format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
+                        }
+                    })
+                    .collect();
+                tracing::info!(agent = ?key.1, options = %shape.join(", "), "an agent's options");
                 let _earlier = probes.insert(key, Probe::Ready(options));
             }
             Err(why) => {
@@ -564,7 +592,7 @@ fn overlays(
         Some(Shown::Loading | Shown::Failed(_)) | None => None,
     };
     let mut over = Vec::new();
-    over.extend(features::sheet(shell, ready, tokens, window, touch, cx));
+    over.extend(effort_card::card(shell, ready, touch, tokens, cx));
     over.extend(shell.areas.draft.features.tips.render(tokens));
     over.extend(pickers::open_list(shell, online, shown, tokens, window, cx));
     over

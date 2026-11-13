@@ -22,6 +22,13 @@
 //! one path is what moves when a node keeps them (ADR 0036,
 //! docs/plans/backend-m12-settings.md).
 //!
+//! The file is the person's own, as the credential store beside it: on
+//! Unix it is written 0600 whatever the caller's umask, and the folder
+//! is made 0700 when the app makes it (a folder that exists keeps its
+//! mode: it may be shared with other things the person keeps there).
+//! Nothing secret is in it, but the app's folder is private. Windows
+//! keeps the profile's inherited ACL.
+//!
 //! A file that cannot be read is not written over: the settings are then
 //! kept until the app quits, and Settings says so and where the file is,
 //! so the person can fix or remove it (the page's rule, ADR 0028).
@@ -181,10 +188,20 @@ impl Prefs {
 
     fn load_at(path: &Path) -> Self {
         let shown = path.display().to_string();
-        let unreadable = |message: String| prefs::Kept::ThisLaunch {
+        let unreadable = |error: &serde_json::Error| prefs::Kept::ThisLaunch {
             why: prefs::LaunchOnly::Unreadable {
-                path: shown.clone(),
-                message,
+                fault: vessel_app_view::files::FileFault {
+                    path: shown.clone(),
+                    at: Some((error.line(), error.column())),
+                    problem: vessel_app_view::files::FileProblem::of_json(
+                        &error.to_string(),
+                        matches!(
+                            error.classify(),
+                            serde_json::error::Category::Syntax | serde_json::error::Category::Eof
+                        ),
+                    ),
+                    field: None,
+                },
             },
         };
         let (read, kept) = match std::fs::read(path) {
@@ -196,8 +213,13 @@ impl Prefs {
                     },
                 ),
                 Err(error) => {
-                    tracing::warn!(%error, "the app's remembered choices could not be read");
-                    (Self::default(), unreadable(error.to_string()))
+                    // Where only: the reader's message may quote the file.
+                    tracing::warn!(
+                        line = error.line(),
+                        column = error.column(),
+                        "the app's remembered choices could not be read"
+                    );
+                    (Self::default(), unreadable(&error))
                 }
             },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => (
@@ -208,7 +230,18 @@ impl Prefs {
             ),
             Err(error) => {
                 tracing::warn!(%error, "the app's remembered choices could not be read");
-                (Self::default(), unreadable(error.to_string()))
+                let fault = vessel_app_view::files::FileFault {
+                    path: shown.clone(),
+                    at: None,
+                    problem: vessel_app_view::files::FileProblem::CannotOpen,
+                    field: None,
+                };
+                (
+                    Self::default(),
+                    prefs::Kept::ThisLaunch {
+                        why: prefs::LaunchOnly::Unreadable { fault },
+                    },
+                )
             }
         };
         Self { kept, ..read }
@@ -226,16 +259,72 @@ impl Prefs {
         self.save_at(&Self::path()?)
     }
 
+    /// [Decision Log]
+    /// - Purpose: a 0600 file came back 0664 after a save (track G3's
+    ///   find, 2026-11-13): `std::fs::write` creates the temporary file
+    ///   with the caller's umask, and the rename puts that mode in place.
+    /// - Choice: the temporary file is created new with 0600 (a stale one
+    ///   from a crashed save removed first), the folder 0700 when the app
+    ///   makes it: the credential store's rule
+    ///   (`vessel-client/src/credential.rs`), minus its `chmod` of a
+    ///   folder that already exists (the settings' folder may be the
+    ///   person's, not the app's alone).
     fn save_at(&self, path: &Path) -> Result<(), LinkError> {
+        use std::io::Write as _;
+
+        let io = |error: std::io::Error| LinkError::Io(error.to_string());
         if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).map_err(|error| LinkError::Io(error.to_string()))?;
+            private_dir(dir).map_err(io)?;
         }
         let text =
             serde_json::to_vec_pretty(self).map_err(|error| LinkError::Io(error.to_string()))?;
         let temporary = path.with_extension("json.tmp");
-        std::fs::write(&temporary, text).map_err(|error| LinkError::Io(error.to_string()))?;
-        std::fs::rename(&temporary, path).map_err(|error| LinkError::Io(error.to_string()))
+        drop(std::fs::remove_file(&temporary));
+        let written = new_private_file(&temporary)
+            .and_then(|mut file| file.write_all(&text))
+            .and_then(|()| std::fs::rename(&temporary, path));
+        if written.is_err() {
+            drop(std::fs::remove_file(&temporary));
+        }
+        written.map_err(io)
     }
+}
+
+/// `dir` and its missing parents, made owner-only (0700) when the app
+/// makes them; a folder that exists keeps its mode.
+#[cfg(all(unix, not(target_arch = "wasm32")))]
+fn private_dir(dir: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt as _;
+
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(dir)
+}
+
+#[cfg(all(not(unix), not(target_arch = "wasm32")))]
+fn private_dir(dir: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)
+}
+
+/// A new file at `path`, owner-only (0600) whatever the umask.
+#[cfg(all(unix, not(target_arch = "wasm32")))]
+fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::fs::OpenOptionsExt as _;
+
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)
+}
+
+#[cfg(all(not(unix), not(target_arch = "wasm32")))]
+fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -291,5 +380,47 @@ mod tests {
         prefs.save().unwrap();
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "not json");
         drop(std::fs::remove_dir_all(path.parent().unwrap()));
+    }
+    /// The file is owner-only whatever mode an older one had, the folder
+    /// owner-only when the save made it, and a folder that was there
+    /// keeps its own mode (G3's find: 0600 came back 0664).
+    #[cfg(unix)]
+    #[test]
+    fn the_file_is_owner_only_and_a_new_folder_too() {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        let root = scratch("modes").unwrap();
+        let root = root.parent().unwrap();
+        let path = root.join("vessel").join("app-prefs.json");
+        let prefs = Prefs {
+            machine: Some("gpu-box".to_owned()),
+            ..Prefs::default()
+        };
+        prefs.save_at(&path).unwrap();
+        assert_eq!(mode(&path), 0o600);
+        assert_eq!(mode(path.parent().unwrap()), 0o700);
+
+        // A file left readable by an older build comes back owner-only,
+        // and the folder that was there keeps its mode.
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o664)).unwrap();
+        std::fs::set_permissions(
+            path.parent().unwrap(),
+            std::fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+        prefs.save_at(&path).unwrap();
+        assert_eq!(mode(&path), 0o600);
+        assert_eq!(mode(path.parent().unwrap()), 0o755);
+        assert_eq!(Prefs::load_at(&path).machine.as_deref(), Some("gpu-box"));
+
+        // A temporary file a crashed save left is replaced, not reused.
+        let temporary = path.with_extension("json.tmp");
+        std::fs::write(&temporary, "half").unwrap();
+        std::fs::set_permissions(&temporary, std::fs::Permissions::from_mode(0o666)).unwrap();
+        prefs.save_at(&path).unwrap();
+        assert_eq!(mode(&path), 0o600);
+        assert!(!temporary.exists());
+        drop(std::fs::remove_dir_all(root));
     }
 }
