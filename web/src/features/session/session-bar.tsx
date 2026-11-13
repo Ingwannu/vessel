@@ -5,6 +5,7 @@
 
 import "./session-bar.css";
 
+import { useAgents } from "../../context";
 import { agentMark, agentName } from "../../data/agents";
 import { isLive, statusTone, statusWord } from "../../data/format";
 import { sessionName } from "../../data/titles";
@@ -33,11 +34,12 @@ export function SessionBar({
   onPlace?: () => void;
 }) {
   const live = isLive(session);
+  const agents = useAgents(node);
   return (
     <TitleBar>
       <Avatar
-        letter={agentMark(session.spec.harness)}
-        label={agentName(session.spec.harness)}
+        letter={agentMark(session.spec.harness, agents)}
+        label={agentName(session.spec.harness, agents)}
       />
       <SessionTitle
         node={node}

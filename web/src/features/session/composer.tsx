@@ -16,7 +16,7 @@
 
 import { useMemo, useRef, useState } from "react";
 
-import { useFleet, useFleetState } from "../../context";
+import { useAgents, useFleet, useFleetState } from "../../context";
 import { agentName } from "../../data/agents";
 import { cancelTurn, sendPrompt, setOption } from "../../data/calls";
 import { isLive } from "../../data/format";
@@ -66,11 +66,8 @@ export function Composer({
     return status?.state === "connected" ? status.protocol : null;
   });
   const harness = session.spec.harness;
-  const controls = reportedControls(
-    timeline.options,
-    protocol,
-    agentName(harness),
-  );
+  const agent = agentName(harness, useAgents(node));
+  const controls = reportedControls(timeline.options, protocol, agent);
 
   const send = () => {
     const prompt = text.trim();
@@ -166,7 +163,7 @@ export function Composer({
           <AgentMenu
             agent={{
               value: harness,
-              name: agentName(harness),
+              name: agent,
               choices: null,
               onChange: () => undefined,
             }}

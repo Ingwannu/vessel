@@ -40,6 +40,7 @@ function state(): FleetState {
     harnesses: {},
     profiles: {},
     models: {},
+    agents: {},
     errors: {},
     selected: null,
     sessions: {

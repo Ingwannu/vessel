@@ -5,7 +5,9 @@ import { startedModel } from "./models";
 import {
   type Draft,
   draftControls,
+  type OptionsState,
   sendable,
+  startsTerminal,
   specOf,
   splitArgs,
 } from "./new-session";
@@ -23,6 +25,17 @@ const GEMINI: Harness = {
   version: null,
   structured: { state: "unavailable", reason: "no ACP adapter" },
 };
+
+/** An agent added on the machine (protocol 11): a conversation only. */
+const HELPER: Harness = {
+  kind: { added: "helper" },
+  path: "/opt/helper/bin/helper",
+  version: null,
+  structured: { state: "available" },
+  terminal: { state: "unavailable", reason: "an added agent has none" },
+};
+
+const LOADING: OptionsState = { kind: "loading" };
 
 const OPTIONS: SessionOption[] = [
   {
@@ -123,16 +136,48 @@ describe("specOf", () => {
 
 describe("sendable", () => {
   it("needs a machine, an agent, and text unless it opens a terminal", () => {
-    expect(sendable(DRAFT, CLAUDE)).toEqual({ ok: true });
-    expect(sendable({ ...DRAFT, prompt: " " }, CLAUDE)).toEqual({
+    expect(sendable(DRAFT, CLAUDE, LOADING)).toEqual({ ok: true });
+    expect(sendable({ ...DRAFT, prompt: " " }, CLAUDE, LOADING)).toEqual({
       ok: false,
       reason: null,
     });
-    expect(sendable({ ...DRAFT, prompt: "", terminal: true }, CLAUDE)).toEqual({
+    expect(
+      sendable({ ...DRAFT, prompt: "", terminal: true }, CLAUDE, LOADING),
+    ).toEqual({
       ok: true,
     });
-    expect(sendable({ ...DRAFT, machine: null }, CLAUDE).ok).toBe(false);
-    expect(sendable(DRAFT, null).ok).toBe(false);
+    expect(sendable({ ...DRAFT, machine: null }, CLAUDE, LOADING).ok).toBe(
+      false,
+    );
+    expect(sendable(DRAFT, null, LOADING).ok).toBe(false);
+  });
+
+  it("says why when the machine will not start the agent now", () => {
+    expect(
+      sendable(DRAFT, HELPER, { kind: "refused", message: "Needs a key." }),
+    ).toEqual({ ok: false, reason: "Needs a key." });
+  });
+
+  it("says why when the machine runs the agent neither way", () => {
+    const broken: Harness = {
+      ...HELPER,
+      structured: { state: "unavailable", reason: "its program is gone" },
+    };
+    expect(sendable(DRAFT, broken, LOADING)).toEqual({
+      ok: false,
+      reason: "helper cannot run on this machine: its program is gone",
+    });
+  });
+});
+
+describe("an agent added on the machine", () => {
+  it("never opens a terminal, whatever was asked for another agent", () => {
+    const draft = { ...DRAFT, agent: HELPER.kind, terminal: true };
+    expect(startsTerminal(draft, HELPER)).toBe(false);
+    expect(specOf(draft, HELPER, LOADING)).toMatchObject({
+      harness: { added: "helper" },
+      mode: "structured",
+    });
   });
 });
 

@@ -69,6 +69,7 @@ const STATE: FleetState = {
   harnesses: {},
   profiles: {},
   models: {},
+  agents: {},
   sessions: {
     [fixtureId("NodeKey", "laptop")]: [
       session("aaaa", "2026-11-11T08:00:00Z", { title: "Fix the overview" }),

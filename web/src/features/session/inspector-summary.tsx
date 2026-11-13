@@ -3,7 +3,9 @@
 // touched and the model calls, then the identifiers behind "Details",
 // closed, instead of a wall of fields.
 
+import { useAgents } from "../../context";
 import { agentName } from "../../data/agents";
+import type { NodeKey } from "../../wire/bridge";
 import { startedModel } from "../../data/models";
 import { shortId, when } from "../../data/format";
 import { duration, tokens } from "../../data/models";
@@ -86,10 +88,12 @@ function startedBy(session: SessionInfo): string {
 }
 
 export function InspectorSummary({
+  node,
   label,
   session,
   timeline,
 }: {
+  node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;
@@ -102,6 +106,7 @@ export function InspectorSummary({
       ? null
       : `${String(plan.filter((item) => item.status === "completed").length)} of ${String(plan.length)}`;
   const route = session.model?.route ?? null;
+  const agents = useAgents(node);
   return (
     <div className="inspector-body">
       <Collapsible title="Plan" {...(done === null ? {} : { end: done })}>
@@ -141,7 +146,7 @@ export function InspectorSummary({
         <Facts
           rows={[
             ["Machine", label],
-            ["Agent", agentName(session.spec.harness)],
+            ["Agent", agentName(session.spec.harness, agents)],
             ["Profile", session.profile ?? "Default"],
             ...optional("Model route", route),
             ...optional("Model", startedModel(session)),

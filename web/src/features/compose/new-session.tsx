@@ -11,13 +11,19 @@ import "./new-session.css";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import { useCrumbs, useFleet, useFleetState } from "../../context";
+import { useAgents, useCrumbs, useFleet, useFleetState } from "../../context";
 import {
   agentChoices,
+  chosenAgent,
   profileChoices,
-  startingAgent,
 } from "../../data/agent-choices";
-import { agentName, knownAgent, runsTimeline } from "../../data/agents";
+import {
+  agentModes,
+  agentName,
+  knownAgent,
+  offersTerminal,
+  sameAgent,
+} from "../../data/agents";
 import { sendPrompt } from "../../data/calls";
 import {
   type Draft,
@@ -37,9 +43,10 @@ import {
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
-import type { HarnessKind, OptionChoice } from "../../wire/proto";
+import type { OptionChoice } from "../../wire/proto";
 import { AddMenu } from "./add-menu";
 import { AgentMenu } from "./agent-menu";
+import { NewSessionNotes } from "./new-session-notes";
 import { PermissionsMenu } from "./permissions-menu";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
@@ -95,13 +102,17 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const status = machine === null ? undefined : state.statuses[machine];
   const nodeId = status?.state === "connected" ? status.node.id : null;
   const defaults = useStore(prefs, (value) => value.values.defaults);
-  const chosen = harnesses.find((harness) => harness.kind === draft.agent);
-  const agent: HarnessKind | null =
-    (chosen === undefined ? null : knownAgent(chosen.kind)) ??
-    rememberedAgent(defaults, nodeId, harnesses) ??
-    startingAgent(harnesses);
+  const agents = useAgents(machine);
+  const agent = chosenAgent(
+    draft.agent,
+    harnesses,
+    rememberedAgent(defaults, nodeId, harnesses),
+  );
+  // Kept per machine for the four only; an added agent starts on its own.
+  const known = agent === null ? null : knownAgent(agent);
   const harness =
-    harnesses.find((candidate) => candidate.kind === agent) ?? null;
+    harnesses.find((candidate) => sameAgent(candidate.kind, agent)) ?? null;
+  const modes = harness === null ? null : agentModes(harness);
   // What the machine's last start chose, while the person has chosen
   // nothing for this agent yet (data/defaults.ts).
   const effective: Draft = {
@@ -109,7 +120,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     machine,
     agent,
     prompt: saved.text,
-    ...startingPicks(draft, defaults, nodeId, agent),
+    ...startingPicks(draft, defaults, nodeId, known),
   };
   const terminal = harness !== null && startsTerminal(effective, harness);
   const options = useAgentOptions(machine, agent, effective.profile, !terminal);
@@ -122,7 +133,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       ? []
       : profileChoices(state.profiles[machine] ?? [], agent);
   const starter = useStarter(machine);
-  const ready = starter.ready(sendable(effective, harness));
+  const ready = starter.ready(sendable(effective, harness, options));
 
   const change = (next: Partial<Draft>) => {
     setError(null);
@@ -164,11 +175,11 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
         }
       }
       saved.clear();
-      if (nodeId !== null && agent !== null) {
+      if (nodeId !== null && known !== null) {
         const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
         for (const kept of rememberStart(
           nodeId,
-          agent,
+          known,
           effective.profile,
           chosen,
         )) {
@@ -184,7 +195,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     });
   };
 
-  const agentLabel = agent === null ? "No agent" : agentName(agent);
+  const agentLabel = agent === null ? "No agent" : agentName(agent, agents);
   return (
     <div className="new-session">
       <div className="new-session-column">
@@ -210,28 +221,30 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           textAreaRef={text}
           controls={
             <>
-              <AddMenu
-                profiles={profiles}
-                profile={effective.profile}
-                onProfile={(profile) => {
-                  change({ profile, picks: {}, chosen: true });
-                }}
-                terminal={draft.terminal}
-                canTimeline={harness === null || runsTimeline(harness)}
-                onTerminal={(on) => {
-                  change({ terminal: on });
-                }}
-                args={draft.args}
-                onArgs={(args) => {
-                  change({ args });
-                }}
-              />
+              {profiles.length > 1 || offersTerminal(modes) ? (
+                <AddMenu
+                  profiles={profiles}
+                  profile={effective.profile}
+                  onProfile={(profile) => {
+                    change({ profile, picks: {}, chosen: true });
+                  }}
+                  terminal={draft.terminal}
+                  modes={modes}
+                  onTerminal={(on) => {
+                    change({ terminal: on });
+                  }}
+                  args={draft.args}
+                  onArgs={(args) => {
+                    change({ args });
+                  }}
+                />
+              ) : null}
               {agent === null ? null : (
                 <AgentMenu
                   agent={{
                     value: agent,
                     name: agentLabel,
-                    choices: agentChoices(harnesses),
+                    choices: agentChoices(harnesses, agents),
                     onChange: (next) => {
                       restart({ agent: next });
                     },
@@ -274,23 +287,13 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
             />
           }
         />
-        <div className="new-session-notes">
-          {starter.view}
-          {error === null ? null : (
-            <p className="new-session-error" role="alert">
-              {error}
-            </p>
-          )}
-          {!ready.ok && ready.reason !== null ? (
-            <p className="new-session-note">{ready.reason}</p>
-          ) : null}
-          {controls.kind === "failed" ? (
-            <p className="new-session-note" role="status">
-              {agentLabel} did not say what it offers: {controls.message} It
-              starts on its own defaults.
-            </p>
-          ) : null}
-        </div>
+        <NewSessionNotes
+          starting={starter.view}
+          error={error}
+          blocked={ready.ok ? null : ready.reason}
+          controls={controls}
+          agent={agentLabel}
+        />
       </div>
     </div>
   );

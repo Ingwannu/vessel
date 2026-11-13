@@ -338,6 +338,26 @@ export async function startFleet(): Promise<FleetEnv> {
     }
     execFileSync(vessel, args, { env: cli });
   }
+  // Agents added on laptop by their command (protocol 11, ADR 0032): the
+  // fake ACP agent as one that runs, as one needing a secret the node does
+  // not have (its start is refused), and a program that is not there.
+  const fakeAcp = binary("fake-acp");
+  const added: string[][] = [
+    ["helper", "--label", "Helper", "--", fakeAcp],
+    [
+      "keyed",
+      "--label",
+      "Keyed agent",
+      "--secret",
+      "KEYED_TOKEN=KEYED_TOKEN",
+      "--",
+      fakeAcp,
+    ],
+    ["ghost", "--", join(root, "no-such-agent")],
+  ];
+  for (const args of added) {
+    execFileSync(vessel, ["agents", "add", ...args], { env: cli });
+  }
   // Repositories for the code panel (milestone 11, track B-page), added
   // as laptop's projects (e2e/repos.ts).
   const repos = makeRepos(root, base);

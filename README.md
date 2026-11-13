@@ -553,6 +553,12 @@ vessel agents install claude --adapter       # Claude Code's ACP adapter
 - The catalogue lists what each registry entry would run; adding one
   writes exactly that (an `npx`/`uvx` command pinned to the version
   shown). An entry that ships only an archive is shown, not downloaded.
+- On the page (`vessel ui`) an added agent is chosen on the new-session
+  page after the four, by its label, and named so on its sessions;
+  Settings › Agents lists it, found or not. It runs as a conversation
+  only, so no terminal is offered for it; while a secret it names is not
+  set on its machine, the page says so and does not start it. Adding,
+  removing and installing are done with `vessel agents`.
 
 ### A fleet: one home, many members
 

@@ -22,7 +22,7 @@
 import type { NodeKey, StreamState } from "../wire/bridge";
 import type {
   EventRecord,
-  HarnessKind,
+  HarnessRef,
   HarnessOptions,
   OptionChoice,
   PermissionId,
@@ -42,7 +42,7 @@ import { attempt, type Outcome } from "./outcome";
 export function probeOptions(
   fleet: Fleet,
   node: NodeKey,
-  harness: HarnessKind,
+  harness: HarnessRef,
   profile: string | null,
 ): Promise<Outcome<HarnessOptions>> {
   return attempt(() =>

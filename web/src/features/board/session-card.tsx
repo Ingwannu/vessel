@@ -36,6 +36,7 @@ export function SessionCard({
   const { session, node, placed } = card;
   const now = useNow();
   const spec = session.spec;
+  const agents = state.agents[node] ?? [];
   const id = shortId(session.id);
   const title = sessionName(session);
   const phrase = phraseLabel(placed.phrase);
@@ -60,8 +61,8 @@ export function SessionCard({
         <CardOrigin card={card} state={state} />
         <div className="card-title">
           <Avatar
-            letter={agentMark(spec.harness)}
-            label={agentName(spec.harness)}
+            letter={agentMark(spec.harness, agents)}
+            label={agentName(spec.harness, agents)}
           />
           <span className="title">{title}</span>
           {onKill !== null && isLive(session) ? (
@@ -97,7 +98,7 @@ export function SessionCard({
         <div className="card-line">
           <span className="id">{id}</span>
           <span className="who">
-            {session.profile ?? agentName(spec.harness)}
+            {session.profile ?? agentName(spec.harness, agents)}
             {model === null || model === undefined ? "" : ` · ${model}`}
           </span>
         </div>

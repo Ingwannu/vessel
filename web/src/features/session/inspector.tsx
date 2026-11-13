@@ -67,6 +67,7 @@ export function Inspector({
       >
         {tab === "summary" ? (
           <InspectorSummary
+            node={node}
             label={label}
             session={session}
             timeline={timeline}

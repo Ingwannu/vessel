@@ -324,11 +324,16 @@ move between sections. Below 768px the column's padding is 12px.
   …"); a clone answers at once and its progress and failure are the
   row's ("Receiving objects · 42%", the reason in words with git's last
   lines).
-- **Agents**: every agent Vessel drives, installed first, as GOAT's
-  provider rows: the agent's letter, its name and version, a dot and one
-  headline: Available, Needs attention (with the machine's reason:
-  installed but no conversation adapter), Not found. Its card: status,
-  version, program, then what it offers, asked of the machine when the
+- **Agents**: every agent Vessel drives and every agent added on the
+  machine by its command (ADR 0032, by its label, after the four),
+  found before not found, as GOAT's provider rows: the agent's letter,
+  its name and version, a dot and one headline: Available (an added one
+  "Runs as a conversation; it has no terminal"), Needs attention (with
+  the machine's reason: installed but no conversation adapter), Not
+  found (an added one naming its program). The added agents are read
+  from the machine (`agent.list`) when the section opens. Adding,
+  removing, the registry and installing are not drawn (a later track's).
+  Its card: status, version, program, then what it offers, asked of the machine when the
   card opens (`harness.options` starts the agent once there; the card
   says so while it waits) as one list in the page's words: Models,
   Effort, Permissions, then the agent's other options, each with its
@@ -1445,15 +1450,25 @@ machine in view.
    is), New worktree with the base it starts from ("From main"), or
    Existing branch. A project still cloning, a branch name git refuses,
    or no branch chosen holds Send with the reason under the box.
-2. **The agent**: the machine's first that runs with a timeline, else its
-   first; chosen in the agent control's Agent submenu.
+2. **The agent**: the machine's first of the four that runs with a
+   timeline, else its first, else its first added agent; chosen in the
+   agent control's Agent submenu, where the agents added on the machine
+   follow the four by their label ("added" under each). An added agent
+   is compared by its key, never kept as the machine's default (the
+   page's per-agent defaults hold the four), and starts on its own
+   defaults. When the machine will not start it now (`conflict`: an
+   added agent's secret not set there, one of the four being installed,
+   a profile's route without its key) the menu and the line under the
+   box say so plainly, naming the agent's secrets, and Send stays off.
 3. **What it runs with**: the machine asks the agent (`harness.options`,
    under the chosen profile); the controls fill in as it answers, without
    blocking the page (§6.15).
 4. **"+"**: a profile (an account, or a model route, ADR 0015: each says
    its route) and "Open as terminal" with the arguments the agent's
-   command gets (split as a shell would, not expanded). An agent that
-   runs only in a terminal on that machine is opened as one.
+   command gets (split as a shell would, not expanded), only where the
+   machine offers a terminal for the agent (an added agent has none: no
+   switch, and no "+" when it has no profile either). An agent that runs
+   only in a terminal on that machine is opened as one.
 5. **Send** creates the session with the choices (`session.create`, the
    options in the spec), sends the prompt (`session.send`), and opens it.
    A terminal takes no prompt: the box's first line becomes its title.

@@ -13,29 +13,31 @@ import {
   askedWhen,
   offerRows,
 } from "../../data/agent-status";
-import { agentName } from "../../data/agents";
 import { probeOptions } from "../../data/calls";
 import { controlsOf } from "../../data/options";
 import { nextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
-import type { HarnessKind, HarnessOptions } from "../../wire/proto";
+import { agentKey } from "../../data/agents";
+import type { HarnessOptions, HarnessRef } from "../../wire/proto";
 import { Badge, Banner, Row, RowList, Skeleton } from "../../ui/kit";
 import { FactValue, SettingsSection } from "../settings/settings-page";
 
 export function AgentDetail({
   machine,
   label,
-  kind,
+  agent,
+  name,
   status,
 }: {
   machine: NodeKey;
   /** The machine's name. */
   label: string;
-  kind: HarnessKind;
+  agent: HarnessRef;
+  /** What the page calls the agent (an added agent's label). */
+  name: string;
   status: AgentStatus;
 }) {
   const shown = agentHeadline(status);
-  const name = agentName(kind);
   return (
     <>
       <SettingsSection title={`${name} on ${label}`}>
@@ -67,10 +69,11 @@ export function AgentDetail({
       </SettingsSection>
       {status.kind === "available" ? (
         <Offer
-          key={`${machine}/${kind}`}
+          key={`${machine}/${agentKey(agent)}`}
           machine={machine}
           label={label}
-          kind={kind}
+          agent={agent}
+          name={name}
         />
       ) : null}
     </>
@@ -81,17 +84,19 @@ export function AgentDetail({
 function Offer({
   machine,
   label,
-  kind,
+  agent,
+  name,
 }: {
   machine: NodeKey;
   label: string;
-  kind: HarnessKind;
+  agent: HarnessRef;
+  name: string;
 }) {
   const fleet = useFleet();
   const [answer, setAnswer] = useState<Outcome<HarnessOptions> | null>(null);
   useEffect(() => {
     let current = true;
-    void probeOptions(fleet, machine, kind, null).then((outcome) => {
+    void probeOptions(fleet, machine, agent, null).then((outcome) => {
       if (current) {
         setAnswer(outcome);
       }
@@ -99,8 +104,7 @@ function Offer({
     return () => {
       current = false;
     };
-  }, [fleet, machine, kind]);
-  const name = agentName(kind);
+  }, [fleet, machine, agent]);
   if (answer === null) {
     return (
       <SettingsSection title="What it offers">
