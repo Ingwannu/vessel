@@ -44,7 +44,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
 pub use text::{
-    AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
-    PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
-    grouped, meter_tokens, short_tokens,
+    AboutText, BoardWords, ConversationWords, GitFailureText, Lang, MachinesText, NoticeWords,
+    OptionsText, PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    UpdateText, grouped, meter_tokens, short_tokens,
 };

@@ -38,6 +38,15 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Git action preparation lives beside the code panel's existing models in
+`view::workspace::git`: commit scope and validated message, branch
+create/rename/switch, per-file index actions, discard decisions and stash
+identity. It reuses `workspace::git_quick` and the workspace's refusal
+words, and produces the existing wire requests for `link::workspace`.
+The node remains authoritative; preparation never runs a local git
+command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
+repository root.
+
 ## The app's layout
 
 ```
