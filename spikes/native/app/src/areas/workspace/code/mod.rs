@@ -171,6 +171,31 @@ impl CodePanel {
         }
     }
 
+    /// The machine was renamed in the book: the panel goes on under the
+    /// new name.
+    pub(in crate::areas::workspace) fn machine_renamed(&mut self, from: &str, to: &str) {
+        if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
+            to.clone_into(&mut target.machine);
+        }
+    }
+
+    /// The machine was forgotten: nothing of it is shown or read again.
+    pub(in crate::areas::workspace) fn machine_forgot(&mut self, name: &str) {
+        if self
+            .target
+            .as_ref()
+            .is_some_and(|target| target.machine == name)
+        {
+            self.target = None;
+            self.changes.summary = Summary::Loading;
+            self.changes.states.clear();
+            self.changes.relist();
+            self.files.listings.clear();
+            self.files.viewer = None;
+            self.files.relist();
+        }
+    }
+
     /// The session's folder on the machine, when it said.
     fn cwd(&self) -> Option<&std::path::Path> {
         self.target.as_ref()?.cwd.as_deref()

@@ -9,6 +9,7 @@
 //! their words are `Lang::workspace()`'s.
 
 mod approval;
+mod book;
 mod code;
 mod detail;
 mod place;
