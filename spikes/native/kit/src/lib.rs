@@ -37,6 +37,7 @@ pub mod menu;
 pub mod output;
 pub mod picker;
 pub mod popup;
+pub mod screen_header;
 pub mod segmented;
 pub mod select;
 pub mod settings;
@@ -66,6 +67,7 @@ pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
+pub use screen_header::{compact_header, screen_header};
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use toast::{ToastLook, toast, toasts};

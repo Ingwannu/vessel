@@ -165,6 +165,14 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+`kit::screen_header::frame` is the shared screen/back-header renderer:
+`Content { title, leading, actions }` and typed desktop/compact density.
+The ordinary header and compact callback entry points delegate to it.
+Navigation controls/actions are already wired by the caller; the kit owns
+no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
+compact is one-line 16/500 with a 44-point menu button. Chrome integration
+and avoiding duplicate sidebar toggles stay with the desktop lead.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
