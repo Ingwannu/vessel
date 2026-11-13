@@ -128,7 +128,8 @@ Paseo screen it follows.
   Matches are marked in a person's messages and in replies (GOAT's
   yellow, the current one amber); in a reply the current one keeps the
   reply's own ink, as its renderer paints backgrounds only (GOAT darkens
-  it). A question's text is searched but not marked yet. The wrap is said
+  it). An answered question's text is marked too; a waiting one is
+  answered over the composer and its timeline row holds no mark. The wrap is said
   only to a screen reader, as on the page (kept for the screen-reader
   buffer).
 - **The queue** is Paseo's row with GOAT's actions as more of Paseo's
