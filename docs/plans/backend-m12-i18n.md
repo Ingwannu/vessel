@@ -552,3 +552,22 @@ compiled-input verification are in `final-source-verified.json`. Inspect
 that process and `s2-final-gate-2.json` before starting another build.
 If credit stops this session, finish/review the final test and wasm result
 first. No further UI/fleet process needs stopping or leaving running.
+
+### Latest resume status, 21:35 UTC
+
+The exact source in `8da03f18` has now passed the full final native gate:
+format, all-target Clippy, normal build, and `cargo test`, each exit zero.
+Tests: 432 ordinary plus two compile-fail doctests, with the explicit display
+fixture ignored in the ordinary run (its eight display exits are separate).
+Both lead late-answer tests and all four C/F input/caret/focus retention
+tests passed. View/link/app were actually recompiled. Frozen compiled-input
+hashes are still identical; the later commits change documents only.
+
+The one remaining running command is the standalone view wasm check,
+currently waiting for a machine-wide slot. If stopped for credit, inspect
+its actual exit in `s2-final-gate-2.json` before repeating anything. All UI
+proof, including the final short hint, and fleet/display/input cleanup are
+already complete. V1 received the native result first; no V1/coordinator
+approval of this model is claimed. After the wasm result, send the final
+immutable range and report to V1, then follow its findings/approval before
+asking the coordinator to accept the model. Do not start another slice.

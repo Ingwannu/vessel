@@ -412,3 +412,10 @@ checkpoint the final native test and explicit wasm command still await
 their recorded exits; no final gate acceptance is inferred from the build.
 The isolated fleet/holder and fake children (17 verified PIDs), private
 display and protected pairing inputs have been cleaned up.
+
+The final native gate subsequently completed with recorded zero exits:
+format, all-target Clippy, 432 ordinary tests and two compile-fail doctests.
+This includes the unchanged lead late-answer regressions and all four
+actual-dispatch input/caret/focus retention tests. The final standalone
+wasm command is still queued at the overnight checkpoint; its eventual
+exit is recorded separately rather than inferred from native success.
