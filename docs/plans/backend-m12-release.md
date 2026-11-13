@@ -509,6 +509,138 @@ What the app uses from the crate:
 From build 0.0.0.0.3 the builds have the feed compiled in (see "Builds
 with updates" below).
 
+## Builds with updates
+
+From 0.0.0.0.3 the builds have the feed's address and the release key's
+public half compiled in. `build.sh` reads the address from a file
+outside the repository, and neither the logs nor the README print it.
+Every set is published under a new label, and a published label is
+never rebuilt.
+
+- **0.0.0.0.3**:
+  - Built from `2a14c42` and published to `preview` at 05:41 UTC.
+  - Its update UI is this track's first one: a line at the window's
+    foot, "Vessel <label>을(를) 설치했습니다. 다음에 Vessel을 열면 이
+    빌드로 시작합니다." It has none of the desktop track's `f008aa0`: no
+    "Restart to update", no remembered label, no notes.
+- **0.0.0.0.4**:
+  - Built from `ab71e0a`: the desktop track's title-bar fix `7f120ca`,
+    the kit test `aa80a37`, `set_automatic` wired to the switch, and the
+    corrected mark.
+  - The set went into place at 07:00 UTC; `preview.json` was published
+    at 07:01:55 UTC with notes.
+  - Files:
+
+    | File | Bytes |
+    |---|---|
+    | `vessel-0.0.0.0.4-windows-x64-setup.exe` | 10,580,977 |
+    | `vessel-0.0.0.0.4-windows-x64.exe` | 38,099,968 |
+    | `vessel-0.0.0.0.4-windows-x64.zip` | 15,297,027 |
+    | `vessel-0.0.0.0.4-linux-x64` | 74,510,872 |
+    | `vessel-0.0.0.0.4-linux-x64.tar.gz` | 25,189,636 |
+
+  - Checked before publishing:
+    - The eight icon frames (16 to 256) in the exe and in the installer
+      are byte for byte the frames `make-icons.py` makes now from
+      `vessel-mark.svg` (`d63f0da`, view box `170 170 1660 1660` read
+      from the file). Every frame differs from 0.0.0.0.3's.
+    - The exe's version block says 0.0.0.0.4.
+    - Under wine it gets as far as every build does: it creates the
+      Direct3D 11.1 device and stops at the first text (wine's
+      DirectWrite).
+    - `sha256sum -c` and the signature on the sums pass.
+  - **The update the owner's machine makes**, shown on Linux with the
+    published 0.0.0.0.3:
+    - Its tarball was unpacked into a scratch directory, with an empty
+      configuration, and nothing pointed at it but the feed it was built
+      with.
+    - It was started under a virtual display after the publish. Six
+      seconds later the file was 0.0.0.0.4's bytes (mode 0755, no
+      staging file left), and the window's foot said 0.0.0.0.4 is
+      installed and opens at the next start.
+    - The next start ran 0.0.0.0.4.
+  - **No "Updated to" note this time**: 0.0.0.0.3 neither remembers the
+    label it ran nor keeps the feed's notes. The note and the notes
+    appear from the next update on, which 0.0.0.0.4 downloads.
+  - **Only the owner's Windows shows**:
+    - The rename of the running `Vessel.exe` (the old file is kept as
+      `Vessel.exe.old-…` and removed at the next start).
+    - "Installed apps" showing 0.0.0.0.4.
+    - The one-click buttons and the snap layouts.
+
+- **0.0.0.0.5**:
+  - Built from `0a41166`, the same code as the desktop track's
+    `83f8dd2`; only this document differs.
+  - The set went into place at 07:20 UTC and is **not published** yet:
+    the coordinator first runs the Linux build against the real node.
+    Its notes wait in a scratch file.
+  - Files: setup 10,595,011, exe 38,134,272, zip 15,312,999, linux
+    74,581,328, tar.gz 25,207,949 bytes.
+  - The checks are 0.0.0.0.4's: icon frames equal to the corrected
+    mark's, version block 0.0.0.0.5, wine stops at the first text, sums
+    and signature pass.
+- **0.0.0.0.5** was published to `preview` at 07:24:17 UTC.
+- **The first update on a real Windows (open, 2026-11-13)**:
+  - The owner started the installed 0.0.0.0.3 and saw nothing at the
+    foot.
+  - The feed's server logged two manifest reads (07:06:54 and 07:07:14
+    UTC) and no completed transfer of the Windows artifact.
+  - 0.0.0.0.3 to 0.0.0.0.5 log only to stderr, which a GUI-subsystem
+    process started from the Start menu does not have. So a Windows
+    failure was lost, and 0.0.0.0.3 does not show it either. It retried
+    at the next start or an hour later.
+  - The candidates, ranked, went to the coordinator: the app closed
+    during the download, an antivirus stopping an unsigned download, or
+    the staging file refused beside `Vessel.exe`. A redirected stderr
+    (`Vessel.exe 2> file` from cmd) gets the error from 0.0.0.0.3.
+
+## Logs and retries (from the build after 0.0.0.0.5)
+
+- **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
+  calls `vessel_app_log::init(LABEL)` first thing in `main`.
+  - Output goes to stderr as before, and to `vessel.log` in
+    `vessel_app_log::dir()`:
+    - Windows: `%LOCALAPPDATA%\Vessel\logs`
+    - macOS: `~/Library/Logs/Vessel`
+    - Linux: `$XDG_STATE_HOME/vessel/logs`
+  - The file is rotated past 1 MiB, keeping `vessel.1.log` and
+    `vessel.2.log`.
+  - It is written line by line, and a panic hook records the message,
+    the place and a backtrace.
+  - `RUST_LOG` filters; by default everything at info and the updater
+    at debug.
+  - The About screen's "open the log folder" calls `dir()`. That screen
+    is the desktop track's.
+  - The Decision Log, with the alternatives, is at the top of
+    `applog/src/lib.rs`.
+- **What the updater records**:
+  - its start (label, channel, target, packaging, the feed's host only)
+  - each check, and the newest label
+  - the artifact and its size
+  - the staging file's name
+  - the feed's answer to the download (status, length)
+  - the bytes received when a download breaks off or stalls
+  - each rename of the swap, and leftovers removed or kept
+  - each failure with its whole cause chain (`report::chain`), which
+    carries an `io::Error`'s OS code
+  - file names only, because the directory carries the account's name
+- **The feed's address never reaches a log**:
+  - `FeedUrl` prints its scheme and host only, and reqwest errors are
+    kept without their URL.
+  - `tests/update.rs::the_log_never_names_the_feeds_path` runs a good
+    update, a 404 download and an unreachable feed under a token path,
+    with every updater record at trace. It fails if the token appears;
+    it did fail with the URL left in reqwest's error.
+- **Retries**:
+  - After a transient failure the next checks come 1, 5 and 15 minutes
+    later, then hourly (`RETRY_AFTER`, `Settings::retry_after`).
+  - A manifest that does not verify, or no build for this machine,
+    waits the hour, because only a new publish changes it.
+  - Tests check the schedule's count and that a retry installs a build
+    the failed check could not reach.
+- Verified on Linux, and on Windows under wine: the log crate's 3
+  tests, the updater's 27 unit tests and its 10 end-to-end tests.
+
 ## Licences of what this track pulls in (ADR 0014)
 
 Beyond what Vessel's main workspace already links:

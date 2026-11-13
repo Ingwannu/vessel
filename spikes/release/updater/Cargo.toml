@@ -33,3 +33,5 @@ windows-registry = "0.6"
 minisign.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["io-util", "net", "rt-multi-thread"] }
+# The log a test captures (tests/update.rs: the feed's path never in it).
+tracing-subscriber = { workspace = true, features = ["fmt", "env-filter"] }

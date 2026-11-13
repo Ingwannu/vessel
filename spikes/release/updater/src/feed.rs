@@ -29,8 +29,30 @@ pub(crate) const READ_STALL: Duration = Duration::from_secs(60);
 
 /// The feed's base address: `https://`, or `http://` to this machine
 /// only (tests, and a feed served locally to try a build).
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// Printed (`Display`, `Debug`) as its scheme and host only: the real
+/// feed's path carries an unguessable token, and the app's log file is
+/// something the owner sends (`tests/update.rs` checks the log never has
+/// it).
+#[derive(Clone, PartialEq, Eq)]
 pub struct FeedUrl(reqwest::Url);
+
+impl FeedUrl {
+    /// `<scheme>://<host>[:<port>]/…`, never the path.
+    fn redacted(&self) -> String {
+        let host = self.0.host_str().unwrap_or("?");
+        match self.0.port() {
+            Some(port) => format!("{}://{host}:{port}/…", self.0.scheme()),
+            None => format!("{}://{host}/…", self.0.scheme()),
+        }
+    }
+}
+
+impl std::fmt::Debug for FeedUrl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FeedUrl").field(&self.redacted()).finish()
+    }
+}
 
 /// Why a text is not a feed's address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -105,7 +127,7 @@ impl FeedUrl {
 
 impl std::fmt::Display for FeedUrl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.as_str())
+        f.write_str(&self.redacted())
     }
 }
 
@@ -115,7 +137,9 @@ pub enum FetchError {
     /// TLS could not be set up.
     #[error("TLS could not be set up")]
     Tls,
-    /// No answer, or the connection broke.
+    /// No answer, or the connection broke. Made by
+    /// [`FetchError::unreachable`], which drops the request's address from
+    /// the error (reqwest prints it, and the feed's path is a secret).
     #[error("the feed could not be reached")]
     Unreachable(#[source] reqwest::Error),
     /// An answer that is not 200.
@@ -133,6 +157,14 @@ pub enum FetchError {
     /// The body stopped arriving.
     #[error("the feed stopped sending")]
     Stalled,
+}
+
+impl FetchError {
+    /// [`FetchError::Unreachable`] without the request's address.
+    #[must_use]
+    pub fn unreachable(error: reqwest::Error) -> Self {
+        Self::Unreachable(error.without_url())
+    }
 }
 
 /// The HTTP client the updater reads the feed with.
@@ -166,7 +198,7 @@ impl FeedClient {
             .connect_timeout(CONNECT)
             .user_agent(concat!("vessel-app-updater/", env!("CARGO_PKG_VERSION")))
             .build()
-            .map_err(FetchError::Unreachable)?;
+            .map_err(FetchError::unreachable)?;
         Ok(Self { client })
     }
 
@@ -184,10 +216,10 @@ impl FeedClient {
             .timeout(MANIFEST_TIME)
             .send()
             .await
-            .map_err(FetchError::Unreachable)?;
+            .map_err(FetchError::unreachable)?;
         let mut response = ok(response)?;
         let mut body = Vec::new();
-        while let Some(chunk) = response.chunk().await.map_err(FetchError::Unreachable)? {
+        while let Some(chunk) = response.chunk().await.map_err(FetchError::unreachable)? {
             let len = u64::try_from(body.len().saturating_add(chunk.len())).unwrap_or(u64::MAX);
             if len > MAX_ENVELOPE_BYTES {
                 return Err(FetchError::TooLarge {
@@ -214,7 +246,7 @@ impl FeedClient {
             .get(feed.artifact(path))
             .send()
             .await
-            .map_err(FetchError::Unreachable)?;
+            .map_err(FetchError::unreachable)?;
         ok(response)
     }
 }
