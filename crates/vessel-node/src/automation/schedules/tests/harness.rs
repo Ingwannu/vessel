@@ -55,6 +55,8 @@ pub(super) struct FakeRunner {
     pub(super) answer: Mutex<Made>,
     pub(super) gate: Option<Arc<Semaphore>>,
     pub(super) running: Mutex<(usize, usize)>,
+    /// Agents' sessions that have ended.
+    pub(super) gone: Mutex<Vec<SessionId>>,
 }
 
 impl FakeRunner {
@@ -65,6 +67,7 @@ impl FakeRunner {
             answer: Mutex::new(made),
             gate: None,
             running: Mutex::new((0, 0)),
+            gone: Mutex::new(Vec::new()),
         };
         (Arc::new(runner), received)
     }
@@ -76,6 +79,7 @@ impl FakeRunner {
             answer: Mutex::new(prompted()),
             gate: Some(gate),
             running: Mutex::new((0, 0)),
+            gone: Mutex::new(Vec::new()),
         };
         (Arc::new(runner), received)
     }
@@ -114,6 +118,14 @@ impl Runner for FakeRunner {
 
     async fn settle(&self, run: &ScheduleRun) -> Option<RunOutcome> {
         matches!(run.outcome, RunOutcome::Making).then_some(RunOutcome::Interrupted)
+    }
+
+    fn agent_alive(&self, session: SessionId) -> bool {
+        !self
+            .gone
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .contains(&session)
     }
 }
 
