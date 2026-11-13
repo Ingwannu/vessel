@@ -196,7 +196,20 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetAgentStatus
         | Method::GetCatalogue
         | Method::InstallAgent
-        | Method::ReadInstall => true,
+        | Method::ReadInstall
+        | Method::ListSchedules
+        | Method::GetSchedule
+        | Method::CreateSchedule
+        | Method::UpdateSchedule
+        | Method::PauseSchedule
+        | Method::ResumeSchedule
+        | Method::RunSchedule
+        | Method::DeleteSchedule
+        | Method::ListRuns
+        | Method::ListPrompts
+        | Method::CreatePrompt
+        | Method::UpdatePrompt
+        | Method::DeletePrompt => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

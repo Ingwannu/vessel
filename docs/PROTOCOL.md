@@ -35,7 +35,9 @@ an entry neither generated file declares any more.
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;
 its tracks add to it side by side (`docs/plans/backend-m11.md`, "Wave 2:
 tracks"), each with its part here, and the join of the first half fixed
-two gaps the page found ("Integration 2 (node)").
+two gaps the page found ("Integration 2 (node)"). Track D's schedules,
+saved prompts and the starter told come last ("Integration 3 (node)"
+says where they meet the rest).
 
 ### Pull requests (track B2, ADR 0029)
 
@@ -347,6 +349,100 @@ plan's "Track C: contract" (with its review) say why each choice.
   entry is not there at that version; `invalid_request` when it runs no
   command here), with the entry's `env` as text and `source: { from:
   "registry", id, version }`.
+
+### Schedules (track D)
+
+Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
+(`docs/plans/backend-m11.md`, "Track D: contract" and its review; ADR
+0033).
+
+- Types (`vessel_proto::automation`):
+  - `CronExpr`: five fields (minute, hour, day of the month, month, day of
+    the week), lists, ranges, steps on `*` or a range, month and day names,
+    `@hourly` to `@yearly`; parsed on decode into bit sets, so a bad one
+    does not decode. `TimeZoneName` (an IANA name's shape; the node says
+    whether it exists), `ScheduleName`, `PromptText` (16 KiB, no control
+    character but tab and line ends), `EverySeconds` (60 to 31,622,400),
+    `MaxRuns`, `RunNumber`.
+  - `Cadence`: `every { seconds, anchor? }` (elapsed time from the anchor
+    the node fills), `cron { expr, zone }`, `unknown`.
+  - `ScheduleTarget`: `new_session { spec, after }` (a structured
+    `SessionSpec`, whose agent may be one added on the node, track G;
+    `after` is `archive`, the default, or `keep`) or
+    `session { session }` (through its queue), `unknown`.
+  - `ScheduleDefinition { name?, cadence, target, prompt, catch_up,
+    max_runs?, ends_at? }`, `CatchUp` (`once`, `skip`), `ScheduleState`
+    (`active { next_due }`, `paused { since }`, `ended { at, reason }`),
+    `ScheduleInfo { id, definition, state, runs, last_due?, last_run?,
+    defined_by, created_at, updated_at, revision }`.
+  - `ScheduleRun { number, due_at, at, trigger, outcome }`; `RunTrigger`
+    (`due`, `caught_up { missed }`, `asked { by }`); `RunOutcome`
+    (`making`, `started`, `waiting`, `finished { session, end }`,
+    `prompted { session, delivered }`, `skipped { reason }`, `failed {
+    error: RunError, session? }`, `interrupted`). `RunError`'s code is a
+    `RunErrorCode`, `ErrorCode` with `unknown`, so a list of runs stays
+    readable to an older client when a newer code appears.
+  - Every enum that will grow has `unknown`; one sent to a node is
+    `invalid_request`.
+- Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
+  `.update` (the whole definition, under its `revision`), `.pause`,
+  `.resume`, `.run` (once now, answered with the run's outcome),
+  `.delete` (operate).
+- A run acts as the schedule's `defined_by` as they are when it runs (a
+  revoked device ends it; an agent's schedules go with its session), and
+  meets the checks a call of theirs would. Agents: 8 schedules per
+  session, their own session as a heartbeat's target, never `run` now;
+  delegated callers may only read, pause, resume and delete.
+- What happens at a daylight-saving gap or fold, after a stopped node, on
+  a clock stepped either way, and to a run under way when the node stops,
+  is the contract's "Time" and ADR 0033.
+- Store: schema 12 (`schedules`, `schedule_runs`, `saved_prompts`, `hooks`,
+  `hook_deliveries`, `hook_keys`).
+
+### Saved prompts (track D)
+
+Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
+0033).
+
+- `SavedPrompt { id, name, text, project?, session?, defined_by,
+  created_at, updated_at, revision }`: `PromptName` (64 characters),
+  `PromptText`; `project` absent is the machine's; `session` a structured
+  `SessionSpec`, what a session started from it runs with, its place (if
+  any) in the prompt's project.
+- Methods: `prompt.list { project? }` (read; that project's and the
+  machine's, `not_found` for an unknown project; by name, the machine's
+  first of one name); `prompt.create`, `prompt.update` (name, text and
+  `session` under its `revision`; the project stays), `prompt.delete`
+  (operate).
+- A name is unique within its project (or the machine's): `conflict`, as
+  for an old revision and past 256 on the node. `session` is checked as
+  `session.create` would check it (`invalid_request` for a terminal or
+  resuming spec, or a place outside the prompt's project).
+- A person's text: agents and delegated callers may list, not write
+  (`forbidden`). Saved prompts are kept by the node, never read from a
+  repository's files (ADR 0033 says why).
+
+### The starter told (track D)
+
+- `PromptSession.notify: bool` (left out when false; a call with it true
+  needs 11). Only a session's agent asks, on its own node
+  (`invalid_request` for the owner and devices, `forbidden` through
+  `fleet.forward`, `unsupported` for a terminal caller). The session told
+  is the caller's own.
+- It is about the turn this prompt starts or joins, exactly: the
+  session's actor says which (at once when it starts or steers, when its
+  queue entry starts a turn when queued; never for an entry removed).
+  Each event is told once, as a prompt queued into the caller's session
+  (`delivery: queue`: never into a running turn): `needs_you` for each
+  permission or question of that turn (at most 8), then `finished` (its
+  end, the last 1,500 characters of its reply, and the record to read
+  from) or `ended` (the session's final status). Text only, from the
+  node, starting `vessel: session`; the queue entry's `by` is the
+  finished session (`Creator::Agent`).
+- Bounded: 32 turns followed per told session and 256 on the node
+  (`conflict` beyond), 60 notices an hour into one session (the rest
+  dropped and logged), none into a session a person stopped. Nothing is
+  stored.
 
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 

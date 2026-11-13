@@ -368,6 +368,33 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    // Protocol 11, track D (ADR 0033): schedules and saved prompts.
+    /// Every schedule on the node (protocol 11).
+    ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;
+    /// One schedule (protocol 11).
+    GetSchedule / get_schedule / "schedule.get" [Read, 11]: crate::automation::GetSchedule => crate::automation::ScheduleInfo;
+    /// Make a schedule (protocol 11).
+    CreateSchedule / create_schedule / "schedule.create" [Operate, 11]: crate::automation::CreateSchedule => crate::automation::ScheduleInfo;
+    /// Replace a schedule's definition (protocol 11).
+    UpdateSchedule / update_schedule / "schedule.update" [Operate, 11]: crate::automation::UpdateSchedule => crate::automation::ScheduleInfo;
+    /// Stop a schedule's runs (protocol 11).
+    PauseSchedule / pause_schedule / "schedule.pause" [Operate, 11]: crate::automation::PauseSchedule => crate::automation::ScheduleInfo;
+    /// Let a paused schedule run again (protocol 11).
+    ResumeSchedule / resume_schedule / "schedule.resume" [Operate, 11]: crate::automation::ResumeSchedule => crate::automation::ScheduleInfo;
+    /// Run a schedule once now (protocol 11).
+    RunSchedule / run_schedule / "schedule.run" [Operate, 11]: crate::automation::RunSchedule => crate::automation::ScheduleRun;
+    /// Remove a schedule and its runs (protocol 11).
+    DeleteSchedule / delete_schedule / "schedule.delete" [Operate, 11]: crate::automation::DeleteSchedule => Ack;
+    /// A schedule's newest runs (protocol 11).
+    ListRuns / list_runs / "schedule.runs" [Read, 11]: crate::automation::ListRuns => crate::automation::RunList;
+    /// The saved prompts (protocol 11).
+    ListPrompts / list_prompts / "prompt.list" [Read, 11]: crate::automation::ListPrompts => crate::automation::PromptList;
+    /// Save a prompt (protocol 11).
+    CreatePrompt / create_prompt / "prompt.create" [Operate, 11]: crate::automation::CreatePrompt => crate::automation::SavedPrompt;
+    /// Change a saved prompt (protocol 11).
+    UpdatePrompt / update_prompt / "prompt.update" [Operate, 11]: crate::automation::UpdatePrompt => crate::automation::SavedPrompt;
+    /// Remove a saved prompt (protocol 11).
+    DeletePrompt / delete_prompt / "prompt.delete" [Operate, 11]: crate::automation::DeletePrompt => Ack;
 }
 
 /// Result of a call.

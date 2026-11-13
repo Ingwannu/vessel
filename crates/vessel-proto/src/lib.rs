@@ -11,6 +11,7 @@
 
 mod agent;
 pub mod agents;
+pub mod automation;
 mod base64_bytes;
 mod board;
 pub mod conversation;
@@ -76,9 +77,10 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, InstallId, ModelId, NodeId, OptionId,
-    OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
-    RequestId, SessionId, SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorktreeId,
+    AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId, NodeId,
+    OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
+    RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId, ToolCallId,
+    TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

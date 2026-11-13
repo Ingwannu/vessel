@@ -189,6 +189,25 @@ impl Devices {
         Ok(())
     }
 
+    /// A device's scopes now; `None` once it is revoked or unknown. What
+    /// a schedule it defined acts with when the schedule runs (protocol
+    /// 11, ADR 0033): a device's scope at the time it runs, not at the time
+    /// it was made.
+    ///
+    /// # Errors
+    /// The devices table could not be read.
+    pub(crate) async fn scopes_now(
+        &self,
+        device: DeviceId,
+    ) -> Result<Option<Vec<Scope>>, ServiceError> {
+        Ok(self
+            .store
+            .device(device)
+            .await?
+            .filter(|stored| stored.info.revoked_at.is_none())
+            .map(|stored| stored.info.scopes))
+    }
+
     /// Check a device's credential; its scopes if it may connect.
     ///
     /// A wrong secret and an unknown device give the same answer, and the
