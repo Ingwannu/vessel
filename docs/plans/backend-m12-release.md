@@ -190,6 +190,40 @@ label's directory also holds the desktop track's Linux tarball
   DirectWrite), SmartScreen's warning (Windows only), DPI scaling on a
   real display.
 
+## Build 0.0.0.0.2
+
+Built by `build.sh 0.0.0.0.2 windows-x64 linux-x64` at `d45fd96`, the
+merge of the desktop track's `5211c3c` (its gate passing), the set put
+in place at 04:48 UTC; `sha256sum -c` and `vessel-app-feed check-sums`
+(the signature with the release key's public half) both pass where the
+owner downloads from, as `build.sh`'s last two steps. Updates are not
+compiled in (no feed address yet).
+
+- **Windows**: 37 MB, GUI subsystem, static CRT; the import list is the
+  one `build.sh` allows; resources: icon, group icon, version block and
+  GPUI's manifest (`build.sh` checks all four). The installer installs,
+  registers `DisplayVersion 0.0.0.0.2` with the exe as `DisplayIcon`, and
+  uninstalls, under wine.
+- **Under wine** the build now stops earlier than 0.0.0.0.1: the
+  Direct3D 11.1 device is created and the first text (now resolved
+  before the main window opens) ends it at wine's DirectWrite, so not
+  even the window's styles can be seen running.
+- **The title bar** is the app's own (the desktop track's `chrome.rs`):
+  on Windows GPUI keeps `WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX |
+  WS_MINIMIZEBOX` on the window and hides the system bar by answering
+  `WM_NCHITTEST` itself: the app's `Drag`, `Min`, `Max` and `Close` areas
+  become `HTCAPTION`, `HTMAXBUTTON` and `HTCLOSE`, the top edge resizes
+  (read in `gpui-pre-windows` 0.3.10, the path Zed ships on Windows). Not
+  run on any Windows. If the drag or the buttons fail, the system menu
+  and the keyboard still work, because the styles are there: Alt+F4
+  closes, Alt+Space opens the window menu (Move, Size, Close), Win+arrows
+  snap, maximise and minimise, the taskbar's menu closes it. There is no
+  switch back to the system's bar; one would be a line in the kit's
+  `window_options` (the desktop track's).
+- **Linux**: 71 MB; the tarball started from an empty configuration under
+  a virtual display and drew the app's bar, the mark and the pairing
+  screen.
+
 ## Icons (from build 0.0.0.0.2)
 
 The owner gave the mark on 2026-11-13 (`docs/design/brand/`, merged from

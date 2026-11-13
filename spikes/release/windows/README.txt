@@ -12,7 +12,7 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   화면이 나옵니다. 추가할 머신에서 `vessel node pair` 를 실행해 나온 링크를
   붙여 넣고 Enter 를 누릅니다(링크는 10분 동안 한 번만 쓸 수 있습니다).
   화면에 나온 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고,
-  이름을 정한 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel
+  미리 채워진 이름을 그대로 두거나 바꾼 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel
   CLI와 같은 곳(%APPDATA%\vessel)에 둡니다.
 - {UPDATES_KO}
 
@@ -29,7 +29,7 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   Korean Windows): run `vessel node pair` on the machine to add, paste the
   link it prints and press Enter (a link works once, for ten minutes).
   Check that the key shown is the key the machine printed with the link,
-  name the machine and press "Pair". The node book and device credentials
+  keep or change the name filled in for it, and press "Pair". The node book and device credentials
   are the vessel CLI's (%APPDATA%\vessel).
 - {UPDATES_EN}
 

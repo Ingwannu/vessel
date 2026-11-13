@@ -5,8 +5,8 @@ Vessel {LABEL} — Linux x86-64 (glibc)
   Vulkan 드라이버(Mesa 것으로 충분)가 필요합니다.
 - 처음 열면 "머신 추가"(영어 환경에서는 "Add a machine") 화면이 나옵니다.
   추가할 머신에서 `vessel node pair` 를 실행해 나온 링크를 붙여 넣고 Enter,
-  화면의 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고, 이름을
-  정한 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel CLI와 같은
+  화면의 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고, 미리
+  채워진 이름을 그대로 두거나 바꾼 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel CLI와 같은
   곳(~/.config/vessel)에 둡니다.
 - 앱 메뉴에 넣으려면 ./install-desktop-entry.sh 를 실행합니다(아이콘과
   .desktop 파일을 ~/.local/share 아래에 둡니다).
@@ -18,7 +18,7 @@ Vessel {LABEL} — Linux x86-64 (glibc)
 - With no machine yet, the app opens on "Add a machine" ("머신 추가" in
   Korean): paste the link `vessel node pair` prints on the machine to add,
   press Enter, check that the key shown is the key the machine printed with
-  the link, name it and press "Pair". The node book and device credentials
+  the link, keep or change the name filled in for it, and press "Pair". The node book and device credentials
   are the vessel CLI's (~/.config/vessel).
 - To add it to the application menu, run ./install-desktop-entry.sh (it
   puts the icon and a .desktop file under ~/.local/share).

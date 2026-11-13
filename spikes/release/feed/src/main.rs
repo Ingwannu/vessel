@@ -8,6 +8,7 @@
 //!                         --artifact TARGET:PACKAGING:PATH ...
 //! vessel-app-feed sums --key FILE DIR
 //! vessel-app-feed check --feed DIR --public KEY --channel NAME
+//! vessel-app-feed check-sums --public KEY DIR
 //! ```
 //!
 //! `keygen` makes the key pair once, outside any repository: the secret
@@ -45,6 +46,7 @@ fn main() -> ExitCode {
         Command::Keygen { dir } => keygen(&dir),
         Command::Publish(publish) => publish::publish(&publish).map(|line| say(&line)),
         Command::Sums { key, dir } => sums::write(&key, &dir).map(|line| say(&line)),
+        Command::CheckSums { public, dir } => sums::check(&public, &dir).map(|line| say(&line)),
         Command::Check {
             feed,
             public,

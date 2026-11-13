@@ -290,5 +290,10 @@ if [ "$publish" = 1 ]; then
 fi
 
 ls -l "$out"
-# Last: the sums, checked where the owner downloads from.
+# Last: the sums, checked where the owner downloads from, and their
+# signature with the release key's public half (the .pub beside the secret
+# unless VESSEL_UPDATE_KEY names it).
 (cd "$final" && sha256sum -c SHA256SUMS)
+if [ -n "${VESSEL_UPDATE_SECRET:-}" ]; then
+    feed_tool check-sums --public "${VESSEL_UPDATE_KEY:-${VESSEL_UPDATE_SECRET%.key}.pub}" "$final"
+fi
