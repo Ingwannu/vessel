@@ -83,6 +83,7 @@ impl Shell {
         };
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
+        areas::shortcuts::listen(&mut shell, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -286,7 +287,8 @@ impl Render for Shell {
                     // it with.
                     .children(sheet),
             )
-            .children(areas::toasts::render(self, &tokens, window, cx));
+            .children(areas::toasts::render(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

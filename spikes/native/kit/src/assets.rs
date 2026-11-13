@@ -117,10 +117,18 @@ pub enum Glyph {
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// The board (three lanes of cards).
+    Board,
+    /// The light theme (a sun).
+    Sun,
+    /// The dark theme (a moon).
+    Moon,
+    /// The system's theme (a screen).
+    Monitor,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 46] = [
+const ALL: [Glyph; 50] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -167,6 +175,10 @@ const ALL: [Glyph; 46] = [
     Glyph::Trash,
     Glyph::Pin,
     Glyph::Spinner,
+    Glyph::Board,
+    Glyph::Sun,
+    Glyph::Moon,
+    Glyph::Monitor,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -232,6 +244,10 @@ impl Glyph {
             Self::Trash => "kit/trash.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Board => "kit/board.svg",
+            Self::Sun => "kit/sun.svg",
+            Self::Moon => "kit/moon.svg",
+            Self::Monitor => "kit/monitor.svg",
         }
     }
 
@@ -355,6 +371,18 @@ impl Glyph {
             ),
             Self::Pin => line_glyph!(
                 r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
+            ),
+            Self::Board => line_glyph!(
+                r#"<rect x="3" y="3.75" width="5.25" height="16.5" rx="1.5"/><rect x="9.375" y="3.75" width="5.25" height="10.5" rx="1.5"/><rect x="15.75" y="3.75" width="5.25" height="13.5" rx="1.5"/>"#
+            ),
+            Self::Sun => line_glyph!(
+                r#"<circle cx="12" cy="12" r="4.125"/><path d="M12 2.25v1.875M12 19.875v1.875M2.25 12h1.875M19.875 12h1.875M5.1 5.1l1.35 1.35M17.55 17.55l1.35 1.35M5.1 18.9l1.35-1.35M17.55 6.45l1.35-1.35"/>"#
+            ),
+            Self::Moon => line_glyph!(
+                r#"<path d="M20.25 14.4A8.25 8.25 0 0 1 9.6 3.75a8.25 8.25 0 1 0 10.65 10.65Z"/>"#
+            ),
+            Self::Monitor => line_glyph!(
+                r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
             ),
         }
     }

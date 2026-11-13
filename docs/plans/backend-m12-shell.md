@@ -169,7 +169,7 @@ by machine, session and kind, and hands any other to the conversation's
   mid-word; when the cut falls between words it can end without the
   ellipsis (seen at 390 points). The page's `line-clamp` always shows it.
 
-### Captures (`/tmp/work/m12-shell/shots/`, fake fleet plus the board's shapes)
+### Captures (the scratch directory's `shots/`, fake fleet plus the board's shapes)
 
 The fleet (`scripts/fleet.sh`) with, added by a scratch script, a long
 English title and a long Korean one with branches, a terminal session,
@@ -180,6 +180,92 @@ confirm), `board-archived-dark-en` (the count to 1), `archive-dark-en`,
 `archive-hover-dark-en`, `delete-confirm-dark-en` (over the archive),
 `delete-toast-dark-en`, `board-light-ko`, `phone-board-dark-en`,
 `phone-board-light-ko`, `phone-archive-dark-en` (the sheet).
+
+## 3. The palette and the listener
+
+`kit/command.rs` draws Paseo's command center (`command-center.tsx`, its
+`list-metrics.ts`, `components/ui/shortcut.tsx`): the panel 640 by 560
+(at most 92% by 80% of the window) 48 under the window's top over black
+at 50%, a hairline, 8 round, Paseo's large shadow; the search in a header
+over a rule; each group under a muted heading after a rule; a row with a
+16-point glyph, its title (and a muted second line), and the badges of
+its key, one per chord; the search's place marked `surface3` behind the
+foreground; a theme's check; the empty line. At a phone's width it is a
+sheet from the bottom with its handle.
+
+`app/areas/palette.rs` lists `view::palette`'s entries for the fleet as
+it is (the page's `paletteEntries`), filtered and grouped as the page
+does, with Paseo's keyboard (`kept` and `moved`, its
+`preserveActiveResultId` and `moveActiveResultId`): Up and Down move the
+active row and scroll it into sight, Enter or a click runs it, Escape or a
+press on the dimmed page closes it and the keys go back where they were.
+Its glyphs are the page's `iconOf` (Plus, Machine, Board, the Settings
+section's, Message or Terminal, Monitor, Sun, Moon).
+
+`app/areas/shortcuts.rs` is the one listener (the page's `listener.ts`):
+GPUI's keystroke interceptor hears every key before the focused field
+and the controls; the press becomes a chord (`chord_of`, its position by
+`code_of`), the chord an action with the person's overrides (`matched`,
+a sequence's first press kept for the next), and the shell answers
+Palette, New session (on the machine in view: the open session's, or the
+board's scope), Settings, Go to Board, Machines, Sync and Devices,
+Previous, Next and session 1 to 9 in the sidebar's order. A chord
+without Mod, Ctrl, Alt or Meta stands down while a field has the keys;
+nothing fires while `ShortcutListener::recording` is set (the seam for
+Settings › Shortcuts' recorder). An action that acts stops the key (the
+page's `preventDefault`): the field neither types it nor runs its own
+action.
+
+The shell's hooks (the lead's file, one line each): `Shell::new` calls
+`areas::shortcuts::listen`; the render draws `areas::palette::render`
+after the toasts. Settings' module exports `section_glyph` (one word in
+`settings/nav.rs` and its `use`, for track E) so the palette shows the
+same glyph as Settings' list.
+
+### What differs from the page, and why
+
+- Paseo's look, not the page's: no foot with the keys (Paseo's command
+  center has none), the second line under the title, the keys of a row's
+  shortcut on its right (the page's rows have none).
+- Settings sections are listed only when Settings draws them (General,
+  Appearance, Projects, About today), and machines only once Settings ›
+  Machines is drawn: a placeholder would be a dead end. Go to Machines,
+  Sync and Devices by key open Settings at its first section until then
+  (`open_settings`' own rule).
+- A row the pointer is over is tinted as the active one but does not
+  become it (Paseo's hover); the keyboard's row stays.
+- The search's mark is the whole query, the first place it occurs
+  (Paseo marks each word; this palette's search is one substring, as the
+  page's `found`).
+- The keys GPUI's field would take first (its Up, Down, Enter and Escape
+  actions) are caught by the panel before the field (`capture_action`),
+  as the page's list keeps them from its input.
+- Find, the composer's focus and the two panels' keys have no handler
+  here: their keys go on to the controls (track C's find bar keeps its
+  own Mod+F observer; the panels are the lead's and track F's). They
+  should move into the registry so the person's overrides apply.
+- The interceptor runs before the field's actions, where the page's
+  listener runs after other handlers (`defaultPrevented`): a key a field
+  binds and a shortcut also binds goes to the shortcut. The registry's
+  default keys with a modifier overlap none of the field's bindings
+  (checked against them: the field's are Ctrl or Cmd with `[`, `]`, A,
+  arrows, Home, End, Backspace, Delete); a key the person binds may.
+- While an input method composes, the system holds the keys (X11's and
+  Wayland's input methods, macOS's marked text); checked on Linux only.
+- The sidebar's search row (DESIGN.md §2.2) is the lead's sidebar: asked
+  of the lead (`Shell::open_palette` opens it).
+
+### Captures (the scratch directory's `shots/`)
+
+`palette-dark-en` (opened by Ctrl+K), `palette-query-dark-en` ("ses":
+marks in title and second line), `palette-down-light-ko` (Korean, light,
+two Downs), `palette-theme-dark-en` (the check on System),
+`palette-slash-dark-en` (`/` from the board; the slash not typed into
+the search), `palette-escape-dark-en` (Escape, then typing goes back to
+the composer), `palette-enter-dark-en` (Enter on "board"),
+`palette-phone-dark-en` (the sheet at 390), `seq-gs-dark-en` (`G S` from
+Settings to the board), `key-n-dark-en` (`N` from the board to a new
+session, the letter not typed).
 
 ## Run log
 
@@ -223,6 +309,16 @@ confirm), `board-archived-dark-en` (the count to 1), `archive-dark-en`,
   over its button). Gate with the palette's view additions below: fmt
   clean; clippy clean; `cargo test`: 3, 10, 10, 222, 73, 0, 0, 0 passed,
   none failed.
+
+- Merged `backend/m12-spike` at 4532c7e (a37d768), clean.
+- The palette and the one listener (section 3): the kit's command frame,
+  row, heading and key badges; the app's palette and shortcuts areas;
+  two one-line hooks in the shell. Built and tried on an Xvfb against
+  the fake fleet: Ctrl+K, `/` from the board, `/` in the composer
+  standing down, Down, Enter, Escape giving focus back, the theme
+  group's check, `G S` from Settings, `N` from the board, the phone
+  sheet at 390; dark and light, English and Korean. fmt clean; clippy
+  clean; `cargo test`: 3, 10, 10, 222, 73, 0, 0, 0 passed, none failed.
 
 ## Notes for later slices
 

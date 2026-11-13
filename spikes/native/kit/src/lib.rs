@@ -27,6 +27,7 @@ pub mod breakpoint;
 pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
+pub mod command;
 pub mod copy;
 pub mod dialog;
 pub mod field;

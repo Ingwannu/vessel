@@ -15,8 +15,10 @@ pub(crate) mod common;
 pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
+pub(crate) mod palette;
 pub(crate) mod session;
 pub(crate) mod settings;
+pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
@@ -35,6 +37,8 @@ pub(crate) struct Areas {
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
     pub(crate) board: board::BoardArea,
+    pub(crate) palette: palette::PaletteArea,
+    pub(crate) shortcuts: shortcuts::ShortcutListener,
     /// The toasts on screen.
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
 }
@@ -50,6 +54,8 @@ impl Areas {
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
             board: board::BoardArea::new(window, cx),
+            palette: palette::PaletteArea::new(window, cx),
+            shortcuts: shortcuts::ShortcutListener::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
         }
     }

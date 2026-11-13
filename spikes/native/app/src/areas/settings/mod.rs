@@ -42,7 +42,7 @@ use vessel_app_view::prefs::{PreferenceChange, SendKey, Theme, send_key_label};
 use vessel_app_view::settings::Section;
 
 pub(crate) use choices::{List, primary};
-pub(crate) use nav::sidebar;
+pub(crate) use nav::{section_glyph, sidebar};
 
 use crate::routes::Route;
 use crate::shell::Shell;

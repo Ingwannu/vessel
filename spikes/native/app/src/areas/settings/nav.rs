@@ -46,7 +46,7 @@ pub(crate) const PICKER_WIDTH: f32 = 240.0;
 const WIDTH: f32 = 264.0;
 
 /// A section's glyph (Paseo's for the sections it has).
-const fn section_glyph(section: Section) -> Glyph {
+pub(crate) const fn section_glyph(section: Section) -> Glyph {
     match section {
         Section::General => Glyph::Gear,
         Section::Appearance => Glyph::Palette,
