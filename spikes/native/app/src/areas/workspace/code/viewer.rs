@@ -62,6 +62,7 @@ pub(super) fn viewer_element(
                 .flex_1()
                 .min_w_0()
                 .truncate()
+                .text_ellipsis_start()
                 .type_(Type::Mono)
                 .text_color(neutral.foreground_muted)
                 .child(viewer.path.as_str().to_owned()),

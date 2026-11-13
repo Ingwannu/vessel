@@ -23,7 +23,7 @@ use vessel_app_view::workspace::marks::{indent_of, marks_at, span_marks};
 use vessel_proto::workspace::{GrepMatch, RelPath};
 
 use super::frame::note;
-use super::search::{Results, Search};
+use super::search::{FIND_LIMIT, Results, Search};
 use crate::shell::Shell;
 
 /// The results in the tree's place, `None` when nothing is searched.
@@ -51,7 +51,9 @@ pub(super) fn results(
             note(labels.nothing_found, tokens).into_any_element()
         }
         Results::Found(found) => {
-            let line = words.found_count(found.matches.len(), found.indexed, found.complete);
+            let capped = u32::try_from(found.matches.len()).is_ok_and(|count| count >= FIND_LIMIT);
+            let line =
+                words.found_count(found.matches.len(), found.indexed, found.complete, capped);
             with_count(line, list(search, cx), tokens)
         }
         Results::Grepped(grepped) => {
@@ -192,6 +194,8 @@ fn result_row(
         div()
             .pl(px(20.0))
             .truncate()
+            // A folder's end (the nearest folder) says the most.
+            .text_ellipsis_start()
             .type_(Type::Meta)
             .text_color(neutral.foreground_muted)
             .child(marked(folder, folder_marks, tokens))

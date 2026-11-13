@@ -98,17 +98,21 @@ fn counts_with_the_noun() {
 
 #[test]
 fn says_how_many_a_search_found_and_when_it_stopped_short() {
-    assert_eq!(En.found_count(1, 40, true), "1 file");
+    assert_eq!(En.found_count(1, 40, true, false), "1 file");
     assert_eq!(
-        En.found_count(12, 50_000, false),
+        En.found_count(12, 50_000, false, false),
         "12 files, from the first 50000 searched"
+    );
+    assert_eq!(
+        En.found_count(100, 400, true, true),
+        "The best 100 files; type more of the name to narrow them."
     );
     assert_eq!(En.grepped_count(1, 1, false), "1 line in 1 file");
     assert_eq!(
         En.grepped_count(200, 41, true),
         "The first 200 lines, in 41 files; there are more. Narrow the search to see them."
     );
-    assert_eq!(Ko.found_count(12, 50_000, true), "파일 12개");
+    assert_eq!(Ko.found_count(12, 50_000, true, false), "파일 12개");
     assert_eq!(Ko.grepped_count(200, 41, false), "파일 41개에서 200줄");
     assert!(Ko.grepped_count(200, 41, true).contains("검색어를 좁혀"));
 }

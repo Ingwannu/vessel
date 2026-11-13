@@ -679,9 +679,11 @@ impl WorkspaceWords for En {
         }
     }
 
-    fn found_count(&self, files: usize, searched: u32, complete: bool) -> String {
+    fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
         let found = counted_len(files, "file", "files");
-        if complete {
+        if capped {
+            format!("The best {found}; type more of the name to narrow them.")
+        } else if complete {
             found
         } else {
             format!("{found}, from the first {searched} searched")

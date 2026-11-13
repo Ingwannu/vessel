@@ -32,6 +32,10 @@ use vessel_proto::workspace::{
 
 use crate::shell::Shell;
 
+/// The most files a search by name asks for (the best first): past it, a
+/// person types more of the name.
+pub(super) const FIND_LIMIT: u32 = 100;
+
 /// Which search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Mode {
@@ -131,7 +135,7 @@ impl Shell {
                     root,
                     query,
                     key: Some(search.key),
-                    limit: Some(100),
+                    limit: Some(FIND_LIMIT),
                 })
             }
             Mode::Content => {

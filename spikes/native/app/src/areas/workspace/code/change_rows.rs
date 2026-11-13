@@ -183,6 +183,8 @@ fn file_header(
                 .flex_shrink(64.0)
                 .min_w_0()
                 .truncate()
+                // A folder's end (the nearest folder) says the most.
+                .text_ellipsis_start()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
                 .child(renamed.unwrap_or_else(|| folder.to_owned())),
