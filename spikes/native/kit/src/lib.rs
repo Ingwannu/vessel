@@ -47,6 +47,7 @@ pub mod split_button;
 pub mod tabs;
 pub mod theme;
 pub mod toast;
+pub mod toolbar_label;
 pub mod tooltip;
 pub mod virtual_list;
 mod widgets;

@@ -309,3 +309,17 @@ the surrounding dialog and its submit availability. A pointer regression
 blurs then clicks the real input inside and outside the kit dialog at
 both widths, checks that typing reaches the input, and checks that the
 owner renders the changed value.
+
+## Shared toolbar label trigger
+
+`kit::toolbar_label::trigger` follows Paseo’s
+`components/ui/toolbar-label-trigger.tsx`: a label without a leading glyph,
+a 12-point caret, 4-point insets and gap, radius 6, muted text at rest and
+foreground text on interactionHighlight when hovered, pressed or open.
+It reuses the kit’s 12-point Meta type step. Its disabled state preserves
+the frame and has no interaction; callers attach no disabled click.
+The composer’s round pill is deliberately unchanged. The default choice
+is a single line with the reference’s truncation; a typed wrapping option
+is the requested departure for long branch names in the Changes head.
+Touch takes the shared TOUCH_TARGET minimum instead of changing text size.
+The six-argument frame leaves content, state, layout and tokens visible.

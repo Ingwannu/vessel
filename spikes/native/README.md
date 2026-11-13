@@ -144,6 +144,10 @@ Labels remain whole and explanations belong below their row.
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
 
+`kit/toolbar_label.rs` supplies Paseo’s compact current/base branch trigger:
+12-point muted label and caret, highlighted fill, typed open/disabled state,
+and explicit single-line or wrapping text. Composer pills keep their shape.
+
 `kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
 with optional title, wrapping description and an indented action. It uses
 existing semantic/neutral colours and palette blue 300 / amber 500 in
