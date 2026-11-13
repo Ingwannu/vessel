@@ -29,6 +29,7 @@ pub(crate) fn timeline(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    super::read::check(shell, window, cx);
     let list = rows(shell, Seat::SESSION, tokens, window, cx);
     if shell.areas.conversation.timeline.entries().is_empty() {
         return list;
