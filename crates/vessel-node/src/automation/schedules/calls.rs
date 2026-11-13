@@ -12,7 +12,7 @@ use vessel_proto::{Creator, ScheduleId, SessionId};
 
 use super::actor::Actor;
 use super::book::Entry;
-use super::check::settle;
+use super::check::{node_anchor, settle};
 use super::rules::{AGENT_SCHEDULES, Act, Asker};
 use super::state::{advanced, ended_refused, ends_an_agents};
 use super::{Clock, Command, Runner};
@@ -115,6 +115,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         };
         asker.may_create(own, people, agents)?;
         let now = self.clock.now();
+        node_anchor(&asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
         let state = if paused {
             ScheduleState::Paused { since: now }
@@ -167,6 +168,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             )));
         }
         let now = self.clock.now();
+        node_anchor(asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
         let cadence_changed = definition.cadence != info.definition.cadence;
         info.state = match info.state {
