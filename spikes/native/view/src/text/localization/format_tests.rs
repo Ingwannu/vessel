@@ -36,7 +36,6 @@ fn grouped_counts_and_dates_use_the_language_inside_messages() {
 fn local_time_and_timestamp_use_folder_patterns_and_english_fallback() {
     let en = Translator::get(ENGLISH).unwrap();
     let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
-    let ja = Translator::get(Locale::from_tag("ja").unwrap()).unwrap();
     let day = chrono::NaiveDate::from_ymd_opt(2026, 11, 13).unwrap();
     let time = chrono::NaiveTime::from_hms_opt(15, 4, 0).unwrap();
     let clock = Date::Time {
@@ -51,8 +50,12 @@ fn local_time_and_timestamp_use_folder_patterns_and_english_fallback() {
         ko.examples().time(&clock).unwrap(),
         "페어링 시각: \u{2068}15:04 UTC\u{2069}"
     );
+    let partial = fixture::bundle("ja");
+    let english = fixture::bundle("en");
+    let mut arguments = FluentArgs::new();
+    arguments.set("date", clock.fluent().unwrap());
     assert_eq!(
-        ja.examples().time(&clock).unwrap(),
+        resolve(&partial, &english, "meta-time", Some(&arguments)).unwrap(),
         "Paired at \u{2068}3:04 PM UTC\u{2069}."
     );
     let stamp = Date::DateTime {

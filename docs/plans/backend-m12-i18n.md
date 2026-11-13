@@ -261,3 +261,43 @@ their current area and are listed. The lead is first unifying the machine
 wording. Slice 2 starts only after the coordinator supplies that commit and
 it is merged; this avoids editing a table while it is being deleted. No
 slice-2 code has been started on the older wording.
+
+
+## Slice 2, first change: keep proof languages out of releases
+
+[Decision Log]
+- Purpose: a person must not select a proof language and receive English.
+- Constraint: partial catalogs must still prove registry discovery, English
+  fallback and coverage without weakening the folder-only contribution path.
+- Choice: move the two-message Japanese file unchanged to a fixture root,
+  with a small complete English/Korean source alongside it. Tests and the
+  reporter's `--root` mode read that root; ordinary builds read only locales.
+- Why: production and test inputs have explicit boundaries, without a hidden
+  preview environment variable or a production-only language allow-list.
+- Cost: a candidate must pass coverage and the native gate before its folder
+  is added to the shipped source; all shipped catalogs must be complete.
+
+The coordinator accepted slice 1 at 5834962, then required this correction
+as the first feature commit of slice 2. The lead's b3c0f93 is merged first
+(QR and Fluent additions both retained). No pairing wording is moved in
+this correction. General's language row is reserved with E2 as its first
+child, using a separate L-owned module/picker. S2's actively changing tables
+remain untouched; the lead released About/updater/titlebar for later moves.
+
+Merge preparation is commit ef8799d. Its native gate passed (392 ordinary
+tests and two compile-fail doctests); the root fmt/workspace all-target
+Clippy and testkit gate passed (14 tests). The merge index was frozen at
+tree 141d7bdf81f728be3053ea324827cf47c7996243 while this native-only fixture
+change was prepared separately; that exact tree is the merge commit.
+
+This correction's full native gate passes: format, all-target Clippy with
+warnings as errors, 394 ordinary tests and two compile-fail doctests. The
+default report lists only complete en/ko, both zero missing. The explicit
+fixture report lists en/ja/ko; Japanese has exactly two messages and lacks
+meta-sessions/meta-time/meta-welcome, whose English fallback is tested.
+Coverage uses the shared validator and validates numeric settings when the
+candidate root includes the source formatting area. No new screen is
+introduced by moving a test fixture. Root source is unchanged by this
+correction, so its root gate is not repeated. The coordinator's machine-wide
+build slot wraps subsequent cargo commands; it is not a host-specific path
+in the public contributor script.

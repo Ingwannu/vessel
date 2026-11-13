@@ -138,7 +138,40 @@ fn plural_rules_belong_to_the_translated_language() {
 }
 
 #[test]
-fn partial_and_broken_messages_fall_back_individually_in_english() {
+fn a_partial_fixture_uses_its_messages_and_english_plural_fallback() {
+    let partial = fixture::bundle("ja");
+    let english = fixture::bundle("en");
+    assert_eq!(
+        resolve(&partial, &english, "meta-name", None).unwrap(),
+        "日本語"
+    );
+    assert_eq!(
+        resolve(&partial, &english, "meta-language", None).unwrap(),
+        "言語"
+    );
+    let mut args = FluentArgs::new();
+    args.set("name", "서울");
+    assert_eq!(
+        resolve(&partial, &english, "meta-welcome", Some(&args)).unwrap(),
+        "Welcome, \u{2068}서울\u{2069}."
+    );
+    for (count, expected) in [(1, "one session"), (2, "many sessions")] {
+        let mut args = FluentArgs::new();
+        args.set("count", count);
+        assert_eq!(
+            resolve(&partial, &english, "meta-sessions", Some(&args)).unwrap(),
+            expected
+        );
+    }
+}
+
+#[test]
+fn released_catalogs_are_complete() {
+    assert!(LANGUAGES.iter().all(|locale| locale.is_complete()));
+}
+
+#[test]
+fn broken_messages_retain_defensive_english_fallback() {
     let partial = runtime::fixture("ru", "hello = Привет\nbroken = { $unknown }").unwrap();
     let english = runtime::fixture(
         "en",

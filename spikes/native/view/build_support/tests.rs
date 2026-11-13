@@ -80,26 +80,36 @@ fn korean_must_have_every_key_and_exactly_the_source_variables() {
 }
 
 #[test]
-fn a_contributed_folder_can_supply_just_two_messages() {
-    let ja = language("ja", "meta-name = 日本語\nmeta-title = ホーム").unwrap();
-    let languages = [english().unwrap(), korean().unwrap(), ja];
+fn a_contributed_fixture_folder_supplies_two_messages_without_shipping() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/locales");
+    let languages = read(&root).unwrap();
     let coverage = validate(&languages).unwrap();
     assert_eq!(
         coverage
             .iter()
-            .find(|c| c.tag == "ja")
-            .map(|c| c.missing.as_slice())
-            .unwrap_or_default(),
-        ["meta-welcome"]
+            .map(|c| (c.tag.as_str(), c.missing.as_slice()))
+            .collect::<Vec<_>>(),
+        [
+            ("en", &[][..]),
+            (
+                "ja",
+                &[
+                    "meta-sessions".to_owned(),
+                    "meta-time".to_owned(),
+                    "meta-welcome".to_owned()
+                ][..]
+            ),
+            ("ko", &[][..])
+        ]
     );
     let generated = generate(&languages, &coverage).unwrap();
     assert!(generated.lines().any(|line| line
-        == "Locale { index: 2, tag: \"ja\", native_name: \"日本語\", complete: false },"));
+        == "Locale { index: 1, tag: \"ja\", native_name: \"日本語\", complete: false },"));
     let extra = language("ja", "meta-name = 日本語\nmeta-welcome = { $intruder }").unwrap();
     assert_eq!(
         validate(&[english().unwrap(), korean().unwrap(), extra])
             .err()
-            .map(|error| error.to_string())
+            .map(|e| e.to_string())
             .as_deref(),
         Some("ja: meta-welcome uses variables English does not pass")
     );

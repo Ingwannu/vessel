@@ -18,8 +18,8 @@ thiserror.workspace = true
 vessel-proto.workspace = true
 serde_json.workspace = true
 unicode-normalization.workspace = true
-
 qrcode.workspace = true
+
 fluent-bundle.workspace = true
 fluent-syntax.workspace = true
 fluent-pseudo.workspace = true
