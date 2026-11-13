@@ -328,8 +328,10 @@ fn dot(index: usize, steps: usize, filled: bool, tokens: &Tokens) -> AnyElement 
         .into_any_element()
 }
 
-/// The thumb, a white disc at `fraction`.
+/// The thumb, a white disc at `fraction`; on a light card, edged (white on
+/// white is lost: the captures are dark and show no edge).
 fn thumb(fraction: f32, tokens: &Tokens) -> AnyElement {
+    let edged = tokens.scheme == crate::theme::Scheme::Light;
     div()
         .absolute()
         .top(relative(0.5))
@@ -339,6 +341,9 @@ fn thumb(fraction: f32, tokens: &Tokens) -> AnyElement {
         .size(px(THUMB))
         .rounded_full()
         .bg(white())
+        .when(edged, |thumb| {
+            thumb.border_1().border_color(tokens.neutral.surface4)
+        })
         .shadow(crate::popup::shadow_md(tokens))
         .into_any_element()
 }
