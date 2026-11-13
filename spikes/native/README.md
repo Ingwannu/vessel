@@ -141,6 +141,14 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
 
+`kit/command.rs` supplies Paseo's Command Center frame; `command/row.rs`
+supplies its rows and shortcut badges. `command_row_matched` accepts
+`CommandMatches` with every matching byte range from the view matcher.
+The kit rejects malformed UTF-8 ranges and merges overlaps before drawing;
+matching and ranking stay in `view`. The compact frame starts at the
+reference's 60% sheet snap, with the same zinc-600 handle in both themes.
+Dragging to its 90% snap is not implemented.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

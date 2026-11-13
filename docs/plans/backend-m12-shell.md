@@ -324,6 +324,23 @@ session, the letter not typed).
 
 ### Takeover audit (2026-11-13)
 
+Control-only follow-up: Command Center spacing now names the shared
+scale; the compact sheet starts at Paseo's 60% snap with its zinc-600
+handle. Rows accept multiple highlight ranges through a new additive
+`command_row_matched` entry point. The existing single-mark entry point
+remains usable until callers migrate. `command/row.rs` owns row drawing;
+`command/marks.rs` rejects invalid UTF-8 offsets and merges overlapping
+ranges, with Korean and scattered-match tests. No screen or policy moves
+into the kit. Source: Paseo's `command-center/command-center.tsx`,
+`list-metrics.ts`, `components/ui/shortcut.tsx` and
+`components/ui/highlighted-text-segments.ts`. The sheet has no drag
+gesture or animation; that platform difference is retained explicitly.
+Control gate: native `cargo fmt --check` clean;
+`cargo clippy --all-targets -- -D warnings` clean; `cargo test`:
+3, 21, 14, 247, 89 passed (374 total), zero failures, doc tests empty.
+Captures and visual review accompany the consuming palette slice; this
+control-only change is not claimed as visually approved on its own.
+
 - The inherited notification draft was preserved outside the repository
   as a patch and its untracked area file, then its paths were restored.
   It omitted sound, had no capture or reference comparison, and kept
@@ -360,6 +377,20 @@ session, the letter not typed).
   decisions for the waiting lane, sidebar count, desktop delivery and
   sound. The Shortcuts page plugs into the settings frame's existing
   `content` and `drawn` slots and reuses its preferences model.
+- Keyboard seams still open: conversation's find area observes Mod+F
+  privately; its owner is replacing that observer with a registry entry
+  point. Composer focus has no registry handler yet. Desktop sidebar
+  visibility needs the lead's render to honor `SidebarPanel`; the
+  inspector action needs its owning area's reachable entry point.
+  Defaults and overrides are not considered verified for these actions.
+  The input control owner is adding a focused-field marked-text query;
+  that API and a real X11 input-method check are separate evidence.
+- The newer fake-fleet check correctly rejected the inherited fake
+  executable: it lacked the ten startup lines and fully streamed thought.
+  Rebuilt the CLI, node and fake binaries in the configured root target;
+  the updated fleet then passed. The command runner reaps detached
+  descendants on exit, so capture fixtures are kept under a foreground
+  runner and stopped by their recorded PIDs after checks.
 
 - `notify-rust` 4.19 is already in the dependency tree (through the pinned
   GPUI snapshot): the operating system's notifications may need no new
