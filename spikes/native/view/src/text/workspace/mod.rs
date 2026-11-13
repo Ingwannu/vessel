@@ -211,6 +211,9 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn approval_place(&self, project: &str, machine: &str, each: bool) -> String;
     /// The set's digest line.
     fn digest(&self, digest: &str) -> String;
+    /// The code panel's file view, its button when lines are chosen
+    /// ("Add lines 12–20 to chat"); one line when `first` is `last`.
+    fn add_lines(&self, first: usize, last: usize) -> String;
     /// An edited command's old text.
     fn was(&self, command: &str) -> String;
 
