@@ -1072,7 +1072,15 @@ resources reach the target library. `localization` prepares language bundles
 and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
 folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
 rejected after the release-size experiment, recorded in ADR 0039.
-Legacy area tables stay until their owners migrate them. The crate map,
+Pairing is the first whole screen on that API. The host reads the typed
+language preference before creating a shell; System resolves against the
+host tag, while VESSEL_APP_LANG is the checking override. General's language
+row uses the generated registry and native names, never the pseudo locale.
+A preference change prepares the catalog outside rendering, then refreshes
+both Fluent and legacy labels and retained field placeholders without
+clearing input or restarting. Typed pairing errors and success notices keep
+the data needed to reword an existing outcome. Legacy area tables stay until
+their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
 

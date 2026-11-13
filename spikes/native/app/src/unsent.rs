@@ -82,7 +82,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Pair { .. } => Event::PairFailed(said()),
+        Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),
         Command::Workspace { machine, ask } => Event::Workspace {
             machine,
             answer: ask.refused(&Problem::Unsent),

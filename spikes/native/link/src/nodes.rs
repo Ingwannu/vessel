@@ -164,12 +164,11 @@ pub struct Offer {
 ///
 /// # Errors
 /// The text is not a pairing link, or it does not decode.
-pub fn read_link(text: &str) -> Result<Offer, LinkError> {
+pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
     let offer = text
         .trim()
         .parse::<PairingLink>()
-        .and_then(|link| link.decode())
-        .map_err(|error| LinkError::PairingLink(error.to_string()))?;
+        .and_then(|link| link.decode())?;
     let routes: Vec<String> = offer
         .direct
         .iter()
@@ -186,20 +185,7 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
 }
 
 /// Why a machine name will not do, in terms a person can act on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NameProblem {
-    /// Nothing typed.
-    Empty,
-    /// It is the node's key (groups of hexadecimal digits), typed where a
-    /// name goes: what the first build's screen led its owner to do.
-    LooksLikeKey,
-    /// It is a pairing link.
-    LooksLikeLink,
-    /// Not a node name (letters, digits, `.`, `_`, `-`).
-    Invalid,
-    /// The book already has a machine of that name.
-    Taken,
-}
+pub use vessel_app_view::pairing::NameProblem;
 
 /// What is wrong with `text` as a new machine's name, if anything;
 /// `taken` are the book's names.

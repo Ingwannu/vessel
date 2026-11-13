@@ -26,6 +26,7 @@ pub mod machines;
 pub mod models;
 pub mod notices;
 mod options;
+pub mod pairing;
 pub mod palette;
 pub mod prefs;
 pub mod session;
@@ -53,6 +54,6 @@ pub use options::{
 pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
-    PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
-    grouped, meter_tokens, short_tokens,
+    PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText, grouped,
+    meter_tokens, short_tokens,
 };

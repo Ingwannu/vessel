@@ -28,6 +28,7 @@ mod book;
 mod choices;
 mod devices;
 mod general;
+mod language;
 mod nav;
 mod page;
 
@@ -69,6 +70,7 @@ pub(crate) struct SettingsState {
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
     pub(crate) devices: devices::Devices,
+    language: language::State,
 }
 
 impl SettingsState {
@@ -83,6 +85,7 @@ impl SettingsState {
             anchors: Anchors::default(),
             refused: None,
             devices: devices::Devices::new(window, cx),
+            language: language::State::new(window, cx),
         }
     }
 
@@ -178,11 +181,29 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Prepare before persisting: a catalog failure leaves the displayed
+        // choice and the saved choice in agreement, and never occurs in paint.
+        let language = if let PreferenceChange::Language(preference) = change {
+            match self.language.prepare(*preference) {
+                Ok(words) => Some(words),
+                Err(error) => {
+                    tracing::error!(%error, "the embedded translations could not change");
+                    return;
+                }
+            }
+        } else {
+            None
+        };
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
                 self.command(Command::SavePrefs(self.prefs.clone()));
                 match change {
+                    PreferenceChange::Language(_) => {
+                        if let Some(words) = language {
+                            self.apply_language(words, window, cx);
+                        }
+                    }
                     PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
                     PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
@@ -227,6 +248,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.areas.settings.language.close();
         let state = &mut self.areas.settings;
         let drawn = state.anchors.of(list).get();
         let at = match list {
@@ -374,6 +396,7 @@ pub(crate) fn render(
         .flex_col()
         .child(body)
         .children(list(shell, tokens, phone, window, cx))
+        .children(language::picker(shell, tokens, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
 }

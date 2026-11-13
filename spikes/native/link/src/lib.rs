@@ -25,6 +25,8 @@
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+#[cfg(not(target_arch = "wasm32"))]
+mod pairing;
 mod prefs;
 mod session;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
@@ -171,9 +173,6 @@ pub enum LinkError {
     /// An SSH node (not in this build).
     #[error("SSH routes are not in this build yet; pair the node instead")]
     SshNotYet,
-    /// The pasted text is not a pairing link.
-    #[error("not a pairing link: {0}")]
-    PairingLink(String),
     /// The name is not a valid machine name.
     #[error("the name: {0}")]
     Name(String),
@@ -340,7 +339,7 @@ pub enum Event {
         address: String,
     },
     /// Pairing failed; the words to show beside the form.
-    PairFailed(String),
+    PairFailed(vessel_app_view::pairing::PairProblem),
     /// A session act's answer.
     Acted(ActAnswer),
     /// An ended session runs again, and the prompt was sent to it.
@@ -565,7 +564,7 @@ impl State {
                     self.reload().await;
                 }
                 Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
-                Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
+                Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
             },
             Command::Act {
                 machine,

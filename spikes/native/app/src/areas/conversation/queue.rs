@@ -103,6 +103,14 @@ fn text_of(prompt: &QueuedPrompt) -> String {
 }
 
 impl Shell {
+    /// Refresh the retained edit's hint without touching its text or keys.
+    pub(crate) fn refresh_queue_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(edit) = &self.areas.conversation.queue_edit {
+            edit.field
+                .set_placeholder(self.t.lang.conversation().queue_edit(), window, cx);
+        }
+    }
+
     /// Ask the node to change the queue of the session shown.
     fn queue_change(&self, change: QueueChange) {
         self.act(Act::Queue(change));
@@ -438,3 +446,6 @@ fn text_button(
         .hover(move |style| style.bg(neutral.surface2).text_color(neutral.foreground))
         .child(label)
 }
+
+#[cfg(test)]
+mod language_tests;

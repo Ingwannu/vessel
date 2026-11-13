@@ -359,17 +359,6 @@ impl ConversationArea {
         }
     }
 
-    /// Show `session` on `machine`: what was shown before is dropped, and
-    /// the session's records are folded from its first again
-    /// ([`Self::take`]). Asks the node nothing.
-    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
-        self.clear();
-        self.shown = Some(Shown {
-            machine: machine.to_owned(),
-            session,
-        });
-    }
-
     /// What an act's answer does to the conversation's own state, only
     /// when it is for the session shown now: a late answer for a session
     /// the person has left, or one that arrives after the machine's
@@ -415,6 +404,17 @@ impl ConversationArea {
             Err(failed) => self.refused = Some((answer.kind, failed.message)),
         }
         Followup::None
+    }
+
+    /// Show `session` on `machine`: what was shown before is dropped, and
+    /// the session's records are folded from its first again
+    /// ([`Self::take`]). Asks the node nothing.
+    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        self.clear();
+        self.shown = Some(Shown {
+            machine: machine.to_owned(),
+            session,
+        });
     }
 
     /// Show nothing: what was shown is dropped, here only.
@@ -495,7 +495,7 @@ impl ConversationArea {
         {
             return false;
         }
-        // Records arriving: the connection is back.
+        // Records arriving for this session: the connection is back.
         self.lost = None;
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
@@ -928,6 +928,9 @@ mod tests {
         assert!(!shown("build-server").on("laptop"));
     }
 }
+
+#[cfg(test)]
+mod connection_tests;
 
 /// An act's answer reaches the conversation's state only when it is for
 /// the session shown (track V1's review of the lead's head 64b5a3d).
