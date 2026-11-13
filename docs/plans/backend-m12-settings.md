@@ -368,3 +368,12 @@ No permissions were changed; validation ran under the development account
 (uid1000). Both ignored Cargo configurations remain intact and uncommitted.
 The credit watcher limits this closeout to this slice; no new control, page or
 branch merge was started after that notice.
+
+
+Credit closeout: input profiles are committed as `0c9aa6f6` and submitted to V1
+for source review; no UI approval or new settings page is claimed. Continue
+from `backend-m12-settings-resume.md`. No new slice or merge was started after
+the watcher notice. The gate has ended. Verified predecessor-track fake fleet
+processes (started09:52) and their six fake adapters were stopped by PID after
+checking start ticks, exact binary and scratch data paths; remaining live
+processes:0. No E2 app/display was started. Real preview/services were untouched.
