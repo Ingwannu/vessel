@@ -148,6 +148,10 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+Provider error detail follows Paseo's fixed palette red[300] through
+`Tokens::status().red_300`; its semantic status dot still uses the ordinary
+status error signal. Areas use the shared token rather than a local colour.
+
 `kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
 with optional title, wrapping description and an indented action. It uses
 existing semantic/neutral colours and palette blue 300 / amber 500 in

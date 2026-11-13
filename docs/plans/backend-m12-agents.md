@@ -348,3 +348,21 @@ Corrected control gate: native fmt, whole Clippy and whole tests passed,
 406 passed and none failed. The failed fixture run is not counted as a
 pass. First-use captures of the corrected section and custom row remain
 part of the following Agents screen review.
+
+### Provider error-detail palette token
+
+[Decision Log]
+- Purpose: ProviderRow's error paragraph uses Paseo's palette.red[300],
+  distinct from its semantic danger dot.
+- Constraint: `Status` already exposes the shared blue[300]/amber[500]
+  palette accents; existing danger signals keep their accepted values.
+- Alternatives: an app-local literal or substituting the danger signal.
+- Choice: one shared `Status::red_300`, fixed to the reference's #fca5a5
+  in both themes, with an exact-value regression.
+- Why: the source (`providers-section.tsx` errorText and `styles/theme.ts`
+  palette.red[300]) deliberately uses a separate colour in this place.
+- Cost: future themes preserve this fixed palette entry. First-use screen
+  captures follow with the Agents redraw; this token alone is no UI pass.
+
+Token-only gate: native fmt, whole Clippy and all 407 tests passed;
+no root source changes. Exact red[300] is tested for both themes.
