@@ -61,6 +61,7 @@ mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks.
+mod followed;
 mod notices;
 mod prompts;
 // Protocol 12 (track A2): the conversation, further.
