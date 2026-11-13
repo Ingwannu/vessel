@@ -23,7 +23,20 @@
 
 use gpui::App;
 
-/// Follow the system's preference from now on.
+/// `VESSEL_APP_REDUCE_MOTION=1` (or `0`): the flag fixed for this run and
+/// the system not followed, as `VESSEL_APP_THEME` fixes the scheme, so a
+/// capture on a virtual display can show the held-still state without
+/// changing the desktop's settings (track S2's request). Not a setting:
+/// nothing is stored.
+fn forced() -> Option<bool> {
+    match std::env::var("VESSEL_APP_REDUCE_MOTION").as_deref() {
+        Ok("1") => Some(true),
+        Ok("0") => Some(false),
+        Ok(_) | Err(_) => None,
+    }
+}
+
+/// Follow the system's preference from now on (or the forced value).
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 pub(crate) fn follow(cx: &mut App) {
     use ashpd::desktop::settings::{ReducedMotion, Settings};
@@ -32,38 +45,96 @@ pub(crate) fn follow(cx: &mut App) {
     const GNOME: &str = "org.gnome.desktop.interface";
     const ANIMATIONS: &str = "enable-animations";
 
+    if let Some(reduce) = forced() {
+        cx.set_reduce_motion(reduce);
+        return;
+    }
     cx.spawn(async move |cx| {
         let Ok(settings) = Settings::new().await else {
             tracing::debug!("no desktop portal: reduce motion stays off");
             return;
         };
-        let set = |reduce: bool, cx: &mut gpui::AsyncApp| {
-            cx.update(|cx| cx.set_reduce_motion(reduce));
-        };
-        if let Ok(motion) = settings.reduced_motion().await {
-            set(motion == ReducedMotion::ReducedMotion, cx);
-            let Ok(mut changes) = settings.receive_reduced_motion_changed().await else {
-                return;
-            };
-            while let Some(motion) = changes.next().await {
-                set(motion == ReducedMotion::ReducedMotion, cx);
-            }
-        } else if let Ok(animations) = settings.read::<bool>(GNOME, ANIMATIONS).await {
-            set(!animations, cx);
-            let Ok(mut changes) = settings
-                .receive_setting_changed_with_args::<bool>(GNOME, ANIMATIONS)
-                .await
-            else {
-                return;
-            };
-            while let Some(Ok(animations)) = changes.next().await {
-                set(!animations, cx);
-            }
+        let mut set = |reduce: bool| cx.update(|cx| cx.set_reduce_motion(reduce));
+        // Each source is subscribed to before it is read, so a change
+        // between the two is in the stream and the last value applied is
+        // the newest (track V1's review: read-then-subscribe could miss it
+        // and keep a stale flag until the next change).
+        if let Ok(changes) = settings.receive_reduced_motion_changed().await
+            && let Ok(motion) = settings.reduced_motion().await
+        {
+            let reduced = |motion: ReducedMotion| motion == ReducedMotion::ReducedMotion;
+            latest(reduced(motion), changes.map(reduced), &mut set).await;
+            return;
+        }
+        if let Ok(changes) = settings
+            .receive_setting_changed_with_args::<bool>(GNOME, ANIMATIONS)
+            .await
+            && let Ok(animations) = settings.read::<bool>(GNOME, ANIMATIONS).await
+        {
+            let changes = changes
+                .filter_map(Result::ok)
+                .map(|animations: bool| !animations);
+            latest(!animations, changes, &mut set).await;
         }
     })
     .detach();
 }
 
-/// Elsewhere the flag stays as GPUI starts it (off) for now.
+/// Apply `first` (read after subscribing), then every change in order: the
+/// last applied is the newest whatever arrived between subscribing and
+/// reading.
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+async fn latest(
+    first: bool,
+    changes: impl futures_lite::Stream<Item = bool>,
+    set: &mut impl FnMut(bool),
+) {
+    use futures_lite::StreamExt as _;
+
+    set(first);
+    let mut changes = std::pin::pin!(changes);
+    while let Some(reduce) = changes.next().await {
+        set(reduce);
+    }
+}
+
+/// Elsewhere the flag stays as GPUI starts it (off) for now, unless
+/// forced.
 #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
-pub(crate) const fn follow(_cx: &mut App) {}
+pub(crate) fn follow(cx: &mut App) {
+    if let Some(reduce) = forced() {
+        cx.set_reduce_motion(reduce);
+    }
+}
+
+#[cfg(all(test, any(target_os = "linux", target_os = "freebsd")))]
+mod tests {
+    use super::latest;
+
+    /// A change made between subscribing and reading arrives in the stream
+    /// after the read value, so the flag ends at the newest value; a read
+    /// that already saw the change is followed by the same value, which
+    /// changes nothing (track V1's review).
+    #[test]
+    fn the_last_value_applied_is_the_newest() {
+        for (first, changes, newest) in [
+            // Read before the change landed: the stream brings it.
+            (false, vec![true], true),
+            // Read after it landed: the stream repeats it.
+            (true, vec![true], true),
+            // Two changes in the window, then one later.
+            (false, vec![true, false, true], true),
+            // No change at all.
+            (true, vec![], true),
+        ] {
+            let mut applied = Vec::new();
+            futures_lite::future::block_on(latest(
+                first,
+                futures_lite::stream::iter(changes.clone()),
+                &mut |reduce| applied.push(reduce),
+            ));
+            assert_eq!(applied.last(), Some(&newest), "{first} then {changes:?}");
+            assert_eq!(applied.len(), changes.len() + 1);
+        }
+    }
+}
