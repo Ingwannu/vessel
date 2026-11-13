@@ -6832,7 +6832,14 @@ code: number | null, } | { "state": "failed",
 /**
  * Human-readable reason.
  */
-message: string, } | { "state": "interrupted" };
+message: string, 
+/**
+ * A fork that never held a conversation (protocol 14, ADR 0052):
+ * its agent refused the fork or did not start. Nothing can be
+ * resumed; a client offers to remove it (`session.delete`).
+ * Absent (false) for every other failure and from older nodes.
+ */
+empty_fork?: boolean, } | { "state": "interrupted" };
 
 /**
  * A session's title: one line of text a person reads.

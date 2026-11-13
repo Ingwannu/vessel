@@ -58,7 +58,13 @@ pub(crate) struct StructuredActor {
     /// apart from `parking`, so the actor's `select` can wait on both.
     pub(crate) park_setting: watch::Receiver<Option<Duration>>,
     /// A record the log starts with (a fork's `forked`, protocol 14).
+    /// Kept after it is published: a fork that fails before its agent is
+    /// ready never held a conversation (`empty_fork`).
     pub(crate) opening: Option<Box<SessionEvent>>,
+    /// Why the session cannot go on although its agent was ready: a
+    /// rewind failed and its conversation did not start again (protocol
+    /// 14, `forking`). It then ends `failed` with this, not `exited`.
+    pub(crate) unrecoverable: Option<String>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -89,8 +95,8 @@ impl StructuredActor {
             return;
         }
         self.life.starting(&mut self.agent).await;
-        if let Some(opening) = self.opening.take() {
-            self.life.publish(&mut self.agent, *opening).await;
+        if let Some(opening) = self.opening.as_deref() {
+            self.life.publish(&mut self.agent, opening.clone()).await;
         }
         // The queue a session started again brought back, held (protocol
         // 10); nothing for a new session.
@@ -154,6 +160,8 @@ impl StructuredActor {
 
         let status = if self.life.stop.interrupted() {
             SessionStatus::Interrupted
+        } else if let Some(message) = self.unrecoverable.take() {
+            SessionStatus::failed(message)
         } else if self.ready || (self.life.stop.killed() && !self.failed_before_kill) {
             // Killed while it was still starting ends as a killed terminal
             // session does: exited, with whatever code the stop left. (The
@@ -164,6 +172,7 @@ impl StructuredActor {
         } else {
             SessionStatus::Failed {
                 message: start_failure(self.disconnect.as_ref(), code),
+                empty_fork: matches!(self.opening.as_deref(), Some(SessionEvent::Forked { .. })),
             }
         };
         self.life.status(&mut self.agent, status).await;
@@ -333,6 +342,12 @@ impl StructuredActor {
 /// Why a session that never became ready failed.
 fn start_failure(disconnect: Option<&Disconnect>, code: Option<i32>) -> String {
     match disconnect {
+        // A fork the agent refused (protocol 14): the sentence a person
+        // reads, not the transport's.
+        Some(Disconnect::Handshake {
+            fork_refused: Some(refusal),
+            ..
+        }) => crate::error::fork_refusal(*refusal).to_owned(),
         Some(failure @ (Disconnect::Handshake { .. } | Disconnect::Protocol { .. })) => {
             failure.to_string()
         }

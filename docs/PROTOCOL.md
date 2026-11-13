@@ -57,16 +57,38 @@ and `vessel_proto::agent`.
   whose `turn_ended` record is `after`, or as it is now (refused
   `conflict` while a turn runs). Answers the new session at creation, as
   `session.create` does; it runs in the source's folder with the
-  source's current choices. A fork whose agent does not fork at the
-  point ends `failed` ("the agent did not fork at the point").
+  source's current choices. Answering at creation is deliberate: the
+  check needs the agent started and a replay read, longer than a call
+  should hold. A fork whose agent does not fork at the point ends
+  `failed { message: "the agent did not fork at the chosen point",
+  empty_fork: true }`.
+- `SessionStatus::Failed.empty_fork` (since 14, absent when false): a
+  fork that never held a conversation (its agent refused the fork, could
+  not load it for the check, or did not start). Nothing can be resumed;
+  a client offers to remove it (`session.delete`).
+- The fork the agent made for a refused check is deleted from the
+  agent's own history on the same connection (ACP `session/delete`,
+  which both installed adapters offer: Claude's deletes the transcript,
+  Codex's archives the thread). An agent that does not offer
+  `session/delete` keeps it, and nothing else removes it: Vessel never
+  writes another program's files, so it lists in that agent's history
+  (`agent.history`) as a conversation no session holds.
 - `session.rewind { session, after }` (operate, ownership-checked,
   forwardable): the session goes back to the end of that turn; between
   turns (`conflict` otherwise); a parked session is woken first. Answers
   the session, its `harness_session` the new conversation.
 - Errors of both: `not_found` (no such session or record), `unsupported`
   (a terminal session, a record that is not a turn's end with a point,
-  an agent that cannot fork or did not fork at the point), `spawn_failed`
-  (the agent did not start; for a rewind the old conversation goes on).
+  an agent that cannot fork or did not fork at the chosen point),
+  `spawn_failed` (the agent did not start; for a rewind the old
+  conversation goes on).
+- A rewind whose fork fails and whose old conversation then does not
+  start again either (the agent cannot load any conversation) answers
+  `spawn_failed`, and the session ends `failed` ("the rewind failed and
+  the agent could not start the conversation again (...); resume the
+  session to go on from before the rewind"): no agent is left running,
+  and its `harness_session` is the one it had, so `session.resume` goes
+  on from before the rewind.
 - Records (`since 14`; a version 2-13 client gets a `vessel:` log line):
   `forked { from, after? }`, a fork's first record after `starting`;
   `rewound { after, harness_session, files_changed }`: the records

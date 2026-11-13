@@ -9106,3 +9106,39 @@ records: the history becomes the session's log (`vessel run --structured
 - **Older peers**: `since 12`; nothing reaches an older peer.
 
 ADR 0053 records the choice.
+
+### 3. Rewind and fork: after the integrator's read (2026-11-13)
+
+Merged on the node line as protocol 14 (13 is N3's, published in the
+app), and taken into this branch with the line before slice 4. The
+integrator raised two points; the coordinator decided them:
+
+1. **A rewind whose old conversation does not start again either** left
+   only a warning: the agent gone, the session `running` until the loop
+   saw the agent reaped, then `exited` with no reason. Now it ends in one
+   state: `failed`, with "the rewind failed and the agent could not start
+   the conversation again (...); resume the session to go on from before
+   the rewind", its `harness_session` the one it had (no `ready` or
+   `rewound` was logged), no agent running, and the call answers
+   `spawn_failed` with the same sentence. Not parked: a wake would try
+   the same start again with nobody asking. Test: a profile whose agent
+   cannot load any conversation (`FAKE_ACP_LOAD_FAILS`) makes the fork's
+   check and the restart both fail
+   (`a_rewind_that_cannot_start_any_conversation_ends_the_session_failed`).
+2. **A fork the check refuses** stays answered at creation (the check
+   needs the agent started and a replay; holding the call that long is
+   worse). Its status says it in a person's words ("the agent did not
+   fork at the chosen point", not the transport's "the ACP handshake
+   failed: ..."), and `SessionStatus::Failed.empty_fork` (since 14,
+   absent when false) says it is a fork that never held a conversation,
+   so a screen offers to remove it; `vessel` prints that `vessel session
+   delete` removes it. The fork the agent made is deleted from its
+   history on the same connection (ACP `session/delete`; both installed
+   adapters advertise `sessionCapabilities.delete`: Claude's deletes the
+   transcript through its SDK, Codex's archives the thread), for a
+   refused check and for a fork that could not be loaded for it. An agent
+   without `session/delete` keeps it, and nothing else removes it (Vessel
+   does not write another program's files); PROTOCOL.md says so. Tests:
+   at the agent, both cases delete the fork (`fake-acp` says `deleted
+   <id>` on stderr); end to end, the refused fork's status, `empty_fork`,
+   the deletion line in its log and no conversation on it.

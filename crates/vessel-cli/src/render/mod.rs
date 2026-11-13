@@ -23,7 +23,13 @@ pub(crate) fn status(status: &SessionStatus) -> String {
         SessionStatus::Running => "running".to_owned(),
         SessionStatus::Exited { code: Some(code) } => format!("exited ({code})"),
         SessionStatus::Exited { code: None } => "exited (killed)".to_owned(),
-        SessionStatus::Failed { message } => format!("failed: {message}"),
+        // A fork that never held a conversation (protocol 14): nothing to
+        // resume, only to remove.
+        SessionStatus::Failed {
+            message,
+            empty_fork: true,
+        } => format!("failed: {message} (an empty fork: `vessel session delete` removes it)"),
+        SessionStatus::Failed { message, .. } => format!("failed: {message}"),
         SessionStatus::Interrupted => "interrupted".to_owned(),
     }
 }
