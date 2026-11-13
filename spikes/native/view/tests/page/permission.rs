@@ -1,8 +1,10 @@
 //! Not the page's: what a permission card's buttons say, against the
 //! options the real adapters send (Claude Code's `claude-agent-acp`,
 //! `permissions/options`; Codex's `codex-acp`, `permissions/options.ts`),
-//! in both languages. The app's words for a kind offered once; the
-//! agent's names for a kind offered more than once.
+//! in both languages. The app's words for a "once" kind offered once in
+//! a direction of at most two options; the agent's names for a kind
+//! offered more than once and for every option of a direction offered
+//! three times or more.
 
 use serde_json::{Value, json};
 use vessel_app_view::Asked;
@@ -48,7 +50,7 @@ fn claude_codes_tool_request_once_kinds_in_the_apps_words_always_in_the_agents()
 }
 
 #[test]
-fn claude_codes_plan_exit_keeps_the_names_of_its_five_always_options() {
+fn claude_codes_plan_exit_keeps_the_names_of_its_six_allows() {
     let asked = asked(json!([
         { "id": "exit-plan-clear-auto", "name": "Yes, clear context (41% used) and use auto mode", "kind": "allow_always" },
         { "id": "exit-plan-clear-bypass", "name": "Yes, clear context (41% used) and bypass permissions", "kind": "allow_always" },
@@ -58,22 +60,26 @@ fn claude_codes_plan_exit_keeps_the_names_of_its_five_always_options() {
         { "id": "exit-plan-default", "name": "Yes, manually approve edits", "kind": "allow_once" },
         { "id": "reject", "name": "No, keep planning", "kind": "reject_once" }
     ]));
-    let always = [
+    // A bare "Accept" among five named ways to go on would not say what it
+    // does (approve edits by hand): all six allows keep their names; the
+    // lone reject is the app's word.
+    let allows = [
         "Yes, clear context (41% used) and use auto mode",
         "Yes, clear context (41% used) and bypass permissions",
         "Yes, and use auto mode",
         "Yes, and bypass permissions",
         "Yes, auto-accept edits",
+        "Yes, manually approve edits",
     ];
-    for (words, (accept, deny)) in [(EN, ("Accept", "Deny")), (KO, ("수락", "거부"))] {
-        let mut expected: Vec<&str> = always.to_vec();
-        expected.extend([accept, deny]);
+    for (words, deny) in [(EN, "Deny"), (KO, "거부")] {
+        let mut expected: Vec<&str> = allows.to_vec();
+        expected.push(deny);
         assert_eq!(said(&asked, *words), expected);
     }
 }
 
 #[test]
-fn codexs_two_and_two_keep_the_agents_names_but_its_lone_once_allow() {
+fn codexs_three_allows_and_two_rejects_keep_the_agents_names() {
     let asked = asked(json!([
         { "id": "approved", "name": "Yes, proceed", "kind": "allow_once" },
         { "id": "approved-for-session", "name": "Yes, and don't ask again for this command in this session", "kind": "allow_always" },
@@ -81,11 +87,11 @@ fn codexs_two_and_two_keep_the_agents_names_but_its_lone_once_allow() {
         { "id": "denied", "name": "No, continue without running it", "kind": "reject_once" },
         { "id": "abort", "name": "No, and tell Codex what to do differently", "kind": "reject_once" }
     ]));
-    for (words, accept) in [(EN, "Accept"), (KO, "수락")] {
+    for words in [EN, KO] {
         assert_eq!(
             said(&asked, *words),
             [
-                accept,
+                "Yes, proceed",
                 "Yes, and don't ask again for this command in this session",
                 "Yes, and don't ask again for commands that start with `git status`",
                 "No, continue without running it",
@@ -109,6 +115,24 @@ fn every_once_kind_and_an_always_reject() {
     assert_eq!(
         said(&asked, *KO),
         ["수락", "거부", "Never for this project"]
+    );
+}
+
+#[test]
+fn three_rejects_keep_their_names_beside_the_apps_accept() {
+    let asked = asked(json!([
+        { "id": "a", "name": "Allow", "kind": "allow_once" },
+        { "id": "r", "name": "No", "kind": "reject_once" },
+        { "id": "h", "name": "Never here", "kind": "reject_always" },
+        { "id": "e", "name": "Never anywhere", "kind": "reject_always" }
+    ]));
+    assert_eq!(
+        said(&asked, *EN),
+        ["Accept", "No", "Never here", "Never anywhere"]
+    );
+    assert_eq!(
+        said(&asked, *KO),
+        ["수락", "No", "Never here", "Never anywhere"]
     );
 }
 

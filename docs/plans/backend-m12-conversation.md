@@ -73,9 +73,11 @@ Paseo screen it follows.
 | `83-one-question-dark-1280`, `85-one-question-light-390`, `87-dismissed-dark-1280` | one question (`ask one`): no tabs, the message as the question, Submit at once; Dismiss declining it (the card then says "Skipped") | Paseo's lone question ("a single 1 of 1 tab carries no information") |
 | `88-permission-ko-dark-1280`, `89-permission-en-light-390`, `90-skip-ko` | the permission card on a Korean and an English screen: the "once" answers in the app's words (수락, 거부; Accept, Deny), the "always" answers in the agent's own words, their scope; the question card's 건너뛰기 | Paseo's Accept and Deny (`agentStream.permission`) |
 | `permit/01-long-command-en-dark-1280`, `permit/02-long-command-ko-light-390` | the permission card rebuilt as Paseo's: `surface1`, a hairline, radius 8; "Permission Required" (the adapter's title was the command itself), the command once, as `$ command` in the fixed-width box; "How would you like to proceed?"; bordered answers with a check or a cross, the primary in the foreground, the agent's "always" scopes in its words; the timeline only says "Waiting on permission" and the tool row stays closed | Paseo `agent-stream/view.tsx` `PermissionRequestCard`, `PermissionActionButton`, `permissionStyles` |
-| `permit/03-plan-ko-dark-1280`, `permit/04-plan-en-light-390` | Claude Code leaving plan mode: Paseo's plan card (a chevron of 16, "Plan", the plan's Markdown) over the same footer; five "always" answers in the agent's words, "Accept" and "Deny"; on a phone the card scrolls inside 440 | Paseo `components/plan-card.tsx` |
+| `permit/03-plan-ko-dark-1280`, `permit/04-plan-en-light-390` | Claude Code leaving plan mode: Paseo's plan card (a chevron of 16, "Plan", the plan's Markdown) over the same footer; five "always" answers in the agent's words (then "Accept" and "Deny" for the rest; since refined, `permit/13`); on a phone the card scrolls inside 440 | Paseo `components/plan-card.tsx` |
 | `permit/05-codex-en-light-1280`, `permit/06-codex-ko-dark-390` | Codex's five answers for `["bash", "-lc", …]`, read as its script; long answers wrap inside their buttons on a phone | `codex-acp` `commandDecisionOptions` |
 | `permit/07-two-ko-light-1280`, `permit/08-two-en-dark-390` | two requests waiting: GOAT's "1/2" at the card's top right | GOAT `ComposerPendingApprovalPanel` |
+| `permit/11-long-command-en-dark-1280`, `permit/12-long-command-ko-light-390` | the long command ends before the copy button: a box with a copy button keeps the button's column, no line enters it (before, the command showed on both sides of the button) | GOAT `CommandOutputPanel.tsx` `pe-7` |
+| `permit/13-plan-ko-dark-1280`, `permit/14-codex-ko-dark-1280` | a direction with three answers or more keeps the agent's names: the plan exit's six allows ("Yes, manually approve edits" primary), Codex's "Yes, proceed" beside its two "always" allows; a lone reject is still 거부 | Paseo's agent labels on ACP |
 | `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
@@ -154,13 +156,17 @@ Paseo screen it follows.
   card's Dismiss and Submit now use too.
 - **A permission's buttons** (the coordinator's rule, `timeline::answer_words`):
   a "once" allow or reject offered once says the app's words (Paseo's
-  Accept and Deny, 수락 and 거부); an "always" option keeps the agent's
-  name, which is the scope granted ("`cargo test` commands", "this
-  session"); a "once" kind offered several times keeps the agent's names
-  (Codex's two rejects differ: carry on, or say what to do instead); and
-  if two buttons would still say the same, all keep the agent's names.
-  Paseo shows the agent's names on ACP throughout. The card itself is the
-  lead's (`areas/session.rs`, one line changed to ask `Asked::buttons`).
+  Accept and Deny, 수락 and 거부) when its direction (allow, or reject)
+  has at most two options; with three or more of one direction every
+  option of it keeps the agent's name (a bare 수락 among Claude Code's
+  five named ways to leave plan mode did not say it means approving edits
+  by hand; Codex's "Yes, proceed" sits beside two "always" allows). An
+  "always" option keeps the agent's name, which is the scope granted
+  ("`cargo test` commands", "this session"); a "once" kind offered
+  several times keeps the agent's names (Codex's two rejects differ:
+  carry on, or say what to do instead); and if two buttons would still
+  say the same, all keep the agent's names. Paseo shows the agent's names
+  on ACP throughout.
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.
