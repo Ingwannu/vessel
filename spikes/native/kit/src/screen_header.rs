@@ -144,13 +144,22 @@ pub fn frame(content: Content, density: Density, tokens: &Tokens) -> Div {
     if let Some(border) = paint.border {
         row = row.border_b_1().border_color(border);
     }
-    div()
-        .flex_none()
-        .w_full()
-        .pt(px(geometry.top))
-        .px(px(geometry.horizontal))
-        .bg(paint.background)
-        .child(row)
+    match density {
+        // ScreenHeader's padding and border belong to the SAME full-width
+        // row. An outer padded wrapper would shorten the bottom rule.
+        Density::Desktop => row
+            .flex_none()
+            .w_full()
+            .px(px(geometry.horizontal))
+            .bg(paint.background),
+        Density::Compact => div()
+            .flex_none()
+            .w_full()
+            .pt(px(geometry.top))
+            .px(px(geometry.horizontal))
+            .bg(paint.background)
+            .child(row),
+    }
 }
 
 fn leading_for_compact(leading: Option<AnyElement>) -> Option<Div> {
@@ -305,5 +314,30 @@ mod tests {
             let mut icon = menu_icon(&tokens);
             assert_eq!(icon.style().text.color, Some(gpui::rgb(muted).into()));
         }
+    }
+}
+
+#[cfg(test)]
+mod frame_regression {
+    use super::*;
+    use crate::Scheme;
+
+    #[test]
+    fn desktop_returned_frame_owns_full_width_border_and_total_height() {
+        let mut header = frame(
+            Content {
+                title: "Schedules".into(),
+                leading: None,
+                actions: None,
+            },
+            Density::Desktop,
+            &Tokens::of(Scheme::Light),
+        );
+        let style = header.style();
+        assert_eq!(style.size.width, Some(gpui::relative(1.0).into()));
+        assert_eq!(style.size.height, Some(px(36.0).into()));
+        assert_eq!(style.border_widths.bottom, Some(px(1.0).into()));
+        assert_eq!(style.padding.left, Some(px(12.0).into()));
+        assert_eq!(style.padding.right, Some(px(12.0).into()));
     }
 }
