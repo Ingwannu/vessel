@@ -11,6 +11,34 @@ pub enum Tone {
     Danger,
 }
 
+/// The caller's reference glyph size; the leading slot remains sixteen points.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum LeadingSize {
+    /// Schedule menu glyphs, fourteen points (the existing default).
+    #[default]
+    Small,
+    /// Git action glyphs, sixteen points.
+    Regular,
+}
+impl LeadingSize {
+    pub(super) const fn points(self) -> f32 {
+        match self {
+            Self::Small => 14.0,
+            Self::Regular => 16.0,
+        }
+    }
+}
+
+/// Idle presentation, independent of input authority or feedback status.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Presentation {
+    /// Ordinary source text/opacity.
+    #[default]
+    Normal,
+    /// A quiet but selectable action; the caller may explain availability.
+    Muted,
+}
+
 /// Pending and acknowledged success carry complete translated labels and refuse input.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ItemStatus {
@@ -40,12 +68,16 @@ pub struct MenuItem {
     pub label: SharedString,
     /// Ordinary or destructive colour.
     pub tone: Tone,
+    /// Quiet idle presentation; disabled/feedback states take precedence.
+    pub presentation: Presentation,
     /// Visible but not chosen.
     pub disabled: bool,
     /// A full-width separator above this item.
     pub starts_group: bool,
-    /// A 14-point kit glyph inside the 16-point leading slot.
+    /// A kit glyph inside the unchanged 16-point leading slot.
     pub leading: Option<Glyph>,
+    /// Ordinary glyph size only; pending and success retain their own size.
+    pub leading_size: LeadingSize,
     /// Typed feedback; pending/success stay non-selectable even when disabled is false.
     pub status: ItemStatus,
     /// Default Close; direct writes opt into staying on the same surface.
@@ -58,9 +90,11 @@ impl MenuItem {
         Self {
             label: label.into(),
             tone: Tone::Plain,
+            presentation: Presentation::Normal,
             disabled: false,
             starts_group: false,
             leading: None,
+            leading_size: LeadingSize::Small,
             status: ItemStatus::Idle,
             dismissal: Dismissal::Close,
         }
@@ -85,8 +119,22 @@ impl MenuItem {
     /// Set the leading glyph; pending temporarily replaces it with the spinner.
     #[must_use]
     pub fn with_leading(self, glyph: Glyph) -> Self {
+        self.with_leading_at(glyph, LeadingSize::Small)
+    }
+    /// Opt into the source's glyph size without scaling the row or leading slot.
+    #[must_use]
+    pub fn with_leading_at(self, glyph: Glyph, leading_size: LeadingSize) -> Self {
         Self {
             leading: Some(glyph),
+            leading_size,
+            ..self
+        }
+    }
+    /// Quiet idle text/opacity without disabling pointer or keyboard input.
+    #[must_use]
+    pub fn with_presentation(self, presentation: Presentation) -> Self {
+        Self {
+            presentation,
             ..self
         }
     }
@@ -157,14 +205,20 @@ pub(super) fn paint(item: &MenuItem, highlighted: bool, surfaces: &Surfaces) -> 
             (green, green)
         }
     };
+    let selectable = item.selectable();
+    let (ink, opacity) = match (selectable, item.presentation) {
+        (false, Presentation::Normal | Presentation::Muted) => (ink, 0.5),
+        (true, Presentation::Normal) => (ink, 1.0),
+        (true, Presentation::Muted) => (surfaces.foreground_muted, 0.72),
+    };
     Paint {
         ink,
         glyph,
-        fill: if highlighted && item.selectable() {
+        fill: if highlighted && selectable {
             surfaces.surface2
         } else {
             gpui::transparent_black()
         },
-        opacity: if item.selectable() { 1.0 } else { 0.5 },
+        opacity,
     }
 }

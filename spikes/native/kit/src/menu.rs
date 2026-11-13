@@ -35,7 +35,7 @@ mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
 pub use draw::{Content, Width, menu, menu_with};
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
-pub use item::{Dismissal, ItemStatus, MenuItem, Tone};
+pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
 use std::rc::Rc;
 pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
@@ -174,3 +174,6 @@ fn keyboard_choice(state: &mut MenuState, items: &[MenuItem]) -> Option<usize> {
     let index = selected_index(items, state.highlighted)?;
     pointer_choice(state, items.get(index)?, index)
 }
+
+#[cfg(test)]
+mod presentation_tests;

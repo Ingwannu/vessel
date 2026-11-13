@@ -200,6 +200,13 @@ The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
 Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
 its caller owns the callback and pending state, with no extra paint.
 
+`MenuItem::with_presentation(Presentation::Muted)` is a quiet, selectable idle
+row: muted text at72% opacity. Disabled/pending/success take precedence at50%
+and refuse input; hover, keyboard selection and dismissal still use one engine.
+Ordinary glyphs default to14 (`with_leading`); Git opts into16 with
+`with_leading_at(glyph, LeadingSize::Regular)`. Both use the same16-point slot;
+pending/success keep their own16 size, independent of this choice.
+
 An acknowledged menu result is `MenuItem::success(label)` / typed Success.
 It uses the existing CircleCheck16 and fixed palette GREEN_500 (#22c55e),
 both themes, at disabled opacity0.5 and without activation or hover. The

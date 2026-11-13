@@ -142,7 +142,8 @@ fn menu_and_trigger_geometry_keep_the_reference_values() {
     assert_eq!(draw::MIN_WIDTH, px(180.0));
     assert_eq!(draw::MAX_WIDTH, px(320.0));
     assert_eq!(draw::LEADING_SLOT, px(16.0));
-    assert_eq!(draw::LEADING_GLYPH, px(14.0));
+    assert_eq!(px(LeadingSize::Small.points()), px(14.0));
+    assert_eq!(px(LeadingSize::Regular.points()), px(16.0));
     assert_eq!(crate::loading::Points::SIXTEEN.pixels(), px(16.0));
     assert_eq!(px(draw::ROW_LINE), px(18.0));
     assert_eq!(px(draw::OFFSET), px(4.0));
