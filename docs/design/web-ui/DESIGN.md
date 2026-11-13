@@ -1651,7 +1651,8 @@ machine in view.
    switch, and no "+" when it has no profile either). An agent that runs
    only in a terminal on that machine is opened as one.
 5. **Send** creates the session with the choices (`session.create`, the
-   options in the spec) and opens it in place of this page as soon as it
+   options in the spec, and its title from the prompt's first line, so it
+   is named in the sidebar and the board at once) and opens it in place of this page as soon as it
    exists (not for someone who has left the page meanwhile), as
    agent-orchestrator does. The prompt is sent without waiting on it (the
    node answers once the agent has started, up to a minute): the

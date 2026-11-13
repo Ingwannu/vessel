@@ -90,6 +90,7 @@ describe("specOf", () => {
       mode: "structured",
       model: null,
       options: [{ id: "mode", kind: "select", value: "plan" }],
+      title: "Tidy the overview",
     });
   });
 
@@ -102,6 +103,7 @@ describe("specOf", () => {
         harness: "claude-code",
         mode: "structured",
         model: null,
+        title: "Tidy the overview",
       });
     }
   });

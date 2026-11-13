@@ -157,12 +157,17 @@ export function specOf(
   }
   const choices =
     options.kind === "ready" ? choicesFor(options.options, draft.picks) : [];
+  // Named at once by its first prompt, as GOAT and agent-orchestrator name
+  // a thread at send: the node names it so only when the agent's turn
+  // starts, after its start (the same rule, `titleFromPrompt`'s).
+  const title = titleFromPrompt(draft.prompt);
   return {
     harness: harness.kind,
     mode: "structured",
     model: null,
     ...(choices.length === 0 ? {} : { options: choices }),
     ...where,
+    ...(title === null ? {} : { title }),
   };
 }
 
