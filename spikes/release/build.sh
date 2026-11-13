@@ -195,7 +195,8 @@ build_windows() {
     local version
     version="$(python3 -I -c 'import sys; p = ([0, 0, 0, 0] + [int(x) for x in sys.argv[1].split(".")])[-4:]; print(",".join(str(min(x, 65535)) for x in p))' "$label")"
     sed -e "s/{LABEL}/$label/g" -e "s/{VERSION}/$version/g" "$here/windows/app.rc.in" >"$res_dir/app.rc"
-    llvm-rc /nologo /fo "$res_dir/app.res" "$res_dir/app.rc"
+    # Relative names: llvm-rc reads an argument starting with `/` as a switch.
+    (cd "$res_dir" && llvm-rc /nologo /fo app.res app.rc)
     export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static -C link-arg=/IGNORE:4099 -C link-arg=/SUBSYSTEM:WINDOWS -C link-arg=/ENTRY:mainCRTStartup -C link-arg=$res_dir/app.res"
     (cd "$app_ws" && "$tools/bin/cargo-xwin" xwin build --release --locked --target "$triple" -p "$app_pkg" -j "$jobs")
     local exe="$target_dir/$triple/release/$app_bin.exe"
