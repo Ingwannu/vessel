@@ -63,5 +63,14 @@ export async function openUi(page: Page): Promise<string> {
     throw new Error("Could not open the UI");
   }
   await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+  // The address's code is used once: the page keeps the session it
+  // proved for reloads only after `vessel ui` welcomed it
+  // (bridge/token.ts). The sidebar is drawn before that; a test that
+  // navigates as soon as it shows would reload with neither, and see
+  // "Open Vessel from its address" (raced under load: app.spec.ts's
+  // "every New", a slow bridge reproduces it every time).
+  await page.waitForFunction(
+    () => window.sessionStorage.getItem("vessel.session") !== null,
+  );
   return origin;
 }

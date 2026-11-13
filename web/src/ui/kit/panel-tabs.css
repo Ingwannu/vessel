@@ -1,0 +1,102 @@
+/* A side panel's tabs (kit/panel-tabs.tsx): agent-orchestrator's
+   inspector head, 36px over a hairline, 4px in from the left; icon tabs
+   28px square, 8px corners, 4px apart, in the passive ink; hovered on a
+   4% wash, chosen in the full ink without a fill. A count is a 12px
+   circle on the tab's corner, 7px mono. */
+
+.panel-tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-tabs-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: var(--topbar-h);
+  padding: 0 6px 0 4px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.panel-tab-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panel-tabs-end {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.panel-tab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  outline: none;
+  transition:
+    color var(--d-2) var(--ease),
+    background-color var(--d-2) var(--ease);
+}
+
+.panel-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.panel-tab[data-active] {
+  color: var(--text-primary);
+}
+
+/* Focus is the hover's wash, as a ghost button's is: no ring. */
+.panel-tab:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.panel-tab-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 6px;
+  background: var(--text-primary);
+  color: var(--bg-base);
+  font: 500 7px / 12px var(--font-mono);
+}
+
+.panel-tab-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-tab {
+    transition: none;
+  }
+}

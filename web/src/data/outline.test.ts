@@ -10,6 +10,7 @@ const prompt = (seq: number, text: string): Entry => ({
   at: "",
   text,
   replayed: false,
+  attachments: [],
   turn: seq,
 });
 const message = (seq: number, text: string): Entry => ({

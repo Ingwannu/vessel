@@ -1,8 +1,10 @@
 // What a structured session's log says about its conversation beyond the
 // timeline's entries (protocol 10, milestone 11's Track A): the queue, the
 // agent's commands and context, what it can do, its questions, and the
-// messages steered into a turn. Stored, not drawn yet: the screens are
-// track A-page's.
+// messages steered into a turn. The timeline's entries draw the steers
+// and questions in place (timeline-agent.ts); this keeps what the
+// composer reads: the queue, the commands, the context, the abilities and
+// the questions still waiting.
 //
 // [Decision Log]
 // - Purpose: the page must carry protocol 10's events (an exhaustive

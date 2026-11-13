@@ -1,7 +1,8 @@
 // The board (DESIGN.md §2.4, §6.12): every session on one machine or all,
 // as agent-orchestrator's board. A lane is where a session is in delivery
 // and a card is a session; both the lane and the card's phrase come from
-// the node (data/board.ts). Ended sessions are the archive, listed apart.
+// the node (data/board.ts). Archived sessions are the archive, listed apart;
+// an ended one stays in its lane until archived (protocol 10, ADR 0026).
 
 import "./board.css";
 

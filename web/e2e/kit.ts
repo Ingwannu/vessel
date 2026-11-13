@@ -52,22 +52,48 @@ export async function newSessionPage(
   return page.getByRole("form", { name: "Prompt" });
 }
 
+/** Close the open menu with Escape, once it holds the focus: a menu
+ * draws its items before it takes the focus, and an Escape pressed in
+ * between goes to the button that opened it and is lost; the menu then
+ * stays open, and the next press on that button closes it instead of
+ * opening it (marks.spec.ts, one run in about twelve, 2026-11-13). */
+export async function closeMenu(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.activeElement?.closest('[role="menu"]') != null,
+      ),
+    )
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+}
+
 /** A session's timeline: its entries, apart from the live region that
  * repeats the newest one's text for screen readers. */
 export function timeline(page: Page): Locator {
   return page.getByRole("region", { name: "Timeline" });
 }
 
-/** Choose `agent` in the agent, model and effort menu. */
+/** Choose `agent` in the agent, model and effort menu. The item is chosen
+ * with Enter, the menu's own keyboard path: a pointer's click waits for
+ * the submenu's box to hold still, and under load (the machine at 15 to
+ * 47) it was seen "not stable", then "detached", until the test's time
+ * ran out (app.spec.ts's terminal test, 2026-11-12). Three attempts to
+ * make the page do it on purpose (its processor slowed ten and twelve
+ * times, the bridge's answers held back, the agent's options answered
+ * while the submenu was open) did not. */
 export async function chooseAgent(page: Page, agent: string): Promise<void> {
   await page.getByRole("button", { name: /^Agent, model and effort/ }).click();
   await page.getByRole("menuitem", { name: /^Agent/ }).click();
-  await page.getByRole("menuitemradio", { name: agent }).click();
+  await page.getByRole("menuitemradio", { name: agent }).press("Enter");
   await expect(page.getByRole("menu")).toHaveCount(0);
 }
 
 /** Start a session from the new-session page with `prompt`, and wait for
- * its page. */
+ * its page: the address changes before the session's route has drawn
+ * (it loads a chunk), and text typed in between lands in the new-session
+ * page's box, so a structured session waits for its timeline. */
 export async function startSession(
   page: Page,
   node: string,
@@ -84,4 +110,7 @@ export async function startSession(
     })
     .click();
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
+  if (mode === "Structured") {
+    await expect(timeline(page)).toBeVisible();
+  }
 }

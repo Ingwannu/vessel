@@ -96,7 +96,9 @@
 //!     accepted content as JSON); `ask withdraw` cancels its own request
 //!     first (`$/cancel_request`). Without the capability, one message
 //!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
-//!     whatever the client advertised, reported the same way;
+//!     whatever the client advertised, reported the same way; `ask
+//!     claude`: Claude's `AskUserQuestion` form (two questions, each with
+//!     its free-text "Other"), reported the same way;
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;

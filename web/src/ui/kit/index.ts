@@ -21,6 +21,7 @@ export { CommandLine } from "./command-line";
 export { type Command, CommandPalette } from "./command";
 export { Dialog, type DialogSize } from "./dialog";
 export { EmptyState } from "./empty-state";
+export { useFilePicker } from "./file-picker";
 export { Field, FieldGroup } from "./field";
 export { ICON_NAMES, Icon, type IconName, type IconSize } from "./icon";
 export { Kbd } from "./kbd";
@@ -34,6 +35,8 @@ export {
   MenuSubmenu,
 } from "./menu";
 export { MenuNote, MenuSwitchItem } from "./menu-switch";
+export { type OptionRow, OptionList } from "./option-list";
+export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
 export { Row, type RowDetail, RowList, type RowMark } from "./row";
 export { Segmented, type SegmentedOptions } from "./segmented";
@@ -41,7 +44,14 @@ export { Select } from "./select";
 export { Sheet } from "./sheet";
 export { Skeleton } from "./skeleton";
 export { Spinner } from "./spinner";
+export { SplitButton } from "./split-button";
 export { StatusDot } from "./status-dot";
+export {
+  moveActive,
+  suggestionId,
+  type SuggestionItem,
+  Suggestions,
+} from "./suggestions";
 export { Switch } from "./switch";
 export { type Tab, Tabs } from "./tabs";
 export { TextArea } from "./text-area";

@@ -9,17 +9,17 @@
 import "./new-session.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { useCrumbs, useFleet, useFleetState } from "../../context";
+import { useAgents, useCrumbs, useFleet, useFleetState } from "../../context";
+import { chosenAgent, profileChoices } from "../../data/agent-choices";
 import {
-  agentChoices,
-  profileChoices,
-  startingAgent,
-} from "../../data/agent-choices";
-import { agentName, knownAgent, runsTimeline } from "../../data/agents";
-import { createSession, sendPrompt } from "../../data/calls";
-import { folderSuggestions } from "../../data/folders";
+  agentModes,
+  agentName,
+  knownAgent,
+  sameAgent,
+} from "../../data/agents";
+import { sendPrompt } from "../../data/calls";
 import {
   type Draft,
   draftControls,
@@ -38,15 +38,17 @@ import {
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { toast } from "../../ui/toasts";
-import type { HarnessKind, OptionChoice } from "../../wire/proto";
-import { AddMenu } from "./add-menu";
-import { AgentMenu } from "./agent-menu";
-import { PermissionsMenu } from "./permissions-menu";
+import type { OptionChoice } from "../../wire/proto";
+import { handOver, sendWhenReady, trayOf } from "../../data/trays";
+import { NewSessionControls } from "./new-session-controls";
+import { NewSessionNotes } from "./new-session-notes";
+import { AttachmentStrip } from "./attachment-strip";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
+import { useStarter } from "./use-starter";
 import { WhereTray } from "./where-tray";
 
 const EMPTY_DRAFT: Draft = {
@@ -76,6 +78,8 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     return text.current !== null;
   });
   const [busy, setBusy] = useState(false);
+  // Files for the first message, held until the session exists.
+  const tray = trayOf("new");
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
   useCrumbs(NO_CRUMBS);
@@ -95,13 +99,18 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const status = machine === null ? undefined : state.statuses[machine];
   const nodeId = status?.state === "connected" ? status.node.id : null;
   const defaults = useStore(prefs, (value) => value.values.defaults);
-  const chosen = harnesses.find((harness) => harness.kind === draft.agent);
-  const agent: HarnessKind | null =
-    (chosen === undefined ? null : knownAgent(chosen.kind)) ??
-    rememberedAgent(defaults, nodeId, harnesses) ??
-    startingAgent(harnesses);
+  const agents = useAgents(machine);
+  const agent = chosenAgent(
+    draft.agent,
+    harnesses,
+    rememberedAgent(defaults, nodeId, harnesses),
+  );
+  // Kept per machine for the four only; an added agent starts on its own.
+  const known = agent === null ? null : knownAgent(agent);
   const harness =
-    harnesses.find((candidate) => candidate.kind === agent) ?? null;
+    harnesses.find((candidate) => sameAgent(candidate.kind, agent)) ?? null;
+  const modes = harness === null ? null : agentModes(harness);
+  const agentLabel = agent === null ? "No agent" : agentName(agent, agents);
   // What the machine's last start chose, while the person has chosen
   // nothing for this agent yet (data/defaults.ts).
   const effective: Draft = {
@@ -109,21 +118,27 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     machine,
     agent,
     prompt: saved.text,
-    ...startingPicks(draft, defaults, nodeId, agent),
+    ...startingPicks(draft, defaults, nodeId, known),
   };
   const terminal = harness !== null && startsTerminal(effective, harness);
-  const options = useAgentOptions(machine, agent, effective.profile, !terminal);
+  const { state: options, again } = useAgentOptions(
+    machine,
+    agent,
+    effective.profile,
+    !terminal,
+  );
   const controls =
     harness === null
       ? ({ kind: "terminal" } as const)
-      : draftControls(effective, harness, options);
+      : draftControls(effective, harness, options, agentLabel);
   const profiles =
     machine === null || agent === null
       ? []
       : profileChoices(state.profiles[machine] ?? [], agent);
-  const sessions = machine === null ? undefined : state.sessions[machine];
-  const folders = useMemo(() => folderSuggestions(sessions ?? []), [sessions]);
-  const ready = sendable(effective, harness);
+  const starter = useStarter(machine);
+  const ready = starter.ready(
+    sendable(effective, harness, options, agentLabel),
+  );
 
   const change = (next: Partial<Draft>) => {
     setError(null);
@@ -148,14 +163,23 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     const spec = specOf(effective, harness, options);
     setBusy(true);
     setError(null);
-    void createSession(fleet, machine, spec).then(async (created) => {
-      if (!created.ok) {
+    void starter.create(spec).then(async (created) => {
+      if (created?.ok !== true) {
         setBusy(false);
-        setError(created.problem.message);
+        setError(created?.problem.message ?? null);
         return;
       }
       const prompt = effective.prompt.trim();
-      if (spec.mode === "structured" && prompt !== "") {
+      if (spec.mode === "structured" && tray.items.get().length > 0) {
+        // Files go once the session's agent can take them: its composer
+        // uploads them and sends this prompt (data/trays.ts).
+        handOver("new", created.value.id);
+        fleet.drafts.type(
+          { kind: "session", session: created.value.id },
+          prompt,
+        );
+        sendWhenReady(created.value.id);
+      } else if (spec.mode === "structured" && prompt !== "") {
         const sent = await sendPrompt(fleet, machine, created.value.id, prompt);
         if (!sent.ok) {
           toast(
@@ -165,11 +189,11 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
         }
       }
       saved.clear();
-      if (nodeId !== null && agent !== null) {
+      if (nodeId !== null && known !== null) {
         const chosen = spec.mode === "structured" ? (spec.options ?? []) : [];
         for (const kept of rememberStart(
           nodeId,
-          agent,
+          known,
           effective.profile,
           chosen,
         )) {
@@ -185,7 +209,6 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     });
   };
 
-  const agentLabel = agent === null ? "No agent" : agentName(agent);
   return (
     <div className="new-session">
       <div className="new-session-column">
@@ -209,46 +232,31 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           }
           onSend={send}
           textAreaRef={text}
+          {...(terminal
+            ? {}
+            : {
+                onFiles: (files: File[]) => {
+                  tray.add(files);
+                },
+                strip: <AttachmentStrip tray={tray} />,
+              })}
           controls={
-            <>
-              <AddMenu
-                profiles={profiles}
-                profile={effective.profile}
-                onProfile={(profile) => {
-                  change({ profile, picks: {}, chosen: true });
-                }}
-                terminal={draft.terminal}
-                canTimeline={harness === null || runsTimeline(harness)}
-                onTerminal={(on) => {
-                  change({ terminal: on });
-                }}
-                args={draft.args}
-                onArgs={(args) => {
-                  change({ args });
-                }}
-              />
-              {agent === null ? null : (
-                <AgentMenu
-                  agent={{
-                    value: agent,
-                    name: agentLabel,
-                    choices: agentChoices(harnesses),
-                    onChange: (next) => {
-                      restart({ agent: next });
-                    },
-                  }}
-                  state={controls}
-                  onChoose={choose}
-                />
-              )}
-              {controls.kind === "ready" &&
-              controls.controls.permissions !== null ? (
-                <PermissionsMenu
-                  control={controls.controls.permissions}
-                  onChoose={choose}
-                />
-              ) : null}
-            </>
+            <NewSessionControls
+              profiles={profiles}
+              draft={draft}
+              effective={effective}
+              change={change}
+              restart={restart}
+              terminal={terminal}
+              modes={modes}
+              harnesses={harnesses}
+              agents={agents}
+              agent={agent}
+              agentLabel={agentLabel}
+              controls={controls}
+              choose={choose}
+              tray={tray}
+            />
           }
           action={
             <SendButton
@@ -267,7 +275,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
               onMachine={(next) => {
                 restart({ machine: next, agent: null });
               }}
-              folders={folders}
+              starter={starter}
               folder={draft.folder}
               onFolder={(folder) => {
                 change({ folder });
@@ -275,22 +283,14 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
             />
           }
         />
-        <div className="new-session-notes">
-          {error === null ? null : (
-            <p className="new-session-error" role="alert">
-              {error}
-            </p>
-          )}
-          {!ready.ok && ready.reason !== null ? (
-            <p className="new-session-note">{ready.reason}</p>
-          ) : null}
-          {controls.kind === "failed" ? (
-            <p className="new-session-note" role="status">
-              {agentLabel} did not say what it offers: {controls.message} It
-              starts on its own defaults.
-            </p>
-          ) : null}
-        </div>
+        <NewSessionNotes
+          starting={starter.view}
+          error={error}
+          blocked={ready.ok ? null : ready.reason}
+          controls={controls}
+          agent={agentLabel}
+          onAskAgain={options.kind === "refused" ? again : null}
+        />
       </div>
     </div>
   );

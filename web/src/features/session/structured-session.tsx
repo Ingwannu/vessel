@@ -7,7 +7,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
+import { isLive } from "../../data/format";
 import type { Match } from "../../data/find";
 import { outline, sameOutline } from "../../data/outline";
 import { prefer, prefs } from "../../data/prefs";
@@ -18,11 +19,14 @@ import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
 import { FindBar } from "./find-bar";
 import { FoldProvider } from "./folds";
-import { Inspector } from "./inspector";
+import { Inspector, InspectorSheet } from "./inspector";
 import { Outline } from "./outline";
+import { usePanel } from "./panel-state";
 import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
+import { TimelineSourceContext } from "./timeline-source";
+import { useReadMarks } from "./use-read-marks";
 import { useTimeline } from "./use-timeline";
 import type { NodeKey } from "../../wire/bridge";
 
@@ -37,12 +41,22 @@ export function StructuredSession({
   session: SessionInfo;
 }) {
   const fleet = useFleet();
-  const { timeline, stream } = useTimeline(node, session.id);
+  const { timeline, stream } = useTimeline(node, session.id, isLive(session));
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
+  useReadMarks(node, session, timeline, protocol);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
+  const panel = usePanel(inspector);
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
   const asked = useRef(0);
+  const source = useMemo(
+    () => ({ node, session: session.id, scroller }),
+    [node, session.id, scroller],
+  );
   // The outline as last drawn while a batch changes no prompt or reply,
   // so the outline draws nothing for it (data/outline.ts).
   const worked = useMemo(() => outline(timeline.entries), [timeline.entries]);
@@ -102,6 +116,7 @@ export function StructuredSession({
         label={label}
         session={session}
         renamed={timeline.title}
+        onPlace={panel.openChanges}
       />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
@@ -112,13 +127,15 @@ export function StructuredSession({
           <Banner tone="error">The stream stopped: {stream.message}</Banner>
         ) : null}
         <div className="session-log">
-          <FoldProvider entries={timeline.entries}>
-            <Timeline
-              timeline={timeline}
-              reveal={reveal}
-              scrollerRef={setScroller}
-            />
-          </FoldProvider>
+          <TimelineSourceContext value={source}>
+            <FoldProvider entries={timeline.entries}>
+              <Timeline
+                timeline={timeline}
+                reveal={reveal}
+                scrollerRef={setScroller}
+              />
+            </FoldProvider>
+          </TimelineSourceContext>
           <Outline items={items} scroller={scroller} onJump={onJump} />
           {finding === null ? null : (
             <FindBar
@@ -131,12 +148,32 @@ export function StructuredSession({
         </div>
         <div className="session-dock">
           <div className="session-dock-column">
-            <Composer node={node} session={session} timeline={timeline} />
+            <Composer
+              node={node}
+              label={label}
+              session={session}
+              timeline={timeline}
+            />
           </div>
         </div>
       </div>
-      {inspector === "shown" ? (
-        <Inspector label={label} session={session} timeline={timeline} />
+      {inspector === "shown" && !panel.narrow ? (
+        <Inspector
+          node={node}
+          label={label}
+          session={session}
+          timeline={timeline}
+          panel={panel}
+        />
+      ) : null}
+      {panel.sheet ? (
+        <InspectorSheet
+          node={node}
+          label={label}
+          session={session}
+          timeline={timeline}
+          panel={panel}
+        />
       ) : null}
     </>
   );

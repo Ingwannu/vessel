@@ -1,0 +1,66 @@
+/* The Changes tab (features/workspace/changes-tab.tsx): the git bar, a
+   36px toolbar (agent-orchestrator's changes picker at the left, 24px
+   quiet toggles at the right), a refusal under them, then the list,
+   which takes the rest of the panel's height and scrolls. */
+
+.changes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.changes-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.changes-tools-end {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.scope-counts {
+  display: inline-flex;
+  gap: 4px;
+  font: 400 11px / 16px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.changes-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.changes-list > .t-row:first-of-type .d-file {
+  border-top: 0;
+}
+
+.changes-pad {
+  padding: 16px;
+}
+
+.changes-more {
+  flex: none;
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-faint);
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.changes .empty {
+  margin: auto;
+  padding: 24px 16px;
+}
