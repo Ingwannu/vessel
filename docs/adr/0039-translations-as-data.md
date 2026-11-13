@@ -402,3 +402,13 @@ performance claim is made for this model checkpoint. The contributor guide
 now records adding strings/languages, coverage, pseudo runs and the one-area
 migration recipe, including one cached-placeholder refresh method registered
 in a single dispatch list.
+
+The subsequent final normal build completed with exit zero. Twelve fresh
+English/Korean/pseudo confirmation captures from that binary were inspected
+in both themes/sizes: the shortened empty-name hint now fits completely in
+the phone's pseudo viewport. This closes that visual finding. The earlier
+broad matrices retain their original binary provenance. At this later
+checkpoint the final native test and explicit wasm command still await
+their recorded exits; no final gate acceptance is inferred from the build.
+The isolated fleet/holder and fake children (17 verified PIDs), private
+display and protected pairing inputs have been cleaned up.

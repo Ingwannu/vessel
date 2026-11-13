@@ -518,3 +518,37 @@ Final-source checkpoint at 21:10 UTC: native format and all-target Clippy
 completed with exit zero (`s2-final-gate-2.json`). The final normal build,
 test and wasm commands, plus the shortened-hint recapture, are still pending.
 Do not report the earlier 430+2 result as the final response-fix/hint gate.
+
+### Superseding checkpoint, 21:30 UTC
+
+Current source is committed as `8da03f18` (WIP, not approved for merge).
+Final native format, all-target Clippy and normal build have exit zero in
+`s2-final-gate-2.json`. Test is compiling; the final wasm check has not yet
+reported its own exit. The prior 430+2 result remains a separate earlier
+source result until this final test completes.
+
+The final normal binary is hashed in `s2-final-binary-provenance.json` and
+does not contain the test-only pairing fixture environment hook. Its twelve
+`s2-final-empty-captures` frames (en/ko/pseudo, both themes/sizes) have now
+been personally inspected. The shorter English hint fits completely in the
+pseudo phone field in both themes; the earlier clipping finding is closed.
+The offer came from the normal private fleet CLI and was reused only for
+decoding; no connect request or installed-app override was added. The
+remaining broad matrices are still labelled with their earlier binary.
+
+`s2-paired-language-dark-ready` and `s2-paired-language-light` contain the
+completed, inspected same-process save/retranslation proof in both sizes
+and themes; the latter also proves a literal typed name is kept.
+`s2-evidence-index.json` maps the immutable source and every evidence root.
+F acknowledged the project seam and will not edit those lines while waiting
+for an approved hash. C and E2 have the WIP hash and exact foreign-line report.
+
+Cleanup is complete for the UI/fleet proof: `s2-cleanup.json` records 17
+verified owned PIDs stopped (nodes, fake children and holder). No process
+remains with any of this track's three fleet working directories, the
+private display 188 is gone and protected pairing inputs were removed.
+The cargo gate is deliberately not interrupted; its process/session and
+compiled-input verification are in `final-source-verified.json`. Inspect
+that process and `s2-final-gate-2.json` before starting another build.
+If credit stops this session, finish/review the final test and wasm result
+first. No further UI/fleet process needs stopping or leaving running.
