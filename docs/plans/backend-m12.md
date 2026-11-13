@@ -449,6 +449,22 @@ do nothing); each is for a node track:
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 | A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
 
+### Translations as data files (2026-11-13)
+
+The owner, the same afternoon: when a language is added later it must
+be easy to translate, so set it up for that now. Every string of the
+app is a Rust table today (two languages, about 5,800 lines, 183 match
+arms for Korean), which a translator cannot work in. ADR 0039 decides:
+Project Fluent files, one folder per language; adding a language is
+adding a folder; call sites stay typed from the English file; whole
+sentences, plurals by the language's rules, grammar such as the Korean
+particle as a function; a gate check for completeness and a
+pseudo-language for looking at screens; the page uses the same files.
+Track L (`backend/m12-app-i18n`, a fifth worker on the second model,
+under the same strict brief and the same line-by-line review) builds
+the mechanism beside the tables and moves one area as the model; then
+new strings go to the files only and each area's owner moves its own.
+
 ## The browser, first report (2026-11-13)
 
 The browser track built the same `app` crate for `wasm32` (GPUI's web
