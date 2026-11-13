@@ -129,6 +129,12 @@ surface, state and drawing remain one control, split into small modules.
 Labels shrink on one line, as Paseo's menu does; a stale keyboard position
 from a shortened list restarts at the appropriate end.
 
+`menu::trigger_with` takes `TriggerProfile::GitHeader` for the git overflow:
+16-point glyph, 26/32 visual square, 8-point outside hit allowance (42/48),
+radius 6, and static muted ink without the schedule hover treatment. The
+legacy `trigger` remains the Schedule profile. Its captured anchor is the
+visual frame. The caller's right margin belongs on an enclosing wrapper.
+
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.

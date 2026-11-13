@@ -202,3 +202,26 @@ fn a_removed_highlight_restarts_navigation_in_both_directions() {
         assert_eq!(selected_index(&items, Some(stale)), None);
     }
 }
+
+#[test]
+fn git_header_visual_and_hit_regions_do_not_resize_the_schedule_profile() {
+    for (sizing, visual, hit) in [
+        (TriggerSizing::Pointer, 26.0, 42.0),
+        (TriggerSizing::Touch, 32.0, 48.0),
+    ] {
+        assert_eq!(
+            trigger::git_geometry(sizing),
+            trigger::GitGeometry {
+                visual: px(visual),
+                hit: px(hit),
+                outset: px(8.0),
+                glyph: px(16.0),
+                radius: px(6.0),
+            }
+        );
+        let schedule = trigger::geometry(sizing);
+        assert_eq!(schedule.glyph, px(14.0));
+        assert_eq!(schedule.padding, px(4.0));
+        assert_eq!(schedule.radius, px(4.0));
+    }
+}

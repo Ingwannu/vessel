@@ -37,7 +37,7 @@ pub use draw::{Content, Width, menu, menu_with};
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
 pub use item::{ItemStatus, MenuItem, Tone};
 use std::rc::Rc;
-pub use trigger::{TriggerSizing, trigger};
+pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
 /// A menu's state, kept by the screen that shows it.
 #[derive(Debug)]
