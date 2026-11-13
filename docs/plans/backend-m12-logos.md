@@ -209,9 +209,11 @@ at scale 1/2 and dark/light; 28 provider-row captures (first/last,
 selected/hover/scroll, disabled pointer and keyboard); and eight actual
 long-title Claude/OpenCode headers at desktop and 390, both themes.
 The source and binary hashes and exact file list accompany the review.
-These prove this picker and pill control, not a Settings ProviderRow:
-its distinct 56-point/padded geometry needs a separate fitted adapter and
-actual card/adjacent-row evidence before that consumer replaces Bot.
+These prove the picker and standalone artwork only. Actual labelled and
+icon-only `pill_parts` at touch 44 still need runtime captures; the app
+final captures are pending. A Settings ProviderRow
+has distinct 56-point/padded geometry and needs a separate fitted adapter
+and actual card/adjacent-row evidence before that consumer replaces Bot.
 
 ## App slice
 
