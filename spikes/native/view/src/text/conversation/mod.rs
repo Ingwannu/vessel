@@ -21,6 +21,7 @@
 //!   translator reads the methods.
 
 mod entries;
+mod meter;
 mod numbers;
 mod permission;
 mod question;
