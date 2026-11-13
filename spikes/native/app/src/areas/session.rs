@@ -21,8 +21,9 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
+use vessel_app_view::prefs::TurnDelivery;
 use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -244,10 +245,12 @@ impl Shell {
             return;
         }
         if open.live {
+            let delivery = self.delivery();
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
                 text,
+                delivery,
             });
         } else {
             // Ended or interrupted: start it again with its conversation,
@@ -262,6 +265,34 @@ impl Shell {
         }
         self.areas.session.composer.clear(window, cx);
         cx.notify();
+    }
+
+    /// What a plain send does: with no turn running, start one (or wait
+    /// behind prompts already queued); while one runs, what Settings'
+    /// default send says (wait in the queue, join the turn, or stop it and
+    /// start), joining only for an agent that takes it (`abilities.steer`;
+    /// otherwise the queue).
+    fn delivery(&self) -> Delivery {
+        if !self.areas.session.conversation.turn_running() {
+            return Delivery::Queue;
+        }
+        match self.prefs.settings.composer.delivery {
+            TurnDelivery::Steer if self.steers() => Delivery::Steer,
+            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
+            TurnDelivery::Interrupt => Delivery::Interrupt,
+        }
+    }
+
+    /// Whether the open session's agent takes a message into a running
+    /// turn.
+    pub(crate) fn steers(&self) -> bool {
+        self.areas
+            .conversation
+            .timeline
+            .facts()
+            .abilities
+            .as_ref()
+            .is_some_and(|abilities| abilities.steer)
     }
 
     /// The ended session runs again: follow it afresh (its log goes on

@@ -140,6 +140,8 @@ pub enum Command {
         session: SessionId,
         /// What was typed.
         text: String,
+        /// What it does while a turn runs (Settings' default send).
+        delivery: Delivery,
     },
     /// Start a conversation: create the session, send its first prompt,
     /// and report it [`Event::Started`].
@@ -382,7 +384,8 @@ impl State {
                 machine,
                 session,
                 text,
-            } => self.prompt(&machine, session, text).await,
+                delivery,
+            } => self.prompt(&machine, session, text, delivery).await,
             Command::Start {
                 machine,
                 harness,
@@ -664,7 +667,7 @@ impl State {
         }
     }
 
-    async fn prompt(&self, machine: &str, session: SessionId, text: String) {
+    async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
                 LinkError::NotConnected(machine.to_owned()).to_string(),
@@ -673,7 +676,7 @@ impl State {
             return;
         };
         let content = vec![ContentBlock::Text { text }];
-        match client.prompt(session, content, Delivery::Queue).await {
+        match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
                 self.emit(Event::Failed(
