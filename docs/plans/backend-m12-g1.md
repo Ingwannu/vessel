@@ -382,3 +382,79 @@ control deliberately keeps the existing shared Paseo chrome: maximum280
 (rather than GOAT max-w-120 /480), radius12, insets4/8 and existing placement.
 The pinned engine wraps an unbroken path within that width. This shares
 one popup surface rather than silently claiming GOAT’s whole geometry.
+
+## Git screen policies before drawing
+
+[Decision Log]
+- Purpose: keep screen availability, row identity and request feedback out of
+  GPUI callbacks before wiring the toolbar and forms.
+- Existing assets: reuse `git_quick`, the accepted request constructors,
+  `Reading`, `RequestKeys`, `Writing`, the workspace refusal words and the
+  existing viewer-local time policy in `devices::time`. No dependency is added.
+- Alternatives: infer a pending action from later repository facts, authorize
+  against the selected session instead of the shown code panel, or close a
+  draft when its background read fails.
+- Choice: typed menu/header/branch/scope models, exact shown-repository matching,
+  a keyed pending intention and a retained commit-facts snapshot. Only a fresh
+  ready read authorizes submission, including the keyboard submit path.
+- Why: an old reply cannot move a spinner or notice to another action; a failed
+  refresh cannot erase the edited form or authorize work on another repository.
+- Cost: bounded repository/branch/file facts are retained while shown. Drawing
+  and node integration are a later slice; this is not a finished Git screen.
+
+The Changes head follows Paseo's `git/actions-split-button.tsx` and
+`components/branch-switcher.tsx`: branch once, one short state in words, a base
+only when different, full sentences in the tooltip and no duplicate file counts.
+Detached commits are separate short/full code values, not body-face prose.
+A clean synchronized repository has Paseo's menu-only shape; Fetch remains in
+its menu. The existing page's quick-action, refusal, branch parsing and default
+branch cases remain fixtures (`data/workspace/panel-model.test.ts`,
+`words.test.ts`, `features/workspace/git-dialogs.tsx`); Paseo's `git/policy.test.ts`
+and GOAT's `GitActionsControl.logic.test.ts` provide the additional policy cases.
+The node has no branch-merge/archive operation in this scope; none is invented.
+
+Branch choices follow Paseo's `hooks/use-branch-switcher.ts`: the current choice
+keeps its check and closes without a write. All bounded returned branch records
+and truncation facts remain in the model; no second 200-row cutoff is applied.
+A branch failure after its picker closes cannot replace another form's notice.
+A pending request retains its own intention, path or stash index plus commit;
+its English/Korean caption is independent of Git's diagnostic text.
+
+Per-file policy follows Paseo's `git/file-header.tsx`,
+`components/file-actions-menu.tsx` and the uncommitted-only revert policy in
+`git/diff-pane.tsx`. It accepts the code panel's actual shown machine/root,
+returns no slot for a mismatch or Base, limits Staged/Unstaged to their own
+index side, and offers full-file discard only in Uncommitted. Stage/unstage
+are node-backed additions; a destructive request still consumes the prepared
+exact decision. The slot's final layout and successful refresh need runtime
+proof in the drawing slice.
+
+The commit summary follows GOAT's `GitActionsControl.tsx` branch/files group;
+per-file action pills do not belong there. Vessel's three-way `CommitStage`
+choice is an explicit node-contract addition: “Changes to commit”, with
+“Staged changes only”, “All tracked changes”, and “All changes, including new
+files”, plus Korean counterparts. One value trigger/list avoids three unequal
+wrapped pills on a narrow form. Page follow-up: its `commit-dialog.tsx` still
+says “Stage first”; it must take these same words in its next pass.
+
+Saved-entry refs and hashes remain separate code elements. Relative saved times
+reuse the existing age policy, and exact tooltips use viewer-local seconds and
+a named UTC offset. Every new pending/error/destructive sentence is tested whole
+in both languages. This view-only slice adds no service or file permissions;
+no live input-method proof or Git-screen capture is claimed.
+
+A pre-report review also removed hashes from successful commit/pull prose:
+`GitSuccessText` carries one whole localized message plus typed code facts
+(created commit, or both pull endpoints). Exact 40/64-digit ids are tested
+separately from the twelve-character code captions. Upstream-set/kept push
+sentences are separate whole translation strings, not a conditional suffix.
+
+Validation corrections before this slice was committed: the development-only
+view test build first found ambiguous parsed-path types in two new tests;
+explicit `RelPath` annotations corrected them. The first whole native clippy
+run found an unnecessary explicit lifetime in `branch_failure`; it was elided,
+with no lint exception. The next whole test run rejected a supposed 64-digit
+success fixture that actually held 68 digits (`InvalidText::TooLong`, max64);
+the fixture was corrected to 64, preserving the production validator. None of
+these failing trees was committed. The final whole native gate is the delivery
+check; development-only package tests are not represented as that gate.

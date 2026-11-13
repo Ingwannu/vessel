@@ -158,3 +158,25 @@ fn only_one_write_can_run_and_only_its_own_reply_can_end_it() {
     );
     assert!(writing.busy());
 }
+
+#[test]
+fn a_late_reply_cannot_clear_or_replace_another_requests_pending_label() {
+    use super::WriteIntent;
+    use crate::workspace::git_quick::GitAction;
+    let mut keys = RequestKeys::default();
+    let first = keys.issue().unwrap();
+    let other = keys.issue().unwrap();
+    let mut writing = Writing::default();
+    assert!(writing.begin_action(first, WriteIntent::Quick(GitAction::Push)));
+    assert!(!writing.begin_action(other, WriteIntent::Quick(GitAction::Pull)));
+    assert_eq!(
+        writing.finish(other, Ok(Written::Said(Success::Fetched))),
+        None
+    );
+    assert_eq!(writing.intent(), Some(&WriteIntent::Quick(GitAction::Push)));
+    assert_eq!(
+        writing.finish(first, Err(Problem::Older)),
+        Some(Err(Problem::Older))
+    );
+    assert_eq!(writing.intent(), None);
+}

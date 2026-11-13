@@ -43,7 +43,10 @@ pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
-pub use git::GitFailureText;
+pub use git::{
+    GitFailureText, GitHashText, GitHeaderText, GitLabels, GitStashText, GitSuccessCommits,
+    GitSuccessText,
+};
 pub use machines::MachinesText;
 pub use notices::NoticeWords;
 pub use options::OptionsText;

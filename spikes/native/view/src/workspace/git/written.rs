@@ -8,6 +8,7 @@ use vessel_proto::workspace::{
 };
 
 use super::super::problem::Problem;
+use super::WriteIntent;
 use super::state::RequestKey;
 
 /// How a successful push changed the upstream.
@@ -149,16 +150,27 @@ impl From<StashOutcome> for Written {
 /// recreated, because the area's separate issuer survives it.
 #[derive(Debug, Default)]
 pub struct Writing {
-    pending: Option<RequestKey>,
+    pending: Option<Pending>,
+}
+
+#[derive(Debug)]
+struct Pending {
+    key: RequestKey,
+    intent: WriteIntent,
 }
 
 impl Writing {
     /// Reserve the one write slot. A double click cannot send two writes.
     pub fn begin(&mut self, key: RequestKey) -> bool {
+        self.begin_action(key, WriteIntent::Unspecified)
+    }
+
+    /// Reserve the slot with the intention whose pending label is displayed.
+    pub fn begin_action(&mut self, key: RequestKey, intent: WriteIntent) -> bool {
         if self.pending.is_some() {
             return false;
         }
-        self.pending = Some(key);
+        self.pending = Some(Pending { key, intent });
         true
     }
 
@@ -168,16 +180,47 @@ impl Writing {
         self.pending.is_some()
     }
 
+    /// The pending intention is inseparable from its request key.
+    #[must_use]
+    pub const fn intent(&self) -> Option<&WriteIntent> {
+        match &self.pending {
+            Some(pending) => Some(&pending.intent),
+            None => None,
+        }
+    }
+
     /// Consume exactly the pending reply, never a late/duplicate reply.
     pub fn finish(
         &mut self,
         key: RequestKey,
         result: Result<Written, Problem>,
     ) -> Option<Result<Written, Problem>> {
-        if self.pending != Some(key) {
+        if self
+            .pending
+            .as_ref()
+            .is_none_or(|pending| pending.key != key)
+        {
             return None;
         }
         self.pending = None;
         Some(result)
+    }
+}
+
+impl Success {
+    /// A completed write has the notice vocabulary's success meaning;
+    /// no kit type or colour enters the action model.
+    #[must_use]
+    pub const fn alert_variant(&self) -> crate::alert::Variant {
+        match self {
+            Self::Committed(_)
+            | Self::Fetched
+            | Self::Pushed { .. }
+            | Self::Pulled { .. }
+            | Self::UpToDate
+            | Self::Switched(_)
+            | Self::Renamed(_)
+            | Self::Stashed(_) => crate::alert::Variant::Success,
+        }
     }
 }

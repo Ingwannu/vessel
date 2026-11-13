@@ -49,7 +49,8 @@ pub use options::{
     own_name, with_picks,
 };
 pub use text::{
-    AboutText, BoardWords, ConversationWords, GitFailureText, Lang, MachinesText, NoticeWords,
+    AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
+    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, NoticeWords,
     OptionsText, PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     UpdateText, grouped, meter_tokens, short_tokens,
 };

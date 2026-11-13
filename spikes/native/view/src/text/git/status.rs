@@ -54,7 +54,7 @@ impl Lang {
                 short(head.as_str())
             ),
             (Self::Ko, None, Some(head)) => format!(
-                "체크아웃된 브랜치가 없습니다. 현재 커밋은 {}입니다.",
+                "체크아웃된 브랜치가 없습니다. 현재 커밋: {}.",
                 short(head.as_str())
             ),
             (Self::En, None, None) => "No branch is checked out. No commits yet.".to_owned(),

@@ -14,17 +14,51 @@
 //!   preparation returns that typed error before a request can be sent.
 
 mod branch;
+mod branch_picker;
+mod destination;
+mod dialog;
 mod discard;
+mod drop_stash;
+mod file_menu;
 mod form;
+mod header;
+mod intent;
+mod issue;
+mod menu;
+mod poll;
+mod repository;
+mod scopes;
 mod stash;
 mod state;
+mod submit;
 mod written;
 
 pub use branch::{BranchMode, BranchRequest, SwitchProblem, branch_request, switch_request};
+pub use branch_picker::{
+    BranchChoice, BranchChoices, BranchSelection, PickerVisibility, branch_choices, branch_failure,
+    branch_selection,
+};
+pub use destination::CommitDestination;
+pub use dialog::Dialog;
 pub use discard::{DiscardDecision, DiscardEffect};
+pub use drop_stash::DropStash;
+pub use file_menu::{FileAction, FileMenu, file_menu};
 pub use form::{ChangedFiles, CommitForm, IndexAction, commit_request, file_actions};
+pub use header::{
+    DistanceName, GitHead, HeadActivity, HeadName, HeadState, git_head, head_activity,
+};
+pub use intent::WriteIntent;
+pub use issue::Issue;
+pub use menu::{
+    Action, ActionRow, ControlDensity, PanelWidth, StashScope, Unavailable, availability,
+    filter_branches, primary, rows,
+};
+pub use poll::{PanelVisibility, REFRESH_EVERY, should_refresh};
+pub use repository::{Repository, matching_repository};
+pub use scopes::{CommitScope, commit_scopes};
 pub use stash::{StashChoice, stash_request};
 pub use state::{KeysExhausted, Reading, RequestKey, RequestKeys};
+pub use submit::{can_branch, can_commit};
 pub use written::{Success, UpstreamChange, Writing, Written};
 
 #[cfg(test)]
@@ -35,3 +69,9 @@ mod reference_tests;
 mod tests;
 #[cfg(test)]
 mod written_tests;
+
+#[cfg(test)]
+mod menu_tests;
+
+#[cfg(test)]
+mod header_tests;

@@ -347,3 +347,11 @@ screen of that size.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+Git's screen policy models live beside its request preparation in
+`view::workspace::git`: the compact Changes head, checked branch choices,
+commit scope and submit gates, keyed pending intentions and file actions bound
+to the code panel's shown machine/root and comparison. Retained draft facts
+preserve the form after a failed refresh; only a ready read authorizes a write.
+Drawing belongs to `app` through the kit, and prepared node calls belong in
+`link`; Git output is never interpreted in a drawing callback.

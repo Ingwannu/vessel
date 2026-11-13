@@ -62,7 +62,7 @@ fn branch_sentences_distinguish_unborn_detached_and_normal_checkouts() {
     );
     assert_eq!(
         Lang::Ko.git_branch_state(&status),
-        "체크아웃된 브랜치가 없습니다. 현재 커밋은 0123456입니다."
+        "체크아웃된 브랜치가 없습니다. 현재 커밋: 0123456."
     );
     status.head = None;
     assert_eq!(
