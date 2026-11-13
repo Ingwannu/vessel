@@ -23,7 +23,7 @@ pub(crate) fn record_version(
     key: &str,
     exe: &Path,
     label: &Label,
-) -> Result<bool, windows_registry::Error> {
+) -> windows_registry::Result<bool> {
     let Ok(entry) = windows_registry::CURRENT_USER.open(key) else {
         return Ok(false);
     };
