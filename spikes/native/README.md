@@ -133,6 +133,29 @@ Navigation and empty states use this one registered vector.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`kit/inline_status.rs` supplies GOAT's passive compact status: one 6-point
+kit dot and one whole label, a 4-point gap, 11-point normal text on a
+16-point line. No capsule, border, fill, click or focus behaviour. The
+view selects the state and the entire translated label; the host keeps
+space for it and supplies any accessible context. It follows
+`SideChatSurface.tsx` and `index.css` (`text-2xs` is 11, not 10).
+
+Its separate text/dot roles live in `theme/inline_status.rs`. The existing
+Paseo badge tint and alert-icon blue are different roles and are not
+substituted for small status text. The native light/dark defaults below
+are GOAT's resolved `themePalettes.ts` values; there is no RGB difference.
+Faces and user font scaling remain the kit's, as for every control.
+
+| Role | GOAT text / dot | Native light text / dot | Native dark text / dot |
+| --- | --- | --- | --- |
+| Active | info-foreground / info | #0169cc / #0169cc | #339cff / #339cff |
+| Attention | warning-foreground / warning | #bb4d00 / #fe9a00 | #ffb900 / #fe9a00 |
+| Idle | muted-foreground / muted-foreground at 60% | #5d5d5d / #5d5d5d at 60% | #afafaf / #afafaf at 60% |
+| Error | destructive-foreground / destructive | #c10007 / #fb2c36 | #ff6467 / #fb414a |
+
+The control has no state or node knowledge. The side panel's real long
+parent header in both sizes, languages and appearances still needs its
+own capture review; a control's source test is not that approval.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
