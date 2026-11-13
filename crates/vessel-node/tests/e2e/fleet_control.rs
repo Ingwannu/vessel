@@ -233,84 +233,7 @@ async fn wire_join_manual_sync_reports_and_leave_share_the_existing_engine() {
         .await;
         let owner = member_fixture.connect(&member).await;
         let member_files = FleetFiles::new(&member_fixture.data_dir());
-        assert_eq!(
-            owner.fleet_status().await.unwrap().role,
-            FleetRole::Standalone
-        );
-        assert_eq!(code(owner.sync_fleet().await), ErrorCode::Conflict);
-        let link = home_owner
-            .invite_with_scopes(None, 600, vec![Scope::Sync])
-            .await
-            .unwrap()
-            .link;
-        let self_refusal = home_owner
-            .join_fleet(link.clone(), Vec::new())
-            .await
-            .unwrap_err();
-        let vessel_client::CallError::Remote(self_refusal) = self_refusal else {
-            panic!("expected self-join refusal")
-        };
-        assert_eq!(
-            self_refusal.detail,
-            Some(ErrorDetail::FleetControl {
-                reason: FleetControlError::SelfHome
-            })
-        );
-        // The refused self-join did not redeem the single-use invitation.
-        // A real post-redemption disk failure is distinct: this directory
-        // cannot be replaced by the credential file. No membership appears.
-        let credential_path = member_files.dir().join("member.credential");
-        std::fs::create_dir_all(&credential_path).unwrap();
-        let failed = owner
-            .join_fleet(link.clone(), Vec::new())
-            .await
-            .unwrap_err();
-        let vessel_client::CallError::Remote(failed) = failed else {
-            panic!("expected post-redemption refusal")
-        };
-        assert_eq!(
-            failed.detail,
-            Some(ErrorDetail::FleetControl {
-                reason: FleetControlError::JoinUncertain,
-            })
-        );
-        assert_eq!(
-            owner.fleet_status().await.unwrap().role,
-            FleetRole::Standalone
-        );
-        assert!(!member_files.dir().join("member.json").exists());
-        let spent = home_owner
-            .devices()
-            .await
-            .unwrap()
-            .into_iter()
-            .find(|device| device.label == MEMBER_NAME)
-            .unwrap();
-        home_owner.revoke_device(spent.id).await.unwrap();
-        std::fs::remove_dir(&credential_path).unwrap();
-        // Never automatically retry an uncertain join. This explicit probe
-        // proves its invitation was consumed, then a new invitation is used.
-        assert_eq!(
-            code(owner.join_fleet(link, Vec::new()).await),
-            ErrorCode::Unavailable
-        );
-        let link = home_owner
-            .invite_with_scopes(None, 600, vec![Scope::Sync])
-            .await
-            .unwrap()
-            .link;
-        let joined = owner.join_fleet(link.clone(), Vec::new()).await.unwrap();
-        assert_eq!(joined.home.id, home.info().id);
-        let refused = owner.join_fleet(link, Vec::new()).await.unwrap_err();
-        let vessel_client::CallError::Remote(refused) = refused else {
-            panic!("expected membership refusal")
-        };
-        assert_eq!(
-            refused.detail,
-            Some(ErrorDetail::FleetControl {
-                reason: FleetControlError::AlreadyMember
-            })
-        );
+        confirm_join(&home_owner, &owner, &member_files, home.info().id).await;
         until("member applies", || {
             fleet::status(&member_files).unwrap().state.generation == Some(original)
         })
@@ -328,35 +251,14 @@ async fn wire_join_manual_sync_reports_and_leave_share_the_existing_engine() {
         assert_eq!(reports[0].applied, Some(original));
         assert_eq!(reports[0].label, MEMBER_NAME);
 
-        // No publication changed. A new harness home is seen only by a
-        // fresh pull; the automatic pull/watch deadlines are an hour away.
-        std::fs::create_dir_all(&later_target).unwrap();
-        owner.sync_fleet().await.unwrap();
-        until("manual pull sees a new profile home", || {
-            contents(&later_target.join("CLAUDE.md")) == before
-        })
-        .await;
-
-        // Same bytes length and mtime defeat the cheap stamp. A manual
-        // home sync still rebundles; its real generation watch is the receipt.
-        let modified = std::fs::metadata(&source).unwrap().modified().unwrap();
-        std::fs::write(&source, after).unwrap();
-        std::fs::OpenOptions::new()
-            .write(true)
-            .open(&source)
-            .unwrap()
-            .set_times(std::fs::FileTimes::new().set_modified(modified))
-            .unwrap();
-        home_owner.sync_fleet().await.unwrap();
-        let changed = home_owner.fleet_watch(original).await.unwrap();
-        assert!(changed > original);
-        assert_eq!(
-            home_owner.fleet_status().await.unwrap().local.generation,
-            Some(changed)
-        );
-        until("member follows the new publication", || {
-            contents(&member_target.join("AGENTS.md")) == after
-        })
+        check_manual_sync(
+            &home_owner,
+            &owner,
+            original,
+            &source,
+            &later_target,
+            &member_target,
+        )
         .await;
         owner.leave_fleet().await.unwrap();
         assert_eq!(
@@ -433,6 +335,133 @@ async fn read_only_and_agent_status_do_not_disclose_admin_member_reports() {
         member.node.stop().await.unwrap();
         home.node.stop().await.unwrap();
         relay.stop().await;
+    })
+    .await;
+}
+
+async fn confirm_join(
+    home_owner: &NodeClient,
+    owner: &NodeClient,
+    member_files: &FleetFiles,
+    home_id: vessel_proto::NodeId,
+) {
+    assert_eq!(
+        owner.fleet_status().await.unwrap().role,
+        FleetRole::Standalone
+    );
+    assert_eq!(code(owner.sync_fleet().await), ErrorCode::Conflict);
+    let link = home_owner
+        .invite_with_scopes(None, 600, vec![Scope::Sync])
+        .await
+        .unwrap()
+        .link;
+    let self_refusal = home_owner
+        .join_fleet(link.clone(), Vec::new())
+        .await
+        .unwrap_err();
+    let vessel_client::CallError::Remote(self_refusal) = self_refusal else {
+        panic!("expected self-join refusal")
+    };
+    assert_eq!(
+        self_refusal.detail,
+        Some(ErrorDetail::FleetControl {
+            reason: FleetControlError::SelfHome
+        })
+    );
+    // The refused self-join did not redeem the single-use invitation.
+    // A real post-redemption disk failure is distinct: this directory
+    // cannot be replaced by the credential file. No membership appears.
+    let credential_path = member_files.dir().join("member.credential");
+    std::fs::create_dir_all(&credential_path).unwrap();
+    let failed = owner
+        .join_fleet(link.clone(), Vec::new())
+        .await
+        .unwrap_err();
+    let vessel_client::CallError::Remote(failed) = failed else {
+        panic!("expected post-redemption refusal")
+    };
+    assert_eq!(
+        failed.detail,
+        Some(ErrorDetail::FleetControl {
+            reason: FleetControlError::JoinUncertain,
+        })
+    );
+    assert_eq!(
+        owner.fleet_status().await.unwrap().role,
+        FleetRole::Standalone
+    );
+    assert!(!member_files.dir().join("member.json").exists());
+    let spent = home_owner
+        .devices()
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|device| device.label == MEMBER_NAME)
+        .unwrap();
+    home_owner.revoke_device(spent.id).await.unwrap();
+    std::fs::remove_dir(&credential_path).unwrap();
+    // Never automatically retry an uncertain join. This explicit probe
+    // proves its invitation was consumed, then a new invitation is used.
+    assert_eq!(
+        code(owner.join_fleet(link, Vec::new()).await),
+        ErrorCode::Unavailable
+    );
+    let link = home_owner
+        .invite_with_scopes(None, 600, vec![Scope::Sync])
+        .await
+        .unwrap()
+        .link;
+    let joined = owner.join_fleet(link.clone(), Vec::new()).await.unwrap();
+    assert_eq!(joined.home.id, home_id);
+    let refused = owner.join_fleet(link, Vec::new()).await.unwrap_err();
+    let vessel_client::CallError::Remote(refused) = refused else {
+        panic!("expected membership refusal")
+    };
+    assert_eq!(
+        refused.detail,
+        Some(ErrorDetail::FleetControl {
+            reason: FleetControlError::AlreadyMember
+        })
+    );
+}
+
+async fn check_manual_sync(
+    home_owner: &NodeClient,
+    owner: &NodeClient,
+    original: vessel_proto::Generation,
+    source: &Path,
+    later_target: &Path,
+    member_target: &Path,
+) {
+    let [before, after] = INSTRUCTIONS;
+    // No publication changed. A new harness home is seen only by a
+    // fresh pull; the automatic pull/watch deadlines are an hour away.
+    std::fs::create_dir_all(later_target).unwrap();
+    owner.sync_fleet().await.unwrap();
+    until("manual pull sees a new profile home", || {
+        contents(&later_target.join("CLAUDE.md")) == before
+    })
+    .await;
+
+    // Same bytes length and mtime defeat the cheap stamp. A manual
+    // home sync still rebundles; its real generation watch is the receipt.
+    let modified = std::fs::metadata(source).unwrap().modified().unwrap();
+    std::fs::write(source, after).unwrap();
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(source)
+        .unwrap()
+        .set_times(std::fs::FileTimes::new().set_modified(modified))
+        .unwrap();
+    home_owner.sync_fleet().await.unwrap();
+    let changed = home_owner.fleet_watch(original).await.unwrap();
+    assert!(changed > original);
+    assert_eq!(
+        home_owner.fleet_status().await.unwrap().local.generation,
+        Some(changed)
+    );
+    until("member follows the new publication", || {
+        contents(&member_target.join("AGENTS.md")) == after
     })
     .await;
 }

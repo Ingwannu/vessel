@@ -69,6 +69,13 @@ Gate evidence in the track's scratch folder:
   whole workspace/all-targets attempt with protocol/web TS features; check
   its final result. The previous source hash is superseded by this Cargo
   dependency correction, not an unchanged-tree rerun.
+- Seventh attempt reached node E2E and found the two new test modules lacked
+  the existing `cfg(test)` registration used by their neighbours; helpers
+  were therefore outside Clippy's test context. It also found the lifecycle
+  test was too long. Test-only registration is restored and the same history
+  is split into join/failure and manual-sync helpers, without removing
+  assertions. `row2-clippy-e2e.log` is the eighth whole workspace/all-targets
+  attempt with protocol/web TS features; check its final result.
 - `row2-fmt-fourth.log`: fmt check before that attempt; later formatting
   changes were made only while the command remained queued.
 - `row2-fixture-failure-check.log`: one-line assertion failure, exit 1 and
