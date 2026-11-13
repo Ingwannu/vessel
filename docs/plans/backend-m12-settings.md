@@ -125,7 +125,7 @@ Words: `view/src/text/settings.rs`, `view/src/text/about.rs`.
 place (264 wide, on the shell's ground): "Back" first, then the groups
 App (General, Appearance, Shortcuts, Notifications), Agents (the
 machine picker, Agents, Models), Machines (Machines, Projects, Devices,
-Sync), About. The page is a column 680 wide at most, a large title,
+Sync), About. The page is a column 720 wide at most, a large title,
 then titled islands of rows. On a phone the list is the root page
 (rows in rounded islands, a back arrow and the title), and a section is
 pushed over it with its own back arrow; the sidebar's gear opens the
@@ -161,7 +161,7 @@ gear opening the list and Back returning to the conversation.
 ### Differences from the page and Paseo, and why
 
 - **Sizes and width are selects** over the model's closed ranges
-  (interface 12–18, code 11–16, width narrow/comfortable/wide); Paseo
+  (interface 12–20, code 10–18, width comfortable/wide/full); Paseo
   types a number. A closed list cannot hold a value the model refuses.
 - **The sizes are kept but not yet applied**: the kit's type steps are
   constants. Applying them is the kit's (the lead's) change.
