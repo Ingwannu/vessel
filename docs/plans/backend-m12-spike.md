@@ -171,6 +171,67 @@ What the screens needed of the UI layer, and where it came from:
 | fonts and fallback | GPUI's text system, the faces embedded | works |
 | a terminal's grid, menus, focus order, accessibility | — | not built yet |
 
+## Build 0.0.0.0.2 (the owner's feedback on 0.0.0.0.1)
+
+Commits on `backend/m12-spike`: `cc824a8` (layout, words, new chat,
+pairing, title bar), `a8aac22` (the gate), `da7687a` (words per area, the
+page's board tests), `cabf9d3` (arriving at a route the link changed),
+`b1c9cbb` (the mark). Each seen against the fake fleet under Xvfb:
+
+| What | Capture |
+| --- | --- |
+| The app opens on the composer, focused, under "What do you want to work on?"; machine, agent, folder in a tray under it; the app's own title bar and window controls | `desktop-draft-light.png`, `desktop-mark-light.png`, `desktop-mark-dark.png` |
+| Hangul typed in the draft, Enter: within 0.4 s the conversation's screen with the prompt and "build-server에서 Claude Code 시작하는 중…"; then the session, titled from the prompt, its reply streaming, a permission, Stop and Queue (Korean, dark) | `desktop-draft-ko-typed.png`, `desktop-draft-ko-pending.png`, `desktop-draft-ko-open.png` |
+| The same in English: the pending screen, then the opened session | `desktop-draft-sent-pending.png`, `desktop-draft-sent-open.png` |
+| Pairing in two steps (Korean, light): the link's field focused with its placeholder; the key large with its one sentence and nothing to type; the name under a label that stays, filled with `machine`; the key typed as a name answered beside the field; paired as `home-pc`, the new chat next with that machine chosen | `desktop-pair-step1-ko.png`, `desktop-pair-step2-ko.png`, `desktop-pair-namekey-ko.png`, `desktop-pair-done-ko.png` |
+
+Remembered between launches: `vessel/app-prefs.json` in the
+configuration directory (machine, agent, the folder per machine), seen
+written after a send.
+
+### The new chat against the comparison's checklist
+
+`refs/notes/new-session-flow-compare.md` section 4, item by item:
+
+| Item | State |
+| --- | --- |
+| First screen | Changed as asked (the composer whenever a machine exists; pairing when none), not the page's welcome-then-board rule. The page must change the same way (ADR 0036). |
+| Focus on open | Met. `Mod+L` not bound yet. |
+| Machine | Partly: the last chosen (the app's own prefs), else the first connected. No address, caller or book default yet. |
+| Agent | Partly: the pick, else the remembered one, else the machine's first agent that runs a conversation (the node's order, not the page's "first of the four"). |
+| Profile and choices; the options probe | Not yet: sessions start on the agent's defaults. Next. |
+| The spec | Partly: structured, `model: null`, `cwd` from the folder; no profile, no options; terminals not offered. |
+| Place | Partly: a folder (home, typed, or one used before on that machine). Projects and worktrees are track F's, embedded where the folder chip is. |
+| Send enabled | Partly: a machine, an agent and a prompt. |
+| Keys | Enter sends. One line only: Shift+Enter, Mod+Enter and the send-key setting come with the multi-line composer. Whether Enter during a Hangul composition sends was not tested. |
+| New-session shortcut | Not yet (Ctrl/Cmd+N and `N`). |
+| Draft persistence | Not yet: the text is not kept across a restart. |
+| Files on the first message | Not yet. |
+| After a start | Partly: the choices remembered (in the app's own file, not the bridge's prefs: a second copy the checklist says to avoid; the app has no bridge, so where both clients keep them is open), the fleet read again, the session opened. |
+| Failure wording | Partly: a refused start returns to the draft with the text restored; its words go to the frame's foot, not under the box yet. |
+| Title | Met: the prompt's first line, 80 characters, until the node's own; a folder's name, else "Untitled session". |
+| Follow-up delivery | Met for the default (queue); no modifier for the other way yet. |
+| Shared logic | Ported, not shared: the board's logic with the page's test cases (`view/src/tests/`); the new chat's not yet. |
+
+Noted, not changed: pairing over a relay sat on "Pairing…" for more than
+eight seconds in the coordinator's run against the owner's node (direct
+routes are tried first; a timeout per route is the likely cause, not
+measured).
+
+### The title bar (question 9 too)
+
+The app hides the system's bar and draws its own (`kit/src/chrome.rs`):
+on Windows its controls answer the system's hit test through GPUI's
+`WindowControlArea` (drag, minimise, maximise with the snap layouts,
+close), on Linux the app moves the window, opens the window menu and
+resizes at the edges itself, on macOS the traffic lights sit in the bar.
+Seen here: the bar and its three buttons drawn (Xvfb, no window manager,
+so nothing to move, snap or resize). **Not verified**: anything on
+Windows or macOS; the owner tries each build. Problems met: the
+double-click handler GPUI's own elements lack comes from the component
+layer (`gpui-base`'s `InteractiveElementExt`); a window icon can be set
+only on X11 through GPUI (`WindowOptions::icon`).
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,
