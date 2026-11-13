@@ -1,8 +1,6 @@
 //! Row labels and complete numeric explanations; no sentence fragments.
 use super::{Lang, SyncWords};
-use crate::sync::{
-    FileKind, FileMode, FileSize, KeptEdits, LocalCommand, MemberState, Presence, Usage,
-};
+use crate::sync::{FileKind, FileMode, FileSize, KeptEdits, LocalCommand, Presence, Usage};
 use vessel_proto::{FleetNode, Generation};
 
 impl SyncWords {
@@ -60,48 +58,6 @@ impl SyncWords {
             }
             (Lang::Ko, FileMode::Data) => format!("크기: {size}."),
             (Lang::Ko, FileMode::Executable) => format!("크기: {size}. 실행할 수 있는 파일입니다."),
-        }
-    }
-    /// Short member badge; the behind count is explained beneath it.
-    #[must_use]
-    pub const fn member_state(&self, state: Option<MemberState>) -> &'static str {
-        match (self.lang, state) {
-            (Lang::En, Some(MemberState::UpToDate)) => "Up to date",
-            (Lang::Ko, Some(MemberState::UpToDate)) => "최신",
-            (Lang::En, Some(MemberState::Behind(_))) => "Behind",
-            (Lang::Ko, Some(MemberState::Behind(_))) => "이전 버전",
-            (Lang::En, Some(MemberState::NotYet)) => "Not reported",
-            (Lang::Ko, Some(MemberState::NotYet)) => "보고 전",
-            (Lang::En, None) => "Not checked",
-            (Lang::Ko, None) => "확인 안 됨",
-        }
-    }
-    /// Numeric comparison sentence beneath a member badge, only when useful.
-    #[must_use]
-    pub fn comparison(&self, state: Option<MemberState>) -> Option<String> {
-        match (self.lang, state) {
-            (Lang::En, Some(MemberState::Behind(1))) => {
-                Some("1 version behind the home.".to_owned())
-            }
-            (Lang::En, Some(MemberState::Behind(n))) => {
-                Some(format!("{n} versions behind the home."))
-            }
-            (Lang::Ko, Some(MemberState::Behind(n))) => {
-                Some(format!("홈 머신보다 {n}개 이전 버전입니다."))
-            }
-            (Lang::En, None) => Some("The current shared version could not be checked.".to_owned()),
-            (Lang::Ko, None) => Some("현재 공유 버전을 확인하지 못했습니다.".to_owned()),
-            (_, Some(MemberState::NotYet | MemberState::UpToDate)) => None,
-        }
-    }
-    /// Last applied version, or an explicit missing report; wraps.
-    #[must_use]
-    pub fn applied(&self, version: Option<Generation>) -> String {
-        match (self.lang, version.map(Generation::get)) {
-            (Lang::En, Some(n)) => format!("Applied version {n}."),
-            (Lang::Ko, Some(n)) => format!("적용한 버전: {n}."),
-            (Lang::En, None) => "No applied version reported.".to_owned(),
-            (Lang::Ko, None) => "적용한 버전의 보고가 없습니다.".to_owned(),
         }
     }
     /// Preserved local files, or an explicit absent report; full count sentences.
@@ -166,34 +122,22 @@ impl SyncWords {
     #[must_use]
     pub const fn command(&self, command: LocalCommand) -> &'static str {
         match (self.lang, command) {
-            (Lang::En, LocalCommand::Init) => {
-                "Make a home on the machine that should share its files."
-            }
-            (Lang::Ko, LocalCommand::Init) => "파일을 공유할 머신에서 홈을 만드세요.",
+            (Lang::En, LocalCommand::Init) => "Make this machine a home to share its files.",
+            (Lang::Ko, LocalCommand::Init) => "이 머신을 홈으로 만들어 파일을 공유하세요.",
             (Lang::En, LocalCommand::Invite) => {
-                "Create a fleet invitation on the home. Treat its link like a password."
+                "On the home, create an invitation and keep its link private."
             }
             (Lang::Ko, LocalCommand::Invite) => {
-                "홈 머신에서 공유 초대를 만드세요. 초대 링크는 비밀번호처럼 다루세요."
+                "홈에서 초대 링크를 만들고 비밀번호처럼 보관하세요."
             }
-            (Lang::En, LocalCommand::Join) => {
-                "Join on the receiving machine. Paste the home's fleet invitation at its prompt."
-            }
-            (Lang::Ko, LocalCommand::Join) => {
-                "파일을 받을 머신에서 가입하세요. 입력창에 홈 머신의 공유 초대 링크를 붙여 넣으세요."
-            }
+            (Lang::En, LocalCommand::Join) => "Join on the machine receiving the shared files.",
+            (Lang::Ko, LocalCommand::Join) => "공유받을 머신에서 가입하세요.",
             (Lang::En, LocalCommand::Leave) => {
-                "Leave on the member machine. Its shared files stay in place."
+                "Leave on the member machine; shared files stay in place."
             }
-            (Lang::Ko, LocalCommand::Leave) => {
-                "구성원 머신에서 탈퇴하세요. 공유받은 파일은 그대로 남습니다."
-            }
-            (Lang::En, LocalCommand::Status) => {
-                "Check the last applied version locally. Changes are pulled automatically while the node runs."
-            }
-            (Lang::Ko, LocalCommand::Status) => {
-                "머신에서 마지막으로 적용한 버전을 확인하세요. 노드가 실행되는 동안 변경 사항을 자동으로 가져옵니다."
-            }
+            (Lang::Ko, LocalCommand::Leave) => "구성원 머신에서 탈퇴하세요. 공유 파일은 남습니다.",
+            (Lang::En, LocalCommand::Status) => "Check the last applied version on this machine.",
+            (Lang::Ko, LocalCommand::Status) => "이 머신에서 마지막으로 적용한 버전을 확인하세요.",
         }
     }
 }

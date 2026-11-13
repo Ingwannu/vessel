@@ -92,11 +92,13 @@ pub fn secret_names(manifest: &Manifest) -> Vec<String> {
     names.into_iter().collect()
 }
 
+mod member;
+pub use member::{MemberBadge, MemberRow};
 mod page;
 mod rows;
 mod snapshot;
 pub use page::{LocalCommand, Page, Part, Problem, Reading};
-pub use rows::{FileKind, KeptEdits, connection_variant, member_details, member_variant};
+pub use rows::{FileKind, KeptEdits, connection_variant};
 pub use snapshot::{
     FileMode, FileSize, Home, Presence, Published, Reads, Secret, SecretEmpty, SharedFile,
     Snapshot, Usage,

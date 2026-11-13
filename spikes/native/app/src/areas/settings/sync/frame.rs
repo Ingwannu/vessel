@@ -1,8 +1,8 @@
 //! Layout comes from the existing settings kit; state interpretation is in view.
 use super::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled, Window, div, px,
 };
 use vessel_app_kit::{
     Tokens, Type, TypeExt as _, breakpoint::TOUCH_TARGET, outline_button, settings, theme::spacing,
@@ -12,6 +12,9 @@ use vessel_app_view::{
     devices::Target,
     sync::{Home, Part, Problem, Reading},
 };
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn render(
     shell: &Shell,
@@ -100,36 +103,48 @@ fn home_row(
     compact: bool,
 ) -> Div {
     let words = shell.t.lang.sync();
-    let (name, hint) = match &snapshot.home {
-        Home::Here { name, .. } => (Some(name.as_str()), words.home_hint.to_owned()),
-        Home::Unreported(why) => (None, words.home_problem(*why)),
+    let (title, hint, status) = match &snapshot.home {
+        Home::Here { name, .. } => (
+            name.clone().into(),
+            words.home_hint.into(),
+            words.home_badge,
+        ),
+        Home::Unreported(_) => (
+            words.home.into(),
+            words.home_unknown_hint.into(),
+            words.unknown_badge,
+        ),
     };
-    let status = match &snapshot.home {
-        Home::Here { .. } => words.home_badge,
-        Home::Unreported(_) => words.unknown_badge,
-    };
-    let control = div()
-        .flex()
-        .flex_col()
-        .items_start()
-        .min_w_0()
-        .max_w_full()
-        .when(compact, Styled::w_full)
-        .when(!compact, Styled::flex_1)
-        .gap(px(spacing::S2))
-        .children(name.map(|name| {
-            div()
-                .type_(Type::Body)
-                .whitespace_normal()
-                .child(name.to_owned())
-        }))
-        .child(badge(status, snapshot.home.variant(), tokens))
-        .into_any_element();
+    home_identity(
+        title,
+        hint,
+        status,
+        snapshot.home.variant(),
+        compact,
+        tokens,
+    )
+}
+
+// The production composition is also the geometry regression's subject:
+// only the text grows. A second flex_1 wrapper here used to reserve half
+// the row for a leading-aligned badge, moving it when the hint grew.
+fn home_identity(
+    title: gpui::SharedString,
+    hint: gpui::SharedString,
+    status: &'static str,
+    variant: Variant,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
+    let selector = title.clone();
+    let status = badge(status, variant, tokens)
+        .flex_shrink_0()
+        .debug_selector(move || format!("sync-home-state-{selector}"));
     settings::row_at(
-        words.home,
-        Some(hint.into()),
+        title,
+        Some(hint),
         None,
-        Some(control),
+        Some(status.into_any_element()),
         false,
         compact,
         tokens,

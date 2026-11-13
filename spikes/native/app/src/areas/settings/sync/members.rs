@@ -1,11 +1,14 @@
-//! Historical member reports, preserving every conflict path.
+//! Historical member reports, preserving every conflict path. The render
+//! loop keeps each row, its hover anchor and its immediately following
+//! notice together; `MemberRow` owns the presentation decisions.
 use super::{Shell, frame};
 use chrono::Utc;
 use vessel_app_kit::ui::{
-    AnyElement, InteractiveElement as _, IntoElement as _, ParentElement as _, Styled as _, div, px,
+    AnyElement, InteractiveElement as _, IntoElement as _, ParentElement as _, Styled as _,
+    StyledText, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, settings, theme::spacing};
-use vessel_app_view::sync::{Part, Snapshot, member_details, member_variant};
+use vessel_app_view::sync::{INCOMING_SUFFIX, MemberRow, Part, Snapshot};
 
 pub(super) fn render(
     shell: &Shell,
@@ -24,17 +27,16 @@ pub(super) fn render(
             }
             for member in members {
                 let comparison = snapshot.member_state(member);
+                let presentation =
+                    MemberRow::of(shell.t.lang, member, comparison, Utc::now(), state.offset);
                 let row = settings::row_at(
                     member.label.clone(),
-                    Some(
-                        member_details(shell.t.lang, member, comparison, Utc::now(), state.offset)
-                            .into(),
-                    ),
+                    presentation.hint.map(Into::into),
                     None,
                     Some(
                         frame::badge(
-                            words.member_state(comparison),
-                            member_variant(comparison),
+                            words.member_badge(presentation.badge),
+                            presentation.badge.variant(),
                             tokens,
                         )
                         .into_any_element(),
@@ -60,17 +62,13 @@ pub(super) fn render(
                         .flex_col()
                         .gap(px(spacing::S2))
                         .child(words.changes_hint)
-                        .child(
-                            div()
-                                .type_(Type::Mono)
-                                .child(vessel_app_view::sync::INCOMING_SUFFIX),
-                        )
                         .children(member.conflicts.iter().map(|path| {
                             div()
                                 .type_(Type::Mono)
                                 .whitespace_normal()
                                 .child(path.as_str().to_owned())
                         }))
+                        .child(copy_location(words.received_copies()))
                         .into_any_element();
                     card =
                         card.child(div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
@@ -88,4 +86,22 @@ pub(super) fn render(
         }
     }
     settings::section(words.members, card, tokens).into_any_element()
+}
+
+// GPUI applies only the code family's override lazily, retaining the
+// alert's inherited size/colour and Pretendard fallback. This is one
+// wrapping sentence, not three flex children pretending to be inline.
+fn copy_location(text: String) -> impl vessel_app_kit::ui::IntoElement {
+    let code = text
+        .match_indices(INCOMING_SUFFIX)
+        .map(|(start, suffix)| {
+            (
+                start..start.saturating_add(suffix.len()),
+                Type::Mono.family(),
+            )
+        })
+        .collect::<Vec<_>>();
+    div()
+        .whitespace_normal()
+        .child(StyledText::new(text).with_font_family_overrides(code))
 }

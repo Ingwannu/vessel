@@ -1,6 +1,7 @@
 //! Sync's whole sentences. Names, paths and commands are separate values.
 
 mod errors;
+mod members;
 mod rows;
 mod times;
 use super::Lang;
@@ -29,6 +30,8 @@ pub struct SyncWords {
     pub home: &'static str,
     /// Explanation beneath a proven home; wraps.
     pub home_hint: &'static str,
+    /// Normal role explanation when the home identity is unknown; no failure prose.
+    pub home_unknown_hint: &'static str,
     /// Short badge of a proven home.
     pub home_badge: &'static str,
     /// Short badge when a comparison is unavailable.
@@ -71,7 +74,7 @@ pub struct SyncWords {
     pub commands_hint: &'static str,
     /// Local-edit notice title; wraps.
     pub changes: &'static str,
-    /// Shared-copy suffix explanation; suffix is its own mono element.
+    /// Introduction to the reported paths; the copy-location sentence follows them.
     pub changes_hint: &'static str,
     /// Neutral busy badge; short.
     pub loading: &'static str,
@@ -94,6 +97,7 @@ const EN: SyncWords = SyncWords {
     lead: "One home shares instructions, skills and tool servers. Members pull changes automatically while their nodes run.",
     home: "Home machine",
     home_hint: "This machine publishes the shared files and tool-server names.",
+    home_unknown_hint: "The home provides shared files and tool-server names.",
     home_badge: "Home",
     unknown_badge: "Not checked",
     version_hint: "Increases when the shared files or tool servers change.",
@@ -115,7 +119,7 @@ const EN: SyncWords = SyncWords {
     commands: "Manage sync on the machine",
     commands_hint: "Run each command on the machine it affects, using the same data directory as its running node.",
     changes: "Reported local changes",
-    changes_hint: "This member reported local changes at these paths. Shared copies use this suffix beside the originals:",
+    changes_hint: "This member reported keeping local changes at these paths:",
     loading: "Loading sync status",
     refresh: "Refresh",
     retry: "Try again",
@@ -130,6 +134,7 @@ const KO: SyncWords = SyncWords {
     lead: "홈 머신 하나가 지침, 스킬, 도구 서버를 공유합니다. 구성원 머신은 노드가 실행되는 동안 변경 사항을 자동으로 가져옵니다.",
     home: "홈 머신",
     home_hint: "이 머신이 공유 파일과 도구 서버 이름을 제공합니다.",
+    home_unknown_hint: "홈 머신이 공유 파일과 도구 서버 이름을 제공합니다.",
     home_badge: "홈",
     unknown_badge: "확인 안 됨",
     version_hint: "공유 파일이나 도구 서버가 바뀌면 버전이 올라갑니다.",
@@ -151,7 +156,7 @@ const KO: SyncWords = SyncWords {
     commands: "머신에서 동기화 관리",
     commands_hint: "각 명령은 대상 머신에서 실행하세요. 실행 중인 노드와 같은 데이터 디렉터리를 사용해야 합니다.",
     changes: "보고된 로컬 변경",
-    changes_hint: "이 머신이 다음 경로의 로컬 변경을 유지했다고 보고했습니다. 공유본의 이름에는 다음 접미사가 붙습니다:",
+    changes_hint: "이 머신은 다음 경로의 로컬 변경을 유지했다고 보고했습니다:",
     loading: "동기화 상태 불러오는 중",
     refresh: "새로고침",
     retry: "다시 시도",

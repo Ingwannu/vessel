@@ -260,11 +260,6 @@ fn commands_are_existing_local_cli_commands_and_never_a_remote_sync_action() {
         connection_variant(&connection),
         crate::badge::Variant::Error
     );
-    assert_eq!(member_variant(None), crate::badge::Variant::Muted);
-    assert_eq!(
-        member_variant(Some(MemberState::Behind(2))),
-        crate::badge::Variant::Warning
-    );
 }
 
 #[test]

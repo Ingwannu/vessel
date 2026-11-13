@@ -22,29 +22,12 @@ impl SyncWords {
             (Lang::Ko, Part::Secrets) => format!("저장된 비밀값 이름을 읽지 못했습니다. {why}"),
         }
     }
-    /// An unknown home never becomes a guess from node ordering; wraps.
-    #[must_use]
-    pub fn home_problem(&self, problem: Problem) -> String {
-        let why = self.reason(problem);
-        match self.lang {
-            Lang::En => format!(
-                "This connection does not identify the home machine. Check local sharing status with the command below. {why}"
-            ),
-            Lang::Ko => format!(
-                "이 연결에서는 홈 머신을 확인할 수 없습니다. 아래 명령으로 머신의 공유 상태를 확인하세요. {why}"
-            ),
-        }
-    }
     /// A safe complete reason and next step; no wire message is accepted.
     #[must_use]
     pub const fn reason(&self, problem: Problem) -> &'static str {
         match (self.lang, problem) {
-            (Lang::En, Problem::Offline) => {
-                "The machine is disconnected. Reconnect it. Then try again."
-            }
-            (Lang::Ko, Problem::Offline) => {
-                "머신의 연결이 끊어졌습니다. 머신을 다시 연결하세요. 그런 다음 다시 시도하세요."
-            }
+            (Lang::En, Problem::Offline) => "Reconnect the machine and try again.",
+            (Lang::Ko, Problem::Offline) => "머신을 다시 연결한 뒤 시도하세요.",
             (Lang::En, Problem::InvalidReply) => {
                 "The machine returned an invalid response. Try again."
             }
@@ -71,17 +54,11 @@ impl SyncWords {
             (Lang::Ko, Problem::Refused(ErrorCode::NotFound)) => {
                 "머신 공유 정보가 더 이상 존재하지 않습니다. 이 페이지를 새로고침하세요."
             }
-            (Lang::En, Problem::Refused(ErrorCode::InvalidRequest)) => {
-                "The machine refused the read. Check its sharing setup. Then try again."
+            (Lang::En, Problem::Refused(ErrorCode::InvalidRequest | ErrorCode::Unavailable)) => {
+                "Check the machine's sharing setup and try again."
             }
-            (Lang::Ko, Problem::Refused(ErrorCode::InvalidRequest)) => {
-                "머신이 읽기 요청을 거부했습니다. 공유 설정을 확인하세요. 그런 다음 다시 시도하세요."
-            }
-            (Lang::En, Problem::Refused(ErrorCode::Unavailable)) => {
-                "This machine cannot provide this information right now. Check its sharing setup. Then try again."
-            }
-            (Lang::Ko, Problem::Refused(ErrorCode::Unavailable)) => {
-                "지금은 이 머신에서 정보를 제공할 수 없습니다. 공유 설정을 확인하세요. 그런 다음 다시 시도하세요."
+            (Lang::Ko, Problem::Refused(ErrorCode::InvalidRequest | ErrorCode::Unavailable)) => {
+                "공유 설정을 확인한 뒤 다시 시도하세요."
             }
             (
                 Lang::En,

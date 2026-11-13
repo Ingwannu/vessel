@@ -8,8 +8,8 @@ use vessel_proto::ErrorCode;
 const CASES: [(Problem, &str, &str); 14] = [
     (
         Problem::Offline,
-        "The machine is disconnected. Reconnect it. Then try again.",
-        "머신의 연결이 끊어졌습니다. 머신을 다시 연결하세요. 그런 다음 다시 시도하세요.",
+        "Reconnect the machine and try again.",
+        "머신을 다시 연결한 뒤 시도하세요.",
     ),
     (
         Problem::InvalidReply,
@@ -48,13 +48,13 @@ const CASES: [(Problem, &str, &str); 14] = [
     ),
     (
         Problem::Refused(ErrorCode::InvalidRequest),
-        "The machine refused the read. Check its sharing setup. Then try again.",
-        "머신이 읽기 요청을 거부했습니다. 공유 설정을 확인하세요. 그런 다음 다시 시도하세요.",
+        "Check the machine's sharing setup and try again.",
+        "공유 설정을 확인한 뒤 다시 시도하세요.",
     ),
     (
         Problem::Refused(ErrorCode::Unavailable),
-        "This machine cannot provide this information right now. Check its sharing setup. Then try again.",
-        "지금은 이 머신에서 정보를 제공할 수 없습니다. 공유 설정을 확인하세요. 그런 다음 다시 시도하세요.",
+        "Check the machine's sharing setup and try again.",
+        "공유 설정을 확인한 뒤 다시 시도하세요.",
     ),
     (
         Problem::Refused(ErrorCode::Conflict),
@@ -113,17 +113,5 @@ fn every_action_and_reason_is_compared_as_a_whole_message_not_a_prefix() {
             assert_eq!(Lang::En.sync().problem(part, problem), en_full);
             assert_eq!(Lang::Ko.sync().problem(part, problem), ko_full);
         }
-        assert_eq!(
-            Lang::En.sync().home_problem(problem),
-            format!(
-                "This connection does not identify the home machine. Check local sharing status with the command below. {en}"
-            )
-        );
-        assert_eq!(
-            Lang::Ko.sync().home_problem(problem),
-            format!(
-                "이 연결에서는 홈 머신을 확인할 수 없습니다. 아래 명령으로 머신의 공유 상태를 확인하세요. {ko}"
-            )
-        );
     }
 }

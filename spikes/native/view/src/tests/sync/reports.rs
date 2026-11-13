@@ -1,7 +1,7 @@
 //! Missing reports must not become a confirmed zero, including partial replies.
 use super::{member, now};
 use crate::Lang;
-use crate::sync::{KeptEdits, MemberState, member_details, member_line};
+use crate::sync::{KeptEdits, MemberBadge, MemberRow, MemberState, member_line};
 use chrono::FixedOffset;
 use vessel_proto::{FleetMember, Generation};
 
@@ -13,12 +13,13 @@ fn a_report_default_and_partial_report_facts_have_different_complete_sentences()
         reported_at: None,
         ..member()
     };
-    for (reply, kept, en, ko) in [
+    for (reply, kept, en, ko, badge) in [
         (
             never.clone(),
             KeptEdits::Unreported,
-            "No applied version reported.\nNo local-change report received.\nNo report time received.",
-            "적용한 버전의 보고가 없습니다.\n로컬 수정의 보고가 없습니다.\n보고받은 시각이 없습니다.",
+            None,
+            None,
+            MemberBadge::Unreported,
         ),
         (
             FleetMember {
@@ -26,8 +27,9 @@ fn a_report_default_and_partial_report_facts_have_different_complete_sentences()
                 ..never.clone()
             },
             KeptEdits::Known(0),
-            "Applied version 3.\nNo local edits kept.\nNo report time received.",
-            "적용한 버전: 3.\n유지된 로컬 수정이 없습니다.\n보고받은 시각이 없습니다.",
+            Some("Version 3"),
+            Some("버전 3"),
+            MemberBadge::Current,
         ),
         (
             FleetMember {
@@ -35,8 +37,9 @@ fn a_report_default_and_partial_report_facts_have_different_complete_sentences()
                 ..never.clone()
             },
             KeptEdits::Known(0),
-            "No applied version reported.\nNo local edits kept.\nLast reported 1 minute ago.",
-            "적용한 버전의 보고가 없습니다.\n유지된 로컬 수정이 없습니다.\n마지막 보고: 1분 전.",
+            Some("Reported 1 minute ago"),
+            Some("1분 전 보고"),
+            MemberBadge::VersionUnreported,
         ),
         (
             FleetMember {
@@ -44,19 +47,26 @@ fn a_report_default_and_partial_report_facts_have_different_complete_sentences()
                 ..never
             },
             KeptEdits::Known(1),
-            "No applied version reported.\nKept a local edit in 1 file.\nNo report time received.",
-            "적용한 버전의 보고가 없습니다.\n파일 1개의 로컬 수정을 유지했습니다.\n보고받은 시각이 없습니다.",
+            None,
+            None,
+            MemberBadge::VersionUnreported,
         ),
     ] {
         assert_eq!(KeptEdits::of(&reply), kept);
         let state = MemberState::of(&reply, Generation::new(3));
         assert_eq!(
-            member_details(Lang::En, &reply, Some(state), now(), offset),
-            en
+            MemberRow::of(Lang::En, &reply, Some(state), now(), offset),
+            MemberRow {
+                hint: en.map(str::to_owned),
+                badge
+            }
         );
         assert_eq!(
-            member_details(Lang::Ko, &reply, Some(state), now(), offset),
-            ko
+            MemberRow::of(Lang::Ko, &reply, Some(state), now(), offset),
+            MemberRow {
+                hint: ko.map(str::to_owned),
+                badge
+            }
         );
     }
 }

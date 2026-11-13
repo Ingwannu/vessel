@@ -94,7 +94,9 @@ app/src/
 The Devices page keeps invitation text outside text fields: only an
 explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
-state and stale-response tests live in `view/src/devices/`.
+state and stale-response tests live in `view/src/devices/`. Device rows
+have one access/last-use hint; exact pairing/last-use dates and all scopes
+stay in their tooltip. Ordinary paired rows have no repeated state badge.
 
 Settings sections register their renderer in `settings::content` and their
 presence in `settings::drawn`; the latter controls navigation, so a page
@@ -103,7 +105,11 @@ must appear in both. State and event slots are added only when needed.
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
 and tool transport settings have no field in its screen model. Local
-commands use the kit's copy button and are never executed by the app.
+commands use the kit's `settings::code_row` and trailing copy button; the
+app never executes them. Member rows keep one compact version/report hint;
+conflict paths and the received-copy suffix live only in the following
+alert. The home row's actual composition has a GPUI bounds regression in
+`app/src/areas/settings/sync/frame/tests.rs` (no app shell or node starts).
 
 ### Adding a kit control
 
@@ -328,3 +334,8 @@ screen of that size.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+The disposable settings fixture also checks read-only and session-access
+device rows. For an already-seeded fake fleet, `settings-fixtures.py
+row-access <fixture-root>` updates only its named inert records; fresh
+`fleet.sh` runs seed those scopes directly.

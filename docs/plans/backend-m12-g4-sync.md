@@ -195,3 +195,65 @@ The original capture set is the baseline; these frames replace its affected
 states. Runtime log privacy and private-file ownership/modes passed again;
 all owned app, display and fleet processes were stopped and reaped. No
 root workspace code is included in this correction.
+
+## Coordinator review correction: settings row composition
+
+The failed-home row had an area-owned control wrapper with `flex_1` and
+`items_start`. It competed with the kit's growing text column and painted
+its badge at that second column's leading edge. The wrapper is removed:
+the home name is the row title, its normal role explanation is the one
+hint, and its badge is the sole trailing control. An unknown home keeps
+a normal role hint and badge; the publication alert alone states the
+failure and next step. No shared row geometry was changed. The regression
+measures this production composition in GPUI with short and five-sentence
+hints: equal text left edges, equal badge right edges at the padded edge,
+and vertically centred controls despite different row heights.
+
+A member now has one compact version/comparison/report-age hint. An absent
+report has no hint and one neutral badge. Partial time/path-only reports
+keep their known facts and say that the version is unreported; they do
+not falsely claim that nothing was reported. Conflict paths appear only
+in the following alert. That alert introduces and lists only paths, then
+explains the received copy location in one sentence with the suffix inline
+in the kit's code family. GPUI's inherited font-family override preserves
+the alert's size, colour, wrapping and Pretendard fallback; no new control
+or parallel text style was added. Whole bilingual row/partial-report,
+relative/local-date, badge and notice tests cover the presentation rules.
+The legacy web-fixture helper still distinguishes absent counts from zero.
+
+Commands consume the lead's existing `settings::code_row` from `d050e7e`
+(local dependency commit `cec9656d`), with its existing copy button as the
+row's sole trailing element. The kit's four-point title/value spacing
+replaces the area's separate wrapped control and twelve-point gap. Labels
+are shorter complete instructions, with the command beneath its title and copy at the
+row's right edge. No command is executed by the app.
+
+Source comparison: Paseo `styles/settings.ts` (`row`, `rowContent`,
+`rowTitle`, `rowHint`) and `screens/settings/host-page.tsx`
+(`HostStatusBadges`, `ConnectionsSection`, `ConnectionRow`); the local
+changes notice follows `components/ui/alert.tsx`'s description slot. The
+reference has no fleet page; the necessary additional facts follow its
+single-hint row structure. The original source comparison remains a
+source comparison, not a capture of a running web page.
+
+Verification of this combined correction: the native workspace's fmt and
+whole-target clippy passed, all 386 tests passed (including the production
+home-row GPUI geometry regression), and the normal debug build passed.
+The gate logs explicitly show the changed view and app crates being
+recompiled; no preserved-time source copy or clean workaround was used.
+GPUI test support was already a kit test dependency; the app enables that
+existing feature only for its geometry test, with no new runtime package.
+
+Forty affected Sync frames and twenty-eight Devices frames were captured
+from that build and individually opened: both languages, themes and
+widths. The narrow member capture was scrolled one step earlier so the
+first member is fully visible below the fixed header. All five command
+copy controls were checked against the actual private-display clipboard
+at both widths. Eight pending revokes kept the underlying rows in place
+and completed after the scratch node resumed; only its inert fixture was
+restored. Fixture checks and runtime secret/token/literal-value absence
+checks passed again under the fleet owner's ordinary account; credential
+files remain private. No invitation was issued. All owned app, display
+and fleet processes were stopped and reaped. No physical phone, browser
+or live member pull-loop validation is claimed. The pending wire actions
+and caller-scope work remain separate until N3's reviewed delivery.

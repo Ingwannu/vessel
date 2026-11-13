@@ -73,8 +73,9 @@ def seed(root: Path) -> None:
         shapes.extend((f"Test device {n}", now - n * 60_000_000_000) for n in range(3, 15))
         for n, (label, seen) in enumerate(shapes, 1):
             device = f"00000000-0000-4000-8000-{n:012d}"
+            scopes = '["read"]' if label == KOREAN else '["read","operate"]' if n == 3 else '["read","operate","admin"]'
             db.execute("INSERT INTO devices VALUES (?, ?, ?, ?, ?, ?, ?)",
-                       (device, label, secrets.token_bytes(32), '["read","operate","admin"]',
+                       (device, label, secrets.token_bytes(32), scopes,
                         now - 172_800_000_000_000, seen, None))
         db.execute("INSERT INTO devices VALUES (?, ?, ?, ?, ?, ?, ?)",
                    ("00000000-0000-4000-8000-000000000020", REVOKED,
@@ -120,9 +121,24 @@ def standalone(root: Path) -> None:
     (root / "build-server" / "fleet.toml").unlink(missing_ok=True)
 
 
+def row_access(root: Path) -> None:
+    """Upgrade only named inert fixtures in an already-created fake fleet."""
+    with sqlite3.connect(root / "laptop" / "vessel.db") as db:
+        for device, label, scopes in [
+            ("00000000-0000-4000-8000-000000000002", KOREAN, '["read"]'),
+            ("00000000-0000-4000-8000-000000000003", "Test device 3", '["read","operate"]'),
+        ]:
+            changed = db.execute("UPDATE devices SET scopes=? WHERE id=? AND label=?", (scopes, device, label)).rowcount
+            assert changed == 1, "named inert permission fixture missing"
+    check(root)
+
+
 def check(root: Path) -> None:
     with sqlite3.connect(root / "laptop" / "vessel.db") as db:
         rows = db.execute("SELECT label, last_seen, revoked_at FROM devices").fetchall()
+        access = dict(db.execute("SELECT label, scopes FROM devices"))
+    assert json.loads(access[KOREAN]) == ["read"], "read-only row missing"
+    assert json.loads(access["Test device 3"]) == ["read", "operate"], "session-access row missing"
     assert any(label == LONG and seen is not None for label, seen, _ in rows), "long active device missing"
     assert any(label == KOREAN and seen is None for label, seen, _ in rows), "unseen Korean device missing"
     assert any(label == REVOKED and revoked is not None for label, _, revoked in rows), "revoked device missing"
@@ -151,4 +167,4 @@ def check(root: Path) -> None:
 if __name__ == "__main__":
     action, location = sys.argv[1:]
     fixture_root = Path(location).resolve()
-    {"prepare": prepare, "seed": seed, "check": check, "empty": empty, "files-empty": files_empty, "standalone": standalone}[action](fixture_root)
+    {"prepare": prepare, "seed": seed, "check": check, "empty": empty, "files-empty": files_empty, "standalone": standalone, "row-access": row_access}[action](fixture_root)

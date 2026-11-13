@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_view::devices::{
-    DeviceState, Listing, Revoking, Target, details, exact, paired_devices,
+    DeviceBadge, Listing, Revoking, Target, details, exact, paired_devices,
 };
 
 pub(super) fn render(
@@ -168,20 +168,23 @@ fn device_row(
             shell.devices_choose_revoke(id, window, cx);
         }))
     });
-    let device_state = DeviceState::of(device);
-    let badge = vessel_app_kit::badge::badge(
-        words.state(device_state),
-        crate::badge::variant(device_state.variant()),
-        vessel_app_kit::badge::Size::Small,
-        None,
-        tokens,
-    );
+    // A caller's identity is not yet supplied by this connection. Never
+    // identify this device by its label; device.self will supply the fact.
+    let badge = DeviceBadge::of(device, None).map(|badge| {
+        vessel_app_kit::badge::badge(
+            words.state(badge),
+            crate::badge::variant(badge.variant()),
+            vessel_app_kit::badge::Size::Small,
+            None,
+            tokens,
+        )
+    });
     let control = div()
         .flex()
         .flex_wrap()
         .items_center()
         .gap(px(spacing::S2))
-        .child(badge)
+        .children(badge)
         .child(action)
         .into_any_element();
     let row = settings::row_at(
