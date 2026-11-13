@@ -55,7 +55,9 @@ pub use picker::{
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use virtual_list::{Reveal, VirtualList};
-pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown};
+pub use widgets::{
+    TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown, outline_button,
+};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).

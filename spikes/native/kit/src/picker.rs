@@ -56,6 +56,20 @@ pub const COMPACT: f32 = 600.0;
 /// (the description goes first).
 const LABEL_SHRINK: f32 = 0.01;
 
+/// `text` on one line: its line breaks and runs of spaces as one space.
+/// An agent's description can have several lines (Claude Code's subagents'
+/// do); GPUI starts a new line at every break even where the text does not
+/// wrap, so one line is made here, as a browser makes it for Paseo's
+/// `numberOfLines={1}` (`white-space: nowrap` folds the breaks).
+#[must_use]
+pub fn one_line(text: &SharedString) -> SharedString {
+    if text.contains(['\n', '\r', '\t']) || text.contains("  ") {
+        text.split_whitespace().collect::<Vec<_>>().join(" ").into()
+    } else {
+        text.clone()
+    }
+}
+
 /// How far above its trigger a list opens (up, so negative).
 const LIFT: f32 = -5.0;
 
@@ -607,7 +621,7 @@ fn combo_row<V: 'static>(
         .min_w_0()
         .truncate()
         .text_color(neutral.foreground)
-        .child(row.label.clone());
+        .child(one_line(&row.label));
     let mut words = div()
         .flex_1()
         .min_w_0()
@@ -625,7 +639,7 @@ fn combo_row<V: 'static>(
                 .truncate()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
-                .child(detail.clone()),
+                .child(one_line(detail)),
         );
     }
     let mut element = div()
@@ -690,4 +704,119 @@ fn combo_row<V: 'static>(
             }));
     }
     element.into_any_element()
+}
+
+#[cfg(test)]
+mod tests {
+    //! A list's rows hold what real agents send (the owner's capture of
+    //! 0.0.0.0.5: Claude Code's `Agent` option, its values `ocx-*` with
+    //! descriptions of several lines, ran into the rows under them): every
+    //! row is one line high and starts where the last one ended.
+
+    use std::cell::RefCell;
+
+    use gpui::{Bounds, Context, IntoElement, Render, TestAppContext, Window};
+
+    use super::*;
+    use crate::theme::{Scheme, Tokens};
+
+    /// A description as Claude Code sends one for a subagent.
+    const LONG: &str = "Use this agent for wide read-only sweeps across many files.\n\
+        It reads excerpts, not whole files, and reports locations.\n\n\
+        Examples:\n- find every caller of a function\n- list the modules that read a setting";
+
+    struct Probe {
+        state: ComboboxState,
+        rows: Vec<ComboRow>,
+        seen: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+    }
+
+    impl Render for Probe {
+        fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+            let tokens = Tokens::of(Scheme::Dark);
+            let handlers = ComboHandlers {
+                state: |probe: &mut Self| &mut probe.state,
+                chose: Rc::new(|_probe: &mut Self, _index, _window, _cx| {}),
+                back: None,
+            };
+            let seen = Rc::clone(&self.seen);
+            let mut list =
+                div().w(px(360.0)).flex().flex_col().on_children_prepainted(
+                    move |bounds, _window, _cx| *seen.borrow_mut() = bounds,
+                );
+            for (index, row) in self.rows.iter().enumerate() {
+                list = list.child(combo_row(
+                    index,
+                    row,
+                    &self.state,
+                    &handlers,
+                    false,
+                    &tokens,
+                    cx,
+                ));
+            }
+            list
+        }
+    }
+
+    fn rows() -> Vec<ComboRow> {
+        let mut rows = Vec::new();
+        let mut plain = ComboRow::new("Default");
+        plain.checked = true;
+        rows.push(plain);
+        for (name, detail) in [
+            ("ocx-glm-5-2", LONG),
+            ("ocx-gpt-5-6-luna", LONG),
+            (
+                "an agent whose name is far longer than any list is wide, so it has to end early",
+                "and a description after it",
+            ),
+            (
+                "한국어 이름의 하위 에이전트",
+                "설명도 여러 줄입니다.\n둘째 줄\n셋째 줄",
+            ),
+        ] {
+            let mut row = ComboRow::new(name);
+            row.detail = Some(detail.into());
+            row.trailing = Some("Loading".into());
+            rows.push(row);
+        }
+        rows
+    }
+
+    #[gpui::test]
+    fn rows_of_long_descriptions_are_one_line_and_never_overlap(cx: &mut TestAppContext) {
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let (_, cx) = cx.add_window_view({
+            let seen = Rc::clone(&seen);
+            move |window, cx| Probe {
+                state: ComboboxState::new(window, cx),
+                rows: rows(),
+                seen,
+            }
+        });
+        cx.run_until_parked();
+        let bounds = seen.borrow().clone();
+        assert_eq!(bounds.len(), rows().len(), "every row was laid out");
+        let first = bounds.first().copied().expect("a row");
+        for (index, row) in bounds.iter().enumerate() {
+            assert_eq!(
+                row.size.height, first.size.height,
+                "row {index} is taller than a one-line row: its text took more than one line"
+            );
+            if let Some(next) = bounds.get(index.saturating_add(1)) {
+                assert!(
+                    row.bottom() <= next.top(),
+                    "row {index} runs into the row under it"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn breaks_fold_into_one_line() {
+        assert_eq!(one_line(&"a\n\nb  c\td".into()).as_ref(), "a b c d");
+        let plain: SharedString = "plain words".into();
+        assert_eq!(one_line(&plain), plain);
+    }
 }
