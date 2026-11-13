@@ -49,4 +49,10 @@ impl Runner for NodeRunner {
         let service = self.service.upgrade()?;
         service.0.settle_run(run).await
     }
+
+    fn agent_alive(&self, session: SessionId) -> bool {
+        self.service
+            .upgrade()
+            .is_some_and(|service| service.0.agents.scopes(session).is_some())
+    }
 }

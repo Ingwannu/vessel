@@ -11,6 +11,11 @@ repository.workspace = true
 [lints]
 workspace = true
 
+[features]
+# `Link::detached`: a link with no task behind its queue, for the app's
+# tests that fill the queue.
+testing = []
+
 [dependencies]
 vessel-app-view.workspace = true
 vessel-proto.workspace = true

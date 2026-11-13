@@ -81,7 +81,7 @@ async fn definition(
     old: Option<ScheduleDefinition>,
 ) -> Result<ScheduleDefinition, CliError> {
     let cadence = cadence(&args)?;
-    let target = target(client, &args).await?;
+    let target = target(client, &args, old.as_ref().map(|old| &old.target)).await?;
     let prompt = text_of(args.prompt, args.prompt_file.as_deref())
         .await?
         .map(|text| parse(&text, "prompt"))
@@ -176,25 +176,57 @@ fn catch_up(text: &str) -> Result<CatchUp, CliError> {
     }
 }
 
-/// The target the arguments name, if any.
+/// The target the arguments name, if any. Editing a schedule of new
+/// sessions (`old`), what the arguments do not say of its spec stays as it
+/// was: its place, profile, model, options and title are not dropped
+/// because one of them changed (the join's code review, finding 10).
 async fn target(
     client: &NodeClient,
     args: &ScheduleArgs,
+    old: Option<&ScheduleTarget>,
 ) -> Result<Option<ScheduleTarget>, CliError> {
     if let Some(session) = &args.session {
         let selector: SessionSelector = parse(session, "--session")?;
         let info = selector.resolve(client).await?;
         return Ok(Some(ScheduleTarget::Session { session: info.id }));
     }
-    let Some(harness) = args.harness else {
+    let changes = args.harness.is_some()
+        || args.profile.is_some()
+        || args.project.is_some()
+        || args.worktree.is_some()
+        || args.model.is_some()
+        || args.keep;
+    if !changes {
         return Ok(None);
+    }
+    let (mut spec, mut after) = match (old, &args.harness) {
+        (Some(ScheduleTarget::NewSession { spec, after }), harness) => {
+            let mut spec = (**spec).clone();
+            if let Some(harness) = harness {
+                spec.harness = harness.clone();
+            }
+            (spec, *after)
+        }
+        (_, Some(harness)) => {
+            let mode = SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            };
+            (SessionSpec::new(harness.clone(), mode), AfterRun::Archive)
+        }
+        (_, None) => {
+            return Err(CliError::Usage(
+                "`--profile`, `--project`, `--worktree`, `--model` and `--keep` go with \
+                 `--harness`, or edit a schedule that starts new sessions",
+            ));
+        }
     };
-    let mode = SessionMode::Structured {
-        model: args.model.clone().map(vessel_proto::ModelId::new),
-        resume: None,
-        options: Vec::new(),
-    };
-    let mut spec = SessionSpec::new(harness, mode);
+    if let Some(model) = &args.model
+        && let SessionMode::Structured { model: wanted, .. } = &mut spec.mode
+    {
+        *wanted = Some(vessel_proto::ModelId::new(model.clone()));
+    }
     if let Some(profile) = &args.profile {
         spec = spec.with_profile(profile.clone());
     }
@@ -207,13 +239,12 @@ async fn target(
     )
     .await?;
     if let Some(place) = place {
+        spec.cwd = None;
         spec = spec.with_place(place);
     }
-    let after = if args.keep {
-        AfterRun::Keep
-    } else {
-        AfterRun::Archive
-    };
+    if args.keep {
+        after = AfterRun::Keep;
+    }
     Ok(Some(ScheduleTarget::NewSession {
         spec: Box::new(spec),
         after,

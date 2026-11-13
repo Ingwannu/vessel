@@ -15,8 +15,15 @@ use crate::io;
 pub(crate) use prompts::prompt;
 pub(crate) use schedules::schedule;
 
-/// The one item `given` names among `items`: by its id, a unique prefix
-/// of one, or its name.
+/// The one item `given` names among `items`: its whole id, or else the
+/// one item whose name is `given` or whose id starts with it.
+///
+/// A whole id wins; a name and a prefix count alike, and two different
+/// items matching are refused. A name does not win over a prefix: names
+/// are anyone's text (an agent names its schedules), so a schedule named
+/// after the short id `list` prints for another would otherwise be the
+/// one an edit or a delete reaches (the code review of the join, finding
+/// 1).
 fn one<T>(
     items: Vec<T>,
     given: &str,
@@ -24,21 +31,15 @@ fn one<T>(
     id: impl Fn(&T) -> String,
     name: impl Fn(&T) -> Option<String>,
 ) -> Result<T, CliError> {
-    let named: Vec<usize> = items
-        .iter()
-        .enumerate()
-        .filter(|(_, item)| name(item).as_deref() == Some(given))
-        .map(|(index, _)| index)
-        .collect();
-    let matching: Vec<usize> = if named.is_empty() {
-        items
+    let whole = items.iter().position(|item| id(item) == given);
+    let matching: Vec<usize> = match whole {
+        Some(index) => vec![index],
+        None => items
             .iter()
             .enumerate()
-            .filter(|(_, item)| id(item).starts_with(given))
+            .filter(|(_, item)| name(item).as_deref() == Some(given) || id(item).starts_with(given))
             .map(|(index, _)| index)
-            .collect()
-    } else {
-        named
+            .collect(),
     };
     match matching.as_slice() {
         [index] => items
@@ -47,13 +48,17 @@ fn one<T>(
             .ok_or_else(|| CliError::Automation(format!("no {what} matches `{given}`"))),
         [] => Err(CliError::Automation(format!("no {what} matches `{given}`"))),
         more => Err(CliError::Automation(format!(
-            "`{given}` matches {} {what}s; type more of the id",
+            "`{given}` matches {} {what}s by name or by the start of an id; give the whole id",
             more.len()
         ))),
     }
 }
 
 async fn find_schedule(client: &NodeClient, given: &str) -> Result<ScheduleInfo, CliError> {
+    // A whole id is read alone, without the list.
+    if let Ok(id) = given.parse::<vessel_proto::ScheduleId>() {
+        return Ok(client.schedule(id).await?);
+    }
     one(
         client.schedules().await?,
         given,
@@ -125,19 +130,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_name_wins_over_a_prefix_and_two_matches_are_refused() {
+    fn a_whole_id_wins_and_a_name_counts_as_a_prefix_does() {
         let items = vec![
             ("abc123", "nightly"),
             ("abd456", "abc"),
             ("ffe789", "weekly"),
+            ("e0e0e0", "ffe789"),
         ];
         let id = |item: &(&str, &str)| item.0.to_owned();
         let name = |item: &(&str, &str)| Some(item.1.to_owned());
+        // A name another item's id starts with: two items, refused.
+        assert!(one(items.clone(), "abc", "x", id, name).is_err());
+        // A whole id wins over a name equal to it.
         assert_eq!(
-            one(items.clone(), "abc", "x", id, name).unwrap().0,
-            "abd456"
+            one(items.clone(), "ffe789", "x", id, name).unwrap().1,
+            "weekly"
         );
-        assert_eq!(one(items.clone(), "ff", "x", id, name).unwrap().1, "weekly");
+        assert_eq!(
+            one(items.clone(), "nightly", "x", id, name).unwrap().0,
+            "abc123"
+        );
+        assert_eq!(one(items.clone(), "e0", "x", id, name).unwrap().1, "ffe789");
         assert!(one(items.clone(), "ab", "x", id, name).is_err());
         assert!(one(items, "zz", "x", id, name).is_err());
     }

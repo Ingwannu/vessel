@@ -212,3 +212,52 @@ is later sent by a person who may not read it again.
   a fold; `every` is the alternative, and the ADR says so.
 - RRULE, a new worktree per run, and the starter told across nodes are not
   built (the plan's "Not in this track").
+
+## Amended at the join (2026-11-13, "Integration 3 (node)")
+
+Where track D met the node join (pull requests, terminals) and track G
+(added agents), and what its second review found:
+
+- **Room for runs, in order** (decision 3). The scheduler hands out room
+  itself: a run recorded `making` waits, keyed by its due time and its
+  schedule, until one of the 4 slots is free and, for a run that starts a
+  session, one of 8 first turns: at most 8 scheduled sessions are in
+  their first turn and not waiting for a person at once, so a catch-up
+  after a night off cannot start every schedule's session within seconds.
+  The first waiting run that fits goes first (oldest due, then by id), so
+  a prompt through a queue is not held behind sessions waiting for a
+  turn. An asked run waits 30 s at most on the scheduler's clock, as due
+  times are measured, then is recorded `failed` and answered
+  `unavailable`. Track D's tasks each waited on a semaphore, whose order
+  was the runtime's.
+- **What a run leaves** (decision 5). A run's session is put away by the
+  service's one archive path, which also ends the terminals and services
+  beside it and the watch of its pull request (ADRs 0029 and 0031), as a
+  person's archive does; a session that started but got no prompt is put
+  away at once. A run is the definer's own `session.create` and prompt,
+  so it opens no terminal, merge or approval they could not get
+  directly; no run makes a worktree or runs setup or a script.
+- **An agent's schedules** (decision 4). A make that waited while the
+  agent's session ended is refused; ends the scheduler fell behind on are
+  made up by checking every agent's schedule against its agent; a
+  session started again (`session.resume`) deletes its last run's agent
+  schedules before its new grant, so a heartbeat never outlives the run
+  that set it. An agent's `every` is anchored by the node when it writes
+  it, so rewriting the anchor cannot run a schedule at once. A person
+  taking an agent's schedule over counts toward the people's bound.
+- **Bounds the wire needed.** A spec kept with a schedule or a saved
+  prompt is at most 16 KiB encoded, as the prompt beside it; an `after`
+  the node does not know is refused, not stored (it would neither
+  archive nor wait).
+- **The starter told** (decision 6). A notice is a prompt the told agent
+  reads as from a person, so the session's own words in it (its reply's
+  end, what it asks, why its turn failed) go between tags whose name is
+  random, as ADR 0034 fences a hook's body, with a line saying they are
+  that session's output. Without randomness the words are left out. A
+  notice's ticket names the turn by its number among those the actor
+  started, so an interrupt whose cancelled turn's record arrives late is
+  never reported as the prompt's own.
+- **Added agents** (ADR 0032). A new session's spec names its agent by
+  `HarnessRef`; a run whose added agent was removed fails `not_found`, one
+  whose secret is missing or (one of the four) is being installed fails
+  `conflict`, and the schedule goes on.
