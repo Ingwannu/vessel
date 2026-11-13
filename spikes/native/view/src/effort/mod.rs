@@ -47,9 +47,11 @@ pub struct Shape {
     pub fast: Option<Known>,
 }
 
-/// The agents whose switches the control knows. Codex's top levels (Max,
-/// Ultra) are levels of its own; its fast switch is `fast` when it sends
-/// one.
+/// The agents whose switches the control knows, by the ids their adapters
+/// send (read off the preview node, 2026-11-13, through the app's log of
+/// each probe): Claude Code's `ultracode` and `fast` (on|off selects; its
+/// older adapter's `fast_mode` toggle), Codex's `fast-mode` (an off|on
+/// select). Codex's top levels (Max, Ultra) are levels of its own.
 pub const KNOWN: &[Shape] = &[
     Shape {
         kind: HarnessKind::ClaudeCode,
@@ -64,7 +66,7 @@ pub const KNOWN: &[Shape] = &[
         kind: HarnessKind::Codex,
         top: None,
         fast: Some(Known {
-            ids: &["fast", "fast_mode"],
+            ids: &["fast-mode"],
         }),
     },
 ];
@@ -201,11 +203,12 @@ pub struct Effort {
 const DEFAULT: &str = "default";
 
 impl Effort {
-    /// The control for `options` from an agent of `kind`; `None` when it
+    /// The control for `options` from an agent of `kind` (`None`: one
+    /// added on the node, which the table cannot know); `None` when it
     /// sends no levels.
     #[must_use]
-    pub fn of(kind: HarnessKind, options: &[SessionOption]) -> Option<Self> {
-        let shape = KNOWN.iter().find(|shape| shape.kind == kind);
+    pub fn of(kind: Option<HarnessKind>, options: &[SessionOption]) -> Option<Self> {
+        let shape = kind.and_then(|kind| KNOWN.iter().find(|shape| shape.kind == kind));
         let (level_id, current_value, values) =
             options
                 .iter()
