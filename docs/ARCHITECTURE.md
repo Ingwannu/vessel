@@ -1028,3 +1028,17 @@ binaries, so no rustup proxy chooses a compiler from a project directory.
 `policy` refuses executable or unsupported repository configuration in
 conservative mode and returns the Cargo projects rust-analyzer may link. This is not an OS sandbox; ADR 0016
 records each server's execution risks and the full-analysis opt-in.
+
+
+## Native app localization (milestone 12, staged)
+
+The separate `spikes/native` workspace keeps UI and I/O out of
+`vessel-app-view`. Its localization build script reads the Fluent source
+catalog, validates translations and generates typed accessors; only embedded
+resources reach the target library. `localization` prepares language bundles
+and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
+folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
+rejected after the release-size experiment, recorded in ADR 0039.
+Legacy area tables stay until their owners migrate them. The crate map,
+execution instructions and gate are in `spikes/native/README.md`; ADR 0039
+records the decision and `docs/plans/backend-m12-i18n.md` its measurements.

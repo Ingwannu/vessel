@@ -26,6 +26,7 @@ mod about;
 mod app;
 mod board;
 mod conversation;
+pub mod localization;
 mod machines;
 mod notices;
 mod options;

@@ -44,6 +44,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
     own_name, with_picks,
 };
+pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
     PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,

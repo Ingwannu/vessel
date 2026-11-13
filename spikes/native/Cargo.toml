@@ -92,6 +92,18 @@ str_to_string = "warn"
 wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
+# ADR 0039: maintained Fluent AST/runtime and pseudo transformation.
+fluent-bundle = "0.16"
+fluent-syntax = "0.12"
+fluent-pseudo = "0.3.3"
+intl-memoizer = "0.5.3"
+unic-langid = "0.9.6"
+# Select the existing protocol UUID's browser RNG backend in view's target
+# dependency; the protocol and its native feature set remain unchanged.
+uuid = "1"
+# Dev-only: verify that cached plain-message access performs zero allocations.
+allocation-counter = "0.8.1"
+
 vessel-app-view = { path = "view" }
 vessel-app-link = { path = "link" }
 vessel-app-kit = { path = "kit" }
