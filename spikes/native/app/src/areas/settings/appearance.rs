@@ -26,6 +26,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, settings};
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 
+use super::applied;
 use super::choices::List;
 use super::general::select_for;
 use crate::shell::Shell;
@@ -84,12 +85,21 @@ pub(crate) fn render(
             compact,
             tokens,
         ));
+    // The sizes and the conversation's rows only once what they change is
+    // drawn from them (`super::applied`): the kit's type steps are fixed
+    // and the conversation's column does not read its width yet.
+    let sizes = applied(List::Interface) || applied(List::Code);
+    let conversation_shown = applied(List::Width) || applied(List::Display);
     div()
         .flex()
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
-        .child(settings::section(words.typography, typography, tokens))
-        .child(settings::section(words.conversation, conversation, tokens))
+        .when(sizes, |page| {
+            page.child(settings::section(words.typography, typography, tokens))
+        })
+        .when(conversation_shown, |page| {
+            page.child(settings::section(words.conversation, conversation, tokens))
+        })
         .into_any_element()
 }
 

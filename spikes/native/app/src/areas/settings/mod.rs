@@ -127,6 +127,8 @@ impl Shell {
             self.areas.settings.from = self.route;
         }
         let state = &mut self.areas.settings;
+        // A section not drawn yet opens the first one instead.
+        let section = section.filter(|section| drawn(*section));
         state.section = section.unwrap_or(Section::DEFAULT);
         state.pushed = section.is_some();
         state.refused = None;
@@ -136,7 +138,11 @@ impl Shell {
     /// Show `section` (from the list).
     pub(crate) fn settings_section(&mut self, section: Section, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.settings;
-        state.section = section;
+        state.section = if drawn(section) {
+            section
+        } else {
+            Section::DEFAULT
+        };
         state.pushed = true;
         state.refused = None;
         cx.notify();
@@ -294,6 +300,35 @@ pub(crate) fn render(
         .child(body)
         .children(list(shell, tokens, phone, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
+}
+
+/// Whether `section` is drawn in this build: Settings lists only these.
+/// A section no screen draws yet is not shown at all, not as a placeholder
+/// naming the track that will draw it (the coordinator's rule for
+/// 0.0.0.0.7: nothing shown may do nothing); it is listed again when its
+/// page exists. Keep in step with [`content`].
+pub(crate) const fn drawn(section: Section) -> bool {
+    matches!(
+        section,
+        Section::General | Section::Appearance | Section::About
+    )
+}
+
+/// Whether a setting's row is shown: only a setting the app already draws
+/// from. These are kept in the preferences but nothing reads them yet
+/// (the send key, the default send, the two font sizes, the
+/// conversation's width and its display): their rows return when what
+/// they change is drawn.
+pub(crate) const fn applied(list: List) -> bool {
+    match list {
+        List::Machine => true,
+        List::Send
+        | List::Delivery
+        | List::Interface
+        | List::Code
+        | List::Width
+        | List::Display => false,
+    }
 }
 
 /// Which screen draws `section`'s page: one line each. `None`: not drawn

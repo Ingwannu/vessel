@@ -15,12 +15,13 @@
 
 use vessel_app_kit::select;
 use vessel_app_kit::ui::{
-    AnyElement, ClipboardItem, Context, IntoElement as _, ParentElement as _,
+    AnyElement, ClipboardItem, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::prefs::{Kept, SendKey};
 
+use super::applied;
 use super::choices::{self, List};
 use crate::shell::Shell;
 
@@ -97,10 +98,15 @@ pub(crate) fn render(
         compact,
         tokens,
     ));
+    // The composer's rows only once the composer reads them
+    // (`super::applied`).
+    let shown = applied(List::Send) || applied(List::Delivery);
     div()
         .flex()
         .flex_col()
-        .child(settings::section(words.composer, sending, tokens))
+        .when(shown, |page| {
+            page.child(settings::section(words.composer, sending, tokens))
+        })
         .child(settings::section(words.kept, kept_card, tokens))
         .into_any_element()
 }

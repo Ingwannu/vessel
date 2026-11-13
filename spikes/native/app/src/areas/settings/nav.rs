@@ -196,7 +196,16 @@ fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Sh
     let mut groups = div().flex().flex_col();
     let mut picked = false;
     for group in Group::ALL {
-        let sections = group.sections();
+        // Only the sections drawn in this build (`super::drawn`); a group
+        // left with none is not shown.
+        let sections: Vec<Section> = group
+            .sections()
+            .into_iter()
+            .filter(|section| super::drawn(*section))
+            .collect();
+        if sections.is_empty() {
+            continue;
+        }
         let mut rows = Vec::new();
         if !picked && sections.iter().any(|section| section.per_machine()) {
             picked = true;
