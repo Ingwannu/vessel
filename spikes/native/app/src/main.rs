@@ -10,12 +10,15 @@
 //! Environment, for testing and captures: `VESSEL_APP_THEME=light|dark`
 //! pins the scheme (otherwise the system's); `VESSEL_APP_LANG=ko|en` the
 //! language (otherwise the system's); `VESSEL_APP_SIZE=WxH` the window's
-//! size; `RUST_LOG` the log filter.
+//! size; `VESSEL_APP_TITLEBAR=system` the system's title bar;
+//! `VESSEL_APP_NO_UPDATE` no updates for one run; `RUST_LOG` the log
+//! filter.
 
 mod areas;
 mod chrome;
 mod routes;
 mod shell;
+mod update;
 
 use gpui::{AppContext as _, Bounds, px, size};
 use vessel_app_kit::{Scheme, SchemeChoice};

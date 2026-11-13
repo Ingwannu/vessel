@@ -60,7 +60,7 @@ impl Shell {
                         .sessions
                         .retain(|card| card.session != answer.session);
                 }
-                let words = self.t;
+                let words = self.t.lang.conversation();
                 let kept = deleted
                     .worktree
                     .as_ref()

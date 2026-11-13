@@ -21,6 +21,9 @@ pub(crate) enum Route {
     Session,
     /// Adding a machine by pairing.
     Pair,
+    /// The app's version and its updates (Zed's About and its update
+    /// settings; the start of a Settings screen).
+    About,
 }
 
 impl Route {
@@ -36,6 +39,7 @@ impl Route {
             Self::Archive => t.archive,
             Self::Session => t.app,
             Self::Pair => t.add_machine,
+            Self::About => t.lang.update().about,
         }
     }
 }
@@ -54,6 +58,7 @@ pub(crate) fn render(
         Route::Archive => areas::archive::render(shell, tokens, cx).into_any_element(),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, cx).into_any_element(),
+        Route::About => areas::about::render(shell, tokens, cx).into_any_element(),
     }
 }
 
@@ -67,6 +72,6 @@ pub(crate) fn arrive(
     match route {
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
-        Route::Board | Route::Archive | Route::Session => {}
+        Route::Board | Route::Archive | Route::Session | Route::About => {}
     }
 }

@@ -131,6 +131,13 @@ licenses() {
     cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
 }
 
+# Every icon, from the owner's mark (docs/design/brand/, whose README says
+# how it is used), into this run's stage; nothing generated is committed.
+# resvg rasterises (tools/make-icons.py says why not ImageMagick's).
+icons="$stage/icons"
+PATH="${VESSEL_TOOLS_DIR:+$VESSEL_TOOLS_DIR/bin:}$PATH" \
+    python3 -I "$here/tools/make-icons.py" "$repo/docs/design/brand/vessel-mark.svg" "$icons"
+
 readme() {
     sed -e "s/{LABEL}/$label/g" -e "s/{UPDATES_KO}/$updates_ko/" -e "s/{UPDATES_EN}/$updates_en/" "$1"
 }
@@ -157,6 +164,14 @@ check_imports() {
         fi
     done
     [ "$unknown" = 0 ] || exit 1
+    # The icon and the version block (build_windows links them) beside
+    # GPUI's manifest: an exe without them shows a blank icon and its
+    # binary's name in Task Manager.
+    local resources kind
+    resources="$(llvm-readobj --coff-resources "$exe")"
+    for kind in 'ICON (ID 3)' 'GROUP_ICON (ID 14)' 'VERSIONINFO (ID 16)' 'MANIFEST (ID 24)'; do
+        grep -qF "Type: $kind" <<<"$resources" || { echo "$exe has no $kind resource" >&2; exit 1; }
+    done
     grep -q 'Subsystem.*(Windows GUI)' <<<"$headers" ||
         { echo "$exe is not a Windows GUI executable (a console would open behind it)" >&2; exit 1; }
 }
@@ -170,7 +185,19 @@ build_windows() {
     # opens behind the window whatever the app's source says.
     export XWIN_CACHE_DIR="$tools/xwin-cache"
     export GPUI_FXC_PATH="$here/tools/fxc-wine" VESSEL_FXC_DIR="$tools/fxc" WINEPREFIX="$tools/wineprefix"
-    export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static -C link-arg=/IGNORE:4099 -C link-arg=/SUBSYSTEM:WINDOWS -C link-arg=/ENTRY:mainCRTStartup"
+    # The icon and the version block, compiled to a .res the linker takes
+    # as an input. Its path is fixed (in the target directory) so the flags,
+    # and with them every crate's fingerprint, stay the same build to build;
+    # a new label relinks the app anyway (the label is compiled into it).
+    local res_dir="$target_dir/vessel-release-resources"
+    mkdir -p "$res_dir"
+    cp "$icons/vessel.ico" "$res_dir/vessel.ico"
+    local version
+    version="$(python3 -I -c 'import sys; p = ([0, 0, 0, 0] + [int(x) for x in sys.argv[1].split(".")])[-4:]; print(",".join(str(min(x, 65535)) for x in p))' "$label")"
+    sed -e "s/{LABEL}/$label/g" -e "s/{VERSION}/$version/g" "$here/windows/app.rc.in" >"$res_dir/app.rc"
+    # Relative names: llvm-rc reads an argument starting with `/` as a switch.
+    (cd "$res_dir" && llvm-rc /nologo /fo app.res app.rc)
+    export CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static -C link-arg=/IGNORE:4099 -C link-arg=/SUBSYSTEM:WINDOWS -C link-arg=/ENTRY:mainCRTStartup -C link-arg=$res_dir/app.res"
     (cd "$app_ws" && "$tools/bin/cargo-xwin" xwin build --release --locked --target "$triple" -p "$app_pkg" -j "$jobs")
     local exe="$target_dir/$triple/release/$app_bin.exe"
     check_imports "$exe"
@@ -184,8 +211,8 @@ build_windows() {
     readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
     (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/vessel-$label-windows-x64.zip" Vessel)
     cp "$exe" "$out/vessel-$label-windows-x64.exe"
-    makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" \
-        "$here/windows/installer.nsi"
+    makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" \
+        -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" "$here/windows/installer.nsi"
     echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
 }
 
@@ -201,6 +228,14 @@ build_linux() {
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
     licenses "$dir"
     readme "$here/linux/README.txt" >"$dir/README.txt"
+    # The menu entry and its icons (the freedesktop sizes), and the script
+    # that installs them for the user who unpacked the tarball.
+    local size
+    for size in 16 24 32 48 64 128 256 512; do
+        mkdir -p "$dir/icons/hicolor/${size}x${size}/apps"
+        cp "$icons/tile-$size.png" "$dir/icons/hicolor/${size}x${size}/apps/vessel-app.png"
+    done
+    cp "$here/linux/vessel-app.desktop.in" "$here/linux/install-desktop-entry.sh" "$dir/"
     tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$stage/linux" -czf "$out/$name.tar.gz" "$name"
     cp "$bin" "$out/$name"
     chmod 0755 "$out/$name"
@@ -255,5 +290,10 @@ if [ "$publish" = 1 ]; then
 fi
 
 ls -l "$out"
-# Last: the sums, checked where the owner downloads from.
+# Last: the sums, checked where the owner downloads from, and their
+# signature with the release key's public half (the .pub beside the secret
+# unless VESSEL_UPDATE_KEY names it).
 (cd "$final" && sha256sum -c SHA256SUMS)
+if [ -n "${VESSEL_UPDATE_SECRET:-}" ]; then
+    feed_tool check-sums --public "${VESSEL_UPDATE_KEY:-${VESSEL_UPDATE_SECRET%.key}.pub}" "$final"
+fi

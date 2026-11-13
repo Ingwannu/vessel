@@ -227,7 +227,7 @@ impl Conversation {
                     .and_then(|index| self.entries.get(*index))
                     .map(|entry| entry.text.clone());
                 self.asked.push(Asked {
-                    id: request.id.clone(),
+                    id: request.id,
                     what,
                     options: request
                         .options

@@ -12,12 +12,22 @@
 mod board;
 mod conversation;
 mod links;
+mod options;
 pub mod session;
 pub mod terminal;
+#[cfg(test)]
+mod tests;
 mod text;
 pub mod timeline;
 
-pub use board::{Agent, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll};
+pub use board::{
+    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll,
+};
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
-pub use text::{Lang, Text};
+pub use options::{
+    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
+};
+pub use text::{
+    ConversationWords, Lang, OptionsText, Text, UpdateText, grouped, meter_tokens, short_tokens,
+};

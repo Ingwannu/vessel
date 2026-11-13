@@ -4,8 +4,9 @@
 
 use serde_json::json;
 use vessel_app_view::timeline::{
-    Entry, EntryKind, Fullness, Settled, answers_of, meter_of, meter_tokens, settled, short_tokens,
+    Entry, EntryKind, Fullness, Settled, answers_of, meter_of, settled,
 };
+use vessel_app_view::{meter_tokens, short_tokens};
 use vessel_proto::{ContextUsage, PermissionOption, PermissionOutcome, TurnUsage};
 
 use crate::support::make::{message, tool};

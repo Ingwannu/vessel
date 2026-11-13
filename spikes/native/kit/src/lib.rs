@@ -23,6 +23,7 @@
 //!   [`TextField`].
 
 pub mod assets;
+pub mod breakpoint;
 pub mod chrome;
 pub mod dialog;
 pub mod field;
@@ -42,7 +43,7 @@ pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use theme::{Scheme, Tokens};
 pub use virtual_list::{Reveal, VirtualList};
-pub use widgets::{TypeExt, button, choice, dot, kicker, markdown};
+pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).
@@ -50,7 +51,7 @@ pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
         AnyElement, App, AsyncApp, Context, Div, ElementId, Entity, Hsla, ListAlignment, ListState,
-        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, uniform_list,
+        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, svg, uniform_list,
     };
 }
 

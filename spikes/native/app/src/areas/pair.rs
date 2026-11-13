@@ -32,7 +32,10 @@ pub(crate) struct Pairing {
     link_error: Option<String>,
     name_problem: Option<NameProblem>,
     pair_error: Option<String>,
-    pairing: bool,
+    busy: bool,
+    /// The name the app filled in; kept as it is, the node's own name is
+    /// used instead once pairing says it.
+    prefilled: Option<String>,
 }
 
 impl Pairing {
@@ -59,7 +62,8 @@ impl Pairing {
             link_error: None,
             name_problem: None,
             pair_error: None,
-            pairing: false,
+            busy: false,
+            prefilled: None,
         }
     }
 }
@@ -106,6 +110,7 @@ impl Shell {
                 pair.link.clear(window, cx);
                 let name = default_name(&self.book_names());
                 self.areas.pair.name.set_text(&name, window, cx);
+                self.areas.pair.prefilled = Some(name);
                 self.areas.pair.name.focus(window, cx);
             }
             Err(error) => self.areas.pair.link_error = Some(error.to_string()),
@@ -115,7 +120,7 @@ impl Shell {
 
     fn pair(&mut self, name: String, cx: &mut Context<'_, Self>) {
         let pair = &mut self.areas.pair;
-        if pair.pairing {
+        if pair.busy {
             return;
         }
         let Some(offer) = pair.offer.clone() else {
@@ -129,9 +134,14 @@ impl Shell {
             return;
         }
         let pair = &mut self.areas.pair;
-        pair.pairing = true;
+        pair.busy = true;
         pair.pair_error = None;
-        self.command(Command::Pair { offer, name });
+        let prefer_node_name = pair.prefilled.as_deref() == Some(name.trim());
+        self.command(Command::Pair {
+            offer,
+            name,
+            prefer_node_name,
+        });
         cx.notify();
     }
 
@@ -143,17 +153,17 @@ impl Shell {
     /// Pairing worked: the draft next, to start working there.
     pub(crate) fn paired(&mut self, node: &str, route: &str, cx: &mut Context<'_, Self>) {
         let pair = &mut self.areas.pair;
-        pair.pairing = false;
+        pair.busy = false;
         pair.offer = None;
         self.notice = Some(self.t.paired(node, route));
-        self.route = Route::Draft;
+        self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
     }
 
     pub(crate) fn pair_failed(&mut self, why: String) {
         let pair = &mut self.areas.pair;
-        pair.pairing = false;
+        pair.busy = false;
         pair.pair_error = Some(why);
     }
 }
@@ -167,6 +177,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .gap(px(14.0))
         .p(px(24.0))
         .max_w(px(640.0))
+        .child(vessel_app_kit::mark(40.0, tokens))
         .child(
             div()
                 .type_(Type::Body)
@@ -207,7 +218,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .child(
                     button(
                         "pair",
-                        if pair.pairing { t.pairing } else { t.pair },
+                        if pair.busy { t.pairing } else { t.pair },
                         true,
                         tokens,
                     )

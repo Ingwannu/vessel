@@ -211,11 +211,19 @@ async fn a_newer_build_is_downloaded_verified_and_put_in_place() {
     };
     assert_eq!(label, "0.0.0.0.2".parse::<Label>().unwrap());
     assert_eq!(std::fs::read(installation.executable()).unwrap(), NEW_BUILD);
-    let names: Vec<_> = std::fs::read_dir(app_dir.path())
+    let mut names: Vec<_> = std::fs::read_dir(app_dir.path())
         .unwrap()
         .map(|entry| entry.unwrap().file_name().into_string().unwrap())
         .collect();
-    assert_eq!(names, ["vessel-app"], "leftovers or staging files remain");
+    names.sort();
+    // Windows cannot remove the running executable, only rename it: the
+    // old build stays aside until the next start's clean-up.
+    let expected: &[&str] = if cfg!(windows) {
+        &["vessel-app", "vessel-app.old-0.0.0.0.1"]
+    } else {
+        &["vessel-app"]
+    };
+    assert_eq!(names, expected, "leftovers or staging files remain");
     // Installed, the task stops: no second update over the first.
     assert!(!updater.check_now() || matches!(*updater.state().borrow(), UpdateState::Ready { .. }));
 }

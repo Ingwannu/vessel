@@ -1,51 +1,14 @@
-//! Every word the app shows, in one table per language (English and
-//! Korean), so the language follows the system's and a screen never holds
-//! a sentence of its own.
-//!
-//! [Decision Log]
-//! - Purpose: the owner and most of the app's users read Korean (the
-//!   coordinator's report on build 0.0.0.0.1): every string goes through
-//!   one table that can be switched, from the first screens on.
-//! - Alternatives: `rust-i18n` (already in the tree through the component
-//!   layer: keys are strings, a missing translation is found at run time);
-//!   Fluent (a new dependency and a runtime format).
-//! - Choice: a struct with one field per sentence and one constant per
-//!   language. A sentence added to one language and not the other does not
-//!   compile; a typo in a key cannot happen. Sentences with values in them
-//!   are methods, written per language, so word order is the language's.
-//! - Cost: a new language is a new constant of every field; plural rules
-//!   are written by hand (English needs few here, Korean none).
-//! - Not translated yet: the link's errors (they come from `vessel-client`
-//!   and the node, in English).
+//! The words of the lead's areas (the sidebar, the board, the archive, the
+//! new chat, a session's frame and composer, pairing) and the shared
+//! frame, in English and Korean. See `text/mod.rs` for the convention.
 
 use vessel_proto::DisplayStatus;
 
+use super::Lang;
 use crate::{Lane, Notice, Phrase, ToolState};
 
-/// A language the app speaks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Lang {
-    /// English.
-    En,
-    /// Korean.
-    Ko,
-}
-
 impl Lang {
-    /// The language for a BCP 47 tag (`ko-KR`, `en_US.UTF-8`): Korean for
-    /// any `ko`, English otherwise.
-    #[must_use]
-    pub fn from_tag(tag: &str) -> Self {
-        let tag = tag.to_ascii_lowercase();
-        if tag == "ko" || tag.starts_with("ko-") || tag.starts_with("ko_") || tag.starts_with("ko.")
-        {
-            Self::Ko
-        } else {
-            Self::En
-        }
-    }
-
-    /// The table of this language.
+    /// The words of the lead's areas in this language.
     #[must_use]
     pub const fn text(self) -> &'static Text {
         match self {
@@ -104,6 +67,7 @@ pub struct Text {
     pub choose_first: &'static str,
     // The archive.
     pub nothing_ended: &'static str,
+    pub untitled: &'static str,
     // Pairing.
     pub pair_intro: &'static str,
     pub pairing_link: &'static str,
@@ -135,6 +99,16 @@ impl Text {
         }
     }
 
+    /// A session's title as shown: its own, or "Untitled session".
+    #[must_use]
+    pub fn title<'a>(&self, title: &'a str) -> &'a str {
+        if title.is_empty() {
+            self.untitled
+        } else {
+            title
+        }
+    }
+
     /// The board's heading line.
     #[must_use]
     pub fn board_counts(&self, machines: usize, on_board: usize, archived: usize) -> String {
@@ -162,13 +136,13 @@ impl Text {
     /// The sidebar's foot.
     #[must_use]
     pub fn build(&self, label: &str) -> String {
-        format!("Vessel {label} · {}", self.reload)
+        format!("Vessel {label}")
     }
 
     /// "just now", "6m ago", "3h ago", "5d ago" (the page's `sinceLabel`).
     #[must_use]
     pub fn since(&self, minutes: i64) -> String {
-        let (hours, days) = (minutes / 60, minutes / (60 * 24));
+        let (hours, days) = (minutes.div_euclid(60), minutes.div_euclid(60 * 24));
         match self.lang {
             Lang::En if minutes < 1 => "just now".to_owned(),
             Lang::En if minutes < 60 => format!("{minutes}m ago"),
@@ -346,6 +320,7 @@ const EN: Text = Text {
     no_agent: "No agent that runs a conversation is installed on this machine.",
     choose_first: "Choose a machine and an agent first.",
     nothing_ended: "Nothing has ended yet.",
+    untitled: "Untitled session",
     pair_intro: "Paste the pairing link the machine printed and press Enter. A link works once, for ten minutes.",
     pairing_link: "Pairing link",
     link_placeholder: "vessel://pair#…",
@@ -410,6 +385,7 @@ const KO: Text = Text {
     no_agent: "이 머신에는 대화를 실행할 에이전트가 설치되어 있지 않습니다.",
     choose_first: "먼저 머신과 에이전트를 고르세요.",
     nothing_ended: "아직 끝난 세션이 없습니다.",
+    untitled: "제목 없는 세션",
     pair_intro: "머신이 출력한 페어링 링크를 붙여 넣고 Enter를 누르세요. 링크는 10분 동안 한 번만 쓸 수 있습니다.",
     pairing_link: "페어링 링크",
     link_placeholder: "vessel://pair#…",

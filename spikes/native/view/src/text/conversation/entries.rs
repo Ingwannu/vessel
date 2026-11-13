@@ -7,14 +7,15 @@ use vessel_proto::{
     StopReason, ToolCallStatus, TurnUsage,
 };
 
+use super::ConversationWords;
 use super::numbers::{grouped, short_tokens};
 use super::plural;
-use crate::timeline::approval::{Settled, settled};
-use crate::timeline::entry::{Entry, EntryKind, plan_progress};
-use crate::timeline::runs::{RunSummary, Tally};
-use crate::{Lang, Text};
+use crate::Lang;
+use crate::timeline::{Entry, EntryKind, plan_progress};
+use crate::timeline::{RunSummary, Tally};
+use crate::timeline::{Settled, settled};
 
-impl Text {
+impl ConversationWords {
     /// "Agent ready".
     #[must_use]
     pub const fn agent_ready(&self) -> &'static str {
@@ -319,7 +320,7 @@ impl Text {
         }
     }
 
-    fn tally(&self, tally: Tally, count: u64) -> String {
+    fn tally(self, tally: Tally, count: u64) -> String {
         match (self.lang, tally) {
             (Lang::En, Tally::Edited) => format!("edited {}", plural(count, "file", "files")),
             (Lang::En, Tally::Ran) => {

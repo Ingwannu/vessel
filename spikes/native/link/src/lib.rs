@@ -32,13 +32,13 @@ use tokio::sync::mpsc;
 use vessel_app_view::{Agent, Card, Fleet, Machine, Reach};
 use vessel_client::NodeClient;
 use vessel_proto::{
-    ContentBlock, Delivery, EventRecord, HarnessRef, PermissionId, PermissionOptionId,
-    PermissionOutcome, ProtocolVersion, SessionId, SessionInfo, SessionInput, SessionMode,
-    SessionSpec,
+    ContentBlock, Delivery, EventRecord, HarnessRef, OptionChoice, PermissionId,
+    PermissionOptionId, PermissionOutcome, ProtocolVersion, SessionId, SessionInfo, SessionInput,
+    SessionMode, SessionOption, SessionSpec,
 };
 
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
-pub use prefs::Prefs;
+pub use prefs::{Kept, Prefs, UpdateNotes};
 pub use session::{Act, ActAnswer, ActFailed, ActKind, Acted};
 
 /// How often the sessions of every machine are listed again. The page
@@ -127,6 +127,19 @@ pub enum Command {
         folder: Option<String>,
         /// The first prompt.
         prompt: String,
+        /// The agent's options to start with (only those that change
+        /// something, in the agent's order).
+        options: Vec<OptionChoice>,
+    },
+    /// Ask what `harness` offers on `machine` before any session of it
+    /// (`harness.options`); answered [`Event::Options`]. Takes seconds the
+    /// first time (the node starts the agent to ask it), so it runs beside
+    /// the other commands.
+    Options {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
     },
     /// Stop the running turn.
     Stop {
@@ -164,6 +177,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
+        /// The name is the one the app filled in: use the node's own name
+        /// instead when it makes a free book name.
+        prefer_node_name: bool,
     },
 }
 
@@ -197,6 +213,15 @@ pub enum Event {
     PairFailed(String),
     /// A session act's answer.
     Acted(ActAnswer),
+    /// What an agent offers, or why the node could not say.
+    Options {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
+        /// Its options in its order, or the words of the failure.
+        outcome: Result<Vec<SessionOption>, String>,
+    },
     /// Something failed; the words to show.
     Failed(String),
 }
@@ -293,7 +318,11 @@ impl State {
                 harness,
                 folder,
                 prompt,
-            } => self.start(&machine, harness, folder, prompt).await,
+                options,
+            } => {
+                self.start(&machine, harness, folder, prompt, options).await;
+            }
+            Command::Options { machine, harness } => self.options(machine, harness),
             Command::Stop { machine, session } => {
                 let input = SessionInput::CancelTurn { turn: None };
                 self.input(&machine, session, input).await;
@@ -310,7 +339,11 @@ impl State {
                 };
                 self.input(&machine, session, input).await;
             }
-            Command::Pair { offer, name } => match nodes::pair(&offer, &name).await {
+            Command::Pair {
+                offer,
+                name,
+                prefer_node_name,
+            } => match nodes::pair(&offer, &name, prefer_node_name).await {
                 Ok((node, route)) => {
                     self.emit(Event::Paired { node, route }).await;
                     self.reload().await;
@@ -422,13 +455,14 @@ impl State {
         harness: HarnessRef,
         folder: Option<String>,
         prompt: String,
+        options: Vec<OptionChoice>,
     ) {
         let started = async {
             let client = self.client(machine)?.clone();
             let mode = SessionMode::Structured {
                 model: None,
                 resume: None,
-                options: Vec::new(),
+                options,
             };
             let mut spec = SessionSpec::new(harness, mode);
             if let Some(folder) = folder {
@@ -441,13 +475,11 @@ impl State {
             let content = vec![ContentBlock::Text { text: prompt }];
             let sent = if client.protocol() >= ProtocolVersion::new(10) {
                 client
-                    .prompt(info.id.clone(), content, Delivery::Start)
+                    .prompt(info.id, content, Delivery::Start)
                     .await
                     .map(|_delivered| ())
             } else {
-                client
-                    .send(info.id.clone(), SessionInput::Prompt { content })
-                    .await
+                client.send(info.id, SessionInput::Prompt { content }).await
             };
             sent.map_err(|error| LinkError::Call(error.to_string()))?;
             Ok::<_, LinkError>(Card::from_session(machine, &info))
@@ -460,6 +492,31 @@ impl State {
             }
             Err(error) => self.emit(Event::Failed(error.to_string())).await,
         }
+    }
+
+    /// Ask `machine` what `harness` offers, beside the other commands (the
+    /// node may start the agent to answer). A machine not connected is
+    /// answered at once with why.
+    fn options(&self, machine: String, harness: HarnessRef) {
+        let client = self.client(&machine).cloned();
+        let events = self.events.clone();
+        drop(tokio::spawn(async move {
+            let outcome = match client {
+                Ok(client) => client
+                    .harness_options(harness.clone(), None)
+                    .await
+                    .map(|offered| offered.options)
+                    .map_err(|error| error.to_string()),
+                Err(error) => Err(error.to_string()),
+            };
+            let _closed = events
+                .send(Event::Options {
+                    machine,
+                    harness,
+                    outcome,
+                })
+                .await;
+        }));
     }
 
     /// Follow `session` from its first record, replacing the one followed.
@@ -494,10 +551,7 @@ impl State {
             return;
         };
         let content = vec![ContentBlock::Text { text }];
-        match client
-            .prompt(session.clone(), content, Delivery::Queue)
-            .await
-        {
+        match client.prompt(session, content, Delivery::Queue).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
                 self.emit(Event::Failed(
@@ -539,10 +593,7 @@ fn unreachable(name: String, why: &str) -> Machine {
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
-    let mut stream = match client
-        .follow(session.clone(), vessel_proto::EventSeq::new(0))
-        .await
-    {
+    let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
         Ok(stream) => stream,
         Err(error) => {
             let _closed = events.send(Event::Failed(error.to_string())).await;
@@ -553,7 +604,7 @@ async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Eve
         match item {
             Ok(record) => {
                 let event = Event::Records {
-                    session: session.clone(),
+                    session,
                     records: vec![record],
                 };
                 if events.send(event).await.is_err() {

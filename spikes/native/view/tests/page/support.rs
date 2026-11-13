@@ -3,13 +3,13 @@
 
 use serde_json::{Value, json};
 use vessel_app_view::timeline::{Entry, EntryKey, Timeline};
-use vessel_app_view::{Lang, Text};
+use vessel_app_view::{ConversationWords, Lang};
 
 /// The English table (the page's words).
-pub(crate) const EN: &Text = Lang::En.text();
+pub(crate) const EN: &ConversationWords = Lang::En.conversation();
 
 /// The Korean table.
-pub(crate) const KO: &Text = Lang::Ko.text();
+pub(crate) const KO: &ConversationWords = Lang::Ko.conversation();
 use vessel_proto::EventRecord;
 
 /// The time every record of a case is written at.
