@@ -88,7 +88,8 @@
 //!     `unreadable`), then `end_turn`;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
-//!     20 in, 10 out);
+//!     20 in, 10 out); `usage <tokens>` the same with that many of the
+//!     200,000 used (a context meter's amber from 70%, red past 90%);
 //!   - `report <path>`: writes its arguments, its whole environment and
 //!     the MCP servers of the last `session/new` or `session/load` to that
 //!     file as JSON (`vessel_testkit::write_report`), then one message
@@ -530,11 +531,16 @@ async fn serve() -> ExitCode {
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
-                    if prompt == "usage" {
+                    let used = match prompt.strip_prefix("usage") {
+                        Some("") => Some(1200),
+                        Some(tokens) => tokens.trim().parse::<u64>().ok(),
+                        None => None,
+                    };
+                    if let Some(used) = used {
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::UsageUpdate(
-                                UsageUpdate::new(1200, 200_000).cost(Cost::new(0.5, "USD")),
+                                UsageUpdate::new(used, 200_000).cost(Cost::new(0.5, "USD")),
                             ),
                         ))?;
                         cx.send_notification(SessionNotification::new(
