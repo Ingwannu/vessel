@@ -777,18 +777,36 @@ browser on Unix (on Windows, open the printed address).
   or `n`) asks what you want to work on. Under the box choose the agent
   and, from what that agent itself offers on that machine, its model, its
   effort, its on/off settings and its permissions; under the "+" a profile
-  and "Open as terminal"; under the box the machine and the folder (it
-  suggests the folders sessions already ran in there). Send starts the
-  session with those choices, sends the prompt and opens it. Reading what
-  an agent offers takes the machine a few seconds the first time (it
-  starts the agent to ask); until then, or if the agent cannot say, the
-  session starts on the agent's own defaults.
+  and "Open as terminal"; under the box the machine, then the project
+  and where in it the session runs: its folder as it is ("Local"), a new
+  worktree on a new branch from a base, or a worktree on an existing
+  branch (with no project, a folder, suggesting the folders sessions
+  already ran in there). Send starts the session with those choices,
+  sends the prompt and opens it. For a new worktree it first makes the
+  worktree: if the project's `vessel.toml` names setup commands that
+  were not approved, it shows them (and what changed from the set
+  approved for the project's folder) for you to approve or to start
+  without setup; setup's output shows under the box as it runs, and a
+  failed setup waits for you (run it again, start anyway, or stop).
+  Reading what an agent offers takes the machine a few seconds the first
+  time (it starts the agent to ask); until then, or if the agent cannot
+  say, the session starts on the agent's own defaults.
 - **A session** is named by its title (the first line of its first prompt
   until you rename it, in place, in the title bar), shows its timeline
   and a composer that changes the same choices while it runs, and asks
   each permission once, over the composer. Its summary holds the plan,
   the files it touched, its model calls and, under Details, its
-  identifiers. A session opened as a terminal is the agent's own TUI.
+  identifiers. Beside Summary, **Changes** and **Files** show the code
+  of its worktree or project (the branch's chip in the title bar opens
+  Changes, in a sheet on a phone): every changed file's diff, by
+  comparison (everything since the base, uncommitted, staged, unstaged,
+  a commit), with stage, unstage and discard per file and git's actions
+  (commit, push, pull, fetch, switch, create and rename a branch,
+  stash), each refusal said in words; the file tree, a file by name,
+  lines by content, a viewer and an editor that never overwrites a
+  change made on disk since it read the file. Lines selected in a diff
+  or a file go into the composer's draft as a reference ("Add to
+  chat"). A session opened as a terminal is the agent's own TUI.
   What you type is the session's draft until you send it: it survives
   leaving the session, a reload and a new launch. In an empty composer
   Up and Down bring back the prompts you sent. Find in the session
@@ -799,7 +817,9 @@ browser on Unix (on Windows, open the printed address).
   stage of delivery, a session an agent started named on its card; an
   ended one stays in its lane as exited until it is archived, and the
   archived ones are in the archive under it (from a node before
-  protocol 10, every ended one is). The sidebar lists each
+  protocol 10, every ended one is); a session in a worktree shows its
+  branch. The sidebar lists each machine's projects (each opens to its
+  live sessions, and its "+" starts a session there) and each
   machine's live sessions, marked while one works or waits on you; its
   Display menu groups them by status instead, sorts them by last
   activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
@@ -810,8 +830,11 @@ browser on Unix (on Windows, open the printed address).
   whether tool calls are collapsed), Shortcuts (every key, searchable,
   each rebound by pressing the new one; a key another command holds is
   offered to move), Notifications, Machines (add, rename, make default,
-  forget), Agents (what each agent on a machine offers: model, effort,
-  permissions), Models, Devices (pairing a phone with a QR code), Sync
+  forget), Projects (add a folder, clone a repository with its progress,
+  start a new one; approve or withdraw a project's commands; its
+  worktrees, removed only after saying what would be lost and offering a
+  snapshot; its snapshots), Agents (what each agent on a machine
+  offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
   and About. A machine in the sidebar opens it there. The page follows
   the system's light or dark theme until you choose one.
 - **What you choose is kept by `vessel ui`, not the browser** (ADR
@@ -918,8 +941,9 @@ vessel-testkit --bins`). Set `VESSEL_SCREEN_DIR` to write screenshots outside
 the checkout. `perf` runs on demand only (minutes, not part of `e2e`): the
 board loading cold over a slow and a phone-like link, a timeline of 5,000
 and 20,000 entries, find in it and going to a match far from the view, a
-terminal under heavy output, a board of 500 cards
-(`docs/PERFORMANCE.md` keeps the figures). `VESSEL_PERF_OUT` names its
+terminal under heavy output, a board of 500 cards, a session's code
+panel over a large change and a large tree (`docs/PERFORMANCE.md` keeps
+the figures). `VESSEL_PERF_OUT` names its
 JSON file, `VESSEL_PERF_RUNS` the runs per measurement, and
 `VESSEL_CARGO_PROFILE=release` runs the fleet on release binaries (`cargo
 build --release ...`) instead of debug ones. CI uploads only the

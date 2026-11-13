@@ -238,7 +238,17 @@ web/src/data/     stores (useSyncExternalStore), the timeline reducer (tool call
                   theme) and the drafts (drafts), the shortcuts' registry, matcher and edits
                   (shortcuts/), find and the outline (find, outline), recall, notices and alerts,
                   the sidebar's view (sidebar), a machine's remembered start (defaults), and
-                  records keyed by a handle walked with their keys' type (records)
+                  records keyed by a handle walked with their keys' type (records);
+                  workspace/ (milestone 11's track B-page): one module per subject of
+                  protocol 10's projects, worktrees, git reads, git writes and files (find.ts,
+                  the one wrapper of `file.find`), each machine's projects (project-store,
+                  following a clone), and the pure parts: where a session runs (place,
+                  branch-name), the commands to approve compared with the folder's (command-
+                  changes), git's refusals and a worktree's states in words (git-words,
+                  worktree-words), setup's output as lines (setup-log), a diff as numbered rows
+                  (diff-rows) and the Changes list (changes), the file tree (file-tree), the
+                  git button's action (git-quick), a selection as a draft's reference
+                  (reference), and the lexer for syntax colour (syntax, syntax-languages)
 web/src/features/ an area's components and hooks, each stylesheet beside its component: the shell
                   (frame, sidebar), compose (/new, the composer), session (the timeline drawn
                   through a window: only the rows near the view exist; find and the outline go
@@ -246,6 +256,14 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   while heights are measured), board, settings/ (the
                   frame and its sections, General, Appearance, Shortcuts with its recorder,
                   Notifications), machines/ (Machines, Agents, the add-machine dialog),
+                  projects/ (Settings › Projects, the sidebar's projects, adding one, the
+                  approval of its commands, removing a worktree that would lose work),
+                  workspace/ (the code panel, a chunk loaded when Changes or Files opens: the
+                  diff in the timeline's window, git's bar, menu and dialogs, the tree, the
+                  file viewer and editor, "Add to chat"; and the branch's chip and a
+                  worktree's setup card, which the entry and /new use), compose/'s tray and
+                  the worktree's start (where-tray, where-place, use-starter,
+                  start-worktree), the session's panel as tabs (inspector, panel-state),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
                   notifications/ (notices, the tone), the command palette (the shell's, with its
                   shortcut; the sidebar's row only opens it), the theme switch, the kit's

@@ -48,6 +48,8 @@ export interface SidebarSession {
   id: string;
   title: string;
   mark: SessionMark;
+  /** Its worktree's branch, when it has one (track B-page). */
+  branch: string | null;
 }
 
 /** A machine's row and the sessions under it. */
@@ -124,6 +126,7 @@ function row(node: NodeKey, session: SessionInfo): SidebarSession {
     id: session.id,
     title: sessionName(session),
     mark: sessionMark(session),
+    branch: session.workspace?.branch ?? null,
   };
 }
 

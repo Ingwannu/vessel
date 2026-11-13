@@ -16,6 +16,7 @@ import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
 import { Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
+import { SidebarProjects } from "../projects/sidebar-projects";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
 import { SidebarSettings } from "./sidebar-settings";
@@ -119,6 +120,7 @@ export function Sidebar({
           <span className="count">{live}</span>
         </Link>
       </div>
+      {inSettings ? null : <SidebarProjects />}
       {inSettings ? (
         <SidebarSettings current={where.segments[1] ?? null} />
       ) : grouping === "machine" ? (

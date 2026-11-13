@@ -78,6 +78,8 @@ export interface Window {
 /** Where the reader is: following the end, holding a pin, and how many
  * passes this frame's pin has had. */
 interface Reading {
+  /** Whether this list follows its end at all (`useWindow`'s `follow`). */
+  follows: boolean;
   following: boolean;
   pin: Pin | null;
   passes: number;
@@ -86,10 +88,13 @@ interface Reading {
 }
 
 /** The window over `items`, by their keys, going to `target` when it
- * changes. */
+ * changes. A list that is read from its top (the code panel's diffs and
+ * files, milestone 11's track B-page) passes `follow: false`; the
+ * timeline follows its end. */
 export function useWindow(
   items: readonly { key: string }[],
   target: Target | null,
+  { follow = true }: { follow?: boolean } = {},
 ): Window {
   const scroller = useRef<HTMLDivElement>(null);
   const [heights, setHeights] = useState<ReadonlyMap<string, number>>(
@@ -103,7 +108,8 @@ export function useWindow(
     opened: new Map(),
   }));
   const reading = useRef<Reading>({
-    following: true,
+    follows: follow,
+    following: follow,
     pin: null,
     passes: 0,
     taken: null,
@@ -243,7 +249,7 @@ function watch(
     if (reading.pin !== null && !ownScroll(element, reading.pin)) {
       takeBack();
     }
-    if (reading.pin === null) {
+    if (reading.pin === null && reading.follows) {
       reading.following =
         element.scrollHeight - element.scrollTop - element.clientHeight <
         NEAR_END;

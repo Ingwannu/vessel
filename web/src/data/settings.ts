@@ -15,6 +15,8 @@
 // - Milestone 11 (track W) adds General (the send key, where the page's
 //   choices are kept), Shortcuts and Notifications, and makes General the
 //   default: milestone 10 had no General because nothing true was in it.
+// - Milestone 11 (track B-page) adds Projects, under Machines: a
+//   machine's folders, as its agents and models are.
 // - Choice: the list lives here, in `data/`, as one closed set. A section
 //   is added in this file and nowhere else; the label, the group and the
 //   address follow from it, and the switches below stop compiling until
@@ -30,6 +32,7 @@ export const SETTINGS_SECTIONS = [
   "agents",
   "models",
   "machines",
+  "projects",
   "devices",
   "sync",
   "about",
@@ -70,6 +73,8 @@ export function settingsSectionLabel(section: SettingsSection): string {
       return "Models";
     case "machines":
       return "Machines";
+    case "projects":
+      return "Projects";
     case "devices":
       return "Devices";
     case "sync":
@@ -91,6 +96,7 @@ export function settingsGroupOf(section: SettingsSection): SettingsGroup {
     case "models":
       return "agents";
     case "machines":
+    case "projects":
     case "devices":
     case "sync":
       return "machines";

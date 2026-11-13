@@ -9,7 +9,7 @@
 import "./new-session.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../../context";
 import {
@@ -18,8 +18,7 @@ import {
   startingAgent,
 } from "../../data/agent-choices";
 import { agentName, knownAgent, runsTimeline } from "../../data/agents";
-import { createSession, sendPrompt } from "../../data/calls";
-import { folderSuggestions } from "../../data/folders";
+import { sendPrompt } from "../../data/calls";
 import {
   type Draft,
   draftControls,
@@ -47,6 +46,7 @@ import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
+import { useStarter } from "./use-starter";
 import { WhereTray } from "./where-tray";
 
 const EMPTY_DRAFT: Draft = {
@@ -121,9 +121,8 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     machine === null || agent === null
       ? []
       : profileChoices(state.profiles[machine] ?? [], agent);
-  const sessions = machine === null ? undefined : state.sessions[machine];
-  const folders = useMemo(() => folderSuggestions(sessions ?? []), [sessions]);
-  const ready = sendable(effective, harness);
+  const starter = useStarter(machine);
+  const ready = starter.ready(sendable(effective, harness));
 
   const change = (next: Partial<Draft>) => {
     setError(null);
@@ -148,10 +147,10 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     const spec = specOf(effective, harness, options);
     setBusy(true);
     setError(null);
-    void createSession(fleet, machine, spec).then(async (created) => {
-      if (!created.ok) {
+    void starter.create(spec).then(async (created) => {
+      if (created?.ok !== true) {
         setBusy(false);
-        setError(created.problem.message);
+        setError(created?.problem.message ?? null);
         return;
       }
       const prompt = effective.prompt.trim();
@@ -267,7 +266,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
               onMachine={(next) => {
                 restart({ machine: next, agent: null });
               }}
-              folders={folders}
+              starter={starter}
               folder={draft.folder}
               onFolder={(folder) => {
                 change({ folder });
@@ -276,6 +275,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           }
         />
         <div className="new-session-notes">
+          {starter.view}
           {error === null ? null : (
             <p className="new-session-error" role="alert">
               {error}

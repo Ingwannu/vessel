@@ -17,6 +17,7 @@ import { isLive, shortId } from "../../data/format";
 import { labelOf } from "../../data/nodes";
 import { sessionName } from "../../data/titles";
 import { Avatar, Icon, IconButton, Spinner, Tooltip } from "../../ui/kit";
+import { BranchChip } from "../workspace/branch-chip";
 import { CardOrigin } from "./card-origin";
 
 export function SessionCard({
@@ -87,6 +88,12 @@ export function SessionCard({
             <bdi>{spec.cwd ?? "~"}</bdi>
           </span>
         </div>
+        {session.workspace?.branch === undefined ||
+        session.workspace.branch === null ? null : (
+          <div className="card-line">
+            <BranchChip branch={session.workspace.branch} />
+          </div>
+        )}
         <div className="card-line">
           <span className="id">{id}</span>
           <span className="who">

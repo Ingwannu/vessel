@@ -16,6 +16,7 @@ import { sidebarMachines } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
 import { IconButton, StatusDot, Tooltip } from "../../ui/kit";
+import { BranchChip } from "../workspace/branch-chip";
 import { SessionMark } from "./session-mark";
 import { SidebarViewMenu } from "./sidebar-view-menu";
 import { rowClass } from "./sidebar";
@@ -77,6 +78,7 @@ export function SidebarMachines() {
                   <SessionMark mark={session.mark} />
                 </span>
                 <span className="label">{session.title}</span>
+                <BranchChip branch={session.branch} />
               </Link>
             ))}
             {machine.more > 0 ? (
