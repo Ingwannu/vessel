@@ -12,8 +12,33 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::conversation::{AgentAbilities, AttachmentRef, Question, QuestionOutcome, TurnUsage};
-use crate::id::{HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId};
+use crate::id::{
+    AgentMessageId, HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId,
+};
 use crate::raw::RawJson;
+
+/// Where a fork or a rewind can start (protocol 12, ADR 0052): the end of a
+/// turn, named as the agent names it.
+///
+/// [Decision Log]
+/// - Purpose: ACP's `session/fork` forks the whole conversation; both
+///   installed adapters also read an anchor (`_meta.jetbrains.air.fork`),
+///   an agent message's id, and fork up to it (Claude) or after the turn
+///   that holds it (Codex).
+/// - Choice: only a turn's end is a point (a cut inside a turn would leave
+///   a tool call without its result), and only when the turn's last agent
+///   message carried an id and nothing but the turn's end followed it (a
+///   thought, a plan or a tool call after it would be cut off). The point
+///   carries the conversation it belongs to, so a fork from a point a
+///   rewind left behind takes the conversation that still holds it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct TurnPoint {
+    /// The turn's last agent message.
+    pub message: AgentMessageId,
+    /// The agent's conversation it is in.
+    pub conversation: HarnessSessionId,
+}
 
 /// One entry in a structured session's timeline.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +103,12 @@ pub enum AgentEvent {
         /// (protocol 10).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         usage: Option<TurnUsage>,
+        /// Where a fork or a rewind can start (protocol 12, ADR 0052):
+        /// set when the turn's last agent message carried an id and nothing
+        /// but the turn's end followed it. Absent otherwise, and from older
+        /// nodes.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        point: Option<TurnPoint>,
     },
     /// The turn failed (the harness returned an error for the prompt).
     TurnFailed {

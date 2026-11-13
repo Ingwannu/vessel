@@ -344,6 +344,25 @@ pub(crate) enum ServiceError {
     /// start).
     #[error("the node's model proxy is not listening")]
     ModelProxyDown,
+    /// A fork or a rewind names no record of the session (protocol 12).
+    #[error("session {session} has no record {}", seq.get())]
+    NoRecord {
+        /// The session.
+        session: SessionId,
+        /// The record asked for.
+        seq: EventSeq,
+    },
+    /// A fork or a rewind cannot start there (protocol 12, ADR 0052).
+    #[error("session {session} cannot be forked there: {why}")]
+    NotAPoint {
+        /// The session.
+        session: SessionId,
+        /// Why, for a person.
+        why: &'static str,
+    },
+    /// A fork of a whole conversation while a turn writes it (protocol 12).
+    #[error("session {0} is running a turn; fork it once the turn ends, or from an earlier one")]
+    ForkRunning(SessionId),
 }
 
 /// A route as a sentence names it.
@@ -359,7 +378,9 @@ impl ServiceError {
     /// chain of causes as text (none of which contains secrets).
     pub(crate) fn to_wire(&self) -> WireError {
         let code = match self {
-            Self::NotFound(_) | Self::UnknownAgent(_) => ErrorCode::NotFound,
+            Self::NotFound(_) | Self::UnknownAgent(_) | Self::NoRecord { .. } => {
+                ErrorCode::NotFound
+            }
             // `Profiles(Parse)`: the call is fine; the node's file is not
             // (and stays unused).
             Self::Ended(_)
@@ -373,6 +394,7 @@ impl ServiceError {
             | Self::NotLoggedIn(_)
             | Self::AgentGone(_)
             | Self::MoveRunning(_)
+            | Self::ForkRunning(_)
             | Self::Live(_)
             | Self::LogWriting(_)
             | Self::AlreadyLive(_)
@@ -396,7 +418,7 @@ impl ServiceError {
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
             Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
-            Self::MoveRoute { .. } => ErrorCode::Unsupported,
+            Self::MoveRoute { .. } | Self::NotAPoint { .. } => ErrorCode::Unsupported,
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),
             Self::Upload(error) => error.code(),

@@ -26,6 +26,7 @@ mod args;
 mod automation;
 mod conversation;
 mod forge;
+mod forking;
 mod lsp;
 mod search;
 mod sessions;
@@ -118,6 +119,7 @@ impl VesselTools {
             }
             "get_pull_request" | "open_pull_request" => self.forge(name, args).await,
             "search_sessions" => self.search(args).await,
+            "fork_session" | "rewind_session" => self.forking(name, args).await,
             "create_session" => self.create_session(args).await,
             "send_input" => self.send_input(args).await,
             "answer_permission" => self.answer_permission(args).await,
@@ -278,6 +280,7 @@ fn tools() -> Vec<Tool> {
         .into_iter()
         .chain(conversation::tools(&node, &session))
         .chain(search::tools(&node, &session))
+        .chain(forking::tools(&node, &session))
         .chain(workspace::tools(&node))
         .chain(forge::tools(&node, &session))
         .chain(terminals::tools(&node))

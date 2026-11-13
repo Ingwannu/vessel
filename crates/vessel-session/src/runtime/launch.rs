@@ -9,8 +9,8 @@ use chrono::Utc;
 use vessel_agent::AgentSetup;
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
-    Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionId,
-    SessionInfo, SessionMode, SessionModel, SessionOrigin, SessionSpec, TerminalSize,
+    Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionEvent,
+    SessionId, SessionInfo, SessionMode, SessionModel, SessionOrigin, SessionSpec, TerminalSize,
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
@@ -80,6 +80,23 @@ pub struct LaunchOptions {
     /// for a session someone watches. Off by default. Kept for the
     /// session's life: an agent a move starts again asks as the first did.
     pub questions: bool,
+    /// A fork of another session's conversation (protocol 12, ADR 0052):
+    /// the agent starts with `session/fork` and the log with a `forked`
+    /// record. Structured sessions only. Boxed: rare, and every start's
+    /// future carries the options' size.
+    pub fork: Option<Box<ForkStart>>,
+}
+
+/// Where a forked session's conversation comes from (protocol 12).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForkStart {
+    /// The session forked.
+    pub from: SessionId,
+    /// Its `turn_ended` record the fork starts after; `None` for its whole
+    /// conversation.
+    pub after: Option<vessel_proto::EventSeq>,
+    /// The agent's conversation forked, and where.
+    pub agent: vessel_agent::ForkFrom,
 }
 
 /// What a session records about its start besides its spec.
@@ -125,6 +142,7 @@ struct AgentStart {
     options: Vec<OptionChoice>,
     mcp_servers: ResolvedMcpServers,
     questions: bool,
+    fork: Option<Box<ForkStart>>,
 }
 
 impl SessionRuntime {
@@ -177,6 +195,7 @@ impl SessionRuntime {
             model,
             model_proxy,
             questions,
+            fork,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
         if self.get(id).is_some() {
@@ -192,6 +211,9 @@ impl SessionRuntime {
         };
         let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
         match spec.mode.clone() {
+            SessionMode::Terminal { .. } if fork.is_some() => Err(SessionError::Terminal(
+                "forking (a terminal session's conversation is its harness's)",
+            )),
             SessionMode::Terminal { size, .. } => {
                 let mcp = TerminalMcp {
                     servers: mcp_servers,
@@ -211,6 +233,7 @@ impl SessionRuntime {
                     options,
                     mcp_servers,
                     questions,
+                    fork,
                 };
                 self.create_structured(spec, (profile, model_proxy), start, record)
                     .await
@@ -303,13 +326,22 @@ impl SessionRuntime {
             mcp_servers: start.mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: start.questions,
+            fork: start.fork.as_ref().map(|fork| Box::new(fork.agent.clone())),
         };
         let (begin, notices) = record.begin(spec);
-        self.run_structured(
-            Launch { command, setup },
-            begin,
-            notices,
-            ActorStart::default(),
-        )
+        // A fork's log starts by saying what it forked, and drops the
+        // replay of its check (protocol 12): the conversation is the
+        // source's log, not copied.
+        let actor = start
+            .fork
+            .map_or_else(ActorStart::default, |fork| ActorStart {
+                replaying: true,
+                opening: Some(Box::new(SessionEvent::Forked {
+                    from: fork.from,
+                    after: fork.after,
+                })),
+                ..ActorStart::default()
+            });
+        self.run_structured(Launch { command, setup }, begin, notices, actor)
     }
 }

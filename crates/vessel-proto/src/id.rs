@@ -235,6 +235,18 @@ opaque_id! {
 }
 
 opaque_id! {
+    /// The id an agent gives one of its messages (ACP's `messageId` on a
+    /// message chunk): what a fork at a turn names (protocol 12, ADR 0052).
+    /// At most [`AgentMessageId::MAX_BYTES`]; the node drops a longer one.
+    AgentMessageId
+}
+
+impl AgentMessageId {
+    /// The longest id kept.
+    pub const MAX_BYTES: usize = 256;
+}
+
+opaque_id! {
     /// A permission option id offered by the harness (for example
     /// `allow-once`). Echoed back verbatim when a client picks it.
     PermissionOptionId

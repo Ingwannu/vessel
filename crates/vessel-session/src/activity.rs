@@ -141,7 +141,9 @@ impl Tracker {
             // A parked session sits where an idle one does (protocol 12):
             // nothing about its turns changed.
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {}
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
 

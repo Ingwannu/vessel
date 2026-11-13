@@ -73,6 +73,20 @@ impl Conversation {
             }
             // A structured session has no terminal output; nothing to show.
             SessionEvent::Terminal(_) => String::new(),
+            // A turn's end a fork or a rewind can start at says its record
+            // (protocol 12): `vessel session fork|rewind ID --after N`.
+            SessionEvent::Agent {
+                event:
+                    AgentEvent::TurnEnded {
+                        reason,
+                        point: Some(_),
+                        ..
+                    },
+            } => self.line(format!(
+                "[turn ended: {}; fork or rewind --after {}]",
+                stop_reason(*reason),
+                record.seq.get()
+            )),
             SessionEvent::Agent { event } => self.agent(event),
             SessionEvent::ProfileChanged { from, to } => self.line(format!(
                 "[profile {} -> {}]",
@@ -93,6 +107,26 @@ impl Conversation {
                 self.line(format!("[agent parked: {}]", reason.describe()))
             }
             SessionEvent::Woken => self.line("[agent started again]".to_owned()),
+            SessionEvent::Forked { from, after } => self.line(match after {
+                Some(after) => format!(
+                    "[a fork of session {from}: its conversation up to record {} (vessel log {from})]",
+                    after.get()
+                ),
+                None => format!("[a fork of session {from} (vessel log {from})]"),
+            }),
+            SessionEvent::Rewound {
+                after,
+                files_changed,
+                ..
+            } => self.line(format!(
+                "[rewound to record {}: what came after is no longer the conversation{}]",
+                after.get(),
+                if *files_changed > 0 {
+                    format!("; {files_changed} file changes were not put back")
+                } else {
+                    String::new()
+                }
+            )),
         }
     }
 
@@ -315,9 +349,25 @@ mod tests {
         let ended = agent(AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
+            point: None,
         });
         assert_eq!(view.show(&ended), "\n[turn ended: done]\n");
         assert_eq!(view.show(&ended), "[turn ended: done]\n");
+        let pointed = agent(AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: Some(vessel_proto::TurnPoint {
+                message: vessel_proto::AgentMessageId::new("msg-1"),
+                conversation: vessel_proto::HarnessSessionId::new("conversation"),
+            }),
+        });
+        assert_eq!(
+            view.show(&pointed),
+            format!(
+                "[turn ended: done; fork or rewind --after {}]\n",
+                pointed.seq.get()
+            )
+        );
     }
 
     #[test]

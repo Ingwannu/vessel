@@ -226,6 +226,8 @@ const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
     ("session.wake", Scope::Operate),
     ("node.settings", Scope::Read),
     ("node.set_settings", Scope::Admin),
+    ("session.fork", Scope::Operate),
+    ("session.rewind", Scope::Operate),
 ];
 
 #[test]
@@ -388,6 +390,8 @@ const FORWARDABLE: &[&str] = &[
     "session.search",
     "session.park",
     "session.wake",
+    "session.fork",
+    "session.rewind",
 ];
 
 #[test]

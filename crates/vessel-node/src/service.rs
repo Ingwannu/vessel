@@ -64,6 +64,7 @@ mod terminals;
 mod notices;
 mod prompts;
 // Protocol 12 (track A2): the conversation, further.
+mod forking;
 mod parking;
 mod scheduled;
 mod schedules;

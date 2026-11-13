@@ -36,6 +36,8 @@ const TOOLS: &[&str] = &[
     "resume_session",
     "archive_session",
     "search_sessions",
+    "fork_session",
+    "rewind_session",
     "list_projects",
     "list_worktrees",
     "create_worktree",
@@ -76,7 +78,7 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         // terminal and schedule tools (protocol 11), then LSP's.
         let names = mcp.initialize().await;
         assert_eq!(&names[..TOOLS.len()], TOOLS);
-        assert_eq!(names.len(), 43);
+        assert_eq!(names.len(), 45);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.

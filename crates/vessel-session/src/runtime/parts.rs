@@ -56,6 +56,10 @@ pub(crate) struct ActorStart {
     pub(crate) desk: Desk,
     pub(crate) replaying: bool,
     pub(crate) gate: Option<oneshot::Receiver<()>>,
+    /// A record the log starts with after `starting` (a fork's `forked`,
+    /// protocol 12). Boxed: a session event is large, and every start's
+    /// future would carry its size.
+    pub(crate) opening: Option<Box<vessel_proto::SessionEvent>>,
 }
 
 /// How many model calls may wait for a session's actor to record them; a

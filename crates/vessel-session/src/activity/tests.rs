@@ -38,6 +38,7 @@ fn ended(reason: StopReason) -> SessionEvent {
     agent(AgentEvent::TurnEnded {
         reason,
         usage: None,
+        point: None,
     })
 }
 

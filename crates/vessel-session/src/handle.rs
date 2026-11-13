@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 use vessel_agent::AgentInput;
 use vessel_proto::{
     Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
-    SessionTitle,
+    SessionTitle, TurnPoint,
 };
 use vessel_pty::PtyInput;
 
@@ -210,6 +210,41 @@ impl SessionHandle {
         let route = self.structured_route(ParkRefusal::Terminal)?;
         self.order(route, |reply| Control::Park(ParkOrder::Wake(reply)))
             .await?;
+        Ok(self.info())
+    }
+
+    /// Take the conversation back to the end of the turn `point` names
+    /// (protocol 12's `session.rewind`, ADR 0052): the agent's conversation
+    /// is forked there and the session goes on with the fork. Between turns
+    /// only; a parked session is woken first. The info after.
+    ///
+    /// # Errors
+    /// [`SessionError::NotRewound`] while a turn runs, something waits or
+    /// the queue moves, or for a terminal session;
+    /// [`SessionError::ForkRefused`] when the agent cannot fork there;
+    /// [`SessionError::RewindFailed`] (the old conversation goes on);
+    /// [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn rewind(
+        &self,
+        point: TurnPoint,
+        after: EventSeq,
+        files_changed: u32,
+    ) -> Result<SessionInfo, SessionError> {
+        if !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        let Input::Structured(route) = &self.0.input else {
+            return Err(crate::error::RewindRefusal::Terminal.into());
+        };
+        self.order(route, |reply| {
+            Control::Rewind(crate::forking::RewindOrder {
+                point,
+                after,
+                files_changed,
+                reply,
+            })
+        })
+        .await?;
         Ok(self.info())
     }
 

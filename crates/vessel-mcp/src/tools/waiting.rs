@@ -194,7 +194,9 @@ pub(super) fn turn_outcome(
             | SessionEvent::UsageChanged { .. }
             // A parked session waits for a prompt as an idle one does.
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {}
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
     None

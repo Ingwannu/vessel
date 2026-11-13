@@ -139,7 +139,14 @@ impl Projection {
             | SessionEvent::ModelCall(_)
             | SessionEvent::CommandsChanged { .. }
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {}
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. } => {}
+            // The agent's conversation from a rewind on (protocol 12, ADR
+            // 0052): a restarted agent's `ready` is not logged, so a move,
+            // a resume or an export after it reads the id from here.
+            SessionEvent::Rewound {
+                harness_session, ..
+            } => self.harness_session = Some(harness_session.clone()),
         }
     }
 }

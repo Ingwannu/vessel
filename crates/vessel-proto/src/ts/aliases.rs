@@ -97,6 +97,7 @@ pub enum Alias {
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
     ("AgentLabel", Alias::Named),
+    ("AgentMessageId", Alias::Handle),
     ("AgentName", Alias::Named),
     ("AgentProgram", Alias::Named),
     ("AgentVersion", Alias::Named),

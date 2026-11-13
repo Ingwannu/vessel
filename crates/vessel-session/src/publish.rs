@@ -262,6 +262,11 @@ impl InfoChange {
             SessionEvent::Renamed { title } => Self::Title(title.clone()),
             SessionEvent::Parked { reason } => Self::Parked(Some(reason.clone())),
             SessionEvent::Woken => Self::Parked(None),
+            // The agent's conversation from a rewind on (protocol 12): the
+            // restarted agent's own `ready` is not logged.
+            SessionEvent::Rewound {
+                harness_session, ..
+            } => Self::Ready(harness_session.clone(), None),
             // Options are not part of the info: a client reads them from
             // the log, or asks `session.options`.
             SessionEvent::Terminal(_)
@@ -270,7 +275,8 @@ impl InfoChange {
             | SessionEvent::OptionsChanged { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => Self::None,
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Forked { .. } => Self::None,
         }
     }
 

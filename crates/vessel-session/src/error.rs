@@ -96,6 +96,17 @@ pub enum SessionError {
     /// Starting a parked session's agent again failed; it stays parked.
     #[error("the session's agent did not start again: {0}")]
     WakeFailed(String),
+    /// The session cannot be rewound now (protocol 12, ADR 0052).
+    #[error("the session cannot be rewound now: {0}")]
+    NotRewound(#[from] RewindRefusal),
+    /// The agent cannot fork its conversation there (protocol 12): it does
+    /// not offer `session/fork`, or it did not fork at the point.
+    #[error("{}", fork_refusal(*.0))]
+    ForkRefused(vessel_agent::ForkRefusal),
+    /// The rewound agent did not start; the session goes on with its old
+    /// conversation.
+    #[error("the agent did not start at the point: {0}")]
+    RewindFailed(String),
     /// An ended session cannot start again (protocol 10's
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
@@ -130,6 +141,36 @@ pub enum ParkRefusal {
     /// The queue would start its next prompt.
     #[error("the queue has prompts that are not held")]
     QueueMoving,
+}
+
+/// Why a session was not rewound (protocol 12's `session.rewind`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum RewindRefusal {
+    /// A terminal session: Vessel does not see its agent's turns.
+    #[error("a terminal session is not rewound")]
+    Terminal,
+    /// Its agent is still starting or moving.
+    #[error("its agent is starting or moving")]
+    NotReady,
+    /// A turn runs.
+    #[error("a turn is running")]
+    TurnRunning,
+    /// A permission or a question waits for an answer.
+    #[error("the agent waits for an answer")]
+    Waiting,
+    /// The queue would start its next prompt.
+    #[error("the queue has prompts that are not held")]
+    QueueMoving,
+}
+
+/// A fork refusal in words.
+const fn fork_refusal(refusal: vessel_agent::ForkRefusal) -> &'static str {
+    match refusal {
+        vessel_agent::ForkRefusal::CannotFork => {
+            "the agent cannot fork a conversation (it does not offer session/fork)"
+        }
+        vessel_agent::ForkRefusal::NotAtPoint => "the agent did not fork at the point",
+    }
 }
 
 /// Why a prompt was not delivered (protocol 10's `session.prompt`).
@@ -174,6 +215,8 @@ impl SessionError {
             | Self::Terminal(_)
             | Self::NotResumable(_)
             | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
+            | Self::NotRewound(RewindRefusal::Terminal)
+            | Self::ForkRefused(_)
             | Self::Attachment(AttachmentError::NoLoader)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
@@ -204,7 +247,8 @@ impl SessionError {
             | Self::StartAgent(_)
             | Self::McpFile(_)
             | Self::Probe(_)
-            | Self::WakeFailed(_) => ErrorCode::SpawnFailed,
+            | Self::WakeFailed(_)
+            | Self::RewindFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
             // An agent this node has not added (ADR 0032).
             | Self::Launch(HarnessError::NotDefined { .. })
@@ -222,6 +266,12 @@ impl SessionError {
                 | ParkRefusal::TurnRunning
                 | ParkRefusal::Waiting
                 | ParkRefusal::QueueMoving,
+            )
+            | Self::NotRewound(
+                RewindRefusal::NotReady
+                | RewindRefusal::TurnRunning
+                | RewindRefusal::Waiting
+                | RewindRefusal::QueueMoving,
             )
             // The agent's refusal of an option change: the session is in a
             // state where it does not take it.

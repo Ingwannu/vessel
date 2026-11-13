@@ -57,6 +57,8 @@ pub(crate) struct StructuredActor {
     /// The node's `park_after` as it changes (protocol 12, `node.settings`);
     /// apart from `parking`, so the actor's `select` can wait on both.
     pub(crate) park_setting: watch::Receiver<Option<Duration>>,
+    /// A record the log starts with (a fork's `forked`, protocol 12).
+    pub(crate) opening: Option<Box<SessionEvent>>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -87,6 +89,9 @@ impl StructuredActor {
             return;
         }
         self.life.starting(&mut self.agent).await;
+        if let Some(opening) = self.opening.take() {
+            self.life.publish(&mut self.agent, *opening).await;
+        }
         // The queue a session started again brought back, held (protocol
         // 10); nothing for a new session.
         self.publish_queue().await;
@@ -116,6 +121,7 @@ impl StructuredActor {
                         Some(Control::Queue(order)) => self.change_queue(order).await,
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
+                        Some(Control::Rewind(order)) => self.rewind(order).await,
                         None => control_open = false,
                     }
                 },
@@ -260,6 +266,11 @@ impl StructuredActor {
                 } = &event
                 {
                     self.parking.harness_session = Some(harness_session.clone());
+                    // A fork is made once (protocol 12): a later start of
+                    // this agent (a wake, a move's fallback) loads it.
+                    if self.launch.setup.fork.take().is_some() {
+                        self.launch.setup.resume = Some(harness_session.clone());
+                    }
                 }
                 // The agent's timeline is activity; its stderr is not (a
                 // chatty adapter would never be parked).
@@ -343,6 +354,7 @@ mod tests {
         let handshake = Disconnect::Handshake {
             message: "the agent does not offer model `x`".to_owned(),
             refused: None,
+            fork_refused: None,
         };
         assert_eq!(
             start_failure(Some(&handshake), Some(0)),

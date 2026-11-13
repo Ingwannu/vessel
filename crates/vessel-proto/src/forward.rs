@@ -401,7 +401,10 @@ impl Method {
             | Self::SearchMessages
             // Parking acts on a session as a prompt does.
             | Self::ParkSession
-            | Self::WakeSession => true,
+            | Self::WakeSession
+            // Forking and rewinding act on a session as a prompt does.
+            | Self::ForkSession
+            | Self::RewindSession => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent

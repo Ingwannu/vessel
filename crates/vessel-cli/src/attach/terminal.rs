@@ -98,7 +98,9 @@ pub(super) async fn attach<L: Log>(mut stream: Stream<L>, keys: Keys) -> Result<
                     | SessionEvent::CommandsChanged { .. }
                     | SessionEvent::UsageChanged { .. }
                     | SessionEvent::Parked { .. }
-                    | SessionEvent::Woken => {}
+                    | SessionEvent::Woken
+                    | SessionEvent::Forked { .. }
+                    | SessionEvent::Rewound { .. } => {}
                 },
                 Some(Err(error)) if !error.is_fatal() => notice(&error, "\r\n").await?,
                 Some(Err(error)) => return Err(error.into()),

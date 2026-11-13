@@ -130,6 +130,31 @@ pub enum SessionEvent {
     /// A parked session's agent was started again with its conversation
     /// and is ready (protocol 12).
     Woken,
+    /// This session is a fork of another (protocol 12, ADR 0052): its
+    /// agent continues `from`'s conversation as it was at the end of the
+    /// turn `after` ends (its `turn_ended` record), or at its end. The
+    /// earlier conversation is in `from`'s log, not copied here.
+    Forked {
+        /// The session forked.
+        from: crate::id::SessionId,
+        /// The record of `from` the fork starts after; absent for the
+        /// whole conversation.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        after: Option<EventSeq>,
+    },
+    /// The session went back to the end of the turn `after` ends (protocol
+    /// 12, ADR 0052): the records between it and this one are no longer
+    /// its agent's conversation. They stay in the log.
+    Rewound {
+        /// The `turn_ended` record it went back to.
+        after: EventSeq,
+        /// The agent's conversation from now on (a fork of the old one,
+        /// which the agent keeps).
+        harness_session: crate::id::HarnessSessionId,
+        /// How many tool calls left behind edited, deleted or moved files:
+        /// those changes were not put back.
+        files_changed: u32,
+    },
 }
 
 impl SessionEvent {
@@ -145,7 +170,9 @@ impl SessionEvent {
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
             | Self::UsageChanged { .. } => ProtocolVersion::new(10),
-            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
+            Self::Parked { .. } | Self::Woken | Self::Forked { .. } | Self::Rewound { .. } => {
+                ProtocolVersion::new(12)
+            }
         }
     }
 
@@ -218,6 +245,26 @@ impl SessionEvent {
                 reason.describe()
             )),
             Self::Woken => log("vessel: the agent was started again".to_owned()),
+            Self::Forked { from, after } => log(match after {
+                Some(after) => format!(
+                    "vessel: a fork of session {from} as it was after record {}",
+                    after.get()
+                ),
+                None => format!("vessel: a fork of session {from}"),
+            }),
+            Self::Rewound {
+                after,
+                files_changed,
+                ..
+            } => log(format!(
+                "vessel: went back to record {}; what came after is no longer the conversation{}",
+                after.get(),
+                if *files_changed > 0 {
+                    format!(" ({files_changed} file changes were not put back)")
+                } else {
+                    String::new()
+                }
+            )),
         }
     }
 }

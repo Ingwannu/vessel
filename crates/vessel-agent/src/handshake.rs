@@ -40,7 +40,8 @@ use agent_client_protocol::v1::ConnectionTo;
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::{Agent, Error};
 use vessel_proto::{
-    AgentAbilities, HarnessSessionId, ModelId, OptionChoice, OptionId, ResolvedMcpServers,
+    AgentAbilities, AgentMessageId, HarnessSessionId, ModelId, OptionChoice, OptionId,
+    ResolvedMcpServers,
 };
 
 use crate::introduction::{self, Introduction, Refusal, Refused};
@@ -61,6 +62,10 @@ pub struct AgentSetup {
     /// Resume this harness session (`session/load`) instead of starting a
     /// new one.
     pub resume: Option<HarnessSessionId>,
+    /// Fork this conversation (`session/fork`) instead of starting a new
+    /// one or resuming one (protocol 12, ADR 0052); wins over `resume`.
+    /// Boxed: rare, and a setup is carried by every start's future.
+    pub fork: Option<Box<ForkFrom>>,
     /// The agent's options to set once the session exists, in order, after
     /// the model (protocol 9). One the agent does not offer, or refuses,
     /// fails the handshake.
@@ -81,6 +86,28 @@ pub struct AgentSetup {
     pub questions: bool,
 }
 
+/// A conversation to fork, and where (protocol 12, ADR 0052).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForkFrom {
+    /// The agent's conversation forked.
+    pub session: HarnessSessionId,
+    /// The agent message the fork ends with; `None` for the whole
+    /// conversation. A fork at a point is checked: the fork is loaded on
+    /// the same connection and its replay must end with this message.
+    pub point: Option<AgentMessageId>,
+}
+
+/// Why a fork was refused, for the caller to answer `unsupported` rather
+/// than a failure to start.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForkRefusal {
+    /// The agent does not advertise `session/fork`.
+    CannotFork,
+    /// The agent did not fork at the point: it did not know the message,
+    /// or its fork's replay ends elsewhere (it ignored the anchor).
+    NotAtPoint,
+}
+
 /// Why the handshake failed.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum HandshakeError {
@@ -93,6 +120,12 @@ pub(crate) enum HandshakeError {
     },
     #[error("the agent cannot resume sessions (it does not support `session/load`)")]
     CannotResume,
+    #[error("the agent cannot fork a conversation (it does not offer `session/fork`)")]
+    CannotFork,
+    #[error("`session/fork` failed")]
+    Fork(#[source] Error),
+    #[error("the agent did not fork at the point")]
+    NotAtPoint,
     #[error("`session/new` failed")]
     NewSession {
         #[source]
@@ -118,6 +151,25 @@ pub(crate) enum HandshakeError {
 }
 
 impl HandshakeError {
+    /// Whether this is a fork refused (rather than an agent that failed).
+    pub(crate) const fn fork_refused(&self) -> Option<ForkRefusal> {
+        match self {
+            Self::CannotFork => Some(ForkRefusal::CannotFork),
+            Self::NotAtPoint => Some(ForkRefusal::NotAtPoint),
+            Self::Initialize(_)
+            | Self::Version { .. }
+            | Self::CannotResume
+            | Self::Fork(_)
+            | Self::NewSession { .. }
+            | Self::LoadSession(_)
+            | Self::Model(_)
+            | Self::SetModel(_)
+            | Self::Option(_)
+            | Self::SetOption { .. }
+            | Self::TimedOut(_) => None,
+        }
+    }
+
     /// Why, as `agent.status` reads it; `None` for a step a probe never
     /// takes (a model, an option, a resume).
     pub(crate) fn refused(&self) -> Option<Refused> {
@@ -145,6 +197,9 @@ impl HandshakeError {
             ),
             Self::TimedOut(limit) => (Refusal::TimedOut { after: *limit }, Introduction::default()),
             Self::CannotResume
+            | Self::CannotFork
+            | Self::Fork(_)
+            | Self::NotAtPoint
             | Self::LoadSession(_)
             | Self::Model(_)
             | Self::SetModel(_)
@@ -163,6 +218,9 @@ impl HandshakeError {
 #[derive(Debug)]
 pub(crate) struct Started {
     pub(crate) session: acp::SessionId,
+    /// The point a fork was asked at, for the driver to check against the
+    /// fork's replay (protocol 12).
+    pub(crate) fork_point: Option<AgentMessageId>,
     pub(crate) options: Options,
     pub(crate) abilities: AgentAbilities,
     pub(crate) introduction: Introduction,
@@ -227,7 +285,9 @@ pub(crate) async fn run(
             "the agent does not take HTTP MCP servers; the session starts without them"
         );
     }
-    let (session, mut options) = if let Some(resume) = &setup.resume {
+    let (session, mut options, fork_point) = if let Some(fork) = &setup.fork {
+        forked(cx, setup, fork, &initialized, servers).await?
+    } else if let Some(resume) = &setup.resume {
         if !initialized.agent_capabilities.load_session {
             return Err(HandshakeError::CannotResume);
         }
@@ -239,7 +299,11 @@ pub(crate) async fn run(
             .block_task()
             .await
             .map_err(HandshakeError::LoadSession)?;
-        (session, Options::new(loaded.config_options, loaded.modes))
+        (
+            session,
+            Options::new(loaded.config_options, loaded.modes),
+            None,
+        )
     } else {
         let created = cx
             .send_request(acp::NewSessionRequest::new(&setup.cwd).mcp_servers(servers))
@@ -250,7 +314,7 @@ pub(crate) async fn run(
                 introduction: introduction.clone(),
             })?;
         let options = Options::new(created.config_options, created.modes);
-        (created.session_id, options)
+        (created.session_id, options, None)
     };
 
     if let Some(wanted) = &setup.model
@@ -275,10 +339,96 @@ pub(crate) async fn run(
     }
     Ok(Started {
         session,
+        fork_point,
         options,
         abilities,
         introduction,
     })
+}
+
+/// `session/fork` of `fork.session`, at `fork.point` when there is one
+/// (the anchor both installed adapters read, `_meta.jetbrains.air.fork`),
+/// then, for a point, `session/load` of the fork on this connection: its
+/// replay is how the driver checks where the fork ends (both adapters load
+/// a session they just forked: Claude's reads the transcript again, Codex's
+/// reattaches and replays).
+async fn forked(
+    cx: &ConnectionTo<Agent>,
+    setup: &AgentSetup,
+    fork: &ForkFrom,
+    initialized: &acp::InitializeResponse,
+    servers: Vec<acp::McpServer>,
+) -> Result<(acp::SessionId, Options, Option<AgentMessageId>), HandshakeError> {
+    if initialized
+        .agent_capabilities
+        .session_capabilities
+        .fork
+        .is_none()
+    {
+        return Err(HandshakeError::CannotFork);
+    }
+    // Without `session/load` a fork at a point cannot be checked.
+    if fork.point.is_some() && !initialized.agent_capabilities.load_session {
+        return Err(HandshakeError::CannotFork);
+    }
+    let mut request =
+        acp::ForkSessionRequest::new(acp::SessionId::new(fork.session.as_str()), &setup.cwd)
+            .mcp_servers(servers.clone());
+    if let Some(point) = &fork.point {
+        request = request.meta(anchor(point));
+    }
+    let forked = cx
+        .send_request(request)
+        .block_task()
+        .await
+        .map_err(|source| {
+            // An anchor the agent does not know is `invalid_params`: the
+            // point is not one it can fork at.
+            if fork.point.is_some()
+                && source.code == agent_client_protocol::ErrorCode::INVALID_PARAMS
+            {
+                HandshakeError::NotAtPoint
+            } else {
+                HandshakeError::Fork(source)
+            }
+        })?;
+    let session = forked.session_id;
+    let Some(point) = &fork.point else {
+        return Ok((
+            session,
+            Options::new(forked.config_options, forked.modes),
+            None,
+        ));
+    };
+    let loaded = cx
+        .send_request(
+            acp::LoadSessionRequest::new(session.clone(), &setup.cwd).mcp_servers(servers),
+        )
+        .block_task()
+        .await
+        .map_err(HandshakeError::LoadSession)?;
+    Ok((
+        session,
+        Options::new(loaded.config_options, loaded.modes),
+        Some(point.clone()),
+    ))
+}
+
+/// The fork point as both installed adapters read it.
+fn anchor(point: &AgentMessageId) -> acp::Meta {
+    let mut fork = serde_json::Map::new();
+    let _version = fork.insert("version".to_owned(), serde_json::Value::from(1));
+    let _message = fork.insert(
+        "messageId".to_owned(),
+        serde_json::Value::from(point.as_str()),
+    );
+    let mut air = serde_json::Map::new();
+    let _fork = air.insert("fork".to_owned(), serde_json::Value::Object(fork));
+    let mut jetbrains = serde_json::Map::new();
+    let _air = jetbrains.insert("air".to_owned(), serde_json::Value::Object(air));
+    let mut meta = acp::Meta::new();
+    let _jetbrains = meta.insert("jetbrains".to_owned(), serde_json::Value::Object(jetbrains));
+    meta
 }
 
 /// Ask the agent to make `change`; its answer says what changed. Awaits

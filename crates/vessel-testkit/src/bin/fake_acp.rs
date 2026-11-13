@@ -40,8 +40,15 @@
 //!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
 //!   `effort` and `fast`.
+//! - `session/fork` (protocol 12; offered unless `FAKE_ACP_NO_FORK` is
+//!   set): session `fork~<source>~<at>`, `<at>` the anchor's message id
+//!   (`_meta.jetbrains.air.fork.messageId`, as the real adapters read it)
+//!   or `head`; with `FAKE_ACP_FORK_IGNORES_POINT` set always `head`, an
+//!   agent that ignores the anchor. Options as `session/new`.
 //! - `session/load`: replays the conversation as a user message chunk
-//!   `earlier question` and an agent message chunk `replayed <id>`, then
+//!   `earlier question` and an agent message chunk `replayed <id>` whose
+//!   message id is where a fork was made (`<at>`, `head-last` for `head`,
+//!   `replayed-last` for any other session), then
 //!   answers with the same options as `session/new`, as they stand. With
 //!   `FAKE_ACP_LOAD_FAILS` set it replays nothing and answers an error
 //!   (`no such session: <id>`), as an agent whose transcript is gone does.
@@ -51,7 +58,8 @@
 //!   (`mode` never to `locked`), rejects anything else; `session/set_mode`
 //!   the same for the older modes.
 //! - `session/prompt`, by prompt text:
-//!   - `plain`: one message chunk `echo: plain`, then `end_turn`;
+//!   - `plain`: one message chunk `echo: plain` with a message id
+//!     (`msg-<n>`, new each time), then `end_turn`;
 //!   - `wait`: nothing until `session/cancel`, then `cancelled`, or until
 //!     a steer `finish`, then `end_turn`;
 //!   - `flood`: message chunks `flood`, ten a millisecond (faster than a
@@ -124,11 +132,12 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use agent_client_protocol::v1::schema::{
     AgentCapabilities, AuthMethod, AuthMethodAgent, AvailableCommand, AvailableCommandInput,
     AvailableCommandsUpdate, CancelNotification, Content, ContentBlock, ContentChunk, Cost,
-    ElicitationCapabilities, Implementation, InitializeRequest, InitializeResponse,
-    LoadSessionRequest, LoadSessionResponse, McpCapabilities, McpServer, NewSessionRequest,
-    NewSessionResponse, PermissionOption, PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority,
-    PlanEntryStatus, PromptCapabilities, PromptRequest, PromptResponse, RequestPermissionOutcome,
-    RequestPermissionRequest, SessionId, SessionNotification, SessionUpdate,
+    ElicitationCapabilities, ForkSessionRequest, ForkSessionResponse, Implementation,
+    InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
+    McpCapabilities, McpServer, MessageId, NewSessionRequest, NewSessionResponse, PermissionOption,
+    PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities,
+    PromptRequest, PromptResponse, RequestPermissionOutcome, RequestPermissionRequest,
+    SessionCapabilities, SessionForkCapabilities, SessionId, SessionNotification, SessionUpdate,
     SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SetSessionModeRequest,
     SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
     ToolCallUpdate, ToolCallUpdateFields, ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
@@ -323,6 +332,8 @@ async fn serve() -> ExitCode {
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
+    let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
+    let ignores_point = std::env::var_os("FAKE_ACP_FORK_IGNORES_POINT").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -357,7 +368,11 @@ async fn serve() -> ExitCode {
                                 .prompt_capabilities(
                                     PromptCapabilities::new().image(true).audio(hears),
                                 )
-                                .mcp_capabilities(McpCapabilities::new().http(http_mcp)),
+                                .mcp_capabilities(McpCapabilities::new().http(http_mcp))
+                                .session_capabilities(
+                                    SessionCapabilities::new()
+                                        .fork(forks.then(SessionForkCapabilities::new)),
+                                ),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
                     if signs_in {
@@ -407,6 +422,32 @@ async fn serve() -> ExitCode {
         .on_receive_request(
             {
                 let state = Arc::clone(&state);
+                async move |request: ForkSessionRequest, responder, cx| {
+                    let point = fork_point(request.meta.as_ref());
+                    let at = match &point {
+                        Some(point) if !ignores_point => point.as_str(),
+                        _ => "head",
+                    };
+                    let id = format!("fork~{}~{at}", request.session_id.0);
+                    let response = {
+                        let mut state = lock(&state);
+                        state.mcp_servers = request.mcp_servers;
+                        state.cwd = Some(request.cwd);
+                        let mut response = ForkSessionResponse::new(id);
+                        response.config_options = state.options.config();
+                        response.modes = state.options.modes();
+                        response
+                    };
+                    let session = response.session_id.clone();
+                    responder.respond(response)?;
+                    cx.send_notification(commands(session))
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let state = Arc::clone(&state);
                 async move |request: LoadSessionRequest, responder, cx| {
                     if load_fails {
                         return responder.respond_with_error(
@@ -423,9 +464,13 @@ async fn serve() -> ExitCode {
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
                         "earlier question",
                     ))))?;
-                    say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
-                        &format!("replayed {}", request.session_id.0),
-                    ))))?;
+                    // A fork's replay ends where it was forked (protocol
+                    // 12): its id says so.
+                    let mut replayed =
+                        ContentChunk::new(text(&format!("replayed {}", request.session_id.0)));
+                    replayed.message_id =
+                        Some(MessageId::new(replayed_message(&request.session_id.0)));
+                    say(SessionUpdate::AgentMessageChunk(replayed))?;
                     let response = {
                         let mut state = lock(&state);
                         state.mcp_servers.clone_from(&request.mcp_servers);
@@ -648,6 +693,36 @@ async fn serve() -> ExitCode {
     }
 }
 
+/// A message id, new each time: `msg-<n>` (protocol 12's points).
+fn next_message() -> String {
+    static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
+    format!(
+        "msg-{}",
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    )
+}
+
+/// The anchor of a `session/fork`, as both real adapters read it:
+/// `_meta.jetbrains.air.fork { version: 1, messageId }`.
+fn fork_point(meta: Option<&serde_json::Map<String, serde_json::Value>>) -> Option<String> {
+    let fork = meta?.get("jetbrains")?.get("air")?.get("fork")?;
+    if fork.get("version")?.as_u64()? != 1 {
+        return None;
+    }
+    fork.get("messageId")?.as_str().map(str::to_owned)
+}
+
+/// The id of a replay's last agent message: for a fork (`fork~<source>~<at>`)
+/// the message it was forked at, `head-last` for a fork of the whole
+/// conversation; `replayed-last` otherwise.
+fn replayed_message(session: &str) -> String {
+    match session.rsplit_once('~') {
+        Some((_, "head")) => "head-last".to_owned(),
+        Some((_, at)) if session.starts_with("fork~") => at.to_owned(),
+        _ => "replayed-last".to_owned(),
+    }
+}
+
 async fn run_turn(
     cx: &agent_client_protocol::v1::ConnectionTo<agent_client_protocol::Client>,
     session: &SessionId,
@@ -658,9 +733,11 @@ async fn run_turn(
     let say = |update| cx.send_notification(SessionNotification::new(session.clone(), update));
     match prompt {
         "plain" => {
-            say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
-                "echo: plain",
-            ))))?;
+            // An id, as Claude's and Codex's adapters give theirs: the
+            // turn's point (protocol 12).
+            let mut chunk = ContentChunk::new(text("echo: plain"));
+            chunk.message_id = Some(MessageId::new(next_message()));
+            say(SessionUpdate::AgentMessageChunk(chunk))?;
             return Ok(StopReason::EndTurn);
         }
         "wait" => {

@@ -100,6 +100,41 @@ Two methods, one optional field, two records; types in
   restarts (`settings.json`) and wins over `--park-after`; it applies to
   live sessions at once. A node older than 12 answers `unsupported`.
 
+### Forking and rewinding (track A2, ADR 0052)
+
+Two methods, two fields, two records; types in `vessel_proto::forking`
+and `vessel_proto::agent`.
+
+- `AgentAbilities.fork`: the agent advertised `session/fork` (ACP's
+  unstable `sessionCapabilities.fork`). Absent from older nodes; a fork's
+  own handshake decides.
+- `TurnEnded.point?: TurnPoint { message, conversation }`: where a fork
+  or a rewind can start; set when the turn's last agent message carried
+  an id (ACP `messageId`, at most 256 bytes) and nothing but the turn's
+  end followed it. `conversation` is the agent's conversation the turn is
+  in. Absent otherwise, and in records written before 12.
+- `session.fork { session, after? }` (operate, forwardable): a new session
+  of the caller's continuing `session`'s conversation after the turn
+  whose `turn_ended` record is `after`, or as it is now (refused
+  `conflict` while a turn runs). Answers the new session at creation, as
+  `session.create` does; it runs in the source's folder with the
+  source's current choices. A fork whose agent does not fork at the
+  point ends `failed` ("the agent did not fork at the point").
+- `session.rewind { session, after }` (operate, ownership-checked,
+  forwardable): the session goes back to the end of that turn; between
+  turns (`conflict` otherwise); a parked session is woken first. Answers
+  the session, its `harness_session` the new conversation.
+- Errors of both: `not_found` (no such session or record), `unsupported`
+  (a terminal session, a record that is not a turn's end with a point,
+  an agent that cannot fork or did not fork at the point), `spawn_failed`
+  (the agent did not start; for a rewind the old conversation goes on).
+- Records (`since 12`; a version 2-11 client gets a `vessel:` log line):
+  `forked { from, after? }`, a fork's first record after `starting`;
+  `rewound { after, harness_session, files_changed }`: the records
+  between `after` and it are no longer the conversation (they stay in the
+  log), the agent's conversation from now on, and how many tool calls left
+  behind edited, deleted or moved files (not put back).
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;

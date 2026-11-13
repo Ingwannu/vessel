@@ -112,7 +112,13 @@ describe("the conversation's model", () => {
         agent({
           event: "ready",
           harness_session: fixtureId("HarnessSessionId", "s"),
-          abilities: { steer: true, resume: true, image: true, audio: false },
+          abilities: {
+            steer: true,
+            resume: true,
+            image: true,
+            audio: false,
+            fork: false,
+          },
         }),
         agent({ event: "turn_started", content: [] }),
         agent({
