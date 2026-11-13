@@ -7234,6 +7234,7 @@ dependencies = [
  "vessel-app-updater",
  "vessel-app-view",
  "vessel-proto",
+ "web-sys",
 ]
 
 [[package]]

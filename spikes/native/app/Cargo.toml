@@ -41,3 +41,6 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = { version = "0.1", features = ["log"] }
 # The page's language from `navigator.languages`.
 sys-locale = { version = "0.3", features = ["js"] }
+# A mark on the page's performance timeline at the first frame drawn
+# (already in the tree through GPUI's web platform).
+web-sys = { version = "0.3", features = ["Window", "Performance"] }

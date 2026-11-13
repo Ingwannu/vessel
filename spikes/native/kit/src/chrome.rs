@@ -116,6 +116,10 @@ pub fn title_bar(
     }
     let macos = cfg!(target_os = "macos");
     let linux = cfg!(any(target_os = "linux", target_os = "freebsd"));
+    // A page has no window to minimise, maximise or close: in a browser the
+    // bar keeps its content (the app's header) and draws no controls
+    // (docs/plans/backend-m12-browser.md).
+    let browser = cfg!(target_arch = "wasm32");
     let maximized = window.is_maximized();
     let bar = div()
         .id("title-bar")
@@ -156,7 +160,7 @@ pub fn title_bar(
                 .occlude()
                 .child(trailing)
         }));
-    if macos {
+    if macos || browser {
         bar
     } else {
         bar.child(control(Control::Minimize, tokens))

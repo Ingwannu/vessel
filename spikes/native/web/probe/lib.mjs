@@ -51,7 +51,7 @@ export async function serve(port) {
  * Headless Chromium. `webgpu: false` turns WebGPU off (the platform then
  * tries WebGL2); `true` asks for SwiftShader's software adapter.
  */
-export async function launch({ webgpu = true, executablePath } = {}) {
+export async function launch({ webgpu = true, executablePath, extra = [] } = {}) {
   const args = webgpu
     ? [
         "--enable-unsafe-webgpu",
@@ -62,7 +62,7 @@ export async function launch({ webgpu = true, executablePath } = {}) {
         "--enable-unsafe-swiftshader",
       ]
     : ["--disable-features=WebGPU", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"];
-  return chromium.launch({ headless: true, args, executablePath });
+  return chromium.launch({ headless: true, args: [...args, ...extra], executablePath });
 }
 
 /** Keep the page's console and errors, in order, for the notes. */

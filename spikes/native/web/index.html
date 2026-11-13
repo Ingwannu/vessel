@@ -17,7 +17,9 @@
 <body>
 <script type="module">
   import init from "./vessel-app.js";
-  init();
+  // The module's exports, its memory among them, for the measurements of
+  // docs/plans/backend-m12-browser.md (question 5).
+  window.vesselWasm = await init();
 </script>
 </body>
 </html>

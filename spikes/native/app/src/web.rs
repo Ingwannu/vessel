@@ -42,6 +42,7 @@ pub(crate) fn main() {
             let bounds = Bounds::centered(None, size(px(1280.0), px(800.0)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {
+                window.on_next_frame(|_window, _cx| mark_first_frame());
                 let shell = cx.new(|cx| shell::Shell::new(lang.text(), window, cx));
                 vessel_app_kit::root(shell, window, cx)
             });
@@ -49,4 +50,15 @@ pub(crate) fn main() {
                 tracing::error!(%error, "the window could not open");
             }
         });
+}
+
+/// `vessel-first-frame` on the page's performance timeline, so time to
+/// the first frame is read from the page as the page's own numbers are
+/// (docs/PERFORMANCE.md; docs/plans/backend-m12-browser.md, question 5).
+fn mark_first_frame() {
+    if let Some(performance) = web_sys::window().and_then(|window| window.performance())
+        && let Err(error) = performance.mark("vessel-first-frame")
+    {
+        tracing::warn!(?error, "the first frame could not be marked");
+    }
 }
