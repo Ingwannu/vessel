@@ -560,3 +560,21 @@ Validation: whole native fmt, all-target clippy with warnings denied, and tests
 passed (533 runtime tests and two documentation tests). Only native checks are
 reported here; imported root/node changes retain the lead's original provenance,
 and no new root implementation or root test run is claimed by this merge.
+
+## Local and remote branches with the same printed name
+
+The next V1 review found that raw reference text is not branch identity:
+a local branch literally named origin/topic can coexist with the remote-tracking
+origin/topic. One shared local-only current predicate now supplies both the
+selected check and the no-op. Every remote row still goes through switch_request,
+so it prepares local topic/create=origin/topic and validates its declared remote
+prefix. The regression compares the complete three-row projection (local,
+remote, malformed-remote), the whole local Current and remote Switch outcomes,
+and the exact typed RemoteMismatch. The original branch records stay intact.
+Paseo's use-branch-switcher.ts compares the selected identity; the native wire
+also carries explicit remote identity and must not collapse it into text.
+
+Validation: the shared frozen native gate passed fmt, all-target clippy with
+warnings denied, and 541 runtime tests plus two documentation tests. The
+independent Info control uses this same source gate; no unchanged gate rerun.
+No Git screen, node write or live input-method proof is claimed here.

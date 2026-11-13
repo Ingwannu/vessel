@@ -71,7 +71,7 @@ pub fn branch_choices<'a>(
                 rows: filter_branches(&list.branches, filter)
                     .into_iter()
                     .map(|branch| BranchChoice {
-                        selected: current.map(BranchName::as_str) == Some(branch.name.as_str()),
+                        selected: current_local(&branch, current),
                         branch,
                         enabled,
                     })
@@ -80,6 +80,13 @@ pub fn branch_choices<'a>(
             }
         }
     }
+}
+
+// A local branch may literally be named origin/topic. Its raw name is not
+// the identity of a remote-tracking origin/topic: that row prepares local topic
+// and must always pass remote-prefix/name validation in switch_request.
+fn current_local(branch: &Branch, current: Option<&BranchName>) -> bool {
+    branch.remote.is_none() && current.map(BranchName::as_str) == Some(branch.name.as_str())
 }
 
 /// Whether the branch picker still owns the place for its read's error.
@@ -122,7 +129,7 @@ pub fn branch_selection(
     branch: &Branch,
     current: Option<&BranchName>,
 ) -> Result<BranchSelection, SwitchProblem> {
-    if current.map(BranchName::as_str) == Some(branch.name.as_str()) {
+    if current_local(branch, current) {
         Ok(BranchSelection::Current)
     } else {
         switch_request(root, branch).map(BranchSelection::Switch)
@@ -370,3 +377,6 @@ mod live_status_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod identity_tests;

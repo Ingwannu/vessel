@@ -464,3 +464,7 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+Branch choices distinguish local identity from a remote-tracking ref even when
+their printable names match. Only the current local branch is a no-op; remote
+choices always pass the existing remote-prefix and local-name validation.
