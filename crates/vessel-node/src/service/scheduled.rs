@@ -149,7 +149,15 @@ impl NodeService {
             .await
         {
             Ok(_delivered) => Made::outcome(RunOutcome::Started { session: info.id }),
-            Err(error) => Made::outcome(failed(&wire(&error), Some(info.id))),
+            Err(error) => {
+                // Started but never prompted: nothing follows it, so it is
+                // put away now, or each such run would leave one more live
+                // (the join's code review, finding 11).
+                if let Err(put) = self.put_away(info.id).await {
+                    tracing::warn!(session = %info.id, error = %put, "cannot put away a schedule's session that got no prompt");
+                }
+                Made::outcome(failed(&wire(&error), Some(info.id)))
+            }
         }
     }
 
