@@ -3,7 +3,10 @@
 //! agent made in its last run, even when the scheduler never heard that
 //! run end; runs waiting for room go oldest due first; an asked run with
 //! no room in 30 s (on the clock the test moves) is `unavailable`; a
-//! catch-up starts at most eight sessions in their first turn.
+//! catch-up starts at most eight sessions in their first turn. And what
+//! the join's code review found: an agent whose session ended makes no
+//! schedule, and ends the scheduler missed still take its schedules; a
+//! run that reached nothing does not stand for the one before.
 
 use super::*;
 
@@ -355,4 +358,46 @@ async fn missed_ends_still_take_the_agents_schedules() {
         }
     })
     .await;
+}
+
+/// A run refused before it reached its target (here, no slot in time)
+/// does not stand for the run before it: the next run is still told the
+/// session the first one started (the join's code review, finding 7).
+#[tokio::test]
+async fn a_run_that_reached_nothing_does_not_hide_the_one_before() {
+    let clock = HandClock::at("2026-01-01T10:00:00Z");
+    let started = Made::outcome(RunOutcome::Started {
+        session: SessionId::random(),
+    });
+    let (runner, mut jobs) = FakeRunner::answering(started.clone());
+    let node = scheduler(Arc::clone(&runner), clock).await;
+    let info = node
+        .schedules
+        .create(
+            definition(every(3600, "2026-01-01T10:00:00Z")),
+            false,
+            person(),
+        )
+        .await
+        .unwrap();
+    let first = node.schedules.run(info.id, person()).await.unwrap();
+    let _job = jobs.recv().await.unwrap();
+    *runner.answer.lock().unwrap_or_else(PoisonError::into_inner) =
+        Made::outcome(RunOutcome::Failed {
+            error: vessel_proto::automation::RunError {
+                code: vessel_proto::automation::RunErrorCode::Forbidden,
+                message: "refused".to_owned(),
+            },
+            session: None,
+        });
+    let _refused = node.schedules.run(info.id, person()).await.unwrap();
+    let _job = jobs.recv().await.unwrap();
+    *runner.answer.lock().unwrap_or_else(PoisonError::into_inner) = started;
+    let _third = node.schedules.run(info.id, person()).await.unwrap();
+    let third = jobs.recv().await.unwrap();
+    assert_eq!(
+        third.previous.map(|run| run.number),
+        Some(first.number),
+        "the run that started a session stands"
+    );
 }
