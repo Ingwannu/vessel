@@ -42,8 +42,9 @@
 #                          vessel-app); the release workspace's
 #                          vessel-release-hello / vessel-hello tries the
 #                          pipeline without the app
-#   VESSEL_SYMBOLS_DIR     where each label's Windows .pdb is kept
-#                          (vessel-app-symbols beside the dist root)
+#   VESSEL_SYMBOLS_DIR     where each label's Windows .pdb and Linux
+#                          .debug are kept (vessel-app-symbols beside the
+#                          dist root)
 #   JOBS                   cargo's -j (6: /data is one spinning disk)
 #
 # Why one script for every target: the owner gets a new build after every
@@ -246,13 +247,33 @@ keep_symbols() {
     echo "windows-x64: ${pdb##*/} kept in the symbols directory under $label"
 }
 
+# The Linux build's debug information (the line tables of the native
+# profile's `debug = "line-tables-only"`), split out of the executable and
+# kept per label in the symbols directory, as the Windows .pdb is: what is
+# shipped stays the size it was without them (its symbols stay, as
+# before), and `--add-gnu-debuglink` names the kept file, so a debugger or
+# `addr2line -e vessel-app.debug` gives a panic's frames their file and
+# line.
+split_debug() {
+    local built="$1" shipped="$2"
+    local dir="${VESSEL_SYMBOLS_DIR:-$(dirname "$VESSEL_DIST_DIR")/vessel-app-symbols}/$label"
+    local debug="$dir/$app_bin.debug"
+    mkdir -p "$dir"
+    objcopy --only-keep-debug "$built" "$debug"
+    objcopy --strip-debug --add-gnu-debuglink="$debug" "$built" "$shipped"
+    (cd "$dir" && sha256sum "$app_bin.debug" >SHA256SUMS-linux)
+    printf '%s  %s\n' "$(sha256sum <"$shipped" | cut -d' ' -f1)" "vessel-$label-linux-x64" >>"$dir/SHA256SUMS-linux"
+    echo "linux-x64: $(du -h "$built" | cut -f1) built, $(du -h "$shipped" | cut -f1) shipped, $app_bin.debug kept in the symbols directory under $label"
+}
+
 build_linux() {
     (cd "$app_ws" && cargo build --release --locked -p "$app_pkg" -j "$jobs")
-    local bin="$target_dir/release/$app_bin"
     local name="vessel-$label-linux-x64"
     rm -f "$out/$name" "$out/$name.tar.gz"
     local dir="$stage/linux/$name"
     mkdir -p "$dir"
+    local bin="$stage/linux/$app_bin"
+    split_debug "$target_dir/release/$app_bin" "$bin"
     # Not `vessel`: that is the command line's name.
     cp "$bin" "$dir/vessel-app"
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"

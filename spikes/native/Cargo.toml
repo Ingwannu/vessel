@@ -147,6 +147,12 @@ unicode-normalization = "0.1"
 # question 3). Symbols kept, as in Vessel's profile: a panic's backtrace
 # names its functions.
 lto = "thin"
+# Line tables, so a panic's frames in the app and GPUI get their file and
+# line (track R's `tools/pdb-frames.py` on Windows, `addr2line` on Linux).
+# What is shipped does not grow: on Windows they are in the .pdb, kept
+# apart already; on Linux `spikes/release/build.sh` splits them out of the
+# executable into `vessel-app.debug` beside the Windows .pdb.
+debug = "line-tables-only"
 
 # GPUI's Windows platform with its build script corrected for a build on
 # another system, and Direct Manipulation made optional
