@@ -17,6 +17,10 @@ pub struct Signal {
 /// Paseo's status signals, in one theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Status {
+    /// Paseo's `palette.blue[300]`, the alert information accent in both themes.
+    pub blue_300: Hsla,
+    /// Paseo's `palette.amber[500]`, the alert warning accent in both themes.
+    pub amber_500: Hsla,
     /// Success, such as access granted or a finished run.
     pub success: Signal,
     /// A state that needs attention.
@@ -31,6 +35,8 @@ impl Status {
     pub fn of(scheme: Scheme) -> Self {
         match scheme {
             Scheme::Light => Self {
+                blue_300: rgb(0x0093_c5fd).into(),
+                amber_500: rgb(0x00f5_9e0b).into(),
                 success: Signal {
                     foreground: rgb(0x003e_704a).into(),
                     tint: rgba(0x3e70_4a1f).into(),
@@ -45,6 +51,8 @@ impl Status {
                 },
             },
             Scheme::Dark => Self {
+                blue_300: rgb(0x0093_c5fd).into(),
+                amber_500: rgb(0x00f5_9e0b).into(),
                 success: Signal {
                     foreground: rgb(0x006c_b17b).into(),
                     tint: rgba(0x6cb1_7b29).into(),

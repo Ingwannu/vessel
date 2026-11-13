@@ -62,6 +62,10 @@ pub enum Glyph {
     Bot,
     /// A failure.
     Alert,
+    /// A success alert: a check inside a circle, drawn on the kit's own grid.
+    CircleCheck,
+    /// An error alert: a cross inside a circle, drawn on the kit's own grid.
+    CircleX,
     /// A folder.
     Folder,
     /// A machine.
@@ -102,7 +106,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 37] = [
+const ALL: [Glyph; 39] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -122,6 +126,8 @@ const ALL: [Glyph; 37] = [
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
+    Glyph::CircleCheck,
+    Glyph::CircleX,
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
@@ -178,6 +184,8 @@ impl Glyph {
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
+            Self::CircleCheck => "kit/circle-check.svg",
+            Self::CircleX => "kit/circle-x.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
@@ -241,6 +249,12 @@ impl Glyph {
             ),
             Self::Alert => {
                 line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
+            }
+            Self::CircleCheck => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M7.5 12l3 3 6-6"/>"#)
+            }
+            Self::CircleX => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
             }
             Self::Folder => line_glyph!(
                 r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#

@@ -22,6 +22,7 @@
 //!   text input (selection, clipboard, input methods), hidden behind
 //!   [`TextField`].
 
+pub mod alert;
 pub mod assets;
 pub mod badge;
 pub mod breakpoint;
