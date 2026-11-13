@@ -23,6 +23,7 @@
 //!   [`TextField`].
 
 pub mod assets;
+pub mod badge;
 pub mod breakpoint;
 pub mod chat_markdown;
 pub mod chrome;
