@@ -99,10 +99,18 @@ pub enum Glyph {
     Branch,
     /// A pull request (Paseo's `GitPullRequest`).
     PullRequest,
+    /// Fast mode, off: a lightning bolt's outline.
+    Lightning,
+    /// Fast mode, on: the bolt filled.
+    LightningFilled,
+    /// Back to the default: an arrow turning back.
+    Reset,
+    /// Work going on: three quarters of a ring, turned by `spinner`.
+    Spinner,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 37] = [
+const ALL: [Glyph; 41] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -140,6 +148,10 @@ const ALL: [Glyph; 37] = [
     Glyph::Plus,
     Glyph::Branch,
     Glyph::PullRequest,
+    Glyph::Lightning,
+    Glyph::LightningFilled,
+    Glyph::Reset,
+    Glyph::Spinner,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -196,9 +208,14 @@ impl Glyph {
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
             Self::PullRequest => "kit/pull-request.svg",
+            Self::Lightning => "kit/lightning.svg",
+            Self::LightningFilled => "kit/lightning-filled.svg",
+            Self::Reset => "kit/reset.svg",
+            Self::Spinner => "kit/spinner.svg",
         }
     }
 
+    #[expect(clippy::too_many_lines, reason = "one arm per glyph, each its drawing")]
     const fn svg(self) -> &'static str {
         match self {
             Self::Mark => MARK,
@@ -289,6 +306,20 @@ impl Glyph {
             Self::Branch => line_glyph!(
                 r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>"#
             ),
+            Self::Lightning => {
+                line_glyph!(r#"<path d="M13.25 2.75 4.75 13.5h6.75l-1 7.75 8.5-10.75h-6.75z"/>"#)
+            }
+            Self::LightningFilled => concat!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" stroke="black" stroke-width="1.5" stroke-linejoin="round">"#,
+                r#"<path d="M13.25 2.75 4.75 13.5h6.75l-1 7.75 8.5-10.75h-6.75z"/>"#,
+                "</svg>"
+            ),
+            Self::Reset => line_glyph!(
+                r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
+            ),
+            Self::Spinner => {
+                line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
+            }
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
             ),
