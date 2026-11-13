@@ -167,8 +167,8 @@ impl Shell {
         cx.notify();
     }
 
-    fn choose_folder(&mut self, folder: String, window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.draft.folder.set_text(&folder, window, cx);
+    fn choose_folder(&mut self, folder: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.areas.draft.folder.set_text(folder, window, cx);
         self.areas.draft.picking = None;
         self.areas.draft.composer.focus(window, cx);
         cx.notify();
@@ -249,64 +249,7 @@ pub(crate) fn render(
     let t = shell.t;
     let draft = &shell.areas.draft;
     let online: Vec<&Machine> = shell.fleet.online().collect();
-    let machine = draft
-        .machine
-        .as_deref()
-        .and_then(|name| online.iter().find(|machine| machine.name == name).copied());
-    let agent_label = draft
-        .agent
-        .as_ref()
-        .map_or_else(|| t.agent.to_owned(), agent_name);
-    let folder = draft.folder.text(cx);
-    let folder_label = if folder.trim().is_empty() {
-        t.home_folder.to_owned()
-    } else {
-        folder
-    };
-
-    let tray = div()
-        .flex()
-        .flex_row()
-        .flex_wrap()
-        .items_center()
-        .gap(px(6.0))
-        .child(
-            chip(
-                "pick-machine",
-                draft
-                    .machine
-                    .clone()
-                    .unwrap_or_else(|| t.machine.to_owned()),
-                Some(if machine.is_some() {
-                    tokens.st_ready
-                } else {
-                    tokens.text_tertiary
-                }),
-                draft.picking == Some(Picker::Machine),
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Machine, cx))),
-        )
-        .child(
-            chip(
-                "pick-agent",
-                agent_label,
-                None,
-                draft.picking == Some(Picker::Agent),
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Agent, cx))),
-        )
-        .child(
-            chip(
-                "pick-folder",
-                folder_label,
-                None,
-                draft.picking == Some(Picker::Folder),
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Folder, cx))),
-        );
+    let tray = tray(shell, &online, tokens, cx);
 
     let composer = div()
         .w_full()
@@ -383,6 +326,70 @@ pub(crate) fn render(
         .child(column)
 }
 
+/// The tray under the composer: the machine, the agent, the folder.
+fn tray(shell: &Shell, online: &[&Machine], tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let t = shell.t;
+    let draft = &shell.areas.draft;
+    let machine = draft
+        .machine
+        .as_deref()
+        .and_then(|name| online.iter().find(|machine| machine.name == name).copied());
+    let agent_label = draft
+        .agent
+        .as_ref()
+        .map_or_else(|| t.agent.to_owned(), agent_name);
+    let folder = draft.folder.text(cx);
+    let folder_label = if folder.trim().is_empty() {
+        t.home_folder.to_owned()
+    } else {
+        folder
+    };
+
+    div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .items_center()
+        .gap(px(6.0))
+        .child(
+            chip(
+                "pick-machine",
+                draft
+                    .machine
+                    .clone()
+                    .unwrap_or_else(|| t.machine.to_owned()),
+                Some(if machine.is_some() {
+                    tokens.st_ready
+                } else {
+                    tokens.text_tertiary
+                }),
+                draft.picking == Some(Picker::Machine),
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Machine, cx))),
+        )
+        .child(
+            chip(
+                "pick-agent",
+                agent_label,
+                None,
+                draft.picking == Some(Picker::Agent),
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Agent, cx))),
+        )
+        .child(
+            chip(
+                "pick-folder",
+                folder_label,
+                None,
+                draft.picking == Some(Picker::Folder),
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, _window, cx| this.pick(Picker::Folder, cx))),
+        )
+}
+
 /// The open picker's choices, under the composer.
 fn options(
     shell: &Shell,
@@ -453,12 +460,12 @@ fn options(
             let mut row = div().flex().flex_row().flex_wrap().gap(px(6.0)).child(
                 vessel_app_kit::choice("folder-home", t.home_folder, false, tokens).on_click(
                     cx.listener(|this, _event, window, cx| {
-                        this.choose_folder(String::new(), window, cx)
+                        this.choose_folder("", window, cx);
                     }),
                 ),
             );
             for (index, folder) in used.into_iter().enumerate() {
-                let picked = folder.clone();
+                let chosen_folder = folder.clone();
                 row = row.child(
                     vessel_app_kit::choice(
                         ElementId::Name(format!("folder-{index}").into()),
@@ -467,7 +474,7 @@ fn options(
                         tokens,
                     )
                     .on_click(cx.listener(move |this, _event, window, cx| {
-                        this.choose_folder(picked.clone(), window, cx);
+                        this.choose_folder(&chosen_folder, window, cx);
                     })),
                 );
             }

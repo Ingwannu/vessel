@@ -86,6 +86,7 @@ impl Shell {
                     }
                 }
                 self.settle_draft();
+                self.retitle();
             }
             Event::Records { session, records } => self.records(&session, &records),
             Event::Started(card) => self.started(&card, cx),

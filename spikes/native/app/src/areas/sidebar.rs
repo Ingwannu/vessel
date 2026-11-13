@@ -161,7 +161,7 @@ fn session_row(
                 } else {
                     tokens.text_secondary
                 })
-                .child(card.title.clone()),
+                .child(shell.t.title(&card.title).to_owned()),
         )
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);

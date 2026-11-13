@@ -41,7 +41,7 @@ impl Open {
     pub(crate) fn of(card: &Card) -> Self {
         Self {
             machine: card.machine.clone(),
-            session: card.session.clone(),
+            session: card.session,
             title: card.title.clone(),
             agent: card.agent.clone(),
             structured: card.structured,
@@ -113,7 +113,7 @@ impl Shell {
         if open.structured {
             self.command(Command::Open {
                 machine: open.machine.clone(),
-                session: open.session.clone(),
+                session: open.session,
             });
         }
         self.areas.session.open = Some(open);
@@ -145,8 +145,38 @@ impl Shell {
     /// prompt still shown until its first record arrives.
     pub(crate) fn started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
         self.draft_started();
-        if self.areas.session.pending.is_some() && self.route == Route::Session {
-            self.follow(Open::of(card), cx);
+        let Some(pending) = self.areas.session.pending.clone() else {
+            return;
+        };
+        if self.route == Route::Session {
+            let mut open = Open::of(card);
+            if open.title.is_empty() {
+                // The node titles a session from its first prompt when the
+                // turn starts (80 characters of its first line); until then
+                // the same, here.
+                open.title = first_line(&pending.prompt);
+            }
+            self.follow(open, cx);
+        }
+    }
+
+    /// The fleet was read again: the open session's title, if the node
+    /// has given it one since.
+    pub(crate) fn retitle(&mut self) {
+        let Some(open) = &mut self.areas.session.open else {
+            return;
+        };
+        let card = self
+            .fleet
+            .machines
+            .iter()
+            .flat_map(|machine| machine.sessions.iter())
+            .find(|card| card.session == open.session);
+        if let Some(card) = card {
+            if !card.title.is_empty() {
+                open.title.clone_from(&card.title);
+            }
+            open.live = card.live;
         }
     }
 
@@ -189,7 +219,7 @@ impl Shell {
         }
         self.command(Command::Prompt {
             machine: open.machine.clone(),
-            session: open.session.clone(),
+            session: open.session,
             text,
         });
         self.areas.session.composer.clear(window, cx);
@@ -200,7 +230,7 @@ impl Shell {
         if let Some(open) = &self.areas.session.open {
             self.command(Command::Stop {
                 machine: open.machine.clone(),
-                session: open.session.clone(),
+                session: open.session,
             });
             cx.notify();
         }
@@ -215,7 +245,7 @@ impl Shell {
         if let Some(open) = &self.areas.session.open {
             self.command(Command::Answer {
                 machine: open.machine.clone(),
-                session: open.session.clone(),
+                session: open.session,
                 id,
                 option,
             });
@@ -271,7 +301,11 @@ pub(crate) fn render(
         .size_full()
         .flex()
         .flex_col()
-        .child(title_bar(open.title.clone(), Some(detail), tokens))
+        .child(title_bar(
+            t.title(&open.title).to_owned(),
+            Some(detail),
+            tokens,
+        ))
         .child(body)
         .children(
             view.conversation
@@ -380,7 +414,7 @@ fn composer(shell: &Shell, tokens: &Tokens, working: bool, cx: &mut Context<'_, 
 fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let mut answers = div().flex().flex_row().gap(px(8.0));
     for (index, (option, words, allows)) in asked.options.iter().enumerate() {
-        let id = asked.id.clone();
+        let id = asked.id;
         let option = option.clone();
         answers = answers.child(
             button(
@@ -390,7 +424,7 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.answer(id.clone(), option.clone(), cx);
+                this.answer(id, option.clone(), cx);
             })),
         );
     }
@@ -412,6 +446,19 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
                 .child(shell.t.asks_to_run(asked.what.as_deref())),
         )
         .child(answers)
+}
+
+/// The first line of a prompt, at most 80 characters (the node's rule
+/// for a title, `SessionTitle::from_prompt`).
+fn first_line(prompt: &str) -> String {
+    prompt
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .chars()
+        .take(80)
+        .collect()
 }
 
 fn person(text: &str, tokens: &Tokens) -> Div {

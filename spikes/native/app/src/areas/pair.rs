@@ -32,7 +32,7 @@ pub(crate) struct Pairing {
     link_error: Option<String>,
     name_problem: Option<NameProblem>,
     pair_error: Option<String>,
-    pairing: bool,
+    busy: bool,
 }
 
 impl Pairing {
@@ -59,7 +59,7 @@ impl Pairing {
             link_error: None,
             name_problem: None,
             pair_error: None,
-            pairing: false,
+            busy: false,
         }
     }
 }
@@ -115,7 +115,7 @@ impl Shell {
 
     fn pair(&mut self, name: String, cx: &mut Context<'_, Self>) {
         let pair = &mut self.areas.pair;
-        if pair.pairing {
+        if pair.busy {
             return;
         }
         let Some(offer) = pair.offer.clone() else {
@@ -129,7 +129,7 @@ impl Shell {
             return;
         }
         let pair = &mut self.areas.pair;
-        pair.pairing = true;
+        pair.busy = true;
         pair.pair_error = None;
         self.command(Command::Pair { offer, name });
         cx.notify();
@@ -143,7 +143,7 @@ impl Shell {
     /// Pairing worked: the draft next, to start working there.
     pub(crate) fn paired(&mut self, node: &str, route: &str, cx: &mut Context<'_, Self>) {
         let pair = &mut self.areas.pair;
-        pair.pairing = false;
+        pair.busy = false;
         pair.offer = None;
         self.notice = Some(self.t.paired(node, route));
         self.route = Route::Draft;
@@ -153,7 +153,7 @@ impl Shell {
 
     pub(crate) fn pair_failed(&mut self, why: String) {
         let pair = &mut self.areas.pair;
-        pair.pairing = false;
+        pair.busy = false;
         pair.pair_error = Some(why);
     }
 }
@@ -207,7 +207,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .child(
                     button(
                         "pair",
-                        if pair.pairing { t.pairing } else { t.pair },
+                        if pair.busy { t.pairing } else { t.pair },
                         true,
                         tokens,
                     )

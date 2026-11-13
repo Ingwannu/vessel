@@ -104,6 +104,7 @@ pub struct Text {
     pub choose_first: &'static str,
     // The archive.
     pub nothing_ended: &'static str,
+    pub untitled: &'static str,
     // Pairing.
     pub pair_intro: &'static str,
     pub pairing_link: &'static str,
@@ -132,6 +133,16 @@ impl Text {
             Lane::Validating => self.validating,
             Lane::InReview => self.in_review,
             Lane::Ready => self.ready,
+        }
+    }
+
+    /// A session's title as shown: its own, or "Untitled session".
+    #[must_use]
+    pub fn title<'a>(&self, title: &'a str) -> &'a str {
+        if title.is_empty() {
+            self.untitled
+        } else {
+            title
         }
     }
 
@@ -168,7 +179,7 @@ impl Text {
     /// "just now", "6m ago", "3h ago", "5d ago" (the page's `sinceLabel`).
     #[must_use]
     pub fn since(&self, minutes: i64) -> String {
-        let (hours, days) = (minutes / 60, minutes / (60 * 24));
+        let (hours, days) = (minutes.div_euclid(60), minutes.div_euclid(60 * 24));
         match self.lang {
             Lang::En if minutes < 1 => "just now".to_owned(),
             Lang::En if minutes < 60 => format!("{minutes}m ago"),
@@ -346,6 +357,7 @@ const EN: Text = Text {
     no_agent: "No agent that runs a conversation is installed on this machine.",
     choose_first: "Choose a machine and an agent first.",
     nothing_ended: "Nothing has ended yet.",
+    untitled: "Untitled session",
     pair_intro: "Paste the pairing link the machine printed and press Enter. A link works once, for ten minutes.",
     pairing_link: "Pairing link",
     link_placeholder: "vessel://pair#…",
@@ -410,6 +422,7 @@ const KO: Text = Text {
     no_agent: "이 머신에는 대화를 실행할 에이전트가 설치되어 있지 않습니다.",
     choose_first: "먼저 머신과 에이전트를 고르세요.",
     nothing_ended: "아직 끝난 세션이 없습니다.",
+    untitled: "제목 없는 세션",
     pair_intro: "머신이 출력한 페어링 링크를 붙여 넣고 Enter를 누르세요. 링크는 10분 동안 한 번만 쓸 수 있습니다.",
     pairing_link: "페어링 링크",
     link_placeholder: "vessel://pair#…",

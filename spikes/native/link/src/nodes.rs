@@ -106,7 +106,7 @@ async fn read_credential(
 #[derive(Debug, Clone)]
 pub struct Offer {
     /// The decoded offer.
-    pub(crate) offer: vessel_proto::PairingOffer,
+    pub(crate) decoded: vessel_proto::PairingOffer,
     /// The key's fingerprint, in its groups of four.
     pub key: String,
     /// The node's id.
@@ -138,7 +138,7 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
         node: offer.node.to_string(),
         routes,
         expires: offer.expires.format("%Y-%m-%d %H:%M UTC").to_string(),
-        offer,
+        decoded: offer,
     })
 }
 
@@ -189,7 +189,7 @@ pub fn name_problem(text: &str, taken: &[String]) -> Option<NameProblem> {
 pub fn default_name(taken: &[String]) -> String {
     let free = |name: &String| !taken.contains(name);
     std::iter::once("machine".to_owned())
-        .chain((2_u32..).map(|n| format!("machine-{n}")))
+        .chain((2_u32..=999).map(|n| format!("machine-{n}")))
         .find(free)
         .unwrap_or_else(|| "machine".to_owned())
 }
@@ -209,7 +209,7 @@ pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<(String, String), 
     if read_book()?.iter().any(|(taken, _)| taken == &name) {
         return Err(LinkError::Name(format!("{name} is already in the book")));
     }
-    let offer = &offer.offer;
+    let offer = &offer.decoded;
     let dialer = WsDialer::for_routes(offer.direct.iter().chain(&offer.relays))
         .map_err(|error| LinkError::Connect(error.to_string()))?;
     let device_name = hostname::get()

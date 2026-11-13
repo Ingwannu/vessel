@@ -8,7 +8,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, dot};
-use vessel_app_view::{Card, Lane};
+use vessel_app_view::{Attention, Card, Lane};
 
 use super::common::{card_color, title_bar};
 use super::session::Open;
@@ -120,7 +120,7 @@ fn card_view(
         .p(px(10.0))
         .bg(tokens.bg_surface)
         .border_1()
-        .border_color(if card.needs_you {
+        .border_color(if card.attention == Attention::NeedsYou {
             tokens.st_needs_you
         } else {
             tokens.border_subtle
@@ -133,7 +133,7 @@ fn card_view(
                 .type_(Type::Card)
                 .text_color(tokens.text_primary)
                 .line_clamp(2)
-                .child(card.title.clone()),
+                .child(shell.t.title(&card.title).to_owned()),
         )
         .child(
             div()
@@ -145,10 +145,10 @@ fn card_view(
                 .child(
                     div()
                         .type_(Type::Tiny)
-                        .text_color(if card.needs_you || card.working {
-                            phrase_color
-                        } else {
+                        .text_color(if card.attention == Attention::AtRest {
                             tokens.text_secondary
+                        } else {
+                            phrase_color
                         })
                         .child(shell.t.phrase(&card.phrase)),
                 ),

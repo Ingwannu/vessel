@@ -422,13 +422,11 @@ impl State {
             let content = vec![ContentBlock::Text { text: prompt }];
             let sent = if client.protocol() >= ProtocolVersion::new(10) {
                 client
-                    .prompt(info.id.clone(), content, Delivery::Start)
+                    .prompt(info.id, content, Delivery::Start)
                     .await
                     .map(|_delivered| ())
             } else {
-                client
-                    .send(info.id.clone(), SessionInput::Prompt { content })
-                    .await
+                client.send(info.id, SessionInput::Prompt { content }).await
             };
             sent.map_err(|error| LinkError::Call(error.to_string()))?;
             Ok::<_, LinkError>(Card::from_session(machine, &info))
@@ -475,10 +473,7 @@ impl State {
             return;
         };
         let content = vec![ContentBlock::Text { text }];
-        match client
-            .prompt(session.clone(), content, Delivery::Queue)
-            .await
-        {
+        match client.prompt(session, content, Delivery::Queue).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
                 self.emit(Event::Failed(
@@ -520,10 +515,7 @@ fn unreachable(name: String, why: &str) -> Machine {
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
-    let mut stream = match client
-        .follow(session.clone(), vessel_proto::EventSeq::new(0))
-        .await
-    {
+    let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
         Ok(stream) => stream,
         Err(error) => {
             let _closed = events.send(Event::Failed(error.to_string())).await;
@@ -534,7 +526,7 @@ async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Eve
         match item {
             Ok(record) => {
                 let event = Event::Records {
-                    session: session.clone(),
+                    session,
                     records: vec![record],
                 };
                 if events.send(event).await.is_err() {

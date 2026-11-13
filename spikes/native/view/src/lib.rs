@@ -13,6 +13,8 @@ mod board;
 mod conversation;
 mod text;
 
-pub use board::{Agent, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll};
+pub use board::{
+    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll,
+};
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use text::{Lang, Text};
