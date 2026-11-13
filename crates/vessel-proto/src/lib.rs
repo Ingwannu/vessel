@@ -41,6 +41,7 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+pub mod settings;
 mod terminal;
 pub mod terminals;
 mod title;

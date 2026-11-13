@@ -8582,3 +8582,65 @@ not offer the setting.
   hold no `admin`; the read is not in their policy either).
 
 ADR 0038 gains a paragraph; `PROTOCOL.md` and `README.md` say the same.
+
+### 2b. The setting: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) found no blocker, five
+should-fix and five minor points. Taken (the code and ADR 0038's "The
+setting" are the amended design):
+
+1. **One lock over write and apply** (two changes at once would leave the
+   file and the sessions disagreeing), the write in a blocking task, as
+   `agent.add` holds its lock.
+2. **The flag is bounded** (`0..=10080` when parsed), so it never runs a
+   time `node.settings` cannot say.
+3. **The file keeps only what a person changed** (every field optional,
+   the wire's `SetNodeSettings`), laid over the flags; a saved `unknown`
+   (a newer build's, read after a downgrade) means the flag's value; a
+   file that cannot be read or parsed is logged and left for the next
+   change to replace.
+4. **The flag is an `Option`**, so the node knows it was given and logs
+   when a saved value overrides it.
+5. **The setting's receiver is the actor's own field**, beside `parking`
+   (the `select` borrows both), its arm before the timer's and not gated
+   on `ready`; a park already under way finishes.
+6. **Neither call is forwardable** (no caller needs another node's; the
+   web bridge connects to each node). An agent may read the setting, as
+   it reads `node.info`; the change needs `admin`, which no agent holds.
+   `GetNodeSettings {}` with braces, as `ListAgents {}`. The range of
+   `idle` is fixed; a longer time would be a new `kind`. A change that
+   changes nothing writes nothing.
+
+Not taken: telling connected clients when the setting changes (Paseo's
+`daemon_config_changed`); a client reads it when it shows it.
+
+### 2b. Parking as a node setting (built 2026-11-13)
+
+- **Wire**: `node.settings` (read) and `node.set_settings` (admin), `since
+  12`, not forwardable, through `vessel-web`'s bridge; `NodeSettings`,
+  `SetNodeSettings`, `ParkAfter`, `IdleMinutes`.
+- **Store**: `settings.json` (`DataDir::read_settings`/`write_settings`).
+- **Session runtime**: `SessionRuntime::park_after`/`set_park_after`, a
+  watch every structured actor follows (`Parking::set_after`).
+- **Node**: `settings` (in force = saved over the flag; one lock; write
+  then apply), `service/settings`; `vesseld --park-after` bounded and
+  optional (`Config::park_after_given`).
+- **CLI**: `vessel node settings [--park-after MINUTES|never]`.
+
+**Checked**: the proto's (the forms of `park_after`, out of range
+refused, a newer kind read as `unknown`); the store's (read back, a bad
+file says why); the session runtime's (a runtime that never parked starts
+parking a live idle session when the setting changes); the node's end to
+end (the flag's value with nothing saved; a change answered, read back,
+kept across a restart with the same flag and winning over it; `unknown`
+refused; an empty change; an agent reading it and refused the change,
+which changes nothing).
+
+**For the settings screen** (E2): Paseo's
+`packages/app/src/screens/settings/idle-runtime-cleanup-card.tsx` (a
+switch, hidden when the host lacks the setting). Vessel: read
+`node.settings` when the card shows; on/off maps to `idle { minutes: 60
+}` / `never` (a minutes field is optional beyond Paseo); hide the card
+on `unsupported` or `invalid_request` (a node older than 12); a device
+without `admin` gets `forbidden` on a change.
+

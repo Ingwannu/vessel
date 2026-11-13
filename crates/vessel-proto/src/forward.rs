@@ -410,6 +410,10 @@ impl Method {
             | Self::ReadInstall
             | Self::RemoveAgent
             | Self::StopNode
+            // The node's settings (protocol 12): its own administration,
+            // read and changed by its owner and its own devices.
+            | Self::GetNodeSettings
+            | Self::SetNodeSettings
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

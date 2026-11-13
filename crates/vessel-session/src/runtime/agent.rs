@@ -60,8 +60,9 @@ impl SessionRuntime {
             replaying,
             gate,
         } = actor;
+        let park_setting = self.park_setting();
         let parking = Parking::new(
-            self.config.park_after,
+            *park_setting.borrow(),
             launch.setup.options.clone(),
             launch.setup.resume.clone(),
         );
@@ -86,6 +87,7 @@ impl SessionRuntime {
             gate,
             loader: self.attachments.clone(),
             parking,
+            park_setting,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }

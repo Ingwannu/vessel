@@ -92,6 +92,13 @@ Two methods, one optional field, two records; types in
   cancel do not wake it.
 - The node parks idle sessions on its own after `--park-after` minutes
   (60 by default; 0 never), never one that someone follows live.
+- `node.settings {}` (read) answers `NodeSettings { park_after }` in force;
+  `node.set_settings { park_after? }` (admin) changes what it names and
+  answers the same. `ParkAfter` (tagged `kind`): `never`, `idle { minutes
+  }` (1 to 10,080), `unknown` (a newer node's; refused in a change,
+  `invalid_request`). Neither is forwardable. A change is kept across
+  restarts (`settings.json`) and wins over `--park-after`; it applies to
+  live sessions at once. A node older than 12 answers `unsupported`.
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 

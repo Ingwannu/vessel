@@ -175,6 +175,9 @@ targets!(
 untargeted!(
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
+    // The node's settings: no session's.
+    vessel_proto::settings::GetNodeSettings,
+    vessel_proto::settings::SetNodeSettings,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -459,6 +462,8 @@ guarded! {
     search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
     park_session: vessel_proto::parking::ParkSession => SessionInfo;
     wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+    node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
+    set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
 
     @through_the_guard {
         forward: Forward => Forwarded;

@@ -118,7 +118,9 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
 - An idle agent is parked (protocol 12): after an hour without activity
-  (`vesseld --park-after MINUTES`, 0 never) its process is stopped while
+  (`vessel node settings --park-after MINUTES|never`, kept across
+  restarts and applied at once; `vesseld --park-after` is the value of a
+  node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
   answer, its queue moves, or someone follows it (a page that has it
   open, `vessel attach`). The next prompt, option change or `vessel

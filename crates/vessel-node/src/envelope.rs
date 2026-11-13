@@ -651,6 +651,8 @@ async fn run_here(
             Reply::WakeSession(guard.wake_session(connection, request).await?)
         }
         Call::StopNode(_)
+        | Call::GetNodeSettings(_)
+        | Call::SetNodeSettings(_)
         | Call::AddAgent(_)
         | Call::GetCatalogue(_)
         | Call::InstallAgent(_)

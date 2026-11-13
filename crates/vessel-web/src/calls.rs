@@ -214,7 +214,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
         | Method::ParkSession
-        | Method::WakeSession => true,
+        | Method::WakeSession
+        // Protocol 12: the node's settings (the change needs `admin`).
+        | Method::GetNodeSettings
+        | Method::SetNodeSettings => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

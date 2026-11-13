@@ -73,6 +73,7 @@ mod removal_race;
 mod resume;
 #[cfg(test)]
 mod routing;
+mod settings;
 // Where track D's schedules meet pull requests, terminals and added
 // agents (Unix: the terminals' shell is `/bin/sh`).
 #[cfg(test)]

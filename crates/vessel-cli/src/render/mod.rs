@@ -111,6 +111,17 @@ pub(crate) fn node(node: &NodeInfo) -> String {
 
 /// `vessel node status`: the node, whether it takes new sessions, how many
 /// are live, and whether it runs this client's version.
+/// `vessel node settings`: the settings in force (protocol 12).
+pub(crate) fn node_settings(settings: vessel_proto::settings::NodeSettings) -> String {
+    use vessel_proto::parking::ParkAfter;
+    let park_after = match settings.park_after {
+        ParkAfter::Never => String::from("never"),
+        ParkAfter::Idle { minutes } => format!("after {} minutes idle", minutes.get()),
+        ParkAfter::Unknown => String::from("a newer node's choice"),
+    };
+    format!("park an idle agent: {park_after}\n")
+}
+
 pub(crate) fn node_status(node: &NodeInfo, sessions: &[SessionInfo], client: &str) -> String {
     let state = match node.state {
         NodeState::Serving => "serving",

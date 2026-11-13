@@ -402,6 +402,10 @@ rpc_methods! {
     ParkSession / park_session / "session.park" [Operate, 12]: crate::parking::ParkSession => SessionInfo;
     /// Start a parked session's agent again (protocol 12).
     WakeSession / wake_session / "session.wake" [Operate, 12]: crate::parking::WakeSession => SessionInfo;
+    /// The node's settings in force (protocol 12, ADR 0038).
+    GetNodeSettings / node_settings / "node.settings" [Read, 12]: crate::settings::GetNodeSettings => crate::settings::NodeSettings;
+    /// Change the node's settings; kept across restarts (protocol 12).
+    SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12]: crate::settings::SetNodeSettings => crate::settings::NodeSettings;
 }
 
 /// Result of a call.
