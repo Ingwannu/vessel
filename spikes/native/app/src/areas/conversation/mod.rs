@@ -50,6 +50,7 @@ pub(crate) mod dock;
 mod entries;
 mod find;
 mod look;
+mod meter;
 mod outline;
 mod permission;
 mod plan;
@@ -79,6 +80,7 @@ use vessel_proto::{
 
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
+pub(crate) use meter::meter;
 pub(crate) use timeline::{overlays, timeline};
 
 use crate::shell::Shell;
@@ -297,6 +299,8 @@ pub(crate) struct ConversationArea {
     pub(crate) queue_edit: Option<queue::QueueEdit>,
     /// The question waiting first, being answered over the composer.
     pub(crate) answering: Option<question::Answering>,
+    /// The context meter left of the send button, and its card.
+    pub(crate) meter: meter::MeterState,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -347,6 +351,7 @@ impl ConversationArea {
             rename: None,
             queue_edit: None,
             answering: None,
+            meter: meter::MeterState::default(),
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),

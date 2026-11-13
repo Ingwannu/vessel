@@ -373,6 +373,15 @@ grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
   exit 1
 }
 
+# How full the agent's context is (fake-acp's `usage <tokens>`, of
+# 200,000, at a cost of 0.5 USD): the context meter's room (0.6%), amber
+# (75%) and red (95%). The agent offers `/compact`. Checked through
+# `vessel log` (the turn's message chunk).
+for shape in "context-room usage" "context-low usage 150000" "context-full usage 190000"; do
+  start_session laptop "${shape%% *}" "${shape#* }"
+  wait_for laptop "$(tail -1 "$root/sessions" | cut -d' ' -f2)" "used"
+done
+
 # An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
 # the whole list in each update): created, sent again unchanged, a step
 # started, one done as the next starts, one added. Checked through

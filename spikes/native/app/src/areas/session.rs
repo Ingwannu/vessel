@@ -577,7 +577,16 @@ fn composer(
     column(
         vessel_app_kit::composer_card(tokens, touch)
             .child(field.element(tokens, touch, cx))
-            .child(div().flex().flex_row().justify_end().child(button)),
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_end()
+                    .gap(px(8.0))
+                    .children(super::conversation::meter(shell, tokens, window, cx))
+                    .child(button),
+            ),
     )
     .pb(px(12.0))
 }
