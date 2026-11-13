@@ -13,11 +13,21 @@ workspace = true
 
 [dependencies]
 vessel-app-view.workspace = true
-vessel-client.workspace = true
 vessel-proto.workspace = true
 chrono.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+# The link to real nodes: `vessel-client` (tokio's network and runtime,
+# rustls, files on disk), none of which a browser has.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+vessel-client.workspace = true
 dirs.workspace = true
 hostname.workspace = true
-thiserror.workspace = true
 tokio.workspace = true
-tracing.workspace = true
+
+# In a browser (docs/plans/backend-m12-browser.md): the same channels, a
+# demo fleet of wire records behind them until a websocket transport exists.
+# tokio's `sync` is the only part of it that builds for wasm32.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", default-features = false, features = ["sync"] }

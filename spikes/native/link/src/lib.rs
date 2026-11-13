@@ -20,25 +20,44 @@
 //!   fast as it draws, and a sender waits for room, so a burst of records
 //!   slows the stream, never grows memory.
 
+#[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+// A browser has no `vessel-client` yet (no tokio network, no files): the
+// same `Link`, `Command` and `Event`, answered from a demo fleet, so the
+// screens can be drawn and typed into from WebAssembly
+// (docs/plans/backend-m12-browser.md, questions 1 and 8).
+#[cfg(target_arch = "wasm32")]
+mod web;
+#[cfg(any(target_arch = "wasm32", test))]
+mod demo;
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
+#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
-use vessel_app_view::{Card, Fleet, Machine, Reach};
+use vessel_app_view::Fleet;
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::{Card, Machine, Reach};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
-use vessel_proto::{
-    ContentBlock, Delivery, EventRecord, PermissionId, PermissionOptionId, PermissionOutcome,
-    SessionId, SessionInput,
-};
+use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_proto::{ContentBlock, Delivery, PermissionOutcome, SessionInput};
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{Offer, read_link};
+#[cfg(target_arch = "wasm32")]
+pub use web::{Link, Offer, read_link};
 
 /// How often the sessions of every machine are listed again. The page
 /// reads its list on the same cadence (`docs/PERFORMANCE.md`); a pushed
 /// list is a protocol change for later.
+#[cfg(not(target_arch = "wasm32"))]
 const REFRESH: Duration = Duration::from_secs(2);
 
 /// Room in each channel. Records come in pages of up to a few hundred; a
@@ -154,6 +173,7 @@ pub enum Event {
     Failed(String),
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
 pub struct Link {
@@ -161,6 +181,7 @@ pub struct Link {
     _runtime: tokio::runtime::Runtime,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Link {
     /// Start the link; `label` is the build's label, sent as this client's
     /// version. Events arrive on the receiver returned.
@@ -200,6 +221,7 @@ impl Link {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// The link's own state, owned by its task.
 struct State {
     label: String,
@@ -208,6 +230,7 @@ struct State {
     follow: Option<tokio::task::JoinHandle<()>>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
         self.reload().await;
@@ -355,6 +378,7 @@ impl State {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine) else {
@@ -373,6 +397,7 @@ impl State {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn unreachable(name: String, why: &str) -> Machine {
     Machine {
         name,
@@ -381,6 +406,7 @@ fn unreachable(name: String, why: &str) -> Machine {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
