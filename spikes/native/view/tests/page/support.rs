@@ -23,7 +23,7 @@ pub(crate) struct Log {
 
 impl Log {
     /// A record of `event` (a session event's JSON), at the next seq.
-    pub(crate) fn record(&mut self, event: Value) -> EventRecord {
+    pub(crate) fn record(&mut self, event: &Value) -> EventRecord {
         let record = serde_json::from_value(json!({ "seq": self.seq, "at": AT, "event": event }))
             .expect("a session event the wire takes");
         self.seq = self.seq.saturating_add(1);
@@ -31,15 +31,15 @@ impl Log {
     }
 
     /// A record of an agent event.
-    pub(crate) fn agent(&mut self, event: Value) -> EventRecord {
-        self.record(json!({ "type": "agent", "event": event }))
+    pub(crate) fn agent(&mut self, event: &Value) -> EventRecord {
+        self.record(&json!({ "type": "agent", "event": event }))
     }
 
     /// A model call's record.
     pub(crate) fn model(&mut self, call: Value) -> EventRecord {
         let mut event = call;
         event["type"] = json!("model_call");
-        self.record(event)
+        self.record(&event)
     }
 }
 
@@ -173,7 +173,7 @@ pub(crate) mod make {
     pub(crate) fn conversation(count: u64) -> Vec<Entry> {
         let mut entries = vec![prompt(0, "go")];
         for index in 0..count {
-            let seq = index + 1;
+            let seq = index.saturating_add(1);
             entries.push(match index % 3 {
                 0 => message(seq, &format!("Entry {index} names module_{index}.rs")),
                 1 => thought(seq),

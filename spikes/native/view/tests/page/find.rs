@@ -1,5 +1,6 @@
 //! The page's `data/find.test.ts` and `data/find.speed.test.ts`.
 
+use std::io::Write as _;
 use std::time::{Duration, Instant};
 
 use vessel_app_view::timeline::{
@@ -133,7 +134,7 @@ fn the_count_as_written_and_as_spoken() {
 fn marked<'a>(text: &'a str, query: &str) -> Vec<&'a str> {
     spans_of(text, query)
         .into_iter()
-        .map(|span| &text[span])
+        .map(|span| text.get(span).unwrap())
         .collect()
 }
 
@@ -216,7 +217,8 @@ fn a_find_over_5000_entries_stays_well_under_a_frame_once_folded() {
         }
     }
     if std::env::var("VESSEL_FIND_TIMINGS").is_ok_and(|value| value == "1") {
-        eprintln!(
+        let _shown = writeln!(
+            std::io::stderr(),
             "find, 5000 entries: first {cold:?}, later median {median:?}, longest slice (cold) {longest:?}, {} matches",
             found.len()
         );

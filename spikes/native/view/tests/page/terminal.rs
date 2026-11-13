@@ -8,8 +8,8 @@ use vessel_app_view::terminal::{
 
 use crate::support::{EN, Log};
 
-fn keys(text: &str) -> Option<Outgoing> {
-    Some(Outgoing::Keys(text.to_owned()))
+fn keys(text: &str) -> Outgoing {
+    Outgoing::Keys(text.to_owned())
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn is_sent_one_call_at_a_time_in_the_order_typed() {
     assert_eq!(sender.take(), None, "one in flight");
     sender.answered();
     // Keys typed during the resize go out together, Enter last.
-    assert_eq!(sender.take(), keys("pasted line\r"));
+    assert_eq!(sender.take(), Some(keys("pasted line\r")));
     sender.answered();
     assert_eq!(sender.take(), None);
     assert!(!sender.busy());
@@ -50,13 +50,13 @@ fn keeps_keys_and_sizes_in_order_the_latest_size_only() {
     assert_eq!(
         sent,
         [
-            keys("a"),
-            keys("b"),
+            Some(keys("a")),
+            Some(keys("b")),
             Some(Outgoing::Resize {
                 cols: 100,
                 rows: 30
             }),
-            keys("c")
+            Some(keys("c"))
         ]
     );
 }
@@ -68,14 +68,17 @@ fn goes_on_after_a_failed_send_without_repeating_it() {
     let first = sender.take();
     let _ = sender.keys("two");
     sender.answered(); // failed: not repeated
-    assert_eq!((first, sender.take()), (keys("one"), keys("two")));
+    assert_eq!(
+        (first, sender.take()),
+        (Some(keys("one")), Some(keys("two")))
+    );
 }
 
 #[test]
 fn drops_keys_past_its_bound_and_says_so_once() {
     let mut sender = TerminalSender::default();
     assert_eq!(sender.keys("x"), Taken::Queued);
-    assert_eq!(sender.take(), keys("x"));
+    assert_eq!(sender.take(), Some(keys("x")));
     assert_eq!(sender.keys(&"y".repeat(MAX_PENDING)), Taken::Queued);
     assert_eq!(sender.keys("z"), Taken::DroppedFirst);
     assert_eq!(sender.keys("w"), Taken::Dropped);
@@ -87,7 +90,7 @@ fn drops_keys_past_its_bound_and_says_so_once() {
     // Room again: keys are taken.
     assert_eq!(sender.keys("v"), Taken::Queued);
     sender.answered();
-    assert_eq!(sender.take(), keys("v"));
+    assert_eq!(sender.take(), Some(keys("v")));
 }
 
 #[test]
@@ -99,7 +102,7 @@ fn sends_nothing_after_close() {
     sender.close();
     sender.answered();
     let _ = sender.keys("c");
-    assert_eq!((first, sender.take()), (keys("a"), None));
+    assert_eq!((first, sender.take()), (Some(keys("a")), None));
 }
 
 #[test]
@@ -116,12 +119,12 @@ fn only_a_focused_view_that_has_typed_resizes() {
 fn replays_terminal_bytes_once_and_sums_model_calls() {
     let mut log = Log::default();
     let records = [
-        log.record(serde_json::json!({ "type": "terminal", "data": "aGk=" })),
+        log.record(&serde_json::json!({ "type": "terminal", "data": "aGk=" })),
         log.model(serde_json::json!({
             "route": "r", "model": "m", "api": "anthropic_messages",
             "usage": { "input": 1200, "output": 300 }, "stop": "end_turn", "duration_ms": 5
         })),
-        log.record(serde_json::json!({ "type": "terminal", "data": "IQ==" })),
+        log.record(&serde_json::json!({ "type": "terminal", "data": "IQ==" })),
     ];
     let mut terminal = TerminalLog::default();
     let bytes: Vec<Vec<u8>> = terminal

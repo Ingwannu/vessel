@@ -20,24 +20,24 @@ const QWEN: &str = r#"{
 fn turn(log: &mut Log) -> Vec<EventRecord> {
     log.seq = 0;
     vec![
-        log.record(json!({ "type": "status", "status": { "state": "running" } })),
-        log.agent(json!({ "event": "ready", "harness_session": "fake-session-1" })),
-        log.agent(json!({ "event": "turn_started", "content": [{ "type": "text", "text": "fix it" }] })),
-        log.agent(json!({ "event": "thought_chunk", "content": { "type": "text", "text": "thinking" } })),
-        log.agent(json!({ "event": "message_chunk", "content": { "type": "text", "text": "echo: fix it " } })),
-        log.agent(json!({ "event": "message_chunk", "content": { "type": "text", "text": "(model fake-small)" } })),
-        log.agent(json!({
+        log.record(&json!({ "type": "status", "status": { "state": "running" } })),
+        log.agent(&json!({ "event": "ready", "harness_session": "fake-session-1" })),
+        log.agent(&json!({ "event": "turn_started", "content": [{ "type": "text", "text": "fix it" }] })),
+        log.agent(&json!({ "event": "thought_chunk", "content": { "type": "text", "text": "thinking" } })),
+        log.agent(&json!({ "event": "message_chunk", "content": { "type": "text", "text": "echo: fix it " } })),
+        log.agent(&json!({ "event": "message_chunk", "content": { "type": "text", "text": "(model fake-small)" } })),
+        log.agent(&json!({
             "event": "tool_call", "id": "call-1", "title": "Read status.rs", "kind": "read",
             "status": "pending", "content": [],
             "locations": [{ "path": "/src/app/crates/fleet/src/status.rs", "line": 12 }],
             "raw_input": { "path": "status.rs" }
         })),
-        log.agent(json!({
+        log.agent(&json!({
             "event": "plan",
             "entries": [{ "content": "Read the code", "priority": "high", "status": "in_progress" }]
         })),
-        log.agent(json!({ "event": "tool_call_update", "id": "call-1", "status": "in_progress" })),
-        log.agent(json!({
+        log.agent(&json!({ "event": "tool_call_update", "id": "call-1", "status": "in_progress" })),
+        log.agent(&json!({
             "event": "permission_requested", "id": uuid(1), "tool_call": "call-1",
             "options": [
                 { "id": "allow-once", "name": "Allow once", "kind": "allow_once" },
@@ -96,25 +96,22 @@ fn resolves_a_permission_and_ends_the_turn() {
     let mut timeline = folded(&turn(&mut log));
     let prompt = timeline.entries()[2].clone();
     let change = timeline.apply(&[
-        log.agent(json!({
+        log.agent(&json!({
             "event": "permission_resolved", "id": uuid(1),
             "outcome": { "outcome": "selected", "option": "allow-once" }
         })),
-        log.agent(json!({
+        log.agent(&json!({
             "event": "tool_call_update", "id": "call-1", "status": "completed",
             "raw_output": { "ok": true }
         })),
-        log.agent(json!({ "event": "turn_ended", "reason": "end_turn" })),
+        log.agent(&json!({ "event": "turn_ended", "reason": "end_turn" })),
     ]);
     assert!(timeline.pending().is_none());
     assert!(!timeline.in_turn());
     let permission = timeline
         .entries()
         .iter()
-        .find_map(|entry| match &entry.kind {
-            EntryKind::Permission(permission) => Some(permission),
-            _ => None,
-        })
+        .find_map(|entry| entry.kind.as_permission())
         .unwrap();
     assert!(matches!(
         &permission.outcome,
@@ -136,7 +133,7 @@ fn finds_tool_calls_and_permissions_by_id_across_batches() {
     let mut log = Log::default();
     let mut records: Vec<EventRecord> = (0..300)
         .map(|n| {
-            log.agent(json!({
+            log.agent(&json!({
                 "event": "tool_call", "id": format!("call-{n}"), "title": format!("Step {n}"),
                 "kind": "read", "status": "pending", "content": [],
                 "locations": [{ "path": format!("/src/file-{}.rs", n % 7), "line": n }]
@@ -144,7 +141,7 @@ fn finds_tool_calls_and_permissions_by_id_across_batches() {
         })
         .collect();
     for (permission, call) in [(10, "call-10"), (11, "call-250")] {
-        records.push(log.agent(json!({
+        records.push(log.agent(&json!({
             "event": "permission_requested", "id": uuid(permission), "tool_call": call,
             "options": [{ "id": "allow-once", "name": "Allow", "kind": "allow_once" }]
         })));
@@ -159,8 +156,8 @@ fn finds_tool_calls_and_permissions_by_id_across_batches() {
     assert_eq!(pending_title(&timeline).as_deref(), Some("Step 10"));
     assert_eq!(timeline.files().len(), 7);
     let _change = timeline.apply(&[
-        log.agent(json!({ "event": "tool_call_update", "id": "call-250", "status": "completed" })),
-        log.agent(json!({
+        log.agent(&json!({ "event": "tool_call_update", "id": "call-250", "status": "completed" })),
+        log.agent(&json!({
             "event": "permission_resolved", "id": uuid(10),
             "outcome": { "outcome": "selected", "option": "allow-once" }
         })),
@@ -168,10 +165,7 @@ fn finds_tool_calls_and_permissions_by_id_across_batches() {
     let tools: Vec<_> = timeline
         .entries()
         .iter()
-        .filter_map(|entry| match &entry.kind {
-            EntryKind::Tool(tool) => Some(tool),
-            _ => None,
-        })
+        .filter_map(|entry| entry.kind.as_tool())
         .collect();
     assert_eq!(tools.len(), 300);
     let updated = tools
@@ -200,9 +194,9 @@ fn skips_records_it_has_seen_so_a_resumed_stream_can_overlap() {
 fn marks_user_chunks_outside_a_turn_as_a_replayed_prompt() {
     let mut log = Log::default();
     let timeline = folded(&[
-        log.agent(json!({ "event": "user_message_chunk", "content": { "type": "text", "text": "earlier " } })),
-        log.agent(json!({ "event": "user_message_chunk", "content": { "type": "text", "text": "question" } })),
-        log.agent(json!({ "event": "message_chunk", "content": { "type": "text", "text": "replayed" } })),
+        log.agent(&json!({ "event": "user_message_chunk", "content": { "type": "text", "text": "earlier " } })),
+        log.agent(&json!({ "event": "user_message_chunk", "content": { "type": "text", "text": "question" } })),
+        log.agent(&json!({ "event": "message_chunk", "content": { "type": "text", "text": "replayed" } })),
     ]);
     let EntryKind::Prompt(prompt) = &timeline.entries()[0].kind else {
         panic!("a prompt first");
@@ -262,8 +256,8 @@ fn keeps_what_the_session_runs_with_and_its_title_as_state_not_entries() {
     });
     let fast = json!({ "id": "fast", "name": "Fast mode", "category": "other", "kind": "toggle", "on": false });
     let mut timeline = folded(&[
-        log.record(json!({ "type": "options_changed", "options": [model.clone(), fast] })),
-        log.record(json!({ "type": "renamed", "title": "Fix the flaky test" })),
+        log.record(&json!({ "type": "options_changed", "options": [model.clone(), fast] })),
+        log.record(&json!({ "type": "renamed", "title": "Fix the flaky test" })),
     ]);
     assert!(timeline.entries().is_empty());
     assert_eq!(timeline.options().unwrap().len(), 2);
@@ -275,7 +269,7 @@ fn keeps_what_the_session_runs_with_and_its_title_as_state_not_entries() {
     let mut haiku = model;
     haiku["current"] = json!("haiku");
     let _change = timeline
-        .apply(&[log.record(json!({ "type": "options_changed", "options": [haiku.clone()] }))]);
+        .apply(&[log.record(&json!({ "type": "options_changed", "options": [haiku.clone()] }))]);
     let options: Vec<serde_json::Value> = timeline
         .options()
         .unwrap()
@@ -294,10 +288,10 @@ fn a_question_is_an_entry_that_becomes_its_outcome_in_place() {
     let mut log = Log::default();
     let mut timeline = folded(&[
         log.agent(
-            json!({ "event": "turn_started", "content": [{ "type": "text", "text": "go" }] }),
+            &json!({ "event": "turn_started", "content": [{ "type": "text", "text": "go" }] }),
         ),
         log.agent(
-            json!({ "event": "question_asked", "id": uuid(1), "message": "Which?", "fields": [] }),
+            &json!({ "event": "question_asked", "id": uuid(1), "message": "Which?", "fields": [] }),
         ),
     ]);
     assert_eq!(kinds(&timeline), ["prompt", "question"]);
@@ -305,7 +299,7 @@ fn a_question_is_an_entry_that_becomes_its_outcome_in_place() {
     assert_eq!(timeline.turn(), Some(EventSeq::new(0)));
     assert_eq!(timeline.waiting_questions().len(), 1);
     let prompt = timeline.entries()[0].clone();
-    let change = timeline.apply(&[log.agent(json!({
+    let change = timeline.apply(&[log.agent(&json!({
         "event": "question_resolved", "id": uuid(1), "outcome": { "outcome": "declined" }
     }))]);
     assert_eq!(timeline.entries().len(), 2);
@@ -325,15 +319,15 @@ fn a_question_is_an_entry_that_becomes_its_outcome_in_place() {
 fn the_turn_stop_names_and_what_asks_for_attention() {
     let mut log = Log::default();
     let mut timeline = folded(&[
-        log.agent(json!({ "event": "turn_started", "content": [] })),
-        log.agent(json!({ "event": "message_chunk", "content": { "type": "text", "text": "x" } })),
-        log.agent(json!({ "event": "turn_ended", "reason": "end_turn" })),
+        log.agent(&json!({ "event": "turn_started", "content": [] })),
+        log.agent(&json!({ "event": "message_chunk", "content": { "type": "text", "text": "x" } })),
+        log.agent(&json!({ "event": "turn_ended", "reason": "end_turn" })),
     ]);
     assert_eq!(timeline.turn(), None);
     assert_eq!(timeline.attention(), Some(EventSeq::new(2)));
     let _change = timeline.apply(&[
-        log.agent(json!({ "event": "turn_started", "content": [] })),
-        log.agent(json!({ "event": "turn_failed", "message": "no" })),
+        log.agent(&json!({ "event": "turn_started", "content": [] })),
+        log.agent(&json!({ "event": "turn_failed", "message": "no" })),
     ]);
     assert_eq!(timeline.attention(), Some(EventSeq::new(4)));
     assert_eq!(timeline.turn(), None);
@@ -371,10 +365,7 @@ fn folds_a_whole_recorded_turn() {
     let tool = timeline
         .entries()
         .iter()
-        .find_map(|entry| match &entry.kind {
-            EntryKind::Tool(tool) => Some(tool),
-            _ => None,
-        })
+        .find_map(|entry| entry.kind.as_tool())
         .unwrap();
     assert_eq!(tool.status, ToolCallStatus::Completed);
     assert!(timeline.pending().is_none());

@@ -11,6 +11,7 @@
 pub(crate) mod archive;
 pub(crate) mod board;
 pub(crate) mod common;
+pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
 pub(crate) mod session;
@@ -25,6 +26,7 @@ pub(crate) struct Areas {
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
+    pub(crate) conversation: conversation::ConversationArea,
 }
 
 impl Areas {
@@ -33,6 +35,7 @@ impl Areas {
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
+            conversation: conversation::ConversationArea::default(),
         }
     }
 }

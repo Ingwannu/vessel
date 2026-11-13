@@ -6,7 +6,7 @@
 
 use std::fmt::Write as _;
 
-use vessel_proto::workspace::{GitOperation, KeptReason};
+use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
 use vessel_proto::{InvalidTitle, SessionTitle};
 
 use super::numbers::meter_tokens;
@@ -219,21 +219,28 @@ impl Text {
 
     /// What a delete's toast says became of the session's worktree.
     #[must_use]
-    pub fn deleted_line(&self, kept: Option<&[KeptReason]>, removed: bool) -> Option<String> {
-        if removed {
-            return Some(
-                self.either("Its worktree was removed.", "워크트리를 지웠습니다.")
-                    .to_owned(),
-            );
+    pub fn deleted_worktree(&self, outcome: &RemoveWorktreeOutcome) -> String {
+        match outcome {
+            RemoveWorktreeOutcome::Removed { .. } => self
+                .either("Its worktree was removed.", "워크트리를 지웠습니다.")
+                .to_owned(),
+            RemoveWorktreeOutcome::Kept { reasons } => {
+                let reasons: Vec<String> = reasons
+                    .iter()
+                    .map(|reason| self.kept_reason(reason))
+                    .collect();
+                match self.lang {
+                    Lang::En => format!("Its worktree was kept: {}.", reasons.join(", ")),
+                    Lang::Ko => format!("워크트리를 남겼습니다: {}.", reasons.join(", ")),
+                }
+            }
         }
-        let reasons: Vec<String> = kept?
-            .iter()
-            .map(|reason| self.kept_reason(reason))
-            .collect();
-        Some(match self.lang {
-            Lang::En => format!("Its worktree was kept: {}.", reasons.join(", ")),
-            Lang::Ko => format!("워크트리를 남겼습니다: {}.", reasons.join(", ")),
-        })
+    }
+
+    /// The toast after a delete.
+    #[must_use]
+    pub const fn session_deleted(&self) -> &'static str {
+        self.either("Session deleted", "세션을 삭제했습니다")
     }
 
     /// The ended banner's heading.

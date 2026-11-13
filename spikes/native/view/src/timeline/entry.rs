@@ -276,6 +276,26 @@ impl EntryKind {
         }
     }
 
+    /// The tool call, when this is one.
+    #[must_use]
+    pub const fn as_tool(&self) -> Option<&ToolView> {
+        if let Self::Tool(tool) = self {
+            Some(tool)
+        } else {
+            None
+        }
+    }
+
+    /// The permission request, when this is one.
+    #[must_use]
+    pub const fn as_permission(&self) -> Option<&Permission> {
+        if let Self::Permission(permission) = self {
+            Some(permission)
+        } else {
+            None
+        }
+    }
+
     /// Whether this is a tool call or a thought: what "Collapse tool
     /// calls" folds into a run.
     #[must_use]

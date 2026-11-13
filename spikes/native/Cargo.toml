@@ -109,6 +109,7 @@ gpui = { package = "gpui-pre", version = "=0.3.10" }
 gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", features = ["x11", "wayland"] }
 gpui-component = { version = "=0.8.1", default-features = false }
 
+bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 hostname = "0.4"

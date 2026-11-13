@@ -109,8 +109,8 @@ const FRONT: ReadView = ReadView {
     held_at: None,
 };
 
-fn seq(n: u64) -> Option<EventSeq> {
-    Some(EventSeq::new(n))
+const fn seq(n: u64) -> EventSeq {
+    EventSeq::new(n)
 }
 
 #[test]
@@ -118,14 +118,14 @@ fn only_in_front_and_only_after_something_asked_for_attention() {
     assert_eq!(read_through(&FRONT), None);
     assert_eq!(
         read_through(&ReadView {
-            attention: seq(7),
+            attention: Some(seq(7)),
             ..FRONT
         }),
-        seq(10)
+        Some(seq(10))
     );
     assert_eq!(
         read_through(&ReadView {
-            attention: seq(7),
+            attention: Some(seq(7)),
             front: false,
             ..FRONT
         }),
@@ -136,7 +136,7 @@ fn only_in_front_and_only_after_something_asked_for_attention() {
             unread: true,
             ..FRONT
         }),
-        seq(10)
+        Some(seq(10))
     );
 }
 
@@ -144,8 +144,8 @@ fn only_in_front_and_only_after_something_asked_for_attention() {
 fn not_again_for_what_was_already_sent() {
     assert_eq!(
         read_through(&ReadView {
-            attention: seq(7),
-            sent: seq(10),
+            attention: Some(seq(7)),
+            sent: Some(seq(10)),
             ..FRONT
         }),
         None
@@ -153,12 +153,12 @@ fn not_again_for_what_was_already_sent() {
     // A new turn's end after the last read.
     assert_eq!(
         read_through(&ReadView {
-            attention: seq(11),
+            attention: Some(seq(11)),
             next: EventSeq::new(12),
-            sent: seq(10),
+            sent: Some(seq(10)),
             ..FRONT
         }),
-        seq(12)
+        Some(seq(12))
     );
 }
 
@@ -166,36 +166,42 @@ fn not_again_for_what_was_already_sent() {
 fn after_mark_unread_not_until_a_record_comes_after_it() {
     let held = ReadView {
         unread: true,
-        attention: seq(7),
-        sent: seq(8),
-        held_at: seq(10),
+        attention: Some(seq(7)),
+        sent: Some(seq(8)),
+        held_at: Some(seq(10)),
         ..FRONT
     };
     assert_eq!(read_through(&held), None);
     assert_eq!(
         read_through(&ReadView {
             next: EventSeq::new(11),
-            attention: seq(10),
+            attention: Some(seq(10)),
             ..held
         }),
-        seq(11)
+        Some(seq(11))
     );
 }
 
 #[test]
 fn what_became_of_the_worktree_in_words() {
-    use vessel_proto::workspace::KeptReason;
-    assert_eq!(EN.deleted_line(None, false), None);
+    use vessel_proto::workspace::{KeptReason, RemoveWorktreeOutcome};
+    let kept = RemoveWorktreeOutcome::Kept {
+        reasons: vec![
+            KeptReason::Uncommitted { files: 2 },
+            KeptReason::UniqueCommits { commits: 1 },
+        ],
+    };
     assert_eq!(
-        EN.deleted_line(
-            Some(&[
-                KeptReason::Uncommitted { files: 2 },
-                KeptReason::UniqueCommits { commits: 1 }
-            ]),
-            false
-        )
-        .as_deref(),
-        Some("Its worktree was kept: 2 uncommitted files, 1 commit no other branch has.")
+        EN.deleted_worktree(&kept),
+        "Its worktree was kept: 2 uncommitted files, 1 commit no other branch has."
+    );
+    assert_eq!(
+        format!(
+            "{} {}",
+            EN.session_deleted(),
+            EN.deleted_worktree(&RemoveWorktreeOutcome::Removed { snapshot: None })
+        ),
+        "Session deleted Its worktree was removed."
     );
 }
 

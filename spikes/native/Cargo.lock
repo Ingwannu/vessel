@@ -7118,6 +7118,7 @@ dependencies = [
 name = "vessel-app-link"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "chrono",
  "dirs 6.0.0",
  "hostname",
