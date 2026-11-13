@@ -3,6 +3,8 @@
 //! and `session-actions.tsx`; Paseo's header: 36 points tall with a
 //! pointer, 44 on a phone, a hairline under it).
 
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent,
     ParentElement as _, Styled as _, Window, div, px,
@@ -76,7 +78,7 @@ pub(crate) fn bar(
                 cx.stop_propagation();
             }),
         )
-        .child("⋯");
+        .child(glyph(Glyph::More, 16.0, tokens.neutral.foreground_muted));
     div()
         .flex()
         .flex_row()

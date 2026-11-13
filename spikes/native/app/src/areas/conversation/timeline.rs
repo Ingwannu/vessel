@@ -134,13 +134,7 @@ fn run_header(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_run(lead, cx)))
-        .child(
-            div()
-                .w(px(16.0))
-                .flex()
-                .justify_center()
-                .child(if open { "▾" } else { "▸" }),
-        )
+        .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()
 }

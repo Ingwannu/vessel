@@ -6,6 +6,8 @@
 //! `TimelineSystemDivider`). The words are the page's (ADR 0036).
 
 use chrono::Local;
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
     IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
@@ -204,13 +206,7 @@ pub(super) fn work_row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_entry(index, cx)))
-        .child(
-            div()
-                .w(px(16.0))
-                .flex()
-                .justify_center()
-                .child(if open { "▾" } else { "▸" }),
-        )
+        .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))
         .children(detail.map(|(detail, color)| {
             div()
@@ -302,4 +298,19 @@ pub(super) fn empty(paint: &Paint<'_>) -> Div {
         .type_(Type::Body)
         .text_color(paint.look.secondary)
         .child(paint.words.send_to_start())
+}
+
+/// A disclosure's caret: down when open, right when closed (the kit's
+/// glyphs; GOAT's chevron at 14).
+pub(super) fn disclosure(open: bool, color: vessel_app_kit::ui::Hsla) -> Div {
+    let which = if open {
+        Glyph::ChevronDown
+    } else {
+        Glyph::ChevronRight
+    };
+    div()
+        .w(px(16.0))
+        .flex()
+        .justify_center()
+        .child(glyph(which, 14.0, color))
 }
