@@ -384,6 +384,21 @@ impl TextField {
         }
     }
 
+    /// Whether this field has the keys with its caret at the very start and
+    /// nothing selected (track S2's Alt+Up, Paseo's edit-the-last-queued
+    /// prompt, acts only there, so the key still moves the caret anywhere
+    /// else). A field without the keys answers no.
+    pub fn at_start(&self, window: &Window, cx: &App) -> bool {
+        if !self.focus_handle(cx).is_focused(window) {
+            return false;
+        }
+        let range = match &self.kind {
+            Kind::Line(state) => state.read(cx).selected_range(),
+            Kind::Lines(state, _) => state.read(cx).selected_range(),
+        };
+        range.start == 0 && range.end == 0
+    }
+
     /// Whether any kit text field in this window has the keys and an input
     /// method composing in it: what a window-wide shortcut listener asks
     /// before acting on a key (track S2's registry), since the fields are
@@ -769,6 +784,12 @@ mod composing_tests {
                 unmark(focused, window, cx);
                 assert!(!focused.composing(window, cx), "committed");
                 assert!(!TextField::focused_composing(window, cx), "committed");
+                // The caret after the committed syllable is not at the
+                // start; emptied, it is, and only for the field with keys.
+                assert!(!focused.at_start(window, cx), "after 하");
+                focused.clear(window, cx);
+                assert!(focused.at_start(window, cx), "empty, focused");
+                assert!(!other.at_start(window, cx), "no keys");
                 unmark(other, window, cx);
             }
         });
