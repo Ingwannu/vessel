@@ -107,6 +107,23 @@ export function useStarter(machine: NodeKey | null): Starter {
     },
     [],
   );
+  // Another machine chosen while a worktree is being made stops that
+  // start, as another place does: the approval would otherwise name the
+  // new machine while Approve approved the first one's project (found by
+  // the review of the page's join).
+  const startedOn = useRef(machine);
+  useEffect(() => {
+    if (startedOn.current === machine) {
+      return;
+    }
+    startedOn.current = machine;
+    if (running.current !== null) {
+      running.current.abort();
+      running.current = null;
+      setAsking(NOT_ASKING);
+      setStep({ kind: "idle" });
+    }
+  }, [machine]);
 
   const project =
     place.kind === "project" ? projectIn(projects, place.project) : null;
