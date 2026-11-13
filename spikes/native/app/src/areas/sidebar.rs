@@ -158,6 +158,7 @@ pub(crate) fn render(
 /// sidebar has it (after its pages, before the projects): the schedules
 /// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
 /// side of the slot.
+/// The row to draw there is [`nav_row`] with `Some(Glyph::CalendarClock)`.
 const fn schedules(
     _shell: &Shell,
     _tokens: &Tokens,
@@ -360,20 +361,47 @@ fn row(
     active: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    nav_row(id, label, None, active, tokens)
+}
+
+/// A navigation row of the sidebar, for an entry in its slots (track G2's
+/// Schedules, after Paseo's `SidebarHeaderRow` `compact`): `leading`, a
+/// glyph before the words, 14 points in the words' colour, 8 from them
+/// (Paseo's `sm` icon and `spacing[2]`); `None` draws the row as the
+/// sidebar's own rows are drawn. The caller adds what a press does.
+pub(crate) fn nav_row(
+    id: impl Into<ElementId>,
+    label: &'static str,
+    leading: Option<vessel_app_kit::assets::Glyph>,
+    active: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let color = if active {
+        tokens.text_primary
+    } else {
+        tokens.text_secondary
+    };
     div()
         .id(id)
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
         .px(px(10.0))
         .py(px(6.0))
         .rounded(px(vessel_app_kit::theme::radius::R4))
         .type_(Type::Label)
-        .text_color(if active {
-            tokens.text_primary
-        } else {
-            tokens.text_secondary
-        })
+        .text_color(color)
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
+        .children(leading.map(|glyph| {
+            vessel_app_kit::ui::svg()
+                .path(glyph.path())
+                .size(px(14.0))
+                .flex_none()
+                .text_color(color)
+        }))
         .child(label)
 }
 
