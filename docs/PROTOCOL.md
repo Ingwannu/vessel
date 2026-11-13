@@ -109,6 +109,28 @@ Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
   (`forbidden`). Saved prompts are kept by the node, never read from a
   repository's files (ADR 0033 says why).
 
+### The starter told (track D)
+
+- `PromptSession.notify: bool` (left out when false; a call with it true
+  needs 11). Only a session's agent asks, on its own node
+  (`invalid_request` for the owner and devices, `forbidden` through
+  `fleet.forward`, `unsupported` for a terminal caller). The session told
+  is the caller's own.
+- It is about the turn this prompt starts or joins, exactly: the
+  session's actor says which (at once when it starts or steers, when its
+  queue entry starts a turn when queued; never for an entry removed).
+  Each event is told once, as a prompt queued into the caller's session
+  (`delivery: queue`: never into a running turn): `needs_you` for each
+  permission or question of that turn (at most 8), then `finished` (its
+  end, the last 1,500 characters of its reply, and the record to read
+  from) or `ended` (the session's final status). Text only, from the
+  node, starting `vessel: session`; the queue entry's `by` is the
+  finished session (`Creator::Agent`).
+- Bounded: 32 turns followed per told session and 256 on the node
+  (`conflict` beyond), 60 notices an hour into one session (the rest
+  dropped and logged), none into a session a person stopped. Nothing is
+  stored.
+
 ## Version 10 (2026-11-11, the two tracks joined 2026-11-12)
 
 Nodes speak 2..=10; version 10 adds fifty methods, six events (with

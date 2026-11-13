@@ -50,6 +50,9 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
+            // `notify` came in 11: an older node would deliver the prompt
+            // and never tell anyone.
+            Self::PromptSession(request) => request.notify.then_some(11),
             // An answer to a question, and a prompt naming an attachment,
             // came in 10: an older node cannot decode either.
             Self::SendInput(request) => match &request.input {
@@ -116,7 +119,6 @@ impl Call {
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
             | Self::RenameSession(_)
-            | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::GetConversation(_)
             | Self::ResumeSession(_)

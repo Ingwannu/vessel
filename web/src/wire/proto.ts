@@ -3303,7 +3303,14 @@ content: Array<ContentBlock>,
 /**
  * How it goes.
  */
-delivery: Delivery, };
+delivery: Delivery, 
+/**
+ * Tell the caller's own session, through its queue, when the turn
+ * this prompt starts waits for an answer and when it finishes, or
+ * the session ends (protocol 11, ADR 0033: the starter told). Only a
+ * session's agent asks, on its own node. Left out when false.
+ */
+notify?: boolean, };
 
 /**
  * The text a schedule, a saved prompt or a hook sends.

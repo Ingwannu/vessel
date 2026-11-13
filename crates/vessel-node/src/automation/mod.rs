@@ -4,6 +4,7 @@
 //! the runs they make through the service's checks.
 
 pub(crate) mod error;
+pub(crate) mod notices;
 pub(crate) mod prompts;
 pub(crate) mod schedules;
 pub(crate) mod time;

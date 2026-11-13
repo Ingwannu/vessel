@@ -25,6 +25,9 @@ impl NodeService {
         connection: &Connection,
         request: PromptSession,
     ) -> Result<Delivered, WireError> {
+        if request.notify {
+            return self.prompt_told(connection, request).await;
+        }
         self.sessions
             .prompt(
                 request.session,

@@ -37,6 +37,8 @@ mod marks;
 #[cfg(test)]
 mod moving;
 #[cfg(test)]
+mod notices;
+#[cfg(test)]
 mod options;
 #[cfg(test)]
 mod profiles;

@@ -8,9 +8,9 @@ use bytes::Bytes;
 use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::{
-    ContentBlock, CreateSession, EventSeq, GetSession, HarnessKind, ModelId, PermissionOutcome,
-    ReadEvents, SendInput, SessionId, SessionInput, SessionMode, SessionSpec, TerminalBytes,
-    TerminalInput, TerminalSize,
+    ContentBlock, CreateSession, Delivery, EventSeq, GetSession, HarnessKind, ModelId,
+    PermissionOutcome, ReadEvents, SendInput, SessionId, SessionInput, SessionMode, SessionSpec,
+    TerminalBytes, TerminalInput, TerminalSize,
 };
 
 use super::{
@@ -61,6 +61,22 @@ impl VesselTools {
         if !terminal {
             self.until_running(node, info.id).await?;
         }
+        if flag(args, "notify")? {
+            if terminal {
+                return Err(ToolError::Arguments(
+                    "`notify` is about a structured session's turn".to_owned(),
+                ));
+            }
+            let sent = self
+                .deliver(node, info.id, prompt, Delivery::Queue, true)
+                .await?;
+            let session = self.on(node, GetSession { session: info.id }).await?;
+            return Ok(json!({
+                "session": session,
+                "from": sent.get("from"),
+                "delivered": sent.get("delivered")
+            }));
+        }
         let from = self.send_text(node, info.id, terminal, prompt).await?;
         let session = self.on(node, GetSession { session: info.id }).await?;
         Ok(json!({ "session": session, "from": from }))
@@ -70,8 +86,11 @@ impl VesselTools {
         let node = self.target(args).await?;
         let session = session(args)?;
         let text = required(args, "text")?;
-        if let Some(delivery) = conversation::delivery(args)? {
-            return self.deliver(node, session, text, delivery).await;
+        let notify = flag(args, "notify")?;
+        let delivery = conversation::delivery(args)?;
+        if delivery.is_some() || notify {
+            let delivery = delivery.unwrap_or(Delivery::Queue);
+            return self.deliver(node, session, text, delivery, notify).await;
         }
         let terminal = matches!(
             self.on(node, GetSession { session }).await?.spec.mode,
@@ -173,7 +192,8 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
                 "node": node,
                 "session": session,
                 "text": { "type": "string" },
-                "delivery": conversation::delivery_property()
+                "delivery": conversation::delivery_property(),
+                "notify": notify_property()
             }),
             &["session", "text"],
         ),
@@ -223,6 +243,17 @@ pub(super) fn session_tools(node: &Value, session: &Value) -> Vec<Tool> {
     ]
 }
 
+/// `notify` on `send_input` and `create_session`'s first prompt.
+fn notify_property() -> Value {
+    json!({
+        "type": "boolean",
+        "description": "This node only: your own session is told, as a message queued into \
+                        it, when the turn this prompt starts waits for an answer and when it \
+                        finishes, or the session ends. Leave it out if you will call \
+                        `wait_turn` anyway."
+    })
+}
+
 pub(super) fn create_session_tool(node: &Value) -> Tool {
     tool(
         "create_session",
@@ -259,6 +290,7 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
             },
             "model": { "type": "string", "description": "A model the agent offers." },
             "prompt": { "type": "string", "description": "The first prompt." },
+            "notify": notify_property(),
             "terminal": {
                 "type": "boolean",
                 "description": "Run the harness's own terminal UI instead."

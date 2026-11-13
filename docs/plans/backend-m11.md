@@ -3993,6 +3993,18 @@ whole gate (the end-to-end tests of the node and of the page included).
   `service/prompts.rs` refuses agents and delegated callers and checks a
   prompt's `session` as `session.create` would (the check schedules use,
   now shared: `check_new_spec`), its place in the prompt's project.
+- **Slice 4, the starter told** (`session.prompt { notify }`): the
+  session's actor gives a prompt that asked a one-shot ticket with the
+  seq of the `turn_started` of the turn it started or joined, or, queued,
+  of the turn its entry starts later; an entry removed, or the session
+  ended, drops the ticket (`vessel-session`'s `delivery/tickets.rs`).
+  The node follows that turn (`service/notices.rs`) and queues into the
+  caller's own session a `needs_you` per ask (at most 8), then
+  `finished` or `ended`, in words of `automation::notices`; bounded at 32
+  turns followed per told session and 256 on the node (`conflict`), 60
+  notices an hour into one session (the rest dropped and logged), none
+  into a session a person stopped. The agent tools' `send_input` and
+  `create_session` take `notify`.
 
 ### Checked, and how
 
@@ -4026,3 +4038,16 @@ whole gate (the end-to-end tests of the node and of the page included).
   name at once making one; through a node: a machine's prompt with a
   place, an unknown project, a resuming spec, the lists by project, an
   agent that reads them and is refused every write.
+- The starter told: the actor's tickets (`delivery::tickets`, 3 tests:
+  a record seen before or after the prompt's answer, a steer joining the
+  running turn, a queued entry started and a removed one never), through
+  the runtime with the fake agent (`vessel-session`'s `tests/tickets.rs`:
+  started, queued then started after a steer ended the running turn,
+  removed, steered); the words and bounds (`automation::notices`, 5
+  tests: the reply's last 1,500 characters and where to read, a
+  permission named by its tool call, at most 8 asks, a session's end,
+  32 and 256 turns followed, 60 an hour); through a real node
+  (`tests/e2e/notices.rs`): a child's turn finished, waiting on a
+  permission, failed when the child is stopped, and a queued prompt that
+  never started told as the session's end, each queued into the agent's
+  own session; the owner refused.

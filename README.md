@@ -534,6 +534,11 @@ start a session on another machine and read its answer.
   operates only on sessions it started (and theirs).
 - At most 8 live sessions of its own per node, and agents start agents at
   most 3 levels deep.
+- `send_input` and `create_session`'s first prompt take `notify` (this
+  node only): the agent's own session is told, as a message queued into
+  it, never typed into a running turn, when that prompt's turn waits for
+  an answer and when it finishes, or the session ends; once per event, at
+  most 32 turns followed per session and 60 notices an hour into it.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
 - Agents do not mark sessions read or unread (the node refuses: an agent
