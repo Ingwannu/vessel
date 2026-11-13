@@ -88,10 +88,7 @@ pub(super) fn check(path: &Path, content: BookContent) -> Result<NodeBook, BookE
 fn check_entry(entry: EntryContent) -> Result<BookEntry, EntryProblem> {
     let id = entry
         .id
-        .map(|id| {
-            id.parse::<NodeId>()
-                .map_err(|_invalid| EntryProblem::Id(id))
-        })
+        .map(|id| id.parse::<NodeId>().map_err(|_invalid| EntryProblem::Id))
         .transpose()?;
     let secure_fields =
         entry.credential.is_some() || entry.relay.is_some() || entry.direct.is_some();

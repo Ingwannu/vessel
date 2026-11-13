@@ -32,6 +32,7 @@ impl BookFailure {
             BookError::Exists { .. } => Failure::Taken,
             BookError::Missing { .. } => Failure::Missing,
             BookError::Syntax { .. }
+            | BookError::ProjectSyntax { .. }
             | BookError::Entry { .. }
             | BookError::UnknownDefault { .. }
             | BookError::Unknown { .. }

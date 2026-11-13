@@ -245,3 +245,16 @@ a separate conversation-area seam; the numeric model and input follow.
 Seam gate: native fmt, Clippy and tests all exited 0 through the shared
 build-slot wrapper (formatting needs no slot). The same 374 tests and empty
 doc-test sets passed. No screen geometry changed in this seam.
+
+## Integrating the shared file-fault boundary
+
+The desktop lead's file-fault change is reused rather than duplicated:
+`TomlFault` never carries file content; `FileFault` supplies the app's safe,
+localized notice. The merge keeps both text-module registrations and extends
+the book failure match for the new project-file variant. Actor-level canary
+and connection-lifetime regressions requested in review follow this merge.
+
+Merge gate: native formatting, Clippy and tests all exited 0; app 3,
+kit 19, link 21, view 243 and page parity 89 (375 passed), plus empty doc
+tests. Root client/protocol changes are the lead's; no independent root
+workspace gate is claimed for this integration.
