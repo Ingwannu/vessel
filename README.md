@@ -789,11 +789,12 @@ browser on Unix (on Windows, open the printed address).
   branch (with no project, a folder, suggesting the folders sessions
   already ran in there). Send starts the session with those choices,
   sends the prompt and opens it. For a new worktree it first makes the
-  worktree: if the project's `vessel.toml` names setup commands that
-  were not approved, it shows them (and what changed from the set
-  approved for the project's folder) for you to approve or to start
-  without setup; setup's output shows under the box as it runs, and a
-  failed setup waits for you (run it again, start anyway, or stop).
+  worktree: if the project's `vessel.toml` names commands that were not
+  approved, it shows every one of them (setup, teardown, and its scripts
+  and services, which the approval covers too) and what changed since
+  the set approved last, for you to approve or to start without setup;
+  setup's output shows under the box as it runs, and a failed setup
+  waits for you (run it again, start anyway, or stop).
   Reading what an agent offers takes the machine a few seconds the first
   time (it starts the agent to ask); until then, or if the agent cannot
   say, the session starts on the agent's own defaults.
