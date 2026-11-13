@@ -179,12 +179,20 @@ export function sendable(
   options: OptionsState,
   /** What the page calls the agent (an added one's label). */
   name: string | null = null,
+  /** Whether the machine has listed its agents yet: before, an agent not
+   * found is one not yet known, not one missing. */
+  listed = true,
 ): { ok: true } | { ok: false; reason: string | null } {
   if (draft.machine === null) {
     return { ok: false, reason: "No machine is connected." };
   }
   if (harness === null) {
-    return { ok: false, reason: "This machine has no agent installed." };
+    return {
+      ok: false,
+      reason: listed
+        ? "This machine has no agent installed."
+        : "Loading the machine's agents…",
+    };
   }
   const modes = agentModes(harness);
   if (modes.kind === "neither") {

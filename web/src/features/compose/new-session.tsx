@@ -68,8 +68,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const navigate = useNavigate();
   const state = useFleetState((value) => value);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  // The prompt is the new-session page's draft, kept by the bridge: it
-  // comes back after leaving the page, a reload or a new launch.
+  // The page's draft, kept by the bridge (back after a reload or launch).
   const saved = useDraft(null);
   useShortcut("focus-composer", () => {
     text.current?.focus();
@@ -99,7 +98,8 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       [wanted, state.selected],
       (key) => state.statuses[key]?.state === "connected",
     );
-  const harnesses = machine === null ? [] : (state.harnesses[machine] ?? []);
+  const listed = machine === null ? undefined : state.harnesses[machine];
+  const harnesses = listed ?? [];
   const status = machine === null ? undefined : state.statuses[machine];
   const nodeId = status?.state === "connected" ? status.node.id : null;
   const defaults = useStore(prefs, (value) => value.values.defaults);
@@ -141,7 +141,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       : profileChoices(state.profiles[machine] ?? [], agent);
   const starter = useStarter(machine);
   const ready = starter.ready(
-    sendable(effective, harness, options, agentLabel),
+    sendable(effective, harness, options, agentLabel, listed !== undefined),
   );
 
   const change = (next: Partial<Draft>) => {

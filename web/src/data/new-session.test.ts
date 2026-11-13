@@ -137,6 +137,17 @@ describe("specOf", () => {
 });
 
 describe("sendable", () => {
+  it("says the agents are loading until the machine has listed them, and none only after", () => {
+    expect(sendable(DRAFT, null, LOADING, null, false)).toEqual({
+      ok: false,
+      reason: "Loading the machine's agents…",
+    });
+    expect(sendable(DRAFT, null, LOADING)).toEqual({
+      ok: false,
+      reason: "This machine has no agent installed.",
+    });
+  });
+
   it("needs a machine, an agent, and text unless it opens a terminal", () => {
     expect(sendable(DRAFT, CLAUDE, LOADING)).toEqual({ ok: true });
     expect(sendable({ ...DRAFT, prompt: " " }, CLAUDE, LOADING)).toEqual({
