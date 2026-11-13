@@ -72,6 +72,8 @@ impl AboutText {
             (Lang::Ko, Role::Network) => "네트워크와 그 작업",
             (Lang::En, Role::Logs) => "Logs",
             (Lang::Ko, Role::Logs) => "로그",
+            (Lang::En, Role::QrCodes) => "Pairing QR codes",
+            (Lang::Ko, Role::QrCodes) => "페어링 QR 코드",
             (Lang::En, Role::Accents) => "Find's folding of accents",
             (Lang::Ko, Role::Accents) => "찾기의 악센트 접기",
             (Lang::En, Role::Face) => "Geist, the app's face",

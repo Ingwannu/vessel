@@ -1028,3 +1028,31 @@ binaries, so no rustup proxy chooses a compiler from a project directory.
 `policy` refuses executable or unsupported repository configuration in
 conservative mode and returns the Cargo projects rust-analyzer may link. This is not an OS sandbox; ADR 0016
 records each server's execution risks and the full-analysis opt-in.
+
+
+## Native app localization (milestone 12, staged)
+
+The separate `spikes/native` workspace keeps UI and I/O out of
+`vessel-app-view`. Its localization build script reads the Fluent source
+catalog, validates translations and generates typed accessors; only embedded
+resources reach the target library. `localization` prepares language bundles
+and retains plain messages before rendering. NUMBER display rules and DATETIME whole patterns come from each language
+folder; typed Gregorian/local-clock parts cross that boundary. ICU4X was
+rejected after the release-size experiment, recorded in ADR 0039.
+Legacy area tables stay until their owners migrate them. The crate map,
+execution instructions and gate are in `spikes/native/README.md`; ADR 0039
+records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
+
+## Native settings' machine book (milestone 12)
+
+The independent workspace under `spikes/native` keeps screen rules in `view`,
+node/file operations in `link`, shared controls in `kit`, and drawing in `app`
+(its README owns the full crate map). `view::machine_book` validates names and
+models edits and safe failure reasons. `link::machines` applies those edits
+through the existing CLI `BookFile` on the blocking pool, then publishes a fresh
+snapshot. Selection follows a successful write only; raw book errors stay at
+the file boundary because malformed content may contain credentials. No new
+wire method or store is introduced. Startup, tick, reload, retry and edit reads
+share a fixed book path and the same typed boundary. Syntax failures reuse the
+shared safe `FileFault` projection; other file failures use closed reasons.
+A failed edit does not refresh or mutate the existing clients or session follow.

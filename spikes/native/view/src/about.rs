@@ -42,6 +42,8 @@ pub enum Role {
     Logs,
     /// Find's folding of accents.
     Accents,
+    /// Pairing links as QR codes.
+    QrCodes,
     /// The face of everything.
     Face,
     /// The face of code.
@@ -85,7 +87,13 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 
 /// Every dependency of the workspace, in its manifest's order, then the
 /// faces.
-pub const BUNDLED: [Bundled; 19] = [
+pub const BUNDLED: [Bundled; 26] = [
+    krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Data),
+    krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Data),
+    krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Data),
+    krate("intl-memoizer", "Apache-2.0 OR MIT", Role::Data),
+    krate("unic-langid", "MIT OR Apache-2.0", Role::Data),
+    krate("uuid", "Apache-2.0 OR MIT", Role::Data),
     krate("gpui-pre", "Apache-2.0", Role::Drawing),
     krate("gpui-pre-platform", "Apache-2.0", Role::Windows),
     krate("gpui-component", "Apache-2.0", Role::Controls),
@@ -106,6 +114,7 @@ pub const BUNDLED: [Bundled; 19] = [
         "(MIT OR Apache-2.0) AND Unicode-3.0",
         Role::Accents,
     ),
+    krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
     face("Geist", Role::Face),
     face("Geist Mono", Role::CodeFace),
     face("Pretendard", Role::Hangul),
@@ -115,64 +124,5 @@ pub const BUNDLED: [Bundled; 19] = [
 pub const VESSEL_LICENCE: &str = "PolyForm Strict 1.0.0";
 
 #[cfg(test)]
-mod tests {
-    use super::BUNDLED;
-
-    /// The published names of the workspace's dependencies that are not
-    /// Vessel's own, in the manifest's order.
-    fn dependencies(manifest: &str) -> Vec<String> {
-        let mut inside = false;
-        let mut names = Vec::new();
-        for line in manifest.lines() {
-            let line = line.trim();
-            if line.starts_with('[') {
-                inside = line == "[workspace.dependencies]";
-                continue;
-            }
-            if !inside || line.starts_with('#') {
-                continue;
-            }
-            let Some((key, value)) = line.split_once(" = ") else {
-                continue;
-            };
-            let name = value
-                .split_once("package = \"")
-                .and_then(|(_, rest)| rest.split_once('"'))
-                .map_or(key, |(package, _)| package);
-            if !name.starts_with("vessel-") {
-                names.push(name.to_owned());
-            }
-        }
-        names
-    }
-
-    #[test]
-    fn name_every_dependency_in_the_manifests_order() {
-        let listed: Vec<&str> = BUNDLED
-            .iter()
-            .filter(|entry| !entry.face)
-            .map(|entry| entry.name)
-            .collect();
-        assert_eq!(
-            listed,
-            dependencies(include_str!("../../Cargo.toml")),
-            "a dependency of spikes/native/Cargo.toml is missing from BUNDLED, or out of order"
-        );
-    }
-
-    #[test]
-    fn list_every_face_the_kit_bundles() {
-        let fonts = include_str!("../../kit/src/fonts.rs");
-        for (face, file) in [
-            ("Geist", "Geist-Regular"),
-            ("Geist Mono", "GeistMono-Regular"),
-            ("Pretendard", "Pretendard-Regular"),
-        ] {
-            assert!(fonts.contains(file), "{file} is no longer bundled");
-            assert!(
-                BUNDLED.iter().any(|entry| entry.face && entry.name == face),
-                "{face} is bundled and not listed"
-            );
-        }
-    }
-}
+#[path = "about/tests.rs"]
+mod tests;

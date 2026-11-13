@@ -88,6 +88,12 @@ pub(super) fn entry(
             let (done, total) = plan_progress(entries);
             meta(paint, words.plan_line(done, total))
         }
+        // While it waits its card is over the composer, with the command
+        // in its box: here only a quiet line, so the command is not read
+        // twice more.
+        EntryKind::Permission(permission) if permission.outcome.is_none() => {
+            meta(paint, words.permission_waiting().to_owned())
+        }
         EntryKind::Permission(permission) => meta(
             paint,
             words.settled_line(

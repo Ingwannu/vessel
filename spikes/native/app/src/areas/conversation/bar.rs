@@ -63,6 +63,7 @@ pub(crate) fn bar(
             .text_color(color)
             .child(words.status_word(status))
     });
+    let lost = lost_line(shell, tokens, narrow);
     let refused = area.refused.as_ref().map(|(_, why)| {
         div()
             .min_w(px(0.0))
@@ -110,11 +111,45 @@ pub(crate) fn bar(
                 .child(detail),
         )
         .child(div().flex_1())
+        .children(lost)
         .children(refused)
         // Track F's slot: the code panel's toggle.
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
         .child(actions)
         .into_any_element()
+}
+
+/// The lost connection, once, in the app's words (the sidebar already
+/// says the machine is unreachable); the transport's words only in the
+/// line's tooltip (the coordinator's review, 2026-11-13: it was said three
+/// times, twice in the transport's English).
+fn lost_line(shell: &Shell, tokens: &Tokens, narrow: bool) -> Option<AnyElement> {
+    let area = &shell.areas.conversation;
+    let why = area.lost.as_ref()?;
+    let line = div()
+        .id("session-lost")
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .min_w(px(0.0))
+        .child(vessel_app_kit::dot(tokens.danger))
+        .child(
+            div()
+                .min_w(px(0.0))
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(shell.t.session_lost),
+        );
+    let (tips, place) = &area.lost_tip;
+    Some(
+        div()
+            .min_w(px(0.0))
+            .child(tips.on(line, place, why.clone(), narrow))
+            .children(tips.render(tokens))
+            .into_any_element(),
+    )
 }
 
 /// The title: a field while it is renamed, a button that starts the
