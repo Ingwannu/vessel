@@ -37,12 +37,13 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled, Window,
-    div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint};
-use vessel_app_link::{Act, ActKind};
+use vessel_app_kit::{
+    CardLook, CardState, TextField, Tokens, Type, TypeExt as _, breakpoint, card_button,
+};
+use vessel_app_link::ActKind;
 use vessel_app_view::timeline::{
     Draft, Drafts, EntryKind, Problem, Step, answer_of, answerable, refused_field, starting_drafts,
     step_answered, step_problem, step_ready, steps_of,
@@ -50,6 +51,7 @@ use vessel_app_view::timeline::{
 use vessel_proto::conversation::{FieldKind, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
+use super::{Answer, ConversationArea, Place};
 use crate::shell::Shell;
 
 /// The tallest the option rows stand before they scroll: a phone's, and
@@ -86,16 +88,31 @@ struct Choice {
     description: Option<String>,
 }
 
-/// The question waiting first, if any.
-fn waiting(shell: &Shell) -> Option<Question> {
-    let timeline = &shell.areas.conversation.timeline;
-    timeline.waiting_questions().first().and_then(|entry| {
-        if let EntryKind::Question { question, .. } = &entry.kind {
-            Some(question.clone())
-        } else {
-            None
-        }
-    })
+/// The question waiting first in `area`, if any: the log's, else one the
+/// node says waits whose record the log no longer holds.
+fn waiting(area: &ConversationArea) -> Option<Question> {
+    let timeline = &area.timeline;
+    timeline
+        .waiting_questions()
+        .first()
+        .and_then(|entry| {
+            if let EntryKind::Question { question, .. } = &entry.kind {
+                Some(question.clone())
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            timeline
+                .unseen_questions(&area.live)
+                .first()
+                .map(|question| (*question).clone())
+        })
+}
+
+/// The question waiting first at `P`, if any.
+fn waiting_at<P: Place>(shell: &Shell) -> Option<Question> {
+    (P::SEAT.get)(shell).and_then(waiting)
 }
 
 /// The field a step's text box writes: Claude's "Other", or a free-text
@@ -173,18 +190,15 @@ fn prompt(question: &Question, step: Step<'_>) -> String {
 impl Shell {
     /// Make the card's state for the question waiting first, or drop it
     /// when none waits.
-    fn question_prepare(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(question) = waiting(self) else {
-            if self.areas.conversation.answering.take().is_some() {
+    fn question_prepare<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(question) = waiting_at::<P>(self) else {
+            if (P::SEAT.get_mut)(self).is_some_and(|area| area.answering.take().is_some()) {
                 cx.notify();
             }
             return;
         };
-        if self
-            .areas
-            .conversation
-            .answering
-            .as_ref()
+        if (P::SEAT.get)(self)
+            .and_then(|area| area.answering.as_ref())
             .is_some_and(|answering| answering.id == question.id)
         {
             return;
@@ -192,29 +206,38 @@ impl Shell {
         let words = self.t.lang.conversation();
         let field = TextField::with_change(
             words.question_other_placeholder(),
-            Self::question_entered,
-            Self::question_typed,
+            Self::question_entered::<P>,
+            Self::question_typed::<P>,
             window,
             cx,
         );
-        self.areas.conversation.answering = Some(Answering {
+        let Some(area) = (P::SEAT.get_mut)(self) else {
+            return;
+        };
+        area.answering = Some(Answering {
             id: question.id,
             drafts: starting_drafts(&question),
             step: 0,
             field,
             sent: false,
         });
-        self.question_show(0, window, cx);
+        self.question_show::<P>(0, window, cx);
     }
 
     /// Show step `index`: its text box holds that step's text.
-    fn question_show(&mut self, index: usize, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn question_show<P: Place>(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let words = self.t.lang.conversation();
-        let Some(question) = waiting(self) else {
+        let Some(question) = waiting_at::<P>(self) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = self.areas.conversation.answering.as_mut() else {
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        else {
             return;
         };
         let Some(step) = steps.get(index).copied() else {
@@ -241,12 +264,13 @@ impl Shell {
 
     /// The text box changed: the step's text, and for a single choice the
     /// pick cleared (an option and a custom answer replace each other).
-    fn question_typed(&mut self, text: String, cx: &mut Context<'_, Self>) {
-        let Some(question) = waiting(self) else {
+    fn question_typed<P: Place>(&mut self, text: String, cx: &mut Context<'_, Self>) {
+        let Some(question) = waiting_at::<P>(self) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = self.areas.conversation.answering.as_mut() else {
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
@@ -276,18 +300,29 @@ impl Shell {
         cx.notify();
     }
 
-    fn question_entered(&mut self, _text: String, window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.question_primary(window, cx);
+    fn question_entered<P: Place>(
+        &mut self,
+        _text: String,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.question_primary::<P>(window, cx);
     }
 
     /// Pick `value` in the step shown: a radio's or a yes-or-no field's
     /// one value (picking it again clears it), a checkbox's toggle.
-    fn question_pick(&mut self, value: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(question) = waiting(self) else {
+    fn question_pick<P: Place>(
+        &mut self,
+        value: &str,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(question) = waiting_at::<P>(self) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = self.areas.conversation.answering.as_mut() else {
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
@@ -333,12 +368,12 @@ impl Shell {
     }
 
     /// Next, or Submit on the last step.
-    fn question_primary(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(question) = waiting(self) else {
+    fn question_primary<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(question) = waiting_at::<P>(self) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = self.areas.conversation.answering.as_ref() else {
+        let Some(answering) = (P::SEAT.get)(self).and_then(|area| area.answering.as_ref()) else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
@@ -349,14 +384,14 @@ impl Shell {
         }
         let next = answering.step.saturating_add(1);
         if next < steps.len() {
-            self.question_show(next, window, cx);
+            self.question_show::<P>(next, window, cx);
             return;
         }
         if let Some(unready) = steps
             .iter()
             .position(|step| !step_ready(*step, &answering.drafts))
         {
-            self.question_show(unready, window, cx);
+            self.question_show::<P>(unready, window, cx);
             return;
         }
         let answer = answer_of(&question, &answering.drafts);
@@ -367,60 +402,62 @@ impl Shell {
                     step.field.name == *name || step.other.is_some_and(|other| other.name == *name)
                 })
             });
-            self.areas.conversation.refused = Some((ActKind::Answer, message));
+            if let Some(area) = (P::SEAT.get_mut)(self) {
+                area.refused = Some((ActKind::Answer, message));
+            }
             if let Some(at) = at {
-                self.question_show(at, window, cx);
+                self.question_show::<P>(at, window, cx);
             }
             cx.notify();
             return;
         }
-        self.question_send(question.id, answer, cx);
+        self.question_send::<P>(question.id, answer, cx);
     }
 
     /// Decline the question.
-    fn question_dismiss(&mut self, cx: &mut Context<'_, Self>) {
-        if let Some(id) = self
-            .areas
-            .conversation
-            .answering
-            .as_ref()
+    fn question_dismiss<P: Place>(&mut self, cx: &mut Context<'_, Self>) {
+        if let Some(id) = (P::SEAT.get)(self)
+            .and_then(|area| area.answering.as_ref())
             .map(|answering| answering.id)
         {
-            self.question_send(id, QuestionAnswer::Decline, cx);
+            self.question_send::<P>(id, QuestionAnswer::Decline, cx);
         }
     }
 
-    fn question_send(
+    fn question_send<P: Place>(
         &mut self,
         id: QuestionId,
         answer: QuestionAnswer,
         cx: &mut Context<'_, Self>,
     ) {
-        if let Some(answering) = self.areas.conversation.answering.as_mut() {
-            answering.sent = true;
+        if let Some(area) = (P::SEAT.get_mut)(self) {
+            if let Some(answering) = area.answering.as_mut() {
+                answering.sent = true;
+            }
+            area.refused = None;
         }
-        self.areas.conversation.refused = None;
-        self.act(Act::Answer(id, answer));
+        P::answer(self, Answer::Question(id, answer), cx);
         cx.notify();
     }
 }
 
-/// The card for the question waiting first, when one waits.
-pub(super) fn card(
+/// The card for the question waiting first in the conversation at `P`,
+/// when one waits.
+pub(crate) fn card<P: Place>(
     shell: &Shell,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let area = &shell.areas.conversation;
-    let question = waiting(shell);
+    let area = (P::SEAT.get)(shell)?;
+    let question = waiting(area);
     let answering = match (&question, &area.answering) {
         (None, None) => return None,
         (Some(question), Some(answering)) if answering.id == question.id => answering,
         // Made (or dropped) on the next frame: the slot cannot make a box.
         _ => {
             cx.defer_in(window, |shell, window, cx| {
-                shell.question_prepare(window, cx);
+                shell.question_prepare::<P>(window, cx);
             });
             return None;
         }
@@ -436,7 +473,7 @@ pub(super) fn card(
         .as_ref()
         .filter(|(kind, _)| *kind == ActKind::Answer)
         .map(|(_, message)| message.clone());
-    let waiting_on_node = answering.sent && refused.is_none();
+    let waiting_on_node = (answering.sent && refused.is_none()) || P::busy(shell);
     let last = answering.step.saturating_add(1) >= steps.len();
     let ready = if last {
         steps
@@ -449,7 +486,7 @@ pub(super) fn card(
         Some(problem @ Problem::Wrong(_)) => Some(words.question_problem(&problem)),
         Some(Problem::ChooseAnAnswer | Problem::Required) | None => None,
     };
-    let block = answers(
+    let block = answers::<P>(
         step,
         answering,
         words.question_yes_no(),
@@ -476,7 +513,7 @@ pub(super) fn card(
             .bg(neutral.surface1)
             .face(Type::Body)
             .text_size(px(14.0))
-            .children((steps.len() > 1).then(|| tabs(&steps, answering, tokens, cx)))
+            .children((steps.len() > 1).then(|| tabs::<P>(&steps, answering, tokens, cx)))
             .child(
                 div()
                     .px(px(12.0))
@@ -492,7 +529,7 @@ pub(super) fn card(
                     .text_color(neutral.destructive)
                     .child(said)
             }))
-            .child(actions(
+            .child(actions::<P>(
                 words.question_dismiss(),
                 if last {
                     words.question_submit()
@@ -510,7 +547,7 @@ pub(super) fn card(
 
 /// A step's answers: its option rows (scrolling past a height), then its
 /// text box. `(narrow, busy)`: a phone's width; the answer has gone.
-fn answers(
+fn answers<P: Place>(
     step: Step<'_>,
     answering: &Answering,
     yes_no: (&str, &str),
@@ -523,7 +560,7 @@ fn answers(
     if !options.is_empty() {
         let rows = options.into_iter().enumerate().map(|(index, choice)| {
             let on = picked(step, &answering.drafts, &choice.value);
-            option_row(index, choice, on, multiple, busy, tokens, cx)
+            option_row::<P>(index, choice, on, multiple, busy, tokens, cx)
         });
         // Paseo's card scrolls with the conversation; here it stands over
         // the composer, so a long list scrolls inside it instead of
@@ -546,7 +583,7 @@ fn answers(
 }
 
 /// Paseo's titled tabs, a check on the answered ones.
-fn tabs(
+fn tabs<P: Place>(
     steps: &[Step<'_>],
     answering: &Answering,
     tokens: &Tokens,
@@ -588,7 +625,7 @@ fn tabs(
             })
             .child(div().truncate().child(header(*step)))
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_show(index, window, cx);
+                shell.question_show::<P>(index, window, cx);
             }))
     });
     div()
@@ -601,7 +638,7 @@ fn tabs(
 }
 
 /// One option: Paseo's row, a radio or a checkbox at its left.
-fn option_row(
+fn option_row<P: Place>(
     index: usize,
     choice: Choice,
     on: bool,
@@ -653,7 +690,7 @@ fn option_row(
         .cursor_pointer()
         .when(!busy, |row| {
             row.on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_pick(&value, window, cx);
+                shell.question_pick::<P>(&value, window, cx);
             }))
         })
         .child(control)
@@ -685,7 +722,7 @@ fn option_row(
 
 /// Dismiss, then Next or Submit (the accent): in a row, stacked on a
 /// phone. `(primary, dismiss)`: whether each answers a click.
-fn actions(
+fn actions<P: Place>(
     dismiss_words: &'static str,
     primary_words: &'static str,
     (primary, dismiss): (bool, bool),
@@ -693,31 +730,39 @@ fn actions(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let neutral = tokens.neutral;
-    let dismiss_button = action_button(
+    let dismiss_button = card_button(
         "question-dismiss",
         Glyph::Remove,
         dismiss_words,
-        (
-            neutral.surface1,
-            neutral.border_accent,
-            neutral.foreground_muted,
-        ),
-        dismiss,
+        CardLook::Muted,
+        if dismiss {
+            CardState::Ready
+        } else {
+            CardState::Waiting
+        },
+        tokens,
     )
-    .hover(move |style| style.bg(neutral.surface2))
     .when(dismiss, |button| {
-        button.on_click(cx.listener(|shell, _event, _window, cx| shell.question_dismiss(cx)))
+        button.on_click(cx.listener(|shell, _event, _window, cx| {
+            shell.question_dismiss::<P>(cx);
+        }))
     });
-    let primary_button = action_button(
+    let primary_button = card_button(
         "question-primary",
         Glyph::Check,
         primary_words,
-        (neutral.accent, neutral.accent, neutral.accent_foreground),
-        primary,
+        CardLook::Accent,
+        if primary {
+            CardState::Ready
+        } else {
+            CardState::Faded
+        },
+        tokens,
     )
     .when(primary, |button| {
-        button.on_click(cx.listener(|shell, _event, window, cx| shell.question_primary(window, cx)))
+        button.on_click(cx.listener(|shell, _event, window, cx| {
+            shell.question_primary::<P>(window, cx);
+        }))
     });
     div()
         .flex()
@@ -731,32 +776,4 @@ fn actions(
         })
         .child(dismiss_button)
         .child(primary_button)
-}
-
-/// A card button: Paseo's (8 by 12 inside, radius 6, a hairline, a glyph
-/// of 14 before its words), at half strength while it does nothing.
-fn action_button(
-    id: &'static str,
-    mark: Glyph,
-    words: &'static str,
-    (fill, edge, ink): (Hsla, Hsla, Hsla),
-    enabled: bool,
-) -> Stateful<Div> {
-    div()
-        .id(SharedString::from(id))
-        .flex()
-        .items_center()
-        .justify_center()
-        .gap(px(8.0))
-        .py(px(8.0))
-        .px(px(12.0))
-        .rounded(px(6.0))
-        .border_1()
-        .border_color(edge)
-        .bg(fill)
-        .text_color(ink)
-        .when(!enabled, |button| button.opacity(0.5))
-        .when(enabled, Styled::cursor_pointer)
-        .child(glyph(mark, 14.0, ink))
-        .child(words)
 }

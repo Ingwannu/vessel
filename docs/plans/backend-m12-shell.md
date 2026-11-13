@@ -567,3 +567,40 @@ introduced. Screens still use the static compatibility entry point at
 this control-only commit. Typed view/app consumption and new executable
 captures are the next separate slice. The old captures are not reused as
 proof for the new control behavior.
+
+
+### Integration checkpoint before the next session
+
+Merged lead target `b6bdd43ce6894ffe9ba484a142f7d1a0d5de4dce` after
+`babeeb16`, preserving the shared caption/snap controls. The automatic
+merge had no conflicts. It includes protocol12's search/parking line,
+the Light faces already provided for embedding, machine-book actor
+boundaries, permission-card seams, and the Linux/FreeBSD portal motion
+follower with its execution-only capture override. No font fetch ran.
+
+The first target `64b5a3d0` failed native clippy with E0502 in C's act
+answer handler. That gate ended before any tests. The lead had already
+fixed the exact borrow in `b6bdd43c`; the clean merge was refreshed to
+that target. Final native fmt/clippy are clean; whole tests pass:
+7,40,29,291,9,99,3 (478 total), plus two compile-fail documentation tests,
+zero failures. Logs are `lead-b6bdd-{fmt,clippy,test}.log` in the assigned
+scratch. The compiler log names the changed protocol, kit, view, link and
+app crates. This is native integration evidence; no root/web gate or new
+UI capture is claimed. Incoming generated TypeScript whitespace remains
+as its generator produced it.
+
+A self-review of `command-center.tsx`945–949 found that the desktop
+Modal is conditionally unmounted at close, so its250ms fade is entering
+only. `babeeb16` incorrectly retained an outgoing desktop fade. V1 was
+told before any final UI review request. A separate correction is
+prepared outside the tree; it is not installed or gated. The compact
+sheet keeps its spring and backdrop target through dismissal, as
+`sheet-backdrop.web.tsx` says. The earlier generic RNW exit pass-through
+comparison does not describe this Command Center and must not justify
+its outgoing desktop fade.
+
+No further control, consumer or merge starts in this session. See
+`backend-m12-shell-resume.md` for immutable hashes, prepared-only patch
+artifacts, review ownership, dependencies and the next work order. The
+old70 captures remain evidence only for `08382d9`/`6d29e29`; there is no
+new executable or real-shape capture for `babeeb16` or this merge.

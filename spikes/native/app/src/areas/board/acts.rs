@@ -170,7 +170,7 @@ impl Shell {
                 );
                 self.toast(text, ToastTone::Ok, cx);
             }
-            Ok(Acted::Done) => {}
+            Ok(Acted::Done | Acted::Conversation(_)) => {}
             Err(failed) => {
                 if answer.kind == ActKind::StartAgain {
                     self.toast(

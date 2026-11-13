@@ -1,6 +1,7 @@
 // The fleet as the page knows it: the book's nodes, each node's link
 // state (pushed by the bridge), and what each connected node reports
-// (harnesses, profiles, model routes, sessions).
+// (harnesses, profiles, model routes, sessions, and the agents added on
+// it, read only where one shows: `loadAgents`).
 //
 // Sessions have no list subscription in the protocol, so each connected
 // node's list is read again every few seconds while the page is visible,
@@ -15,6 +16,7 @@
 import { Bridge, CallFailed, type LinkState } from "../bridge/client";
 import type { BookNode, NodeKey, NodeStatus } from "../wire/bridge";
 import type {
+  AgentInfo,
   Harness,
   ModelRoute,
   ProfileInfo,
@@ -23,6 +25,7 @@ import type {
 import { wantsNotices } from "./alerts";
 import { Drafts } from "./drafts";
 import { prefs } from "./prefs";
+import { keep, withoutSession, withSession } from "./fleet-sessions";
 import { entriesOf } from "./records";
 import { Store } from "./store";
 
@@ -40,6 +43,10 @@ export interface FleetState {
    * `null` for a node older than model routing. */
   models: Readonly<Record<NodeKey, readonly ModelRoute[] | null>>;
   sessions: Readonly<Record<NodeKey, readonly SessionInfo[]>>;
+  /** Every agent a node lists with what it knows of each (`agent.list`,
+   * protocol 11): read once a node shows an added agent, or Settings ›
+   * Agents opens; `[]` from an older node. */
+  agents: Readonly<Record<NodeKey, readonly AgentInfo[]>>;
   /** The last error reading a node, by node. */
   errors: Readonly<Record<NodeKey, string>>;
   /** The node the operator last chose (DESIGN.md §2.5). */
@@ -55,31 +62,10 @@ const INITIAL: FleetState = {
   profiles: {},
   models: {},
   sessions: {},
+  agents: {},
   errors: {},
   selected: null,
 };
-
-/** `next` with the objects of `previous` kept where nothing changed, so
- * React re-renders only the rows that did. */
-function keep(
-  previous: readonly SessionInfo[] | undefined,
-  next: SessionInfo[],
-): readonly SessionInfo[] {
-  if (previous === undefined) {
-    return next;
-  }
-  const byId = new Map(previous.map((session) => [session.id, session]));
-  const kept = next.map((session) => {
-    const old = byId.get(session.id);
-    return old !== undefined && JSON.stringify(old) === JSON.stringify(session)
-      ? old
-      : session;
-  });
-  const same =
-    kept.length === previous.length &&
-    kept.every((session, index) => session === previous[index]);
-  return same ? previous : kept;
-}
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -176,6 +162,7 @@ export class Fleet {
       profiles: kept(state.profiles),
       models: kept(state.models),
       sessions: kept(state.sessions),
+      agents: kept(state.agents),
       errors: kept(state.errors),
       selected:
         state.selected !== null && keys.has(state.selected)
@@ -214,12 +201,40 @@ export class Fleet {
           errors,
         };
       });
+      if (
+        harnesses.some((harness) => typeof harness.kind !== "string") ||
+        sessions.some((session) => typeof session.spec.harness !== "string")
+      ) {
+        await this.loadAgents(node);
+      }
     } catch (error) {
       this.store.update((state) => ({
         ...state,
         errors: { ...state.errors, [node]: message(error) },
       }));
     }
+  }
+
+  /** Read the agents `node` lists, for an added agent's label and
+   * Settings › Agents. An older node has none to list; a failure keeps
+   * what was read before (the name stands in for a label). */
+  async loadAgents(node: NodeKey): Promise<void> {
+    let agents: readonly AgentInfo[];
+    try {
+      agents = await this.bridge.call(node, "agent.list", {});
+    } catch (error) {
+      if (
+        !(error instanceof CallFailed) ||
+        error.failure.kind !== "not_in_protocol"
+      ) {
+        return;
+      }
+      agents = [];
+    }
+    this.store.update((state) => ({
+      ...state,
+      agents: { ...state.agents, [node]: agents },
+    }));
   }
 
   /** `node`'s routes; `null` when it predates them, so the rest of what
@@ -251,6 +266,18 @@ export class Fleet {
     } catch {
       // The node's state says why; the list stays as it was.
     }
+  }
+
+  /** Put a session the node just answered with (a mark, a start again)
+   * into the machine's list at once, rather than at the next poll, so
+   * every list shows it the moment the node says. */
+  putSession(node: NodeKey, session: SessionInfo): void {
+    this.store.update((state) => withSession(state, node, session));
+  }
+
+  /** Take a deleted session out of the machine's list at once. */
+  dropSession(node: NodeKey, session: SessionInfo["id"]): void {
+    this.store.update((state) => withoutSession(state, node, session));
   }
 
   #pollSessions(): void {

@@ -40,6 +40,7 @@ function state(): FleetState {
     harnesses: {},
     profiles: {},
     models: {},
+    agents: {},
     errors: {},
     selected: null,
     sessions: {
@@ -141,6 +142,7 @@ describe("paletteEntries", () => {
       "Settings: Agents",
       "Settings: Models",
       "Settings: Machines",
+      "Settings: Projects",
       "Settings: Devices",
       "Settings: Sync",
       "Settings: About",

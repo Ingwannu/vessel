@@ -12,12 +12,11 @@ import {
   NO_CONTROLS,
   offersAnything,
   ownName,
-  pickerLabel,
-  pickerName,
   reportedControls,
   selectChoice,
   toggleChoice,
 } from "./options";
+import { pickerLabel, pickerName } from "./picker";
 import { choicesFor, pick, withPicks } from "./picks";
 import { fixtureId } from "../testing/ids";
 

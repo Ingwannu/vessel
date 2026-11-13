@@ -12,7 +12,7 @@ use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
     ContentWidth, ConversationDisplay, Grouping, InterfaceSize, Layout, MachineDefaults,
-    Notifications, Panel, SendKey, SessionSort, SidebarView, Theme,
+    Notifications, Panel, SendKey, SessionSort, SidebarView, Theme, TurnDelivery,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -65,7 +65,7 @@ section! {
 
 section! {
     /// `composer`.
-    ComposerFile => Composer { send: SendKey }
+    ComposerFile => Composer { send: SendKey, delivery: TurnDelivery }
 }
 
 section! {

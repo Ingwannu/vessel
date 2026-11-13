@@ -6,6 +6,8 @@ import { createContext, useContext, useEffect } from "react";
 
 import type { Fleet, FleetState } from "./data/fleet";
 import { Store, useStore } from "./data/store";
+import type { NodeKey } from "./wire/bridge";
+import type { AgentInfo } from "./wire/proto";
 
 export const FleetContext = createContext<Fleet | null>(null);
 
@@ -22,6 +24,16 @@ export function useFleet(): Fleet {
  * return). */
 export function useFleetState<S>(select: (state: FleetState) => S): S {
   return useStore(useFleet().store, select);
+}
+
+const NO_AGENTS: readonly AgentInfo[] = [];
+
+/** The agents `node` lists (`agent.list`), for an added agent's label:
+ * none until read, or for no machine. */
+export function useAgents(node: NodeKey | null): readonly AgentInfo[] {
+  return useFleetState((state) =>
+    node === null ? NO_AGENTS : (state.agents[node] ?? NO_AGENTS),
+  );
 }
 
 /** One step of the topbar's breadcrumb. */

@@ -2,7 +2,8 @@
 //! section 6.15: the prompt in the interface face, as the page draws it,
 //! monospace being for code and the terminal only; the agent's reply as
 //! Markdown body text; thoughts quieter, tool calls as rows with their
-//! state; the composer a surface at the foot; a permission above it).
+//! state; the composer a surface at the foot; over it, the conversation's slot:
+//! a permission, a question, the queue).
 //!
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
@@ -15,15 +16,15 @@
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
+    AnyElement, Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
+use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::prefs::TurnDelivery;
-use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_app_view::{Card, Conversation};
+use vessel_proto::{Delivery, EventRecord, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -143,6 +144,54 @@ impl Shell {
     }
 
     /// The draft was sent: show its prompt while the session starts.
+    /// The machine `from` is called `to` now (Settings › Machines, track
+    /// E2, after the book was written): the session open and a session
+    /// being started follow the new name.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_renamed(&mut self, from: &str, to: &str) {
+        let view = &mut self.areas.session;
+        if let Some(open) = &mut view.open
+            && open.machine == from
+        {
+            to.clone_into(&mut open.machine);
+        }
+        if let Some(pending) = &mut view.pending
+            && pending.machine == from
+        {
+            to.clone_into(&mut pending.machine);
+        }
+    }
+
+    /// The machine `name` is forgotten (track E2, after the book was
+    /// written): a session of it open or being started is let go, and the
+    /// session screen, if it showed one, goes back to the new chat.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_forgotten(&mut self, name: &str) {
+        let view = &mut self.areas.session;
+        if view
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.machine == name)
+        {
+            view.pending = None;
+        }
+        if view.open.as_ref().is_some_and(|open| open.machine == name) {
+            view.open = None;
+            view.resuming = None;
+            view.resume_error = None;
+            *view.restore.borrow_mut() = None;
+            if self.route == Route::Session {
+                self.route_to(Route::Draft);
+            }
+        }
+    }
+
     pub(crate) fn begin_pending(
         &mut self,
         machine: String,
@@ -332,23 +381,6 @@ impl Shell {
             cx.notify();
         }
     }
-
-    pub(crate) fn answer(
-        &mut self,
-        id: PermissionId,
-        option: PermissionOptionId,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(open) = &self.areas.session.open {
-            self.command(Command::Answer {
-                machine: open.machine.clone(),
-                session: open.session,
-                id,
-                option,
-            });
-            cx.notify();
-        }
-    }
 }
 
 pub(crate) fn render(
@@ -393,12 +425,6 @@ pub(crate) fn render(
             cx,
         ))
         .child(body)
-        .children(
-            view.conversation
-                .asked()
-                .first()
-                .map(|asked| permission(asked, shell, tokens, cx)),
-        )
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
@@ -542,47 +568,6 @@ fn composer(
     .pb(px(12.0))
 }
 
-/// The oldest permission waiting: what it is for, and a button per answer
-/// (the allowing ones primary).
-fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    // Wrapped: four long answers do not fit a phone's width.
-    let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    let buttons = asked.buttons(shell.t.lang.conversation());
-    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
-        let id = asked.id;
-        answers = answers.child(
-            button(
-                ElementId::Name(format!("answer-{index}").into()),
-                words,
-                allows,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.answer(id, option.clone(), cx);
-            })),
-        );
-    }
-    // In the chat column (`column`), so its edges are the composer's.
-    let card = div()
-        .w_full()
-        .p(px(12.0))
-        .flex()
-        .flex_col()
-        .gap(px(8.0))
-        .bg(tokens.bg_surface)
-        .border_1()
-        .border_color(tokens.st_needs_you)
-        .rounded(px(vessel_app_kit::theme::radius::R4))
-        .child(
-            div()
-                .type_(Type::Label)
-                .text_color(tokens.text_primary)
-                .child(shell.t.asks_to_run(asked.what.as_deref())),
-        )
-        .child(answers);
-    column(card).mb(px(8.0))
-}
-
 /// The first line of a prompt, at most 80 characters (the node's rule
 /// for a title, `SessionTitle::from_prompt`).
 fn first_line(prompt: &str) -> String {
@@ -628,9 +613,12 @@ thread_local! {
 
 /// The chat column grows to `width` (the next frame draws it).
 pub(crate) fn set_content_width(width: ContentWidth) {
-    let points = match width {
-        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
-        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    // The native default follows Paseo's 820-point column. Every explicit
+    // width uses its validated points, including future custom widths.
+    let points = if width == ContentWidth::Comfortable {
+        Some(COLUMN_WIDTH)
+    } else {
+        width.points().map(f32::from)
     };
     CONTENT_WIDTH.set(points);
 }

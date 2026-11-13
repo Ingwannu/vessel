@@ -21,7 +21,10 @@
 //!   revision (`FindCache`), so the second search is quick.
 //! - Shortcut: no element of the conversation holds the keys while the
 //!   composer does, so Mod+F is heard by a keystroke observer the area
-//!   keeps (`observe_keystrokes`), not by an action on an element.
+//!   keeps (`observe_keystrokes`), not by an action on an element. The
+//!   app's shortcuts (track S2's registry, rebindable) call
+//!   [`Shell::conversation_find`]; once they bind Find, the observer goes
+//!   (opening twice for one press does no harm meanwhile).
 //! - Not yet: the matched words are not highlighted in the text (the
 //!   entry is brought into view); a search is not run again as the
 //!   session grows while the bar is open.
@@ -142,20 +145,20 @@ impl Shell {
         let keys = cx.observe_keystrokes(|shell, event, window, cx| {
             let stroke = &event.keystroke;
             let modifiers = stroke.modifiers;
-            if stroke.key == "f"
-                && modifiers.secondary(cx)
-                && !modifiers.shift
-                && !modifiers.alt
-                && shell.areas.conversation.shown.is_some()
-            {
-                shell.open_find(window, cx);
+            if stroke.key == "f" && modifiers.secondary(cx) && !modifiers.shift && !modifiers.alt {
+                shell.conversation_find(window, cx);
             }
         });
         self.areas.conversation.keys = Some(keys);
     }
 
-    /// Open the bar, or give its field the keys again.
-    fn open_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    /// Find in the session shown (the shortcuts' Find, Mod+F by default):
+    /// open the bar, or give its field the keys again; nothing when no
+    /// session shows. Calling it twice for one press does no harm.
+    pub(crate) fn conversation_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.conversation.shown.is_none() {
+            return;
+        }
         if let Some(bar) = &self.areas.conversation.find {
             bar.field.focus(window, cx);
             return;
@@ -335,7 +338,7 @@ impl Shell {
             .map(|run| run.lead)
             .filter(|lead| *lead != found && !area.open_runs.contains(lead));
         if let Some(lead) = folded_in {
-            self.toggle_run(lead, cx);
+            self.toggle_run(super::Seat::SESSION, lead, cx);
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {

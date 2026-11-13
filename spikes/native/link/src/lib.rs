@@ -20,6 +20,7 @@
 //!   fast as it draws, and a sender waits for room, so a burst of records
 //!   slows the stream, never grows memory.
 
+pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
 mod prefs;
@@ -128,6 +129,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Read or edit the saved machine book.
+    Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
     Reload,
     /// Ask about a machine's paired devices.
@@ -230,8 +233,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
-        /// The name is the one the app filled in: use the node's own name
-        /// instead when it makes a free book name.
+        /// The person left the name empty (`name` is then a free name the
+        /// app chose): use the node's own name instead when it makes a free
+        /// book name.
         prefer_node_name: bool,
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
@@ -247,6 +251,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A saved-machine operation completed.
+    Machines(machines::Answer),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
@@ -351,6 +357,8 @@ impl Link {
             events,
             clients: HashMap::new(),
             follow: None,
+            follow_machine: None,
+            book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             device_calls: devices::Hub::default(),
         };
@@ -380,6 +388,8 @@ struct State {
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+    follow_machine: Option<String>,
+    book_path: machines::BookPath,
     workspace: workspace::Hub,
     device_calls: devices::Hub,
 }
@@ -413,6 +423,7 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Machines(ask) => self.machine_book(ask).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -498,14 +509,15 @@ impl State {
 
     /// List every machine's sessions, connecting to those not connected.
     async fn refresh(&mut self) {
-        let book = match nodes::read_book() {
+        let book = match self.saved_entries().await {
             Ok(book) => book,
-            Err(LinkError::BookFault(fault)) => {
+            Err(vessel_app_view::machine_book::Failure::File(fault)) => {
                 self.emit(Event::BookUnreadable(fault)).await;
                 return;
             }
-            Err(error) => {
-                self.emit(Event::Failed(error.to_string())).await;
+            Err(failure) => {
+                self.emit(Event::Machines(machines::Answer::Read(Err(failure))))
+                    .await;
                 return;
             }
         };
@@ -658,6 +670,7 @@ impl State {
 
     /// Follow `session` from its first record, replacing the one followed.
     fn open(&mut self, machine: &str, session: SessionId) {
+        self.follow_machine = None;
         if let Some(earlier) = self.follow.take() {
             earlier.abort();
         }
@@ -675,6 +688,7 @@ impl State {
             return;
         };
         let events = self.events.clone();
+        self.follow_machine = Some(machine.to_owned());
         self.follow = Some(tokio::spawn(follow(client, session, events)));
     }
 

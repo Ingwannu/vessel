@@ -218,6 +218,23 @@ fn protocol_eleven_methods_know_their_version_and_scope() {
     assert_eq!(eleven, PROTOCOL_ELEVEN);
 }
 
+/// Protocol 12's methods (milestone 11, track A2), in table order.
+const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
+    ("session.search", Scope::Read),
+    ("session.park", Scope::Operate),
+    ("session.wake", Scope::Operate),
+];
+
+#[test]
+fn protocol_twelve_methods_know_their_version_and_scope() {
+    let twelve: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(12))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(twelve, PROTOCOL_TWELVE);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -365,6 +382,9 @@ const FORWARDABLE: &[&str] = &[
     "prompt.create",
     "prompt.update",
     "prompt.delete",
+    "session.search",
+    "session.park",
+    "session.wake",
 ];
 
 #[test]

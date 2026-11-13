@@ -25,11 +25,11 @@
 import type { NodeKey } from "../wire/bridge";
 import type {
   Harness,
-  HarnessKind,
+  HarnessRef,
   SessionOption,
   SessionSpec,
 } from "../wire/proto";
-import { agentName, runsTimeline } from "./agents";
+import { agentModes, agentName } from "./agents";
 import { type ControlsState, controlsOf } from "./options";
 import { choicesFor, type Picks, withPicks } from "./picks";
 import { titleFromPrompt } from "./titles";
@@ -37,7 +37,8 @@ import { titleFromPrompt } from "./titles";
 /** What the person has chosen so far. */
 export interface Draft {
   machine: NodeKey | null;
-  agent: HarnessKind | null;
+  /** One of the four, or an agent added on the machine (protocol 11). */
+  agent: HarnessRef | null;
   /** `""`: the agent's default profile. */
   profile: string;
   terminal: boolean;
@@ -58,15 +59,30 @@ export interface Draft {
 export type OptionsState =
   | { kind: "loading" }
   | { kind: "ready"; options: readonly SessionOption[] }
-  | { kind: "failed"; message: string };
+  | { kind: "failed"; message: string }
+  /** The machine will not start the agent now (`conflict`), in the
+   * page's words (`agent-choices.ts`' `refusedStart`): Send would be
+   * refused the same way. */
+  | { kind: "refused"; message: string };
 
 /** A terminal's size until its view measures itself. */
 const FIRST_SIZE = { cols: 120, rows: 36 };
 
-/** Whether the draft starts a terminal: asked for, or the only way the
- * agent runs on that machine. */
+/** Whether the draft starts a terminal: asked for where the machine
+ * offers one for the agent, or the only way it runs there. An agent
+ * added on the machine has no terminal (ADR 0032), whatever was asked
+ * for another agent before. */
 export function startsTerminal(draft: Draft, harness: Harness): boolean {
-  return draft.terminal || !runsTimeline(harness);
+  const modes = agentModes(harness);
+  switch (modes.kind) {
+    case "both":
+      return draft.terminal;
+    case "terminal":
+      return true;
+    case "timeline":
+    case "neither":
+      return false;
+  }
 }
 
 /** `text` split into arguments as a shell would: on spaces, with single
@@ -141,12 +157,17 @@ export function specOf(
   }
   const choices =
     options.kind === "ready" ? choicesFor(options.options, draft.picks) : [];
+  // Named at once by its first prompt, as GOAT and agent-orchestrator name
+  // a thread at send: the node names it so only when the agent's turn
+  // starts, after its start (the same rule, `titleFromPrompt`'s).
+  const title = titleFromPrompt(draft.prompt);
   return {
     harness: harness.kind,
     mode: "structured",
     model: null,
     ...(choices.length === 0 ? {} : { options: choices }),
     ...where,
+    ...(title === null ? {} : { title }),
   };
 }
 
@@ -155,12 +176,33 @@ export function specOf(
 export function sendable(
   draft: Draft,
   harness: Harness | null,
+  options: OptionsState,
+  /** What the page calls the agent (an added one's label). */
+  name: string | null = null,
+  /** Whether the machine has listed its agents yet: before, an agent not
+   * found is one not yet known, not one missing. */
+  listed = true,
 ): { ok: true } | { ok: false; reason: string | null } {
   if (draft.machine === null) {
     return { ok: false, reason: "No machine is connected." };
   }
   if (harness === null) {
-    return { ok: false, reason: "This machine has no agent installed." };
+    return {
+      ok: false,
+      reason: listed
+        ? "This machine has no agent installed."
+        : "Loading the machine's agents…",
+    };
+  }
+  const modes = agentModes(harness);
+  if (modes.kind === "neither") {
+    return {
+      ok: false,
+      reason: `${name ?? agentName(harness.kind)} cannot run on this machine: ${modes.reason}`,
+    };
+  }
+  if (!startsTerminal(draft, harness) && options.kind === "refused") {
+    return { ok: false, reason: options.message };
   }
   if (!startsTerminal(draft, harness) && draft.prompt.trim() === "") {
     return { ok: false, reason: null };
@@ -174,6 +216,8 @@ export function draftControls(
   draft: Draft,
   harness: Harness,
   options: OptionsState,
+  /** What the page calls the agent (an added one's label). */
+  name: string | null = null,
 ): ControlsState {
   if (startsTerminal(draft, harness)) {
     return { kind: "terminal" };
@@ -183,12 +227,14 @@ export function draftControls(
       return { kind: "loading" };
     case "failed":
       return { kind: "failed", message: options.message };
+    case "refused":
+      return { kind: "refused", message: options.message };
     case "ready":
       return {
         kind: "ready",
         controls: controlsOf(
           withPicks(options.options, draft.picks),
-          agentName(harness.kind),
+          name ?? agentName(harness.kind),
         ),
       };
   }

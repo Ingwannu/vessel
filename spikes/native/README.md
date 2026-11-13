@@ -176,17 +176,24 @@ existing edge-sheet API remain available. The host presents and samples
 state, restores prior focus once at close, and stops drawing only when
 `CommandMotion::hidden` becomes true. Direct dragging remains available
 with the App's reduced-motion flag; springs/fades finish immediately.
-The OS-to-App flag bridge is lead-owned and is not implemented here.
+The App supplies this flag. On Linux/FreeBSD its portal follower reads and
+subscribes to the system preference; `VESSEL_APP_REDUCE_MOTION=1` or `0`
+forces the flag for one execution and skips that follower. Nothing is
+saved. Actual OS startup/live-change behavior remains unverified here;
+Windows/macOS system following is still absent.
 
 GPUI provides pointer coordinates and native capture, but no recognizer
 velocity: a bounded 100 ms/eight-sample history supplies release velocity.
 The shared spring follows the installed Reanimated helper (including its
 64 ms delayed-frame cap); its numeric fixtures were sampled from that
-helper. During exit GPUI has no subtree pointer-events:none, so the frame
-consumes pointer input rather than letting a stale painted row activate.
-This differs from RNW's pass-through exit; keyboard focus is already
-restored. The control's gate and the consuming screen's runtime evidence
-are reported separately; the old palette captures do not prove this API.
+helper. The current control consumes pointer input while exiting.
+Self-review found an outstanding parity error: Command Center conditionally
+unmounts its desktop Modal, so only its entering fade runs. The current
+desktop exit fade must be removed; compact sheet dismissal retains its
+spring and modal backdrop target. This correction is prepared but has not
+been installed or compiled. The app still uses the static compatibility
+frame and plain captions. The control's gate does not prove consuming
+palette behavior, and the old captures do not prove the new APIs.
 
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and
@@ -345,7 +352,11 @@ checked through `vessel session queue`: the queue above the composer is
 checked against it. Two more, `ask questions` and `ask one`, are left
 waiting on what Claude's adapter sends for its `AskUserQuestion` (three
 questions, one choosing several and one in Korean, and one question):
-the question card is checked against them.
+the question card is checked against them. Three more, `permit plan`,
+`permit codex` and `permit two`, are left waiting on permission requests
+in the real adapters' shapes (Claude Code leaving plan mode with five
+"always" answers, Codex's five answers, two at once): the permission card
+is checked against them and the `shapes-asking` session's long command.
 
 `scripts/shell-fixtures.py` adds eight long English/Korean session titles
 and long working paths through the real CLI, pins two and archives two.
@@ -445,3 +456,19 @@ released-catalog test requires every shipped catalog to be complete.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+Machine management uses `view::machine_book` for validated names, edit outcomes
+and safe localized failures, and `link::machines` for the CLI's existing node
+book. `BookFile` is reopened immediately before each atomic edit; the app does
+not maintain a second machine list on disk. A forget ends the app's watched
+stream only, leaving the remote session running. Original file errors remain
+at the file boundary because a malformed book can contain credentials.
+
+The actor resolves the book path once and reads it on the blocking pool for
+startup, tick, reload, retry and edits. Syntax failures share `FileFault` with
+pairing; no transient raw parser error reaches an event. Failed edits leave
+clients and the session follow untouched. Browser refusals retain the original
+Read/Edited response shape. Actor regressions use real framed RPC clients on
+bounded in-process streams, including client-preserving rename and watched
+forget; no real agent or network endpoint is contacted. Other areas' aliases
+and project follows must be integrated before the Machines screen is delivered.

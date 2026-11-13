@@ -14,11 +14,15 @@ import type { ReactNode } from "react";
 export function Sheet({
   label,
   onClose,
+  side = "left",
   children,
 }: {
   /** The sheet's name for assistive technology. */
   label: string;
   onClose: () => void;
+  /** `right`: a side panel's sheet (a session's code panel), as wide as
+   * the window less 12px, at most 560px, from the right edge. */
+  side?: "left" | "right";
   children: ReactNode;
 }) {
   return (
@@ -32,7 +36,10 @@ export function Sheet({
     >
       <Base.Portal>
         <Base.Backdrop className="dialog-backdrop" />
-        <Base.Popup className="sheet" aria-label={label}>
+        <Base.Popup
+          className={side === "right" ? "sheet right" : "sheet"}
+          aria-label={label}
+        >
           {children}
         </Base.Popup>
       </Base.Portal>

@@ -14,6 +14,12 @@
 //! What a session leaves outside the data directory's own folders (a
 //! worktree, protocol 10) is the node's to tidy: after a commit in which
 //! retention removed sessions, the writer says so ([`Setup::pruned`]).
+//!
+//! It also builds the search index (protocol 12, `search::index`): each
+//! append's records are indexed in the append's own savepoint, and when
+//! nothing is queued and some session's index is behind its log (sessions
+//! stored before the index existed), it indexes one bounded step of it in
+//! a transaction of its own before looking at the queue again.
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -32,6 +38,8 @@ use crate::config::Retention;
 use crate::devices::{self, CredentialHash};
 use crate::error::StoreError;
 use crate::log::{self, Appended};
+use crate::search::idle::Indexer;
+use crate::search::index;
 use crate::{again, attachments, marks};
 
 /// Most operations committed in one transaction. Bounds how long one
@@ -138,6 +146,10 @@ pub(crate) struct Setup {
     /// a watch keeps only the latest value and never fills, and the node
     /// looks for every worktree whose session is gone anyway.
     pub(crate) pruned: watch::Sender<u64>,
+    /// Whether some session's index is behind its log (protocol 12): true
+    /// while the writer catches up, false once it waits on its queue with
+    /// nothing behind.
+    pub(crate) indexing: watch::Sender<bool>,
 }
 
 /// One caller's answer, held until its batch is committed.
@@ -201,8 +213,8 @@ fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, setup: &Set
     let mut batch = Vec::with_capacity(MAX_BATCH);
     let mut writes = Vec::with_capacity(MAX_BATCH);
     let mut closes = Vec::new();
-    // Zero means every `Store` handle is gone.
-    while ops.blocking_recv_many(&mut batch, MAX_BATCH) > 0 {
+    let mut indexer = Indexer::new();
+    while next_batch(&mut ops, &mut batch, &mut indexer, &mut connection, setup) {
         for op in batch.drain(..) {
             match op {
                 WriteOp::Write(write) if closes.is_empty() => writes.push(write),
@@ -210,7 +222,7 @@ fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, setup: &Set
                 WriteOp::Close { done } => closes.push(done),
             }
         }
-        commit(&mut connection, writes.drain(..), setup);
+        commit(&mut connection, writes.drain(..), setup, &mut indexer);
         if !closes.is_empty() {
             break;
         }
@@ -224,6 +236,46 @@ fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, setup: &Set
     tracing::debug!("event log writer stopped");
 }
 
+/// Wait for the next operations, up to [`MAX_BATCH`]; `false` once every
+/// `Store` handle is gone. While the search index is behind, an empty
+/// queue is spent on one catch-up step at a time instead of waiting, so a
+/// write that arrives waits at most one step; once nothing is behind, it
+/// waits on the queue as before.
+fn next_batch(
+    ops: &mut mpsc::Receiver<WriteOp>,
+    batch: &mut Vec<WriteOp>,
+    indexer: &mut Indexer,
+    connection: &mut Connection,
+    setup: &Setup,
+) -> bool {
+    while indexer.maybe() {
+        match ops.try_recv() {
+            Ok(op) => {
+                batch.push(op);
+                while batch.len() < MAX_BATCH {
+                    let Ok(op) = ops.try_recv() else { break };
+                    batch.push(op);
+                }
+                return true;
+            }
+            Err(mpsc::error::TryRecvError::Empty) => {
+                indexer.step(connection);
+                publish(indexer, setup);
+            }
+            Err(mpsc::error::TryRecvError::Disconnected) => return false,
+        }
+    }
+    // Zero means every `Store` handle is gone.
+    ops.blocking_recv_many(batch, MAX_BATCH) > 0
+}
+
+/// Say whether idle work may be left ([`Setup::indexing`]).
+fn publish(indexer: &Indexer, setup: &Setup) {
+    let _changed = setup.indexing.send_if_modified(|indexing| {
+        std::mem::replace(indexing, indexer.maybe()) != indexer.maybe()
+    });
+}
+
 /// Fold the WAL back into the database file so a stopped node leaves one
 /// self-contained file behind.
 fn checkpoint(connection: &Connection) {
@@ -234,12 +286,17 @@ fn checkpoint(connection: &Connection) {
 
 /// Apply and commit one batch, remove what it removed, then answer every
 /// caller in it.
-fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, setup: &Setup) {
+fn commit(
+    connection: &mut Connection,
+    writes: impl Iterator<Item = Write>,
+    setup: &Setup,
+    indexer: &mut Indexer,
+) {
     let mut answers = Vec::new();
     let mut effects = Effects::default();
     let committed = connection.transaction().and_then(|mut transaction| {
         for write in writes {
-            answers.push(apply(&mut transaction, write, &mut effects));
+            answers.push(apply(&mut transaction, write, &mut effects, indexer));
         }
         retain(&mut transaction, &mut effects, &setup.retention);
         transaction.commit()
@@ -247,7 +304,13 @@ fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, setu
     let failed = committed.err().map(Arc::new);
     if let Some(error) = &failed {
         tracing::error!(%error, "committing to the event log failed");
+        // The runs it kept were for rows that are now rolled back.
+        indexer.forget_all();
     } else {
+        // Said before any caller hears its write is in, so a caller that
+        // then waits for the index waits for this write's messages too.
+        indexer.committed();
+        publish(indexer, setup);
         // Only now are the rows gone for good; a failed commit kept them,
         // and with them their files.
         for &session in &effects.removed {
@@ -269,7 +332,12 @@ fn commit(connection: &mut Connection, writes: impl Iterator<Item = Write>, setu
 
 /// Apply one write in its own savepoint, so a failing write leaves no
 /// partial rows and does not affect the rest of the batch.
-fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects) -> Answer {
+fn apply(
+    transaction: &mut Transaction<'_>,
+    write: Write,
+    effects: &mut Effects,
+    indexer: &mut Indexer,
+) -> Answer {
     match write {
         Write::Create { info, done } => {
             let applied = isolated(transaction, |connection| {
@@ -282,13 +350,7 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
             records,
             done,
         } => {
-            let applied = isolated(transaction, |connection| {
-                let Appended { ended: now_ended } =
-                    log::append(connection, session, records.iter().map(Arc::as_ref))?;
-                let _first = effects.touched.insert(session);
-                effects.ended |= now_ended;
-                Ok(())
-            });
+            let applied = append(transaction, session, &records, effects, indexer);
             Answer::Done(done, applied)
         }
         Write::AddDevice {
@@ -368,6 +430,31 @@ fn apply(transaction: &mut Transaction<'_>, write: Write, effects: &mut Effects)
             Answer::Done(done, applied)
         }
     }
+}
+
+/// Append a session's records and index them, in one savepoint. The
+/// session's open run leaves the indexer's cache for the savepoint and
+/// comes back only if it commits, so a rolled-back append never leaves a
+/// run ahead of its row.
+fn append(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    records: &[Arc<EventRecord>],
+    effects: &mut Effects,
+    indexer: &mut Indexer,
+) -> Result<(), StoreError> {
+    let cached = indexer.take(session);
+    let (now_ended, advanced) = isolated(transaction, |connection| {
+        let Appended { ended } = log::append(connection, session, records.iter().map(Arc::as_ref))?;
+        Ok((
+            ended,
+            index::on_append(connection, session, cached, records),
+        ))
+    })?;
+    indexer.keep(session, advanced);
+    let _first = effects.touched.insert(session);
+    effects.ended |= now_ended;
+    Ok(())
 }
 
 fn isolated<T>(

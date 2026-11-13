@@ -24,6 +24,7 @@
 //!   shortcut is read by both composers ([`apply_composer`]).
 
 mod appearance;
+mod book;
 mod choices;
 mod devices;
 mod general;
