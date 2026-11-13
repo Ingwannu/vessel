@@ -10,24 +10,26 @@
 //! still a placeholder would be a dead end), and machines only once
 //! Settings › Machines is drawn.
 
+mod rows;
+
+use rows::{child_at, glyph_of, ids, keys_of};
+
 use gpui::{FocusHandle, ScrollHandle};
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::breakpoint;
 use vessel_app_kit::command::{
-    CommandFrame, CommandKey, CommandRow, command_empty, command_frame, command_heading,
-    command_row,
+    CommandFrame, CommandKey, CommandMatches, CommandRow, command_empty, command_frame,
+    command_heading, command_row_matched,
 };
+use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
-    PaletteEntry, PaletteGroup, PaletteTarget, kept, mark, moved, palette_entries, palette_groups,
+    Direction, PaletteCursor, PaletteEntry, PaletteTarget, marks, palette_entries, palette_groups,
 };
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 use vessel_app_view::settings::Section;
-use vessel_app_view::shortcuts::{Action, Platform, bindings_of, chord_caps};
 
 use super::session::Open;
 use super::settings;
@@ -50,7 +52,7 @@ pub(crate) struct PaletteArea {
     query: String,
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
-    active: Option<String>,
+    cursor: PaletteCursor,
     /// The list's scroll, to keep the active row in sight.
     scroll: ScrollHandle,
     /// What held the keys before it opened.
@@ -69,7 +71,7 @@ impl PaletteArea {
                 cx,
             ),
             query: String::new(),
-            active: None,
+            cursor: PaletteCursor::default(),
             scroll: ScrollHandle::new(),
             prior: None,
         }
@@ -86,7 +88,7 @@ impl Shell {
             palette.prior = window.focused(cx);
             palette.open = true;
             palette.query.clear();
-            palette.active = None;
+            palette.cursor.reset();
             palette.search.set_placeholder(placeholder, window, cx);
             palette.search.clear(window, cx);
         }
@@ -101,6 +103,7 @@ impl Shell {
             return;
         }
         palette.open = false;
+        palette.cursor.reset();
         if let Some(prior) = palette.prior.take() {
             prior.focus(window, cx);
         }
@@ -109,6 +112,20 @@ impl Shell {
 
     fn palette_searched(&mut self, text: String, cx: &mut Context<'_, Self>) {
         self.areas.palette.query = text;
+        self.areas.palette.cursor.reset();
+        // A query reveals its highest-ranked row once. Passive fleet
+        // refreshes only resolve identity and never commandeer scrolling.
+        let all = self.palette_all();
+        let palette = &mut self.areas.palette;
+        let groups = palette_groups(&all, &palette.query);
+        let ids = ids(&groups);
+        if let Some(at) = palette
+            .cursor
+            .resolved(&ids)
+            .and_then(|id| child_at(&groups, id))
+        {
+            palette.scroll.scroll_to_item(at);
+        }
         cx.notify();
     }
 
@@ -120,9 +137,14 @@ impl Shell {
             .filter(|section| settings::drawn(*section))
             .map(|section| (section, words.section(section)))
             .collect();
+        let selected = if self.route == Route::Draft {
+            self.areas.draft.machine.clone()
+        } else {
+            self.machine_in_view()
+        };
         let mut all = palette_entries(
             &self.fleet,
-            self.areas.draft.machine.as_deref(),
+            selected.as_deref(),
             &sections,
             Theme::ALL,
             self.t.lang,
@@ -140,12 +162,15 @@ impl Shell {
                 let palette = &mut self.areas.palette;
                 let groups = palette_groups(&all, &palette.query);
                 let ids = ids(&groups);
-                let active = kept(palette.active.as_deref(), &ids);
-                let next = moved(active, &ids, key == CommandKey::Down);
+                let direction = if key == CommandKey::Down {
+                    Direction::Next
+                } else {
+                    Direction::Previous
+                };
+                let next = palette.cursor.advance(&ids, direction);
                 if let Some(at) = next.and_then(|id| child_at(&groups, id)) {
                     palette.scroll.scroll_to_item(at);
                 }
-                palette.active = next.map(str::to_owned);
                 cx.notify();
             }
             CommandKey::Enter => {
@@ -153,7 +178,7 @@ impl Shell {
                 let palette = &self.areas.palette;
                 let groups = palette_groups(&all, &palette.query);
                 let ids = ids(&groups);
-                let active = kept(palette.active.as_deref(), &ids);
+                let active = palette.cursor.resolved(&ids);
                 let target = active
                     .and_then(|id| all.iter().find(|entry| entry.id == id))
                     .map(|entry| entry.target.clone());
@@ -203,97 +228,6 @@ impl Shell {
     }
 }
 
-/// The listed entries' ids, top to bottom.
-fn ids<'a>(groups: &[(PaletteGroup, Vec<&'a Entry>)]) -> Vec<&'a str> {
-    groups
-        .iter()
-        .flat_map(|(_, entries)| entries.iter().map(|entry| entry.id.as_str()))
-        .collect()
-}
-
-/// Where the entry `id`'s row is among the list's children (each group's
-/// heading is one before its rows).
-fn child_at(groups: &[(PaletteGroup, Vec<&Entry>)], id: &str) -> Option<usize> {
-    let mut at = 0_usize;
-    for (_, entries) in groups {
-        at = at.saturating_add(1);
-        for entry in entries {
-            if entry.id == id {
-                return Some(at);
-            }
-            at = at.saturating_add(1);
-        }
-    }
-    None
-}
-
-/// An entry's glyph (the page's `iconOf`).
-const fn glyph_of(target: &Target) -> Glyph {
-    match target {
-        PaletteTarget::NewSession(_) => Glyph::Plus,
-        PaletteTarget::AddMachine | PaletteTarget::Machine(_) => Glyph::Machine,
-        PaletteTarget::Board => Glyph::Board,
-        PaletteTarget::Settings(section) => settings::section_glyph(*section),
-        PaletteTarget::Session { structured, .. } => {
-            if *structured {
-                Glyph::Message
-            } else {
-                Glyph::Terminal
-            }
-        }
-        PaletteTarget::Theme(Theme::System) => Glyph::Monitor,
-        PaletteTarget::Theme(Theme::Light) => Glyph::Sun,
-        PaletteTarget::Theme(Theme::Dark) => Glyph::Moon,
-    }
-}
-
-/// The shortcut that does what `target` does, if one does.
-const fn action_of(target: &Target) -> Option<Action> {
-    match target {
-        PaletteTarget::NewSession(_) => Some(Action::NewSession),
-        PaletteTarget::Board => Some(Action::GoBoard),
-        PaletteTarget::Settings(section) => match section {
-            Section::General => Some(Action::Settings),
-            Section::Machines => Some(Action::GoMachines),
-            Section::Sync => Some(Action::GoSync),
-            Section::Devices => Some(Action::GoDevices),
-            Section::Appearance
-            | Section::Shortcuts
-            | Section::Notifications
-            | Section::Agents
-            | Section::Models
-            | Section::Projects
-            | Section::About => None,
-        },
-        PaletteTarget::AddMachine
-        | PaletteTarget::Machine(_)
-        | PaletteTarget::Session { .. }
-        | PaletteTarget::Theme(_) => None,
-    }
-}
-
-/// The badges of the first key bound to what `target` does, one per
-/// chord (Paseo's `Shortcut`), as the person has the keys.
-fn keys_of(target: &Target, shell: &Shell) -> Vec<SharedString> {
-    let Some(action) = action_of(target) else {
-        return Vec::new();
-    };
-    let platform = Platform::native();
-    let joiner = match platform {
-        Platform::Mac => "",
-        Platform::Other => "+",
-    };
-    bindings_of(action, &shell.prefs.settings.shortcuts)
-        .first()
-        .map(|binding| {
-            binding
-                .chords()
-                .map(|chord| chord_caps(chord, platform).join(joiner).into())
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 /// The palette, while open: over everything, at the window's top (a sheet
 /// from the bottom at a phone's width).
 pub(crate) fn render(
@@ -306,14 +240,14 @@ pub(crate) fn render(
         return None;
     }
     let all = shell.palette_all();
-    let compact = breakpoint::phone(window);
+    let compact = f32::from(window.viewport_size().width) < picker::COMPACT;
     let words = shell.t.lang.palette();
     let theme = shell.prefs.settings.appearance.theme;
-    let palette = &shell.areas.palette;
-    let query = palette.query.as_str();
+    let query = shell.areas.palette.query.as_str();
     let groups = palette_groups(&all, query);
     let ids = ids(&groups);
-    let active = kept(palette.active.as_deref(), &ids);
+    let active = shell.areas.palette.cursor.settle(&ids);
+    let palette = &shell.areas.palette;
     let list = if groups.is_empty() {
         command_empty(words.nothing, tokens).into_any_element()
     } else {
@@ -324,20 +258,23 @@ pub(crate) fn render(
                 let row = CommandRow {
                     glyph: Some(glyph_of(&entry.target)),
                     title: entry.label.clone().into(),
-                    title_mark: mark(query, &entry.label),
                     subtitle: entry.detail.clone().map(Into::into),
-                    subtitle_mark: entry
-                        .detail
-                        .as_deref()
-                        .and_then(|detail| mark(query, detail)),
                     keys: keys_of(&entry.target, shell),
                     checked: matches!(entry.target, PaletteTarget::Theme(shown) if shown == theme),
                     active: active == Some(entry.id.as_str()),
+                    ..CommandRow::default()
+                };
+                let matches = CommandMatches {
+                    title: marks(query, &entry.label),
+                    subtitle: entry
+                        .detail
+                        .as_deref()
+                        .map_or_else(Vec::new, |detail| marks(query, detail)),
                 };
                 let target = entry.target.clone();
                 let id = SharedString::from(format!("palette-{}", entry.id));
                 children.push(
-                    command_row(id, row, compact, tokens)
+                    command_row_matched(id, row, matches, compact, tokens)
                         .on_click(cx.listener(move |shell, _event, window, cx| {
                             shell.run_palette(target.clone(), window, cx);
                         }))
@@ -351,7 +288,6 @@ pub(crate) fn render(
             .min_h(px(0.0))
             .overflow_y_scroll()
             .track_scroll(&palette.scroll)
-            .pb(px(8.0))
             .children(children)
             .into_any_element()
     };

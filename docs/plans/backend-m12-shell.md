@@ -341,6 +341,48 @@ Control gate: native `cargo fmt --check` clean;
 Captures and visual review accompany the consuming palette slice; this
 control-only change is not claimed as visually approved on its own.
 
+Palette follow-up: `view/palette/{search,ranking,cursor}.rs` now follows
+Paseo's `command-center/results.ts`, `interaction.ts`, their tests and
+the protocol's `search/text-match.ts`. Every query token must land in a
+field; greedy subsequences cannot cross whitespace. Visible fields beat
+hidden keywords at every prefix, section/row ties keep registry order,
+and the session section stays below commands. Sessions of an empty query
+are the five most recently active, with archived sessions excluded as
+`hooks/use-aggregated-agents.ts` excludes them. Every matching token is
+highlighted at original UTF-8 boundaries, including scattered matches;
+ranking offsets use the reference's UTF-16 unit. No edit-distance typo
+tolerance is enabled, as in the reference Command Center.
+
+A query resets keyboard identity and reveals its best result. Passive
+refreshes preserve identity (or commit the first remaining row when one
+vanishes) without scrolling. The compact breakpoint is Paseo's 600,
+not the shell sidebar's 768. Entry presentation is in
+`app/areas/palette/rows.rs`; the main palette file remains below 400
+lines. New-session commands use the machine actually in view, rather
+than a stale draft choice.
+
+Fixture seam: one invocation in `scripts/fleet.sh` calls this track's
+`shell-fixtures.py`. It adds long English/Korean titles, long paths,
+pinned and archived sessions via the CLI and asserts their durable
+projections. The helper was seeded and checked against a fresh fake
+fleet. No root workspace source or protocol changed.
+
+The first palette clippy run rejected four test-fixture `vec![range]`
+expressions as ambiguous single-range vector initializers. Replaced
+those with an explicitly named one-span constructor; no lint suppression
+or weaker assertion. Subsequent build commands use the shared build-slot
+runner. The fixture bootstrap, its CLI changes and durable-shape checks
+also passed as one complete `fleet.sh start` run.
+
+Final palette gate: native `cargo fmt --check` and whole-workspace
+`cargo clippy --all-targets -- -D warnings` clean; `cargo test` passed
+3, 21, 14, 266 and 89 tests (393 total), zero failures. The final clippy
+also removed one import left behind by extracting row presentation.
+Matching uses ECMAScript's whitespace set, including BOM and excluding
+the Unicode next-line character; a regression keeps this boundary from
+drifting to Rust's different `is_whitespace` set. Runtime captures and
+the consuming screen's visual approval remain separate from this gate.
+
 - The inherited notification draft was preserved outside the repository
   as a patch and its untracked area file, then its paths were restored.
   It omitted sound, had no capture or reference comparison, and kept

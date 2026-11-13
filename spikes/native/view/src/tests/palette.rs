@@ -6,8 +6,10 @@ use vessel_proto::{SessionInfo, SessionStatus};
 use super::fixture::{fleet, id, in_folder, machine, session};
 use crate::Lang;
 use crate::palette::{
-    PaletteEntry, PaletteGroup, PaletteTarget, kept, mark, moved, palette_entries, palette_groups,
+    PaletteEntry, PaletteGroup, PaletteTarget, kept, marks, moved, palette_entries, palette_groups,
 };
+
+mod relevance;
 
 /// Settings' sections as the frame names them (the page's
 /// `SETTINGS_SECTIONS`).
@@ -253,24 +255,27 @@ fn keeps_keyboard_selection_aligned_with_rows_beyond_the_first() {
 // `findHighlightRanges` for the one substring this palette searches.
 
 #[test]
-fn marks_the_first_place_a_search_occurs_whatever_the_case() {
-    assert_eq!(mark("view", "Review the view"), Some(2..6));
-    assert_eq!(mark("  BOARD ", "Go to board"), Some(6..11));
-    assert_eq!(mark("", "Go to board"), None);
-    assert_eq!(mark("sync", "Go to board"), None);
+fn marks_the_best_place_a_search_occurs_whatever_the_case() {
+    assert_eq!(marks("view", "Review the view"), vec![11..15]);
+    assert_eq!(marks("  BOARD ", "Go to board"), vec![6..11]);
+    assert_eq!(marks("", "Go to board"), Vec::new());
+    assert_eq!(marks("sync", "Go to board"), Vec::new());
 }
 
 #[test]
 fn marks_in_bytes_of_words_in_any_script() {
     let text = "보드로 이동";
-    let found = mark("이동", text);
+    let found = marks("이동", text).into_iter().next();
     assert_eq!(
         found.clone().and_then(|range| text.get(range)),
         Some("이동")
     );
     let text = "ÉTÉ été";
     assert_eq!(
-        mark("été", text).and_then(|range| text.get(range)),
+        marks("été", text)
+            .into_iter()
+            .next()
+            .and_then(|range| text.get(range)),
         Some("ÉTÉ")
     );
 }

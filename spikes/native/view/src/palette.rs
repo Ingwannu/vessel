@@ -12,9 +12,16 @@
 //!   names and the kit's three choices (system, light, dark), and acts on
 //!   the target it gets back.
 
+mod cursor;
+mod ranking;
+mod search;
+
+pub use cursor::{Direction, PaletteCursor};
+
 use std::cmp::Reverse;
 use std::ops::Range;
 
+use chrono::{DateTime, Utc};
 use vessel_proto::SessionId;
 
 use crate::board::{Fleet, Reach};
@@ -87,6 +94,9 @@ pub struct PaletteEntry<S, T> {
     pub group: PaletteGroup,
     /// What choosing it does.
     pub target: PaletteTarget<S, T>,
+    /// The node's last activity time, used to rank session navigation.
+    /// Commands have no activity time.
+    pub activity_at: Option<DateTime<Utc>>,
 }
 
 impl<S, T> PaletteEntry<S, T> {
@@ -98,24 +108,22 @@ impl<S, T> PaletteEntry<S, T> {
             keywords: None,
             group,
             target,
+            activity_at: None,
         }
     }
 
-    /// Whether it answers a search for `query`: its label, detail and
-    /// keywords contain it, whatever the case.
+    /// Whether every query token matches its visible fields or keywords,
+    /// with subsequences confined to a word (Paseo's Command Center).
     #[must_use]
     pub fn found(&self, query: &str) -> bool {
-        let needle = query.trim().to_lowercase();
-        if needle.is_empty() {
-            return true;
-        }
-        let haystack = format!(
-            "{} {} {}",
-            self.label,
-            self.detail.as_deref().unwrap_or_default(),
-            self.keywords.as_deref().unwrap_or_default()
-        );
-        haystack.to_lowercase().contains(&needle)
+        self.score(&search::Query::new(query)).is_some()
+    }
+
+    fn score(&self, query: &search::Query) -> Option<search::Score> {
+        query.score(
+            &[&self.label, self.detail.as_deref().unwrap_or_default()],
+            self.keywords.as_deref(),
+        )
     }
 }
 
@@ -181,11 +189,13 @@ pub fn palette_entries<S: Copy, T: Copy>(
         .machines
         .iter()
         .flat_map(|machine| &machine.sessions)
+        .filter(|card| card.detail.marks.archived_at.is_none())
         .collect();
     cards.sort_by_key(|card| Reverse(card.detail.created_at));
     cards.sort_by_key(|card| !card.live);
     let text = lang.text();
     let sessions = cards.into_iter().map(|card| PaletteEntry {
+        activity_at: Some(card.detail.active_at),
         detail: Some(format!(
             "{} · {}",
             text.phrase(&card.detail.process),
@@ -228,52 +238,14 @@ pub fn palette_groups<'a, S, T>(
     entries: &'a [PaletteEntry<S, T>],
     query: &str,
 ) -> Vec<(PaletteGroup, Vec<&'a PaletteEntry<S, T>>)> {
-    PaletteGroup::ALL
-        .into_iter()
-        .map(|group| {
-            let found = entries
-                .iter()
-                .filter(|entry| entry.group == group && entry.found(query))
-                .collect::<Vec<_>>();
-            (group, found)
-        })
-        .filter(|(_, found)| !found.is_empty())
-        .collect()
+    ranking::groups(entries, query)
 }
 
-/// Where `text` shows a search for `query` (Paseo's `findHighlightRanges`
-/// for the one substring this palette searches): the first place it
-/// occurs, whatever the case, in bytes of `text`; `None` when it does not.
+/// Every matching token or subsequence run, in original UTF-8 byte ranges
+/// (Paseo's `findHighlightRanges`). Overlapping terms share one mark.
 #[must_use]
-pub fn mark(query: &str, text: &str) -> Option<Range<usize>> {
-    let needle: Vec<char> = query.trim().chars().flat_map(char::to_lowercase).collect();
-    if needle.is_empty() {
-        return None;
-    }
-    text.char_indices().find_map(|(start, _)| {
-        let rest = text.get(start..)?;
-        let length = matched_length(rest, &needle)?;
-        Some(start..start.saturating_add(length))
-    })
-}
-
-/// How many bytes at the head of `text` read as `needle` (lower case),
-/// whatever their case.
-fn matched_length(text: &str, needle: &[char]) -> Option<usize> {
-    let mut wanted = needle.iter();
-    let mut want = wanted.next();
-    for (offset, typed) in text.char_indices() {
-        for lower in typed.to_lowercase() {
-            if want != Some(&lower) {
-                return None;
-            }
-            want = wanted.next();
-        }
-        if want.is_none() {
-            return Some(offset.saturating_add(typed.len_utf8()));
-        }
-    }
-    None
+pub fn marks(query: &str, text: &str) -> Vec<Range<usize>> {
+    search::Query::new(query).marks(text)
 }
 
 /// The row the keyboard makes active after a search changed the rows

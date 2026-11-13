@@ -38,6 +38,16 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+The command palette's matching and cursor are pure `view::palette`
+modules. Each query token must match a visible label/subtitle or hidden
+keyword; subsequences stay within a word. Visible matches rank first,
+command groups rank by relevance, and session navigation follows below
+them by match tier and last activity. Before searching, only five recent
+sessions appear; archived sessions are excluded. A query resets selection
+to the best result; passive fleet updates retain identity and do not
+scroll. The app only supplies entries, draws kit rows and reveals the
+selection when the person types or presses an arrow.
+
 ## The app's layout
 
 ```
@@ -302,6 +312,13 @@ checked against it. Two more, `ask questions` and `ask one`, are left
 waiting on what Claude's adapter sends for its `AskUserQuestion` (three
 questions, one choosing several and one in Korean, and one question):
 the question card is checked against them.
+
+`scripts/shell-fixtures.py` adds eight long English/Korean session titles
+and long working paths through the real CLI, pins two and archives two.
+It reads the disposable node's durable projection to fail startup when
+these shapes are missing. It refuses a book outside disposable loopback
+endpoints or an adapter that is not the real-shape fake. This tests shell
+layout against node data rather than hand-built screen rows.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

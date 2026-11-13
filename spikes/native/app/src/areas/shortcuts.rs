@@ -162,7 +162,7 @@ impl Shell {
 
     /// The machine the window shows: the open session's, or the one the
     /// board is scoped to (the page's `machineInView`).
-    fn machine_in_view(&self) -> Option<String> {
+    pub(super) fn machine_in_view(&self) -> Option<String> {
         match self.route {
             Route::Session => self
                 .areas
