@@ -82,7 +82,7 @@ impl Shell {
             sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
-        areas::settings::start(&shell, window, cx);
+        areas::settings::start(&mut shell, window, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell

@@ -12,12 +12,15 @@
 //! (agent-orchestrator's local echo and its "gets ready" line), and the
 //! conversation takes its place when the first record arrives.
 
+use std::cell::Cell;
+
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
+use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::{Asked, Card, Conversation};
 use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
 
@@ -549,15 +552,49 @@ const COLUMN_WIDTH: f32 = 820.0;
 /// The column's distance from the window's edges.
 const COLUMN_INSET: f32 = 16.0;
 
+thread_local! {
+    /// How wide the chat column grows (Settings › Appearance › Content
+    /// width); `None`: the window's width.
+    ///
+    /// [Decision Log]
+    /// - Purpose: the person's content width, for the conversation and
+    ///   the composer under it together (the page's `--content-width` on
+    ///   `.timeline-column` and `.session-dock-column`).
+    /// - Choice: one value read by [`column`], which every row of the
+    ///   conversation and the composer is drawn in, set by
+    ///   [`set_content_width`]. Kept beside the column rather than passed
+    ///   to it: the conversation's rows are drawn by its list where the
+    ///   settings are not at hand, and one value keeps the composer and
+    ///   the messages on the same edges.
+    /// - Difference: "Comfortable" is Paseo's chat column, 820, where the
+    ///   page takes agent-orchestrator's 768 (the owner's rule: Paseo's
+    ///   app); "Wide" is GOAT's 1152 as the page's, "Full" the window's.
+    static CONTENT_WIDTH: Cell<Option<f32>> = const { Cell::new(Some(COLUMN_WIDTH)) };
+}
+
+/// The chat column grows to `width` (the next frame draws it).
+pub(crate) fn set_content_width(width: ContentWidth) {
+    let points = match width {
+        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
+        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    };
+    CONTENT_WIDTH.set(points);
+}
+
 /// `content` in the chat column.
 pub(crate) fn column(content: impl IntoElement) -> Div {
+    let inner = div().w_full().child(content);
+    let inner = match CONTENT_WIDTH.get() {
+        Some(width) => inner.max_w(px(width)),
+        None => inner,
+    };
     div()
         .w_full()
         .flex()
         .flex_row()
         .justify_center()
         .px(px(COLUMN_INSET))
-        .child(div().w_full().max_w(px(COLUMN_WIDTH)).child(content))
+        .child(inner)
 }
 
 /// A person's message, in the chat column.
