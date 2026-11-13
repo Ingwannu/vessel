@@ -154,6 +154,14 @@ impl Shell {
         self.areas.conversation.keys = Some(keys);
     }
 
+    /// Update a retained field's language without clearing its search.
+    pub(crate) fn refresh_find_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(bar) = &self.areas.conversation.find {
+            bar.field
+                .set_placeholder(self.t.lang.conversation().find_in_session(), window, cx);
+        }
+    }
+
     /// Open the bar, or give its field the keys again.
     fn open_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(bar) = &self.areas.conversation.find {
@@ -481,3 +489,6 @@ fn small_button(
             },
         ))
 }
+
+#[cfg(test)]
+mod language_tests;

@@ -16,6 +16,8 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "set", content = "value", rename_all = "snake_case")]
 pub enum PreferenceChange {
+    /// The app language; applies at once on every screen.
+    Language(crate::localization::LanguagePreference),
     /// The theme.
     Theme(Theme),
     /// The interface's text size.
@@ -166,6 +168,7 @@ impl Preferences {
     /// Apply `change`, replacing only the setting it names.
     fn apply(&mut self, change: &PreferenceChange) {
         match change {
+            PreferenceChange::Language(language) => self.language = *language,
             PreferenceChange::Theme(theme) => self.appearance.theme = *theme,
             PreferenceChange::InterfaceSize(size) => self.appearance.interface_size = *size,
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,

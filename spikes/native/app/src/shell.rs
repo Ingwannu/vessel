@@ -23,6 +23,8 @@ pub(crate) struct Shell {
     link: Option<Link>,
     /// Every word on screen, in the person's language.
     pub(crate) t: &'static Text,
+    pub(crate) words: &'static vessel_app_view::localization::Translator,
+    pub(crate) language: crate::language::Language,
     pub(crate) fleet: Fleet,
     pub(crate) route: Route,
     pub(crate) areas: Areas,
@@ -63,7 +65,13 @@ pub(crate) struct Shell {
 }
 
 impl Shell {
-    pub(crate) fn new(t: &'static Text, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn new(
+        prefs: Prefs,
+        language: crate::language::Language,
+        words: &'static vessel_app_view::localization::Translator,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
         let areas = Areas::new(window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
@@ -75,11 +83,13 @@ impl Shell {
         };
         let mut shell = Self {
             link,
-            t,
+            t: vessel_app_view::Lang::from_tag(words.locale().tag()).text(),
+            words,
+            language,
             fleet: Fleet::default(),
             route: Route::Draft,
             areas,
-            prefs: Prefs::load(),
+            prefs,
             notice,
             notice_detail: None,
             foot_tips: (
@@ -371,3 +381,6 @@ impl Render for Shell {
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
+
+#[cfg(test)]
+pub(crate) mod language_tests;

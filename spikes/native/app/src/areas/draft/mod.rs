@@ -184,6 +184,12 @@ pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessK
 pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     shell.settle_draft();
     shell.probe(true);
+    refresh_words(shell, window, cx);
+    shell.areas.draft.composer.focus(window, cx);
+}
+
+/// Refresh only the language-dependent placeholder; preserve the draft.
+pub(crate) fn refresh_words(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     let t = shell.t;
     let draft = &shell.areas.draft;
     let placeholder = t.suggestions.get(draft.suggestion).map_or_else(
@@ -191,7 +197,6 @@ pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
         |suggestion| (*suggestion).to_owned(),
     );
     draft.composer.set_placeholder(&placeholder, window, cx);
-    draft.composer.focus(window, cx);
 }
 
 impl Shell {

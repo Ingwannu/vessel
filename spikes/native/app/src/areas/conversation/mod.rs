@@ -82,6 +82,15 @@ pub(crate) use timeline::{overlays, timeline};
 
 use crate::shell::Shell;
 
+/// What the shell does after an act's answer reached the conversation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Followup {
+    /// Nothing more.
+    None,
+    /// Read again what waits on the session (an answer went).
+    ReadWaiting,
+}
+
 /// The session this area shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Shown {
@@ -308,6 +317,53 @@ impl ConversationArea {
             keys: None,
             bench: bench::Bench::default(),
         }
+    }
+
+    /// What an act's answer does to the conversation's own state, only
+    /// when it is for the session shown now: a late answer for a session
+    /// the person has left, or one that arrives after the machine's
+    /// connection was lost, changes nothing here (track V1's review: it
+    /// cleared the shown session's lost connection, put another
+    /// session's refusal in its bar, and re-read it).
+    ///
+    /// `lost` is not cleared by an answer: an act answered does not mean
+    /// the session's records flow again; records arriving do
+    /// ([`Self::take`]).
+    pub(crate) fn answered(&mut self, answer: ActAnswer) -> Followup {
+        let for_shown = self.shown.as_ref().is_some_and(|shown| {
+            shown.machine == answer.machine && shown.session == answer.session
+        });
+        if !for_shown {
+            return Followup::None;
+        }
+        match answer.result {
+            Ok(Acted::Session(info)) => {
+                self.refused = None;
+                self.info = Some(info);
+            }
+            Ok(Acted::Deleted(_)) => {
+                self.refused = None;
+                self.info = None;
+            }
+            Ok(Acted::Done) => {
+                self.refused = None;
+                // An answer went: what still waits is read again, so a
+                // request drawn from the node's word goes once settled.
+                if matches!(answer.kind, ActKind::Permit | ActKind::Answer) {
+                    return Followup::ReadWaiting;
+                }
+            }
+            Ok(Acted::Conversation(held)) => self.live = Live::of(&held),
+            // No code: the node never answered (the connection failed), so
+            // it is the session's lost connection, said once in the bar,
+            // not a refusal beside a control.
+            Err(ActFailed {
+                code: None,
+                message,
+            }) => self.lost = Some(message),
+            Err(failed) => self.refused = Some((answer.kind, failed.message)),
+        }
+        Followup::None
     }
 
     /// Show `session` on `machine`: what was shown before is dropped, and
@@ -547,15 +603,14 @@ impl Shell {
         }
     }
 
-    /// A session act answered.
+    /// A session act answered. The fleet's card and the frame's notice
+    /// follow every answer; what the answer does to the conversation's own
+    /// state happens only when it is for the session shown
+    /// ([`ConversationArea::answered`]).
     pub(crate) fn acted(&mut self, answer: ActAnswer, cx: &mut Context<'_, Self>) {
-        let reread = matches!(answer.kind, ActKind::Permit | ActKind::Answer)
-            && matches!(&answer.result, Ok(Acted::Done));
-        let area = &mut self.areas.conversation;
-        match answer.result {
+        match &answer.result {
             Ok(Acted::Session(info)) => {
-                area.refused = None;
-                let card = Card::from_session(&answer.machine, &info);
+                let card = Card::from_session(&answer.machine, info);
                 if let Some(machine) = self
                     .fleet
                     .machines
@@ -568,17 +623,8 @@ impl Shell {
                 {
                     *slot = card;
                 }
-                if area
-                    .shown
-                    .as_ref()
-                    .is_some_and(|shown| shown.session == info.id)
-                {
-                    area.info = Some(info);
-                }
             }
             Ok(Acted::Deleted(deleted)) => {
-                area.refused = None;
-                area.info = None;
                 if let Some(machine) = self
                     .fleet
                     .machines
@@ -599,32 +645,9 @@ impl Shell {
                     |kept| format!("{}. {kept}", words.session_deleted()),
                 ));
             }
-            Ok(Acted::Done) => area.refused = None,
-            Ok(Acted::Conversation(held)) => {
-                if area
-                    .shown
-                    .as_ref()
-                    .is_some_and(|shown| shown.session == answer.session)
-                {
-                    area.live = Live::of(&held);
-                }
-            }
-            // No code: the node never answered; retain connection state
-            // rather than turning a transport failure into a refusal.
-            Err(ActFailed {
-                code: None,
-                message,
-            }) => {
-                area.lost = Some(message);
-                cx.notify();
-                return;
-            }
-            Err(failed) => area.refused = Some((answer.kind, failed.message)),
+            Ok(Acted::Done | Acted::Conversation(_)) | Err(_) => {}
         }
-        // The node answered: the connection works. Refresh pending requests
-        // after releasing the area's borrow so the request can borrow the shell.
-        area.lost = None;
-        if reread {
+        if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);
         }
         cx.notify();
@@ -783,3 +806,102 @@ impl Shell {
 
 #[cfg(test)]
 mod connection_tests;
+
+/// An act's answer reaches the conversation's state only when it is for
+/// the session shown (track V1's review of the lead's head 64b5a3d).
+#[cfg(test)]
+mod late_answers {
+    use gpui::TestAppContext;
+    use vessel_app_link::{ActAnswer, ActFailed, ActKind, Acted};
+    use vessel_proto::{ErrorCode, SessionId};
+
+    use super::{ConversationArea, Followup};
+
+    fn answer(session: SessionId, kind: ActKind, result: Result<Acted, ActFailed>) -> ActAnswer {
+        ActAnswer {
+            machine: "laptop".to_owned(),
+            session,
+            kind,
+            result,
+        }
+    }
+
+    fn refused(message: &str) -> Result<Acted, ActFailed> {
+        Err(ActFailed {
+            code: Some(ErrorCode::InvalidRequest),
+            message: message.to_owned(),
+        })
+    }
+
+    fn unreachable(message: &str) -> Result<Acted, ActFailed> {
+        Err(ActFailed {
+            code: None,
+            message: message.to_owned(),
+        })
+    }
+
+    fn area(cx: &mut TestAppContext) -> ConversationArea {
+        cx.update(|cx| {
+            vessel_app_kit::init(
+                cx,
+                vessel_app_kit::SchemeChoice::Fixed(vessel_app_kit::Scheme::Dark),
+            )
+            .expect("the faces register");
+            ConversationArea::new(cx)
+        })
+    }
+
+    /// Asked from A, answered after the person moved to B: success, Done
+    /// and both failures leave B as it was, and nothing is read again.
+    #[gpui::test]
+    fn a_late_answer_for_another_session_changes_nothing(cx: &mut TestAppContext) {
+        let mut area = area(cx);
+        let (a, b) = (SessionId::random(), SessionId::random());
+        area.open("laptop", a);
+        area.open("laptop", b);
+        area.lost = Some("b's own".to_owned());
+        for late in [
+            answer(a, ActKind::Permit, Ok(Acted::Done)),
+            answer(a, ActKind::Rename, refused("a's refusal")),
+            answer(a, ActKind::Info, unreachable("a's transport")),
+        ] {
+            assert_eq!(area.answered(late), Followup::None);
+            assert_eq!(area.refused, None);
+            assert_eq!(area.lost.as_deref(), Some("b's own"));
+        }
+        // The same session on another machine is another session.
+        let mut elsewhere = answer(b, ActKind::Rename, refused("other machine"));
+        elsewhere.machine = "build-server".to_owned();
+        assert_eq!(area.answered(elsewhere), Followup::None);
+        assert_eq!(area.refused, None);
+    }
+
+    /// The shown session's machine was lost: a late answer does not say the
+    /// records flow again, so the lost line stays; the shown session's own
+    /// refusal and re-read still apply.
+    #[gpui::test]
+    fn a_late_answer_after_the_connection_was_lost_keeps_it_lost(cx: &mut TestAppContext) {
+        let mut area = area(cx);
+        let a = SessionId::random();
+        area.open("laptop", a);
+        area.lost = Some("closed".to_owned());
+        assert_eq!(
+            area.answered(answer(a, ActKind::Info, Ok(Acted::Done))),
+            Followup::None
+        );
+        assert_eq!(area.lost.as_deref(), Some("closed"));
+        assert_eq!(
+            area.answered(answer(a, ActKind::Permit, Ok(Acted::Done))),
+            Followup::ReadWaiting
+        );
+        assert_eq!(
+            area.answered(answer(a, ActKind::Rename, refused("taken"))),
+            Followup::None
+        );
+        assert_eq!(
+            area.refused.as_ref().map(|(_, why)| why.as_str()),
+            Some("taken")
+        );
+        assert_eq!(area.lost.as_deref(), Some("closed"));
+    }
+}

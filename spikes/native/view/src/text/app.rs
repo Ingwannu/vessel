@@ -79,20 +79,11 @@ pub struct Text {
     // Pairing.
     pub pair_intro: &'static str,
     pub pairing_link: &'static str,
-    pub link_placeholder: &'static str,
     pub key: &'static str,
     pub key_check: &'static str,
     pub details: &'static str,
-    pub name_label: &'static str,
-    pub name_hint: &'static str,
-    pub name_is_key: &'static str,
-    pub name_is_link: &'static str,
-    pub name_empty: &'static str,
-    pub name_invalid: &'static str,
-    pub name_taken: &'static str,
     pub pair: &'static str,
     pub pairing: &'static str,
-    pub paste_first: &'static str,
 }
 
 impl Text {
@@ -300,23 +291,6 @@ impl Text {
             Lang::Ko => format!("{agent} 시작하는 중… ({machine})"),
         }
     }
-
-    /// The status line (the frame's foot) once a machine is paired:
-    /// `name` the machine, `via` how it answered, in words (the address
-    /// is the line's tooltip). No particle follows the name (a name's
-    /// last sound decides the particle; ADR 0039's interim rule): the
-    /// particle follows the word 머신.
-    #[must_use]
-    pub fn paired(&self, name: &str, via: crate::Via) -> String {
-        match (self.lang, via) {
-            (Lang::En, crate::Via::Direct) => format!("Paired with {name}, connected directly"),
-            (Lang::En, crate::Via::Relay) => {
-                format!("Paired with {name}, connected through a relay")
-            }
-            (Lang::Ko, crate::Via::Direct) => format!("{name} 머신에 직접 연결됨"),
-            (Lang::Ko, crate::Via::Relay) => format!("{name} 머신에 릴레이로 연결됨"),
-        }
-    }
 }
 
 const EN: Text = Text {
@@ -369,20 +343,11 @@ const EN: Text = Text {
     untitled: "Untitled session",
     pair_intro: "Paste the pairing link the machine printed and press Enter. A link works once, for ten minutes.",
     pairing_link: "Pairing link",
-    link_placeholder: "vessel://pair#…",
     key: "Key",
     key_check: "This must be the same as the key the machine printed with the link.",
     details: "Details",
-    name_label: "Name for this machine",
-    name_hint: "A short name you will recognise, for example home-pc.",
-    name_is_key: "That is the key. Type a short name instead, for example home-pc.",
-    name_is_link: "That is the link; it goes in the field above. Type a short name here, for example home-pc.",
-    name_empty: "Type a short name, for example home-pc.",
-    name_invalid: "Use letters, digits, '.', '_' and '-', starting with a letter or digit.",
-    name_taken: "Another machine already has this name.",
     pair: "Pair",
     pairing: "Pairing…",
-    paste_first: "Paste a pairing link first.",
 };
 
 const KO: Text = Text {
@@ -435,18 +400,9 @@ const KO: Text = Text {
     untitled: "제목 없는 세션",
     pair_intro: "머신이 출력한 페어링 링크를 붙여 넣고 Enter를 누르세요. 링크는 10분 동안 한 번만 쓸 수 있습니다.",
     pairing_link: "페어링 링크",
-    link_placeholder: "vessel://pair#…",
     key: "키",
     key_check: "머신이 링크와 함께 출력한 키와 같아야 합니다.",
     details: "자세히",
-    name_label: "이 머신의 이름",
-    name_hint: "알아보기 쉬운 짧은 이름 (예: home-pc)",
-    name_is_key: "이것은 키입니다. 대신 짧은 이름을 적으세요 (예: home-pc).",
-    name_is_link: "이것은 링크입니다. 링크는 위 칸에 넣고, 여기에는 짧은 이름을 적으세요 (예: home-pc).",
-    name_empty: "짧은 이름을 적으세요 (예: home-pc).",
-    name_invalid: "영문자, 숫자, '.', '_', '-'만 쓸 수 있고 영문자나 숫자로 시작해야 합니다.",
-    name_taken: "이미 같은 이름의 머신이 있습니다.",
     pair: "연결",
     pairing: "연결하는 중…",
-    paste_first: "먼저 페어링 링크를 붙여 넣으세요.",
 };
