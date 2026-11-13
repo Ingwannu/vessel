@@ -144,9 +144,47 @@ fn record_panics() {
         let place = info
             .location()
             .map(|at| format!("{}:{}:{}", at.file(), at.line(), at.column()));
-        tracing::error!(message, place, %backtrace, "the app panicked");
+        #[cfg(windows)]
+        let frames = frame_addresses();
+        #[cfg(not(windows))]
+        let frames = String::new();
+        tracing::error!(message, place, frames, %backtrace, "the app panicked");
         previous(info);
     }));
+}
+
+/// The stack as addresses the build's kept `.pdb` turns into names: a
+/// frame in the app is `exe+0x<rva>`, an address relative to the image's
+/// base (`llvm-symbolizer --obj=<exe> --relative-address 0x<rva>`, with
+/// the label's `vessel_app.pdb` beside the exe); a frame in another
+/// module (a system DLL) is its address and that module's base. Return
+/// addresses less one, so a call's line rather than the next one's.
+///
+/// Windows only: there std's backtrace prints `<unknown>` for every frame
+/// without the `.pdb` (0.0.0.0.6 under wine), and the `.pdb` is kept
+/// beside the label under the build directory, not shipped
+/// (`build.sh`).
+#[cfg(windows)]
+fn frame_addresses() -> String {
+    const MAX_FRAMES: usize = 64;
+    let mut ours = None;
+    let mut frames = Vec::new();
+    backtrace::trace(|frame| {
+        // The first frame is this crate's code, linked into the exe: its
+        // module is the app's.
+        let ip = frame.ip().addr();
+        let base = frame.module_base_address().map(<*mut _>::addr);
+        let first = frames.is_empty();
+        let ip = if first { ip } else { ip.saturating_sub(1) };
+        let ours_base = *ours.get_or_insert(base);
+        frames.push(match base {
+            Some(base) if Some(base) == ours_base => format!("exe+{:#x}", ip.saturating_sub(base)),
+            Some(base) => format!("{ip:#x}@{base:#x}"),
+            None => format!("{ip:#x}"),
+        });
+        frames.len() < MAX_FRAMES
+    });
+    frames.join(" ")
 }
 
 /// The file layer's field formatter: `DefaultFields` under a type of its

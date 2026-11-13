@@ -34,4 +34,11 @@ fn a_panic_is_in_the_log_file_with_where_it_happened() {
         !text.contains('\u{1b}'),
         "colour codes in the file:\n{text}"
     );
+    // Windows: the frames as addresses in the exe, for the kept .pdb.
+    if cfg!(windows) {
+        assert!(
+            text.contains("frames=\"exe+0x"),
+            "no frame addresses in:\n{text}"
+        );
+    }
 }

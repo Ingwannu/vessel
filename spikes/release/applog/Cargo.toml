@@ -17,5 +17,11 @@ dirs = "6"
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["fmt", "env-filter", "ansi"] }
 
+# Each panic frame's address and module base on Windows (record_panics):
+# std's Backtrace resolves names only from a .pdb beside the exe, which is
+# not shipped. Already in the app's tree (0.3.77); MIT or Apache-2.0.
+[target.'cfg(windows)'.dependencies]
+backtrace = "0.3"
+
 [dev-dependencies]
 tempfile.workspace = true
