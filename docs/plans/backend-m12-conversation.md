@@ -111,7 +111,12 @@ Paseo screen it follows.
   Send now interrupts a running turn, as its own button, apart from
   steer. On a phone the four 40-point buttons go on a line under the
   text (Paseo keeps one line, having two). Not yet: GOAT's keys on the
-  grip and its steer shortcut, a queued message's attachments.
+  grip and its steer shortcut, a queued message's attachments. The page
+  (`backend/m11`, `features/session/queue-dock.tsx`) follows
+  agent-orchestrator's `QueuedMessageDock` instead: a count with a
+  chevron that folds the list to its first row, 40-pixel rows of one
+  line, one button that is Steer or Send now by the agent, edit in the
+  composer, and a held queue offering Resume only.
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.
@@ -144,7 +149,7 @@ Debug builds on this machine (dev-host, ten workers sharing it):
 ## What the page gets wrong
 
 For the page's worker; each found while bringing the same thing to the
-app.
+app, and checked against the page as `backend/m11` has it (`67bf243`).
 
 - **An adapter's start-up log drawn raw.** A real Claude Code session's
   ACP adapter writes a dozen `[session/create] sessionId=… phase=…`
@@ -153,11 +158,6 @@ app.
   (`features/session/timeline-item.tsx`, `case "log"`). Paseo and GOAT
   never show it. The app folds a run of them into one row at "Full" and
   leaves them out while tool calls are collapsed (`view::timeline::logs`).
-- **No queue.** The page never calls `session.prompt` or `session.queue`
-  (only their types are in `wire/proto.ts`); it sends with `session.send`.
-  Prompts waiting their turn, queued by the app, the CLI or a schedule,
-  cannot be seen, edited, reordered or taken out there, and a message
-  cannot be steered or sent in place of the running turn.
 - **The find bar hides its own match on a phone.** `.find-bar` lies over
   the conversation's top at every width (`find-bar.css`); at a phone's
   width it spans the column, and a match revealed at the top of the view
