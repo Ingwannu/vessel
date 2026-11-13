@@ -5,7 +5,7 @@
 use std::ops::Range;
 
 use gpui::prelude::*;
-use gpui::{Div, ElementId, HighlightStyle, SharedString, Stateful, StyledText, div, px};
+use gpui::{Div, ElementId, SharedString, Stateful, div, px};
 
 use crate::assets::Glyph;
 use crate::fonts::{self, Type};
@@ -14,7 +14,8 @@ use crate::popup;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
-use super::{ACROSS, marks};
+use super::text::marked;
+use super::{ACROSS, CommandSubtitle, CommandText};
 
 /// One row's content.
 #[derive(Debug, Clone, Default)]
@@ -63,6 +64,23 @@ pub struct CommandMatches {
     pub subtitle: Vec<Range<usize>>,
 }
 
+/// A command row whose text parts retain their semantic faces and marks.
+#[derive(Debug, Clone, Default)]
+pub struct CommandRowParts {
+    /// The leading vector glyph.
+    pub glyph: Option<Glyph>,
+    /// The title and its matching byte ranges.
+    pub title: CommandText,
+    /// The optional second line: prose or prose followed by a code path.
+    pub subtitle: Option<CommandSubtitle>,
+    /// The shortcut, one badge per chord.
+    pub keys: Vec<SharedString>,
+    /// The choice currently in force.
+    pub checked: bool,
+    /// The keyboard's current row.
+    pub active: bool,
+}
+
 /// A row with every matching token marked, as Paseo's
 /// `findHighlightRanges`. Invalid ranges are skipped, overlapping ranges
 /// merged: a stale byte offset must never split a displayed character.
@@ -71,6 +89,32 @@ pub fn command_row_matched(
     id: impl Into<ElementId>,
     row: CommandRow,
     matches: CommandMatches,
+    compact: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    command_row_parts(
+        id,
+        CommandRowParts {
+            glyph: row.glyph,
+            title: CommandText::new(row.title, matches.title),
+            subtitle: row
+                .subtitle
+                .map(|text| CommandSubtitle::Text(CommandText::new(text, matches.subtitle))),
+            keys: row.keys,
+            checked: row.checked,
+            active: row.active,
+        },
+        compact,
+        tokens,
+    )
+}
+
+/// Canonical command row renderer. Compatibility entry points convert
+/// their plain subtitles into these parts and use the same geometry.
+#[must_use]
+pub fn command_row_parts(
+    id: impl Into<ElementId>,
+    row: CommandRowParts,
     compact: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
@@ -83,15 +127,8 @@ pub fn command_row_matched(
         .type_(Type::Body)
         .line_height(px(fonts::ui(title_line)))
         .text_color(neutral.foreground)
-        .child(marked(row.title, matches.title, tokens));
-    let subtitle = row.subtitle.map(|subtitle| {
-        div()
-            .truncate()
-            .type_(Type::Meta)
-            .line_height(px(fonts::ui(16.0)))
-            .text_color(neutral.foreground_muted)
-            .child(marked(subtitle, matches.subtitle, tokens))
-    });
+        .child(marked(row.title.label, row.title.marks, tokens));
+    let subtitle = row.subtitle.map(|subtitle| subtitle.render(tokens));
     let icon = row.glyph.map(|which| {
         div()
             .flex_none()
@@ -162,15 +199,4 @@ pub fn key_badges(keys: &[SharedString], tokens: &Tokens) -> Div {
                 .text_color(neutral.foreground_muted)
                 .child(key.clone())
         }))
-}
-
-/// `text` with the search's place in it marked.
-fn marked(text: SharedString, matches: Vec<Range<usize>>, tokens: &Tokens) -> StyledText {
-    let style = HighlightStyle {
-        color: Some(tokens.neutral.foreground),
-        background_color: Some(tokens.neutral.surface3),
-        ..HighlightStyle::default()
-    };
-    let matches = marks::valid(&text, matches);
-    StyledText::new(text).with_highlights(matches.into_iter().map(|range| (range, style)))
 }

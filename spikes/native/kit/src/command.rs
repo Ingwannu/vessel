@@ -23,23 +23,32 @@
 //!   search's mark `surface3` behind the foreground; the empty line 14
 //!   muted, centred, 16 by 24 inside. On a phone it is a sheet from the
 //!   bottom over black at 45%, with its handle.
-//! - Differences: no fade (Paseo's fades in); the phone's sheet starts at
-//!   Paseo's 60% snap but does not drag to its 90% snap.
+//! - Motion: opt-in persistent `CommandState` adds RNW's 250ms fade and
+//!   Gorhom's 60/90% snaps/pan-to-close; the static entry point is retained
+//!   for compatibility. Focus restoration remains the host's responsibility.
 
+mod frame;
 mod marks;
 mod row;
+mod state;
+#[cfg(test)]
+mod tests;
+mod text;
 
-pub use row::{CommandMatches, CommandRow, command_row, command_row_matched, key_badges};
+pub use frame::{CommandAnimation, CommandHandlers, command_frame, command_frame_animated};
+
+pub use state::{CommandMotion, CommandState};
+
+pub use row::{
+    CommandMatches, CommandRow, CommandRowParts, command_row, command_row_matched,
+    command_row_parts, key_badges,
+};
+pub use text::{CommandSubtitle, CommandText};
 
 use gpui::prelude::*;
-use gpui::{
-    AnyElement, BoxShadow, Context, Div, MouseButton, SharedString, Window, anchored, deferred,
-    div, point, px, relative, rgba,
-};
-use gpui_base::input::{Enter, Escape, MoveDown, MoveUp};
+use gpui::{AnyElement, BoxShadow, Div, SharedString, div, point, px, rgba};
 
 use crate::fonts::{self, Type};
-use crate::popup;
 use crate::theme::{Scheme, Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
@@ -103,119 +112,6 @@ pub enum CommandKey {
     Enter,
     /// Close.
     Escape,
-}
-
-/// The palette over everything: `on_key` hears the arrows, Enter and
-/// Escape before the search does (the search's own actions would take
-/// them first as raw keys); a press on the dimmed page calls `close`.
-pub fn command_frame<V: 'static>(
-    frame: CommandFrame,
-    on_key: fn(&mut V, CommandKey, &mut Window, &mut Context<'_, V>),
-    close: fn(&mut V, &mut Window, &mut Context<'_, V>),
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    let mut panel = div()
-        .id("command")
-        .capture_action(cx.listener(move |view: &mut V, _: &MoveUp, window, cx| {
-            cx.stop_propagation();
-            on_key(view, CommandKey::Up, window, cx);
-        }))
-        .capture_action(cx.listener(move |view: &mut V, _: &MoveDown, window, cx| {
-            cx.stop_propagation();
-            on_key(view, CommandKey::Down, window, cx);
-        }))
-        .capture_action(cx.listener(move |view: &mut V, _: &Enter, window, cx| {
-            cx.stop_propagation();
-            on_key(view, CommandKey::Enter, window, cx);
-        }))
-        .capture_action(cx.listener(move |view: &mut V, _: &Escape, window, cx| {
-            cx.stop_propagation();
-            on_key(view, CommandKey::Escape, window, cx);
-        }))
-        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-            cx.stop_propagation();
-        })
-        .flex()
-        .flex_col()
-        .overflow_hidden()
-        .bg(neutral.surface0)
-        .type_(Type::Body)
-        .text_color(neutral.foreground);
-    panel = if frame.compact {
-        panel
-            .w_full()
-            .h(relative(0.6))
-            .rounded_t(px(popup::SHEET_RADIUS))
-            .child(handle(neutral.sheet_handle))
-    } else {
-        panel
-            .w(px(WIDTH))
-            .h(px(HEIGHT))
-            .max_w(relative(0.92))
-            .max_h(relative(0.8))
-            .border_1()
-            .border_color(neutral.border)
-            .rounded(px(popup::MENU_RADIUS))
-            .shadow(shadow_lg(tokens))
-    };
-    let header = div()
-        .flex_none()
-        .px(px(ACROSS))
-        .py(px(spacing::S3))
-        .border_b_1()
-        .border_color(neutral.border)
-        .child(div().py(px(spacing::S1)).child(frame.search));
-    let panel = panel.child(header).child(
-        div()
-            .flex_1()
-            .min_h(px(0.0))
-            .flex()
-            .flex_col()
-            .child(frame.list),
-    );
-    let size = window.viewport_size();
-    let scrim = div()
-        .id("command-scrim")
-        .w(size.width)
-        .h(size.height)
-        .flex()
-        .flex_col()
-        .items_center()
-        .occlude()
-        .on_mouse_down(
-            MouseButton::Left,
-            cx.listener(move |view: &mut V, _event, window, cx| {
-                close(view, window, cx);
-                cx.notify();
-            }),
-        );
-    let scrim = if frame.compact {
-        scrim.justify_end().bg(popup::sheet_scrim())
-    } else {
-        scrim.justify_start().pt(px(TOP)).bg(rgba(0x0000_0080))
-    };
-    // Over a dialog (at 2), under a tooltip (at 4).
-    deferred(
-        anchored()
-            .position(point(px(0.0), px(0.0)))
-            .child(scrim.child(panel)),
-    )
-    .with_priority(3)
-    .into_any_element()
-}
-
-/// A sheet's drag handle (as the kit's dialog draws it).
-fn handle(color: gpui::Hsla) -> Div {
-    div()
-        .w_full()
-        .flex_none()
-        .flex()
-        .justify_center()
-        .pt(px(spacing::S2))
-        .child(div().w(px(32.0)).h(px(4.0)).rounded(px(2.0)).bg(color))
 }
 
 /// A group's heading; after a rule unless it is the `first`.

@@ -162,13 +162,31 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
 
-`kit/command.rs` supplies Paseo's Command Center frame; `command/row.rs`
-supplies its rows and shortcut badges. `command_row_matched` accepts
-`CommandMatches` with every matching byte range from the view matcher.
-The kit rejects malformed UTF-8 ranges and merges overlaps before drawing;
-matching and ranking stay in `view`. The compact frame starts at the
-reference's 60% sheet snap, with the same zinc-600 handle in both themes.
-Dragging to its 90% snap is not implemented.
+`kit/command.rs` supplies Paseo's Command Center pieces. The canonical
+`command_row_parts` renderer accepts semantic prose and code-path captions
+with separate UTF-8 marks; the existing plain-row APIs delegate to it.
+The kit validates ranges and merges overlaps; matching/ranking stay in
+`view`. Paths use the existing code face and code-size preference at 12/16,
+while their prose prefixes use the interface caption metrics.
+
+A host opts into persistent `CommandState` and `command_frame_animated`
+for RNW's 250 ms desktop fade and the shared `sheet::snap` 60/90% stops,
+pan-down dismissal and content-scroll handoff. The static entry point and
+existing edge-sheet API remain available. The host presents and samples
+state, restores prior focus once at close, and stops drawing only when
+`CommandMotion::hidden` becomes true. Direct dragging remains available
+with the App's reduced-motion flag; springs/fades finish immediately.
+The OS-to-App flag bridge is lead-owned and is not implemented here.
+
+GPUI provides pointer coordinates and native capture, but no recognizer
+velocity: a bounded 100 ms/eight-sample history supplies release velocity.
+The shared spring follows the installed Reanimated helper (including its
+64 ms delayed-frame cap); its numeric fixtures were sampled from that
+helper. During exit GPUI has no subtree pointer-events:none, so the frame
+consumes pointer input rather than letting a stale painted row activate.
+This differs from RNW's pass-through exit; keyboard focus is already
+restored. The control's gate and the consuming screen's runtime evidence
+are reported separately; the old palette captures do not prove this API.
 
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and

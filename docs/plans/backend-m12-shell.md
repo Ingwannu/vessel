@@ -362,7 +362,7 @@ whole-workspace `cargo clippy --all-targets -- -D warnings`, all 430
 tests and two compile-fail documentation tests. No root-workspace gate
 or new runtime approval is claimed by this integration.
 
-Control-only follow-up: Command Center spacing now names the shared
+Control-only follow-up at `6d29e29`: Command Center spacing now names the shared
 scale; the compact sheet starts at Paseo's 60% snap with its zinc-600
 handle. Rows accept multiple highlight ranges through a new additive
 `command_row_matched` entry point. The existing single-mark entry point
@@ -371,15 +371,15 @@ remains usable until callers migrate. `command/row.rs` owns row drawing;
 ranges, with Korean and scattered-match tests. No screen or policy moves
 into the kit. Source: Paseo's `command-center/command-center.tsx`,
 `list-metrics.ts`, `components/ui/shortcut.tsx` and
-`components/ui/highlighted-text-segments.ts`. The sheet has no drag
-gesture or animation; that platform difference is retained explicitly.
+`components/ui/highlighted-text-segments.ts`. At that hash the sheet has no drag
+gesture or animation; V1 subsequently returned this missing behavior.
 Control gate: native `cargo fmt --check` clean;
 `cargo clippy --all-targets -- -D warnings` clean; `cargo test`:
 3, 21, 14, 247, 89 passed (374 total), zero failures, doc tests empty.
 Captures and visual review accompany the consuming palette slice; this
 control-only change is not claimed as visually approved on its own.
 
-Palette follow-up: `view/palette/{search,ranking,cursor}.rs` now follows
+Palette follow-up at `08382d9`: `view/palette/{search,ranking,cursor}.rs` now follows
 Paseo's `command-center/results.ts`, `interaction.ts`, their tests and
 the protocol's `search/text-match.ts`. Every query token must land in a
 field; greedy subsequences cannot cross whitespace. Visible fields beat
@@ -421,7 +421,7 @@ the Unicode next-line character; a regression keeps this boundary from
 drifting to Rust's different `is_whitespace` set. Runtime captures and
 the consuming screen's visual approval remain separate from this gate.
 
-Runtime audit of the consuming palette: 70 original captures in the
+Runtime audit at `08382d9`: 70 original captures in the
 scratch `palette-captures` folder, all inspected against the reference
 components named above. `live` covers six states in each of the eight
 size/theme/language combinations: initial, long mixed-script titles and
@@ -443,7 +443,7 @@ notes correction changes no Rust or fixture code, so the unchanged
 native gate is reused rather than repeated. All capture processes and
 the disposable fleet were stopped afterwards by their recorded PIDs.
 
-Remaining palette departures: the compact sheet stays at the initial
+At that checkpoint the compact sheet stays at the initial
 60% snap without the reference's drag or fade; the registry names
 Vessel's available commands and sessions instead of Paseo's workspace,
 agent and file scopes. There is no asynchronous file-search loading or
@@ -515,3 +515,55 @@ those boundaries.
   (`Command::SavePrefs`). Alerts (`prefs::Alerts`) are E's type too.
 - Track C's session bar assumes protocol 10 for its marks
   (`conversation/bar.rs`); it can read `Machine::protocol` now.
+
+
+### Palette return: shared controls gated, consuming UI pending
+
+[Decision Log]
+- Purpose: V1 returned the palette because a session's path used the prose
+  face and the compact handle did not move the sheet. The preceding 70
+  original captures remain evidence for the earlier immutable hashes only.
+- Existing assets: reuse command row/mark validation, popup geometry,
+  native ScrollHandle/pointer capture and the edge-sheet module. No new
+  dependency, copied UI kit, area-local gestures or font classification.
+- Choice: one canonical typed command-row renderer; opt-in CommandState
+  plus additive sheet::snap state/listener/motion. Compatibility entry
+  points delegate to the same renderer and existing edge sheets stay fixed.
+- Reference: Paseo command-center.tsx and isolated-bottom-sheet-modal,
+  Gorhom snapPoint/constants/BottomSheetHandle/useGestureEventsHandlersDefault,
+  installed Reanimated spring.ts/springUtils.ts/springConfigs.ts, RNW
+  Modal/ModalAnimation.js. Full local source paths are in the review report.
+- Why: whole-line search stays in view while semantic parts let the kit
+  own prose/code typography; shared state prevents a palette-only gesture
+  implementation and gives the scrollable an explicit handoff.
+- Costs: native two-pixel pointer slop and bounded velocity sampling replace
+  the platform recognizer. GPUI lacks subtree pointer-events:none, so
+  exiting frames briefly consume pointer input instead of passing it to
+  the page. Prior focus is restored by the host at close, once. The
+  application reduced-motion flag is honored; OS startup/change wiring
+  remains lead-owned and must not be claimed as covered by flag tests.
+- Verification still pending: consuming typed-view/app seam,
+  actual 60→90→60/down-close, scroll/click separation, fade, reopen/focus,
+  reduced flag and the full path/language/theme/size capture matrix.
+
+
+Shared-control gate: native `cargo fmt --all -- --check` and whole
+`cargo clippy --all-targets -- -D warnings` pass. Whole `cargo test`:
+3, 40, 15, 286, 9, 89, 3 tests pass (445 total), plus two compile-fail
+documentation tests; zero failures. The logs explicitly compile
+both changed kit and dependent app, so prepared source was not mistaken
+for a fresh old artifact. The twelve added cases include numeric samples
+from the installed reference helper, snap/reopen/content-offset rules,
+fade lifetime, and actual GPUI pointer dispatch with App reduced-motion
+true: handle expansion, content scrolling without row activation, a
+stationary click that still works, and pan-down close. This is a GPUI
+flag/hit-test result, not an OS preference or real-desktop capture pass.
+
+The first two lint runs failed (deprecated event alias, arithmetic
+operators, unconsumed test results and test signatures). The final code
+uses the existing kit's `mul_add`/checked-time conventions and consumes
+results with assertions; no lint suppression or weaker assertion was
+introduced. Screens still use the static compatibility entry point at
+this control-only commit. Typed view/app consumption and new executable
+captures are the next separate slice. The old captures are not reused as
+proof for the new control behavior.
