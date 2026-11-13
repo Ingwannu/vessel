@@ -121,7 +121,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session);
+        self.conversation_opened(&open.machine, open.session, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
@@ -196,8 +196,13 @@ impl Shell {
     }
 
     /// Records of the session followed.
-    pub(crate) fn records(&mut self, session: &SessionId, records: &[EventRecord]) {
-        self.conversation_records(session, records);
+    pub(crate) fn records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.conversation_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open

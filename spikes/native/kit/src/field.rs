@@ -175,6 +175,28 @@ impl TextField {
         self.set_text("", window, cx);
     }
 
+    /// A one-line field's input alone, without its shell: for a field
+    /// inside a control of its own (the find bar's search, with its
+    /// count and buttons in the same shell). A composer's text has no
+    /// such use and draws nothing here.
+    #[must_use]
+    pub fn input(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
+        match &self.kind {
+            Kind::Line(state) => {
+                project(state, tokens, tokens.neutral.foreground_muted, cx);
+                div()
+                    .flex_1()
+                    .min_w(px(0.0))
+                    .type_(Type::Body)
+                    .line_height(px(20.0))
+                    .text_color(tokens.neutral.foreground)
+                    .child(Input::new(state))
+                    .into_any_element()
+            }
+            Kind::Lines(_) => div().into_any_element(),
+        }
+    }
+
     /// Its focus handle: to hear it lose the keys (a title edited in
     /// place saves when the person leaves the field).
     #[must_use]

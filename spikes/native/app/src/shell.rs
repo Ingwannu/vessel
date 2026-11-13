@@ -124,7 +124,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
             }
-            Event::Records { session, records } => self.records(&session, &records),
+            Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),

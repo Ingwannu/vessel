@@ -48,7 +48,7 @@ mod widgets;
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
-pub use chat_markdown::chat_markdown;
+pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
@@ -73,10 +73,10 @@ pub use widgets::{
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity, Hsla,
-        KeyDownEvent, ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point,
-        SharedString, Stateful, Subscription, WeakEntity, Window, canvas, div, list, point, px,
-        relative, rgb, rgba, svg, uniform_list,
+        AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity,
+        HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState, MouseButton, MouseDownEvent,
+        Pixels, Point, SharedString, Stateful, StyledText, Subscription, WeakEntity, Window,
+        canvas, div, list, point, px, relative, rgb, rgba, svg, uniform_list,
     };
 }
 

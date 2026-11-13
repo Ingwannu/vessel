@@ -52,6 +52,31 @@ impl ConversationWords {
         }
     }
 
+    /// The find bar's count while the search has not reached the end:
+    /// the first match, of a count not known yet (GOAT's "1/…").
+    #[must_use]
+    pub const fn count_pending(&self) -> &'static str {
+        "1/…"
+    }
+
+    /// The find bar's previous, as a screen reader names it.
+    #[must_use]
+    pub const fn previous_match(&self) -> &'static str {
+        self.either("Previous match", "이전 결과")
+    }
+
+    /// The find bar's next.
+    #[must_use]
+    pub const fn next_match(&self) -> &'static str {
+        self.either("Next match", "다음 결과")
+    }
+
+    /// The find bar's close.
+    #[must_use]
+    pub const fn close_find(&self) -> &'static str {
+        self.either("Close find", "찾기 닫기")
+    }
+
     /// The find bar's placeholder and label.
     #[must_use]
     pub const fn find_in_session(&self) -> &'static str {
