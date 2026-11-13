@@ -237,15 +237,19 @@ impl Shell {
             .as_ref()
             .filter(|(of, _)| *of == notice)
             .map(|(_, detail)| detail.clone());
-        let line = areas::common::foot(notice, tokens);
         let Some(detail) = detail else {
-            return line.into_any_element();
+            return areas::common::foot(notice, tokens).into_any_element();
         };
+        // The tooltip on the words only, so it sits above them, not
+        // above the middle of the full-width foot.
         let (tips, place) = &self.foot_tips;
-        div()
-            .child(tips.on(line.id("foot"), place, detail, touch))
-            .children(tips.render(tokens))
-            .into_any_element()
+        let words = div().id("foot").flex_none().child(notice);
+        areas::common::foot(
+            div().flex().child(tips.on(words, place, detail, touch)),
+            tokens,
+        )
+        .children(tips.render(tokens))
+        .into_any_element()
     }
 }
 

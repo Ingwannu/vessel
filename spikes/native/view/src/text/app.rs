@@ -31,11 +31,12 @@ pub struct Text {
     pub add_machine: &'static str,
     pub no_machines: &'static str,
     pub online: &'static str,
-    /// A machine's state beside its name in the sidebar when it did not
-    /// answer (the transport's own text is only the tooltip's detail).
+    /// A machine's state beside its name in the sidebar, and its row's
+    /// detail in the composer's machine list, when it did not answer (the
+    /// transport's own text is only the sidebar's tooltip).
     pub unreachable: &'static str,
-    /// The line under an unreachable machine's name in the sidebar, and
-    /// its row's detail in the composer's machine list: what to do.
+    /// The line under an unreachable machine's name in the sidebar: what
+    /// to do.
     pub unreachable_hint: &'static str,
     pub reload: &'static str,
     // The board.

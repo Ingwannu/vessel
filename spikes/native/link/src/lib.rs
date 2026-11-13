@@ -262,7 +262,7 @@ pub enum Event {
     },
     /// Pairing worked.
     Paired {
-        /// The node's own name for itself.
+        /// The machine's name in the book (as the sidebar shows it).
         node: String,
         /// How the machine answered, said in words.
         via: vessel_app_view::Via,
