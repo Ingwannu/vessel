@@ -23,6 +23,7 @@
 //!   `vessel-client` and the node, in English).
 
 mod about;
+mod agents;
 mod app;
 mod board;
 mod conversation;

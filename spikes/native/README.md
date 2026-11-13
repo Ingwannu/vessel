@@ -32,6 +32,12 @@ Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
 
+Settings' agent discovery remains in `view::agent_status` (the page's
+fixtures). `agent_status::readiness` separately describes the node's
+installation, conversation support and authentication facts from
+`agent.status` (ADR 0032). Unknown sign-in is never inferred from a
+successful handshake; installer offers target only the missing part.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches

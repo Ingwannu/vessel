@@ -18,6 +18,7 @@ use vessel_proto::{Harness, HarnessKind, HarnessRef, StructuredSupport, Terminal
 use crate::ago::Ago;
 use crate::machines::StateTone;
 use crate::{Controls, Lang, SelectControl, agent_name};
+pub mod readiness;
 
 /// An agent's key in an address or a list: its kind as the wire writes it
 /// (`open-code`, where the CLI says `opencode`), or `added:<name>`.
