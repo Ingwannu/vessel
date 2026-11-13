@@ -730,6 +730,36 @@ never rebuilt.
   - In Korean, About showed "앱이 최신 상태입니다." with 확인 enabled
     and 업데이트 disabled, because the feed held 0.0.0.0.8.
 
+- **0.0.0.0.10**:
+  - Built from `81148c8`: the desktop lead's `397e7f44` plus this
+    track's documents and one release fix.
+  - The fix: from `397e7f44` the app embeds the official Gemini CLI icon
+    (a 46,696-byte PNG) under Apache-2.0, whose section 4(a) asks that
+    the licence travel with the object form.
+    - `build.sh` now copies every text in `docs/design/agent-marks/` into
+      each package's `licenses/`.
+    - The uninstaller removes `licenses\*.txt`, not only the fonts' texts.
+    - A build already running from `397e7f44` was stopped by its process
+      group and its staging directory removed before this fix went in.
+  - The set went into place at 22:39 UTC. It is not published yet.
+  - The PNG's bytes are inside both the Windows exe and the Linux
+    executable.
+  - Sizes, with the change against 0.0.0.0.9:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 12,460,513 | +107,352 |
+    | exe | 45,014,016 | +533,504 |
+    | zip | 18,303,454 | +299,411 |
+    | linux | 81,594,744 | +534,624 |
+    | tar.gz | 28,502,801 | +336,995 |
+
+  - It is the first two-digit label. The updater compares labels as
+    numbers: 0.0.0.0.10 called the feed's 0.0.0.0.9 not newer.
+  - The usual checks passed: the signature's comment, icons, version
+    block, stripped Linux exe with a matching debuglink, symbols kept,
+    and a clean log.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
