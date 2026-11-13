@@ -3,11 +3,37 @@
 //! put in Korean here).
 
 use crate::Lang;
-use crate::timeline::{Problem, Wrong};
+use vessel_proto::PermissionOptionKind;
+
+use crate::timeline::{AnswerWords, Problem, Wrong};
 
 use super::ConversationWords;
 
 impl ConversationWords {
+    /// A permission card's button: the app's words for a "once" option's
+    /// kind (Paseo's Accept and Deny), or the agent's own name
+    /// (`timeline::answer_words` says which).
+    #[must_use]
+    pub fn answer_words(&self, words: AnswerWords<'_>) -> String {
+        match words {
+            AnswerWords::Agent(name) => name.to_owned(),
+            AnswerWords::Kind(kind) => self.permission_kind(kind).to_owned(),
+        }
+    }
+
+    /// A permission card's button for a "once" option of `kind`; an
+    /// "always" option shows the agent's name, so its words here are for
+    /// completeness only.
+    #[must_use]
+    pub const fn permission_kind(&self, kind: PermissionOptionKind) -> &'static str {
+        match kind {
+            PermissionOptionKind::AllowOnce => self.either("Accept", "수락"),
+            PermissionOptionKind::AllowAlways => self.either("Always accept", "항상 수락"),
+            PermissionOptionKind::RejectOnce => self.either("Deny", "거부"),
+            PermissionOptionKind::RejectAlways => self.either("Always deny", "항상 거부"),
+        }
+    }
+
     /// The timeline's line for a question while its card waits over the
     /// composer.
     #[must_use]
@@ -27,10 +53,11 @@ impl ConversationWords {
         self.either("Next", "다음")
     }
 
-    /// The question card's button that declines the question.
+    /// The question card's button that declines the question (the agent
+    /// is told; the settled card then says "Skipped").
     #[must_use]
     pub const fn question_dismiss(&self) -> &'static str {
-        self.either("Dismiss", "닫기")
+        self.either("Dismiss", "건너뛰기")
     }
 
     /// The question card's text box, empty, on a free-text step.

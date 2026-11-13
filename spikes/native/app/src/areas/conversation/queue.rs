@@ -185,11 +185,7 @@ pub(super) fn queue(
             .type_(Type::Meta)
             .text_color(neutral.foreground_muted)
             .child(match queue.held {
-                Some(why) => format!(
-                    "{} · {}",
-                    words.queued(queue.entries.len()),
-                    words.queue_held(why)
-                ),
+                Some(why) => words.queued_held(queue.entries.len(), why),
                 None => words.queued(queue.entries.len()),
             })
             .child(div().flex_1())

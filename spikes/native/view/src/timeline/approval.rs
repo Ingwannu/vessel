@@ -4,7 +4,32 @@
 //!
 //! Approve is the first "once" allow, else the first allow; Decline the
 //! first "once" reject, else the first reject. Every other option, in the
-//! agent's order, is under "More". The buttons keep the agent's names.
+//! agent's order, is under "More".
+//!
+//! [Decision Log] What a button says ([`answer_words`]).
+//! - Purpose: on a Korean screen the permission card said
+//!   "에이전트가 실행 허락을 구합니다" over buttons the agent named in
+//!   English ("Yes", "No"; the coordinator, 2026-11-13). The words of a
+//!   kind the app knows are the app's, in the person's language, the same
+//!   on every agent.
+//! - Constraint: the agents' real options. Claude Code's adapter offers
+//!   one of each kind for a command ("Yes", "Yes, and don't ask again for
+//!   `cargo test` commands", "No"), but four allows of one kind to leave
+//!   plan mode ("Yes, and use auto mode", "Yes, and bypass permissions",
+//!   ...). Codex's offers two "always" allows ("for this command in this
+//!   session", "for commands that start with `git status`") and two
+//!   "once" rejects ("continue without running it", "tell Codex what to
+//!   do differently"). Paseo shows the agent's names on ACP and its own
+//!   words (Accept, Deny) only where an agent names nothing.
+//! - Choice (the coordinator's): a "once" allow or reject the request
+//!   offers once says the app's words (Paseo's Accept and Deny). An
+//!   "always" option always keeps the agent's name: it is a grant, and
+//!   its name is the scope agreed to ("this session", "commands that
+//!   start with `git status`", "`cargo test` commands"), which the app
+//!   cannot restate. A "once" kind offered several times keeps the
+//!   agent's names too (they differ in meaning, and only the agent says
+//!   how). Two buttons never say the same: should the rule give that,
+//!   every button of the request keeps the agent's name.
 
 use vessel_proto::{PermissionOption, PermissionOptionKind, PermissionOutcome};
 
@@ -49,6 +74,66 @@ pub fn answers_of(options: &[PermissionOption]) -> Answers<'_> {
             .iter()
             .filter(|option| !chosen(option, approve) && !chosen(option, decline))
             .collect(),
+    }
+}
+
+/// What an answer's button says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnswerWords<'a> {
+    /// The app's words for a "once" option's kind.
+    Kind(PermissionOptionKind),
+    /// The agent's own name: an "always" option (its scope), a "once"
+    /// kind offered more than once, or every option of a request whose
+    /// buttons would otherwise say the same.
+    Agent(&'a str),
+}
+
+/// What each of `options`' buttons says, in the agent's order. `say`
+/// puts a kind in the person's words, to find buttons that would say the
+/// same.
+#[must_use]
+pub fn answer_words<'a>(
+    options: &'a [PermissionOption],
+    say: impl Fn(PermissionOptionKind) -> &'static str,
+) -> Vec<AnswerWords<'a>> {
+    let words: Vec<AnswerWords<'a>> = options
+        .iter()
+        .map(|option| {
+            let once = matches!(
+                option.kind,
+                PermissionOptionKind::AllowOnce | PermissionOptionKind::RejectOnce
+            );
+            let alike = options
+                .iter()
+                .filter(|other| other.kind == option.kind)
+                .take(2)
+                .count();
+            if once && alike == 1 {
+                AnswerWords::Kind(option.kind)
+            } else {
+                AnswerWords::Agent(&option.name)
+            }
+        })
+        .collect();
+    let text = |words: &AnswerWords<'a>| -> &'a str {
+        match *words {
+            AnswerWords::Kind(kind) => say(kind),
+            AnswerWords::Agent(name) => name,
+        }
+    };
+    let repeated = words.iter().enumerate().any(|(at, one)| {
+        words
+            .iter()
+            .skip(at.saturating_add(1))
+            .any(|other| text(one) == text(other))
+    });
+    if repeated {
+        options
+            .iter()
+            .map(|option| AnswerWords::Agent(&option.name))
+            .collect()
+    } else {
+        words
     }
 }
 

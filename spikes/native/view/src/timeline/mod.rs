@@ -45,7 +45,7 @@ mod runs;
 mod usage;
 mod window;
 
-pub use approval::{Answers, Settled, allows, answers_of, settled};
+pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
     Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
