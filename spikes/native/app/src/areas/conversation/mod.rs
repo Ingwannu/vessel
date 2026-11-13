@@ -52,6 +52,7 @@ mod find;
 mod look;
 mod outline;
 mod permission;
+mod plan;
 mod question;
 mod queue;
 mod rename;

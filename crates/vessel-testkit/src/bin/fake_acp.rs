@@ -112,6 +112,10 @@
 //!     the real adapters' shapes (Claude Code leaving plan mode, Codex's
 //!     five answers, two at once; `permits` module), then one message
 //!     chunk `permitted: <option>` per request;
+//!   - `plans`: the agent's plan as it changes, in Claude Code's shape (the
+//!     whole list in each `plan` update: created, sent again unchanged, a
+//!     step started, one done as the next starts, one added; `plans`
+//!     module), then one message chunk `plans done`;
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;
@@ -154,6 +158,8 @@ mod describe;
 mod options;
 #[path = "fake_acp/permits.rs"]
 mod permits;
+#[path = "fake_acp/plans.rs"]
+mod plans;
 #[path = "fake_acp/real.rs"]
 mod real;
 #[path = "fake_acp/shapes.rs"]
@@ -693,6 +699,7 @@ async fn run_turn(
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
         "shapes" => return shapes::shapes(cx, session, turn).await,
+        "plans" => return plans::turn(cx, session, turn),
         _ => {}
     }
     if let Some(permit) = permits::wanted(prompt) {

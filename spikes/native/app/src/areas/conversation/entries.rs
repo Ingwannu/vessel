@@ -15,9 +15,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{FindMarks, FindPalette, Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{
-    Entry, EntryKind, Prompt, answered_lines, plan_progress, settled, spans_of,
-};
+use vessel_app_view::timeline::{Entry, EntryKind, Prompt, answered_lines, settled, spans_of};
 use vessel_proto::{Question, QuestionOutcome};
 
 use super::Seat;
@@ -87,9 +85,8 @@ pub(super) fn entry(
             question,
             outcome: Some(outcome),
         } => question_card(paint, question, outcome),
-        EntryKind::Plan { entries } => {
-            let (done, total) = plan_progress(entries);
-            meta(paint, words.plan_line(done, total))
+        EntryKind::Plan { entries, activity } => {
+            super::plan::row(paint, index, (entries, activity), open, cx)
         }
         // While it waits its card is over the composer, with the command
         // in its box: here only a quiet line, so the command is not read

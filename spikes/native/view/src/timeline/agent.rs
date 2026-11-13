@@ -1,12 +1,13 @@
 //! What each agent event does to the timeline (the page's
 //! `data/timeline-agent.ts` and the agent half of `data/conversation.ts`).
 
-use vessel_proto::{AgentEvent, EventRecord, Question};
+use vessel_proto::{AgentEvent, EventRecord, PlanEntry, Question};
 
 use super::entry::{
     EntryKey, EntryKind, Permission, Prompt, TextKind, ToolView, block_text, prompt_parts,
 };
 use super::fold::Timeline;
+use super::plan::{PlanActivity, all_pending, plan_activities};
 
 impl Timeline {
     pub(super) fn agent(&mut self, record: &EventRecord, event: &AgentEvent) {
@@ -51,15 +52,7 @@ impl Timeline {
                 let tool = ToolView::after(self.find_tool(&update.id), update);
                 self.tool(record, tool);
             }
-            AgentEvent::Plan { entries } => {
-                self.plan = Some(entries.clone());
-                self.push(
-                    record,
-                    EntryKind::Plan {
-                        entries: entries.clone(),
-                    },
-                );
-            }
+            AgentEvent::Plan { entries } => self.planned(record, entries),
             AgentEvent::PermissionRequested(_)
             | AgentEvent::PermissionResolved { .. }
             | AgentEvent::TurnEnded { .. }
@@ -155,6 +148,58 @@ impl Timeline {
             | AgentEvent::ToolCall(_)
             | AgentEvent::ToolCallUpdate(_)
             | AgentEvent::Plan { .. } => {}
+        }
+    }
+
+    /// A plan update: a row for each thing that changed in it (Paseo's
+    /// task activities, `plan.rs`).
+    fn planned(&mut self, record: &EventRecord, entries: &[PlanEntry]) {
+        let previous = self.plan.replace(entries.to_vec()).unwrap_or_default();
+        let activities = plan_activities(&previous, entries);
+        if activities.is_empty() {
+            // Nothing a person reads changed: the last row shows the plan
+            // as it now stands.
+            if let Some(index) = self.plan_row
+                && let Some(entry) = self.change(index)
+                && let EntryKind::Plan { entries: shown, .. } = &mut entry.kind
+            {
+                entries.clone_into(shown);
+            }
+            return;
+        }
+        // A step added to a list just created, all still to do, is part of
+        // the creation.
+        let last = self.entries.len().checked_sub(1);
+        if matches!(activities.as_slice(), [PlanActivity::Added(_)])
+            && all_pending(entries)
+            && last.is_some()
+            && self.plan_row == last
+            && let Some(index) = last
+            && let Some(entry) = self.change(index)
+            && let EntryKind::Plan {
+                entries: shown,
+                activity: activity @ PlanActivity::Created { .. },
+            } = &mut entry.kind
+        {
+            entries.clone_into(shown);
+            *activity = PlanActivity::Created {
+                count: entries.len(),
+            };
+            return;
+        }
+        for (step, activity) in (0_u32..).zip(activities) {
+            self.plan_row = Some(self.entries.len());
+            self.push_keyed(
+                record,
+                EntryKey::Plan {
+                    seq: record.seq,
+                    step,
+                },
+                EntryKind::Plan {
+                    entries: entries.to_vec(),
+                    activity,
+                },
+            );
         }
     }
 

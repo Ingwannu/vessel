@@ -11,6 +11,8 @@ mod outline;
 #[cfg(test)]
 mod permission;
 #[cfg(test)]
+mod plan;
+#[cfg(test)]
 mod question;
 #[cfg(test)]
 mod rows;
