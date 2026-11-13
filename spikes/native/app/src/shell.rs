@@ -114,6 +114,7 @@ impl Shell {
                 }
                 self.settle_draft();
                 self.retitle();
+                self.workspace_fleet();
             }
             Event::Records { session, records } => self.records(&session, &records),
             Event::Started(card) => self.started(&card, cx),
@@ -129,6 +130,7 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
+            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
         }
         cx.notify();
     }

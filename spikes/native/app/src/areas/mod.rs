@@ -16,6 +16,7 @@ pub(crate) mod draft;
 pub(crate) mod pair;
 pub(crate) mod session;
 pub(crate) mod sidebar;
+pub(crate) mod workspace;
 
 use vessel_app_kit::ui::{Context, Window};
 
@@ -26,6 +27,7 @@ pub(crate) struct Areas {
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
+    pub(crate) workspace: workspace::Workspace,
 }
 
 impl Areas {
@@ -34,6 +36,7 @@ impl Areas {
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
+            workspace: workspace::Workspace::new(window, cx),
         }
     }
 }

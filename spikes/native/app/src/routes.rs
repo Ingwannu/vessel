@@ -24,12 +24,15 @@ pub(crate) enum Route {
     /// The app's version and its updates (Zed's About and its update
     /// settings; the start of a Settings screen).
     About,
+    /// A machine's projects (Settings > Projects until the settings frame
+    /// is in; track F's).
+    Projects,
 }
 
 impl Route {
     /// The routes the sidebar lists at its top, in order (a session is
     /// reached from its row, pairing from the foot).
-    pub(crate) const NAV: [Self; 3] = [Self::Draft, Self::Board, Self::Archive];
+    pub(crate) const NAV: [Self; 4] = [Self::Draft, Self::Board, Self::Archive, Self::Projects];
 
     /// Its name in the sidebar.
     pub(crate) const fn label(self, t: &vessel_app_view::Text) -> &'static str {
@@ -40,6 +43,7 @@ impl Route {
             Self::Session => t.app,
             Self::Pair => t.add_machine,
             Self::About => t.lang.update().about,
+            Self::Projects => t.lang.workspace_labels().projects,
         }
     }
 }
@@ -59,6 +63,7 @@ pub(crate) fn render(
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, cx).into_any_element(),
         Route::About => areas::about::render(shell, tokens, cx).into_any_element(),
+        Route::Projects => areas::workspace::render_projects(shell, tokens, cx).into_any_element(),
     }
 }
 
@@ -72,6 +77,7 @@ pub(crate) fn arrive(
     match route {
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
+        Route::Projects => areas::workspace::arrive_projects(shell),
         Route::Board | Route::Archive | Route::Session | Route::About => {}
     }
 }

@@ -7,14 +7,14 @@ use vessel_proto::workspace::{
     WorktreeRefusal,
 };
 
-use super::super::branch_name::BranchNameProblem;
-use super::super::changes::ScopeKind;
-use super::super::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
-use super::super::git_quick::{Blocked, GitAction};
-use super::super::place::PlaceProblem;
-use super::super::problem::Problem;
-use super::super::save::SaveFailure;
-use super::{Local, WorkspaceWords};
+use super::{AddForm, Labels, Local, WorkspaceWords, labels};
+use crate::workspace::branch_name::BranchNameProblem;
+use crate::workspace::changes::ScopeKind;
+use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::git_quick::{Blocked, GitAction};
+use crate::workspace::place::PlaceProblem;
+use crate::workspace::problem::Problem;
+use crate::workspace::save::SaveFailure;
 
 /// English.
 #[derive(Debug, Clone, Copy)]
@@ -545,5 +545,126 @@ impl WorkspaceWords for En {
             SaveFailure::NoGuard => "This file was too large to be compared when it was read, so it cannot be saved without overwriting. Reload it and edit again.".to_owned(),
             SaveFailure::Call(problem) => self.problem(problem),
         }
+    }
+
+    fn labels(&self) -> &'static Labels {
+        &labels::EN
+    }
+
+    fn projects_on(&self, machine: &str) -> String {
+        format!("Projects on {machine}")
+    }
+
+    fn no_projects_body(&self, machine: &str) -> String {
+        format!("Add a folder of {machine}, clone a repository there, or start one.")
+    }
+
+    fn older_machine(&self, machine: &str) -> String {
+        format!("{machine} runs a Vessel older than projects.")
+    }
+
+    fn forgot(&self, name: &str) -> String {
+        format!("Forgot {name}; its files stay")
+    }
+
+    fn not_removed(&self, name: &str, why: &str) -> String {
+        format!("{name} was not removed: {why}")
+    }
+
+    fn live(&self, count: usize) -> String {
+        format!("{count} live")
+    }
+
+    fn kept(&self, reason: &str) -> String {
+        format!("kept: {reason}")
+    }
+
+    fn commands_title(&self, setup: usize, teardown: usize, scripts: usize) -> String {
+        let lists = format!("{setup} setup, {teardown} teardown");
+        match scripts {
+            0 => lists,
+            1 => format!("{lists}, 1 script or service"),
+            many => format!("{lists}, {many} scripts and services"),
+        }
+    }
+
+    fn invalid_commands(&self, message: &str) -> String {
+        format!("Its vessel.toml does not parse, so nothing in it runs: {message}")
+    }
+
+    fn commands_not(&self, approved: bool, why: &str) -> String {
+        let what = if approved { "approved" } else { "withdrawn" };
+        format!("The commands were not {what}: {why}")
+    }
+
+    fn setup_not_started(&self, why: &str) -> String {
+        format!("Setup did not start: {why}")
+    }
+
+    fn removed(&self, branch: &str, snapshot: Option<&str>) -> String {
+        match snapshot {
+            None => format!("Removed {branch}"),
+            Some(commit) => {
+                format!("Removed {branch}; its work is kept in snapshot {commit}")
+            }
+        }
+    }
+
+    fn remove_title(&self, branch: &str) -> String {
+        format!("Remove \"{branch}\"?")
+    }
+
+    fn discard_says(&self, path: &str, branch: &str) -> String {
+        format!(
+            "Discarding deletes the folder at {path}, its uncommitted changes and its branch {branch}; commits on no other branch are lost."
+        )
+    }
+
+    fn snapshot_not_dropped(&self, name: &str, why: &str) -> String {
+        format!("The snapshot of {name} was not dropped: {why}")
+    }
+
+    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String {
+        match (form, clone_target) {
+            (AddForm::Clone, None) => {
+                format!("A folder on {machine}; the repository gets a folder inside it.")
+            }
+            (AddForm::Clone, Some((folder, name))) => {
+                format!("Repository will be created at {folder}/{name}.")
+            }
+            (AddForm::New, _) => {
+                format!("An empty or new folder on {machine}; git starts a repository there.")
+            }
+            (AddForm::Folder, _) => format!(
+                "An absolute folder on {machine}; inside a repository, its top level is the project."
+            ),
+        }
+    }
+
+    fn approval_copy(&self, place: &str, scripts: bool) -> String {
+        let started = if scripts {
+            "; a script or service runs when someone starts it"
+        } else {
+            ""
+        };
+        format!(
+            "The repository's vessel.toml names these commands. Setup and teardown run {place}{started}, as you, with your environment. Approving covers this exact set; if any command changes, you are asked again."
+        )
+    }
+
+    fn approval_place(&self, project: &str, machine: &str, each: bool) -> String {
+        if each {
+            format!("in each new worktree of {project} on {machine}")
+        } else {
+            format!("in a new worktree of {project} on {machine}")
+        }
+    }
+
+    fn digest(&self, digest: &str) -> String {
+        format!("Digest {digest}")
+    }
+
+    fn was(&self, command: &str) -> String {
+        format!("was {command}")
     }
 }

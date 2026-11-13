@@ -25,6 +25,7 @@
 mod app;
 mod options;
 mod update;
+pub mod workspace;
 
 pub use app::Text;
 pub use options::OptionsText;
