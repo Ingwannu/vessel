@@ -92,8 +92,9 @@ Do not clean build caches, interrupt a queued build or replay an unchanged gate.
 ## Integration and consumers waiting
 
 The node integrator merged row 1 as protocol 13 in `187dc847`, preserving
-the source commits and renumbering preview/timezone/old-peer fixtures. Its
-gate was still running when reported. This N3 branch still declares 12;
+the source commits and renumbering preview/timezone/old-peer fixtures. The integrator subsequently reported its full gate passed: 1,692 tests,
+zero failures, and 62 page E2E cases. Eight slow-grant and eight grant-stop
+checks passed on that integrated head. This N3 branch still declares 12;
 row 2 also uses that original track version. Do not create a further N3
 protocol bump. Consume the reviewed integrated head at a clean boundary in
 the resumed session and keep all N3 additive calls at 13, minimum unchanged.
@@ -166,3 +167,22 @@ threads (`row2-final-workspace-test.log`). Read their final results before
 claiming success. Generated `web/src/wire/proto.ts` is current and must be
 committed with this followup. This remains WIP until the full gate, real
 fake-fleet check and required grant repeats are complete.
+
+### Real fleet verification
+
+Followup `caaea148` preserves the runtime fixture corrections and generated
+wire declarations. The TS generator's own whitespace is retained. The original
+full Clippy passed (`row2-final-clippy.log`); its sequential exact whole test
+is still running at this checkpoint. No product source changed during it.
+
+The complete native fake-fleet start passed, including the row 2 wire checks:
+home/member/standalone roles, real join/leave/fresh join, manual sync, actual
+apply and home report, and a separate read-only book with hidden member rows
+and refused sync/leave. The full script finished with exit zero. Invocation:
+`bash spikes/native/scripts/fleet.sh start <scratch>/fleet-row2 <target>/debug`.
+`row2-fleet-results.json` records binary hashes, check names and ownership.
+Run as UID/GID 1000 with umask 077: fixture directories 0700, tokens, member
+credential and both node books 0600, all owned 1000:1000. No chmod/chown fix
+was needed. Both recorded node PIDs were stopped and absent afterward. No
+pairing link or credential output was displayed. Native screen rendering and
+other OS execution are not verified by this backend check.
