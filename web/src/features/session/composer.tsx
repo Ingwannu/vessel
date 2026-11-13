@@ -11,7 +11,7 @@
 // recall the session's own prompts; a queued prompt opened for editing
 // takes the box until it is saved or Escape closes it.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { useFleetState } from "../../context";
 import { agentName } from "../../data/agents";
@@ -20,11 +20,8 @@ import { isLive } from "../../data/format";
 import { canStartAgain } from "../../data/marks";
 import { queueRows } from "../../data/queue-view";
 import { searchRoot } from "../../data/suggest";
-import { recall, sentPrompts, type Walk } from "../../data/recall";
-import type { Timeline } from "../../data/timeline-model";
+import { recall, type Walk } from "../../data/recall";
 import { takeFirstSend, trayOf } from "../../data/trays";
-import type { NodeKey } from "../../wire/bridge";
-import type { SessionInfo } from "../../wire/proto";
 import { AttachmentStrip } from "../compose/attachment-strip";
 import { PromptBox } from "../compose/prompt-box";
 import { SendButton } from "../compose/send-button";
@@ -34,6 +31,11 @@ import { useShortcut } from "../shortcuts/handlers";
 import { AgentControls } from "./agent-controls";
 import { AttachButton } from "./attach-button";
 import { ComposerDocks } from "./composer-docks";
+import {
+  type ComposerProps,
+  promptsOf,
+  sameComposerProps,
+} from "./composer-props";
 import { ContextRing } from "./context-ring";
 import { EditingStrip } from "./editing-strip";
 import { EndedBanner } from "./ended-banner";
@@ -43,18 +45,14 @@ import { useLimits } from "./use-limits";
 import { useQueueActions } from "./use-queue-actions";
 import { useTrayTarget } from "./use-tray-target";
 
-export function Composer({
+/** Drawn again only when something it shows changed, not for every frame
+ * of records (composer-props.ts says why and what is compared). */
+export const Composer = memo(function Composer({
   node,
   label,
   session,
   timeline,
-}: {
-  node: NodeKey;
-  /** The machine's name. */
-  label: string;
-  session: SessionInfo;
-  timeline: Timeline;
-}) {
+}: ComposerProps) {
   const draft = useDraft(session.id);
   const walk = useRef<Walk | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -62,10 +60,7 @@ export function Composer({
     area.current?.focus();
     return area.current !== null;
   });
-  const prompts = useMemo(
-    () => sentPrompts(timeline.entries),
-    [timeline.entries],
-  );
+  const prompts = promptsOf(timeline.entries);
   const [editing, setEditing] = useState<Editing | null>(null);
   const conversation = timeline.conversation;
   const pending = timeline.pending;
@@ -277,4 +272,4 @@ export function Composer({
       }
     />
   );
-}
+}, sameComposerProps);

@@ -8,6 +8,7 @@ import { heldBy, type QueueRow } from "../../data/queue-view";
 import type { Timeline } from "../../data/timeline-model";
 import type { NodeKey } from "../../wire/bridge";
 import type { QueueEntryId, SessionId } from "../../wire/proto";
+import { pendingTool } from "./composer-props";
 import { PermissionDock } from "./permission-dock";
 import { QuestionDock } from "./question-dock";
 import { type QueueActions, QueueDock } from "./queue-dock";
@@ -30,14 +31,7 @@ export function ComposerDocks({
   const pending = timeline.pending;
   const questions = waitingQuestions(timeline.conversation);
   const question = questions[0];
-  const tool =
-    pending === null
-      ? undefined
-      : timeline.entries.find(
-          (entry) =>
-            entry.kind === "tool" &&
-            entry.tool.id === pending.request.tool_call,
-        );
+  const tool = pendingTool(timeline);
   return (
     <>
       <QueueDock
