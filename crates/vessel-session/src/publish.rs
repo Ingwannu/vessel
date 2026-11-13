@@ -93,6 +93,21 @@ impl Publisher {
         self.shared.pid.store(pid, Ordering::Release);
     }
 
+    /// How many follow the session live now (protocol 12).
+    pub(crate) fn followers(&self) -> usize {
+        self.shared.ring().followers()
+    }
+
+    /// Whether a permission or a question waits for an answer (protocol
+    /// 12: a session waiting on a person is not parked).
+    pub(crate) fn waiting_for_answers(&self) -> bool {
+        self.shared
+            .seen
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .waiting()
+    }
+
     /// Number `event`, hand it to the store, append it to the ring,
     /// broadcast it, and update the session info, in that order.
     ///
@@ -228,6 +243,8 @@ enum InfoChange {
     Ready(HarnessSessionId, Option<AgentAbilities>),
     Profile(Option<ProfileName>),
     Title(SessionTitle),
+    /// Its agent was parked (`Some`) or woken (protocol 12).
+    Parked(Option<vessel_proto::parking::ParkReason>),
 }
 
 impl InfoChange {
@@ -243,6 +260,8 @@ impl InfoChange {
             } => Self::Ready(harness_session.clone(), *abilities),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
             SessionEvent::Renamed { title } => Self::Title(title.clone()),
+            SessionEvent::Parked { reason } => Self::Parked(Some(reason.clone())),
+            SessionEvent::Woken => Self::Parked(None),
             // Options are not part of the info: a client reads them from
             // the log, or asks `session.options`.
             SessionEvent::Terminal(_)
@@ -263,8 +282,10 @@ impl InfoChange {
                 if !status.is_live() {
                     info.ended_at = Some(at);
                     // Nothing watches an ended session; the store keeps no
-                    // pull request, so the two agree (ADR 0029).
+                    // pull request, so the two agree (ADR 0029). Nor is an
+                    // ended one parked.
                     info.pull_request = None;
+                    info.parked = None;
                 }
                 info.status = status;
                 true
@@ -282,6 +303,11 @@ impl InfoChange {
             }
             Self::Title(title) => {
                 info.title = Some(title);
+                true
+            }
+            Self::Parked(reason) => {
+                info.parked =
+                    reason.map(|reason| vessel_proto::parking::Parked { since: at, reason });
                 true
             }
         }

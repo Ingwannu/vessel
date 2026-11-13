@@ -305,3 +305,15 @@ Native gate: fmt, Clippy and tests all exited 0. App 3, kit 26, link 29,
 view 265, localization integration 9 and page parity 89 (421 passed), plus
 2 passing compile-fail doc tests. The gate source remained fixed throughout;
 no whole-app UI or runtime IME approval is implied by these tests.
+
+The next clean integration brings the lead through `74dfde8e`: protocol 12's
+node/client line, parking-event projection, the reviewed permission card and
+both Light font faces needed for weight-300 headers. The architecture conflict
+was section order only; each section is retained once. The coordinator supplied
+the two ignored font assets; no font-download script or mode change was run.
+
+Native fmt, Clippy and tests all exited 0: app 3, kit 26, link 29, view 265,
+localization integration 9 and page parity 97 (429 passed), plus 2 passing doc
+tests. Root protocol/node changes belong to their lead-authored commits; no
+independent root-workspace test claim is made here. No new settings UI or
+runtime font/IME approval is implied by this integration gate.

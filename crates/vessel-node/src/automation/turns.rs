@@ -48,7 +48,9 @@ pub(crate) fn signal(event: &SessionEvent) -> Option<Signal<'_>> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken => None,
     }
 }
 

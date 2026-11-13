@@ -76,6 +76,25 @@ export function choicesFor(
   });
 }
 
+/** The choices to keep for the machine's next start: every pick the
+ * agent offers, whether or not it changes its value (a pick equal to the
+ * agent's default today is still the person's choice, and is applied
+ * when the default moves). With the options not known (the agent had
+ * not said when Send went), the picks as they are: a start that could
+ * not check them does not make the kept ones fewer. */
+export function keptChoices(
+  options: readonly SessionOption[] | null,
+  picks: Picks,
+): OptionChoice[] {
+  if (options === null) {
+    return Object.values(picks);
+  }
+  return options.flatMap((option) => {
+    const choice = picks[option.id];
+    return choice !== undefined && offered(option, choice) ? [choice] : [];
+  });
+}
+
 /** `picks` with `choice` added (replacing one for the same option). */
 export function pick(picks: Picks, choice: OptionChoice): Picks {
   return { ...picks, [choice.id]: choice };

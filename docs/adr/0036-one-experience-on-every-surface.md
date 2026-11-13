@@ -32,7 +32,19 @@ What the tracks of milestone 12 have shown so far:
   the activity must be hosted the layer's second way to survive being
   made again. Seen in an emulator with a software renderer, not on a
   phone.
-- The browser (GPUI's WebAssembly platform) has not been tried.
+- The browser, first report (2026-11-13): the same `app` crate, built
+  for `wasm32` on GPUI's web platform, draws the new chat, the sidebar
+  and a session's conversation in headless Chromium, and Hangul
+  composes at the caret in both composers (marked text underlined, the
+  final consonant carried to the next syllable, a cancelled composition
+  not inserted, Enter sends). GPUI's web platform takes text through a
+  hidden text field, which is why a canvas can compose at all. What
+  that does not show yet: the data was a built-in demo (no connection
+  to a node from a browser), the renderer was software WebGPU, and the
+  composition was driven through the browser's debugging interface,
+  not typed with a real input method. Three changes to shared crates
+  were needed and are harmless on the desktop (the order of the kit's
+  start, the clock, no updater in a browser).
 
 ## Options
 
@@ -116,7 +128,14 @@ and option 3 inside it removes the cost entirely where it holds.
 
 ## Open
 
-- The browser (the browser track's report).
+- The browser. It draws and composes Hangul (above), so option 3 is
+  still possible; it is not chosen yet. Still to be shown before the
+  browser gets the native UI: a real connection to a node from a
+  browser, a real input method on a real machine, selection, clipboard,
+  undo and find, links and downloads, a phone's browser, what a browser
+  without WebGPU sees, how much it downloads and how long to the first
+  screen, and what a screen reader gets. Until those are in, the page
+  stays the web client.
 - iOS: cannot be built here; the mobile layer supports it and the CI
   job is written, not run. An Apple developer account is the owner's.
 - Where preferences live and how they move (its own ADR).

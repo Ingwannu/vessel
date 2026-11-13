@@ -71,6 +71,16 @@ struct Run {
         value_parser = clap::value_parser!(u64).range(1..)
     )]
     agent_handshake_timeout: u64,
+    /// Minutes a conversation session may stay idle before its agent's
+    /// process is stopped (parked); the next prompt starts it again with
+    /// the conversation. 0 never parks.
+    #[arg(
+        long,
+        env = "VESSEL_PARK_AFTER",
+        value_name = "MINUTES",
+        default_value_t = vessel_node::DEFAULT_PARK_AFTER.as_secs() / 60
+    )]
+    park_after: u64,
     /// A relay to register with, as a `ws://` or `wss://` URL (repeatable,
     /// tried in order). Pairing links name it, so devices reach this node
     /// through it without SSH or an open port.
@@ -433,6 +443,8 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
             ),
     );
     config.agent_handshake_timeout = Duration::from_secs(args.agent_handshake_timeout);
+    config.park_after =
+        (args.park_after > 0).then(|| Duration::from_secs(args.park_after.saturating_mul(60)));
     config.relays = args.relays;
     config.relay_token_file = args.relay_token_file;
     config.public = args.public;

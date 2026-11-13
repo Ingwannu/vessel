@@ -81,8 +81,15 @@ impl Seen {
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => false,
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken => false,
         }
+    }
+
+    /// Whether a permission or a question waits for an answer.
+    pub(crate) const fn waiting(&self) -> bool {
+        !self.permissions.is_empty() || !self.questions.is_empty()
     }
 
     /// Take in one committed record.
@@ -103,7 +110,9 @@ impl Seen {
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
             | SessionEvent::OptionsChanged { .. }
-            | SessionEvent::Renamed { .. } => {}
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken => {}
         }
     }
 

@@ -237,3 +237,34 @@
     opacity: 0.5;
   }
 }
+
+/* A card's marks beside its title (card-marks.tsx): the pin in the
+   tertiary colour, the sidebar's unread dot. */
+.card-marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+}
+
+.card-marks .sdot.unread {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+}
+
+/* Several actions in the slot (the archive's Restore and Delete). */
+.card-action:has(> .card-actions) {
+  margin-right: -6px;
+}
+
+.card-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.card-action:has(> .card-actions):hover {
+  color: inherit;
+}

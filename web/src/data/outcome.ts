@@ -19,6 +19,7 @@
 import { CallFailed } from "../bridge/client";
 import { OpFailed, type OpReason } from "../bridge/frames";
 import type { Failure } from "../wire/bridge";
+import type { ErrorCode } from "../wire/proto";
 
 /** Why there is no value. */
 export type Problem =
@@ -46,6 +47,14 @@ export function problemOf(error: unknown): Problem {
     reason: "failed",
     message: error instanceof Error ? error.message : String(error),
   };
+}
+
+/** The node's own error code for `problem`, when the node answered with
+ * one (`null`: the link, the bridge or an older protocol failed). */
+export function errorCode(problem: Problem): ErrorCode | null {
+  return problem.from === "call" && problem.failure.kind === "remote"
+    ? problem.failure.error.code
+    : null;
 }
 
 /** Run `work`, catching what the bridge throws into an outcome. */

@@ -51,7 +51,7 @@ test("starting and running a session", async ({ page }) => {
   await expect(permission).toBeVisible();
 
   // The summary's identifiers, behind Details.
-  const summary = page.getByRole("complementary", { name: "Session summary" });
+  const summary = page.getByRole("complementary", { name: "Session panel" });
   await summary.getByRole("button", { name: "Details" }).click();
   await expect(summary).toContainText("Agent's session");
   await shot(page, "32-session-details-light");

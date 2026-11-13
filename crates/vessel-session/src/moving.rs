@@ -40,6 +40,7 @@ use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 
 use crate::delivery::{Cancel, Change, Deliver};
 use crate::lifecycle::drain_deadline;
+use crate::parking::{ParkOrder, Route};
 use crate::structured::StructuredActor;
 
 /// How long a forced move waits for the cancelled turn to end before it
@@ -116,6 +117,10 @@ pub enum Restart {
     /// It exited before it was ready.
     #[error("it exited (code {0:?}) before it was ready")]
     Exited(Option<i32>),
+    /// The session was parked and its agent did not start again under the
+    /// current profile (protocol 12), so it did not move.
+    #[error("the parked agent did not start again: {0}")]
+    Woken(String),
 }
 
 /// A message to a structured session's actor: a move, or (protocol 10)
@@ -128,6 +133,8 @@ pub(crate) enum Control {
     Deliver(Deliver),
     Queue(Change),
     Cancel(Cancel),
+    /// Park or wake the agent (protocol 12).
+    Park(ParkOrder),
 }
 
 /// Everything the actor needs to move.
@@ -170,7 +177,16 @@ impl StructuredActor {
         // Whether the agent may ask is the session's, decided at its
         // creation (protocol 10): the new agent asks as the old one did.
         setup.questions = self.launch.setup.questions;
-        let _held = self.route.send_replace(None);
+        // A parked session wakes first, under its current profile, then
+        // moves (protocol 12); a failed wake fails the move.
+        if self.parking.parked.is_some()
+            && let Err(error) = self.wake().await
+        {
+            tracing::info!(%error, "the parked session did not wake to move");
+            let _gone = reply.send(Err(MoveError::Restart(Restart::Woken(error.to_string()))));
+            return;
+        }
+        let _held = self.route.send_replace(Route::Moving);
         self.move_state.active = true;
         let outcome = self
             .try_move(
@@ -184,7 +200,7 @@ impl StructuredActor {
         if outcome.is_ok() {
             self.life.notices(&mut self.agent, notices).await;
         }
-        let _none = self.route.send_replace(Some(self.input.clone()));
+        let _live = self.route.send_replace(Route::Live(self.input.clone()));
         if let Err(error) = &outcome {
             tracing::info!(%error, "the session did not move to another profile");
         }
@@ -295,7 +311,7 @@ impl StructuredActor {
 
     /// Stop the current agent (`SIGTERM`, then `SIGKILL` after
     /// [`STOP_GRACE`]) and publish what it still had to say.
-    async fn stop_agent(&mut self) -> Result<(), MoveError> {
+    pub(crate) async fn stop_agent(&mut self) -> Result<(), MoveError> {
         signal(&mut self.agent, Signal::Terminate);
         let grace = tokio::time::sleep(STOP_GRACE);
         let mut grace = std::pin::pin!(grace);
@@ -334,7 +350,10 @@ impl StructuredActor {
     /// Start `launch` in place of the stopped agent and wait until it is
     /// ready. The outer error is a stop of the whole session; the inner one
     /// is this agent's failure to start.
-    async fn start_agent(&mut self, launch: &Launch) -> Result<Result<(), Restart>, MoveError> {
+    pub(crate) async fn start_agent(
+        &mut self,
+        launch: &Launch,
+    ) -> Result<Result<(), Restart>, MoveError> {
         let (agent, input, outputs) =
             match AgentProcess::spawn(&launch.command, launch.setup.clone()) {
                 Ok(started) => started,

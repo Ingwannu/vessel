@@ -196,6 +196,33 @@ impl Timeline {
         }
     }
 
+    /// How many permission requests wait (the card's "1/N").
+    #[must_use]
+    pub fn waiting_permissions(&self) -> usize {
+        self.waiting.len()
+    }
+
+    /// Whether a permission request for tool call `id` waits.
+    #[must_use]
+    pub fn asks_permission(&self, id: &ToolCallId) -> bool {
+        self.waiting.iter().any(|index| {
+            self.entries.get(*index).is_some_and(|entry| {
+                matches!(&entry.kind, EntryKind::Permission(permission) if permission.request.tool_call == *id)
+            })
+        })
+    }
+
+    /// The tool call `id`, when it was seen.
+    #[must_use]
+    pub fn tool_call(&self, id: &ToolCallId) -> Option<&ToolView> {
+        let entry = self.entries.get(*self.tools.get(id)?)?;
+        if let EntryKind::Tool(tool) = &entry.kind {
+            Some(tool)
+        } else {
+            None
+        }
+    }
+
     /// The questions still waiting for an answer, oldest first.
     #[must_use]
     pub fn waiting_questions(&self) -> Vec<&Entry> {
@@ -287,7 +314,11 @@ impl Timeline {
                     },
                 );
             }
-            SessionEvent::Terminal(_) => {}
+            // A parked session's agent stopped and started again (protocol
+            // 12, ADR 0038, track A2): the timeline does not draw it yet
+            // (track C's, with A2's slice); the session's own status
+            // records still say whether it runs.
+            SessionEvent::Terminal(_) | SessionEvent::Parked { .. } | SessionEvent::Woken => {}
             SessionEvent::Agent { event } => self.agent(record, event),
             SessionEvent::ProfileChanged { from, to } => self.push(
                 record,

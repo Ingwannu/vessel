@@ -42,6 +42,7 @@ const state: FleetState = {
   harnesses: {},
   profiles: {},
   models: {},
+  agents: {},
   sessions: {},
   errors: {},
   selected: null,
