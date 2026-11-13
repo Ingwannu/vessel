@@ -37,11 +37,12 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled, Window,
-    div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint};
+use vessel_app_kit::{
+    CardLook, CardState, TextField, Tokens, Type, TypeExt as _, breakpoint, card_button,
+};
 use vessel_app_link::{Act, ActKind};
 use vessel_app_view::timeline::{
     Draft, Drafts, EntryKind, Problem, Step, answer_of, answerable, refused_field, starting_drafts,
@@ -693,28 +694,32 @@ fn actions(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let neutral = tokens.neutral;
-    let dismiss_button = action_button(
+    let dismiss_button = card_button(
         "question-dismiss",
         Glyph::Remove,
         dismiss_words,
-        (
-            neutral.surface1,
-            neutral.border_accent,
-            neutral.foreground_muted,
-        ),
-        dismiss,
+        CardLook::Muted,
+        if dismiss {
+            CardState::Ready
+        } else {
+            CardState::Waiting
+        },
+        tokens,
     )
-    .hover(move |style| style.bg(neutral.surface2))
     .when(dismiss, |button| {
         button.on_click(cx.listener(|shell, _event, _window, cx| shell.question_dismiss(cx)))
     });
-    let primary_button = action_button(
+    let primary_button = card_button(
         "question-primary",
         Glyph::Check,
         primary_words,
-        (neutral.accent, neutral.accent, neutral.accent_foreground),
-        primary,
+        CardLook::Accent,
+        if primary {
+            CardState::Ready
+        } else {
+            CardState::Faded
+        },
+        tokens,
     )
     .when(primary, |button| {
         button.on_click(cx.listener(|shell, _event, window, cx| shell.question_primary(window, cx)))
@@ -731,32 +736,4 @@ fn actions(
         })
         .child(dismiss_button)
         .child(primary_button)
-}
-
-/// A card button: Paseo's (8 by 12 inside, radius 6, a hairline, a glyph
-/// of 14 before its words), at half strength while it does nothing.
-fn action_button(
-    id: &'static str,
-    mark: Glyph,
-    words: &'static str,
-    (fill, edge, ink): (Hsla, Hsla, Hsla),
-    enabled: bool,
-) -> Stateful<Div> {
-    div()
-        .id(SharedString::from(id))
-        .flex()
-        .items_center()
-        .justify_center()
-        .gap(px(8.0))
-        .py(px(8.0))
-        .px(px(12.0))
-        .rounded(px(6.0))
-        .border_1()
-        .border_color(edge)
-        .bg(fill)
-        .text_color(ink)
-        .when(!enabled, |button| button.opacity(0.5))
-        .when(enabled, Styled::cursor_pointer)
-        .child(glyph(mark, 14.0, ink))
-        .child(words)
 }

@@ -360,7 +360,11 @@ checked through `vessel session queue`: the queue above the composer is
 checked against it. Two more, `ask questions` and `ask one`, are left
 waiting on what Claude's adapter sends for its `AskUserQuestion` (three
 questions, one choosing several and one in Korean, and one question):
-the question card is checked against them.
+the question card is checked against them. Three more, `permit plan`,
+`permit codex` and `permit two`, are left waiting on permission requests
+in the real adapters' shapes (Claude Code leaving plan mode with five
+"always" answers, Codex's five answers, two at once): the permission card
+is checked against them and the `shapes-asking` session's long command.
 
 The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
 an added agent with a long name and argument, a definition whose program
@@ -468,3 +472,19 @@ released-catalog test requires every shipped catalog to be complete.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+Machine management uses `view::machine_book` for validated names, edit outcomes
+and safe localized failures, and `link::machines` for the CLI's existing node
+book. `BookFile` is reopened immediately before each atomic edit; the app does
+not maintain a second machine list on disk. A forget ends the app's watched
+stream only, leaving the remote session running. Original file errors remain
+at the file boundary because a malformed book can contain credentials.
+
+The actor resolves the book path once and reads it on the blocking pool for
+startup, tick, reload, retry and edits. Syntax failures share `FileFault` with
+pairing; no transient raw parser error reaches an event. Failed edits leave
+clients and the session follow untouched. Browser refusals retain the original
+Read/Edited response shape. Actor regressions use real framed RPC clients on
+bounded in-process streams, including client-preserving rename and watched
+forget; no real agent or network endpoint is contacted. Other areas' aliases
+and project follows must be integrated before the Machines screen is delivered.

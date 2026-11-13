@@ -347,6 +347,30 @@ grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of l
   exit 1
 }
 
+# Permission requests in the real adapters' shapes (fake-acp's
+# `permit plan`, `permit codex`, `permit two`): Claude Code leaving plan
+# mode with its plan and seven answers, Codex's five answers for a
+# command, two commands asking at once. All are left waiting, and checked
+# through `vessel log` (one `[permission]` line per request).
+start_session laptop permit-plan "permit plan"
+plan=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-codex "permit codex"
+codex=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-two "permit two"
+two=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plan" "[permission]"
+wait_for laptop "$codex" "[permission]"
+for _ in $(seq 1 300); do
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -ge 2 ] && break
+  sleep 0.1
+done
+grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
+  grep -q "^  5) No, and tell Codex what to do differently" <<<"$(log_of laptop "$codex")" &&
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -eq 2 ] || {
+  echo "fleet: the permission sessions lack their real shapes" >&2
+  exit 1
+}
+
 # Prompts waiting their turn (the queue above the composer): a turn that
 # runs until it is stopped (`wait`, which also takes a steer) and three
 # prompts queued behind it, one long, one Korean, one short. Checked

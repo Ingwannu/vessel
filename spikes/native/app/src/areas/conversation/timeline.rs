@@ -159,14 +159,15 @@ fn row_element(
 }
 
 /// Whether entry `index`'s disclosure is open: a tool call while it
-/// works, else closed; turned by the person.
+/// works, else closed; turned by the person. A tool call whose permission
+/// waits stays closed: the card over the composer shows its detail.
 fn open(area: &ConversationArea, index: usize) -> bool {
     let default = area
         .timeline
         .entries()
         .get(index)
         .and_then(|entry| entry.kind.as_tool())
-        .is_some_and(vessel_app_view::timeline::ToolView::working);
+        .is_some_and(|tool| tool.working() && !area.timeline.asks_permission(&tool.id));
     default != area.toggled.contains(&index)
 }
 

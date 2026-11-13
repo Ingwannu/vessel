@@ -25,6 +25,7 @@
 
 mod agents;
 mod appearance;
+mod book;
 mod choices;
 mod devices;
 mod general;

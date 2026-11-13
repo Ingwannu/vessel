@@ -66,6 +66,9 @@ impl Link {
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
             ))),
+            Command::Machines(ask) => self.emit(Event::Machines(
+                ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
+            )),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

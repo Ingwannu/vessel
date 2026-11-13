@@ -1042,3 +1042,17 @@ rejected after the release-size experiment, recorded in ADR 0039.
 Legacy area tables stay until their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
+
+## Native settings' machine book (milestone 12)
+
+The independent workspace under `spikes/native` keeps screen rules in `view`,
+node/file operations in `link`, shared controls in `kit`, and drawing in `app`
+(its README owns the full crate map). `view::machine_book` validates names and
+models edits and safe failure reasons. `link::machines` applies those edits
+through the existing CLI `BookFile` on the blocking pool, then publishes a fresh
+snapshot. Selection follows a successful write only; raw book errors stay at
+the file boundary because malformed content may contain credentials. No new
+wire method or store is introduced. Startup, tick, reload, retry and edit reads
+share a fixed book path and the same typed boundary. Syntax failures reuse the
+shared safe `FileFault` projection; other file failures use closed reasons.
+A failed edit does not refresh or mutate the existing clients or session follow.

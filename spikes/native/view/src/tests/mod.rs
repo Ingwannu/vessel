@@ -12,6 +12,7 @@ mod board;
 mod compose_keys;
 mod devices;
 mod fixture;
+mod machine_book;
 mod machines;
 mod models;
 mod notices;

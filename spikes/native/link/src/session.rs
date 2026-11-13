@@ -27,7 +27,9 @@ use vessel_proto::{
     ErrorCode, Mark, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
     TerminalBytes, TerminalInput, TerminalSize,
 };
-use vessel_proto::{QuestionAnswer, QuestionId};
+use vessel_proto::{
+    PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
+};
 
 use crate::{Event, LinkError, State};
 
@@ -57,6 +59,10 @@ pub enum Act {
     /// Answer a question the agent asks (protocol 10): the form filled
     /// in, or declined. The first answer wins.
     Answer(QuestionId, QuestionAnswer),
+    /// Answer a permission request with one of its options; the act's
+    /// answer says whether it went (the card shows it being sent, or why
+    /// it could not be).
+    Permit(PermissionId, PermissionOptionId),
 }
 
 /// Which act an answer is for.
@@ -82,6 +88,8 @@ pub enum ActKind {
     Queue,
     /// An answer to a question.
     Answer,
+    /// An answer to a permission request.
+    Permit,
 }
 
 impl Act {
@@ -99,6 +107,7 @@ impl Act {
             Self::Terminal(_) => ActKind::Terminal,
             Self::Queue(_) => ActKind::Queue,
             Self::Answer(..) => ActKind::Answer,
+            Self::Permit(..) => ActKind::Permit,
         }
     }
 }
@@ -201,6 +210,17 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         // that does not fit) comes back as the act's failure.
         Act::Answer(id, answer) => client
             .send(session, SessionInput::AnswerQuestion { id, answer })
+            .await
+            .map(|()| Acted::Done),
+        // The request settles as the session's own `permission_resolved`.
+        Act::Permit(id, option) => client
+            .send(
+                session,
+                SessionInput::AnswerPermission {
+                    id,
+                    outcome: PermissionOutcome::Selected { option },
+                },
+            )
             .await
             .map(|()| Acted::Done),
         Act::Terminal(outgoing) => {

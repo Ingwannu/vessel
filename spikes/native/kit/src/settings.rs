@@ -210,6 +210,54 @@ pub fn row_at(
     compact: bool,
     tokens: &Tokens,
 ) -> Div {
+    row_faced(
+        title,
+        hint,
+        Type::Meta,
+        error,
+        control,
+        first,
+        compact,
+        tokens,
+    )
+}
+
+/// A row whose words under the title are a value in the code face: a key's
+/// fingerprint, an id (the strict brief: a hash or a key reads in the code
+/// face, so each character is told from its neighbours).
+#[must_use]
+pub fn code_row(
+    title: impl Into<SharedString>,
+    value: impl Into<SharedString>,
+    first: bool,
+    tokens: &Tokens,
+) -> Div {
+    row_faced(
+        title,
+        Some(value.into()),
+        Type::Mono,
+        None,
+        None,
+        first,
+        false,
+        tokens,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "row_at's arguments and the face of its hint, one private body"
+)]
+fn row_faced(
+    title: impl Into<SharedString>,
+    hint: Option<SharedString>,
+    hint_face: Type,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
     let mut words = div()
         .flex_1()
@@ -227,7 +275,7 @@ pub fn row_at(
         words = words.child(
             div()
                 .mt(px(4.0))
-                .type_(Type::Meta)
+                .type_(hint_face)
                 .text_color(neutral.foreground_muted)
                 .child(hint),
         );
