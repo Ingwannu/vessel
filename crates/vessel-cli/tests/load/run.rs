@@ -381,7 +381,9 @@ impl Phase {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => 0,
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken => 0,
         };
         self.bytes = self
             .bytes

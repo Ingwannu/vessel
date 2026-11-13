@@ -137,10 +137,10 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 Some(followed) = self.follow_rx.recv() => self.followed(followed).await,
                 ended = next_end(self.ended.as_mut()) => match ended {
                     Ok(session) => self.session_ended(session).await,
-                    // Missed ends: those agents' schedules end at their
-                    // next run, which finds the agent gone.
+                    // Missed ends: every agent's schedule is checked now.
                     Err(broadcast::error::RecvError::Lagged(missed)) => {
-                        tracing::debug!(missed, "the scheduler missed some sessions' ends");
+                        tracing::info!(missed, "the scheduler missed some sessions' ends; agents' schedules checked");
+                        self.sweep_agents().await;
                     }
                     Err(broadcast::error::RecvError::Closed) => self.ended = None,
                 },

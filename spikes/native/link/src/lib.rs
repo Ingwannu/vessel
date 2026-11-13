@@ -15,10 +15,12 @@
 //!   commands in through a bounded channel, events out through another.
 //!   Both ends are plain tokio channels, which any executor can await, so
 //!   the UI side needs no tokio of its own and the link no UI.
-//! - Full channels: a command waits for room (a person cannot type faster
-//!   than the link drains); the events channel is drained by the UI as
-//!   fast as it draws, and a sender waits for room, so a burst of records
-//!   slows the stream, never grows memory.
+//! - Full channels: a command is offered without waiting (the UI thread
+//!   must not block), and one the link does not take comes back typed
+//!   ([`Link::submit`], [`Unsent`]) so what waits on its answer can
+//!   settle; the events channel is drained by the UI as fast as it draws,
+//!   and a sender waits for room, so a burst of records slows the stream,
+//!   never grows memory.
 
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
@@ -76,6 +78,63 @@ const REFRESH: Duration = Duration::from_secs(2);
 /// Room in each channel. Records come in pages of up to a few hundred; a
 /// screen drains them every frame.
 const CHANNEL: usize = 256;
+
+/// Why the link did not take a command ([`Link::submit`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Rejected {
+    /// Its queue is full: the link's task is behind (only a stuck link
+    /// fills 256 commands).
+    #[error("the link's queue is full")]
+    Full,
+    /// The link stopped: the app is closing, or its task ended.
+    #[error("the link has stopped")]
+    Closed,
+}
+
+/// A command the link did not take, given back with why: nothing of it
+/// reached a machine, so no answer will come for it.
+///
+/// [Decision Log]
+/// - Purpose: [`Link::send`] offers a command with `try_send` and only
+///   logged a full or closed queue, so a screen that set a key pending
+///   (a card's act, a pairing, a workspace ask) waited for an answer that
+///   never came: a spinner that stays (track G1's review, 2026-11-13).
+/// - Constraint: the UI must not wait for room (it runs on the UI
+///   thread), and the existing callers that wait on nothing keep
+///   [`Link::send`].
+/// - Alternatives: an awaiting send (blocks or needs every caller async);
+///   a boolean (the caller then still holds a moved command and cannot
+///   tell full from stopped).
+/// - Choice: [`Link::submit`] returns the command with a typed reason;
+///   the caller settles what waits on it in its own words.
+/// - Cost: the command is boxed on the failure path only.
+#[derive(Debug)]
+pub struct Unsent {
+    /// Why.
+    pub why: Rejected,
+    /// The command, as it was given.
+    pub command: Box<Command>,
+}
+
+impl Unsent {
+    /// `command`, not taken for `why`.
+    #[must_use]
+    pub fn new(why: Rejected, command: Command) -> Self {
+        Self {
+            why,
+            command: Box::new(command),
+        }
+    }
+}
+
+/// Offer `command` on `commands` without waiting.
+#[cfg(not(target_arch = "wasm32"))]
+fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsent> {
+    commands.try_send(command).map_err(|error| match error {
+        mpsc::error::TrySendError::Full(command) => Unsent::new(Rejected::Full, command),
+        mpsc::error::TrySendError::Closed(command) => Unsent::new(Rejected::Closed, command),
+    })
+}
 
 /// Something the link could not do.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -233,8 +292,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
-        /// The name is the one the app filled in: use the node's own name
-        /// instead when it makes a free book name.
+        /// The person left the name empty (`name` is then a free name the
+        /// app chose): use the node's own name instead when it makes a free
+        /// book name.
         prefer_node_name: bool,
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
@@ -371,12 +431,41 @@ impl Link {
         ))
     }
 
-    /// Ask for something; returns at once (a full queue drops the command
-    /// and says so, which only a stuck link would cause).
+    /// Ask for something and say whether the link took it; returns at
+    /// once. A caller that waits on the answer settles what it set
+    /// pending when the command comes back.
+    ///
+    /// # Errors
+    /// The link's queue is full, or the link stopped: the command, given
+    /// back.
+    pub fn submit(&self, command: Command) -> Result<(), Unsent> {
+        offer(&self.commands, command)
+    }
+
+    /// Ask for something nothing waits on; returns at once (a command the
+    /// link does not take is dropped and logged).
     pub fn send(&self, command: Command) {
-        if let Err(error) = self.commands.try_send(command) {
-            tracing::warn!(%error, "the link is not taking commands");
+        if let Err(unsent) = self.submit(command) {
+            tracing::warn!(why = %unsent.why, "the link is not taking commands");
         }
+    }
+
+    /// A link with no task behind its queue, `room` commands deep, and
+    /// the queue's other end: for a test that fills the queue.
+    ///
+    /// # Errors
+    /// The runtime could not be started.
+    #[cfg(feature = "testing")]
+    pub fn detached(room: usize) -> std::io::Result<(Self, mpsc::Receiver<Command>)> {
+        let (commands, inbox) = mpsc::channel(room);
+        let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+        Ok((
+            Self {
+                commands,
+                _runtime: runtime,
+            },
+            inbox,
+        ))
     }
 }
 

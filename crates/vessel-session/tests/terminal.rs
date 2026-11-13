@@ -78,6 +78,7 @@ mod support {
                     ring_capacity,
                     durable_capacity,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                    park_after: None,
                 },
                 shutdown.clone(),
             );
@@ -237,7 +238,9 @@ mod support {
                 | SessionEvent::Renamed { .. }
                 | SessionEvent::QueueChanged { .. }
                 | SessionEvent::CommandsChanged { .. }
-                | SessionEvent::UsageChanged { .. }) => {
+                | SessionEvent::UsageChanged { .. }
+                | SessionEvent::Parked { .. }
+                | SessionEvent::Woken) => {
                     panic!("last record is not a status: {other:?}")
                 }
             }

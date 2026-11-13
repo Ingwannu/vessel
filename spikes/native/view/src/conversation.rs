@@ -207,7 +207,10 @@ impl Conversation {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => {}
+            | SessionEvent::UsageChanged { .. }
+            // Parking (protocol 12, ADR 0038) is not drawn yet.
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken => {}
         }
     }
 

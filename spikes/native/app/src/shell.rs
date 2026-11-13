@@ -21,6 +21,9 @@ use crate::routes::{self, Route};
 /// The window's state.
 pub(crate) struct Shell {
     link: Option<Link>,
+    /// Commands the link gave back, settled on the next update
+    /// (`crate::unsent`).
+    unsent: mpsc::UnboundedSender<vessel_app_link::Unsent>,
     /// Every word on screen, in the person's language.
     pub(crate) t: &'static Text,
     pub(crate) fleet: Fleet,
@@ -73,8 +76,12 @@ impl Shell {
             }
             Err(error) => (None, Some(format!("{error}"))),
         };
+        let (unsent, returned) = mpsc::unbounded_channel();
+        cx.spawn(async move |this, cx| crate::unsent::receive(this, returned, cx).await)
+            .detach();
         let mut shell = Self {
             link,
+            unsent,
             t,
             fleet: Fleet::default(),
             route: Route::Draft,
@@ -101,10 +108,43 @@ impl Shell {
         shell
     }
 
+    /// Send `command`; one the link does not take settles on the next
+    /// update, after the caller's own code, through the handler its
+    /// answer would reach (`crate::unsent`: callers that set what waits
+    /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        if let Some(link) = &self.link {
-            link.send(command);
+        let taken = match &self.link {
+            Some(link) => link.submit(command),
+            None => Err(vessel_app_link::Unsent::new(
+                vessel_app_link::Rejected::Closed,
+                command,
+            )),
+        };
+        if let Err(unsent) = taken {
+            // The receiver lives as long as the shell's window.
+            let _closing = self.unsent.send(unsent);
         }
+    }
+
+    /// A command the link did not take: what waits on it settles in the
+    /// app's words. Without a link at all, the foot keeps saying why the
+    /// link did not start.
+    pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
+        tracing::warn!(why = %unsent.why, "the link did not take a command");
+        let words = self.t.unsent;
+        match crate::unsent::settle(unsent, words) {
+            crate::unsent::Settle::Answer(event) => self.on_event(*event, cx),
+            crate::unsent::Settle::Prompt { session, text } => {
+                self.prompt_unsent(session, text);
+                self.notice = Some(words.to_owned());
+            }
+            crate::unsent::Settle::Say => {
+                if self.link.is_some() {
+                    self.notice = Some(words.to_owned());
+                }
+            }
+        }
+        cx.notify();
     }
 
     /// Checked device dispatch keeps a refused queue from leaving its page pending.

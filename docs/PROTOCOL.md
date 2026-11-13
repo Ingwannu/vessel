@@ -30,6 +30,69 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 12 (2026-11-13, milestone 11, wave 2's second half)
+
+Nodes speak 2..=12. Track A2's (`docs/plans/backend-m11.md`, "Track A2:
+contract"); later tracks of the wave add to it. A client sends none of
+these calls to an older node (`Call::since`); a node refuses them on an
+older connection (`unsupported`, "needs protocol 12").
+
+### Searching every session's messages (track A2, ADR 0037)
+
+One method, `since 12`, read, forwardable, in `vessel-web`'s list; no
+event, no change to an existing type. Types in `vessel_proto::search`.
+
+- `session.search { query: SearchQuery, session?, before?: SearchCursor,
+  limit?: SearchLimit }` → `SearchPage { hits: SearchHit[], next?,
+  reached? }`. `SearchQuery`: 1 to 256 characters once trimmed, at most
+  16 words, no control characters. `SearchLimit`: 1 to 100, 20 when
+  absent. `SearchCursor`: the node's handle, a decimal number in a
+  string.
+- `SearchHit { session, seq, at, role: prompt | reply, snippet }`: `seq`
+  is the record where the message's run starts. `Snippet { parts:
+  SnippetPart { text, matched }[], cut_before, cut_after }`, at most 240
+  characters, white space runs as one space, matches marked by part.
+- Every word must be in a message, in any order, as a substring, without
+  case (not without diacritics). Prompts and the agent's replies only;
+  never thoughts, tool calls or output. A reply is found once it ends.
+- Newest first. `next` while older messages may still match; a page may
+  hold fewer hits than asked and still have it, when its work ran out
+  (10,000 candidates through the index; 20,000 messages when every word
+  is under three characters or `session` is given), with `reached` the
+  time of the oldest message it read.
+- Failures: `invalid_request` (query, limit or cursor), `not_found` (the
+  `session`), `unavailable` (two searches already run on the node),
+  `internal`.
+- Not ownership-checked: agents read the fleet's sessions (ADR 0013), so
+  they search them (the `search_sessions` tool).
+
+### Parking an idle agent (track A2, ADR 0038)
+
+Two methods, one optional field, two records; types in
+`vessel_proto::parking`. The status is unchanged: a parked session is
+`running`.
+
+- `SessionInfo.parked?: Parked { since, reason: ParkReason }`; absent
+  while the agent runs, for an ended session, and from older nodes.
+  `ParkReason` (tagged `reason`): `idle`, `asked`, `wake_failed { message
+  }` (at most 1 KiB), `unknown`.
+- Records `parked { reason }` and `woken` (`since 12`); a version 2-11
+  client gets `vessel: the agent's process was stopped (...)` and
+  `vessel: the agent was started again` as `harness_log` lines.
+- `session.park { session }` and `session.wake { session }` (operate,
+  ownership-checked, forwardable; answer `SessionInfo`). `park`:
+  `conflict` while starting or moving, while a turn runs, while a
+  permission or question waits, or while the queue would move;
+  `unsupported` for a terminal session or an agent that cannot resume.
+  `wake`: answered once the agent is ready; `spawn_failed` when it does
+  not start (the session stays parked, saying why).
+- A prompt of any delivery, a queue change that starts one, an option
+  change and a move wake a parked session first; after a failed wake a
+  `queue` delivery is queued with the queue held `failed`. Reads and a
+  cancel do not wake it.
+- The node parks idle sessions on its own after `--park-after` minutes
+  (60 by default; 0 never), never one that someone follows live.
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;
@@ -386,13 +449,23 @@ Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
     `invalid_request`.
 - Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
   `.update` (the whole definition, under its `revision`), `.pause`,
-  `.resume`, `.run` (once now, answered with the run's outcome),
-  `.delete` (operate).
+  `.resume`, `.run` (once now, answered with the run's outcome; after 30
+  s with no room, `unavailable`), `.delete` (operate).
+- `invalid_request` besides the contract's: a new session's spec over 16
+  KiB encoded (as a saved prompt's), and an `after` the node does not
+  know (it would neither archive the session nor wait for it).
+- Room: at most 4 runs are made at once and at most 8 scheduled sessions
+  are in their first turn and not waiting for a person; runs wait, the
+  oldest due first, then by id, the first that fits going first.
 - A run acts as the schedule's `defined_by` as they are when it runs (a
-  revoked device ends it; an agent's schedules go with its session), and
-  meets the checks a call of theirs would. Agents: 8 schedules per
-  session, their own session as a heartbeat's target, never `run` now;
-  delegated callers may only read, pause, resume and delete.
+  revoked device ends it; an agent's schedules go with its session, and
+  with its run when the session is started again), and meets the checks
+  a call of theirs would. Agents: 8 schedules per session, their own
+  session as a heartbeat's target, never `run` now, an `every` anchored
+  by the node; delegated callers may only read, pause, resume and
+  delete. A run's session is archived after its first turn as a person's
+  archive does it: its terminals and services end, its pull request is
+  no longer watched.
 - What happens at a daylight-saving gap or fold, after a stopped node, on
   a clock stepped either way, and to a run under way when the node stops,
   is the contract's "Time" and ADR 0033.
@@ -438,7 +511,10 @@ Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
   end, the last 1,500 characters of its reply, and the record to read
   from) or `ended` (the session's final status). Text only, from the
   node, starting `vessel: session`; the queue entry's `by` is the
-  finished session (`Creator::Agent`).
+  finished session (`Creator::Agent`). The session's own words in it
+  (its reply's end, what it asks, why its turn failed) are between
+  `<vessel-session-output-…>` tags whose name is random, with a line
+  saying they are that session's output, not instructions.
 - Bounded: 32 turns followed per told session and 256 on the node
   (`conflict` beyond), 60 notices an hour into one session (the rest
   dropped and logged), none into a session a person stopped. Nothing is

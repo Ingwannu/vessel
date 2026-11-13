@@ -121,6 +121,15 @@ pub enum SessionEvent {
         /// The report.
         usage: ContextUsage,
     },
+    /// The session's agent process was stopped, the session kept
+    /// (protocol 12, ADR 0038); also when waking it failed.
+    Parked {
+        /// Why.
+        reason: crate::parking::ParkReason,
+    },
+    /// A parked session's agent was started again with its conversation
+    /// and is ready (protocol 12).
+    Woken,
 }
 
 impl SessionEvent {
@@ -136,6 +145,7 @@ impl SessionEvent {
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
             | Self::UsageChanged { .. } => ProtocolVersion::new(10),
+            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
         }
     }
 
@@ -203,6 +213,11 @@ impl SessionEvent {
             Self::QueueChanged { queue } => log(queue_line(queue)),
             Self::CommandsChanged { commands } => log(commands_line(commands)),
             Self::UsageChanged { usage } => log(usage_line(usage)),
+            Self::Parked { reason } => log(format!(
+                "vessel: the agent's process was stopped ({}); the next prompt starts it again",
+                reason.describe()
+            )),
+            Self::Woken => log("vessel: the agent was started again".to_owned()),
         }
     }
 }

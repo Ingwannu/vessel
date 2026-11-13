@@ -14,7 +14,7 @@
 import type { Browser } from "@playwright/test";
 
 import type { FleetEnv } from "../fleet";
-import { launchUi } from "../open";
+import { launchAt, launchUi } from "../open";
 import {
   applyConditions,
   type Conditions,
@@ -84,7 +84,8 @@ async function loadOnce(
       // `commit`: the page's own marks say when it was ready, and the
       // load event can come before the cards (Pretendard is asked for
       // only once a Hangul title is laid out).
-      await page.goto(url, { waitUntil: "commit" });
+      // The board, which the index no longer opens (it opens a new chat).
+      await page.goto(launchAt(url, "/sessions"), { waitUntil: "commit" });
     } catch {
       // Playwright's error would quote the one-use launch URL.
       throw new Error("Could not open the UI");

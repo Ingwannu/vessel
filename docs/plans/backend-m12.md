@@ -264,6 +264,313 @@ composer and the pickers after Paseo, every agent listed, the update
 notice in the title bar, the corrected mark. A build's number, once
 published, is never built again.
 
+**Why the buttons needed a double click** (track R, read from the
+code): Windows asks the app what is under the pointer, and GPUI answers
+with the first window control area, in paint order, that the pointer is
+inside. The bar (the area that drags the window) is the buttons' parent
+and is painted first, and the buttons did not occlude it, so over a
+button Windows was told "caption". One click was therefore a press on
+the caption (nothing happens); two were a caption double click, which
+maximises or restores whichever button is under the pointer. The
+buttons' hover colour is drawn by the app, so they looked right. The
+fix is for each caption button to occlude what is under it, as Zed's
+do, and a test in the kit that fails when the bar is hit over a button.
+The rule for the title bar from now on: anything clickable drawn inside
+the drag area occludes it.
+
+## Builds 0.0.0.0.4 and 0.0.0.0.5, and what the owner saw (2026-11-13)
+
+0.0.0.0.4: the window's buttons answer one click, the composer is the
+card itself, the pickers and the combined model selector after Paseo,
+every agent of the machine listed. 0.0.0.0.5: a session that ended or
+was interrupted is continued by sending in it; agents that are not
+installed are listed with how to install them.
+
+**Updates work on real Windows**: the owner's installed 0.0.0.0.4 took
+0.0.0.0.5 from the feed in two seconds and reopened as 0.0.0.0.5. The
+0.0.0.0.3 before it read the feed twice and never fetched the artifact;
+it shows nothing on failure and writes no log, so the cause is not
+known. 0.0.0.0.6 adds a log file, the updater's steps in it, and
+retries after a transient failure.
+
+**The owner on 0.0.0.0.5** (Windows 11, dark): the model selector and
+the other pickers look bad, the settings look bad, the version and
+update screen looks very bad. Their captures show a list whose long
+descriptions are drawn over the rows below (the real agent's options
+have several-line descriptions; the fake fleet's are short), a bright
+focus ring around a whole popup and around a whole panel, and an About
+page that is loose text with a chip where a switch belongs.
+
+What changes in how builds are checked:
+
+- Every picker, every level of it, and every settings screen is opened
+  against the real node's agents before a build is named, in the
+  owner's theme; the coordinator looks at every capture, not a sample.
+- The fake fleet carries the real shapes (long descriptions, many
+  values, long names, Korean), with a test.
+- No container, popup, panel or page can show a focus ring: removed at
+  the root, not screen by screen.
+- Settings pages, About included, are Paseo's settings layout.
+
+## Build 0.0.0.0.7, and the composer's controls redrawn (2026-11-13)
+
+0.0.0.0.7: feature pills with names and tooltips, the Settings frame
+(General, Appearance with the three themes, About), pairing as a
+two-step dialog, lists opening on their trigger's side, the
+conversation against real shapes (code blocks, tables, the output box,
+the person's message as a bubble), a session renamed where its title
+stands, the adapter's start-up log out of the conversation, a plain log
+file and readable panic frames.
+
+The owner on its row of pills: not that way. What they asked for, with
+captures of the control they mean:
+
+- **One pill for the model and the effort.** It opens a small card: the
+  level's word, the model's name under it (which opens the model list as
+  before), a lightning icon that turns fast mode on and off, a reset to
+  the agent's default, and a **slider** whose steps are the agent's
+  levels.
+- **The top of the slider holds what was separate**: an agent's "ultra"
+  feature (Claude Code's Ultracode) is the last step, not a toggle of
+  its own; an agent's own top levels are simply the last steps.
+- **Fast mode shows in the slider**: with it on, the track moves and
+  feels quicker.
+- **No separate pill for an agent's other options.** The owner asked
+  what "Agent" was; a control the owner cannot name does not belong in
+  the row. What is neither effort, the top step nor fast moves to the
+  top of the model list, each with a line saying what it is.
+
+So the row is: the model-and-effort pill, the mode pill, send. This is
+the first item of 0.0.0.0.8, and the page gets the same control in its
+next pass (ADR 0036). The rule drawn from it: an agent's raw options are
+not laid out as they arrive; each is placed where a person would look
+for it, or kept out of the row.
+
+## Everything the references do: who builds what (2026-11-13)
+
+The owner, after build 0.0.0.0.6: build every Paseo and GOAT feature,
+settings and the rest, quickly. The measure is the feature tables of
+milestone 11 (`backend-m11.md`, "What the references do, and what
+Vessel does"). This table says, per area, who draws it in the app and
+whether the node has it. A row with no owner is a gap; there is none
+left unassigned.
+
+| Area (the tables' sections) | In the app | The node |
+|---|---|---|
+| A session: queue, steer, interrupt-and-send, questions, context meter and compact, plans, usage line, pin, archive, delete, unread, find, outline, read marks, started sessions under their starter | track C | has it (A, W) |
+| A session as the agent's terminal; shell terminals | track C (the terminal's surface), track F (where shells sit) | has it (C) |
+| The composer: attachments, the agent's `/` commands, `@` a file, drafts per session, recall of sent messages, a selection sent as a comment | the lead (the card), track F (`@` and the selection) | has it (A, B) |
+| Agents: every agent of a machine, any ACP agent, installed and signed in, installing from the app, defaults per agent | the lead (the selector), track G3 (the Agents and Models pages) | has it (G) |
+| Approvals: in the session; everything waiting, from every machine, in one place | track C; track S (the board's lane, then the inbox) | the inbox is not built |
+| Projects, worktrees, the code panel, git, pull requests and their page | track F; track G1 (the git menu, the pull request pages) | has it (B, B2) |
+| Scripts, services, ports and what opens | track F | has it (C); a browser panel is not built |
+| Machines, devices, pairing links, sync | the lead (pairing), track E (machines), track G4 (devices, links, sync) | has it |
+| Schedules, the recurring prompt, saved prompts, webhooks | track G2 | has it (D), but not the webhook calls |
+| The board, the archive, the sidebar (group, sort, filter, pin), the command palette, shortcuts, notifications and sound | track S | has it; the inbox is not built |
+| Settings: themes, sizes, widths, shortcuts, languages, updates, logs, diagnostics | track E (the frame and the pages), track S (shortcuts), track R (updates, logs) | more themes are not built |
+| Rewind, fork, import from an agent's history, search across sessions, parking idle agents, a handoff to another agent | after the node has them: track C | track A2, started 2026-11-13 |
+| Usage and limits (tokens, cost, each account's windows; what to do at a limit) | after the node: tracks S and E | not built (F) |
+| A phone app; push | track M (paused for budget) | push is not built |
+| The browser as a surface | the browser track (paused for budget) | |
+
+Node tracks still to run, in this order: A2 (started; protocol 12,
+schema 13, ADRs 0037 and 0038), the inbox and push, usage and limits,
+the rest of the tables (interface switch, a side question, one prompt
+to several models, delivered files, a reviewing agent, spreading by
+load, diagnostics), the browser panel, themes, dictation, plugins. The
+page follows the app in look (ADR 0036) and gets each new feature in
+the same pass as the app.
+
+What limits the pace is the accounts, not the plan: three accounts give
+about an hour of four workers per five-hour window each, two of them
+with weekly room. Two app tracks (S and E) run on the stand-in capacity
+in the gaps.
+
+### Four added tracks, held strictly (2026-11-13)
+
+The owner asked for four more workers on a second model, and said how
+they are to work: code quality and everything said so far, held very
+tightly, and reviewed well. They take rows out of the table above so
+that nobody builds the same thing twice:
+
+| Track | Branch | Takes | From |
+|---|---|---|---|
+| G1 | `backend/m12-app-git` | the git menu of a session and the pull request pages | track F (who keeps projects, the code panel and the place pills) |
+| G2 | `backend/m12-app-schedules` | schedules, their runs, saved prompts | track E |
+| G3 | `backend/m12-app-agents` | Settings › Agents and Models | track E |
+| G4 | `backend/m12-app-devices` | Settings › Devices and Sync | track E (who keeps the frame, General, Appearance, Shortcuts, Machines) |
+
+[Decision Log]
+- Purpose: more of the table built per hour without the look or the
+  code slipping, on capacity that does not come out of the three
+  accounts' windows.
+- Constraints: a second model has not seen the owner's corrections of
+  this milestone; the owner's two complaints so far were both of work
+  that passed because nobody looked closely (short fake shapes, one
+  level of a picker checked).
+- Alternatives: give them node work (rejected: the wire and the store
+  are where a mistake costs most and A2 is in them); let them share
+  areas with the running tracks (rejected: two hands in one file);
+  merge on their own report (rejected: see the constraints).
+- Choice: four areas that touch no running track's files beyond a
+  registration line or a slot; one brief of strict rules (no escape
+  hatches in the code, types that carry meaning, logic in `view` and
+  tested there against the page's cases, kit controls only, real
+  shapes in both themes, sizes and languages); the coordinator reads
+  each slice line by line and looks at each capture before the lead
+  merges it, and a slice that breaks a rule goes back.
+- Costs: the review is the coordinator's time, so slices arrive one at
+  a time, not batched; two kit controls (a split button, a QR drawing)
+  are written by these tracks, not by the lead, and the lead may ask
+  for them reshaped.
+
+The first two slices (view logic of schedules and of agent readiness)
+were read line by line and sent back the same hour: a cadence shown as
+raw seconds and a raw cron expression where the reference says "Every
+hour" and "Weekdays at 09:00"; errors that could only speak English;
+words only this project knows; tests that checked a prefix; the
+reference's own test files not used as cases. The reasons are the last
+section of the strict brief, so the other two tracks check themselves
+against them first. A status badge was missing from the kit and three
+tracks needed it: one track adds it once (the control in `kit`, the
+variant type in `view`, one mapping in the app).
+
+What the node does not send yet, found by these tracks in their first
+hour. The app draws none of it until the node has it (nothing shown may
+do nothing); each is for a node track:
+
+| Missing | Where it shows | Until then |
+|---|---|---|
+| Open pull requests of a project with no live session (`pr.list` walks watched sessions only) | the pull request page | the page is "pull requests of this machine's sessions" and says so |
+| The webhook calls (`hook.*`): ADR 0034 has the types and the store, not the calls, the listener or the CLI | schedules | no webhook screen |
+| A machine's time zone | schedules | a rule's own zone and the viewer's zone, each named |
+| The next runs of an expression before it is saved | the schedule editor | a preview computed in the app with the node's library and the node's test cases; the lasting fix is one implementation both call |
+| Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
+| The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
+| A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
+| A pairing link from a machine with no public address and no relay: `device.invite` succeeds and the link leads nowhere | Settings › Devices | the app refuses to show such a link and says what to set up |
+| An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
+
+### Translations as data files (2026-11-13)
+
+The owner, the same afternoon: when a language is added later it must
+be easy to translate, so set it up for that now. Every string of the
+app is a Rust table today (two languages, about 5,800 lines, 183 match
+arms for Korean), which a translator cannot work in. ADR 0039 decides:
+Project Fluent files, one folder per language; adding a language is
+adding a folder; call sites stay typed from the English file; whole
+sentences, plurals by the language's rules, grammar such as the Korean
+particle as a function; a gate check for completeness and a
+pseudo-language for looking at screens; the page uses the same files.
+Track L (`backend/m12-app-i18n`, a fifth worker on the second model,
+under the same strict brief and the same line-by-line review) builds
+the mechanism beside the tables and moves one area as the model; then
+new strings go to the files only and each area's owner moves its own.
+
+### Found while building against real shapes (2026-11-13, afternoon)
+
+The added tracks reported, besides their slices, defects and gaps in
+what already existed. Each is fixed once, by the track that found it,
+in a commit of its own that the coordinator reviews against the
+reference before anyone takes it:
+
+| What | Where | State |
+|---|---|---|
+| A status badge, an alert, a split button, Paseo's spacing scale, a destructive button | the kit had none | accepted, with the lead |
+| A dialog's body does not scroll and its actions can be pushed out of the card (a git hook's 120-line refusal) | `kit/dialog.rs` | fixed by G1, in review |
+| No multi-line form field (a commit message, a pull request's body) | `kit/field.rs` | G1 |
+| The output box kept the first of two texts of the same length | `kit/output.rs` | fixed by the lead |
+| No face at the window's root, so text without a type lost its Korean fallback | `shell.rs` | found by C, with the lead |
+| **Hangul does not compose in the composer on Linux under X11** (fcitx5 over XIM; a control client in the same display composes) | the pinned GPUI's X11 input, not proved | open: the lead after build 0.0.0.0.8. Composing was shown in the browser and on Android; Windows and Wayland are unverified |
+
+## The night of 2026-11-13: everything that is left
+
+The owner, about 15:30 UTC: ship the agents' official logos; use both
+models as each fits and finish the whole implementation overnight; the
+UI and UX at the highest quality. The measure is unchanged (the
+feature tables of milestone 11). A row counts when the node does it
+under test, the app shows it as the reference does (compared value for
+value, both themes, both sizes, both languages, real shapes), and it
+passed review. What is not finished by morning is reported as not
+finished.
+
+| Track | Branch | Builds | Model |
+|---|---|---|---|
+| lead, C, F, A2, R | as before | integration; the conversation; projects and the code panel; park, rewind, fork, import, handoff; builds | first |
+| G1–G4, L | as before | git menu and pull requests; schedules; Agents and Models; Devices and Sync; translations | second |
+| K | `backend/m12-logos` | the agents' official marks as one kit control (ADR 0048); then Paseo's theme list (ADR 0049) | second |
+| S2 | `backend/m12-app-shell` | track S's list, taken over: board, archive, sidebar, palette, shortcuts, notifications and sound; then the inbox lane | second |
+| E2 | `backend/m12-app-settings` | track E's list, taken over: settings frame, General, Appearance, Machines, Diagnostics | second |
+| N1 | `backend/m12-inbox` | the inbox across machines and push (ADRs 0040, 0041), node to screen | second |
+| N2 | `backend/m12-usage` | usage and limits (ADR 0042), node to screen | second |
+| N3 | `backend/m12-wire-gaps` | every row of "What the node does not send yet", the webhook calls included (ADR 0043) | second |
+| N5 | `backend/m12-session-extras` | a side question, one prompt to several models, the conversation/terminal switch, delivered files (ADRs 0045–0047); then a reviewing agent, spreading by load | second |
+| V1 | none (reads only) | reviews every slice of the second model's tracks before the coordinator | second |
+
+Still without a track tonight, given out as tracks finish:
+diagnostics over the wire, updating the node from the app, the browser
+panel and agents driving a browser, dictation, plugins, the page's
+parity pass, the phone app, the browser as a surface.
+
+[Decision Log]
+- Purpose: every remaining row built in one night without the look or
+  the node's safety slipping.
+- Constraints: the first model's accounts hold two or three workers at
+  a time through the night, so they are kept for integration, the
+  conversation, the tracks already deep in the node, and builds. The
+  second model's weekly allowance ran out at 13:15 UTC and its workers
+  spend the owner's credit; a watcher outside the coordinator stops
+  them at a floor. The machine holds about fifteen workers. The
+  coordinator's own review was already the narrowest point with five
+  workers.
+- Alternatives: (1) keep node work off the second model, as decided on
+  2026-11-13 morning: then the node's missing rows (the inbox, usage,
+  the wire gaps) wait for windows that do not exist tonight. (2) Many
+  more app-only workers: the app rows that are left mostly wait on the
+  node. (3) No reviewer, the coordinator reads everything: slices wait
+  hours and the coordinator's own window ends before the night does.
+- Choice: vertical tracks on the second model for the node's missing
+  rows (ADR first, tests against the testkit, one protocol bump per
+  branch renumbered at merge); a reviewer on the second model reads
+  every slice against the reference's source and the strict brief
+  first; the coordinator looks at what the reviewer passed; node
+  slices are read again by the first model before they reach the
+  lead's branch; nothing of it reaches the preview node unreviewed.
+  Tracks S and E moved from the stand-in capacity (which could not
+  finish them) to the second model, each by taking over the worktree.
+- Why: it reverses this morning's "no node work for the second model"
+  only where the alternative is that the row is not built at all, and
+  keeps a first-model reading before merge where a mistake costs most.
+- Costs: a second review layer can pass what it should not; what the
+  coordinator then returns is written down as the reviewer's miss.
+  More branches touch the protocol number at once; the merge order is
+  serial. Credit is spent; the cap is the floor.
+
+## The browser, first report (2026-11-13)
+
+The browser track built the same `app` crate for `wasm32` (GPUI's web
+platform, single thread, the pinned stable toolchain) and showed, in
+headless Chromium with WebGPU:
+
+- **It draws**: the new chat with its pickers and the mark, the sidebar,
+  a session's conversation.
+- **Hangul composes** in the new chat's composer and in a session's:
+  marked text underlined at the caret, the final consonant carried to
+  the next syllable, a cancelled composition not inserted, Enter sends.
+
+Not shown yet, and stated so: the data was a built-in demo (no
+connection to a node from a browser); the renderer was software WebGPU;
+the composition was driven through the browser's debugging interface,
+not typed with a real input method. ADR 0036 lists what must still be
+seen before the browser gets the native UI; until then the page stays
+the web client.
+
+What it taught the desktop: a character the app's typefaces lack (the
+pickers' small triangle) shows only by the system's fallback on the
+desktop and as a missing-glyph box in a browser, so carets and marks are
+drawn as vector glyphs from the kit, never as characters; and the title
+bar's window buttons belong to the desktop only.
+
 ## After the first builds (written out as the tracks report)
 
 - **View models** in Rust (`vessel-view`): the conversation folded from
@@ -287,6 +594,12 @@ joins in flight are finished and deployed, so what wave 2 built can be
 used. New screens are drawn in the native app first.
 
 ## Left for the owner
+
+- ~~Agents' own logos~~: decided 2026-11-13 ("ship the official
+  logos"). Track K ships each vendor's own mark from the vendor's own
+  brand page or repository, under that brand's terms, recorded with its
+  source, date and hash (ADR 0048). A vendor whose terms ask for
+  written permission is listed for the owner in K's report.
 
 - Where releases are published, the signing key, Windows code signing,
   macOS notarisation, an Apple developer account for iOS.

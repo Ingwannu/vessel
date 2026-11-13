@@ -17,8 +17,11 @@
 mod areas;
 pub mod badge;
 mod chrome;
+#[cfg(not(target_arch = "wasm32"))]
+mod motion;
 mod routes;
 mod shell;
+mod unsent;
 // A browser build does not update itself: `update_off.rs` stands in.
 #[cfg_attr(target_arch = "wasm32", path = "update_off.rs")]
 mod update;
@@ -66,6 +69,7 @@ fn main() {
                 cx.quit();
                 return;
             }
+            motion::follow(cx);
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {

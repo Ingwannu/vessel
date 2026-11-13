@@ -27,8 +27,8 @@ pub(crate) fn vessel_mcp(fixture: &Fixture) -> VesselMcp {
 /// A running structured session and its event stream.
 pub(crate) struct Running {
     pub(crate) id: SessionId,
-    stream: SessionStream,
-    seen: Vec<EventRecord>,
+    pub(crate) stream: SessionStream,
+    pub(crate) seen: Vec<EventRecord>,
 }
 
 pub(crate) async fn structured(creator: &NodeClient, fixture: &Fixture) -> Running {

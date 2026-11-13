@@ -27,7 +27,7 @@ import { retryMachine } from "../../data/book";
 import { HERE } from "../../data/machines";
 import { START_COMMAND } from "../../data/pairing";
 import { hereIsDown } from "../../data/welcome";
-import { Button, CommandLine } from "../../ui/kit";
+import { BrandMark, Button, CommandLine } from "../../ui/kit";
 
 export function Welcome() {
   const fleet = useFleet();
@@ -54,19 +54,7 @@ export function Welcome() {
     <div className="welcome">
       <div className="welcome-column">
         <span className="welcome-mark" aria-hidden="true">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M2 8.5 6 2.5 10 8.5" />
-            <path d="M4 8.5h4" />
-          </svg>
+          <BrandMark size={28} />
         </span>
         <h2 className="welcome-title">Welcome to Vessel</h2>
         <p className="welcome-lead">

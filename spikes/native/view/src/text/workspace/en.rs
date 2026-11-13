@@ -542,6 +542,7 @@ impl WorkspaceWords for En {
                 "The machine could not be reached. Check that it is on and its node is running."
                     .to_owned()
             }
+            Problem::Unsent => "Could not send. Try again.".to_owned(),
         }
     }
 

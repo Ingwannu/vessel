@@ -255,6 +255,9 @@ impl PrefsDoc {
                 body.layout.make_read().inspector.set(*panel);
             }
             PreferenceChange::Send(send) => body.composer.make_read().send.set(*send),
+            PreferenceChange::Delivery(delivery) => {
+                body.composer.make_read().delivery.set(*delivery);
+            }
             PreferenceChange::Alerts(alerts) => body.notifications.make_read().alerts.set(*alerts),
             PreferenceChange::TitleCount(on) => body.notifications.make_read().title.set(*on),
             PreferenceChange::SidebarGroup(group) => body.sidebar.make_read().group.set(*group),

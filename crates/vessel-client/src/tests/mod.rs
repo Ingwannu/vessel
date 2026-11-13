@@ -530,6 +530,9 @@ impl Handler for FakeNode {
         create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
         update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
         delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
+        search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
+        park_session: vessel_proto::parking::ParkSession => SessionInfo;
+        wake_session: vessel_proto::parking::WakeSession => SessionInfo;
     }
 }
 

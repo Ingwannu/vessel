@@ -16,6 +16,7 @@ function state(extra: Partial<FleetState>): FleetState {
     harnesses: {},
     profiles: {},
     models: {},
+    agents: {},
     sessions: {},
     errors: {},
     selected: null,
