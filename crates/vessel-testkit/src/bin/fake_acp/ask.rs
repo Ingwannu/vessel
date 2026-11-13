@@ -26,6 +26,9 @@
 //! the following questions.". `ask questions` asks three, one in Korean;
 //! `ask one` asks one.
 
+#[path = "ask/large.rs"]
+mod large;
+
 use agent_client_protocol::v1::schema::{
     BooleanPropertySchema, ContentChunk, CreateElicitationRequest, CreateElicitationResponse,
     ElicitationAction, ElicitationFormMode, ElicitationSchema, ElicitationSessionScope,
@@ -38,6 +41,8 @@ use tokio_util::sync::CancellationToken;
 /// A question prompt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Ask {
+    /// `ask large`: a bounded valid form that exceeds inline inbox budgets.
+    Large,
     /// `ask`: a form, answered.
     Form,
     /// `ask withdraw`: a form, withdrawn at once.
@@ -53,6 +58,7 @@ pub(crate) enum Ask {
 /// The question prompt `prompt` is, if it is one.
 pub(crate) fn wanted(prompt: &str) -> Option<Ask> {
     match prompt {
+        "ask large" => Some(Ask::Large),
         "ask" => Some(Ask::Form),
         "ask withdraw" => Some(Ask::Withdraw),
         "ask link" => Some(Ask::Link),
@@ -77,6 +83,9 @@ pub(crate) async fn turn(
             SessionUpdate::AgentMessageChunk(ContentChunk::new(super::text(text))),
         ))
     };
+    if ask == Ask::Large {
+        return large::turn(cx, session).await;
+    }
     let scope = ElicitationSessionScope::new(session.clone());
     if ask == Ask::Link {
         let link = ElicitationUrlMode::new(scope, "link-1", "https://example.com/sign-in");

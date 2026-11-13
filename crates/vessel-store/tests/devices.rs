@@ -9,7 +9,11 @@ use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 /// (12), pull request feedback (10; 11's column goes with `approvals`), the
 /// workspace's tables (9), retention's index (schema 1's in its place, 8),
 /// the conversation's columns and the attachments table (7).
-const UNDO_SCHEMAS_7_TO_12: &str = "DROP TABLE hook_keys;
+const UNDO_SCHEMAS_7_TO_12: &str = "DROP TABLE inbox_tools;
+     DROP TABLE inbox;
+     DROP TABLE inbox_meta;
+     DROP TABLE push_subscriptions;
+     DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
      DROP TABLE saved_prompts;

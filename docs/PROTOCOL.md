@@ -1277,3 +1277,38 @@ Nodes speak 2..=3. Version 3 only adds, so version 2 peers keep working.
 
 REST routes and one websocket per session stream. Replaced entirely by
 version 2.
+
+
+## Inbox and push (protocol 12)
+
+`inbox.list {before?}` requires Read and returns exact whole-node counts
+(`total`, `waiting`, `unread`), at most 16 `entries`, and an exclusive `next`
+cursor. An entry has its session and source sequence, timestamp, current
+session/project labels, shared read state and typed permission/question or
+finished/failed/limit item. `inbox.get {key,fetch?:"summary"|"live_request"}` returns that exact current entry
+or null. `inbox.mark {key,read}` changes shared attention; agent origins,
+including delegated agents, are forbidden. Answers still use Operate-scoped
+`session.send` / question answer calls and their existing validation. No
+request disappears merely because it is read. Oversized forms are explicit
+`in_session` references, never shortened option sets.
+
+`push.key {}` returns the node's public VAPID identity. `push.subscribe
+{subscription:{endpoint,p256dh,auth}}` replaces this authenticated paired
+device's subscription and returns its 48-hour `expires_at`; `push.unsubscribe`
+removes it. These Read-scoped calls refuse owner-token, agent and delegated
+principals and accept no supplied device identity. Endpoint/key/auth parsing
+is bounded; diagnostics redact capability material. Registration and sending
+both check current authority, revocation and expiry. `push.presence
+{focus,activity}` is connection-scoped: focus is session/elsewhere/background,
+activity is active/unchanged, with time assigned by the server. Agent and
+delegated origins cannot report a person's activity. Closed connections lose
+presence; an idle open connection does not prevent push indefinitely.
+
+All additions negotiate through `Call::since`; minimum protocol is unchanged.
+An older client receives no unsolicited new frame. ADRs 0040 and 0041 specify
+cursor movement, lifecycle, limits, notification watermarks and relay privacy.
+
+Opt-in inbox live-request fetch recovers one actor-owned pending form after
+history pruning. Summary is the compatible default. Expanded replies are
+capped at 15 MiB; larger forms remain exact compact references with no clipped
+choices, and an answered or withdrawn live request returns absence.

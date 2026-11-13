@@ -254,7 +254,14 @@ const fn refused(method: Method) -> bool {
         | Method::RenameTerminal
         | Method::KillTerminal
         | Method::CloseTerminal
-        | Method::ListPorts => false,
+        | Method::ListPorts
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence => false,
     }
 }
 

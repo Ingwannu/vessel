@@ -26,6 +26,7 @@ use crate::{
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
+        Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,
         Command::Fleet { command } => Box::pin(fleet::command(target, command)).await,

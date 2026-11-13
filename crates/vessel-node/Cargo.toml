@@ -94,6 +94,8 @@ tracing-subscriber.workspace = true
 # percent-encoded and right for Windows drive letters; already in the
 # workspace (vessel-lsp).
 url.workspace = true
+uuid.workspace = true
+web-push-native.workspace = true
 
 [dev-dependencies]
 # `test-util`: the probes' cache is checked on a paused clock. Without it

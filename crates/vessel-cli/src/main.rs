@@ -18,6 +18,7 @@ mod devices;
 mod error;
 mod fleet;
 mod forge;
+mod inbox;
 mod init;
 mod io;
 mod log;
@@ -120,6 +121,7 @@ async fn cli() -> ExitCode {
         | Command::Prompt { .. }
         | Command::Init(_)
         | Command::Mcp
+        | Command::Inbox { .. }
         | Command::Ui(_) => "warn",
     };
     tracing_subscriber::fmt()

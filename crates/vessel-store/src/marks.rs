@@ -64,7 +64,23 @@ pub(crate) fn mark(
         None => statement.query_row([&id], read),
     }
     .optional()?;
-    stored.ok_or(StoreError::UnknownSession(session))?.kept()
+    let kept = stored.ok_or(StoreError::UnknownSession(session))?.kept()?;
+    match mark {
+        Mark::Archive => {
+            let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [&id])?;
+        }
+        Mark::Read { through } => {
+            let _rows = connection.execute(
+                "UPDATE inbox SET seen=1 WHERE session=?1 AND seq<?2",
+                params![id, seq_to_sql(through)?],
+            )?;
+        }
+        Mark::Unread => {
+            let _rows = connection.execute("UPDATE inbox SET seen=0 WHERE session=?1", [&id])?;
+        }
+        Mark::Pin | Mark::Unpin | Mark::Unarchive => {}
+    }
+    Ok(kept)
 }
 
 /// Delete an ended session with its log, its marks, its queue and its

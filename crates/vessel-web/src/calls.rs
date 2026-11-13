@@ -209,7 +209,14 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
-        | Method::DeletePrompt => true,
+        | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

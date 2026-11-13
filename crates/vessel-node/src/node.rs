@@ -510,6 +510,19 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
+    let push = crate::push::Push::new(store.clone(), config.data_dir.clone());
+    #[cfg(test)]
+    let push = if let Some(origin) = &config.push_test_origin {
+        push.test_at(origin.clone())
+    } else {
+        push
+    };
+    #[cfg(test)]
+    let push = push.pausing_at(config.push_preparation.clone());
+    let push = Arc::new(push);
+    crate::push::start(Arc::clone(&push), &tasks, stop.clone())
+        .await
+        .map_err(NodeError::Store)?;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -534,6 +547,7 @@ async fn core(
         ports,
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
+        push,
     })));
     automation::schedules::start(
         commands,

@@ -170,6 +170,13 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::inbox::ListInbox,
+    vessel_proto::inbox::MarkInbox,
+    vessel_proto::inbox::GetInboxEntry,
+    vessel_proto::push::GetPushKey,
+    vessel_proto::push::SubscribePush,
+    vessel_proto::push::UnsubscribePush,
+    vessel_proto::push::ReportPushPresence,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -447,6 +454,13 @@ guarded! {
     run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
     delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
     list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
+    list_inbox: vessel_proto::inbox::ListInbox => vessel_proto::inbox::InboxPage;
+    mark_inbox: vessel_proto::inbox::MarkInbox => Ack;
+    get_inbox_entry: vessel_proto::inbox::GetInboxEntry => Option<vessel_proto::inbox::InboxEntry>;
+    get_push_key: vessel_proto::push::GetPushKey => vessel_proto::push::PushKey;
+    subscribe_push: vessel_proto::push::SubscribePush => vessel_proto::push::PushLease;
+    unsubscribe_push: vessel_proto::push::UnsubscribePush => Ack;
+    report_push_presence: vessel_proto::push::ReportPushPresence => Ack;
     list_prompts: vessel_proto::automation::ListPrompts => vessel_proto::automation::PromptList;
     create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
     update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;

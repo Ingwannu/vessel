@@ -5,7 +5,7 @@
 //! prints what the node answered (formatting is `render`'s); a refusal is
 //! the node's typed error, printed as every command prints one.
 
-mod answer;
+pub(crate) mod answer;
 mod queue;
 mod send;
 

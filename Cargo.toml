@@ -244,6 +244,10 @@ uuid = { version = "1", features = ["v4", "serde"] }
 url = "2.5"
 # Native saved-file change notifications; replaces polling (ADR 0016).
 notify = "8"
+# RFC 8291/8292 messages without OpenSSL or an HTTP runtime. RustCrypto
+# encryption and VAPID signatures only; delivery uses our existing client.
+# ADR 0041 lists the dependency/licence and primitive provenance.
+web-push-native = { version = "0.5", default-features = false }
 which = "7"
 # Wipes the node's secret key from memory when it is dropped: the key pair
 # (vessel-secure) and the bytes read from `node.key` (vessel-store).

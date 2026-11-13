@@ -61,8 +61,10 @@ mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks.
+mod inbox;
 mod notices;
 mod prompts;
+mod push;
 mod scheduled;
 mod schedules;
 
@@ -122,6 +124,7 @@ pub(crate) struct NodeService {
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
+    push: Arc<crate::push::Push>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -149,6 +152,7 @@ pub(crate) struct Parts {
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
+    pub(crate) push: Arc<crate::push::Push>,
 }
 
 impl NodeService {
@@ -177,6 +181,7 @@ impl NodeService {
             ports,
             catalogue,
             schedules,
+            push,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -208,6 +213,7 @@ impl NodeService {
             schedules,
             prompts: SavedPrompts::new(store),
             notices: Arc::default(),
+            push,
         }
     }
 
@@ -252,6 +258,7 @@ pub(crate) struct Connection {
     protocol: ProtocolVersion,
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
+    presence_id: crate::push::PresenceId,
 }
 
 impl Connection {
@@ -267,6 +274,7 @@ impl Connection {
             principal,
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
+            presence_id: crate::push::PresenceId::new(),
         }
     }
 
@@ -293,6 +301,7 @@ impl Connection {
             principal,
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
+            presence_id: self.presence_id,
         }
     }
 }

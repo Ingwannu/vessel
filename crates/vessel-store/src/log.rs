@@ -173,6 +173,7 @@ pub(crate) fn append<'a>(
             time_to_sql(record.at)?,
             event
         ])?;
+        crate::inbox::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
         // before its counter would wrap.

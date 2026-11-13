@@ -5,6 +5,8 @@ mod attached;
 mod automation;
 mod conversation;
 mod forge;
+mod inbox;
+mod push;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -39,6 +41,7 @@ pub struct Store {
     /// How many sessions retention has removed since the store opened
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
+    inbox: watch::Receiver<()>,
 }
 
 /// A freshly opened store and what recovery found.
@@ -90,10 +93,12 @@ impl Store {
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
+        let (inbox, inbox_changes) = watch::channel(());
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
             pruned,
+            inbox,
         };
         writer::spawn(connection, ops, setup)?;
         let store = Self {
@@ -101,6 +106,7 @@ impl Store {
             reader: Arc::new(Reader::new(path, config)),
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
+            inbox: inbox_changes,
         };
         Ok(Opened { store, interrupted })
     }

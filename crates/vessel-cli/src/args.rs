@@ -13,6 +13,7 @@ mod automation;
 mod conversation;
 mod fleet;
 mod forge;
+mod inbox;
 mod node;
 mod nodes;
 mod terminals;
@@ -23,6 +24,7 @@ pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
+pub(crate) use inbox::InboxCommand;
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
@@ -66,6 +68,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// List and answer attention across sessions on the selected node.
+    Inbox {
+        #[command(subcommand)]
+        command: InboxCommand,
+    },
     /// Run a node in the foreground, or install one on another machine.
     Node {
         #[command(subcommand)]

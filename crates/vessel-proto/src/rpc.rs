@@ -368,6 +368,20 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Device-scoped push.key (protocol 12, ADR 0041).
+    GetPushKey / get_push_key / "push.key" [Read, 12]: crate::push::GetPushKey => crate::push::PushKey;
+    /// Device-scoped push.subscribe (protocol 12, ADR 0041).
+    SubscribePush / subscribe_push / "push.subscribe" [Read, 12]: crate::push::SubscribePush => crate::push::PushLease;
+    /// Device-scoped push.unsubscribe (protocol 12, ADR 0041).
+    UnsubscribePush / unsubscribe_push / "push.unsubscribe" [Read, 12]: crate::push::UnsubscribePush => Ack;
+    /// Device-scoped push.presence (protocol 12, ADR 0041).
+    ReportPushPresence / report_push_presence / "push.presence" [Read, 12]: crate::push::ReportPushPresence => Ack;
+    /// A bounded page of this node's durable attention (protocol 12).
+    ListInbox / list_inbox / "inbox.list" [Read, 12]: crate::inbox::ListInbox => crate::inbox::InboxPage;
+    /// Recheck exactly one inbox source after a delayed answer (protocol 12).
+    GetInboxEntry / get_inbox_entry / "inbox.get" [Read, 12]: crate::inbox::GetInboxEntry => Option<crate::inbox::InboxEntry>;
+    /// Mark current attention read or unread without answering it (protocol 12).
+    MarkInbox / mark_inbox / "inbox.mark" [Read, 12]: crate::inbox::MarkInbox => Ack;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Every schedule on the node (protocol 11).
     ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;

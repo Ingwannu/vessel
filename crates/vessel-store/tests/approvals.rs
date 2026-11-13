@@ -19,7 +19,11 @@ mod fixtures;
 /// Undoes schemas 12 to 10: the schedules', saved prompts' and hooks'
 /// tables, the set an approval covered, and pull request feedback's
 /// tables.
-const UNDO_SCHEMAS_10_TO_12: &str = "DROP TABLE hook_keys;
+const UNDO_SCHEMAS_10_TO_12: &str = "DROP TABLE inbox_tools;
+     DROP TABLE inbox;
+     DROP TABLE inbox_meta;
+     DROP TABLE push_subscriptions;
+     DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
      DROP TABLE saved_prompts;

@@ -215,6 +215,13 @@ impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
 impl Unary for vessel_proto::automation::DeletePrompt {}
+impl Unary for vessel_proto::inbox::ListInbox {}
+impl Unary for vessel_proto::inbox::MarkInbox {}
+impl Unary for vessel_proto::inbox::GetInboxEntry {}
+impl Unary for vessel_proto::push::GetPushKey {}
+impl Unary for vessel_proto::push::SubscribePush {}
+impl Unary for vessel_proto::push::UnsubscribePush {}
+impl Unary for vessel_proto::push::ReportPushPresence {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -401,7 +408,14 @@ const fn is_unary(method: Method) -> bool {
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
-        | Method::DeletePrompt => true,
+        | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence => true,
     }
 }
 

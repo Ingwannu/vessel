@@ -4,10 +4,12 @@
 use std::fmt::Write as _;
 
 mod conversation;
+mod inbox;
+pub(crate) use inbox::inbox_entry;
 mod worktree;
 
 pub(crate) use conversation::{
-    commands, delivered, question, question_outcome, queue, queue_entries, usage,
+    commands, delivered, question, question_form, question_outcome, queue, queue_entries, usage,
 };
 pub(crate) use worktree::{clone_stage, deleted, refusal, removal, setup_failure};
 

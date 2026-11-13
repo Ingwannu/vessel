@@ -47,6 +47,8 @@ mod marks;
 // Where protocol 11's pull requests and terminals meet (Unix: the
 // terminals' shell is `/bin/sh`).
 #[cfg(test)]
+mod inbox;
+#[cfg(test)]
 #[cfg(unix)]
 mod meeting;
 #[cfg(test)]

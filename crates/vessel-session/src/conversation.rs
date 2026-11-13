@@ -19,6 +19,7 @@
 //!   [`Seen::MAX_WAITING`] entries; the agent's driver answers anything
 //!   older `cancelled`, so the oldest is the one dropped here too.
 
+use vessel_proto::inbox::{InboxDetail, InboxItem, InboxRequest};
 use vessel_proto::{
     AgentAbilities, AgentCommand, AgentEvent, AttachmentLimits, ContextUsage, Conversation,
     PermissionRequest, PromptQueue, Question, SessionEvent,
@@ -143,6 +144,29 @@ impl Seen {
         }
     }
 
+    /// Recover exactly one actor-owned request. Cloning the whole snapshot
+    /// can exceed a transport frame when several large forms are pending.
+    pub(crate) fn inbox_request(&self, request: InboxRequest) -> Option<InboxItem> {
+        match request {
+            InboxRequest::Permission { id } => self
+                .permissions
+                .iter()
+                .find(|request| request.id == id)
+                .cloned()
+                .map(|request| InboxItem::Permission {
+                    request,
+                    tool: None,
+                    detail: InboxDetail::InSession,
+                }),
+            InboxRequest::Question { id } => self
+                .questions
+                .iter()
+                .find(|question| question.id == id)
+                .cloned()
+                .map(|question| InboxItem::Question { question }),
+        }
+    }
+
     /// The conversation as a client reads it.
     pub(crate) fn conversation(&self) -> Conversation {
         Conversation {
@@ -213,6 +237,28 @@ mod tests {
         assert!(seen.conversation().permissions.is_empty());
     }
 
+    #[test]
+    fn one_live_request_is_exact_and_disappears_after_resolution() {
+        let mut seen = Seen::default();
+        let first = permission();
+        let second = permission();
+        seen.observe(&agent(AgentEvent::PermissionRequested(first.clone())));
+        seen.observe(&agent(AgentEvent::PermissionRequested(second)));
+        let key = InboxRequest::Permission { id: first.id };
+        assert_eq!(
+            seen.inbox_request(key),
+            Some(InboxItem::Permission {
+                request: first.clone(),
+                tool: None,
+                detail: InboxDetail::InSession
+            })
+        );
+        seen.observe(&agent(AgentEvent::PermissionResolved {
+            id: first.id,
+            outcome: PermissionOutcome::Cancelled,
+        }));
+        assert_eq!(seen.inbox_request(key), None);
+    }
     #[test]
     fn waiting_requests_are_bounded_and_end_with_the_session() {
         let mut seen = Seen::default();

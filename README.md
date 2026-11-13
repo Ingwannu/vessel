@@ -1109,3 +1109,21 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+
+### Inbox and push
+
+`vessel inbox list` shows the selected machine's waiting approvals/questions
+and finished, failed or limited sessions. Use `vessel inbox answer ENTRY
+OPTION` for an approval, or `vessel inbox answer ENTRY field=value ...` for a
+question; `--decline` uses the existing request's decline path. `vessel inbox
+read ENTRY` and `unread ENTRY` share attention with other devices without
+answering the request. Entry numbers are stable for their lifetime; a request
+answered elsewhere disappears, so list again if a number is no longer current.
+
+Protocol 12 also defines paired-device Web Push registration for a future
+phone/browser host. The node owns its VAPID identity, encrypts only a generic
+attention payload, expires subscriptions and rechecks device access before
+sending. No hosted account is required. This is the node/API side; an installed
+phone subscription UI is not included. See ADRs 0040–0041 for privacy, bounds
+and the dependency licence inventory.
