@@ -35,6 +35,7 @@ pub(crate) struct Areas {
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
     pub(crate) board: board::BoardArea,
+    pub(crate) sidebar: sidebar::SidebarState,
     /// The toasts on screen.
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
 }
@@ -50,6 +51,7 @@ impl Areas {
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
             board: board::BoardArea::new(window, cx),
+            sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
         }
     }

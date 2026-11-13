@@ -31,7 +31,13 @@ pub struct Text {
     pub add_machine: &'static str,
     pub no_machines: &'static str,
     pub online: &'static str,
+    /// A machine's state beside its name in the sidebar, and its row's
+    /// detail in the composer's machine list, when it did not answer (the
+    /// transport's own text is only the sidebar's tooltip).
     pub unreachable: &'static str,
+    /// The line under an unreachable machine's name in the sidebar: what
+    /// to do.
+    pub unreachable_hint: &'static str,
     pub reload: &'static str,
     // The board.
     pub building: &'static str,
@@ -292,14 +298,20 @@ impl Text {
         }
     }
 
-    /// The status line once a machine is paired (`name` the machine,
-    /// `route` how it is reached). No particle follows the name (a name's
-    /// last sound decides the particle; ADR 0039's interim rule).
+    /// The status line (the frame's foot) once a machine is paired:
+    /// `name` the machine, `via` how it answered, in words (the address
+    /// is the line's tooltip). No particle follows the name (a name's
+    /// last sound decides the particle; ADR 0039's interim rule): the
+    /// particle follows the word 머신.
     #[must_use]
-    pub fn paired(&self, name: &str, route: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Paired with {name} via {route}"),
-            Lang::Ko => format!("머신 연결됨: {name} ({route})"),
+    pub fn paired(&self, name: &str, via: crate::Via) -> String {
+        match (self.lang, via) {
+            (Lang::En, crate::Via::Direct) => format!("Paired with {name}, connected directly"),
+            (Lang::En, crate::Via::Relay) => {
+                format!("Paired with {name}, connected through a relay")
+            }
+            (Lang::Ko, crate::Via::Direct) => format!("{name} 머신에 직접 연결됨"),
+            (Lang::Ko, crate::Via::Relay) => format!("{name} 머신에 릴레이로 연결됨"),
         }
     }
 }
@@ -314,6 +326,7 @@ const EN: Text = Text {
     no_machines: "No machines yet. Add one to begin.",
     online: "online",
     unreachable: "unreachable",
+    unreachable_hint: "Check that the machine is on and its node is running.",
     reload: "reload",
     building: "Building",
     validating: "Validating",
@@ -377,7 +390,8 @@ const KO: Text = Text {
     add_machine: "머신 추가",
     no_machines: "아직 머신이 없습니다. 머신을 추가해 시작하세요.",
     online: "연결됨",
-    unreachable: "연결 안 됨",
+    unreachable: "연결할 수 없음",
+    unreachable_hint: "머신이 켜져 있고 노드가 실행 중인지 확인하세요.",
     reload: "새로고침",
     building: "작업 중",
     validating: "검증 중",

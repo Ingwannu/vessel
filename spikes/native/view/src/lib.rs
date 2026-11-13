@@ -19,6 +19,7 @@ mod conversation;
 pub mod devices;
 pub mod effort;
 pub mod extras;
+pub mod files;
 mod links;
 pub mod machines;
 pub mod models;
@@ -40,7 +41,7 @@ pub mod toasts;
 pub mod workspace;
 
 pub use board::{
-    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll,
+    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
 };
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
@@ -48,6 +49,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
     own_name, with_picks,
 };
+pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
     PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,

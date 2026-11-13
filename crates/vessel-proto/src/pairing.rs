@@ -138,8 +138,12 @@ pub enum LinkError {
     Prefix,
     /// The fragment is not base64url.
     Encoding,
-    /// The decoded offer is not valid.
-    Offer(String),
+    /// The decoded offer is not valid: where it stopped reading, never
+    /// what it read (the offer holds the invitation's secret).
+    Offer {
+        /// The column of the decoded offer where it stopped.
+        column: usize,
+    },
 }
 
 impl fmt::Display for LinkError {
@@ -147,7 +151,11 @@ impl fmt::Display for LinkError {
         match self {
             Self::Prefix => f.write_str("a pairing link starts with `vessel://pair#`"),
             Self::Encoding => f.write_str("the pairing link is damaged (not base64url)"),
-            Self::Offer(reason) => write!(f, "the pairing link is damaged: {reason}"),
+            Self::Offer { column } => write!(
+                f,
+                "the pairing link is damaged (its offer stops reading at column {column}); \
+                 copy the whole link again"
+            ),
         }
     }
 }
@@ -175,7 +183,9 @@ impl PairingLink {
         let json = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(encoded)
             .map_err(|_decode| LinkError::Encoding)?;
-        serde_json::from_slice(&json).map_err(|error| LinkError::Offer(error.to_string()))
+        serde_json::from_slice(&json).map_err(|error| LinkError::Offer {
+            column: error.column(),
+        })
     }
 
     /// The link text, for printing (it contains a secret: print it only to
@@ -233,6 +243,8 @@ mod tests {
 
     #[test]
     fn pairing_links_round_trip_and_reject_damage() {
+        use base64::Engine as _;
+
         let offer = offer();
         let link = PairingLink::encode(&offer).unwrap();
         assert!(link.expose().starts_with("vessel://pair#"));
@@ -246,6 +258,19 @@ mod tests {
             "vessel://pair#!!".parse::<PairingLink>(),
             Err(LinkError::Encoding)
         ));
+        // A damaged offer is not repeated by the error (it holds the
+        // invitation's secret).
+        let damaged = format!(
+            "{LINK_PREFIX}{}",
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(br#""an-invitation-secret""#)
+        );
+        let error = damaged.parse::<PairingLink>().unwrap_err();
+        assert!(matches!(error, LinkError::Offer { .. }), "{error}");
+        assert!(
+            !error.to_string().contains("an-invitation-secret"),
+            "{error}"
+        );
+        assert!(!format!("{error:?}").contains("an-invitation-secret"));
     }
 
     #[test]
