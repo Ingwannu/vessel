@@ -78,8 +78,9 @@ pub enum StartAnswer {
 /// How a start ended.
 #[derive(Debug)]
 pub enum StartEnded {
-    /// The session runs: open it.
-    Started(Card),
+    /// The session runs: open it (boxed: a card is large beside the other
+    /// endings).
+    Started(Box<Card>),
     /// Stopped by the person, by leaving, or after a refusal shown.
     Stopped,
     /// A call failed.
@@ -141,7 +142,9 @@ pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
     let ended = match make(&mut walk, &start.place).await {
         Made::Ready(worktree) => begin(client, &reply.machine, start.spec, worktree, start.prompt)
             .await
-            .map_or_else(StartEnded::Failed, StartEnded::Started),
+            .map_or_else(StartEnded::Failed, |card| {
+                StartEnded::Started(Box::new(card))
+            }),
         Made::Stopped => StartEnded::Stopped,
         Made::Failed(problem) => StartEnded::Failed(problem),
     };

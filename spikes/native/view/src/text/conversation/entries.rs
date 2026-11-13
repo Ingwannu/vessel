@@ -288,6 +288,17 @@ impl ConversationWords {
         )
     }
 
+    /// The row for a run of the agent's own log lines (its adapter's
+    /// error output): "Agent log · 10 lines".
+    #[must_use]
+    pub fn agent_log(&self, lines: usize) -> String {
+        let lines = u64::try_from(lines).unwrap_or(u64::MAX);
+        match self.lang {
+            Lang::En => format!("Agent log · {}", plural(lines, "line", "lines")),
+            Lang::Ko => format!("에이전트 로그 · {lines}줄"),
+        }
+    }
+
     /// The sentence for a run of tool calls: "Edited 2 files and ran 3
     /// commands"; "Thought" for a run of thoughts alone.
     #[must_use]

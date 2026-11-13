@@ -39,9 +39,13 @@ pub(crate) struct Shell {
     /// The updater, in a build that updates itself (`update.rs`).
     pub(crate) updates: Option<crate::update::Updates>,
     /// What it is doing, as last reported.
-    pub(crate) update_state: vessel_app_updater::UpdateState,
+    pub(crate) update_state: crate::update::UpdateState,
     /// The person asked for a check (the About screen then says the
     /// outcome, "up to date" included).
+    #[cfg_attr(
+        target_arch = "wasm32",
+        expect(dead_code, reason = "a browser build has no updater (update_off.rs)")
+    )]
     pub(crate) update_asked: bool,
     /// The note shown once after an update, until dismissed.
     pub(crate) updated: Option<crate::update::Updated>,
@@ -72,12 +76,13 @@ impl Shell {
             loaded: false,
             arrive_pending: false,
             updates: None,
-            update_state: vessel_app_updater::UpdateState::Idle,
+            update_state: crate::update::UpdateState::Idle,
             update_asked: false,
             updated: None,
             sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
+        areas::settings::start(&shell, window, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -126,6 +131,8 @@ impl Shell {
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
             Event::Acted(answer) => self.acted(answer, cx),
+            Event::Resumed { session } => self.resumed(session, cx),
+            Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
                 machine,
                 harness,
@@ -236,11 +243,16 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone, |row| {
-                        row.child(areas::sidebar::render(self, &tokens, cx))
+                        row.child(routes::sidebar(self.route, self, &tokens, cx))
                     })
                     .child(
+                        // `min_w` 0: GPUI measures a text's least width
+                        // unwrapped, so without it one long line (a
+                        // permission's command) widens the whole area past
+                        // the window instead of wrapping.
                         div()
                             .flex_1()
+                            .min_w(px(0.0))
                             .h_full()
                             .pb(px(8.0))
                             .pr(px(8.0))
@@ -250,7 +262,7 @@ impl Render for Shell {
                                     .size_full()
                                     .flex()
                                     .flex_col()
-                                    .bg(tokens.bg_base)
+                                    .bg(tokens.neutral.surface0)
                                     .border_1()
                                     .border_color(tokens.border_faint)
                                     .rounded(px(vessel_app_kit::theme::radius::R5))

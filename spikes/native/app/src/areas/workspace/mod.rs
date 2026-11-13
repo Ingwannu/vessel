@@ -23,7 +23,7 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
-pub(crate) use projects::{arrive as arrive_projects, render as render_projects};
+pub(crate) use projects::render as projects_content;
 
 use crate::shell::Shell;
 
@@ -82,11 +82,6 @@ impl Shell {
                 .insert(machine.clone(), ProjectsView::Loading);
             self.ask(&machine, Ask::Project(ProjectAsk::List));
         }
-    }
-
-    /// Read `machine`'s projects again.
-    pub(crate) fn reload_projects(&mut self, machine: &str) {
-        self.ask(machine, Ask::Project(ProjectAsk::List));
     }
 
     /// A machine answered a workspace ask.

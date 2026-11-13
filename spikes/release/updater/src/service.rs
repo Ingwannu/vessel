@@ -34,6 +34,19 @@ pub const EVERY: Duration = Duration::from_hours(1);
 /// with the app's first frames and its first connection to a node.
 pub const FIRST_AFTER: Duration = Duration::from_secs(5);
 
+/// After a failed check, the waits before the next ones: one, five and
+/// fifteen minutes, then [`EVERY`] again. A lost connection or a file
+/// held for a moment by a virus scanner passes in minutes; an hour (what
+/// 0.0.0.0.3 waited) leaves the owner looking at no update for no reason.
+/// A failure a new publish must fix (a manifest that does not verify, no
+/// build for this machine) waits [`EVERY`] at once
+/// ([`UpdateError::is_transient`]).
+pub const RETRY_AFTER: [Duration; 3] = [
+    Duration::from_mins(1),
+    Duration::from_mins(5),
+    Duration::from_mins(15),
+];
+
 /// What the updater needs to know, all of it fixed when the app is built
 /// ([`crate::settings_from_build`]) except the timing.
 #[derive(Debug, Clone)]
@@ -52,6 +65,13 @@ pub struct Settings {
     pub every: Duration,
     /// Time from start to the first check.
     pub first_after: Duration,
+    /// Whether the timer checks at all (Zed's `auto_update`); off leaves
+    /// only [`Updater::check_now`]. Changed while running with
+    /// [`Updater::set_automatic`].
+    pub automatic: bool,
+    /// The waits after consecutive failed checks, then [`Settings::every`]
+    /// ([`RETRY_AFTER`]; tests use shorter ones).
+    pub retry_after: Vec<Duration>,
 }
 
 /// What the updater is doing, for the UI.
@@ -119,6 +139,16 @@ pub enum UpdateError {
     Interrupted,
 }
 
+impl UpdateError {
+    /// Whether checking again soon can help: everything but a manifest
+    /// that does not verify or parse and a missing build for this
+    /// machine, which only a new publish changes.
+    #[must_use]
+    pub const fn is_transient(&self) -> bool {
+        !matches!(self, Self::Open(_) | Self::NoBuild { .. })
+    }
+}
+
 /// Why [`Updater::restart`] did not start the new build.
 #[derive(Debug, thiserror::Error)]
 pub enum ApplyError {
@@ -135,6 +165,7 @@ pub enum ApplyError {
 pub struct Updater {
     state: watch::Receiver<UpdateState>,
     commands: mpsc::Sender<()>,
+    automatic: watch::Sender<bool>,
     installation: Installation,
     running: Label,
 }
@@ -153,6 +184,7 @@ impl Updater {
         let client = FeedClient::new()?;
         let (state_tx, state) = watch::channel(UpdateState::Idle);
         let (commands, commands_rx) = mpsc::channel(1);
+        let (automatic, automatic_rx) = watch::channel(settings.automatic);
         let running = settings.running.clone();
         let task = Task {
             settings,
@@ -160,10 +192,11 @@ impl Updater {
             client,
             state: state_tx,
         };
-        drop(runtime.spawn(task.run(commands_rx)));
+        drop(runtime.spawn(task.run(commands_rx, automatic_rx)));
         Ok(Self {
             state,
             commands,
+            automatic,
             installation,
             running,
         })
@@ -179,6 +212,18 @@ impl Updater {
     #[must_use]
     pub fn running(&self) -> &Label {
         &self.running
+    }
+
+    /// Turn the timer's checks on or off (the person's preference); a
+    /// check asked for with [`Self::check_now`] runs either way.
+    pub fn set_automatic(&self, on: bool) {
+        let _previous = self.automatic.send_replace(on);
+    }
+
+    /// Whether the timer checks.
+    #[must_use]
+    pub fn automatic(&self) -> bool {
+        *self.automatic.borrow()
     }
 
     /// Ask for a check now. `false` when one is already waiting, or the
@@ -213,7 +258,7 @@ struct Task {
 }
 
 impl Task {
-    async fn run(self, mut commands: mpsc::Receiver<()>) {
+    async fn run(self, mut commands: mpsc::Receiver<()>, automatic: watch::Receiver<bool>) {
         let installation = self.installation.clone();
         if tokio::task::spawn_blocking(move || installation.clean_leftovers())
             .await
@@ -228,9 +273,25 @@ impl Task {
         // A machine that slept through checks checks once on waking, not
         // once per missed hour.
         ticks.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        tracing::info!(
+            running = %self.settings.running,
+            channel = %self.settings.channel,
+            target = %self.settings.target,
+            packaging = %self.installation.packaging(),
+            feed = %self.settings.feed,
+            "the updater runs"
+        );
+        // Consecutive failed checks, for the wait before the next.
+        let mut failures: usize = 0;
         loop {
             tokio::select! {
-                _ = ticks.tick() => {}
+                _ = ticks.tick() => {
+                    // Automatic updates off: the timer asks nothing; only
+                    // a check the person asks for runs.
+                    if !*automatic.borrow() {
+                        continue;
+                    }
+                }
                 command = commands.recv() => {
                     if command.is_none() {
                         return;
@@ -238,6 +299,7 @@ impl Task {
                 }
             }
             let _previous = self.state.send_replace(UpdateState::Checking);
+            tracing::info!("checking for an update");
             match self.attempt().await {
                 Ok(done @ UpdateState::Ready { .. }) => {
                     tracing::info!("an update is installed and runs from the next start");
@@ -245,10 +307,30 @@ impl Task {
                     return;
                 }
                 Ok(state) => {
+                    if let UpdateState::UpToDate { latest } = &state {
+                        tracing::info!(%latest, "up to date: the feed's newest is not newer");
+                    }
+                    failures = 0;
                     let _previous = self.state.send_replace(state);
                 }
                 Err(error) => {
-                    tracing::warn!(error = %error, "checking for an update failed");
+                    let wait = if error.is_transient() {
+                        self.settings
+                            .retry_after
+                            .get(failures)
+                            .copied()
+                            .unwrap_or(self.settings.every)
+                    } else {
+                        self.settings.every
+                    };
+                    failures = failures.saturating_add(1);
+                    ticks.reset_after(wait);
+                    tracing::warn!(
+                        error = %crate::report::chain(&error),
+                        failures,
+                        next_check_in = ?wait,
+                        "checking for an update failed"
+                    );
                     let _previous = self.state.send_replace(UpdateState::Failed {
                         error: Arc::new(error),
                     });
@@ -266,6 +348,11 @@ impl Task {
             .envelope(&settings.feed, &settings.channel)
             .await?;
         let manifest = Manifest::open(&envelope, &settings.key, &settings.channel)?;
+        tracing::debug!(
+            bytes = envelope.len(),
+            latest = %manifest.label,
+            "the manifest verifies"
+        );
         if manifest.label <= settings.running {
             return Ok(UpdateState::UpToDate {
                 latest: manifest.label,
@@ -279,6 +366,12 @@ impl Task {
                 packaging,
             });
         };
+        tracing::info!(
+            label = %manifest.label,
+            artifact = %artifact.path,
+            bytes = artifact.size.get(),
+            "downloading the update"
+        );
         let label = manifest.label.clone();
         let total = artifact.size;
         let _previous = self.state.send_replace(UpdateState::Downloading {
@@ -301,6 +394,10 @@ impl Task {
             },
         )
         .await?;
+        tracing::info!(
+            staged = %file_name(staged.path()),
+            "the download is complete, verified and on disk"
+        );
         let installation = self.installation.clone();
         let running = settings.running.clone();
         tokio::task::spawn_blocking(move || {
@@ -308,7 +405,11 @@ impl Task {
             if installed.is_err()
                 && let Err(error) = std::fs::remove_file(staged.path())
             {
-                tracing::debug!(error = %error, "a staged update was left for the next start");
+                tracing::warn!(
+                    error = %crate::report::chain(&error),
+                    staged = %file_name(staged.path()),
+                    "a staged update was left for the next start"
+                );
             }
             installed
         })
@@ -319,4 +420,13 @@ impl Task {
             notes: manifest.notes,
         })
     }
+}
+
+/// A path's file name for the log: the directory around it is the
+/// owner's (it carries their account's name on Windows) and adds nothing.
+pub(crate) fn file_name(path: &std::path::Path) -> String {
+    path.file_name().map_or_else(
+        || "?".to_owned(),
+        |name| name.to_string_lossy().into_owned(),
+    )
 }

@@ -276,13 +276,11 @@ it (`app/src/update.rs`, `app/src/chrome.rs`, `app/src/areas/about.rs`):
   With `VESSEL_APP_TITLEBAR=system` the same status sits in the sidebar's
   foot. The bar's right slot occludes the bar behind it, so Windows' hit
   test should not read it as the drag area (not seen on Windows).
-- About (the sidebar's foot, "Vessel <label>"): the version, what the
-  updater last did (with the failure's words), "Check for updates",
-  "Update automatically" (on by default; kept in `app-prefs.json`). Off
-  starts the updater with a first check and a period of a year, so it
-  checks only when asked (its settings' timing is the app's to set; the
-  updater has no pause switch). A temporary home until the settings
-  track's About section takes it.
+- About (the sidebar's foot, "Vessel <label>"): Paseo's settings layout
+  and words since 0.0.0.0.6 (below): the version, what the updater last
+  did, "확인", the update button, and "자동으로 업데이트" (on by default;
+  kept in `app-prefs.json`; off, the updater's timer does not check and
+  "확인" still does: track R's `Updater::set_automatic`).
 - After an update, once: "Updated to <label>" with the feed's notes, at
   the top of the frame, dismissible. The notes are kept in the app's
   preferences when the build is ready (only the process that downloaded
@@ -309,6 +307,124 @@ at 10 MB/s, so each state lasts long enough to capture):
 Not seen: the preference switched while the app runs (it starts a new
 updater with the other timing once the current one is not checking or
 downloading); anything on Windows or macOS.
+
+## Build 0.0.0.0.6 (the owner's feedback on 0.0.0.0.5)
+
+The owner, on 0.0.0.0.5 on Windows with the real Claude Code: the model
+selector and the other pickers looked wrong (Claude Code's `Agent` option,
+values `ocx-*` with descriptions of several lines, ran into the rows under
+them; three settings poured into one flat list), "the other settings" too,
+and the version and update screen was "개판".
+
+- A list row is Paseo's `ComboboxItem` (`components/ui/combobox.tsx`):
+  the label, then the description on the same line, each one line
+  (`numberOfLines={1}`); the description gives way first and the label
+  never shrinks except to the row's width (a name longer than the row
+  ends in an ellipsis); a row keeps its height and the list scrolls
+  inside the panel's 400. GPUI starts a new line at every line break even
+  where text does not wrap, so a row folds breaks into spaces first, as a
+  browser does for `white-space: nowrap` (`kit::picker::one_line`).
+  `kit::picker`'s test lays out rows with a subagent's description of
+  several lines, a name longer than the list and Korean, and fails if a
+  row grows past one line or runs into the next (it fails with the fold
+  taken out).
+- Features are Paseo's features sheet (`composer/agent-controls/index.tsx`
+  `SheetFeatureItem`, shown when the toolbar aggregates features): a row
+  per feature with its name and its value; a row opens its own list with
+  the feature's name above it and a way back: the option names alone for
+  a choice, "On" and "Off" for an on/off feature (Paseo's sheet has no
+  switch there: its toggle row opens On and Off too); a choice goes back
+  to the features. A feature with no name shows its id.
+- About is Paseo's settings section (`screens/settings-screen.tsx`
+  `AboutSection`, `DesktopAppUpdateRow`; `styles/settings.ts`) built from
+  `kit::settings`: the page 16 around, 24 above, at most 720; the section
+  title; one card with rows of title and hint at the left and the control
+  at the right: "앱 버전 / 이 기기 / v0.0.0.0.6", "앱 업데이트" with
+  Paseo's status words ("앱이 최신 상태입니다.", "업데이트 발견: v…. 다운로드
+  중...", "업데이트 준비됨: v…", "앱을 업데이트하지 못했습니다." with the
+  reason under it) and its two buttons ("확인" outline, "확인 중..." while
+  checking; "업데이트", "v…(으)로 업데이트" once a build is in place),
+  "자동으로 업데이트" with Paseo's switch, and "로그 파일" with its folder and
+  "로그 열기" (track R's `vessel_app_log::dir()`).
+  Differences, each with its reason: no "새로운 기능" row and no release
+  channel (one feed, no changelog screen yet); the automatic-update row is
+  Vessel's (Paseo has no such switch; Vessel's updater has the setting);
+  the update button restarts without Paseo's confirm (the title bar's
+  "Restart to update" never asked, and the button says what it does); the
+  log row opens the folder and does not copy the path; the switch does not
+  slide (Paseo's slides in 180 ms).
+- A session's conversation and its composer share Paseo's chat column (at
+  most 820, 16 from the edges), so the card and the messages start at the
+  same left edge. Still different: the person's message is a full-width
+  block (Paseo's is a bubble at the right), the conversation track's to
+  take.
+- In a provider's model list the check marks only the agent in use (the
+  other agents' defaults are not a choice made here), as Paseo's.
+- The blue ring in the owner's captures is not the app's: the captures
+  are PNGs whose outer 10 pixels are fully transparent and whose ring is
+  `#60A2E6`, a colour neither the app nor its libraries have; a window's
+  own pixels are never transparent in a capture of it. It is the capture
+  tool's or the chat's selection outline. No container in the app draws
+  anything on focus.
+- The fake fleet's Claude Code adapter sends those shapes
+  (`FAKE_ACP_OPTIONS=real`), and `vessel-agent`'s
+  `a_real_agents_shapes_arrive_whole` checks they reach the node whole.
+
+Seen against the real preview node (paired as a test device from a
+scratch config; no prompt sent; the device revoked after), dark, each
+capture named for what it shows: the pairing
+screen, every picker at every level for Claude Code, Codex and OpenCode
+(the model selector with every agent, each agent's models scrolled, the
+search across agents; 사고; 모드; 기능 and each feature's own list; the
+machine; the folder and a typed path), About up to date, a session.
+
+## Build 0.0.0.0.7 (the differences from Paseo left in 0.0.0.0.6)
+
+In the order the owner meets them, each as Paseo has it:
+
+- The composer's controls take the step of Paseo's ladder their width
+  allows (`composer/agent-controls/layout.ts`, `app/src/areas/draft/density.rs`):
+  `full` with carets, the thinking and mode values, and a control per
+  feature (an on/off feature a square that switches it; a choice its value,
+  opening its list with Paseo's search row); `condensed` without carets,
+  thinking as its glyph, the features as one control opening the features
+  sheet; `tight` the mode as its glyph too. Paseo's floors (a control 28,
+  its glyph 16, a caret 14, 7 per character of a label) and its 12 of
+  hysteresis; the controls' width is measured each frame. The features
+  sheet is Paseo's `AdaptiveModalSheet` (a card on a wide window): a row per
+  feature with its value, each opening its list below it with the name
+  above. Not here: Paseo's two narrowest steps (thinking, mode and
+  features folded into the model control's sheet; the model as its glyph
+  alone), and a feature's own icon and its highlight when on (ACP sends no
+  icon: every feature shows Paseo's default, muted).
+- A list opens on the side its caller names, as Paseo's combobox (no flip
+  on a wide window): the controls in the card above them, the machine and
+  folder under the card below them, 5 from the trigger, at most 400 tall
+  and never taller than the room on that side less 16.
+- Adding a machine is Paseo's two modals over the new chat: "페어링 링크
+  붙여넣기" (its helper, the field, Cancel and Pair) and "이 호스트에 연결할까요?"
+  (what connecting allows; the host, its key fingerprint and its relay in a
+  settings card; Cancel and Connect). Vessel's own in them: the warning to
+  treat the link like a password (Paseo shows it where a link is made, not
+  where it is pasted; the coordinator asked for it here, where the link is
+  in the person's hands), and the name the book will use, in the second.
+- About: Paseo's confirm ("데스크톱 업데이트 설치") before the update restarts
+  the app; "새로운 소식" opening the running build's notes (the feed's,
+  kept by the build that downloaded it; Paseo's lists every version from
+  its website); "경로 복사" beside "로그 열기"; the switch's thumb slides in
+  180 ms once switched (the track's colour changes at once).
+- The sidebar's foot is Paseo's: a hairline over one line, Settings (a
+  gear) at its right end, opening About until the settings track's frame
+  lands. Its other icons (a project, usage, hosts, help) are not here.
+- A button's label wider than the room the button has wraps inside it,
+  centred, as Paseo's `Text` does; a button is never wider than its
+  container (a permission's longest answer, "Never allow …", was cut by
+  the panel on a phone). On the new chat at a phone's width the send
+  button sits 6 inside the card's edge, Paseo's `buttonRow` bleed of 6
+  past its 12 of padding.
+- The native release profile has line tables (`debug = "line-tables-only"`);
+  the Linux executable ships without them (split into `vessel-app.debug`,
+  kept with the Windows .pdb): 73,265,496 bytes before, 71,425,872 after.
 
 ## Packages installed on the machine
 

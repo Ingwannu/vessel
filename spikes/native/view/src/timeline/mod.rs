@@ -32,9 +32,11 @@
 
 mod agent;
 mod approval;
+mod diff;
 mod entry;
 mod find;
 mod fold;
+mod logs;
 mod meter;
 mod outline;
 mod rows;
@@ -43,6 +45,7 @@ mod usage;
 mod window;
 
 pub use approval::{Answers, Settled, allows, answers_of, settled};
+pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
     Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
     prompt_parts,
@@ -52,6 +55,7 @@ pub use find::{
     query_of, readable_text, searchable, spans_of, step,
 };
 pub use fold::{Change, Facts, Timeline};
+pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
 pub use rows::Rows;

@@ -45,26 +45,6 @@ pub(super) fn badge(text: impl Into<SharedString>, tone: Tone, tokens: &Tokens) 
         .child(text.into())
 }
 
-/// A page of sections, as Paseo's settings draw one: its lead, then the
-/// sections, no wider than Paseo's content (820), scrolled by the caller.
-pub(super) fn page(lead: &'static str, tokens: &Tokens) -> Div {
-    div()
-        .w_full()
-        .max_w(px(820.0))
-        .flex()
-        .flex_col()
-        .px(px(16.0))
-        .py(px(24.0))
-        .child(
-            div()
-                .mb(px(24.0))
-                .ml(px(4.0))
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(lead),
-        )
-}
-
 /// A section: its title (12, muted, 4 in) with an action at the right, 12
 /// above what it holds; 24 under it.
 pub(super) fn section(

@@ -38,10 +38,65 @@ pub enum Glyph {
     Update,
     /// Three lines: opens the sidebar's sheet at a phone's width.
     Menu,
+    /// A picker's caret.
+    ChevronDown,
+    /// A row that opens a list of its own (a provider's models).
+    ChevronRight,
+    /// Back, from such a list.
+    ChevronLeft,
+    /// The chosen row's mark.
+    Check,
+    /// A search row.
+    Search,
+    /// Send.
+    ArrowUp,
+    /// Stop.
+    Stop,
+    /// The permissions mode.
+    Shield,
+    /// The effort (thinking).
+    Brain,
+    /// An agent.
+    Bot,
+    /// A failure.
+    Alert,
+    /// A folder.
+    Folder,
+    /// A machine.
+    Machine,
+    /// Three dots: a menu of more actions (the Session actions).
+    More,
+    /// An agent's feature, and the features (Paseo's `Settings2`: two
+    /// sliders).
+    Sliders,
+    /// Settings (Paseo's `Settings`: a gear).
+    Gear,
+    /// Copy: two sheets, one over the other (a code block's copy).
+    Copy,
+    /// Appearance (a painter's palette, Paseo's `Palette`).
+    Palette,
+    /// Shortcuts (a keyboard, Paseo's `Keyboard`).
+    Keyboard,
+    /// Notifications (a bell, Paseo's `Bell`).
+    Bell,
+    /// Models (a spark, Paseo's `Sparkles`).
+    Sparkles,
+    /// A machine as Settings lists it (Paseo's `Server`).
+    Server,
+    /// Devices (a phone, Paseo's `Smartphone`).
+    Smartphone,
+    /// Sync (two arrows round).
+    Refresh,
+    /// About (an i in a circle, Paseo's `Info`).
+    Info,
+    /// Back (Settings' way back to the workspace, Paseo's `ArrowLeft`).
+    ArrowLeft,
+    /// Adding (a machine, Paseo's `Plus`).
+    Plus,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 7] = [
+const ALL: [Glyph; 34] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -49,7 +104,46 @@ const ALL: [Glyph; 7] = [
     Glyph::Close,
     Glyph::Update,
     Glyph::Menu,
+    Glyph::ChevronDown,
+    Glyph::ChevronRight,
+    Glyph::ChevronLeft,
+    Glyph::Check,
+    Glyph::Search,
+    Glyph::ArrowUp,
+    Glyph::Stop,
+    Glyph::Shield,
+    Glyph::Brain,
+    Glyph::Bot,
+    Glyph::Alert,
+    Glyph::Folder,
+    Glyph::Machine,
+    Glyph::More,
+    Glyph::Sliders,
+    Glyph::Gear,
+    Glyph::Copy,
+    Glyph::Palette,
+    Glyph::Keyboard,
+    Glyph::Bell,
+    Glyph::Sparkles,
+    Glyph::Server,
+    Glyph::Smartphone,
+    Glyph::Refresh,
+    Glyph::Info,
+    Glyph::ArrowLeft,
+    Glyph::Plus,
 ];
+
+/// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
+/// as Paseo's icons are drawn; the paths are the kit's own.
+macro_rules! line_glyph {
+    ($body:literal) => {
+        concat!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#,
+            $body,
+            "</svg>"
+        )
+    };
+}
 
 impl Glyph {
     /// Its asset path.
@@ -63,6 +157,33 @@ impl Glyph {
             Self::Close => "kit/close.svg",
             Self::Update => "kit/update.svg",
             Self::Menu => "kit/menu.svg",
+            Self::ChevronDown => "kit/chevron-down.svg",
+            Self::ChevronRight => "kit/chevron-right.svg",
+            Self::ChevronLeft => "kit/chevron-left.svg",
+            Self::Check => "kit/check.svg",
+            Self::Search => "kit/search.svg",
+            Self::ArrowUp => "kit/arrow-up.svg",
+            Self::Stop => "kit/stop.svg",
+            Self::Shield => "kit/shield.svg",
+            Self::Brain => "kit/brain.svg",
+            Self::Bot => "kit/bot.svg",
+            Self::Alert => "kit/alert.svg",
+            Self::Folder => "kit/folder.svg",
+            Self::Machine => "kit/machine.svg",
+            Self::More => "kit/more.svg",
+            Self::Sliders => "kit/sliders.svg",
+            Self::Gear => "kit/gear.svg",
+            Self::Copy => "kit/copy.svg",
+            Self::Palette => "kit/palette.svg",
+            Self::Keyboard => "kit/keyboard.svg",
+            Self::Bell => "kit/bell.svg",
+            Self::Sparkles => "kit/sparkles.svg",
+            Self::Server => "kit/server.svg",
+            Self::Smartphone => "kit/smartphone.svg",
+            Self::Refresh => "kit/refresh.svg",
+            Self::Info => "kit/info.svg",
+            Self::ArrowLeft => "kit/arrow-left.svg",
+            Self::Plus => "kit/plus.svg",
         }
     }
 
@@ -87,6 +208,71 @@ impl Glyph {
             Self::Menu => {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M1.5 3h9M1.5 6h9M1.5 9h9" fill="none" stroke="black" stroke-width="1.2" stroke-linecap="round"/></svg>"#
             }
+            Self::ChevronDown => line_glyph!(r#"<path d="M6 9l6 6 6-6"/>"#),
+            Self::ChevronRight => line_glyph!(r#"<path d="M9 6l6 6-6 6"/>"#),
+            Self::ChevronLeft => line_glyph!(r#"<path d="M15 6l-6 6 6 6"/>"#),
+            Self::Check => line_glyph!(r#"<path d="M20 6L9 17l-5-5"/>"#),
+            Self::Search => {
+                line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
+            }
+            Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
+            Self::Shield => {
+                line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
+            }
+            Self::Brain => line_glyph!(
+                r#"<path d="M12 5.5a3 3 0 0 0-5.6-1.2A3 3 0 0 0 4 8.5a3.2 3.2 0 0 0 .8 5.8A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5z"/><path d="M12 5.5a3 3 0 0 1 5.6-1.2A3 3 0 0 1 20 8.5a3.2 3.2 0 0 1-.8 5.8A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/>"#
+            ),
+            Self::Bot => line_glyph!(
+                r#"<rect x="4.5" y="8" width="15" height="11" rx="2.5"/><path d="M12 8V4.5M9.5 12.5v1.5M14.5 12.5v1.5"/>"#
+            ),
+            Self::Alert => {
+                line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
+            }
+            Self::Folder => line_glyph!(
+                r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
+            ),
+            Self::Machine => line_glyph!(
+                r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
+            ),
+            Self::More => line_glyph!(
+                r#"<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>"#
+            ),
+            Self::Sliders => line_glyph!(
+                r#"<path d="M19.5 7H10M14 17H4.5"/><circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="17" r="2.75"/>"#
+            ),
+            Self::Gear => line_glyph!(
+                r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
+            ),
+            Self::Copy => line_glyph!(
+                r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
+            ),
+            Self::Palette => line_glyph!(
+                r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#
+            ),
+            Self::Keyboard => line_glyph!(
+                r#"<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>"#
+            ),
+            Self::Bell => line_glyph!(
+                r#"<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>"#
+            ),
+            Self::Sparkles => line_glyph!(
+                r#"<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15v4M17 17h4"/>"#
+            ),
+            Self::Server => line_glyph!(
+                r#"<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>"#
+            ),
+            Self::Smartphone => line_glyph!(
+                r#"<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>"#
+            ),
+            Self::Refresh => line_glyph!(
+                r#"<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>"#
+            ),
+            Self::Info => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>"#)
+            }
+            Self::ArrowLeft => line_glyph!(r#"<path d="M19 12H5M12 19l-7-7 7-7"/>"#),
+            Self::Plus => line_glyph!(r#"<path d="M12 5v14M5 12h14"/>"#),
         }
     }
 }

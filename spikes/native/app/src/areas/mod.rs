@@ -16,6 +16,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
 pub(crate) mod session;
+pub(crate) mod settings;
 pub(crate) mod sidebar;
 pub(crate) mod workspace;
 
@@ -25,20 +26,24 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
     pub(crate) conversation: conversation::ConversationArea,
+    pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
 }
 
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
-            conversation: conversation::ConversationArea::default(),
+            conversation: conversation::ConversationArea::new(cx),
+            settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
         }
     }

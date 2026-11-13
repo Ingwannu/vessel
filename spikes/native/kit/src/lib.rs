@@ -24,40 +24,59 @@
 
 pub mod assets;
 pub mod breakpoint;
+pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
+pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod menu;
+pub mod output;
+pub mod picker;
 pub mod popup;
 pub mod segmented;
+pub mod select;
+pub mod settings;
 pub mod sheet;
 pub mod tabs;
 pub mod theme;
+pub mod tooltip;
 pub mod virtual_list;
 mod widgets;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use chat_markdown::chat_markdown;
 pub use code::CodeTokens;
+pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
-pub use field::TextField;
+pub use field::{TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use output::{Start, lines_box, output_box};
+pub use picker::{
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
+    anchor_probe, combobox, glyph, pill, pill_parts, send_button,
+};
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
+pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
-pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown};
+pub use widgets::{
+    TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown, outline_button,
+};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Context, Div, ElementId, Entity, Hsla, ListAlignment, ListState,
-        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, svg, uniform_list,
+        AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity, Hsla,
+        KeyDownEvent, ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point,
+        SharedString, Stateful, Subscription, WeakEntity, Window, canvas, div, list, point, px,
+        relative, rgb, rgba, svg, uniform_list,
     };
 }
 
@@ -93,8 +112,14 @@ pub fn tokens(cx: &App) -> Tokens {
 /// # Errors
 /// The faces could not be registered.
 pub fn init(cx: &mut App, choice: SchemeChoice) -> Result<(), fonts::FontError> {
-    fonts::register(cx)?;
+    // The component layer first, the faces after: its `init` asks GPUI
+    // which face `.SystemUIFont` lands on once any face is installed, and
+    // in a browser (no system faces) that lookup panics when only ours are
+    // there. Before them it skips the lookup; the theme then names Geist
+    // (`set_scheme`), so the order changes nothing on the desktop
+    // (docs/plans/backend-m12-browser.md, question 1).
     gpui_component::init(cx);
+    fonts::register(cx)?;
     let scheme = match choice {
         SchemeChoice::Fixed(scheme) => scheme,
         SchemeChoice::System => scheme_of(cx.window_appearance()),

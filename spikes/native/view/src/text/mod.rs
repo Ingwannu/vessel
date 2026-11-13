@@ -22,15 +22,33 @@
 //!   Korean none). Not translated yet: the link's errors (they come from
 //!   `vessel-client` and the node, in English).
 
+mod about;
 mod app;
+mod board;
 mod conversation;
+mod machines;
+mod notices;
 mod options;
+mod pairing;
+mod palette;
+mod settings;
+mod shortcuts;
+mod sidebar;
 mod update;
 pub mod workspace;
 
+pub use about::AboutText;
 pub use app::Text;
+pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
+pub use machines::MachinesText;
+pub use notices::NoticeWords;
 pub use options::OptionsText;
+pub use pairing::PairingWords;
+pub use palette::PaletteWords;
+pub use settings::SettingsText;
+pub use shortcuts::ShortcutWords;
+pub use sidebar::SidebarWords;
 pub use update::UpdateText;
 
 /// A language the app speaks.

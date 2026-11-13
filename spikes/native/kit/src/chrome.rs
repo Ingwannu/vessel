@@ -353,3 +353,96 @@ pub fn resizable(content: AnyElement, window: &mut Window) -> Div {
                 .size(edge),
         )
 }
+
+// macOS draws its own traffic lights: there are no controls of the app's.
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    //! The title bar's control areas, as Windows' hit test reads them.
+    //!
+    //! On Windows GPUI answers `WM_NCHITTEST` with the first control area,
+    //! in paint order, whose hitbox is in the window's hit test
+    //! (`on_hit_test_window_control` in gpui's window.rs). The bar (`Drag`)
+    //! is painted before the buttons inside it, so over a button the bar must
+    //! not be in the hit test at all, or Windows reads the button as the
+    //! caption: one click is swallowed by the move loop and a double click
+    //! maximises (build 0.0.0.0.3 on the owner's Windows 11). The probe is a
+    //! scroll listener on the bar: it runs when the bar's hitbox is in the
+    //! hit test (`Hitbox::should_handle_scroll`), the test the Windows hit
+    //! test makes for each control area. That the system then minimises,
+    //! maximises or closes on one click is Windows' own (seen under wine,
+    //! docs/plans/backend-m12-release.md).
+
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    use gpui::{Context, IntoElement, Render, ScrollEvent, TestAppContext, Window};
+
+    use super::*;
+    use crate::theme::{Scheme, Tokens};
+
+    /// The test window's bar width, and the trailing element's.
+    const WIDTH: f32 = 600.0;
+    const TRAILING: f32 = 40.0;
+    /// The bar's middle, top to bottom (`HEIGHT` / 2).
+    const MIDDLE: f32 = 18.0;
+    /// Right to left across the 600 px bar: close, maximise and minimise
+    /// (`LINUX_CONTROL`, 36 px each), then the trailing element (40 px
+    /// with 8 px either side); the middle of each.
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    const OVER: [(&str, f32); 4] = [
+        ("close", 582.0),
+        ("maximise", 546.0),
+        ("minimise", 510.0),
+        ("trailing", 464.0),
+    ];
+    /// The same with `WINDOWS_CONTROL` (46 px each).
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+    const OVER: [(&str, f32); 4] = [
+        ("close", 577.0),
+        ("maximise", 531.0),
+        ("minimise", 485.0),
+        ("trailing", 434.0),
+    ];
+
+    /// The title bar, with the probe on the bar.
+    struct Probe {
+        reached: Rc<Cell<usize>>,
+    }
+
+    impl Render for Probe {
+        fn render(&mut self, window: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+            let reached = Rc::clone(&self.reached);
+            let tokens = Tokens::of(Scheme::Dark);
+            let trailing = div().w(px(TRAILING)).h_full().into_any_element();
+            div().w(px(WIDTH)).child(
+                title_bar(div().into_any_element(), Some(trailing), &tokens, window)
+                    .on_scroll(move |_, _, _| reached.set(reached.get().saturating_add(1))),
+            )
+        }
+    }
+
+    #[gpui::test]
+    fn over_the_window_controls_the_bar_is_not_the_drag_area(cx: &mut TestAppContext) {
+        let reached = Rc::new(Cell::new(0_usize));
+        let (_, cx) = cx.add_window_view({
+            let reached = Rc::clone(&reached);
+            move |_, _| Probe { reached }
+        });
+        let mut bar_under = |x: f32| {
+            let before = reached.get();
+            cx.simulate_event(ScrollEvent {
+                position: point(px(x), px(MIDDLE)),
+                ..ScrollEvent::default()
+            });
+            reached.get() > before
+        };
+        // The probe sees the bar where nothing covers it.
+        assert!(bar_under(100.0), "the probe never saw the bar");
+        for (what, x) in OVER {
+            assert!(
+                !bar_under(x),
+                "over {what} the bar's drag area is in the hit test: Windows reads it as the caption"
+            );
+        }
+    }
+}

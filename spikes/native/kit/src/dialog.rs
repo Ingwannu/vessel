@@ -35,7 +35,7 @@
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Context, FocusHandle, KeyDownEvent, MouseButton, SharedString, Window,
-    deferred, div, px, relative, svg,
+    anchored, deferred, div, point, px, relative, svg,
 };
 
 use crate::assets::Glyph;
@@ -110,6 +110,7 @@ pub fn dialog<V: 'static>(
     state: &DialogState,
     content: DialogContent,
     tokens: &Tokens,
+    window: &Window,
     narrow: bool,
     close: fn(&mut V, &mut Window, &mut Context<'_, V>),
     cx: &mut Context<'_, V>,
@@ -163,7 +164,7 @@ pub fn dialog<V: 'static>(
             sheet
                 .max_h(relative(0.9))
                 .rounded_t(px(popup::SHEET_RADIUS))
-                .child(handle())
+                .child(handle(tokens.neutral.foreground_extra_muted))
         })
         .child(header(content.title, &surfaces, narrow, close, cx))
         .child(
@@ -177,12 +178,13 @@ pub fn dialog<V: 'static>(
                 .child(content.body),
         )
         .children(footer);
+    // The whole window, wherever the screen that keeps it open is drawn
+    // (Paseo's overlay is `absoluteFill` of the window).
+    let size = window.viewport_size();
     let scrim = div()
         .id("dialog-scrim")
-        .absolute()
-        .top_0()
-        .left_0()
-        .size_full()
+        .w(size.width)
+        .h(size.height)
         .flex()
         .justify_center()
         .occlude()
@@ -198,21 +200,24 @@ pub fn dialog<V: 'static>(
     } else {
         scrim.items_center().p(px(24.0)).bg(popup::scrim())
     };
-    deferred(scrim.child(card))
-        .with_priority(2)
-        .into_any_element()
+    deferred(
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(scrim.child(card)),
+    )
+    .with_priority(2)
+    .into_any_element()
 }
 
-/// A sheet's drag handle (Gorhom's indicator, as Paseo themes it: zinc
-/// 600).
-fn handle() -> gpui::Div {
-    div().w_full().flex().justify_center().pt(px(8.0)).child(
-        div()
-            .w(px(32.0))
-            .h(px(4.0))
-            .rounded(px(2.0))
-            .bg(gpui::rgb(0x0052_525b)),
-    )
+/// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,
+/// the kit's nearest neutral step is `foregroundExtraMuted`).
+fn handle(color: gpui::Hsla) -> gpui::Div {
+    div()
+        .w_full()
+        .flex()
+        .justify_center()
+        .pt(px(8.0))
+        .child(div().w(px(32.0)).h(px(4.0)).rounded(px(2.0)).bg(color))
 }
 
 /// The title and the close button, over a rule.

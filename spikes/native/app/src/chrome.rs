@@ -3,13 +3,13 @@
 //! label at the left; the update's status at the right, before the
 //! window's buttons, where Zed shows its own.
 
+use crate::update::UpdateState;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_updater::UpdateState;
 
 use crate::shell::Shell;
 use crate::update::percent;

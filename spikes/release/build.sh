@@ -28,7 +28,11 @@
 #   VESSEL_TOOLS_DIR       required for Windows: cargo-xwin (bin/), its
 #                          cache (xwin-cache/), fxc (fxc/), wine's prefix
 #                          (wineprefix/); tools/setup-windows-cross.sh fills it
-#   VESSEL_UPDATE_FEED     the feed's https:// base, compiled into the app
+#   VESSEL_UPDATE_FEED_FILE  a file holding the feed's https:// base (one
+#                          line), compiled into the app; the address carries
+#                          a token, so it is read from a file and never
+#                          printed by this script (VESSEL_UPDATE_FEED, the
+#                          address itself, is accepted too)
 #   VESSEL_UPDATE_KEY      the release key's public base64 line, compiled in
 #   VESSEL_UPDATE_SECRET   the release key's secret file: signs SHA256SUMS
 #                          and, with --publish, the manifest
@@ -38,6 +42,9 @@
 #                          vessel-app); the release workspace's
 #                          vessel-release-hello / vessel-hello tries the
 #                          pipeline without the app
+#   VESSEL_SYMBOLS_DIR     where each label's Windows .pdb and Linux
+#                          .debug are kept (vessel-app-symbols beside the
+#                          dist root)
 #   JOBS                   cargo's -j (6: /data is one spinning disk)
 #
 # Why one script for every target: the owner gets a new build after every
@@ -86,12 +93,17 @@ fi
 rm -f "$out/SHA256SUMS" "$out/SHA256SUMS.minisig"
 
 # The update settings go into the app together or not at all.
+if [ -n "${VESSEL_UPDATE_FEED_FILE:-}" ]; then
+    VESSEL_UPDATE_FEED="$(head -n 1 "$VESSEL_UPDATE_FEED_FILE" | tr -d '[:space:]')"
+    [ -n "$VESSEL_UPDATE_FEED" ] || { echo "VESSEL_UPDATE_FEED_FILE is empty" >&2; exit 2; }
+fi
 if [ -n "${VESSEL_UPDATE_FEED:-}" ] || [ -n "${VESSEL_UPDATE_KEY:-}" ]; then
     : "${VESSEL_UPDATE_FEED:?VESSEL_UPDATE_KEY is set, VESSEL_UPDATE_FEED is not}"
     : "${VESSEL_UPDATE_KEY:?VESSEL_UPDATE_FEED is set, VESSEL_UPDATE_KEY is not}"
     export VESSEL_UPDATE_FEED VESSEL_UPDATE_KEY
     export VESSEL_UPDATE_CHANNEL="$channel"
-    echo "updates: channel $channel from $VESSEL_UPDATE_FEED"
+    # Never the address: it carries the feed's token.
+    echo "updates: channel $channel, from the feed compiled in"
 else
     echo "updates: none compiled in (VESSEL_UPDATE_FEED and VESSEL_UPDATE_KEY unset)"
 fi
@@ -116,8 +128,8 @@ links_updater=0
 (cd "$app_ws" && cargo metadata --format-version 1 --locked 2>/dev/null) |
     grep -q '"name":"vessel-app-updater"' && links_updater=1
 if [ -n "${VESSEL_UPDATE_FEED:-}" ] && [ "$links_updater" = 1 ]; then
-    updates_ko="이 빌드는 시작할 때와 한 시간마다 새 빌드를 확인하고, 받아 둔 뒤 다시 시작하라고 알립니다."
-    updates_en="This build checks for a new build at start and hourly, downloads it, and asks you to restart."
+    updates_ko="이 빌드부터 스스로 업데이트합니다. 시작 직후와 한 시간마다 새 빌드를 확인해 뒤에서 받아 두고, 다음에 Vessel을 열면 새 빌드로 시작합니다(받아 두면 화면 아래에 알려 줍니다). 0.0.0.0.2 이하를 쓰던 경우 이번 한 번만 이 빌드를 직접 설치하세요. 자동 확인을 끄려면 노드 목록과 같은 폴더의 app-updates.json 에서 automatic 값을 false로 바꿉니다(한 번만 끄려면 VESSEL_APP_NO_UPDATE=1)."
+    updates_en="From this build on, Vessel updates itself: it checks shortly after start and hourly, downloads a new build in the background, and opens it the next time Vessel starts (the window's foot says when one is ready). Coming from 0.0.0.0.2 or earlier, install this build by hand once. To turn the automatic checks off, set automatic to false in app-updates.json beside the node book (VESSEL_APP_NO_UPDATE=1 turns updates off for one run)."
 else
     updates_ko="이 빌드는 스스로 업데이트하지 않습니다. 새 빌드는 새로 받아 같은 방법으로 설치하면 덮어씁니다."
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
@@ -214,15 +226,54 @@ build_windows() {
     makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" \
         -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" "$here/windows/installer.nsi"
     echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
+    keep_symbols "$exe"
+}
+
+# The Windows build's .pdb, kept per label in the symbols directory with
+# the exe's SHA-256 beside it, never in the dist folder: it is about 20 MB
+# and only for naming a panic's frames (vessel-app-log writes them as
+# `exe+0x<rva>`; `llvm-symbolizer --obj=<exe> --relative-address 0x<rva>`
+# with this .pdb beside the exe). Taken at build time because the next
+# build overwrites the one in the target directory.
+keep_symbols() {
+    local exe="$1"
+    local pdb="${exe%/*}/${app_bin//-/_}.pdb"
+    local dir="${VESSEL_SYMBOLS_DIR:-$(dirname "$VESSEL_DIST_DIR")/vessel-app-symbols}/$label"
+    [ -f "$pdb" ] || { echo "no $pdb beside the exe" >&2; exit 1; }
+    mkdir -p "$dir"
+    cp "$pdb" "$dir/"
+    (cd "$dir" && sha256sum "${pdb##*/}" >SHA256SUMS)
+    printf '%s  %s\n' "$(sha256sum <"$exe" | cut -d' ' -f1)" "vessel-$label-windows-x64.exe" >>"$dir/SHA256SUMS"
+    echo "windows-x64: ${pdb##*/} kept in the symbols directory under $label"
+}
+
+# The Linux build's debug information (the line tables of the native
+# profile's `debug = "line-tables-only"`), split out of the executable and
+# kept per label in the symbols directory, as the Windows .pdb is: what is
+# shipped stays the size it was without them (its symbols stay, as
+# before), and `--add-gnu-debuglink` names the kept file, so a debugger or
+# `addr2line -e vessel-app.debug` gives a panic's frames their file and
+# line.
+split_debug() {
+    local built="$1" shipped="$2"
+    local dir="${VESSEL_SYMBOLS_DIR:-$(dirname "$VESSEL_DIST_DIR")/vessel-app-symbols}/$label"
+    local debug="$dir/$app_bin.debug"
+    mkdir -p "$dir"
+    objcopy --only-keep-debug "$built" "$debug"
+    objcopy --strip-debug --add-gnu-debuglink="$debug" "$built" "$shipped"
+    (cd "$dir" && sha256sum "$app_bin.debug" >SHA256SUMS-linux)
+    printf '%s  %s\n' "$(sha256sum <"$shipped" | cut -d' ' -f1)" "vessel-$label-linux-x64" >>"$dir/SHA256SUMS-linux"
+    echo "linux-x64: $(du -h "$built" | cut -f1) built, $(du -h "$shipped" | cut -f1) shipped, $app_bin.debug kept in the symbols directory under $label"
 }
 
 build_linux() {
     (cd "$app_ws" && cargo build --release --locked -p "$app_pkg" -j "$jobs")
-    local bin="$target_dir/release/$app_bin"
     local name="vessel-$label-linux-x64"
     rm -f "$out/$name" "$out/$name.tar.gz"
     local dir="$stage/linux/$name"
     mkdir -p "$dir"
+    local bin="$stage/linux/$app_bin"
+    split_debug "$target_dir/release/$app_bin" "$bin"
     # Not `vessel`: that is the command line's name.
     cp "$bin" "$dir/vessel-app"
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"

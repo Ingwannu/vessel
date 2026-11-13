@@ -12,44 +12,30 @@
 //!   to restart into it (the owner: "자동업데이트도 … ZED 에 있는것처럼").
 //! - Constraints: the updater is track R's crate and is not changed here;
 //!   it runs on tokio, GPUI on its own executor; it checks on a timer of
-//!   its own (five seconds after start, then hourly) and has no switch for
-//!   "only when asked". It knows a build's notes only in the process that
+//!   its own (five seconds after start, then hourly). It knows a build's notes only in the process that
 //!   downloaded it, and that process ends at the restart. Nothing may run
 //!   in a build that cannot update (a development build).
-//! - Alternatives: a pause flag in the updater (track R's to add; asked
-//!   for through the coordinator); polling the state from the UI (the
+//! - Alternatives: polling the state from the UI (the
 //!   updater offers a watch, which wakes the UI only on a change); the
 //!   notes read again from the feed after the restart (a request at every
 //!   start for one line of text).
 //! - Choice: the updater lives on the shell ([`Updates`]), on a one-thread
 //!   runtime of its own, and a GPUI task follows its watch into
-//!   `Shell::update_state`. "Update automatically" off starts it with a
-//!   first check and a period of a year (the timing is the one part of its
-//!   settings meant to be set by the app), so it checks only when asked;
-//!   switching the preference starts a new updater with the other timing,
-//!   once the current one is not checking or downloading (two would write
-//!   the same staging file). An installed build's notes go into the app's
-//!   preferences when it is ready, and the next start of that build shows
-//!   them once (`Shell::announce_update`).
-//! - Cost: one thread while the app runs, in a build that updates. A
-//!   switch of the preference during a download takes effect after it.
+//!   `Shell::update_state`. "Update automatically" is the updater's own
+//!   switch (`Updater::set_automatic`, track R's): off, its timer does not
+//!   check, and "Check for updates" still does. An installed build's notes
+//!   go into the app's preferences when it is ready, and the next start of
+//!   that build shows them once (`Shell::announce_update`).
+//! - Cost: one thread while the app runs, in a build that updates.
 //!
 //! `VESSEL_APP_NO_UPDATE` (any value) turns updates off for one run.
 
-use std::time::Duration;
-
 use vessel_app_kit::ui::{AsyncApp, Context, WeakEntity};
 use vessel_app_link::{Command, UpdateNotes};
-use vessel_app_updater::{
-    ApplyError, Installation, Settings, UpdateState, Updater, settings_from_build,
-};
+pub(crate) use vessel_app_updater::UpdateState;
+use vessel_app_updater::{ApplyError, Installation, Settings, Updater, settings_from_build};
 
 use crate::shell::Shell;
-
-/// The first check and the period when updates are only checked when
-/// asked: far enough never to come while the app runs (a timer this long
-/// is still within what tokio keeps).
-const ONLY_WHEN_ASKED: Duration = Duration::from_hours(365 * 24);
 
 /// The updater and what it runs on, owned by the shell.
 pub(crate) struct Updates {
@@ -61,11 +47,6 @@ pub(crate) struct Updates {
     /// Which updater the followed state is from: a replaced one's last
     /// states are ignored.
     generation: u64,
-    /// Whether the running updater checks by itself.
-    automatic: bool,
-    /// The preference changed while the updater was busy: switch when it
-    /// is not.
-    wanted: Option<bool>,
 }
 
 impl Drop for Updates {
@@ -119,29 +100,27 @@ impl Updates {
             settings,
             installation,
             generation: 0,
-            automatic,
-            wanted: None,
         };
         updates.run(automatic).then_some(updates)
     }
 
-    /// Start an updater with the timing `automatic` asks for, in place of
-    /// the one running; `false` when it could not start.
+    /// Start the updater, its timer on when `automatic` (the person's
+    /// preference: `Updater::set_automatic`); `false` when it could not
+    /// start.
     fn run(&mut self, automatic: bool) -> bool {
         drop(self.updater.take());
         let Some(runtime) = &self.runtime else {
             return false;
         };
-        let mut settings = self.settings.clone();
-        if !automatic {
-            settings.first_after = ONLY_WHEN_ASKED;
-            settings.every = ONLY_WHEN_ASKED;
-        }
-        match Updater::start(settings, self.installation.clone(), runtime.handle()) {
+        match Updater::start(
+            self.settings.clone(),
+            self.installation.clone(),
+            runtime.handle(),
+        ) {
             Ok(updater) => {
+                updater.set_automatic(automatic);
                 self.updater = Some(updater);
                 self.generation = self.generation.wrapping_add(1);
-                self.automatic = automatic;
                 true
             }
             Err(error) => {
@@ -196,15 +175,6 @@ async fn follow(
     }
 }
 
-/// Whether the updater is in the middle of something a replacement would
-/// collide with.
-const fn busy(state: &UpdateState) -> bool {
-    matches!(
-        state,
-        UpdateState::Checking | UpdateState::Downloading { .. }
-    )
-}
-
 impl Shell {
     /// The followed updater's state changed.
     fn update_changed(&mut self, generation: u64, state: UpdateState, cx: &mut Context<'_, Self>) {
@@ -222,11 +192,7 @@ impl Shell {
             });
             self.command(Command::SavePrefs(self.prefs.clone()));
         }
-        let idle = !busy(&state) && !matches!(state, UpdateState::Ready { .. });
         self.update_state = state;
-        if idle {
-            self.switch_if_wanted(cx);
-        }
         cx.notify();
     }
 
@@ -245,37 +211,20 @@ impl Shell {
         }
     }
 
-    /// "Update automatically" switched.
+    /// "Update automatically" switched: the updater's timer on or off
+    /// (a check asked for runs either way).
     pub(crate) fn set_update_automatically(&mut self, on: bool, cx: &mut Context<'_, Self>) {
+        self.areas.about.automatic_turns = self.areas.about.automatic_turns.saturating_add(1);
         self.prefs.manual_updates = !on;
         self.command(Command::SavePrefs(self.prefs.clone()));
-        if let Some(updates) = &mut self.updates {
-            updates.wanted = Some(on);
-        }
-        if !busy(&self.update_state) && !matches!(self.update_state, UpdateState::Ready { .. }) {
-            self.switch_if_wanted(cx);
+        if let Some(updater) = self
+            .updates
+            .as_ref()
+            .and_then(|updates| updates.updater.as_ref())
+        {
+            updater.set_automatic(on);
         }
         cx.notify();
-    }
-
-    /// Start the updater with the timing the preference asks for, when it
-    /// differs from the running one's.
-    fn switch_if_wanted(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(updates) = &mut self.updates else {
-            return;
-        };
-        let Some(automatic) = updates.wanted.take() else {
-            return;
-        };
-        if automatic == updates.automatic {
-            return;
-        }
-        if updates.run(automatic) {
-            self.update_state = UpdateState::Idle;
-            follow_current(self, cx);
-        } else {
-            self.updates = None;
-        }
     }
 
     /// "Restart to update": start the installed build with this run's
@@ -308,6 +257,16 @@ impl Shell {
         self.updates.is_some()
     }
 
+    /// The running build's release notes, when the feed gave them (kept
+    /// from the build that downloaded it).
+    pub(crate) fn running_notes(&self) -> Option<&str> {
+        self.prefs
+            .update_notes
+            .as_ref()
+            .filter(|kept| kept.label == crate::LABEL)
+            .map(|kept| kept.notes.as_str())
+    }
+
     /// Whether the running updater checks by itself.
     pub(crate) fn updates_automatic(&self) -> bool {
         !self.prefs.manual_updates
@@ -327,12 +286,21 @@ impl Shell {
             .last_label
             .as_deref()
             .is_some_and(|last| last != label);
+        // The running build's notes stay for About's "새로운 소식"; another
+        // build's are dropped.
+        if self
+            .prefs
+            .update_notes
+            .as_ref()
+            .is_some_and(|kept| kept.label != label)
+        {
+            self.prefs.update_notes = None;
+        }
         let notes = self
             .prefs
             .update_notes
-            .take()
-            .filter(|kept| kept.label == label)
-            .map(|kept| kept.notes);
+            .as_ref()
+            .map(|kept| kept.notes.clone());
         if restarted || changed {
             self.updated = Some(Updated {
                 label: label.to_owned(),

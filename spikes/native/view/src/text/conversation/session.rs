@@ -105,6 +105,12 @@ impl ConversationWords {
         lines
     }
 
+    /// The title's field, while it is renamed in place (its placeholder).
+    #[must_use]
+    pub const fn title_field(&self) -> &'static str {
+        self.either("Title", "제목")
+    }
+
     /// What an untitled session with no folder is called.
     #[must_use]
     pub const fn untitled(&self) -> &'static str {
@@ -267,6 +273,153 @@ impl ConversationWords {
                 "History is kept. This agent cannot pick up where it left off.",
                 "기록은 남아 있습니다. 이 에이전트는 멈춘 곳에서 이어 갈 수 없습니다.",
             )
+        }
+    }
+
+    /// The Session actions menu's trigger.
+    #[must_use]
+    pub const fn session_actions(&self) -> &'static str {
+        self.either("Session actions", "세션 작업")
+    }
+
+    /// The menu's row that copies the session's id.
+    #[must_use]
+    pub const fn copy_session_id(&self) -> &'static str {
+        self.either("Copy session id", "세션 ID 복사")
+    }
+
+    /// The toast after it.
+    #[must_use]
+    pub const fn copied_id(&self) -> &'static str {
+        self.either("Copied the session id", "세션 ID를 복사했습니다")
+    }
+
+    /// The menu's row that kills a live session, and the kill confirm's
+    /// button.
+    #[must_use]
+    pub const fn kill(&self) -> &'static str {
+        self.either("Kill", "강제 종료")
+    }
+
+    /// The kill confirm's title: "Kill 3f2a?".
+    #[must_use]
+    pub fn kill_title(&self, short_id: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Kill {short_id}?"),
+            Lang::Ko => format!("{short_id}을(를) 강제 종료할까요?"),
+        }
+    }
+
+    /// What the kill confirm says.
+    #[must_use]
+    pub fn kill_words(&self, machine: &str) -> String {
+        match self.lang {
+            Lang::En => format!(
+                "The agent on {machine} and everything it started stop now. The session's log stays."
+            ),
+            Lang::Ko => format!(
+                "{machine}의 에이전트와 그것이 시작한 모든 것이 지금 멈춥니다. 세션 기록은 남습니다."
+            ),
+        }
+    }
+
+    /// The archive confirm's title.
+    #[must_use]
+    pub const fn archive_title(&self) -> &'static str {
+        self.either(
+            "Are you sure you want to archive this session?",
+            "이 세션을 보관할까요?",
+        )
+    }
+
+    /// The delete confirm's title.
+    #[must_use]
+    pub const fn delete_title(&self) -> &'static str {
+        self.either(
+            "Delete this session permanently?",
+            "이 세션을 영구 삭제할까요?",
+        )
+    }
+
+    /// What the delete confirm says.
+    #[must_use]
+    pub fn delete_words(&self, machine: &str) -> String {
+        match self.lang {
+            Lang::En => format!(
+                "Its conversation and attachments are deleted for good. Its worktree is removed only if nothing in it would be lost; the agent's own history on {machine} is kept."
+            ),
+            Lang::Ko => format!(
+                "대화와 첨부 파일이 영구히 삭제됩니다. 워크트리는 잃을 것이 없을 때만 지우고, {machine}에 있는 에이전트 자체 기록은 남습니다."
+            ),
+        }
+    }
+
+    /// A confirm's buttons: dismiss, accept, delete.
+    #[must_use]
+    pub const fn no(&self) -> &'static str {
+        self.either("No", "아니요")
+    }
+
+    /// Accept a confirm.
+    #[must_use]
+    pub const fn confirm(&self) -> &'static str {
+        self.either("Confirm", "확인")
+    }
+
+    /// Dismiss a confirm.
+    #[must_use]
+    pub const fn cancel(&self) -> &'static str {
+        self.either("Cancel", "취소")
+    }
+
+    /// Delete, the delete confirm's button.
+    #[must_use]
+    pub const fn delete(&self) -> &'static str {
+        self.either("Delete", "삭제")
+    }
+
+    /// The close button's label.
+    #[must_use]
+    pub const fn close(&self) -> &'static str {
+        self.either("Close", "닫기")
+    }
+
+    /// An empty conversation.
+    #[must_use]
+    pub const fn send_to_start(&self) -> &'static str {
+        self.either(
+            "Send a message to start the conversation.",
+            "메시지를 보내 대화를 시작하세요.",
+        )
+    }
+
+    /// A tool card's sections.
+    #[must_use]
+    pub const fn input(&self) -> &'static str {
+        self.either("Input", "입력")
+    }
+
+    /// A tool card's diff, by its file.
+    #[must_use]
+    pub fn diff_of(&self, path: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Diff · {path}"),
+            Lang::Ko => format!("변경 · {path}"),
+        }
+    }
+
+    /// A tool card's output.
+    #[must_use]
+    pub const fn output(&self) -> &'static str {
+        self.either("Output", "출력")
+    }
+
+    /// Under a diff cut at its first lines.
+    #[must_use]
+    pub fn diff_cut(&self, shown: usize) -> String {
+        match self.lang {
+            Lang::En => format!("Only the first {shown} lines are shown"),
+            Lang::Ko => format!("처음 {shown}줄만 보입니다"),
         }
     }
 }

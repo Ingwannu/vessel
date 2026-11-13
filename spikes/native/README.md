@@ -51,11 +51,17 @@ app/src/
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
-    draft.rs       the new chat: composer first, its tray of pickers
-    session.rs     a session: the conversation, the composer, permissions, stop
-    about.rs       the running build and its updates (until the settings track's About
-                   section takes it), and the note shown once after an update
-    board.rs, archive.rs, sidebar.rs, pair.rs
+    draft/         the new chat: Paseo's composer card, its pickers (pickers.rs), the
+                   step of Paseo's ladder the card's width allows (density.rs), the
+                   features as controls or as Paseo's features sheet (features.rs)
+    session.rs     a session: the conversation and the composer in Paseo's one chat
+                   column (at most 820 wide, 16 from the edges), permissions, stop
+    about.rs       About as Paseo's settings section: the version, the app's updates
+                   (Paseo's words), automatic updates (a switch), the log file; and the
+                   note shown once after an update
+    pair.rs        adding a machine: Paseo's paste-link modal, then its host
+                   confirmation, over the new chat
+    board.rs, archive.rs, sidebar.rs
 ```
 
 ### Adding a screen (an area)
@@ -93,6 +99,12 @@ control another track could need (a menu, a dialog, a sheet, tabs, a
 tooltip, a virtual list) is the lead's to write: ask through the
 coordinator first, so two tracks do not write two.
 
+A settings screen (About now, the settings track's sections later) is
+built from `kit::settings`: Paseo's section with its small title, the
+card, a row with its title and hint at the left and its control at the
+right, and Paseo's switch; buttons are `kit::button` (accent) and
+`kit::outline_button` (Paseo's outline).
+
 ### Rules every screen follows
 
 - Words through `view/src/text/` only; English and Korean together.
@@ -102,8 +114,27 @@ coordinator first, so two tracks do not write two.
 - An error belongs beside the control it is about; the frame's foot is
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
-  points on touch; nothing depends on hover (ADR 0036; the shell's
-  breakpoint and sheets are the lead's next slice).
+  points on touch; nothing depends on hover (ADR 0036).
+- Two widths, both named in the kit, each with its reason:
+  - `kit::breakpoint::PHONE` (768): below it the sidebar is a sheet from
+    the title bar's menu button, and the title bar's statuses are icons.
+    ADR 0036's width, the page's too, so the sidebar folds at the same
+    size on every surface.
+  - `kit::picker::COMPACT` (600, Paseo's compact width,
+    `constants/layout.ts`): below it controls are touch-sized (44), a
+    picker's list and a dialog are sheets from the bottom, and the
+    composer's card is tighter. Paseo's own width, so its controls change
+    where Paseo's do.
+  Between 600 and 768 the sidebar is a sheet and the controls are still
+  pointer-sized: a narrow desktop window, where a mouse is still likely.
+  `kit::breakpoint::INSPECTOR` (1280) folds the inspector, when there is
+  one.
+- No library's default look anywhere (the owner, on 0.0.0.0.3): fields
+  are the kit's (`TextField`: a form field, or the composer's bare text
+  in `composer_card`), pickers the kit's (`pill` and `combobox`),
+  buttons the kit's; carets and marks are the kit's vector glyphs
+  (`assets::Glyph`), never characters. Controls take their colours from
+  `tokens.neutral` (Paseo's scale); the accent is the brand's.
 
 ## Why GPUI, and which
 
@@ -134,9 +165,12 @@ Linux needs the X11 and Wayland development libraries GPUI links
 and, to run, a Vulkan driver (Mesa's is enough).
 
 The gate of this workspace (the main workspace's lints are copied into
-its manifest):
+its manifest), run from `spikes/native` with its pinned toolchain
+(`rust-toolchain.toml`), the whole workspace, never a `-p` subset; every
+track runs exactly this before it reports a slice:
 
 ```bash
+cd spikes/native
 cargo fmt --all --check
 cargo clippy --all-targets -- -D warnings
 cargo test
@@ -154,6 +188,13 @@ Environment:
   of the app's own (the way out if the app's bar misbehaves on a
   platform).
 - `VESSEL_APP_NO_UPDATE` (any value): no updates for this run.
+- `VESSEL_APP_CONVERSATION=full`: conversations as the "Full" display
+  setting shows them (every tool call a row of its own; an agent's log
+  as one folded row) instead of collapsing tool calls, until the app
+  reads that setting.
+- `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
+  many entries, it scrolls itself for 600 frames and logs the median,
+  p95 and longest frame.
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
@@ -172,8 +213,27 @@ scripts/fleet.sh stop /tmp/fleet
 ```
 
 The fake agent answers `plain` with an echo, `entries <n>` with `n`
-entries, `wait` by waiting; any other prompt runs a tool that asks for
-permission.
+entries, `wait` by waiting, `shapes` with a real conversation's shapes;
+any other prompt runs a tool that asks for permission. The fleet's
+Claude Code adapter offers what the real one sends
+(`FAKE_ACP_OPTIONS=real`, `crates/vessel-testkit/src/bin/fake_acp/real.rs`):
+sixteen models, subagents (`ocx-*`) with descriptions of several lines,
+names longer than a list and Korean ones, an on/off option with no name.
+Look at every picker with it before a build; `kit::picker`'s test lays
+out rows of those shapes and fails if one grows past a line or runs into
+the next.
+
+Screens are checked against the two `shapes` sessions the fleet makes on
+`laptop`: a long thought, Markdown with a table, a 240-character code
+line and Korean, a long path, a wide diff, a command on one long line
+asking for permission with four answers, and 2,400 lines of output.
+`shapes` has its permission answered (the output in the timeline),
+`shapes-asking` is left asking. Every Claude Code session also opens
+with the start-up log the real adapter writes before the first prompt
+(ten `[session/create] …` lines, `FAKE_ACP_STARTUP_LOG`). `fleet.sh start`
+fails if either `shapes` session lacks any of it (it reads them back
+with `vessel log`), so a fake-acp built before these existed is caught:
+rebuild it.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

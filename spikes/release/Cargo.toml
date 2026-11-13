@@ -16,7 +16,7 @@
 
 [workspace]
 resolver = "3"
-members = ["hello", "updater", "feed"]
+members = ["hello", "updater", "feed", "applog"]
 # A crate copied from crates.io and patched (patches/README.md): not a
 # member, so the workspace's lints are not applied to code that is not ours.
 exclude = ["patches"]
@@ -126,6 +126,7 @@ tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt", "fs", "time", "sync", "macros"] }
 tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std"] }
 
 [profile.release]
 # As Vessel's own release profile and the app's.

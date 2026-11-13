@@ -28,8 +28,13 @@ pub trait TypeExt: Styled + Sized {
 
 impl<E: Styled> TypeExt for E {}
 
-/// A button: the primary one is the ink with white text, the secondary
-/// one a light well (DESIGN.md section 6, `--btn-*`).
+/// A button, as Paseo's (`components/ui/button.tsx`, size `md`): a pill
+/// at least 32 tall, 16 across, 14 at weight 500, a clear hairline; the
+/// primary one the accent with white words, the secondary `surface3` with
+/// the foreground's; pressed at 85%. No hover fill (Paseo sets none).
+/// A label wider than the room the button has wraps inside it, centred, as
+/// Paseo's `Text` does (a permission's longest answer on a phone was cut
+/// by the panel): the button is never wider than its container.
 #[must_use]
 pub fn button(
     id: impl Into<gpui::ElementId>,
@@ -37,29 +42,77 @@ pub fn button(
     primary: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let (bg, fg, hover) = if primary {
-        (
-            tokens.btn_primary_bg,
-            tokens.btn_primary_fg,
-            tokens.btn_primary_bg,
-        )
+    let neutral = tokens.neutral;
+    let (bg, fg) = if primary {
+        (neutral.accent, neutral.accent_foreground)
     } else {
-        (
-            tokens.btn_secondary_bg,
-            tokens.text_primary,
-            tokens.btn_secondary_bg_hover,
-        )
+        (neutral.surface3, neutral.foreground)
     };
     div()
         .id(id)
-        .px(px(12.0))
-        .py(px(6.0))
-        .rounded(px(radius::R2))
+        .flex()
+        .flex_row()
+        .items_center()
+        .justify_center()
+        .gap(px(8.0))
+        .min_h(px(32.0))
+        .min_w_0()
+        .max_w_full()
+        .px(px(16.0))
+        .rounded_full()
+        .border_1()
+        .border_color(gpui::transparent_black())
         .bg(bg)
         .text_color(fg)
         .type_(Type::Label)
         .cursor_pointer()
-        .hover(move |style| style.bg(hover))
+        .active(|style| style.opacity(0.85))
+        .child(wrapping(label.into()))
+}
+
+/// A button's label: on one line while it fits, wrapped and centred when
+/// it does not (4 above and under each line block, so two lines do not
+/// touch the pill's edge).
+fn wrapping(label: SharedString) -> Div {
+    div()
+        .min_w_0()
+        .py(px(4.0))
+        .text_center()
+        .whitespace_normal()
+        .child(label)
+}
+
+/// Paseo's outline button (`variant="outline"`): no fill, a hairline of
+/// `borderAccent`, the foreground's words; the same pill as [`button`].
+/// `enabled` false fades it to half and leaves it without a pointer (the
+/// screen does not attach its click).
+#[must_use]
+pub fn outline_button(
+    id: impl Into<gpui::ElementId>,
+    label: impl Into<SharedString>,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let neutral = tokens.neutral;
+    div()
+        .id(id)
+        .flex()
+        .flex_row()
+        .flex_shrink_0()
+        .items_center()
+        .justify_center()
+        .gap(px(8.0))
+        .min_h(px(32.0))
+        .px(px(16.0))
+        .rounded_full()
+        .border_1()
+        .border_color(neutral.border_accent)
+        .text_color(neutral.foreground)
+        .type_(Type::Label)
+        .when(enabled, |button| {
+            button.cursor_pointer().active(|style| style.opacity(0.85))
+        })
+        .when(!enabled, |button| button.opacity(0.5))
         .child(label.into())
 }
 

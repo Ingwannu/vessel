@@ -35,7 +35,8 @@
 //! - `session/new`: session `fake-session-<n>`, with the options
 //!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
-//!   `effort` and `fast`.
+//!   `effort` and `fast`. With `FAKE_ACP_STARTUP_LOG` set it first writes
+//!   a real adapter's start-up log to stderr (`shapes::startup_log`).
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` and an agent message chunk `replayed <id>`, then
 //!   answers with the same options as `session/new`, as they stand. With
@@ -60,6 +61,7 @@
 //!     input, one text content), and again; then `end_turn`. A count that
 //!     is not a number gives one message chunk `error: entries <n>` (the
 //!     page's timeline measurement, `docs/PERFORMANCE.md`);
+//!   - `shapes`: a turn with a real conversation's shapes (`shapes` module);
 //!   - `env NAME`: one message chunk `env NAME=<value>` or `env NAME
 //!     unset`, from the fake's own environment, then `end_turn`;
 //!   - `mcp`: one message chunk `mcp <JSON>`, the MCP servers of the last
@@ -137,6 +139,10 @@ mod ask;
 mod describe;
 #[path = "fake_acp/options.rs"]
 mod options;
+#[path = "fake_acp/real.rs"]
+mod real;
+#[path = "fake_acp/shapes.rs"]
+mod shapes;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
@@ -303,6 +309,7 @@ async fn serve() -> ExitCode {
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
+    let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
@@ -377,6 +384,11 @@ async fn serve() -> ExitCode {
                         response
                     };
                     let session = response.session_id.clone();
+                    if startup_log {
+                        for line in shapes::startup_log(&session.0) {
+                            complain(&line);
+                        }
+                    }
                     responder.respond(response)?;
                     cx.send_notification(commands(session))
                 }
@@ -650,6 +662,7 @@ async fn run_turn(
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
+        "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
     }
     if let Some(count) = prompt.strip_prefix("entries ") {

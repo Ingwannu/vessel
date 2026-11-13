@@ -9,10 +9,9 @@
 //! in yet); the row's "…" menu is a Remove button for the same reason; a
 //! success is said in the frame's foot (the app has no toasts yet).
 
-use vessel_app_kit::segmented::{SegmentSize, segment, segmented};
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, InteractiveElement as _, ParentElement as _, Stateful,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::workspace::{Ask, Form, ProjectAsk};
@@ -23,13 +22,11 @@ use vessel_proto::ProjectId;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo, ProjectState};
 
 use super::detail::{self, Detail};
-use super::widgets::{Tone, badge, banner, divided, empty, page, row, rows, section, title};
+use super::widgets::{Tone, badge, banner, divided, empty, row, rows, section, title};
 use crate::shell::Shell;
 
 /// The page's state.
 pub(crate) struct Page {
-    /// The machine shown (`None`: the first online one).
-    pub(crate) machine: Option<String>,
     /// The project whose detail is open.
     pub(crate) detail: Option<Detail>,
     /// Whether the add menu is open.
@@ -50,7 +47,6 @@ pub(crate) struct Page {
 impl Page {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            machine: None,
             detail: None,
             menu: false,
             adding: None,
@@ -63,42 +59,17 @@ impl Page {
     }
 }
 
-/// Arriving: settle the machine shown and read its projects again (a
-/// project added from the CLI shows here).
-pub(crate) fn arrive(shell: &mut Shell) {
-    if let Some(machine) = shell.projects_machine() {
-        shell.reload_projects(&machine);
-    }
-}
-
 impl Shell {
-    /// The machine Settings > Projects shows: the one chosen if online,
-    /// else the composer's, else the first online.
+    /// The machine Settings > Projects shows: the one Settings' machine
+    /// picker chose, else the first in the book (Settings' own rule).
     pub(crate) fn projects_machine(&self) -> Option<String> {
-        let online = |name: &str| self.fleet.online().any(|machine| machine.name == name);
-        self.areas
-            .workspace
-            .page
-            .machine
-            .clone()
-            .filter(|name| online(name))
-            .or_else(|| self.areas.draft.machine.clone().filter(|name| online(name)))
-            .or_else(|| {
-                self.fleet
-                    .online()
-                    .next()
-                    .map(|machine| machine.name.clone())
-            })
-    }
-
-    fn choose_projects_machine(&mut self, machine: String, cx: &mut Context<'_, Self>) {
-        self.reload_projects(&machine);
-        let page = &mut self.areas.workspace.page;
-        page.machine = Some(machine);
-        page.detail = None;
-        page.adding = None;
-        page.menu = false;
-        cx.notify();
+        let chosen = self.areas.settings.machine.as_deref();
+        self.fleet
+            .machines
+            .iter()
+            .find(|machine| Some(machine.name.as_str()) == chosen)
+            .or_else(|| self.fleet.machines.first())
+            .map(|machine| machine.name.clone())
     }
 
     fn open_add(&mut self, form: AddForm, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -272,13 +243,33 @@ fn facts(shell: &Shell, project: &ProjectInfo) -> Vec<String> {
 }
 
 /// Settings > Projects.
-pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+pub(crate) fn render(
+    shell: &Shell,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let words = shell.words();
     let labels = words.labels();
-    let mut column = page(labels.projects_lead, tokens);
+    let mut column = div().flex().flex_col();
     let Some(machine) = shell.projects_machine() else {
-        return scrolled(column.child(empty(labels.no_machines, tokens)));
+        return column
+            .child(empty(labels.no_machines, tokens))
+            .into_any_element();
     };
+    // A machine that did not answer has no list to wait for: say why.
+    if let Some(vessel_app_view::Reach::Unreachable(why)) = shell
+        .fleet
+        .machines
+        .iter()
+        .find(|known| known.name == machine)
+        .map(|known| &known.reach)
+    {
+        let gone = Problem::Gone(why.clone());
+        return column
+            .child(empty(words.problem(&gone), tokens))
+            .into_any_element();
+    }
     let view = shell.areas.workspace.projects.get(&machine);
     if let Some(git) = view
         .and_then(ProjectsView::list)
@@ -310,39 +301,12 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 this.areas.workspace.page.detail = None;
                 cx.notify();
             }));
-        return scrolled(
-            column
-                .child(back)
-                .child(detail::render(shell, &machine, project, open, tokens, cx)),
-        );
+        return column
+            .child(back)
+            .child(detail::render(shell, &machine, project, open, tokens, cx))
+            .into_any_element();
     }
     let mut action = div().flex().flex_row().items_center().gap(px(8.0));
-    let online: Vec<String> = shell
-        .fleet
-        .online()
-        .map(|machine| machine.name.clone())
-        .collect();
-    if online.len() > 1 {
-        let mut picker = segmented(SegmentSize::Small);
-        for (index, name) in online.into_iter().enumerate() {
-            let chosen = name == machine;
-            let choice = name.clone();
-            picker = picker.child(
-                segment(
-                    ElementId::Name(format!("projects-machine-{index}").into()),
-                    name,
-                    chosen,
-                    true,
-                    SegmentSize::Small,
-                    tokens,
-                )
-                .on_click(cx.listener(move |this, _event, _window, cx| {
-                    this.choose_projects_machine(choice.clone(), cx);
-                })),
-            );
-        }
-        action = action.child(picker);
-    }
     if view.and_then(ProjectsView::list).is_some() {
         action = action.child(
             button("add-project", labels.add_project, false, tokens).on_click(cx.listener(
@@ -354,14 +318,14 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
             )),
         );
     }
-    let body = list_body(shell, &machine, view, tokens, cx);
+    let body = list_body(shell, &machine, view, tokens, compact, cx);
     column = column.child(section(
         words.projects_on(&machine),
         Some(action),
         body,
         tokens,
     ));
-    scrolled(column)
+    column.into_any_element()
 }
 
 /// The section's body: the add menu and form, the list, the banners.
@@ -370,6 +334,7 @@ fn list_body(
     machine: &str,
     view: Option<&ProjectsView>,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.words();
@@ -380,7 +345,7 @@ fn list_body(
         body = body.child(add_menu(shell, tokens, cx));
     }
     if let Some(form) = state.adding {
-        body = body.child(add_form(shell, machine, form, tokens, cx));
+        body = body.child(add_form(shell, machine, form, tokens, compact, cx));
     }
     body = body.child(match view {
         None | Some(ProjectsView::Loading) => empty(labels.loading, tokens),
@@ -434,20 +399,6 @@ fn list_body(
         ));
     }
     body
-}
-
-/// The page in a scrolled frame.
-fn scrolled(column: Div) -> Div {
-    div().size_full().child(
-        div()
-            .id("projects-page")
-            .size_full()
-            .overflow_y_scroll()
-            .flex()
-            .flex_col()
-            .items_center()
-            .child(column),
-    )
 }
 
 fn project_row(
@@ -554,6 +505,7 @@ fn add_form(
     machine: &str,
     form: AddForm,
     tokens: &Tokens,
+    compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.words();
@@ -583,10 +535,12 @@ fn add_form(
         .bg(tokens.neutral.surface1)
         .child(div().type_(Type::Title).child(heading));
     if form == AddForm::Clone {
-        card = card.child(labelled(labels.repository_url, state.url.element(), tokens));
+        let url_field = state.url.element(tokens, compact, cx);
+        card = card.child(labelled(labels.repository_url, url_field, tokens));
     }
+    let path_field = state.path.element(tokens, compact, cx);
     card = card
-        .child(labelled(folder_label, state.path.element(), tokens))
+        .child(labelled(folder_label, path_field, tokens))
         .child(
             div()
                 .type_(Type::Meta)

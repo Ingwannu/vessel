@@ -3,5 +3,21 @@
 //! one specification, checked on both sides). Each test names the page's
 //! test it follows.
 
+mod agent_status;
+mod agents;
+mod archive;
 mod board;
+mod compose_keys;
+mod devices;
+mod fixture;
+mod machines;
+mod models;
+mod notices;
 mod options;
+mod palette;
+mod prefs;
+mod settings;
+mod shortcuts;
+mod sidebar;
+mod sync;
+mod tree;
