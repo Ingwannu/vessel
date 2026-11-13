@@ -4,6 +4,7 @@
 //! test it follows.
 
 mod agent_readiness;
+mod agent_sign_in;
 mod agent_status;
 mod agents;
 mod archive;

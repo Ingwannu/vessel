@@ -37,6 +37,10 @@ fixtures). `agent_status::readiness` separately describes the node's
 installation, conversation support and authentication facts from
 `agent.status` (ADR 0032). Unknown sign-in is never inferred from a
 successful handshake; installer offers target only the missing part.
+Its row explanation includes a typed short badge and keeps the machine's
+diagnostic separate from translated instructions. Sign-in help is typed
+as labelled account, command and method steps, so a screen can copy the
+exact node-provided command without inventing a login flow.
 
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
