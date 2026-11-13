@@ -278,6 +278,40 @@ do, and a test in the kit that fails when the bar is hit over a button.
 The rule for the title bar from now on: anything clickable drawn inside
 the drag area occludes it.
 
+## Builds 0.0.0.0.4 and 0.0.0.0.5, and what the owner saw (2026-11-13)
+
+0.0.0.0.4: the window's buttons answer one click, the composer is the
+card itself, the pickers and the combined model selector after Paseo,
+every agent of the machine listed. 0.0.0.0.5: a session that ended or
+was interrupted is continued by sending in it; agents that are not
+installed are listed with how to install them.
+
+**Updates work on real Windows**: the owner's installed 0.0.0.0.4 took
+0.0.0.0.5 from the feed in two seconds and reopened as 0.0.0.0.5. The
+0.0.0.0.3 before it read the feed twice and never fetched the artifact;
+it shows nothing on failure and writes no log, so the cause is not
+known. 0.0.0.0.6 adds a log file, the updater's steps in it, and
+retries after a transient failure.
+
+**The owner on 0.0.0.0.5** (Windows 11, dark): the model selector and
+the other pickers look bad, the settings look bad, the version and
+update screen looks very bad. Their captures show a list whose long
+descriptions are drawn over the rows below (the real agent's options
+have several-line descriptions; the fake fleet's are short), a bright
+focus ring around a whole popup and around a whole panel, and an About
+page that is loose text with a chip where a switch belongs.
+
+What changes in how builds are checked:
+
+- Every picker, every level of it, and every settings screen is opened
+  against the real node's agents before a build is named, in the
+  owner's theme; the coordinator looks at every capture, not a sample.
+- The fake fleet carries the real shapes (long descriptions, many
+  values, long names, Korean), with a test.
+- No container, popup, panel or page can show a focus ring: removed at
+  the root, not screen by screen.
+- Settings pages, About included, are Paseo's settings layout.
+
 ## The browser, first report (2026-11-13)
 
 The browser track built the same `app` crate for `wasm32` (GPUI's web
