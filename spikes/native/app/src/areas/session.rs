@@ -389,27 +389,13 @@ fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     } else {
         (t.ended.to_owned(), neutral.foreground_muted)
     };
-    let mut note = div()
-        .w_full()
-        .flex()
-        .flex_col()
-        .items_center()
-        .gap(px(8.0))
-        .px(px(24.0))
-        .py(px(8.0));
+    let mut note = div().w_full().flex().flex_col().gap(px(8.0)).py(px(8.0));
     if let Some(prompt) = &view.resuming {
-        note = note.child(person(prompt, tokens));
+        note = note.child(bubble(prompt, tokens));
     }
-    Some(
-        note.child(
-            div()
-                .w_full()
-                .max_w(px(820.0))
-                .type_(Type::Meta)
-                .text_color(color)
-                .child(text),
-        ),
-    )
+    Some(column(note.child(
+        div().type_(Type::Meta).text_color(color).child(text),
+    )))
 }
 
 /// The first prompt, shown while the session starts.
@@ -439,14 +425,13 @@ fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
                 .flex_col()
                 .justify_end()
                 .child(person(&pending.prompt, tokens))
-                .child(
+                .child(column(
                     div()
-                        .px(px(24.0))
                         .py(px(8.0))
                         .type_(Type::Meta)
                         .text_color(tokens.st_building)
                         .child(t.starting_on(&pending.agent, &pending.machine)),
-                ),
+                )),
         )
 }
 
@@ -489,19 +474,12 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
-    div()
-        .w_full()
-        .flex()
-        .justify_center()
-        .px(px(16.0))
-        .pb(px(12.0))
-        .child(
-            div().w_full().max_w(px(820.0)).child(
-                vessel_app_kit::composer_card(tokens, touch)
-                    .child(field.element(tokens, touch, cx))
-                    .child(div().flex().flex_row().justify_end().child(button)),
-            ),
-        )
+    column(
+        vessel_app_kit::composer_card(tokens, touch)
+            .child(field.element(tokens, touch, cx))
+            .child(div().flex().flex_row().justify_end().child(button)),
+    )
+    .pb(px(12.0))
 }
 
 /// The oldest permission waiting: what it is for, and a button per answer
@@ -556,8 +534,35 @@ fn first_line(prompt: &str) -> String {
         .collect()
 }
 
+/// Paseo's chat column (`agent-stream/view.tsx`, `composer/dock`): the
+/// conversation and the composer share one column, at most 820 wide in
+/// the middle, 16 from the window's edges, so the composer's card and the
+/// messages start at the same left edge (the owner, on 0.0.0.0.5: the card
+/// was narrower than the conversation and did not line up with it).
+const COLUMN_WIDTH: f32 = 820.0;
+
+/// The column's distance from the window's edges.
+const COLUMN_INSET: f32 = 16.0;
+
+/// `content` in the chat column.
+fn column(content: impl IntoElement) -> Div {
+    div()
+        .w_full()
+        .flex()
+        .flex_row()
+        .justify_center()
+        .px(px(COLUMN_INSET))
+        .child(div().w_full().max_w(px(COLUMN_WIDTH)).child(content))
+}
+
+/// A person's message, in the chat column.
 fn person(text: &str, tokens: &Tokens) -> Div {
-    div().w_full().px(px(24.0)).py(px(6.0)).child(
+    column(bubble(text, tokens))
+}
+
+/// A person's message: its bubble, 6 above and under.
+fn bubble(text: &str, tokens: &Tokens) -> Div {
+    div().w_full().py(px(6.0)).child(
         div()
             .p(px(10.0))
             .bg(tokens.bg_surface)
@@ -570,14 +575,19 @@ fn person(text: &str, tokens: &Tokens) -> Div {
     )
 }
 
+/// A conversation's entry, in the chat column.
 fn entry(shell: &Shell, index: usize, tokens: &Tokens) -> AnyElement {
+    column(entry_content(shell, index, tokens)).into_any_element()
+}
+
+fn entry_content(shell: &Shell, index: usize, tokens: &Tokens) -> AnyElement {
     let t = shell.t;
     let Some(entry) = shell.areas.session.conversation.entries().get(index) else {
         return div().into_any_element();
     };
-    let row = div().w_full().px(px(24.0)).py(px(6.0));
+    let row = div().w_full().py(px(6.0));
     match entry.speaker {
-        Speaker::Person => person(&entry.text, tokens).into_any_element(),
+        Speaker::Person => bubble(&entry.text, tokens).into_any_element(),
         Speaker::Agent => row
             .type_(Type::Body)
             .text_color(tokens.text_primary)

@@ -12,11 +12,16 @@
 //! - `modes`: no config options; ACP's older `modes`, `default` and `plan`,
 //!   set with `session/set_mode`.
 //! - `none`: neither.
+//! - `real`: the shapes a real agent sends (`real` module): many values,
+//!   descriptions of several lines, long and Korean names, an unnamed
+//!   on/off option.
 //!
 //! The values live as long as the process, across `session/new` and
 //! `session/load`, as the model always has.
 
 use agent_client_protocol::Error;
+
+use crate::real::Real;
 use agent_client_protocol::v1::schema::{
     ConfigOptionUpdate, CurrentModeUpdate, SessionConfigOption, SessionConfigOptionCategory,
     SessionConfigOptionValue, SessionConfigSelectGroup, SessionConfigSelectOption, SessionMode,
@@ -34,6 +39,7 @@ enum Shape {
     Config,
     Modes,
     None,
+    Real,
 }
 
 /// The fake's options and their values.
@@ -44,6 +50,7 @@ pub(crate) struct Options {
     mode: String,
     effort: String,
     fast: bool,
+    real: Real,
 }
 
 impl Options {
@@ -51,6 +58,7 @@ impl Options {
         let shape = match std::env::var("FAKE_ACP_OPTIONS").as_deref() {
             Ok("modes") => Shape::Modes,
             Ok("none") => Shape::None,
+            Ok("real") => Shape::Real,
             Ok(_) | Err(_) => Shape::Config,
         };
         Self {
@@ -59,12 +67,17 @@ impl Options {
             mode: "default".to_owned(),
             effort: "high".to_owned(),
             fast: false,
+            real: Real::new(),
         }
     }
 
     /// What `session/new` and `session/load` answer as `configOptions`.
     pub(crate) fn config(&self) -> Option<Vec<SessionConfigOption>> {
-        (self.shape == Shape::Config).then(|| self.all())
+        match self.shape {
+            Shape::Config => Some(self.all()),
+            Shape::Real => Some(self.real.all()),
+            Shape::Modes | Shape::None => None,
+        }
     }
 
     /// What they answer as `modes`.
@@ -112,6 +125,9 @@ impl Options {
         id: &str,
         value: &SessionConfigOptionValue,
     ) -> Result<Vec<SessionConfigOption>, Error> {
+        if self.shape == Shape::Real {
+            return self.real.set(id, value);
+        }
         if self.shape != Shape::Config {
             return Err(Error::invalid_params());
         }
@@ -168,7 +184,7 @@ impl Options {
                     mode.to_owned(),
                 )))
             }
-            Shape::Config | Shape::Modes | Shape::None => None,
+            Shape::Config | Shape::Modes | Shape::None | Shape::Real => None,
         }
     }
 

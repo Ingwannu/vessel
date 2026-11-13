@@ -32,7 +32,14 @@ fi
 target=${3:?the debug binaries directory}
 mkdir -p "$root/bin" "$root/config" "$root/work"
 for name in claude codex; do ln -sf "$target/fake-tui" "$root/bin/$name"; done
-for name in claude-agent-acp codex-acp; do ln -sf "$target/fake-acp" "$root/bin/$name"; done
+# Claude Code's adapter offers what the real one sends (many models,
+# subagents with descriptions of several lines, long and Korean names, an
+# on/off option with no name: FAKE_ACP_OPTIONS=real); Codex's the fake's
+# small default set.
+rm -f "$root/bin/claude-agent-acp"
+printf '#!/bin/sh\nFAKE_ACP_OPTIONS=real exec "%s" "$@"\n' "$target/fake-acp" > "$root/bin/claude-agent-acp"
+chmod 755 "$root/bin/claude-agent-acp"
+ln -sf "$target/fake-acp" "$root/bin/codex-acp"
 base_path="$root/bin:/usr/local/bin:/usr/bin:/bin"
 
 free_port() {
