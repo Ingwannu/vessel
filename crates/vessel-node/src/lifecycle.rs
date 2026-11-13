@@ -46,6 +46,12 @@ impl Lifecycle {
         }
     }
 
+    /// Cancelled when the node stops: for tasks of the service's own
+    /// that should end with it (protocol 11's notices).
+    pub(crate) fn stopping(&self) -> CancellationToken {
+        self.stop.clone()
+    }
+
     /// The node's current description.
     pub(crate) fn info(&self) -> NodeInfo {
         self.info.borrow().clone()

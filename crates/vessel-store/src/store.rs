@@ -2,6 +2,7 @@
 //! `conversation`'s, attachments `attached`'s.
 
 mod attached;
+mod automation;
 mod conversation;
 mod forge;
 

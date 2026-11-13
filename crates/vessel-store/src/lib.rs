@@ -51,6 +51,7 @@
 mod again;
 mod agents_file;
 mod attachments;
+mod automation;
 mod codec;
 mod config;
 mod data_dir;
@@ -74,6 +75,7 @@ pub use again::EndedSession;
 pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
+pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, StoredDevice};

@@ -207,6 +207,22 @@ uuid_id! {
     TerminalId
 }
 
+uuid_id! {
+    /// A schedule (protocol 11, ADR 0033).
+    ScheduleId
+}
+
+uuid_id! {
+    /// A saved prompt (protocol 11, ADR 0033).
+    SavedPromptId
+}
+
+uuid_id! {
+    /// A webhook (protocol 11, ADR 0034). Random, and in the hook's path,
+    /// but not a secret: every request is signed with the hook's own.
+    HookId
+}
+
 opaque_id! {
     /// The harness's own session id (an ACP `sessionId`). Kept so a
     /// structured session can be resumed by the harness after a node restart.

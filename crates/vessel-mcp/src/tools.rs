@@ -23,6 +23,7 @@
 //!   busy loop.
 
 mod args;
+mod automation;
 mod conversation;
 mod forge;
 mod lsp;
@@ -72,7 +73,8 @@ const EARLY_PAUSE: Duration = Duration::from_secs(1);
 pub struct VesselTools {
     client: Arc<NodeClient>,
     /// The session whose agent this is, when known: where
-    /// `create_terminal` opens one by default.
+    /// `create_terminal` opens one by default, and a heartbeat's target
+    /// (protocol 11).
     own: Option<SessionId>,
 }
 
@@ -90,7 +92,7 @@ impl VesselTools {
     }
 
     /// The same tools, knowing the agent's own session (`vessel mcp` reads
-    /// it from its environment).
+    /// it from its environment; `create_heartbeat` prompts it).
     #[must_use]
     pub const fn with_own_session(mut self, session: SessionId) -> Self {
         self.own = Some(session);
@@ -123,6 +125,10 @@ impl VesselTools {
             | "archive_session" => self.conversation(name, args).await,
             "create_terminal" | "list_terminals" | "read_terminal" | "write_terminal"
             | "close_terminal" | "list_ports" => self.terminals(name, args).await,
+            "create_schedule" | "create_heartbeat" | "list_schedules" | "schedule_runs"
+            | "pause_schedule" | "resume_schedule" | "delete_schedule" | "list_saved_prompts" => {
+                self.automation(name, args).await
+            }
             "kill_session" => {
                 let node = self.target(args).await?;
                 let session = session(args)?;
@@ -272,6 +278,7 @@ fn tools() -> Vec<Tool> {
         .chain(workspace::tools(&node))
         .chain(forge::tools(&node, &session))
         .chain(terminals::tools(&node))
+        .chain(automation::tools())
         .chain(lsp::tools())
         .collect()
 }

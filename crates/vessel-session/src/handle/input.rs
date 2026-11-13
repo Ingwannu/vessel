@@ -7,7 +7,7 @@ use tokio::sync::{oneshot, watch};
 use vessel_agent::AgentInput;
 use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    ContentBlock, Creator, Delivered, Delivery, QueueChange, SessionInput, TerminalInput,
+    ContentBlock, Creator, Delivered, Delivery, EventSeq, QueueChange, SessionInput, TerminalInput,
 };
 use vessel_pty::WindowSize;
 
@@ -55,6 +55,7 @@ impl SessionHandle {
                             content,
                             delivery: Delivery::Start,
                             by: Creator::Owner,
+                            turn: None,
                             reply,
                         })
                     })
@@ -113,10 +114,45 @@ impl SessionHandle {
                 content,
                 delivery,
                 by,
+                turn: None,
                 reply,
             })
         })
         .await
+    }
+
+    /// As [`prompt`](Self::prompt), and which turn the prompt started or
+    /// joined (protocol 11's `notify`): the receiver is given the seq of
+    /// that turn's `turn_started` record once it is published (for a
+    /// queued prompt, when its entry starts a turn), and closes without
+    /// one if it never starts a turn (removed from the queue, or the
+    /// session ended first).
+    ///
+    /// # Errors
+    /// As [`prompt`](Self::prompt).
+    pub async fn prompt_tracked(
+        &self,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+        by: Creator,
+    ) -> Result<(Delivered, oneshot::Receiver<EventSeq>), SessionError> {
+        if content.is_empty() {
+            return Err(DeliveryError::Empty.into());
+        }
+        let route = self.structured("a queue")?;
+        let (ticket, turn) = oneshot::channel();
+        let delivered = self
+            .order(route, |reply| {
+                Control::Deliver(Deliver {
+                    content,
+                    delivery,
+                    by,
+                    turn: Some(ticket),
+                    reply,
+                })
+            })
+            .await?;
+        Ok((delivered, turn))
     }
 
     /// Change the queue (protocol 10's `session.queue`); the queue after,
