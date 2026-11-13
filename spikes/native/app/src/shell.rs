@@ -158,6 +158,7 @@ impl Shell {
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),
             Event::BookUnreadable(fault) => self.book_unreadable(&fault),
+            Event::SessionLost { session, why } => self.session_lost(session, why),
             Event::Acted(answer) => {
                 if let Some(answer) = self.board_acted(answer, cx) {
                     self.acted(answer, cx);

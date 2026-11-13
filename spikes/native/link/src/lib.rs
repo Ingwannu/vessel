@@ -301,6 +301,16 @@ pub enum Event {
     },
     /// Something failed; the words to show.
     Failed(String),
+    /// The session's machine is not connected any more (its records
+    /// stopped, or a prompt or input found no connection): said once in the
+    /// session's bar in the app's words; `why`, the transport's own words,
+    /// only in that line's tooltip.
+    SessionLost {
+        /// The session.
+        session: SessionId,
+        /// The transport's words.
+        why: String,
+    },
     /// The machine list does not read (the app words it, in its language;
     /// a pairing under way stops with the same words).
     BookUnreadable(vessel_app_view::files::FileFault),
@@ -659,9 +669,8 @@ impl State {
             let events = self.events.clone();
             let machine = machine.to_owned();
             drop(tokio::spawn(async move {
-                let _closed = events
-                    .send(Event::Failed(LinkError::NotConnected(machine).to_string()))
-                    .await;
+                let why = LinkError::NotConnected(machine).to_string();
+                let _closed = events.send(Event::SessionLost { session, why }).await;
             }));
             return;
         };
@@ -703,10 +712,8 @@ impl State {
 
     async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            self.emit(Event::Failed(
-                LinkError::NotConnected(machine.to_owned()).to_string(),
-            ))
-            .await;
+            let why = LinkError::NotConnected(machine.to_owned()).to_string();
+            self.emit(Event::SessionLost { session, why }).await;
             return;
         };
         let content = vec![ContentBlock::Text { text }];
@@ -738,10 +745,8 @@ impl State {
 
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            self.emit(Event::Failed(
-                LinkError::NotConnected(machine.to_owned()).to_string(),
-            ))
-            .await;
+            let why = LinkError::NotConnected(machine.to_owned()).to_string();
+            self.emit(Event::SessionLost { session, why }).await;
             return;
         };
         if let Err(error) = client.send(session, input).await {
@@ -768,10 +773,11 @@ fn unreachable(name: String, why: &str) -> Machine {
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
+    let lost = |why: String| Event::SessionLost { session, why };
     let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
         Ok(stream) => stream,
         Err(error) => {
-            let _closed = events.send(Event::Failed(error.to_string())).await;
+            let _closed = events.send(lost(error.to_string())).await;
             return;
         }
     };
@@ -787,7 +793,7 @@ async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Eve
                 }
             }
             Err(error) => {
-                let _closed = events.send(Event::Failed(error.to_string())).await;
+                let _closed = events.send(lost(error.to_string())).await;
                 return;
             }
         }
