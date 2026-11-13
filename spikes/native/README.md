@@ -110,6 +110,11 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
+`kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
+warning, error and muted variants; small and extra-small sizes; optional
+leading content; semantic status tokens separate from board lane colours.
+Labels remain whole and explanations belong below their row.
+
 ### Rules every screen follows
 
 - Words through `view/src/text/` only; English and Korean together.

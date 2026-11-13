@@ -15,6 +15,7 @@
 //! filter (stderr and the log file, `vessel_app_log::dir()`).
 
 mod areas;
+pub mod badge;
 mod chrome;
 mod routes;
 mod shell;
