@@ -130,7 +130,16 @@ tab's refresh button reads the open tab again.
 The Files tab searches: a file by its name as it is typed (`file.find`,
 keyed so a newer search stops an older one) or lines inside files on
 Enter (`file.grep`, literal, smart case), the two chosen by a segmented
-control beside the field; a hit opens the file at its line. In a file
+control beside the field; a hit opens the file at its line. A line
+over the results says how many were found, and when the machine
+stopped early (a find over part of a large folder, a search in files
+past its 200 lines) it says so and asks for a narrower search. What
+made a result match is marked as Paseo's `components/ui/highlighted-text.tsx`
+marks it (the surface3 tint, the text in the foreground): a name's
+matched characters (the node counts them over the whole path, so the
+name and its folder are marked apart) and the words on a line (moved
+by the indent the row takes off). Paseo's explorer has no search
+inside files; the count line is this panel's own. In a file
 shown, a click on a line's number chooses it, Shift-click extends the
 choice, and "Add lines 12–20 to chat" puts agent-orchestrator's
 reference (the page's `reference.ts`) at the end of the session's

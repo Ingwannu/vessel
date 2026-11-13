@@ -59,6 +59,9 @@ pub(super) struct Search {
     key: SearchKey,
     pub(super) results: Results,
     pub(super) list: VirtualList,
+    /// How many characters the last search in files looked for: each
+    /// line's mark runs that far from the node's column.
+    pub(super) width: u32,
 }
 
 impl Search {
@@ -76,6 +79,7 @@ impl Search {
             key: keys.next(),
             results: Results::Idle,
             list: VirtualList::new(false),
+            width: 0,
         }
     }
 
@@ -136,6 +140,7 @@ impl Shell {
                     search.list.reset(0);
                     return;
                 };
+                search.width = u32::try_from(text.chars().count()).unwrap_or(u32::MAX);
                 FileAsk::Grep(SearchFiles {
                     root,
                     query,

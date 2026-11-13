@@ -655,6 +655,22 @@ impl WorkspaceWords for Ko {
         }
     }
 
+    fn found_count(&self, files: usize, searched: u32, complete: bool) -> String {
+        if complete {
+            format!("파일 {files}개")
+        } else {
+            format!("파일 {files}개 · 앞쪽 파일 {searched}개만 검색했습니다")
+        }
+    }
+
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String {
+        if more {
+            format!("처음 {lines}줄만 보입니다(파일 {files}개). 더 있으니 검색어를 좁혀 보세요")
+        } else {
+            format!("파일 {files}개에서 {lines}줄")
+        }
+    }
+
     fn digest(&self, digest: &str) -> String {
         format!("다이제스트 {digest}")
     }

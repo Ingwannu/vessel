@@ -25,6 +25,11 @@ fn counted(count: u64, one: &str, many: &str) -> String {
     format!("{count} {}", if count == 1 { one } else { many })
 }
 
+/// [`counted`] for a length.
+fn counted_len(count: usize, one: &str, many: &str) -> String {
+    counted(u64::try_from(count).unwrap_or(u64::MAX), one, many)
+}
+
 /// `text` with its first letter in capitals.
 fn sentence(text: &str) -> String {
     let mut characters = text.chars();
@@ -671,6 +676,25 @@ impl WorkspaceWords for En {
             format!("Add line {first} to chat")
         } else {
             format!("Add lines {first}\u{2013}{last} to chat")
+        }
+    }
+
+    fn found_count(&self, files: usize, searched: u32, complete: bool) -> String {
+        let found = counted_len(files, "file", "files");
+        if complete {
+            found
+        } else {
+            format!("{found}, from the first {searched} searched")
+        }
+    }
+
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String {
+        let lines = counted_len(lines, "line", "lines");
+        let files = counted_len(files, "file", "files");
+        if more {
+            format!("The first {lines}, in {files}; there are more. Narrow the search to see them.")
+        } else {
+            format!("{lines} in {files}")
         }
     }
 

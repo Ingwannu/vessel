@@ -216,6 +216,14 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     /// The code panel's file view, its button when lines are chosen
     /// ("Add lines 12–20 to chat"); one line when `first` is `last`.
     fn add_lines(&self, first: usize, last: usize) -> String;
+    /// The code panel's search by name, the line above its results: how
+    /// many files match; `searched` files were looked at, every file of
+    /// the folder when `complete`.
+    fn found_count(&self, files: usize, searched: u32, complete: bool) -> String;
+    /// The code panel's search in files, the line above its results: how
+    /// many lines in how many files; `more` when the machine stopped
+    /// before the last line that matches.
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String;
     /// An edited command's old text.
     fn was(&self, command: &str) -> String;
 
