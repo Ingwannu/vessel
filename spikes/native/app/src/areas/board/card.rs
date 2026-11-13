@@ -404,61 +404,80 @@ fn actions(
         .any(|asked| asked.machine == card.machine && asked.session == card.session);
     let id = |what: &str| ElementId::Name(format!("card-{what}-{}", card.session).into());
     let asking = |ask: Ask| Asking::of(ask, card);
+    let words = shell.t.lang.board();
+    let place_touch = place.narrow;
+    // Each icon button says what it does on hover (the kit's tooltip).
+    let tip = |button: Stateful<Div>, what: &str, text: &'static str| -> AnyElement {
+        let key = format!("card-{what}-{}", card.session);
+        let place = std::rc::Rc::clone(
+            shell
+                .areas
+                .board
+                .places
+                .borrow_mut()
+                .entry(key)
+                .or_insert_with(|| std::rc::Rc::new(std::cell::Cell::new(None))),
+        );
+        shell
+            .areas
+            .board
+            .tips
+            .on(button.relative(), &place, text, place_touch)
+            .into_any_element()
+    };
     let buttons: Vec<AnyElement> =
         match card.actions(shell.fleet.protocol_of(&card.machine), place.archive) {
             CardActions::None => return None,
             CardActions::Kill => {
                 let asking = asking(Ask::Kill);
-                vec![
-                    icon_button(
-                        id("kill"),
-                        Glyph::Stop,
-                        Some(tokens.neutral.destructive),
-                        !busy,
-                        tokens,
-                    )
-                    .when(!busy, |button| {
+                let button = icon_button(
+                    id("kill"),
+                    Glyph::Stop,
+                    Some(tokens.neutral.destructive),
+                    !busy,
+                    tokens,
+                )
+                .when(!busy, |button| {
+                    button.on_click(cx.listener(move |shell, _event, window, cx| {
+                        cx.stop_propagation();
+                        shell.ask_card(asking.clone(), window, cx);
+                    }))
+                });
+                vec![tip(button, "kill", words.kill)]
+            }
+            CardActions::Archive => {
+                let asking = asking(Ask::Archive);
+                let button = icon_button(id("archive"), Glyph::Archive, None, !busy, tokens).when(
+                    !busy,
+                    |button| {
                         button.on_click(cx.listener(move |shell, _event, window, cx| {
                             cx.stop_propagation();
                             shell.ask_card(asking.clone(), window, cx);
                         }))
-                    })
-                    .into_any_element(),
-                ]
-            }
-            CardActions::Archive => {
-                let asking = asking(Ask::Archive);
-                vec![
-                    icon_button(id("archive"), Glyph::Archive, None, !busy, tokens)
-                        .when(!busy, |button| {
-                            button.on_click(cx.listener(move |shell, _event, window, cx| {
-                                cx.stop_propagation();
-                                shell.ask_card(asking.clone(), window, cx);
-                            }))
-                        })
-                        .into_any_element(),
-                ]
+                    },
+                );
+                vec![tip(button, "archive", words.archive_session)]
             }
             CardActions::Restore { again } => {
                 let restore = asking(Ask::Delete);
                 let delete = restore.clone();
+                let restore_button = icon_button(id("restore"), Glyph::Reset, None, !busy, tokens)
+                    .when(!busy, |button| {
+                        button.on_click(cx.listener(move |shell, _event, _window, cx| {
+                            cx.stop_propagation();
+                            shell.restore_card(&restore, again, cx);
+                        }))
+                    });
+                let delete_button = icon_button(id("delete"), Glyph::Trash, None, !busy, tokens)
+                    .when(!busy, |button| {
+                        button.on_click(cx.listener(move |shell, _event, window, cx| {
+                            cx.stop_propagation();
+                            shell.ask_card(delete.clone(), window, cx);
+                        }))
+                    });
                 vec![
-                    icon_button(id("restore"), Glyph::Reset, None, !busy, tokens)
-                        .when(!busy, |button| {
-                            button.on_click(cx.listener(move |shell, _event, _window, cx| {
-                                cx.stop_propagation();
-                                shell.restore_card(&restore, again, cx);
-                            }))
-                        })
-                        .into_any_element(),
-                    icon_button(id("delete"), Glyph::Trash, None, !busy, tokens)
-                        .when(!busy, |button| {
-                            button.on_click(cx.listener(move |shell, _event, window, cx| {
-                                cx.stop_propagation();
-                                shell.ask_card(delete.clone(), window, cx);
-                            }))
-                        })
-                        .into_any_element(),
+                    tip(restore_button, "restore", words.unarchive),
+                    tip(delete_button, "delete", words.delete_permanently),
                 ]
             }
         };

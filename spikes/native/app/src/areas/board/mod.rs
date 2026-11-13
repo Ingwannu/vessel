@@ -34,11 +34,15 @@ use vessel_app_view::board::{ArchivePage, Board, TICK};
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The least width of a lane (the page's `--lane-min-w`).
-const LANE_MIN: f32 = 256.0;
+/// The least width of a lane. The page's `--lane-min-w` is 256; here
+/// 240, so that the four lanes share the board's width at the default
+/// window (1280) with the sidebar open, where the board is about 1,010
+/// wide (at 256 the fourth lane was cut at the right edge, the
+/// coordinator's capture of 0.0.0.0.8's board).
+const LANE_MIN: f32 = 240.0;
 
 /// Four lanes at their least: past it the board scrolls sideways.
-const LANES_MIN: f32 = 1024.0;
+const LANES_MIN: f32 = 960.0;
 
 /// A lane's heading (the page's `--lane-head-h`).
 const LANE_HEAD: f32 = 48.0;
@@ -62,6 +66,11 @@ pub(crate) struct BoardArea {
     pub(crate) page: ArchivePage,
     /// Acts asked from a card, until the node answers.
     pub(crate) asked: Vec<acts::Asked>,
+    /// The cards' buttons' tooltips (what an icon button does).
+    pub(crate) tips: vessel_app_kit::Tooltips,
+    /// Where each card's button was drawn, by its element id.
+    pub(crate) places:
+        std::cell::RefCell<std::collections::HashMap<String, vessel_app_kit::tooltip::Place>>,
 }
 
 impl BoardArea {
@@ -90,6 +99,8 @@ impl BoardArea {
             search: String::new(),
             page: ArchivePage::default(),
             asked: Vec::new(),
+            tips: vessel_app_kit::Tooltips::new(),
+            places: std::cell::RefCell::new(std::collections::HashMap::new()),
         }
     }
 }
@@ -154,6 +165,7 @@ pub(crate) fn render(
         .child(body)
         .children(archive.map(|dialog| div().id("board-archive").child(dialog)))
         .children(confirm.map(|dialog| div().id("board-confirm").child(dialog)))
+        .children(shell.areas.board.tips.render(tokens))
         .into_any_element()
 }
 
