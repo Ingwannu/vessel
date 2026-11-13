@@ -137,6 +137,18 @@ pub const fn scheme_of(appearance: WindowAppearance) -> Scheme {
     }
 }
 
+/// Draw text at `interface` and `code` points (Settings › Appearance):
+/// every step of the type scale, and the component layer's text (the
+/// replies' Markdown) with them; the windows are drawn again when either
+/// changed.
+pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
+    if fonts::set_sizes(interface, code) {
+        let tokens = tokens(cx);
+        field::apply_tokens(cx, &tokens);
+        cx.refresh_windows();
+    }
+}
+
 /// Switch the theme, and the component layer's colours with it.
 pub fn set_scheme(cx: &mut App, scheme: Scheme) {
     let tokens = Tokens::of(scheme);

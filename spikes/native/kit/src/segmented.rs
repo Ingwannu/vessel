@@ -92,7 +92,7 @@ pub fn segment(
         .px(px(padding))
         .rounded_full()
         .type_(Type::Body)
-        .text_size(px(text))
+        .text_size(px(crate::fonts::ui(text)))
         .text_color(if chosen {
             tokens.text_primary
         } else {

@@ -315,7 +315,7 @@ fn table() -> StyleRefinement {
         .bg(gpui::transparent_black())
         .border_color(gpui::transparent_black())
         .rounded(px(0.0))
-        .text_size(px(TABLE_SIZE));
+        .text_size(px(crate::fonts::ui(TABLE_SIZE)));
     style.overflow.x = Some(Overflow::Scroll);
     style
 }
@@ -350,7 +350,7 @@ fn corner(
         .children(lang.filter(|lang| !lang.is_empty()).map(|lang| {
             div()
                 .font_family(MONO)
-                .text_size(px(LANGUAGE_SIZE))
+                .text_size(px(crate::fonts::code(LANGUAGE_SIZE)))
                 .text_color(look.quiet.opacity(0.72))
                 .child(lang)
         }))

@@ -94,7 +94,7 @@ pub fn tab(
         .px(px(8.0))
         .rounded(px(6.0))
         .type_(Type::Body)
-        .text_size(px(14.0))
+        .text_size(px(crate::fonts::ui(14.0)))
         .text_color(if chosen {
             tokens.text_primary
         } else {

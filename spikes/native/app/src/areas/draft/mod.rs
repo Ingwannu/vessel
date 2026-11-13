@@ -480,8 +480,8 @@ pub(crate) fn render(
         .child(
             div()
                 .type_(Type::Title)
-                .text_size(px(22.0))
-                .line_height(px(28.0))
+                .text_size(px(vessel_app_kit::fonts::ui(22.0)))
+                .line_height(px(vessel_app_kit::fonts::ui(28.0)))
                 .text_color(neutral.foreground)
                 .child(t.welcome),
         )

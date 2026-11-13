@@ -119,7 +119,7 @@ impl Tooltips {
             .border_color(neutral.border_accent)
             .shadow(popup::shadow_md(tokens))
             .type_(Type::Body)
-            .line_height(px(LINE))
+            .line_height(px(crate::fonts::ui(LINE)))
             .text_color(neutral.foreground)
             .child(tip.text);
         Some(

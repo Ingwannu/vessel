@@ -181,10 +181,11 @@ impl Shell {
                 match change {
                     PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
+                    PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
+                        apply_text_sizes(self, cx);
+                    }
                     // Read where they are drawn, on the next frame.
-                    PreferenceChange::InterfaceSize(_)
-                    | PreferenceChange::CodeSize(_)
-                    | PreferenceChange::ContentWidth(_)
+                    PreferenceChange::ContentWidth(_)
                     | PreferenceChange::Conversation(_)
                     | PreferenceChange::SidebarPanel(_)
                     | PreferenceChange::InspectorPanel(_)
@@ -292,10 +293,25 @@ pub(crate) fn apply_composer(shell: &Shell, window: &mut Window, cx: &mut App) {
         .set_placeholder(&placeholder, window, cx);
 }
 
+/// The interface's and code's text sizes, drawn everywhere (the kit's
+/// type scale); the conversation's rows measured again at them.
+pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
+    let appearance = &shell.prefs.settings.appearance;
+    vessel_app_kit::set_text_sizes(
+        cx,
+        appearance.interface_size.get(),
+        appearance.code_size.get(),
+    );
+    let list = &shell.areas.conversation.list;
+    list.changed(0..list.rows());
+    shell.areas.session.entries.remeasure();
+}
+
 /// At start: the kept theme, and the system's appearance followed while
-/// the theme is "System"; the composers' send shortcut.
+/// the theme is "System"; the text sizes; the composers' send shortcut.
 pub(crate) fn start(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     apply_theme(shell, window, cx);
+    apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
     cx.observe_window_appearance(window, |shell, window, cx| {
         apply_theme(shell, window, cx);
@@ -365,8 +381,8 @@ pub(crate) const fn drawn(section: Section) -> bool {
 /// they change is drawn.
 pub(crate) const fn applied(list: List) -> bool {
     match list {
-        List::Machine | List::Send => true,
-        List::Delivery | List::Interface | List::Code | List::Width | List::Display => false,
+        List::Machine | List::Send | List::Interface | List::Code => true,
+        List::Delivery | List::Width | List::Display => false,
     }
 }
 
