@@ -129,6 +129,7 @@ impl Shell {
                 harness,
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
+            Event::Acted(answer) => self.acted(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
