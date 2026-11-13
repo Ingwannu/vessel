@@ -399,23 +399,31 @@ fn sparkles(id: &ElementId, motion: Motion) -> AnyElement {
         .into_any_element()
 }
 
-/// A sheen's width.
-const SHEEN: f32 = 56.0;
+/// Half a sheen's width.
+const HALF_SHEEN: f32 = 28.0;
+/// A sheen's light at its middle.
+const SHEEN_LIGHT: f32 = 0.32;
 
 /// A soft light band crossing the fill, quickly (fast mode on).
 fn sheen(id: &ElementId) -> AnyElement {
     let band = |delta: f32| {
+        // Clear, light, clear: two halves, each a two-stop gradient.
+        let half = |from: f32, to: f32| {
+            div().h_full().w(px(HALF_SHEEN)).bg(linear_gradient(
+                90.0,
+                linear_color_stop(white().opacity(from), 0.0),
+                linear_color_stop(white().opacity(to), 1.0),
+            ))
+        };
         div()
             .absolute()
             .top_0()
             .bottom_0()
             .left(relative(delta.mul_add(1.4, -0.3)))
-            .w(px(SHEEN))
-            .bg(linear_gradient(
-                90.0,
-                linear_color_stop(white().opacity(0.0), 0.0),
-                linear_color_stop(white().opacity(0.28), 1.0),
-            ))
+            .flex()
+            .flex_row()
+            .child(half(0.0, SHEEN_LIGHT))
+            .child(half(SHEEN_LIGHT, 0.0))
     };
     div()
         .absolute()
