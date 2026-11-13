@@ -71,18 +71,35 @@ impl Book {
     }
 
     /// Note `run` (made, or a later outcome of one): it becomes `id`'s
-    /// current run unless it is a skip or older than the current one (a
-    /// late word about a run since overtaken).
+    /// current run when it reached its target (a session started or
+    /// prompted, or one made before its call failed) and is not older than
+    /// the current one (a late word about a run since overtaken). A skip, a
+    /// run refused before it reached anything (no room, a scope), or one
+    /// interrupted, does not stand for the run before it: under `keep`, the
+    /// next run would start a second session beside a live one (the join's
+    /// code review, finding 7).
     pub(super) fn noted(&mut self, id: ScheduleId, run: &ScheduleRun) {
         let Some(entry) = self.entries.get_mut(&id) else {
             return;
         };
-        let skip = matches!(run.outcome, RunOutcome::Skipped { .. });
+        // A run being made has reached nothing yet: it is noted by its
+        // outcome (the `making` flag keeps the next from starting meanwhile).
+        let reached = match &run.outcome {
+            RunOutcome::Started { .. }
+            | RunOutcome::Waiting { .. }
+            | RunOutcome::Finished { .. }
+            | RunOutcome::Prompted { .. } => true,
+            RunOutcome::Failed { session, .. } => session.is_some(),
+            RunOutcome::Making
+            | RunOutcome::Skipped { .. }
+            | RunOutcome::Interrupted
+            | RunOutcome::Unknown => false,
+        };
         let older = entry
             .current
             .as_ref()
             .is_some_and(|current| current.number > run.number);
-        if !skip && !older {
+        if reached && !older {
             entry.current = Some(run.clone());
         }
     }

@@ -477,6 +477,7 @@ vessel schedule list
 vessel schedule runs nightly                # what each run came to
 vessel schedule run nightly                 # once now
 vessel schedule edit nightly --cron "0 8 * * 1-5"
+vessel schedule edit nightly --keep         # the rest of its session as it was
 vessel schedule pause nightly
 vessel prompt save review --project app --text "Review the open pull requests"
 vessel prompt run review --session 3f2a     # into its queue
@@ -485,8 +486,15 @@ vessel prompt run review --session 3f2a     # into its queue
 - A run acts as whoever last made or changed the schedule, as they are
   when it runs: a revoked device's schedules end, an agent's end with its
   session. A new session's run is archived after its first turn unless
-  `--keep`; nobody is asked questions in it, and a permission it asks
+  `--keep` (its terminals and services end with it, as when a person
+  archives); nobody is asked questions in it, and a permission it asks
   makes the run wait (the next due times are skipped meanwhile).
+- `--harness` names one of the four or an agent added on the node
+  (`vessel agents`). A schedule or a saved prompt is named by its whole
+  id, or by its name or the start of its id when only one matches.
+- At most four runs are made at once and eight scheduled sessions are in
+  their first turn; the rest wait, the oldest due first. `schedule run`
+  answers `unavailable` after 30 s without room.
 - A time the clocks skip runs once at the jump; a time they repeat runs
   once. Due times missed while the node was stopped give one run (the
   latest, if less than a day old; `--catch-up skip` for none).

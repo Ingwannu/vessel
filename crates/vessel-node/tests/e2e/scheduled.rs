@@ -168,22 +168,15 @@ async fn a_scheduled_session_is_watched_and_put_away_with_what_runs_beside_it() 
         let archived = info_until(&owner, session, |info| info.marks.archived_at.is_some()).await;
         assert!(archived.pull_request.is_none(), "{archived:?}");
         nothing_watched(&owner).await;
-        let service = step("the service ends", async {
-            loop {
-                let now = terminal(&owner, &service).await;
-                if !now.is_live() {
-                    return now;
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-            }
-        })
-        .await;
+        // The archive shows before what ran beside it has ended (the run
+        // archives, then ends them; nobody waits on its reply): wait for
+        // each.
+        let service = ended_terminal(&owner, &service, "the service ends").await;
         assert!(
             matches!(service.service, Some(ServiceState::Stopped)),
             "not restarted: {service:?}"
         );
-        let shell = terminal(&owner, &shell).await;
-        assert!(!shell.is_live(), "{shell:?}");
+        let _shell = ended_terminal(&owner, &shell, "the shell ends").await;
         node.stop().await.unwrap();
     })
     .await;
@@ -330,11 +323,47 @@ async fn a_heartbeat_does_not_survive_its_session_started_again() {
     .await;
 }
 
+/// `info` once it has ended.
+async fn ended_terminal(
+    owner: &NodeClient,
+    info: &vessel_proto::terminals::TerminalInfo,
+    what: &'static str,
+) -> vessel_proto::terminals::TerminalInfo {
+    step(what, async {
+        loop {
+            let now = terminal(owner, info).await;
+            if !now.is_live() {
+                return now;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    })
+    .await
+}
+
 /// Read `session`'s log until its final status.
 async fn ended(client: &NodeClient, session: SessionId) {
     let mut stream = client.follow(session, EventSeq::ZERO).await.unwrap();
     read_until(&mut stream, &mut Vec::new(), |record| {
         status_of(record).is_some_and(|status| !status.is_live())
+    })
+    .await;
+}
+
+/// A spec kept for later is bounded as the prompt beside it is: a folder
+/// of 20 KiB is refused at creation (the join's code review, finding 5).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_spec_kept_for_later_is_bounded() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture.start().await;
+        let owner = fixture.connect(&node).await;
+        let spec = structured_spec(&fixture, None).with_cwd(fixture.cwd().join("x".repeat(20_000)));
+        let refused = owner
+            .create_schedule(hourly(new_session(spec), "plain"), false)
+            .await;
+        assert_eq!(code(refused), ErrorCode::InvalidRequest);
+        node.stop().await.unwrap();
     })
     .await;
 }

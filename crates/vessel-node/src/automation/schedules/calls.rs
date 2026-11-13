@@ -12,8 +12,8 @@ use vessel_proto::{Creator, ScheduleId, SessionId};
 
 use super::actor::Actor;
 use super::book::Entry;
-use super::check::settle;
-use super::rules::{AGENT_SCHEDULES, Act, Asker};
+use super::check::{node_anchor, settle};
+use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES};
 use super::state::{advanced, ended_refused, ends_an_agents};
 use super::{Clock, Command, Runner};
 use crate::automation::error::AutomationError;
@@ -88,6 +88,24 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         }
     }
 
+    /// Some sessions' ends were missed (the scheduler fell behind their
+    /// channel): every agent's schedule whose agent can no longer act goes
+    /// now, rather than at a next run that a paused one never makes.
+    pub(super) async fn sweep_agents(&mut self) {
+        let gone: Vec<ScheduleId> = self
+            .book
+            .all()
+            .filter(|entry| match &entry.info.defined_by {
+                Creator::Agent { session, .. } => !self.runner.agent_alive(*session),
+                Creator::Owner | Creator::Device { .. } => false,
+            })
+            .map(|entry| entry.info.id)
+            .collect();
+        for schedule in gone {
+            self.forget(schedule).await;
+        }
+    }
+
     /// A session ended: the schedules its agent made go with it (ADR
     /// 0033: a session cannot use a schedule to outlive itself).
     pub(super) async fn session_ended(&mut self, session: SessionId) {
@@ -114,7 +132,17 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             Creator::Owner | Creator::Device { .. } => 0,
         };
         asker.may_create(own, people, agents)?;
+        // A make that waited in the queue while its agent's session ended
+        // would otherwise be kept after the end that deleted the others.
+        if let Creator::Agent { session, .. } = &asker.by
+            && !self.runner.agent_alive(*session)
+        {
+            return Err(AutomationError::Forbidden(
+                "the agent's session has ended; its schedules went with it".to_owned(),
+            ));
+        }
         let now = self.clock.now();
+        node_anchor(&asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
         let state = if paused {
             ScheduleState::Paused { since: now }
@@ -166,7 +194,17 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 info.revision
             )));
         }
+        // A person taking an agent's schedule over makes it a person's,
+        // which their bound counts.
+        let to_people = matches!(info.defined_by, Creator::Agent { .. })
+            && !matches!(asker.by, Creator::Agent { .. });
+        if to_people && self.book.counts().0 >= PEOPLE_SCHEDULES {
+            return Err(AutomationError::Conflict(
+                "the node has as many schedules as it keeps (256); delete some first".to_owned(),
+            ));
+        }
         let now = self.clock.now();
+        node_anchor(asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
         let cadence_changed = definition.cadence != info.definition.cadence;
         info.state = match info.state {
@@ -232,6 +270,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         info.state = state;
         info.revision = info.revision.wrapping_add(1);
         info.updated_at = now;
+        // Resumed past its end: an agent's goes, as at any other end.
+        if ends_an_agents(&info) {
+            self.forget(schedule).await;
+            return Ok(info);
+        }
         self.store.put_schedule(info.clone(), None).await?;
         self.book.put(info.clone());
         Ok(info)

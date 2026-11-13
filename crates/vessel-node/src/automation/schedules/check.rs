@@ -4,9 +4,26 @@
 //! anchor gets the moment it was set, so its phase survives restarts.
 
 use chrono::{DateTime, Utc};
-use vessel_proto::automation::{Cadence, CatchUp, ScheduleDefinition, ScheduleTarget};
+use vessel_proto::automation::{AfterRun, Cadence, CatchUp, ScheduleDefinition, ScheduleTarget};
 
+use super::rules::{Asker, Via};
 use crate::automation::error::AutomationError;
+
+/// An agent's `every` is anchored by the node, at the moment it writes it.
+///
+/// An anchor given by the caller places the first due time anywhere in
+/// the next period: an agent writing `every 60 s` anchored 59.9 s ago,
+/// again and again, would run its schedule at once each time, past the
+/// 60 s floor and the rule that an agent never runs one now (the join's
+/// code review, finding 6). A person may run a schedule now anyway, so
+/// keeps the anchor given (to line a schedule up with the hour, say).
+pub(super) fn node_anchor(asker: &Asker, definition: &mut ScheduleDefinition) {
+    if asker.via == Via::Agent
+        && let Cadence::Every { anchor, .. } = &mut definition.cadence
+    {
+        *anchor = None;
+    }
+}
 use crate::automation::time::{Due, NotComputable, Zones};
 
 /// `definition` made ready to keep at `now`: an `every`'s anchor filled,
@@ -29,6 +46,20 @@ pub(super) fn settle(
     if matches!(definition.target, ScheduleTarget::Unknown) {
         return Err(AutomationError::Invalid(
             "a target this node does not know".to_owned(),
+        ));
+    }
+    // Neither archived nor waited for, each run's session would stay
+    // live beside the next (the join's code review, finding 4).
+    if matches!(
+        definition.target,
+        ScheduleTarget::NewSession {
+            after: AfterRun::Unknown,
+            ..
+        }
+    ) {
+        return Err(AutomationError::Invalid(
+            "what happens to a run's session after its turn is one this node does not know"
+                .to_owned(),
         ));
     }
     let due = Due::of(&definition.cadence, now, zones).map_err(|error| match error {
@@ -97,6 +128,58 @@ mod tests {
                 anchor: Some(now),
             }
         );
+    }
+
+    #[test]
+    fn an_after_this_node_does_not_know_is_refused() {
+        let zones = Zones::default();
+        let mut unknown = definition(Cadence::Every {
+            seconds: EverySeconds::try_from(600).unwrap(),
+            anchor: None,
+        });
+        unknown.target = ScheduleTarget::NewSession {
+            spec: Box::new(vessel_proto::SessionSpec::new(
+                vessel_proto::HarnessKind::ClaudeCode,
+                vessel_proto::SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
+            )),
+            after: AfterRun::Unknown,
+        };
+        assert!(matches!(
+            settle(&zones, &mut unknown, at("2026-01-01T10:00:00Z")),
+            Err(AutomationError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn an_agents_anchor_is_the_nodes_and_a_persons_is_kept() {
+        let now = at("2026-01-01T10:00:00Z");
+        let almost = Cadence::Every {
+            seconds: EverySeconds::try_from(60).unwrap(),
+            anchor: Some(at("2026-01-01T09:59:01Z")),
+        };
+        let agent = Asker {
+            by: vessel_proto::Creator::Agent {
+                node: vessel_proto::NodeId::random(),
+                session: SessionId::random(),
+            },
+            via: Via::Agent,
+        };
+        let mut agents = definition(almost.clone());
+        node_anchor(&agent, &mut agents);
+        let first = settle(&Zones::default(), &mut agents, now).unwrap();
+        assert_eq!(first, at("2026-01-01T10:01:00Z"), "a whole period away");
+        let person = Asker {
+            by: vessel_proto::Creator::Owner,
+            via: Via::Person,
+        };
+        let mut persons = definition(almost);
+        node_anchor(&person, &mut persons);
+        let first = settle(&Zones::default(), &mut persons, now).unwrap();
+        assert_eq!(first, at("2026-01-01T10:00:01Z"), "the phase asked for");
     }
 
     #[test]

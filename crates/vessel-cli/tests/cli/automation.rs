@@ -59,6 +59,15 @@ async fn a_schedule_is_made_run_changed_and_removed_by_its_name() {
             shown.contains("a new claude") && shown.contains("prompt:\nplain"),
             "{shown}"
         );
+        // `--keep` alone changes what follows a run, the rest of the
+        // session's spec as it was.
+        let kept = fixture
+            .vessel(&["schedule", "edit", "nightly", "--keep"], b"")
+            .await;
+        let _line = ok(&kept);
+        let shown = fixture.vessel(&["schedule", "show", "nightly"], b"").await;
+        let shown = ok(&shown);
+        assert!(shown.contains("session each run (kept)"), "{shown}");
 
         let paused = fixture.vessel(&["schedule", "pause", "nightly"], b"").await;
         assert!(ok(&paused).contains("paused since"), "{}", paused.stdout);
