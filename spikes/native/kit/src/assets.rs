@@ -76,6 +76,14 @@ pub enum Glyph {
     Machine,
     /// Three dots: a menu of more actions (the Session actions).
     More,
+    /// A vertical kebab, for a row's actions (horizontal More stays unchanged).
+    MoreVertical,
+    /// Pause a recurring action.
+    Pause,
+    /// Resume an action.
+    Play,
+    /// Run again now: one clockwise rotation arrow.
+    RotateCw,
     /// An agent's feature, and the features (Paseo's `Settings2`: two
     /// sliders).
     Sliders,
@@ -142,7 +150,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 55] = [
+const ALL: [Glyph; 59] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -168,6 +176,10 @@ const ALL: [Glyph; 55] = [
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
+    Glyph::MoreVertical,
+    Glyph::Pause,
+    Glyph::Play,
+    Glyph::RotateCw,
     Glyph::Sliders,
     Glyph::Gear,
     Glyph::Copy,
@@ -242,6 +254,10 @@ impl Glyph {
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
+            Self::MoreVertical => "kit/more-vertical.svg",
+            Self::Pause => "kit/pause.svg",
+            Self::Play => "kit/play.svg",
+            Self::RotateCw => "kit/rotate-cw.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
             Self::Copy => "kit/copy.svg",
@@ -339,6 +355,16 @@ impl Glyph {
             Self::More => line_glyph!(
                 r#"<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>"#
             ),
+            Self::MoreVertical => line_glyph!(
+                r#"<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>"#
+            ),
+            Self::Pause => line_glyph!(
+                r#"<rect x="6.5" y="4.5" width="3.5" height="15" rx="0.5"/><rect x="14" y="4.5" width="3.5" height="15" rx="0.5"/>"#
+            ),
+            Self::Play => line_glyph!(r#"<path d="M7.5 4.5 19.5 12 7.5 19.5z"/>"#),
+            Self::RotateCw => {
+                line_glyph!(r#"<path d="M20 10a8.25 8.25 0 1 0-1.1 6.5M20 4.5V10h-5.5"/>"#)
+            }
             Self::Sliders => line_glyph!(
                 r#"<path d="M19.5 7H10M14 17H4.5"/><circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="17" r="2.75"/>"#
             ),
@@ -563,6 +589,34 @@ mod tests {
         for at in 0..24 {
             for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
                 assert_eq!(image.get_pixel(x, y).0[3], 0);
+            }
+        }
+    }
+
+    #[test]
+    fn action_glyphs_are_registered_and_clear_their_24_point_edges() {
+        for glyph in [
+            Glyph::MoreVertical,
+            Glyph::Pause,
+            Glyph::Play,
+            Glyph::RotateCw,
+        ] {
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::identity(),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0), "{glyph:?}");
+            for at in 0..24 {
+                for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0, "{glyph:?}");
+                }
             }
         }
     }

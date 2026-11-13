@@ -1,0 +1,136 @@
+//! Item data and paint: a pending label and spinner are one typed state.
+use crate::{assets::Glyph, popup::Surfaces};
+use gpui::{Hsla, SharedString};
+
+/// A menu row's semantic tone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tone {
+    /// An ordinary action.
+    Plain,
+    /// A destructive action, separated from ordinary ones.
+    Danger,
+}
+
+/// Pending always carries its complete translated label; no press is allowed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ItemStatus {
+    /// Ready unless explicitly disabled.
+    #[default]
+    Idle,
+    /// Spinner replaces the leading glyph and these words replace the label.
+    Pending(SharedString),
+}
+
+/// One menu row. Existing constructors preserve their old defaults.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MenuItem {
+    /// Idle words, provided by the caller's language table.
+    pub label: SharedString,
+    /// Ordinary or destructive colour.
+    pub tone: Tone,
+    /// Visible but not chosen.
+    pub disabled: bool,
+    /// A full-width separator above this item.
+    pub starts_group: bool,
+    /// A 14-point kit glyph inside the 16-point leading slot.
+    pub leading: Option<Glyph>,
+    /// Idle or in progress. Pending remains non-selectable even if disabled is false.
+    pub status: ItemStatus,
+}
+impl MenuItem {
+    /// An ordinary item, with no leading glyph or pending state.
+    #[must_use]
+    pub fn new(label: impl Into<SharedString>) -> Self {
+        Self {
+            label: label.into(),
+            tone: Tone::Plain,
+            disabled: false,
+            starts_group: false,
+            leading: None,
+            status: ItemStatus::Idle,
+        }
+    }
+    /// A destructive item starting a group.
+    #[must_use]
+    pub fn danger(label: impl Into<SharedString>) -> Self {
+        Self {
+            tone: Tone::Danger,
+            starts_group: true,
+            ..Self::new(label)
+        }
+    }
+    /// Keep this item's other properties and start a group.
+    #[must_use]
+    pub fn grouped(self) -> Self {
+        Self {
+            starts_group: true,
+            ..self
+        }
+    }
+    /// Set the leading glyph; pending temporarily replaces it with the spinner.
+    #[must_use]
+    pub fn with_leading(self, glyph: Glyph) -> Self {
+        Self {
+            leading: Some(glyph),
+            ..self
+        }
+    }
+    /// An in-progress action, with complete caller-localized words.
+    #[must_use]
+    pub fn pending(self, label: impl Into<SharedString>) -> Self {
+        Self {
+            status: ItemStatus::Pending(label.into()),
+            ..self
+        }
+    }
+    /// Both pointer and keyboard paths use this guard, including Enter on a stale highlight.
+    #[must_use]
+    pub fn selectable(&self) -> bool {
+        !self.disabled && matches!(self.status, ItemStatus::Idle)
+    }
+    pub(super) fn words(&self) -> &SharedString {
+        match &self.status {
+            ItemStatus::Idle => &self.label,
+            ItemStatus::Pending(label) => label,
+        }
+    }
+    pub(super) fn leading(&self) -> Leading {
+        match &self.status {
+            ItemStatus::Pending(_) => Leading::Spinner,
+            ItemStatus::Idle => self.leading.map_or(Leading::None, Leading::Glyph),
+        }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Leading {
+    None,
+    Glyph(Glyph),
+    Spinner,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Paint {
+    pub ink: Hsla,
+    pub glyph: Hsla,
+    pub fill: Hsla,
+    pub opacity: f32,
+}
+pub(super) fn paint(item: &MenuItem, highlighted: bool, surfaces: &Surfaces) -> Paint {
+    let (ink, glyph) = match item.tone {
+        Tone::Plain => (surfaces.foreground, surfaces.foreground_muted),
+        Tone::Danger => (surfaces.destructive, surfaces.destructive),
+    };
+    let glyph = match &item.status {
+        ItemStatus::Idle => glyph,
+        ItemStatus::Pending(_) => surfaces.foreground_muted,
+    };
+    Paint {
+        ink,
+        glyph,
+        fill: if highlighted && item.selectable() {
+            surfaces.surface2
+        } else {
+            gpui::transparent_black()
+        },
+        opacity: if item.selectable() { 1.0 } else { 0.5 },
+    }
+}

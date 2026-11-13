@@ -11,12 +11,10 @@
 //!   dialog card on `surface0` edged with `surface2` at radius 12 over a
 //!   55% black scrim; a phone's sheet on `surface0` with its top corners
 //!   at 16 over a 45% scrim.
-//! - Constraint: the kit's theme does not hold Paseo's surface scale yet
-//!   (the lead is adding `surface0` to `surface4`, `border` and
-//!   `borderAccent`); the theme file is the lead's.
-//! - Choice: [`Surfaces`] holds those values per scheme, named as Paseo
-//!   names them, so moving them into `Tokens` is a rename; the controls
-//!   read them only through this module.
+//! - Constraint: controls share the theme's named neutral values; a new
+//!   semantic colour belongs in Tokens rather than a second popup palette.
+//! - Choice: [`Surfaces`] reads those values from Tokens, named as Paseo
+//!   names them; floating controls share this module's surfaces and shadow.
 //! - Differences from the page's DESIGN.md (the references win for the
 //!   app, ADR 0036 brings the page along): the page's popup is white at
 //!   radius 10 with a 2% edge and a softer shadow, its scrim the ink at
@@ -105,9 +103,12 @@ pub const DIALOG_RADIUS: f32 = 12.0;
 /// A sheet's top corners (Paseo's `2xl`).
 pub const SHEET_RADIUS: f32 = 16.0;
 
+/// The reference's shared minimum touch target (control-sizing.ts).
+pub const TOUCH_TARGET: f32 = 44.0;
+
 /// A row's height: Paseo's tight row, 28 points with a pointer, 44 on a
 /// phone (a finger's target).
 #[must_use]
 pub const fn row_height(narrow: bool) -> f32 {
-    if narrow { 44.0 } else { 28.0 }
+    if narrow { TOUCH_TARGET } else { 28.0 }
 }

@@ -1,0 +1,57 @@
+# Shared action-menu leading content and progress
+
+[Decision Log]
+- Purpose: schedules, session and git actions need Paseo's leading glyphs,
+  pending label/spinner, fixed width and a vertical kebab, once in the kit.
+- Existing assets/constraint: reuse the current menu surface, keyboard focus,
+  placement, palette, spinner and trigger-bounds probe. Legacy constructors
+  and the seven-argument `menu` entry stay unchanged.
+- Alternatives: draw a second per-screen menu, attach glyphs beside the kit
+  menu, or change every existing caller. Each would drift or break callers.
+- Choice: `MenuItem::with_leading`, typed `ItemStatus::Pending` with its label,
+  `Content::with_width` at `menu_with`, a shared kebab trigger and `open_end`
+  using actual bounds. Data, drawing and trigger live in small submodules;
+  the public `menu::` paths remain the same.
+- Why: pending replaces the leading glyph and idle words together and cannot
+  be selected, including Enter after a previously highlighted item changes
+  state. One row recipe supplies existing and extended menus alike.
+- Cost: four original line glyphs and one shared touch-target constant; no
+  dependencies, submenu or success-state API. App consumers are not in this
+  control-only commit.
+
+References read whole: Paseo `components/ui/dropdown-menu.tsx`,
+`components/ui/menu/menu-item.tsx`, `menu-surface.tsx`, `menu-geometry.ts`, `components/ui/{control-geometry,control-sizing}.ts`, and
+`components/schedules/schedule-row.tsx`. The reference's menu-navigation
+fixtures cover submenus, which this control does not add. Selection tests
+instead cover this extension's pending/disabled boundary and stale highlight.
+No reference code or SVG was copied.
+
+Values: normal leading glyph 14 in a 16-point slot; pending spinner 16,
+muted even on a destructive action. Label line height 18, row border 1,
+horizontal margin 4, padding 8 across/4 vertically, radius 6; row minimum 28
+with a pointer and 44 with touch. Disabled/pending opacity is 50%, with no
+hover/pressed fill or handler; enabled hover/pressed/highlight uses surface2.
+Text is foreground (destructive on destructive actions); ordinary leading
+content is muted. Full-width group separators and the existing menu surface
+and shadow remain shared. Legacy width is min 180/max 320; explicit width
+supports the schedule menu's 220. All sizes are logical points.
+
+The kebab uses vertical dots at 14, radius 4 and padding 4. Its minimum is 20
+for a pointer (intrinsic content is 22), 44 for touch, from control-geometry.
+Its hover fill is surface2 and ink foreground; idle is transparent/muted.
+Only hover changes it, as the reference's trigger callback does. The existing
+horizontal More glyph is retained. The original Pause, Play and RotateCw
+vectors use the same 24-unit/1.5-stroke kit macro, and Pencil already exists.
+The shared inventory grows from 55 to 59; rendering tests load the new paths and
+check painted content and clear edges at 24.
+
+`TriggerAnchor` reuses the existing `select::Anchor` type and `anchor_probe`.
+`open_end` anchors the menu's upper-right corner below the trigger's lower
+right, offset 4, with the existing 8-point window snap margin. `open(point)`
+retains its former pointer placement. Fixed width 220 does not depend on
+where within the hit area the pointer clicked.
+
+Tests cover exact colours/opacity in both themes, geometry, legacy defaults,
+label/glyph replacement, forward/back wrapping, no selectable items, and
+Enter on an item that became pending or disabled after highlight. No focus
+ring, new palette, screen-local notice, fixture route or data is introduced.

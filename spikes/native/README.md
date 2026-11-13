@@ -119,6 +119,14 @@ filled kinds set no hover override. Pressed is 85% and disabled 50%.
 Disabled callers attach no handler. The existing bool `button` delegates
 and stays until the lead retires it after moving its callers.
 
+`kit::menu` keeps its existing entry and constructors. Items can carry a
+14-point leading glyph or typed pending label/spinner; pending is blocked
+for pointer and keyboard, including a stale highlight. `menu_with(Content)`
+accepts a reference width; the shared vertical kebab captures its real
+bounds for `MenuState::open_end`. Its pointer minimum is 20 (22 intrinsic)
+and touch target 44; `popup::TOUCH_TARGET` is the shared constant. Menu
+surface, state and drawing remain one control, split into small modules.
+
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.
