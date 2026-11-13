@@ -144,6 +144,54 @@ impl Shell {
     }
 
     /// The draft was sent: show its prompt while the session starts.
+    /// The machine `from` is called `to` now (Settings › Machines, track
+    /// E2, after the book was written): the session open and a session
+    /// being started follow the new name.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_renamed(&mut self, from: &str, to: &str) {
+        let view = &mut self.areas.session;
+        if let Some(open) = &mut view.open
+            && open.machine == from
+        {
+            to.clone_into(&mut open.machine);
+        }
+        if let Some(pending) = &mut view.pending
+            && pending.machine == from
+        {
+            to.clone_into(&mut pending.machine);
+        }
+    }
+
+    /// The machine `name` is forgotten (track E2, after the book was
+    /// written): a session of it open or being started is let go, and the
+    /// session screen, if it showed one, goes back to the new chat.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_forgotten(&mut self, name: &str) {
+        let view = &mut self.areas.session;
+        if view
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.machine == name)
+        {
+            view.pending = None;
+        }
+        if view.open.as_ref().is_some_and(|open| open.machine == name) {
+            view.open = None;
+            view.resuming = None;
+            view.resume_error = None;
+            *view.restore.borrow_mut() = None;
+            if self.route == Route::Session {
+                self.route_to(Route::Draft);
+            }
+        }
+    }
+
     pub(crate) fn begin_pending(
         &mut self,
         machine: String,
