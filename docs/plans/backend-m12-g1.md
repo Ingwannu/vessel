@@ -201,3 +201,23 @@ merged before the git screen: the effort slider's last step remains at
 the top, and other agents' lists do not gain options invented by Vessel.
 The source changes are the lead's unchanged integration. The exact
 native workspace gate was rerun on this merged tree before committing.
+
+## Code panel and shared Alert integrated
+
+Track F's code panel through `0495cf7` is merged before the git slot is
+filled. It owns the Changes/Files frame and its session/sidebar hooks;
+G1 has not adapted those sources in this integration. The shared Alert
+from `85cc00b` is also applied unchanged, including its pure notice
+vocabulary and the one app adapter. Refusals and failed reads in the git
+screen will use that control, with Git's exact detail beneath it.
+
+The merge keeps both output/menu exports, both README control entries,
+and every embedded glyph from F, the lead and Alert; the asset table is
+45 entries on this integration tree. The following screen slice takes
+F's refresh seam and file split before filling its Changes-head slot.
+
+The pinned native workspace gate passed on this integration: formatting,
+Clippy with warnings denied, and 341 tests (none failed or ignored).
+No G1 screen registration or captures are included; its in-progress
+changes are kept outside this integration. No main-workspace source,
+service, production account or permission changed.

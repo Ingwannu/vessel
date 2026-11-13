@@ -355,6 +355,11 @@ pub(super) fn place(
     );
     let isolation = pills.as_ref().and_then(|pills| pills.isolation);
     let base = pills.and_then(|pills| pills.base);
+    // Each says what it is on hover too (Paseo's tooltips on the
+    // new-workspace fields), in the composer's tooltips.
+    let labels = shell.words().labels();
+    let tips = &draft.features.tips;
+    let places = &shell.areas.workspace.place.tips;
     div()
         .flex()
         .flex_row()
@@ -381,51 +386,78 @@ pub(super) fn place(
             })),
         )
         .child(
-            pill_with(
-                "pick-folder",
-                &draft.lists.folder,
-                folder_parts,
+            tips.on(
+                pill_with(
+                    "pick-folder",
+                    &draft.lists.folder,
+                    folder_parts,
+                    touch,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _event, window, cx| {
+                    this.open_picker(Picker::Folder, window, cx);
+                })),
+                &places[0],
+                labels.tip_place,
                 touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Folder, window, cx);
-            })),
+            ),
         )
-        .children(isolation.map(|(label, leading)| {
-            pill_with(
-                "pick-isolation",
-                &shell.areas.workspace.place.isolation,
-                PillParts {
-                    leading: Some(leading),
-                    label: Some(label.into()),
-                    caret: true,
-                    ..PillParts::default()
-                },
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Isolation, window, cx);
-            }))
-        }))
-        .children(base.map(|label| {
-            pill_with(
-                "pick-base",
-                &shell.areas.workspace.place.base,
-                PillParts {
-                    leading: Some(Glyph::Branch),
-                    label: Some(label),
-                    caret: true,
-                    ..PillParts::default()
-                },
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Base, window, cx);
-            }))
-        }))
+        .children(project_pills(shell, isolation, base, touch, tokens, cx))
+}
+
+/// A chosen project's Isolation and Branch pills (track F's words), each
+/// with its tooltip.
+fn project_pills(
+    shell: &Shell,
+    isolation: Option<(&'static str, Glyph)>,
+    base: Option<vessel_app_kit::ui::SharedString>,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> impl Iterator<Item = vessel_app_kit::ui::Stateful<Div>> {
+    let labels = shell.words().labels();
+    let tips = &shell.areas.draft.features.tips;
+    let places = &shell.areas.workspace.place.tips;
+    let isolation = isolation.map(|(label, leading)| {
+        let pill = pill_with(
+            "pick-isolation",
+            &shell.areas.workspace.place.isolation,
+            PillParts {
+                leading: Some(leading),
+                label: Some(label.into()),
+                caret: true,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_picker(Picker::Isolation, window, cx);
+        }));
+        tips.on(pill, &places[1], labels.tip_isolation, touch)
+    });
+    let base = base.map(|label| {
+        let pill = pill_with(
+            "pick-base",
+            &shell.areas.workspace.place.base,
+            PillParts {
+                leading: Some(Glyph::Branch),
+                // "Start from main": the branch alone could be the
+                // one the chat runs on.
+                prefix: Some(labels.start_from.into()),
+                label: Some(label),
+                caret: true,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_picker(Picker::Base, window, cx);
+        }));
+        tips.on(pill, &places[2], labels.tip_base, touch)
+    });
+    isolation.into_iter().chain(base)
 }
 
 /// What a row of a list means.

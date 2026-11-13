@@ -39,12 +39,13 @@ pub use ko::Ko;
 pub use labels::Labels;
 
 use crate::workspace::branch_name::BranchNameProblem;
-use crate::workspace::changes::ScopeKind;
+use crate::workspace::changes::{FileNote, ScopeKind};
 use crate::workspace::command_changes::Compared;
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
 use crate::workspace::save::SaveFailure;
+use crate::workspace::size::size_word;
 use crate::workspace::start::Refusal as StartRefusal;
 
 /// A refusal said plainly: what happened, what to do, and what it names.
@@ -212,6 +213,28 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn digest(&self, digest: &str) -> String;
     /// An edited command's old text.
     fn was(&self, command: &str) -> String;
+
+    /// A note in a file's place in the Changes list.
+    fn file_note(&self, note: &FileNote) -> String {
+        let labels = self.labels();
+        match note {
+            FileNote::Loading => labels.loading.to_owned(),
+            FileNote::More => labels.show_rest.to_owned(),
+            FileNote::Binary => labels.binary_file.to_owned(),
+            FileNote::TooLarge { bytes } => {
+                format!("{} ({})", labels.too_large, size_word(*bytes))
+            }
+            FileNote::Submodule { from, to } => format!(
+                "{}: {} \u{2192} {}",
+                labels.submodule,
+                from.as_deref().unwrap_or("\u{2014}"),
+                to.as_deref().unwrap_or("\u{2014}")
+            ),
+            FileNote::Unchanged => labels.no_content_change.to_owned(),
+            FileNote::Unknown => labels.unknown_content.to_owned(),
+            FileNote::Failed(message) => message.clone(),
+        }
+    }
 
     /// Why a start stopped, in a sentence.
     fn start_refusal(&self, refusal: &StartRefusal) -> String {

@@ -124,6 +124,13 @@ Labels remain whole and explanations belong below their row.
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
 
+`kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
+with optional title, wrapping description and an indented action. It uses
+existing semantic/neutral colours and palette blue 300 / amber 500 in
+`theme/status.rs`; a notice has no focus or click behaviour. Pure logic
+returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
+Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+
 ### Rules every screen follows
 
 - Words through `view/src/text/` only; English and Korean together.

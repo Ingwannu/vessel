@@ -62,6 +62,10 @@ pub enum Glyph {
     Bot,
     /// A failure.
     Alert,
+    /// A success alert: a check inside a circle, drawn on the kit's own grid.
+    CircleCheck,
+    /// An error alert: a cross inside a circle, drawn on the kit's own grid.
+    CircleX,
     /// A folder.
     Folder,
     /// A machine.
@@ -107,10 +111,14 @@ pub enum Glyph {
     Reset,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// A file (the Files tree, Paseo's `File`).
+    File,
+    /// The code panel's toggle (Paseo's `PanelRight`).
+    PanelRight,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 41] = [
+const ALL: [Glyph; 45] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -130,6 +138,8 @@ const ALL: [Glyph; 41] = [
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
+    Glyph::CircleCheck,
+    Glyph::CircleX,
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
@@ -152,6 +162,8 @@ const ALL: [Glyph; 41] = [
     Glyph::LightningFilled,
     Glyph::Reset,
     Glyph::Spinner,
+    Glyph::File,
+    Glyph::PanelRight,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -190,6 +202,8 @@ impl Glyph {
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
+            Self::CircleCheck => "kit/circle-check.svg",
+            Self::CircleX => "kit/circle-x.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
@@ -207,6 +221,8 @@ impl Glyph {
             Self::ArrowLeft => "kit/arrow-left.svg",
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
+            Self::File => "kit/file.svg",
+            Self::PanelRight => "kit/panel-right.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
@@ -258,6 +274,12 @@ impl Glyph {
             ),
             Self::Alert => {
                 line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
+            }
+            Self::CircleCheck => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M7.5 12l3 3 6-6"/>"#)
+            }
+            Self::CircleX => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>"#)
             }
             Self::Folder => line_glyph!(
                 r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
@@ -320,6 +342,12 @@ impl Glyph {
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
+            Self::File => line_glyph!(
+                r#"<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>"#
+            ),
+            Self::PanelRight => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>"#
+            ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
             ),

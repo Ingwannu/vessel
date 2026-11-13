@@ -93,12 +93,12 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
 /// - Choice: the sidebar asks for the slot's content and puts it between
 ///   the navigation and the machines, at the sidebar's width; F fills
 ///   this function (or replaces its body with a call into its module).
-const fn projects(
-    _shell: &Shell,
-    _tokens: &Tokens,
-    _cx: &mut Context<'_, Shell>,
+fn projects(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    None
+    crate::areas::workspace::sidebar_projects(shell, tokens, cx)
 }
 
 /// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
