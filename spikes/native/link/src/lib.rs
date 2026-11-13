@@ -29,7 +29,10 @@ use chrono::Utc;
 use tokio::sync::mpsc;
 use vessel_app_view::{Card, Fleet, Machine, Reach};
 use vessel_client::NodeClient;
-use vessel_proto::{ContentBlock, Delivery, EventRecord, SessionId};
+use vessel_proto::{
+    ContentBlock, Delivery, EventRecord, PermissionId, PermissionOptionId, PermissionOutcome,
+    SessionId, SessionInput,
+};
 
 pub use nodes::{Offer, read_link};
 
@@ -107,6 +110,17 @@ pub enum Command {
         session: SessionId,
         /// What was typed.
         text: String,
+    },
+    /// Answer a permission the agent asked for.
+    Answer {
+        /// The machine.
+        machine: String,
+        /// The session.
+        session: SessionId,
+        /// The request.
+        id: PermissionId,
+        /// The answer chosen.
+        option: PermissionOptionId,
     },
     /// Pair with a node from a pairing link, as `name` in the book.
     Pair {
@@ -219,6 +233,18 @@ impl State {
                 session,
                 text,
             } => self.prompt(&machine, session, text).await,
+            Command::Answer {
+                machine,
+                session,
+                id,
+                option,
+            } => {
+                let input = SessionInput::AnswerPermission {
+                    id,
+                    outcome: PermissionOutcome::Selected { option },
+                };
+                self.input(&machine, session, input).await;
+            }
             Command::Pair { offer, name } => match nodes::pair(&offer, &name).await {
                 Ok(done) => {
                     self.emit(Event::Paired(done)).await;
@@ -325,6 +351,24 @@ impl State {
                 ))
                 .await;
             }
+        }
+    }
+}
+
+impl State {
+    async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
+        let Some(client) = self.clients.get(machine) else {
+            self.emit(Event::Failed(
+                LinkError::NotConnected(machine.to_owned()).to_string(),
+            ))
+            .await;
+            return;
+        };
+        if let Err(error) = client.send(session, input).await {
+            self.emit(Event::Failed(
+                LinkError::Call(error.to_string()).to_string(),
+            ))
+            .await;
         }
     }
 }

@@ -65,7 +65,7 @@ impl Shell {
         );
         let pair_link = TextField::new(
             "Paste the link from `vessel node pair`",
-            |this: &mut Self, text, _window, cx| this.read_offer(&text, cx),
+            |this: &mut Self, text, window, cx| this.read_offer(&text, window, cx),
             window,
             cx,
         );
@@ -198,11 +198,15 @@ impl Shell {
         self.composer.clear(window, cx);
     }
 
-    fn read_offer(&mut self, text: &str, cx: &mut Context<'_, Self>) {
+    fn read_offer(&mut self, text: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
         match vessel_app_link::read_link(text) {
             Ok(offer) => {
                 self.offer = Some(offer);
                 self.notice = None;
+                // The link is a single-use secret: once decoded it is held
+                // only as the offer, not left on screen.
+                self.pair_link.clear(window, cx);
+                self.pair_name.focus(window, cx);
             }
             Err(error) => self.notice = Some(error.to_string()),
         }
@@ -228,6 +232,24 @@ impl Shell {
     pub(crate) fn pair_from_field(&mut self, cx: &mut Context<'_, Self>) {
         let name = self.pair_name.text(cx);
         self.pair(name, cx);
+    }
+
+    pub(crate) fn answer(
+        &mut self,
+        id: vessel_proto::PermissionId,
+        option: vessel_proto::PermissionOptionId,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(open) = &self.open else {
+            return;
+        };
+        self.command(Command::Answer {
+            machine: open.machine.clone(),
+            session: open.session.clone(),
+            id,
+            option,
+        });
+        cx.notify();
     }
 
     pub(crate) fn reload(&self) {

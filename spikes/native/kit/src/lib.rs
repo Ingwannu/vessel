@@ -32,7 +32,7 @@ use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 pub use field::TextField;
 pub use fonts::Type;
 pub use theme::{Scheme, Tokens};
-pub use widgets::{TypeExt, button, dot, kicker};
+pub use widgets::{TypeExt, button, dot, kicker, markdown};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).
