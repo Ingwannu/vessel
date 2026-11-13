@@ -1443,6 +1443,11 @@ project".
   writes nothing, keeps the edits and shows both sides (what was read,
   what is on disk now, how many lines the refused edit differs by) with
   "Reload from disk" and "Overwrite", the one save sent without a guard.
+  While a save is on its way the editor is read-only (keys typed then
+  would be lost when the save closes it); a conflict compares the two
+  sides' text only when the edit read the whole file, and each side
+  names the start of its content hash, which two versions of one minute
+  and like size would not tell apart otherwise.
 
 **A selection to the composer.** Lines selected in a diff or a file show
 agent-orchestrator's floating "Add to chat" beside the selection's end;
@@ -1620,7 +1625,9 @@ machine in view.
    defaults. When the machine will not start it now (`conflict`: an
    added agent's secret not set there, one of the four being installed,
    a profile's route without its key) the menu and the line under the
-   box say so plainly, naming the agent's secrets, and Send stays off.
+   box say so plainly, naming the agent's secrets, and Send stays off
+   until "Ask again" (beside the line) asks the machine once more: a
+   secret set since, or an install ended, is not noticed otherwise.
 3. **What it runs with**: the machine asks the agent (`harness.options`,
    under the chosen profile); the controls fill in as it answers, without
    blocking the page (§6.15).
