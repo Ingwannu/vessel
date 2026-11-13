@@ -214,6 +214,7 @@ impl Shell {
     /// "Update automatically" switched: the updater's timer on or off
     /// (a check asked for runs either way).
     pub(crate) fn set_update_automatically(&mut self, on: bool, cx: &mut Context<'_, Self>) {
+        self.areas.about.automatic_turns = self.areas.about.automatic_turns.saturating_add(1);
         self.prefs.manual_updates = !on;
         self.command(Command::SavePrefs(self.prefs.clone()));
         if let Some(updater) = self
@@ -256,6 +257,16 @@ impl Shell {
         self.updates.is_some()
     }
 
+    /// The running build's release notes, when the feed gave them (kept
+    /// from the build that downloaded it).
+    pub(crate) fn running_notes(&self) -> Option<&str> {
+        self.prefs
+            .update_notes
+            .as_ref()
+            .filter(|kept| kept.label == crate::LABEL)
+            .map(|kept| kept.notes.as_str())
+    }
+
     /// Whether the running updater checks by itself.
     pub(crate) fn updates_automatic(&self) -> bool {
         !self.prefs.manual_updates
@@ -275,12 +286,21 @@ impl Shell {
             .last_label
             .as_deref()
             .is_some_and(|last| last != label);
+        // The running build's notes stay for About's "새로운 소식"; another
+        // build's are dropped.
+        if self
+            .prefs
+            .update_notes
+            .as_ref()
+            .is_some_and(|kept| kept.label != label)
+        {
+            self.prefs.update_notes = None;
+        }
         let notes = self
             .prefs
             .update_notes
-            .take()
-            .filter(|kept| kept.label == label)
-            .map(|kept| kept.notes);
+            .as_ref()
+            .map(|kept| kept.notes.clone());
         if restarted || changed {
             self.updated = Some(Updated {
                 label: label.to_owned(),

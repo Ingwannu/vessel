@@ -17,65 +17,95 @@
 //!   `border`; a row 16 by 16, a hairline of `border` above every row
 //!   but the first, its title 14 in the foreground, its hint 12 muted 4
 //!   under it, 12 between the words and the control.
-//! - Differences: the switch does not animate yet (Paseo's slides in 180
-//!   ms); a focused switch shows nothing (the owner's rule: no ring).
+//! - Differences: the track's colour changes at once (Paseo's fades with
+//!   the thumb's slide); a focused switch shows nothing (the owner's rule:
+//!   no ring).
 
 use gpui::prelude::*;
-use gpui::{AnyElement, BoxShadow, Div, ElementId, SharedString, Stateful, div, point, px, rgba};
+use std::time::Duration;
+
+use gpui::{
+    Animation, AnimationExt as _, AnyElement, BoxShadow, Div, ElementId, SharedString, Stateful,
+    div, ease_in_out, point, px, rgba,
+};
 
 use crate::fonts::Type;
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
 /// The switch: on or off; `enabled` false fades it; `touch` sizes it for
-/// a finger. The screen handles its click.
+/// a finger; `turn` counts its changes (0: drawn in place; a new count
+/// slides the thumb to its side in Paseo's 180 ms, `withTiming`'s
+/// quadratic ease in and out). The screen handles its click.
 #[must_use]
 pub fn switch(
     id: impl Into<ElementId>,
     on: bool,
     enabled: bool,
     touch: bool,
+    turn: u64,
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
-    let (width, height, thumb) = if touch {
-        (44.0, 26.0, 22.0)
+    let (width, height, thumb, travel) = if touch {
+        (44.0, 26.0, 22.0, TOUCH_TRAVEL)
     } else {
-        (34.0, 20.0, 16.0)
+        (34.0, 20.0, 16.0, POINTER_TRAVEL)
     };
     let (track, knob) = if on {
         (neutral.accent, neutral.accent_foreground)
     } else {
         (neutral.surface3, gpui::white())
     };
+    let end = if on { travel } else { 0.0 };
+    let knob = div()
+        .absolute()
+        .top(px(INSET))
+        .left(px(end.mul_add(1.0, INSET)))
+        .size(px(thumb))
+        .rounded_full()
+        .bg(knob)
+        .shadow(vec![BoxShadow {
+            color: rgba(0x0000_0040).into(),
+            offset: point(px(0.0), px(1.0)),
+            blur_radius: px(2.0),
+            spread_radius: px(0.0),
+            inset: false,
+        }]);
+    let knob = if turn == 0 {
+        knob.into_any_element()
+    } else {
+        // From the other side to this one; a new `turn` starts it again.
+        knob.with_animation(
+            ElementId::NamedInteger("switch-turn".into(), turn),
+            Animation::new(Duration::from_millis(MOTION_MS)).with_easing(ease_in_out),
+            move |knob, delta| {
+                let progress = if on { delta } else { delta.mul_add(-1.0, 1.0) };
+                knob.left(px(progress.mul_add(travel, INSET)))
+            },
+        )
+        .into_any_element()
+    };
     div()
         .id(id)
-        .flex()
-        .flex_row()
-        .items_center()
+        .relative()
         .flex_shrink_0()
         .w(px(width))
         .h(px(height))
-        .p(px(2.0))
         .rounded_full()
         .bg(track)
-        .when(on, Styled::justify_end)
         .when(!enabled, |track| track.opacity(0.5))
         .when(enabled, Styled::cursor_pointer)
-        .child(
-            div()
-                .size(px(thumb))
-                .rounded_full()
-                .bg(knob)
-                .shadow(vec![BoxShadow {
-                    color: rgba(0x0000_0040).into(),
-                    offset: point(px(0.0), px(1.0)),
-                    blur_radius: px(2.0),
-                    spread_radius: px(0.0),
-                    inset: false,
-                }]),
-        )
+        .child(knob)
 }
+
+/// The thumb's inset in the track.
+const INSET: f32 = 2.0;
+/// How far the thumb travels: the track less the insets and the thumb.
+const POINTER_TRAVEL: f32 = 14.0;
+const TOUCH_TRAVEL: f32 = 18.0;
+/// Paseo's switch moves in 180 ms.
+const MOTION_MS: u64 = 180;
 
 /// A settings section: its small title, then `card`.
 #[must_use]

@@ -24,6 +24,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
@@ -33,6 +34,7 @@ pub(crate) struct Areas {
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),

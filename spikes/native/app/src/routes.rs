@@ -58,7 +58,7 @@ pub(crate) fn render(
         Route::Archive => areas::archive::render(shell, tokens, cx).into_any_element(),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
-        Route::About => areas::about::render(shell, tokens, cx).into_any_element(),
+        Route::About => areas::about::render(shell, tokens, window, cx).into_any_element(),
     }
 }
 
