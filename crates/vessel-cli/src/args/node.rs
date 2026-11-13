@@ -5,6 +5,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand, ValueEnum};
+use vessel_proto::parking::{IdleMinutes, ParkAfter};
 
 use super::ttl_secs;
 
@@ -52,6 +53,27 @@ pub(crate) enum NodeCommand {
         #[command(subcommand)]
         command: Option<DevicesCommand>,
     },
+    /// Show the node's settings, or change one (needs the `admin` scope).
+    /// A change is kept across restarts and applies to live sessions.
+    Settings {
+        /// How long a conversation may stay idle before its agent's process
+        /// is stopped (parked): minutes (1 to 10080), or `never`.
+        #[arg(long, value_name = "MINUTES|never", value_parser = park_after)]
+        park_after: Option<ParkAfter>,
+    },
+}
+
+/// `--park-after`: minutes, or `never` (`0` and `off` too).
+fn park_after(text: &str) -> Result<ParkAfter, String> {
+    let text = text.trim();
+    if matches!(text, "never" | "off" | "0") {
+        return Ok(ParkAfter::Never);
+    }
+    text.parse::<u16>()
+        .ok()
+        .and_then(IdleMinutes::new)
+        .map(|minutes| ParkAfter::Idle { minutes })
+        .ok_or_else(|| format!("`{text}` is not minutes from 1 to 10080, or `never`"))
 }
 
 /// `vessel node update`.
@@ -106,4 +128,23 @@ pub(crate) enum DevicesCommand {
         /// The device's id, or a unique prefix of it.
         device: String,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn park_after_takes_minutes_or_never() {
+        assert_eq!(park_after("never"), Ok(ParkAfter::Never));
+        assert_eq!(park_after("0"), Ok(ParkAfter::Never));
+        assert_eq!(
+            park_after("30"),
+            Ok(ParkAfter::Idle {
+                minutes: IdleMinutes::new(30).unwrap()
+            })
+        );
+        assert!(park_after("10081").is_err());
+        assert!(park_after("soon").is_err());
+    }
 }

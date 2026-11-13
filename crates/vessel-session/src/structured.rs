@@ -1,5 +1,7 @@
 //! The structured-mode session actor: an ACP agent's outputs become events.
 
+use std::time::Duration;
+
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionOption, SessionStatus};
@@ -52,6 +54,9 @@ pub(crate) struct StructuredActor {
     pub(crate) loader: Option<AttachmentLoader>,
     /// The idle clock and the parked state (protocol 12, `parking`).
     pub(crate) parking: Parking,
+    /// The node's `park_after` as it changes (protocol 12, `node.settings`);
+    /// apart from `parking`, so the actor's `select` can wait on both.
+    pub(crate) park_setting: watch::Receiver<Option<Duration>>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -121,6 +126,11 @@ impl StructuredActor {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
                 Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
+                // The node's setting changed: the timer follows it.
+                Ok(()) = self.park_setting.changed() => {
+                    let after = *self.park_setting.borrow_and_update();
+                    self.parking.set_after(after);
+                }
                 // Last: anything else that is ready goes first, and is
                 // activity (protocol 12, `parking`).
                 () = self.parking.timer().as_mut(), if self.parking.armed() && self.ready => {

@@ -174,6 +174,10 @@ const fn refused(method: Method) -> bool {
         | Method::SearchMessages
         | Method::ParkSession
         | Method::WakeSession
+        // The node's settings (protocol 12): the read as `node.info`; the
+        // change needs `admin`, which no agent holds.
+        | Method::GetNodeSettings
+        | Method::SetNodeSettings
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
