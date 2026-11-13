@@ -6,6 +6,7 @@ use vessel_proto::NodeId;
 
 use super::{InvalidNodeName, NodeName};
 use crate::address::{InvalidAddress, InvalidRemotePath, InvalidSshTarget};
+use crate::file_fault::TomlFault;
 
 /// Why the book, a project file, or a choice of node is unusable.
 #[derive(Debug, thiserror::Error)]
@@ -19,14 +20,25 @@ pub enum BookError {
         #[source]
         source: std::io::Error,
     },
-    /// Not TOML, or a key this file may not have (the message has the
-    /// line).
-    #[error("{}: {message}", path.display())]
+    /// Not TOML, or a key or value this file may not have: where and
+    /// what, never the file's text (it may hold a token).
+    #[error("{}: {fault}", path.display())]
     Syntax {
         /// Which file.
         path: PathBuf,
         /// What, where.
-        message: String,
+        fault: TomlFault,
+    },
+    /// A project file that is not TOML or sets more than `default_node`.
+    #[error(
+        "{}: {fault} (a project file may only set `default_node`, to a node in your book)",
+        path.display()
+    )]
+    ProjectSyntax {
+        /// Which file.
+        path: PathBuf,
+        /// What, where.
+        fault: TomlFault,
     },
     /// An entry that does not describe a node.
     #[error("{}: node `{name}`: {problem}", path.display())]
@@ -145,9 +157,10 @@ pub enum EntryProblem {
     /// `data_dir` is not a remote path.
     #[error("data_dir: {0}")]
     DataDir(#[from] InvalidRemotePath),
-    /// `id` is not a node id.
-    #[error("id: `{0}` is not a node id")]
-    Id(String),
+    /// `id` is not a node id (the value is not repeated: an error never
+    /// quotes the book).
+    #[error("id: not a node id")]
+    Id,
     /// A token file path that is not UTF-8 (cannot be written to TOML).
     #[error("token: the file path is not UTF-8")]
     TokenPath,

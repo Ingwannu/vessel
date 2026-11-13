@@ -136,5 +136,8 @@ codegen-units = 1
 # GPUI's Windows platform with its build script corrected for a build on
 # another system (patches/README.md). The same lines go into the app's
 # workspace; on Linux and macOS the crate is not compiled at all.
+# GPUI's Linux platform with one XIM input context per window
+# (patches/README.md, "gpui-pre-linux").
 [patch.crates-io]
 gpui-pre-windows = { path = "patches/gpui-pre-windows" }
+gpui-pre-linux = { path = "patches/gpui-pre-linux" }

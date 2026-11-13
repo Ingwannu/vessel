@@ -258,8 +258,14 @@ fn keeps_keyboard_selection_aligned_with_rows_beyond_the_first() {
 fn marks_the_best_place_a_search_occurs_whatever_the_case() {
     assert_eq!(marks("view", "Review the view"), vec![11..15]);
     assert_eq!(marks("  BOARD ", "Go to board"), vec![6..11]);
-    assert_eq!(marks("", "Go to board"), Vec::new());
-    assert_eq!(marks("sync", "Go to board"), Vec::new());
+    assert_eq!(
+        marks("", "Go to board"),
+        Vec::<std::ops::Range<usize>>::new()
+    );
+    assert_eq!(
+        marks("sync", "Go to board"),
+        Vec::<std::ops::Range<usize>>::new()
+    );
 }
 
 #[test]

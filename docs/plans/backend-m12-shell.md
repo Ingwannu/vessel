@@ -334,6 +334,19 @@ older claims are not substituted for independent review.
 
 ### Takeover audit (2026-11-13)
 
+Follow-up integration takes lead `d050e7e9`, including the always-visible
+desktop sidebar toggle, the focused-window composition query, the X11
+input-context fix, shared form/action controls and localization
+foundation. The README conflict keeps both control descriptions; the
+asset inventory keeps all 66 unique glyph registrations from both
+parents. The first attempted integration exposed ambiguous empty-vector
+assertions after the regex dependencies added range comparisons. The
+expected vectors now explicitly name `Range<usize>`; assertions are
+unchanged. The refreshed integration passes native `cargo fmt --check`,
+whole-workspace `cargo clippy --all-targets -- -D warnings`, all 430
+tests and two compile-fail documentation tests. No root-workspace gate
+or new runtime approval is claimed by this integration.
+
 Control-only follow-up: Command Center spacing now names the shared
 scale; the compact sheet starts at Paseo's 60% snap with its zinc-600
 handle. Rows accept multiple highlight ranges through a new additive

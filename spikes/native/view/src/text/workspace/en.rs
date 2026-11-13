@@ -536,7 +536,12 @@ impl WorkspaceWords for En {
             Problem::Older => {
                 "This machine's Vessel is too old for this; update it to use it here.".to_owned()
             }
-            Problem::Gone(why) => format!("The machine could not be reached: {why}"),
+            // The transport's text is not shown (it is English and names
+            // the endpoint); the sidebar's tooltip keeps it.
+            Problem::Gone(_) => {
+                "The machine could not be reached. Check that it is on and its node is running."
+                    .to_owned()
+            }
         }
     }
 
