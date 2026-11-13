@@ -4,6 +4,10 @@
 use std::path::PathBuf;
 #[path = "agent_marks/picker.rs"]
 mod picker;
+#[path = "agent_marks/pills.rs"]
+mod pills;
+#[path = "agent_marks/settings.rs"]
+mod settings_fit;
 
 use gpui::{
     AppContext as _, Bounds, Context, IntoElement, ParentElement as _, Render, Styled as _, Window,
@@ -14,8 +18,17 @@ use vessel_app_kit::{
     agent_mark::{self, Artwork, Size, Space},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Scene {
+    Family,
+    Pills,
+    Settings,
+    SettingsError,
+}
+
 #[derive(Debug)]
 struct Preview {
+    scene: Scene,
     scheme: Scheme,
     originals: Option<PathBuf>,
     picker: vessel_app_kit::ComboboxState,
@@ -25,6 +38,17 @@ struct Preview {
 impl Render for Preview {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(self.scheme);
+        match self.scene {
+            Scene::Pills => return pills::scene(&tokens),
+            Scene::Settings | Scene::SettingsError => {
+                return settings_fit::scene(
+                    &tokens,
+                    self.scene == Scene::SettingsError,
+                    window.viewport_size().width < px(600.0),
+                );
+            }
+            Scene::Family => {}
+        }
         let mut body = div()
             .flex()
             .flex_col()
@@ -169,10 +193,27 @@ fn cell(art: Option<Artwork>, size: Size, tokens: &Tokens, original: Option<Path
             } else {
                 tokens.neutral.surface0
             };
+            let viewport = art.map_or(gpui::size(px(size.points()), px(size.points())), |art| {
+                art.image_size(size)
+            });
+            // The source Spark is the bare94 viewport; the kit adds141
+            // clear space. Project the complete original into that frame.
+            let original = if art == Some(agent_mark::CLAUDE) {
+                gpui::size(
+                    px(f32::from(viewport.width).mul_add(0.666_666_7, 0.0)),
+                    px(f32::from(viewport.height).mul_add(0.666_666_7, 0.0)),
+                )
+            } else {
+                viewport
+            };
             div()
-                .size(px(size.points()))
+                .w(viewport.width)
+                .h(viewport.height)
+                .flex()
+                .items_center()
+                .justify_center()
                 .bg(background)
-                .child(img(path).size(px(size.points())))
+                .child(img(path).w(original.width).h(original.height))
         }))
 }
 fn main() {
@@ -180,6 +221,12 @@ fn main() {
         Scheme::Light
     } else {
         Scheme::Dark
+    };
+    let scene = match std::env::var("VESSEL_MARK_SCENE").as_deref() {
+        Ok("pills") => Scene::Pills,
+        Ok("settings") => Scene::Settings,
+        Ok("settings-errors") => Scene::SettingsError,
+        _ => Scene::Family,
     };
     let originals = std::env::var_os("VESSEL_MARK_ORIGINALS").map(PathBuf::from);
     let header = match std::env::var("VESSEL_MARK_HEADER").as_deref() {
@@ -205,13 +252,11 @@ fn main() {
                 window_bounds: Some(gpui::WindowBounds::Windowed(Bounds::centered(
                     None,
                     size(
-                        px(
-                            if std::env::var("VESSEL_APP_SIZE").as_deref() == Ok("390x844") {
-                                390.0
-                            } else {
-                                900.0
-                            },
-                        ),
+                        px(match std::env::var("VESSEL_APP_SIZE").as_deref() {
+                            Ok("390x844") => 390.0,
+                            Ok("1280x844") => 1280.0,
+                            _ => 900.0,
+                        }),
                         px(760.0),
                     ),
                     cx,
@@ -225,6 +270,7 @@ fn main() {
                         header.map(|(art, _)| vessel_app_kit::Leading::AgentMark(Some(art))),
                     );
                     Preview {
+                        scene,
                         scheme,
                         originals,
                         picker,

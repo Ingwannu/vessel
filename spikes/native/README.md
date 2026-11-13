@@ -421,8 +421,8 @@ belongs to `view`; the kit knows no node or session. The Invertocat's agent
 use requires explicit GitHub Copilot wording in the same row or tooltip
 (ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
 
-The artwork picker header uses its own ordinary 16-point slot rather than
-its rows' common 32-point column. A long header title follows the reference's
+The artwork picker header requests16-point ink and reserves the official
+image viewport width, rather than its rows' common32-point column. A long header title follows the reference's
 single-line ellipsis. Disabled artwork retains its approved colour/opacity;
 the words and controls are muted separately. Enter validates the current
 row's availability and bounds before dispatch. The 44-point touch model
@@ -454,3 +454,20 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+The reviewed settings controls from G3's263d4a5/70bcfd5 supply the section
+trailing slot and shared custom-content frame. Integration keeps the
+lead's code_row and hint-face delegation; its private row_faced delegates
+to that same frame. G3's64167097 supplies red_300 unchanged in both themes
+for ProviderRow error detail; semantic danger/status signals stay put.
+
+`agent_mark::settings_mark(art, Size::Sixteen, SettingsRowEdge, tokens)`
+fits reviewed artwork inside the unchanged shared settings row frame.
+Its24/23-high first/following layout slot uses the existing padding for
+OpenCode's32 ×36 quiet box; the image's integer edges and name baselines
+are checked against the previous Chevron14/Bot16 composition. Generic
+keeps that setting row's foreground colour. The kit still imports no view.
+The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
+or `settings-errors` for the real pill_parts and shared-frame fit fixtures.
+The measured reference ink and per-brand boxes are in the artwork source
+record. No restricted vendor original is bundled by those fixtures.

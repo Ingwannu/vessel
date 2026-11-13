@@ -1231,11 +1231,13 @@ mod tests {
         let (_, cx) = cx.add_window_view({
             let seen = Rc::clone(&seen);
             move |window, cx| {
-                let rows = [
+                let mut rows: Vec<ComboRow> = [
                     Some(crate::agent_mark::OPENCODE),
                     Some(crate::agent_mark::CLAUDE),
                     None,
                     Some(crate::agent_mark::GEMINI),
+                    Some(crate::agent_mark::CODEX),
+                    Some(crate::agent_mark::COPILOT),
                     Some(crate::agent_mark::OPENCODE),
                 ]
                 .into_iter()
@@ -1247,6 +1249,16 @@ mod tests {
                     row
                 })
                 .collect();
+                for leading in [
+                    Leading::AgentMark(None),
+                    Leading::Glyph(Glyph::Folder),
+                    Leading::Glyph(Glyph::Server),
+                ] {
+                    let mut row =
+                        ComboRow::new("Generic and ordinary glyphs share their 16-point size");
+                    row.leading = Some(leading);
+                    rows.push(row);
+                }
                 Probe {
                     state: ComboboxState::new(window, cx),
                     rows,
@@ -1257,7 +1269,7 @@ mod tests {
         });
         cx.run_until_parked();
         let bounds = seen.borrow();
-        assert_eq!(bounds.len(), 5);
+        assert_eq!(bounds.len(), 10);
         assert_eq!(bounds.get(2).unwrap().size.height, px(37.0));
         for (index, row) in bounds.iter().enumerate() {
             assert_eq!(

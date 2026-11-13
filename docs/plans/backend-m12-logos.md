@@ -77,8 +77,8 @@ its toolbar's 16/20 size (16 fallback), rather than another asset source.
 - Google Gemini CLI's official VS Code companion icon is an unchanged
   1645-square PNG under the repository's Apache-2.0 licence. This exact
   raster original is used rather than tracing a substitute vector.
-- Implementation and capture review are in progress. No completed gate or
-  visual pass is claimed here yet. Job 2 (themes, ADR 0049) follows V1's
+- Initial iteration evidence is recorded here; exact later gates and
+  review dispositions appear below. Job 2 (themes, ADR 0049) follows V1's
   acceptance of job 1.
 
 ## Review decisions
@@ -290,3 +290,144 @@ results include2 compile-fail documentation examples; no tests failed.
 The frozen Rust manifest is verified unchanged after build. This is the
 lead integration gate, with no K node implementation change or new root
 gate claimed. It is not final optical, pill or Settings runtime approval.
+
+## Importing reviewed settings furniture
+
+G3's immutable263d4a5/70bcfd5 section/frame and64167097 red_300 are reused
+for the fitted-mark proof. The public section/frame functions and frame
+regressions come from that reviewed source. The lead's newer code_row
+and private hint-face body are preserved; row_faced delegates to the same
+shared frame instead of undoing the lead's API. No G3 area or plan file
+is edited or copied. The token is the single owned #fca5a5 in both schemes;
+it does not alter semantic danger. These shared-source imports are gated
+with the following optical/fitted control tree before committing.
+
+## Optical and padded-settings control follow-up
+
+The coordinator's family review replaces the initial balancing target
+with measured Paseo ink bounds. `docs/design/agent-marks/ink.md` records
+those numbers, official clear-space display boxes and every size departure.
+Only image boxes change: all vendor path sequences/fills and Gemini bytes
+remain untouched. Provider-row Generic now equals existing Glyph16; the
+common32-wide column and every default picker row's37-point pitch stay.
+Header/pill widths reserve each image's quiet-zone viewport; the16-point
+header vertical slot,4-point pill gap and28/44 heights remain.
+
+The existing shared frame from G3's reviewed70bcfd5 is imported unchanged.
+The new kit-only settings mark adapter uses first24/following23 layout
+heights, with OpenCode's unmodified32 ×36 image inside existing padding.
+First/following placements are -6/-7; the real draw box starts10 points
+below its row top in either case, without half-point OpenCode paint.
+Official artwork stays at the first content line when an error grows the
+column; Generic retains the old centring/foreground. Name baselines are
+compared with the previous actual Chevron14/Bot16 contents. All provider
+name columns move16 points for the common32 slot, as recorded. G3's
+application area remains untouched and Bot stays until reviewed handoff.
+
+The audit adds actual labelled/icon-only pointer28 and touch44 pill_parts,
+plus the exact shared row/card composition at1280/390, longEN/KO names,
+status/count and expanded errors. These are control fixtures, not G3's
+application runtime or a claim that its whole screen passed. A changed-source
+gate and replacement family/picker/header/pill/settings captures are pending.
+Prepared Rust is installed with current timestamps; gate logs must show
+that the changed kit was recompiled before its new tests/captures count.
+
+## Resume record after the credit closeout notice (2026-11-13)
+
+The credit watcher required this worker to finish only its current slice.
+No further merge, new control or theme implementation is started after
+that notice. This section is the entry point for the next session; the
+closeout validation and final commit disposition will be recorded below.
+
+Committed before the current optical/fitted correction:
+
+- `1ad83315`: initial embedded artwork control and ADR 0048. V1 did not
+  accept its first comparison/header evidence.
+- `a71a88ed`: corrected original minimum, header, disabled colour and
+  actual keyboard/pointer regression. V1 cleared source findings and the
+  40 standalone/picker captures. That did not prove pill or app runtime.
+- `f8b06b8e`: view identity mapping, app adapter, draft/sidebar/board
+  seams, About attributions and checked fake fixtures. V1 cleared source;
+  final app visual approval remains pending.
+- `140eaf16`: corrected the capture-scope wording; V1 cleared it.
+- `45b75107`: lead checkpoint `fc71dcf7`, including protocol 12 and Light
+  faces. Native fmt, Clippy, tests (441 results including two compile-fail
+  doctests) and normal build passed. The Rust manifest stayed unchanged.
+  No K node implementation or new root gate is claimed. Generated web
+  wire whitespace inherited from the lead was reported and not rewritten.
+
+The current slice enlarges only display boxes to match measured Paseo ink,
+adds the fitted Settings mark slot, and supplies real pill/shared-frame
+fixtures. Vendor paths/fills and Gemini bytes remain unchanged; the
+provenance comparison passes. G3's reviewed section/frame and red[300]
+are reused, preserving the lead's code-row hint face. No G3 area is edited.
+The current source needs its own gate and new captures; earlier passes
+must not be assigned to it. Style/import failures in intermediate runs
+are retained in the logs and are not passing evidence.
+
+After the current commit, the remaining order is:
+
+1. Read the closeout validation below and the exact frozen-source gate
+   manifest. Finish any unverified native gate before calling it ready;
+   check that the changed kit actually recompiles. Prepared source must
+   be installed with current timestamps, without a clean workaround.
+2. Inspect new whole-family sizing, picker/header, labelled/icon-only
+   pointer/touch pills, and padded Settings rows in both themes/scales.
+   New artifacts use `shots/ink-*` under the track scratch directory;
+   preserve the earlier V1-reviewed `shots/kit*` and their hashes.
+3. Capture the existing app seams with the final normal binary: English
+   and Korean, 1280 and 390, model list/composer/sidebar/board/About.
+   The prepared driver now produces 72 images with dedicated desktop
+   sidebar views. The nine lead-checkpoint phone calibration images were
+   inspected successfully but are not final optical evidence.
+4. Submit the immutable hash, source/binary/artifact hashes, exact gates,
+   brand interpretations and remaining limits to V1. There is no full
+   Job 1 pass yet. G3 keeps Bot until the fitted API is reviewed; G2 and
+   G1 also need the reviewed hash and exact calls. The candidate fitted call is shown below; derive its edge from the
+   same first/following condition as the shared frame. The existing adapter
+   owns identity mapping and the kit knows no view type.
+
+   ```rust
+   let edge = if first {
+       SettingsRowEdge::First
+   } else {
+       SettingsRowEdge::Following
+   };
+   settings_mark(crate::agent_mark::of(agent), Size::Sixteen, edge, tokens)
+   ```
+
+   This is a candidate API, not a reviewed handoff. The forge uses
+   `forge_mark(Forge::GitHub, size, tokens)`, sharing the same source.
+5. Job 2 is not started. ADR 0049 is reserved. Existing stored `Theme`,
+   `Theme::ALL`, `appearance.theme` and `PreferenceChange::Theme` remain
+   unchanged with three choices. After full Job 1 acceptance and resumption
+   of this track, implement Paseo's eight choices and send the exact
+   API to E2 and S2 together. Preserve G3 red[300], G2 green[500], G1's
+   SmallGlyph/MonoBody additions and E2's sized-dot addition on integration.
+   E2 owns the chooser and generic preview shell; do not duplicate them.
+
+The exact vendor permission conditions are in the source record's
+“For the owner” section. Implementation does not assert written approval
+from Anthropic, GitHub or Google. No real agent, preview node, production
+service, push or release is used by this track. Build/runtime commands
+and artifacts use the existing development account; no ownership or mode
+change is required. Own fake fleet/display/process cleanup is recorded at
+closeout, and stale PID files must never be trusted on resume.
+
+Cleanup during closeout: both owned fake nodes and all 22 descendants
+were stopped by verified PID, with matching start times and UID 1000.
+The cleanup report has no remaining process. Their stale PID file was
+removed. Completed calibration displays/apps were already closed; any
+new standalone audit display is still stopped by its own capture driver.
+No file ownership/mode, production service, real agent or other worker's
+process was changed. A resume must start a fresh fake fleet/book and
+update the app capture driver's scratch config path.
+
+### Current slice checkpoint
+
+The optical/fitted source is saved with a `wip:` subject while its test
+command waits for a machine slot. Current fmt and all-target Clippy pass;
+new tests, replacement control captures and final app captures are not
+claimed as passed. This checkpoint prevents the credit stop from leaving
+coherent source uncommitted. Verification of this same slice may continue
+until closeout; its result and immutable hash follow in the next record.

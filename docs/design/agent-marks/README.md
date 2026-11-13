@@ -85,57 +85,22 @@ the source repository's Apache-2.0 redistribution licence.
 
 ## Drawing boxes and optical alignment
 
-The Claude Spark retains every path coordinate and its Clay fill; its
-94-square bounds are centred in a 141-square clear-space box. At a nominal
-16 this yields about 10.7 points of ink, matching the original OpenAI
-Blossom's 484-wide path in its 721-square viewport (about 10.7 points of
-ink), and the generic bot's 15-wide path on its 24-unit grid (10 points).
-Gemini CLI's only located official icon includes its own gradient border
-and dark plate; no plate is removed and no colour is changed. This is a
-necessary difference, subject to the full-set capture review. OpenCode's
-minimum ink size is larger than its neighbours and must remain so.
+[Measured ink and display boxes](ink.md) records the reference's viewBoxes,
+path bounds, official viewport sizes, per-brand display boxes and all
+necessary size/clear-space differences. Paths, fills and proportions stay
+unchanged. The comparison preview projects each full original at the same
+ink scale, including added clear space for Claude and OpenCode; the
+OpenCode original is always at its 16 × 20 minimum, never shrunk to fit a
+requested compact slot.
 
-The plated Gemini icon is drawn inside a smaller centred image box for
-optical balance: 8, 10, 12 and 14 points inside nominal 12, 14, 16 and
-20 slots respectively. These are display boxes only; the original PNG
-pixels are unchanged.
+Provider rows reserve a common32-wide column. Ordinary headers and model
+pills reserve each brand's actual image viewport width, keeping the
+reference's label gap. Their existing vertical padding holds the quiet
+zone; row pitch is unchanged. Disabled artwork retains its approved
+colours and opacity while words/trailing controls receive55% opacity.
+Generic/glyph rows keep their existing whole-row disabled treatment.
 
-The Invertocat's original 128-square clear-space viewport is preserved.
-It is drawn in image boxes 10.5, 12.25, 14 and 17.5 points inside nominal
-12, 14, 16 and 20 slots, to balance its ink with Claude and OpenAI.
-`GITHUB` is the one artwork source; `COPILOT` aliases it, and the forge
-control uses the same data through a separate typed API.
-
-
-
-In provider rows the reserved mark column is 32 points for every brand and
-for Generic, so labels align with OpenCode's necessary clear-space box.
-The requested 14/16/20 mark sizes and the reference's 8-point gap remain;
-this 32-point column is a documented width difference from Paseo's compact
-14-point column. Ordinary inline and toolbar slots retain their requested width; the
-touch OpenCode exception is recorded below.
-
-The audit window's OpenCode original is always drawn at its 16 × 20
-minimum inside the same 32 × 36 clear-space box, even beside a requested
-12/14/16/20 compact slot that correctly falls back to Generic. Brand rules
-also apply to the comparison fixture; it is never scaled below minimum
-merely to match a requested size label.
-
-Provider headers reserve the reference's 16-point slot for ordinary marks.
-OpenCode alone needs its 32 × 36 clear-space box there, so its title starts
-16 points farther right. This uses the existing header's vertical padding;
-it does not reduce the artwork or its quiet zone. The audit exercises the
-actual back/title/artwork header with a long title in both themes and widths.
-
-Disabled provider rows retain the artwork's approved colours at full
-opacity. Only their words, check and trailing controls receive the
-reference's 55% disabled opacity. Generic/glyph rows keep their previous
-whole-row opacity; the exception prevents a disabled state from inventing
-an unofficial translucent brand variant. The audit includes a disabled
-Gemini row beside active marks.
-
-The 44-point touch model pill can contain OpenCode's 32 × 36 box and uses
-it unchanged; only the 28-point pointer pill falls back to Generic. The
-touch icon slot is 12 points wider than Paseo's nominal 20 for this brand,
-with the reference's 4-point label gap retained. Its icon-only 44-square
-button also holds the required box without changing its target or height.
+The current Invertocat source is shared by the agent and typed forge
+uses; no second asset is embedded. The unchanged Gemini CLI plate remains
+in both themes after the public brand/own-repository recheck. Owner
+permission requirements above remain separate from its software licence.

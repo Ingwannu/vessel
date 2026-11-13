@@ -58,6 +58,13 @@ attributions are kept in `docs/design/agent-marks/README.md`.
   app icon from its Apache-2.0 repository: an unchanged raster original,
   since an official vector was not available. The existing image renderer
   handles it; the icon is never traced into an unofficial vector.
+- Requested sizes target the reference's painted ink. Full image viewports
+  retain their clear space and may be wider than the nominal slot; the
+  measured boxes/differences are recorded in `docs/design/agent-marks/ink.md`.
+  Existing row/header/pill padding contains the vertical quiet zone. A
+  requested20 Claude Spark cannot fit a28-high compact spot with its quiet
+  space and uses Generic there; the44-high touch pill has room. Generic
+  provider rows use the kit's existing16-point Bot, as ordinary glyph rows do.
 - Third-party original files are not committed where redistribution is
   not expressly granted: only the path data the app draws, provenance,
   and attribution. Vendor rights are not relicensed under Vessel's

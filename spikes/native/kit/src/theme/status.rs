@@ -17,6 +17,8 @@ pub struct Signal {
 /// Paseo's status signals, in one theme.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Status {
+    /// Paseo's palette.red[300], `ProviderRow`'s error detail in both themes.
+    pub red_300: Hsla,
     /// Paseo's `palette.blue[300]`, the alert information accent in both themes.
     pub blue_300: Hsla,
     /// Paseo's `palette.amber[500]`, the alert warning accent in both themes.
@@ -35,6 +37,7 @@ impl Status {
     pub fn of(scheme: Scheme) -> Self {
         match scheme {
             Scheme::Light => Self {
+                red_300: rgb(0x00fc_a5a5).into(),
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
                 success: Signal {
@@ -51,6 +54,7 @@ impl Status {
                 },
             },
             Scheme::Dark => Self {
+                red_300: rgb(0x00fc_a5a5).into(),
                 blue_300: rgb(0x0093_c5fd).into(),
                 amber_500: rgb(0x00f5_9e0b).into(),
                 success: Signal {
@@ -66,6 +70,18 @@ impl Status {
                     tint: rgba(0xd884_7b29).into(),
                 },
             },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn provider_row_error_uses_the_reference_red_300_in_both_themes() {
+        // Paseo providers-section.tsx errorText and styles/theme.ts red[300].
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            assert_eq!(Status::of(scheme).red_300, rgb(0x00fc_a5a5).into());
         }
     }
 }

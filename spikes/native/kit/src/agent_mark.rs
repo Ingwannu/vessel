@@ -8,6 +8,8 @@
 //!   Brand minimum sizes and clear space win over the requested slot size.
 //! - Cost: compact `OpenCode` slots use the bot; see ADR 0048.
 mod paths;
+mod settings;
+pub use settings::{SettingsRowEdge, settings_mark};
 
 use crate::{Tokens, assets::Glyph, glyph, theme::Scheme};
 use gpui::{Div, ParentElement as _, Styled as _, div, img, px};
@@ -50,7 +52,8 @@ pub enum Space {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Geometry {
-    Square,
+    Spark,
+    Blossom,
     Plate,
     OpenCode,
     Company,
@@ -83,9 +86,9 @@ macro_rules! vector {
 // The inventory is fixed at build time so asset lookup neither allocates nor
 // parses user data; each monochrome alternative is an approved brand form.
 vector!(/// Anthropic's official Clay Spark, with reasonable clear space.
-CLAUDE, "claude", CLAUDE, CLAUDE, Square);
+CLAUDE, "claude", CLAUDE, CLAUDE, Spark);
 vector!(/// `OpenAI`'s approved black/white Blossom including its original inset.
-CODEX, "codex", CODEX_LIGHT, CODEX_DARK, Square);
+CODEX, "codex", CODEX_LIGHT, CODEX_DARK, Blossom);
 vector!(/// `OpenCode`'s official two-tone mark with its required clear space.
 OPENCODE, "opencode", OPENCODE_LIGHT, OPENCODE_DARK, OpenCode);
 vector!(/// GitHub's current bare Invertocat with official clear space.
@@ -111,32 +114,41 @@ impl Artwork {
             Scheme::Dark => self.dark,
         }
     }
-    const fn image_points(self, size: Size) -> Option<f32> {
+    fn image_points(self, size: Size) -> Option<f32> {
+        // Match the reference's ink, not equal outer image dimensions.
+        // Vendor insets/clear space remain inside these unaltered SVGs.
+        // See the measured path bounds in the source/rights record.
         match self.geometry {
-            // A filled plate has more optical mass than a bare mark. Its
-            // original pixels remain unchanged; only its containing box is smaller.
-            Geometry::Plate => Some(match size {
-                Size::Twelve => 8.0,
-                Size::Fourteen => 10.0,
-                Size::Sixteen => 12.0,
-                Size::Twenty => 14.0,
-            }),
-            Geometry::Company => Some(match size {
-                Size::Twelve => 10.5,
-                Size::Fourteen => 12.25,
-                Size::Sixteen => 14.0,
-                Size::Twenty => 17.5,
-            }),
-            Geometry::Square | Geometry::OpenCode => None,
+            Geometry::Spark => Some(size.points().mul_add(1.506_410_2, 0.0)),
+            Geometry::Blossom => Some(size.points().mul_add(1.377_5, 0.0)),
+            Geometry::Company => Some(size.points().mul_add(1.333_333_4, 0.0)),
+            Geometry::Plate => Some(size.points()),
+            Geometry::OpenCode => None,
         }
+    }
+    /// The unchanged image viewport including its clear space. This lets
+    /// audit fixtures project a vendor original at the exact same scale;
+    /// application surfaces use [`agent_mark`] instead of drawing assets.
+    #[must_use]
+    pub fn image_size(self, size: Size) -> gpui::Size<gpui::Pixels> {
+        self.image_points(size)
+            .map_or(gpui::size(px(32.0), px(36.0)), |points| {
+                gpui::size(px(points), px(points))
+            })
     }
     fn dimensions(self, size: Size, space: Space) -> Option<(f32, f32)> {
         match self.geometry {
-            Geometry::Square | Geometry::Plate | Geometry::Company => {
+            Geometry::Spark | Geometry::Blossom | Geometry::Plate | Geometry::Company => {
+                let image = self.image_points(size).unwrap_or(size.points());
+                if space == Space::Compact && image > 28.0 {
+                    return None;
+                }
                 let width = match space {
                     Space::Row => 32.0,
-                    Space::Compact | Space::Lockup => size.points(),
+                    Space::Compact | Space::Lockup => image,
                 };
+                // The clear-space image can occupy the existing vertical
+                // padding, as OpenCode does, without changing row pitch.
                 Some((width, size.points()))
             }
             Geometry::OpenCode => match space {
@@ -149,10 +161,26 @@ impl Artwork {
 /// Shared mark control: unknown artwork or an insufficient slot draws the bot.
 #[must_use]
 pub fn agent_mark(artwork: Option<Artwork>, size: Size, space: Space, tokens: &Tokens) -> Div {
+    render(
+        artwork,
+        size,
+        space,
+        tokens,
+        tokens.neutral.foreground_muted,
+    )
+}
+fn render(
+    artwork: Option<Artwork>,
+    size: Size,
+    space: Space,
+    tokens: &Tokens,
+    fallback: gpui::Hsla,
+) -> Div {
     if let Some((art, (width, height))) = artwork.and_then(|art| {
         art.dimensions(size, space)
             .map(|dimensions| (art, dimensions))
     }) {
+        let image = art.image_size(size);
         div()
             .w(px(width))
             .h(px(height))
@@ -162,26 +190,27 @@ pub fn agent_mark(artwork: Option<Artwork>, size: Size, space: Space, tokens: &T
             .justify_center()
             .child(
                 img(art.image(tokens.scheme).path)
-                    .w(px(art.image_points(size).unwrap_or(width)))
-                    .h(px(art.image_points(size).unwrap_or(height))),
+                    .flex_none()
+                    .w(image.width)
+                    .h(image.height),
             )
     } else {
+        let fallback_size = match space {
+            Space::Row => 16.0,
+            Space::Compact | Space::Lockup => size.points(),
+        };
         let width = match space {
             Space::Row => 32.0,
-            Space::Compact | Space::Lockup => size.points(),
+            Space::Compact | Space::Lockup => fallback_size,
         };
         div()
             .w(px(width))
-            .h(px(size.points()))
+            .h(px(fallback_size))
             .flex_none()
             .flex()
             .items_center()
             .justify_center()
-            .child(glyph(
-                Glyph::Bot,
-                size.points(),
-                tokens.neutral.foreground_muted,
-            ))
+            .child(glyph(Glyph::Bot, fallback_size, fallback))
     }
 }
 /// A forge with an official embedded mark. No node identities enter the kit.
@@ -229,9 +258,44 @@ mod tests {
             );
             assert_eq!(
                 COPILOT.dimensions(size, Space::Lockup),
-                Some((size.points(), size.points()))
+                Some((COPILOT.image_points(size).unwrap(), size.points()))
             );
         }
+    }
+    #[test]
+    fn approved_viewports_yield_the_measured_reference_ink() {
+        // Width cannot also match when official aspect ratios differ from
+        // the reference's redraws; preserve geometry and record that delta.
+        for (art, expected) in [
+            (CLAUDE, (16.0_f32, 16.0_f32)),
+            (CODEX, (14.80, 14.67)),
+            (GITHUB, (16.0, 15.45)),
+        ] {
+            let svg = std::str::from_utf8(art.image(Scheme::Light).bytes).unwrap();
+            let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).unwrap();
+            let bounds = tree.root().abs_bounding_box();
+            let factor = f32::from(art.image_size(Size::Sixteen).width)
+                .mul_add(tree.size().width().recip(), 0.0);
+            assert!(
+                bounds
+                    .width()
+                    .mul_add(factor, expected.0.mul_add(-1.0, 0.0))
+                    .abs()
+                    < 0.02
+            );
+            assert!(
+                bounds
+                    .height()
+                    .mul_add(factor, expected.1.mul_add(-1.0, 0.0))
+                    .abs()
+                    < 0.02
+            );
+        }
+        assert_eq!(CLAUDE.dimensions(Size::Twenty, Space::Compact), None);
+        assert_eq!(
+            GEMINI.image_size(Size::Sixteen),
+            gpui::size(px(16.0), px(16.0))
+        );
     }
     #[test]
     fn opencode_mask_is_not_ink_and_its_quiet_zone_stays_transparent() {
