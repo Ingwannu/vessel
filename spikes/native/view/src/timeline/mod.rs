@@ -41,6 +41,7 @@ mod logs;
 mod meter;
 mod outline;
 mod permission;
+mod plan;
 mod question;
 mod rows;
 mod runs;
@@ -63,6 +64,7 @@ pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
 pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
+pub use plan::{PlanActivity, all_pending, plan_activities};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,

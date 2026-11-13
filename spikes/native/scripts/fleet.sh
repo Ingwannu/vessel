@@ -366,6 +366,18 @@ grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
   exit 1
 }
 
+# An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
+# the whole list in each update): created, sent again unchanged, a step
+# started, one done as the next starts, one added. Checked through
+# `vessel log` (one `[plan]` line per update, six).
+start_session laptop plans "plans"
+plans=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plans" "plans done"
+[ "$(log_of laptop "$plans" | grep -c '^\[plan\]')" -eq 6 ] || {
+  echo "fleet: the plans session lacks its six plan updates" >&2
+  exit 1
+}
+
 # Prompts waiting their turn (the queue above the composer): a turn that
 # runs until it is stopped (`wait`, which also takes a steer) and three
 # prompts queued behind it, one long, one Korean, one short. Checked

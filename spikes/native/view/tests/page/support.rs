@@ -90,6 +90,7 @@ pub(crate) fn key(entry: &Entry) -> String {
         EntryKey::Tool(id) => format!("t{id}"),
         EntryKey::Permission(id) => format!("p{id}"),
         EntryKey::Question(id) => format!("q{id}"),
+        EntryKey::Plan { seq, step } => format!("r{seq}.{step}"),
     }
 }
 

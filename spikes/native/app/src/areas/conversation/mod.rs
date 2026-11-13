@@ -52,6 +52,7 @@ mod find;
 mod look;
 mod outline;
 mod permission;
+mod plan;
 mod question;
 mod queue;
 mod rename;
@@ -420,6 +421,7 @@ impl ConversationArea {
     /// Show nothing: what was shown is dropped, here only.
     fn clear(&mut self) {
         self.shown = None;
+        self.lost = None;
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -430,7 +432,6 @@ impl ConversationArea {
         self.list.reset(0);
         self.info = None;
         self.refused = None;
-        self.lost = None;
         self.menu.close();
         self.confirm = None;
         self.rename = None;
