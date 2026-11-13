@@ -676,7 +676,16 @@ never rebuilt.
     patch `gpui-pre-linux`, the Fluent translations) plus this track's
     signature comment fix. Only `docs/` and `spikes/release/` differ
     from `779891d4`.
-  - The set went into place at 18:53 UTC. It is not published yet.
+  - The set went into place at 18:53 UTC and was published to
+    `preview` at 18:59:58 UTC, after the coordinator ran the Linux build
+    against the real node. The notes gained one line asking the owner
+    to check Enter during Hangul composition on Windows.
+  - Checked from outside, through the public feed: the manifest names
+    0.0.0.0.8, and all five files download with matching sums and
+    signature.
+  - The published 0.0.0.0.7 Linux build, unpacked with a scratch
+    configuration, took 0.0.0.0.8 by itself at 19:01:18 UTC, and its
+    log shows each step. The held `ccfba8e` set was then deleted.
   - The signature's comment is "vessel-app 0.0.0.0.8 SHA256SUMS".
   - Sizes against 0.0.0.0.7:
 
