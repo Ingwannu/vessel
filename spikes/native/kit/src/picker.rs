@@ -52,6 +52,10 @@ use crate::widgets::TypeExt as _;
 /// touch-sized (`constants/layout.ts`).
 pub const COMPACT: f32 = 600.0;
 
+/// How readily a row's label gives way next to its description: hardly
+/// (the description goes first).
+const LABEL_SHRINK: f32 = 0.01;
+
 /// How far above its trigger a list opens (up, so negative).
 const LIFT: f32 = -5.0;
 
@@ -507,8 +511,12 @@ fn rows_list<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
+    // The rows scroll inside the panel's height; the title and the search
+    // row above them stay (`min_h_0` lets the list be shorter than its rows).
     let mut list = div()
         .id("combobox-rows")
+        .flex_shrink(1.0)
+        .min_h_0()
         .flex()
         .flex_col()
         .py(px(4.0))
@@ -587,20 +595,34 @@ fn combo_row<V: 'static>(
     let neutral = tokens.neutral;
     let highlighted = state.highlighted == Some(index);
     let wash = neutral.surface1;
+    // Paseo's option (`ComboboxItem`): its label, then its description on
+    // the same line, each one line (`numberOfLines={1}`); the description
+    // gives way first and ends in an ellipsis, then the label does. A row is
+    // one line high whatever an agent writes, so rows never run into each
+    // other.
+    // Paseo's label does not shrink; here it gives way last, so a name
+    // longer than the row still ends in an ellipsis.
+    let label = div()
+        .flex_shrink(LABEL_SHRINK)
+        .min_w_0()
+        .truncate()
+        .text_color(neutral.foreground)
+        .child(row.label.clone());
     let mut words = div()
         .flex_1()
         .min_w_0()
+        .overflow_hidden()
         .flex()
-        .flex_col()
-        .gap(px(2.0))
-        .child(
-            div()
-                .text_color(neutral.foreground)
-                .child(row.label.clone()),
-        );
+        .flex_row()
+        .items_baseline()
+        .gap(px(8.0))
+        .child(label);
     if let Some(detail) = &row.detail {
         words = words.child(
             div()
+                .flex_shrink(1.0)
+                .min_w_0()
+                .truncate()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
                 .child(detail.clone()),
@@ -615,6 +637,7 @@ fn combo_row<V: 'static>(
         .flex_row()
         .items_center()
         .gap(px(8.0))
+        .flex_shrink_0()
         .min_h(px(if compact { 44.0 } else { 36.0 }))
         .px(px(12.0))
         .py(px(8.0))
@@ -635,15 +658,21 @@ fn combo_row<V: 'static>(
             }
         }))
         .child(words)
+        // Paseo's trailing slot: the check, then the row's own words (a
+        // value at most 45% of the row, one line).
+        .when(row.checked, |element| {
+            element.child(glyph(Glyph::Check, 16.0, neutral.foreground_muted))
+        })
         .children(row.trailing.clone().map(|trailing| {
             div()
+                .flex_shrink(1.0)
+                .min_w_0()
+                .max_w(gpui::relative(0.45))
+                .truncate()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
                 .child(trailing)
         }))
-        .when(row.checked, |element| {
-            element.child(glyph(Glyph::Check, 16.0, neutral.foreground_muted))
-        })
         .when(row.opens, |element| {
             element.child(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted))
         });

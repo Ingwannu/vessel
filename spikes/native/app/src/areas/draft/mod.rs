@@ -98,6 +98,9 @@ pub(crate) struct Draft {
     /// The agent whose models the model selector shows; `None` for the
     /// list of agents.
     pub(crate) browsing: Option<HarnessRef>,
+    /// The feature whose own list the features list shows (Paseo pushes a
+    /// feature's list over the features sheet); `None` for the features.
+    pub(crate) feature: Option<vessel_proto::OptionId>,
     /// Which of the suggestions is the placeholder (one per launch).
     suggestion: usize,
     /// Why the last send did not go, shown under the composer.
@@ -145,6 +148,7 @@ impl Draft {
                 folder: ComboboxState::new(window, cx),
             },
             browsing: None,
+            feature: None,
             suggestion,
             error: None,
             sending: None,
