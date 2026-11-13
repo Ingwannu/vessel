@@ -46,6 +46,7 @@ mod connector;
 mod conversation;
 mod credential;
 mod error;
+mod fleet_control;
 mod local;
 pub mod pairing;
 mod pinned;

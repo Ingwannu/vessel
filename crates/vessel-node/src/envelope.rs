@@ -604,6 +604,14 @@ async fn run_here(
             Reply::RestartScript(guard.restart_script(connection, request).await?)
         }
         Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
+        Call::JoinFleet(request) => Reply::JoinFleet(guard.join_fleet(connection, request).await?),
+        Call::LeaveFleet(request) => {
+            Reply::LeaveFleet(guard.leave_fleet(connection, request).await?)
+        }
+        Call::SyncFleet(request) => Reply::SyncFleet(guard.sync_fleet(connection, request).await?),
+        Call::GetFleetStatus(request) => {
+            Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
+        }
         Call::PreviewSchedule(request) => {
             Reply::PreviewSchedule(guard.preview_schedule(connection, request).await?)
         }

@@ -44,6 +44,25 @@ are `invalid_request` with optional typed `detail: { kind: schedule_preview,
 reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
 or `unavailable` for the bounded worker pool. Existing errors omit detail;
 future unknown detail kinds decode as unknown. Clients never parse messages.
+The optional error `detail` is additive and is not stripped from older
+connections: older error decoders ignore unknown fields. The error code and
+message remain sufficient for those peers.
+
+`fleet.join { link, grant }` (Admin) redeems one single-use invitation and
+returns `JoinedFleet { home }` only after persisting the selected machine's
+membership. `fleet.leave {}` (Admin) removes membership and its credential,
+keeping materialized files; already left succeeds. `fleet.sync {}` (Admin)
+returns Ack when accepted by the existing loop, not when applied. These
+mutations cannot be forwarded or used by an agent. A disconnected join may
+have redeemed its invitation; clients never automatically retry it.
+`fleet.status {}` (Read) returns `FleetSyncStatus { role, local, members? }`.
+`role` is standalone, home or member (home id and join time). `local` is last
+applied generation/time, home contact time, relative conflict paths and typed
+problem categories; history can predate the current join. Only the home's
+own authenticated owner/paired Admin sees per-member device reports.
+Read-only and delegated reads omit `members`; they never receive credentials,
+secret names, absolute destination paths or arbitrary local error text.
+Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 

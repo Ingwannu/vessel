@@ -28,6 +28,8 @@ mod conversation;
 mod crowd;
 #[cfg(test)]
 mod fleet;
+mod fleet_control;
+mod fleet_control_cancel;
 #[cfg(test)]
 mod forge;
 #[cfg(test)]

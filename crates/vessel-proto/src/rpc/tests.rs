@@ -259,6 +259,7 @@ const FORWARDABLE: &[&str] = &[
     "session.read",
     "profile.list",
     "session.move_profile",
+    "fleet.status",
     "session.export",
     "session.import",
     "memory.export",

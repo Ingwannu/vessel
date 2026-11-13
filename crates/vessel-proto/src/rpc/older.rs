@@ -46,6 +46,9 @@ impl Reply {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
+                Self::JoinFleet(crate::JoinedFleet { home })
+            }),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
             Self::ListDevices(devices) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
@@ -229,6 +232,9 @@ impl Reply {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)

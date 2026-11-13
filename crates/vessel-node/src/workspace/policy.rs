@@ -139,7 +139,10 @@ const fn refused(method: Method) -> bool {
         // A repository's scripts (protocol 11): a person's.
         | Method::ListScripts
         | Method::RunScript
-        | Method::RestartScript => true,
+        | Method::RestartScript
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -157,6 +160,7 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule

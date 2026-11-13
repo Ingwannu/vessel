@@ -197,6 +197,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule

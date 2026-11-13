@@ -19,6 +19,7 @@ mod device;
 mod error;
 mod event;
 mod fleet;
+mod fleet_control;
 pub mod forge;
 mod forward;
 mod harness;
@@ -70,6 +71,10 @@ pub use fleet::{
     Generation, GetManifest, HttpUrl, InvalidBundlePath, InvalidHttpUrl, ListMembers, Manifest,
     McpDefinitions, McpServers, McpTransport, ReadBlob, ReportApplied, ResolvedMcpServers,
     ResolvedValue, WatchFleet,
+};
+pub use fleet_control::{
+    FleetApplied, FleetControlError, FleetRole, FleetSyncProblem, FleetSyncStatus, GetFleetStatus,
+    JoinFleet, JoinedFleet, LeaveFleet, SyncFleet,
 };
 pub use forward::{
     Callback, Deliver, FleetNode, ForgetNode, Forward, Forwarded, GetCallback, GrantHome,
