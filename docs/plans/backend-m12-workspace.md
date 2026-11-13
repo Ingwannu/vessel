@@ -98,6 +98,7 @@ together. The decision log is in `syntax/mod.rs`.
 | --- | --- | --- |
 | `projects.rs`, `detail.rs`, `approval.rs`, `remove.rs` | Settings > Projects: a machine's projects (the machine Settings' picker chose), add (folder, clone with progress, new), a project's page (commands and their approval, worktrees, snapshots, removal) | Paseo's `projects-screen.tsx` and `project-settings-screen.tsx` |
 | `place.rs`, `place_rows.rs` | the new chat's place: the folder pill's list leads with the machine's projects, then the folders, then "Add project"; a project chosen brings Isolation (Local, New worktree) and Branch ("Start from") pills | Paseo's `screens/new-workspace/form/` |
+| `sidebar.rs` | the sidebar's projects section (the lead's slot `sidebar::projects`): Paseo's section header with an add button, a row per project of every online machine (its mark, its name, the machine when more than one has projects); a row starts a new chat in the project, one not ready opens Settings > Projects; past eight rows, "All projects" | Paseo's `sidebar-workspace-list.tsx` project rows, `sidebar-section-header.tsx` |
 | `start_card.rs`, `start_header.rs` | a chat started in a new worktree: the session's screen opens at once with the prompt; the card under it shows the worktree being made, the approval when the project's commands need one, setup's log, and after a failed setup Stop, Start anyway, Try again | Paseo's `panels/setup-panel.tsx`; GOAT's thread that prepares its environment |
 
 The seam with the desktop lead: the lead's `draft/pickers.rs` keeps the
@@ -132,6 +133,14 @@ listed it).
   new workspace has no folder field (a Paseo workspace is always a
   project's). Vessel keeps the folder for machines without projects.
 - Isolation is remembered while the app runs, not across launches.
+- The pills' words say what they are (the owner's test: a person must
+  know what each pill is without being told): Paseo's "Local" and "New
+  worktree" read "In the project folder" / "In a new worktree" ("프로젝트
+  폴더에서" / "새 워크트리에서"), and the branch pill carries "Start from"
+  ("시작 브랜치") before the branch, where Paseo's badge shows the branch
+  alone. Each also has a tooltip.
+- A sidebar project row starts a new chat in the project; Paseo's folds
+  out the project's workspaces (Vessel lists sessions under machines).
 - A remote-tracking branch is listed by git's own name (`origin/main`);
   Paseo shows `main` and marks the local row `main (local)`.
 - Pull requests are not in Start from yet (they come with the forge).

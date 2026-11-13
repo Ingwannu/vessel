@@ -98,6 +98,10 @@ pub struct Labels {
     pub worktree: &'static str,
     pub commands_unreadable: &'static str,
     pub setup_not_followed: &'static str,
+    pub tip_place: &'static str,
+    pub tip_isolation: &'static str,
+    pub tip_base: &'static str,
+    pub all_projects: &'static str,
 }
 
 /// English (the page's words).
@@ -170,8 +174,8 @@ pub const EN: Labels = Labels {
     nothing_removed: "Nothing was removed.",
     folders: "Folders",
     isolation: "Isolation",
-    local: "Local",
-    new_worktree: "New worktree",
+    local: "In the project folder",
+    new_worktree: "In a new worktree",
     start_from: "Start from",
     search_places: "Search projects and folders",
     search_branches: "Search branches",
@@ -193,6 +197,10 @@ pub const EN: Labels = Labels {
     worktree: "Worktree",
     commands_unreadable: "The project's commands could not be read for an approval, so nothing was started.",
     setup_not_followed: "The worktree was made, but its setup could not be followed",
+    tip_place: "Where the chat runs: one of this machine's projects, or a folder",
+    tip_isolation: "Run in the project's folder as it is, or in a new worktree on a branch of its own",
+    tip_base: "The branch the new worktree's branch starts from",
+    all_projects: "All projects",
 };
 
 /// Korean.
@@ -265,9 +273,9 @@ pub const KO: Labels = Labels {
     nothing_removed: "아무것도 제거하지 않았습니다.",
     folders: "폴더",
     isolation: "격리",
-    local: "로컬",
-    new_worktree: "새 워크트리",
-    start_from: "시작 위치",
+    local: "프로젝트 폴더에서",
+    new_worktree: "새 워크트리에서",
+    start_from: "시작 브랜치",
     search_places: "프로젝트와 폴더 검색",
     search_branches: "브랜치 검색",
     no_matching_refs: "일치하는 ref가 없습니다.",
@@ -288,4 +296,8 @@ pub const KO: Labels = Labels {
     worktree: "워크트리",
     commands_unreadable: "승인할 프로젝트 명령을 읽지 못해 아무것도 시작하지 않았습니다.",
     setup_not_followed: "워크트리는 만들었지만 설정을 따라가지 못했습니다",
+    tip_place: "채팅이 실행될 곳: 이 머신의 프로젝트나 폴더",
+    tip_isolation: "프로젝트 폴더에서 바로 실행하거나, 새 브랜치의 워크트리에서 실행합니다",
+    tip_base: "새 워크트리의 브랜치가 시작할 브랜치",
+    all_projects: "모든 프로젝트",
 };

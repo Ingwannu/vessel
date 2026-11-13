@@ -14,6 +14,7 @@ mod place;
 mod place_rows;
 mod projects;
 mod remove;
+mod sidebar;
 mod start_card;
 mod start_header;
 mod widgets;
@@ -29,6 +30,7 @@ use vessel_app_view::workspace::words::WorkspaceWords;
 
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
+pub(crate) use sidebar::projects as sidebar_projects;
 pub(crate) use start_card::render as start_card;
 
 use crate::shell::Shell;
