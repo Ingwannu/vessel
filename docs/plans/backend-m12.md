@@ -207,7 +207,23 @@ points wide.
 | Browser | `backend/m12-browser` | the same UI crate in a browser: does it draw, does Hangul compose, what a phone browser and a browser without WebGPU get (question 6; ADR 0036's open point) |
 | M, phone | `backend/m12-phone` | the native Android app from the UI crate; the shell as the fallback |
 | R, release | `backend/m12-release` | builds for every system, the installer, the updater |
-| next | | the board and a session's lifecycle; machines, devices, sync, agents, models and the settings; what the page never drew (agent install, schedules, export); settings kept on a node (ADR 0036) |
+| S, shell furniture | `backend/m12-app-shell` | the board and the archive in full, the sidebar in full, the command palette, the shortcut registry with its listener and settings page, notices and toasts, the system's notifications |
+| E, settings | `backend/m12-app-settings` | the settings frame and its sections, the preference model behind one interface, machine management, devices and pairing links, sync, agents, models; then installing agents |
+| next | | schedules and saved prompts, export and import; settings kept on a node (ADR 0036); the inbox and push |
+
+Who owns which area and which kit control is kept in one place for the
+workers (the tracks' brief, outside the repository) and repeated in
+`spikes/native/README.md` by the lead. In short: the lead owns the
+window, the routes, the title bar, the kit's base, the new chat and the
+composer, pairing and the update notice, and merges every track; a
+control another track owns is never written twice.
+
+Builds so far: 0.0.0.0.1 (pairing, machines, sessions, a session);
+0.0.0.0.2 (the app opens on a composer and a send opens the chat at
+once; pairing in two steps; the app's own title bar; the owner's mark;
+Korean by the system's language); 0.0.0.0.3 brings automatic updates,
+as the owner asked ("as Zed has them"): the updater track R built, a
+signed feed, the notice in the title bar.
 
 ## After the first builds (written out as the tracks report)
 
