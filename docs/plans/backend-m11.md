@@ -4622,6 +4622,253 @@ other tracks' contracts, and found fifteen problems. Each one's fate:
     an entry ignored; `terminal.read`'s wait stated; `read_terminal`'s
     cursor defined; "order" removed from the digest's description.
 
+## Track A-page: contract
+
+Written 2026-11-12 on `backend/m11-a-page`, before any screen. A page
+track adds no call: everything below is protocol 10 as track A built it,
+one preference of the bridge's document (ADR 0028, extended by its own
+rules), and what the fake agent must do for the tests. What follows is
+what the page promises: which call each screen makes, what it shows for
+each answer, and what it bounds.
+
+### What is offered, and from what
+
+Nothing is offered that the node would refuse, nothing hidden that it
+would do. Every rule is a pure function in `data/` with a unit test.
+
+| Thing | Shown when | Read from |
+| --- | --- | --- |
+| Anything of protocol 10 | the machine's connection speaks protocol 10 or later | the bridge's status for the machine (`protocol`) |
+| Queue (send while a turn runs) | a live structured session | always: the node queues for every agent |
+| Steer | the agent says `abilities.steer` | `ready.abilities` in the log, else `SessionInfo.abilities` |
+| Interrupt and send | any live structured session in a turn | the node does it for every agent |
+| Attach (pick, paste, drop) | a live structured session, or the new-session page for a structured agent | files: always; images: `abilities.image`; audio: `abilities.audio` (the probe's `HarnessOptions.abilities` on the new-session page) |
+| An attachment's size | before `attachment.begin` | `session.conversation`'s `limits` (`image`, `audio`, `file`, `per_prompt`, `inline_per_prompt`, `per_session`, `chunk`) |
+| `/` | a structured session | the last `commands_changed`; "No commands from <agent> yet" before one |
+| `@` | a session with a project (`SessionInfo.workspace`) | `file.find` on its worktree, else its project; "This session has no project" otherwise |
+| A question | while the agent asks one | `question_asked` without its `question_resolved` |
+| The context meter | after the first `usage_changed` | `usage.used`, `usage.size`, `usage.cost` |
+| A turn's tokens | a `turn_ended` with `usage` | that record |
+| Pin, unpin | protocol 10, any session | `marks.pinned` |
+| Archive | protocol 10, a session not archived (a live one is stopped by it, and the dialog says so) | `marks.archived_at` |
+| Bring back (unarchive) | an archived session | `marks.archived_at` |
+| Start again | an ended structured session whose recorded `abilities.resume` is not false | `SessionInfo.abilities`, `status` |
+| Delete | an ended session | `status` |
+| Unread | `marks.unread` | the session list |
+
+A session stored before protocol 10 has no recorded abilities: start
+again is offered and the node's answer decides (track A's review item
+14). Kill stays for a live session (it ends it without archiving).
+
+### The one preference
+
+`composer.delivery`: what Send does while a turn runs, `queue` (the
+default), `steer` or `interrupt`, changed with `{ "set": "delivery",
+"value": … }`. Settings › General shows it as Paseo's "Default send"
+beside the send key. The other way is one modifier away, as in all three
+references: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter (⌘/Ctrl+Shift+Enter
+where ⌘/Ctrl+Enter is the send key), and the button's icon turns while
+the modifier is held. The other way of `queue` is `steer` where the
+agent can, `interrupt` where it cannot; of `steer` and `interrupt` it is
+`queue`. Where the chosen delivery is `steer` and the agent cannot
+steer, Send queues and its tooltip says so; the choice is not changed.
+A file written before this field reads `queue`; an older bridge keeps
+the field it does not know (ADR 0028's "lenient by keeping").
+
+Touches, outside `web/`: `crates/vessel-web/src/wire/prefs.rs` (the
+type, the field, the change, the default test),
+`crates/vessel-web/src/keep/prefs_doc*` (the section's field and the
+change's one arm: a preference the document does not apply is not a
+preference) and the generated `web/src/wire/bridge.ts`.
+
+### Calls, and what each answer shows
+
+All through `data/` functions that answer an `Outcome` (no throw).
+
+- **`session.prompt`** `{ session, content, delivery }`: Send. The
+  answer's `delivered` decides nothing on the page (the log and
+  `queue_changed` show what happened); the draft and the tray are
+  cleared on any success. `invalid_request` (over a limit, a kind the
+  agent does not take): said under the box, the draft and tray kept.
+  `conflict` (the queue full, the session ended): the same.
+  `unsupported` for `steer` (an agent that answered "method not found"
+  anyway): said, and the page stops offering steer for this session.
+  `unavailable` for `interrupt` (the turn did not end in 10 s): said; the
+  text stays.
+- **`session.queue`** `{ session, change }`: the queue's controls. Every
+  change that names an entry sends the revision the page drew it with
+  (`edit`). The page draws the queue only from `queue_changed` (and the
+  reply's `queue`, which is the same state a moment earlier): nothing is
+  moved or removed on the page before the node says. `conflict` on an
+  edit (someone else changed the entry): "Changed elsewhere; showing the
+  new text", the edit's text kept in the field for the person to apply
+  again; `not_found` (it was sent or removed meanwhile): "Already sent or
+  removed", the editor closed.
+- **`session.conversation`** `{ session }`: read once when a structured
+  session's page opens and again after `session.resume`, for `limits`
+  (the log has everything else). A failure leaves attachments unoffered
+  with the reason in the attach button's tooltip.
+- **`attachment.begin` / `.write` / `.finish`**: a file is checked when
+  it is attached (kind, size, count, against the agent's abilities and
+  the limits) and uploaded when Send is pressed, so a file removed before
+  sending never takes the session's room (the node has no call to give an
+  upload or an attachment back). Pieces of `Upload.chunk` bytes, read with
+  `Blob.slice` and `arrayBuffer()` one at a time (never the whole file),
+  each next offset the node's `received`; at most two files at once from
+  one composer. A failed piece stops that file: its chip says why. Retry
+  writes the same upload again from the node's `received`; only
+  `not_found` (the node dropped it) begins a new one; `invalid_request`,
+  `unsupported` and `conflict` offer Remove only (the reason stands);
+  `unavailable` (the node's upload places are taken) offers Retry. The
+  prompt goes once every file is in; a file uploaded before a failure is
+  kept for the next Send. An image's first bytes are checked on the page
+  before it is sent (the node refuses and drops one that does not match).
+- **`attachment.read`** `{ session, attachment, offset }`: an image in a
+  prompt of the timeline, fetched only when its row is drawn and within
+  one screen of the view (an `IntersectionObserver`; the timeline is
+  windowed), pieces joined into one `Blob`, shown from an object URL. A
+  file attached in this tab is shown from the local file (its object URL
+  kept under the id `finish` answered), never fetched again. The page
+  keeps at most 48 images or 64 MiB of them, oldest dropped and revoked.
+  Audio and files are chips with name and size, not fetched. One
+  observer for the timeline, at most two reads at once, and a tile of
+  fixed size until its image is drawn, so the windowed rows keep their
+  measured height.
+- **`file.find`**: through `data/workspace/find.ts` only
+  (`newSearchKey` once per composer, `findFiles`, an answer marked
+  `superseded` dropped); asked once the word after `@` has a character,
+  80 ms after typing stops (before that the menu says "Type to search
+  files"). The root is the session's worktree, else its project
+  (`SessionInfo.workspace`); a session started in a bare folder has none
+  until track B-page's place picker starts sessions in projects. A chosen
+  file is written into the prompt as text, `@path` relative to that root
+  (in quotes when it holds a space).
+- **`session.send` `answer_question`** `{ id, answer }`: the question
+  dock's Submit (`accept` with every field that has a value) and Decline.
+  `invalid_request` is shown under the field it names when the message
+  names one, under the form otherwise; `conflict` (answered elsewhere
+  first) and `not_found` close the dock with a toast.
+- **`session.send` `cancel_turn` `{ turn }`**: Stop names the turn it
+  saw start (`turn_started`'s seq, kept on the timeline), so a stop that
+  lands after the queue started the next turn holds the queue and cancels
+  nothing; the queue's strip then says it is paused and offers Resume.
+  To a node before protocol 10 `turn` is left out.
+- **`session.mark`** `{ session, mark }`: pin, unpin, archive (a live
+  session: a dialog first, "Archiving stops the agent"), unarchive, and
+  `read { through }`. `read` is sent when the session's page is in front
+  (the tab visible and focused) and it has shown a record that asks for
+  attention at or after the last `through` sent, or the session list
+  says it is unread; `through` is the last record shown plus one. Not
+  per record: at most once a second. After "Mark unread" no `read` is
+  sent for that session until a record arrives after it. Every mark's
+  answer replaces the session in the page's list at once (the list is
+  polled every two seconds). The page cannot know a device was given
+  only `read` (no scope reaches it): the first `forbidden` from a mark
+  stops `read` marks to that machine for the page's life.
+- **`session.resume`**: "Start again". The button waits while the agent
+  starts (up to the handshake's bound); `unsupported` "This agent cannot
+  pick up where it left off", `conflict` (still being written, already
+  live, another start under way, or the folder is gone: the node's
+  message), `spawn_failed` (the log says why), `invalid_request` (the
+  profile was removed), `harness_not_installed`, `unavailable` (the
+  machine is stopping) each said plainly. Not offered for a session that
+  never had an agent session to load (`harness_session` absent). The
+  page follows the log again from where it stopped once the session is
+  live again (the answer, or the list, says so), so another device's
+  start again shows here too.
+- **`session.delete`**: a dialog first; it may wait while the worktree's
+  teardown runs (up to 5 minutes), the dialog's button saying so;
+  `conflict` (its log still being written, or live) said. Its answer's
+  worktree: removed, or kept and why (`KeptReason`, each in words), in a
+  toast (removing a kept one is track B-page's worktree screen). The
+  session's draft, tray and kept images are dropped; the page goes back
+  to the board if it was showing the session.
+
+### Questions, drawn
+
+agent-orchestrator's question dock, over the composer in the permission
+dock's place (the permission first when both wait). One question at a
+time, oldest first; within it one step per field, "Question · 1 of 3".
+Fields in the node's order (by key), except Claude's: `question_N` are
+ordered by N, and `question_N_custom` is drawn with `question_N` as its
+"Other" row, in the agent's own words (its title and description). For a
+multi-select the custom text is added to the picks; for a single choice
+it is a note to the pick, or the answer when nothing is picked
+(`claude-agent-acp`'s reading), so typing in it never clears a pick.
+Each kind by a kit control: text a field, number and integer a field
+taking a sign and (for number) a point, boolean a checkbox row, a single
+choice option rows with their descriptions, several the same rows
+checked; defaults filled in; `unknown` a line saying it cannot be
+answered here, with Skip only. The page checks what the node checks
+(required, lengths, bounds, item counts) before sending, so a refusal is
+rare; one that comes is shown at the field it names.
+
+### The fake agent (`crates/vessel-testkit`, additive)
+
+- `ask claude`: Claude's `AskUserQuestion` form (track A's fixture: a
+  single choice with descriptions, a multi-select, each with its
+  `_custom` text), answered like `ask`.
+- Whatever else the tests need is added the same way, each prompt
+  documented in `fake_acp.rs`'s list.
+
+### The contract's review (2026-11-12)
+
+An independent reviewer read this section against the node, the page and
+the references and found fifteen problems. Amended above: uploads at
+Send and retry from the node's `received` (1, 2), the read-only device
+(3), following again after a start again and its other refusals (4), the
+queue drawn only from the log, the revision on `edit` alone, an edit
+keeping its files, `send_now`'s delivery (6), `@`'s empty word, its root
+and what it inserts (7), Mark unread, mark answers applied at once (8),
+Stop's `turn` and an older node (9), Claude's "Other" (10), names and
+types cleaned as the node reads them and images checked (11), the image
+fetches bounded (12), delete's wait and what it drops (13), question
+order, signs and defaults, checked before sending (14).
+
+Rejected, and why:
+
+- **Between turns, Send always `queue`, labelled "Add to held queue"
+  while held** (5). A person who stopped a turn and types a new message
+  means it now: `start` sends it, and what was held stays held until
+  they resume or send it (agent-orchestrator: "an empty queue is never
+  held, so messages typed after a stop still start"; GOAT's Resume is a
+  button of the queue, not of the next message). `start` races nothing
+  while the queue is held (it moves only on resume).
+- **Two tabs' search keys** (7): every tab's first key is 1, so two
+  tabs searching at once on one machine replace each other's searches.
+  `find.ts` is the other page track's file; the composer asks again when
+  its own answer comes back `superseded` with no newer search of its
+  own, and the coordinator is told.
+- **Pinned and unread ended sessions hidden** (8): the sidebar's "show
+  ended" is track W's preference. With protocol 10 an ended session that
+  is not archived is still on the board; the sidebar keeps the
+  preference, and pinned sessions are listed first, ended or not.
+
+Built differently from a reference, and why (15): a large paste stays
+text (GOAT makes it a file; the queue's 128 KiB and the draft's bound
+already say so); no "Compact context" button by the meter (the agent's
+own `/compact` is in the `/` menu where it offers one); no Undo after
+archive (the archive's Restore is one click).
+
+### Bounds, on the page
+
+| What | Bound |
+| --- | --- |
+| A file in memory while uploading | one piece (`Upload.chunk`, 1 MiB) per uploading file |
+| Files uploading at once, per composer | 2 |
+| Attachments in the tray | `limits.per_prompt` (16) |
+| Images kept for the timeline | 48 or 64 MiB, least recently drawn dropped; two read at once |
+| `@` searches | one in flight per composer (the node replaces the older), 80 ms after typing stops |
+| `/` and `@` rows shown | 50 |
+| `read` marks | at most one a second per session |
+
+### An older node, an older page
+
+A machine speaking protocol 9 or older gets the page of wave 1: Send and
+Stop, no attach, no `/` or `@` menu, no meter, Kill and Copy id. A
+newer page against a protocol 10 node shows all of it. The preference
+is the bridge's, not the node's.
+
 ## Track B2: progress
 
 2026-11-12, on `backend/m11-forge`. ADRs 0029 (the forge and signing in)
@@ -4887,6 +5134,194 @@ For the page track:
 - `port.list { changed_from }` is a long poll; the first answer may be
   `pending` until the first scan. A port is reported, never opened:
   previews are the preview track's, on an origin other than the page's.
+
+## Track A-page: progress
+
+Written 2026-11-12 on `backend/m11-a-page`, at the end of the track.
+
+### Built
+
+Every screen of the contract above, on protocol 10's calls as track A
+built them; nothing was added to the wire.
+
+- **The node's queue over the composer** (`queue-dock.tsx`,
+  `data/queue-view.ts`): edit in the box (with the row's revision, so an
+  edit that crossed another is refused, not overwritten), move by drag
+  or by Up and Down on the grip, delete, Steer or Send now, a held
+  queue's reason and Resume. The send button's three ways while a turn
+  runs, steer only where `abilities.steer` says so (and not again after
+  the agent refused it once), the other way one modifier away
+  (`data/delivery.ts`, `send-button.tsx`). The default is the bridge's
+  `composer.delivery` (ADR 0028), Settings › General's "Default send".
+- **Files** (`data/attach.ts`, `upload.ts`, `tray.ts`, `trays.ts`,
+  `images.ts`, `thumbnail.ts`): paste, drop and pick; a chip each with
+  its progress, failure, Retry (going on from what the node has) and
+  Remove; checked as the node checks them, uploaded when the message is
+  sent, two at a time; the new-session page's files go with the first
+  message once the agent has said what it takes. A sent prompt shows its
+  files; an image is read with `attachment.read` only near the view.
+- **`/` and `@`** in one kit list (`ui/kit/suggestions.tsx`,
+  `data/suggest.ts`, `use-suggest.tsx`, `use-file-search.ts`): the
+  agent's commands from `commands_changed`; files through
+  `data/workspace/find.ts` only (a search key per field from
+  `newSearchKey`, `superseded` dropped, asked again once when this
+  field's own answer was superseded with no newer search of its own);
+  nothing else under `data/workspace/`. A session with no project says
+  so.
+- **Questions** (`question-dock.tsx`, `question-field.tsx`,
+  `data/question-form.ts`, `question-answers.ts`): one step per field,
+  kit controls by kind, Claude's `question_N_custom` as its question's
+  "Other" row, the node's checks first and its `invalid_request` at the
+  field; the answered card in the timeline.
+- **The context meter** beside the model and a turn's tokens in its
+  ended line (`context-ring.tsx`, `data/context-meter.ts`).
+- **A session's marks and actions** (`data/marks.ts`, `read-hold.ts`,
+  `use-mark-actions.tsx`, `use-read-marks.ts`, `ended-banner.tsx`, the
+  board's `card-actions.tsx` and `card-marks.tsx`): pin, unread, start
+  again, archive, unarchive or restore, delete and what became of the
+  worktree; `read` sent as the contract says (`through` the last record
+  shown plus one, when in front and seen, at most once a second); the
+  board keeps an ended session in its lane until it is archived; the
+  sidebar shows pinned first and unread.
+- **The sidebar's sessions set in** from their machine's row (22px, the
+  mark under the machine's name).
+- The fake agent's `ask claude` (Claude's `AskUserQuestion` form) in
+  `crates/vessel-testkit`.
+
+Found while looking at the captures, and fixed:
+
+- The page's content policy (`img-src 'self' data:`, ADR 0017) refuses
+  `blob:` images, so every image preview was empty. Images are drawn
+  from `data:` thumbnails made on a canvas; the full image is read into
+  a `data:` address only when opened.
+- A dock opening over the composer (a question, the queue), or a phone's
+  keyboard, shortened the timeline's view, and the window read that as a
+  scroll up past `NEAR_END`: the last row stayed under the dock.
+  `use-window.ts` keeps a reader at the end there on a resize.
+- Claude's free text was a line of its own in the answered card; it
+  joins its question's line.
+- The composer took the whole timeline and was drawn again, with its
+  docks, controls and tooltips, for every frame of a long log being
+  read. It is drawn again only when something it shows changed
+  (`composer-props.ts`); measured below.
+
+### Checked
+
+- Unit tests for every module under `data/` named above; end-to-end
+  against real nodes and the fake agent: `e2e/conversation.spec.ts`
+  (the queue, steer by key, Default send, files and their previews, a
+  new session's files, `/` and `@`, a question and Skip, a question's
+  dock at 390px, the meter and tokens) and `e2e/marks.spec.ts` (pin,
+  unread, start again, archive, restore, delete).
+- Captures: `e2e/conversation-screens.ts` (`npm run screens`), light,
+  dark and 390px, looked at beside agent-orchestrator's and GOAT's.
+
+### Measured (`npm run perf`, release binaries)
+
+This branch against `backend/m11` (its own release build, run with
+`VESSEL_TARGET_DIR`), one after the other on the same machine; medians
+(minimum–maximum) of the suite's runs. Two pairs of the whole suite
+(the first with this branch first, the second with the base first),
+then two more pairs of the timeline after the composer stopped drawing
+for every frame.
+
+| Figure | Base | This branch, before | This branch, after |
+| --- | --- | --- | --- |
+| Board load, script bytes | 183,990 | 189,418, then 189,374 | not measured again |
+| Board load, stylesheet bytes | 24,255 | 26,178, then 26,197 | not measured again |
+| Session screen's script (gzip) | 133.6 KB | 144.2 KB | 144.4 KB |
+| 5,000 entries, first entry drawn | 144, 160, 128, 145 ms | 178, 175 ms | 176, 129 ms |
+| 5,000 entries, last entry drawn | 759, 727, 729, 759 ms | 840, 808 ms | 795, 742 ms |
+| 20,000 entries, first entry drawn | 129, 128, 128, 129 ms | 161, 161 ms | 146, 146 ms |
+| 20,000 entries, last entry drawn | 2,711, 2,728, 2,478, 2,459 ms | 2,628, 2,926 ms | 2,492, 2,529 ms |
+
+- Worse, and still worse: a long session's first entry is drawn about
+  17 ms later (it was 32 ms later before the composer change), and the
+  page loads 7 KB more (the conversation's screens). A CPU profile of
+  opening a 5,000-entry session shows no single function behind it: the
+  page's JavaScript time is about 5% more, spread over the session
+  screen, the shell and the preferences module; the timeline's fold
+  itself is the same as the base's (a unit measurement of `reduce` over
+  the same records: 5,000 in about 4 ms, 20,000 in about 45 ms, both
+  trees).
+- Within the runs' spread, not counted: the loads' paint and usable
+  times (each pair disagreed in sign), find, the terminal, the board of
+  500 cards.
+
+### Gate (final tree)
+
+```
+cargo fmt --all --check                                   fmt exit 0
+cargo clippy --workspace --all-targets -- -D warnings     Finished; exit 0
+cargo clippy -p vessel-proto -p vessel-web --features ts --all-targets -- -D warnings
+                                                          Finished; exit 0
+cargo test --workspace --no-fail-fast                     95 suites: 1,340 passed, 0 failed, 9 ignored
+cargo test -p vessel-proto -p vessel-web --features ts --lib typescript
+                                                          2 passed (declarations current)
+web: npm run lint                                         exit 0 (prettier, fonts: 132 stacks, controls, size: within budget)
+web: npm run typecheck                                    exit 0
+web: npm run test                                         66 files, 302 tests passed
+web: npm run build                                        exit 0
+web: npm run e2e                                          47 passed (2.1m)
+web: npm run screens                                      6 passed (3.1m)
+web: VESSEL_CARGO_PROFILE=release npm run perf            5 passed (each run)
+```
+
+### Not built, and why
+
+- No "Compact context" button, no Undo after archive, a long paste kept
+  as text, files uploaded on Send (DESIGN.md §12, 21–24).
+- No pointer test of dragging a queued row: the end-to-end test moves it
+  by key; the drag shares the same `move` call.
+
+### Not verified
+
+- A real agent: steering, images and Claude's own question form were
+  run against the fake agent only (no prompt was sent to a real agent).
+- Paste and drop: the tests pick files through the file chooser; paste
+  and drop go through the same `Tray.add`.
+- A protocol 9 node in the browser: the page's older path (no queue,
+  attach, menu, meter or marks) is decided by `hasConversation` and
+  unit-tested, not run against an older node.
+- The worktree's fate after delete with a worktree to keep: the toast's
+  words are unit-tested, the fleet's sessions have no worktree.
+
+### For the join
+
+- `ui/kit/icon.tsx`: this track added `file` and `trash` (with
+  paperclip, pin, grip, steer, queue, restore, enter, circle, help);
+  B-page added `file` and `trash` too. Keep one of each.
+- `data/workspace/find.ts`: every tab's first search key is 1, so two
+  tabs searching one machine at once replace each other's searches; the
+  file's owner may want a per-tab start.
+- Under `crates/`, besides `vessel-testkit` and `wire/prefs*`, the new
+  preference needed `keep/prefs_doc*` (the document that keeps it) and
+  the re-export in `wire.rs`.
+- `features/session/use-window.ts`: this track changed the resize
+  observer (`watch`); B-page changed the `Reading` type and the scroll
+  handler's condition. Different lines; with B-page's `follow: false`
+  nothing here takes effect.
+- `docs/design/web-ui/DESIGN.md`: §2.2, §6.5, §6.7, §6.12, §6.15, §7.4,
+  §9 and §12 (21–26) are this track's.
+- `e2e/kit.ts`: `startSession` waits for a structured session's timeline
+  before anything is typed into it.
+- Commit `ac9243b` does not pass the type check (a test's type, fixed in
+  the next, `600f9d5`), and from `c53d44f` to `b9289a3` image previews
+  are empty under the content policy; the branch was not rewritten.
+- Around this branch since it was cut (not merged here): the node's
+  join changed `file.write` (`expect: { kind: "content", hash }`) and
+  `ProjectCommands::Listed` (`last_approved`), and track G opened the
+  set of agents (`HarnessRef`, compared by key; an agent a person added
+  shown by its label). This track's code names an agent through
+  `data/agents.ts`'s `agentName(harness)` in the composer (which hands
+  the name to the refusal lines and the tray) and in the new-session
+  page's controls (moved there from `new-session.tsx`, where the base
+  calls it once); it compares no harness by kind. The join should run
+  those calls through G's rule.
+- Flaky once each in full runs, passing alone: `timeline.spec.ts` (a
+  1.09px drift against 1), `reconnect.spec.ts`, and the first test of a
+  run waiting on the agent menu's radio item that kept being redrawn
+  (`kit.ts`'s `chooseAgent`).
 
 ## Track B-page: progress
 

@@ -25,6 +25,7 @@ import type {
 import { wantsNotices } from "./alerts";
 import { Drafts } from "./drafts";
 import { prefs } from "./prefs";
+import { keep, withoutSession, withSession } from "./fleet-sessions";
 import { entriesOf } from "./records";
 import { Store } from "./store";
 
@@ -65,28 +66,6 @@ const INITIAL: FleetState = {
   errors: {},
   selected: null,
 };
-
-/** `next` with the objects of `previous` kept where nothing changed, so
- * React re-renders only the rows that did. */
-function keep(
-  previous: readonly SessionInfo[] | undefined,
-  next: SessionInfo[],
-): readonly SessionInfo[] {
-  if (previous === undefined) {
-    return next;
-  }
-  const byId = new Map(previous.map((session) => [session.id, session]));
-  const kept = next.map((session) => {
-    const old = byId.get(session.id);
-    return old !== undefined && JSON.stringify(old) === JSON.stringify(session)
-      ? old
-      : session;
-  });
-  const same =
-    kept.length === previous.length &&
-    kept.every((session, index) => session === previous[index]);
-  return same ? previous : kept;
-}
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -287,6 +266,18 @@ export class Fleet {
     } catch {
       // The node's state says why; the list stays as it was.
     }
+  }
+
+  /** Put a session the node just answered with (a mark, a start again)
+   * into the machine's list at once, rather than at the next poll, so
+   * every list shows it the moment the node says. */
+  putSession(node: NodeKey, session: SessionInfo): void {
+    this.store.update((state) => withSession(state, node, session));
+  }
+
+  /** Take a deleted session out of the machine's list at once. */
+  dropSession(node: NodeKey, session: SessionInfo["id"]): void {
+    this.store.update((state) => withoutSession(state, node, session));
   }
 
   #pollSessions(): void {

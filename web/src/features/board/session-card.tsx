@@ -1,11 +1,13 @@
 // One session's card (DESIGN.md §6.12): who started it when it was not
-// you, the agent's mark and the session's title, where it works, which
-// agent and model run it, then one status line in the lane's colour. The
-// whole card opens the session.
+// you, the agent's mark and the session's title (with a pin and an
+// unread dot where its machine keeps them, protocol 10), where it works,
+// which agent and model run it, then one status line in the lane's
+// colour. The whole card opens the session.
 
 import "./session-card.css";
 
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 
 import { agentMark, agentName } from "../../data/agents";
 import type { Card } from "../../data/board";
@@ -18,6 +20,7 @@ import { labelOf } from "../../data/nodes";
 import { sessionName } from "../../data/titles";
 import { Avatar, Icon, IconButton, Spinner, Tooltip } from "../../ui/kit";
 import { BranchChip } from "../workspace/branch-chip";
+import { CardMarks } from "./card-marks";
 import { CardOrigin } from "./card-origin";
 
 export function SessionCard({
@@ -25,6 +28,7 @@ export function SessionCard({
   state,
   scoped,
   onKill,
+  actions,
 }: {
   card: Card;
   state: FleetState;
@@ -32,6 +36,9 @@ export function SessionCard({
   scoped: boolean;
   /** `null` where a card offers no action (the archive). */
   onKill: ((card: Card) => void) | null;
+  /** The card's own actions (an archived one's Restore and Delete, an
+   * ended one's Archive), in place of Kill. */
+  actions?: ReactNode;
 }) {
   const { session, node, placed } = card;
   const now = useNow();
@@ -65,7 +72,10 @@ export function SessionCard({
             label={agentName(spec.harness, agents)}
           />
           <span className="title">{title}</span>
-          {onKill !== null && isLive(session) ? (
+          <CardMarks session={session} />
+          {actions !== undefined ? (
+            <span className="card-action">{actions}</span>
+          ) : onKill !== null && isLive(session) ? (
             <span className="card-action">
               <Tooltip label="Kill">
                 <IconButton

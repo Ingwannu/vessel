@@ -305,3 +305,50 @@
 .ico-menu {
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 4.5h11M2.5 8h11M2.5 11.5h11'/%3E%3C/svg%3E");
 }
+
+/* Milestone 11's conversation: attach, a file, delete, pin, reorder,
+   steer, queue, restore, insert, a waiting message, a question. */
+
+.ico-paperclip {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='m12.5 7.5-4.6 4.6a2.8 2.8 0 0 1-4-4l4.9-4.9a1.9 1.9 0 0 1 2.7 2.7L6.6 10.8a.9.9 0 0 1-1.3-1.3L9.6 5.2'/%3E%3C/svg%3E");
+}
+
+.ico-file {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M9 2H4.5A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V6z'/%3E%3Cpath d='M9 2v4h4'/%3E%3C/svg%3E");
+}
+
+.ico-trash {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 4.5h11'/%3E%3Cpath d='M6 4.5V3h4v1.5'/%3E%3Cpath d='m4 4.5.7 8.1A1.5 1.5 0 0 0 6.2 14h3.6a1.5 1.5 0 0 0 1.5-1.4l.7-8.1'/%3E%3Cpath d='M6.7 7v4.5M9.3 7v4.5'/%3E%3C/svg%3E");
+}
+
+.ico-pin {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M5.5 2.5h5'/%3E%3Cpath d='M6.5 2.5v4L4 9v1.5h8V9L9.5 6.5v-4'/%3E%3Cpath d='M8 10.5V14'/%3E%3C/svg%3E");
+}
+
+.ico-grip {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='6' cy='4' r='.9' fill='%23000' stroke='none'/%3E%3Ccircle cx='10' cy='4' r='.9' fill='%23000' stroke='none'/%3E%3Ccircle cx='6' cy='8' r='.9' fill='%23000' stroke='none'/%3E%3Ccircle cx='10' cy='8' r='.9' fill='%23000' stroke='none'/%3E%3Ccircle cx='6' cy='12' r='.9' fill='%23000' stroke='none'/%3E%3Ccircle cx='10' cy='12' r='.9' fill='%23000' stroke='none'/%3E%3C/svg%3E");
+}
+
+.ico-steer {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='m10 3.5 3 3-3 3'/%3E%3Cpath d='M13 6.5H7a3 3 0 0 0-3 3v3'/%3E%3C/svg%3E");
+}
+
+.ico-queue {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 4.5h8M2.5 8h8M2.5 11.5h5'/%3E%3Cpath d='M12 9.5v4M10 11.5h4'/%3E%3C/svg%3E");
+}
+
+.ico-restore {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M3 8a5 5 0 1 0 1.5-3.6L3 5.9'/%3E%3Cpath d='M3 2.5v3.4h3.4'/%3E%3C/svg%3E");
+}
+
+.ico-enter {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M13 3.5v4a2 2 0 0 1-2 2H3.5'/%3E%3Cpath d='M6 7 3.5 9.5 6 12'/%3E%3C/svg%3E");
+}
+
+.ico-circle {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='4.5'/%3E%3C/svg%3E");
+}
+
+.ico-help {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='5.5'/%3E%3Cpath d='M6.5 6.5a1.5 1.5 0 1 1 2.1 1.4c-.4.2-.6.5-.6.9v.4'/%3E%3Cpath d='M8 11h.01'/%3E%3C/svg%3E");
+}

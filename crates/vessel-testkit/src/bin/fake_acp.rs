@@ -96,7 +96,9 @@
 //!     accepted content as JSON); `ask withdraw` cancels its own request
 //!     first (`$/cancel_request`). Without the capability, one message
 //!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
-//!     whatever the client advertised, reported the same way;
+//!     whatever the client advertised, reported the same way; `ask
+//!     claude`: Claude's `AskUserQuestion` form (two questions, each with
+//!     its free-text "Other"), reported the same way;
 //!   - `exit`, `garbage`: a message chunk and a permission request, then,
 //!     with both still open, the connection fails: `exit` exits with code
 //!     9, `garbage` writes a line that is not UTF-8 and stays up;

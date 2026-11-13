@@ -136,16 +136,19 @@ describe("the conversation's model", () => {
       input: 20,
       output: 10,
     });
-    // The timeline still has the turn, and the steer is not one of its
-    // entries yet (drawing it is the next track's).
+    // The steer is an entry of the timeline too, and the turn's end
+    // carries its tokens.
     expect(timeline.entries.map((entry) => entry.kind)).toEqual([
       "ready",
       "prompt",
+      "steer",
       "turn_ended",
     ]);
+    const ended = timeline.entries.at(-1);
+    expect(ended?.kind === "turn_ended" ? ended.usage?.total : null).toBe(30);
   });
 
-  it("starts empty, and names an attachment in a prompt's text", () => {
+  it("starts empty, and keeps a prompt's files apart from its words", () => {
     expect(EMPTY.conversation).toEqual(EMPTY_CONVERSATION);
     const timeline = reduce(
       EMPTY,
@@ -169,8 +172,13 @@ describe("the conversation's model", () => {
       ]),
     );
     const prompt = timeline.entries[0];
-    expect(prompt?.kind === "prompt" ? prompt.text : null).toBe(
-      "look at [shot.png]",
-    );
+    expect(prompt?.kind === "prompt" ? prompt.text : null).toBe("look at ");
+    expect(
+      prompt?.kind === "prompt"
+        ? prompt.attachments.map((file) => file.name)
+        : null,
+    ).toEqual(["shot.png"]);
+    // The turn's record is what Stop names.
+    expect(timeline.turn).toBe(0);
   });
 });

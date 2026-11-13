@@ -25,6 +25,7 @@ function conversation(size: number): Entry[] {
           at: "",
           text: `Please look at item ${String(index)} and fix what is broken.`,
           replayed: false,
+          attachments: [],
           turn: index,
         }
       : {

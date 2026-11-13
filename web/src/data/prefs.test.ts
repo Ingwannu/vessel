@@ -47,6 +47,15 @@ describe("a change applied as the bridge applies it", () => {
     expect(next.appearance).toBe(DEFAULT_PREFERENCES.appearance);
   });
 
+  test("the send key and the delivery are the composer's two settings", () => {
+    const steer = applyChange(DEFAULT_PREFERENCES, {
+      set: "delivery",
+      value: "steer",
+    });
+    const both = applyChange(steer, { set: "send", value: "mod_enter" });
+    expect(both.composer).toEqual({ send: "mod_enter", delivery: "steer" });
+  });
+
   test("shortcut edits together; default removes the override", () => {
     const set = applyChange(DEFAULT_PREFERENCES, {
       set: "shortcuts",

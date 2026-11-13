@@ -819,19 +819,38 @@ browser on Unix (on Windows, open the printed address).
   (`Ctrl+F`, `⌘F` on a Mac) searches its prompts and messages and counts
   the matches; the outline at the conversation's left edge, one mark per
   prompt, shows each prompt and the reply to it and jumps there.
+- **While a turn runs** (a node on protocol 10), a message you send waits
+  in the machine's queue, shown over the composer: edit, reorder, delete
+  or steer each one; Stop holds the queue until you resume it. Settings ›
+  General's "Default send" makes Send queue, steer into the running turn
+  (agents that take it) or interrupt it; `Ctrl+Enter` or Ctrl with the
+  click sends the other way. Files are pasted, dropped or picked with the
+  paperclip, checked against what the agent takes and the machine's
+  limits, and uploaded when you send; a sent prompt shows its files, an
+  image fetched only when it comes into view. `/` at the start lists the
+  agent's commands, `@` finds the session's files. A question the agent
+  asks is answered over the composer, one step at a time. The context
+  meter beside the model shows how full the agent's context is, and each
+  turn its tokens. From the title bar's menu: pin, mark unread, start an
+  ended session again, archive, restore and delete it.
 - **The board** shows every machine's sessions by title, one lane per
   stage of delivery, a session an agent started named on its card; an
-  ended one stays in its lane as exited until it is archived, and the
-  archived ones are in the archive under it (from a node before
-  protocol 10, every ended one is); a session in a worktree shows its
-  branch. The sidebar lists each machine's projects (each opens to its
-  live sessions, and its "+" starts a session there) and each
-  machine's live sessions, marked while one works or waits on you; its
+  ended one stays in its lane as exited until it is archived (its card's
+  Archive; archiving also ends the terminals and services beside it,
+  their output kept), and the archived ones are in the archive under it,
+  to restore or delete (from a node before protocol 10, every ended one
+  is); a session in a worktree shows its branch. The sidebar lists each
+  machine's projects (each opens to its live sessions, and its "+"
+  starts a session there) and each machine's live sessions under it,
+  pinned ones first, marked while one works or waits on you and when one
+  is unread; its
   Display menu groups them by status instead, sorts them by last
   activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
   it opens from the title bar's menu button.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
-  sections): General (whether Enter or `Ctrl+Enter` sends), Appearance
+  sections): General (whether Enter or `Ctrl+Enter` sends, and "Default
+  send": whether a message sent while the agent works is queued, steered
+  into its turn or interrupts it), Appearance
   (theme, interface and code font sizes, the conversation's width, and
   whether tool calls are collapsed), Shortcuts (every key, searchable,
   each rebound by pressing the new one; a key another command holds is

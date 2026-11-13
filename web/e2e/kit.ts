@@ -74,7 +74,9 @@ export async function chooseAgent(page: Page, agent: string): Promise<void> {
 }
 
 /** Start a session from the new-session page with `prompt`, and wait for
- * its page. */
+ * its page: the address changes before the session's route has drawn
+ * (it loads a chunk), and text typed in between lands in the new-session
+ * page's box, so a structured session waits for its timeline. */
 export async function startSession(
   page: Page,
   node: string,
@@ -91,4 +93,7 @@ export async function startSession(
     })
     .click();
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
+  if (mode === "Structured") {
+    await expect(timeline(page)).toBeVisible();
+  }
 }
