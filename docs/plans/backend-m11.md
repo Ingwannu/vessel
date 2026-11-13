@@ -4005,6 +4005,18 @@ whole gate (the end-to-end tests of the node and of the page included).
   notices an hour into one session (the rest dropped and logged), none
   into a session a person stopped. The agent tools' `send_input` and
   `create_session` take `notify`.
+- **Slice 5, the CLI and the agent tools**: `vessel schedule
+  list|show|runs|create|edit|pause|resume|run|delete` (`--cron` without
+  `--tz` takes the zone this machine is in, from `jiff`'s `tz-system`;
+  `edit` reads the schedule and sends back what changed with its
+  revision) and `vessel prompt list|show|save|delete|run`
+  (`crates/vessel-cli/src/automation/`); schedules and saved prompts are
+  named by id, a unique prefix or their name. The agent tools
+  `create_schedule`, `create_heartbeat`, `list_schedules`,
+  `schedule_runs`, `pause_schedule`, `resume_schedule`,
+  `delete_schedule` and `list_saved_prompts`, on the agent's own node
+  (`vessel-mcp`'s `tools/automation.rs`); `create_session`'s arguments
+  now make a spec in one place (`spec`), which `create_schedule` uses.
 
 ### Checked, and how
 
@@ -4051,3 +4063,17 @@ whole gate (the end-to-end tests of the node and of the page included).
   permission, failed when the child is stopped, and a queued prompt that
   never started told as the session's end, each queued into the agent's
   own session; the owner refused.
+- The CLI (`vessel-cli`'s `tests/cli/automation.rs`, 2 tests, the real
+  binary against a node with the fake agent): a schedule made with
+  `--every`, listed, run now, its runs, edited, shown, paused and
+  deleted by its name, and a zone the node does not know refused; a
+  saved prompt saved, saved again under its name (the same prompt),
+  shown, sent into a session's queue, refused `--new` without a session
+  spec, deleted. The lengths `90s` to `1d` (`automation::schedules`'
+  unit test), the selector (a name before an id prefix, two matches
+  refused).
+- The agent tools (`vessel-mcp`'s `tests/automation.rs`, through a node
+  with the fake agent): a heartbeat on the agent's own session, a cron
+  schedule in a zone that starts sessions, `every_secs` and `cron` at
+  once refused, the list, pause, resume, runs and delete of its own, a
+  person's schedule refused (`forbidden`), the saved prompts read.

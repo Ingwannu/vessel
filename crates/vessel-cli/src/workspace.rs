@@ -343,6 +343,11 @@ async fn follow(client: &NodeClient, worktree: WorktreeId) -> Result<SetupState,
     }
 }
 
+/// The project `given` names: its id, a unique prefix of one, or its name.
+pub(crate) async fn project_id(client: &NodeClient, given: &str) -> Result<ProjectId, CliError> {
+    find_project(client, given).await.map(|project| project.id)
+}
+
 async fn find_project(client: &NodeClient, given: &str) -> Result<ProjectInfo, CliError> {
     let projects = client.call(ListProjects {}).await?.projects;
     let matching: Vec<ProjectInfo> = projects

@@ -30,6 +30,9 @@ chrono.workspace = true
 clap.workspace = true
 crossterm.workspace = true
 dirs.workspace = true
+# `vessel schedule create --cron` without `--tz`: the zone this machine is
+# in, by its IANA name (`tz-system`); already in the workspace for the node.
+jiff = { workspace = true, features = ["tz-system"] }
 # The name a paired device gives itself (`vessel nodes add --pair`); as
 # vesseld names its node.
 hostname.workspace = true

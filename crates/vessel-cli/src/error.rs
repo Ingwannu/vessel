@@ -169,6 +169,10 @@ pub(crate) enum CliError {
     /// (protocol 10).
     #[error("{0}")]
     Workspace(String),
+    /// A schedule or saved prompt selector that names none, or more than
+    /// one, or an argument that does not read (protocol 11).
+    #[error("{0}")]
+    Automation(String),
     #[error("`{prefix}` matches {matches} sessions; type more of the id")]
     AmbiguousSession { prefix: String, matches: usize },
     /// An id prefix naming none of a session's queued prompts or waiting

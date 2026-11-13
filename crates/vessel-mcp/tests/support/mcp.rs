@@ -273,7 +273,7 @@ pub(super) async fn as_agent(
     SessionId,
 ) {
     let (own_session, env) = agent_env(owner).await;
-    let tools = VesselTools::new(vessel_mcp::connect(&env).await.unwrap());
+    let tools = VesselTools::new(vessel_mcp::connect(&env).await.unwrap()).for_session(own_session);
     let (mut mcp, server) = serve(tools);
     let _names = mcp.initialize().await;
     (mcp, server, own_session)

@@ -21,11 +21,43 @@ use super::{
 impl VesselTools {
     pub(super) async fn create_session(&self, args: &JsonObject) -> Result<Value, ToolError> {
         let node = self.target(args).await?;
+        let terminal = flag(args, "terminal")?;
+        let spec = Self::spec(args)?;
+        let info = self.on(node, CreateSession { spec }).await?;
+        let Some(prompt) = text(args, "prompt")? else {
+            return Ok(json!({ "session": info }));
+        };
+        if !terminal {
+            self.until_running(node, info.id).await?;
+        }
+        if flag(args, "notify")? {
+            if terminal {
+                return Err(ToolError::Arguments(
+                    "`notify` is about a structured session's turn".to_owned(),
+                ));
+            }
+            let sent = self
+                .deliver(node, info.id, prompt, Delivery::Queue, true)
+                .await?;
+            let session = self.on(node, GetSession { session: info.id }).await?;
+            return Ok(json!({
+                "session": session,
+                "from": sent.get("from"),
+                "delivered": sent.get("delivered")
+            }));
+        }
+        let from = self.send_text(node, info.id, terminal, prompt).await?;
+        let session = self.on(node, GetSession { session: info.id }).await?;
+        Ok(json!({ "session": session, "from": from }))
+    }
+
+    /// The spec `create_session`'s arguments (and `create_schedule`'s new
+    /// session) describe.
+    pub(super) fn spec(args: &JsonObject) -> Result<SessionSpec, ToolError> {
         let harness: HarnessKind = required(args, "harness")?
             .parse()
             .map_err(|error| ToolError::Arguments(format!("{error}")))?;
-        let terminal = flag(args, "terminal")?;
-        let mode = if terminal {
+        let mode = if flag(args, "terminal")? {
             SessionMode::Terminal {
                 args: Vec::new(),
                 size: TerminalSize::default(),
@@ -54,32 +86,7 @@ impl VesselTools {
                 .map_err(|error| ToolError::Arguments(format!("{error}")))?;
             spec = spec.with_profile(profile);
         }
-        let info = self.on(node, CreateSession { spec }).await?;
-        let Some(prompt) = text(args, "prompt")? else {
-            return Ok(json!({ "session": info }));
-        };
-        if !terminal {
-            self.until_running(node, info.id).await?;
-        }
-        if flag(args, "notify")? {
-            if terminal {
-                return Err(ToolError::Arguments(
-                    "`notify` is about a structured session's turn".to_owned(),
-                ));
-            }
-            let sent = self
-                .deliver(node, info.id, prompt, Delivery::Queue, true)
-                .await?;
-            let session = self.on(node, GetSession { session: info.id }).await?;
-            return Ok(json!({
-                "session": session,
-                "from": sent.get("from"),
-                "delivered": sent.get("delivered")
-            }));
-        }
-        let from = self.send_text(node, info.id, terminal, prompt).await?;
-        let session = self.on(node, GetSession { session: info.id }).await?;
-        Ok(json!({ "session": session, "from": from }))
+        Ok(spec)
     }
 
     pub(super) async fn send_input(&self, args: &JsonObject) -> Result<Value, ToolError> {

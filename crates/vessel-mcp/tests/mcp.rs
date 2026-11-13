@@ -20,6 +20,34 @@ use support::{Fixture, McpClient, agent_env, owner, within};
 #[expect(dead_code, reason = "the shared fixture, not every helper of it")]
 mod support;
 
+/// The tools before LSP's, in the order they are listed.
+const TOOLS: &[&str] = &[
+    "list_nodes",
+    "list_sessions",
+    "create_session",
+    "send_input",
+    "answer_permission",
+    "read_events",
+    "wait_turn",
+    "kill_session",
+    "read_conversation",
+    "change_queue",
+    "answer_question",
+    "resume_session",
+    "archive_session",
+    "list_projects",
+    "list_worktrees",
+    "create_worktree",
+    "create_schedule",
+    "create_heartbeat",
+    "list_schedules",
+    "schedule_runs",
+    "pause_schedule",
+    "resume_schedule",
+    "delete_schedule",
+    "list_saved_prompts",
+];
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
     within(async {
@@ -34,32 +62,11 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         let server = tokio::spawn(vessel_mcp::serve(tools, read, write));
         let mut mcp = McpClient::new(client_end);
 
+        // The session tools (protocol 4, 10), the project and worktree
+        // tools (protocol 10), the schedule tools (protocol 11), then LSP's.
         let names = mcp.initialize().await;
-        assert_eq!(
-            &names[..13],
-            [
-                "list_nodes",
-                "list_sessions",
-                "create_session",
-                "send_input",
-                "answer_permission",
-                "read_events",
-                "wait_turn",
-                "kill_session",
-                "read_conversation",
-                "change_queue",
-                "answer_question",
-                "resume_session",
-                "archive_session"
-            ]
-        );
-
-        // Then the project and worktree tools (protocol 10), then LSP's.
-        assert_eq!(
-            &names[13..16],
-            ["list_projects", "list_worktrees", "create_worktree"]
-        );
-        assert_eq!(names.len(), 26);
+        assert_eq!(&names[..TOOLS.len()], TOOLS);
+        assert_eq!(names.len(), 34);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.

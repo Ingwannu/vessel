@@ -9,6 +9,7 @@
 
 mod args;
 mod attach;
+mod automation;
 mod commands;
 mod connect;
 mod conversation;
@@ -107,6 +108,8 @@ async fn cli() -> ExitCode {
         | Command::Session { .. }
         | Command::Project { .. }
         | Command::Worktree { .. }
+        | Command::Schedule { .. }
+        | Command::Prompt { .. }
         | Command::Init(_)
         | Command::Mcp
         | Command::Ui(_) => "warn",

@@ -8,12 +8,14 @@ use vessel_proto::{EventSeq, HarnessKind, ProfileName};
 
 use crate::selector::SessionSelector;
 
+mod automation;
 mod conversation;
 mod fleet;
 mod node;
 mod nodes;
 mod workspace;
 
+pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
@@ -145,6 +147,17 @@ pub(crate) enum Command {
     Worktree {
         #[command(subcommand)]
         command: WorktreeCommand,
+    },
+    /// Schedules: prompts the node sends on its own, at times or every so
+    /// often (protocol 11, ADR 0033).
+    Schedule {
+        #[command(subcommand)]
+        command: ScheduleCommand,
+    },
+    /// Saved prompts: named texts, for a project or for the machine.
+    Prompt {
+        #[command(subcommand)]
+        command: PromptCommand,
     },
     /// Serve the web UI on this machine and open it in the browser: every
     /// node in your book, their sessions, the fleet and devices. It runs

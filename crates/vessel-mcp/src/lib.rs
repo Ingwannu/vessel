@@ -101,5 +101,6 @@ pub async fn run_stdio() -> Result<(), McpError> {
     let env = AgentEnv::from_env()?;
     let client = connect(&env).await?;
     let (read, write) = rmcp::transport::stdio();
-    serve(VesselTools::new(client), read, write).await
+    let tools = VesselTools::new(client).for_session(env.auth.session);
+    serve(tools, read, write).await
 }

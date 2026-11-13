@@ -3305,6 +3305,7 @@ dependencies = [
  "futures-util",
  "hmac",
  "hostname",
+ "jiff",
  "qrcode",
  "serde_json",
  "sha2 0.11.1",
