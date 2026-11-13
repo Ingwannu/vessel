@@ -233,3 +233,15 @@ a documentation identifier, an error type name, and missing statement
 semicolons; those were fixed without changing lints. A mistakenly restarted
 unchanged check was stopped rather than counted. The final gate above used a
 fixed source tree. Build slots apply to subsequent build commands.
+
+## Custom-width preparation: conversation seam only
+
+`session::set_content_width` preserves the native default (Paseo's 820)
+and delegates every explicit width to the preference's validated points.
+This has the same behaviour for all three existing presets and accepts a
+future custom width without adding a second width state. It is deliberately
+a separate conversation-area seam; the numeric model and input follow.
+
+Seam gate: native fmt, Clippy and tests all exited 0 through the shared
+build-slot wrapper (formatting needs no slot). The same 374 tests and empty
+doc-test sets passed. No screen geometry changed in this seam.
