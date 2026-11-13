@@ -122,8 +122,8 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   await expect(page.locator(".f-line").first()).toContainText("RATE");
   const file = join(env.root, "repos", "shop", "src", "tax.ts");
   const editor = page.getByRole("textbox", { name: "Edit src/tax.ts" });
-  // A file nobody else touched is written, though the page cannot hold
-  // its time to the nanosecond.
+  // A file nobody else touched is written: the guard is the content's
+  // hash the edit read, which the node compares itself.
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await editor.fill("export const RATE = 0.21;\n");
   await page.getByRole("button", { name: "Save" }).click();
@@ -135,8 +135,13 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   // Meanwhile, someone else changes it on disk.
   writeFileSync(file, "export const RATE = 0.25; // from elsewhere\n");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("alert")).toContainText("File changed on disk.");
+  const conflict = page.getByRole("alert");
+  await expect(conflict).toContainText("File changed on disk.");
+  // Both states: what the edit read, and what is there now.
+  await expect(conflict).toContainText("Read: 26 B");
+  await expect(conflict).toContainText("On disk now: 44 B");
   expect(readFileSync(file, "utf8")).toContain("from elsewhere");
+  await expect(editor).toHaveValue("export const RATE = 0.2;\n");
   await page.getByRole("button", { name: "Reload from disk" }).click();
   await expect(page.locator(".f-line").first()).toContainText("from elsewhere");
 });

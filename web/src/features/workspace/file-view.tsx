@@ -11,6 +11,7 @@ import { useState } from "react";
 
 import { splitPath } from "../../data/workspace/changes";
 import { nodeError } from "../../data/workspace/root";
+import type { Saved } from "../../data/workspace/save";
 import { sizeWord } from "../../data/workspace/size";
 import { languageOf } from "../../data/workspace/syntax-languages";
 import {
@@ -32,7 +33,7 @@ import type {
 } from "../../wire/proto";
 import { FileConflict } from "./file-conflict";
 import { FileLines } from "./file-lines";
-import { type Saved, useFile, WRITE_LIMIT } from "./use-file";
+import { useFile, WRITE_LIMIT } from "./use-file";
 
 export function FileView({
   node,

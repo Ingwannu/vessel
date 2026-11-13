@@ -1,4 +1,4 @@
-// A project's or a worktree's files (`file.*`, protocol 10): typed calls
+// A project's or a worktree's files (`file.*`, protocols 10 and 11): typed calls
 // in the shape of `data/calls.ts`. Finding by name is `find.ts`'s, the
 // one wrapper of `file.find`.
 //
@@ -21,15 +21,6 @@ import type {
 } from "../../wire/proto";
 import type { Fleet } from "../fleet";
 import { attempt, type Outcome } from "../outcome";
-
-/** Whether a file is still what `base` read, by its size and content's
- * hash, not its time: the node's time is in nanoseconds, past what a
- * page's number holds exactly (features/workspace/use-file.ts's Decision
- * Log). A version without a hash (a file over 8 MiB) is never the same. */
-export function sameContent(base: FileVersion, now: FileVersion): boolean {
-  const hash = base.hash ?? null;
-  return hash !== null && base.size === now.size && hash === now.hash;
-}
 
 /** One folder's entries, folders first; ignored ones only when asked. */
 export function listDir(
@@ -57,8 +48,9 @@ export function readFile(
   );
 }
 
-/** Write `text` over `path` when `expect` holds (the version read, so a
- * change made since is a `conflict`, not overwritten). */
+/** Write `text` over `path` when `expect` holds (the content's hash read,
+ * so a change made since is a `conflict` and nothing is written;
+ * `save.ts` decides which). */
 export function writeFile(
   fleet: Fleet,
   node: NodeKey,

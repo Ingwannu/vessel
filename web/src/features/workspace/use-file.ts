@@ -9,10 +9,11 @@
 //   write bound (1 MiB), and agent-orchestrator's rule that a save which
 //   finds the file changed is refused, with GOAT's choices then (keep my
 //   edits and reload, or overwrite).
-// - Constraint: `file.write` takes `expect: version`; the version holds
-//   the size, the modification time in nanoseconds and the content's
-//   SHA-256 (for files up to 8 MiB). A page is cut at a character
-//   boundary, so pages join without breaking a character.
+// - Constraint: `file.write` is guarded by the content's SHA-256
+//   (`data/workspace/save.ts`); a read's version holds the size, the time
+//   in milliseconds (shown only) and that hash (for files up to 8 MiB). A
+//   page is cut at a character boundary, so pages join without breaking a
+//   character.
 // - Choice: lines split once per page; the last line of a page is held
 //   until the next page arrives (it may continue there), and a page of
 //   another version than the pages before it (the file changed between
@@ -21,41 +22,15 @@
 //   first (at most 1 MiB), and the edit keeps the version it started
 //   from: that, not whatever was read since, is the save's guard.
 // - Cost: a file larger than the write bound can be read, not edited.
-//
-// [Decision Log: a save the node refuses although nothing changed]
-// - Problem: the node compares the version's modification time exactly,
-//   in nanoseconds since 1970 (about 1.7e18), and the page holds it as a
-//   JavaScript number (exact only to 2^53): the bridge's JSON rounds it to
-//   a multiple of 256, so on a file system with nanosecond times the
-//   guarded write of an untouched file is refused as `conflict` nearly
-//   every time. The wire cannot carry it exactly to the page.
-// - Alternatives: parse the bridge's frames with the source text kept
-//   and write the number back raw (`JSON.rawJSON`; the bridge and every
-//   browser would need it); show the conflict and have the person press
-//   Overwrite (teaching them to); the node to compare size and hash when
-//   the version has a hash, or the time as text (a wire change; reported
-//   as this track's wire gap).
-// - Choice: on `conflict`, read the file's version; when its size and
-//   content hash are the ones the edit started from (the disk holds what
-//   the edit began with, so a write loses nothing of anyone's), write it
-//   with `any`. Anything else is the conflict shown.
-// - Cost: a change landing between that read and the write (one round
-//   trip) would be overwritten; the node's comparison by hash removes the
-//   window and this fallback with it.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import type { Problem } from "../../data/outcome";
-import { readFile, sameContent, writeFile } from "../../data/workspace/files";
-import { nodeError } from "../../data/workspace/root";
+import { readFile, writeFile } from "../../data/workspace/files";
+import { type Saved, saveText } from "../../data/workspace/save";
 import type { NodeKey } from "../../wire/bridge";
-import type {
-  FileVersion,
-  RelPath,
-  WorkspaceRoot,
-  WriteExpect,
-} from "../../wire/proto";
+import type { FileVersion, RelPath, WorkspaceRoot } from "../../wire/proto";
 
 /** The most `file.write` takes, in bytes. */
 export const WRITE_LIMIT = 1024 * 1024;
@@ -74,18 +49,6 @@ export type FileText =
       /** The end of the last page read, held until the next. */
       tail: string;
     };
-
-/** A save's answer. */
-export type Saved =
-  | { kind: "saved" }
-  | {
-      kind: "conflict";
-      disk: FileVersion | null;
-      diskText: string | null;
-      /** The text that was refused. */
-      mine: string;
-    }
-  | { kind: "failed"; message: string };
 
 /** The whole text of a file and the version it was read at. */
 export interface Whole {
@@ -108,13 +71,13 @@ export interface OpenFile {
 
 type TextRead = Extract<FileText, { kind: "text" }>;
 
-/** Whether two reads are of one version. */
+/** Whether two reads are of one version: by the content's hash where both
+ * have one, else (a file over 8 MiB) by its size and time. */
 function sameVersion(a: FileVersion, b: FileVersion): boolean {
-  return (
-    a.size === b.size &&
-    a.modified === b.modified &&
-    (a.hash ?? null) === (b.hash ?? null)
-  );
+  const hash = a.hash ?? null;
+  return hash === null || (b.hash ?? null) === null
+    ? a.size === b.size && a.modified === b.modified
+    : a.size === b.size && hash === b.hash;
 }
 
 /** `page` added to what was read. */
@@ -229,41 +192,20 @@ export function useFile(
 
   const save = useCallback(
     async (body: string, base: FileVersion | null): Promise<Saved> => {
-      const hash = base?.hash ?? null;
-      const expect: WriteExpect =
-        hash === null ? { kind: "any" } : { kind: "content", hash };
-      let written = await writeFile(fleet, node, root, path, body, expect);
-      if (
-        !written.ok &&
-        base !== null &&
-        nodeError(written.problem) === "conflict"
-      ) {
-        // Both sides: what is on disk now, read fresh, beside the edit;
-        // or, when it is what the edit started from, the write again
-        // (the Decision Log above).
-        const disk = await readFile(fleet, node, root, path, 0);
-        if (!disk.ok || !sameContent(base, disk.value.version)) {
-          return {
-            kind: "conflict",
-            disk: disk.ok ? disk.value.version : null,
-            diskText:
-              disk.ok && disk.value.content.kind === "text"
-                ? disk.value.content.text
-                : null,
-            mine: body,
-          };
-        }
-        written = await writeFile(fleet, node, root, path, body, {
-          kind: "any",
-        });
+      const saved = await saveText(
+        {
+          write: (expect) => writeFile(fleet, node, root, path, body, expect),
+          read: () => readFile(fleet, node, root, path, 0),
+        },
+        body,
+        base,
+      );
+      if (saved.kind === "saved") {
+        const read = joined(null, saved.version, body, null);
+        latest.current = read;
+        setText(read);
       }
-      if (!written.ok) {
-        return { kind: "failed", message: written.problem.message };
-      }
-      const saved = joined(null, written.value, body, null);
-      latest.current = saved;
-      setText(saved);
-      return { kind: "saved" };
+      return saved;
     },
     [fleet, node, root, path],
   );

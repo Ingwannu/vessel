@@ -1283,10 +1283,12 @@ project".
   4,000 characters a line is drawn without colour. Binary: "Binary file
   preview is not available." Edit reads the rest of the file (at most 1 MiB; past it,
   "File is too large to edit"), then Cancel and Save (⌘/Ctrl+S) and an
-  8px dot while there are unsaved edits. Save sends the version the edit
-  started from; a change on disk since keeps the edits and shows both
-  sides (what was read, what is on disk now, how many lines the refused
-  edit differs by) with "Reload from disk" and "Overwrite".
+  8px dot while there are unsaved edits. Save is guarded by the content
+  hash the edit started from, which the machine compares itself
+  (`file.write`'s `expect: content`, protocol 11): a change on disk since
+  writes nothing, keeps the edits and shows both sides (what was read,
+  what is on disk now, how many lines the refused edit differs by) with
+  "Reload from disk" and "Overwrite", the one save sent without a guard.
 
 **A selection to the composer.** Lines selected in a diff or a file show
 agent-orchestrator's floating "Add to chat" beside the selection's end;
