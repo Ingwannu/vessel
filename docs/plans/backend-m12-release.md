@@ -594,6 +594,45 @@ never rebuilt.
     the staging file refused beside `Vessel.exe`. A redirected stderr
     (`Vessel.exe 2> file` from cmd) gets the error from 0.0.0.0.3.
 
+- **0.0.0.0.6**:
+  - Built from exactly `e540d74` and put in place at 08:54 UTC. It is
+    not published yet: the coordinator runs the Linux build against the
+    real node first.
+  - Files: setup 10,618,535, exe 38,234,624, zip 15,345,409, linux
+    74,692,840, tar.gz 25,241,365 bytes. The icons, the version block,
+    the sums and the signature were checked as for 0.0.0.0.4.
+  - It is the first build with the log file. Started with a scratch
+    configuration, the Linux build wrote
+    `$XDG_STATE_HOME/vessel/logs/vessel.log`:
+    - the first line is `Vessel starts label="0.0.0.0.6" os="linux"`
+    - the updater's lines follow (`feed=https://<host>/…`, a check, "up
+      to date")
+    - the feed's path appears nowhere (counted, not printed)
+  - Under wine, the Windows build wrote
+    `%LOCALAPPDATA%\Vessel\logs\vessel.log`, with wine's font panic
+    recorded with its place.
+  - Seen there, and fixed after 0.0.0.0.6 was published (08:58:17
+    UTC):
+    - Span fields carried stderr's colour codes into the file. The file
+      layer now has a field formatter of its own (`4125c37`).
+    - On Windows the backtrace's frames were `<unknown>`, because no
+      `.pdb` ships. The panic line now also has `frames="exe+0x<rva> …"`
+      (`7b8d66f`). `build.sh` keeps each label's `vessel_app.pdb`, with
+      the exe's SHA-256, under `vessel-app-symbols/<label>/` beside the
+      dist root, never in the dist folder (`cfe9bd8`).
+    - 0.0.0.0.6's own `.pdb` was copied there by hand; its GUID matches
+      the exe's. Those of 0.0.0.0.1 to 0.0.0.0.5 were already
+      overwritten.
+    - `tools/pdb-frames.py <exe> <pdb> <vessel.log>` names the frames
+      from the `.pdb`'s public symbols. On a scratch build under wine,
+      the font panic read as gpui `TextSystem::resolve_font` ←
+      `gpui_component` `resolve_default_font` ← `gpui_component::init`
+      ← `vessel_app_kit::init` ← `vessel_app::main`.
+    - The release profile has no debug info, so the app's frames have
+      function names but no lines. `debug = "line-tables-only"` in the
+      desktop track's release profile would add the lines to the
+      `.pdb`; the exe itself is not changed on Windows.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
