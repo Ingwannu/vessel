@@ -121,3 +121,22 @@ sandbox. No webhook listener, real agent prompt or preview service was used.
 Keep the two local Cargo configs, font assets and web dependency/bundle
 symlinks; never commit them. Before stopping, verify no owned fixture/node/UI
 process remains and record the final commit and exact verification below.
+
+## Latest checkpoint
+
+- Row 2 source is preserved by WIP commits `2ced8723`, `cc972008` and
+  `a32a0ac6`. All remain unapproved for integration.
+- `row2-clippy-e2e.log`: eighth whole workspace/all-targets clippy with
+  `--features vessel-proto/ts,vessel-web/ts -- -D warnings` passed. It waited
+  76 seconds for its machine slot; Cargo reported 1m27s. Latest fmt and diff
+  checks passed. No lint exception, expected value or timeout was weakened.
+- The current command is `VESSEL_WRITE_TS=1 RUST_TEST_THREADS=2 cargo test
+  --workspace --features vessel-proto/ts,vessel-web/ts --no-fail-fast`, through
+  the machine build-slot helper. Its log is `row2-workspace-ts-test.log`.
+  This is the complete workspace with the TS-generating tests enabled,
+  rather than a package subset. It has not finished at this checkpoint;
+  report the exact flags, final suite counts and failures, not a guessed pass.
+- TS declarations may change when those tests reach their generator. Commit
+  them and the final result only after inspecting the completed log. Page
+  and real fake-fleet gates plus current-binary grant repeats are still
+  unverified. Protocol-13 integration and rows 3-7 remain deferred.
