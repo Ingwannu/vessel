@@ -129,6 +129,8 @@ pub fn pill(
 pub struct PillParts {
     /// The glyph before the label.
     pub leading: Option<Glyph>,
+    /// An official embedded agent mark, replacing the generic leading glyph.
+    pub agent_mark: Option<crate::agent_mark::Artwork>,
     /// A project's mark before the label, in place of a glyph (its
     /// initial on a tile: [`initial_tile`]).
     pub initial: Option<SharedString>,
@@ -188,13 +190,31 @@ pub fn pill_parts(
         .cursor_pointer()
         .type_(Type::Body)
         .text_color(parts.tint.unwrap_or(neutral.foreground_muted))
-        .children(parts.leading.map(|leading| {
-            glyph(
-                leading,
-                glyph_size,
-                parts.tint.unwrap_or(neutral.foreground_muted),
+        .children(
+            parts
+                .leading
+                .filter(|_| parts.agent_mark.is_none())
+                .map(|leading| {
+                    glyph(
+                        leading,
+                        glyph_size,
+                        parts.tint.unwrap_or(neutral.foreground_muted),
+                    )
+                    .flex_shrink_0()
+                }),
+        )
+        .children(parts.agent_mark.map(|art| {
+            let size = if touch {
+                crate::agent_mark::Size::Twenty
+            } else {
+                crate::agent_mark::Size::Sixteen
+            };
+            crate::agent_mark::agent_mark(
+                Some(art),
+                size,
+                crate::agent_mark::Space::Compact,
+                tokens,
             )
-            .flex_shrink_0()
         }))
         .children(
             parts
@@ -298,6 +318,8 @@ pub fn send_button(
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
+    /// An official agent mark, or the generic bot when unknown.
+    AgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
     Dot(Hsla),
     /// A project's mark: its initial on a tile ([`initial_tile`]).
@@ -417,6 +439,7 @@ pub struct ComboboxState {
     highlighted: Option<usize>,
     focus: FocusHandle,
     search: TextField,
+    header_leading: Option<Leading>,
     /// Where its trigger was last drawn, in the window.
     anchor: Rc<Cell<Option<Bounds<Pixels>>>>,
 }
@@ -436,8 +459,16 @@ impl ComboboxState {
             highlighted: None,
             focus: cx.focus_handle(),
             search,
+            header_leading: None,
             anchor: Rc::new(Cell::new(None)),
         }
+    }
+
+    /// Replace the provider header's leading artwork as its list changes.
+    /// Kept in control state so existing header literals and callers retain
+    /// their no-artwork behaviour; no node identity enters the kit.
+    pub fn set_header_leading(&mut self, leading: Option<Leading>) {
+        self.header_leading = leading;
     }
 
     /// Open it, its search emptied and holding the keys, showing `search`
@@ -599,23 +630,17 @@ pub fn combobox<V: 'static>(
             .on_mouse_down_out(on_outside)
     };
     if let Some(title) = &header.title {
-        panel = panel.child(title_row(title.clone(), header.back, handlers, tokens, cx));
+        panel = panel.child(title_row(
+            title.clone(),
+            header.back,
+            state.header_leading.clone(),
+            handlers,
+            tokens,
+            cx,
+        ));
     }
     if header.search {
-        panel = panel.child(
-            div()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(8.0))
-                .px(px(12.0))
-                .py(px(12.0))
-                .bg(surfaces.surface1)
-                .border_b_1()
-                .border_color(neutral.border)
-                .child(glyph(Glyph::Search, 14.0, neutral.foreground_muted))
-                .child(div().flex_1().child(state.search.bare(tokens, cx))),
-        );
+        panel = panel.child(search_row(state, tokens, cx));
     }
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
@@ -657,6 +682,21 @@ pub fn combobox<V: 'static>(
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
     // from a row of the features sheet.
     Some(deferred(element).with_priority(3).into_any_element())
+}
+
+fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .px(px(12.0))
+        .py(px(12.0))
+        .bg(Surfaces::of(tokens).surface1)
+        .border_b_1()
+        .border_color(tokens.neutral.border)
+        .child(glyph(Glyph::Search, 14.0, tokens.neutral.foreground_muted))
+        .child(div().flex_1().child(state.search.bare(tokens, cx)))
 }
 
 /// Paseo's `size` middleware: a list is at most 400 tall and never taller
@@ -761,6 +801,7 @@ fn rows_list<V: 'static>(
 fn title_row<V: 'static>(
     title: SharedString,
     back: bool,
+    leading: Option<Leading>,
     handlers: &ComboHandlers<V>,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
@@ -789,6 +830,10 @@ fn title_row<V: 'static>(
                     cx.notify();
                 }));
         }
+    }
+    if let Some(leading) = leading {
+        let mark = row_leading(leading, false, crate::agent_mark::Size::Sixteen, tokens);
+        row = row.gap(px(crate::theme::spacing::S2)).child(mark);
     }
     row.child(title).into_any_element()
 }
@@ -843,10 +888,35 @@ fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
 }
 
 /// What leads a row.
-fn row_leading(leading: Leading, tokens: &Tokens) -> AnyElement {
+fn row_leading(
+    leading: Leading,
+    compact: bool,
+    mark_size: crate::agent_mark::Size,
+    tokens: &Tokens,
+) -> AnyElement {
     let neutral = tokens.neutral;
     match leading {
         Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
+        Leading::AgentMark(art) => {
+            let mark = crate::agent_mark::agent_mark(
+                art,
+                mark_size,
+                crate::agent_mark::Space::Row,
+                tokens,
+            );
+            // The minimum OpenCode box occupies the row's existing vertical
+            // padding too. Top alignment keeps its edges on whole pixels
+            // when the Body line is 21 points high; centring would add half
+            // a pixel. Its ink stays inside the content band;
+            // the 8-point clear space above/below uses the row's 8-point inset.
+            if art == Some(crate::agent_mark::OPENCODE) {
+                mark.when(!compact, Styled::self_start)
+                    .my(px(crate::theme::spacing::S2.mul_add(-1.0, 0.0)))
+                    .into_any_element()
+            } else {
+                mark.into_any_element()
+            }
+        }
         Leading::Dot(color) => div()
             .size(px(14.0))
             .flex()
@@ -899,7 +969,7 @@ fn combo_row<V: 'static>(
         .children(
             row.leading
                 .clone()
-                .map(|leading| row_leading(leading, tokens)),
+                .map(|leading| row_leading(leading, compact, crate::agent_mark::Size::Fourteen, tokens)),
         )
         .child(words)
         // Paseo's trailing slot: the check, then the row's own words (a
@@ -983,10 +1053,12 @@ mod tests {
                 back: None,
             };
             let seen = Rc::clone(&self.seen);
-            let mut list =
-                div().w(px(360.0)).flex().flex_col().on_children_prepainted(
-                    move |bounds, _window, _cx| *seen.borrow_mut() = bounds,
-                );
+            let mut list = div()
+                .w(px(360.0))
+                .type_(Type::Body)
+                .flex()
+                .flex_col()
+                .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds);
             for (index, row) in self.rows.iter().enumerate() {
                 list = list.child(combo_row(
                     index,
@@ -1051,6 +1123,55 @@ mod tests {
                 assert!(
                     row.bottom() <= next.top(),
                     "row {index} runs into the row under it"
+                );
+            }
+        }
+    }
+
+    #[gpui::test]
+    fn official_marks_keep_the_existing_row_height_at_both_ends(cx: &mut TestAppContext) {
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let (_, cx) = cx.add_window_view({
+            let seen = Rc::clone(&seen);
+            move |window, cx| {
+                let rows = [
+                    Some(crate::agent_mark::OPENCODE),
+                    Some(crate::agent_mark::CLAUDE),
+                    None,
+                    Some(crate::agent_mark::GEMINI),
+                    Some(crate::agent_mark::OPENCODE),
+                ]
+                .into_iter()
+                .enumerate()
+                .map(|(index, art)| {
+                    let mut row = ComboRow::new("An agent with a long name / 긴 에이전트 이름");
+                    row.leading = art.map(|art| Leading::AgentMark(Some(art)));
+                    row.checked = index == 0;
+                    row
+                })
+                .collect();
+                Probe {
+                    state: ComboboxState::new(window, cx),
+                    rows,
+                    seen,
+                }
+            }
+        });
+        cx.run_until_parked();
+        let bounds = seen.borrow();
+        assert_eq!(bounds.len(), 5);
+        assert_eq!(bounds.get(2).unwrap().size.height, px(37.0));
+        for (index, row) in bounds.iter().enumerate() {
+            assert_eq!(
+                row.size.height,
+                bounds.get(2).unwrap().size.height,
+                "row {index} grew around the unmarked baseline row"
+            );
+            if let Some(next) = bounds.get(index.saturating_add(1)) {
+                assert_eq!(
+                    row.bottom(),
+                    next.top(),
+                    "mark rows must retain their existing adjacency"
                 );
             }
         }

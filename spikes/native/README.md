@@ -315,3 +315,19 @@ screen of that size.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+### Official agent artwork (ADR 0048)
+
+`kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
+constants carry reviewed vendor vectors, `Size` the requested logical
+size, and `Space` the surface's existing room. Unlike `glyph`, it preserves
+colours. A brand minimum/clear space that does not fit produces the bot
+fallback. No URL or SVG from the wire reaches this control. Source hashes,
+terms and permission requirements are in `docs/design/agent-marks/README.md`.
+
+`agent_mark::GITHUB` is shared artwork for Copilot identification and
+GitHub forge pages. `forge_mark(Forge::GitHub, size, tokens)` supplies the
+second typed use without a second copy. An agent mark's identity still
+belongs to `view`; the kit knows no node or session. The Invertocat's agent
+use requires explicit GitHub Copilot wording in the same row or tooltip
+(ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
