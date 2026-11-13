@@ -60,6 +60,9 @@ impl Change {
 pub struct Timeline {
     pub(super) entries: Vec<Entry>,
     pub(super) plan: Option<Vec<PlanEntry>>,
+    /// The last plan row, which an update changing nothing a person reads
+    /// refreshes in place.
+    pub(super) plan_row: Option<usize>,
     pub(super) turns: u32,
     pub(super) turn: Option<EventSeq>,
     pub(super) attention: Option<EventSeq>,
@@ -86,6 +89,7 @@ impl Default for Timeline {
         Self {
             entries: Vec::new(),
             plan: None,
+            plan_row: None,
             turns: 0,
             turn: None,
             attention: None,
@@ -296,6 +300,16 @@ impl Timeline {
             EntryKey::Tool(id) => self.tools.get(id).copied(),
             EntryKey::Permission(id) => self.permissions.get(id).copied(),
             EntryKey::Question(id) => self.questions.get(id).copied(),
+            EntryKey::Plan { seq, .. } => {
+                let first = self.entries.partition_point(|entry| entry.seq < *seq);
+                self.entries
+                    .iter()
+                    .enumerate()
+                    .skip(first)
+                    .take_while(|(_, entry)| entry.seq == *seq)
+                    .find(|(_, entry)| entry.key == *key)
+                    .map(|(index, _)| index)
+            }
         }
     }
 

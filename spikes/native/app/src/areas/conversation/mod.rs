@@ -52,6 +52,7 @@ mod find;
 mod look;
 mod outline;
 mod permission;
+mod plan;
 mod question;
 mod queue;
 mod rename;
@@ -359,17 +360,6 @@ impl ConversationArea {
         }
     }
 
-    /// Show `session` on `machine`: what was shown before is dropped, and
-    /// the session's records are folded from its first again
-    /// ([`Self::take`]). Asks the node nothing.
-    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
-        self.clear();
-        self.shown = Some(Shown {
-            machine: machine.to_owned(),
-            session,
-        });
-    }
-
     /// What an act's answer does to the conversation's own state, only
     /// when it is for the session shown now: a late answer for a session
     /// the person has left, or one that arrives after the machine's
@@ -417,9 +407,21 @@ impl ConversationArea {
         Followup::None
     }
 
+    /// Show `session` on `machine`: what was shown before is dropped, and
+    /// the session's records are folded from its first again
+    /// ([`Self::take`]). Asks the node nothing.
+    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        self.clear();
+        self.shown = Some(Shown {
+            machine: machine.to_owned(),
+            session,
+        });
+    }
+
     /// Show nothing: what was shown is dropped, here only.
     fn clear(&mut self) {
         self.shown = None;
+        self.lost = None;
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -430,7 +432,6 @@ impl ConversationArea {
         self.list.reset(0);
         self.info = None;
         self.refused = None;
-        self.lost = None;
         self.menu.close();
         self.confirm = None;
         self.rename = None;
@@ -495,7 +496,7 @@ impl ConversationArea {
         {
             return false;
         }
-        // Records arriving: the connection is back.
+        // Records arriving for this session: the connection is back.
         self.lost = None;
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
@@ -929,6 +930,9 @@ mod tests {
     }
 }
 
+#[cfg(test)]
+mod connection_tests;
+
 /// An act's answer reaches the conversation's state only when it is for
 /// the session shown (track V1's review of the lead's head 64b5a3d).
 #[cfg(test)]
@@ -1025,5 +1029,33 @@ mod late_answers {
             Some("taken")
         );
         assert_eq!(area.lost.as_deref(), Some("closed"));
+    }
+
+    /// The link's queue full: the read the opened session asked comes
+    /// back, and the session's row settles refused in the app's words,
+    /// not lost (no machine was asked).
+    #[gpui::test]
+    fn an_act_the_full_link_gave_back_settles_refused(cx: &mut TestAppContext) {
+        const WORDS: &str = "Could not send. Try again.";
+        let mut area = area(cx);
+        let session = SessionId::random();
+        area.open("laptop", session);
+        let (link, _inbox) = vessel_app_link::Link::detached(1).expect("a runtime");
+        let read = || vessel_app_link::Command::Act {
+            machine: "laptop".to_owned(),
+            session,
+            act: vessel_app_link::Act::Info,
+        };
+        assert!(link.submit(read()).is_ok(), "the first fills the queue");
+        let unsent = link.submit(read()).expect_err("a full queue gives it back");
+        let crate::unsent::Settle::Answer(event) = crate::unsent::settle(unsent, WORDS) else {
+            panic!("an act settles as its answer");
+        };
+        let vessel_app_link::Event::Acted(answer) = *event else {
+            panic!("an act settles as an act's answer");
+        };
+        assert_eq!(area.answered(answer), Followup::None);
+        assert_eq!(area.refused, Some((ActKind::Info, WORDS.to_owned())));
+        assert_eq!(area.lost, None);
     }
 }

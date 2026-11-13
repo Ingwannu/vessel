@@ -5,3 +5,6 @@ meta-name = English
 meta-language = Language
 # The first language choice, following the system's language; short.
 meta-system = System
+
+# General settings language row hint, following Paseo. Keep short.
+meta-language-note = App language

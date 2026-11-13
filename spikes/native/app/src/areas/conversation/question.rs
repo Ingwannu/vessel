@@ -51,7 +51,7 @@ use vessel_app_view::timeline::{
 use vessel_proto::conversation::{FieldKind, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
-use super::{Answer, ConversationArea, Place};
+use super::{Answer, ConversationArea, Place, Seat, SessionPlace};
 use crate::shell::Shell;
 
 /// The tallest the option rows stand before they scroll: a phone's, and
@@ -113,6 +113,18 @@ fn waiting(area: &ConversationArea) -> Option<Question> {
 /// The question waiting first at `P`, if any.
 fn waiting_at<P: Place>(shell: &Shell) -> Option<Question> {
     (P::SEAT.get)(shell).and_then(waiting)
+}
+
+/// Arrival and refresh share the step's hint without reloading its draft.
+fn field_placeholder(step: Step<'_>, words: vessel_app_view::ConversationWords) -> &'static str {
+    if matches!(
+        step.field.kind,
+        FieldKind::Choice { .. } | FieldKind::Boolean { .. }
+    ) {
+        words.question_other_placeholder()
+    } else {
+        words.question_answer_placeholder()
+    }
 }
 
 /// The field a step's text box writes: Claude's "Other", or a free-text
@@ -188,6 +200,30 @@ fn prompt(question: &Question, step: Step<'_>) -> String {
 }
 
 impl Shell {
+    /// Update only this session's retained step hint; other places own theirs.
+    pub(crate) fn refresh_question_words(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(question) = waiting_at::<SessionPlace>(self) else {
+            return;
+        };
+        let words = self.t.lang.conversation();
+        let steps = steps_of(&question);
+        let Some(answering) =
+            (Seat::SESSION.get_mut)(self).and_then(|area| area.answering.as_mut())
+        else {
+            return;
+        };
+        let Some(step) = steps.get(answering.step) else {
+            return;
+        };
+        answering
+            .field
+            .set_placeholder(field_placeholder(*step, *words), window, cx);
+    }
+
     /// Make the card's state for the question waiting first, or drop it
     /// when none waits.
     fn question_prepare<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -249,14 +285,7 @@ impl Shell {
             Some(Draft::Text(text)) => text.clone(),
             Some(Draft::Picked(_) | Draft::Boolean(_)) | None => String::new(),
         };
-        let placeholder = if matches!(
-            step.field.kind,
-            FieldKind::Choice { .. } | FieldKind::Boolean { .. }
-        ) {
-            words.question_other_placeholder()
-        } else {
-            words.question_answer_placeholder()
-        };
+        let placeholder = field_placeholder(step, *words);
         answering.field.set_placeholder(placeholder, window, cx);
         answering.field.set_text(&text, window, cx);
         cx.notify();
@@ -777,3 +806,6 @@ fn actions<P: Place>(
         .child(dismiss_button)
         .child(primary_button)
 }
+
+#[cfg(test)]
+mod language_tests;

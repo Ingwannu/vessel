@@ -160,3 +160,44 @@ async fn a_saved_prompt_is_saved_replaced_sent_and_removed() {
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn schedule_preview_uses_node_calculation_without_saving() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let preview = fixture
+            .vessel(
+                &[
+                    "schedule",
+                    "preview",
+                    "--cron",
+                    "15 9 * * 1-5",
+                    "--tz",
+                    "UTC",
+                    "--after",
+                    "2026-01-05T09:14:30Z",
+                    "--count",
+                    "2",
+                ],
+                b"",
+            )
+            .await;
+        assert!(preview.ok, "{}", preview.stderr);
+        assert_eq!(
+            preview.stdout,
+            "2026-01-05T09:15:00+00:00\n2026-01-06T09:15:00+00:00\n"
+        );
+        let empty = fixture.vessel(&["schedule", "list"], b"").await;
+        assert!(empty.ok, "{}", empty.stderr);
+        assert_eq!(empty.stdout, "");
+        let invalid = fixture
+            .vessel(
+                &["schedule", "preview", "--every", "1h", "--count", "11"],
+                b"",
+            )
+            .await;
+        assert!(!invalid.ok);
+        fixture.stop().await;
+    })
+    .await;
+}

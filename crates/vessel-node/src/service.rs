@@ -60,14 +60,15 @@ mod forge;
 mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
-// through the service's own checks.
+// through the service's own checks; protocol 13's previews of them.
 mod followed;
 mod notices;
 mod prompts;
-// Protocol 12 (track A2): the conversation, further.
-mod parking;
+mod schedule_preview;
 mod scheduled;
 mod schedules;
+// Protocol 12 (track A2): the conversation, further.
+mod parking;
 mod search;
 
 /// The node's protocol implementation.
@@ -121,6 +122,7 @@ pub(crate) struct NodeService {
     installs: crate::install::Installs,
     /// The scheduler (protocol 11, `automation::schedules`).
     schedules: Schedules,
+    preview_slots: Arc<tokio::sync::Semaphore>,
     /// Saved prompts (protocol 11, `automation::prompts`).
     prompts: SavedPrompts,
     /// Places for searches running at once (protocol 12, `search`).
@@ -212,6 +214,7 @@ impl NodeService {
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,
+            preview_slots: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             notices: Arc::default(),

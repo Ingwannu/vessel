@@ -21,8 +21,13 @@ use crate::routes::{self, Route};
 /// The window's state.
 pub(crate) struct Shell {
     link: Option<Link>,
+    /// Commands the link gave back, settled on the next update
+    /// (`crate::unsent`).
+    unsent: mpsc::UnboundedSender<vessel_app_link::Unsent>,
     /// Every word on screen, in the person's language.
     pub(crate) t: &'static Text,
+    pub(crate) words: &'static vessel_app_view::localization::Translator,
+    pub(crate) language: crate::language::Language,
     pub(crate) fleet: Fleet,
     pub(crate) route: Route,
     pub(crate) areas: Areas,
@@ -63,7 +68,13 @@ pub(crate) struct Shell {
 }
 
 impl Shell {
-    pub(crate) fn new(t: &'static Text, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn new(
+        prefs: Prefs,
+        language: crate::language::Language,
+        words: &'static vessel_app_view::localization::Translator,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
         let areas = Areas::new(window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
@@ -73,13 +84,19 @@ impl Shell {
             }
             Err(error) => (None, Some(format!("{error}"))),
         };
+        let (unsent, returned) = mpsc::unbounded_channel();
+        cx.spawn(async move |this, cx| crate::unsent::receive(this, returned, cx).await)
+            .detach();
         let mut shell = Self {
             link,
-            t,
+            unsent,
+            t: vessel_app_view::Lang::from_tag(words.locale().tag()).text(),
+            words,
+            language,
             fleet: Fleet::default(),
             route: Route::Draft,
             areas,
-            prefs: Prefs::load(),
+            prefs,
             notice,
             notice_detail: None,
             foot_tips: (
@@ -101,10 +118,43 @@ impl Shell {
         shell
     }
 
+    /// Send `command`; one the link does not take settles on the next
+    /// update, after the caller's own code, through the handler its
+    /// answer would reach (`crate::unsent`: callers that set what waits
+    /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        if let Some(link) = &self.link {
-            link.send(command);
+        let taken = match &self.link {
+            Some(link) => link.submit(command),
+            None => Err(vessel_app_link::Unsent::new(
+                vessel_app_link::Rejected::Closed,
+                command,
+            )),
+        };
+        if let Err(unsent) = taken {
+            // The receiver lives as long as the shell's window.
+            let _closing = self.unsent.send(unsent);
         }
+    }
+
+    /// A command the link did not take: what waits on it settles in the
+    /// app's words. Without a link at all, the foot keeps saying why the
+    /// link did not start.
+    pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
+        tracing::warn!(why = %unsent.why, "the link did not take a command");
+        let words = self.t.unsent;
+        match crate::unsent::settle(unsent, words) {
+            crate::unsent::Settle::Answer(event) => self.on_event(*event, cx),
+            crate::unsent::Settle::Prompt { session, text } => {
+                self.prompt_unsent(session, text);
+                self.notice = Some(words.to_owned());
+            }
+            crate::unsent::Settle::Say => {
+                if self.link.is_some() {
+                    self.notice = Some(words.to_owned());
+                }
+            }
+        }
+        cx.notify();
     }
 
     /// Checked device dispatch keeps a refused queue from leaving its page pending.
@@ -372,3 +422,6 @@ impl Render for Shell {
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
+
+#[cfg(test)]
+pub(crate) mod language_tests;

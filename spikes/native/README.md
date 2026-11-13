@@ -17,9 +17,9 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 | Crate | Owns | Must not |
 | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels | use any UI toolkit |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
-| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::Text`) |
+| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) |
 
 ```
 app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text field, Markdown only)
@@ -71,15 +71,14 @@ app/src/
    inputs, same outputs; fixture files used by path, not copied).
 2. Its node calls in `link`: a `Command` variant, an `Event` variant
    when it answers, the call in `State::handle`.
-3. Its words in `view/src/text/<area>.rs`, a file of its own: a struct
-   `<Area>Words` with one field per sentence, an `EN` and a `KO`
-   constant of it (a sentence missing from one language does not
-   compile), sentences with values as methods matching on the language,
-   and `impl Lang { pub const fn <area>(self) -> &'static <Area>Words }`;
-   one `mod` line in `view/src/text/mod.rs`. `Lang` is the one switch
-   (the system's language or `VESSEL_APP_LANG`); the shell holds it
-   (`shell.t` is the lead's `Text`; `shell.t.lang` is the switch for any
-   area's words: `shell.t.lang.conversation()`).
+3. Its words in `view/locales/{en,ko}/<area>.ftl`, both languages with
+   the same variables and context comments. The English file generates
+   the typed API; use `shell.words.<area>()` for the prepared catalog.
+   Format messages with values in view when their data changes, retain
+   typed data to retranslate an existing outcome, and borrow plain labels
+   when rendering. Follow [the translation guide](view/locales/README.md).
+   An active area's existing Rust table stays with its owner until its
+   coordinated migration; `shell.t` adapts those remaining areas together.
 4. Its screen in `app/src/areas/<area>.rs` or `app/src/areas/<area>/`:
    a state type (fields: `TextField`s, choices), an `impl Shell` block
    for what a person does there (methods on the shell, so a click reaches
@@ -161,7 +160,7 @@ exercises the composer; platform input-method support remains shared.
 keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
 Its exact-value test keeps every step comparable with `styles/theme.ts`.
 
-- Words through `view/src/text/` only; English and Korean together.
+- Words through `view/locales/` (or an active area's remaining `view/src/text/` table); English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
   generic family anywhere.
@@ -328,7 +327,7 @@ Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
 by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
 screen of that size.
 
-## Translation engine (staged, ADR 0039)
+## Translation files (ADR 0039)
 
 `view::localization` sits beside the legacy tables. Its host build script
 reads `view/locales/<tag>/<area>.ftl`, validates the Fluent AST, and generates
@@ -362,10 +361,27 @@ places. Patterns currently receive minute precision. Dynamic formatting is
 performed when data changes, before painting. ICU4X is not a dependency of
 this formatting layer; ADR 0039 retains its rejected measured cost.
 
-No existing area has moved in the mechanism slice. Area owners keep their
-Rust tables until the coordinator accepts the engine and its first migration;
-the first migrated area will supply the contributor model. The pseudo-locale
-is tested in this slice; normal-screen captures follow that migration.
+Pairing is the first complete migrated area: its two dialogs, name/link
+errors and successful status use `view/locales/{en,ko}/pairing.ftl`. Other
+owners keep their area tables until their own migration. The shared machine
+file-fault sentence still belongs to its table, including when pairing shows it.
+General's Language row uses System first, then each embedded language's own
+name. Its typed preference goes through `Prefs::prefer`; labels, retained
+field placeholders and pairing outcomes update at once, without restarting
+or clearing typed input. `VESSEL_APP_LANG` wins over that preference.
+
+For a normal app run against your private fake fleet, use
+`VESSEL_APP_LANG=en-XA` to check expanded pseudo-language strings; the
+pseudo-language is never offered as a saved choice. Unset that override
+when checking the General row's live language change.
+
+Add a string to `en/<area>.ftl` and `ko/<area>.ftl`, with context comments
+and the same variables, then use the generated accessor in its caller.
+A whole sentence is one message; use selectors instead of joining pieces,
+and mark short buttons/badges in the comments. Counts are numbers, never
+formatted strings. Prepare plain strings before painting and format dynamic
+messages only when their data changes. See [the translator guide](view/locales/README.md)
+for exact steps, supported grammar/formatting, and the area migration recipe.
 
 
 ### Add a language
@@ -399,11 +415,71 @@ Without `--root`, the report also reads the compiled shipped-language list.
 Core validation supports partial candidates and English fallback; the
 released-catalog test requires every shipped catalog to be complete.
 
+### Browser-only wording capture
+
+The browser-unsupported pairing sentence has a Linux display-test harness:
+it feeds that typed result to the actual pairing renderer after the normal
+offer reader succeeds. It proves the sentence and layout, not that a browser
+transport runs. It is compiled only into tests; the installed app has no
+preview option or event override. The ordinary gate reports this explicit
+display test as ignored.
+
+On your private Xvfb, prepare a protected file containing only the pairing
+link line from your private fleet (`pair.sh` output), set
+`VESSEL_TEST_PAIR_LINK_FILE` to it and `VESSEL_CONFIG_DIR` to an isolated,
+empty capture config, then run from this workspace:
+
+```bash
+VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
+  VESSEL_APP_SIZE=390x844 cargo test -- --ignored --exact \
+  pairing_browser_words_capture --test-threads=1
+```
+
+Dismiss the pairing dialog with Escape, then close the window to finish the
+test. Remove the protected
+link file and stop your private display/fleet by their PIDs. Connection,
+storage and name-error captures use the normal app and real isolated failure
+paths, without this harness.
+
 ## A release
 
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+### Official agent artwork (ADR 0048)
+
+`kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
+constants carry reviewed vendor vectors, `Size` the requested logical
+size, and `Space` the surface's existing room. Unlike `glyph`, it preserves
+colours. A brand minimum/clear space that does not fit produces the bot
+fallback. No URL or SVG from the wire reaches this control. Source hashes,
+terms and permission requirements are in `docs/design/agent-marks/README.md`.
+
+`agent_mark::GITHUB` is shared artwork for Copilot identification and
+GitHub forge pages. `forge_mark(Forge::GitHub, size, tokens)` supplies the
+second typed use without a second copy. An agent mark's identity still
+belongs to `view`; the kit knows no node or session. The Invertocat's agent
+use requires explicit GitHub Copilot wording in the same row or tooltip
+(ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
+
+The artwork picker header requests16-point ink and reserves the official
+image viewport width, rather than its rows' common32-point column. A long header title follows the reference's
+single-line ellipsis. Disabled artwork retains its approved colour/opacity;
+the words and controls are muted separately. Enter validates the current
+row's availability and bounds before dispatch. The 44-point touch model
+pill holds OpenCode's 32 × 36 clear-space box; the short pointer pill and
+inline spots use Generic. A Settings ProviderRow needs a fitted adapter,
+not an unconstrained 36-high child inside its padded content band.
+
+`view::AgentMark::of` maps only typed node identities; `app::agent_mark`
+adapts them to kit artwork once. The draft, sidebar and board call that
+adapter. Added agents retain Generic even if their labels mention a brand.
+Settings › About lists vendor sources, trademark terms and the Gemini
+original's separate software licence. For long-name capture fixtures,
+after `scripts/fleet.sh start ROOT TARGET`, run
+`bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
+bilingual titles and full custom-agent labels before captures.
 
 Machine management uses `view::machine_book` for validated names, edit outcomes
 and safe localized failures, and `link::machines` for the CLI's existing node
@@ -420,3 +496,24 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+The fake fleet also checks N3's node timezone and schedule preview through
+`wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
+and an impossible-expression refusal. No schedule is saved by this check.
+
+The reviewed settings controls from G3's 263d4a5/70bcfd5 supply the section
+trailing slot and shared custom-content frame. Integration keeps the
+lead's code_row and hint-face delegation; its private row_faced delegates
+to that same frame. G3's 64167097 supplies red_300 unchanged in both themes
+for ProviderRow error detail; semantic danger/status signals stay put.
+
+`agent_mark::settings_mark(art, Size::Sixteen, SettingsRowEdge, tokens)`
+fits reviewed artwork inside the unchanged shared settings row frame.
+Its 24/23-high first/following layout slot uses the existing padding for
+OpenCode's 32 × 36 quiet box; the image's integer edges and name baselines
+are checked against the previous Chevron 14/Bot 16 composition. Generic
+keeps that setting row's foreground colour. The kit still imports no view.
+The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
+or `settings-errors` for the real pill_parts and shared-frame fit fixtures.
+The measured reference ink and per-brand boxes are in the artwork source
+record. No restricted vendor original is bundled by those fixtures.

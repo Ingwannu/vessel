@@ -57,7 +57,7 @@ for name in laptop build-server; do
   mkdir -p "$home"
   extra=()
   if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
-  env -i PATH="$base_path" HOME="$home" RUST_LOG=info \
+  env -i PATH="$base_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
@@ -76,6 +76,9 @@ python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
 }
+
+# The schedule preview is real node behaviour, not a client calculation.
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the
 # first line of the first prompt), one of them in Hangul.
@@ -360,6 +363,18 @@ grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
   grep -q "^  5) No, and tell Codex what to do differently" <<<"$(log_of laptop "$codex")" &&
   [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -eq 2 ] || {
   echo "fleet: the permission sessions lack their real shapes" >&2
+  exit 1
+}
+
+# An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
+# the whole list in each update): created, sent again unchanged, a step
+# started, one done as the next starts, one added. Checked through
+# `vessel log` (one `[plan]` line per update, six).
+start_session laptop plans "plans"
+plans=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plans" "plans done"
+[ "$(log_of laptop "$plans" | grep -c '^\[plan\]')" -eq 6 ] || {
+  echo "fleet: the plans session lacks its six plan updates" >&2
   exit 1
 }
 
