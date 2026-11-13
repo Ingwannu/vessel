@@ -305,7 +305,9 @@ feed_tool() {
 }
 
 if [ -n "${VESSEL_UPDATE_SECRET:-}" ]; then
-    feed_tool sums --key "$VESSEL_UPDATE_SECRET" "$out"
+    # The label names the set in the signature's comment: the files sit in
+    # a hidden staging directory now, whose name must not be signed.
+    feed_tool sums --key "$VESSEL_UPDATE_SECRET" --label "$label" "$out"
 else
     (cd "$out" && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' ! -name '.*' -printf '%f\n' | sort |
         xargs sha256sum >SHA256SUMS)

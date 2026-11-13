@@ -658,6 +658,17 @@ never rebuilt.
   - The icons, the version block, the sums and the signature were
     checked as before.
 
+- **The signature's comment** (fixed before 0.0.0.0.8):
+  - `SHA256SUMS.minisig` is signed while the set sits in its hidden
+    staging directory. Up to 0.0.0.0.7 its trusted comment named that
+    directory ("vessel-app .0.0.0.0.7.partial.<pid> SHA256SUMS"), and
+    anyone verifying the sums sees the comment.
+  - `vessel-app-feed sums` now takes `--label`, and the comment is
+    "vessel-app <label> SHA256SUMS" whatever directory the files are
+    in. `build.sh` and the CI file pass the label.
+  - Labels 0.0.0.0.1 to 0.0.0.0.7 keep their old comment, because
+    published labels are never rebuilt.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
