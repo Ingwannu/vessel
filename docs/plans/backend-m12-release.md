@@ -765,6 +765,17 @@ never rebuilt.
     block, stripped Linux exe with a matching debuglink, symbols kept,
     and a clean log.
 
+- **0.0.0.0.11**:
+  - Built from exactly `f0c1d540`, the desktop lead's head, which holds
+    this track's branch up to `d2260ce3`. The app speaks protocol 14.
+  - The set went into place at 23:55 UTC. It is not published yet.
+  - Sizes, with the change against 0.0.0.0.10: setup 12,592,815
+    (+132,302), exe 45,623,296 (+609,280), zip 18,539,862 (+236,408),
+    linux 82,100,320 (+505,576), tar.gz 28,671,250 (+168,449).
+  - No new crates and no new assets.
+  - The usual checks passed. The shipped Linux build made its log
+    folder 0700 and `vessel.log` 0600 (`02d8fe0b`).
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
