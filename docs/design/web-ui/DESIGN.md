@@ -107,8 +107,10 @@ conversation; the rest of the app must feel like an IDE's debug console.
 | **Settings** | Sections, each a page (§3.1): General, Appearance, Shortcuts, Notifications; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | the send key and where choices are kept; theme, font sizes, the conversation's width and display; every shortcut; notifications; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
 | **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog (§7.6), this machine's start command |
 
-There is no home dashboard: the index is the board once any machine is
-connected, and the welcome until then. What was the Fleet page (the
+There is no home dashboard: the index is the new-session page once any
+machine is connected (GOAT's first screen is a draft's composer; the new
+chat, 2026-11-13), and the welcome until then; the board is the
+sidebar's Board. What was the Fleet page (the
 machines and their inspector) is Settings › Machines, as
 agent-orchestrator and GOAT keep machines in their settings; Sync and
 Devices are sections there too (milestone 10, track W2).
@@ -144,13 +146,27 @@ Devices are sections there too (milestone 10, track W2).
   bar is bare chrome, without its hairline, as agent-orchestrator's is.
   The link to `vessel ui` shows only when it is not up ("vessel ui ·
   reconnecting", "disconnected", "refused").
-- **The sidebar, top to bottom** (agent-orchestrator's): the brand; Search
+- **The sidebar, top to bottom** (agent-orchestrator's): the brand (the
+  owner's mark, `docs/design/brand/`, in the text's colour at 18px, then
+  "Vessel"; the welcome draws it at 28px, and the page's icon is it in
+  white on a rounded tile of the brand colour, all made by the build from
+  the brand's file, `web/vite-mark.ts`); Search
   (a filled row with its shortcut as text); New session (with its key,
   `N`); Board, with the live count; "Machines" with Display (a sliders
   icon) and a "+" that adds one (§7.6), each machine with its live
   sessions under it; Settings and the theme switch at the foot. The
   sidebar hides with its shortcut (`⌘B`) or the title bar's button, and
   stays hidden across launches (ADR 0028).
+- **Projects** (agent-orchestrator's project tree), above the machines:
+  each connected machine's projects, a 32px row each (a folder whose mark
+  turns into a chevron on hover, the name, the machine in the passive ink
+  when two or more machines have projects, the live count), the first ten
+  then "Show N more projects". A row opens to its live sessions, 14px in;
+  its "+" (on hover) starts a session there (the new-session page opens
+  with the project chosen); the heading's "+" leads to Settings ›
+  Projects. The group takes at most two fifths of the sidebar and scrolls
+  on its own. A session's row ends with its worktree's branch (mono 11px,
+  at most 36% of the row), when it has one.
 - **Display** (Paseo's sidebar menu, in agent-orchestrator's menu):
   Grouping (Machine, Status), Sort (Created, Last activity, newest first
   either way) and a "Show ended sessions" switch. Grouping by status
@@ -169,13 +185,21 @@ Devices are sections there too (milestone 10, track W2).
   dot's word is the machine's state ("Connected", "Offline", the same
   words as Settings, `machineState`). It opens the machine's detail in
   Settings › Machines, which links to the board scoped to it.
-- **A session's row** leads with a mark: a spinner while its agent works,
-  a filled needs-you dot while it waits on its owner, else a hollow dot;
-  then its title (§7.4): a session with no title is named by its
-  folder, and one with neither (its folder the home) is "Untitled
-  session", never `~`. Up to five per machine, newest first, then "N
-  more" to the board scoped to that machine. Ended sessions are listed
-  only when Display asks for them.
+- **A session's row** is set in from its machine's row (agent-
+  orchestrator's nested list): 22px on the left, so its mark sits under
+  the machine's name, not under its dot. It leads with a mark: a spinner
+  while its agent works, a filled needs-you dot while it waits on its
+  owner, else a hollow dot; then its title (§7.4): a session with no
+  title is named by its folder, and one with neither (its folder the
+  home) is "Untitled session", never `~`. Up to five per machine,
+  pinned ones first, then newest first, then "N more" to the board
+  scoped to that machine. Ended sessions are listed only when Display
+  asks for them; archived ones never (all three references leave them
+  out of their sidebars).
+- **Unread** (protocol 10, the machine's `marks.unread`): the row's
+  title in semibold primary text and its hollow dot filled in the muted
+  ink, agent-orchestrator's unread dot. A mark the page asked for shows
+  when the machine reports it.
 - **Below 768px** the sidebar is a sheet (the kit's `Sheet`, GOAT's
   phone sidebar) from the title bar's menu button, over a scrim, so
   Settings' sections are reachable on a phone; picking a row closes
@@ -295,11 +319,35 @@ move between sections. Below 768px the column's padding is 12px.
   state, how it is reached, what it runs on, its Vessel and protocol,
   its id; its agents (each opening its card in Agents); its live
   sessions.
-- **Agents**: every agent Vessel drives, installed first, as GOAT's
-  provider rows: the agent's letter, its name and version, a dot and one
-  headline: Available, Needs attention (with the machine's reason:
-  installed but no conversation adapter), Not found. Its card: status,
-  version, program, then what it offers, asked of the machine when the
+- **Projects** (Paseo's projects, agent-orchestrator's add-project
+  flow): "Projects on <machine>" with the machine picker and "Add
+  project" (Add a folder…, Clone a repository…, Start a new project…);
+  a row per project (its folder, its state while it clones or after a
+  clone failed, its default branch or "no git"); the machine's git when
+  it is missing or too old, as a warning above. The chosen project's
+  detail under the list: Folder, Default branch, Added; Commands (what
+  its `vessel.toml` names for a new worktree and as scripts and
+  services, Approved or Not approved, Review… opening the approval,
+  Withdraw); Worktrees (branch, setup's
+  state, live sessions, why it was kept; Run setup, Remove…); Snapshots
+  (Drop, asked again in place: Keep or "Drop for good"). What the machine
+  refuses there (removing a worktree or the project, approving, setup, a
+  drop) is said in a banner until dismissed, not in a toast. Adding:
+  agent-orchestrator's clone dialog (Repository URL, which takes
+  `git@host:org/repo.git` too, Clone into, "Repository will be created at
+  …"); a clone answers at once and its progress and failure are the
+  row's ("Receiving objects · 42%", the reason in words with git's last
+  lines).
+- **Agents**: every agent Vessel drives and every agent added on the
+  machine by its command (ADR 0032, by its label, after the four),
+  found before not found, as GOAT's provider rows: the agent's letter,
+  its name and version, a dot and one headline: Available (an added one
+  "Runs as a conversation; it has no terminal"), Needs attention (with
+  the machine's reason: installed but no conversation adapter), Not
+  found (an added one naming its program). The added agents are read
+  from the machine (`agent.list`) when the section opens. Adding,
+  removing, the registry and installing are not drawn (a later track's).
+  Its card: status, version, program, then what it offers, asked of the machine when the
   card opens (`harness.options` starts the agent once there; the card
   says so while it waits) as one list in the page's words: Models,
   Effort, Permissions, then the agent's other options, each with its
@@ -316,7 +364,9 @@ move between sections. Below 768px the column's padding is 12px.
   them. A machine that shares nothing says how to make it the one that
   does.
 - **General**: Composer (the send shortcut: Enter, or ⌘/Ctrl+Enter with
-  Enter starting a line; agent-orchestrator's "Chat send key"), then
+  Enter starting a line; agent-orchestrator's "Chat send key"; and "While
+  the agent works": Queue, Steer or Interrupt, what Send does during a
+  turn, §6.15), then
   Kept: where the bridge keeps the preferences (the file's path) and the
   drafts, or why they are kept for this launch only.
 - **Appearance** (GOAT's and Paseo's): Theme (the colour scheme: system,
@@ -369,24 +419,28 @@ the session. Below 1024px of pane the board scrolls sideways (lanes keep
 **Session with a timeline.**
 
 ```
-title bar 36px (the frame's): mark · title (rename in place) · state · ⋯
-┌──────────  minmax(0, 1fr)  ───────────┬── 340px ──┐
-│      timeline, a column ≤ 768px       │ Summary   │
-│                                       │ ▸ Plan    │
-│                                       │ ▸ Files   │
-│  ┌ permission, docked over the box ┐  │ ▸ Model … │
-│  ┌ composer ──────────────────────┐   │ ▸ Details │
-│  └────────────────────────────────┘   │           │
-└───────────────────────────────────────┴───────────┘
+title bar 36px (the frame's): mark · title (rename in place) · ⎇ branch · state · ⋯
+┌──────────  minmax(0, 1fr)  ───────────┬── 340px (500px for code) ──┐
+│      timeline, a column ≤ 768px       │ ☰  ⇄  ▢   (icon tabs)      │
+│                                       │ ▸ Plan                     │
+│                                       │ ▸ Files                    │
+│  ┌ permission, docked over the box ┐  │ ▸ Model calls              │
+│  ┌ composer ──────────────────────┐   │ ▸ Details                  │
+│  └────────────────────────────────┘   │                            │
+└───────────────────────────────────────┴────────────────────────────┘
 ```
 
 The log and the composer share one column, at most 768px and centred
 (agent-orchestrator's transcript; Appearance's Wide is 1152px and Full
 the frame's width); the composer's dock is 16px in and 12px off the
-frame's foot. The summary (§6.7, inspector) is 340px, the reference's
-narrowest, leaves below 1280px of window, and hides with its shortcut
-(`⌘⇧B`). Over the log: the find bar at its top right and the outline
-on its left edge (§6.16).
+frame's foot. The panel beside it is agent-orchestrator's inspector: a
+36px head of icon tabs (the kit's `PanelTabs`), Summary, Changes and
+Files. Summary is 340px of sections (plan, files touched, model calls,
+Details); Changes and Files are the code panel (§6.18), 500px (the
+reference's default) and never past 45% of the window. The panel leaves
+below 1280px of window, where the branch's chip opens it as a sheet from
+the right instead, and hides with its shortcut (`⌘⇧B`). Over the log:
+the find bar at its top right and the outline on its left edge (§6.16).
 
 **Terminal session.** The same title bar, a reconnecting banner if
 needed, then the terminal consumes all remaining height. No summary.
@@ -779,7 +833,7 @@ item is a row with a 8px glyph on the rail:
 
 | Event (`AgentEvent`) | Glyph | Body |
 | --- | --- | --- |
-| `TurnStarted` | filled accent tick | the prompt, mono 13px, on `--bg-elevated` |
+| `TurnStarted` | filled accent tick | the prompt, mono 13px, on `--bg-elevated`; the files it carried over it (below) |
 | `UserMessageChunk` | same | resume replay; muted, labelled "replayed" |
 | `MessageChunk` | empty circle | markdown, sans 13px, max 78ch |
 | `ThoughtChunk` | dashed circle | collapsed `<details>`, tertiary |
@@ -788,7 +842,10 @@ item is a row with a 8px glyph on the rail:
 | `Plan` | checklist | inspector, and a compact strip in-timeline |
 | `PermissionRequested` | amber diamond | one line, "Waiting on permission · <tool>", in the review colour; the prompt itself is docked over the composer (§6.7) |
 | `PermissionResolved` | the diamond, hollow | the same line, in place: "Allowed · <tool> · <option>", "Declined · …" or "Permission cancelled · …" |
-| `TurnEnded` / `TurnFailed` | rule | reason in meta |
+| `Steered` (protocol 10) | the accent tick, hollow | the words sent into the running turn, in the prompt's box, led by "steered" in meta, its files over it |
+| `QuestionAsked` | amber diamond | one line, "Waiting on an answer · <message>"; the question itself is docked over the composer (§6.7) |
+| `QuestionResolved` | the diamond, hollow | the question's card: its message, each answer by its field's title ("Database SQLite"), Claude's free text joined to its question's line, and "Answered", "Skipped" or "Question closed" |
+| `TurnEnded` / `TurnFailed` | rule | reason in meta; with protocol 10's usage, the turn's tokens after it: "30 tokens · 20 in · 10 out" |
 | `Ready` | meta | "Agent ready"; the agent's own session id is in the summary's Details |
 | `HarnessLog` | meta | stderr, mono, tertiary; error colour if it looks like a login failure |
 
@@ -805,6 +862,20 @@ one row (`data/rows.ts`). The log follows its end while the reader is
 within 48px of it; a reader who scrolled up, or was taken up by find or
 the outline, stays where they are as records arrive. New entries are
 announced from a live region of the newest one's text.
+
+**A prompt's files** (protocol 10, `prompt.attachments`; agent-
+orchestrator's attachment row over the message): an image is a tile
+64px tall, its own width, radius 8, that opens the image at full size in
+a dialog; any other file a card 8px inside on the hover wash, a 24px
+icon box, the name (12px medium, cut at 128px) and "type · size" under
+it. An image is fetched with `attachment.read` only when its row comes
+within a screen of the view, two at a time, and kept (48 images or
+64 MiB, the least recently drawn dropped, `data/images.ts`); one sent
+from this tab is shown from its own file and never fetched back. The
+page's content policy takes `data:` images and no `blob:` ones
+(ADR 0017), so a tile shows a 128px-tall `data:` thumbnail drawn from
+the bytes, and the full image is read into a `data:` address only when
+it is opened.
 
 Markdown: the sans face, 13/20. Inline code and fences use `--font-mono`
 on `--bg-elevated` with a hairline. Headings inside a turn start at
@@ -861,6 +932,37 @@ button; the owner asked for one.)
   with conflict: a toast says so, the history stays.
 - The composer under it is disabled while it waits, its placeholder
   "Answer the permission to continue".
+
+**A question the agent asks** (protocol 10, `question_asked`) takes the
+permission's place, one at a time, as agent-orchestrator's question
+dock does (`question-dock.tsx`):
+
+- 16px narrower than the box, radius 20, the box's surface on the strong
+  hairline, 8px above it, at most 65% of the window tall before it
+  scrolls. A 12px muted head, "Question · 1 of 2", with a chevron that
+  folds the dock to its head; the agent's message (12px muted); the
+  field's title as the question (14px semibold).
+- **A step per field** (`data/question-form.ts`): a choice is a list of
+  rows, each with an 18px number badge, its title (12px medium) and its
+  description (11px muted), the picked ones on the 7% wash with the
+  badge filled; digits pick a row (agent-orchestrator's); several picks
+  when the field takes several. Text and numbers are the kit's field,
+  yes/no a switch. Claude's `AskUserQuestion` sends `question_N` and
+  `question_N_custom`: the pair is one step, the custom field its
+  "Other…" row (badge 0) with "Type your own answer (optional)." under
+  it; Claude's questions are ordered by N (the node keeps a form's
+  fields by name, so `question_10` would come before `question_2`).
+- **The foot**: Back (from the second step), 6px step dots (current in
+  the ink, done in the accent), Skip, and Next or, on the last step,
+  "Submit answer" (the primary pill). Next checks the step with the
+  node's own rules first ("Choose an answer.", "This field is
+  required."); a refusal the node still sends (`invalid_request` naming
+  a field) is shown at that field and takes the dock to its step. Skip
+  declines the question.
+- The answer settles it for every follower; one settled elsewhere
+  closes the dock here, and the timeline's card says how it ended.
+- The composer under it stays usable: a question is part of the turn,
+  so a message typed now is queued (§6.15).
 
 ### 6.8 Terminal frame
 
@@ -941,10 +1043,14 @@ the agent is doing.
 - Inside a lane, sessions that wait on their owner come first, then the
   most recently active. Each lane scrolls by itself: 12px of padding (8px
   on the right), 10px between cards.
-- **The archive is not a lane.** Ended sessions (`archive`) are counted on
-  a 36px bar under the lanes; the count opens them as the same cards,
-  three to a row, newest first, with a search. An archived card reads its
-  own status word, and a failed one keeps `--danger`.
+- **The archive is not a lane.** Archived sessions are counted on a 36px
+  bar under the lanes; the count opens them as the same cards, three to
+  a row, newest first, with agent-orchestrator's search ("Search
+  archived sessions"; "No archived sessions", "No results."). An
+  archived card reads its own status word, and a failed one keeps
+  `--danger`. With protocol 10 an ended session stays in its lane, its
+  card reading its status word, until it is archived; from an older
+  node every ended session is in the archive, as before.
 
 **Card.** One session. In order:
 
@@ -985,7 +1091,18 @@ the agent is doing.
   the origin link and the action stay separate targets and nothing
   interactive is nested in an `<a>`.
 - One action slot at the end of the title row, shown on hover or focus
-  without moving the title: Kill, for a live session. It asks first.
+  without moving the title: Kill, for a live session (it asks first);
+  Archive, for an ended one (it asks as agent-orchestrator does: "Are
+  you sure you want to archive this session?", "You can always restore
+  it from the Archive section later.", No and Confirm; on a machine of
+  protocol 11 it says first that "The terminals and services running
+  beside it end too; their output is kept."); in the archive,
+  Restore and Delete permanently. Restore starts the session again where
+  its agent can (`session.resume`, which unarchives it), else it only
+  unarchives it ("Unarchive").
+- **Marks on the card** (protocol 10): a 12px pin before the action slot
+  of a pinned session; an unread one's title in the primary ink with
+  agent-orchestrator's filled dot.
 - An empty Building lane, where a new session lands, offers "New
   session" (a quiet button) to `/new`.
 
@@ -1023,6 +1140,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Checkbox | 16px, radius 6, the strong hairline on the field fill; checked: the primary fill with a 12px check |
 | Segmented | a radio group: a track on the field fill and edge, 2px inside and between, radius 12; 13px segments 32px tall at radius 10 (`sm`: 24px); the chosen one is GOAT's thumb, the surface lifted by a hairline. Icons alone only with every option's icon (its label is the name) |
 | Tabs | 14px medium labels 36px tall and 20px apart over a hairline; the chosen one in the ink over a 2px underline that slides to it |
+| PanelTabs | agent-orchestrator's inspector strip: a 36px head, 28px icon tabs (14px icons) 4px apart, radius 8, the passive ink; hover and focus the 4% wash, the chosen one the full ink with no fill; a count on a corner (a 12px circle, 7px mono); each icon's name its tooltip and accessible name; arrows, Home and End move |
+| SplitButton | GOAT's git control: an action and a chevron that opens its menu, one shape (square inner corners, a hairline between); the action's reason in a tooltip when it is off |
 | Badge | §6.4; `word`, `accent` or `mono` |
 | Avatar | an agent's mark: a letter in an 18px tile, radius 5, the well's fill, 11px semibold |
 | Collapsible | agent-orchestrator's inspector section: a 14px title in the muted colour with an optional count, a 12px chevron that turns while open, the sidebar row's growing pill (radius 10); the body 12px in, grows over 220ms (none under reduced motion) |
@@ -1030,7 +1149,8 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
 | CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
 | EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
-| Sheet | §6.17: a dialog from the left edge, the sidebar's on a phone |
+| Sheet | §6.17: a dialog from the left edge (the sidebar's on a phone), or the right (a session's panel) |
+| TextArea `fill` | fills its container and scrolls inside, without measuring its text on each key (the file editor) |
 | TextField `look="popup"` | the field shell on the popup surface, its edge and shadow (the find bar's, §6.16) |
 | Command palette | a dialog (§6.9) up to 720px wide, 14vh from the top, radius 14, solid where the reference's is glass: a 16px search line, 14px rows 28px tall inset 6px, the highlighted one on a 9% wash, at most 420px of rows in groups, a foot of keys. `⌘K` or `/` (not while typing) |
 
@@ -1087,11 +1207,13 @@ approval (§6.7):
   several lines the arrows move the caret until its first or last line,
   and editing it ends the walk (Paseo's and GOAT's rules). The
   new-session page has no history.
-- **The row**, 28px: on the left the "+" (new session only: a round ghost
-  button opening "Start with": a profile, when the machine has one for
-  the agent, and "Open as terminal" with its arguments), the agent
-  control, the permissions control; at the right Send (a 28px round
-  primary button with an arrow), or Stop (a square) while a turn runs.
+- **The row**, 28px: on the left the "+" (on the new-session page a
+  round ghost button opening "Start with": a profile, when the machine
+  has one for the agent, "Open as terminal" with its arguments, and
+  "Attach files to this message"; on a running session, from protocol
+  10, the paperclip that picks files, "Attach files"), the context meter,
+  the agent control, the permissions control; at the right the one
+  round 28px primary button (below).
 - **The agent control** (`AgentModelPicker`): a quiet trigger (28px, radius
   10, 12px) reading the model's name and, muted, the effort's; "Loading
   models…" with a spinner while the machine asks the agent. Its menu,
@@ -1124,6 +1246,79 @@ approval (§6.7):
   they show what its log last reported (`options_changed`): a change
   shows when the node reports it, not when it is asked; a refusal is a
   toast and nothing moves.
+- **The send button** (agent-orchestrator's, `send-button.tsx`): between
+  turns an arrow, "Send". While a turn runs and the text is empty, a
+  square, "Stop turn" (it stops that turn, `cancel_turn`, and the
+  node's queue holds). While a turn runs with text: what Settings ›
+  General's "Default send" says (Paseo's setting, `composer.delivery`,
+  kept by the bridge): "Queue message" (an arrow, the default), "Steer
+  message" (a turning arrow) or "Interrupt and send". The other way is
+  one modifier away: ⌘/Ctrl with the click, or ⌘/Ctrl+Enter
+  (⌘/Ctrl+Shift+Enter where ⌘/Ctrl+Enter is the send key), and the icon
+  and label turn while the modifier is held; the other way of queue is
+  steer, of steer and interrupt queue. Steer is offered only where the
+  agent says it takes it (`abilities.steer`), and an agent that refuses
+  it once is not offered it again while the session's page is open. Its tooltip says what
+  it does and the other way: "Sends when the agent finishes its turn",
+  "Ctrl+↵ or Ctrl+click: steer message". With a queued prompt open in
+  the box it is "Update queued message". A held queue (after Stop) does
+  not hold the next message: it starts the next turn.
+- **The node's queue** (protocol 10, agent-orchestrator's queued-message
+  dock, `queue-dock.tsx`): over the box, 16px narrower on each side, 8px
+  above it, radius 20; a 32px head "2 Queued Messages" (12px medium,
+  muted) with a chevron that folds it; a 40px row per prompt, a hollow
+  12px circle and its first line, its files' count, then Steer (Send now
+  where the agent cannot steer: between turns it starts the next turn,
+  during one it interrupts it), Edit, Delete and a grip, at most five
+  rows before it scrolls. The grip moves a row by drag (a 2px line shows where it will
+  land, GOAT's) or by Up and Down. Edit opens the prompt in the box with
+  "Editing queued message" and "Cancel edit" over the text; saving sends
+  `edit` with the revision the row had, so an edit that crossed another
+  says so instead of overwriting it. While the node holds the queue the
+  head says why ("Paused after you stopped the agent", "Paused after the
+  turn failed", "Paused: the session ended") with Resume.
+- **Files** (protocol 10, where the session's agent takes them): pasted,
+  dropped on the box (it tints while a file is over it) or picked with
+  the paperclip. Each is a chip over the text (agent-orchestrator's: the
+  4% wash, radius 8, an image's 24px thumbnail or a file's icon, the name
+  at most 120px, "type · size" under it), with Remove, and, while it
+  uploads, GOAT's band along its foot and "Uploading 40%". A file is
+  checked as it comes against what the agent takes and the machine's
+  limits (`session.conversation`'s `limits`: per file, per image, per
+  prompt, per session), with the node's own words for a refusal ("Claude
+  Code does not take images in this session."); it is uploaded when the
+  message is sent, two at a time, in 1 MiB pieces, and the message goes
+  when every file is in. A failed upload says why in the chip, with
+  Retry where trying again can help, going on from what the machine has.
+  A refused or failed file stops Send until it is removed or retried.
+  On the new-session page the files wait for the session, and its first
+  message takes them once the agent has said what it takes.
+- **`/` and `@`** in one list at the caret (agent-orchestrator's
+  suggestion menu, the kit's `Suggestions`): anchored 6px over the box's
+  top-left edge, at most 448px wide, up to 50 rows. `/` at the start of
+  the prompt lists the agent's own commands (`commands_changed`), names
+  that start with the word first, then names that hold it, then
+  descriptions; `@` at the start of a word finds the session's files
+  with `workspace.find` in its worktree or project (80 ms after typing
+  stops, one search in flight), the folder dimmed and the matched
+  characters marked. Up and Down move, Enter or Tab inserts (`/review `,
+  `@path`, a path with a space in quotes), Escape hides it until the
+  word changes. A session with no project says "This session has no
+  project to search."
+- **The context meter** (agent-orchestrator's, `context-ring.tsx`): a
+  20px ring in a 28px box, the arc from the top, in the muted ink, the
+  review colour from 70% and the danger colour from 90% full; its
+  tooltip "Context window", "84k / 200k tokens (42%)" and, when the agent
+  says, "Session cost $0.50". It shows only once the agent has reported
+  its usage (`usage` in the log); the figures are the agent's own.
+- **An ended session** (protocol 10): a banner in the docks' shape over
+  the box, "Session ended" (or "Session archived"), "History is kept.
+  Start the session again to continue." and Start again where the agent
+  can (`session.resume`); the box disabled, its placeholder "Start the
+  session again to continue".
+- **The placeholder** says what Enter will do: "Message the agent, tag
+  @files, or use /commands" between turns, "Next message you send will
+  be queued" while a turn runs (agent-orchestrator's words).
 - **The tray** (new session only), hung under the box, 16px in from each
   side, 6px inside, its bottom corners 16px: white on a 6% hairline in
   light, the ink at 3% in dark. It holds the machine (a ghost select,
@@ -1176,7 +1371,134 @@ through its one seam (`reveal.ts`).
 The kit's `Sheet`: a dialog from the left edge, full height, the window
 less 12px and at most 320px wide, on the sidebar's surface over the
 dialog scrim, sliding in over 200ms (none under reduced motion); Escape
-or the scrim closes it. The sidebar uses it below 768px (§2.2).
+or the scrim closes it. The sidebar uses it below 768px (§2.2). From the
+right (`side="right"`) it is as wide as the window less 12px, at most
+560px, on the page's surface: a session's panel below 1280px.
+
+### 6.18 The code panel
+
+A session's Changes and Files (`features/workspace/`, a chunk loaded the
+first time one of them opens). It reads the session's worktree, its
+project's folder, or the project whose folder holds the session's own; a
+session in no project's folder says so and offers "Add the folder as a
+project".
+
+**Changes** (agent-orchestrator's review pane, GOAT's git control):
+
+- The git bar, 40px: the branch in mono 12px after its mark, how far it
+  is from its upstream (↑2 ↓1, "not pushed") and its base ("3 ahead of
+  origin/main"); at the right GOAT's split button: the action that fits
+  now (Commit when there are changes, else Push when ahead, Pull when
+  behind, else Fetch; `data/workspace/git-quick.ts`) and the menu:
+  Commit…, Push (and set upstream), Pull, Fetch, Switch branch…, New
+  branch…, Rename branch…, Stash changes, Stash with untracked files,
+  Stashes…; an action that cannot run is off with GOAT's reason.
+- A 36px toolbar: the comparison (agent-orchestrator's picker: Changes,
+  everything since the base; Uncommitted; Staged; Unstaged; Commits ›
+  the latest twenty) with its +N −M, then whitespace, fold or unfold
+  every file, and refresh. A worktree opens on Changes, a project's own
+  folder on Uncommitted.
+- Every changed file one under another: a 36px header (a chevron, the
+  file's mark, its folder in the passive ink and its name in the ink at
+  13px, the status letter 12px semibold, A green, D red, M orange, R
+  blue, "+N −M" 12px tabular; on hover Stage or Unstage, Discard, Open
+  full file), then its diff: a hunk's band on the well's fill, lines mono
+  12/20 with one 36px number column over a hairline and a 16px +/−
+  column, added lines on the green wash and removed on the red, in
+  syntax colour. Binary, oversized, submodule and mode-only files say so
+  in a line in place of the diff; a hunk longer than the node's page
+  (5,000 lines, cut there) ends with a line saying the rest is in the
+  full file.
+- One windowed list (the timeline's window, read from its top): only the
+  rows near the view exist; a file's diff, and each next page of 5,000
+  lines, is asked for when its row is drawn. The comparison is read again
+  every five seconds while the page is in front, and a diff kept while
+  its file's counts stay the same.
+- A refusal is said above the list until the next action (`GitNotice`:
+  what happened, what to do, the paths it names, a hook's or the
+  remote's output), never a toast; a success is a toast. The dialogs:
+  "Commit changes" (GOAT's summary box: Branch, with "Default branch" in
+  the warning colour, Files; Stage first: Staged only, Tracked files,
+  Everything; the message, ⌘/Ctrl+Enter commits), Switch branch (a
+  filter and the branches with current, default, remote and worktree
+  badges), New branch and Rename branch (a name checked with git's rules
+  as it is typed), Stashes (Apply, Pop, Drop, which asks again in place:
+  Keep or "Drop for good"), and "Discard changes?" (Paseo's, saying a
+  file the last commit does not have, untracked or added, is deleted).
+
+**Files** (agent-orchestrator's file explorer and file pane):
+
+- A 40px toolbar: "Go to file" (by name, `data/workspace/find.ts`; the
+  letters matched in bold, "Some paths are not shown" past the node's
+  bound), the switch to "Search in files" (lines by content, under their
+  file, the first 500), "Show ignored files", and Refresh (the open
+  folders listed again; they stay open across a file opened and closed).
+- The tree: 28px rows, 6px in and 16px more per level, a folder's open
+  or closed mark or a file's, 13px names; a folder is listed when first
+  opened; past 5,000 entries a line says to find by name. Windowed.
+- A file: a 36px head (back, the path with its folders muted, Edit), its
+  lines numbered in syntax colour, windowed, the next page read as the
+  reader nears the end; a line found by content is put in the middle of
+  the view on the active wash (the pages up to it read first); past
+  4,000 characters a line is drawn without colour. Binary: "Binary file
+  preview is not available." Edit reads the rest of the file (at most 1 MiB; past it,
+  "File is too large to edit"), then Cancel and Save (⌘/Ctrl+S) and an
+  8px dot while there are unsaved edits. Save is guarded by the content
+  hash the edit started from, which the machine compares itself
+  (`file.write`'s `expect: content`, protocol 11): a change on disk since
+  writes nothing, keeps the edits and shows both sides (what was read,
+  what is on disk now, how many lines the refused edit differs by) with
+  "Reload from disk" and "Overwrite", the one save sent without a guard.
+  While a save is on its way the editor is read-only (keys typed then
+  would be lost when the save closes it); a conflict compares the two
+  sides' text only when the edit read the whole file, and each side
+  names the start of its content hash, which two versions of one minute
+  and like size would not tell apart otherwise.
+
+**A selection to the composer.** Lines selected in a diff or a file show
+agent-orchestrator's floating "Add to chat" beside the selection's end;
+it appends its captured-code reference to the session's draft (a line
+saying it is context, `"path"#L12-L18 (new side)`, the lines fenced as
+`diff` or in the file's language, at most 8,192 characters).
+
+**Syntax colour** is the page's own lexer (`data/workspace/syntax.ts`) on
+the `--syn-*` tokens (§4.4): comments, strings, numbers, keywords,
+constants, called names and markup's tags, a block comment carried from
+line to line in a file.
+
+**A worktree's setup** (agent-orchestrator's script run panel): a card
+with a 32px head (a spinner, "Setting up · <branch>", the time), the
+output as it comes in mono 11px (at most 240px, the end kept, colours
+and cursor moves taken out, a progress bar's redraw applied; only the
+state is announced to a screen reader, not each page of output), and
+when it failed the command that failed and three ways on: Run setup
+again, Start anyway, Stop here. Leaving the page stops the start: no
+session begins after it, and the worktree stays in Settings › Projects.
+
+**The approval of a project's commands** (no reference asks; ADR 0027,
+ADR 0031): "Run this project's commands?", where setup and teardown run
+and that a script or service runs when someone starts it; one line of
+what changed since the set approved last, by its time ("Since the set
+approved today 09:30: setup commands: 1 changed; script test added;
+service web added."), from the node's `last_approved` (protocol 11). A
+node that does not say (protocol 10, or an approval from before it kept
+sets) is compared with the project folder's approved set and the line
+says so; with neither, "No earlier approval … is known, so every command
+is shown as it is." Then Setup and Teardown in order and Scripts and
+services by name (its kind, its folder, what it runs), every one of the
+set's scripts, never summarised: approving a set approves its scripts.
+A line new since is marked "+" and "new", an edited one "~" and
+"changed" with what it was beneath, struck through, a gone one "−",
+"removed" and struck through. Then the warning that a script they run
+runs whatever it says, the digest; Approve and run, Start without setup,
+Cancel (wrapping from the right on a phone). Settings › Projects' row
+counts the scripts with setup and teardown.
+
+**Removing a worktree that would lose work** (Paseo's warning, GOAT's
+snapshot): `Remove "<branch>"?`, one line per reason the node gave ("2
+files with uncommitted changes", "1 commit on no other branch"), then
+"Keep a snapshot and remove" (only when a snapshot keeps all of it) or
+"Discard and remove", which says first what it deletes.
 
 ---
 
@@ -1264,13 +1586,26 @@ The rest is in a menu at the bar's end, "Session actions":
 
 | Action | Notes |
 | --- | --- |
+| Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
+| Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
+| Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too |
+| Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy session id | |
 | Kill | live only, apart under a separator; confirm; `session.kill` |
 
-A board card's one action is Kill, also confirmed. Moving has
-consequences (the conversation continues under another account), so it
-is a dialog, not an inline select.
+A board card's one action is Kill for a live session and Archive for an
+ended one, both confirmed. Moving has consequences (the conversation
+continues under another account), so it is a dialog, not an inline
+select. A mark shows when the machine reports it (`SessionInfo.marks`).
+
+**Read and unread** (protocol 10). A session is read when its page is in
+front and its last record has been on screen: the page sends `read` with
+`through` the last record shown plus one, at most once a second, not per
+record. After "Mark as unread" nothing is sent as read until a new
+record comes or the page is opened again, so the mark stays while the
+page is still open.
 
 ### 7.5 New session
 
@@ -1279,23 +1614,66 @@ before it has a session. Every "New" leads here (the title bar, the
 sidebar's row, an empty Building lane, the palette, `n`), carrying the
 machine in view.
 
-1. **Where it runs**, in the tray: the machine named in the address, else
-   the one last chosen, else the book's default, else the first; only a
-   connected one. The folder field suggests where sessions already ran.
-2. **The agent**: the machine's first that runs with a timeline, else its
-   first; chosen in the agent control's Agent submenu.
+1. **Where it runs**, in the tray (GOAT's workspace selector beside the
+   machine): the machine named in the address, else the one last chosen,
+   else the book's default, else the first; only a connected one. Then
+   the project: until the person chooses, the one asked for (the
+   sidebar's "+" on its row, or New from a session in it), else the
+   project of the machine's most recently active session still among its
+   projects (GOAT's "most recently updated project",
+   `data/workspace/last-project.ts`), else "No project", which keeps the
+   folder field (it suggests where sessions already ran); and, in a git
+   project, Local (its folder as it
+   is), New worktree with the base it starts from ("From main"), or
+   Existing branch. A project still cloning, a branch name git refuses,
+   or no branch chosen holds Send with the reason under the box.
+2. **The agent**: the machine's first of the four that runs with a
+   timeline, else its first, else its first added agent; chosen in the
+   agent control's Agent submenu, where the agents added on the machine
+   follow the four by their label ("added" under each). An added agent
+   is compared by its key, never kept as the machine's default (the
+   page's per-agent defaults hold the four), and starts on its own
+   defaults. When the machine will not start it now (`conflict`: an
+   added agent's secret not set there, one of the four being installed,
+   a profile's route without its key) the menu and the line under the
+   box say so plainly, naming the agent's secrets, and Send stays off
+   until "Ask again" (beside the line) asks the machine once more: a
+   secret set since, or an install ended, is not noticed otherwise.
 3. **What it runs with**: the machine asks the agent (`harness.options`,
    under the chosen profile); the controls fill in as it answers, without
-   blocking the page (§6.15).
+   blocking the page (§6.15). Send while it is still asking waits for
+   the answer, at most 10 s (agent-orchestrator's wait for its page),
+   saying "Starting once … says what it offers", so the choices the
+   machine kept are applied (a choice the agent does not offer fails the
+   session, so none is sent unchecked). A start keeps every choice the
+   agent offers, one equal to its default today included; one that could
+   not check them keeps what was kept, never fewer (`keptChoices`).
 4. **"+"**: a profile (an account, or a model route, ADR 0015: each says
    its route) and "Open as terminal" with the arguments the agent's
-   command gets (split as a shell would, not expanded). An agent that
-   runs only in a terminal on that machine is opened as one.
+   command gets (split as a shell would, not expanded), only where the
+   machine offers a terminal for the agent (an added agent has none: no
+   switch, and no "+" when it has no profile either). An agent that runs
+   only in a terminal on that machine is opened as one.
 5. **Send** creates the session with the choices (`session.create`, the
-   options in the spec), sends the prompt (`session.send`), and opens it.
-   A terminal takes no prompt: the box's first line becomes its title.
+   options in the spec, and its title from the prompt's first line, so it
+   is named in the sidebar and the board at once) and opens it in place of this page as soon as it
+   exists (not for someone who has left the page meanwhile), as
+   agent-orchestrator does. The prompt is sent without waiting on it (the
+   node answers once the agent has started, up to a minute): the
+   session's log shows it at its end, "sending", from the first frame,
+   until the log has it (`data/openings.ts`), and a message typed
+   meanwhile is queued behind it ("Queue a follow-up while Claude Code
+   gets ready"). A first prompt the machine refuses goes back into the
+   session's box (before anything typed there meanwhile), and the box
+   says "The first message was not sent: …" until the next message goes,
+   as GOAT and agent-orchestrator return a refused brief to the
+   composer. A terminal takes no prompt: the box's first line becomes
+   its title.
    A refusal is said under the box, in the danger colour; the page keeps
-   what was typed.
+   what was typed. In a new worktree, Send first makes it: the commands
+   are asked about when the set is not approved (§6.18), setup's output
+   is shown under the box as it runs, a failed setup waits for the
+   person, and the session starts once setup is no longer running.
 
 The decisions are `data/new-session.ts`'s; the page draws them.
 
@@ -1440,6 +1818,15 @@ So M7 does not have to guess names.
 | An agent's status | `harness.list` (`Harness.structured`); absent from it is "Not found" |
 | What an agent offers | `harness.options` (`SessionOption`, grouped by `OptionCategory`) |
 | Kill / move / copy | `session.kill`, `session.move_profile`, export/import |
+| Send during a turn | `session.prompt` with `delivery` `queue`, `steer` or `interrupt`; between turns `start` |
+| Queued prompts | `SessionConversation.queue` from the log's queue records; `session.queue` `edit` (with its revision), `move`, `remove`, `send_now`, `resume` |
+| Files | `attachment.begin`, `write`, `finish`; a prompt's `ContentBlock::Attachment`; `attachment.read` for an image shown; bounds from `session.conversation`'s `limits` |
+| Commands | `commands_changed` (`AgentCommand`) |
+| `@` files | `workspace.find` with one search key per field (`data/workspace/find.ts`) |
+| Question | `question_asked`, `question_resolved`; `session.send` `answer_question` |
+| Context meter, a turn's tokens | `usage` records; `turn_ended.usage` |
+| Pin, archive, unread | `SessionInfo.marks`; `session.mark` |
+| Start again, delete | `session.resume`; `session.delete` (`SessionDeleted`: the worktree tidied or kept, and why) |
 
 Secret values never appear in the UI. Sync may list secret *names*.
 The app renders a QR of the returned pairing link and expires it in the
@@ -1525,16 +1912,18 @@ control, GOAT), on purpose:
    setups; an agent here offers a handful of values, in its own submenu,
    and the page keeps no favourites store.
 9. **The "+" opens a popover, not a menu**: it holds the terminal's
-   arguments, a text field a menu's typeahead would fight. The reference's
-   "+" attaches files, which Vessel's prompts do not carry yet.
+   arguments, a text field a menu's typeahead would fight. On the
+   new-session page files are attached from it ("Attach files to this
+   message"); on a running session, where the "+" has nothing else to
+   hold, from a paperclip in its place.
 10. **Terminal or timeline is chosen once, at creation** ("Open as
     terminal"). The reference switches a session's interface later; a
     Vessel session's mode is fixed by the protocol.
-11. **The summary has one view.** The reference's inspector has tabs
-    (Summary, Files, Reviews, Browser, …); Vessel has the summary's
-    sections alone, so it heads them with "Summary" and draws no tab
-    strip. It is 340px, the reference's narrowest, not its 500px default:
-    the timeline's column keeps 768px beside it at 1440px.
+11. **The inspector has three tabs** (Summary, Changes, Files) where the
+    reference has more (Reviews, Browser, Side chat, Artifacts: other
+    tracks' or not built), and Summary keeps 340px, the reference's
+    narrowest, so the timeline's column keeps 768px beside it at 1440px;
+    Changes and Files take the reference's 500px. It is not resizable.
 12. **A session is named in the frame's title bar**, as the page's
     heading, where the reference has a strip of session tabs.
 13. **Settings is a column, not the full pane.** agent-orchestrator's
@@ -1564,3 +1953,49 @@ control, GOAT), on purpose:
 20. **One page-wide width for the conversation** (Comfortable, Wide,
     Full) where GOAT has a slider: three widths cover its range and keep
     the composer and the log aligned.
+21. **A repository's commands are approved first** (ADR 0027). None of
+    the references asks: Paseo and GOAT run a repository's setup file,
+    agent-orchestrator only commands typed into its page. The approval
+    compares with the set the node says was approved last (protocol 11),
+    and with the project folder's approved set only where the node does
+    not say.
+22. **The diff is the page's own rows, not a diff library.** The
+    references draw with `@pierre/diffs` (agent-orchestrator, GOAT) or a
+    canvas (Paseo); Vessel draws the node's typed hunks in the timeline's
+    window, one number column (agent-orchestrator's fallback view), no
+    split view and no word-level marks. Its syntax colour is a small lexer,
+    not Shiki's grammars.
+23. **No line comments, no "viewed" marks, no image or rich previews.**
+    agent-orchestrator's review pane sends a comment on a line and marks
+    files viewed; a selection sent to the draft is what Vessel offers.
+24. **"Add to chat" has no shortcut.** agent-orchestrator's is ⌘L; in a
+    browser Ctrl+L is the address bar's.
+25. **The editor is a text area.** agent-orchestrator edits in its diff
+    library's editor with colour; Vessel's editor is plain mono text, the
+    colour back once saved. GOAT's conflict choices (Reload from disk,
+    Overwrite) are taken, with both sides' state, where agent-orchestrator
+    has none.
+26. **The new-session tray names the place** (Local, New worktree,
+    Existing branch, and the base) where agent-orchestrator makes a
+    worktree for every task without asking; GOAT's selector is the model.
+27. **Stash is in the git menu** (Paseo's); GOAT has none.
+28. **Files are uploaded when the message is sent**, not as they are
+    attached (agent-orchestrator's): the node keeps what was uploaded
+    against the session's 100 MiB until the session goes and has no call
+    to give an upload back, so a file removed before sending would still
+    count. Send waits for the uploads, each chip showing its progress.
+29. **A long paste stays text.** GOAT turns a long paste into a file; the
+    queue's 128 KiB and the draft's bound already say when text is too
+    long, and the agent reads text as the person sees it.
+30. **No "Compact context" button by the meter.** The agent's own
+    `/compact`, where it offers one, is in the `/` list; Vessel adds no
+    command of its own there.
+31. **No Undo after archiving.** The archive's Restore is one click, and
+    the confirmation already says it can be restored.
+32. **Pinned sessions lead their machine's group**, not a "Pinned"
+    section of their own (Paseo's and GOAT's): the sidebar is grouped by
+    machine, and a pinned session's machine is part of what it is.
+33. **An ended session waits on the board until archived** (with
+    protocol 10) where agent-orchestrator archives a session when it
+    ends: a Vessel session can be started again, and archiving is the
+    person's choice.

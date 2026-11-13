@@ -66,6 +66,7 @@ mod node_key;
 mod reader;
 mod recovery;
 mod schema;
+mod search;
 mod store;
 mod token;
 mod workspace;

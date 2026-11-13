@@ -76,7 +76,7 @@ test("a routed structured session lists its model calls", async ({ page }) => {
   await expect(call).toContainText(
     /Model call · qwen-coder · qwen\/qwen3-coder · 12 in · 5 out · end turn · \d+ ms/,
   );
-  const summary = page.getByRole("complementary", { name: "Session summary" });
+  const summary = page.getByRole("complementary", { name: "Session panel" });
   await expect(
     summary.getByRole("button", { name: /^Model calls/ }),
   ).toContainText("1");

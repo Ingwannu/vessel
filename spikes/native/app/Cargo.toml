@@ -36,6 +36,13 @@ tokio.workspace = true
 # stderr and the log file (spikes/release/applog).
 vessel-app-log.workspace = true
 
+# The system's reduce-motion preference over the desktop portal
+# (src/motion.rs): the same ashpd GPUI's Linux platform uses, with its
+# features, so no second copy; futures-lite for the change stream.
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
+ashpd = { version = "0.13", default-features = false, features = ["async-io", "settings"] }
+futures-lite = "2"
+
 # The browser build (docs/plans/backend-m12-browser.md): tokio's channels
 # only (its runtime and network do not build for wasm32), and `tracing`'s
 # events handed to `log`, which GPUI's web platform writes to the console.

@@ -265,3 +265,28 @@ interrupted while queued and only that phase is resumed. The earlier
 390-wide calibration successfully opened the touch model card, selected
 a long model and OpenCode, and showed the sidebar, board and all five
 About records. It is intermediate evidence, not the final binary manifest.
+
+## Lead checkpoint before further optical work
+
+The lead integration imports protocol 12, the reviewed session/machine-book
+line, embedded Light faces and system reduced-motion handling. The only
+conflict is the native README append; both the artwork contract and the
+machine-book ownership/error notes are retained. K makes no node or wire
+implementation change. Existing official-identity and area seams survive
+the automatic source merges. Fonts were supplied with the lead checkpoint;
+the downloader is not rerun. A fresh native gate checks this changed tree.
+The prior 375-test tree and normal app build remain immutable evidence for
+the earlier source slices, not this integration.
+
+The coordinator's subsequent optical review asks for rendered ink bounds
+from Paseo, official clear-space-preserving display boxes, a smaller-form
+recheck for OpenCode, and a light/bare Google recheck. These are pending
+follow-up geometry work; earlier family captures are fidelity evidence,
+not approval of the final family sizing or actual app surfaces.
+
+Lead checkpoint validation: native fmt, all-target Clippy (warnings denied),
+whole native tests and normal app build all exit0. The441 passed test
+results include2 compile-fail documentation examples; no tests failed.
+The frozen Rust manifest is verified unchanged after build. This is the
+lead integration gate, with no K node implementation change or new root
+gate claimed. It is not final optical, pill or Settings runtime approval.

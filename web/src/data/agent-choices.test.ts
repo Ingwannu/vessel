@@ -27,8 +27,13 @@ describe("agents", () => {
   it("are called by their names, with their versions", () => {
     expect(agentName("open-code")).toBe("OpenCode");
     expect(agentChoices([CLAUDE, GEMINI])).toEqual([
-      { value: "claude-code", label: "Claude Code", detail: "2.1.0" },
-      { value: "gemini", label: "Gemini" },
+      {
+        value: "claude-code",
+        agent: "claude-code",
+        label: "Claude Code",
+        detail: "2.1.0",
+      },
+      { value: "gemini", agent: "gemini", label: "Gemini" },
     ]);
   });
 

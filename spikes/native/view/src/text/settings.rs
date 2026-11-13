@@ -306,14 +306,19 @@ impl SettingsText {
             }
             (Lang::Ko, LaunchOnly::NoPlace) => "이 컴퓨터에 보관할 곳이 없습니다.".to_owned(),
             (_, LaunchOnly::NoPath { message }) => message.clone(),
-            (Lang::En, LaunchOnly::Unreadable { path, message }) => {
+            (Lang::En, LaunchOnly::Unreadable { fault }) => {
                 format!(
-                    "{path} could not be read ({message}). Fix or remove it, then restart Vessel."
+                    "{} could not be read ({}). Fix or remove it, then restart Vessel.",
+                    fault.path,
+                    self.lang.file_problem(fault)
                 )
             }
-            (Lang::Ko, LaunchOnly::Unreadable { path, message }) => {
+            // No particle after the path (ADR 0039's interim rule).
+            (Lang::Ko, LaunchOnly::Unreadable { fault }) => {
                 format!(
-                    "{path}을(를) 읽지 못했습니다({message}). 고치거나 지운 뒤 Vessel을 다시 시작하세요."
+                    "다음 파일을 읽지 못했습니다: {} ({}). 고치거나 지운 뒤 Vessel을 다시 시작하세요.",
+                    fault.path,
+                    self.lang.file_problem(fault)
                 )
             }
             (Lang::En, LaunchOnly::Newer { path, version }) => {

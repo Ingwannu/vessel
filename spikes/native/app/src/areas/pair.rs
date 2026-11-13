@@ -190,6 +190,17 @@ impl Shell {
         cx.notify();
     }
 
+    /// The machine list does not read: the app's words for where and what
+    /// (never the file's text: it may hold a token) in the frame's foot,
+    /// and beside the pairing form when a pairing was under way.
+    pub(crate) fn book_unreadable(&mut self, fault: &vessel_app_view::files::FileFault) {
+        let words = self.t.lang.machines_unreadable(fault);
+        if self.areas.pair.busy {
+            self.pair_failed(words.clone());
+        }
+        self.notice = Some(words);
+    }
+
     pub(crate) fn pair_failed(&mut self, why: String) {
         let pair = &mut self.areas.pair;
         pair.busy = false;
@@ -281,17 +292,12 @@ fn confirm_step(
     let pair = &shell.areas.pair;
     let neutral = tokens.neutral;
     let card = settings::card(tokens)
-        .child(settings::row(
-            words.host,
-            Some(offer.node.clone().into()),
-            None,
-            true,
-            tokens,
-        ))
-        .child(settings::row(
+        // The machine's id and its key's fingerprint in the code face (each
+        // character told from its neighbours, as the machine printed them).
+        .child(settings::code_row(words.host, offer.node.clone(), true, tokens))
+        .child(settings::code_row(
             words.fingerprint,
-            Some(offer.key.clone().into()),
-            None,
+            offer.key.clone(),
             false,
             tokens,
         ))

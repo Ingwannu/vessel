@@ -11,7 +11,7 @@ import { freemem } from "node:os";
 import type { Browser, Page } from "@playwright/test";
 
 import type { FleetEnv } from "../fleet";
-import { launchUi } from "../open";
+import { launchAt, launchUi } from "../open";
 import { DESKTOP } from "./conditions";
 import { pageFootprint, rest, scrollThrough } from "./inspect";
 import { installProbe, readMarks, waitForMark } from "./probe";
@@ -103,7 +103,8 @@ async function loadOnce(browser: Browser): Promise<BoardLoad> {
     const cdp = await context.newCDPSession(page);
     const { url } = await launchUi(page);
     try {
-      await page.goto(url, { waitUntil: "commit" });
+      // The board, which the index no longer opens (it opens a new chat).
+      await page.goto(launchAt(url, "/sessions"), { waitUntil: "commit" });
     } catch {
       // Playwright's error would quote the one-use launch URL.
       throw new Error("Could not open the UI");

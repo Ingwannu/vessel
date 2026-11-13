@@ -16,11 +16,13 @@ use vessel_proto::{
 use vessel_pty::PtyInput;
 
 use crate::conversation::Seen;
+use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
 use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
+use crate::parking::{ParkOrder, Route};
 use crate::ring::{Follow, FollowError, Ring};
 
 /// State shared between a session's actor and its handles.
@@ -92,9 +94,10 @@ impl Shared {
 #[derive(Debug)]
 pub(crate) enum Input {
     Terminal(PtyInput),
-    /// The current agent's input; `None` while the session moves to another
-    /// profile and its agent is replaced.
-    Structured(watch::Receiver<Option<AgentInput>>),
+    /// Where the current agent's input goes: to it, nowhere while it is
+    /// replaced (a move, a park), or to the actor while it is parked
+    /// (protocol 12).
+    Structured(watch::Receiver<Route>),
 }
 
 impl Input {
@@ -107,8 +110,8 @@ impl Input {
 }
 
 /// The agent input goes to now; refused while the session moves.
-fn current(route: &watch::Receiver<Option<AgentInput>>) -> Result<AgentInput, SessionError> {
-    route.borrow().clone().ok_or(SessionError::Moving)
+fn current(route: &watch::Receiver<Route>) -> Result<AgentInput, SessionError> {
+    route.borrow().input()
 }
 
 /// A handle to one session. Cheap to clone; every clone refers to the same
@@ -151,6 +154,17 @@ impl SessionHandle {
     /// [`SessionError::Moving`] during a move, [`SessionError::Ended`] once
     /// the session has ended.
     pub async fn options(&self) -> Result<Vec<SessionOption>, SessionError> {
+        // A parked agent's options are what it last reported (protocol 12):
+        // reading them is no reason to start it.
+        if self.parked() {
+            let reported = self
+                .0
+                .reported
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .clone();
+            return Ok(reported.map(|options| options.to_vec()).unwrap_or_default());
+        }
         Ok(self.agent()?.options().await?)
     }
 
@@ -164,7 +178,44 @@ impl SessionHandle {
         &self,
         choice: OptionChoice,
     ) -> Result<Vec<SessionOption>, SessionError> {
+        // Changing an option needs the agent: a parked one is woken first
+        // (protocol 12).
+        if self.parked() {
+            let _woken = self.wake().await?;
+        }
         Ok(self.agent()?.set_option(choice).await?)
+    }
+
+    /// Stop the session's agent now, keeping the session and its
+    /// conversation (protocol 12's `session.park`); the info after.
+    ///
+    /// # Errors
+    /// [`SessionError::NotParked`] when it is not idle or its agent cannot
+    /// resume, [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn park(&self) -> Result<SessionInfo, SessionError> {
+        let route = self.structured_route(ParkRefusal::Terminal)?;
+        self.order(route, |reply| Control::Park(ParkOrder::Park(reply)))
+            .await?;
+        Ok(self.info())
+    }
+
+    /// Start a parked session's agent again with its conversation, once it
+    /// is ready (protocol 12's `session.wake`); at once when it is not
+    /// parked. The info after.
+    ///
+    /// # Errors
+    /// [`SessionError::WakeFailed`] (it stays parked),
+    /// [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn wake(&self) -> Result<SessionInfo, SessionError> {
+        let route = self.structured_route(ParkRefusal::Terminal)?;
+        self.order(route, |reply| Control::Park(ParkOrder::Wake(reply)))
+            .await?;
+        Ok(self.info())
+    }
+
+    /// Whether the session's agent is parked now.
+    fn parked(&self) -> bool {
+        matches!(&self.0.input, Input::Structured(route) if matches!(*route.borrow(), Route::Parked))
     }
 
     /// The conversation as the session's log says it now (protocol 10):

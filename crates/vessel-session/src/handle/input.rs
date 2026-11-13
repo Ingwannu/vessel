@@ -4,7 +4,6 @@
 //! agent.
 
 use tokio::sync::{oneshot, watch};
-use vessel_agent::AgentInput;
 use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
     ContentBlock, Creator, Delivered, Delivery, EventSeq, QueueChange, SessionInput, TerminalInput,
@@ -13,8 +12,9 @@ use vessel_pty::WindowSize;
 
 use super::{Input, SessionHandle, current};
 use crate::delivery::{Cancel, Change, Deliver};
-use crate::error::{DeliveryError, InputKind, SessionError};
+use crate::error::{DeliveryError, InputKind, ParkRefusal, SessionError};
 use crate::moving::Control;
+use crate::parking::Route;
 
 impl SessionHandle {
     /// Send input to the session.
@@ -177,11 +177,23 @@ impl SessionHandle {
             .await
     }
 
-    /// The input route of a live structured session.
-    fn structured(
+    /// The input route of a live structured session; a terminal session
+    /// is refused as parking refuses it (protocol 12).
+    pub(super) fn structured_route(
         &self,
-        what: &'static str,
-    ) -> Result<&watch::Receiver<Option<AgentInput>>, SessionError> {
+        terminal: ParkRefusal,
+    ) -> Result<&watch::Receiver<Route>, SessionError> {
+        if !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        match &self.0.input {
+            Input::Terminal(_) => Err(terminal.into()),
+            Input::Structured(route) => Ok(route),
+        }
+    }
+
+    /// The input route of a live structured session.
+    fn structured(&self, what: &'static str) -> Result<&watch::Receiver<Route>, SessionError> {
         if !self.0.info.borrow().status.is_live() {
             return Err(SessionError::Ended);
         }
@@ -194,12 +206,12 @@ impl SessionHandle {
     /// Hand an order to the actor and wait for its answer. Refused while
     /// the session moves, as input always was; an order sent as a move
     /// begins waits for it.
-    async fn order<T>(
+    pub(super) async fn order<T>(
         &self,
-        route: &watch::Receiver<Option<AgentInput>>,
+        route: &watch::Receiver<Route>,
         order: impl FnOnce(oneshot::Sender<Result<T, SessionError>>) -> Control,
     ) -> Result<T, SessionError> {
-        if route.borrow().is_none() {
+        if matches!(*route.borrow(), Route::Moving) {
             return Err(SessionError::Moving);
         }
         let control = self.0.control.as_ref().ok_or(SessionError::Ended)?;
@@ -223,6 +235,8 @@ impl SessionHandle {
     pub async fn turn_running(&self) -> Result<bool, SessionError> {
         match &self.0.input {
             Input::Terminal(_) => Ok(false),
+            // A parked agent runs no turn (protocol 12).
+            Input::Structured(route) if matches!(*route.borrow(), Route::Parked) => Ok(false),
             Input::Structured(route) => Ok(current(route)?.turn_running().await?),
         }
     }

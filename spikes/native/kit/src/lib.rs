@@ -27,6 +27,7 @@ pub mod alert;
 pub mod assets;
 pub mod badge;
 pub mod breakpoint;
+pub mod card_button;
 pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
@@ -54,6 +55,7 @@ mod widgets;
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use card_button::{CardLook, CardState, card_button};
 pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
 pub use copy::{CopyLook, copy_button};

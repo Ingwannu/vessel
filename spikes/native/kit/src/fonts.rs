@@ -7,7 +7,7 @@
 //! holds because no system face is ever asked for: both faces ship in the
 //! binary and every style names them. Embedded rather than read from
 //! files beside the binary: one file to install, nothing to find at
-//! start, at about 5 MB (Pretendard's three weights are most of it; the
+//! start, at about 6.7 MB (Pretendard's four weights are most of it; the
 //! real build subsets them, as the page does).
 
 use std::borrow::Cow;
@@ -22,11 +22,20 @@ pub const MONO: &str = "Geist Mono";
 /// The fallback for every script Geist lacks.
 pub const HANGUL: &str = "Pretendard";
 
-static FACES: [&[u8]; 7] = [
+/// The weights the design draws: 300 (Paseo's desktop screen title,
+/// `headers/screen-title.tsx`, track G2's `screen_header`), 400, 500 and
+/// 600, each in Geist and in Pretendard so Hangul keeps the Latin's
+/// weight (a missing weight would be drawn at the nearest one, or
+/// synthesized). The 300 pair costs 1,725,412 bytes (Geist Light 125,444,
+/// Pretendard Light 1,599,968), from the same packages (`scripts/fonts.sh`)
+/// under the same licences.
+static FACES: [&[u8]; 9] = [
+    include_bytes!("../../assets/fonts/Geist-Light.ttf"),
     include_bytes!("../../assets/fonts/Geist-Regular.ttf"),
     include_bytes!("../../assets/fonts/Geist-Medium.ttf"),
     include_bytes!("../../assets/fonts/Geist-SemiBold.ttf"),
     include_bytes!("../../assets/fonts/GeistMono-Regular.ttf"),
+    include_bytes!("../../assets/fonts/Pretendard-Light.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Regular.otf"),
     include_bytes!("../../assets/fonts/Pretendard-Medium.otf"),
     include_bytes!("../../assets/fonts/Pretendard-SemiBold.otf"),

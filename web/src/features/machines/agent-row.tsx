@@ -8,18 +8,23 @@ import "./agent-row.css";
 import { Link } from "@tanstack/react-router";
 
 import { agentHeadline, type AgentStatus } from "../../data/agent-status";
-import { agentMark, agentName } from "../../data/agents";
-import type { HarnessKind } from "../../wire/proto";
+import { agentKey } from "../../data/agents";
+import type { HarnessRef } from "../../wire/proto";
 import { Avatar, Row, StatusDot } from "../../ui/kit";
 
 export function AgentRow({
   machine,
-  kind,
+  agent,
+  name,
+  mark,
   status,
   selected,
 }: {
   machine: string;
-  kind: HarnessKind;
+  agent: HarnessRef;
+  /** What the page calls it (an added agent's label), and its letter. */
+  name: string;
+  mark: string;
   status: AgentStatus;
   selected: boolean;
 }) {
@@ -29,17 +34,19 @@ export function AgentRow({
     <Row
       selected={selected}
       mark={{
-        node: <Avatar letter={agentMark(kind)} label={agentName(kind)} />,
+        node: <Avatar letter={mark} label={name} />,
       }}
       title={
         <span className="agent-title">
           <Link
             to="/settings/$section"
             params={{ section: "agents" }}
-            search={selected ? { machine } : { machine, agent: kind }}
+            search={
+              selected ? { machine } : { machine, agent: agentKey(agent) }
+            }
             aria-current={selected ? "true" : undefined}
           >
-            {agentName(kind)}
+            {name}
           </Link>
           {version === null ? null : (
             <code className="agent-version">{version}</code>

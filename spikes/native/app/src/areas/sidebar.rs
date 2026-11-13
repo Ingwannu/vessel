@@ -25,6 +25,9 @@ use crate::shell::Shell;
 pub(crate) struct SidebarState {
     tips: Tooltips,
     places: RefCell<HashMap<String, vessel_app_kit::tooltip::Place>>,
+    /// The tooltip of the same line drawn on a page (Settings ›
+    /// Projects), which draws its own.
+    page_tips: Tooltips,
 }
 
 impl SidebarState {
@@ -32,7 +35,39 @@ impl SidebarState {
         Self {
             tips: Tooltips::new(),
             places: RefCell::new(HashMap::new()),
+            page_tips: Tooltips::new(),
         }
+    }
+
+    /// An unreachable machine's state and what to do, as the sidebar says
+    /// them, for a page (Settings › Projects, track F's): the transport's
+    /// text `why` only in the line's tooltip. The page's own tooltip is
+    /// drawn with it.
+    pub(crate) fn unreachable_on_page(
+        &self,
+        machine: &str,
+        why: &str,
+        t: &vessel_app_view::Text,
+        tokens: &Tokens,
+        touch: bool,
+    ) -> vessel_app_kit::ui::AnyElement {
+        let line = div()
+            .id(ElementId::Name(
+                format!("page-unreachable-{machine}").into(),
+            ))
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(6.0))
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(dot(tokens.danger))
+            .child(format!("{} · {}", t.unreachable, t.unreachable_hint));
+        let place = self.place(&format!("page:{machine}"));
+        div()
+            .child(self.page_tips.on(line, &place, why.to_owned(), touch))
+            .children(self.page_tips.render(tokens))
+            .into_any_element()
     }
 
     /// `machine`'s place for its tooltip, kept across frames.

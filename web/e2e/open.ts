@@ -54,6 +54,15 @@ export async function launchUi(
   return { url, origin: new URL(url).origin };
 }
 
+/** Launch address `url` opening `path` instead of the index (which opens
+ * a new chat since 2026-11-13): the one-use code is in the fragment, and
+ * the page reads it on any path. */
+export function launchAt(url: string, path: string): string {
+  const at = new URL(url);
+  at.pathname = path;
+  return at.toString();
+}
+
 export async function openUi(page: Page): Promise<string> {
   const { url, origin } = await launchUi(page);
   try {
@@ -63,5 +72,14 @@ export async function openUi(page: Page): Promise<string> {
     throw new Error("Could not open the UI");
   }
   await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+  // The address's code is used once: the page keeps the session it
+  // proved for reloads only after `vessel ui` welcomed it
+  // (bridge/token.ts). The sidebar is drawn before that; a test that
+  // navigates as soon as it shows would reload with neither, and see
+  // "Open Vessel from its address" (raced under load: app.spec.ts's
+  // "every New", a slow bridge reproduces it every time).
+  await page.waitForFunction(
+    () => window.sessionStorage.getItem("vessel.session") !== null,
+  );
   return origin;
 }

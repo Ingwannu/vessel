@@ -69,6 +69,7 @@ const STATE: FleetState = {
   harnesses: {},
   profiles: {},
   models: {},
+  agents: {},
   sessions: {
     [fixtureId("NodeKey", "laptop")]: [
       session("aaaa", "2026-11-11T08:00:00Z", { title: "Fix the overview" }),
@@ -143,5 +144,29 @@ describe("the view the person chose", () => {
 describe("sessionMark", () => {
   it("is idle for a session of a node that does not place it", () => {
     expect(sessionMark(session("aaaa", "2026-11-11T08:00:00Z"))).toBe("idle");
+  });
+});
+
+describe("the marks a machine keeps (protocol 10)", () => {
+  it("leaves archived sessions out, lists pinned first, says unread", () => {
+    const laptop = fixtureId("NodeKey", "laptop");
+    const marked: FleetState = {
+      ...STATE,
+      sessions: {
+        [laptop]: [
+          session("aaaa", "2026-11-11T08:00:00Z"),
+          session("bbbb", "2026-11-11T09:00:00Z", {
+            marks: { archived_at: "2026-11-11T10:00:00Z" },
+          }),
+          session("dddd", "2026-11-11T06:00:00Z", {
+            marks: { pinned: true, unread: true },
+          }),
+        ],
+      },
+    };
+    const rows = sidebarMachines(marked, DEFAULT_VIEW)[0]?.sessions ?? [];
+    expect(rows.map((row) => row.id)).toEqual(["dddd", "aaaa"]);
+    expect(rows[0]).toMatchObject({ pinned: true, unread: true });
+    expect(rows[1]).toMatchObject({ pinned: false, unread: false });
   });
 });

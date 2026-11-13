@@ -11,6 +11,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, Render, Styled as _, WeakEntity, Window, div, px,
 };
 use vessel_app_link::{Command, Event, Link, Prefs};
+use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
 
 use crate::areas::{self, Areas};
@@ -136,6 +137,7 @@ impl Shell {
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
+            Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Fleet(fleet) => {
                 self.fleet = fleet;
                 if !self.loaded {
@@ -156,6 +158,8 @@ impl Shell {
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),
+            Event::BookUnreadable(fault) => self.book_unreadable(&fault),
+            Event::SessionLost { session, why } => self.session_lost(session, why),
             Event::Acted(answer) => {
                 if let Some(answer) = self.board_acted(answer, cx) {
                     self.acted(answer, cx);
@@ -187,14 +191,34 @@ impl Shell {
         (self.route, session)
     }
 
-    /// Open or close the sidebar's sheet (a phone's width; the title bar's
-    /// menu button).
-    pub(crate) fn toggle_sidebar(&mut self, cx: &mut Context<'_, Self>) {
-        self.sidebar_sheet = match self.sidebar_sheet {
-            Some(_) => None,
-            None => Some(self.place()),
+    /// Show or hide the sidebar (the title bar's menu button; S2's Mod+B
+    /// sends the same preference): at a phone's width its sheet, opened
+    /// over the page; wider, the layout's `SidebarPanel` preference, kept
+    /// with the settings so it stays as left.
+    pub(crate) fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if vessel_app_kit::breakpoint::phone(window) {
+            self.sidebar_sheet = match self.sidebar_sheet {
+                Some(_) => None,
+                None => Some(self.place()),
+            };
+            cx.notify();
+            return;
+        }
+        let flipped = match self.prefs.settings.layout.sidebar {
+            Panel::Shown => Panel::Hidden,
+            Panel::Hidden => Panel::Shown,
         };
-        cx.notify();
+        self.prefer(
+            &vessel_app_view::prefs::PreferenceChange::SidebarPanel(flipped),
+            window,
+            cx,
+        );
+    }
+
+    /// Whether the wide window draws the sidebar (the layout's preference;
+    /// a phone's width draws it as a sheet instead).
+    pub(crate) fn sidebar_shown(&self) -> bool {
+        self.prefs.settings.layout.sidebar == Panel::Shown
     }
 
     /// Whether the sidebar's sheet is open.
@@ -282,7 +306,7 @@ impl Render for Shell {
                 vessel_app_kit::Edge::Left,
                 areas::sidebar::render(self, &tokens, true, cx).into_any_element(),
                 &tokens,
-                cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx)),
+                cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
             )
         });
         // The window's face at its root (Geist, Pretendard behind it), so
@@ -304,7 +328,7 @@ impl Render for Shell {
                     .relative()
                     .flex()
                     .flex_row()
-                    .when(!phone, |row| {
+                    .when(!phone && self.sidebar_shown(), |row| {
                         row.child(routes::sidebar(self.route, self, &tokens, cx))
                     })
                     .child(
@@ -318,7 +342,7 @@ impl Render for Shell {
                             .h_full()
                             .pb(px(8.0))
                             .pr(px(8.0))
-                            .when(phone, |frame| frame.pl(px(8.0)))
+                            .when(phone || !self.sidebar_shown(), |frame| frame.pl(px(8.0)))
                             .child(
                                 div()
                                     .size_full()

@@ -34,3 +34,7 @@ tokio.workspace = true
 # tokio's `sync` is the only part of it that builds for wasm32.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", default-features = false, features = ["sync"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+vessel-rpc.workspace = true
+tokio = { workspace = true, features = ["io-util"] }

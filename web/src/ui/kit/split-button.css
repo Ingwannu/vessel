@@ -1,0 +1,25 @@
+/* A button and its menu as one shape (kit/split-button.tsx): the two
+   halves meet with square corners and a hairline between them. */
+
+.split-button {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.split-button-reason {
+  display: inline-flex;
+}
+
+.split-button > .btn:first-child,
+.split-button > .split-button-reason > .btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.split-button > .btn:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  box-shadow:
+    inset 1px 0 0 var(--border-subtle),
+    var(--shadow-control);
+}

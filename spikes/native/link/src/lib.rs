@@ -20,6 +20,7 @@
 //!   fast as it draws, and a sender waits for room, so a burst of records
 //!   slows the stream, never grows memory.
 
+pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
 mod prefs;
@@ -85,6 +86,11 @@ pub enum LinkError {
     /// The book could not be read or written.
     #[error("the node book: {0}")]
     Book(String),
+    /// The book does not read: where and what, never its text (it may
+    /// hold a token). The app says it in its own words
+    /// ([`Event::BookUnreadable`]).
+    #[error("the node book {} does not read", .0.path)]
+    BookFault(vessel_app_view::files::FileFault),
     /// A websocket node without a token file.
     #[error("no token file in the book for this node")]
     NoToken,
@@ -123,6 +129,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Read or edit the saved machine book.
+    Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
     Reload,
     /// Ask about a machine's paired devices.
@@ -242,6 +250,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A saved-machine operation completed.
+    Machines(machines::Answer),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
@@ -296,6 +306,19 @@ pub enum Event {
     },
     /// Something failed; the words to show.
     Failed(String),
+    /// The session's machine is not connected any more (its records
+    /// stopped, or a prompt or input found no connection): said once in the
+    /// session's bar in the app's words; `why`, the transport's own words,
+    /// only in that line's tooltip.
+    SessionLost {
+        /// The session.
+        session: SessionId,
+        /// The transport's words.
+        why: String,
+    },
+    /// The machine list does not read (the app words it, in its language;
+    /// a pairing under way stops with the same words).
+    BookUnreadable(vessel_app_view::files::FileFault),
     /// A machine answered a workspace ask.
     Workspace {
         /// The machine.
@@ -333,6 +356,8 @@ impl Link {
             events,
             clients: HashMap::new(),
             follow: None,
+            follow_machine: None,
+            book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             device_calls: devices::Hub::default(),
         };
@@ -362,6 +387,8 @@ struct State {
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+    follow_machine: Option<String>,
+    book_path: machines::BookPath,
     workspace: workspace::Hub,
     device_calls: devices::Hub,
 }
@@ -395,6 +422,7 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Machines(ask) => self.machine_book(ask).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -447,6 +475,7 @@ impl State {
                     self.emit(Event::Paired { node, via, address }).await;
                     self.reload().await;
                 }
+                Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
                 Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
             },
             Command::Act {
@@ -479,10 +508,15 @@ impl State {
 
     /// List every machine's sessions, connecting to those not connected.
     async fn refresh(&mut self) {
-        let book = match nodes::read_book() {
+        let book = match self.saved_entries().await {
             Ok(book) => book,
-            Err(error) => {
-                self.emit(Event::Failed(error.to_string())).await;
+            Err(vessel_app_view::machine_book::Failure::File(fault)) => {
+                self.emit(Event::BookUnreadable(fault)).await;
+                return;
+            }
+            Err(failure) => {
+                self.emit(Event::Machines(machines::Answer::Read(Err(failure))))
+                    .await;
                 return;
             }
         };
@@ -635,6 +669,7 @@ impl State {
 
     /// Follow `session` from its first record, replacing the one followed.
     fn open(&mut self, machine: &str, session: SessionId) {
+        self.follow_machine = None;
         if let Some(earlier) = self.follow.take() {
             earlier.abort();
         }
@@ -646,13 +681,13 @@ impl State {
             let events = self.events.clone();
             let machine = machine.to_owned();
             drop(tokio::spawn(async move {
-                let _closed = events
-                    .send(Event::Failed(LinkError::NotConnected(machine).to_string()))
-                    .await;
+                let why = LinkError::NotConnected(machine).to_string();
+                let _closed = events.send(Event::SessionLost { session, why }).await;
             }));
             return;
         };
         let events = self.events.clone();
+        self.follow_machine = Some(machine.to_owned());
         self.follow = Some(tokio::spawn(follow(client, session, events)));
     }
 
@@ -690,10 +725,8 @@ impl State {
 
     async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            self.emit(Event::Failed(
-                LinkError::NotConnected(machine.to_owned()).to_string(),
-            ))
-            .await;
+            let why = LinkError::NotConnected(machine.to_owned()).to_string();
+            self.emit(Event::SessionLost { session, why }).await;
             return;
         };
         let content = vec![ContentBlock::Text { text }];
@@ -725,10 +758,8 @@ impl State {
 
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            self.emit(Event::Failed(
-                LinkError::NotConnected(machine.to_owned()).to_string(),
-            ))
-            .await;
+            let why = LinkError::NotConnected(machine.to_owned()).to_string();
+            self.emit(Event::SessionLost { session, why }).await;
             return;
         };
         if let Err(error) = client.send(session, input).await {
@@ -755,10 +786,11 @@ fn unreachable(name: String, why: &str) -> Machine {
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
+    let lost = |why: String| Event::SessionLost { session, why };
     let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
         Ok(stream) => stream,
         Err(error) => {
-            let _closed = events.send(Event::Failed(error.to_string())).await;
+            let _closed = events.send(lost(error.to_string())).await;
             return;
         }
     };
@@ -774,7 +806,7 @@ async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Eve
                 }
             }
             Err(error) => {
-                let _closed = events.send(Event::Failed(error.to_string())).await;
+                let _closed = events.send(lost(error.to_string())).await;
                 return;
             }
         }

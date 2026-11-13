@@ -571,6 +571,7 @@ fn runtime(config: &Config, loader: AttachmentLoader) -> Arc<SessionRuntime> {
                 ring_capacity: config.ring_capacity,
                 durable_capacity: config.durable_capacity,
                 agent_handshake_timeout: config.agent_handshake_timeout,
+                park_after: config.park_after,
             },
             CancellationToken::new(),
         )

@@ -22,6 +22,23 @@ use toml_edit::{DocumentMut, Item, Table, TableLike, value};
 use vessel_proto::NodeId;
 
 use super::content::{BookContent, ProjectContent, check, entry_table};
+use crate::file_fault::TomlFault;
+
+/// The book's own keys: the only ones an error may name.
+const BOOK_KEYS: &[&str] = &[
+    "default_node",
+    "nodes",
+    "ssh",
+    "url",
+    "key",
+    "token",
+    "credential",
+    "relay",
+    "direct",
+    "data_dir",
+    "id",
+    "file",
+];
 use super::{BookEntry, BookError, EntryProblem, NodeBook, NodeName};
 
 /// The user's book file: its checked content, and the document for edits.
@@ -54,13 +71,13 @@ impl BookFile {
     fn parse(path: &Path, text: &str) -> Result<Self, BookError> {
         let syntax = |error: toml_edit::TomlError| BookError::Syntax {
             path: path.to_owned(),
-            message: error.to_string(),
+            fault: TomlFault::of(error.message(), error.span(), text, BOOK_KEYS),
         };
         let document: DocumentMut = text.parse().map_err(syntax)?;
         let content: BookContent =
             toml_edit::de::from_str(text).map_err(|error| BookError::Syntax {
                 path: path.to_owned(),
-                message: error.to_string(),
+                fault: TomlFault::of(error.message(), error.span(), text, BOOK_KEYS),
             })?;
         let book = check(path, content)?;
         Ok(Self {
@@ -263,7 +280,7 @@ impl BookFile {
             // A `nodes` that is not a table never passed `check`.
             .ok_or_else(|| BookError::Syntax {
                 path,
-                message: "`nodes` is not a table".to_owned(),
+                fault: TomlFault::wrong_kind("nodes"),
             })
     }
 
@@ -317,11 +334,9 @@ impl ProjectConfig {
 
     fn parse(path: &Path, text: &str) -> Result<Self, BookError> {
         let content: ProjectContent =
-            toml_edit::de::from_str(text).map_err(|error| BookError::Syntax {
+            toml_edit::de::from_str(text).map_err(|error| BookError::ProjectSyntax {
                 path: path.to_owned(),
-                message: format!(
-                    "{error}(a project file may only set `default_node`, to a node in your book)"
-                ),
+                fault: TomlFault::of(error.message(), error.span(), text, &["default_node"]),
             })?;
         let default_node = content
             .default_node
