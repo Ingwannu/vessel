@@ -131,6 +131,11 @@ surface, state and drawing remain one control, split into small modules.
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.
 
+
+Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
+`GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
+Each is registered once in `assets.rs` on the same 24-unit line grid.
+
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
