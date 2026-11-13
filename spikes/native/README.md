@@ -236,7 +236,8 @@ out rows of those shapes and fails if one grows past a line or runs into
 the next.
 
 Screens are checked against the two `shapes` sessions the fleet makes on
-`laptop`: a long thought, Markdown with a table, a 240-character code
+`laptop`: a long thought streamed a few characters at a time (Korean
+first, a syllable alone in a chunk), Markdown with a table, a 240-character code
 line and Korean, a long path, a wide diff, a command on one long line
 asking for permission with four answers, and 2,400 lines of output.
 `shapes` has its permission answered (the output in the timeline),
@@ -247,7 +248,14 @@ fails if either `shapes` session lacks any of it (it reads them back
 with `vessel log`), so a fake-acp built before these existed is caught:
 rebuild it. A third session on `laptop`, `turns`, holds five turns (one
 long prompt, one Korean; each tool's permission allowed): the outline of
-prompts and read marks are checked against it.
+prompts and read marks are checked against it. A fourth, `queued`,
+runs a turn that waits until stopped (`wait`, which takes a steer) with
+three prompts queued behind it (one long, one Korean, one short),
+checked through `vessel session queue`: the queue above the composer is
+checked against it. Two more, `ask questions` and `ask one`, are left
+waiting on what Claude's adapter sends for its `AskUserQuestion` (three
+questions, one choosing several and one in Korean, and one question):
+the question card is checked against them.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

@@ -111,10 +111,20 @@ pub enum Glyph {
     Reset,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// A pencil: edit (a queued message).
+    Pencil,
+    /// An arrow turning up and right: send into the running turn (GOAT's
+    /// steer, `CornerUpRight`).
+    Steer,
+    /// Six dots: a handle to drag a row by.
+    Grip,
+    /// An X on the line glyphs' grid: take a row out (a queued message;
+    /// the window's `Close` fills its box and reads heavier beside them).
+    Remove,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 43] = [
+const ALL: [Glyph; 47] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -158,6 +168,10 @@ const ALL: [Glyph; 43] = [
     Glyph::LightningFilled,
     Glyph::Reset,
     Glyph::Spinner,
+    Glyph::Pencil,
+    Glyph::Steer,
+    Glyph::Grip,
+    Glyph::Remove,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -220,6 +234,10 @@ impl Glyph {
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Pencil => "kit/pencil.svg",
+            Self::Steer => "kit/steer.svg",
+            Self::Grip => "kit/grip.svg",
+            Self::Remove => "kit/remove.svg",
         }
     }
 
@@ -287,6 +305,16 @@ impl Glyph {
             ),
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
+            ),
+            Self::Pencil => line_glyph!(
+                r#"<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/><path d="M14.5 5.5l3 3"/>"#
+            ),
+            Self::Remove => line_glyph!(r#"<path d="M18 6L6 18M6 6l12 12"/>"#),
+            Self::Steer => {
+                line_glyph!(r#"<path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>"#)
+            }
+            Self::Grip => line_glyph!(
+                r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
             ),
             Self::Copy => line_glyph!(
                 r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
