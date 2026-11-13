@@ -163,7 +163,7 @@ pub fn dialog<V: 'static>(
             sheet
                 .max_h(relative(0.9))
                 .rounded_t(px(popup::SHEET_RADIUS))
-                .child(handle())
+                .child(handle(tokens.neutral.foreground_extra_muted))
         })
         .child(header(content.title, &surfaces, narrow, close, cx))
         .child(
@@ -203,16 +203,15 @@ pub fn dialog<V: 'static>(
         .into_any_element()
 }
 
-/// A sheet's drag handle (Gorhom's indicator, as Paseo themes it: zinc
-/// 600).
-fn handle() -> gpui::Div {
-    div().w_full().flex().justify_center().pt(px(8.0)).child(
-        div()
-            .w(px(32.0))
-            .h(px(4.0))
-            .rounded(px(2.0))
-            .bg(gpui::rgb(0x0052_525b)),
-    )
+/// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,
+/// the kit's nearest neutral step is `foregroundExtraMuted`).
+fn handle(color: gpui::Hsla) -> gpui::Div {
+    div()
+        .w_full()
+        .flex()
+        .justify_center()
+        .pt(px(8.0))
+        .child(div().w(px(32.0)).h(px(4.0)).rounded(px(2.0)).bg(color))
 }
 
 /// The title and the close button, over a rule.

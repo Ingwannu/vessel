@@ -32,7 +32,7 @@ pub(super) fn card(
     let color = match tool.status {
         ToolCallStatus::Pending | ToolCallStatus::InProgress => paint.tokens.st_building,
         ToolCallStatus::Completed => paint.look.secondary,
-        ToolCallStatus::Failed => paint.tokens.danger,
+        ToolCallStatus::Failed => paint.tokens.neutral.destructive,
     };
     let detail = match tool.path() {
         Some(path) => format!("{} · {state}", tail(&path.to_string_lossy())),
@@ -112,7 +112,7 @@ fn code(paint: &Paint<'_>, text: String) -> Div {
         .bg(paint.look.code)
         .type_(Type::Mono)
         .text_size(px(12.0))
-        .text_color(paint.tokens.text_primary)
+        .text_color(paint.tokens.neutral.foreground)
         .child(text)
 }
 

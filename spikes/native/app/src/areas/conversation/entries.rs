@@ -51,7 +51,7 @@ pub(super) fn entry(
             .px(px(4.0))
             .py(px(2.0))
             .type_(Type::Body)
-            .text_color(paint.tokens.text_primary)
+            .text_color(paint.tokens.neutral.foreground)
             .child(markdown(
                 ElementId::NamedInteger("message".into(), id(index)),
                 text.clone(),
@@ -171,7 +171,7 @@ fn person(paint: &Paint<'_>, prompt: &Prompt, corner: Option<String>) -> AnyElem
                     bubble.child(
                         div()
                             .type_(Type::Body)
-                            .text_color(paint.tokens.text_primary)
+                            .text_color(paint.tokens.neutral.foreground)
                             .child(prompt.text.clone()),
                     )
                 }),
@@ -189,7 +189,7 @@ pub(super) fn work_row(
     open: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let hover = paint.tokens.text_primary;
+    let hover = paint.tokens.neutral.foreground;
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -240,9 +240,9 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
         (
             vessel_app_kit::ui::Hsla {
                 a: 0.3,
-                ..paint.tokens.danger
+                ..paint.tokens.neutral.destructive
             },
-            paint.tokens.danger,
+            paint.tokens.neutral.destructive,
         )
     } else {
         (paint.look.border, paint.look.secondary)
@@ -280,7 +280,7 @@ fn question_card(paint: &Paint<'_>, message: &str, settled: Option<&'static str>
         .child(
             div()
                 .type_(Type::Body)
-                .text_color(paint.tokens.text_primary)
+                .text_color(paint.tokens.neutral.foreground)
                 .child(message.to_owned()),
         )
         .children(settled.map(|word| {

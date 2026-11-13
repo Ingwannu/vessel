@@ -123,7 +123,7 @@ fn run_header(
     open: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let hover = paint.tokens.text_primary;
+    let hover = paint.tokens.neutral.foreground;
     div()
         .id(ElementId::NamedInteger("run".into(), id(lead)))
         .flex()
@@ -214,7 +214,7 @@ pub(crate) fn overlays(
                 .into_any_element(),
             button("confirm-accept", accept, true, tokens)
                 .when(confirm != Confirm::Archive, |accept| {
-                    accept.bg(tokens.danger)
+                    accept.bg(tokens.neutral.destructive)
                 })
                 .on_click(cx.listener(|shell, _event, _window, cx| shell.confirmed(cx)))
                 .into_any_element(),

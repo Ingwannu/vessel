@@ -36,8 +36,10 @@ pub(crate) fn bar(
         let color = match status {
             SessionStatus::Starting => tokens.st_building,
             SessionStatus::Running => tokens.st_ready,
-            SessionStatus::Failed { .. } => tokens.danger,
-            SessionStatus::Exited { .. } | SessionStatus::Interrupted => tokens.text_tertiary,
+            SessionStatus::Failed { .. } => tokens.neutral.destructive,
+            SessionStatus::Exited { .. } | SessionStatus::Interrupted => {
+                tokens.neutral.foreground_extra_muted
+            }
         };
         div()
             .flex_shrink_0()
@@ -53,7 +55,7 @@ pub(crate) fn bar(
             .min_w(px(0.0))
             .truncate()
             .type_(Type::Meta)
-            .text_color(tokens.danger)
+            .text_color(tokens.neutral.destructive)
             .child(why.clone())
     });
     let actions = div()
@@ -64,7 +66,7 @@ pub(crate) fn bar(
         .items_center()
         .justify_center()
         .rounded(px(popup::MENU_RADIUS))
-        .text_color(tokens.text_secondary)
+        .text_color(tokens.neutral.foreground_muted)
         .cursor_pointer()
         .hover(move |style| style.bg(surfaces.surface2))
         .on_mouse_down(
@@ -89,7 +91,7 @@ pub(crate) fn bar(
                 .min_w(px(0.0))
                 .truncate()
                 .type_(Type::Label)
-                .text_color(tokens.text_primary)
+                .text_color(tokens.neutral.foreground)
                 .child(title),
         )
         .children(badge)
@@ -98,7 +100,7 @@ pub(crate) fn bar(
                 .min_w(px(0.0))
                 .truncate()
                 .type_(Type::Meta)
-                .text_color(tokens.text_tertiary)
+                .text_color(tokens.neutral.foreground_extra_muted)
                 .child(detail),
         )
         .child(div().flex_1())
