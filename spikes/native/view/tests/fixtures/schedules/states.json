@@ -1,0 +1,108 @@
+[
+  {
+    "state": {
+      "state": "active",
+      "next_due": "2026-11-14T09:00:00Z"
+    },
+    "bucket": "Active",
+    "actions": [
+      "Edit",
+      "Pause",
+      "RunNow",
+      "Delete"
+    ],
+    "en": "Active",
+    "ko": "활성"
+  },
+  {
+    "state": {
+      "state": "paused",
+      "since": "2026-11-13T09:00:00Z"
+    },
+    "bucket": "Active",
+    "actions": [
+      "Edit",
+      "Resume",
+      "RunNow",
+      "Delete"
+    ],
+    "en": "Paused",
+    "ko": "일시 정지됨"
+  },
+  {
+    "state": {
+      "state": "ended",
+      "at": "2026-11-13T09:00:00Z",
+      "reason": "max_runs"
+    },
+    "bucket": "Ended",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Finished",
+    "ko": "완료됨"
+  },
+  {
+    "state": {
+      "state": "ended",
+      "at": "2026-11-13T09:00:00Z",
+      "reason": "expired"
+    },
+    "bucket": "Ended",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Expired",
+    "ko": "기간 만료됨"
+  },
+  {
+    "state": {
+      "state": "ended",
+      "at": "2026-11-13T09:00:00Z",
+      "reason": "creator_gone"
+    },
+    "bucket": "Ended",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Creator no longer has access",
+    "ko": "작성자의 접근 권한이 사라짐"
+  },
+  {
+    "state": {
+      "state": "ended",
+      "at": "2026-11-13T09:00:00Z",
+      "reason": "target_gone"
+    },
+    "bucket": "Ended",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Target gone",
+    "ko": "대상이 사라짐"
+  },
+  {
+    "state": {
+      "state": "ended",
+      "at": "2026-11-13T09:00:00Z",
+      "reason": "unknown"
+    },
+    "bucket": "Ended",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Unknown — update the app",
+    "ko": "알 수 없음 — 앱을 업데이트하세요"
+  },
+  {
+    "state": {
+      "state": "new_state"
+    },
+    "bucket": "Unknown",
+    "actions": [
+      "Delete"
+    ],
+    "en": "Unknown — update the app",
+    "ko": "알 수 없음 — 앱을 업데이트하세요"
+  }
+]

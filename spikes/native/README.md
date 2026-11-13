@@ -38,6 +38,11 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+Schedule decisions live in `view/src/schedules/`: authoritative node state,
+typed cadence, revision-preserving edits and run/session navigation. The
+page has no schedule fixtures yet; portable cases for its future screen
+are in `view/tests/fixtures/schedules/` (G2's notes describe the contract gaps).
+
 ## The app's layout
 
 ```

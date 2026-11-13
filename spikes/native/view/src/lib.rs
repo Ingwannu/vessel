@@ -23,6 +23,7 @@ pub mod notices;
 mod options;
 pub mod palette;
 pub mod prefs;
+pub mod schedules;
 pub mod session;
 pub mod settings;
 pub mod shortcuts;
@@ -43,6 +44,7 @@ pub use links::is_web_url;
 pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
+pub use text::ScheduleWords;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
     PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,

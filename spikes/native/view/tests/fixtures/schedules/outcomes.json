@@ -1,0 +1,390 @@
+[
+  {
+    "value": {
+      "outcome": "making"
+    },
+    "expected": "Making",
+    "session": null,
+    "en": "Preparing",
+    "ko": "준비 중"
+  },
+  {
+    "value": {
+      "outcome": "started",
+      "session": "00000000-0000-4000-8000-000000000002"
+    },
+    "expected": "Running",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Running",
+    "ko": "실행 중"
+  },
+  {
+    "value": {
+      "outcome": "waiting",
+      "session": "00000000-0000-4000-8000-000000000002"
+    },
+    "expected": "Waiting",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Needs permission",
+    "ko": "권한 승인이 필요함"
+  },
+  {
+    "value": {
+      "outcome": "interrupted"
+    },
+    "expected": "Interrupted",
+    "session": null,
+    "en": "Interrupted",
+    "ko": "중단됨"
+  },
+  {
+    "value": {
+      "outcome": "future"
+    },
+    "expected": "Unknown",
+    "session": null,
+    "en": "Unknown — update the app",
+    "ko": "알 수 없음 — 앱을 업데이트하세요"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "turn",
+        "reason": "end_turn"
+      }
+    },
+    "expected": "Finished",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Finished",
+    "ko": "완료됨"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "turn",
+        "reason": "max_tokens"
+      }
+    },
+    "expected": "Limited",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Limit reached",
+    "ko": "한도에 도달함"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "turn",
+        "reason": "max_turn_requests"
+      }
+    },
+    "expected": "Limited",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Limit reached",
+    "ko": "한도에 도달함"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "turn",
+        "reason": "refusal"
+      }
+    },
+    "expected": "Refused",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Request refused",
+    "ko": "요청이 거절됨"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "turn",
+        "reason": "cancelled"
+      }
+    },
+    "expected": "Cancelled",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Cancelled",
+    "ko": "취소됨"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "failed",
+        "message": "Failed turn"
+      }
+    },
+    "expected": "Failed",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Failed",
+    "ko": "실패함"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "future"
+      }
+    },
+    "expected": "Unknown",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Unknown — update the app",
+    "ko": "알 수 없음 — 앱을 업데이트하세요"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "state": "starting"
+        }
+      }
+    },
+    "expected": "SessionEnded",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Session ended",
+    "ko": "세션이 끝남"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "state": "running"
+        }
+      }
+    },
+    "expected": "SessionEnded",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Session ended",
+    "ko": "세션이 끝남"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "code": 0,
+          "state": "exited"
+        }
+      }
+    },
+    "expected": "SessionEnded",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Session ended",
+    "ko": "세션이 끝남"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "code": null,
+          "state": "exited"
+        }
+      }
+    },
+    "expected": "SessionEnded",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Session ended",
+    "ko": "세션이 끝남"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "code": 3,
+          "state": "exited"
+        }
+      }
+    },
+    "expected": "Failed",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Failed",
+    "ko": "실패함"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "message": "Startup failed",
+          "state": "failed"
+        }
+      }
+    },
+    "expected": "Failed",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Failed",
+    "ko": "실패함"
+  },
+  {
+    "value": {
+      "outcome": "finished",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "end": {
+        "end": "session",
+        "status": {
+          "state": "interrupted"
+        }
+      }
+    },
+    "expected": "Interrupted",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Interrupted",
+    "ko": "중단됨"
+  },
+  {
+    "value": {
+      "outcome": "prompted",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "delivered": {
+        "delivered": "started"
+      }
+    },
+    "expected": "Prompted",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Prompt sent",
+    "ko": "프롬프트 보냄"
+  },
+  {
+    "value": {
+      "outcome": "prompted",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "delivered": {
+        "delivered": "steered"
+      }
+    },
+    "expected": "Steered",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Added to the running turn",
+    "ko": "진행 중인 턴에 추가됨"
+  },
+  {
+    "value": {
+      "outcome": "prompted",
+      "session": "00000000-0000-4000-8000-000000000002",
+      "delivered": {
+        "delivered": "queued",
+        "entry": "00000000-0000-4000-8000-000000000003"
+      }
+    },
+    "expected": "Queued",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Queued",
+    "ko": "대기열에 추가됨"
+  },
+  {
+    "value": {
+      "outcome": "skipped",
+      "reason": {
+        "reason": "previous_running"
+      }
+    },
+    "expected": "Skipped",
+    "session": null,
+    "en": "Skipped",
+    "ko": "건너뜀"
+  },
+  {
+    "value": {
+      "outcome": "skipped",
+      "reason": {
+        "reason": "previous_waiting"
+      }
+    },
+    "expected": "Skipped",
+    "session": null,
+    "en": "Skipped",
+    "ko": "건너뜀"
+  },
+  {
+    "value": {
+      "outcome": "skipped",
+      "reason": {
+        "reason": "stopped"
+      }
+    },
+    "expected": "Skipped",
+    "session": null,
+    "en": "Skipped",
+    "ko": "건너뜀"
+  },
+  {
+    "value": {
+      "outcome": "skipped",
+      "reason": {
+        "reason": "missed",
+        "count": 1000
+      }
+    },
+    "expected": "Skipped",
+    "session": null,
+    "en": "Skipped",
+    "ko": "건너뜀"
+  },
+  {
+    "value": {
+      "outcome": "skipped",
+      "reason": {
+        "reason": "future"
+      }
+    },
+    "expected": "Skipped",
+    "session": null,
+    "en": "Skipped",
+    "ko": "건너뜀"
+  },
+  {
+    "value": {
+      "outcome": "failed",
+      "error": {
+        "code": "forbidden",
+        "message": "Operation refused"
+      }
+    },
+    "expected": "Failed",
+    "session": null,
+    "en": "Failed",
+    "ko": "실패함"
+  },
+  {
+    "value": {
+      "outcome": "failed",
+      "error": {
+        "code": "forbidden",
+        "message": "Operation refused"
+      },
+      "session": "00000000-0000-4000-8000-000000000002"
+    },
+    "expected": "Failed",
+    "session": "00000000-0000-4000-8000-000000000002",
+    "en": "Failed",
+    "ko": "실패함"
+  }
+]
