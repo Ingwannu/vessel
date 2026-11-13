@@ -4,5 +4,9 @@
 //! test it follows.
 
 mod agents;
+mod archive;
 mod board;
+mod fixture;
 mod options;
+mod sidebar;
+mod tree;

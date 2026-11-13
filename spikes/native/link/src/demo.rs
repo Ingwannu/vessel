@@ -25,6 +25,7 @@ use std::collections::HashMap;
 use std::str::FromStr as _;
 
 use chrono::{DateTime, Duration, Utc};
+use vessel_app_view::board::CardDetail;
 use vessel_app_view::{Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
 use vessel_proto::{
     AgentEvent, ContentBlock, DisplayStatus, EventRecord, EventSeq, HarnessKind, HarnessRef,
@@ -417,6 +418,10 @@ fn card(
         at: now
             .checked_sub_signed(Duration::minutes(minutes_ago))
             .unwrap_or(now),
+        detail: CardDetail {
+            harness: Some(HarnessRef::Known(HarnessKind::ClaudeCode)),
+            ..CardDetail::default()
+        },
     }
 }
 

@@ -23,13 +23,17 @@
 //!   `vessel-client` and the node, in English).
 
 mod app;
+mod board;
 mod conversation;
 mod options;
+mod sidebar;
 mod update;
 
 pub use app::Text;
+pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
 pub use options::OptionsText;
+pub use sidebar::SidebarWords;
 pub use update::UpdateText;
 
 /// A language the app speaks.
