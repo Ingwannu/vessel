@@ -11,8 +11,8 @@ The order of work changed on the day (the owner: a build to install and
 try first, the report after), so this file grows as the builds do. Every
 statement below was run and seen unless it says "read" or "not verified".
 
-Captures are under `/tmp/vessel-m12-captures/` on the machine that made
-them (not committed; file names below).
+Captures are in a local folder on the machine that made them, not
+committed (file names below).
 
 ## The app as built
 
@@ -470,6 +470,87 @@ In the order the owner meets them, each as Paseo has it:
   the Linux executable ships without them (split into `vessel-app.debug`,
   kept with the Windows .pdb): 73,265,496 bytes before, 71,425,872 after.
 
+## Build 0.0.0.0.8 (settings made real; the effort control)
+
+### Settings that were kept and not read
+
+- The send shortcut is read by both composers (`kit::SendOn`): Enter (and
+  Mod+Enter) sends and Shift+Enter starts a line, or Mod+Enter sends and
+  Enter starts a line. The input engine keeps sending on Enter; in the
+  second mode a plain Enter that reaches the field starts a line itself
+  (the engine's own Enter-starts-a-line mode starts one on Mod+Enter too,
+  before sending). The session's placeholder names the key in force.
+- The interface and code sizes are one scale in the kit (`kit::fonts`):
+  every sans step at the interface size over 14, code at the code size
+  over 12, as the page's `appearance.css`; spacing and control heights
+  stay. Every size not on a step goes through `fonts::ui` or
+  `fonts::code`.
+- Content width is the session's one chat column (the conversation and
+  the composer under it): "Comfortable" is Paseo's 820 (the page takes
+  agent-orchestrator's 768: the owner's rule is Paseo's app), "Wide" 1152,
+  "Full" the window.
+- Conversation display is wired to the conversation's folds: "Full" shows
+  every tool call and an agent's start-up log as one folded row;
+  "Collapse tool calls" folds runs and hides the log.
+- The default send (a message sent during a turn) stays hidden until the
+  conversation's queue is wired to it.
+
+### The effort control (the owner, 2026-11-13)
+
+The owner replaced 0.0.0.0.7's row of a control per option with another
+product's composer control (their captures; a third party's screens,
+described here and not kept in the repository):
+
+- One control in the composer's row reads the model, the agent's name
+  (quieter, when the machine has several agents), and the effort's word
+  (violet at the top step), led by a lightning bolt when fast mode is on
+  (Paseo's model glyph when it is off: the captures show it on only).
+  Pressing it opens a card above it: at the left a bolt that switches
+  fast mode (outline off, filled violet on); in the middle the step's
+  word at 14/600 over the model's name at 12 with a chevron (a hover
+  background; pressing it opens the model's list); at the right a reset
+  (the agent's default); under them a slider of the agent's levels. The
+  card is 256 wide, 12 in, round 14; the slider's track is 24 tall and
+  round with a dot per step 13 in from its ends, its thumb a white disc
+  28 across (edged on a light card).
+- The slider's steps are the agent's `thought_level` values in its
+  order, without "default"; the last step is the agent's own "ultra"
+  switch when it has one (Claude Code's `ultracode`: choosing it sends
+  the highest level and the switch on, a lower step sends the switch
+  off) or its own highest level (Codex's Ultra). The switches folded in
+  are named by id in a typed table (`view::effort::KNOWN`), read off the
+  preview node through the app's log of each probe: Claude Code sends
+  `effort`, `fast` (on|off) and `ultracode` (on|off); Codex sends
+  `reasoning_effort` (low to ultra) and `fast-mode` (off|on). An agent
+  the table does not know gets its levels only; an agent with no levels
+  (OpenCode) has no card: its control opens the model's list.
+- Colours: the captures show two points, "High" (a muted fill) and the
+  top step (a blue-to-violet gradient with sparkles, its word violet).
+  Inferred between them: the lower half of the steps below the top is
+  the muted text colour, the upper half moves toward the violet (two
+  thirds of the way just below the top). Fast mode makes the fill move
+  (a sheen crossing it, the sparkles quicker); with it off only the top
+  step's sparkles drift. Motion is frame-driven and stops when the card
+  closes.
+- Every option the control does not drive (Claude Code's agent, Codex's
+  collaboration mode, anything an agent sends) is a row at the top of
+  the model's list, where the reference has its one switch: an on/off
+  option a switch row, a choice its value opening its own list with the
+  option's name above. Claude Code's "Agent" says what it is under its
+  name.
+- The row's ladder: full (carets, the agent's name, the effort's word, the
+  mode's word), condensed (no carets nor agent's name), tight (the model
+  cut at Paseo's 56, the mode as its glyph); no word is cut while a
+  narrower step exists.
+
+What the page needs to follow (ADR 0036, not built here): the same
+control in `web/src/features/composer`: `view::effort`'s table and rules
+ported to the page's `data/options.ts` (the same ids, the top step, the
+reset, `drives`), a slider control in the page's kit with the same
+values and keyboard (arrows, Home, End; one choice per drag), the card
+anchored above the control, the remaining options at the top of the
+model combobox, and the ladder's three steps with the same floors.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,
@@ -479,5 +560,5 @@ In the order the owner meets them, each as Paseo has it:
   `libxcb-xinerama0`): an input method with a Hangul engine, to test
   composition (question 2). Run only by the test, under its own Xvfb and
   D-Bus session; no service enabled. `fonttools` (for nothing in the end) went into a scratch
-virtual environment under `/tmp/work`; `geist` was fetched with
+virtual environment in a local folder, not committed; `geist` was fetched with
 `npm pack` into a scratch directory by `scripts/fonts.sh`.
