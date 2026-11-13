@@ -24,14 +24,18 @@
 
 pub mod assets;
 pub mod chrome;
+pub mod code;
 pub mod field;
 pub mod fonts;
+pub mod segmented;
+pub mod tabs;
 pub mod theme;
 mod widgets;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use code::CodeTokens;
 pub use field::TextField;
 pub use fonts::Type;
 pub use theme::{Scheme, Tokens};
