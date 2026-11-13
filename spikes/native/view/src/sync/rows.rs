@@ -27,6 +27,30 @@ impl FileKind {
     }
 }
 
+/// Whether the reply actually reports a local-edit count.
+///
+/// The node fills an absent report with an empty conflict list. That
+/// default is not evidence that a member kept zero edits. Nonempty paths
+/// remain facts even if a partial reply lacks its version and time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeptEdits {
+    /// No conflict paths, applied version or report time were received.
+    Unreported,
+    /// A report or actual conflict paths establish this count, including zero.
+    Known(usize),
+}
+impl KeptEdits {
+    /// Distinguish the node's missing-report default from a reported zero.
+    #[must_use]
+    pub fn of(member: &FleetMember) -> Self {
+        if member.conflicts.is_empty() && member.applied.is_none() && member.reported_at.is_none() {
+            Self::Unreported
+        } else {
+            Self::Known(member.conflicts.len())
+        }
+    }
+}
+
 /// Full history beneath a member's short state badge. Reports describe
 /// what its home last heard, never a guessed current connection or sync.
 #[must_use]
@@ -43,7 +67,7 @@ pub fn member_details(
         .into_iter()
         .chain([
             words.applied(member.applied),
-            words.kept(member.conflicts.len()),
+            words.kept(KeptEdits::of(member)),
             words.reported(member.reported_at.map(|at| Age::of(at, now, offset))),
         ])
         .collect::<Vec<_>>()

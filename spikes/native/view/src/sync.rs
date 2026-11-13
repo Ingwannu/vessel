@@ -54,7 +54,10 @@ pub fn member_line(lang: Lang, member: &FleetMember, now: DateTime<Utc>) -> Vec<
     let words = lang.machines();
     [
         Some(words.applied(member.applied.map(Generation::get))),
-        Some(words.kept_edits(member.conflicts.len())),
+        Some(match KeptEdits::of(member) {
+            KeptEdits::Unreported => lang.sync().kept(KeptEdits::Unreported),
+            KeptEdits::Known(count) => words.kept_edits(count),
+        }),
         member
             .reported_at
             .map(|reported| words.reported(Ago::of(reported, now))),
@@ -93,7 +96,7 @@ mod page;
 mod rows;
 mod snapshot;
 pub use page::{LocalCommand, Page, Part, Problem, Reading};
-pub use rows::{FileKind, connection_variant, member_details, member_variant};
+pub use rows::{FileKind, KeptEdits, connection_variant, member_details, member_variant};
 pub use snapshot::{
     FileMode, FileSize, Home, Presence, Published, Reads, Secret, SecretEmpty, SharedFile,
     Snapshot, Usage,

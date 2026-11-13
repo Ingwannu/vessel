@@ -178,3 +178,20 @@ boundary, and every final frame was inspected. No pairing link was
 created for this capture pass. All owned app/display/fleet processes were
 stopped and reaped. No physical-phone, browser-demo or real member pull
 loop validation is claimed.
+
+## Review correction: missing local-change reports
+
+The node defaults an absent member report to an empty conflict list.
+`KeptEdits::Unreported` now distinguishes that default from a known zero;
+either an applied version, a report time, or actual conflict paths is
+required before describing a count. Nonempty paths survive partial replies
+without a version or time. Both the screen's full description and the
+legacy row helper use that one rule. Whole English/Korean description
+tests cover each source of evidence; the original web's known-report
+fixtures remain unchanged. The native fmt, whole-workspace clippy and all 380 tests passed, followed
+by the normal debug build. Twenty affected member/connection/exact-tooltip
+frames were retaken and each opened: both languages, themes and widths.
+The original capture set is the baseline; these frames replace its affected
+states. Runtime log privacy and private-file ownership/modes passed again;
+all owned app, display and fleet processes were stopped and reaped. No
+root workspace code is included in this correction.

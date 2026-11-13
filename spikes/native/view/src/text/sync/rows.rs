@@ -1,6 +1,8 @@
 //! Row labels and complete numeric explanations; no sentence fragments.
 use super::{Lang, SyncWords};
-use crate::sync::{FileKind, FileMode, FileSize, LocalCommand, MemberState, Presence, Usage};
+use crate::sync::{
+    FileKind, FileMode, FileSize, KeptEdits, LocalCommand, MemberState, Presence, Usage,
+};
 use vessel_proto::{FleetNode, Generation};
 
 impl SyncWords {
@@ -102,15 +104,17 @@ impl SyncWords {
             (Lang::Ko, None) => "적용한 버전의 보고가 없습니다.".to_owned(),
         }
     }
-    /// Number of preserved local files, with a full singular/plural sentence.
+    /// Preserved local files, or an explicit absent report; full count sentences.
     #[must_use]
-    pub fn kept(&self, n: usize) -> String {
-        match (self.lang, n) {
-            (Lang::En, 0) => "No local edits kept.".to_owned(),
-            (Lang::En, 1) => "Kept a local edit in 1 file.".to_owned(),
-            (Lang::En, n) => format!("Kept local edits in {n} files."),
-            (Lang::Ko, 0) => "유지된 로컬 수정이 없습니다.".to_owned(),
-            (Lang::Ko, n) => format!("파일 {n}개의 로컬 수정을 유지했습니다."),
+    pub fn kept(&self, edits: KeptEdits) -> String {
+        match (self.lang, edits) {
+            (Lang::En, KeptEdits::Unreported) => "No local-change report received.".to_owned(),
+            (Lang::Ko, KeptEdits::Unreported) => "로컬 수정의 보고가 없습니다.".to_owned(),
+            (Lang::En, KeptEdits::Known(0)) => "No local edits kept.".to_owned(),
+            (Lang::En, KeptEdits::Known(1)) => "Kept a local edit in 1 file.".to_owned(),
+            (Lang::En, KeptEdits::Known(n)) => format!("Kept local edits in {n} files."),
+            (Lang::Ko, KeptEdits::Known(0)) => "유지된 로컬 수정이 없습니다.".to_owned(),
+            (Lang::Ko, KeptEdits::Known(n)) => format!("파일 {n}개의 로컬 수정을 유지했습니다."),
         }
     }
     /// Short connection badge; no inference from a member report.

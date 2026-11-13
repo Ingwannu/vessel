@@ -58,11 +58,11 @@ fn member_history_says_last_report_not_live_connection_or_last_sync_in_both_lang
     };
     assert_eq!(
         member_details(Lang::En, &never, Some(MemberState::NotYet), now(), offset),
-        "No applied version reported.\nNo local edits kept.\nNo report time received."
+        "No applied version reported.\nNo local-change report received.\nNo report time received."
     );
     assert_eq!(
         member_details(Lang::Ko, &never, Some(MemberState::NotYet), now(), offset),
-        "적용한 버전의 보고가 없습니다.\n유지된 로컬 수정이 없습니다.\n보고받은 시각이 없습니다."
+        "적용한 버전의 보고가 없습니다.\n로컬 수정의 보고가 없습니다.\n보고받은 시각이 없습니다."
     );
     assert_eq!(
         member_details(Lang::En, &member(), None, now(), offset),
@@ -184,8 +184,8 @@ fn badges_are_short_and_counts_are_explained_as_numeric_sentences_beneath() {
             "파일 2개의 로컬 수정을 유지했습니다.",
         ),
     ] {
-        assert_eq!(Lang::En.sync().kept(n), en);
-        assert_eq!(Lang::Ko.sync().kept(n), ko);
+        assert_eq!(Lang::En.sync().kept(KeptEdits::Known(n)), en);
+        assert_eq!(Lang::Ko.sync().kept(KeptEdits::Known(n)), ko);
     }
     assert_eq!(
         Lang::En.sync().comparison(Some(MemberState::Behind(1))),

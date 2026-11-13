@@ -2,6 +2,7 @@
 
 mod failures;
 mod projection;
+mod reports;
 mod sentences;
 
 use chrono::{DateTime, Utc};
