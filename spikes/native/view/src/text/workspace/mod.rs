@@ -45,6 +45,7 @@ use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
 use crate::workspace::save::SaveFailure;
+use crate::workspace::start::Refusal as StartRefusal;
 
 /// A refusal said plainly: what happened, what to do, and what it names.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -211,6 +212,21 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn digest(&self, digest: &str) -> String;
     /// An edited command's old text.
     fn was(&self, command: &str) -> String;
+
+    /// Why a start stopped, in a sentence.
+    fn start_refusal(&self, refusal: &StartRefusal) -> String {
+        let labels = self.labels();
+        match refusal {
+            StartRefusal::Worktree(reason) => self.worktree_refusal(reason),
+            StartRefusal::CommandsUnreadable => labels.commands_unreadable.to_owned(),
+            StartRefusal::NotFollowed { branch, problem } => format!(
+                "{} ({}): {}",
+                labels.setup_not_followed,
+                branch.as_deref().unwrap_or(labels.detached),
+                self.problem(problem)
+            ),
+        }
+    }
 
     /// `refusal` in plain words, with the paths and output it names.
     fn refusal<'a>(&self, refusal: &'a GitRefusal) -> RefusalWords<'a> {

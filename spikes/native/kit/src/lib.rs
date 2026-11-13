@@ -58,7 +58,7 @@ pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use output::{Start, lines_box, output_box};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
-    anchor_probe, combobox, glyph, pill, pill_parts, send_button,
+    anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};

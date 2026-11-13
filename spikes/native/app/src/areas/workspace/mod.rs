@@ -10,8 +10,12 @@
 
 mod approval;
 mod detail;
+mod place;
+mod place_rows;
 mod projects;
 mod remove;
+mod start_card;
+mod start_header;
 mod widgets;
 
 use std::collections::HashMap;
@@ -23,7 +27,9 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
+pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
+pub(crate) use start_card::render as start_card;
 
 use crate::shell::Shell;
 
@@ -33,6 +39,12 @@ pub(crate) struct Workspace {
     pub(crate) projects: HashMap<String, ProjectsView>,
     /// Settings > Projects.
     pub(crate) page: projects::Page,
+    /// The composer tray's place.
+    pub(crate) place: place::DraftPlace,
+    /// A start in a project, in flight.
+    pub(crate) start: Option<start_card::Starting>,
+    /// Starts so far (each start's key).
+    starts: u64,
 }
 
 impl Workspace {
@@ -40,6 +52,9 @@ impl Workspace {
         Self {
             projects: HashMap::new(),
             page: projects::Page::new(window, cx),
+            place: place::DraftPlace::new(window, cx),
+            start: None,
+            starts: 0,
         }
     }
 }
@@ -122,12 +137,14 @@ impl Shell {
                 self.setup_started(machine, worktree, result);
             }
             Answer::Removed { ask, result } => self.worktree_removed(machine, &ask, result),
-            // The code panel's and the start's answers: their screens come
-            // in the next slices; until then nothing asks them.
+            Answer::Branches { root, result } => self.branches_read(machine, &root, result),
+            Answer::Start { key, step } => self.start_step(key, step),
+            Answer::StartEnded { key, ended } => self.start_ended(key, ended, cx),
+            // The code panel's answers: its screens come in the next
+            // slices; until then nothing asks them.
             Answer::Status { .. }
             | Answer::Changes { .. }
             | Answer::Diff { .. }
-            | Answer::Branches { .. }
             | Answer::Log { .. }
             | Answer::Stashes { .. }
             | Answer::Git { .. }
@@ -136,9 +153,7 @@ impl Shell {
             | Answer::Saved { .. }
             | Answer::Found { .. }
             | Answer::Grepped { .. }
-            | Answer::PathChanged { .. }
-            | Answer::Start { .. }
-            | Answer::StartEnded { .. } => {}
+            | Answer::PathChanged { .. } => {}
         }
         cx.notify();
     }

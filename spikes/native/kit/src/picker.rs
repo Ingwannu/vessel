@@ -129,6 +129,9 @@ pub fn pill(
 pub struct PillParts {
     /// The glyph before the label.
     pub leading: Option<Glyph>,
+    /// A project's mark before the label, in place of a glyph (its
+    /// initial on a tile: [`initial_tile`]).
+    pub initial: Option<SharedString>,
     /// The label; `None` for a square of the glyph alone (Paseo's
     /// `toolbarIconOnly`).
     pub label: Option<SharedString>,
@@ -190,6 +193,11 @@ pub fn pill_parts(
             )
             .flex_shrink_0()
         }))
+        .children(
+            parts
+                .initial
+                .map(|initial| initial_tile(initial, tokens).flex_shrink_0()),
+        )
         .children(parts.prefix.map(|prefix| {
             div()
                 .flex_shrink_0()
@@ -277,12 +285,44 @@ pub fn send_button(
 }
 
 /// What leads a row.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
     /// A state's dot (a machine).
     Dot(Hsla),
+    /// A project's mark: its initial on a tile ([`initial_tile`]).
+    Initial(SharedString),
+}
+
+/// A project's mark as Paseo draws one without an icon of its own
+/// (`ProjectIconView`'s fallback): the name's first letter, upper case,
+/// on a 16 tile, 10 high and semibold, muted.
+#[must_use]
+pub fn initial_tile(initial: SharedString, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
+        .size(px(16.0))
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(4.0))
+        .bg(neutral.surface3)
+        .text_size(px(10.0))
+        .line_height(px(16.0))
+        .font_weight(gpui::FontWeight::SEMIBOLD)
+        .text_color(neutral.foreground_muted)
+        .child(initial)
+}
+
+/// A name's initial for [`initial_tile`] (`?` for an empty name).
+#[must_use]
+pub fn initial_of(name: &str) -> SharedString {
+    name.chars().next().map_or_else(
+        || "?".into(),
+        |first| first.to_uppercase().collect::<String>().into(),
+    )
 }
 
 /// One row of a list.
@@ -800,7 +840,7 @@ fn combo_row<V: 'static>(
         .py(px(8.0))
         .when(row.disabled, |element| element.opacity(0.55))
         .when(highlighted && !row.disabled, |element| element.bg(wash))
-        .children(row.leading.map(|leading| {
+        .children(row.leading.clone().map(|leading| {
             match leading {
                 Leading::Glyph(which) => {
                     glyph(which, 16.0, neutral.foreground_muted).into_any_element()
@@ -812,6 +852,7 @@ fn combo_row<V: 'static>(
                     .justify_center()
                     .child(div().size(px(6.0)).rounded_full().bg(color))
                     .into_any_element(),
+                Leading::Initial(initial) => initial_tile(initial, tokens).into_any_element(),
             }
         }))
         .child(words)

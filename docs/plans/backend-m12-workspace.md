@@ -92,6 +92,55 @@ page's lexer is ported rule for rule instead (no new dependency, a token is
 a byte range of the line). If the page moves to grammars, both move
 together. The decision log is in `syntax/mod.rs`.
 
+## 3. Screens (`spikes/native/app/src/areas/workspace/`)
+
+| File | Screen | Reference |
+| --- | --- | --- |
+| `projects.rs`, `detail.rs`, `approval.rs`, `remove.rs` | Settings > Projects: a machine's projects (the machine Settings' picker chose), add (folder, clone with progress, new), a project's page (commands and their approval, worktrees, snapshots, removal) | Paseo's `projects-screen.tsx` and `project-settings-screen.tsx` |
+| `place.rs`, `place_rows.rs` | the new chat's place: the folder pill's list leads with the machine's projects, then the folders, then "Add project"; a project chosen brings Isolation (Local, New worktree) and Branch ("Start from") pills | Paseo's `screens/new-workspace/form/` |
+| `start_card.rs`, `start_header.rs` | a chat started in a new worktree: the session's screen opens at once with the prompt; the card under it shows the worktree being made, the approval when the project's commands need one, setup's log, and after a failed setup Stop, Start anyway, Try again | Paseo's `panels/setup-panel.tsx`; GOAT's thread that prepares its environment |
+
+The seam with the desktop lead: the lead's `draft/pickers.rs` keeps the
+pills and the kit's lists; two pickers (`Isolation`, `Base`) and one row
+meaning (`Place`) hand the rows and the choice to this track;
+`draft/mod.rs`'s Send asks `place_blocked` first and hands a project's
+start to `start_in_place` (a start without a project is the lead's
+`Command::Start` as before); the pending session screen draws
+`start_card` where it said "starting". The link's start walk
+(`link/src/workspace/start.rs`) runs a project's folder as it is
+(`SessionPlace::Project`) as well as a new worktree.
+
+### Checked against the fake fleet
+
+`scripts/fleet.sh start` builds the workspace's shapes and stops when one
+is missing: a monorepo with long paths, over a hundred changes (modified,
+staged, untracked, deleted, renamed, a Hangul name) and a diff of 2,500
+lines, with a `vessel.toml` naming setup, teardown, scripts and services;
+a small project whose commands are approved; a worktree on a long branch
+with uncommitted work; a failed clone. Against it, at 1280 (dark and
+light, English and Korean) and 390 (Korean): Settings > Projects on the
+second machine, the place list (projects, folders, Add project; a sheet
+at 390), Isolation, Start from, and a Send in a new worktree of the small
+project whose setup fails (`npm` is not on the fleet's path): the
+session's screen opened at once, the card showed the failure and its
+log, and Start anyway created the session in the worktree (the sidebar
+listed it).
+
+### Differences from Paseo, named
+
+- The place list holds projects and folders under two headings; Paseo's
+  new workspace has no folder field (a Paseo workspace is always a
+  project's). Vessel keeps the folder for machines without projects.
+- Isolation is remembered while the app runs, not across launches.
+- A remote-tracking branch is listed by git's own name (`origin/main`);
+  Paseo shows `main` and marks the local row `main (local)`.
+- Pull requests are not in Start from yet (they come with the forge).
+- The start card's running icon is a dot of the building tone (the kit
+  has no spinner yet); setup is one log, not one item per command (the
+  node streams it as one).
+- A project row in Settings carries its folder under the name: two
+  Vessel projects can share a name (any folder can be one).
+
 ## Problems met
 
 - `cargo clippy -p vessel-app-view --all-targets -- -D warnings` on the

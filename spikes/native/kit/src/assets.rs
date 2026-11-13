@@ -93,10 +93,14 @@ pub enum Glyph {
     ArrowLeft,
     /// Adding (a machine, Paseo's `Plus`).
     Plus,
+    /// A branch (a new worktree, a starting ref: Paseo's `GitBranch`).
+    Branch,
+    /// A pull request (Paseo's `GitPullRequest`).
+    PullRequest,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 34] = [
+const ALL: [Glyph; 36] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -131,6 +135,8 @@ const ALL: [Glyph; 34] = [
     Glyph::Info,
     Glyph::ArrowLeft,
     Glyph::Plus,
+    Glyph::Branch,
+    Glyph::PullRequest,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -184,6 +190,8 @@ impl Glyph {
             Self::Info => "kit/info.svg",
             Self::ArrowLeft => "kit/arrow-left.svg",
             Self::Plus => "kit/plus.svg",
+            Self::Branch => "kit/branch.svg",
+            Self::PullRequest => "kit/pull-request.svg",
         }
     }
 
@@ -273,6 +281,12 @@ impl Glyph {
             }
             Self::ArrowLeft => line_glyph!(r#"<path d="M19 12H5M12 19l-7-7 7-7"/>"#),
             Self::Plus => line_glyph!(r#"<path d="M12 5v14M5 12h14"/>"#),
+            Self::Branch => line_glyph!(
+                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>"#
+            ),
+            Self::PullRequest => line_glyph!(
+                r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
+            ),
         }
     }
 }

@@ -143,8 +143,9 @@ pub(super) fn divided(row: Div, index: usize, tokens: &Tokens) -> Div {
 
 /// A row's title.
 pub(super) fn title(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
+    // Paseo's `rowTitle`: 14, the foreground, regular weight.
     div()
-        .type_(Type::Label)
+        .type_(Type::Body)
         .text_color(tokens.neutral.foreground)
         .child(text.into())
 }
@@ -166,7 +167,9 @@ pub(super) fn empty(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
 }
 
 /// A banner: a sentence that stays until dismissed, in the danger tone
-/// when `error`.
+/// when `error`. Paseo's errors banner (`projects-screen.tsx`): a border
+/// of the neutral line, radius 8, 12 inside, the words 12 high, red for an
+/// error; no fill.
 pub(super) fn banner(
     text: impl Into<SharedString>,
     error: bool,
@@ -179,21 +182,15 @@ pub(super) fn banner(
         .flex_wrap()
         .items_center()
         .gap(px(10.0))
-        .px(px(12.0))
-        .py(px(10.0))
+        .p(px(12.0))
         .rounded(px(radius::R2))
         .border_1()
-        .border_color(if error {
-            tokens.neutral.destructive
-        } else {
-            tokens.neutral.border
-        })
-        .bg(tokens.neutral.surface1)
+        .border_color(tokens.neutral.border)
         .child(
             div()
                 .flex_1()
                 .min_w(px(160.0))
-                .type_(Type::Body)
+                .type_(Type::Meta)
                 .text_color(if error {
                     tokens.neutral.destructive
                 } else {

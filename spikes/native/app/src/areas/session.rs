@@ -321,7 +321,7 @@ pub(crate) fn render(
     if let Some(pending) = &view.pending
         && view.conversation.entries().is_empty()
     {
-        return starting(pending, shell, tokens);
+        return starting(pending, shell, tokens, window, cx);
     }
     let Some(open) = &view.open else {
         return div();
@@ -390,9 +390,17 @@ fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     )))
 }
 
-/// The first prompt, shown while the session starts.
-fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
+/// The first prompt, shown while the session starts; in a new worktree,
+/// track F's card of its steps in place of the line that says so.
+fn starting(
+    pending: &Pending,
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let t = shell.t;
+    let card = crate::areas::workspace::start_card(shell, tokens, window, cx);
     let title: String = pending
         .prompt
         .lines()
@@ -417,13 +425,16 @@ fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
                 .flex_col()
                 .justify_end()
                 .child(person(&pending.prompt, tokens))
-                .child(column(
-                    div()
-                        .py(px(8.0))
-                        .type_(Type::Meta)
-                        .text_color(tokens.st_building)
-                        .child(t.starting_on(&pending.agent, &pending.machine)),
-                )),
+                .child(column(card.map_or_else(
+                    || {
+                        div()
+                            .py(px(8.0))
+                            .type_(Type::Meta)
+                            .text_color(tokens.st_building)
+                            .child(t.starting_on(&pending.agent, &pending.machine))
+                    },
+                    |card| div().py(px(8.0)).child(card),
+                ))),
         )
 }
 

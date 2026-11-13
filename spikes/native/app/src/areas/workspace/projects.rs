@@ -72,6 +72,14 @@ impl Shell {
             .map(|machine| machine.name.clone())
     }
 
+    /// Open the add menu (the composer's "Add project" row).
+    pub(super) fn open_add_menu(&mut self) {
+        let page = &mut self.areas.workspace.page;
+        page.detail = None;
+        page.adding = None;
+        page.menu = true;
+    }
+
     fn open_add(&mut self, form: AddForm, window: &mut Window, cx: &mut Context<'_, Self>) {
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
@@ -414,28 +422,15 @@ fn project_row(
     // Paseo's project row: the project's mark (its initial on a tile, 16),
     // its name, its state as a badge, a chevron; the whole row opens the
     // project's page.
-    let initial = name
-        .chars()
-        .next()
-        .map_or_else(|| "?".to_owned(), |first| first.to_uppercase().collect());
     let title_line = div()
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
-        .child(
-            div()
-                .size(px(16.0))
-                .flex_none()
-                .flex()
-                .items_center()
-                .justify_center()
-                .rounded(px(4.0))
-                .bg(tokens.neutral.surface3)
-                .type_(Type::Tiny)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(initial),
-        )
+        .gap(px(12.0))
+        .child(vessel_app_kit::initial_tile(
+            vessel_app_kit::initial_of(&name),
+            tokens,
+        ))
         .child(title(name, tokens));
     let mut controls = div();
     match &project.state {

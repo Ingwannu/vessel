@@ -364,6 +364,13 @@ impl Shell {
             cx.notify();
             return;
         };
+        // A project chosen in the tray that cannot be started in yet
+        // (track F's `workspace::place`).
+        if let Some(why) = self.place_blocked() {
+            self.areas.draft.error = Some(why);
+            cx.notify();
+            return;
+        }
         let options = match self.probed() {
             Some(Probe::Ready(offered)) => {
                 let options = choices_for(offered, &self.effective_picks());
@@ -381,13 +388,17 @@ impl Shell {
             let _earlier = self.prefs.folders.insert(machine.clone(), folder.clone());
         }
         self.command(Command::SavePrefs(self.prefs.clone()));
-        self.command(Command::Start {
-            machine: machine.clone(),
-            harness: harness.clone(),
-            folder: (!folder.is_empty()).then_some(folder),
-            prompt: text.clone(),
-            options,
-        });
+        // In a project, track F's start (a new worktree made first, its
+        // steps on the session's screen); else in the folder.
+        if !self.start_in_place(&machine, &harness, &options, &text) {
+            self.command(Command::Start {
+                machine: machine.clone(),
+                harness: harness.clone(),
+                folder: (!folder.is_empty()).then_some(folder),
+                prompt: text.clone(),
+                options,
+            });
+        }
         let draft = &mut self.areas.draft;
         draft.error = None;
         draft.sending = Some(text.clone());

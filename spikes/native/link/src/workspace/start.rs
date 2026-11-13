@@ -27,7 +27,7 @@ use tokio::sync::mpsc;
 use vessel_app_view::Card;
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved, needs_folder};
 use vessel_app_view::workspace::pace::{QUIET, quiet_left};
-use vessel_app_view::workspace::place::{ProjectPlace, worktree_branch};
+use vessel_app_view::workspace::place::{Place, ProjectPlace, place_spec, worktree_branch};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::setup_log::OutputDecoder;
 use vessel_app_view::workspace::start::{
@@ -38,7 +38,7 @@ use vessel_proto::workspace::{
     ApproveCommands, CreateWorktree, CreateWorktreeOutcome, GetProjectCommands, ProjectCommands,
     ReadSetupOutput, RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeInfo,
 };
-use vessel_proto::{ContentBlock, Delivery, SessionSpec, WorktreeId};
+use vessel_proto::{ContentBlock, Delivery, SessionSpec};
 
 use super::calls::{call, problem};
 use super::{Answer, Reply};
@@ -56,7 +56,7 @@ pub struct StartKey(pub u64);
 pub struct StartAsk {
     /// Its key.
     pub key: StartKey,
-    /// Where: a project with a new worktree or an existing branch.
+    /// Where: a project, in its folder as it is or in a new worktree.
     pub place: ProjectPlace,
     /// The session's spec, but for its place (filled here).
     pub spec: SessionSpec,
@@ -139,14 +139,28 @@ pub(super) async fn walk(client: &NodeClient, reply: &Reply, start: StartAsk) {
         key,
         answers: start.answers,
     };
-    let ended = match make(&mut walk, &start.place).await {
-        Made::Ready(worktree) => begin(client, &reply.machine, start.spec, worktree, start.prompt)
+    // A project's folder as it is needs no worktree: the session at once.
+    let place = Place::Project(start.place.clone());
+    let made = if let Some(part) = place_spec(&place) {
+        Ok(part.applied(start.spec))
+    } else {
+        match make(&mut walk, &start.place).await {
+            Made::Ready(worktree) => {
+                let mut spec = start.spec;
+                spec.cwd = None;
+                Ok(spec.with_place(SessionPlace::Worktree { worktree }))
+            }
+            Made::Stopped => Err(StartEnded::Stopped),
+            Made::Failed(problem) => Err(StartEnded::Failed(problem)),
+        }
+    };
+    let ended = match made {
+        Ok(spec) => begin(client, &reply.machine, spec, start.prompt)
             .await
             .map_or_else(StartEnded::Failed, |card| {
                 StartEnded::Started(Box::new(card))
             }),
-        Made::Stopped => StartEnded::Stopped,
-        Made::Failed(problem) => StartEnded::Failed(problem),
+        Err(ended) => ended,
     };
     reply.send(Answer::StartEnded { key, ended }).await;
 }
@@ -155,9 +169,7 @@ use vessel_app_view::workspace::start::Made;
 
 /// Make the worktree and set it up, asking the person where they decide.
 async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
-    let Ok(Some(branch)) = worktree_branch(&vessel_app_view::workspace::place::Place::Project(
-        place.clone(),
-    )) else {
+    let Ok(Some(branch)) = worktree_branch(&Place::Project(place.clone())) else {
         return Made::Stopped;
     };
     let mut setup = place.setup;
@@ -368,12 +380,8 @@ async fn begin(
     client: &NodeClient,
     machine: &str,
     spec: SessionSpec,
-    worktree: WorktreeId,
     prompt: String,
 ) -> Result<Card, Problem> {
-    let mut spec = spec;
-    spec.cwd = None;
-    let spec = spec.with_place(SessionPlace::Worktree { worktree });
     let info = client
         .create_session(spec)
         .await
