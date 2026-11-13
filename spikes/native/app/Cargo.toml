@@ -55,3 +55,5 @@ sys-locale = { version = "0.3", features = ["js"] }
 # GPUI's test context for the areas' state tests.
 [dev-dependencies]
 gpui = { workspace = true, features = ["test-support"] }
+# `Link::detached`: the tests that fill the link's queue (`unsent.rs`).
+vessel-app-link = { workspace = true, features = ["testing"] }

@@ -14,9 +14,11 @@
 //!   `AGENTS.md` section 2 asks not to write).
 //! - Choice: commands answered at once, inside [`Link::send`], with
 //!   `try_send` into the bounded channel.
-//! - Full channel: an answer that finds no room is dropped and logged, as
-//!   the desktop link drops a command; the channel holds 256 events and a
-//!   person answers one prompt at a time, so only a stuck screen fills it.
+//! - Full channel: a command is taken only while the channel has room
+//!   for its answers (two at most), else it comes back from
+//!   [`Link::submit`] as the desktop link gives back a command its queue
+//!   does not take; the channel holds 256 events and a person answers one
+//!   prompt at a time, so only a stuck screen fills it.
 
 use std::cell::RefCell;
 
@@ -25,7 +27,11 @@ use tokio::sync::mpsc;
 use vessel_proto::PairingLink;
 
 use crate::demo::Demo;
-use crate::{CHANNEL, Command, Event, LinkError};
+use crate::{CHANNEL, Command, Event, LinkError, Rejected, Unsent};
+
+/// The most events one command is answered with (a start: the fleet and
+/// the card; a prompt: the records and the delivery).
+const ANSWER_ROOM: usize = 2;
 
 /// The link: the demo fleet and the channel its answers go out on.
 #[derive(Debug)]
@@ -50,8 +56,32 @@ impl Link {
         Ok((link, outbox))
     }
 
-    /// Ask for something; answered before this returns.
+    /// Ask for something and say whether the link took it; answered
+    /// before this returns.
+    ///
+    /// # Errors
+    /// The channel has no room for the answers, or the screen stopped
+    /// reading it: the command, given back.
+    pub fn submit(&self, command: Command) -> Result<(), Unsent> {
+        if self.events.is_closed() {
+            return Err(Unsent::new(Rejected::Closed, command));
+        }
+        if self.events.capacity() < ANSWER_ROOM {
+            return Err(Unsent::new(Rejected::Full, command));
+        }
+        self.answer(command);
+        Ok(())
+    }
+
+    /// Ask for something nothing waits on (a command not taken is dropped
+    /// and logged).
     pub fn send(&self, command: Command) {
+        if let Err(unsent) = self.submit(command) {
+            tracing::warn!(why = %unsent.why, "the link is not taking commands");
+        }
+    }
+
+    fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(

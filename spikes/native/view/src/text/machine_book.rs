@@ -55,6 +55,8 @@ impl Lang {
                 "Machine management is available in the desktop app."
             }
             (Self::Ko, Failure::Unavailable) => "머신 관리는 데스크톱 앱에서 사용할 수 있습니다.",
+            (Self::En, Failure::Unsent) => "Could not send. Try again.",
+            (Self::Ko, Failure::Unsent) => "보내지 못했습니다. 다시 시도하세요.",
         };
         text.to_owned()
     }

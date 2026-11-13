@@ -90,6 +90,11 @@ fn errors_are_whole_localized_sentences_without_raw_values() {
             "Machine management is available in the desktop app.",
             "머신 관리는 데스크톱 앱에서 사용할 수 있습니다.",
         ),
+        (
+            Failure::Unsent,
+            "Could not send. Try again.",
+            "보내지 못했습니다. 다시 시도하세요.",
+        ),
     ];
     for (failure, en, ko) in cases {
         assert_eq!(Lang::En.machine_book_failure(&failure), en);
