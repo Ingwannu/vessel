@@ -26,7 +26,7 @@
 //
 // With track W (merged in milestone 11): the rows are data/rows.ts's (a
 // closed run of tool calls is one row); the end is followed only while
-// the reader is within `NEAR_END` of it (a reader who scrolled up, or was
+// the reader is within `NEAR_END` of it (window-watch.ts; a reader who scrolled up, or was
 // taken up by find or the outline, is not pulled down by new records, as
 // agent-orchestrator's find pauses "follow latest"); and `target` goes to
 // a row by key, drawn or not, and holds it there (window-pin.ts says why
@@ -41,21 +41,13 @@ import {
 } from "react";
 
 import { covers, offsets, scrollFor, type Span, span } from "../../data/window";
-import {
-  hold,
-  markPinned,
-  ownScroll,
-  type Pin,
-  TAKE_BACK,
-  type Target,
-} from "./window-pin";
+import { hold, markPinned, type Target } from "./window-pin";
+import { type Reading, viewOf, watch } from "./window-watch";
 
 /** Pixels drawn beyond each edge of the viewport. */
 const MARGIN = 1200;
 /** A first guess at an entry's height, before any is measured. */
 const FALLBACK = 72;
-/** How close to the end counts as reading the end, in pixels. */
-const NEAR_END = 48;
 /** How many times in one frame a held pin may have the window worked out
  * again before paint (each pass draws the rows its correction brought
  * into view; the next frame's scroll finishes any it did not). */
@@ -66,6 +58,9 @@ const PASSES = 4;
 export interface Rows {
   observer: ResizeObserver;
   opened: Map<string, readonly boolean[]>;
+  /** Run when the observer measured, after layout and before paint
+   * (`watch` sets it). */
+  settle: () => void;
 }
 
 export interface Window {
@@ -73,18 +68,6 @@ export interface Window {
   scroller: RefObject<HTMLDivElement | null>;
   span: Span;
   rows: Rows;
-}
-
-/** Where the reader is: following the end, holding a pin, and how many
- * passes this frame's pin has had. */
-interface Reading {
-  /** Whether this list follows its end at all (`useWindow`'s `follow`). */
-  follows: boolean;
-  following: boolean;
-  pin: Pin | null;
-  passes: number;
-  /** The last target taken, by `seq`. */
-  taken: number | null;
 }
 
 /** The window over `items`, by their keys, going to `target` when it
@@ -101,18 +84,23 @@ export function useWindow(
     () => new Map(),
   );
   const [view, setView] = useState({ top: 0, height: 0 });
-  const [rows] = useState<Rows>(() => ({
-    observer: new ResizeObserver((changes) => {
-      setHeights((known) => measure(known, changes));
-    }),
-    opened: new Map(),
-  }));
   const reading = useRef<Reading>({
     follows: follow,
     following: follow,
     pin: null,
     passes: 0,
     taken: null,
+  });
+  const [rows] = useState<Rows>(() => {
+    const made: Rows = {
+      observer: new ResizeObserver((changes) => {
+        setHeights((known) => measure(known, changes));
+        made.settle();
+      }),
+      opened: new Map(),
+      settle: () => undefined,
+    };
+    return made;
   });
   useLayoutEffect(
     () => () => {
@@ -200,11 +188,6 @@ export function useWindow(
   return { scroller, span: drawn, rows };
 }
 
-/** `element`'s view as the window reads it. */
-function viewOf(element: HTMLElement): { top: number; height: number } {
-  return { top: element.scrollTop, height: element.clientHeight };
-}
-
 /** `known` with the heights `changes` measured; the same map when none
  * changed, so nothing draws again. */
 function measure(
@@ -221,72 +204,4 @@ function measure(
     }
   }
   return next ?? known;
-}
-
-/** Follow `element`'s scrolling and size into `setView`, once a frame;
- * keep `reading` told whether the reader is at the end and let its pin go
- * when the reader takes the scroll back; and remember the `<details>`
- * toggled in its rows. Returns the undo. */
-function watch(
-  element: HTMLElement,
-  rows: Rows,
-  reading: Reading,
-  setView: (view: { top: number; height: number }) => void,
-): () => void {
-  let frame: number | null = null;
-  const read = () => {
-    frame = null;
-    reading.passes = 0;
-    setView(viewOf(element));
-  };
-  const takeBack = () => {
-    if (reading.pin !== null) {
-      reading.pin = null;
-      markPinned(element, false);
-    }
-  };
-  const onScroll = () => {
-    if (reading.pin !== null && !ownScroll(element, reading.pin)) {
-      takeBack();
-    }
-    if (reading.pin === null && reading.follows) {
-      reading.following =
-        element.scrollHeight - element.scrollTop - element.clientHeight <
-        NEAR_END;
-    }
-    frame ??= window.requestAnimationFrame(read);
-  };
-  const onToggle = (event: Event) => {
-    const row =
-      event.target instanceof Element
-        ? event.target.closest("[data-key]")
-        : null;
-    const key = row?.getAttribute("data-key") ?? null;
-    if (row !== null && key !== null) {
-      rows.opened.set(
-        key,
-        Array.from(row.querySelectorAll("details"), (details) => details.open),
-      );
-    }
-  };
-  const resized = new ResizeObserver(onScroll);
-  resized.observe(element);
-  read();
-  element.addEventListener("scroll", onScroll, { passive: true });
-  for (const name of TAKE_BACK) {
-    element.addEventListener(name, takeBack, { passive: true });
-  }
-  // `toggle` does not bubble; it is seen on its way down.
-  element.addEventListener("toggle", onToggle, { capture: true });
-  return () => {
-    element.removeEventListener("scroll", onScroll);
-    for (const name of TAKE_BACK) {
-      element.removeEventListener(name, takeBack);
-    }
-    element.removeEventListener("toggle", onToggle, { capture: true });
-    resized.disconnect();
-    if (frame !== null) {
-      window.cancelAnimationFrame(frame);
-    }
-  };
 }
