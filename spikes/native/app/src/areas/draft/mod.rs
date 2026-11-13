@@ -53,7 +53,9 @@ use vessel_app_kit::{
     ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, send_button,
 };
 use vessel_app_link::Command;
-use vessel_app_view::{Controls, Machine, Picks, agent_name, choices_for, controls_of, with_picks};
+use vessel_app_view::{
+    Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
+};
 use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
 
 use crate::routes::Route;
@@ -160,6 +162,15 @@ impl Draft {
             chosen: false,
             settled: None,
         }
+    }
+}
+
+/// The agent's kind, when it is one of the four (an agent added on the
+/// node has none the effort table could know).
+pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessKind> {
+    match agent {
+        HarnessRef::Known(kind) => Some(*kind),
+        HarnessRef::Added(_) => None,
     }
 }
 
@@ -302,8 +313,9 @@ impl Shell {
         Some(match self.probed() {
             None | Some(Probe::Loading) => Shown::Loading,
             Some(Probe::Failed(why)) => Shown::Failed(why.clone()),
-            Some(Probe::Ready(options)) => Shown::Ready(Box::new(controls_of(
+            Some(Probe::Ready(options)) => Shown::Ready(Box::new(controls_with_effort(
                 &with_picks(options, &self.effective_picks()),
+                kind_of(agent),
                 &agent_name(agent),
                 self.t.lang,
             ))),

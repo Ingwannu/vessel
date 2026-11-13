@@ -16,7 +16,9 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, Side, Tokens, Type,
 };
-use vessel_app_view::{Agent, Controls, Machine, Reach, SelectControl, agent_name, controls_of};
+use vessel_app_view::{
+    Agent, Controls, Machine, Reach, SelectControl, agent_name, controls_with_effort,
+};
 use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 
 use super::density::Density;
@@ -111,7 +113,12 @@ fn controls_for(shell: &Shell, machine: &str, agent: &HarnessRef) -> Option<Cont
     } else {
         options.clone()
     };
-    Some(controls_of(&options, &agent_name(agent), shell.t.lang))
+    Some(controls_with_effort(
+        &options,
+        super::kind_of(agent),
+        &agent_name(agent),
+        shell.t.lang,
+    ))
 }
 
 impl Shell {
