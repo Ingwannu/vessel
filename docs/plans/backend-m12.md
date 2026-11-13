@@ -264,6 +264,45 @@ composer and the pickers after Paseo, every agent listed, the update
 notice in the title bar, the corrected mark. A build's number, once
 published, is never built again.
 
+**Why the buttons needed a double click** (track R, read from the
+code): Windows asks the app what is under the pointer, and GPUI answers
+with the first window control area, in paint order, that the pointer is
+inside. The bar (the area that drags the window) is the buttons' parent
+and is painted first, and the buttons did not occlude it, so over a
+button Windows was told "caption". One click was therefore a press on
+the caption (nothing happens); two were a caption double click, which
+maximises or restores whichever button is under the pointer. The
+buttons' hover colour is drawn by the app, so they looked right. The
+fix is for each caption button to occlude what is under it, as Zed's
+do, and a test in the kit that fails when the bar is hit over a button.
+The rule for the title bar from now on: anything clickable drawn inside
+the drag area occludes it.
+
+## The browser, first report (2026-11-13)
+
+The browser track built the same `app` crate for `wasm32` (GPUI's web
+platform, single thread, the pinned stable toolchain) and showed, in
+headless Chromium with WebGPU:
+
+- **It draws**: the new chat with its pickers and the mark, the sidebar,
+  a session's conversation.
+- **Hangul composes** in the new chat's composer and in a session's:
+  marked text underlined at the caret, the final consonant carried to
+  the next syllable, a cancelled composition not inserted, Enter sends.
+
+Not shown yet, and stated so: the data was a built-in demo (no
+connection to a node from a browser); the renderer was software WebGPU;
+the composition was driven through the browser's debugging interface,
+not typed with a real input method. ADR 0036 lists what must still be
+seen before the browser gets the native UI; until then the page stays
+the web client.
+
+What it taught the desktop: a character the app's typefaces lack (the
+pickers' small triangle) shows only by the system's fallback on the
+desktop and as a missing-glyph box in a browser, so carets and marks are
+drawn as vector glyphs from the kit, never as characters; and the title
+bar's window buttons belong to the desktop only.
+
 ## After the first builds (written out as the tracks report)
 
 - **View models** in Rust (`vessel-view`): the conversation folded from
