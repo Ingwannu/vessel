@@ -31,12 +31,16 @@ pub struct Text {
     pub add_machine: &'static str,
     pub no_machines: &'static str,
     pub online: &'static str,
-    /// A machine's state beside its name in the sidebar when it did not
-    /// answer (the transport's own text is only the tooltip's detail).
+    /// A machine's state beside its name in the sidebar, and its row's
+    /// detail in the composer's machine list, when it did not answer (the
+    /// transport's own text is only the sidebar's tooltip).
     pub unreachable: &'static str,
-    /// The line under an unreachable machine's name in the sidebar, and
-    /// its row's detail in the composer's machine list: what to do.
+    /// The line under an unreachable machine's name in the sidebar: what
+    /// to do.
     pub unreachable_hint: &'static str,
+    /// The session's bar when its machine's connection is lost (once; the
+    /// transport's words are only that line's tooltip).
+    pub session_lost: &'static str,
     pub reload: &'static str,
     // The board.
     pub building: &'static str,
@@ -326,6 +330,7 @@ const EN: Text = Text {
     online: "online",
     unreachable: "unreachable",
     unreachable_hint: "Check that the machine is on and its node is running.",
+    session_lost: "Not connected to the machine",
     reload: "reload",
     building: "Building",
     validating: "Validating",
@@ -391,6 +396,7 @@ const KO: Text = Text {
     online: "연결됨",
     unreachable: "연결할 수 없음",
     unreachable_hint: "머신이 켜져 있고 노드가 실행 중인지 확인하세요.",
+    session_lost: "머신과 연결이 끊겼습니다",
     reload: "새로고침",
     building: "작업 중",
     validating: "검증 중",

@@ -41,6 +41,7 @@ function state(parentStatus: SessionStatus): FleetState {
     harnesses: {},
     profiles: {},
     models: {},
+    agents: {},
     errors: {},
     selected: null,
     sessions: {

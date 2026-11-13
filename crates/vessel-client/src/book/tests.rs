@@ -7,6 +7,7 @@ use vessel_proto::NodeId;
 
 use super::*;
 use crate::address::{NodeAddress, RemotePath, SshTarget};
+use crate::file_fault::TomlProblem;
 use crate::url::NodeUrl;
 
 const ID: &str = "6f1c3a52-7e1b-4c55-9a43-2f9a0c5e8d11";
@@ -89,11 +90,14 @@ fn a_missing_book_is_empty() {
 #[test]
 fn typos_and_bad_entries_are_errors_that_say_where() {
     let typo = open("[nodes.box]\nsssh = \"box\"\n").unwrap_err();
-    let BookError::Syntax { message, .. } = &typo else {
+    let BookError::Syntax { fault, .. } = &typo else {
         panic!("{typo:?}");
     };
-    assert!(message.contains("sssh"), "{message}");
-    assert!(message.contains("line 2"), "{message}");
+    assert_eq!(fault.problem, TomlProblem::UnknownKey);
+    assert_eq!(fault.at.map(|at| at.line), Some(2));
+    // The place and the kind, never the file's words (even a key).
+    assert!(typo.to_string().contains("line 2, column 1"), "{typo}");
+    assert!(!typo.to_string().contains("sssh"), "{typo}");
 
     let cases = [
         ("[nodes.box]\n", EntryProblem::NoTransport),
@@ -111,7 +115,7 @@ fn typos_and_bad_entries_are_errors_that_say_where() {
         ),
         (
             "[nodes.box]\nssh = \"box\"\nid = \"12\"\n",
-            EntryProblem::Id("12".to_owned()),
+            EntryProblem::Id,
         ),
     ];
     for (text, expected) in cases {
@@ -230,10 +234,13 @@ fn a_project_may_only_choose_among_the_users_nodes() {
         let root = tempfile::tempdir().unwrap();
         let project = project_in(root.path(), text);
         let error = ProjectConfig::find(&project, None).unwrap_err();
-        let BookError::Syntax { message, .. } = &error else {
+        let BookError::ProjectSyntax { .. } = &error else {
             panic!("{text}: {error:?}");
         };
-        assert!(message.contains("may only set `default_node`"), "{message}");
+        let shown = error.to_string();
+        assert!(shown.contains("may only set `default_node`"), "{shown}");
+        assert!(!shown.contains("attacker"), "{shown}");
+        assert!(!shown.contains("shadow"), "{shown}");
     }
 
     // Naming a node the user does not have.
@@ -568,4 +575,42 @@ fn the_book_is_written_owner_only() {
     assert_eq!(mode(&path), 0o600);
     assert_eq!(mode(path.parent().unwrap()), 0o755);
     assert!(BookFile::open(&path).unwrap().book().get("build").is_none());
+}
+
+/// A token written into the book itself (the book takes a file) is never
+/// repeated by the error: not its Display, not its Debug (the CLI prints
+/// the one, logs may print the other). Nor is a value of any other line
+/// that does not read.
+#[test]
+fn an_error_never_quotes_the_book() {
+    const TOKEN: &str = "vt_live_8f2a6c1e9b7d4a3f";
+    let text = format!("[nodes.lab]\nurl = \"ws://127.0.0.1:9/rpc\"\ntoken = \"{TOKEN}\"\n");
+    let error = open(&text).unwrap_err();
+    let BookError::Syntax { fault, .. } = &error else {
+        panic!("{error:?}");
+    };
+    assert_eq!(fault.problem, TomlProblem::WrongKind);
+    assert_eq!(fault.field, Some("token"));
+    assert_eq!(fault.at.map(|at| at.line), Some(3));
+    let shown = error.to_string();
+    assert!(shown.contains("token = { file = "), "{shown}");
+    assert!(!shown.contains(TOKEN), "{shown}");
+    assert!(!format!("{error:?}").contains(TOKEN));
+
+    // Not TOML at all: a token pasted on a line of its own.
+    let error = open(&format!("[nodes.lab]\n{TOKEN}\n")).unwrap_err();
+    let BookError::Syntax { fault, .. } = &error else {
+        panic!("{error:?}");
+    };
+    assert_eq!(fault.problem, TomlProblem::NotToml);
+    assert_eq!(fault.at.map(|at| at.line), Some(2));
+    assert!(!error.to_string().contains(TOKEN));
+    assert!(!format!("{error:?}").contains(TOKEN));
+
+    // An id that is not one is not repeated either.
+    let error = open(&format!(
+        "[nodes.lab]\nurl = \"ws://h:1/rpc\"\nid = \"{TOKEN}\"\n"
+    ))
+    .unwrap_err();
+    assert!(!error.to_string().contains(TOKEN), "{error}");
 }

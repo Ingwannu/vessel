@@ -19,7 +19,9 @@ mod conversation;
 pub mod devices;
 pub mod effort;
 pub mod extras;
+pub mod files;
 mod links;
+pub mod machine_book;
 pub mod machines;
 pub mod models;
 pub mod notices;
@@ -48,6 +50,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
     own_name, with_picks,
 };
+pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
     PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,

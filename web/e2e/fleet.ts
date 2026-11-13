@@ -30,9 +30,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { createServer } from "node:net";
+import { connect, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { addProjects, makeRepos } from "./repos";
 
 export interface FleetEnv {
   /** The UI's address with the launch's token. */
@@ -95,6 +97,21 @@ function binary(name: string): string {
   return path;
 }
 
+/** Whether something accepts a connection on loopback's `port`. */
+async function accepts(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect(port, "127.0.0.1");
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
 async function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();
@@ -112,11 +129,11 @@ async function freePort(): Promise<number> {
 
 async function until(
   what: string,
-  ready: () => boolean,
+  ready: () => boolean | Promise<boolean>,
   ms = 30_000,
 ): Promise<void> {
   const deadline = Date.now() + ms;
-  while (!ready()) {
+  while (!(await ready())) {
     if (Date.now() > deadline) {
       throw new Error(`timed out waiting for ${what}`);
     }
@@ -296,6 +313,9 @@ export async function startFleet(): Promise<FleetEnv> {
     }
     nodes[name] = { port, data };
     await until(`${name}'s token`, () => existsSync(join(data, "token")));
+    // The token is written before the listener is bound, and the CLI
+    // talks to laptop before the UI starts (the projects, below).
+    await until(`${name}'s listener`, () => accepts(port));
   }
   const cli = {
     ...base,
@@ -318,6 +338,33 @@ export async function startFleet(): Promise<FleetEnv> {
     }
     execFileSync(vessel, args, { env: cli });
   }
+  // Agents added on laptop by their command (protocol 11, ADR 0032): the
+  // fake ACP agent as one that runs, as one needing a secret the node does
+  // not have (its start is refused), a program that is not there, and the
+  // fake again, slow to start.
+  const fakeAcp = binary("fake-acp");
+  const added: string[][] = [
+    ["helper", "--label", "Helper", "--", fakeAcp],
+    [
+      "keyed",
+      "--label",
+      "Keyed agent",
+      "--secret",
+      "KEYED_TOKEN=KEYED_TOKEN",
+      "--",
+      fakeAcp,
+    ],
+    ["ghost", "--", join(root, "no-such-agent")],
+    // One that takes four seconds to start (e2e/new-chat.spec.ts).
+    ["slow", "--label", "Slow starter", "--", fakeAcp, "--slow-start", "4000"],
+  ];
+  for (const args of added) {
+    execFileSync(vessel, ["agents", "add", ...args], { env: cli });
+  }
+  // Repositories for the code panel (milestone 11, track B-page), added
+  // as laptop's projects (e2e/repos.ts).
+  const repos = makeRepos(root, base);
+  addProjects(vessel, cli, [repos.shop, repos.notes]);
   const ui = spawnLogged(
     root,
     "ui",

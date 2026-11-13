@@ -244,6 +244,10 @@ pub(crate) fn sessions(sessions: &[SessionInfo]) -> String {
             session.created_at.format("%Y-%m-%d %H:%M:%S"),
         );
         let marks = conversation::marks(&session.marks);
+        // Protocol 12: a running session whose agent is parked says so.
+        if session.parked.is_some() {
+            text.push_str("  (parked)");
+        }
         if !marks.is_empty() {
             let _infallible = write!(text, "  [{marks}]");
         }

@@ -115,16 +115,24 @@ export function ago(iso: string, now: number = Date.now()): string {
   return `${Math.round(hours / 24)}d`;
 }
 
+/** The formats `when` writes with, made once: `toLocaleTimeString` and
+ * `toLocaleDateString` make a formatter on every call, and a session's
+ * page asks for its start time on every batch of its log as it replays
+ * (a CPU profile of opening 20,000 entries: about 40 ms in those calls
+ * alone, under load, milestone 11's page join). */
+const TIME = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const DATE = new Intl.DateTimeFormat("en-CA");
+
 /** A local time of day, or a date when not today. */
 export function when(iso: string): string {
   const date = new Date(iso);
   const today = new Date();
-  const time = date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = TIME.format(date);
   if (date.toDateString() === today.toDateString()) {
     return `today ${time}`;
   }
-  return `${date.toLocaleDateString("en-CA")} ${time}`;
+  return `${DATE.format(date)} ${time}`;
 }

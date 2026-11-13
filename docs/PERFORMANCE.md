@@ -31,6 +31,12 @@ column before it):
 | `vesseld` binary | 42.6 MB | 28.5 MB | 28.5 MB | the same |
 | a clean release build | 193 s | 694 s | not measured again | the same (the cost) |
 
+Track B-page added the code panel's two measurements (a diff of 4,000
+hunks in one file beside 1,500 changed files: 764 ms from the tab to its
+first line, 33 ms a scroll step; a folder of 5,000: 390 ms, 33 ms) and
+moved the board's load and a long session's opening; its section, below,
+has both and why.
+
 ## The machine
 
 Every figure here comes from one machine: a virtual machine with 16
@@ -90,12 +96,15 @@ cd web && npm run build && cd .. \
 
 `e2e/perf.ts`, run on demand only. Results go to `artifacts/perf.json`
 (`VESSEL_PERF_OUT`), each figure the median of several runs with its
-minimum and maximum (`VESSEL_PERF_RUNS`). Five measurements: the board
+minimum and maximum (`VESSEL_PERF_RUNS`). Six measurements: the board
 loading cold, a timeline of 5,000 and 20,000 entries, find in that
 timeline and going to a match far from the view (`e2e/perf/find.ts`,
 since tracks P and W were merged), a terminal under heavy output, a
-board of 500 cards. `VESSEL_TARGET_DIR` points the fleet at another
-build's binaries (another tree measured beside this one).
+board of 500 cards, a session's code panel over a large change and a
+large tree (`e2e/perf/code.ts`, since track B-page). `VESSEL_TARGET_DIR`
+points the fleet at another build's binaries (another tree measured
+beside this one); `npm run perf -- --grep-invert "code panel"` leaves
+out the code panel for a tree that has none.
 
 ## Baseline, before any change (2026-11-11)
 
@@ -592,6 +601,178 @@ tens of percent between runs of one build (as above). What moved:
 `vesseld` holds 0.5–1.4 MiB more, the code the node gained (thirteen
 calls, the terminals' registry and actors, the port scanner's tables)
 and nothing kept per session.
+
+## Track B-page: the code panel (2026-11-12)
+
+Track B-page (`docs/plans/backend-m11.md`) put a session's code beside
+its timeline: the inspector's Changes and Files tabs (a chunk of their
+own, `features/workspace/panel.tsx`), where a session runs on the
+new-session page, and projects in the sidebar and Settings. Its tree
+and the tree it started from (`15b79a2`, wave 2's base) were built in
+release with the fat-LTO profile and measured with `npm run perf` one
+after the other on the same machine: this tree, then the base (load
+averages 2.0–3.6 for this tree, 2.2–5.0 for the base). Medians
+(minimum–maximum) of 5 runs for the load, 3 for the rest. A first pair
+taken an hour earlier is not used: other builds took the machine to a
+load of 49 during the base's half.
+
+### A large diff and a large tree
+
+New. A repository made in the fleet's temporary directory: one file of
+40,000 lines with every tenth line changed (4,000 hunks, about 32,000
+diff lines over seven of the node's 5,000-line pages), 1,500 small files
+changed beside it, and a folder of 5,000 files (the node's bound for one
+listing). The session runs in the project's folder, so Changes compares
+Uncommitted. From the tab's click to the first row laid out; then the
+whole list scrolled in 100 steps, each file's diff and each next page
+asked for as its row is reached, and 5 s at rest:
+
+| Figure | Changes: 4,000 hunks and 1,500 files | Files: a folder of 5,000 |
+| --- | --- | --- |
+| tab clicked to the first row drawn | 764 ms (748–826) | 390 ms (383–391) |
+| a scroll step, median; longest | 33 ms; 48 ms (44–129) | 33 ms; 37 ms (36–39) |
+| long tasks while scrolling; at rest | 0; 0 | 0; 0 |
+| JS heap used | 10.6 MiB | 8.3 MiB |
+| elements in the document; rows drawn | 1,498; 135 | 484; 70 |
+
+The first figure includes loading the panel's chunk the first time
+(15.4 KB compressed), the node's `git.changes` over 1,501 files and the
+first file's diff; the Files figure the chunk, the root's listing and
+the folder's. Only the rows near the view exist at any time (135 of
+about 34,000 for Changes): the list is the timeline's window
+(`useWindow`), not a second one. The same measurement before the
+review's fixes (a load of 4.5–12.6): 1,053 ms (768–1,205) to the first
+diff row, one long task of 50 ms while scrolling.
+
+### What moved, and why
+
+| Figure | Base | B-page |
+| --- | --- | --- |
+| slow link: first contentful paint | 1,692 ms (1,688–1,704) | 1,712 ms (1,704–1,728) |
+| slow link: board usable | 2,654 ms (2,644–2,672) | 2,694 ms (2,599–2,702) |
+| phone: first contentful paint | 2,048 ms (2,012–2,164) | 2,068 ms (2,024–2,192) |
+| phone: board usable | 3,199 ms (3,136–3,422) | 3,269 ms (3,221–3,521) |
+| desktop: board usable | 400 ms (341–476) | 414 ms (375–455) |
+| the index | 2,413 B | 2,954 B |
+| script | 183,990 B | 185,923 B |
+| stylesheet | 24,255 B | 26,945 B |
+| HTTP total | 335,097 B | 340,261 B |
+| WebSocket received at load | 13,322 B | 14,262 B |
+| 5,000 entries: first entry drawn | 119 ms (111–127) | 146 ms (144–170) |
+| 5,000 entries: last entry drawn | 735 ms (727–811) | 794 ms (746–937) |
+| 20,000 entries: first entry drawn | 129 ms (111–162) | 145 ms (145–178) |
+| 20,000 entries: last entry drawn | 2,546 ms (2,544–2,779) | 2,678 ms (2,545–2,812) |
+| … long tasks until then | 0 (0–2) | 1, 53 ms (0–1) |
+| … heap; elements | 13.2 MiB; 514 | 13.8 MiB; 547 |
+
+Worse: the board's load by 20 ms of first paint and 40 ms until usable
+over the slow link (70 ms on the phone), 5,164 bytes, and opening a long
+session by 16–27 ms to its first entry and 59–132 ms to its last, with
+one long task of about 50 ms. Explained as far as measured, not fixed:
+
+- **The stylesheet (+2,690 B).** The code panel's styles (the diff, the
+  git bar and dialogs, the tree and the file, setup's card, Settings ›
+  Projects, the tray) are in the one stylesheet the index names, though
+  their code is in chunks: ADR 0017 keeps every stylesheet inside the
+  index's integrity graph, and a stylesheet per chunk would first need
+  that graph extended to stylesheets loaded later (not done here).
+- **The index (+541 B).** The import map pins five more chunks: the
+  panel, and four that the new-session page, Settings and the panel
+  share (a project's commands compared, a worktree's words, a
+  worktree's calls, the drop button). The chunk the new-session page
+  and the session's page already shared now holds the terminal's byte
+  decoding too (setup's output uses it), and is named after it.
+- **The entry's script (+1,933 B).** What every screen draws: the
+  sidebar's Projects group and its store, a session's branch chip (the
+  sidebar, the board's card), the kit's seventeen new icons and its
+  sheet's right side. The panel itself (56 KB, 15 KB compressed) is not
+  in it.
+- **The WebSocket (+940 B).** The sidebar reads each connected machine's
+  projects (`project.list`) when the page starts.
+- **A long session's opening.** Not profiled apart. What the session's
+  page now does more on each of the replay's batches and at its start:
+  the inspector's tab head and the title bar's chip (their project read
+  from the machine's projects), the panel's state (a media query), and
+  the sidebar's Projects group drawn beside it (33 more elements, all
+  from these). The bytes above are about 26 ms at the slow link's
+  200 KB/s; the rest of the board's 40 ms is the larger entry's compile
+  and the projects' read. If it matters: the projects read after the
+  board is usable rather than with it, and the chip's project found once
+  per session rather than per drawing.
+
+Within the runs' spread, either way: find (5,000 entries: 118 against
+122 ms to the count; 20,000: 150 against 143), the terminal (untouched:
+the 2 MB flood 499 against 451 ms, the 10 MB 1,933 against 1,963, the
+51 MB 8,550 against 8,481), a board of 500 cards (1,225 against
+1,326 ms, at rest 0 long tasks in both).
+
+## Integration 2 (page): tracks B-page and A-page joined (2026-11-13)
+
+The page's join (`docs/plans/backend-m11.md`, "Integration 2 (page)"),
+merged with the node's third join, measured with `npm run perf` on
+release binaries with the fat-LTO profile, the machine shared with other
+workers (load averages 16 to 24). Medians (minimum–maximum) of 5 runs for
+the load, 3 for the rest. Track B-page's figures above were taken at a
+load of 2 to 4 on its own tree; the comparison is with them, so a
+difference smaller than the spread of either is not read as a change.
+
+| Figure | B-page (load 2–4) | The join (load 16–24) |
+| --- | --- | --- |
+| slow link: first contentful paint | 1,712 ms (1,704–1,728) | 1,804 ms (1,792–1,912) |
+| slow link: board usable | 2,694 ms (2,599–2,702) | 2,795 ms (2,721–2,844) |
+| phone: first contentful paint | 2,068 ms (2,024–2,192) | 2,204 ms (2,180–2,444) |
+| phone: board usable | 3,269 ms (3,221–3,521) | 3,465 ms (3,290–3,626) |
+| desktop: board usable | 414 ms (375–455) | 455 ms (393–2,908) |
+| the index | 2,954 B | 2,943 B |
+| script | 185,923 B | 191,773 B |
+| stylesheet | 26,945 B | 28,899 B |
+| HTTP total | 340,261 B | 348,054 B |
+| WebSocket received at load | 14,262 B | 19,009 B |
+| 5,000 entries: first entry drawn | 146 ms (144–170) | 160 ms (144–290) |
+| 5,000 entries: last entry drawn | 794 ms (746–937) | 810 ms (794–940) |
+| 20,000 entries: first entry drawn | 145 ms (145–178) | 145 ms (145–177) |
+| 20,000 entries: last entry drawn | 2,678 ms (2,545–2,812) | 2,760 ms (2,729–2,879) |
+| … long tasks until then | 1, 53 ms (0–1) | 0 (0–1, 55 ms) |
+| … heap; elements | 13.8 MiB; 547 | 14.1 MiB; 550 |
+| find, 20,000: typed to the count | 143 ms | 150 ms (150–152) |
+| terminal: the 10 MB flood | 1,933 ms | 2,252 ms (2,095–2,426) |
+| a board of 500 cards: all drawn | 1,326 ms | 1,611 ms (1,036–1,912) |
+| Changes: first row drawn | 764 ms (748–826) | 857 ms (851–1,036) |
+| Files: first row drawn | 390 ms (383–391) | 438 ms (386–454) |
+
+The bytes are this tree's, not the load's: the entry's script grew by
+5,850 B and the stylesheet by 1,954 B with track A-page's work (the
+composer's `/` and `@` menu, the queue, questions, marks, the board's
+archive) beside B-page's; the WebSocket by 4,747 B with A-page's reads
+at start (each machine's agents and the drafts kept by the bridge). The
+times are all within or near the spread a load of 16 to 24 adds over 2
+to 4 (the base's own numbers moved by as much between the two halves of
+B-page's first pair); none is read as a change of the code until
+measured beside its base at a like load. Long tasks while replaying
+20,000 entries: none in two runs of three, one of 55 ms in the third
+(B-page: one of 53 ms in each).
+
+### What was profiled, and what changed
+
+Track B-page's report left one cost unexplained: opening a session of
+20,000 entries took 59–132 ms longer to its last entry, with one long
+task of about 50 ms. A CPU profile of that opening (three runs, the
+page built a second time with sourcemaps from the same tree, the
+machine at load 20 to 29) found:
+
+- 39 to 51 ms in `when`, the session's details writing its start time
+  on every batch of the replay with a formatter made on every call
+  (`toLocaleTimeString`, `toLocaleDateString`). The formatters are made
+  once (`3b5bcd1`).
+- The rest of the replay's time is the window following the end: one
+  forced layout per commit while the log replays (`use-window.ts`), which
+  the base has too, and which costs more per commit by what B-page added
+  to the document (the inspector's tabs, the title bar's chip, the
+  sidebar's projects).
+- The projects' `project.list` at the page's start: on a phone the
+  sidebar beside the page is hidden, so its group, and the read, wait
+  for the sheet (`cca8f84`); on a wider window the group is on screen
+  from the start and needs the list.
 
 ## Tried, did not help
 

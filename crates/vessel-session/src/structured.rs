@@ -2,12 +2,13 @@
 
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
-use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionStatus};
+use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionOption, SessionStatus};
 
 use crate::attachments::AttachmentLoader;
 use crate::delivery::Desk;
 use crate::lifecycle::{Lifecycle, drain_deadline};
 use crate::moving::{Control, Launch};
+use crate::parking::{Parking, Route};
 
 /// Owns an ACP agent process for the life of a structured session.
 ///
@@ -26,7 +27,7 @@ pub(crate) struct StructuredActor {
     /// The current agent's input, and where handles find it (`None` while
     /// the session moves to another profile).
     pub(crate) input: AgentInput,
-    pub(crate) route: watch::Sender<Option<AgentInput>>,
+    pub(crate) route: watch::Sender<Route>,
     /// Moves to another profile, from the runtime.
     pub(crate) control: mpsc::Receiver<Control>,
     /// How the current agent was started.
@@ -49,6 +50,8 @@ pub(crate) struct StructuredActor {
     /// Where a prompt's attachments are loaded (protocol 10,
     /// `attachments`); `None` in a runtime that keeps none.
     pub(crate) loader: Option<AttachmentLoader>,
+    /// The idle clock and the parked state (protocol 12, `parking`).
+    pub(crate) parking: Parking,
 }
 
 /// A structured session's move state (see `moving`).
@@ -87,18 +90,29 @@ impl StructuredActor {
         let code = loop {
             tokio::select! {
                 biased;
-                step = self.life.stop.next() => self.life.apply(&mut self.agent, step),
-                code = self.agent.wait() => break code,
+                step = self.life.stop.next() => {
+                    self.life.apply(&mut self.agent, step);
+                    // A parked session has no process to wait for: a kill
+                    // or the node stopping ends it now (protocol 12).
+                    if self.parking.parked.is_some() {
+                        break None;
+                    }
+                }
+                code = self.agent.wait(), if self.parking.parked.is_none() => break code,
                 output = self.outputs.next(), if self.outputs_open => match output {
                     Some(output) => self.output(output).await,
                     None => self.outputs_open = false,
                 },
-                control = self.control.recv(), if control_open => match control {
-                    Some(Control::Move(order)) => self.move_profile(*order).await,
-                    Some(Control::Deliver(order)) => self.deliver(order).await,
-                    Some(Control::Queue(order)) => self.change_queue(order).await,
-                    Some(Control::Cancel(order)) => self.cancel(order).await,
-                    None => control_open = false,
+                control = self.control.recv(), if control_open => {
+                    self.parking.touch();
+                    match control {
+                        Some(Control::Move(order)) => self.move_profile(*order).await,
+                        Some(Control::Deliver(order)) => self.deliver(order).await,
+                        Some(Control::Queue(order)) => self.change_queue(order).await,
+                        Some(Control::Cancel(order)) => self.cancel(order).await,
+                        Some(Control::Park(order)) => self.park_order(order).await,
+                        None => control_open = false,
+                    }
                 },
                 Some(call) = self.life.model_calls.recv() => {
                     self.life.publish(&mut self.agent, SessionEvent::ModelCall(call)).await;
@@ -107,6 +121,11 @@ impl StructuredActor {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
                 Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
+                // Last: anything else that is ready goes first, and is
+                // activity (protocol 12, `parking`).
+                () = self.parking.timer().as_mut(), if self.parking.armed() && self.ready => {
+                    self.idle().await;
+                }
             }
             // The queue moves once a turn's end is in the log.
             self.after_turn().await;
@@ -134,6 +153,41 @@ impl StructuredActor {
         self.life.status(&mut self.agent, status).await;
     }
 
+    /// A restarted agent's replay (a move, a wake, a session started
+    /// again): the log has it already. Its stderr still goes in; `Ready`
+    /// ends the replay.
+    async fn replayed(&mut self, event: AgentEvent) {
+        match event {
+            AgentEvent::Ready {
+                abilities,
+                harness_session,
+            } => {
+                self.move_state.replaying = false;
+                self.desk.ready(abilities);
+                self.parking.harness_session = Some(harness_session);
+            }
+            AgentEvent::HarnessLog { .. } => {
+                self.life
+                    .publish(&mut self.agent, SessionEvent::Agent { event })
+                    .await;
+            }
+            AgentEvent::TurnStarted { .. }
+            | AgentEvent::UserMessageChunk { .. }
+            | AgentEvent::MessageChunk { .. }
+            | AgentEvent::ThoughtChunk { .. }
+            | AgentEvent::ToolCall(_)
+            | AgentEvent::ToolCallUpdate(_)
+            | AgentEvent::Plan { .. }
+            | AgentEvent::PermissionRequested(_)
+            | AgentEvent::PermissionResolved { .. }
+            | AgentEvent::TurnEnded { .. }
+            | AgentEvent::TurnFailed { .. }
+            | AgentEvent::Steered { .. }
+            | AgentEvent::QuestionAsked(_)
+            | AgentEvent::QuestionResolved { .. } => {}
+        }
+    }
+
     pub(crate) async fn output(&mut self, output: AgentOutput) {
         // A session started again drops its agent's replay of the
         // conversation until `ready`, as a move does (`session/load`); that
@@ -149,6 +203,10 @@ impl StructuredActor {
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
             AgentOutput::Options(options) => {
+                // What a wake starts the agent with (protocol 12); an
+                // option change is activity.
+                self.parking.choices = options.iter().filter_map(SessionOption::choice).collect();
+                self.parking.touch();
                 self.life
                     .publish(&mut self.agent, SessionEvent::OptionsChanged { options })
                     .await;
@@ -169,35 +227,11 @@ impl StructuredActor {
                     .await;
             }
             AgentOutput::Event(event) if self.move_state.replaying => {
-                // A restarted agent's replay: the log has it already. Its
-                // stderr still goes in; `Ready` ends the replay.
-                match event {
-                    AgentEvent::Ready { abilities, .. } => {
-                        self.move_state.replaying = false;
-                        self.desk.ready(abilities);
-                    }
-                    AgentEvent::HarnessLog { .. } => {
-                        self.life
-                            .publish(&mut self.agent, SessionEvent::Agent { event })
-                            .await;
-                    }
-                    AgentEvent::TurnStarted { .. }
-                    | AgentEvent::UserMessageChunk { .. }
-                    | AgentEvent::MessageChunk { .. }
-                    | AgentEvent::ThoughtChunk { .. }
-                    | AgentEvent::ToolCall(_)
-                    | AgentEvent::ToolCallUpdate(_)
-                    | AgentEvent::Plan { .. }
-                    | AgentEvent::PermissionRequested(_)
-                    | AgentEvent::PermissionResolved { .. }
-                    | AgentEvent::TurnEnded { .. }
-                    | AgentEvent::TurnFailed { .. }
-                    | AgentEvent::Steered { .. }
-                    | AgentEvent::QuestionAsked(_)
-                    | AgentEvent::QuestionResolved { .. } => {}
-                }
+                self.replayed(event).await;
             }
-            AgentOutput::Disconnected(disconnect) if self.move_state.active => {
+            AgentOutput::Disconnected(disconnect)
+                if self.move_state.active || self.parking.parked.is_some() =>
+            {
                 // The old agent being stopped, or the new one failing to
                 // start: the move decides what follows, not the session.
                 tracing::debug!(%disconnect, "agent connection ended during a move");
@@ -211,6 +245,17 @@ impl StructuredActor {
                     self.move_state.turn_over = true;
                 }
                 let became_ready = !self.ready && matches!(event, AgentEvent::Ready { .. });
+                if let AgentEvent::Ready {
+                    harness_session, ..
+                } = &event
+                {
+                    self.parking.harness_session = Some(harness_session.clone());
+                }
+                // The agent's timeline is activity; its stderr is not (a
+                // chatty adapter would never be parked).
+                if !matches!(event, AgentEvent::HarnessLog { .. }) {
+                    self.parking.touch();
+                }
                 let title = if let AgentEvent::TurnStarted { content } = &event {
                     self.life.title_from(content)
                 } else {

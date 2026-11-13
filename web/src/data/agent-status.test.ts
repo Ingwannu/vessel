@@ -31,7 +31,7 @@ describe("an agent's status on a machine", () => {
   });
 
   it("lists every agent, the installed first", () => {
-    expect(agentsOn([codexTerminalOnly]).map((agent) => agent.kind)).toEqual([
+    expect(agentsOn([codexTerminalOnly]).map((entry) => entry.agent)).toEqual([
       "codex",
       "claude-code",
       "gemini",

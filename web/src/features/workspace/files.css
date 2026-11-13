@@ -1,0 +1,246 @@
+/* The Files tab (files-tab.tsx and what it opens), agent-orchestrator's
+   file explorer and file pane:
+   - a 40px toolbar: the filter field (28px) and two quiet toggles;
+   - tree rows 28px, 6px in and 16px more per level, 8px corners, a 14px
+     mark 6px from the name at 13px; hover a 4% wash; an ignored file in
+     the passive ink;
+   - a file's head 36px, 12px in: the path at 12px (folders muted), an 8px
+     dot while edits are unsaved, its actions at the right;
+   - its lines as a diff's are, without the +/- column. */
+
+.files,
+.file-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.files-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 6px 0 8px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.files-filter {
+  flex: 1;
+  min-width: 0;
+  margin-right: 4px;
+}
+
+.file-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: calc(100% - 8px);
+  height: 28px;
+  margin: 0 4px;
+  padding-right: 6px;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 13px / 20px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.tree-row:hover,
+.tree-row:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tree-row.ignored {
+  color: var(--text-disabled);
+}
+
+.tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-name b,
+.found-dir b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tree-note {
+  flex: none;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.tree-note-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin: 0;
+  padding: 4px 10px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.tree-note-row.failed {
+  color: var(--danger);
+}
+
+.found-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.found-dir {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+}
+
+.grep-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  font: 500 12px / 16px var(--font-sans);
+}
+
+.grep-line {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  width: 100%;
+  min-height: 22px;
+  margin: 0;
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: var(--t-mono);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.grep-line:hover,
+.grep-line:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.grep-text {
+  padding: 0 10px 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 6px 0 4px;
+  border-bottom: 1px solid var(--border-faint);
+  color: var(--text-secondary);
+}
+
+.file-crumb {
+  min-width: 0;
+  overflow: hidden;
+  font: 400 12px / 16px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.file-dirty {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+
+.file-head-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.f-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 20px;
+  color: var(--text-primary);
+  font: var(--t-mono);
+}
+
+.f-line .d-num {
+  padding-right: 8px;
+}
+
+.f-code {
+  padding: 0 12px 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+}
+
+.t-row[data-target] .f-line {
+  background: var(--bg-active);
+}
+
+.file-editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 4px 0;
+}
+
+.file-strip {
+  flex: none;
+  padding: 8px;
+  border-top: 1px solid var(--border-faint);
+}
+
+.file-sides {
+  margin: 6px 0;
+  padding: 0 0 0 16px;
+}
+
+.file-strip-actions {
+  display: flex;
+  gap: 6px;
+}

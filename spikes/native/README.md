@@ -16,7 +16,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 
 | Crate | Owns | Must not |
 | --- | --- | --- |
-| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, English and Korean, one file per area) | use any UI toolkit; do I/O |
+| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
 | `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels | use any UI toolkit |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::Text`) |
@@ -125,6 +125,15 @@ retires it after moving its callers.
 `kit::breakpoint::TOUCH_TARGET` is the shared minimum touch target;
 screens take gaps and insets from `kit::theme::spacing`.
 
+`kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
+original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
+Navigation and empty states use this one registered vector.
+
+
+Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
+`GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
+Each is registered once in `assets.rs` on the same 24-unit line grid.
+
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
@@ -140,6 +149,11 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
+
+`TextField::form_multiline` uses the same input state and form shell as
+the kit's existing fields: Enter starts a line, Mod+Enter submits, and
+after twelve lines the editor scrolls. Its marked-text regression also
+exercises the composer; platform input-method support remains shared.
 
 ### Rules every screen follows
 
@@ -293,7 +307,11 @@ checked through `vessel session queue`: the queue above the composer is
 checked against it. Two more, `ask questions` and `ask one`, are left
 waiting on what Claude's adapter sends for its `AskUserQuestion` (three
 questions, one choosing several and one in Korean, and one question):
-the question card is checked against them.
+the question card is checked against them. Three more, `permit plan`,
+`permit codex` and `permit two`, are left waiting on permission requests
+in the real adapters' shapes (Claude Code leaving plan mode with five
+"always" answers, Codex's five answers, two at once): the permission card
+is checked against them and the `shapes-asking` session's long command.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:
@@ -310,8 +328,95 @@ Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
 by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
 screen of that size.
 
+## Translation engine (staged, ADR 0039)
+
+`view::localization` sits beside the legacy tables. Its host build script
+reads `view/locales/<tag>/<area>.ftl`, validates the Fluent AST, and generates
+a typed API from English. The target library embeds the resources and does
+no I/O. Prepare `Translator::get(locale)` before drawing: plain accessors
+borrow retained fields, while messages with values are formatted when those
+values change. The allocation-counting test covers warmed plain access.
+
+`LANGUAGES` exposes each embedded tag, own name and completeness; the
+checking locale `en-XA` is excluded. `resolve_language` applies an override,
+a typed preference, or the system tag, with exact/base/English fallback.
+The source API is English, Korean must be complete with the same variables,
+and a contributed folder may be partial. Run the shared validator/report:
+
+```bash
+scripts/locale-coverage.sh
+```
+
+`view/locales/<tag>/formats.ftl` owns number separators, primary/secondary
+sizes, ten digit characters, month/weekday names, whole date/time patterns
+and the h12/h24 choice. Missing contributed settings/patterns use English.
+The build validates settings and emits static numeric rules automatically;
+adding a folder needs no separate generator command or Rust edit. Messages
+call standard `NUMBER`/`DATETIME` names. NUMBER remains numeric for plural
+selectors; DATETIME accepts typed Gregorian dates/local clock readings and
+a caller-resolved zone label. This small implementation is not complete
+Intl: no other calendars, time-zone conversion, currency/percent formatting,
+significant-digit rules or automatic numbering-system discovery. Typed
+decimals are finite, within the u32 count magnitude, and at most nine decimal
+places. Patterns currently receive minute precision. Dynamic formatting is
+performed when data changes, before painting. ICU4X is not a dependency of
+this formatting layer; ADR 0039 retains its rejected measured cost.
+
+No existing area has moved in the mechanism slice. Area owners keep their
+Rust tables until the coordinator accepts the engine and its first migration;
+the first migrated area will supply the contributor model. The pseudo-locale
+is tested in this slice; normal-screen captures follow that migration.
+
+
+### Add a language
+
+A folder under `view/locales/<tag>/` is embedded in the released app and
+listed in the chooser by its own `meta-name`. It is not a draft area.
+Before adding it, the coverage report must show `0 missing` and
+`complete=true` for every language being shipped, with no syntax, variable
+or formatting-rule errors; the complete native gate must pass. The staged
+app currently ships only English and Korean while legacy tables remain.
+A report over migrated messages does not prove those legacy screens are
+translated.
+
+Prepare a candidate outside `view/locales/`, alongside copies of the
+current English/Korean source folders, and inspect it without shipping it:
+
+```bash
+scripts/locale-coverage.sh --root CANDIDATE_ROOT
+```
+
+The two-message Japanese folder is solely a test fixture under
+`view/tests/fixtures/locales/`. Registry, coverage and fallback tests read
+that root; its partial translations never enter the released registry.
+To inspect that proof, from this workspace:
+
+```bash
+scripts/locale-coverage.sh --root view/tests/fixtures/locales
+```
+
+Without `--root`, the report also reads the compiled shipped-language list.
+Core validation supports partial candidates and English fallback; the
+released-catalog test requires every shipped catalog to be complete.
+
 ## A release
 
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+Machine management uses `view::machine_book` for validated names, edit outcomes
+and safe localized failures, and `link::machines` for the CLI's existing node
+book. `BookFile` is reopened immediately before each atomic edit; the app does
+not maintain a second machine list on disk. A forget ends the app's watched
+stream only, leaving the remote session running. Original file errors remain
+at the file boundary because a malformed book can contain credentials.
+
+The actor resolves the book path once and reads it on the blocking pool for
+startup, tick, reload, retry and edits. Syntax failures share `FileFault` with
+pairing; no transient raw parser error reaches an event. Failed edits leave
+clients and the session follow untouched. Browser refusals retain the original
+Read/Edited response shape. Actor regressions use real framed RPC clients on
+bounded in-process streams, including client-preserving rename and watched
+forget; no real agent or network endpoint is contacted. Other areas' aliases
+and project follows must be integrated before the Machines screen is delivered.

@@ -9,6 +9,7 @@ import {
   statusTone,
   statusWord,
   toolTone,
+  when,
 } from "./format";
 
 describe("formatting", () => {
@@ -51,5 +52,25 @@ describe("formatting", () => {
     expect(answerEmphasis("reject_always", true)).toBe("danger");
     expect(listOr([], "none")).toBe("none");
     expect(listOr(["a", "b"], "none")).toBe("a, b");
+  });
+});
+
+describe("when", () => {
+  it("writes a time today, and a date with the time otherwise, as the browser's own calls do", () => {
+    const now = new Date();
+    const today = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      9,
+      5,
+    );
+    expect(when(today.toISOString())).toBe(
+      `today ${today.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`,
+    );
+    const before = new Date(2026, 0, 2, 17, 30);
+    expect(when(before.toISOString())).toBe(
+      `${before.toLocaleDateString("en-CA")} ${before.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`,
+    );
   });
 });

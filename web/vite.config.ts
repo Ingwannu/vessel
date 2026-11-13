@@ -6,6 +6,8 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
+import { vesselMark } from "./vite-mark";
+
 /** xterm.js's stylesheet gives its screen-reader tree a bare `monospace`;
  * the operator's font rule wants a real face and Pretendard before it
  * (scripts/check-fonts.mjs checks the built CSS too). */
@@ -51,7 +53,7 @@ function pretendardName(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [xtermFont(), pretendardName(), react()],
+  plugins: [xtermFont(), pretendardName(), vesselMark(), react()],
   build: {
     outDir: "dist",
     assetsDir: "assets",

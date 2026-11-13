@@ -30,6 +30,7 @@ import { THEMES, ThemeMenu, useTheme } from "../theme/theme";
 import { Buttons } from "./buttons";
 import { Choices } from "./choices";
 import { Composer } from "./composer";
+import { Conversation } from "./conversation";
 import { Display } from "./display";
 import { Fields } from "./fields";
 import { Popups } from "./popups";
@@ -64,6 +65,7 @@ export function Gallery() {
         <Choices />
         <Popups />
         <Composer />
+        <Conversation />
         <Display />
       </main>
     </TooltipProvider>
