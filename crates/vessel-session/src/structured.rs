@@ -57,7 +57,7 @@ pub(crate) struct StructuredActor {
     /// The node's `park_after` as it changes (protocol 12, `node.settings`);
     /// apart from `parking`, so the actor's `select` can wait on both.
     pub(crate) park_setting: watch::Receiver<Option<Duration>>,
-    /// A record the log starts with (a fork's `forked`, protocol 12).
+    /// A record the log starts with (a fork's `forked`, protocol 14).
     pub(crate) opening: Option<Box<SessionEvent>>,
 }
 
@@ -266,7 +266,7 @@ impl StructuredActor {
                 } = &event
                 {
                     self.parking.harness_session = Some(harness_session.clone());
-                    // A fork is made once (protocol 12): a later start of
+                    // A fork is made once (protocol 14): a later start of
                     // this agent (a wake, a move's fallback) loads it.
                     if self.launch.setup.fork.take().is_some() {
                         self.launch.setup.resume = Some(harness_session.clone());

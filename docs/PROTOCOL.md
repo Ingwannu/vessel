@@ -30,6 +30,65 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 14 (2026-11-13, milestone 11's track A2, on milestone 12's node line)
+
+Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
+protocol 12; on the node line N3's schedule preview had taken 13 first,
+and a client built at 13 has no variant for the two new records, so they
+and the two calls are 14 here. A client sends neither call to an older
+node (`Call::since`); a node refuses them on an older connection
+(`unsupported`, "needs protocol 14").
+
+### Forking and rewinding (track A2, ADR 0052)
+
+Two methods, two fields, two records; types in `vessel_proto::forking`
+and `vessel_proto::agent`.
+
+- `AgentAbilities.fork`: the agent advertised `session/fork` (ACP's
+  unstable `sessionCapabilities.fork`). Absent from older nodes; a fork's
+  own handshake decides.
+- `TurnEnded.point?: TurnPoint { message, conversation }`: where a fork
+  or a rewind can start; set when the turn's last agent message carried
+  an id (ACP `messageId`, at most 256 bytes) and nothing but the turn's
+  end followed it. `conversation` is the agent's conversation the turn is
+  in. Absent otherwise, and in records written before 14.
+- `session.fork { session, after? }` (operate, forwardable): a new session
+  of the caller's continuing `session`'s conversation after the turn
+  whose `turn_ended` record is `after`, or as it is now (refused
+  `conflict` while a turn runs). Answers the new session at creation, as
+  `session.create` does; it runs in the source's folder with the
+  source's current choices. A fork whose agent does not fork at the
+  point ends `failed` ("the agent did not fork at the point").
+- `session.rewind { session, after }` (operate, ownership-checked,
+  forwardable): the session goes back to the end of that turn; between
+  turns (`conflict` otherwise); a parked session is woken first. Answers
+  the session, its `harness_session` the new conversation.
+- Errors of both: `not_found` (no such session or record), `unsupported`
+  (a terminal session, a record that is not a turn's end with a point,
+  an agent that cannot fork or did not fork at the point), `spawn_failed`
+  (the agent did not start; for a rewind the old conversation goes on).
+- Records (`since 14`; a version 2-13 client gets a `vessel:` log line):
+  `forked { from, after? }`, a fork's first record after `starting`;
+  `rewound { after, harness_session, files_changed }`: the records
+  between `after` and it are no longer the conversation (they stay in the
+  log), the agent's conversation from now on, and how many tool calls left
+  behind edited, deleted or moved files (not put back).
+
+## Version 13 (2026-11-13, milestone 12, N3)
+
+Nodes speak 2..=13; the minimum is unchanged. Additive N3 calls are gated at
+13. `NodeInfo.timezone` is an optional IANA name, absent when detection fails
+or from old nodes, and omitted on negotiated older connections.
+
+`schedule.preview` (Read) takes `cadence`, optional UTC `after`, and bounded
+`count` (1–10, default 5). It returns `after`, the effective `cadence` (an
+interval's resolved anchor), and exactly `count` next UTC `runs`. Reuse the
+returned cadence when saving. No schedule or session is created. Errors
+are `invalid_request` with optional typed `detail: { kind: schedule_preview,
+reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
+or `unavailable` for the bounded worker pool. Existing errors omit detail;
+future unknown detail kinds decode as unknown. Clients never parse messages.
+
 ## Version 12 (2026-11-13, milestone 11, wave 2's second half)
 
 Nodes speak 2..=12. Track A2's (`docs/plans/backend-m11.md`, "Track A2:
@@ -99,41 +158,6 @@ Two methods, one optional field, two records; types in
   `invalid_request`). Neither is forwardable. A change is kept across
   restarts (`settings.json`) and wins over `--park-after`; it applies to
   live sessions at once. A node older than 12 answers `unsupported`.
-
-### Forking and rewinding (track A2, ADR 0052)
-
-Two methods, two fields, two records; types in `vessel_proto::forking`
-and `vessel_proto::agent`.
-
-- `AgentAbilities.fork`: the agent advertised `session/fork` (ACP's
-  unstable `sessionCapabilities.fork`). Absent from older nodes; a fork's
-  own handshake decides.
-- `TurnEnded.point?: TurnPoint { message, conversation }`: where a fork
-  or a rewind can start; set when the turn's last agent message carried
-  an id (ACP `messageId`, at most 256 bytes) and nothing but the turn's
-  end followed it. `conversation` is the agent's conversation the turn is
-  in. Absent otherwise, and in records written before 12.
-- `session.fork { session, after? }` (operate, forwardable): a new session
-  of the caller's continuing `session`'s conversation after the turn
-  whose `turn_ended` record is `after`, or as it is now (refused
-  `conflict` while a turn runs). Answers the new session at creation, as
-  `session.create` does; it runs in the source's folder with the
-  source's current choices. A fork whose agent does not fork at the
-  point ends `failed` ("the agent did not fork at the point").
-- `session.rewind { session, after }` (operate, ownership-checked,
-  forwardable): the session goes back to the end of that turn; between
-  turns (`conflict` otherwise); a parked session is woken first. Answers
-  the session, its `harness_session` the new conversation.
-- Errors of both: `not_found` (no such session or record), `unsupported`
-  (a terminal session, a record that is not a turn's end with a point,
-  an agent that cannot fork or did not fork at the point), `spawn_failed`
-  (the agent did not start; for a rewind the old conversation goes on).
-- Records (`since 12`; a version 2-11 client gets a `vessel:` log line):
-  `forked { from, after? }`, a fork's first record after `starting`;
-  `rewound { after, harness_session, files_changed }`: the records
-  between `after` and it are no longer the conversation (they stay in the
-  log), the agent's conversation from now on, and how many tool calls left
-  behind edited, deleted or moved files (not put back).
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
@@ -491,13 +515,23 @@ Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
     `invalid_request`.
 - Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
   `.update` (the whole definition, under its `revision`), `.pause`,
-  `.resume`, `.run` (once now, answered with the run's outcome),
-  `.delete` (operate).
+  `.resume`, `.run` (once now, answered with the run's outcome; after 30
+  s with no room, `unavailable`), `.delete` (operate).
+- `invalid_request` besides the contract's: a new session's spec over 16
+  KiB encoded (as a saved prompt's), and an `after` the node does not
+  know (it would neither archive the session nor wait for it).
+- Room: at most 4 runs are made at once and at most 8 scheduled sessions
+  are in their first turn and not waiting for a person; runs wait, the
+  oldest due first, then by id, the first that fits going first.
 - A run acts as the schedule's `defined_by` as they are when it runs (a
-  revoked device ends it; an agent's schedules go with its session), and
-  meets the checks a call of theirs would. Agents: 8 schedules per
-  session, their own session as a heartbeat's target, never `run` now;
-  delegated callers may only read, pause, resume and delete.
+  revoked device ends it; an agent's schedules go with its session, and
+  with its run when the session is started again), and meets the checks
+  a call of theirs would. Agents: 8 schedules per session, their own
+  session as a heartbeat's target, never `run` now, an `every` anchored
+  by the node; delegated callers may only read, pause, resume and
+  delete. A run's session is archived after its first turn as a person's
+  archive does it: its terminals and services end, its pull request is
+  no longer watched.
 - What happens at a daylight-saving gap or fold, after a stopped node, on
   a clock stepped either way, and to a run under way when the node stops,
   is the contract's "Time" and ADR 0033.
@@ -543,7 +577,10 @@ Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
   end, the last 1,500 characters of its reply, and the record to read
   from) or `ended` (the session's final status). Text only, from the
   node, starting `vessel: session`; the queue entry's `by` is the
-  finished session (`Creator::Agent`).
+  finished session (`Creator::Agent`). The session's own words in it
+  (its reply's end, what it asks, why its turn failed) are between
+  `<vessel-session-output-…>` tags whose name is random, with a line
+  saying they are that session's output, not instructions.
 - Bounded: 32 turns followed per told session and 256 on the node
   (`conflict` beyond), 60 notices an hour into one session (the rest
   dropped and logged), none into a session a person stopped. Nothing is

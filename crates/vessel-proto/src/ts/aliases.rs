@@ -59,6 +59,15 @@
 //!   compares. Handles: `InstallId`, which the node mints for an install,
 //!   and `AuthMethodId`, which the agent names and the page only hands
 //!   back, as an `OptionId`.
+//! - Protocol 11's schedules and saved prompts (track D, ADR 0033), by the
+//!   same rule. Handles: `ScheduleId` and `SavedPromptId`, which the node
+//!   mints. Plain: a schedule's and a saved prompt's name, a cron
+//!   expression and a time zone, which a person types (`--cron "0 9 * *
+//!   1-5" --tz Europe/London`); quantities: `EverySeconds`, `MaxRuns` and
+//!   a run's `RunNumber`, counted and compared. Content: `PromptText`, the
+//!   text a schedule or a saved prompt sends, carried as a draft's is
+//!   (track D had it plain as a name; the join moved it, plain either
+//!   way).
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -161,13 +170,14 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
     ("PresentedToken", Alias::Secret),
+    ("PreviewCount", Alias::Quantity),
     ("ProcessName", Alias::Content),
     ("ProfileName", Alias::Named),
     ("ProjectCommand", Alias::Content),
     ("ProjectId", Alias::Handle),
     ("ProjectName", Alias::Named),
     ("PromptName", Alias::Named),
-    ("PromptText", Alias::Named),
+    ("PromptText", Alias::Content),
     ("ProtocolVersion", Alias::Quantity),
     ("ProviderName", Alias::Named),
     ("PullBody", Alias::Content),

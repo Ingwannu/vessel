@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- interactive-widget=resizes-visual: the on-screen keyboard shrinks the
+     visual viewport only, which GPUI's web platform reads to tell a
+     dismissed keyboard (gpui_web's events.rs). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-visual">
+<title>Vessel</title>
+<style>
+  /* The canvas GPUI appends is 100% of the body; the page itself never
+     scrolls (GPUI scrolls inside the canvas). */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f7f7f6; }
+  @media (prefers-color-scheme: dark) { html, body { background: #111110; } }
+</style>
+</head>
+<body>
+<script type="module">
+  import init from "./vessel-app.js";
+  init();
+</script>
+</body>
+</html>

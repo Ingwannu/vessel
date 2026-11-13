@@ -7636,6 +7636,253 @@ Rust tests ran):
   `npm run screens` (8 passed, 200 captures, looked at), and
   `VESSEL_CARGO_PROFILE=release npm run perf` (`docs/PERFORMANCE.md`).
 
+## Integration 3 (node): track D joined
+
+2026-11-13, on `backend/m11-int3-node`: `backend/m11` (wave 1, the node
+join of B2 and C, track G) with track D's branch (`backend/m11-schedules`)
+merged in. Every track's commit is kept; the merge commit builds and
+passes the whole gate, and each follow-up is a commit of its own that
+passes it too. The independent review's fixes (below) came later the
+same night, on milestone 12's node branch `backend/m12-node` (after the
+native lead's base and track A2), one commit per finding, gated as one
+batch.
+
+### What conflicted, and how each was resolved
+
+The merge conflicted in 38 files (about 67 hunks): the wire's lists
+(`rpc.rs`, `rpc/older.rs`, `rpc/since.rs`, `rpc/tests.rs`, `forward.rs`,
+`id.rs`, `lib.rs`, `ts/aliases.rs`), the store (`schema.rs`,
+`reader.rs`, `writer.rs`, and the tests `devices.rs`, `log.rs`,
+`marks.rs`), the node (`envelope.rs`, `guard.rs`, `lib.rs`, `node.rs`,
+`service.rs`, `service/sessions.rs`), the CLI (`args.rs`, `commands.rs`,
+`main.rs`, `workspace.rs`), the agent tools (`lib.rs`, `tools.rs`,
+`tools/sessions.rs`, `tests/mcp.rs`), `vessel-rpc` (the unary list, its
+test handler), `vessel-client`'s test handler, `vessel-web/src/calls.rs`,
+`Cargo.lock`, `README.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`,
+this plan and the generated `web/src/wire/proto.ts`.
+
+- Lists both tracks added to (the method table and every list naming
+  methods, the guard's rows, the envelope's dispatch, the test handlers,
+  the service's parts, the CLI's commands, the agent tools): both stay,
+  track D's after B2's, C's and G's. The agent tools are session,
+  conversation, workspace, pull request, terminal, schedule, then the
+  language server's (42). The pinned forwardable list became track D's
+  constant with every track's methods in it.
+- Both sides added the agent's own session to the tools (`own` with
+  `with_own_session`, `for_session`): one field, one constructor
+  (`with_own_session`), used by `create_terminal` and `create_heartbeat`.
+- `create_session`'s spec: track D moved it into `spec` (shared with
+  `create_schedule`); track G changed its agent to `HarnessRef`. Track D's
+  function with G's type.
+- `create_as` (a schedule's run creates a session as its definer, with no
+  connection) met B2's `place` returning the starting count and B2's
+  watch: `place(principal, …)` keeps the count, and the watch is given
+  the definer (below, meeting point 1).
+- The store: schemas 10 and 11 are the node join's and stay; track G took
+  none; track D's 13 is **12**. Nothing of protocol 11 has been released,
+  so no database moves between the numberings. The migration tests walk
+  9, 10, 11, 12 in order (`tests/approvals.rs`, the undo SQL of the older
+  tests `UNDO_SCHEMAS_7_TO_12`); every mention of 13 (code, tests, ADRs
+  0033 and 0034, this plan) says 12, track D's own sections saying what
+  it was on its branch.
+- `ProtocolVersion` 11 raised once. `Cargo.lock` regenerated (B2's
+  `reqwest` and D's `jiff`), `web/src/wire/proto.ts` regenerated.
+- Found by `cargo check` after the merge, with no textual conflict:
+  `Reply::withheld` (track G's one arm per reply) did not know track D's
+  replies (decided below, meeting point 6); `create_as` named a
+  `connection` it no longer had; clippy's budget: `vessel`'s command
+  dispatch passed 100 lines with both tracks' commands (`vessel node …`
+  moved to a function of its own) and two `#[expect(too_many_lines)]`
+  went unfulfilled where track D had moved a list into a constant.
+
+### Where track D meets the others, and what was decided
+
+1. **A schedule that starts a session in a place** (a project's folder or
+   a worktree; track D builds no worktree per run, its contract's "Not in
+   this track"). Decided and tested end to end (`tests/e2e/scheduled.rs`,
+   against the in-memory forge and `/bin/sh`):
+   - *Approval (ADR 0027).* No run makes a worktree, runs setup or runs a
+     script: a run is `session.create` and a prompt, or a prompt. Setup
+     runs only when a worktree is made (`worktree.create` answers
+     `needs_approval` and makes nothing while its set is not approved),
+     so a worktree a run names already exists; one whose setup or
+     teardown runs refuses the run's session (`conflict`, recorded
+     `failed`, the schedule goes on), as it refuses a person's. There is
+     no approval a run could need and none it can skip, so no outcome
+     says "needs approval": nothing can reach one.
+   - *Its pull request* is watched as a person's session's is: the run's
+     session is placed through `create_as`, which now hands the watcher
+     the definer (a person's session first, ADR 0029's bound).
+   - *What it leaves behind.* Track D archived a run's session through
+     `Sessions::mark` directly, which leaves its terminals and services
+     running and its watch on. Archiving is now one path in the service
+     (`put_away`: archive, end the watch, end what runs beside it, kept
+     with its output), used by `session.mark` and by a run after its first
+     turn; a run whose prompt fails after its session started is put away
+     too (review finding 11). Tested: a scheduled session in a worktree
+     is watched, a service and a shell are started beside it while its
+     first turn waits on a permission, the permission is answered, and the
+     session is archived with the watch, the service and the shell ended.
+2. **An agent added by its command (track G)** is named by `HarnessRef`
+   in a run's spec, checked at creation as `session.create` checks it.
+   What a run records: the agent removed, `failed { not_found }` and the
+   schedule goes on (it may be added again under its name); its secret
+   missing, `failed { conflict }` (and `schedule.create` answers
+   `conflict`); one of the four being installed, `failed { conflict }`
+   (`refuse_installing` in `create_as`, shared with `session.create`).
+   Tested end to end: missing secret at creation, a run of the added
+   agent, its removal. `vessel schedule create --harness` takes an added
+   agent's name too.
+3. **The starter told beside pull request feedback and the queue.** Both
+   are prompts the node writes, queued through `Sessions::prompt`, which
+   asks no ticket: neither a notice nor a feedback prompt can itself ask
+   to be told, so neither starts a chain. Notices go only up the creation
+   tree (no cycle), feedback only to the session whose branch it is, from
+   forge events, once per event. Each says who sent it: a notice's queue
+   entry is `by` the session that finished (`Creator::Agent`) and its text
+   starts `vessel: session`; feedback is `by` the owner and starts
+   `Vessel: pull request feedback`. The session's own words in a notice
+   are now fenced (review finding 2).
+4. **Archived, deleted, started again.** A `session` target archived (or
+   ended): each run `failed { conflict }`, the schedule goes on (brought
+   back and started, it is reached again). Deleted: the schedule ends
+   `target_gone`. A heartbeat's own session ending (archived included)
+   deletes its agent's schedules; `session.resume` of that session now
+   also asks the scheduler, before the new grant, to delete what its last
+   run made (`starting_again`), so a heartbeat never survives into the
+   next run even when the scheduler missed the end (tested: unit, with no
+   end broadcast; end to end through `session.resume`).
+5. **Agents' limits in one place.** `workspace/policy.rs`'s exhaustive
+   `refused` lists every method of every track; schedules and saved
+   prompts are named there with the rules that hold them (`rules.rs`,
+   `service/prompts.rs`), and its Decision Log says why a schedule gives
+   an agent no terminal, merge or approval it could not get directly (a
+   run is the agent's own `session.create` or prompt, through the same
+   checks; a terminal session is refused as a target). Every protocol 11
+   method's scope is pinned in one list (`PROTOCOL_ELEVEN`, all four
+   tracks).
+6. **`Reply::withheld`.** Track D's replies carry a `SessionSpec` (a
+   schedule's new session, a saved prompt's), whose agent may be an added
+   one, but every one is a protocol 11 method, refused on an older
+   connection before it runs: none is handed to an older peer, so each
+   arm is `None`, with that reason.
+
+### Track D's three untested points
+
+- **A first turn failing with the agent alive**: the testkit's fake ACP
+  agent gained `fail` (the prompt's request answers an error, the agent
+  stays up); tested end to end: the run is `finished { end: failed {
+  message } }` with the agent's words, counted as sent, and its session
+  archived.
+- **`unavailable` after 30 s**: the wait is measured on the scheduler's
+  clock (the one due times use), so the test moves the clock 30 s by hand
+  with four runs holding every slot: at 29 s the asked run still waits,
+  at 30 s it is answered `unavailable` and recorded `failed`, never made.
+- **The order of due runs**: decided as the contract said, by due time,
+  then by id, and now kept: the scheduler hands out room itself
+  (`schedules/room.rs`) instead of each run's task waiting on a
+  semaphore (whose order was the runtime's). Tested: six runs due at
+  once over four slots; the two that wait start in due order as slots
+  free (pure tests of the room besides, ties by id included).
+
+### The independent review
+
+One reviewer (Opus, read only, security first) read `git diff
+backend/m11` at the merge (`3e42d55`), all of track D including the CLI,
+the agent tools and its own review's fix commit, which track D's reviewer
+had not read. Twelve findings, most severe first, and what became of
+each. Finding 12's fix is `backend/m11`'s room (`7fc6189`); the others
+are on `backend/m12-node`, a commit each that says what the review
+found, after one that moves a scheduled run's follow and the
+scheduler's test harness into files of their own:
+
+1. **High: a schedule could be edited or deleted by the wrong selector.**
+   The CLI took a name before an id prefix, and names are anyone's text:
+   an agent naming its schedule after the short id `vessel schedule list`
+   prints for the owner's would have had `edit` or `delete` reach it (an
+   edit makes the editor its definer). **Fixed**: a whole id wins; a name
+   and an id prefix count alike, and two items matching are refused; a
+   whole id is read with `schedule.get`, without the list.
+2. **Medium: a notice put the child's words, unfenced, into the parent's
+   prompt.** A reply ending `vessel: the owner asks you to …` read as the
+   node's. **Fixed**: the session's own words (reply's end, what it asks,
+   a failure's reason) go between tags with a random name and a line
+   saying they are its output (ADR 0034's fence); without randomness they
+   are left out.
+3. **Medium: an agent's schedule could outlive its session.** A create
+   queued while the session ended, ends missed on a lagging channel (a
+   paused schedule was then kept until a restart), and `session.resume`
+   of the same id reviving it. **Fixed**: a create is refused once the
+   agent cannot act; a lag sweeps every agent's schedule against its
+   agent; a resume deletes its last run's schedules before the new grant.
+   Not taken: a generation number in `defined_by` (the resume path closes
+   the same hole without a wire change).
+4. **Medium: `after: unknown` was stored**, and such a run neither
+   archived nor waited, leaving one more live session per run. **Fixed**:
+   `invalid_request`.
+5. **Medium: a spec kept for later was unbounded** (its folder, model and
+   options), so a list could pass the frame. **Fixed**: 16 KiB encoded,
+   as the prompt beside it; tested end to end.
+6. **Low-medium: an agent could set an `every` anchor just under a period
+   ago and update again and again**, running its schedule at once each
+   time. **Fixed**: an agent's anchor is the node's (now); a person's
+   anchor is kept (a person may run a schedule now anyway).
+7. **Low: a run that reached nothing (no room, a refused scope) became the
+   run the next one compares with**, so under `keep` a second session
+   could start beside a live one. **Fixed**: only a run that reached its
+   target stands; fixing it showed a `making` placeholder stood too,
+   which no longer does.
+8. **Low: an interrupt could be told the cancelled turn.** The ticket
+   took "the next `turn_started`", which, when the cancelled turn's record
+   came late, was that turn's. **Fixed**: a ticket waits for the turn by
+   its number among those the actor started; tested with the late record.
+9. **Low: bounds a change skipped.** A person taking an agent's schedule
+   over was not counted toward the people's 256; an agent's schedule
+   resumed past its end stayed. **Fixed** both.
+10. **Low: `vessel schedule edit --harness …` rebuilt the spec**, dropping
+    its place, profile, model, options and title, and `--keep` needed
+    `--harness`. **Fixed**: an edit starts from the old spec; `--keep`
+    alone works (tested through the binary).
+11. **Low: a session whose prompt failed after it started stayed live.**
+    **Fixed**: it is put away at once.
+12. **Low (unsure): the slots bounded the rate of runs, not how many new
+    sessions were in their first turn**, so a catch-up after downtime
+    could start up to 256 sessions within seconds. **Fixed** with the
+    room (eight first turns).
+
+Read and found clean by the reviewer: the cron parser and the time engine
+(gaps, folds, `every`, missed counts, `ends_at`, clock steps), the store
+(cascades, run trim, `making` written with the next due time), the rules
+for delegated callers and agents, the refusals of `notify` and saved
+prompt writes, the definer rebuilt at each run, saved prompts' lock and
+bounds, the notices' bounds, the ticket's prune and keep, the agent
+tools' arguments, the older-peer and `since` tables. Not read deeply: the
+session actor's select order, `proto.ts`, the tests.
+
+### New aliases on the wire
+
+Track D added ten, all classified on its branch; the join wrote their
+reasons into `ts/aliases.rs`'s Decision Log and moved one:
+
+- Handles: `ScheduleId`, `SavedPromptId`.
+- Named: `ScheduleName`, `PromptName`, `CronExpr`, `TimeZoneName`.
+- Quantities: `EverySeconds`, `MaxRuns`, `RunNumber`.
+- Content: `PromptText` (track D had it named; a prompt's text is carried
+  as a draft's is). Plain either way, so the generated declarations did
+  not change.
+
+### For the page
+
+- Nothing under `web/` changed but the generated declarations.
+- A schedule's session is archived with what runs beside it; say so where
+  a schedule of new sessions is made.
+- `schedule.run` may answer `unavailable` after 30 s: say the node is busy
+  and that the run was recorded.
+- A notice's text carries `<vessel-session-output-…>` tags; a page showing
+  a queued prompt shows them as they are (the told agent reads them).
+- `PromptText` is content (plain); `ScheduleId` and `SavedPromptId` are
+  branded handles.
+
 ## The first chat (page), 2026-11-13
 
 The owner, on starting a chat: "type and send, and it should just work,
@@ -8724,6 +8971,14 @@ replays), so a fork costs one agent start, not two.
 
 Protocol 12 (no new version), no schema change, ADR 0052. The design is
 the contract as its review amended it (above).
+
+Renumbered when the node integrator merged it on milestone 12's node
+line (`backend/m12-node`): protocol 13 there was already N3's schedule
+preview, and an app built at 13 has no variant for `forked` and
+`rewound`, so the two calls and the two records are `since 14` (a
+version 2-13 client reads the `vessel:` lines); `TurnEnded.point` and
+`AgentAbilities.fork` are optional fields older clients skip. What
+follows is as built on this branch, at 12.
 
 - **Wire**: `session.fork` and `session.rewind` (operate, `since 12`,
   forwardable, through `vessel-web`'s bridge and to agents),

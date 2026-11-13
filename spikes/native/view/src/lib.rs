@@ -1,0 +1,57 @@
+//! What the app's screens mean, with no UI and no I/O in it: the machines
+//! and the board read from nodes, and a session's conversation folded
+//! from its records.
+//!
+//! The view-model crate the plan names (`vessel-view`), begun with the
+//! slice the first build draws. A lane, a card's phrase and the fold of a
+//! conversation are decided here, once, as `web/src/data` decides them for
+//! the page, so every surface (desktop, phone, browser) draws the same
+//! thing. Nothing of a UI toolkit's may be used here (ADR 0035): the
+//! screens draw these values through Vessel's kit, whatever is under it.
+
+pub mod about;
+pub mod agent_status;
+pub mod ago;
+pub mod alert;
+pub mod badge;
+pub mod board;
+mod conversation;
+pub mod devices;
+pub mod effort;
+pub mod extras;
+pub mod files;
+mod links;
+pub mod machines;
+pub mod models;
+pub mod notices;
+mod options;
+pub mod palette;
+pub mod prefs;
+pub mod session;
+pub mod settings;
+pub mod shortcuts;
+pub mod sidebar;
+pub mod sync;
+pub mod terminal;
+#[cfg(test)]
+mod tests;
+mod text;
+pub mod timeline;
+pub mod toasts;
+pub mod workspace;
+
+pub use board::{
+    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
+};
+pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
+pub use links::is_web_url;
+pub use options::{
+    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
+    own_name, with_picks,
+};
+pub use text::localization;
+pub use text::{
+    AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
+    PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
+    grouped, meter_tokens, short_tokens,
+};

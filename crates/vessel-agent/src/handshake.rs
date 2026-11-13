@@ -63,7 +63,7 @@ pub struct AgentSetup {
     /// new one.
     pub resume: Option<HarnessSessionId>,
     /// Fork this conversation (`session/fork`) instead of starting a new
-    /// one or resuming one (protocol 12, ADR 0052); wins over `resume`.
+    /// one or resuming one (protocol 14, ADR 0052); wins over `resume`.
     /// Boxed: rare, and a setup is carried by every start's future.
     pub fork: Option<Box<ForkFrom>>,
     /// The agent's options to set once the session exists, in order, after
@@ -86,7 +86,7 @@ pub struct AgentSetup {
     pub questions: bool,
 }
 
-/// A conversation to fork, and where (protocol 12, ADR 0052).
+/// A conversation to fork, and where (protocol 14, ADR 0052).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForkFrom {
     /// The agent's conversation forked.
@@ -219,7 +219,7 @@ impl HandshakeError {
 pub(crate) struct Started {
     pub(crate) session: acp::SessionId,
     /// The point a fork was asked at, for the driver to check against the
-    /// fork's replay (protocol 12).
+    /// fork's replay (protocol 14).
     pub(crate) fork_point: Option<AgentMessageId>,
     pub(crate) options: Options,
     pub(crate) abilities: AgentAbilities,

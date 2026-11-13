@@ -86,7 +86,7 @@ impl NodeService {
     }
 
     /// `create_as`'s path, for a session that starts as a fork of another's
-    /// conversation too (protocol 12, `forking`): the same refusals,
+    /// conversation too (protocol 14, `forking`): the same refusals,
     /// grants, credentials and model token as any session its caller
     /// creates.
     pub(super) async fn create_starting(

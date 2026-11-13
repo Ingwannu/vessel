@@ -1,0 +1,46 @@
+[package]
+name = "vessel-app"
+description = "Vessel's native app: machines, the board, a session and its composer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "vessel-app"
+path = "src/main.rs"
+
+[dependencies]
+vessel-app-kit.workspace = true
+vessel-app-link.workspace = true
+vessel-app-view.workspace = true
+gpui.workspace = true
+gpui-platform.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+vessel-proto.workspace = true
+sys-locale.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# The updater (reqwest, rustls, files): the desktop's only; a browser
+# build has `update_off.rs` instead.
+vessel-app-updater.workspace = true
+# The updater's memory beside the node book (src/update.rs).
+dirs.workspace = true
+tokio.workspace = true
+# stderr and the log file (spikes/release/applog).
+vessel-app-log.workspace = true
+
+# The browser build (docs/plans/backend-m12-browser.md): tokio's channels
+# only (its runtime and network do not build for wasm32), and `tracing`'s
+# events handed to `log`, which GPUI's web platform writes to the console.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", default-features = false, features = ["sync"] }
+tracing = { version = "0.1", features = ["log"] }
+# The page's language from `navigator.languages`.
+sys-locale = { version = "0.3", features = ["js"] }

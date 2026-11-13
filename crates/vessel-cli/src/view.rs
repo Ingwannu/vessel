@@ -74,7 +74,7 @@ impl Conversation {
             // A structured session has no terminal output; nothing to show.
             SessionEvent::Terminal(_) => String::new(),
             // A turn's end a fork or a rewind can start at says its record
-            // (protocol 12): `vessel session fork|rewind ID --after N`.
+            // (protocol 14): `vessel session fork|rewind ID --after N`.
             SessionEvent::Agent {
                 event:
                     AgentEvent::TurnEnded {

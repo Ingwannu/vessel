@@ -1,4 +1,4 @@
-//! Protocol 12's forking and rewinding (track A2, ADR 0052), with
+//! Protocol 14's forking and rewinding (track A2, ADR 0052), with
 //! `fake-acp`, whose replies carry message ids and whose `session/fork`
 //! reads the anchor as the real adapters do: a fork from a turn's end
 //! continues that conversation in a new session; a rewind takes a session

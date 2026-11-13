@@ -202,6 +202,7 @@ impl Unary for vessel_proto::agents::GetCatalogue {}
 impl Unary for vessel_proto::agents::InstallAgent {}
 impl Unary for vessel_proto::agents::ReadInstall {}
 // Protocol 11 (Track D): schedules and saved prompts answer once.
+impl Unary for vessel_proto::automation::PreviewSchedule {}
 impl Unary for vessel_proto::automation::ListSchedules {}
 impl Unary for vessel_proto::automation::GetSchedule {}
 impl Unary for vessel_proto::automation::CreateSchedule {}
@@ -396,6 +397,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
         | Method::CreateSchedule

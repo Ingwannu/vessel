@@ -1,0 +1,39 @@
+#!/bin/sh
+# Microsoft's HLSL compiler (fxc.exe, from the Windows SDK) run under wine,
+# for GPUI's DirectX shaders when the app is built for Windows on Linux.
+# GPUI_FXC_PATH points here (spikes/release/patches/README.md says why the
+# patched build script needs it).
+#
+# Why fxc.exe and not a compiler native to Linux: the Windows renderer is
+# Direct3D 11 and loads shader model 4.1 bytecode (DXBC). DXC, the only
+# compiler Microsoft ships for Linux, emits DXIL for Direct3D 12 only;
+# vkd3d's compiler (what wine's own d3dcompiler is) is a reimplementation
+# whose output may differ from what Windows' compiler gives. fxc.exe with
+# the SDK's own d3dcompiler_47.dll beside it is the compiler a Windows
+# build uses, so the bytes are the same.
+#
+# Environment:
+#   VESSEL_FXC_DIR  directory holding fxc.exe and d3dcompiler_47.dll
+#   WINEPREFIX      wine's prefix (a directory of its own; created on use)
+#
+# fxc reads `/X` as a switch, so every argument that is an absolute Unix
+# path (it holds a second `/`) is passed as wine's `Z:` drive path.
+set -eu
+: "${VESSEL_FXC_DIR:?VESSEL_FXC_DIR names the directory with fxc.exe}"
+: "${WINEPREFIX:?WINEPREFIX names wine's prefix for the build}"
+export WINEPREFIX
+export WINEDEBUG="${WINEDEBUG:--all}"
+# The SDK's compiler DLL, not wine's builtin reimplementation; no Mono or
+# Gecko prompts in a prefix created by a build.
+export WINEDLLOVERRIDES="d3dcompiler_47=n;mscoree,mshtml="
+
+for arg do
+    shift
+    case "$arg" in
+        /*/*) arg="Z:$(printf '%s' "$arg" | tr '/' '\\')" ;;
+        *) ;;
+    esac
+    set -- "$@" "$arg"
+done
+
+exec wine "$VESSEL_FXC_DIR/fxc.exe" "$@"

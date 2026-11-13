@@ -1,4 +1,4 @@
-//! Where the agent's messages stand (protocol 12, ADR 0052): a turn's
+//! Where the agent's messages stand (protocol 14, ADR 0052): a turn's
 //! point, and the check of a fork's replay.
 //!
 //! [Decision Log]

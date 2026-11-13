@@ -226,8 +226,6 @@ const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
     ("session.wake", Scope::Operate),
     ("node.settings", Scope::Read),
     ("node.set_settings", Scope::Admin),
-    ("session.fork", Scope::Operate),
-    ("session.rewind", Scope::Operate),
 ];
 
 #[test]
@@ -238,6 +236,24 @@ fn protocol_twelve_methods_know_their_version_and_scope() {
         .map(|method| (method.as_str(), method.scope()))
         .collect();
     assert_eq!(twelve, PROTOCOL_TWELVE);
+}
+
+/// Protocol 14's methods (milestone 11's track A2, ADR 0052), pinned as
+/// the other versions' are. Protocol 13 (N3's preview) is pinned in
+/// `automation::preview`'s own test.
+const PROTOCOL_FOURTEEN: &[(&str, Scope)] = &[
+    ("session.fork", Scope::Operate),
+    ("session.rewind", Scope::Operate),
+];
+
+#[test]
+fn protocol_fourteen_methods_know_their_version_and_scope() {
+    let fourteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(14))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(fourteen, PROTOCOL_FOURTEEN);
 }
 
 #[test]
@@ -374,6 +390,7 @@ const FORWARDABLE: &[&str] = &[
     "port.list",
     "agent.list",
     "agent.status",
+    "schedule.preview",
     "schedule.list",
     "schedule.get",
     "schedule.create",

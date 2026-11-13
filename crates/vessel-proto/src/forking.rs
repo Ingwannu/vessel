@@ -1,4 +1,4 @@
-//! Forking a conversation and rewinding one (protocol 12, milestone 11's
+//! Forking a conversation and rewinding one (protocol 14, milestone 11's
 //! track A2, ADR 0052): only where the agent can, at the end of a turn.
 //!
 //! [Decision Log]
@@ -46,4 +46,43 @@ pub struct RewindSession {
     pub session: SessionId,
     /// A `turn_ended` record of it that carries a point.
     pub after: EventSeq,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::agent::AgentEvent;
+    use crate::event::SessionEvent;
+    use crate::id::{EventSeq, HarnessSessionId, SessionId};
+    use crate::node::ProtocolVersion;
+
+    /// The records are protocol 14's: a client that negotiated 13 (the
+    /// schedule preview's version, which has no variant for them) or any
+    /// older one reads a `vessel:` log line in their place, with the same
+    /// `seq`; 14 reads them as they are.
+    #[test]
+    fn a_client_before_fourteen_reads_the_records_as_log_lines() {
+        let records = [
+            SessionEvent::Forked {
+                from: SessionId::random(),
+                after: Some(EventSeq::new(7)),
+            },
+            SessionEvent::Rewound {
+                after: EventSeq::new(7),
+                harness_session: HarnessSessionId::new("conversation"),
+                files_changed: 2,
+            },
+        ];
+        for record in records {
+            assert_eq!(record.for_protocol(ProtocolVersion::new(14)), None);
+            for older in [11, 12, 13] {
+                let Some(SessionEvent::Agent {
+                    event: AgentEvent::HarnessLog { line },
+                }) = record.for_protocol(ProtocolVersion::new(older))
+                else {
+                    panic!("{record:?} for {older}");
+                };
+                assert!(line.starts_with("vessel: "), "{line}");
+            }
+        }
+    }
 }

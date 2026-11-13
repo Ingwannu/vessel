@@ -451,6 +451,62 @@ async fn a_probe_reads_what_the_agent_offers() {
     .await;
 }
 
+/// What a real agent sends reaches the node as it was sent: the app's
+/// pickers are checked against these shapes (`FAKE_ACP_OPTIONS=real`, from
+/// the owner's capture of app build 0.0.0.0.5 with Claude Code): many
+/// values, descriptions of several lines, long and Korean names, an on/off
+/// option with no name.
+#[tokio::test]
+async fn a_real_agents_shapes_arrive_whole() {
+    within(async {
+        let probed =
+            vessel_agent::probe(&fake().env("FAKE_ACP_OPTIONS", "real"), setup(Vec::new()))
+                .await
+                .unwrap();
+        let ids: Vec<_> = probed
+            .options
+            .iter()
+            .map(|option| option.id.as_str())
+            .collect();
+        assert_eq!(
+            ids,
+            ["mode", "model", "effort", "fast_mode", "ultracode", "agent"]
+        );
+        let values = |id: &str| match probed
+            .options
+            .iter()
+            .find(|option| option.id.as_str() == id)
+            .map(|option| &option.kind)
+        {
+            Some(OptionKind::Select { values, .. }) => values.clone(),
+            other => panic!("{id} is not a select: {other:?}"),
+        };
+        assert_eq!(values("model").len(), 16);
+        let agents = values("agent");
+        assert_eq!(agents.len(), 16);
+        assert!(
+            agents
+                .iter()
+                .filter_map(|value| value.description.as_deref())
+                .any(|description| description.lines().count() > 3),
+            "a subagent's description keeps its lines"
+        );
+        assert!(
+            agents
+                .iter()
+                .any(|value| value.name == "한국어 검토 에이전트")
+        );
+        let fast = probed
+            .options
+            .iter()
+            .find(|option| option.id.as_str() == "fast_mode")
+            .unwrap();
+        assert!(fast.name.is_empty(), "the on/off option has no name");
+        assert!(matches!(fast.kind, OptionKind::Toggle { on: false }));
+    })
+    .await;
+}
+
 /// A probe of an agent that cannot start says why, with what it wrote; one
 /// stuck in the handshake ends at the deadline.
 ///

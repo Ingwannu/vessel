@@ -214,7 +214,7 @@ impl SessionHandle {
     }
 
     /// Take the conversation back to the end of the turn `point` names
-    /// (protocol 12's `session.rewind`, ADR 0052): the agent's conversation
+    /// (protocol 14's `session.rewind`, ADR 0052): the agent's conversation
     /// is forked there and the session goes on with the fork. Between turns
     /// only; a parked session is woken first. The info after.
     ///

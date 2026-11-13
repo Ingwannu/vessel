@@ -80,14 +80,14 @@ pub struct LaunchOptions {
     /// for a session someone watches. Off by default. Kept for the
     /// session's life: an agent a move starts again asks as the first did.
     pub questions: bool,
-    /// A fork of another session's conversation (protocol 12, ADR 0052):
+    /// A fork of another session's conversation (protocol 14, ADR 0052):
     /// the agent starts with `session/fork` and the log with a `forked`
     /// record. Structured sessions only. Boxed: rare, and every start's
     /// future carries the options' size.
     pub fork: Option<Box<ForkStart>>,
 }
 
-/// Where a forked session's conversation comes from (protocol 12).
+/// Where a forked session's conversation comes from (protocol 14).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForkStart {
     /// The session forked.
@@ -330,7 +330,7 @@ impl SessionRuntime {
         };
         let (begin, notices) = record.begin(spec);
         // A fork's log starts by saying what it forked, and drops the
-        // replay of its check (protocol 12): the conversation is the
+        // replay of its check (protocol 14): the conversation is the
         // source's log, not copied.
         let actor = start
             .fork

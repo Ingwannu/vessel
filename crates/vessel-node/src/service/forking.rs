@@ -1,4 +1,4 @@
-//! Protocol 12's `session.fork` and `session.rewind` (track A2, ADR 0052):
+//! Protocol 14's `session.fork` and `session.rewind` (track A2, ADR 0052):
 //! the point read from the session's log, a fork started through
 //! `session.create`'s own path, a rewind handed to the session's actor.
 //!

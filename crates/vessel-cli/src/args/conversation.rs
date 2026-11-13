@@ -109,7 +109,7 @@ pub(crate) enum ConversationCommand {
     /// Start a new session that continues this one's conversation, from
     /// the end of a turn (`--after`, a `turn_ended` record `vessel log`
     /// shows) or as it is now; only with an agent that can fork
-    /// (protocol 12). Prints the new session.
+    /// (protocol 14). Prints the new session.
     Fork {
         /// Session id, or a unique prefix of one.
         session: SessionSelector,
@@ -119,7 +119,7 @@ pub(crate) enum ConversationCommand {
     },
     /// Take a session back to the end of a turn: its agent continues from
     /// there, what came after stays in the log, files are not put back
-    /// (protocol 12).
+    /// (protocol 14).
     Rewind {
         /// Session id, or a unique prefix of one.
         session: SessionSelector,

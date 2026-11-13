@@ -130,7 +130,7 @@ pub enum SessionEvent {
     /// A parked session's agent was started again with its conversation
     /// and is ready (protocol 12).
     Woken,
-    /// This session is a fork of another (protocol 12, ADR 0052): its
+    /// This session is a fork of another (protocol 14, ADR 0052): its
     /// agent continues `from`'s conversation as it was at the end of the
     /// turn `after` ends (its `turn_ended` record), or at its end. The
     /// earlier conversation is in `from`'s log, not copied here.
@@ -143,7 +143,7 @@ pub enum SessionEvent {
         after: Option<EventSeq>,
     },
     /// The session went back to the end of the turn `after` ends (protocol
-    /// 12, ADR 0052): the records between it and this one are no longer
+    /// 14, ADR 0052): the records between it and this one are no longer
     /// its agent's conversation. They stay in the log.
     Rewound {
         /// The `turn_ended` record it went back to.
@@ -170,9 +170,8 @@ impl SessionEvent {
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
             | Self::UsageChanged { .. } => ProtocolVersion::new(10),
-            Self::Parked { .. } | Self::Woken | Self::Forked { .. } | Self::Rewound { .. } => {
-                ProtocolVersion::new(12)
-            }
+            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
+            Self::Forked { .. } | Self::Rewound { .. } => ProtocolVersion::new(14),
         }
     }
 

@@ -387,11 +387,14 @@ async fn core(
         config.park_after_given,
     ));
     let stop = CancellationToken::new();
-    let lifecycle = Lifecycle::new(
-        identity::node_info(id, config.name.clone(), *key),
-        stop.clone(),
-        Arc::clone(&runtime),
-    );
+    // System zone detection may read OS configuration; keep startup I/O
+    // off the async workers just as data-directory preparation is.
+    let name = config.name.clone();
+    let public_key = *key;
+    let info = tokio::task::spawn_blocking(move || identity::node_info(id, name, public_key))
+        .await
+        .map_err(NodeError::Task)?;
+    let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
     let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(

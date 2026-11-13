@@ -96,10 +96,10 @@ pub enum SessionError {
     /// Starting a parked session's agent again failed; it stays parked.
     #[error("the session's agent did not start again: {0}")]
     WakeFailed(String),
-    /// The session cannot be rewound now (protocol 12, ADR 0052).
+    /// The session cannot be rewound now (protocol 14, ADR 0052).
     #[error("the session cannot be rewound now: {0}")]
     NotRewound(#[from] RewindRefusal),
-    /// The agent cannot fork its conversation there (protocol 12): it does
+    /// The agent cannot fork its conversation there (protocol 14): it does
     /// not offer `session/fork`, or it did not fork at the point.
     #[error("{}", fork_refusal(*.0))]
     ForkRefused(vessel_agent::ForkRefusal),
@@ -143,7 +143,7 @@ pub enum ParkRefusal {
     QueueMoving,
 }
 
-/// Why a session was not rewound (protocol 12's `session.rewind`).
+/// Why a session was not rewound (protocol 14's `session.rewind`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum RewindRefusal {
     /// A terminal session: Vessel does not see its agent's turns.

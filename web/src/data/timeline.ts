@@ -172,7 +172,7 @@ class Work {
         return;
       case "forked":
       case "rewound":
-        // Protocol 12 (ADR 0052): where a fork's conversation comes from,
+        // Protocol 14 (ADR 0052): where a fork's conversation comes from,
         // and a rewind's turn. Drawing them (the source's history above a
         // fork, the left-behind turns folded) is the conversation track's.
         return;

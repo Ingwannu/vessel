@@ -203,6 +203,7 @@ impl Call {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)

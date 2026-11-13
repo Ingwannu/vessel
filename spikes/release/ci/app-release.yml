@@ -1,0 +1,298 @@
+# The native app's builds on hosted runners: Windows x64, macOS (arm64 and
+# x64) and Linux x64, attached to a GitHub release with the signed feed.
+#
+# NOT RUN. This file lives under spikes/release/ci/, not .github/workflows/,
+# so GitHub does not run it: nothing may be pushed until the owner allows
+# it (AGENTS.md section 11). To use it, the owner decides what
+# docs/plans/backend-m12-release.md lists under "CI: what the owner
+# decides", then copies it to .github/workflows/.
+#
+# What it does that this machine cannot:
+# - Windows on Windows: the real MSVC toolchain and the SDK's fxc.exe, so
+#   the patched gpui-pre-windows build script takes upstream's path; and a
+#   start of the built exe on a real Windows (the smoke step), which wine
+#   cannot give for text (docs/plans/backend-m12-release.md).
+# - macOS at all: Apple's SDK exists only there. The .app bundle is signed
+#   ad hoc (enough to run on Apple silicon); Developer ID signing and
+#   notarisation wait for the owner's Apple account (the commented steps).
+#
+# Trigger: a tag `app-v<label>` (app-v0.0.0.0.2), or by hand with a label.
+# The label is the owner's build number, not the crates' version.
+
+name: App release
+
+on:
+  push:
+    tags: ["app-v*"]
+  workflow_dispatch:
+    inputs:
+      label:
+        description: "Build label (0.0.0.0.2)"
+        required: true
+      publish:
+        description: "Also write the channel's signed manifest (tells installed copies to update)"
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+  VESSEL_UPDATE_CHANNEL: preview
+  # Compiled into the app (spikes/release/updater/src/config.rs). Both are
+  # public: the feed's address and the release key's public half.
+  VESSEL_UPDATE_FEED: ${{ vars.VESSEL_UPDATE_FEED }}
+  VESSEL_UPDATE_KEY: ${{ vars.VESSEL_UPDATE_KEY }}
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.label.outputs.label }}
+    steps:
+      - id: label
+        shell: bash
+        run: |
+          label="${{ inputs.label }}"
+          [ -n "$label" ] || label="${GITHUB_REF_NAME#app-v}"
+          [[ "$label" =~ ^[0-9]+(\.[0-9]+){0,7}$ ]] || { echo "bad label $label" >&2; exit 1; }
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: label
+    runs-on: windows-latest
+    env:
+      VESSEL_BUILD_LABEL: ${{ needs.label.outputs.label }}
+      # The CRT linked in: no Visual C++ redistributable on the owner's PC.
+      # The subsystem set at link time: no console behind the window.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: "-C target-feature=+crt-static -C link-arg=/SUBSYSTEM:WINDOWS -C link-arg=/ENTRY:mainCRTStartup"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Fonts (the page's packages)
+        shell: bash
+        run: |
+          (cd web && npm ci)
+          cd spikes/native && scripts/fonts.sh "$RUNNER_TEMP/fonts"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/native
+      - name: Icons and the exe's resources (spikes/release/tools/make-icons.py)
+        shell: bash
+        run: |
+          cargo install --locked resvg
+          python -I spikes/release/tools/make-icons.py docs/design/brand/vessel-mark.svg "$RUNNER_TEMP/icons"
+          label="$VESSEL_BUILD_LABEL"
+          version=$(python -I -c 'import sys; p = ([0, 0, 0, 0] + [int(x) for x in sys.argv[1].split(".")])[-4:]; print(",".join(str(min(x, 65535)) for x in p))' "$label")
+          cp "$RUNNER_TEMP/icons/vessel.ico" "$RUNNER_TEMP/vessel.ico"
+          sed -e "s/{LABEL}/$label/g" -e "s/{VERSION}/$version/g" spikes/release/windows/app.rc.in > "$RUNNER_TEMP/app.rc"
+          (cd "$RUNNER_TEMP" && rc.exe /nologo /fo app.res app.rc)
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS=$CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS -C link-arg=$(cygpath -w "$RUNNER_TEMP/app.res")" >> "$GITHUB_ENV"
+      - name: Build
+        # rust-toolchain.toml in spikes/native installs 1.98.1.
+        working-directory: spikes/native
+        run: cargo build --release --locked -p vessel-app --target x86_64-pc-windows-msvc
+      - name: Start it on a real Windows
+        # The window must stay up for ten seconds; a crash at start (a
+        # missing DLL, a shader, a font) ends the process sooner.
+        shell: pwsh
+        run: |
+          $exe = "spikes/native/target/x86_64-pc-windows-msvc/release/vessel-app.exe"
+          $p = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "vessel-app.exe exited with $($p.ExitCode)" }
+          Stop-Process -Id $p.Id
+      - name: Package
+        shell: bash
+        run: |
+          label="$VESSEL_BUILD_LABEL"
+          stage="$RUNNER_TEMP/stage/Vessel"
+          mkdir -p "$stage" dist
+          cp spikes/native/target/x86_64-pc-windows-msvc/release/vessel-app.exe "$stage/Vessel.exe"
+          cp LICENSE.md "$stage/"
+          mkdir -p "$stage/licenses" && cp spikes/native/assets/fonts/*-OFL.txt "$stage/licenses/"
+          # build.sh fills the update lines from what the build links; here
+          # the same choice is made from whether the feed is configured.
+          sed "s/{LABEL}/$label/g" spikes/release/windows/README.txt | sed 's/$/\r/' > "$stage/README.txt"
+          cp "$stage/Vessel.exe" "dist/vessel-$label-windows-x64.exe"
+          (cd "$RUNNER_TEMP/stage" && 7z a -tzip "$GITHUB_WORKSPACE/dist/vessel-$label-windows-x64.zip" Vessel)
+          "/c/Program Files (x86)/NSIS/makensis.exe" -V2 -DLABEL="$label" -DSTAGE="$(cygpath -w "$stage")" \
+            -DICONS="$(cygpath -w "$RUNNER_TEMP/icons")" \
+            -DOUTFILE="$(cygpath -w "$GITHUB_WORKSPACE/dist/vessel-$label-windows-x64-setup.exe")" \
+            spikes/release/windows/installer.nsi
+      # Code signing (the owner's decision: a certificate, or Azure Trusted
+      # Signing as Zed uses). Without it SmartScreen warns on first run.
+      # - name: Sign
+      #   run: signtool sign /fd sha256 /tr <timestamp server> /td sha256 ... dist/*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-windows-x64
+          path: dist/*
+          if-no-files-found: error
+
+  macos:
+    needs: label
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            name: macos-arm64
+          - target: x86_64-apple-darwin
+            name: macos-x64
+    env:
+      VESSEL_BUILD_LABEL: ${{ needs.label.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Fonts
+        run: |
+          (cd web && npm ci)
+          cd spikes/native && scripts/fonts.sh "$RUNNER_TEMP/fonts"
+      - name: Target
+        working-directory: spikes/native
+        run: rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/native
+          key: ${{ matrix.target }}
+      - name: Build
+        working-directory: spikes/native
+        run: cargo build --release --locked -p vessel-app --target ${{ matrix.target }}
+      - name: Bundle
+        run: |
+          label="$VESSEL_BUILD_LABEL"
+          app="$RUNNER_TEMP/Vessel.app"
+          mkdir -p "$app/Contents/MacOS" dist
+          cp "spikes/native/target/${{ matrix.target }}/release/vessel-app" "$app/Contents/MacOS/vessel-app"
+          cat > "$app/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>Vessel</string>
+            <key>CFBundleIdentifier</key><string>dev.vessel.app</string>
+            <key>CFBundleExecutable</key><string>vessel-app</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>$label</string>
+            <key>CFBundleVersion</key><string>$label</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+          # Ad hoc: Apple silicon refuses to run unsigned code at all.
+          codesign --force --deep --sign - "$app"
+          # Developer ID and notarisation (the owner's Apple account):
+          # codesign --force --options runtime --timestamp --sign "Developer ID Application: ..." "$app"
+          # xcrun notarytool submit ... --wait && xcrun stapler staple "$app"
+          tar -czf "dist/vessel-$label-${{ matrix.name }}.app.tar.gz" -C "$RUNNER_TEMP" Vessel.app
+          hdiutil create -volname "Vessel $label" -srcfolder "$app" -ov -format UDZO "dist/vessel-$label-${{ matrix.name }}.dmg"
+      - name: Start it
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          "$RUNNER_TEMP/Vessel.app/Contents/MacOS/vessel-app" & pid=$!
+          sleep 10
+          kill -0 "$pid" || { echo "vessel-app exited at start" >&2; exit 1; }
+          kill "$pid"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  linux:
+    needs: label
+    runs-on: ubuntu-24.04
+    env:
+      VESSEL_BUILD_LABEL: ${{ needs.label.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Libraries GPUI links on Linux
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxkbcommon-x11-dev libxkbcommon-dev \
+            libwayland-dev libvulkan-dev libx11-xcb-dev libxcb1-dev libfontconfig-dev libfreetype-dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Fonts
+        run: |
+          (cd web && npm ci)
+          cd spikes/native && scripts/fonts.sh "$RUNNER_TEMP/fonts"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/native
+      - name: Build
+        working-directory: spikes/native
+        run: cargo build --release --locked -p vessel-app
+      - name: Package
+        run: |
+          label="$VESSEL_BUILD_LABEL"
+          name="vessel-$label-linux-x64"
+          mkdir -p "$RUNNER_TEMP/$name" dist
+          cp spikes/native/target/release/vessel-app "$RUNNER_TEMP/$name/vessel-app"
+          cp LICENSE.md "$RUNNER_TEMP/$name/"
+          mkdir -p "$RUNNER_TEMP/$name/licenses" && cp spikes/native/assets/fonts/*-OFL.txt "$RUNNER_TEMP/$name/licenses/"
+          sed "s/{LABEL}/$label/g" spikes/release/linux/README.txt > "$RUNNER_TEMP/$name/README.txt"
+          tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$RUNNER_TEMP" -czf "dist/$name.tar.gz" "$name"
+          cp spikes/native/target/release/vessel-app "dist/$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-linux-x64
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: [label, windows, macos, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      # Creating the release and attaching its files.
+      contents: write
+    env:
+      LABEL: ${{ needs.label.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: app-*
+          path: feed/${{ needs.label.outputs.label }}
+          merge-multiple: true
+      - name: Sign
+        # The release key's secret half, as `vessel-app-feed keygen` wrote
+        # it, in a repository secret; written to a file only for this step.
+        env:
+          UPDATE_SECRET: ${{ secrets.VESSEL_APP_UPDATE_SECRET }}
+        working-directory: spikes/release
+        run: |
+          umask 077
+          printf '%s\n' "$UPDATE_SECRET" > "$RUNNER_TEMP/update.key"
+          cargo run --quiet --locked -p vessel-app-feed -- sums --key "$RUNNER_TEMP/update.key" "$GITHUB_WORKSPACE/feed/$LABEL"
+          if [ "${{ inputs.publish }}" = "true" ] || [[ "$GITHUB_REF_NAME" == app-v* ]]; then
+            cargo run --quiet --locked -p vessel-app-feed -- publish --key "$RUNNER_TEMP/update.key" \
+              --feed "$GITHUB_WORKSPACE/feed" --channel "$VESSEL_UPDATE_CHANNEL" --label "$LABEL" \
+              --artifact "windows-x86_64:executable:$LABEL/vessel-$LABEL-windows-x64.exe" \
+              --artifact "linux-x86_64:executable:$LABEL/vessel-$LABEL-linux-x64"
+            cargo run --quiet --locked -p vessel-app-feed -- check --feed "$GITHUB_WORKSPACE/feed" \
+              --public "$VESSEL_UPDATE_KEY" --channel "$VESSEL_UPDATE_CHANNEL"
+          fi
+          rm -f "$RUNNER_TEMP/update.key"
+      - name: Create the release
+        # Where the feed is served from is the owner's decision; a GitHub
+        # release holds the artifacts, and the feed directory (feed/) is
+        # what a static host serves.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "app-v$LABEL" --repo "$GITHUB_REPOSITORY" --prerelease \
+            --title "Vessel app $LABEL" --notes "Native app build $LABEL (milestone 12)." \
+            feed/$LABEL/*

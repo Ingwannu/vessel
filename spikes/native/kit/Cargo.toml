@@ -1,0 +1,29 @@
+[package]
+name = "vessel-app-kit"
+description = "Vessel's own UI kit for the app (tokens, type, controls), drawn with GPUI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+gpui.workspace = true
+gpui-base.workspace = true
+gpui-component.workspace = true
+thiserror.workspace = true
+# The window's icon drawn from the mark (assets::window_icon): GPUI's own
+# SVG renderer, the same version, already in the tree.
+resvg = { version = "0.46", default-features = false }
+# The icon's pixels, as GPUI's window options take them (`image` 0.25, in
+# the tree through GPUI).
+image = { version = "0.25", default-features = false }
+tracing = "0.1"
+
+[dev-dependencies]
+# GPUI's test app and window (`chrome` tests the title bar's hit test).
+gpui = { workspace = true, features = ["test-support"] }

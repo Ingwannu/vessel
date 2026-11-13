@@ -39,8 +39,9 @@
 //! - `session/new`: session `fake-session-<n>`, with the options
 //!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
-//!   `effort` and `fast`.
-//! - `session/fork` (protocol 12; offered unless `FAKE_ACP_NO_FORK` is
+//!   `effort` and `fast`. With `FAKE_ACP_STARTUP_LOG` set it first writes
+//!   a real adapter's start-up log to stderr (`shapes::startup_log`).
+//! - `session/fork` (protocol 14; offered unless `FAKE_ACP_NO_FORK` is
 //!   set): session `fork~<source>~<at>`, `<at>` the anchor's message id
 //!   (`_meta.jetbrains.air.fork.messageId`, as the real adapters read it)
 //!   or `head`; with `FAKE_ACP_FORK_IGNORES_POINT` set always `head`, an
@@ -72,6 +73,7 @@
 //!     input, one text content), and again; then `end_turn`. A count that
 //!     is not a number gives one message chunk `error: entries <n>` (the
 //!     page's timeline measurement, `docs/PERFORMANCE.md`);
+//!   - `shapes`: a turn with a real conversation's shapes (`shapes` module);
 //!   - `env NAME`: one message chunk `env NAME=<value>` or `env NAME
 //!     unset`, from the fake's own environment, then `end_turn`;
 //!   - `mcp`: one message chunk `mcp <JSON>`, the MCP servers of the last
@@ -110,7 +112,10 @@
 //!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
 //!     whatever the client advertised, reported the same way; `ask
 //!     claude`: Claude's `AskUserQuestion` form (two questions, each with
-//!     its free-text "Other"), reported the same way;
+//!     its free-text "Other"), reported the same way; `ask questions` and
+//!     `ask one`: the same question built as the adapter builds it, three
+//!     questions (long option descriptions, one choosing several, one in
+//!     Korean) or the first alone (`ask` module);
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;
@@ -152,6 +157,10 @@ mod ask;
 mod describe;
 #[path = "fake_acp/options.rs"]
 mod options;
+#[path = "fake_acp/real.rs"]
+mod real;
+#[path = "fake_acp/shapes.rs"]
+mod shapes;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
@@ -330,6 +339,7 @@ async fn serve() -> ExitCode {
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
+    let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
@@ -413,6 +423,11 @@ async fn serve() -> ExitCode {
                         response
                     };
                     let session = response.session_id.clone();
+                    if startup_log {
+                        for line in shapes::startup_log(&session.0) {
+                            complain(&line);
+                        }
+                    }
                     responder.respond(response)?;
                     cx.send_notification(commands(session))
                 }
@@ -465,7 +480,7 @@ async fn serve() -> ExitCode {
                         "earlier question",
                     ))))?;
                     // A fork's replay ends where it was forked (protocol
-                    // 12): its id says so.
+                    // 14): its id says so.
                     let mut replayed =
                         ContentChunk::new(text(&format!("replayed {}", request.session_id.0)));
                     replayed.message_id =
@@ -693,7 +708,7 @@ async fn serve() -> ExitCode {
     }
 }
 
-/// A message id, new each time: `msg-<n>` (protocol 12's points).
+/// A message id, new each time: `msg-<n>` (protocol 14's points).
 fn next_message() -> String {
     static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
     format!(
@@ -734,7 +749,7 @@ async fn run_turn(
     match prompt {
         "plain" => {
             // An id, as Claude's and Codex's adapters give theirs: the
-            // turn's point (protocol 12).
+            // turn's point (protocol 14).
             let mut chunk = ContentChunk::new(text("echo: plain"));
             chunk.message_id = Some(MessageId::new(next_message()));
             say(SessionUpdate::AgentMessageChunk(chunk))?;
@@ -748,6 +763,7 @@ async fn run_turn(
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
+        "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
     }
     if let Some(count) = prompt.strip_prefix("entries ") {

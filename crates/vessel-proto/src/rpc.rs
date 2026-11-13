@@ -369,6 +369,8 @@ rpc_methods! {
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
+    /// Compute a bounded schedule preview without saving or starting work.
+    PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;
     /// Every schedule on the node (protocol 11).
     ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;
     /// One schedule (protocol 11).
@@ -406,10 +408,10 @@ rpc_methods! {
     GetNodeSettings / node_settings / "node.settings" [Read, 12]: crate::settings::GetNodeSettings => crate::settings::NodeSettings;
     /// Change the node's settings; kept across restarts (protocol 12).
     SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12]: crate::settings::SetNodeSettings => crate::settings::NodeSettings;
-    /// A new session continuing another's conversation from a turn's end (protocol 12, ADR 0052).
-    ForkSession / fork_session / "session.fork" [Operate, 12]: crate::forking::ForkSession => SessionInfo;
-    /// Take a session back to a turn's end (protocol 12, ADR 0052).
-    RewindSession / rewind_session / "session.rewind" [Operate, 12]: crate::forking::RewindSession => SessionInfo;
+    /// A new session continuing another's conversation from a turn's end (protocol 14, ADR 0052).
+    ForkSession / fork_session / "session.fork" [Operate, 14]: crate::forking::ForkSession => SessionInfo;
+    /// Take a session back to a turn's end (protocol 14, ADR 0052).
+    RewindSession / rewind_session / "session.rewind" [Operate, 14]: crate::forking::RewindSession => SessionInfo;
 }
 
 /// Result of a call.

@@ -43,8 +43,8 @@ pub struct AgentAbilities {
     #[serde(default)]
     pub audio: bool,
     /// The conversation can be forked (`sessionCapabilities.fork`, ACP's
-    /// unstable `session/fork`; protocol 12, ADR 0052). Absent from older
-    /// nodes and sessions started before 12: a fork's own handshake
+    /// unstable `session/fork`; protocol 14, ADR 0052). Absent from older
+    /// nodes and sessions started before 14: a fork's own handshake
     /// decides, not this.
     #[serde(default)]
     pub fork: bool,

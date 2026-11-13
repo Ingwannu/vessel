@@ -262,7 +262,7 @@ impl InfoChange {
             SessionEvent::Renamed { title } => Self::Title(title.clone()),
             SessionEvent::Parked { reason } => Self::Parked(Some(reason.clone())),
             SessionEvent::Woken => Self::Parked(None),
-            // The agent's conversation from a rewind on (protocol 12): the
+            // The agent's conversation from a rewind on (protocol 14): the
             // restarted agent's own `ready` is not logged.
             SessionEvent::Rewound {
                 harness_session, ..

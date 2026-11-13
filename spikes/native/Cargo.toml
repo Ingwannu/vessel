@@ -1,0 +1,178 @@
+# The native app (milestone 12, docs/plans/backend-m12-spike.md): a
+# workspace of its own under `spikes/`, outside Vessel's, so Vessel's gate
+# neither builds GPUI nor takes its tree into the main lock file. It
+# reaches Vessel's crates by path, as the app is a client like the CLI.
+#
+# Crates, and the one rule between them: nothing of GPUI's reaches `view`
+# or `link`, so the layer under the screens can be changed (ADR 0035).
+#   view  what a screen means (the board, a conversation): no UI, no I/O
+#   link  nodes through `vessel-client`: the book, routes, streams; tokio
+#   kit   Vessel's kit: tokens, type, controls, list, text field; on GPUI
+#   app   the screens and the binary, written against `kit`
+#
+# One GPUI underneath for now: the `gpui-pre` snapshot 0.3.10 (Zed's tree,
+# republished weekly), the newest one the component library
+# (`gpui-component` 0.8.1) and the community mobile layer both pin exactly.
+
+[workspace]
+resolver = "3"
+members = ["view", "link", "kit", "app"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+license = "LicenseRef-PolyForm-Strict-1.0.0"
+license-file = "../../LICENSE.md"
+repository = "https://github.com/Team-WICKED/vessel"
+
+# The main workspace's lints, copied (the milestone's common rules).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+unused_lifetimes = "warn"
+unused_import_braces = "warn"
+unused_results = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+let_underscore_drop = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+
+# Panics and escape hatches: denied outright.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+get_unwrap = "deny"
+unwrap_in_result = "deny"
+panic_in_result_fn = "deny"
+exit = "deny"
+mem_forget = "deny"
+dbg_macro = "deny"
+
+# Lossy or surprising arithmetic and conversions
+as_conversions = "deny"
+arithmetic_side_effects = "deny"
+integer_division = "deny"
+float_arithmetic = "deny"
+float_cmp = "deny"
+lossy_float_literal = "deny"
+cast_lossless = "deny"
+
+# Suppressions must be explicit and justified
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+
+# Output goes through `tracing` (the CLI writes to a locked stdout handle instead)
+print_stdout = "deny"
+print_stderr = "deny"
+
+map_err_ignore = "warn"
+let_underscore_must_use = "warn"
+error_impl_error = "warn"
+result_large_err = "warn"
+clone_on_ref_ptr = "warn"
+same_name_method = "warn"
+str_to_string = "warn"
+wildcard_enum_match_arm = "warn"
+
+[workspace.dependencies]
+# ADR 0039: maintained Fluent AST/runtime and pseudo transformation.
+fluent-bundle = "0.16"
+fluent-syntax = "0.12"
+fluent-pseudo = "0.3.3"
+intl-memoizer = "0.5.3"
+unic-langid = "0.9.6"
+# Select the existing protocol UUID's browser RNG backend in view's target
+# dependency; the protocol and its native feature set remain unchanged.
+uuid = "1"
+# Dev-only: verify that cached plain-message access performs zero allocations.
+allocation-counter = "0.8.1"
+
+vessel-app-view = { path = "view" }
+vessel-app-link = { path = "link" }
+vessel-app-kit = { path = "kit" }
+# The release track's updater (spikes/release/updater): no GPUI in it;
+# inert unless the build compiles a feed's address in.
+vessel-app-updater = { path = "../release/updater" }
+# The release track's log (spikes/release/applog): stderr and a rotated
+# file in the platform's place for logs.
+vessel-app-log = { path = "../release/applog" }
+
+vessel-client = { path = "../../crates/vessel-client" }
+vessel-proto = { path = "../../crates/vessel-proto" }
+
+# `gpui` is the name every GPUI crate uses; the snapshot is published under
+# another. Pinned exactly: two snapshots a week apart are not compatible
+# (question 9).
+gpui = { package = "gpui-pre", version = "=0.3.10" }
+# `x11` and `wayland` are off by default in the platform crate: without
+# them a Linux build starts headless, silently, and draws nothing
+# (question 9, problem 2). Its one default, `multithreaded`, only reaches
+# the web platform and needs a nightly compiler rebuilding std with atomics
+# and a page served cross-origin isolated; the browser build is
+# single-threaded (docs/plans/backend-m12-browser.md, question 1).
+gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", default-features = false, features = ["x11", "wayland"] }
+gpui-component = { version = "=0.8.1", default-features = false }
+# The component layer's editing engine, used directly by the kit's field
+# for its unstyled inputs (the component layer's own input repaints its
+# theme over a field's colours every frame).
+gpui-base = { version = "=0.8.1", default-features = false }
+
+bytes = "1"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "6"
+hostname = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The system's language, for the text table (already in the tree through
+# the component layer's `rust-i18n`).
+sys-locale = "0.3"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# NFD for find's folding of accents (MIT or Apache-2.0).
+unicode-normalization = "0.1"
+qrcode = { version = "0.14", default-features = false }
+
+[profile.release]
+# Thin link-time optimisation across crates, cargo's 16 codegen units:
+# GPUI's tree is several times Vessel's, and fat LTO with one codegen
+# unit (Vessel's own release profile) made a release build take too long
+# for builds the owner tries one after another. Whether fat LTO is worth
+# its time here is measured separately (docs/plans/backend-m12-spike.md,
+# question 3). Symbols kept, as in Vessel's profile: a panic's backtrace
+# names its functions.
+lto = "thin"
+# Line tables, so a panic's frames in the app and GPUI get their file and
+# line (track R's `tools/pdb-frames.py` on Windows, `addr2line` on Linux).
+# What is shipped does not grow: on Windows they are in the .pdb, kept
+# apart already; on Linux `spikes/release/build.sh` splits them out of the
+# executable into `vessel-app.debug` beside the Windows .pdb.
+debug = "line-tables-only"
+
+# GPUI's Windows platform with its build script corrected for a build on
+# another system, and Direct Manipulation made optional
+# (spikes/release/patches/README.md). Only Windows builds compile it.
+# GPUI's Linux platform with one XIM input context per window, focused and
+# unfocused with it (Hangul stays on across a switch of windows; the same
+# README). Only Linux and FreeBSD builds compile it.
+[patch.crates-io]
+gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
+gpui-pre-linux = { path = "../release/patches/gpui-pre-linux" }

@@ -1,0 +1,7 @@
+# The desktop track's toolchain (spikes/native/rust-toolchain.toml says
+# why it is not Vessel's 1.93). The Windows targets are listed so a fresh
+# machine fetches them with the toolchain.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
+targets = ["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"]

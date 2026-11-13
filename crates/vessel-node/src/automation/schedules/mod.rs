@@ -133,6 +133,10 @@ pub(crate) trait Runner: Send + Sync + 'static {
     /// came to (`making` was interrupted; a session followed ended with the
     /// node). `None` keeps the record as it is.
     fn settle(&self, run: &ScheduleRun) -> impl Future<Output = Option<RunOutcome>> + Send;
+
+    /// Whether the agent of `session` can still act (its session has not
+    /// ended): an agent's schedule is made, and kept, only while it can.
+    fn agent_alive(&self, session: SessionId) -> bool;
 }
 
 /// A command to the scheduler (only its handle makes them).

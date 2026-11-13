@@ -46,6 +46,7 @@ mod connector;
 mod conversation;
 mod credential;
 mod error;
+pub mod file_fault;
 mod local;
 pub mod pairing;
 mod pinned;

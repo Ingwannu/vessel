@@ -136,7 +136,7 @@ struct Driver {
     /// Recent ones only, so a long session does not keep them all.
     tool_calls: Recent<ToolCallId>,
     /// The agent's last message and what followed it: a turn's point and
-    /// a fork's check (protocol 12, `tail`).
+    /// a fork's check (protocol 14, `tail`).
     tail: tail::Tail,
     /// Holds the agent's lines back while this loop is behind (see
     /// `transport`); each update and permission request taken from
@@ -206,7 +206,7 @@ impl Driver {
         }
     }
 
-    /// The turn's point (protocol 12): its last agent message, in the
+    /// The turn's point (protocol 14): its last agent message, in the
     /// conversation now open.
     fn point(&self) -> Option<TurnPoint> {
         let message = self.tail.point()?;
@@ -228,7 +228,7 @@ impl Driver {
                 introduction,
             })) => {
                 // A fork at a point is checked against its replay, which
-                // came before this (protocol 12, ADR 0052).
+                // came before this (protocol 14, ADR 0052).
                 if let Some(anchor) = fork_point
                     && !self.tail.ends_with(&anchor)
                 {

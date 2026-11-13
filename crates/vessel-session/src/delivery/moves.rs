@@ -63,7 +63,6 @@ impl StructuredActor {
             } => {
                 let id = entry.id;
                 let ticket = self.desk.tickets.take(id);
-                let seen = self.desk.tickets.seen();
                 let sent = self
                     .send_as(entry.content.clone(), delivery, entry.by.clone())
                     .await;
@@ -72,7 +71,7 @@ impl StructuredActor {
                         self.desk.queue.settle();
                         if let Some(ticket) = ticket {
                             let started = self.desk.started();
-                            self.desk.tickets.give(ticket, delivered, seen, started);
+                            self.desk.tickets.give(ticket, delivered, started);
                         }
                         Some(delivered)
                     }
@@ -103,15 +102,12 @@ impl StructuredActor {
         let entry = self.desk.queue.next()?;
         let id = entry.id;
         let ticket = self.desk.tickets.take(id);
-        let seen = self.desk.tickets.seen();
         match self.start(entry.content.clone()).await {
             Ok(()) => {
                 self.desk.queue.settle();
                 if let Some(ticket) = ticket {
                     let started = self.desk.started();
-                    self.desk
-                        .tickets
-                        .give(ticket, Delivered::Started, seen, started);
+                    self.desk.tickets.give(ticket, Delivered::Started, started);
                 }
                 self.publish_queue().await;
                 Some(Delivered::Started)

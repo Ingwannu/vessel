@@ -17,7 +17,7 @@ use crate::id::{
 };
 use crate::raw::RawJson;
 
-/// Where a fork or a rewind can start (protocol 12, ADR 0052): the end of a
+/// Where a fork or a rewind can start (protocol 14, ADR 0052): the end of a
 /// turn, named as the agent names it.
 ///
 /// [Decision Log]
@@ -103,7 +103,7 @@ pub enum AgentEvent {
         /// (protocol 10).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         usage: Option<TurnUsage>,
-        /// Where a fork or a rewind can start (protocol 12, ADR 0052):
+        /// Where a fork or a rewind can start (protocol 14, ADR 0052):
         /// set when the turn's last agent message carried an id and nothing
         /// but the turn's end followed it. Absent otherwise, and from older
         /// nodes.

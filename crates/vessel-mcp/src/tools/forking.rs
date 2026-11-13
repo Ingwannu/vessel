@@ -1,4 +1,4 @@
-//! `fork_session` and `rewind_session` (protocol 12, ADR 0052): an agent
+//! `fork_session` and `rewind_session` (protocol 14, ADR 0052): an agent
 //! forks a session's conversation from a turn's end, or takes a session it
 //! may operate back to one, as a person does with `vessel session fork`
 //! and `rewind`.

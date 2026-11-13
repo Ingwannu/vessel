@@ -135,7 +135,7 @@ pub(crate) enum Control {
     Cancel(Cancel),
     /// Park or wake the agent (protocol 12).
     Park(ParkOrder),
-    /// Take the conversation back to a turn's end (protocol 12, ADR 0052).
+    /// Take the conversation back to a turn's end (protocol 14, ADR 0052).
     Rewind(crate::forking::RewindOrder),
 }
 

@@ -2,9 +2,11 @@
 
 Status: accepted, 2026-11-13 (milestone 11, track A2,
 `docs/plans/backend-m11.md`, "Track A2: contract, 3." and its review).
-The wire is protocol 12's `session.fork`, `session.rewind`,
+The wire is protocol 14's `session.fork`, `session.rewind`,
 `AgentAbilities.fork`, `TurnEnded.point` and the `forked` and `rewound`
 records (`crates/vessel-proto/src/forking.rs`, `agent.rs`, `event.rs`).
+Built as protocol 12 on track A2's branch; 14 on milestone 12's node
+line, where 13 was already the schedule preview's.
 
 ## Context
 
@@ -88,7 +90,7 @@ adapter that ignores the anchor from a silent wrong answer into a refusal.
 ## Consequences
 
 - Only agents that advertise `session/fork` (and `session/load`, for the
-  check) fork or rewind; sessions whose turns were recorded before 12
+  check) fork or rewind; sessions whose turns were recorded before 14
   have no points, so they fork whole only.
 - Files are not put back. `rewound.files_changed` counts the tool calls
   left behind that edited, deleted or moved files, so a client can say so.

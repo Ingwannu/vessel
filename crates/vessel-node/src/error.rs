@@ -344,7 +344,7 @@ pub(crate) enum ServiceError {
     /// start).
     #[error("the node's model proxy is not listening")]
     ModelProxyDown,
-    /// A fork or a rewind names no record of the session (protocol 12).
+    /// A fork or a rewind names no record of the session (protocol 14).
     #[error("session {session} has no record {}", seq.get())]
     NoRecord {
         /// The session.
@@ -352,7 +352,7 @@ pub(crate) enum ServiceError {
         /// The record asked for.
         seq: EventSeq,
     },
-    /// A fork or a rewind cannot start there (protocol 12, ADR 0052).
+    /// A fork or a rewind cannot start there (protocol 14, ADR 0052).
     #[error("session {session} cannot be forked there: {why}")]
     NotAPoint {
         /// The session.
@@ -360,7 +360,7 @@ pub(crate) enum ServiceError {
         /// Why, for a person.
         why: &'static str,
     },
-    /// A fork of a whole conversation while a turn writes it (protocol 12).
+    /// A fork of a whole conversation while a turn writes it (protocol 14).
     #[error("session {0} is running a turn; fork it once the turn ends, or from an earlier one")]
     ForkRunning(SessionId),
 }

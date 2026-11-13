@@ -1,4 +1,4 @@
-//! Rewinding a structured session to a turn's end (protocol 12, ADR 0052):
+//! Rewinding a structured session to a turn's end (protocol 14, ADR 0052):
 //! its agent's conversation is forked at the point and the session goes on
 //! with the fork; what came after stays in the log.
 //!

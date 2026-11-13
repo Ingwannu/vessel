@@ -122,7 +122,7 @@ pub enum Disconnect {
         message: String,
         /// Why, when Vessel can tell (protocol 11's `agent.status`).
         refused: Option<Box<Refused>>,
-        /// A fork the agent cannot make (protocol 12, ADR 0052): the
+        /// A fork the agent cannot make (protocol 14, ADR 0052): the
         /// caller answers `unsupported`, not a failure to start.
         fork_refused: Option<crate::handshake::ForkRefusal>,
     },

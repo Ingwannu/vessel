@@ -197,11 +197,10 @@ impl StructuredActor {
             turn,
             reply,
         } = order;
-        let seen = self.desk.tickets.seen();
         let result = self.send_as(content, delivery, by).await;
         if let (Ok(delivered), Some(ticket)) = (&result, turn) {
             let started = self.desk.started();
-            self.desk.tickets.give(ticket, *delivered, seen, started);
+            self.desk.tickets.give(ticket, *delivered, started);
         }
         let _gone = reply.send(result);
     }
