@@ -99,6 +99,12 @@ than the binary float's expansion. `rust_decimal` 1.43 (MIT, default
 features off, std only) validates that spelling with `from_str_exact`;
 ordinary parsing and scale-reducing arithmetic can silently round tiny
 values. Inputs outside its exact range become explicit cost gaps.
+The shared JSON dependency enables `float_roundtrip`: its default parser
+can otherwise change a finite number by one ULP while reading the wire or
+reloading a stored report, before exact accounting even sees it. A whole
+context-usage response fixture checks that its cost survives serialization
+and decoding at the tiny and large boundaries. This selects the existing
+JSON library's precise parser; it adds no dependency.
 
 `num-bigint` 0.4 (MIT OR Apache-2.0, std only) holds integer multiples of
 1e-28 for differences and accumulation. The active dependency closure is

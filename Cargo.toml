@@ -201,7 +201,8 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 # The operating system's root certificates for those `wss://` relays.
 rustls-native-certs = "0.8"
 serde = { version = "1", features = ["derive", "rc"] }
-serde_json = { version = "1", features = ["raw_value"] }
+# Reported cost must retain its finite value through wire and store JSON (ADR 0042).
+serde_json = { version = "1", features = ["raw_value", "float_roundtrip"] }
 # HMAC-SHA256 for relay registration tickets (vessel-relay, protocol 6's
 # `fleet.callback`): a fleet's home mints them with the relay's token and
 # the relay checks them with it. RustCrypto, the same family as `sha2`.

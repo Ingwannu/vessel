@@ -279,3 +279,13 @@ unchecked clock additions in the precision fixture's helper; those use
 checked time arithmetic now. Production source is unchanged by that fix.
 The all-target check is retried; functional regression results remain
 unverified until actually recorded.
+
+The first focused store execution was 18 passed and 3 failed. It exposed
+another boundary: the JSON library's default float parser changed tiny
+reported values during storage/reload, so 1e-28 was rejected as an
+unrepresentable decimal and a 2e-29 cumulative observation moved by one
+ULP. The shared dependency now enables `float_roundtrip`, and a full
+context-usage JSON regression covers these numbers. This changes JSON
+decoding and requires fresh verification; the earlier Clippy pass applies
+to `017ff192` before that dependency-feature correction. No failure is
+relabeled a pass. The focused rerun is recorded separately.

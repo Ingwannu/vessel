@@ -166,6 +166,25 @@ mod tests {
     }
 
     #[test]
+    fn usage_cost_numbers_survive_json_round_trips() {
+        for amount in [1e-29, 2e-29, 1e-28, 0.1, 10_000_000_000_000_002.0] {
+            let usage = ContextUsage {
+                used: TokenCount::new(1200),
+                size: TokenCount::new(200_000),
+                cost: Some(Cost {
+                    amount: FiniteNumber::new(amount).unwrap(),
+                    unit: "USD".parse().unwrap(),
+                }),
+            };
+            let encoded = serde_json::to_string(&usage).unwrap();
+            assert_eq!(
+                serde_json::from_str::<ContextUsage>(&encoded).unwrap(),
+                usage
+            );
+        }
+    }
+
+    #[test]
     fn abilities_default_to_nothing() {
         let abilities: AgentAbilities = serde_json::from_str("{}").unwrap();
         assert_eq!(abilities, AgentAbilities::default());
