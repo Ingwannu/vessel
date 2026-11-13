@@ -17,6 +17,8 @@
 mod areas;
 pub mod badge;
 mod chrome;
+#[cfg(not(target_arch = "wasm32"))]
+mod motion;
 mod routes;
 mod shell;
 // A browser build does not update itself: `update_off.rs` stands in.
@@ -52,7 +54,12 @@ fn main() {
         Ok(_) | Err(_) => SchemeChoice::System,
     };
     let (width, height) = window_size();
-    let lang = language();
+    let locale = language();
+    let lang = Lang::from_tag(locale.tag());
+    if let Err(error) = vessel_app_view::localization::Translator::get(locale) {
+        tracing::error!(%error, "the embedded translations could not start");
+        return;
+    }
     gpui_platform::application()
         .with_assets(vessel_app_kit::Assets)
         .run(move |cx| {
@@ -61,6 +68,7 @@ fn main() {
                 cx.quit();
                 return;
             }
+            motion::follow(cx);
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {
@@ -78,13 +86,16 @@ fn main() {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-/// The app's language: `VESSEL_APP_LANG` (`ko`, `en`), else the system's
-/// (Korean for any `ko` locale, English otherwise).
-fn language() -> Lang {
-    std::env::var("VESSEL_APP_LANG")
-        .ok()
-        .or_else(sys_locale::get_locale)
-        .map_or(Lang::En, |tag| Lang::from_tag(&tag))
+/// Resolve the checking override, else the system tag, against the embedded
+/// registry. Legacy screens still use their En/Ko table until migration.
+fn language() -> vessel_app_view::localization::Locale {
+    let override_tag = std::env::var("VESSEL_APP_LANG").ok();
+    let system_tag = sys_locale::get_locale();
+    vessel_app_view::localization::resolve_language(
+        vessel_app_view::localization::LanguagePreference::System,
+        system_tag.as_deref(),
+        override_tag.as_deref(),
+    )
 }
 
 #[cfg(not(target_arch = "wasm32"))]

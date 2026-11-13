@@ -79,6 +79,12 @@
   .settings-column {
     padding: 16px 12px 40px;
   }
+
+  /* A long value (a program's path) beside its title on a phone: half the
+     screen, then an ellipsis, so the row stays inside its list. */
+  .fact-value {
+    max-width: 45vw;
+  }
 }
 
 .fact-link {

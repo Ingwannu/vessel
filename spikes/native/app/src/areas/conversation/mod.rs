@@ -64,7 +64,7 @@ use std::rc::Rc;
 
 use vessel_app_kit::ui::{App, Context, Subscription};
 use vessel_app_kit::{DialogState, MenuHandlers, MenuState, Reveal, VirtualList};
-use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
+use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::session::MarkAction;
@@ -264,6 +264,13 @@ pub(crate) struct ConversationArea {
     /// The last act the node refused, and its words: shown beside the
     /// control it is about.
     pub(crate) refused: Option<(ActKind, String)>,
+    /// The session's machine is not connected (records stopped, or an act,
+    /// a prompt or an input found no connection): the transport's words.
+    /// Said once, in the bar, in the app's words; these only in the line's
+    /// tooltip (`bar.rs`). Not a refusal: the node did not answer at all.
+    pub(crate) lost: Option<String>,
+    /// The tooltip of that line and where it is drawn.
+    pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The Session actions menu, and what its rows do.
     pub(crate) menu: MenuState,
     pub(crate) menu_rows: Vec<MenuAction>,
@@ -318,6 +325,11 @@ impl ConversationArea {
             list: VirtualList::new(true),
             info: None,
             refused: None,
+            lost: None,
+            lost_tip: (
+                vessel_app_kit::Tooltips::new(),
+                Rc::new(std::cell::Cell::new(None)),
+            ),
             menu: MenuState::new(cx),
             menu_rows: Vec::new(),
             confirm: None,
@@ -352,6 +364,7 @@ impl ConversationArea {
     /// Show nothing: what was shown is dropped, here only.
     fn clear(&mut self) {
         self.shown = None;
+        self.lost = None;
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -426,6 +439,8 @@ impl ConversationArea {
         {
             return false;
         }
+        // Records arriving: the connection is back.
+        self.lost = None;
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
         if change.is_empty(self.timeline.entries().len()) {
@@ -580,6 +595,7 @@ impl Shell {
 
     /// A session act answered.
     pub(crate) fn acted(&mut self, answer: ActAnswer, cx: &mut Context<'_, Self>) {
+        let mut reread = false;
         let area = &mut self.areas.conversation;
         match answer.result {
             Ok(Acted::Session(info)) => {
@@ -630,11 +646,10 @@ impl Shell {
             }
             Ok(Acted::Done) => {
                 area.refused = None;
-                // An answer went: what still waits is read again, so a
-                // request drawn from the node's word goes once settled.
-                if matches!(answer.kind, ActKind::Permit | ActKind::Answer) {
-                    self.act(Act::Conversation);
-                }
+                // An answer went: what still waits is read again (below),
+                // so a request drawn from the node's word goes once
+                // settled.
+                reread = matches!(answer.kind, ActKind::Permit | ActKind::Answer);
             }
             Ok(Acted::Conversation(held)) => {
                 if area
@@ -645,9 +660,37 @@ impl Shell {
                     area.live = Live::of(&held);
                 }
             }
+            // No code: the node never answered (the connection failed), so
+            // it is the session's lost connection, said once in the bar,
+            // not a refusal beside a control.
+            Err(ActFailed {
+                code: None,
+                message,
+            }) => {
+                area.lost = Some(message);
+                cx.notify();
+                return;
+            }
             Err(failed) => area.refused = Some((answer.kind, failed.message)),
         }
+        // The node answered: the connection works.
+        area.lost = None;
+        if reread {
+            self.act(Act::Conversation);
+        }
         cx.notify();
+    }
+
+    /// The session shown lost its machine's connection (see `lost`).
+    pub(crate) fn session_lost(&mut self, session: SessionId, why: String) {
+        let area = &mut self.areas.conversation;
+        if area
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.session == session)
+        {
+            area.lost = Some(why);
+        }
     }
 
     /// Ask the node to act on the session shown.

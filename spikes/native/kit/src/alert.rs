@@ -189,24 +189,48 @@ struct Geometry {
 
 impl Geometry {
     fn indent(self) -> f32 {
+        // Body indent = icon + icon_gap. The workspace denies plain float
+        // addition through clippy::float_arithmetic and
+        // clippy::arithmetic_side_effects. mul_add with 1 computes that
+        // sum explicitly, without a lint suppression.
         self.icon.mul_add(1.0, self.icon_gap)
     }
 }
 
 const fn geometry(size: Size) -> Geometry {
-    let (horizontal, vertical, radius, icon, icon_gap, text_gap) = match size {
-        Size::ExtraSmall => (12.0, 8.0, 12.0, 12.0, 8.0, 0.0),
-        Size::Small => (16.0, 12.0, 16.0, 14.0, 12.0, 2.0),
-        Size::Medium => (24.0, 16.0, 16.0, 16.0, 12.0, 2.0),
-        Size::Large => (32.0, 24.0, 16.0, 20.0, 16.0, 4.0),
-    };
-    Geometry {
-        horizontal,
-        vertical,
-        radius,
-        icon,
-        icon_gap,
-        text_gap,
+    match size {
+        Size::ExtraSmall => Geometry {
+            horizontal: 12.0,
+            vertical: 8.0,
+            radius: 12.0,
+            icon: 12.0,
+            icon_gap: 8.0,
+            text_gap: 0.0,
+        },
+        Size::Small => Geometry {
+            horizontal: 16.0,
+            vertical: 12.0,
+            radius: 16.0,
+            icon: 14.0,
+            icon_gap: 12.0,
+            text_gap: 2.0,
+        },
+        Size::Medium => Geometry {
+            horizontal: 24.0,
+            vertical: 16.0,
+            radius: 16.0,
+            icon: 16.0,
+            icon_gap: 12.0,
+            text_gap: 2.0,
+        },
+        Size::Large => Geometry {
+            horizontal: 32.0,
+            vertical: 24.0,
+            radius: 16.0,
+            icon: 20.0,
+            icon_gap: 16.0,
+            text_gap: 4.0,
+        },
     }
 }
 

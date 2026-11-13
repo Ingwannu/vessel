@@ -565,9 +565,12 @@ thread_local! {
 
 /// The chat column grows to `width` (the next frame draws it).
 pub(crate) fn set_content_width(width: ContentWidth) {
-    let points = match width {
-        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
-        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    // The native default follows Paseo's 820-point column. Every explicit
+    // width uses its validated points, including future custom widths.
+    let points = if width == ContentWidth::Comfortable {
+        Some(COLUMN_WIDTH)
+    } else {
+        width.points().map(f32::from)
     };
     CONTENT_WIDTH.set(points);
 }

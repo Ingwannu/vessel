@@ -95,6 +95,17 @@ pub(crate) enum ConversationCommand {
         /// Session id, or a unique prefix of one.
         session: SessionSelector,
     },
+    /// Stop a live session's idle agent now, keeping the session: its next
+    /// prompt starts the agent again with the conversation (protocol 12).
+    Park {
+        /// Session id, or a unique prefix of one.
+        session: SessionSelector,
+    },
+    /// Start a parked session's agent again now.
+    Wake {
+        /// Session id, or a unique prefix of one.
+        session: SessionSelector,
+    },
     /// Keep a session at the top of lists, on every device.
     Pin {
         /// Session id, or a unique prefix of one.

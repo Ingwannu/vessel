@@ -3,9 +3,11 @@
 // list with what it offers. The machine is the address's, else the
 // default (`machineFor`); a picker at the heading changes it.
 
-import { useFleetState } from "../../context";
+import { useEffect } from "react";
+
+import { useAgents, useFleet, useFleetState } from "../../context";
 import { agentsOn } from "../../data/agent-status";
-import { agentKindOf } from "../../data/agents";
+import { agentKey, agentMark, agentName } from "../../data/agents";
 import { machineFor, machineState } from "../../data/machines";
 import { nodeLabel } from "../../data/nodes";
 import { RowList, Skeleton } from "../../ui/kit";
@@ -26,7 +28,18 @@ export function AgentsSection({
   const statuses = useFleetState((state) => state.statuses);
   const harnessLists = useFleetState((state) => state.harnesses);
   const selected = useFleetState((state) => state.selected);
+  const fleet = useFleet();
   const node = machineFor(book ?? [], machine, selected);
+  const key = node?.key ?? null;
+  const connected = key !== null && statuses[key]?.state === "connected";
+  // The agents added on the machine are listed by `agent.list`, read here
+  // (the fleet reads it elsewhere only once one shows).
+  useEffect(() => {
+    if (key !== null && connected) {
+      void fleet.loadAgents(key);
+    }
+  }, [fleet, key, connected]);
+  const added = useAgents(key);
   const lead =
     "The agents each machine can run, and what they offer: models, effort and permissions.";
   if (node === null) {
@@ -42,9 +55,9 @@ export function AgentsSection({
   }
   const label = nodeLabel(node, statuses[node.key]);
   const harnesses = harnessLists[node.key];
-  const open = agentKindOf(agent);
-  const agents = harnesses === undefined ? null : agentsOn(harnesses);
-  const chosen = agents?.find((entry) => entry.kind === open) ?? null;
+  const agents = harnesses === undefined ? null : agentsOn(harnesses, added);
+  const chosen =
+    agents?.find((entry) => agentKey(entry.agent) === agent) ?? null;
   return (
     <SettingsPage lead={lead}>
       <SettingsSection
@@ -64,11 +77,13 @@ export function AgentsSection({
           <RowList label={`Agents on ${label}`}>
             {agents.map((entry) => (
               <AgentRow
-                key={entry.kind}
+                key={agentKey(entry.agent)}
                 machine={node.key}
-                kind={entry.kind}
+                agent={entry.agent}
+                name={agentName(entry.agent, added)}
+                mark={agentMark(entry.agent, added)}
                 status={entry.status}
-                selected={entry.kind === chosen?.kind}
+                selected={entry === chosen}
               />
             ))}
           </RowList>
@@ -78,7 +93,8 @@ export function AgentsSection({
         <AgentDetail
           machine={node.key}
           label={label}
-          kind={chosen.kind}
+          agent={chosen.agent}
+          name={agentName(chosen.agent, added)}
           status={chosen.status}
         />
       )}

@@ -1,0 +1,99 @@
+/* The attached files over the composer's text (attachment-strip.tsx),
+   agent-orchestrator's chips: the 4% wash, radius 8, 2px inside (4px at
+   the right end), 6px between their parts and between chips; an image's
+   thumbnail 24px with radius 6, a file's icon in a 24px box; the name in
+   12px at most 120px wide, "type · size" under it at 70%. GOAT's upload
+   band along the chip's foot; a chip that failed edged in the danger
+   colour, its reason where the type was. */
+
+.attachment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 4px 2px 2px;
+  overflow: hidden;
+  border-radius: var(--r-2);
+  background: var(--bg-hover);
+  cursor: default;
+}
+
+.attachment-chip.problem {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.attachment-thumb {
+  display: block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.attachment-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg-active);
+  color: var(--text-secondary);
+}
+
+.attachment-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.attachment-name {
+  max-width: 120px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: 400 12px / 15px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-meta {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: 400 10.5px / 13px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-chip.problem .attachment-meta {
+  color: var(--danger);
+}
+
+.attachment-band {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform var(--d-2) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attachment-band {
+    transition: none;
+  }
+}

@@ -102,7 +102,7 @@ mod transport;
 mod waits;
 mod workspace;
 
-pub use config::{Config, VesselMcp};
+pub use config::{Config, DEFAULT_PARK_AFTER, VesselMcp};
 
 /// This binary's version and target triple, as `vesseld version` prints
 /// them: what the remote installer checks (ADR 0008).

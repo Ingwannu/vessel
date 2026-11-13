@@ -31,7 +31,16 @@ pub struct Text {
     pub add_machine: &'static str,
     pub no_machines: &'static str,
     pub online: &'static str,
+    /// A machine's state beside its name in the sidebar, and its row's
+    /// detail in the composer's machine list, when it did not answer (the
+    /// transport's own text is only the sidebar's tooltip).
     pub unreachable: &'static str,
+    /// The line under an unreachable machine's name in the sidebar: what
+    /// to do.
+    pub unreachable_hint: &'static str,
+    /// The session's bar when its machine's connection is lost (once; the
+    /// transport's words are only that line's tooltip).
+    pub session_lost: &'static str,
     pub reload: &'static str,
     // The board.
     pub building: &'static str,
@@ -76,6 +85,8 @@ pub struct Text {
     pub details: &'static str,
     pub name_label: &'static str,
     pub name_hint: &'static str,
+    /// The pairing name field's placeholder: what an empty name saves.
+    pub name_placeholder: &'static str,
     pub name_is_key: &'static str,
     pub name_is_link: &'static str,
     pub name_empty: &'static str,
@@ -292,14 +303,20 @@ impl Text {
         }
     }
 
-    /// The status line once a machine is paired (`name` the machine,
-    /// `route` how it is reached). No particle follows the name (a name's
-    /// last sound decides the particle; ADR 0039's interim rule).
+    /// The status line (the frame's foot) once a machine is paired:
+    /// `name` the machine, `via` how it answered, in words (the address
+    /// is the line's tooltip). No particle follows the name (a name's
+    /// last sound decides the particle; ADR 0039's interim rule): the
+    /// particle follows the word 머신.
     #[must_use]
-    pub fn paired(&self, name: &str, route: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Paired with {name} via {route}"),
-            Lang::Ko => format!("머신 연결됨: {name} ({route})"),
+    pub fn paired(&self, name: &str, via: crate::Via) -> String {
+        match (self.lang, via) {
+            (Lang::En, crate::Via::Direct) => format!("Paired with {name}, connected directly"),
+            (Lang::En, crate::Via::Relay) => {
+                format!("Paired with {name}, connected through a relay")
+            }
+            (Lang::Ko, crate::Via::Direct) => format!("{name} 머신에 직접 연결됨"),
+            (Lang::Ko, crate::Via::Relay) => format!("{name} 머신에 릴레이로 연결됨"),
         }
     }
 }
@@ -314,6 +331,8 @@ const EN: Text = Text {
     no_machines: "No machines yet. Add one to begin.",
     online: "online",
     unreachable: "unreachable",
+    unreachable_hint: "Check that the machine is on and its node is running.",
+    session_lost: "Not connected to the machine",
     reload: "reload",
     building: "Building",
     validating: "Validating",
@@ -358,6 +377,7 @@ const EN: Text = Text {
     details: "Details",
     name_label: "Name for this machine",
     name_hint: "A short name you will recognise, for example home-pc.",
+    name_placeholder: "Leave empty to use the machine's own name",
     name_is_key: "That is the key. Type a short name instead, for example home-pc.",
     name_is_link: "That is the link; it goes in the field above. Type a short name here, for example home-pc.",
     name_empty: "Type a short name, for example home-pc.",
@@ -377,7 +397,9 @@ const KO: Text = Text {
     add_machine: "머신 추가",
     no_machines: "아직 머신이 없습니다. 머신을 추가해 시작하세요.",
     online: "연결됨",
-    unreachable: "연결 안 됨",
+    unreachable: "연결할 수 없음",
+    unreachable_hint: "머신이 켜져 있고 노드가 실행 중인지 확인하세요.",
+    session_lost: "머신과 연결이 끊겼습니다",
     reload: "새로고침",
     building: "작업 중",
     validating: "검증 중",
@@ -422,6 +444,7 @@ const KO: Text = Text {
     details: "자세히",
     name_label: "이 머신의 이름",
     name_hint: "알아보기 쉬운 짧은 이름 (예: home-pc)",
+    name_placeholder: "비워 두면 머신 자신의 이름을 씁니다",
     name_is_key: "이것은 키입니다. 대신 짧은 이름을 적으세요 (예: home-pc).",
     name_is_link: "이것은 링크입니다. 링크는 위 칸에 넣고, 여기에는 짧은 이름을 적으세요 (예: home-pc).",
     name_empty: "짧은 이름을 적으세요 (예: home-pc).",

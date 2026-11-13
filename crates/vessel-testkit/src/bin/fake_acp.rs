@@ -14,6 +14,10 @@
 //!   (`fake-login`, "Fake login") and `session/new` answers ACP's
 //!   `auth_required` (what `agent.status` reads, ADR 0032). `initialize`
 //!   always names it: `fake-acp` and the crate's version.
+//! - With `--slow-start <ms>` among its arguments, `initialize` is answered
+//!   that many milliseconds late: an agent that takes a while to start
+//!   (the page's new chat is timed against one, `web/e2e/new-chat.spec.ts`;
+//!   an added agent's arguments are how a test gives it).
 //! - With `FAKE_ACP_HANG` set to `initialize` or `session/new`, that request
 //!   is never answered (an adapter stuck at start); stuck at `session/new`,
 //!   it says so on stderr first (`fake-acp: stuck at session/new`), so a
@@ -98,7 +102,12 @@
 //!     accepted content as JSON); `ask withdraw` cancels its own request
 //!     first (`$/cancel_request`). Without the capability, one message
 //!     chunk `no questions`. `ask link`: a URL-mode elicitation, sent
-//!     whatever the client advertised, reported the same way;
+//!     whatever the client advertised, reported the same way; `ask
+//!     claude`: Claude's `AskUserQuestion` form (two questions, each with
+//!     its free-text "Other"), reported the same way; `ask questions` and
+//!     `ask one`: the same question built as the adapter builds it, three
+//!     questions (long option descriptions, one choosing several, one in
+//!     Korean) or the first alone (`ask` module);
 //!   - `permit plan`, `permit codex`, `permit two`: permission requests in
 //!     the real adapters' shapes (Claude Code leaving plan mode, Codex's
 //!     five answers, two at once; `permits` module), then one message
@@ -302,6 +311,17 @@ fn lock(state: &Shared) -> MutexGuard<'_, State> {
     state.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+/// How late `initialize` is answered: `--slow-start <ms>` among the
+/// arguments.
+fn slow_start() -> Option<std::time::Duration> {
+    let millis = std::env::args()
+        .skip_while(|arg| arg != "--slow-start")
+        .nth(1)?
+        .parse::<u64>()
+        .ok()?;
+    Some(std::time::Duration::from_millis(millis))
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "one handler registration per ACP method, kept in one readable chain"
@@ -311,6 +331,7 @@ async fn serve() -> ExitCode {
     let hang = std::env::var("FAKE_ACP_HANG").unwrap_or_default();
     let hang_at_initialize = hang == "initialize";
     let hang_at_new = hang == "session/new";
+    let slow_start = slow_start();
     let http_mcp = std::env::var_os("FAKE_ACP_NO_HTTP_MCP").is_none();
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
@@ -332,6 +353,9 @@ async fn serve() -> ExitCode {
                 async move |request: InitializeRequest, responder, _cx| {
                     if hang_at_initialize {
                         std::future::pending::<()>().await;
+                    }
+                    if let Some(wait) = slow_start {
+                        tokio::time::sleep(wait).await;
                     }
                     let questions = request
                         .client_capabilities

@@ -241,7 +241,11 @@ impl Reply {
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
-            | Self::DeletePrompt(_) => None,
+            | Self::DeletePrompt(_)
+            | Self::SearchMessages(_)
+            // Protocol 12's: asked only by peers that read them.
+            | Self::ParkSession(_)
+            | Self::WakeSession(_) => None,
         }
     }
 }

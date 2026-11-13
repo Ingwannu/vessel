@@ -314,7 +314,11 @@ impl Timeline {
                     },
                 );
             }
-            SessionEvent::Terminal(_) => {}
+            // A parked session's agent stopped and started again (protocol
+            // 12, ADR 0038, track A2): the timeline does not draw it yet
+            // (track C's, with A2's slice); the session's own status
+            // records still say whether it runs.
+            SessionEvent::Terminal(_) | SessionEvent::Parked { .. } | SessionEvent::Woken => {}
             SessionEvent::Agent { event } => self.agent(record, event),
             SessionEvent::ProfileChanged { from, to } => self.push(
                 record,

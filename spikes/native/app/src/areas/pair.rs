@@ -6,8 +6,12 @@
 //!    single-use secret).
 //! 2. The key shown large, with nothing to type, and one sentence: it
 //!    must be the same as the key the machine printed with the link. Then
-//!    the name, under a label that stays, filled in with a name the book
-//!    does not have, so Pair works at once. A name that looks like the key
+//!    the name, under a label that stays, empty with a placeholder that
+//!    says an empty name is the machine's own (the link carries no name;
+//!    the machine says it once paired), so Pair works at once and the
+//!    field never shows a value that is not what will be saved (the
+//!    coordinator's check of 0.0.0.0.8: "machine" was drawn as if typed,
+//!    and the node's own name was saved). A name that looks like the key
 //!    or a link is called that, beside the field, as it is typed.
 //!
 //! Errors are shown beside the control they are about, not in the frame's
@@ -34,9 +38,6 @@ pub(crate) struct Pairing {
     name_problem: Option<NameProblem>,
     pair_error: Option<String>,
     busy: bool,
-    /// The name the app filled in; kept as it is, the node's own name is
-    /// used instead once pairing says it.
-    prefilled: Option<String>,
     /// The modal's focus (Escape closes it).
     dialog: DialogState,
 }
@@ -54,7 +55,10 @@ impl Pairing {
                 "",
                 |shell: &mut Shell, text, _window, cx| shell.pair(text, cx),
                 |shell: &mut Shell, text, cx| {
-                    shell.areas.pair.name_problem = name_problem(&text, &shell.book_names());
+                    // Empty is allowed: the machine's own name.
+                    shell.areas.pair.name_problem = (!text.trim().is_empty())
+                        .then(|| name_problem(&text, &shell.book_names()))
+                        .flatten();
                     shell.areas.pair.pair_error = None;
                     cx.notify();
                 },
@@ -66,7 +70,6 @@ impl Pairing {
             name_problem: None,
             pair_error: None,
             busy: false,
-            prefilled: None,
             dialog: DialogState::new(cx),
         }
     }
@@ -86,7 +89,7 @@ pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
         .areas
         .pair
         .name
-        .set_placeholder(t.name_hint, window, cx);
+        .set_placeholder(t.name_placeholder, window, cx);
     shell.areas.pair.link.focus(window, cx);
 }
 
@@ -114,9 +117,7 @@ impl Shell {
                 pair.name_problem = None;
                 // The link is held only as the offer, not left on screen.
                 pair.link.clear(window, cx);
-                let name = default_name(&self.book_names());
-                self.areas.pair.name.set_text(&name, window, cx);
-                self.areas.pair.prefilled = Some(name);
+                self.areas.pair.name.clear(window, cx);
                 self.areas.pair.name.focus(window, cx);
             }
             Err(error) => self.areas.pair.link_error = Some(error.to_string()),
@@ -134,15 +135,22 @@ impl Shell {
             cx.notify();
             return;
         };
-        if let Some(problem) = name_problem(&name, &self.book_names()) {
-            self.areas.pair.name_problem = Some(problem);
-            cx.notify();
-            return;
-        }
+        // Empty: the machine's own name once it says it (a free name of the
+        // app's when the machine's is taken or not a valid book name).
+        let prefer_node_name = name.trim().is_empty();
+        let name = if prefer_node_name {
+            default_name(&self.book_names())
+        } else {
+            if let Some(problem) = name_problem(&name, &self.book_names()) {
+                self.areas.pair.name_problem = Some(problem);
+                cx.notify();
+                return;
+            }
+            name
+        };
         let pair = &mut self.areas.pair;
         pair.busy = true;
         pair.pair_error = None;
-        let prefer_node_name = pair.prefilled.as_deref() == Some(name.trim());
         self.command(Command::Pair {
             offer,
             name,
@@ -172,14 +180,33 @@ impl Shell {
     }
 
     /// Pairing worked: the draft next, to start working there.
-    pub(crate) fn paired(&mut self, node: &str, route: &str, cx: &mut Context<'_, Self>) {
+    pub(crate) fn paired(
+        &mut self,
+        node: &str,
+        via: vessel_app_view::Via,
+        address: String,
+        cx: &mut Context<'_, Self>,
+    ) {
         let pair = &mut self.areas.pair;
         pair.busy = false;
         pair.offer = None;
-        self.notice = Some(self.t.paired(node, route));
+        let notice = self.t.paired(node, via);
+        self.notice_detail = Some((notice.clone(), address));
+        self.notice = Some(notice);
         self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
+    }
+
+    /// The machine list does not read: the app's words for where and what
+    /// (never the file's text: it may hold a token) in the frame's foot,
+    /// and beside the pairing form when a pairing was under way.
+    pub(crate) fn book_unreadable(&mut self, fault: &vessel_app_view::files::FileFault) {
+        let words = self.t.lang.machines_unreadable(fault);
+        if self.areas.pair.busy {
+            self.pair_failed(words.clone());
+        }
+        self.notice = Some(words);
     }
 
     pub(crate) fn pair_failed(&mut self, why: String) {
@@ -273,17 +300,12 @@ fn confirm_step(
     let pair = &shell.areas.pair;
     let neutral = tokens.neutral;
     let card = settings::card(tokens)
-        .child(settings::row(
-            words.host,
-            Some(offer.node.clone().into()),
-            None,
-            true,
-            tokens,
-        ))
-        .child(settings::row(
+        // The machine's id and its key's fingerprint in the code face (each
+        // character told from its neighbours, as the machine printed them).
+        .child(settings::code_row(words.host, offer.node.clone(), true, tokens))
+        .child(settings::code_row(
             words.fingerprint,
-            Some(offer.key.clone().into()),
-            None,
+            offer.key.clone(),
             false,
             tokens,
         ))

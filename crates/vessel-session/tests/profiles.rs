@@ -99,6 +99,7 @@ mod support {
                     ring_capacity: DEFAULT_RING_CAPACITY,
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                    park_after: None,
                 },
                 CancellationToken::new(),
             );
@@ -389,7 +390,9 @@ mod support {
                 | SessionEvent::Renamed { .. }
                 | SessionEvent::QueueChanged { .. }
                 | SessionEvent::CommandsChanged { .. }
-                | SessionEvent::UsageChanged { .. } => {}
+                | SessionEvent::UsageChanged { .. }
+                | SessionEvent::Parked { .. }
+                | SessionEvent::Woken => {}
             }
             Some(record)
         }

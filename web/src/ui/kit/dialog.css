@@ -83,9 +83,12 @@
   scrollbar-color: var(--scrollbar) transparent;
 }
 
+/* Three actions do not fit beside each other on a phone: they wrap,
+   still from the right, rather than run off the dialog's left edge. */
 .dialog-f {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   padding: 0 16px 16px;

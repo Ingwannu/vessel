@@ -146,7 +146,9 @@ mod support {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. }) => panic!("a terminal logs no {other:?}"),
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken) => panic!("a terminal logs no {other:?}"),
         };
         for record in &follow.cached {
             take(&record.event);
@@ -480,7 +482,9 @@ async fn the_scrollback_drops_its_oldest_output() {
                 | SessionEvent::Renamed { .. }
                 | SessionEvent::QueueChanged { .. }
                 | SessionEvent::CommandsChanged { .. }
-                | SessionEvent::UsageChanged { .. } => 0,
+                | SessionEvent::UsageChanged { .. }
+                | SessionEvent::Parked { .. }
+                | SessionEvent::Woken => 0,
             })
             .sum();
         assert!(kept <= 16 * 1024 + 64 * 4, "kept {kept} bytes");

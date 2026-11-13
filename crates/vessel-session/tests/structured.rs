@@ -108,6 +108,7 @@ mod support {
                     ring_capacity: DEFAULT_RING_CAPACITY,
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                    park_after: None,
                 },
                 CancellationToken::new(),
             );
@@ -238,7 +239,9 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken => None,
     }
 }
 

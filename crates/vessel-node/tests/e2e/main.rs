@@ -58,6 +58,8 @@ mod options;
 #[cfg(test)]
 mod page_wire;
 #[cfg(test)]
+mod parking;
+#[cfg(test)]
 mod profiles;
 #[cfg(test)]
 mod prompts;
@@ -78,6 +80,8 @@ mod routing;
 mod scheduled;
 #[cfg(test)]
 mod schedules;
+#[cfg(test)]
+mod search;
 #[cfg(test)]
 mod secrets_across;
 #[cfg(test)]
