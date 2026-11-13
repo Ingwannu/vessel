@@ -371,3 +371,33 @@ async fn with_automatic_updates_off_only_a_check_asked_for_runs() {
     assert!(matches!(state, UpdateState::Ready { .. }), "{state:?}");
     assert_eq!(std::fs::read(installation.executable()).unwrap(), NEW_BUILD);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn turning_automatic_updates_on_changes_a_running_updater() {
+    let feed = Feed::new();
+    feed.publish("preview", "0.0.0.0.2", NEW_BUILD);
+    let address = serve(feed.root.path().to_path_buf()).await;
+    let app_dir = tempfile::tempdir().unwrap();
+    let installation = installed_app(app_dir.path());
+    let mut off = settings(address, feed.key(), "0.0.0.0.1");
+    off.automatic = false;
+    off.every = std::time::Duration::from_millis(100);
+
+    let updater = Updater::start(
+        off,
+        installation.clone(),
+        &tokio::runtime::Handle::current(),
+    )
+    .unwrap();
+    // Several ticks pass with the preference off: none checks. A negative
+    // check needs a bound; 500 ms is five ticks.
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    assert!(matches!(*updater.state().borrow(), UpdateState::Idle));
+
+    // On while running: the next tick checks, downloads and installs.
+    updater.set_automatic(true);
+    assert!(updater.automatic());
+    let state = settled(&updater).await;
+    assert!(matches!(state, UpdateState::Ready { .. }), "{state:?}");
+    assert_eq!(std::fs::read(installation.executable()).unwrap(), NEW_BUILD);
+}
