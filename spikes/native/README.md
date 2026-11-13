@@ -416,6 +416,10 @@ Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
 
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
+its caller owns the callback and pending state, with no extra paint.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
