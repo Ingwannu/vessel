@@ -140,3 +140,29 @@ process remains and record the final commit and exact verification below.
   them and the final result only after inspecting the completed log. Page
   and real fake-fleet gates plus current-binary grant repeats are still
   unverified. Protocol-13 integration and rows 3-7 remain deferred.
+
+### Runtime findings and followup
+
+The complete TS-enabled run finished: 105 suites, 1,669 passed, four failed,
+nine ignored. Failures were the lifecycle fixture's first manifest query
+(a file was visible before publication), two protocol classification tests
+that did not yet account for the new fleet methods, and the existing remote
+release-fallback test's unchanged 60-second timeout. The last is not classified
+as flaky and its timeout/code has not been changed here.
+
+After the run ended, the first three fixtures were corrected without changing
+expected authority, state or time limits. Initial readiness now checks the
+actual read-only RPC under the existing STEP deadline; the public watch is
+unavailable before the first publication, so its probe is paced. New Admin
+methods are pinned explicitly; the fleet additions share preview's first
+version rather than a later global protocol maximum. No join is auto-retried.
+
+`row2-clippy-runtime-fixes.log` passed the complete workspace/all targets
+with TS features after the first corrections. Page lint/typecheck, 55 files /
+243 unit tests, bundle build and 36 E2E cases passed; logs are `row2-web-*`.
+The current original root gate is fmt, full clippy without extra features
+(`row2-final-clippy.log`), then exactly `cargo test --workspace` with two test
+threads (`row2-final-workspace-test.log`). Read their final results before
+claiming success. Generated `web/src/wire/proto.ts` is current and must be
+committed with this followup. This remains WIP until the full gate, real
+fake-fleet check and required grant repeats are complete.

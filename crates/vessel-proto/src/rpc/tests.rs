@@ -37,6 +37,9 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "device.list",
             "device.revoke",
             "profile.reload",
+            "fleet.join",
+            "fleet.leave",
+            "fleet.sync",
             "fleet.members",
             "fleet.forget",
             "memory.export",
@@ -87,10 +90,21 @@ fn every_method_knows_its_first_version() {
         Method::ReportApplied,
         Method::ListMembers,
     ];
+    let added_fleet = [
+        Method::JoinFleet,
+        Method::LeaveFleet,
+        Method::SyncFleet,
+        Method::GetFleetStatus,
+    ];
+    // All N3 additions share preview's first version, independent of later
+    // global protocol bumps; integration renumbers this track together.
+    for method in added_fleet {
+        assert_eq!(method.since(), Method::PreviewSchedule.since());
+    }
     for method in Method::ALL {
         assert!(method.since() <= crate::PROTOCOL_VERSION, "{method:?}");
         let name = method.as_str();
-        let fleet = name.starts_with("fleet.");
+        let fleet = name.starts_with("fleet.") && !added_fleet.contains(method);
         let profile = name.starts_with("profile.") || *method == Method::MoveProfile;
         let v6 = (fleet && !v5_fleet.contains(method))
             || ["session.export", "session.import"].contains(&name)

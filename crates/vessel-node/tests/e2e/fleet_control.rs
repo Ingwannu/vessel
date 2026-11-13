@@ -215,7 +215,7 @@ async fn wire_join_manual_sync_reports_and_leave_share_the_existing_engine() {
         .await;
         let first = home_owner.fleet_status().await.unwrap();
         assert_eq!(first.role, FleetRole::Home);
-        let original = home_owner.fleet_manifest().await.unwrap().generation;
+        let original = published_bundle(&home_owner).await;
 
         let member_fixture = Fixture::new();
         let member_target = temp.path().join("member-codex");
@@ -337,6 +337,25 @@ async fn read_only_and_agent_status_do_not_disclose_admin_member_reports() {
         relay.stop().await;
     })
     .await;
+}
+
+async fn published_bundle(owner: &NodeClient) -> vessel_proto::Generation {
+    // A materialized file precedes publication. The public watch refuses
+    // before the first bundle, so pace this read-only readiness probe and
+    // keep the existing STEP deadline; never infer readiness from a file.
+    crate::support::step("the first published fleet bundle", async {
+        let mut tick = tokio::time::interval(Duration::from_millis(25));
+        loop {
+            let _tick = tick.tick().await;
+            match owner.fleet_manifest().await {
+                Ok(manifest) => return manifest.generation,
+                Err(vessel_client::CallError::Remote(error))
+                    if error.code == ErrorCode::Unavailable => {}
+                Err(error) => panic!("cannot read the initial published bundle: {error}"),
+            }
+        }
+    })
+    .await
 }
 
 async fn confirm_join(
