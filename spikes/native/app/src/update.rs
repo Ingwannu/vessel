@@ -32,9 +32,8 @@
 
 use vessel_app_kit::ui::{AsyncApp, Context, WeakEntity};
 use vessel_app_link::{Command, UpdateNotes};
-use vessel_app_updater::{
-    ApplyError, Installation, Settings, UpdateState, Updater, settings_from_build,
-};
+pub(crate) use vessel_app_updater::UpdateState;
+use vessel_app_updater::{ApplyError, Installation, Settings, Updater, settings_from_build};
 
 use crate::shell::Shell;
 

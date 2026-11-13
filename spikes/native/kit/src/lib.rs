@@ -98,8 +98,14 @@ pub fn tokens(cx: &App) -> Tokens {
 /// # Errors
 /// The faces could not be registered.
 pub fn init(cx: &mut App, choice: SchemeChoice) -> Result<(), fonts::FontError> {
-    fonts::register(cx)?;
+    // The component layer first, the faces after: its `init` asks GPUI
+    // which face `.SystemUIFont` lands on once any face is installed, and
+    // in a browser (no system faces) that lookup panics when only ours are
+    // there. Before them it skips the lookup; the theme then names Geist
+    // (`set_scheme`), so the order changes nothing on the desktop
+    // (docs/plans/backend-m12-browser.md, question 1).
     gpui_component::init(cx);
+    fonts::register(cx)?;
     let scheme = match choice {
         SchemeChoice::Fixed(scheme) => scheme,
         SchemeChoice::System => scheme_of(cx.window_appearance()),

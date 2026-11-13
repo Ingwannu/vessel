@@ -108,8 +108,11 @@ vessel-proto = { path = "../../crates/vessel-proto" }
 gpui = { package = "gpui-pre", version = "=0.3.10" }
 # `x11` and `wayland` are off by default in the platform crate: without
 # them a Linux build starts headless, silently, and draws nothing
-# (question 9, problem 2).
-gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", features = ["x11", "wayland"] }
+# (question 9, problem 2). Its one default, `multithreaded`, only reaches
+# the web platform and needs a nightly compiler rebuilding std with atomics
+# and a page served cross-origin isolated; the browser build is
+# single-threaded (docs/plans/backend-m12-browser.md, question 1).
+gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", default-features = false, features = ["x11", "wayland"] }
 gpui-component = { version = "=0.8.1", default-features = false }
 # The component layer's editing engine, used directly by the kit's field
 # for its unstyled inputs (the component layer's own input repaints its
