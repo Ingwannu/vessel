@@ -121,7 +121,6 @@ pub(crate) fn content(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let words = shell.t.lang.update();
     let about = shell.t.lang.about();
     let mut licences = settings::card(tokens).child(settings::row_at(
         "Vessel",
@@ -146,11 +145,8 @@ pub(crate) fn content(
     div()
         .flex()
         .flex_col()
-        .child(settings::section(
-            words.about,
-            card(shell, tokens, cx),
-            tokens,
-        ))
+        // The page's name for it: the page's title says About already.
+        .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
         .child(settings::section(about.software, licences, tokens))
         .into_any_element()
 }

@@ -114,11 +114,12 @@ impl Anchors {
 }
 
 impl Shell {
-    /// Open Settings at `section` (pushed on a phone), remembering where
-    /// "Back" returns to.
+    /// Open Settings at `section` (pushed on a phone), or at its start
+    /// (General beside the list; the list on a phone, as Paseo's gear),
+    /// remembering where "Back" returns to.
     pub(crate) fn open_settings(
         &mut self,
-        section: Section,
+        section: Option<Section>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -126,8 +127,8 @@ impl Shell {
             self.areas.settings.from = self.route;
         }
         let state = &mut self.areas.settings;
-        state.section = section;
-        state.pushed = true;
+        state.section = section.unwrap_or(Section::DEFAULT);
+        state.pushed = section.is_some();
         state.refused = None;
         self.go(Route::Settings, window, cx);
     }

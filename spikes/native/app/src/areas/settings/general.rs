@@ -15,10 +15,10 @@
 
 use vessel_app_kit::select;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, div, px,
+    AnyElement, ClipboardItem, Context, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, settings};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::prefs::{Kept, SendKey};
 
 use super::choices::{self, List};
@@ -57,30 +57,42 @@ pub(crate) fn render(
             tokens,
         ));
     let kept = &shell.prefs.kept;
-    let (hint, value) = match kept {
-        Kept::File { path } => (words.kept_note.to_owned(), path.clone()),
+    // The file's path under the note, its copy at the right (as About's log
+    // file); this launch only, said with why.
+    let (hint, control) = match kept {
+        Kept::File { path } => {
+            let copied = path.clone();
+            let copy = outline_button(
+                "settings-copy-prefs-path",
+                shell.t.lang.update().copy_path,
+                true,
+                tokens,
+            )
+            .on_click(cx.listener(move |shell, _event, _window, cx| {
+                cx.write_to_clipboard(ClipboardItem::new_string(copied.clone()));
+                shell.notice = Some(shell.t.lang.settings().path_copied.to_owned());
+                cx.notify();
+            }));
+            (
+                format!("{}\n{path}", words.kept_note),
+                copy.into_any_element(),
+            )
+        }
         Kept::ThisLaunch { .. } => (
             words.kept_why(kept).unwrap_or_default(),
-            words.this_launch.to_owned(),
+            div()
+                .flex_shrink_0()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(words.this_launch)
+                .into_any_element(),
         ),
     };
-    let mono = matches!(kept, Kept::File { .. });
     let kept_card = settings::card(tokens).child(settings::row_at(
         words.preferences,
         Some(hint.into()),
         None,
-        Some(
-            div()
-                .min_w_0()
-                .max_w(px(280.0))
-                .overflow_hidden()
-                .whitespace_nowrap()
-                .text_ellipsis()
-                .type_(if mono { Type::Mono } else { Type::Body })
-                .text_color(tokens.neutral.foreground_muted)
-                .child(value)
-                .into_any_element(),
-        ),
+        Some(control),
         true,
         compact,
         tokens,

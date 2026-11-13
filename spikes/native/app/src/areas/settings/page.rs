@@ -36,9 +36,11 @@ pub(crate) fn layout(
                 div()
                     .ml(px(4.0))
                     .mb(px(24.0))
+                    // Paseo's 26 at weight 500: the label step's face and
+                    // fallbacks (Hangul), larger.
+                    .type_(Type::Label)
                     .text_size(px(26.0))
                     .line_height(px(32.0))
-                    .font_weight(gpui::FontWeight::MEDIUM)
                     .text_color(tokens.neutral.foreground)
                     .child(title.to_owned()),
             )

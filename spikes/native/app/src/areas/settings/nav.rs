@@ -193,23 +193,31 @@ fn picker(
 fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
     let neutral = tokens.neutral;
-    let mut list = div().flex().flex_col();
+    let mut groups = div().flex().flex_col();
     let mut picked = false;
     for group in Group::ALL {
-        let mut island = div()
-            .flex()
-            .flex_col()
-            .gap(px(2.0))
-            .when(compact, |island| island.rounded(px(16.0)).overflow_hidden());
         let sections = group.sections();
+        let mut rows = Vec::new();
         if !picked && sections.iter().any(|section| section.per_machine()) {
             picked = true;
-            island = island.child(picker(shell, compact, tokens, cx));
+            rows.push(picker(shell, compact, tokens, cx));
         }
         for section in sections {
-            island = island.child(section_row(section, shell, compact, tokens, cx));
+            rows.push(section_row(section, shell, compact, tokens, cx));
         }
-        list = list.child(
+        // An island's corners are its first and last rows' (a clip is a
+        // rectangle here, so the island cannot round them).
+        let last = rows.len().saturating_sub(1);
+        let island =
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(2.0))
+                .children(rows.into_iter().enumerate().map(|(index, row)| {
+                    row.when(compact && index == 0, |row| row.rounded_t(px(16.0)))
+                        .when(compact && index == last, |row| row.rounded_b(px(16.0)))
+                }));
+        groups = groups.child(
             div()
                 .flex()
                 .flex_col()
@@ -226,7 +234,7 @@ fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Sh
                 .child(island),
         );
     }
-    list
+    groups
 }
 
 /// On a wide window, in the sidebar's place: the way back, then the

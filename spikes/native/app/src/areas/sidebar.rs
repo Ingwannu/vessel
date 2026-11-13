@@ -107,7 +107,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                 .hover(|style| style.text_color(tokens.text_secondary))
                 .child(t.build(crate::LABEL))
                 .on_click(cx.listener(|this, _event, window, cx| {
-                    this.open_settings(Section::About, window, cx);
+                    this.open_settings(Some(Section::About), window, cx);
                 })),
         )
         .child("·")
@@ -132,7 +132,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                 tokens,
             )
             .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_settings(Section::General, window, cx);
+                this.open_settings(None, window, cx);
             })),
         )
 }
