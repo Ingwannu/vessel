@@ -177,7 +177,7 @@ no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
 compact is one-line 16/500 with a 44-point menu button. Chrome integration
 and avoiding duplicate sidebar toggles stay with the desktop lead.
 
-#The typed button also has `button_with_kind_at(..., ControlSizing, ...)`:
+The typed button also has `button_with_kind_at(..., ControlSizing, ...)`:
 MD pointer minimum32/padding16, touch minimum44/padding24. Legacy entries
 remain pointer-sized. `menu::TriggerSizing` names the same shared type;
 `popup::TOUCH_TARGET` keeps its compatibility name for the shared44 value.
@@ -194,7 +194,7 @@ caller owns result timing/reset; no second success alert is added.
 Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
 consumed at16 for pointer and20 for compact settings navigation.
 
-## Rules every screen follows
+### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
 keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
