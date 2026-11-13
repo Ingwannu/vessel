@@ -1,54 +1,33 @@
-//! The window's one view: what is shown (the board, a session, the pairing
-//! form), the link's events folded into it, and the frame the screens are
-//! drawn in (the sidebar on the shell, the page framed beside it, as the
-//! page's layout has it: DESIGN.md section 6).
+//! The window's one view: the route on screen, the fleet as last read,
+//! the areas' state, the link's events dispatched to them, and the frame
+//! (the title bar, the sidebar on the shell, the page framed beside it:
+//! DESIGN.md section 6).
 
 use tokio::sync::mpsc;
+use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
-    AsyncApp, Context, IntoElement, ListAlignment, ListState, ParentElement as _, Render,
-    Styled as _, WeakEntity, Window, div, px,
+    AsyncApp, Context, IntoElement, ParentElement as _, Render, Styled as _, WeakEntity, Window,
+    div, px,
 };
-use vessel_app_kit::{TextField, tokens};
-use vessel_app_link::{Command, Event, Link, Offer};
-use vessel_app_view::{Conversation, Fleet};
-use vessel_proto::SessionId;
+use vessel_app_link::{Command, Event, Link, Prefs};
+use vessel_app_view::{Fleet, Text};
 
-use crate::screens;
-
-/// Which screen fills the frame.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Screen {
-    /// The board's lanes.
-    Board,
-    /// One session's conversation.
-    Session,
-    /// The pairing form.
-    Pair,
-}
-
-/// The session on screen.
-#[derive(Debug, Clone)]
-pub(crate) struct Open {
-    pub(crate) machine: String,
-    pub(crate) session: SessionId,
-    pub(crate) title: String,
-    pub(crate) agent: String,
-    pub(crate) structured: bool,
-}
+use crate::areas::{self, Areas};
+use crate::chrome;
+use crate::routes::{self, Route};
 
 /// The window's state.
 pub(crate) struct Shell {
     link: Option<Link>,
+    /// Every word on screen, in the person's language.
+    pub(crate) t: &'static Text,
     pub(crate) fleet: Fleet,
-    pub(crate) screen: Screen,
-    pub(crate) open: Option<Open>,
-    pub(crate) conversation: Conversation,
-    pub(crate) entries: ListState,
-    pub(crate) composer: TextField,
-    pub(crate) pair_link: TextField,
-    pub(crate) pair_name: TextField,
-    pub(crate) offer: Option<Offer>,
-    /// The last thing that failed or happened, shown in the frame's foot.
+    pub(crate) route: Route,
+    pub(crate) areas: Areas,
+    /// What the person chose last time (machine, agent, folders).
+    pub(crate) prefs: Prefs,
+    /// The last thing that happened that belongs to no control, shown in
+    /// the frame's foot. Errors about a control are shown beside it.
     pub(crate) notice: Option<String>,
     /// Whether the book has been read once (an empty fleet before then is
     /// not "no machines").
@@ -56,56 +35,41 @@ pub(crate) struct Shell {
 }
 
 impl Shell {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
-        let composer = TextField::new(
-            "Ask the agent… (Enter sends)",
-            |this: &mut Self, text, window, cx| this.submit_prompt(text, window, cx),
-            window,
-            cx,
-        );
-        let pair_link = TextField::new(
-            "Paste the link from `vessel node pair`",
-            |this: &mut Self, text, window, cx| this.read_offer(&text, window, cx),
-            window,
-            cx,
-        );
-        let pair_name = TextField::new(
-            "A name for this machine, e.g. laptop",
-            |this: &mut Self, text, _window, cx| this.pair(text, cx),
-            window,
-            cx,
-        );
+    pub(crate) fn new(t: &'static Text, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+        let areas = Areas::new(window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
                 cx.spawn(async move |this, cx| receive(this, events, cx).await)
                     .detach();
                 (Some(link), None)
             }
-            Err(error) => (
-                None,
-                Some(format!("The link to nodes could not start: {error}")),
-            ),
+            Err(error) => (None, Some(format!("{error}"))),
         };
-        Self {
+        let mut shell = Self {
             link,
+            t,
             fleet: Fleet::default(),
-            screen: Screen::Board,
-            open: None,
-            conversation: Conversation::default(),
-            entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
-            composer,
-            pair_link,
-            pair_name,
-            offer: None,
+            route: Route::Draft,
+            areas,
+            prefs: Prefs::load(),
             notice,
             loaded: false,
-        }
+        };
+        routes::arrive(Route::Draft, &mut shell, window, cx);
+        shell
     }
 
-    fn command(&self, command: Command) {
+    pub(crate) fn command(&self, command: Command) {
         if let Some(link) = &self.link {
             link.send(command);
         }
+    }
+
+    /// Show `route`.
+    pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.route = route;
+        routes::arrive(route, self, window, cx);
+        cx.notify();
     }
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
@@ -114,141 +78,25 @@ impl Shell {
                 self.fleet = fleet;
                 if !self.loaded {
                     self.loaded = true;
+                    // With no machine there is nothing to type to: pairing
+                    // is the first thing to do.
                     if self.fleet.machines.is_empty() {
-                        self.screen = Screen::Pair;
+                        self.route = Route::Pair;
+                        self.pairing_opened(cx);
                     }
                 }
+                self.settle_draft();
             }
-            Event::Records { session, records } => {
-                if self
-                    .open
-                    .as_ref()
-                    .is_none_or(|open| open.session != session)
-                {
-                    return;
-                }
-                let before = self.conversation.entries().len();
-                for record in &records {
-                    self.conversation.apply(record);
-                }
-                let after = self.conversation.entries().len();
-                // The last entry may have grown (a chunk), and new ones
-                // follow it: measure it again with them.
-                let from = before.saturating_sub(1);
-                self.entries
-                    .splice(from..before, after.saturating_sub(from));
+            Event::Records { session, records } => self.records(&session, &records),
+            Event::Started(card) => self.started(&card, cx),
+            Event::Sent { .. } => {}
+            Event::Paired { node, route } => self.paired(&node, &route, cx),
+            Event::PairFailed(why) => self.pair_failed(why),
+            Event::Failed(why) => {
+                self.start_failed();
+                self.notice = Some(why);
             }
-            Event::Sent { .. } => self.notice = None,
-            Event::Paired(done) => {
-                self.notice = Some(done);
-                self.offer = None;
-                self.screen = Screen::Board;
-            }
-            Event::Failed(why) => self.notice = Some(why),
         }
-        cx.notify();
-    }
-
-    /// Show a session's conversation, following it.
-    pub(crate) fn open_session(
-        &mut self,
-        open: Open,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.conversation = Conversation::default();
-        self.entries.reset(0);
-        if open.structured {
-            self.command(Command::Open {
-                machine: open.machine.clone(),
-                session: open.session.clone(),
-            });
-            self.composer.focus(window, cx);
-        }
-        self.open = Some(open);
-        self.screen = Screen::Session;
-        cx.notify();
-    }
-
-    pub(crate) fn show(&mut self, screen: Screen, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if screen == Screen::Pair {
-            self.pair_link.focus(window, cx);
-        }
-        self.screen = screen;
-        cx.notify();
-    }
-
-    pub(crate) fn submit_prompt(
-        &mut self,
-        text: String,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(open) = &self.open else {
-            return;
-        };
-        if text.trim().is_empty() {
-            return;
-        }
-        self.command(Command::Prompt {
-            machine: open.machine.clone(),
-            session: open.session.clone(),
-            text,
-        });
-        self.composer.clear(window, cx);
-    }
-
-    fn read_offer(&mut self, text: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
-        match vessel_app_link::read_link(text) {
-            Ok(offer) => {
-                self.offer = Some(offer);
-                self.notice = None;
-                // The link is a single-use secret: once decoded it is held
-                // only as the offer, not left on screen.
-                self.pair_link.clear(window, cx);
-                self.pair_name.focus(window, cx);
-            }
-            Err(error) => self.notice = Some(error.to_string()),
-        }
-        cx.notify();
-    }
-
-    pub(crate) fn pair(&mut self, name: String, cx: &mut Context<'_, Self>) {
-        let Some(offer) = self.offer.clone() else {
-            self.notice = Some("Paste a pairing link first".to_owned());
-            cx.notify();
-            return;
-        };
-        if name.trim().is_empty() {
-            self.notice = Some("Give the machine a name".to_owned());
-            cx.notify();
-            return;
-        }
-        self.notice = Some("Pairing…".to_owned());
-        self.command(Command::Pair { offer, name });
-        cx.notify();
-    }
-
-    pub(crate) fn pair_from_field(&mut self, cx: &mut Context<'_, Self>) {
-        let name = self.pair_name.text(cx);
-        self.pair(name, cx);
-    }
-
-    pub(crate) fn answer(
-        &mut self,
-        id: vessel_proto::PermissionId,
-        option: vessel_proto::PermissionOptionId,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some(open) = &self.open else {
-            return;
-        };
-        self.command(Command::Answer {
-            machine: open.machine.clone(),
-            session: open.session.clone(),
-            id,
-            option,
-        });
         cx.notify();
     }
 
@@ -288,38 +136,41 @@ const BATCH: usize = 512;
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = tokens(cx);
-        let frame = match self.screen {
-            Screen::Board => screens::board::render(self, &tokens, cx).into_any_element(),
-            Screen::Session => {
-                screens::session::render(self, &tokens, window, cx).into_any_element()
-            }
-            Screen::Pair => screens::pair::render(self, &tokens, cx).into_any_element(),
-        };
-        div()
+        let frame = routes::render(self.route, self, &tokens, window, cx);
+        let content = div()
             .size_full()
             .flex()
-            .flex_row()
+            .flex_col()
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
-            .child(screens::sidebar::render(self, &tokens, cx))
+            .child(chrome::title_bar(self, &tokens, window, cx))
             .child(
-                div().flex_1().h_full().py(px(8.0)).pr(px(8.0)).child(
-                    div()
-                        .size_full()
-                        .flex()
-                        .flex_col()
-                        .bg(tokens.bg_base)
-                        .border_1()
-                        .border_color(tokens.border_faint)
-                        .rounded(px(vessel_app_kit::theme::radius::R5))
-                        .overflow_hidden()
-                        .child(frame)
-                        .children(
-                            self.notice
-                                .clone()
-                                .map(|notice| screens::foot(notice, &tokens)),
+                div()
+                    .flex_1()
+                    .min_h(px(0.0))
+                    .flex()
+                    .flex_row()
+                    .child(areas::sidebar::render(self, &tokens, cx))
+                    .child(
+                        div().flex_1().h_full().pb(px(8.0)).pr(px(8.0)).child(
+                            div()
+                                .size_full()
+                                .flex()
+                                .flex_col()
+                                .bg(tokens.bg_base)
+                                .border_1()
+                                .border_color(tokens.border_faint)
+                                .rounded(px(vessel_app_kit::theme::radius::R5))
+                                .overflow_hidden()
+                                .child(frame)
+                                .children(
+                                    self.notice
+                                        .clone()
+                                        .map(|notice| areas::common::foot(notice, &tokens)),
+                                ),
                         ),
-                ),
-            )
+                    ),
+            );
+        vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
