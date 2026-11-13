@@ -25,11 +25,12 @@ use std::collections::HashMap;
 use std::str::FromStr as _;
 
 use chrono::{DateTime, Duration, Utc};
-use vessel_app_view::{Card, Fleet, Lane, Machine, Reach};
+use vessel_app_view::{Agent, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
 use vessel_proto::{
-    AgentEvent, ContentBlock, EventRecord, EventSeq, PermissionId, PermissionOption,
-    PermissionOptionId, PermissionOptionKind, PermissionOutcome, PermissionRequest, SessionEvent,
-    SessionId, StopReason, ToolCall, ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind,
+    AgentEvent, ContentBlock, DisplayStatus, EventRecord, EventSeq, HarnessKind, HarnessRef,
+    PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
+    PermissionRequest, SessionEvent, SessionId, StopReason, ToolCall, ToolCallId, ToolCallStatus,
+    ToolCallUpdate, ToolKind,
 };
 
 /// The demo's sessions, each with its log.
@@ -37,6 +38,8 @@ use vessel_proto::{
 pub(crate) struct Demo {
     cards: Vec<Card>,
     logs: HashMap<SessionId, Vec<EventRecord>>,
+    /// Ids for sessions started from the app, in order (fixed, as above).
+    spare: Vec<SessionId>,
 }
 
 /// The fixed ids (UUIDs written out: a random one needs the browser's
@@ -47,6 +50,17 @@ const IDS: [&str; 5] = [
     "6f1c2a3e-0000-4000-8000-000000000003",
     "6f1c2a3e-0000-4000-8000-000000000004",
     "6f1c2a3e-0000-4000-8000-000000000005",
+];
+/// Ids for conversations started in the demo (one page's worth).
+const SPARE: [&str; 8] = [
+    "6f1c2a3e-0000-4000-8000-0000000000b1",
+    "6f1c2a3e-0000-4000-8000-0000000000b2",
+    "6f1c2a3e-0000-4000-8000-0000000000b3",
+    "6f1c2a3e-0000-4000-8000-0000000000b4",
+    "6f1c2a3e-0000-4000-8000-0000000000b5",
+    "6f1c2a3e-0000-4000-8000-0000000000b6",
+    "6f1c2a3e-0000-4000-8000-0000000000b7",
+    "6f1c2a3e-0000-4000-8000-0000000000b8",
 ];
 const PERMISSION: &str = "6f1c2a3e-0000-4000-8000-0000000000a1";
 
@@ -68,6 +82,11 @@ impl Demo {
         let mut demo = Self {
             cards: Vec::new(),
             logs: HashMap::new(),
+            spare: SPARE
+                .iter()
+                .rev()
+                .filter_map(|text| SessionId::from_str(text).ok())
+                .collect(),
         };
         // The ids are constants the tests parse; were one to stop parsing,
         // the demo would come up empty rather than panic.
@@ -79,33 +98,70 @@ impl Demo {
             return demo;
         };
         demo.add(
-            card("laptop", &first, "vessel-client", Lane::Building, "Waiting for you: run cargo test", now, 1),
+            card(
+                "laptop",
+                &first,
+                "vessel-client",
+                Lane::Building,
+                DisplayStatus::Blocked,
+                now,
+                1,
+            ),
             first_conversation(now),
         );
         demo.add(
-            card("laptop", &hangul, "한글 세션: 문서 다듬기", Lane::InReview, "검토를 기다리는 중", now, 7),
+            card(
+                "laptop",
+                &hangul,
+                "한글 세션: 문서 다듬기",
+                Lane::InReview,
+                DisplayStatus::NeedsHumanReview,
+                now,
+                7,
+            ),
             hangul_conversation(now),
         );
         demo.add(
-            card("build-server", &long, "ci-fixes", Lane::Validating, "Running checks", now, 2),
+            card(
+                "build-server",
+                &long,
+                "ci-fixes",
+                Lane::Validating,
+                DisplayStatus::FixingCi,
+                now,
+                2,
+            ),
             long_conversation(now),
         );
         demo.add(
-            card("build-server", &docs, "docs", Lane::Building, "Writing", now, 0),
+            card(
+                "build-server",
+                &docs,
+                "docs",
+                Lane::Building,
+                DisplayStatus::Working,
+                now,
+                0,
+            ),
             Vec::new(),
         );
         demo.add(
-            card("build-server", &ready, "release notes", Lane::Ready, "Ready to merge", now, 30),
+            card(
+                "build-server",
+                &ready,
+                "release notes",
+                Lane::Ready,
+                DisplayStatus::Mergeable,
+                now,
+                30,
+            ),
             Vec::new(),
         );
-        if let Some(waiting) = demo.cards.first_mut() {
-            waiting.needs_you = true;
-        }
         demo
     }
 
     fn add(&mut self, card: Card, records: Vec<EventRecord>) {
-        let _earlier = self.logs.insert(card.session.clone(), records);
+        let _earlier = self.logs.insert(card.session, records);
         self.cards.push(card);
     }
 
@@ -124,20 +180,49 @@ impl Demo {
                     name: "laptop".to_owned(),
                     reach: Reach::Online,
                     sessions: on("laptop"),
+                    agents: agents(),
                 },
                 Machine {
                     name: "build-server".to_owned(),
                     reach: Reach::Online,
                     sessions: on("build-server"),
+                    agents: agents(),
                 },
                 Machine {
                     name: "old-box".to_owned(),
                     reach: Reach::Unreachable("no route: this is the browser's demo".to_owned()),
                     sessions: Vec::new(),
+                    agents: Vec::new(),
                 },
             ],
             read_at: Some(now),
         }
+    }
+
+    /// Start a conversation on `machine` with `prompt` as its first turn:
+    /// its card (to open), or `None` when the demo's spare ids are spent.
+    pub(crate) fn start(
+        &mut self,
+        machine: &str,
+        harness: &HarnessRef,
+        prompt: &str,
+        now: DateTime<Utc>,
+    ) -> Option<Card> {
+        let session = self.spare.pop()?;
+        let title = prompt.lines().next().unwrap_or(prompt).to_owned();
+        let mut started = card(
+            machine,
+            &session,
+            &title,
+            Lane::Building,
+            DisplayStatus::Idle,
+            now,
+            0,
+        );
+        started.agent = agent_name(harness);
+        self.add(started.clone(), Vec::new());
+        let _added = self.prompt(&session, prompt, now);
+        Some(started)
     }
 
     /// A session's whole log so far.
@@ -147,14 +232,21 @@ impl Demo {
 
     /// A prompt: the turn starts with it and the agent echoes it. Returns
     /// the records added.
-    pub(crate) fn prompt(&mut self, session: &SessionId, text: &str, now: DateTime<Utc>) -> Vec<EventRecord> {
+    pub(crate) fn prompt(
+        &mut self,
+        session: &SessionId,
+        text: &str,
+        now: DateTime<Utc>,
+    ) -> Vec<EventRecord> {
         let reply = format!("받았습니다 (echo): {text}");
         self.append(
             session,
             now,
             vec![
                 AgentEvent::TurnStarted {
-                    content: vec![ContentBlock::Text { text: text.to_owned() }],
+                    content: vec![ContentBlock::Text {
+                        text: text.to_owned(),
+                    }],
                 },
                 AgentEvent::MessageChunk {
                     content: ContentBlock::Text { text: reply },
@@ -197,7 +289,9 @@ impl Demo {
                 },
                 AgentEvent::ToolCallUpdate(update(TEST_CALL, status)),
                 AgentEvent::MessageChunk {
-                    content: ContentBlock::Text { text: words.to_owned() },
+                    content: ContentBlock::Text {
+                        text: words.to_owned(),
+                    },
                 },
                 AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
@@ -207,7 +301,12 @@ impl Demo {
         )
     }
 
-    fn append(&mut self, session: &SessionId, now: DateTime<Utc>, events: Vec<AgentEvent>) -> Vec<EventRecord> {
+    fn append(
+        &mut self,
+        session: &SessionId,
+        now: DateTime<Utc>,
+        events: Vec<AgentEvent>,
+    ) -> Vec<EventRecord> {
         let Some(log) = self.logs.get_mut(session) else {
             return Vec::new();
         };
@@ -220,26 +319,42 @@ impl Demo {
 
 const TEST_CALL: &str = "call-test";
 
+fn agents() -> Vec<Agent> {
+    [HarnessKind::ClaudeCode, HarnessKind::Codex]
+        .into_iter()
+        .map(|kind| {
+            let harness = HarnessRef::Known(kind);
+            Agent {
+                name: agent_name(&harness),
+                harness,
+            }
+        })
+        .collect()
+}
+
 fn card(
     machine: &str,
     session: &SessionId,
     title: &str,
     lane: Lane,
-    phrase: &str,
+    status: DisplayStatus,
     now: DateTime<Utc>,
     minutes_ago: i64,
 ) -> Card {
     Card {
-        session: session.clone(),
+        session: *session,
         structured: true,
+        live: true,
         title: title.to_owned(),
         machine: machine.to_owned(),
-        agent: "claude-code".to_owned(),
+        agent: agent_name(&HarnessRef::Known(HarnessKind::ClaudeCode)),
         lane: Some(lane),
-        phrase: phrase.to_owned(),
-        needs_you: false,
-        working: matches!(lane, Lane::Building | Lane::Validating),
-        at: now - Duration::minutes(minutes_ago),
+        phrase: Phrase::Node(status),
+        needs_you: matches!(status, DisplayStatus::Blocked),
+        working: matches!(status, DisplayStatus::Working | DisplayStatus::FixingCi),
+        at: now
+            .checked_sub_signed(Duration::minutes(minutes_ago))
+            .unwrap_or(now),
     }
 }
 
@@ -309,8 +424,15 @@ fn first_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
         AgentEvent::ThoughtChunk {
             content: text("Reading the README first, then the crate map."),
         },
-        AgentEvent::ToolCall(call("call-read", "Read README.md", ToolKind::Read, ToolCallStatus::Completed)),
-        AgentEvent::MessageChunk { content: text(SUMMARY) },
+        AgentEvent::ToolCall(call(
+            "call-read",
+            "Read README.md",
+            ToolKind::Read,
+            ToolCallStatus::Completed,
+        )),
+        AgentEvent::MessageChunk {
+            content: text(SUMMARY),
+        },
         AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
@@ -318,7 +440,12 @@ fn first_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
         AgentEvent::TurnStarted {
             content: vec![text("응, 테스트 돌려 줘")],
         },
-        AgentEvent::ToolCall(call(TEST_CALL, "cargo test --workspace", ToolKind::Execute, ToolCallStatus::Pending)),
+        AgentEvent::ToolCall(call(
+            TEST_CALL,
+            "cargo test --workspace",
+            ToolKind::Execute,
+            ToolCallStatus::Pending,
+        )),
     ];
     if let Some(id) = permission {
         events.push(AgentEvent::PermissionRequested(PermissionRequest {
@@ -326,7 +453,11 @@ fn first_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
             tool_call: ToolCallId::new(TEST_CALL),
             options: vec![
                 option("allow-once", "Allow once", PermissionOptionKind::AllowOnce),
-                option("allow-always", "Always allow", PermissionOptionKind::AllowAlways),
+                option(
+                    "allow-always",
+                    "Always allow",
+                    PermissionOptionKind::AllowAlways,
+                ),
                 option("reject", "Reject", PermissionOptionKind::RejectOnce),
             ],
         }));
@@ -397,7 +528,7 @@ mod tests {
 
     #[test]
     fn every_fixed_id_parses() {
-        for id in IDS.iter().chain(std::iter::once(&PERMISSION)) {
+        for id in IDS.iter().chain(&SPARE).chain(std::iter::once(&PERMISSION)) {
             assert!(uuid_ok(id), "{id}");
         }
     }
@@ -430,7 +561,10 @@ mod tests {
         let seq = added.first().map(|record| record.seq.get());
         assert_eq!(seq, Some(u64::try_from(before).unwrap_or(u64::MAX)));
         let conversation = fold(&demo.records(&session));
-        let last = conversation.entries().last().map(|entry| entry.text.clone());
+        let last = conversation
+            .entries()
+            .last()
+            .map(|entry| entry.text.clone());
         assert_eq!(last.as_deref(), Some("받았습니다 (echo): 안녕"));
     }
 
@@ -456,7 +590,35 @@ mod tests {
     fn the_fleet_has_every_card_once() {
         let demo = Demo::new(Utc::now());
         let fleet = demo.fleet(Utc::now());
-        let cards: usize = fleet.machines.iter().map(|machine| machine.sessions.len()).sum();
+        let cards: usize = fleet
+            .machines
+            .iter()
+            .map(|machine| machine.sessions.len())
+            .sum();
         assert_eq!(cards, IDS.len());
+    }
+
+    #[test]
+    fn a_started_conversation_is_on_the_board_with_its_prompt() {
+        let mut demo = Demo::new(Utc::now());
+        let harness = HarnessRef::Known(HarnessKind::Codex);
+        let started = demo.start("laptop", &harness, "새 대화\n둘째 줄", Utc::now());
+        let Some(card) = started else {
+            return;
+        };
+        assert_eq!(card.title, "새 대화");
+        let fleet = demo.fleet(Utc::now());
+        assert!(fleet.machines.iter().any(|machine| {
+            machine
+                .sessions
+                .iter()
+                .any(|other| other.session == card.session)
+        }));
+        let conversation = fold(&demo.records(&card.session));
+        let first = conversation
+            .entries()
+            .first()
+            .map(|entry| entry.text.clone());
+        assert_eq!(first.as_deref(), Some("새 대화\n둘째 줄"));
     }
 }

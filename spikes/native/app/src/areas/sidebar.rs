@@ -1,19 +1,33 @@
-//! The sidebar: the machines in the book, each with its live sessions
-//! (DESIGN.md section 6: rows on the shell, no edge of its own), the
-//! board's link, adding a machine, and the build's label at its foot.
+//! The sidebar: the routes (`routes::Route::NAV`), the machines in the
+//! book with their live sessions (DESIGN.md section 6: rows on the shell,
+//! no edge of its own), adding a machine, and the build's label.
 
 use vessel_app_kit::ui::{
-    Context, Div, InteractiveElement as _, IntoElement, ParentElement as _,
+    Context, Div, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Stateful,
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, dot, kicker};
 use vessel_app_view::{Card, Machine, Reach};
 
-use super::card_color;
-use crate::shell::{Open, Screen, Shell};
+use super::common::card_color;
+use super::session::Open;
+use crate::routes::Route;
+use crate::shell::Shell;
 
 pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let board_active = shell.screen == Screen::Board;
+    let t = shell.t;
+    let mut nav = div().flex().flex_col().gap(px(2.0));
+    for route in Route::NAV {
+        nav = nav.child(
+            row(
+                ElementId::Name(format!("nav-{route:?}").into()),
+                route.label(t),
+                shell.route == route,
+                tokens,
+            )
+            .on_click(cx.listener(move |this, _event, window, cx| this.go(route, window, cx))),
+        );
+    }
     let mut machines = div().flex().flex_col().gap(px(14.0));
     for machine in &shell.fleet.machines {
         machines = machines.child(machine_rows(machine, shell, tokens, cx));
@@ -24,7 +38,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .px(px(10.0))
                 .type_(Type::Meta)
                 .text_color(tokens.text_tertiary)
-                .child("No machines yet. Add one to begin."),
+                .child(t.no_machines),
         );
     }
     div()
@@ -33,20 +47,10 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
-        .p(px(8.0))
+        .px(px(8.0))
+        .pb(px(8.0))
         .gap(px(12.0))
-        .child(
-            div()
-                .px(px(10.0))
-                .pt(px(6.0))
-                .type_(Type::Title)
-                .child("Vessel"),
-        )
-        .child(
-            row("board", "Board", board_active, tokens).on_click(
-                cx.listener(|this, _event, window, cx| this.show(Screen::Board, window, cx)),
-            ),
-        )
+        .child(nav)
         .child(
             div()
                 .id("machines")
@@ -57,11 +61,11 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .child(
             row(
                 "add-machine",
-                "Add a machine",
-                shell.screen == Screen::Pair,
+                t.add_machine,
+                shell.route == Route::Pair,
                 tokens,
             )
-            .on_click(cx.listener(|this, _event, window, cx| this.show(Screen::Pair, window, cx))),
+            .on_click(cx.listener(|this, _event, window, cx| this.go(Route::Pair, window, cx))),
         )
         .child(
             div()
@@ -70,7 +74,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .type_(Type::Tiny)
                 .text_color(tokens.text_tertiary)
                 .cursor_pointer()
-                .child(format!("Vessel {} · reload", crate::LABEL))
+                .child(t.build(crate::LABEL))
                 .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
         )
 }
@@ -81,9 +85,10 @@ fn machine_rows(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let t = shell.t;
     let (state, color) = match &machine.reach {
-        Reach::Online => ("online", tokens.st_ready),
-        Reach::Unreachable(_) => ("unreachable", tokens.danger),
+        Reach::Online => (t.online, tokens.st_ready),
+        Reach::Unreachable(_) => (t.unreachable, tokens.danger),
     };
     let mut rows = div().flex().flex_col().gap(px(2.0)).child(
         div()
@@ -123,22 +128,16 @@ fn session_row(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
-    let active = shell.screen == Screen::Session
+    let active = shell.route == Route::Session
         && shell
+            .areas
+            .session
             .open
             .as_ref()
             .is_some_and(|open| open.session == card.session);
-    let open = Open {
-        machine: card.machine.clone(),
-        session: card.session.clone(),
-        title: card.title.clone(),
-        agent: card.agent.clone(),
-        structured: card.structured,
-    };
+    let open = Open::of(card);
     div()
-        .id(vessel_app_kit::ui::ElementId::Name(
-            format!("session-{}", card.session).into(),
-        ))
+        .id(ElementId::Name(format!("session-{}", card.session).into()))
         .flex()
         .flex_row()
         .items_center()
@@ -170,11 +169,11 @@ fn session_row(
 }
 
 fn row(
-    id: &'static str,
+    id: impl Into<ElementId>,
     label: &'static str,
     active: bool,
     tokens: &Tokens,
-) -> vessel_app_kit::ui::Stateful<Div> {
+) -> Stateful<Div> {
     div()
         .id(id)
         .px(px(10.0))

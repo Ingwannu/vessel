@@ -14,36 +14,39 @@
 //!   a `#[wasm_bindgen(start)]` library instead of `main` (another crate
 //!   type for the same thing: `wasm-bindgen` runs a binary's `main`).
 //! - Choice: single-threaded, `main` as the start, the window's options
-//!   as the desktop's minus what a page has no use for (size, app id).
+//!   the desktop's (a page ignores its bounds and decorations).
 //! - Cost: background work (text shaping of a large conversation) runs on
 //!   the page's one thread between frames.
 
-use gpui::{AppContext as _, TitlebarOptions, WindowOptions};
+use gpui::{AppContext as _, Bounds, px, size};
 use vessel_app_kit::SchemeChoice;
+use vessel_app_view::Lang;
 
 use crate::{LABEL, shell};
 
 /// Start the app in the page that loaded it.
 pub(crate) fn main() {
     gpui_platform::web_init();
-    gpui_platform::single_threaded_web().run(|cx| {
-        if let Err(error) = vessel_app_kit::init(cx, SchemeChoice::System) {
-            tracing::error!(%error, "the kit could not start");
-            return;
-        }
-        let options = WindowOptions {
-            titlebar: Some(TitlebarOptions {
-                title: Some(format!("Vessel {LABEL}").into()),
-                ..TitlebarOptions::default()
-            }),
-            ..WindowOptions::default()
-        };
-        let opened = cx.open_window(options, |window, cx| {
-            let shell = cx.new(|cx| shell::Shell::new(window, cx));
-            vessel_app_kit::root(shell, window, cx)
+    // The page's language (`navigator.languages`), as the desktop takes the
+    // system's.
+    let lang = sys_locale::get_locale().map_or(Lang::En, |tag| Lang::from_tag(&tag));
+    gpui_platform::single_threaded_web()
+        .with_assets(vessel_app_kit::Assets)
+        .run(move |cx| {
+            if let Err(error) = vessel_app_kit::init(cx, SchemeChoice::System) {
+                tracing::error!(%error, "the kit could not start");
+                return;
+            }
+            // The canvas fills the page whatever the bounds say; the
+            // desktop's options are kept so the window is described once.
+            let bounds = Bounds::centered(None, size(px(1280.0), px(800.0)), cx);
+            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
+            let opened = cx.open_window(options, |window, cx| {
+                let shell = cx.new(|cx| shell::Shell::new(lang.text(), window, cx));
+                vessel_app_kit::root(shell, window, cx)
+            });
+            if let Err(error) = opened {
+                tracing::error!(%error, "the window could not open");
+            }
         });
-        if let Err(error) = opened {
-            tracing::error!(%error, "the window could not open");
-        }
-    });
 }

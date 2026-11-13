@@ -29,6 +29,28 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        Self::build(placeholder, on_submit, None, window, cx)
+    }
+
+    /// The same, also calling `on_change` with the text after every edit
+    /// (to say what is wrong with it beside the field as it is typed).
+    pub fn with_change<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_change: fn(&mut V, String, &mut Context<'_, V>),
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        Self::build(placeholder, on_submit, Some(on_change), window, cx)
+    }
+
+    fn build<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         cx.subscribe_in(
@@ -39,7 +61,13 @@ impl TextField {
                     let text = state.read(cx).value().to_string();
                     on_submit(owner, text, window, cx);
                 }
-                InputEvent::Change | InputEvent::Focus | InputEvent::Blur => {}
+                InputEvent::Change => {
+                    if let Some(on_change) = on_change {
+                        let text = state.read(cx).value().to_string();
+                        on_change(owner, text, cx);
+                    }
+                }
+                InputEvent::Focus | InputEvent::Blur => {}
             },
         )
         .detach();
@@ -50,6 +78,22 @@ impl TextField {
     #[must_use]
     pub fn text(&self, cx: &App) -> String {
         self.state.read(cx).value().to_string()
+    }
+
+    /// Replace what it holds.
+    pub fn set_text(&self, text: &str, window: &mut Window, cx: &mut App) {
+        let text = text.to_owned();
+        self.state
+            .update(cx, |state, cx| state.set_value(text, window, cx));
+    }
+
+    /// Change what it shows while empty (the text table's words, chosen
+    /// after the field is made).
+    pub fn set_placeholder(&self, placeholder: &str, window: &mut Window, cx: &mut App) {
+        let placeholder = placeholder.to_owned();
+        self.state.update(cx, |state, cx| {
+            state.set_placeholder(placeholder, window, cx)
+        });
     }
 
     /// Empty it.

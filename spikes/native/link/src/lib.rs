@@ -22,14 +22,15 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+mod prefs;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
-#[cfg(target_arch = "wasm32")]
-mod web;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
+#[cfg(target_arch = "wasm32")]
+mod web;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
@@ -40,19 +41,23 @@ use std::time::Duration;
 use chrono::Utc;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
-use vessel_app_view::Fleet;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::{Card, Machine, Reach};
+use vessel_app_view::{Agent, Machine, Reach};
+use vessel_app_view::{Card, Fleet};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
-use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_proto::{ContentBlock, Delivery, PermissionOutcome, SessionInput};
+use vessel_proto::{
+    ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
+    SessionMode, SessionSpec,
+};
+use vessel_proto::{EventRecord, HarnessRef, PermissionId, PermissionOptionId, SessionId};
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use nodes::{Offer, read_link};
+pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
+pub use prefs::Prefs;
 #[cfg(target_arch = "wasm32")]
-pub use web::{Link, Offer, read_link};
+pub use web::{Link, NameProblem, Offer, default_name, name_problem, read_link};
 
 /// How often the sessions of every machine are listed again. The page
 /// reads its list on the same cadence (`docs/PERFORMANCE.md`); a pushed
@@ -130,6 +135,25 @@ pub enum Command {
         /// What was typed.
         text: String,
     },
+    /// Start a conversation: create the session, send its first prompt,
+    /// and report it [`Event::Started`].
+    Start {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
+        /// The folder on the machine; `None` for its home.
+        folder: Option<String>,
+        /// The first prompt.
+        prompt: String,
+    },
+    /// Stop the running turn.
+    Stop {
+        /// The machine.
+        machine: String,
+        /// The session.
+        session: SessionId,
+    },
     /// Answer a permission the agent asked for.
     Answer {
         /// The machine.
@@ -141,6 +165,8 @@ pub enum Command {
         /// The answer chosen.
         option: PermissionOptionId,
     },
+    /// Remember the person's choices (machine, agent, folders).
+    SavePrefs(Prefs),
     /// Pair with a node from a pairing link, as `name` in the book.
     Pair {
         /// The decoded link.
@@ -162,13 +188,22 @@ pub enum Event {
         /// The records, in order.
         records: Vec<EventRecord>,
     },
+    /// A session started from the app, to open.
+    Started(Card),
     /// A prompt was delivered.
     Sent {
         /// The session.
         session: SessionId,
     },
     /// Pairing worked.
-    Paired(String),
+    Paired {
+        /// The node's own name for itself.
+        node: String,
+        /// The route the pairing went through.
+        route: String,
+    },
+    /// Pairing failed; the words to show beside the form.
+    PairFailed(String),
     /// Something failed; the words to show.
     Failed(String),
 }
@@ -226,8 +261,17 @@ impl Link {
 struct State {
     label: String,
     events: mpsc::Sender<Event>,
-    clients: HashMap<String, NodeClient>,
+    clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+/// A machine connected, and what it can start (read once per connection:
+/// what is installed changes rarely, and a new connection reads it again).
+#[derive(Clone)]
+struct Connected {
+    client: NodeClient,
+    agents: Vec<Agent>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -256,6 +300,16 @@ impl State {
                 session,
                 text,
             } => self.prompt(&machine, session, text).await,
+            Command::Start {
+                machine,
+                harness,
+                folder,
+                prompt,
+            } => self.start(&machine, harness, folder, prompt).await,
+            Command::Stop { machine, session } => {
+                let input = SessionInput::CancelTurn { turn: None };
+                self.input(&machine, session, input).await;
+            }
             Command::Answer {
                 machine,
                 session,
@@ -269,12 +323,20 @@ impl State {
                 self.input(&machine, session, input).await;
             }
             Command::Pair { offer, name } => match nodes::pair(&offer, &name).await {
-                Ok(done) => {
-                    self.emit(Event::Paired(done)).await;
+                Ok((node, route)) => {
+                    self.emit(Event::Paired { node, route }).await;
                     self.reload().await;
                 }
-                Err(error) => self.emit(Event::Failed(error.to_string())).await,
+                Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
             },
+            Command::SavePrefs(prefs) => {
+                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
+                match saved {
+                    Ok(Ok(())) => {}
+                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
+                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
+                }
+            }
         }
     }
 
@@ -302,21 +364,23 @@ impl State {
         for (name, entry) in book {
             let name = name.as_str().to_owned();
             let reach = match self.clients.get(&name) {
-                Some(client) => Ok(client.clone()),
-                None => nodes::connect(&entry, nodes::client_info(&self.label)).await,
+                Some(connected) => Ok(connected.clone()),
+                None => self.connect(&entry).await,
             };
             let machine = match reach {
-                Ok(client) => match client.sessions().await {
+                Ok(connected) => match connected.client.sessions().await {
                     Ok(sessions) => {
-                        let _earlier = self.clients.insert(name.clone(), client);
-                        Machine {
+                        let machine = Machine {
                             sessions: sessions
                                 .iter()
                                 .map(|session| Card::from_session(&name, session))
                                 .collect(),
-                            name,
+                            agents: connected.agents.clone(),
+                            name: name.clone(),
                             reach: Reach::Online,
-                        }
+                        };
+                        let _earlier = self.clients.insert(name, connected);
+                        machine
                     }
                     Err(error) => {
                         // A dropped connection: dial again next time.
@@ -335,12 +399,86 @@ impl State {
         .await;
     }
 
+    async fn connect(
+        &self,
+        entry: &vessel_client::book::BookEntry,
+    ) -> Result<Connected, LinkError> {
+        let client = nodes::connect(entry, nodes::client_info(&self.label)).await?;
+        let agents = match client.harnesses().await {
+            Ok(harnesses) => Agent::conversational(&harnesses),
+            Err(error) => {
+                tracing::warn!(%error, "could not list the machine's agents");
+                Vec::new()
+            }
+        };
+        Ok(Connected { client, agents })
+    }
+
+    fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
+        self.clients
+            .get(machine)
+            .map(|connected| &connected.client)
+            .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))
+    }
+
+    /// Create a conversation and send its first prompt: `session.prompt`
+    /// where the node speaks protocol 10, `session.send` before it.
+    async fn start(
+        &mut self,
+        machine: &str,
+        harness: HarnessRef,
+        folder: Option<String>,
+        prompt: String,
+    ) {
+        let started = async {
+            let client = self.client(machine)?.clone();
+            let mode = SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            };
+            let mut spec = SessionSpec::new(harness, mode);
+            if let Some(folder) = folder {
+                spec = spec.with_cwd(folder);
+            }
+            let info: SessionInfo = client
+                .create_session(spec)
+                .await
+                .map_err(|error| LinkError::Call(error.to_string()))?;
+            let content = vec![ContentBlock::Text { text: prompt }];
+            let sent = if client.protocol() >= ProtocolVersion::new(10) {
+                client
+                    .prompt(info.id.clone(), content, Delivery::Start)
+                    .await
+                    .map(|_delivered| ())
+            } else {
+                client
+                    .send(info.id.clone(), SessionInput::Prompt { content })
+                    .await
+            };
+            sent.map_err(|error| LinkError::Call(error.to_string()))?;
+            Ok::<_, LinkError>(Card::from_session(machine, &info))
+        }
+        .await;
+        match started {
+            Ok(card) => {
+                self.emit(Event::Started(card)).await;
+                self.refresh().await;
+            }
+            Err(error) => self.emit(Event::Failed(error.to_string())).await,
+        }
+    }
+
     /// Follow `session` from its first record, replacing the one followed.
     fn open(&mut self, machine: &str, session: SessionId) {
         if let Some(earlier) = self.follow.take() {
             earlier.abort();
         }
-        let Some(client) = self.clients.get(machine).cloned() else {
+        let Some(client) = self
+            .clients
+            .get(machine)
+            .map(|connected| connected.client.clone())
+        else {
             let events = self.events.clone();
             let machine = machine.to_owned();
             drop(tokio::spawn(async move {
@@ -355,7 +493,7 @@ impl State {
     }
 
     async fn prompt(&self, machine: &str, session: SessionId, text: String) {
-        let Some(client) = self.clients.get(machine) else {
+        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
                 LinkError::NotConnected(machine.to_owned()).to_string(),
             ))
@@ -381,7 +519,7 @@ impl State {
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
-        let Some(client) = self.clients.get(machine) else {
+        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
                 LinkError::NotConnected(machine.to_owned()).to_string(),
             ))
@@ -403,6 +541,7 @@ fn unreachable(name: String, why: &str) -> Machine {
         name,
         reach: Reach::Unreachable(why.to_owned()),
         sessions: Vec::new(),
+        agents: Vec::new(),
     }
 }
 

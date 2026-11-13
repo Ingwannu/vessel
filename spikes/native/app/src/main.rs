@@ -8,18 +8,23 @@
 //! another book, as it does the CLI).
 //!
 //! Environment, for testing and captures: `VESSEL_APP_THEME=light|dark`
-//! pins the scheme (otherwise the system's); `VESSEL_APP_SIZE=WxH` the
-//! window's size; `RUST_LOG` the log filter.
+//! pins the scheme (otherwise the system's); `VESSEL_APP_LANG=ko|en` the
+//! language (otherwise the system's); `VESSEL_APP_SIZE=WxH` the window's
+//! size; `RUST_LOG` the log filter.
 
-mod screens;
+mod areas;
+mod chrome;
+mod routes;
 mod shell;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
 #[cfg(not(target_arch = "wasm32"))]
-use gpui::{AppContext as _, Bounds, WindowBounds, WindowOptions, px, size};
+use gpui::{AppContext as _, Bounds, px, size};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_app_kit::{Scheme, SchemeChoice};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::Lang;
 
 /// The build's label (`VESSEL_BUILD_LABEL` when it was built, `dev`
 /// otherwise): shown in the window's title and the sidebar's foot, and
@@ -44,38 +49,43 @@ fn main() {
         Ok(_) | Err(_) => SchemeChoice::System,
     };
     let (width, height) = window_size();
-    gpui_platform::application().run(move |cx| {
-        if let Err(error) = vessel_app_kit::init(cx, choice) {
-            tracing::error!(%error, "the kit could not start");
-            cx.quit();
-            return;
-        }
-        let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-        let options = WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(bounds)),
-            titlebar: Some(gpui::TitlebarOptions {
-                title: Some(format!("Vessel {LABEL}").into()),
-                ..gpui::TitlebarOptions::default()
-            }),
-            app_id: Some("dev.vessel.app".to_owned()),
-            ..WindowOptions::default()
-        };
-        let opened = cx.open_window(options, |window, cx| {
-            let shell = cx.new(|cx| shell::Shell::new(window, cx));
-            vessel_app_kit::root(shell, window, cx)
-        });
-        match opened {
-            Ok(_window) => cx.activate(true),
-            Err(error) => {
-                tracing::error!(%error, "the window could not open");
+    let lang = language();
+    gpui_platform::application()
+        .with_assets(vessel_app_kit::Assets)
+        .run(move |cx| {
+            if let Err(error) = vessel_app_kit::init(cx, choice) {
+                tracing::error!(%error, "the kit could not start");
                 cx.quit();
+                return;
             }
-        }
-    });
+            let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
+            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
+            let opened = cx.open_window(options, |window, cx| {
+                let shell = cx.new(|cx| shell::Shell::new(lang.text(), window, cx));
+                vessel_app_kit::root(shell, window, cx)
+            });
+            match opened {
+                Ok(_window) => cx.activate(true),
+                Err(error) => {
+                    tracing::error!(%error, "the window could not open");
+                    cx.quit();
+                }
+            }
+        });
 }
 
-/// The window's size: `VESSEL_APP_SIZE=WxH`, else 1280 by 800.
 #[cfg(not(target_arch = "wasm32"))]
+/// The app's language: `VESSEL_APP_LANG` (`ko`, `en`), else the system's
+/// (Korean for any `ko` locale, English otherwise).
+fn language() -> Lang {
+    std::env::var("VESSEL_APP_LANG")
+        .ok()
+        .or_else(sys_locale::get_locale)
+        .map_or(Lang::En, |tag| Lang::from_tag(&tag))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+/// The window's size: `VESSEL_APP_SIZE=WxH`, else 1280 by 800.
 fn window_size() -> (f32, f32) {
     std::env::var("VESSEL_APP_SIZE")
         .ok()

@@ -22,6 +22,8 @@
 //!   text input (selection, clipboard, input methods), hidden behind
 //!   [`TextField`].
 
+pub mod assets;
+pub mod chrome;
 pub mod field;
 pub mod fonts;
 pub mod theme;
@@ -29,10 +31,11 @@ mod widgets;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
+pub use assets::Assets;
 pub use field::TextField;
 pub use fonts::Type;
 pub use theme::{Scheme, Tokens};
-pub use widgets::{TypeExt, button, dot, kicker, markdown};
+pub use widgets::{TypeExt, button, choice, dot, kicker, markdown};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).
@@ -76,8 +79,14 @@ pub fn tokens(cx: &App) -> Tokens {
 /// # Errors
 /// The faces could not be registered.
 pub fn init(cx: &mut App, choice: SchemeChoice) -> Result<(), fonts::FontError> {
-    fonts::register(cx)?;
+    // The component layer first, the faces after: its `init` asks GPUI
+    // which face `.SystemUIFont` lands on once any face is installed, and
+    // in a browser (no system faces) that lookup panics when only ours are
+    // there. Before them it skips the lookup; the theme then names Geist
+    // (`set_scheme`), so the order changes nothing on the desktop
+    // (docs/plans/backend-m12-browser.md, question 1).
     gpui_component::init(cx);
+    fonts::register(cx)?;
     let scheme = match choice {
         SchemeChoice::Fixed(scheme) => scheme,
         SchemeChoice::System => scheme_of(cx.window_appearance()),

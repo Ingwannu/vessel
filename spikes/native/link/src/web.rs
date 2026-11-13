@@ -61,12 +61,31 @@ impl Link {
             }
             Command::Prompt { session, text, .. } => {
                 let records = self.demo.borrow_mut().prompt(&session, &text, now);
-                self.emit(Event::Records {
-                    session: session.clone(),
-                    records,
-                });
+                self.emit(Event::Records { session, records });
                 self.emit(Event::Sent { session });
             }
+            Command::Start {
+                machine,
+                harness,
+                prompt,
+                ..
+            } => {
+                let started = self
+                    .demo
+                    .borrow_mut()
+                    .start(&machine, &harness, &prompt, now);
+                match started {
+                    Some(card) => {
+                        self.emit(Event::Fleet(self.demo.borrow().fleet(now)));
+                        self.emit(Event::Started(card));
+                    }
+                    None => self.emit(Event::Failed(
+                        "The browser's demo has no room for another conversation".to_owned(),
+                    )),
+                }
+            }
+            // The demo's turns end as they start: nothing runs to stop.
+            Command::Stop { .. } | Command::SavePrefs(_) => {}
             Command::Answer {
                 session,
                 id,
@@ -76,7 +95,7 @@ impl Link {
                 let records = self.demo.borrow_mut().answer(&session, id, option, now);
                 self.emit(Event::Records { session, records });
             }
-            Command::Pair { .. } => self.emit(Event::Failed(
+            Command::Pair { .. } => self.emit(Event::PairFailed(
                 "Pairing from a browser is not built: the browser has no secure channel \
                  to a node yet (docs/plans/backend-m12-browser.md, question 8)"
                     .to_owned(),
@@ -91,16 +110,22 @@ impl Link {
     }
 }
 
-/// What a pairing link offers, for a person to check before pairing.
+/// What a pairing link offers, for a person to check before pairing (the
+/// desktop's fields).
 #[derive(Debug, Clone)]
 pub struct Offer {
-    /// A line to show: id, routes, expiry.
-    pub summary: String,
+    /// The key's fingerprint. `vessel-secure` computes it, which the
+    /// browser build does not link yet: a placeholder says so.
+    pub key: String,
+    /// The node's id.
+    pub node: String,
+    /// Its routes, direct ones first.
+    pub routes: Vec<String>,
+    /// When the link stops working, UTC.
+    pub expires: String,
 }
 
-/// Decode a pasted pairing link (the wire's own decoder). The key's
-/// fingerprint is computed by `vessel-secure`, which the browser build
-/// does not link yet, so the line shows the routes and expiry only.
+/// Decode a pasted pairing link (the wire's own decoder).
 ///
 /// # Errors
 /// The text is not a pairing link, or it does not decode.
@@ -110,18 +135,65 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
         .parse::<PairingLink>()
         .and_then(|link| link.decode())
         .map_err(|error| LinkError::PairingLink(error.to_string()))?;
-    let routes: Vec<String> = offer
-        .direct
-        .iter()
-        .chain(&offer.relays)
-        .map(ToString::to_string)
-        .collect();
     Ok(Offer {
-        summary: format!(
-            "node {} · via {} · expires {}",
-            offer.node,
-            routes.join(", "),
-            offer.expires.format("%Y-%m-%d %H:%M UTC"),
-        ),
+        key: "(not computed in the browser build)".to_owned(),
+        node: offer.node.to_string(),
+        routes: offer
+            .direct
+            .iter()
+            .chain(&offer.relays)
+            .map(ToString::to_string)
+            .collect(),
+        expires: offer.expires.format("%Y-%m-%d %H:%M UTC").to_string(),
     })
+}
+
+/// What is wrong with a name typed for a new machine.
+///
+/// The desktop's twin (`nodes.rs`) checks the name with the node book's
+/// own parser, which lives in `vessel-client`; the browser build cannot
+/// link it yet, so "not a node name" is left to the node here. Same
+/// variants, so a screen matching them builds for both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NameProblem {
+    /// Nothing typed.
+    Empty,
+    /// It is the node's key, typed where a name goes.
+    LooksLikeKey,
+    /// It is a pairing link.
+    LooksLikeLink,
+    /// Not a node name (never reported in a browser: see above).
+    Invalid,
+    /// The book already has a machine of that name.
+    Taken,
+}
+
+/// What is wrong with `text` as a new machine's name, if anything.
+#[must_use]
+pub fn name_problem(text: &str, taken: &[String]) -> Option<NameProblem> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Some(NameProblem::Empty);
+    }
+    if text.starts_with("vessel://") {
+        return Some(NameProblem::LooksLikeLink);
+    }
+    let hex = text.chars().filter(char::is_ascii_hexdigit).count();
+    if text.contains(' ') && hex >= 8 && text.chars().all(|c| c.is_ascii_hexdigit() || c == ' ') {
+        return Some(NameProblem::LooksLikeKey);
+    }
+    if taken.iter().any(|name| name == text) {
+        return Some(NameProblem::Taken);
+    }
+    None
+}
+
+/// A name for a new machine that the book does not have.
+#[must_use]
+pub fn default_name(taken: &[String]) -> String {
+    let free = |name: &String| !taken.contains(name);
+    std::iter::once("machine".to_owned())
+        .chain((2_u32..).map(|n| format!("machine-{n}")))
+        .find(free)
+        .unwrap_or_else(|| "machine".to_owned())
 }
