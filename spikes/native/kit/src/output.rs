@@ -300,8 +300,33 @@ pub fn version_of(text: &str) -> u64 {
     hasher.finish()
 }
 
+/// One diff line drawn on its own, as a row of a long list (the code
+/// panel's Changes, where a file's diff is rows among the files'): the
+/// box's bar, number, wash and type, the text wrapped when `wrap` (a list
+/// row cannot scroll sideways on its own).
+#[must_use]
+pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
+    let paint = Paint {
+        look: Look::of(tokens),
+        added: tokens.st_ready,
+        removed: tokens.neutral.destructive,
+    };
+    div()
+        .w_full()
+        .face(Type::Mono)
+        .text_size(px(crate::fonts::code(SIZE)))
+        .line_height(px(crate::fonts::code(LINE)))
+        .text_color(paint.look.text.opacity(0.8))
+        .child(row_of(line, true, wrap, paint))
+        .into_any_element()
+}
+
 /// One line: a diff's bar and number, then the text, unwrapped.
 fn row(line: &Line, numbered: bool, paint: Paint) -> AnyElement {
+    row_of(line, numbered, false, paint)
+}
+
+fn row_of(line: &Line, numbered: bool, wrap: bool, paint: Paint) -> AnyElement {
     let ink = match line.tone {
         Tone::Plain => None,
         Tone::Added => Some(paint.added),
@@ -310,8 +335,8 @@ fn row(line: &Line, numbered: bool, paint: Paint) -> AnyElement {
     let mut row = div()
         .flex()
         .flex_row()
-        .whitespace_nowrap()
-        .pr(px(PAD_RIGHT));
+        .when(!wrap, |row| row.whitespace_nowrap().pr(px(PAD_RIGHT)))
+        .when(wrap, |row| row.pr(px(PAD)));
     if let Some(ink) = ink {
         row = row.bg(ink.opacity(WASH));
     }
@@ -336,6 +361,7 @@ fn row(line: &Line, numbered: bool, paint: Paint) -> AnyElement {
     }
     row.child(
         div()
+            .when(wrap, |text| text.flex_1().min_w_0())
             .when_some(ink, Styled::text_color)
             .child(line.text.clone()),
     )

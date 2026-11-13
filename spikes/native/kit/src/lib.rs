@@ -58,7 +58,9 @@ pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
-pub use output::{Start, lines_box, output_box, version_of};
+pub use output::{
+    Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
+};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,

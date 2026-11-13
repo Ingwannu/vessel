@@ -121,10 +121,14 @@ pub enum Glyph {
     /// An X on the line glyphs' grid: take a row out (a queued message;
     /// the window's `Close` fills its box and reads heavier beside them).
     Remove,
+    /// A file (the Files tree, Paseo's `File`).
+    File,
+    /// The code panel's toggle (Paseo's `PanelRight`).
+    PanelRight,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 47] = [
+const ALL: [Glyph; 49] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -172,6 +176,8 @@ const ALL: [Glyph; 47] = [
     Glyph::Steer,
     Glyph::Grip,
     Glyph::Remove,
+    Glyph::File,
+    Glyph::PanelRight,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -229,6 +235,8 @@ impl Glyph {
             Self::ArrowLeft => "kit/arrow-left.svg",
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
+            Self::File => "kit/file.svg",
+            Self::PanelRight => "kit/panel-right.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
@@ -362,6 +370,12 @@ impl Glyph {
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
+            Self::File => line_glyph!(
+                r#"<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>"#
+            ),
+            Self::PanelRight => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>"#
+            ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
             ),

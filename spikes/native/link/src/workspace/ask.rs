@@ -7,7 +7,7 @@ use vessel_proto::workspace::{
     ListWorktrees, Pull, Push, ReadFile, ReadLog, RelPath, RemoveWorktree, RenameBranch,
     RenamePath, SearchFiles, Stage, StashChanges, Switch, Unstage, WorkspaceRoot,
 };
-use vessel_proto::{ProjectId, WorktreeId};
+use vessel_proto::{ProjectId, SessionId, WorktreeId};
 
 use super::StartAsk;
 
@@ -24,6 +24,8 @@ pub enum Ask {
     File(FileAsk),
     /// A session started in a new worktree, walked to its end.
     Start(Box<StartAsk>),
+    /// `session.get`: where a session runs (the code panel's root).
+    Session(SessionId),
 }
 
 /// The project asks.

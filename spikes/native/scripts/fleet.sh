@@ -261,6 +261,8 @@ done
 seq 1 3000 | sed 's/.*/export const colour& = "#&";/' > "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
 printf '# 설치 안내\n\n한글로 쓴 문서입니다.\n' > "$mono/docs/한글-문서/설치-안내.md"
 printf 'old name\n' > "$mono/docs/renamed-before.md"
+mkdir -p "$mono/assets"
+head -c 4096 /dev/urandom > "$mono/assets/brand-mark.bin"
 git_in "$mono" add -A && git_in "$mono" commit -q -m "The design system, as it was"
 # The working tree: 60 modified (20 of them staged), 40 untracked, 5
 # deleted, one renamed, the Hangul file edited, 2,500 lines rewritten.
@@ -270,6 +272,12 @@ for n in $(seq 1 40); do printf 'new %s\n' "$n" > "$mono/$deep/untracked-generat
 for n in $(seq 76 80); do rm "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"; done
 git_in "$mono" mv docs/renamed-before.md docs/renamed-after-a-much-longer-name.md
 printf '\n바뀐 줄입니다.\n' >> "$mono/docs/한글-문서/설치-안내.md"
+# A binary file changed, a folder with nothing in it (the Files tree's
+# empty folder), and a file no one may read (a failed read).
+head -c 4096 /dev/urandom > "$mono/assets/brand-mark.bin"
+mkdir -p "$mono/packages/empty-folder"
+printf 'not for reading\n' > "$mono/unreadable-notes.txt"
+chmod 000 "$mono/unreadable-notes.txt"
 sed -i '1,2500s/"#/"oklch(/' "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
 cli --node laptop project add "$mono" > /dev/null
 small="$root/work/shop"
@@ -296,6 +304,9 @@ grep -q 'atlas-design-system-monorepo' <<<"$listed" || problems+=("the monorepo 
 grep -q 'clone_failed\|clone failed' <<<"$listed" || problems+=("no failed clone listed")
 [ -n "$digest" ] || problems+=("shop's commands were not approved")
 [ -n "$tree" ] || problems+=("no worktree on the long branch")
+git -C "$mono" diff --numstat -- assets | grep -q '^-' || problems+=("no binary change")
+[ -d "$mono/packages/empty-folder" ] && [ -z "$(ls -A "$mono/packages/empty-folder")" ] || problems+=("no empty folder")
+[ -e "$mono/unreadable-notes.txt" ] && ! [ -r "$mono/unreadable-notes.txt" ] || problems+=("no unreadable file")
 if [ ${#problems[@]} -gt 0 ]; then
   printf 'fleet: the workspace shapes are missing: %s\n' "${problems[*]}" >&2
   exit 1
