@@ -196,6 +196,33 @@ impl Timeline {
         }
     }
 
+    /// How many permission requests wait (the card's "1/N").
+    #[must_use]
+    pub fn waiting_permissions(&self) -> usize {
+        self.waiting.len()
+    }
+
+    /// Whether a permission request for tool call `id` waits.
+    #[must_use]
+    pub fn asks_permission(&self, id: &ToolCallId) -> bool {
+        self.waiting.iter().any(|index| {
+            self.entries.get(*index).is_some_and(|entry| {
+                matches!(&entry.kind, EntryKind::Permission(permission) if permission.request.tool_call == *id)
+            })
+        })
+    }
+
+    /// The tool call `id`, when it was seen.
+    #[must_use]
+    pub fn tool_call(&self, id: &ToolCallId) -> Option<&ToolView> {
+        let entry = self.entries.get(*self.tools.get(id)?)?;
+        if let EntryKind::Tool(tool) = &entry.kind {
+            Some(tool)
+        } else {
+            None
+        }
+    }
+
     /// The questions still waiting for an answer, oldest first.
     #[must_use]
     pub fn waiting_questions(&self) -> Vec<&Entry> {
