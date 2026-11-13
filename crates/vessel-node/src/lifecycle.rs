@@ -101,6 +101,10 @@ async fn stop_when_idle(runtime: Arc<SessionRuntime>, stop: CancellationToken) {
             .list()
             .into_iter()
             .filter(|info| info.status.is_live())
+            // A parked session holds no process: the node's restart
+            // interrupts it as any live session, and nothing is lost by
+            // not waiting for it (protocol 12).
+            .filter(|info| info.parked.is_none())
             .filter_map(|info| runtime.get(info.id))
             .collect();
         if live.is_empty() {

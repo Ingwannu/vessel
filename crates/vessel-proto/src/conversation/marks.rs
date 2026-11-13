@@ -125,7 +125,11 @@ impl SessionEvent {
             | Self::Renamed { .. }
             | Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
-            | Self::UsageChanged { .. } => false,
+            | Self::UsageChanged { .. }
+            // A parked agent waits on nobody; a failed wake answered the
+            // call that asked for it.
+            | Self::Parked { .. }
+            | Self::Woken => false,
         }
     }
 }

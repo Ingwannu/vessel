@@ -16,6 +16,7 @@ use super::{Created, SessionRuntime};
 use crate::error::SessionError;
 use crate::handle::Input;
 use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove};
+use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
 
 /// A structured session's agent command and the directory ACP is given.
@@ -44,7 +45,7 @@ impl SessionRuntime {
         }
 
         let profile = begin.info.profile.clone();
-        let (route, routed) = watch::channel(Some(input.clone()));
+        let (route, routed) = watch::channel(Route::Live(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
         let pid = agent.pid();
@@ -59,6 +60,11 @@ impl SessionRuntime {
             replaying,
             gate,
         } = actor;
+        let parking = Parking::new(
+            self.config.park_after,
+            launch.setup.options.clone(),
+            launch.setup.resume.clone(),
+        );
         let actor = StructuredActor {
             agent,
             outputs,
@@ -79,6 +85,7 @@ impl SessionRuntime {
             desk,
             gate,
             loader: self.attachments.clone(),
+            parking,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }

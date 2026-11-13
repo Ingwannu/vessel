@@ -1,6 +1,7 @@
-// The index (track W2): the board once a machine is connected, the
-// welcome while none is, nothing while the page cannot tell yet
-// (`data/welcome.ts` decides which).
+// The index (track W2): the new-session page once a machine is connected
+// (GOAT's first screen is a draft's composer, the new chat, 2026-11-13),
+// the welcome while none is, nothing while the page cannot tell yet
+// (`data/welcome.ts` decides which). The board is the sidebar's Board.
 
 import { Navigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
@@ -31,6 +32,6 @@ export function HomePage(): ReactElement | null {
     case "welcome":
       return <Welcome />;
     case "board":
-      return headed === "/" ? <Navigate to="/sessions" replace /> : null;
+      return headed === "/" ? <Navigate to="/new" replace /> : null;
   }
 }

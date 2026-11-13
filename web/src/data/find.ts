@@ -46,7 +46,10 @@ export function searchable(entry: Entry): string | null {
   switch (entry.kind) {
     case "prompt":
     case "message":
+    case "steer":
       return entry.text;
+    case "question":
+      return entry.question.message;
     case "ready":
     case "thought":
     case "tool":

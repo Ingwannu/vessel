@@ -37,6 +37,10 @@ pub struct RuntimeConfig {
     /// suggested; a node raises it for adapters that start slowly (an `npx`
     /// adapter may download its package on first use).
     pub agent_handshake_timeout: Duration,
+    /// How long a structured session may stay idle before its agent's
+    /// process is parked (protocol 12, ADR 0038); `None` never parks.
+    /// Only sessions whose agent can resume are parked.
+    pub park_after: Option<Duration>,
 }
 
 /// `value` as a `NonZeroUsize` in a constant; a zero would fall back to 1,

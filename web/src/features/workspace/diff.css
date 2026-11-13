@@ -1,0 +1,251 @@
+/* The Changes list's rows (features/workspace/change-row.tsx), agent-
+   orchestrator's review pane and its fallback diff:
+   - a file's header 36px, 16px in on the left, 6px on the right, its
+     hover a 4% wash; a 14px chevron that turns when open, the file's
+     mark, the folder in the passive ink and the name in the full ink at
+     13px, the status letter 12px semibold in its tone, "+N −M" 12px
+     tabular; its actions (24px quiet buttons) at the right on hover;
+   - a hunk a band on the well's fill, 3px above and below, 10px in, its
+     header in the passive ink and its section after it;
+   - a line mono 12/20 on the page: a 36px number column over a hairline,
+     a 16px column for + and -, the code; an added line on the green
+     wash, a removed one on the red, both 8 to 10%. */
+
+.d-file {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg-base);
+}
+
+.d-file:hover {
+  background: color-mix(in srgb, var(--bg-base), var(--text-primary) 4%);
+}
+
+.d-file-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0 6px 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 13px / 20px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.d-file-toggle:focus-visible {
+  background: var(--bg-hover);
+}
+
+.d-file-toggle > .ico:first-child {
+  transition: transform var(--d-2) var(--ease);
+}
+
+.d-file[data-open] .d-file-toggle > .ico:first-child {
+  transform: rotate(90deg);
+}
+
+.d-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.d-dir {
+  color: var(--text-tertiary);
+}
+
+.d-name {
+  color: var(--text-primary);
+}
+
+.d-status {
+  flex: none;
+  font: 600 12px / 16px var(--font-sans);
+}
+
+.d-status.added {
+  color: var(--st-ready);
+}
+
+.d-status.removed {
+  color: var(--danger);
+}
+
+.d-status.modified {
+  color: var(--st-needs-you);
+}
+
+.d-status.renamed {
+  color: var(--st-building);
+}
+
+.d-status.other {
+  color: var(--text-tertiary);
+}
+
+.d-counts {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  font: 400 12px / 16px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.d-add {
+  color: var(--st-ready);
+}
+
+.d-del {
+  color: var(--danger);
+}
+
+.d-file-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding-right: 6px;
+  opacity: 0;
+  transition: opacity var(--d-2) var(--ease);
+}
+
+.d-file:hover .d-file-actions,
+.d-file:focus-within .d-file-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .d-file-actions {
+    opacity: 1;
+  }
+}
+
+.d-hunk {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 10px;
+  background: var(--bg-well);
+  color: var(--text-tertiary);
+  font: var(--t-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-section {
+  color: var(--text-secondary);
+}
+
+.d-line {
+  display: grid;
+  grid-template-columns: 36px 16px minmax(0, 1fr);
+  min-height: 20px;
+  color: var(--text-primary);
+  font: var(--t-mono);
+}
+
+.d-line.add {
+  background: var(--diff-add-bg);
+}
+
+.d-line.del {
+  background: var(--diff-del-bg);
+}
+
+.d-line.eof {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.d-num {
+  padding-right: 6px;
+  border-right: 1px solid var(--border-faint);
+  color: var(--text-tertiary);
+  text-align: right;
+  user-select: none;
+}
+
+.d-mark {
+  color: var(--text-tertiary);
+  text-align: center;
+  user-select: none;
+}
+
+.d-line.add .d-mark {
+  color: var(--st-ready);
+}
+
+.d-line.del .d-mark {
+  color: var(--danger);
+}
+
+.d-code {
+  padding-right: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+}
+
+.d-cut {
+  color: var(--text-tertiary);
+}
+
+.d-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+}
+
+.d-note.failed {
+  color: var(--danger);
+}
+
+/* Syntax colour (features/workspace/code-text.tsx), DESIGN.md §4.4. */
+.syn-keyword {
+  color: var(--syn-keyword);
+}
+
+.syn-string {
+  color: var(--syn-string);
+}
+
+.syn-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+
+.syn-number {
+  color: var(--syn-number);
+}
+
+.syn-const {
+  color: var(--syn-const);
+}
+
+.syn-func {
+  color: var(--syn-func);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-file-toggle > .ico:first-child,
+  .d-file-actions {
+    transition: none;
+  }
+}

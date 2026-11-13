@@ -30,6 +30,7 @@ mod devices;
 mod files;
 mod git;
 pub mod localization;
+mod machine_book;
 mod machines;
 mod notices;
 mod options;

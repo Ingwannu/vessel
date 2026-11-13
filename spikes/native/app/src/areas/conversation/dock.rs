@@ -20,23 +20,26 @@ use vessel_app_kit::ui::{
 use crate::shell::Shell;
 
 /// What shows right above the composer card; `None`: nothing. A
-/// question the agent asks (`question`), then the queue of prompts waiting
-/// their turn (`queue`), nearest the card.
+/// permission the agent waits for (`permission`), a question it asks
+/// (`question`), then the queue of prompts waiting their turn (`queue`),
+/// nearest the card.
 pub(crate) fn dock(
     shell: &Shell,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    let permission = super::permission::card(shell, tokens, window, cx);
     let question = super::question::card(shell, tokens, window, cx);
     let queue = super::queue::queue(shell, tokens, window, cx);
-    if question.is_none() && queue.is_none() {
+    if permission.is_none() && question.is_none() && queue.is_none() {
         return None;
     }
     Some(
         div()
             .flex()
             .flex_col()
+            .children(permission.map(|card| div().pb(px(8.0)).child(card)))
             .children(question.map(|card| div().pb(px(8.0)).child(card)))
             .children(queue)
             .into_any_element(),

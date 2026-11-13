@@ -5,6 +5,7 @@ mod attached;
 mod automation;
 mod conversation;
 mod forge;
+mod search;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -39,6 +40,9 @@ pub struct Store {
     /// How many sessions retention has removed since the store opened
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
+    /// Whether some session's messages are not in the search index yet
+    /// (protocol 12, [`Store::indexed`]).
+    indexing: watch::Receiver<bool>,
 }
 
 /// A freshly opened store and what recovery found.
@@ -90,10 +94,12 @@ impl Store {
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
+        let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
             pruned,
+            indexing: indexing_sender,
         };
         writer::spawn(connection, ops, setup)?;
         let store = Self {
@@ -101,6 +107,7 @@ impl Store {
             reader: Arc::new(Reader::new(path, config)),
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
+            indexing,
         };
         Ok(Opened { store, interrupted })
     }

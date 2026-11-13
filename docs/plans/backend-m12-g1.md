@@ -544,3 +544,19 @@ widths plus unequal preferences, remains required before visual approval.
 Validation: the same whole native 506 runtime plus two documentation-test gate
 as the preceding independent view correction; no unchanged-source rerun. Actual
 Git first-use captures remain pending.
+
+## Integrating protocol 12 and the embedded Light faces
+
+The next desktop-base merge imports the lead's reviewed node/session line and
+its protocol-12 event readers, the current conversation and machine-book work,
+and the real Geist/Pretendard Light faces. No node or platform implementation is
+changed by G1. The README merge retains both the machine-book architecture and
+Git's existing policy/type-step notes. The font merge keeps both Light assets
+and the independent MonoBody metrics/family rules; loading/fallbacks remain the
+lead's. This integration does not prove live IME, title face selection or a new
+Git screen. Those each require their own runtime evidence.
+
+Validation: whole native fmt, all-target clippy with warnings denied, and tests
+passed (533 runtime tests and two documentation tests). Only native checks are
+reported here; imported root/node changes retain the lead's original provenance,
+and no new root implementation or root test run is claimed by this merge.

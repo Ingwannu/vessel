@@ -1,0 +1,143 @@
+/* The queued prompts over the composer (queue-dock.tsx), agent-
+   orchestrator's dock: 16px narrower than the box on each side, 8px above
+   it, radius 20, a hairline, the box's surface; a 32px header in 12px
+   medium, muted, and 40px rows of a 12px line led by a hollow 12px
+   circle; at most five rows before it scrolls. A row being edited in the
+   composer is on the 7% wash; while a row is dragged, a 2px line shows
+   where it will land (GOAT's). */
+
+.queue-dock {
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 32px);
+  margin: 0 auto 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-composer);
+  background: var(--composer-bg);
+}
+
+.queue-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  color: var(--text-secondary);
+  font: 500 12px / 16px var(--font-sans);
+}
+
+.queue-chevron {
+  display: inline-flex;
+  margin-left: -6px;
+}
+
+.queue-chevron .ico {
+  transition: transform var(--d-2) var(--ease);
+}
+
+.queue-chevron[data-folded] .ico {
+  transform: rotate(-90deg);
+}
+
+.queue-count {
+  flex: none;
+}
+
+.queue-held {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--warn);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-rows {
+  max-height: 200px;
+  margin: 0;
+  padding: 0 0 4px;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.queue-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 8px 0 12px;
+  color: var(--text-primary);
+  font: 400 12px / 16px var(--font-sans);
+}
+
+.queue-row[data-editing] {
+  background: var(--bg-active);
+}
+
+.queue-row[data-dragging] {
+  opacity: 0.6;
+}
+
+.queue-row[data-drop]::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  left: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.queue-row[data-drop="before"]::after {
+  top: 0;
+}
+
+.queue-row[data-drop="after"]::after {
+  bottom: 0;
+}
+
+.queue-mark {
+  display: inline-flex;
+  flex: none;
+  color: color-mix(in srgb, var(--text-tertiary) 60%, transparent);
+}
+
+.queue-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-files,
+.queue-by {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.queue-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.queue-actions [aria-label^="Drag"] {
+  cursor: grab;
+  touch-action: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-chevron .ico {
+    transition: none;
+  }
+}

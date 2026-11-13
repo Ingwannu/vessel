@@ -272,6 +272,12 @@ pub struct SessionInfo {
     /// cleared when the session ends.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pull_request: Option<Box<crate::forge::SessionPullRequest>>,
+    /// Its agent's process is parked (protocol 12, ADR 0038): stopped
+    /// while the session stays `running`, started again by the next
+    /// prompt. Absent while it runs, for an ended session, and from older
+    /// nodes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parked: Option<crate::parking::Parked>,
 }
 
 /// Where a session came from, when another node of the fleet had a hand in
@@ -336,6 +342,7 @@ impl SessionInfo {
             abilities: None,
             workspace: None,
             pull_request: None,
+            parked: None,
         }
     }
 

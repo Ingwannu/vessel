@@ -22,6 +22,7 @@
 
 mod entries;
 mod numbers;
+mod permission;
 mod question;
 mod session;
 mod terminal;

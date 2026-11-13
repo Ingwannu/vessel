@@ -360,6 +360,15 @@ impl Sessions {
         })
     }
 
+    /// The live session `id`, for a call that acts on its agent (protocol
+    /// 12's park and wake); an ended one is `Ended`.
+    pub(crate) async fn acting_on(&self, id: SessionId) -> Result<SessionHandle, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle),
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
     /// Move a live session to another profile (`profiles::moving` plans it).
     pub(crate) async fn move_profile(
         &self,

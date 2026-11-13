@@ -1,0 +1,105 @@
+/* The composer's suggestion list (kit/suggestions.tsx), agent-
+   orchestrator's: the popup surface (radius 10, 4px inside), at most
+   448px wide, its rows scrolling within 256px; a row 8 by 6 inside,
+   radius 8, a 12px label and an 11px muted detail under it, a 10px badge
+   at the right; the active row on the 7% wash with the key that inserts
+   it, a row under the pointer on the 4% one. */
+
+.suggestions.popup {
+  width: 100%;
+  max-width: min(448px, 100%);
+  min-width: 0;
+  padding: 4px;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 256px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-2);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.suggestion:hover {
+  background: var(--bg-hover);
+}
+
+.suggestion[data-active] {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.suggestion-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.suggestion-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.suggestion-label {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: 400 12px / 16px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-label mark {
+  background: none;
+  color: inherit;
+  font-weight: 600;
+}
+
+.suggestion-detail {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: 400 11px / 14px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-badge {
+  flex: none;
+  color: var(--text-tertiary);
+  font: 500 10px / 14px var(--font-sans);
+}
+
+.suggestion-key {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.suggestions-note,
+.suggestions-foot {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--text-tertiary);
+  font: 400 12px / 16px var(--font-sans);
+}
+
+.suggestions-foot {
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+}

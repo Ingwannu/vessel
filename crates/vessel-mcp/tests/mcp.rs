@@ -35,6 +35,7 @@ const TOOLS: &[&str] = &[
     "answer_question",
     "resume_session",
     "archive_session",
+    "search_sessions",
     "list_projects",
     "list_worktrees",
     "create_worktree",
@@ -70,12 +71,12 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         let server = tokio::spawn(vessel_mcp::serve(tools, read, write));
         let mut mcp = McpClient::new(client_end);
 
-        // The session tools (protocol 4, 10), the project and worktree
-        // tools (protocol 10), the pull request, terminal and schedule tools
-        // (protocol 11), then LSP's.
+        // The session tools (protocol 4, 10), the search (protocol 12), the
+        // project and worktree tools (protocol 10), the pull request,
+        // terminal and schedule tools (protocol 11), then LSP's.
         let names = mcp.initialize().await;
         assert_eq!(&names[..TOOLS.len()], TOOLS);
-        assert_eq!(names.len(), 42);
+        assert_eq!(names.len(), 43);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.
