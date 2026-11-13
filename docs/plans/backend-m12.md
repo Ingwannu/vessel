@@ -467,6 +467,22 @@ under the same strict brief and the same line-by-line review) builds
 the mechanism beside the tables and moves one area as the model; then
 new strings go to the files only and each area's owner moves its own.
 
+### Found while building against real shapes (2026-11-13, afternoon)
+
+The added tracks reported, besides their slices, defects and gaps in
+what already existed. Each is fixed once, by the track that found it,
+in a commit of its own that the coordinator reviews against the
+reference before anyone takes it:
+
+| What | Where | State |
+|---|---|---|
+| A status badge, an alert, a split button, Paseo's spacing scale, a destructive button | the kit had none | accepted, with the lead |
+| A dialog's body does not scroll and its actions can be pushed out of the card (a git hook's 120-line refusal) | `kit/dialog.rs` | fixed by G1, in review |
+| No multi-line form field (a commit message, a pull request's body) | `kit/field.rs` | G1 |
+| The output box kept the first of two texts of the same length | `kit/output.rs` | fixed by the lead |
+| No face at the window's root, so text without a type lost its Korean fallback | `shell.rs` | found by C, with the lead |
+| **Hangul does not compose in the composer on Linux under X11** (fcitx5 over XIM; a control client in the same display composes) | the pinned GPUI's X11 input, not proved | open: the lead after build 0.0.0.0.8. Composing was shown in the browser and on Android; Windows and Wayland are unverified |
+
 ## The browser, first report (2026-11-13)
 
 The browser track built the same `app` crate for `wasm32` (GPUI's web
