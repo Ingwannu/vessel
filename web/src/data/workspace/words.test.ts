@@ -80,6 +80,7 @@ describe("worktrees and projects in plain words", () => {
   it("offers a snapshot only for what a snapshot keeps", () => {
     expect(snapshotCovers({ kind: "uncommitted", files: 1 })).toBe(true);
     expect(snapshotCovers({ kind: "in_use" })).toBe(false);
+    expect(keptReasonWords({ kind: "in_use" })).toContain("a terminal");
     expect(snapshotCovers({ kind: "submodules" })).toBe(false);
   });
 

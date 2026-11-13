@@ -164,7 +164,9 @@ export function keptReasonWords(reason: KeptReason): string {
     case "worktree_refs":
       return "References of this worktree's own";
     case "in_use":
-      return "A live session, or setup, is using it";
+      // From protocol 11 a terminal or a service beside a session in the
+      // worktree keeps it too (the node join of wave 2's first half).
+      return "A live session, a terminal or service, or setup is using it";
     case "inspection_failed":
       return "Git could not inspect it";
     case "unknown":
