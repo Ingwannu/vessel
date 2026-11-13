@@ -1,9 +1,7 @@
-//! Separate fact values keep separate scroll state and copy their exact text.
+//! Fact values share one trailing edge, a path is cut to its set width,
+//! and each copy button copies the exact, whole text.
 use super::*;
-use gpui::{
-    Bounds, Context, IntoElement, Modifiers, MouseButton, Pixels, Render, ScrollDelta, ScrollEvent,
-    TestAppContext, point,
-};
+use gpui::{Bounds, Context, IntoElement, Modifiers, Pixels, Render, TestAppContext};
 use std::{cell::RefCell, rc::Rc};
 type Seen = Rc<RefCell<Vec<Bounds<Pixels>>>>;
 struct Probe {
@@ -30,6 +28,7 @@ impl Render for Probe {
                         value: Value::Code(&self.version),
                         first: true,
                     },
+                    None,
                     &tokens,
                     window,
                     cx,
@@ -41,9 +40,10 @@ impl Render for Probe {
                     &Fact {
                         id: "program",
                         label: "Program",
-                        value: Value::Code(&self.program),
+                        value: Value::Path(&self.program),
                         first: false,
                     },
+                    None,
                     &tokens,
                     window,
                     cx,
@@ -53,42 +53,29 @@ impl Render for Probe {
     }
 }
 #[gpui::test]
-fn a_long_program_scrolls_independently_of_the_short_version_and_each_copy_is_exact(
-    cx: &mut TestAppContext,
-) {
-    let version_bounds = Seen::default();
-    let program_bounds = Seen::default();
+fn a_long_path_is_cut_to_its_width_ends_with_the_version_and_copies_whole(cx: &mut TestAppContext) {
     let version = "1.0".to_owned();
     let program = "long path with spaces/".repeat(40);
     let (_, cx) = cx.add_window_view({
-        let version_bounds = Rc::clone(&version_bounds);
-        let program_bounds = Rc::clone(&program_bounds);
         let version = version.clone();
         let program = program.clone();
         move |_, _| Probe {
             width: 700.0,
             version,
             program,
-            version_bounds,
-            program_bounds,
+            version_bounds: Seen::default(),
+            program_bounds: Seen::default(),
         }
     });
     cx.run_until_parked();
-    let version_before = cx.debug_bounds("version-content").unwrap();
-    let program_before = cx.debug_bounds("program-content").unwrap();
-    let program_control = program_bounds.borrow().get(1).copied().unwrap();
-    cx.simulate_event(ScrollEvent {
-        position: program_control.center(),
-        delta: ScrollDelta::Lines(point(-3.0, 0.0)),
-        ..ScrollEvent::default()
-    });
-    cx.run_until_parked();
-    assert!(cx.debug_bounds("program-content").unwrap().left() < program_before.left());
-    assert_eq!(cx.debug_bounds("version-content").unwrap(), version_before);
-    for (id, text) in [("version-copy", version), ("program-copy", program)] {
-        let copy = cx.debug_bounds(id).unwrap().center();
-        cx.simulate_mouse_move(copy, None::<MouseButton>, Modifiers::default());
-        cx.simulate_click(copy, Modifiers::default());
+    let path = cx.debug_bounds("program-content").unwrap();
+    assert!(path.size.width <= px(CONTROL), "{path:?}");
+    // One trailing edge: both copy buttons are drawn, side by side in x.
+    let version_copy = cx.debug_bounds("version-copy").unwrap();
+    let program_copy = cx.debug_bounds("program-copy").unwrap();
+    assert_eq!(version_copy.right(), program_copy.right());
+    for (copy, text) in [(version_copy, version), (program_copy, program)] {
+        cx.simulate_click(copy.center(), Modifiers::default());
         assert_eq!(
             cx.read_from_clipboard().and_then(|item| item.text()),
             Some(text)
@@ -115,7 +102,7 @@ fn a_wrapped_compact_program_keeps_copy_inside_the_viewport_and_copies_the_whole
     cx.run_until_parked();
     let copy = cx.debug_bounds("program-copy").unwrap();
     assert!(copy.left() >= px(0.0));
-    // The production row's16-point right inset stays outside the target.
+    // The production row's 16-point right inset stays outside the target.
     assert!(copy.right() <= px(374.0), "{copy:?}");
     cx.simulate_click(copy.center(), Modifiers::default());
     assert_eq!(

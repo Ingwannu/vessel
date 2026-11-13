@@ -18,7 +18,7 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _, settings};
 use vessel_app_link::agents::{Administration, AgentsError};
 use vessel_app_view::agent_status::{
     agent_label,
-    pages::{Inventory, Operation, Page},
+    pages::{Inventory, Issue, Operation, Page},
 };
 use vessel_proto::HarnessRef;
 
@@ -71,6 +71,13 @@ pub(crate) fn render(
             tokens,
         ));
     }
+    // The machine's failed refresh, above the list or an agent's details,
+    // whichever is open (only the list showed it: a refresh that failed
+    // while the details were open was not said anywhere, track V1's
+    // review).
+    if let Some(issue) = page.and_then(machine_alert) {
+        body = body.child(problem(&issue.source, shell, tokens));
+    }
     if page
         .and_then(Page::pending)
         .is_some_and(|ticket| matches!(ticket.operation, Operation::Check(_)))
@@ -121,6 +128,14 @@ pub(crate) fn render(
     };
     body = body.children(progress::render(shell, tokens, window, cx));
     body.into_any_element()
+}
+
+/// The machine-scoped failure the page says once, above the list or the
+/// details: the machine's refresh (discovery) that failed. An agent's own
+/// check failure is said in its details, beside its button.
+pub(super) fn machine_alert<E>(page: &Page<E>) -> Option<&Issue<E>> {
+    page.issue()
+        .filter(|issue| issue.operation == Operation::Discovery)
 }
 
 pub(super) fn note(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> Div {
@@ -177,14 +192,10 @@ fn section(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let issue = page(shell)
-        .and_then(Page::issue)
-        .filter(|issue| issue.operation == Operation::Discovery);
     let body = div()
         .flex()
         .flex_col()
         .gap(px(spacing::S3))
-        .children(issue.map(|issue| problem(&issue.source, shell, tokens)))
         .children(content);
     settings::section_with_trailing(
         title,
@@ -309,5 +320,46 @@ mod tests {
             machine_scroll_id(&punctuated, None),
             machine_scroll_id(&a, Some(&agent))
         );
+    }
+}
+
+#[cfg(test)]
+mod alert_tests {
+    use vessel_app_view::agent_status::pages::{MachineKey, Operation, Pages};
+    use vessel_proto::{HarnessKind, HarnessRef};
+
+    use super::machine_alert;
+
+    /// Refresh, open an agent's details, the refresh fails: the failure is
+    /// the page's alert while the details stay open.
+    #[test]
+    fn a_refresh_that_fails_while_details_are_open_is_said() {
+        let mut pages: Pages<&'static str> = Pages::default();
+        let laptop = MachineKey::from_book("laptop");
+        let id = pages
+            .begin(laptop.clone(), Operation::Discovery)
+            .expect("a free page");
+        pages.select("laptop", Some(HarnessRef::Known(HarnessKind::Codex)));
+        pages.failed(&laptop, id, "the machine is not connected");
+        let page = pages.get("laptop").expect("the page");
+        assert!(page.selected().is_some(), "the details stay open");
+        assert_eq!(
+            machine_alert(page).map(|issue| issue.source),
+            Some("the machine is not connected")
+        );
+    }
+
+    /// An agent's own check failure is not the machine's alert.
+    #[test]
+    fn a_failed_check_is_said_in_its_details_not_above_them() {
+        let mut pages: Pages<&'static str> = Pages::default();
+        let laptop = MachineKey::from_book("laptop");
+        let codex = HarnessRef::Known(HarnessKind::Codex);
+        let id = pages
+            .begin(laptop.clone(), Operation::Check(codex.clone()))
+            .expect("a free page");
+        pages.select("laptop", Some(codex));
+        pages.failed(&laptop, id, "refused");
+        assert!(machine_alert(pages.get("laptop").expect("the page")).is_none());
     }
 }

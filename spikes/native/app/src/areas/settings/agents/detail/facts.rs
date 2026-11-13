@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
     Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, px,
 };
-use vessel_app_kit::{Tokens, outline_button, settings};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_kit::{breakpoint, theme::spacing};
 use vessel_app_link::agents::Ask;
 use vessel_app_view::agent_status::{pages::Inventory, readiness};
@@ -43,6 +43,7 @@ pub(super) fn render(
             value: Value::Text(&shown.sentence),
             first: true,
         },
+        None,
         tokens,
         window,
         cx,
@@ -76,6 +77,7 @@ pub(super) fn render(
             value: version,
             first: false,
         },
+        None,
         tokens,
         window,
         cx,
@@ -85,9 +87,13 @@ pub(super) fn render(
             &Fact {
                 id: "agent-program",
                 label: words.program(),
-                value: Value::Code(&program),
+                value: Value::Path(&program),
                 first: false,
             },
+            Some(&fact_rows::Tip {
+                tips: &shell.areas.settings.agents.tips,
+                place: &shell.areas.settings.agents.program_place,
+            }),
             tokens,
             window,
             cx,
@@ -105,52 +111,75 @@ fn added_arguments(
     tokens: &Tokens,
     window: &Window,
     cx: &gpui::App,
-) -> Option<Div> {
+) -> Vec<Div> {
     let words = shell.t.lang.agents();
-    let mut card = gpui::div()
-        .p(px(spacing::S4))
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S3));
-    if let Some(info) = inventory.agents.iter().find(|info| info.agent == *agent)
-        && let AgentDetail::Added { added } = &info.detail
-    {
-        if let Some(command) = inventory.command_shell.command(added) {
-            return Some(
-                card.child(note(words.launch_command(), tokens))
-                    .child(note(words.launch_note(), tokens))
-                    .child(widgets::command_box(
-                        "added-command",
-                        &command,
-                        tokens,
-                        window,
-                        cx,
-                    )),
-            );
-        }
-        card = card
-            .child(note(words.program(), tokens))
-            .child(widgets::command_box(
-                "added-program",
-                added.program.as_str(),
-                tokens,
-                window,
-                cx,
-            ));
-        for (index, arg) in added.args.iter().enumerate() {
-            card = card
-                .child(note(words.argument(index.saturating_add(1)), tokens))
-                .child(widgets::command_box(
-                    format!("added-arg-{index}"),
-                    arg,
-                    tokens,
-                    window,
-                    cx,
-                ));
-        }
-        return Some(card);
+    let compact = breakpoint::phone(window);
+    let Some(AgentDetail::Added { added }) = inventory
+        .agents
+        .iter()
+        .find(|info| info.agent == *agent)
+        .map(|info| &info.detail)
+    else {
+        return Vec::new();
+    };
+    // A block with its own label, hint and box is a row of its own, behind
+    // the card's divider, as Paseo's settings card separates its rows (it
+    // read as part of the program's row above it: the coordinator's
+    // review).
+    let block = |title: String, hint: Option<&str>, id: String, text: &str| {
+        settings::row_with_content(
+            // The row's whole width: in a phone's wrapping row a flexible
+            // column took its widest line's width, and its hint ran past
+            // the card's edge.
+            gpui::div()
+                .w_full()
+                .min_w_0()
+                .flex()
+                .flex_col()
+                .gap(px(spacing::S2))
+                .child(
+                    gpui::div()
+                        .type_(Type::Label)
+                        .text_color(tokens.neutral.foreground)
+                        .child(title),
+                )
+                .children(hint.map(|hint| {
+                    gpui::div()
+                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground_muted)
+                        .child(hint.to_owned())
+                }))
+                .child(widgets::command_box(id, text, tokens, window, cx))
+                .into_any_element(),
+            None,
+            false,
+            compact,
+            tokens,
+        )
+    };
+    if let Some(command) = inventory.command_shell.command(added) {
+        return vec![block(
+            words.launch_command().to_owned(),
+            Some(words.launch_note()),
+            "added-command".to_owned(),
+            &command,
+        )];
     }
-    None
+    std::iter::once(block(
+        words.program().to_owned(),
+        None,
+        "added-program".to_owned(),
+        added.program.as_str(),
+    ))
+    .chain(added.args.iter().enumerate().map(|(index, arg)| {
+        block(
+            words.argument(index.saturating_add(1)),
+            None,
+            format!("added-arg-{index}"),
+            arg,
+        )
+    }))
+    .collect()
 }
 
 fn installers(
@@ -169,8 +198,10 @@ fn installers(
         return None;
     }
     let busy = page.pending().is_some();
+    let compact = breakpoint::phone(window);
     let mut card = gpui::div()
-        .p(px(spacing::S4))
+        .w_full()
+        .min_w_0()
         .flex()
         .flex_col()
         .gap(px(spacing::S3));
@@ -209,5 +240,13 @@ fn installers(
                     })),
             );
     }
-    Some(card)
+    // A row of its own behind the card's divider, as the launch command's:
+    // it read as part of the program's row above it.
+    Some(settings::row_with_content(
+        card.into_any_element(),
+        None,
+        false,
+        compact,
+        tokens,
+    ))
 }

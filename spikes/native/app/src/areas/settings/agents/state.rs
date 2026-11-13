@@ -19,6 +19,9 @@ pub(crate) struct AgentSettings {
     pub(super) refused: Option<StartProblem>,
     pub(super) tips: vessel_app_kit::tooltip::Tooltips,
     pub(super) refresh_place: vessel_app_kit::tooltip::Place,
+    /// The program's path in the details, when it is cut (its whole text
+    /// in a tooltip).
+    pub(super) program_place: vessel_app_kit::tooltip::Place,
     pub(super) defaults: ComboboxState,
     pub(super) default_id: Option<OptionId>,
     pub(super) model_anchor: Anchor,
@@ -33,6 +36,7 @@ impl AgentSettings {
             refused: None,
             tips: vessel_app_kit::tooltip::Tooltips::new(),
             refresh_place: Rc::default(),
+            program_place: Rc::default(),
             defaults: ComboboxState::new(window, cx),
             default_id: None,
             model_anchor: Anchor::default(),

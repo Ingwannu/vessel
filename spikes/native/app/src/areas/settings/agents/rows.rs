@@ -2,6 +2,7 @@
 //! The shared row owns insets/borders; this area supplies only its contents.
 use super::{page, ready};
 use crate::{areas::draft::Probe, shell::Shell};
+use vessel_app_kit::agent_mark::{self, SettingsRowEdge, settings_mark};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
@@ -37,7 +38,12 @@ pub(super) fn render(
     {
         let scope = shell.areas.settings.agents.machine.clone();
         let target = entry.agent.clone();
-        let contents = contents(&entry.agent, inventory, shell, tokens, compact);
+        let edge = if index == 0 {
+            SettingsRowEdge::First
+        } else {
+            SettingsRowEdge::Following
+        };
+        let contents = contents(&entry.agent, edge, inventory, shell, tokens, compact);
         let hover = tokens.neutral.surface2;
         let pressed = tokens.neutral.surface3;
         card = card.child(
@@ -68,6 +74,7 @@ pub(super) fn render(
 }
 fn contents(
     agent: &HarnessRef,
+    edge: SettingsRowEdge,
     inventory: &Inventory,
     shell: &Shell,
     tokens: &Tokens,
@@ -120,7 +127,15 @@ fn contents(
             glyph(Glyph::ChevronRight, 14.0, tokens.neutral.foreground_muted)
                 .group_hover("agent-row", move |style| style.text_color(foreground)),
         )
-        .child(glyph(Glyph::Bot, 16.0, tokens.neutral.foreground))
+        // The agent's official mark (track K's, ADR 0048) in the slot
+        // Paseo's ProviderRow gives its provider icon; an agent with none
+        // keeps the generic glyph in the row's foreground.
+        .child(settings_mark(
+            crate::agent_mark::of(agent),
+            agent_mark::Size::Sixteen,
+            edge,
+            tokens,
+        ))
         .child(column)
 }
 fn presentation(agent: &HarnessRef, inventory: &Inventory, shell: &Shell) -> row::Row {
