@@ -298,3 +298,25 @@ Section-slot gate: all three whole native checks passed, 397 tests
 passed and none failed. No root source changes in this control slice.
 The layout regression exercises the slot without an area screen; the
 Agents redraw will supply its capture of the section action.
+
+### Provider-row rules before drawing
+
+`agent_status::row` now projects one typed row after Paseo’s `ProviderRow`
+and `StatusIndicator`: available, missing, needs attention, failed,
+unknown, signed out, or loading. Only explicit sign-out changes an
+otherwise available row; every other authentication fact stays in details.
+Missing installation has the reference row’s warning dot, independently
+of the catalogue’s muted badge. A relevant request uses a neutral spinner.
+
+A positive model count comes from the same model control as the composer;
+an unread/empty model list is not reported as zero. Only Available can
+carry that count. Compact indicators cannot carry label/count fields and
+compact rows omit the error paragraph. Expanded rows can carry a short
+error only for a failed installation/chat check; normal state summaries
+and authentication explanations are not row paragraphs.
+
+Whole-label bilingual tables cover installation states/reasons and both
+marker densities. Other fixtures cover every authentication outcome,
+positive/empty/unknown model counts, request identity, and machine-scoped
+section headings. These rules are not yet wired into the rejected screen;
+that is the next redraw. Native fmt, whole Clippy and all 404 tests passed.

@@ -24,6 +24,7 @@ pub mod notices;
 pub mod pages;
 pub mod problem;
 pub mod readiness;
+pub mod row;
 
 /// An agent's key in an address or a list: its kind as the wire writes it
 /// (`open-code`, where the CLI says `opencode`), or `added:<name>`.

@@ -6,6 +6,7 @@ use crate::agent_status::readiness::AgentBadge;
 use vessel_proto::agents::InstallState;
 
 mod reasons;
+mod row;
 mod screen;
 
 /// Agents' sentences and action labels in one language.
