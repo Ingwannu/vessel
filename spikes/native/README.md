@@ -146,6 +146,9 @@ Environment:
 - `VESSEL_APP_LANG=ko|en`: the language (default: the system's).
 - `VESSEL_APP_THEME=light|dark`: the scheme (default: the system's).
 - `VESSEL_APP_SIZE=1280x800`: the window's size.
+- `VESSEL_APP_TITLEBAR=system`: the system's title bar and frame instead
+  of the app's own (the way out if the app's bar misbehaves on a
+  platform).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it.
 

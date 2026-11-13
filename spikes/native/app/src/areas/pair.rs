@@ -33,6 +33,9 @@ pub(crate) struct Pairing {
     name_problem: Option<NameProblem>,
     pair_error: Option<String>,
     busy: bool,
+    /// The name the app filled in; kept as it is, the node's own name is
+    /// used instead once pairing says it.
+    prefilled: Option<String>,
 }
 
 impl Pairing {
@@ -60,6 +63,7 @@ impl Pairing {
             name_problem: None,
             pair_error: None,
             busy: false,
+            prefilled: None,
         }
     }
 }
@@ -106,6 +110,7 @@ impl Shell {
                 pair.link.clear(window, cx);
                 let name = default_name(&self.book_names());
                 self.areas.pair.name.set_text(&name, window, cx);
+                self.areas.pair.prefilled = Some(name);
                 self.areas.pair.name.focus(window, cx);
             }
             Err(error) => self.areas.pair.link_error = Some(error.to_string()),
@@ -131,7 +136,12 @@ impl Shell {
         let pair = &mut self.areas.pair;
         pair.busy = true;
         pair.pair_error = None;
-        self.command(Command::Pair { offer, name });
+        let prefer_node_name = pair.prefilled.as_deref() == Some(name.trim());
+        self.command(Command::Pair {
+            offer,
+            name,
+            prefer_node_name,
+        });
         cx.notify();
     }
 

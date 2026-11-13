@@ -232,6 +232,32 @@ double-click handler GPUI's own elements lack comes from the component
 layer (`gpui-base`'s `InteractiveElementExt`); a window icon can be set
 only on X11 through GPUI (`WindowOptions::icon`).
 
+The way back, until the bar is seen on each platform:
+`VESSEL_APP_TITLEBAR=system` gives the window the system's bar, frame and
+buttons, and the app draws none (`chrome::system_titlebar`, read once at
+start; the release READMEs say how to set it). Seen here: with it, no
+app-drawn bar (Xvfb has no window manager, so no system bar is drawn
+either).
+
+## After 0.0.0.0.2
+
+The coordinator's three small changes for the next build, each seen
+against the fake fleet:
+
+| What | Capture |
+| --- | --- |
+| The prompt in the conversation in the interface face (Pretendard behind Geist), as the page draws it; monospace is for code and the terminal only | `b3-session-prompt.png` |
+| `VESSEL_APP_TITLEBAR=system`: no app-drawn bar | `b3-system-titlebar.png` |
+| Pairing a fresh app and keeping the filled-in `machine`: the book's entry is the node's own name, `laptop` | `b3-paired-own-name.png` |
+
+The node's name cannot fill the field: a pairing link carries the node's
+id, not its name, and the node says its name only in the pairing answer.
+So the app fills in `machine` as before, and when the person kept it, the
+node's own name replaces it after pairing, made into a book name (a run of
+other characters becomes one `-`, a letter or digit at each end, 64
+characters at most) and only if the book does not have it; a name the
+person typed is kept as typed.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

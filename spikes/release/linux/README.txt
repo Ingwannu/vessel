@@ -10,6 +10,8 @@ Vessel {LABEL} — Linux x86-64 (glibc)
   곳(~/.config/vessel)에 둡니다.
 - 앱 메뉴에 넣으려면 ./install-desktop-entry.sh 를 실행합니다(아이콘과
   .desktop 파일을 ~/.local/share 아래에 둡니다).
+- 창 위쪽 막대는 앱이 직접 그립니다. 이상하면 데스크톱의 기본 막대로:
+  VESSEL_APP_TITLEBAR=system ./vessel-app
 - {UPDATES_KO}
 
 [English]
@@ -24,6 +26,8 @@ Vessel {LABEL} — Linux x86-64 (glibc)
   puts the icon and a .desktop file under ~/.local/share).
 - Environment: VESSEL_APP_THEME=light|dark pins the theme;
   VESSEL_CONFIG_DIR points at another configuration directory.
+- The title bar is the app's own; for the desktop's own bar instead:
+  VESSEL_APP_TITLEBAR=system ./vessel-app
 - {UPDATES_EN}
 
 Vessel is source-available under PolyForm Strict 1.0.0 (LICENSE.md).

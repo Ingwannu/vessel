@@ -14,6 +14,11 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   화면에 나온 키가 그 머신이 링크와 함께 출력한 키와 같은지 확인하고,
   미리 채워진 이름을 그대로 두거나 바꾼 뒤 "연결"을 누릅니다. 노드 목록과 기기 자격 증명은 vessel
   CLI와 같은 곳(%APPDATA%\vessel)에 둡니다.
+- 창 위쪽 막대(제목 표시줄)는 앱이 직접 그립니다. 끌기·최대화·닫기가
+  이상하면 Windows 기본 막대로 실행할 수 있습니다. PowerShell에서
+  $env:VESSEL_APP_TITLEBAR="system"; & "$env:LOCALAPPDATA\Programs\Vessel\Vessel.exe"
+  (zip으로 받았다면 풀어 둔 폴더의 Vessel.exe 경로를 씁니다. Alt+F4,
+  Alt+Space, Win+화살표는 어느 쪽에서도 동작합니다.)
 - {UPDATES_KO}
 
 [English]
@@ -31,6 +36,11 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   Check that the key shown is the key the machine printed with the link,
   keep or change the name filled in for it, and press "Pair". The node book and device credentials
   are the vessel CLI's (%APPDATA%\vessel).
+- The title bar is the app's own. If dragging, maximising or closing
+  misbehaves, run it with Windows' own bar instead, in PowerShell:
+  $env:VESSEL_APP_TITLEBAR="system"; & "$env:LOCALAPPDATA\Programs\Vessel\Vessel.exe"
+  (from the zip, use the path of the unpacked Vessel.exe. Alt+F4,
+  Alt+Space and Win+arrows work either way.)
 - {UPDATES_EN}
 
 Vessel is source-available under PolyForm Strict 1.0.0 (LICENSE.md).

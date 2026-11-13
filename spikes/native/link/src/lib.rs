@@ -152,6 +152,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
+        /// The name is the one the app filled in: use the node's own name
+        /// instead when it makes a free book name.
+        prefer_node_name: bool,
     },
 }
 
@@ -296,7 +299,11 @@ impl State {
                 };
                 self.input(&machine, session, input).await;
             }
-            Command::Pair { offer, name } => match nodes::pair(&offer, &name).await {
+            Command::Pair {
+                offer,
+                name,
+                prefer_node_name,
+            } => match nodes::pair(&offer, &name, prefer_node_name).await {
                 Ok((node, route)) => {
                     self.emit(Event::Paired { node, route }).await;
                     self.reload().await;

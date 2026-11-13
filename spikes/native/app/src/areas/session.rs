@@ -1,7 +1,8 @@
 //! A session: its conversation as it grows, and the composer (DESIGN.md
-//! section 6.15: the prompt in mono, the agent's reply as Markdown body
-//! text, thoughts quieter, tool calls as rows with their state; the
-//! composer a surface at the foot; a permission above it).
+//! section 6.15: the prompt in the interface face, as the page draws it,
+//! monospace being for code and the terminal only; the agent's reply as
+//! Markdown body text; thoughts quieter, tool calls as rows with their
+//! state; the composer a surface at the foot; a permission above it).
 //!
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
@@ -469,7 +470,7 @@ fn person(text: &str, tokens: &Tokens) -> Div {
             .border_1()
             .border_color(tokens.border_subtle)
             .rounded(px(vessel_app_kit::theme::radius::R2))
-            .type_(Type::Mono)
+            .type_(Type::Body)
             .text_color(tokens.text_primary)
             .child(text.to_owned()),
     )

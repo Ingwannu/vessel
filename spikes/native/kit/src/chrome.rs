@@ -55,20 +55,38 @@ const RESIZE_EDGE: f32 = 6.0;
 const CLOSE_HOVER: u32 = 0xc42b_1cff;
 const CLOSE_PRESSED: u32 = 0xc42b_1ccc;
 
-/// The window's options for an app-drawn title bar: the system bar hidden
-/// (Windows, macOS, with the traffic lights inset), client decorations on
-/// Linux, and the app owning the bar's drag.
+/// Whether the system draws the title bar after all:
+/// `VESSEL_APP_TITLEBAR=system`. The way out while the app's own bar is
+/// new on a platform (it had never run on Windows when it was made): the
+/// system's bar, buttons and frame, and the app draws none. Read once.
+#[must_use]
+pub fn system_titlebar() -> bool {
+    static SYSTEM: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *SYSTEM.get_or_init(|| {
+        std::env::var("VESSEL_APP_TITLEBAR").is_ok_and(|value| value.eq_ignore_ascii_case("system"))
+    })
+}
+
+/// The window's options: for an app-drawn title bar, the system bar
+/// hidden (Windows, macOS, with the traffic lights inset), client
+/// decorations on Linux and the app owning the bar's drag; with
+/// [`system_titlebar`], the system's own.
 #[must_use]
 pub fn window_options(title: String, bounds: Bounds<Pixels>) -> WindowOptions {
+    let own = !system_titlebar();
     WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         titlebar: Some(TitlebarOptions {
             title: Some(title.into()),
-            appears_transparent: true,
-            traffic_light_position: Some(point(px(12.0), px(11.0))),
+            appears_transparent: own,
+            traffic_light_position: own.then(|| point(px(12.0), px(11.0))),
         }),
-        window_decorations: Some(WindowDecorations::Client),
-        app_owns_titlebar_drag: true,
+        window_decorations: Some(if own {
+            WindowDecorations::Client
+        } else {
+            WindowDecorations::Server
+        }),
+        app_owns_titlebar_drag: own,
         icon: crate::assets::window_icon(128)
             .map_err(|error| tracing::warn!(%error, "no window icon"))
             .ok()
@@ -78,8 +96,12 @@ pub fn window_options(title: String, bounds: Bounds<Pixels>) -> WindowOptions {
 }
 
 /// The title bar: `content` on the left (after the traffic lights on
-/// macOS), the window's controls on the right (Windows, Linux).
+/// macOS), the window's controls on the right (Windows, Linux). Nothing
+/// with [`system_titlebar`]: the system's bar is the window's then.
 pub fn title_bar(content: AnyElement, tokens: &Tokens, window: &mut Window) -> Stateful<Div> {
+    if system_titlebar() {
+        return div().id("title-bar");
+    }
     let macos = cfg!(target_os = "macos");
     let linux = cfg!(any(target_os = "linux", target_os = "freebsd"));
     let maximized = window.is_maximized();

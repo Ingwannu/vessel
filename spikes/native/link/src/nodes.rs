@@ -182,6 +182,29 @@ pub fn name_problem(text: &str, taken: &[String]) -> Option<NameProblem> {
     None
 }
 
+/// A node's own name made into a book name: a run of characters a book
+/// name cannot hold becomes one `-`, it starts and ends with a letter or a
+/// digit, and it is cut to the book's 64 characters; `None` when nothing
+/// is left (a name in Hangul, say: the book's names are plain ASCII).
+fn book_name(own: &str) -> Option<String> {
+    let mut cleaned = String::with_capacity(own.len());
+    for c in own.trim().chars() {
+        if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+            cleaned.push(c);
+        } else if !cleaned.ends_with('-') {
+            cleaned.push('-');
+        }
+    }
+    let edge = |c: char| !c.is_ascii_alphanumeric();
+    let mut cleaned = cleaned.trim_matches(edge).to_owned();
+    cleaned.truncate(64);
+    let cleaned = cleaned.trim_end_matches(edge);
+    cleaned
+        .parse::<NodeName>()
+        .is_ok()
+        .then(|| cleaned.to_owned())
+}
+
 /// A name for a new machine that the book does not have: `machine`, then
 /// `machine-2`, `machine-3`… (the link carries no name of the node's own;
 /// the node says its name only once paired).
@@ -197,7 +220,16 @@ pub fn default_name(taken: &[String]) -> String {
 /// Pair with the node `offer` names, write the credential, and add the
 /// node to the book as `name` (as `vessel nodes add NAME --pair` does: the
 /// credential first, then the entry).
-pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<(String, String), LinkError> {
+///
+/// `prefer_node_name`: the person kept the name the app filled in, which
+/// was only a placeholder (a link carries no name; the node says its own
+/// only once paired), so the node's own name is used when it makes a
+/// valid, free book name.
+pub(crate) async fn pair(
+    offer: &Offer,
+    name: &str,
+    prefer_node_name: bool,
+) -> Result<(String, String), LinkError> {
     let name = name
         .trim()
         .parse::<NodeName>()
@@ -231,6 +263,18 @@ pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<(String, String), 
         id: Some(offer.node),
     };
     let node_name = paired.node.name.clone();
+    let name = if prefer_node_name {
+        let taken: Vec<String> = read_book()?
+            .iter()
+            .map(|(taken, _)| taken.as_str().to_owned())
+            .collect();
+        book_name(&node_name)
+            .filter(|own| !taken.contains(own))
+            .and_then(|own| own.parse::<NodeName>().ok())
+            .unwrap_or(name)
+    } else {
+        name
+    };
     tokio::task::spawn_blocking(move || -> Result<(), LinkError> {
         paired
             .credential
@@ -244,4 +288,23 @@ pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<(String, String), 
     .await
     .map_err(|error| LinkError::Io(error.to_string()))??;
     Ok((node_name, route.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::book_name;
+
+    #[test]
+    fn a_node_name_becomes_a_book_name() {
+        assert_eq!(book_name("build-server").as_deref(), Some("build-server"));
+        assert_eq!(
+            book_name("  JUN's laptop! ").as_deref(),
+            Some("JUN-s-laptop")
+        );
+        assert_eq!(book_name("-.lab.-").as_deref(), Some("lab"));
+        assert_eq!(book_name("노트북"), None);
+        assert_eq!(book_name(""), None);
+        let long = "a".repeat(70);
+        assert_eq!(book_name(&long).map(|name| name.len()), Some(64));
+    }
 }
