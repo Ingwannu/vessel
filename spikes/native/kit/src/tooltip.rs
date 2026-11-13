@@ -40,8 +40,31 @@ pub type Place = Rc<std::cell::Cell<Option<Bounds<Pixels>>>>;
 /// The tooltip shown, if any.
 #[derive(Debug, Clone)]
 struct Tip {
-    text: SharedString,
+    content: Content,
     place: Place,
+}
+
+/// Content keeps an exact path/hash in its own code face instead of
+/// styling an interpolated fragment of an ordinary sentence.
+#[derive(Debug, Clone)]
+enum Content {
+    Text(SharedString),
+    Code(SharedString),
+}
+
+impl Content {
+    const fn face(&self) -> Type {
+        match self {
+            Self::Text(_) => Type::Body,
+            Self::Code(_) => Type::Mono,
+        }
+    }
+
+    const fn text(&self) -> &SharedString {
+        match self {
+            Self::Text(text) | Self::Code(text) => text,
+        }
+    }
 }
 
 /// A screen's tooltips: at most one shown.
@@ -68,10 +91,33 @@ impl Tooltips {
         text: impl Into<SharedString>,
         touch: bool,
     ) -> Stateful<gpui::Div> {
+        self.attach(trigger, place, Content::Text(text.into()), touch)
+    }
+
+    /// The same tooltip chrome and placement, with the supplied path/hash
+    /// in the fixed-width face. GOAT's `StartTruncatedPath` uses a code
+    /// tooltip for the full path; existing body-text callers stay unchanged.
+    #[must_use]
+    pub fn on_code(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: impl Into<SharedString>,
+        touch: bool,
+    ) -> Stateful<gpui::Div> {
+        self.attach(trigger, place, Content::Code(text.into()), touch)
+    }
+
+    fn attach(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        content: Content,
+        touch: bool,
+    ) -> Stateful<gpui::Div> {
         if touch {
             return trigger;
         }
-        let text = text.into();
         let hover_shown = Rc::clone(&self.shown);
         let hover_place = Rc::clone(place);
         let press_shown = Rc::clone(&self.shown);
@@ -81,7 +127,7 @@ impl Tooltips {
                 let mut shown = hover_shown.borrow_mut();
                 if *hovered {
                     *shown = Some(Tip {
-                        text: text.clone(),
+                        content: content.clone(),
                         place: Rc::clone(&hover_place),
                     });
                 } else if shown
@@ -118,10 +164,10 @@ impl Tooltips {
             .border_1()
             .border_color(neutral.border_accent)
             .shadow(popup::shadow_md(tokens))
-            .type_(Type::Body)
+            .type_(tip.content.face())
             .line_height(px(crate::fonts::ui(LINE)))
             .text_color(neutral.foreground)
-            .child(tip.text);
+            .child(tip.content.text().clone());
         Some(
             deferred(
                 anchored()
@@ -142,3 +188,19 @@ const ABOVE: f32 = -8.0;
 
 /// Paseo's `fontSize.base * 1.4`.
 const LINE: f32 = 19.6;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_code_tooltip_changes_only_the_face_of_its_exact_content() {
+        let path: SharedString = "packages/긴-경로/src/sidebar-with-a-long-name.rs".into();
+        let text = Content::Text(path.clone());
+        let code = Content::Code(path.clone());
+        assert_eq!(text.face(), Type::Body);
+        assert_eq!(code.face(), Type::Mono);
+        assert_eq!(text.text(), &path);
+        assert_eq!(code.text(), &path);
+    }
+}

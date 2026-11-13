@@ -336,3 +336,22 @@ The six-argument frame leaves content, state, layout and tokens visible.
 - Why: the reference chooses this size explicitly; a generic picker’s
   existing size must not change as a side effect of one new caller.
 - Cost: one additional typed leading form; no additional surface or engine.
+
+## Exact paths in code tooltips
+
+[Decision Log]
+- Purpose: the full form of a shortened path/hash stays in its own fixed-width
+  element, as GOAT’s `components/StartTruncatedPath.tsx` code tooltip does.
+- Constraint: existing tooltips use body text and must keep their presentation.
+- Alternatives: put a full path in body text, or draw another popup in an area.
+- Choice: `Tooltips::on_code` shares the same attach/render path and every
+  chrome/placement value, with typed content selecting the code face only.
+- Why: existing `on` callers stay unchanged; one tooltip surface serves both.
+- Cost: touch still has no tooltip, as before. A narrow pointer capture checks
+  code wrapping at 390; it does not claim that touch gains hover interaction.
+
+The path’s inline middle ellipsis uses the pinned GPUI’s existing
+`text_ellipsis_middle`, not a new truncation algorithm. GOAT’s RTL/bdi
+`StartTruncatedPath` instead shortens the start. Keeping both the initial
+project context and final filename/extension follows the coordinator’s
+explicit middle-truncation instruction; the entire path remains in code.
