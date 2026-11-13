@@ -272,6 +272,65 @@ Linux by `makensis` 3.09. Per user (`RequestExecutionLevel user`), into
 English. Zed's Inno Setup and WiX need a Windows-only compiler; MSIX
 needs a signing certificate to install at all.
 
+## The title bar's buttons on Windows (build 0.0.0.0.3)
+
+The owner's first report from a real Windows 11, on 0.0.0.0.3: minimise,
+maximise and close needed a double click.
+
+- **Cause** (read in `gpui-pre` 0.3.10 and the kit, 2026-11-13):
+  - GPUI answers Windows' `WM_NCHITTEST` with the first window-control
+    area, in paint order, whose hitbox is in the window's hit test
+    (`on_hit_test_window_control` in gpui's `window.rs`).
+  - The kit's bar (`Drag`) is the parent of the three buttons, so it is
+    painted first. The buttons did not occlude it, so over a button the
+    bar's hitbox was under the mouse too and Windows was told
+    `HTCAPTION`.
+  - One click was therefore a press on the caption: `DefWindowProc`
+    starts the move loop and the release ends it. A double click was a
+    caption double click, which maximises or restores whichever button
+    it is on.
+  - The platform side is not at fault. `gpui-pre-windows` records the
+    button on `WM_NCLBUTTONDOWN` and acts on `WM_NCLBUTTONUP` when the
+    same button is released. Zed's caption buttons sit inside its drag
+    bar in the same way and occlude it (read only,
+    `platform_title_bar/src/platforms/platform_windows.rs`).
+- **Fix**: the desktop track's `7f120ca`: every window control occludes
+  the bar, and on Windows the control area is all there is (no click
+  handler of the app's).
+- **The check that would have caught it**: the kit's test
+  `chrome::tests::over_the_window_controls_the_bar_is_not_the_drag_area`
+  (`aa80a37`). It puts a scroll listener on the bar, whose predicate
+  (`Hitbox::should_handle_scroll`, "the hitbox is in the hit test") is
+  the one the Windows hit test uses for each control area. It then
+  scrolls over close, maximise, minimise and the trailing element and
+  fails if the bar is reached. It fails on `7f120ca` with the occlusion
+  removed and passes with it. GPUI's test window has no public way to
+  ask the hit test itself, so this is the closest observable stand-in.
+- **Under wine 9.0**, before and after:
+  - The window had only the kit's title bar and no text. It was a
+    scratch example, not committed: `title_bar` in a window from
+    `window_options`.
+  - It ran inside wine's own virtual desktop (`explorer /desktop`), so
+    wine's user32 handles the non-client area as Windows does; under a
+    real X window manager, wine let the manager decorate the window.
+  - Each action was one `xdotool` click on display :91, logged with
+    `WINEDEBUG=+message`.
+
+  | | Before (`4a771e3`'s kit) | After (`7f120ca` + `aa80a37`) |
+  |---|---|---|
+  | Hit test over minimise, maximise, close | 2 `HTCAPTION` on all three | 8 `HTMINBUTTON`, 9 `HTMAXBUTTON`, 20 `HTCLOSE` |
+  | One click on minimise | `WM_SYSCOMMAND` `0xF012` (move), nothing | `WM_SIZE` `SIZE_MINIMIZED` |
+  | One click on maximise | the same, nothing | `WM_SIZE` `SIZE_MAXIMIZED`; one more click restores (`SIZE_RESTORED`) |
+  | One click on close | the same, nothing | `WM_CLOSE`, `WM_DESTROY` |
+  | Double click on close | `0xF030` (`SC_MAXIMIZE`): maximised | not needed |
+
+- **Only a real Windows shows**:
+  - Windows 11's snap-layout flyout when hovering maximise. It needs
+    `HTMAXBUTTON`, which is now answered.
+  - The buttons' hover and pressed colours under DWM at the owner's
+    scaling.
+  - The owner's own single clicks.
+
 ## Updates (question 8)
 
 ### What the references do (read 2026-11-13; behaviour only)
@@ -362,16 +421,18 @@ and the "restart to update" of Zed.
   but its swap is not built: it answers `InstallError::Unsupported`. It
   cannot be run here; it comes with the CI's macOS job.
 
-Tests (`cargo test` in `spikes/release`): 22 unit tests of the crate
+Tests (`cargo test` in `spikes/release`): 26 unit tests of the crate
 (labels, channels, paths that try to leave the feed, digests, bounds, a
 tampered manifest, another key, another channel, a later schema, a
-duplicate, the swap, a failed swap, the clean-up), 5 end-to-end tests
-through a feed served over loopback HTTP (an update installed and the
-staging files gone; the same label is no update; bytes other than the
-signed ones never installed and the download removed; another key's
-feed refused; a missing feed retried), 6 of the feed tool (arguments,
-key file modes, refusal to replace a key, publish then check, a changed
-artifact caught, signed sums).
+duplicate, the swap, a failed swap, the clean-up, the memory file, and
+on Windows the "Installed apps" entry), 7 end-to-end tests through a
+feed served over loopback HTTP (an update installed and the staging
+files gone; the same label is no update; bytes other than the signed
+ones never installed and the download removed; another key's feed
+refused; a missing feed retried; with automatic updates off only an
+asked-for check runs; `set_automatic(true)` changes a running updater),
+6 of the feed tool (arguments, key file modes, refusal to replace a key,
+publish then check, a changed artifact caught, signed sums).
 
 ### End to end, on Linux, with the real app
 
@@ -402,9 +463,11 @@ artifact caught, signed sums).
 ### The Windows swap, under wine
 
 The updater's tests built for `x86_64-pc-windows-msvc` (`cargo xwin test
---no-run`) and run under wine 9.0: the 22 unit tests pass, and the five
-end-to-end ones (loopback HTTP, a real download and swap) pass once the
-first one expects what Windows does: the old executable is renamed to
+--no-run`) and run under wine 9.0: the unit tests pass (26 on
+2026-11-13, the "Installed apps" entry's included), and the end-to-end
+ones (loopback HTTP, a real download and swap; 7 on 2026-11-13, both
+`set_automatic` tests included) pass once the first one expects what
+Windows does: the old executable is renamed to
 `vessel-app.old-0.0.0.0.1` beside the new one (Windows will not delete
 an executable file in use), to be removed at the next start; on Linux
 the old file is simply replaced. Wine emulates Windows' file semantics
@@ -415,34 +478,168 @@ real-Windows update is the proof).
 
 ### What the app calls
 
-Wired in by this track (coordinator, 2026-11-13) as one module,
-`spikes/native/app/src/update.rs`, and two lines in `main.rs`: when the
-build has a feed and a key, a one-thread tokio runtime of its own runs
-the updater and a GPUI task follows its state; once a build is
-installed the frame's foot says it opens at the next start. Without the
-settings nothing starts. There is no "restart now" control yet (the
-shell's screens are the desktop track's); `Updater::restart` is there
-for it. No feed address exists yet (the dist directory is behind a login
-the app cannot pass; where a public feed lives is the owner's decision),
-so every build so far is built without one and its README says it does
-not update itself.
+This track first wired the updater into `spikes/native/app` as one
+module and two lines in `main.rs`. The desktop track then rewrote
+`app/src/update.rs` around it (`f008aa0`, the update UI as Zed shows it).
+The parts are:
 
-The lines, for reference:
+- **The title bar's status**: nothing while idle, "Checking for
+  updates…", "Downloading update… 42%", "Restart to update" once a build
+  is in place, or a quiet failure with "Try again".
+- **The About screen**: "Check for updates" (`Updater::check_now`) and
+  an "Update automatically" switch.
+- **After an update**: the first start of the new build says "Updated
+  to …" once, with the feed's notes.
 
-```rust
-let updater = match vessel_app_updater::settings_from_build()? {
-    Some(settings) => {
-        let installation = vessel_app_updater::Installation::from_process(
-            settings.target.default_packaging(),
-        )?;
-        Some(vessel_app_updater::Updater::start(settings, installation, runtime_handle)?)
-    }
-    None => None, // a development build
-};
-// UI: show updater.state() (a watch); on UpdateState::Ready, a
-// "Restart to update" control calls
-// updater.restart(std::env::args_os().skip(1)) and then cx.quit().
-```
+What the app uses from the crate:
+
+- `settings_from_build()`, `Installation::from_process`,
+  `Updater::start`, `state()` (a watch), `check_now()` and
+  `restart(args)`.
+- `set_automatic(bool)` with `automatic()` (`2150243`, tested in
+  `ef832a4`). It turns the hourly checks off and on in a running
+  updater. The desktop track's first version starts a second updater
+  with a year-long period instead, and it is to switch to
+  `set_automatic`.
+- On Windows the crate also updates the installer's "Installed apps"
+  entry (`DisplayVersion`) after an update. It does this only when the
+  entry's `InstallLocation` is the updated executable's directory, so a
+  copy from the zip is left alone.
+
+From build 0.0.0.0.3 the builds have the feed compiled in (see "Builds
+with updates" below).
+
+## Builds with updates
+
+From 0.0.0.0.3 the builds have the feed's address and the release key's
+public half compiled in. `build.sh` reads the address from a file
+outside the repository, and neither the logs nor the README print it.
+Every set is published under a new label, and a published label is
+never rebuilt.
+
+- **0.0.0.0.3**:
+  - Built from `2a14c42` and published to `preview` at 05:41 UTC.
+  - Its update UI is this track's first one: a line at the window's
+    foot, "Vessel <label>을(를) 설치했습니다. 다음에 Vessel을 열면 이
+    빌드로 시작합니다." It has none of the desktop track's `f008aa0`: no
+    "Restart to update", no remembered label, no notes.
+- **0.0.0.0.4**:
+  - Built from `ab71e0a`: the desktop track's title-bar fix `7f120ca`,
+    the kit test `aa80a37`, `set_automatic` wired to the switch, and the
+    corrected mark.
+  - The set went into place at 07:00 UTC; `preview.json` was published
+    at 07:01:55 UTC with notes.
+  - Files:
+
+    | File | Bytes |
+    |---|---|
+    | `vessel-0.0.0.0.4-windows-x64-setup.exe` | 10,580,977 |
+    | `vessel-0.0.0.0.4-windows-x64.exe` | 38,099,968 |
+    | `vessel-0.0.0.0.4-windows-x64.zip` | 15,297,027 |
+    | `vessel-0.0.0.0.4-linux-x64` | 74,510,872 |
+    | `vessel-0.0.0.0.4-linux-x64.tar.gz` | 25,189,636 |
+
+  - Checked before publishing:
+    - The eight icon frames (16 to 256) in the exe and in the installer
+      are byte for byte the frames `make-icons.py` makes now from
+      `vessel-mark.svg` (`d63f0da`, view box `170 170 1660 1660` read
+      from the file). Every frame differs from 0.0.0.0.3's.
+    - The exe's version block says 0.0.0.0.4.
+    - Under wine it gets as far as every build does: it creates the
+      Direct3D 11.1 device and stops at the first text (wine's
+      DirectWrite).
+    - `sha256sum -c` and the signature on the sums pass.
+  - **The update the owner's machine makes**, shown on Linux with the
+    published 0.0.0.0.3:
+    - Its tarball was unpacked into a scratch directory, with an empty
+      configuration, and nothing pointed at it but the feed it was built
+      with.
+    - It was started under a virtual display after the publish. Six
+      seconds later the file was 0.0.0.0.4's bytes (mode 0755, no
+      staging file left), and the window's foot said 0.0.0.0.4 is
+      installed and opens at the next start.
+    - The next start ran 0.0.0.0.4.
+  - **No "Updated to" note this time**: 0.0.0.0.3 neither remembers the
+    label it ran nor keeps the feed's notes. The note and the notes
+    appear from the next update on, which 0.0.0.0.4 downloads.
+  - **Only the owner's Windows shows**:
+    - The rename of the running `Vessel.exe` (the old file is kept as
+      `Vessel.exe.old-…` and removed at the next start).
+    - "Installed apps" showing 0.0.0.0.4.
+    - The one-click buttons and the snap layouts.
+
+- **0.0.0.0.5**:
+  - Built from `0a41166`, the same code as the desktop track's
+    `83f8dd2`; only this document differs.
+  - The set went into place at 07:20 UTC and is **not published** yet:
+    the coordinator first runs the Linux build against the real node.
+    Its notes wait in a scratch file.
+  - Files: setup 10,595,011, exe 38,134,272, zip 15,312,999, linux
+    74,581,328, tar.gz 25,207,949 bytes.
+  - The checks are 0.0.0.0.4's: icon frames equal to the corrected
+    mark's, version block 0.0.0.0.5, wine stops at the first text, sums
+    and signature pass.
+- **0.0.0.0.5** was published to `preview` at 07:24:17 UTC.
+- **The first update on a real Windows (open, 2026-11-13)**:
+  - The owner started the installed 0.0.0.0.3 and saw nothing at the
+    foot.
+  - The feed's server logged two manifest reads (07:06:54 and 07:07:14
+    UTC) and no completed transfer of the Windows artifact.
+  - 0.0.0.0.3 to 0.0.0.0.5 log only to stderr, which a GUI-subsystem
+    process started from the Start menu does not have. So a Windows
+    failure was lost, and 0.0.0.0.3 does not show it either. It retried
+    at the next start or an hour later.
+  - The candidates, ranked, went to the coordinator: the app closed
+    during the download, an antivirus stopping an unsigned download, or
+    the staging file refused beside `Vessel.exe`. A redirected stderr
+    (`Vessel.exe 2> file` from cmd) gets the error from 0.0.0.0.3.
+
+## Logs and retries (from the build after 0.0.0.0.5)
+
+- **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
+  calls `vessel_app_log::init(LABEL)` first thing in `main`.
+  - Output goes to stderr as before, and to `vessel.log` in
+    `vessel_app_log::dir()`:
+    - Windows: `%LOCALAPPDATA%\Vessel\logs`
+    - macOS: `~/Library/Logs/Vessel`
+    - Linux: `$XDG_STATE_HOME/vessel/logs`
+  - The file is rotated past 1 MiB, keeping `vessel.1.log` and
+    `vessel.2.log`.
+  - It is written line by line, and a panic hook records the message,
+    the place and a backtrace.
+  - `RUST_LOG` filters; by default everything at info and the updater
+    at debug.
+  - The About screen's "open the log folder" calls `dir()`. That screen
+    is the desktop track's.
+  - The Decision Log, with the alternatives, is at the top of
+    `applog/src/lib.rs`.
+- **What the updater records**:
+  - its start (label, channel, target, packaging, the feed's host only)
+  - each check, and the newest label
+  - the artifact and its size
+  - the staging file's name
+  - the feed's answer to the download (status, length)
+  - the bytes received when a download breaks off or stalls
+  - each rename of the swap, and leftovers removed or kept
+  - each failure with its whole cause chain (`report::chain`), which
+    carries an `io::Error`'s OS code
+  - file names only, because the directory carries the account's name
+- **The feed's address never reaches a log**:
+  - `FeedUrl` prints its scheme and host only, and reqwest errors are
+    kept without their URL.
+  - `tests/update.rs::the_log_never_names_the_feeds_path` runs a good
+    update, a 404 download and an unreachable feed under a token path,
+    with every updater record at trace. It fails if the token appears;
+    it did fail with the URL left in reqwest's error.
+- **Retries**:
+  - After a transient failure the next checks come 1, 5 and 15 minutes
+    later, then hourly (`RETRY_AFTER`, `Settings::retry_after`).
+  - A manifest that does not verify, or no build for this machine,
+    waits the hour, because only a new publish changes it.
+  - Tests check the schedule's count and that a retry installs a build
+    the failed check could not reach.
+- Verified on Linux, and on Windows under wine: the log crate's 3
+  tests, the updater's 27 unit tests and its 10 end-to-end tests.
 
 ## Licences of what this track pulls in (ADR 0014)
 

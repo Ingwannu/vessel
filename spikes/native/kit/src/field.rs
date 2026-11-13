@@ -1,27 +1,74 @@
-//! The text field: one line of text a person types, input methods
-//! included (Hangul is composed by the system's input method and
-//! committed through GPUI's input handler).
+//! Text a person types: a form field (one line) and the composer's text
+//! (lines that grow), input methods included (Hangul is composed by the
+//! system's input method and committed through GPUI's input handler).
 //!
-//! Under it is `gpui-component`'s input, the one part of that library the
-//! kit uses: writing a text field with selection, clipboard, undo and
-//! input-method composition is weeks of work, and theirs is used in a
-//! shipping app. Screens see only [`TextField`], so it
-//! can be replaced without touching them.
+//! [Decision Log]
+//! - Purpose: the owner, twice, on 0.0.0.0.3: no library's default look
+//!   ("입력칸같은거 내가 기본 그거 쓰지 말랬지 … paseo 처럼 그냥 입력되게
+//!   해줘 이상한 강조 저거 기본형 놔두지말고"): Paseo's, where the composer's
+//!   card is the input and nothing inside it has a box or a ring.
+//! - Constraint: writing an editing engine (selection, clipboard, undo,
+//!   input-method composition) is weeks of work. The component layer's
+//!   styled input draws its own box and focus ring, and repaints its theme
+//!   over a field's colours on every frame.
+//! - Alternatives: the styled input with its look switched off
+//!   (`appearance(false)`: still one placeholder colour for every field,
+//!   the theme's); a field of our own over GPUI's input handler.
+//! - Choice: the engine's unstyled inputs (`gpui-base`: `Input`,
+//!   `Textarea`), which draw only text, caret and selection; everything
+//!   around them is drawn here from Paseo's values. Each field projects its
+//!   own colours (text, placeholder, caret, selection) when drawn.
+//! - The look, Paseo's: a form field (`form-field.tsx`,
+//!   `control-geometry.ts`) is `surface2`, 8 round, 12 across, 32 tall (44
+//!   on a phone), 14 on 20; its border is clear at rest and `borderAccent`
+//!   on hover and while it holds the keys. The composer's text
+//!   (`composer/input/input.tsx`) has no box at all: 15 on 21, the
+//!   foreground's colour, `surface4` for its placeholder, at least 46
+//!   tall, growing a line at a time; Enter sends and Shift+Enter starts a
+//!   line (the engine's `submit_on_enter`).
+//! - Deliberate difference: Paseo's form field also draws a 2-point accent
+//!   outline while focused (`:focus-visible`); the owner objected to the
+//!   emphasis on a field being typed into, so a Vessel field shows focus
+//!   by its border alone. The composer grows to 12 lines, then scrolls
+//!   (Paseo: half the window).
 
-use gpui::{App, AppContext as _, Context, Entity, Focusable as _, IntoElement, Window};
-use gpui_component::input::{Input, InputEvent, InputState};
+use std::cell::Cell;
+use std::rc::Rc;
 
-use crate::fonts;
+use gpui::prelude::*;
+use gpui::{AnyElement, App, Context, Entity, Focusable as _, Window, div, px};
+use gpui_base::input::{Input, InputEditorStyle, InputEvent, InputState, Textarea, TextareaState};
+
+use crate::fonts::{self, Type};
 use crate::theme::Tokens;
+use crate::widgets::TypeExt as _;
 
-/// A text field.
+/// The most lines the composer grows to before it scrolls.
+const COMPOSER_LINES: usize = 12;
+
+/// The composer's text's smallest height (Paseo's `MIN_INPUT_HEIGHT`).
+const COMPOSER_MIN: f32 = 46.0;
+
+/// What a field edits.
+#[derive(Debug, Clone)]
+enum Kind {
+    /// One line.
+    Line(Entity<InputState>),
+    /// Lines that grow (the composer).
+    Lines(Entity<TextareaState>),
+}
+
+/// A text field: a form's one line, or a composer's text.
 #[derive(Debug, Clone)]
 pub struct TextField {
-    state: Entity<InputState>,
+    kind: Kind,
+    /// Whether it holds the keys, as its focus and blur events say (its
+    /// border shows it).
+    focused: Rc<Cell<bool>>,
 }
 
 impl TextField {
-    /// A field showing `placeholder` while empty. Enter in it calls
+    /// A form field showing `placeholder` while empty. Enter in it calls
     /// `on_submit` on its owner with the text it holds.
     pub fn new<V: 'static>(
         placeholder: &str,
@@ -29,7 +76,7 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::build(placeholder, on_submit, None, window, cx)
+        Self::line(placeholder, on_submit, None, window, cx)
     }
 
     /// The same, also calling `on_change` with the text after every edit
@@ -41,10 +88,33 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        Self::build(placeholder, on_submit, Some(on_change), window, cx)
+        Self::line(placeholder, on_submit, Some(on_change), window, cx)
     }
 
-    fn build<V: 'static>(
+    /// A composer's text: lines that grow; Enter calls `on_submit` with
+    /// the text, Shift+Enter starts a new line.
+    pub fn composer<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        let placeholder = placeholder.to_owned();
+        let state = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .auto_grow(1, COMPOSER_LINES)
+                .submit_on_enter(true)
+                .placeholder(placeholder)
+        });
+        let focused = Rc::new(Cell::new(false));
+        listen(&state, on_submit, None, Rc::clone(&focused), window, cx);
+        Self {
+            kind: Kind::Lines(state),
+            focused,
+        }
+    }
+
+    fn line<V: 'static>(
         placeholder: &str,
         on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
@@ -53,88 +123,234 @@ impl TextField {
     ) -> Self {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
-        cx.subscribe_in(
+        let focused = Rc::new(Cell::new(false));
+        listen(
             &state,
+            on_submit,
+            on_change,
+            Rc::clone(&focused),
             window,
-            move |owner, state, event: &InputEvent, window, cx| match event {
-                InputEvent::PressEnter { .. } => {
-                    let text = state.read(cx).value().to_string();
-                    on_submit(owner, text, window, cx);
-                }
-                InputEvent::Change => {
-                    if let Some(on_change) = on_change {
-                        let text = state.read(cx).value().to_string();
-                        on_change(owner, text, cx);
-                    }
-                }
-                InputEvent::Focus | InputEvent::Blur => {}
-            },
-        )
-        .detach();
-        Self { state }
+            cx,
+        );
+        Self {
+            kind: Kind::Line(state),
+            focused,
+        }
     }
 
     /// What it holds.
     #[must_use]
     pub fn text(&self, cx: &App) -> String {
-        self.state.read(cx).value().to_string()
+        match &self.kind {
+            Kind::Line(state) => state.read(cx).value().to_string(),
+            Kind::Lines(state) => state.read(cx).value().to_string(),
+        }
     }
 
     /// Replace what it holds.
     pub fn set_text(&self, text: &str, window: &mut Window, cx: &mut App) {
         let text = text.to_owned();
-        self.state
-            .update(cx, |state, cx| state.set_value(text, window, cx));
+        match &self.kind {
+            Kind::Line(state) => state.update(cx, |state, cx| state.set_value(text, window, cx)),
+            Kind::Lines(state) => state.update(cx, |state, cx| state.set_value(text, window, cx)),
+        }
     }
 
     /// Change what it shows while empty (the text table's words, chosen
     /// after the field is made).
     pub fn set_placeholder(&self, placeholder: &str, window: &mut Window, cx: &mut App) {
         let placeholder = placeholder.to_owned();
-        self.state.update(cx, |state, cx| {
-            state.set_placeholder(placeholder, window, cx);
-        });
+        match &self.kind {
+            Kind::Line(state) => state.update(cx, |state, cx| {
+                state.set_placeholder(placeholder, window, cx);
+            }),
+            Kind::Lines(state) => state.update(cx, |state, cx| {
+                state.set_placeholder(placeholder, window, cx);
+            }),
+        }
     }
 
     /// Empty it.
     pub fn clear(&self, window: &mut Window, cx: &mut App) {
-        self.state
-            .update(cx, |state, cx| state.set_value("", window, cx));
+        self.set_text("", window, cx);
     }
 
-    /// Give it the keyboard.
+    /// Give it the keys.
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
-        let handle = self.state.read(cx).focus_handle(cx);
+        let handle = match &self.kind {
+            Kind::Line(state) => state.read(cx).focus_handle(cx),
+            Kind::Lines(state) => state.read(cx).focus_handle(cx),
+        };
         handle.focus(window, cx);
     }
 
-    /// The field, drawn.
-    #[must_use]
-    pub fn element(&self) -> impl IntoElement {
-        Input::new(&self.state)
+    /// The field, drawn: a form field's chrome around a line, or a
+    /// composer's bare text (the card around it is the screen's,
+    /// [`composer_card`]). `narrow`: a phone's width (44-point fields).
+    pub fn element(&self, tokens: &Tokens, narrow: bool, cx: &mut App) -> AnyElement {
+        let neutral = tokens.neutral;
+        match &self.kind {
+            Kind::Line(state) => {
+                project(state, tokens, neutral.foreground_muted, cx);
+                let focused = self.focused.get();
+                div()
+                    .flex()
+                    .items_center()
+                    .w_full()
+                    .min_h(px(if narrow { 44.0 } else { 32.0 }))
+                    .px(px(12.0))
+                    .rounded(px(8.0))
+                    .bg(neutral.surface2)
+                    .border_1()
+                    .border_color(if focused {
+                        neutral.border_accent
+                    } else {
+                        gpui::transparent_black()
+                    })
+                    .hover(move |style| style.border_color(neutral.border_accent))
+                    .type_(Type::Body)
+                    .line_height(px(20.0))
+                    .text_color(neutral.foreground)
+                    .child(div().flex_1().child(Input::new(state)))
+                    .into_any_element()
+            }
+            Kind::Lines(state) => {
+                project(state, tokens, neutral.surface4, cx);
+                div()
+                    .w_full()
+                    .min_h(px(COMPOSER_MIN))
+                    .type_(Type::Body)
+                    .text_size(px(15.0))
+                    .line_height(px(21.0))
+                    .text_color(neutral.foreground)
+                    .child(Textarea::new(state))
+                    .into_any_element()
+            }
+        }
     }
 }
 
-/// The component layer's colours and type from the kit's tokens, so its
-/// input looks like the page's (DESIGN.md: `--bg-surface`, a subtle
-/// hairline, the ink's caret, the ring on focus, 14px Geist).
+impl TextField {
+    /// A line with no chrome of its own, for a row that is its chrome (a
+    /// list's search row): 14 on 20, `foregroundMuted` while empty.
+    pub fn bare(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
+        let neutral = tokens.neutral;
+        let text = div()
+            .w_full()
+            .type_(Type::Body)
+            .line_height(px(20.0))
+            .text_color(neutral.foreground);
+        match &self.kind {
+            Kind::Line(state) => {
+                project(state, tokens, neutral.foreground_muted, cx);
+                text.child(Input::new(state)).into_any_element()
+            }
+            Kind::Lines(state) => {
+                project(state, tokens, neutral.foreground_muted, cx);
+                text.child(Textarea::new(state)).into_any_element()
+            }
+        }
+    }
+}
+
+/// Paseo's composer card (`inputWrapper`): `surface1`, a hairline of
+/// `borderAccent`, 16 round; 16 across, 16 above and 12 below (12, 8 and 8
+/// on a phone); its text, then its row of controls, 12 apart. It does not
+/// change when its text holds the keys.
+#[must_use]
+pub fn composer_card(tokens: &Tokens, narrow: bool) -> gpui::Div {
+    let neutral = tokens.neutral;
+    div()
+        .w_full()
+        .flex()
+        .flex_col()
+        .gap(px(12.0))
+        .bg(neutral.surface1)
+        .border_1()
+        .border_color(neutral.border_accent)
+        .rounded(px(16.0))
+        .px(px(if narrow { 12.0 } else { 16.0 }))
+        .pt(px(if narrow { 8.0 } else { 16.0 }))
+        .pb(px(if narrow { 8.0 } else { 12.0 }))
+}
+
+/// The field's colours, projected onto its engine: the foreground's text,
+/// `placeholder` for the words shown while empty, the foreground's caret,
+/// a selection of the foreground at a fifth.
+fn project<M: gpui_base::input::InputModeKind>(
+    state: &Entity<gpui_base::input::InputBaseState<M>>,
+    tokens: &Tokens,
+    placeholder: gpui::Hsla,
+    cx: &mut App,
+) {
+    let neutral = tokens.neutral;
+    let style = InputEditorStyle {
+        foreground: neutral.foreground,
+        muted_foreground: placeholder,
+        caret: neutral.foreground,
+        selection: neutral.foreground.opacity(0.2),
+        ..InputEditorStyle::default()
+    };
+    state.update(cx, |state, _cx| state.set_editor_style(style));
+}
+
+/// Follow a field's events: Enter, edits, and whether it holds the keys.
+fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
+    state: &Entity<gpui_base::input::InputBaseState<M>>,
+    on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+    on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    focused: Rc<Cell<bool>>,
+    window: &mut Window,
+    cx: &mut Context<'_, V>,
+) {
+    cx.subscribe_in(
+        state,
+        window,
+        move |owner, state, event: &InputEvent, window, cx| match event {
+            InputEvent::PressEnter { shift: false, .. } => {
+                let text = state.read(cx).value().to_string();
+                on_submit(owner, text, window, cx);
+            }
+            InputEvent::Change => {
+                if let Some(on_change) = on_change {
+                    let text = state.read(cx).value().to_string();
+                    on_change(owner, text, cx);
+                }
+            }
+            InputEvent::Focus => {
+                focused.set(true);
+                cx.notify();
+            }
+            InputEvent::Blur => {
+                focused.set(false);
+                cx.notify();
+            }
+            InputEvent::PressEnter { .. } => {}
+        },
+    )
+    .detach();
+}
+
+/// The component layer's colours and type from the kit's tokens, for what
+/// of it is still drawn (Markdown's text).
 pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     let theme = gpui_component::Theme::global_mut(cx);
     theme.font_family = fonts::SANS.into();
     theme.mono_font_family = fonts::MONO.into();
-    theme.font_size = gpui::px(14.0);
-    theme.radius = gpui::px(crate::theme::radius::R2);
+    theme.font_size = px(14.0);
+    theme.radius = px(8.0);
+    let neutral = tokens.neutral;
     let colors = &mut theme.colors;
     colors.background = tokens.bg_base;
-    colors.foreground = tokens.text_primary;
-    colors.border = tokens.border_subtle;
-    colors.input = tokens.border_subtle;
-    colors.ring = tokens.ring;
-    colors.caret = tokens.text_primary;
-    colors.muted_foreground = tokens.text_tertiary;
-    colors.selection = tokens.bg_active;
-    colors.popover = tokens.bg_elevated;
-    colors.popover_foreground = tokens.text_primary;
-    colors.accent = tokens.bg_hover;
-    colors.accent_foreground = tokens.text_primary;
+    colors.foreground = neutral.foreground;
+    colors.border = neutral.border;
+    colors.input = neutral.border_accent;
+    colors.ring = gpui::transparent_black();
+    colors.caret = neutral.foreground;
+    colors.muted_foreground = neutral.foreground_muted;
+    colors.selection = neutral.foreground.opacity(0.2);
+    colors.popover = neutral.surface0;
+    colors.popover_foreground = neutral.foreground;
+    colors.accent = neutral.surface2;
+    colors.accent_foreground = neutral.foreground;
 }

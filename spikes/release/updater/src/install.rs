@@ -193,7 +193,10 @@ impl Installation {
     pub fn replace_with(&self, staged: &Staged, running: &Label) -> Result<(), InstallError> {
         match self.packaging {
             Packaging::Executable | Packaging::AppImage => {
-                self.replace_file(staged.path(), running)
+                self.replace_file(staged.path(), running)?;
+                #[cfg(windows)]
+                record_version(&self.path, staged.label());
+                Ok(())
             }
             Packaging::AppBundle => Err(InstallError::Unsupported(Packaging::AppBundle)),
         }
@@ -203,15 +206,28 @@ impl Installation {
     fn replace_file(&self, staged: &Path, running: &Label) -> Result<(), InstallError> {
         let aside = self.aside(running);
         std::fs::rename(&self.path, &aside).map_err(InstallError::MoveAside)?;
+        tracing::info!(
+            aside = %crate::service::file_name(&aside),
+            "the running executable is renamed aside"
+        );
         if let Err(error) = std::fs::rename(staged, &self.path) {
             // Put the running app back where it was; if even that fails,
             // the old build is still beside it under `aside`, and the
             // error says the update did not happen.
             if let Err(back) = std::fs::rename(&aside, &self.path) {
-                tracing::error!(error = %back, "the app could not be put back after a failed update");
+                tracing::error!(
+                    error = %crate::report::chain(&back),
+                    "the app could not be put back after a failed update"
+                );
+            } else {
+                tracing::info!("the running executable is back in its place");
             }
             return Err(InstallError::Replace(error));
         }
+        tracing::info!(
+            executable = %crate::service::file_name(&self.path),
+            "the new build is in place"
+        );
         Ok(())
     }
 
@@ -220,7 +236,12 @@ impl Installation {
         use std::os::unix::fs::PermissionsExt as _;
         std::fs::set_permissions(staged, std::fs::Permissions::from_mode(0o755))
             .map_err(InstallError::Permissions)?;
-        std::fs::rename(staged, &self.path).map_err(InstallError::Replace)
+        std::fs::rename(staged, &self.path).map_err(InstallError::Replace)?;
+        tracing::info!(
+            executable = %crate::service::file_name(&self.path),
+            "the new build is in place"
+        );
+        Ok(())
     }
 
     /// Remove what earlier updates left beside the app: downloads cut
@@ -240,13 +261,32 @@ impl Installation {
             let name = name.to_string_lossy();
             let ours = name.starts_with(STAGING_PREFIX) || name.starts_with(&aside_prefix);
             let is_file = entry.file_type().is_ok_and(|kind| kind.is_file());
-            if ours
-                && is_file
-                && let Err(error) = std::fs::remove_file(entry.path())
-            {
-                tracing::debug!(file = %name, error = %error, "an update leftover stays for now");
+            if !(ours && is_file) {
+                continue;
+            }
+            match std::fs::remove_file(entry.path()) {
+                Ok(()) => tracing::info!(file = %name, "an update leftover is removed"),
+                Err(error) => tracing::warn!(
+                    file = %name,
+                    error = %crate::report::chain(&error),
+                    "an update leftover stays for now"
+                ),
             }
         }
+    }
+}
+
+/// Tell the installer's "Installed apps" entry the new version, when the
+/// copy at `exe` is the installed one (`registry`, Windows only).
+#[cfg(windows)]
+fn record_version(exe: &Path, label: &Label) {
+    match crate::registry::record_version(crate::registry::UNINSTALL_KEY, exe, label) {
+        Ok(true) => tracing::info!("the installed app's entry shows the new version"),
+        Ok(false) => {}
+        Err(error) => tracing::warn!(
+            error = %crate::report::chain(&error),
+            "the installed app's entry keeps its old version"
+        ),
     }
 }
 

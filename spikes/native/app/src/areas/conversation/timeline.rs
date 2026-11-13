@@ -1,5 +1,5 @@
 //! The timeline on screen: the kit's long list over the rows, each row in
-//! GOAT's chat lane (centred, 672 wide at most); a run of tool calls
+//! the session's one chat column; a run of tool calls
 //! folded into its summary row; and what floats over the frame (the
 //! Session actions menu, a confirm).
 
@@ -13,7 +13,7 @@ use vessel_app_kit::{
 use vessel_app_view::session::is_live;
 
 use super::entries::{self, Paint, id};
-use super::look::{INSET, LANE_OUTER, Look, WORK_LINE, WORK_SIZE};
+use super::look::{Look, WORK_LINE, WORK_SIZE};
 use super::{Confirm, ConversationArea};
 use crate::shell::Shell;
 
@@ -104,21 +104,10 @@ fn open(area: &ConversationArea, index: usize) -> bool {
     default != area.toggled.contains(&index)
 }
 
-/// A row in GOAT's chat lane: centred, at most 672 wide, 12 in.
+/// A row in the session's one chat column (the session area's: the
+/// conversation and the composer share it).
 fn lane(content: AnyElement) -> AnyElement {
-    div()
-        .w_full()
-        .flex()
-        .justify_center()
-        .py(px(4.0))
-        .child(
-            div()
-                .w_full()
-                .max_w(px(LANE_OUTER))
-                .px(px(INSET))
-                .child(content),
-        )
-        .into_any_element()
+    crate::areas::session::column(div().py(px(4.0)).child(content)).into_any_element()
 }
 
 /// A folded run's summary row (GOAT's work group header: its words and a

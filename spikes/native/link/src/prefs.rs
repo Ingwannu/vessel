@@ -15,12 +15,14 @@
 //! crash never leaves half a file).
 
 use std::collections::BTreeMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use vessel_proto::{ChoiceValue, HarnessRef, OptionChoice};
 
 use crate::LinkError;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::nodes::config_dir;
 
 /// The remembered choices.
@@ -84,6 +86,26 @@ fn fits(choice: &OptionChoice) -> bool {
         }
 }
 
+// A browser has no files: the choices last for the page's life only (the
+// page keeps its own in `localStorage`; the browser build would do the
+// same through `web-sys`, docs/plans/backend-m12-browser.md).
+#[cfg(target_arch = "wasm32")]
+impl Prefs {
+    /// Nothing remembered in a browser yet.
+    #[must_use]
+    pub fn load() -> Self {
+        Self::default()
+    }
+
+    /// Nothing written in a browser yet.
+    ///
+    /// # Errors
+    /// None.
+    pub const fn save(&self) -> Result<(), LinkError> {
+        Ok(())
+    }
+}
+
 impl Prefs {
     /// The choices `agent` last started with on `machine`, when kept.
     #[must_use]
@@ -111,7 +133,10 @@ impl Prefs {
             choices: kept,
         });
     }
+}
 
+#[cfg(not(target_arch = "wasm32"))]
+impl Prefs {
     fn path() -> Result<PathBuf, LinkError> {
         Ok(config_dir()?.join("vessel").join("app-prefs.json"))
     }

@@ -1,123 +1,226 @@
-//! About: the running build and its updates (Zed's About and its
-//! `auto_update` setting, as the first part of a Settings screen): what
-//! the updater last did, "Check for updates", and "Update automatically".
-//! Also the note shown once at the top of the frame after an update
-//! ("Updated to 0.0.0.0.3", with the feed's notes), dismissible.
+//! About, as Paseo's settings show it (`screens/settings-screen.tsx`
+//! `AboutSection` and `DesktopAppUpdateRow`, `styles/settings.ts`): the
+//! section "정보" with one card: the app's version on this device, the
+//! app's updates (what the updater last did, "확인", and the update button
+//! that restarts into a build in place), whether it updates by itself, and
+//! the log file. Also the note shown once at the top of the frame after an
+//! update ("Updated to 0.0.0.0.3", with the feed's notes), dismissible.
+//!
+//! [Decision Log]
+//! - Purpose: the owner, on 0.0.0.0.5: the About screen was loose lines,
+//!   a button and a chip ("꼬라지가 아주 개판"); it is Paseo's settings
+//!   layout and Paseo's words now.
+//! - Choice: the kit's settings furniture (`kit/src/settings.rs`); the
+//!   page as Paseo's `PageLayout`: 16 around, 24 above, at most 720 wide;
+//!   Paseo's update words for each of the updater's states; Paseo's
+//!   outline button for "확인" and its accent button for the update.
+//! - Differences, each for a reason: no "새로운 기능" row and no release
+//!   channel (Vessel has one feed and no changelog screen yet); a switch
+//!   row for automatic updates, which Paseo does not have (Vessel's
+//!   updater has the setting, track R's `Updater::set_automatic`); the
+//!   update button restarts without Paseo's confirm (the title bar's
+//!   "Restart to update" has never asked, and the button says what it
+//!   does); the log row opens the folder (Paseo also copies the path).
 
+use std::path::PathBuf;
+
+use crate::update::UpdateState;
 use vessel_app_kit::ui::{
-    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, button, choice, kicker};
-use vessel_app_updater::UpdateState;
+use vessel_app_kit::{Tokens, Type, TypeExt as _, button, outline_button, settings};
 
 use super::common::title_bar;
 use crate::shell::Shell;
-use crate::update::{Updated, percent};
+use crate::update::Updated;
+
+/// Paseo's settings page: at most this wide.
+const PAGE_WIDTH: f32 = 720.0;
 
 /// The About screen.
 pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.update();
-    let mut column = div()
-        .flex()
-        .flex_col()
-        .gap(px(14.0))
-        .p(px(24.0))
-        .max_w(px(640.0))
-        .child(vessel_app_kit::mark(40.0, tokens))
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(2.0))
-                .child(div().type_(Type::Title).child(shell.t.app))
-                .child(
-                    div()
-                        .type_(Type::Meta)
-                        .text_color(tokens.text_secondary)
-                        .child(words.version(crate::LABEL)),
-                ),
-        )
-        .child(kicker(words.updates, tokens));
+    let mut card = settings::card(tokens).child(settings::row(
+        words.app_version,
+        Some(words.this_device.into()),
+        Some(value(words.version(crate::LABEL), tokens)),
+        true,
+        tokens,
+    ));
     if shell.updates_on() {
-        column = column
-            .child(line(status(shell), tokens.text_secondary))
-            .child(actions(shell, tokens, cx))
-            .child(automatic(shell, tokens, cx));
+        card = card
+            .child(updates_row(shell, tokens, cx))
+            .child(automatic_row(shell, tokens, cx));
     } else {
-        column = column.child(line(words.no_updates.to_owned(), tokens.text_tertiary));
+        card = card.child(settings::row(
+            words.app_updates,
+            Some(words.no_updates.into()),
+            None,
+            false,
+            tokens,
+        ));
     }
+    card = card.child(logs_row(shell, tokens, cx));
     div()
         .size_full()
         .flex()
         .flex_col()
         .child(title_bar(words.about.to_owned(), None, tokens))
-        .child(column)
+        .child(
+            div()
+                .id("about-page")
+                .flex_1()
+                .min_h_0()
+                .overflow_y_scroll()
+                .child(
+                    div().w_full().flex().flex_row().justify_center().child(
+                        div()
+                            .w_full()
+                            .max_w(px(PAGE_WIDTH))
+                            .px(px(16.0))
+                            .pt(px(24.0))
+                            .pb(px(16.0))
+                            .child(settings::section(words.about, card, tokens)),
+                    ),
+                ),
+        )
 }
 
-/// What the updater last did, in a sentence.
-fn status(shell: &Shell) -> String {
-    let words = shell.t.lang.update();
-    match &shell.update_state {
-        UpdateState::Idle => words.not_checked.to_owned(),
-        UpdateState::Checking => words.checking.to_owned(),
-        UpdateState::UpToDate { latest } => words.up_to_date(&latest.to_string()),
-        UpdateState::Downloading {
-            received, total, ..
-        } => words.downloading(percent(received.get(), total.get())),
-        UpdateState::Ready { label, .. } => words.ready(&label.to_string()),
-        UpdateState::Failed { error } => words.failed_because(&error.to_string()),
-    }
+/// A row's value at its right (the version), as Paseo's `aboutValue`.
+fn value(text: String, tokens: &Tokens) -> AnyElement {
+    div()
+        .flex_shrink_0()
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(text)
+        .into_any_element()
 }
 
-/// "Check for updates", or "Restart to update" once a build is in place.
-fn actions(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+/// "앱 업데이트": what the updater last did, in Paseo's words, and why
+/// it failed; "확인" and the update button at the right.
+fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.update();
-    let row = div().flex().flex_row().gap(px(8.0));
-    if matches!(shell.update_state, UpdateState::Ready { .. }) {
-        return row.child(
-            button("about-restart", words.restart, true, tokens)
-                .on_click(cx.listener(|this, _event, _window, cx| this.restart_to_update(cx))),
-        );
+    let state = &shell.update_state;
+    let status = match state {
+        UpdateState::Idle => words.status_idle.to_owned(),
+        UpdateState::Checking => words.status_checking.to_owned(),
+        UpdateState::UpToDate { .. } => words.status_up_to_date.to_owned(),
+        UpdateState::Downloading { label, .. } => words.status_downloading(&label.to_string()),
+        UpdateState::Ready { label, .. } => words.status_ready(&label.to_string()),
+        UpdateState::Failed { .. } => words.status_failed.to_owned(),
+    };
+    let checking = matches!(state, UpdateState::Checking);
+    let busy = checking || matches!(state, UpdateState::Downloading { .. });
+    let ready = match state {
+        UpdateState::Ready { label, .. } => Some(label.to_string()),
+        UpdateState::Idle
+        | UpdateState::Checking
+        | UpdateState::UpToDate { .. }
+        | UpdateState::Downloading { .. }
+        | UpdateState::Failed { .. } => None,
+    };
+
+    let mut check = outline_button(
+        "about-check",
+        if checking {
+            words.checking_short
+        } else {
+            words.check
+        },
+        !busy,
+        tokens,
+    );
+    if !busy {
+        check = check.on_click(cx.listener(|this, _event, _window, cx| this.check_for_updates(cx)));
     }
-    row.child(
-        button("about-check", words.check_now, false, tokens)
-            .on_click(cx.listener(|this, _event, _window, cx| this.check_for_updates(cx))),
+    let mut update = button(
+        "about-update",
+        ready
+            .as_deref()
+            .map_or_else(|| words.update.to_owned(), |label| words.update_to(label)),
+        true,
+        tokens,
+    )
+    .flex_shrink_0();
+    update = if ready.is_some() {
+        update.on_click(cx.listener(|this, _event, _window, cx| this.restart_to_update(cx)))
+    } else {
+        update.opacity(0.5).cursor_default()
+    };
+    let controls = div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .child(check)
+        .child(update)
+        .into_any_element();
+
+    // Paseo's `aboutErrorText`: why it failed, under the status.
+    let error = match state {
+        UpdateState::Failed { error } => Some(error.to_string().into()),
+        UpdateState::Idle
+        | UpdateState::Checking
+        | UpdateState::UpToDate { .. }
+        | UpdateState::Downloading { .. }
+        | UpdateState::Ready { .. } => None,
+    };
+    settings::row_with_error(
+        words.app_updates,
+        Some(status.into()),
+        error,
+        Some(controls),
+        false,
+        tokens,
     )
 }
 
-/// "Update automatically", on or off, and what off means.
-fn automatic(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+/// "자동으로 업데이트", with Paseo's switch.
+fn automatic_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.update();
     let on = shell.updates_automatic();
-    div()
-        .flex()
-        .flex_col()
-        .gap(px(4.0))
-        .child(
-            div()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(10.0))
-                .child(
-                    div()
-                        .type_(Type::Label)
-                        .text_color(tokens.text_primary)
-                        .child(words.automatic),
-                )
-                .child(
-                    choice(
-                        "update-automatically",
-                        if on { words.on } else { words.off },
-                        on,
-                        tokens,
-                    )
-                    .on_click(cx.listener(move |this, _event, _window, cx| {
-                        this.set_update_automatically(!on, cx);
-                    })),
-                ),
-        )
-        .child(line(words.automatic_note.to_owned(), tokens.text_tertiary))
+    let switch = settings::switch("update-automatically", on, true, false, tokens)
+        .on_click(cx.listener(move |this, _event, _window, cx| {
+            this.set_update_automatically(!on, cx);
+        }))
+        .into_any_element();
+    settings::row(
+        words.automatic,
+        Some(words.automatic_note.into()),
+        Some(switch),
+        false,
+        tokens,
+    )
+}
+
+/// "로그 파일": where the app's log is written, and "로그 열기" (track R's
+/// `vessel_app_log::dir()`; the folder is made first, so it opens even
+/// before the first line is written there).
+fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let words = shell.t.lang.update();
+    let dir: Option<PathBuf> = vessel_app_log::dir();
+    let hint = dir.as_ref().map_or_else(
+        || words.log_unavailable.to_owned(),
+        |dir| dir.display().to_string(),
+    );
+    let mut open = outline_button("about-open-logs", words.open_logs, dir.is_some(), tokens);
+    if let Some(dir) = dir {
+        open = open.on_click(cx.listener(move |_this, _event, _window, cx| {
+            if let Err(error) = std::fs::create_dir_all(&dir) {
+                tracing::warn!(%error, "the log folder could not be made");
+                return;
+            }
+            cx.open_with_system(&dir);
+        }));
+    }
+    settings::row(
+        words.log_file,
+        Some(hint.into()),
+        Some(open.into_any_element()),
+        false,
+        tokens,
+    )
 }
 
 /// The note shown once after an update, at the top of the frame.

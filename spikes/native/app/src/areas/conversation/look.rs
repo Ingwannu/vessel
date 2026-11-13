@@ -13,17 +13,13 @@
 //! - Differences from the page's DESIGN.md (the references win): the
 //!   page's prompt is a mono block on a card, left-aligned; GOAT's is a
 //!   bubble on the right, 70% of the lane at most, radius 16. The page's
-//!   column is 760 wide; GOAT's chat lane is 672.
+//!   column is 760 wide; GOAT's chat lane is 672. The app's conversation
+//!   sits in the session's one chat column with the composer (Paseo's
+//!   820, the session area's `column`), so the two line up: a deliberate
+//!   difference from GOAT's 672.
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::Hsla;
-
-/// The lane's inset each side (GOAT's 0.75rem).
-pub(super) const INSET: f32 = 12.0;
-
-/// The lane drawn: GOAT's chat lane, 672 wide at most
-/// (`--chat-content-max-width`, 42rem), and `INSET` each side.
-pub(super) const LANE_OUTER: f32 = 696.0;
 
 /// A person's message: its widest share of the lane.
 pub(super) const BUBBLE_SHARE: f32 = 0.7;

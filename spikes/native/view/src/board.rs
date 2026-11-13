@@ -4,6 +4,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use vessel_proto::agents::{AgentDetail, AgentInfo, InstallPart};
 use vessel_proto::{
     DisplayStatus, Harness, HarnessKind, HarnessRef, KanbanColumn, SessionId, SessionInfo,
     SessionMode, SessionStatus, StructuredSupport,
@@ -128,22 +129,103 @@ pub struct Agent {
     pub harness: HarnessRef,
     /// Its name for people (the page's `agentName`).
     pub name: String,
+    /// Why it cannot start a conversation now, in the node's words (an
+    /// adapter missing, not signed in); `None` when it can.
+    pub unavailable: Option<String>,
 }
 
 impl Agent {
-    /// The agents among `harnesses` that run a conversation (an ACP
-    /// adapter is there); a harness that only runs in a terminal is left
-    /// out until the app draws terminals.
+    /// Every agent of a machine, the four's installed ones and those added
+    /// on it, in the node's order; one that cannot start a conversation
+    /// now is kept, with why (the owner: every agent is listed, as Paseo
+    /// lists every provider, a disabled one with its reason, none left out
+    /// silently).
     #[must_use]
-    pub fn conversational(harnesses: &[Harness]) -> Vec<Self> {
+    pub fn all(harnesses: &[Harness]) -> Vec<Self> {
         harnesses
             .iter()
-            .filter(|harness| matches!(harness.structured, StructuredSupport::Available))
             .map(|harness| Self {
                 harness: harness.kind.clone(),
                 name: agent_name(&harness.kind),
+                unavailable: match &harness.structured {
+                    StructuredSupport::Available => None,
+                    StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                },
             })
             .collect()
+    }
+
+    /// Every agent the node knows (`agent.list`, protocol 11: the four,
+    /// installed or not, and those added), each with whether it can start
+    /// a conversation: from the installed harnesses (`harness.list`) when
+    /// it is one of them, else not installed, said with the install command
+    /// the node offers for it (or, for an added agent, its program).
+    /// `harness.list` names only what is installed, so without
+    /// `agent.list` (an older node) the list is [`Self::all`]'s.
+    #[must_use]
+    pub fn known(harnesses: &[Harness], agents: &[AgentInfo]) -> Vec<Self> {
+        let mut out: Vec<Self> = agents
+            .iter()
+            .map(|info| {
+                let installed = harnesses.iter().find(|harness| harness.kind == info.agent);
+                let name = match &info.detail {
+                    AgentDetail::Added { added } => added.label.as_ref().map_or_else(
+                        || agent_name(&info.agent),
+                        |label| label.as_str().to_owned(),
+                    ),
+                    AgentDetail::Known { .. } => agent_name(&info.agent),
+                };
+                let unavailable = match installed {
+                    Some(harness) => match &harness.structured {
+                        StructuredSupport::Available => None,
+                        StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                    },
+                    None => Some(not_installed(&info.detail)),
+                };
+                Self {
+                    harness: info.agent.clone(),
+                    name,
+                    unavailable,
+                }
+            })
+            .collect();
+        // An installed harness the list left out (a newer kind) still shows.
+        for extra in Self::all(harnesses) {
+            if !out.iter().any(|agent| agent.harness == extra.harness) {
+                out.push(extra);
+            }
+        }
+        out
+    }
+
+    /// Whether it can start a conversation now.
+    #[must_use]
+    pub const fn available(&self) -> bool {
+        self.unavailable.is_none()
+    }
+}
+
+/// Why an agent the node knows is not installed, in the node's manner
+/// (its reason for a missing adapter reads the same way).
+fn not_installed(detail: &AgentDetail) -> String {
+    match detail {
+        AgentDetail::Known { installs, .. } => installs
+            .iter()
+            .find(|offer| offer.part == InstallPart::Harness)
+            .or_else(|| installs.first())
+            .map_or_else(
+                || "not installed on this machine".to_owned(),
+                |offer| {
+                    format!(
+                        "not installed on this machine (install it with `{}`)",
+                        offer.command
+                    )
+                },
+            ),
+        AgentDetail::Added { added } => format!(
+            "its program `{}` is not found on this machine",
+            added.program.as_str()
+        ),
     }
 }
 

@@ -137,6 +137,8 @@ mod ask;
 mod describe;
 #[path = "fake_acp/options.rs"]
 mod options;
+#[path = "fake_acp/real.rs"]
+mod real;
 
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {

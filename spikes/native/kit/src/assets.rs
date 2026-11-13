@@ -38,10 +38,36 @@ pub enum Glyph {
     Update,
     /// Three lines: opens the sidebar's sheet at a phone's width.
     Menu,
+    /// A picker's caret.
+    ChevronDown,
+    /// A row that opens a list of its own (a provider's models).
+    ChevronRight,
+    /// Back, from such a list.
+    ChevronLeft,
+    /// The chosen row's mark.
+    Check,
+    /// A search row.
+    Search,
+    /// Send.
+    ArrowUp,
+    /// Stop.
+    Stop,
+    /// The permissions mode.
+    Shield,
+    /// The effort (thinking).
+    Brain,
+    /// An agent.
+    Bot,
+    /// A failure.
+    Alert,
+    /// A folder.
+    Folder,
+    /// A machine.
+    Machine,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 7] = [
+const ALL: [Glyph; 20] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -49,7 +75,32 @@ const ALL: [Glyph; 7] = [
     Glyph::Close,
     Glyph::Update,
     Glyph::Menu,
+    Glyph::ChevronDown,
+    Glyph::ChevronRight,
+    Glyph::ChevronLeft,
+    Glyph::Check,
+    Glyph::Search,
+    Glyph::ArrowUp,
+    Glyph::Stop,
+    Glyph::Shield,
+    Glyph::Brain,
+    Glyph::Bot,
+    Glyph::Alert,
+    Glyph::Folder,
+    Glyph::Machine,
 ];
+
+/// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
+/// as Paseo's icons are drawn; the paths are the kit's own.
+macro_rules! line_glyph {
+    ($body:literal) => {
+        concat!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#,
+            $body,
+            "</svg>"
+        )
+    };
+}
 
 impl Glyph {
     /// Its asset path.
@@ -63,6 +114,19 @@ impl Glyph {
             Self::Close => "kit/close.svg",
             Self::Update => "kit/update.svg",
             Self::Menu => "kit/menu.svg",
+            Self::ChevronDown => "kit/chevron-down.svg",
+            Self::ChevronRight => "kit/chevron-right.svg",
+            Self::ChevronLeft => "kit/chevron-left.svg",
+            Self::Check => "kit/check.svg",
+            Self::Search => "kit/search.svg",
+            Self::ArrowUp => "kit/arrow-up.svg",
+            Self::Stop => "kit/stop.svg",
+            Self::Shield => "kit/shield.svg",
+            Self::Brain => "kit/brain.svg",
+            Self::Bot => "kit/bot.svg",
+            Self::Alert => "kit/alert.svg",
+            Self::Folder => "kit/folder.svg",
+            Self::Machine => "kit/machine.svg",
         }
     }
 
@@ -87,6 +151,33 @@ impl Glyph {
             Self::Menu => {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M1.5 3h9M1.5 6h9M1.5 9h9" fill="none" stroke="black" stroke-width="1.2" stroke-linecap="round"/></svg>"#
             }
+            Self::ChevronDown => line_glyph!(r#"<path d="M6 9l6 6 6-6"/>"#),
+            Self::ChevronRight => line_glyph!(r#"<path d="M9 6l6 6-6 6"/>"#),
+            Self::ChevronLeft => line_glyph!(r#"<path d="M15 6l-6 6 6 6"/>"#),
+            Self::Check => line_glyph!(r#"<path d="M20 6L9 17l-5-5"/>"#),
+            Self::Search => {
+                line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
+            }
+            Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
+            Self::Shield => {
+                line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
+            }
+            Self::Brain => line_glyph!(
+                r#"<path d="M12 5.5a3 3 0 0 0-5.6-1.2A3 3 0 0 0 4 8.5a3.2 3.2 0 0 0 .8 5.8A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5z"/><path d="M12 5.5a3 3 0 0 1 5.6-1.2A3 3 0 0 1 20 8.5a3.2 3.2 0 0 1-.8 5.8A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/>"#
+            ),
+            Self::Bot => line_glyph!(
+                r#"<rect x="4.5" y="8" width="15" height="11" rx="2.5"/><path d="M12 8V4.5M9.5 12.5v1.5M14.5 12.5v1.5"/>"#
+            ),
+            Self::Alert => {
+                line_glyph!(r#"<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>"#)
+            }
+            Self::Folder => line_glyph!(
+                r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
+            ),
+            Self::Machine => line_glyph!(
+                r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
+            ),
         }
     }
 }

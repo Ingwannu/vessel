@@ -47,6 +47,7 @@ pub struct Text {
     pub enter_sends: &'static str,
     pub working_queues: &'static str,
     pub ended: &'static str,
+    pub resuming: &'static str,
     pub a_tool_call: &'static str,
     // Starting a session.
     pub welcome: &'static str,
@@ -130,6 +131,15 @@ impl Text {
                 if count == 1 { "session" } else { "sessions" }
             ),
             Lang::Ko => format!("세션 {count}개"),
+        }
+    }
+
+    /// Starting an ended session again failed.
+    #[must_use]
+    pub fn resume_failed(&self, why: &str) -> String {
+        match self.lang {
+            Lang::En => format!("The session could not be started again: {why}"),
+            Lang::Ko => format!("세션을 다시 시작하지 못했습니다: {why}"),
         }
     }
 
@@ -305,7 +315,8 @@ const EN: Text = Text {
     stop: "Stop",
     enter_sends: "Enter sends.",
     working_queues: "The agent is working; a prompt now waits in the queue.",
-    ended: "This session has ended. Resuming it from the app comes next.",
+    ended: "This session has ended. Sending starts it again with this conversation.",
+    resuming: "Starting the session again…",
     a_tool_call: "a tool call",
     machine: "Machine",
     agent: "Agent",
@@ -370,7 +381,8 @@ const KO: Text = Text {
     stop: "멈추기",
     enter_sends: "Enter로 보냅니다.",
     working_queues: "에이전트가 작업 중입니다. 지금 보내면 대기열에서 기다립니다.",
-    ended: "끝난 세션입니다. 앱에서 이어 가기는 다음 빌드에 들어갑니다.",
+    ended: "끝난 세션입니다. 보내면 이 대화로 다시 시작합니다.",
+    resuming: "세션을 다시 시작하는 중…",
     a_tool_call: "도구 호출",
     machine: "머신",
     agent: "에이전트",
