@@ -148,7 +148,43 @@ desktop track's pin, `gpui-pre` 0.3.10 = zed@08cbb88; toolchain 1.98.1).
 
 ## Step 2: the app for Windows
 
-(Filled in as the builds land.)
+Label `0.0.0.0.1`, built by `build.sh` from this branch at `85cc4cb`
+(the merge of the desktop track's `99f50d8`; the app as it was then:
+machines and sessions from a real node, the board, a session's
+conversation with permissions answered and Markdown drawn, pairing). No
+update settings compiled in: the app does not link the updater yet. The
+label's directory also holds the desktop track's Linux tarball
+(`vessel-app-0.0.0.0.1-linux-x86_64.tar.gz`, from its own script), which
+`build.sh` kept and summed.
+
+- **The build**: 11 min 49 s cold, 10 min 9 s after the merge (`-j 6`,
+  fat LTO); a 33 MB
+  `vessel-app.exe`, GUI subsystem, static CRT. Its imports are the
+  hello window's plus `bcrypt`, `crypt32`, `ws2_32` (rustls and the
+  node connection) and `gdiplus` (in System32 on every Windows since XP;
+  first refused by the import check, then added to its list).
+- **Under wine 9.0** (the installed copy, `GPUI_DISABLE_DIRECT_COMPOSITION=1`,
+  the `icuuc` stand-in beside it): the log shows `Created device with
+  Direct3D 11.1 feature level`, the kit adds its embedded faces, and the
+  first text ends it at the same `failed to resolve font '.SystemUIFont'`
+  as the hello window. So wine shows the app starts, opens its renderer
+  and loads its fonts, and cannot show a single drawn screen. Hangul
+  input, the pairing flow and a node's sessions on Windows are not
+  verified anywhere yet.
+- **The installer under wine** (64-bit wine; a 32-bit NSIS stub needs
+  32-bit wine, which this machine does not have, so the installer is
+  built for amd64): `setup.exe /S` exits 0 and writes `Vessel.exe`,
+  `LICENSE.md`, `README.txt` and `uninstall.exe` under
+  `%LOCALAPPDATA%\Programs\Vessel`, a `Vessel.lnk` in the user's Start
+  menu, and the HKCU uninstall entry (`DisplayName Vessel`,
+  `DisplayVersion 0.0.0.0.1`, `Publisher Team-WICKED`, the uninstall and
+  quiet-uninstall strings). `uninstall.exe /S` removes all of it,
+  including an `Vessel.exe.old-*` and a `.vessel-update-*.part` placed
+  there to stand for the updater's leftovers. The installer's own pages
+  (directory choice, finish with "run Vessel") were not seen.
+- **Not done on this machine and why**: a drawn frame of the app (wine's
+  DirectWrite), SmartScreen's warning (Windows only), DPI scaling on a
+  real display.
 
 ## The installer
 
