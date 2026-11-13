@@ -258,16 +258,32 @@ impl Shell {
 }
 
 /// The link's events, into the view, until either side closes.
+///
+/// Whatever has queued up by the time one event is taken is folded in the
+/// same update, up to [`BATCH`] events: a stream of 20,000 records then
+/// costs a few hundred updates of the view, not 20,000.
 async fn receive(this: WeakEntity<Shell>, mut events: mpsc::Receiver<Event>, cx: &mut AsyncApp) {
-    while let Some(event) = events.recv().await {
-        if this
-            .update(cx, |shell, cx| shell.on_event(event, cx))
-            .is_err()
-        {
+    while let Some(first) = events.recv().await {
+        let mut batch = vec![first];
+        while batch.len() < BATCH {
+            match events.try_recv() {
+                Ok(event) => batch.push(event),
+                Err(_empty_or_closed) => break,
+            }
+        }
+        let applied = this.update(cx, |shell, cx| {
+            for event in batch {
+                shell.on_event(event, cx);
+            }
+        });
+        if applied.is_err() {
             return;
         }
     }
 }
+
+/// The most events folded in one update of the view.
+const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {

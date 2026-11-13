@@ -120,7 +120,11 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [profile.release]
-# As Vessel's own release profile (the root manifest says why); the
-# numbers in the report are taken from this build. Symbols kept, as there.
-lto = "fat"
-codegen-units = 1
+# Thin link-time optimisation across crates, cargo's 16 codegen units:
+# GPUI's tree is several times Vessel's, and fat LTO with one codegen
+# unit (Vessel's own release profile) made a release build take too long
+# for builds the owner tries one after another. Whether fat LTO is worth
+# its time here is measured separately (docs/plans/backend-m12-spike.md,
+# question 3). Symbols kept, as in Vessel's profile: a panic's backtrace
+# names its functions.
+lto = "thin"

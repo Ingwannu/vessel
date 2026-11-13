@@ -381,8 +381,8 @@ fn unreachable(name: String, why: &str) -> Machine {
     }
 }
 
-/// A session's records to the events channel, in batches: whatever has
-/// arrived by the time the previous batch was taken.
+/// A session's records to the events channel, one event per record (the
+/// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
     let mut stream = match client
         .follow(session.clone(), vessel_proto::EventSeq::new(0))
