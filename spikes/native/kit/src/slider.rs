@@ -185,7 +185,7 @@ pub fn slider(
         .bottom_0()
         .left(px(INSET))
         .right(px(INSET))
-        .child(drag_listener(state, steps, on_step));
+        .child(drag_listener(state, steps));
     if shown.is_some() {
         line = line.child(fill(&id, look, fraction));
     }
@@ -220,6 +220,8 @@ pub fn slider(
                 window.refresh();
             }
         })
+        .on_mouse_up(MouseButton::Left, release(state, on_step))
+        .on_mouse_up_out(MouseButton::Left, release(state, on_step))
         .on_key_down(move |event, window, cx| {
             let last = steps.saturating_sub(1);
             let from = at.unwrap_or(0);
@@ -239,12 +241,12 @@ pub fn slider(
 }
 
 /// Records where the steps' line is drawn, and while dragging hears the
-/// pointer anywhere in the window: its moves pick the step shown, its
-/// release chooses it.
-fn drag_listener(state: &SliderState, steps: usize, on_step: &OnStep) -> AnyElement {
+/// pointer's moves anywhere in the window (they pick the step shown). The
+/// release is heard by the slider itself, over it or outside it: a quick
+/// click's release can come before this frame's listeners are painted.
+fn drag_listener(state: &SliderState, steps: usize) -> AnyElement {
     let probe_line = Rc::clone(&state.line);
     let drag = Rc::clone(&state.dragging);
-    let on_step = Rc::clone(on_step);
     canvas(
         move |bounds, _window, _cx| probe_line.set(Some(bounds)),
         move |bounds, (), window, _cx| {
@@ -261,21 +263,26 @@ fn drag_listener(state: &SliderState, steps: usize, on_step: &OnStep) -> AnyElem
                     }
                 }
             });
-            let releasing = Rc::clone(&drag);
-            let chosen = Rc::clone(&on_step);
-            window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
-                if phase.bubble() && event.button == MouseButton::Left {
-                    if let Some(step) = releasing.take() {
-                        chosen(step, window, cx);
-                    }
-                    window.refresh();
-                }
-            });
         },
     )
     .absolute()
     .size_full()
     .into_any_element()
+}
+
+/// A release: the step shown while dragging is chosen.
+fn release(
+    state: &SliderState,
+    on_step: &OnStep,
+) -> impl Fn(&MouseUpEvent, &mut Window, &mut App) + 'static {
+    let dragging = Rc::clone(&state.dragging);
+    let chosen = Rc::clone(on_step);
+    move |_event, window, cx| {
+        if let Some(step) = dragging.take() {
+            chosen(step, window, cx);
+            window.refresh();
+        }
+    }
 }
 
 /// The fill, from the track's start to the thumb at `fraction`.
