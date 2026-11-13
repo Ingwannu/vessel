@@ -120,7 +120,12 @@ impl Git {
                 command.arg("--end-of-options").arg(path).arg(name.as_str())
             }
         };
-        let output = command.output().await?;
+        let output = {
+            // Another add in this repository would read this one's
+            // half-written entry (`repository_lock`).
+            let _turn = self.worktrees.hold(repo).await;
+            command.output().await?
+        };
         if output.code == Some(0) {
             return Ok(Ok(()));
         }
@@ -515,6 +520,9 @@ impl Git {
         created: Option<&BranchName>,
         force: bool,
     ) -> Result<(), GitError> {
+        // The removal and the branch's deletion both read the list of
+        // worktrees an add may be writing (`repository_lock`).
+        let _turn = self.worktrees.hold(repo).await;
         let mut command = self.command(repo).args(["worktree", "remove"]);
         if force {
             command = command.args(["--force", "--force"]);
