@@ -33,6 +33,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod form_summary;
 pub mod menu;
 pub mod output;
 pub mod picker;

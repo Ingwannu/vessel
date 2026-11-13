@@ -170,6 +170,9 @@ exercises the composer; platform input-method support remains shared.
 `Tooltips::on_code` keeps the tooltip’s existing chrome and placement but
 uses the code face for a whole path or hash. Existing `on` stays body text.
 
+`kit::form_summary` supplies GOAT’s branch/files summary and fixed file-list
+inset. Static outer edges keep the content geometry and never take focus.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

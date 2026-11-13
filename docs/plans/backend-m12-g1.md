@@ -355,3 +355,19 @@ The path’s inline middle ellipsis uses the pinned GPUI’s existing
 `StartTruncatedPath` instead shortens the start. Keeping both the initial
 project context and final filename/extension follows the coordinator’s
 explicit middle-truncation instruction; the entire path remains in code.
+
+## GOAT’s shared commit summary frame
+
+`kit::form_summary::{summary, files}` follows the branch/files group and
+its file-list inset in GOAT’s `components/GitActionsControl.tsx:1914–2030`.
+The summary has radius12, padding/gap12 and zinc25/light (index.css:273,
+neutral OKLCH .992 converts to nearest 8-bit sRGB #fcfcfc), white3.5%/dark.
+The inset is radius8 and 176 points tall, white/light and white2.5%/dark.
+Both static edges are black5%/white5%. A passive absolute child
+paints border1 entirely outside the content box, with outer radii13/9 and
+inner radii12/8. It consumes no layout space and never changes with focus.
+A native drop shadow was rejected: GPUI paints it under translucent fill
+too and does not expand its corner radius, changing the reference’s paint. Settings cards and
+all of their callers stay untouched. Exact paint/geometry and a real GPUI
+layout test check that the edge does not steal a pixel from either frame.
+The existing virtual list supplies content; no new text/list engine.
