@@ -4,29 +4,33 @@
 //! the run came to. The parent module's Decision Log says why one task.
 //!
 //! Order of a run (the contract's "How a run goes"): the run is recorded
-//! `making` in the same write as the schedule's next due time, then made
-//! by a task holding one of [`SLOTS`]; the task's outcome comes back here
-//! ([`MadeRun`]) and is written; a `started` run's session is followed by
-//! the runner, whose later outcomes come back too ([`Followed`]).
+//! `making` in the same write as the schedule's next due time, waits for
+//! room ([`Room`]: one of [`SLOTS`], and a first turn for a run that
+//! starts a session), oldest due first, then is made by a task; the
+//! task's outcome comes back here ([`MadeRun`]) and is written; a
+//! `started` run's session is followed by the runner, whose later
+//! outcomes come back too ([`Followed`]).
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{DateTime, TimeDelta, Utc};
-use tokio::sync::{Semaphore, broadcast, mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::automation::{
-    EndReason, RunOutcome, RunTrigger, ScheduleInfo, ScheduleRun, ScheduleState,
+    RunNumber, RunOutcome, RunTrigger, ScheduleInfo, ScheduleRun, ScheduleState,
 };
 use vessel_proto::{Creator, ScheduleId, SessionId};
 use vessel_store::Store;
 
 use super::book::Book;
-use super::state::{advanced, ends_an_agents, name_of, next_number};
-use super::task::{MadeRun, RunTask, answer};
-use super::{Clock, Command, FollowSender, Followed, Job, MAX_SLEEP, RUN_NOW_WAIT, Runner, SLOTS};
-use crate::automation::error::AutomationError;
+use super::room::{Room, TURNS};
+use super::runs::Pending;
+use super::state::advanced;
+use super::task::Back;
+use super::{Clock, Command, FollowSender, Followed, MAX_SLEEP, Runner, SLOTS};
 use crate::automation::time::{self, Decision, Due, Zones};
 
 /// A clock read this far behind the last one was stepped back.
@@ -77,7 +81,8 @@ pub(crate) async fn start<R: Runner, C: Clock>(
         store,
         runner,
         clock,
-        slots: Arc::new(Semaphore::new(SLOTS)),
+        room: Room::new(SLOTS, TURNS),
+        turns: HashSet::new(),
         commands,
         made_tx,
         made_rx,
@@ -98,10 +103,13 @@ pub(super) struct Actor<R, C> {
     pub(super) store: Store,
     pub(super) runner: Arc<R>,
     pub(super) clock: C,
-    pub(super) slots: Arc<Semaphore>,
+    /// Runs being made and waiting (`room`).
+    pub(super) room: Room<Pending>,
+    /// The runs whose session holds a first turn, by schedule and run.
+    pub(super) turns: HashSet<(ScheduleId, RunNumber)>,
     pub(super) commands: mpsc::Receiver<Command>,
-    pub(super) made_tx: mpsc::Sender<MadeRun>,
-    pub(super) made_rx: mpsc::Receiver<MadeRun>,
+    pub(super) made_tx: mpsc::Sender<Back>,
+    pub(super) made_rx: mpsc::Receiver<Back>,
     pub(super) follow_tx: FollowSender,
     pub(super) follow_rx: mpsc::Receiver<Followed>,
     pub(super) tasks: TaskTracker,
@@ -116,14 +124,16 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     async fn run(mut self) {
         loop {
             let now = self.clock.now();
+            self.expire(now).await;
             self.fire_due(now).await;
+            self.dispatch();
             let sleep = self.sleep_for(now);
             // What runs came to is kept before the next command is read, so
             // a call never sees a run older than one already answered.
             tokio::select! {
                 biased;
                 () = self.stop.cancelled() => break,
-                Some(made) = self.made_rx.recv() => self.made(made).await,
+                Some(back) = self.made_rx.recv() => self.back(back).await,
                 Some(followed) = self.follow_rx.recv() => self.followed(followed).await,
                 ended = next_end(self.ended.as_mut()) => match ended {
                     Ok(session) => self.session_ended(session).await,
@@ -143,10 +153,15 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         }
     }
 
-    /// How long to sleep: until the earliest due time, at most
-    /// [`MAX_SLEEP`]; with nothing active, until something happens.
+    /// How long to sleep: until the earliest due time or an asked run's
+    /// deadline, at most [`MAX_SLEEP`]; with neither, until something
+    /// happens.
     fn sleep_for(&self, now: DateTime<Utc>) -> Option<Duration> {
-        let first = self.book.first_due()?;
+        let first = match (self.book.first_due(), self.room.next_deadline()) {
+            (Some(due), Some(deadline)) => due.min(deadline),
+            (Some(first), None) | (None, Some(first)) => first,
+            (None, None) => return None,
+        };
         let wait = first
             .signed_duration_since(now)
             .to_std()
@@ -306,164 +321,6 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 self.record(info, due_at, RunTrigger::Due, skipped).await;
             }
         }
-    }
-
-    /// A run that does nothing, recorded at once.
-    async fn record(
-        &mut self,
-        mut info: ScheduleInfo,
-        due_at: DateTime<Utc>,
-        trigger: RunTrigger,
-        outcome: RunOutcome,
-    ) {
-        let run = ScheduleRun {
-            number: next_number(&info),
-            due_at,
-            at: self.clock.now(),
-            trigger,
-            outcome,
-        };
-        info.last_run = Some(run.clone());
-        if ends_an_agents(&info) {
-            self.forget(info.id).await;
-            return;
-        }
-        self.persist(&info, Some(run)).await;
-        self.book.put(info);
-    }
-
-    /// Record a run `making` (with the schedule's state, in one write) and
-    /// hand it to a task. An asked run waits [`RUN_NOW_WAIT`] at most for
-    /// a slot, and is answered on `reply` once it has its outcome.
-    pub(super) async fn start_run(
-        &mut self,
-        mut info: ScheduleInfo,
-        due_at: DateTime<Utc>,
-        trigger: RunTrigger,
-        reply: Option<oneshot::Sender<Result<ScheduleRun, AutomationError>>>,
-    ) {
-        let asked = reply.is_some();
-        let last = info.last_run.clone();
-        let previous = self
-            .book
-            .get(info.id)
-            .and_then(|entry| entry.current.clone());
-        let run = ScheduleRun {
-            number: next_number(&info),
-            due_at,
-            at: self.clock.now(),
-            trigger,
-            outcome: RunOutcome::Making,
-        };
-        info.last_run = Some(run.clone());
-        if let Err(error) = self
-            .store
-            .put_schedule(info.clone(), Some(run.clone()))
-            .await
-        {
-            // Not recorded, so not made: a run made unrecorded could be
-            // made again after a restart.
-            tracing::error!(schedule = %info.id, %error, "cannot record a run; it is not made");
-            info.last_run = last;
-            self.book.put(info);
-            if let Some(reply) = reply {
-                let _gone = reply.send(Err(error.into()));
-            }
-            return;
-        }
-        let job = Job {
-            schedule: info.id,
-            name: name_of(&info),
-            run,
-            definition: info.definition.clone(),
-            defined_by: info.defined_by.clone(),
-            previous,
-        };
-        let id = info.id;
-        self.book.put(info);
-        self.book.set_making(id, true);
-        self.book.noted(id, &job.run);
-        let task = RunTask {
-            runner: Arc::clone(&self.runner),
-            slots: Arc::clone(&self.slots),
-            made: self.made_tx.clone(),
-            follow: self.follow_tx.clone(),
-            stop: self.stop.clone(),
-        };
-        let wait = asked.then_some(RUN_NOW_WAIT);
-        drop(self.tasks.spawn(task.make(job, wait, reply)));
-    }
-
-    /// A run task's outcome.
-    async fn made(&mut self, made: MadeRun) {
-        let MadeRun {
-            schedule,
-            run,
-            end,
-            reply,
-        } = made;
-        self.book.set_making(schedule, false);
-        let Some(entry) = self.book.get(schedule).cloned() else {
-            // Deleted while it was made: the run happened all the same.
-            if let Some(reply) = reply {
-                let _gone = reply.send(Ok(run));
-            }
-            return;
-        };
-        let mut info = entry.info;
-        if run.outcome.counts() {
-            info.runs = info.runs.saturating_add(1);
-        }
-        if info
-            .last_run
-            .as_ref()
-            .is_some_and(|last| last.number == run.number)
-        {
-            info.last_run = Some(run.clone());
-        }
-        let now = self.clock.now();
-        if let Some(reason) = end {
-            info.state = ScheduleState::Ended { at: now, reason };
-        } else if let Some(max) = info.definition.max_runs
-            && info.runs >= max.get()
-            && !matches!(info.state, ScheduleState::Ended { .. })
-        {
-            info.state = ScheduleState::Ended {
-                at: now,
-                reason: EndReason::MaxRuns,
-            };
-        }
-        if ends_an_agents(&info) {
-            self.forget(schedule).await;
-        } else {
-            self.persist(&info, Some(run.clone())).await;
-            self.book.put(info);
-            self.book.noted(schedule, &run);
-        }
-        if let Some(reply) = reply {
-            let _gone = reply.send(answer(run));
-        }
-    }
-
-    /// A followed run's later outcome.
-    async fn followed(&mut self, followed: Followed) {
-        let Followed { schedule, run } = followed;
-        let Some(entry) = self.book.get(schedule).cloned() else {
-            return;
-        };
-        let mut info = entry.info;
-        if info
-            .last_run
-            .as_ref()
-            .is_some_and(|last| last.number == run.number)
-        {
-            info.last_run = Some(run.clone());
-            self.persist(&info, Some(run.clone())).await;
-            self.book.put(info);
-        } else if let Err(error) = self.store.put_run(schedule, run.clone()).await {
-            tracing::warn!(%schedule, %error, "cannot record a run's outcome");
-        }
-        self.book.noted(schedule, &run);
     }
 
     pub(super) async fn persist(&self, info: &ScheduleInfo, run: Option<ScheduleRun>) {

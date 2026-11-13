@@ -15,11 +15,12 @@
 //! - Choice: one actor ([`actor`]) holding the schedules and an index of
 //!   due times ([`book`]), sleeping until the first, at most 10 minutes at a
 //!   time, and woken by every command. Runs are made by tasks of their own,
-//!   at most [`SLOTS`] at once, through a [`Runner`]: the node's own
-//!   (`node_runner`) acts through the service's checks; the tests' fake
-//!   records what it was asked. Who may change what is pure ([`rules`]),
-//!   as is what a schedule's state becomes ([`state`]); the calls the
-//!   actor answers are [`calls`], a run's own task [`task`].
+//!   at most [`SLOTS`] at once and in due order ([`room`]), through a
+//!   [`Runner`]: the node's own (`node_runner`) acts through the
+//!   service's checks; the tests' fake records what it was asked. Who may
+//!   change what is pure ([`rules`]), as is what a schedule's state
+//!   becomes ([`state`]); the calls the actor answers are [`calls`], a
+//!   run's way through the actor [`runs`], its own task [`task`].
 //! - Cost: the runner is a generic parameter, so the actor's tests run
 //!   without a node and on a clock they move ([`Clock`]); one more trait,
 //!   with the node's and the tests' implementations.
@@ -29,7 +30,9 @@ mod book;
 mod calls;
 mod check;
 pub(crate) mod node_runner;
+mod room;
 pub(crate) mod rules;
+mod runs;
 mod state;
 mod task;
 
