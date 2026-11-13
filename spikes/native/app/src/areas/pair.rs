@@ -273,17 +273,12 @@ fn confirm_step(
     let pair = &shell.areas.pair;
     let neutral = tokens.neutral;
     let card = settings::card(tokens)
-        .child(settings::row(
-            words.host,
-            Some(offer.node.clone().into()),
-            None,
-            true,
-            tokens,
-        ))
-        .child(settings::row(
+        // The machine's id and its key's fingerprint in the code face (each
+        // character told from its neighbours, as the machine printed them).
+        .child(settings::code_row(words.host, offer.node.clone(), true, tokens))
+        .child(settings::code_row(
             words.fingerprint,
-            Some(offer.key.clone().into()),
-            None,
+            offer.key.clone(),
             false,
             tokens,
         ))
