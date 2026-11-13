@@ -243,9 +243,15 @@ export async function preferThrough(
     takePreferences(result.preferences);
   });
   unanswered = unanswered.filter((pending) => pending !== change);
-  if (!outcome.ok) {
-    const now = prefs.get();
-    show({ ...now, values: withUnanswered(now.confirmed) });
+  // Shown again from what the bridge confirmed and what is still on its
+  // way: a refusal takes this change back, and an answer older than a
+  // state already shown (another tab's change pushed before this reply)
+  // is dropped by its revision, so this change, answered, must stop
+  // being applied over that state.
+  const now = prefs.get();
+  const values = keepSections(now.values, withUnanswered(now.confirmed));
+  if (values !== now.values) {
+    show({ ...now, values });
   }
   return outcome;
 }

@@ -260,6 +260,28 @@ describe("a change made before the bridge answers", () => {
     expect(prefs.get().confirmed.layout.sidebar).toBe("shown");
   });
 
+  test("answered after a newer state, stops being applied over it", async () => {
+    prefs.set({
+      values: DEFAULT_PREFERENCES,
+      kept: null,
+      confirmed: DEFAULT_PREFERENCES,
+      revision: 0,
+    });
+    const link = fakeLink({ kind: "open", version: "0.1.0" });
+    const hide = preferThrough(link.through, {
+      set: "sidebar_panel",
+      value: "hidden",
+    });
+    await settled();
+    // Another tab hid it and showed it again: its push (revision 12)
+    // arrives before this change's own answer (revision 11).
+    takePreferences(withSidebar(12, "shown"));
+    expect(prefs.get().values.layout.sidebar).toBe("hidden");
+    link.answer(withSidebar(11, "hidden"));
+    expect((await hide).ok).toBe(true);
+    expect(prefs.get().values.layout.sidebar).toBe("shown");
+  });
+
   test("is taken back when the link is given up on", async () => {
     prefs.set({
       values: DEFAULT_PREFERENCES,
