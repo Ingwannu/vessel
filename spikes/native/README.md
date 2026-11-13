@@ -202,6 +202,9 @@ TEN/SIXTEEN are typed source numeric literals. Legacy `slider::spinner`
 keeps its24-unit vector/800ms and existing callers. Both reuse one SVG
 rotation path and the existing App reduced-motion handling.
 
+The shared menu pending path explicitly opts into numeric16 of that profile;
+other legacy callers retain their existing appearance and800ms.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

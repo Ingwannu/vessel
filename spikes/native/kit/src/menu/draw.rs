@@ -17,7 +17,6 @@ pub(super) const MIN_WIDTH: Pixels = px(180.0);
 pub(super) const MAX_WIDTH: Pixels = px(320.0);
 pub(super) const LEADING_SLOT: Pixels = px(16.0);
 pub(super) const LEADING_GLYPH: Pixels = px(14.0);
-pub(super) const SPINNER_SIZE: Pixels = px(16.0);
 pub(super) const SUCCESS_GLYPH: Pixels = px(16.0);
 pub(super) const OFFSET: f32 = 4.0;
 pub(super) const ROW_LINE: f32 = 18.0;
@@ -241,15 +240,14 @@ fn leading(index: usize, item: &MenuItem, ink: gpui::Hsla) -> Option<AnyElement>
             ink,
         )
         .into_any_element(),
-        Leading::Spinner => crate::slider::spinner(
+        Leading::Spinner => crate::loading::activity_indicator(
             ElementId::NamedInteger(
                 "menu-pending".into(),
                 u64::try_from(index).unwrap_or(u64::MAX),
             ),
-            f32::from(SPINNER_SIZE),
+            crate::loading::Size::Numeric(crate::loading::Points::SIXTEEN),
             ink,
-        )
-        .into_any_element(),
+        ),
     };
     Some(
         div()
