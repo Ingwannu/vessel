@@ -27,6 +27,7 @@ mod bar;
 mod bench;
 mod entries;
 mod look;
+mod rename;
 mod timeline;
 mod tool;
 
@@ -38,7 +39,7 @@ use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::session::MarkAction;
-use vessel_app_view::timeline::{Folds, Rows, Timeline};
+use vessel_app_view::timeline::{Folds, Logs, Rows, Timeline};
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
 
 pub(crate) use bar::bar;
@@ -85,6 +86,13 @@ pub(crate) struct ConversationArea {
     pub(crate) folds: Option<Folds>,
     /// The runs opened, by their lead entry.
     pub(crate) open_runs: HashSet<usize>,
+    /// The agent's own log lines, by run (`view::timeline::logs`).
+    pub(crate) logs: Logs,
+    /// The log runs opened, by their first line's entry.
+    pub(crate) open_logs: HashSet<usize>,
+    /// Whether tool calls are collapsed (Settings' "Collapse tool calls"
+    /// against "Full"); see [`collapsing`].
+    collapse: bool,
     /// Entries whose disclosure the person toggled (a tool card, a
     /// thought), against its default.
     pub(crate) toggled: HashSet<usize>,
@@ -104,6 +112,8 @@ pub(crate) struct ConversationArea {
     /// The confirm open, if any.
     pub(crate) confirm: Option<Confirm>,
     pub(crate) dialog: DialogState,
+    /// The title, while it is renamed in place.
+    pub(crate) rename: Option<rename::Rename>,
     /// The scrolling measurement, when it is on.
     bench: bench::Bench,
 }
@@ -115,6 +125,9 @@ impl ConversationArea {
             timeline: Timeline::default(),
             folds: None,
             open_runs: HashSet::new(),
+            logs: Logs::default(),
+            open_logs: HashSet::new(),
+            collapse: collapsing(),
             toggled: HashSet::new(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
@@ -124,6 +137,7 @@ impl ConversationArea {
             menu_rows: Vec::new(),
             confirm: None,
             dialog: DialogState::new(cx),
+            rename: None,
             bench: bench::Bench::default(),
         }
     }
@@ -134,9 +148,20 @@ impl ConversationArea {
         self.rows = Rows::of(
             self.timeline.entries().len(),
             self.folds.as_ref(),
+            &self.logs,
             &self.open_runs,
         );
     }
+}
+
+/// Whether the conversation collapses tool calls: until the app reads
+/// the person's display setting (the settings track's preference, whose
+/// default is "Full"), it collapses them, as it has since its first
+/// build; `VESSEL_APP_CONVERSATION=full` shows it as "Full" does (every
+/// tool call a row, an agent's log as one folded row), so that setting's
+/// screens can be seen and checked now.
+fn collapsing() -> bool {
+    std::env::var("VESSEL_APP_CONVERSATION").map_or(true, |display| display != "full")
 }
 
 impl Shell {
@@ -149,8 +174,10 @@ impl Shell {
             session,
         });
         area.timeline = Timeline::default();
-        area.folds = Some(Folds::default());
+        area.folds = area.collapse.then(Folds::default);
         area.open_runs.clear();
+        area.logs = Logs::default();
+        area.open_logs.clear();
         area.toggled.clear();
         area.rows = Rows::All(0);
         area.list.reset(0);
@@ -158,6 +185,7 @@ impl Shell {
         area.refused = None;
         area.menu.close();
         area.confirm = None;
+        area.rename = None;
         self.command(Command::Act {
             machine: machine.to_owned(),
             session,
@@ -183,6 +211,7 @@ impl Shell {
         if area.folds.is_some() {
             area.folds = Some(Folds::of(area.timeline.entries()));
         }
+        area.logs = Logs::of(area.timeline.entries());
         area.rows_again();
         let rows_after = area.rows.len();
         // Rows are entries less folded members, so a batch can add rows
@@ -196,7 +225,7 @@ impl Shell {
             .min(change.added_from);
         let from = area
             .rows
-            .row_index(first_changed, area.folds.as_ref())
+            .row_index(first_changed, area.folds.as_ref(), &area.logs)
             .unwrap_or(rows_before)
             .min(rows_before);
         area.list
@@ -282,7 +311,7 @@ impl Shell {
         // Only the run's own rows change: its lead's row stays where it
         // was and its members come or go right after it. Splicing there
         // (not resetting the list) keeps the view where the person is.
-        match area.rows.row_index(lead, area.folds.as_ref()) {
+        match area.rows.row_index(lead, area.folds.as_ref(), &area.logs) {
             Some(row) => {
                 let next = row.saturating_add(1);
                 let gone = before.saturating_sub(after);
@@ -297,13 +326,26 @@ impl Shell {
         cx.notify();
     }
 
+    /// Open or close a run of the agent's log lines: only its own row
+    /// changes (the lines show in its box, never as rows).
+    pub(crate) fn toggle_log(&mut self, lead: usize, cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.conversation;
+        if !area.open_logs.remove(&lead) {
+            let _new = area.open_logs.insert(lead);
+        }
+        if let Some(row) = area.rows.row_index(lead, area.folds.as_ref(), &area.logs) {
+            area.list.changed(row..row.saturating_add(1));
+        }
+        cx.notify();
+    }
+
     /// Open or close one entry's disclosure (a tool card, a thought).
     pub(crate) fn toggle_entry(&mut self, entry: usize, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
         if !area.toggled.remove(&entry) {
             let _new = area.toggled.insert(entry);
         }
-        if let Some(row) = area.rows.row_index(entry, area.folds.as_ref()) {
+        if let Some(row) = area.rows.row_index(entry, area.folds.as_ref(), &area.logs) {
             area.list.changed(row..row.saturating_add(1));
         }
         cx.notify();

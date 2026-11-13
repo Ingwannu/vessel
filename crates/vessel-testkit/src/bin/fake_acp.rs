@@ -35,7 +35,8 @@
 //! - `session/new`: session `fake-session-<n>`, with the options
 //!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
-//!   `effort` and `fast`.
+//!   `effort` and `fast`. With `FAKE_ACP_STARTUP_LOG` set it first writes
+//!   a real adapter's start-up log to stderr (`shapes::startup_log`).
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` and an agent message chunk `replayed <id>`, then
 //!   answers with the same options as `session/new`, as they stand. With
@@ -308,6 +309,7 @@ async fn serve() -> ExitCode {
     let steer = std::env::var_os("FAKE_ACP_NO_STEER").is_none();
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
+    let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
@@ -382,6 +384,11 @@ async fn serve() -> ExitCode {
                         response
                     };
                     let session = response.session_id.clone();
+                    if startup_log {
+                        for line in shapes::startup_log(&session.0) {
+                            complain(&line);
+                        }
+                    }
                     responder.respond(response)?;
                     cx.send_notification(commands(session))
                 }

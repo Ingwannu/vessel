@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
@@ -57,6 +57,8 @@ Paseo screen it follows.
 | `38-command-output-opens-at-end-light-1280`, `39-output-box-scrolled-up-light-1280` | 2,400 lines of output in a box of 192, opened at its end, scrolled up by the wheel while the timeline stays | GOAT `CommandOutputPanel.tsx` (`max-h-48 overflow-auto`, `followRef`, `CopyRegion`) |
 | `40-diff-in-a-capped-box-light-1280` | a 75-line diff of 240-character lines in the same box, numbered, washed red and green | GOAT's diffs (`@pierre/diffs`, `bars` indicators) |
 | `41-permission-long-command-dark-1280`, `42-permission-long-command-light-390` | a permission request whose command is one long line: it wraps, the window keeps its width | the page's permission panel |
+| `45-renamed-in-place-light-1280`, `46-empty-title-refused-light-1280` | the title renamed where it stands (the bar and the sidebar take the node's answer at once); an empty title refused in the bar | the page's `session-title.tsx` |
+| `47-agent-log-folded-full-dark-1280`, `48-agent-log-opened-full-dark-1280`, `49-agent-log-hidden-collapsed-dark-1280` | a Claude Code session's start-up log (the adapter's `[session/create] …` lines): one quiet row "Agent log · 12 lines" at the "Full" display, opening to the lines in a text box; nothing at all while tool calls are collapsed | Paseo and GOAT never show an adapter's log; the page draws every line raw (a defect, below) |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -76,6 +78,9 @@ Paseo screen it follows.
   a grammar feature the kit does not build).
 - **Tables**: a table's outer cells keep their inset; GOAT's sit flush
   with the prose.
+- **The title's rename**: no "Rename" tooltip on the title (the kit has
+  no tooltip yet), and the keys do not go back to the title once the
+  field leaves (the page returns focus to it, as a dialog to its opener).
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.
@@ -90,7 +95,20 @@ Debug builds on this machine (dev-host, ten workers sharing it):
   index), later ones a median of 15.5 ms.
 - Scrolling: `VESSEL_APP_SCROLL_BENCH=<entries>` scrolls the timeline by
   itself, 40 pixels a frame for 600 frames, and logs the median, p95 and
-  longest frame. Not run yet.
+  longest frame. On 2026-11-13, debug build, Xvfb with Mesa's software
+  Vulkan (lavapipe) at 1280x800, load average about 8:
+
+  | Session | Entries (rows) | Median | p95 | Longest |
+  | --- | --- | --- | --- | --- |
+  | `entries 20000` | 20,007 (13,341) | 63.9 ms | 79.9 ms | 152.8 ms |
+  | `entries 40` | 47 (34) | 64.0 ms | 79.6 ms | 208.1 ms |
+
+  The frame costs the same at 47 entries as at 20,007: the length of the
+  conversation adds nothing measurable, and the 64 ms is the software
+  renderer's and the debug build's floor on this machine, not the list's.
+  A frame time to hold the app to needs a release build on a real GPU
+  (the release track's machines); this measurement only shows that the
+  long list does not add to it.
 
 ## Gates
 
@@ -120,6 +138,18 @@ only.
   (`field::apply_tokens` sets the link's).
 - A command's output was cut at 240 pixels and could not scroll; a diff
   ran past the window's edge. Both are now in `output`'s box.
+- A real Claude Code session opened with a dozen raw lines of its
+  adapter's start-up log (`[session/create] sessionId=… phase=settings
+  …`, the owner on build 0.0.0.0.7): the node keeps an adapter's error
+  output as `HarnessLog` records, and each was drawn as a line of the
+  conversation. The page has the same defect: it draws every log line
+  raw at both display settings (`timeline-item.tsx`, `case "log"`). In
+  the app a run of them is now one folded row at "Full" and nothing
+  while tool calls are collapsed (`view::timeline::logs`); the fake
+  agent writes the same start-up log (`FAKE_ACP_STARTUP_LOG`, on for the
+  fleet's Claude Code) and the fleet checks its ten lines come before the
+  first prompt. The fakes had never written such lines, which is why the
+  real shapes missed it.
 - Opening a run of tool calls reset the list and threw the view to the
   session's start; it now splices the run's rows where they are.
 - A permission request with a long command widened the whole main area
@@ -131,11 +161,10 @@ only.
 
 ## Still to do
 
-The title's rename in place, the branch chip, find's bar, the outline
+The branch chip, find's bar, the outline
 rail, read marks drawn, the ended banner, the context ring, the
 inspector's Summary, the terminal view (§7), stream banners; copying a
 message and a conversation (a tool's text and a code block have their
-copy button); a screen-reader buffer; the in-app scroll bench run on
-20,000 entries;
+copy button); a screen-reader buffer;
 then rewind, fork, cross-session search, export and import, written
 down.

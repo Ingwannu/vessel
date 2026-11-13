@@ -6,9 +6,14 @@
 //! itself, once the run is opened). The window counts rows; find and the
 //! outline name entries; `row_index` turns an entry into the row that
 //! shows it (a folded member's is its run's lead).
+//!
+//! An agent's log lines (`logs`) are never rows of their own: a run of
+//! them is one row at its first line while tool calls are not collapsed,
+//! and none at all while they are.
 
 use std::collections::HashSet;
 
+use super::logs::Logs;
 use super::runs::Folds;
 
 /// The entries drawn as the window's rows, by entry index.
@@ -22,18 +27,27 @@ pub enum Rows {
 
 impl Rows {
     /// The rows of `count` entries folded by `folds` (`None`: not
-    /// collapsing), runs whose lead is in `open` shown whole.
+    /// collapsing), runs whose lead is in `open` shown whole; `logs`'
+    /// runs one row each when not collapsing, none when collapsing.
     #[must_use]
-    pub fn of(count: usize, folds: Option<&Folds>, open: &HashSet<usize>) -> Self {
+    pub fn of(count: usize, folds: Option<&Folds>, logs: &Logs, open: &HashSet<usize>) -> Self {
         let Some(folds) = folds else {
-            return Self::All(count);
+            if logs.is_empty() {
+                return Self::All(count);
+            }
+            return Self::Some(
+                (0..count)
+                    .filter(|index| logs.run_of(*index).is_none_or(|run| run.lead == *index))
+                    .collect(),
+            );
         };
         Self::Some(
             (0..count)
                 .filter(|index| {
-                    folds
-                        .run_of(*index)
-                        .is_none_or(|run| run.lead == *index || open.contains(&run.lead))
+                    logs.run_of(*index).is_none()
+                        && folds
+                            .run_of(*index)
+                            .is_none_or(|run| run.lead == *index || open.contains(&run.lead))
                 })
                 .collect(),
         )
@@ -64,13 +78,18 @@ impl Rows {
     }
 
     /// Which row shows entry `index`: its own, or for an entry folded
-    /// away, its run's lead's; `None` when it is not in the log.
+    /// away, its run's lead's (a tool run's or a log run's); `None` when
+    /// it is not in the log or not shown at all (a log line while tool
+    /// calls are collapsed).
     #[must_use]
-    pub fn row_index(&self, index: usize, folds: Option<&Folds>) -> Option<usize> {
+    pub fn row_index(&self, index: usize, folds: Option<&Folds>, logs: &Logs) -> Option<usize> {
         match self {
             Self::All(count) => (index < *count).then_some(index),
             Self::Some(rows) => rows.binary_search(&index).ok().or_else(|| {
-                let lead = folds?.run_of(index)?.lead;
+                let lead = folds
+                    .and_then(|folds| folds.run_of(index))
+                    .map(|run| run.lead)
+                    .or_else(|| logs.run_of(index).map(|run| run.lead))?;
                 rows.binary_search(&lead).ok()
             }),
         }

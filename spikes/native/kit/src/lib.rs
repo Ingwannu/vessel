@@ -74,9 +74,9 @@ pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
         AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity, Hsla,
-        ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point, SharedString,
-        Stateful, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
-        uniform_list,
+        KeyDownEvent, ListAlignment, ListState, MouseButton, MouseDownEvent, Pixels, Point,
+        SharedString, Stateful, Subscription, WeakEntity, Window, canvas, div, list, point, px,
+        relative, rgb, rgba, svg, uniform_list,
     };
 }
 

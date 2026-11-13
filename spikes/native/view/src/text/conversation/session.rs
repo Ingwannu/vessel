@@ -105,6 +105,12 @@ impl ConversationWords {
         lines
     }
 
+    /// The title's field, while it is renamed in place (its placeholder).
+    #[must_use]
+    pub const fn title_field(&self) -> &'static str {
+        self.either("Title", "제목")
+    }
+
     /// What an untitled session with no folder is called.
     #[must_use]
     pub const fn untitled(&self) -> &'static str {

@@ -12,8 +12,12 @@
 //! Korean. A refusal fails the command and the turn still ends.
 //!
 //! The numbers a check counts on are constants here ([`OUTPUT_LINES`],
-//! [`WIDE`]), so a fleet that makes this session can say it still holds
-//! them.
+//! [`WIDE`], [`STARTUP_LINES`]), so a fleet that makes this session can
+//! say it still holds them.
+//!
+//! The start-up log a real adapter writes before any prompt
+//! ([`startup_log`]) is a shape too, but of the session, not of a turn:
+//! `session/new` writes it when `FAKE_ACP_STARTUP_LOG` is set.
 
 use agent_client_protocol::Error;
 use agent_client_protocol::v1::schema::{
@@ -28,6 +32,36 @@ use super::text;
 
 /// Lines of the command's output.
 pub(crate) const OUTPUT_LINES: usize = 2400;
+
+/// Lines of the start-up log ([`startup_log`]).
+pub(crate) const STARTUP_LINES: usize = 10;
+
+/// What a real Claude Code's ACP adapter writes to its error output while
+/// it creates session `session`, before the first prompt (the owner's
+/// session on build 0.0.0.0.7, its timings kept): the node keeps each
+/// line as a `HarnessLog` record, so a conversation opens with them.
+/// `session/new` writes these when `FAKE_ACP_STARTUP_LOG` is set.
+pub(crate) fn startup_log(session: &str) -> [String; STARTUP_LINES] {
+    let create = |phase: &str, took: u32, total: u32| {
+        format!(
+            "[session/create] sessionId={session} phase={phase} durationMs={took} totalMs={total}"
+        )
+    };
+    [
+        create("settings", 40, 41),
+        format!("[session/query] sessionId={session} resume=none apiType=native baseUrl=native"),
+        create("prepare-query", 20, 61),
+        create("sdk-initialize", 1179, 1240),
+        format!(
+            "[session/models] sessionId={session} phase=set-model durationMs=73 model=opus outcome=success"
+        ),
+        create("models", 81, 1321),
+        create("modes", 0, 1321),
+        create("agents", 0, 1321),
+        create("ultracode", 131, 1452),
+        create("register", 7, 1459),
+    ]
+}
 
 /// The width of the widest lines (the code block's, the diff's), in
 /// characters.
@@ -248,6 +282,18 @@ mod tests {
                 .chars()
                 .any(|c| ('\u{ac00}'..='\u{d7a3}').contains(&c))
         );
+    }
+
+    #[test]
+    fn the_startup_log_has_its_lines_and_names_the_session() {
+        let lines = super::startup_log("fake-session-1");
+        assert_eq!(lines.len(), super::STARTUP_LINES);
+        assert!(
+            lines
+                .iter()
+                .all(|line| line.contains("sessionId=fake-session-1"))
+        );
+        assert!(lines.iter().all(|line| line.starts_with("[session/")));
     }
 
     #[test]

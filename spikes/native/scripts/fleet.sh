@@ -34,10 +34,11 @@ mkdir -p "$root/bin" "$root/config" "$root/work"
 for name in claude codex; do ln -sf "$target/fake-tui" "$root/bin/$name"; done
 # Claude Code's adapter offers what the real one sends (many models,
 # subagents with descriptions of several lines, long and Korean names, an
-# on/off option with no name: FAKE_ACP_OPTIONS=real); Codex's the fake's
-# small default set.
+# on/off option with no name: FAKE_ACP_OPTIONS=real) and writes the real
+# one's start-up log before the first prompt (`[session/create] …`,
+# FAKE_ACP_STARTUP_LOG); Codex's the fake's small default set.
 rm -f "$root/bin/claude-agent-acp"
-printf '#!/bin/sh\nFAKE_ACP_OPTIONS=real exec "%s" "$@"\n' "$target/fake-acp" > "$root/bin/claude-agent-acp"
+printf '#!/bin/sh\nFAKE_ACP_OPTIONS=real FAKE_ACP_STARTUP_LOG=1 exec "%s" "$@"\n' "$target/fake-acp" > "$root/bin/claude-agent-acp"
 chmod 755 "$root/bin/claude-agent-acp"
 ln -sf "$target/fake-acp" "$root/bin/codex-acp"
 base_path="$root/bin:/usr/local/bin:/usr/bin:/bin"
@@ -112,6 +113,11 @@ wait_for() { # node id text
 check_shapes() { # node id answered|asking
   local log problems=()
   log=$(log_of "$1" "$2")
+  # The adapter's start-up log: its ten lines, all before the first
+  # prompt (a real Claude Code's; FAKE_ACP_STARTUP_LOG above).
+  local startup
+  startup=$(sed -n '/^> shapes$/q; p' <<<"$log" | grep -c '^\[harness\] \[session/' || true)
+  [ "$startup" -eq 10 ] || problems+=("the start-up log's ten lines before the prompt (got: $startup)")
   # The entries: the thought, the message's table (header, rule, four
   # rows), three tool calls, the permission with four answers.
   grep -q '^(thinking) The failure is in the timeline' <<<"$log" || problems+=("the thought")
