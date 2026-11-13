@@ -300,7 +300,61 @@ feed refused; a missing feed retried), 6 of the feed tool (arguments,
 key file modes, refusal to replace a key, publish then check, a changed
 artifact caught, signed sums).
 
+### End to end, on Linux, with the real app
+
+2026-11-13, a feed on a loopback static server (`python3 -m http.server`):
+
+1. `build.sh 0.0.0.0.91 linux-x64 --publish` with the feed's address and
+   the release key's public half compiled in: a 52 MB `vessel-app`, the
+   tarball, signed sums, and `preview.json` written and then read back by
+   `vessel-app-feed check` (`linux-x86_64 executable ... ok`). The build
+   took 33 min (fat LTO on a machine with a load average of 30 to 46).
+2. A label `0.0.0.0.92` published by `vessel-app-feed publish`: the
+   0.0.0.0.91 executable with 16 bytes appended (another file that still
+   runs), with notes.
+3. The 0.0.0.0.91 executable copied into a scratch directory and started
+   under a virtual display with an empty configuration. The server's log:
+
+   ```
+   "GET /preview.json HTTP/1.1" 200 -
+   "GET /0.0.0.0.92/vessel-0.0.0.0.92-linux-x64 HTTP/1.1" 200 -
+   ```
+
+   The app's: `an update is installed and runs from the next start`. The
+   file on disk was then byte for byte 0.0.0.0.92's, mode 0755, with no
+   staging file left beside it, and the window's foot read "Vessel
+   0.0.0.0.92 is installed and opens the next time Vessel starts." while
+   the sidebar's foot still said 0.0.0.0.91 (the running build).
+
+### The Windows swap, under wine
+
+The updater's tests built for `x86_64-pc-windows-msvc` (`cargo xwin test
+--no-run`) and run under wine 9.0: the 22 unit tests pass, and the five
+end-to-end ones (loopback HTTP, a real download and swap) pass once the
+first one expects what Windows does: the old executable is renamed to
+`vessel-app.old-0.0.0.0.1` beside the new one (Windows will not delete
+an executable file in use), to be removed at the next start; on Linux
+the old file is simply replaced. Wine emulates Windows' file semantics
+and does not lock a running executable as Windows does, so this shows
+the Windows code path runs, not that Windows lets it rename the running
+`Vessel.exe` (Windows does allow renaming a running image; the first
+real-Windows update is the proof).
+
 ### What the app calls
+
+Wired in by this track (coordinator, 2026-11-13) as one module,
+`spikes/native/app/src/update.rs`, and two lines in `main.rs`: when the
+build has a feed and a key, a one-thread tokio runtime of its own runs
+the updater and a GPUI task follows its state; once a build is
+installed the frame's foot says it opens at the next start. Without the
+settings nothing starts. There is no "restart now" control yet (the
+shell's screens are the desktop track's); `Updater::restart` is there
+for it. No feed address exists yet (the dist directory is behind a login
+the app cannot pass; where a public feed lives is the owner's decision),
+so every build so far is built without one and its README says it does
+not update itself.
+
+The lines, for reference:
 
 ```rust
 let updater = match vessel_app_updater::settings_from_build()? {
