@@ -8129,3 +8129,123 @@ from there); `next` with fewer hits than asked means "the node looked
 this far" (`reached`), not "no more"; a machine older than 12 answers
 "needs protocol 12", so search is offered per machine; `unavailable`
 means ask again.
+
+### Tests that fail only under load (the coordinator's condition, 2026-11-13)
+
+Slice 1's whole-workspace run (load average 20 to 30) failed seven tests
+that pass alone. Neither is this track's code; their owners make them
+load-proof. What waits, and the fix:
+
+- **`forge_rules::a_forge_that_is_down_holds_nothing_and_an_end_clears_it`**
+  (`crates/vessel-node/tests/e2e/forge_rules.rs`, the first `refresh`).
+  The test starts the session, then puts the pull request in the fake
+  forge, then asks `pr.get { refresh: true }`. The node's watcher looks
+  at a new session's branch on its own; when that look lands before the
+  `forge.put` (more likely the busier the machine), it finds nothing, and
+  its `refreshed` mark makes the test's refresh "recent"
+  (`forge/watcher.rs`, `REFRESH_EVERY` = 10 s), so the reply is the empty
+  view instead of a new look. Fix: put the pull request in the fake forge
+  before `running_in` starts the session (the branch is known from the
+  worktree already), so the watcher's first look finds it whichever comes
+  first.
+- **Six of `vessel-web`'s `ui/prefs` tests** (4401 "the UI was restarted
+  or authentication failed"). `tests/ui/support.rs` starts every test UI
+  with `hello_deadline` = 300 ms (`Ui::configured`); the bridge closes a
+  socket whose challenge and hello do not finish within it
+  (`socket.rs`). Under load the test tab's answer takes longer than 300
+  ms. Fix: the support's default to the product's 5 s (or the 30 s
+  `server.rs`'s tests already use), and the one test that wants the
+  deadline to pass (`server.rs`, "Nothing at all, past the deadline")
+  sets 300 ms itself.
+
+## Track A2: contract, 2. Park an idle agent and wake it on the next prompt
+
+**What the references do.**
+
+| | agent-orchestrator | Paseo | GOAT |
+| --- | --- | --- | --- |
+| After | 10 min without activity, swept every 30 s | 60 min, swept every 60 s | 30 min, at most 4 h held by background work |
+| On by default | off (a developer setting, off at each start) | on (`agents.idleRuntimeCleanup`) | on, no setting |
+| Not while | a turn runs or is being dispatched, anything is queued, an interaction waits, a person views the chat (a 30 s lease), the agent reports background work (a private ACP extension `_ao/session/can_hibernate`, which the stock Claude adapter lacks, so Claude never parks) | the agent is busy, a permission waits, a delivery is queued, children work, the agent vetoes (`canStopRuntime`) | a turn is busy, the adapter reports live work |
+| Stopped how | the process ended, without ACP `session/close` (which may delete what resume needs) | `session.close()` | the driver released |
+| Woken by | a send, a person opening the chat, a provider switch; reads do not wake | a prompt or opening the agent | the next turn |
+| Woken with | `session/load` (or `session/resume`) on the same conversation, 60 s | the provider's own resume | `resumeThread` |
+| Shown | `hibernated`; the composer still sends | `closed` | `stopped` |
+| A failed wake | queued turns fail, "could not wake the agent" | stays closed, retryable | – |
+
+Vessel parks like Paseo (on by default, an hour) and stops like
+agent-orchestrator (the process ends, no `session/close`), and offers it
+only where the agent can resume: an agent whose handshake says
+`loadSession` (`abilities.resume`).
+
+**What Vessel can and cannot know.** ACP has no call that asks an agent
+whether it has background work (agent-orchestrator's is its own
+extension; neither installed adapter has it). Vessel kills the agent's
+process group when it parks it, so a shell the agent left running in the
+background goes with it. That is why the default wait is long (Paseo's
+hour) and why a person can turn it off for a node.
+
+**When a session is parked.** A structured session that is live and
+ready, whose agent can resume and has a harness session id, when for
+`park_after` nothing happened in it: no turn runs, no permission or
+question waits, the queue is empty or held, no prompt, option change or
+agent output arrived, and no shell beside it (protocol 11's terminals,
+`session` scope) is running. Reads and subscriptions do not count (an
+agent's `wait_turn` or a page left open would otherwise keep every
+session awake). Each session's actor keeps its own deadline, re-armed on
+each event; there is no sweep.
+
+**Parking.** The actor stops the agent as a move to another profile
+does (`SIGTERM`, then `SIGKILL` after 5 s; no `session/close`), keeps its
+last options, commands, usage and abilities, and publishes `status:
+parked { reason }`. The session stays live: listed, on the board as an
+idle running session, its log readable, its queue kept.
+
+**Waking.** Whatever needs the agent wakes it first: a prompt (any
+delivery, `session.send`'s too), a queue change that starts a prompt
+(`send_now`, `resume` with entries), `session.set_option`, and the new
+`session.wake`. The actor publishes `status: starting`, starts the agent
+under the session's current profile with `session/load` (its replay
+dropped, as for a move), and once it is ready publishes `status: running`
+and goes on with what woke it. A `session.move_profile` on a parked
+session moves it (it starts under the new profile). `session.kill` and
+archiving end a parked session without starting it. A wake that fails
+(the agent does not start or `session/load` fails, bounded by the
+handshake timeout) leaves the session parked with `reason: wake_failed {
+message }`, and the call that woke it answers `spawn_failed`; the next
+one tries again.
+
+**Types and calls** (protocol 12):
+
+- `SessionStatus::Parked { reason: ParkReason }`, live. `ParkReason`
+  (tagged `reason`): `idle` (after `park_after`), `asked`
+  (`session.park`), `wake_failed { message }`, `unknown`.
+- `session.park { session }` (operate, ownership-checked): park now.
+  `conflict` when it is not idle (a turn runs, something waits, the queue
+  moves) or not running; `unsupported` for a terminal session or an agent
+  that cannot resume. Already parked: answered with the session.
+- `session.wake { session }` (operate, ownership-checked): wake now,
+  answered once the agent is ready. Not parked: answered at once.
+  `spawn_failed` as above.
+- Both answer `SessionInfo`; forwardable; refused on a connection older
+  than 12.
+- The node's setting: `vesseld --park-after <minutes>` (default 60; 0
+  never parks), in the node's `Config`.
+
+**Older peers.** A client of protocol 2 to 11 gets `Running` where the
+node has `Parked` (in `SessionInfo` and in a status record's stand-in);
+its prompt wakes the session as any prompt does. An older node never
+parks; a client asks it `session.park`/`wake` only at 12 (`Call::since`).
+
+**Bounds.** A wake waits for the handshake (its timeout); a stop waits 5
+s before `SIGKILL`; a parked session holds no process, only its actor
+(its last options, commands and usage in memory). A node restart
+interrupts parked sessions as it does running ones (`session.resume`
+starts them again); keeping them parked across a restart would need the
+node to rebuild their actors at start, which no session does today.
+
+**CLI and agents.** `vessel session park ID`, `vessel session wake ID`;
+`vessel sessions` shows `parked`. The agent tools: none new (an agent's
+`send_input` wakes a session as a person's prompt does).
+
+ADR 0038 records the choice.
