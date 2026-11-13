@@ -151,10 +151,13 @@ pub enum Glyph {
     File,
     /// The code panel's toggle (Paseo's `PanelRight`).
     PanelRight,
+    /// The sidebar's toggle in the title bar on a wide window (Paseo's
+    /// `PanelLeft`).
+    PanelLeft,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 61] = [
+const ALL: [Glyph; 62] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -216,6 +219,7 @@ const ALL: [Glyph; 61] = [
     Glyph::Remove,
     Glyph::File,
     Glyph::PanelRight,
+    Glyph::PanelLeft,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -276,6 +280,7 @@ impl Glyph {
             Self::Branch => "kit/branch.svg",
             Self::File => "kit/file.svg",
             Self::PanelRight => "kit/panel-right.svg",
+            Self::PanelLeft => "kit/panel-left.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
@@ -430,6 +435,9 @@ impl Glyph {
             ),
             Self::PanelRight => line_glyph!(
                 r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>"#
+            ),
+            Self::PanelLeft => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>"#
             ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
