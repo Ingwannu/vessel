@@ -8,8 +8,9 @@
 //! - Purpose: see what an agent changed and read the code it works on
 //!   beside the conversation, without leaving the session.
 //! - Constraint: the session screen is the lead's and its bar track C's:
-//!   the panel is drawn through two slots (`code_panel` beside the
-//!   conversation column, `code_toggle` in the bar's actions). The
+//!   the panel is drawn through two slots (`code_beside`, the session
+//!   screen with the panel beside its conversation column, and
+//!   `code_toggle` in the bar's actions). The
 //!   session's root is not on its card: the panel reads the session
 //!   (`session.get`) when it opens on one.
 //! - Alternatives: diffs opened in a pane of their own (Paseo's desktop
@@ -44,7 +45,7 @@ use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
-pub(crate) use frame::{code_panel, code_toggle};
+pub(crate) use frame::{code_beside, code_toggle};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;

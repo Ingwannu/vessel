@@ -112,8 +112,12 @@ start to `start_in_place` (a start without a project is the lead's
 (`link/src/workspace/start.rs`) runs a project's folder as it is
 (`SessionPlace::Project`) as well as a new worktree.
 
-The code panel's seams: `code_panel(shell, tokens, window, cx)` beside
-the conversation column in the lead's `session.rs`, `code_toggle(shell,
+The code panel's seams: `code_beside(shell, screen, tokens, window, cx)`
+in the lead's `session.rs` (the session screen comes back with the panel
+beside its conversation column when the panel is out; the row is this
+track's so a drag at the panel's edge measures the row and leaves the
+conversation 480, and a narrower window takes the panel's width first,
+down to 320), `code_toggle(shell,
 tokens, narrow, cx)` in track C's bar; track G1's git actions at the head
 of the Changes tab through `code::changes::git_head(shell, machine, root,
 tokens, window, cx) -> Option<AnyElement>` (its body is G1's one call).
@@ -144,7 +148,7 @@ shown, a click on a line's number chooses it, Shift-click extends the
 choice, and "Add lines 12–20 to chat" puts agent-orchestrator's
 reference (the page's `reference.ts`) at the end of the session's
 draft. The panel is resized by dragging its left edge (320 at least,
-the conversation keeps 480).
+the conversation keeps 480 of the row, whatever the sidebar's width).
 
 ### Checked against the fake fleet
 
