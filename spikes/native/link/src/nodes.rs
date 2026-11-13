@@ -264,10 +264,10 @@ pub fn default_name(taken: &[String]) -> String {
 /// node to the book as `name` (as `vessel nodes add NAME --pair` does: the
 /// credential first, then the entry).
 ///
-/// `prefer_node_name`: the person kept the name the app filled in, which
-/// was only a placeholder (a link carries no name; the node says its own
-/// only once paired), so the node's own name is used when it makes a
-/// valid, free book name.
+/// `prefer_node_name`: the person left the name empty (a link carries no
+/// name; the node says its own only once paired), so the node's own name
+/// is used when it makes a valid, free book name, else `name` (a free name
+/// the app chose).
 pub(crate) async fn pair(
     offer: &Offer,
     name: &str,

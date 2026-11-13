@@ -233,8 +233,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
-        /// The name is the one the app filled in: use the node's own name
-        /// instead when it makes a free book name.
+        /// The person left the name empty (`name` is then a free name the
+        /// app chose): use the node's own name instead when it makes a free
+        /// book name.
         prefer_node_name: bool,
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
