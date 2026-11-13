@@ -7635,3 +7635,199 @@ Rust tests ran):
   vessel-node -p vessel-testkit --bins`, `npm run e2e` (56 passed),
   `npm run screens` (8 passed, 200 captures, looked at), and
   `VESSEL_CARGO_PROFILE=release npm run perf` (`docs/PERFORMANCE.md`).
+
+## The first chat (page), 2026-11-13
+
+The owner, on starting a chat: "type and send, and it should just work,
+as in GOAT or the orchestrator; now something is off". Measured against
+the written comparison of the three (GOAT, agent-orchestrator and the
+page, read from their code the same day), whose thirteen differences
+are taken most harmful first. "Like X" is reproduced closely; each
+deliberate difference is named. The native app (ADR 0036) must end with
+the same flow: the decisions are in `web/src/data` with their tests,
+which are the fixtures ADR 0036 names, and the list at the end of this
+section is what the app's new-chat screen does the same way.
+
+### 1. Send no longer waits on the agent's start
+
+Before: Send created the session, then sent the prompt and waited for
+the node's answer, which comes once the agent has finished starting (its
+handshake, up to a minute); only then did the page open the session.
+Nothing showed the prompt meanwhile but a busy button.
+
+Now, as agent-orchestrator (`NewChatPage.openSession`, its local echo):
+the session's page opens in place of the new-session page as soon as the
+node has created the session (`replace`, and not for someone who has
+left the page meanwhile); the prompt is sent without waiting on it
+(`data/openings.ts`) and drawn at the end of the session's log, marked
+"sending", from the first frame, until the log has the prompt; the
+start shows there as the log tells it (starting, the agent's own lines,
+ready); a message typed meanwhile is queued behind the first ("Queue a
+follow-up while Claude Code gets ready", agent-orchestrator's words).
+Files for the first message keep the path they had (the session's
+composer sends them with the prompt once the agent can take them).
+
+Deliberate differences: GOAT reserves the thread's id before Send and
+creates the thread and its first turn in one call; agent-orchestrator's
+daemon takes the brief with the create. The node takes neither (below),
+so the page makes two calls and shows the first prompt from its own
+memory: a reload while it is on its way loses the echo, not the prompt.
+
+For the node (not changed here, the wire is the node's): `session.create`
+taking the first prompt (`SessionSpec.prompt: Vec<ContentBlock>`,
+delivered as soon as the agent is ready and logged at once as the
+session's first record), so every device shows it from the start and a
+reload keeps it. (The title at creation needs nothing of the node: the
+spec's `title` already exists, and the page now sends it, 8 below.)
+
+Timed against the fake agent made to take four seconds to start ("Slow
+starter", `fake-acp --slow-start 4000`, added on laptop by the e2e
+fleet), from Send's click to the prompt in the chat
+(`e2e/new-chat.spec.ts`): before, 4,480 ms (the page stayed on
+the new-session page, nothing shown but the busy button, capture n0);
+after, 195 ms (168 and 170 in two later runs), the agent's answer at
+4,120 ms. Meanwhile an empty box offers no Stop (`6f7281a`). Captures
+n0 to n2, before and after, taken by the test with
+`VESSEL_SCREEN_DIR`, looked at: half a second after Send, before, the
+new-session page with nothing but the busy button; after, the chat with
+the prompt marked "sending" and the agent starting above it).
+
+Commit: `828292d`; its fake agent's argument failed the test kit's
+clippy (index arithmetic), fixed in `0f65110`.
+
+### 2. Opening the page leads to a composer, in the project worked in
+
+Before: the index was the board; every New and `N` opened the
+new-session page at "No project", in the machine's home folder (the
+sidebar's "+" on a project's row, held in memory, was the only way to
+start in a project).
+
+Now, as GOAT (`IndexDraftLanding`, "a draft in the most recently updated
+project"): the index opens the new-session page once a machine is
+connected (the welcome while none is, as before), the cursor in the box;
+the place starts in the project of the machine's most recently active
+session that is still one of its projects (`data/workspace/last-project.ts`),
+in its folder ("Local"); New or `N` from a session starts in that
+session's project. The board stays one click away (the sidebar's
+Board).
+
+Deliberate difference: GOAT and agent-orchestrator remember the last
+project on the device or server; the page reads it from the node's
+sessions, the same on every device, because the bridge's preferences
+keep a machine's last agent and choices but not its place (adding one
+is a change to the bridge's keeping, outside the page: a
+`default_place { node, project, mode }` change kept beside
+`default_agent`).
+
+### 3. The remembered model, effort and mode are always applied
+
+Before: the choices were sent only when the agent had already said what
+it offers (`specOf` with options `ready`), so a Send during "Loading
+models…" started on the agent's own defaults; the start then kept the
+empty list, replacing what was remembered; and a choice equal to the
+agent's default today was neither sent nor kept.
+
+Now, as agent-orchestrator (a send while the page loads waits up to
+10 s): Send while the agent's options are read waits for them, at most
+10 s, then starts with the remembered and chosen choices applied; what
+is kept is every choice the agent offers, a value it already has
+included (`keptChoices`); a start that could not check them (the agent
+did not answer in time, or failed to) keeps the remembered ones as they
+were, never fewer. Commit: `0d16b53`; `new-chat-choices.spec.ts` (a
+Send made as soon as the page opens starts with build-server's kept
+effort; one put back to the default is kept). With the fake agents the
+options come in a fraction of a second, so the test does not always
+catch Send inside the wait; the wait itself is `use-options-wait.ts`.
+
+### 4. A first prompt the machine refuses is not lost
+
+Before: a toast ("The session started; the prompt did not: …"), the
+new-session page's draft cleared, and the page went to the session: the
+text was gone.
+
+Now, as GOAT and agent-orchestrator (the brief returned to the composer
+with the reason): the refused prompt is put in the session's box (before
+anything typed there meanwhile), the echo goes, and the box says why
+("The first message was not sent: …") until the next message goes.
+Commit: `c7e3504`; `new-chat-refused.spec.ts` answers the first prompt
+with a refusal in the bridge's place.
+
+### The rest of the comparison
+
+- **8. The title, at once**: taken (`bb74b40`). The spec carries the
+  title from the prompt's first line by the node's own rule
+  (`titleFromPrompt`), which the node keeps; the sidebar and the board
+  name the chat from its creation. An AI title is not made (neither the
+  node nor the page has one).
+- **5. A new-chat shortcut that works while typing** (GOAT's Mod+Shift+O,
+  Mod+N in the app): not taken in this pass; the shortcut registry's
+  defaults and their Settings page change with it, and the app's keys
+  are being made in the same registry (ADR 0036); next with the app.
+- **6. A scratch folder for "No project"**: the node's (it would make a
+  per-session folder for a session with no `cwd`); not changed here.
+- **7. The worktree made on the session's page**: needs the session to
+  exist before its worktree, which the node does not do (a session is
+  created in a place that exists); the approval of unapproved commands
+  would still be asked first. Not taken.
+- **9. Model, effort and permission shown before the agent answers**:
+  the controls are the agent's own options, known only once it answers;
+  drawing the kept ones meanwhile needs their names, which the bridge
+  does not keep (only ids and values). Not taken; Send's wait (3) covers
+  the harm of starting without them.
+- **10. `/` and `@` on the new-session page**: `@` needs a root before
+  the session exists (the chosen project's folder) and `/` the agent's
+  commands, which only a session reports. Not taken in this pass.
+- **11. Mod+Enter sends in the background and opens a fresh draft**: now
+  possible after 1; not taken in this pass (it changes what Mod+Enter
+  does on the new-session page, a key the person may have rebound).
+- **12. The follow-up default**: kept (queue); agent-orchestrator agrees,
+  GOAT steers. A choice of the person's in Settings › General already.
+- **13. Smaller**: the machine kept in the address (the page already
+  takes `?machine=`); one draft for the new-session page (kept, the
+  bridge keeps it); the agent's own permission mode (kept: the agent's
+  default is the person's to change, GOAT's full access is not assumed).
+
+### Found on the preview, fixed
+
+Opened by its address, the new-session page said "This machine has no
+agent installed." for about a second, until the machine's agents were
+listed: an agent not found was taken for one missing. It says "Loading
+the machine's agents…" until the list has come, and that there is none
+only once the list holds none (`cf4ad9c`; `new-session-loading.spec.ts`
+holds the bridge's answers to the list back for three seconds).
+
+### The owner's mark
+
+The sidebar's head and the welcome draw the owner's mark
+(`docs/design/brand/`, the corrected file) in the text's colour (18px
+beside "Vessel", 28px on the welcome), and the page's icon is the mark
+in white on a rounded tile of the brand colour, as the brand's README
+asks of the interface and of icons. The build reads the brand's file
+(`web/vite-mark.ts`: the paths as data for React, the icon as an asset
+the index links), so no generated file is kept and no copy of the paths
+can drift (`e1a7eca`; `brand.spec.ts`). The look of the page is
+otherwise unchanged in this pass.
+
+### What the native app does the same way (ADR 0036)
+
+The app's new-chat screen ends with the same flow; the page's tests in
+`web/src/data` are the fixtures:
+
+- Send creates the session and shows it at once, in place of the
+  new-chat screen, unless the person has left it; the first prompt is
+  sent without waiting on it and drawn at the end of the session's log,
+  marked "sending", until the log has a prompt or the machine refused it
+  (`openings.test.ts`); a message typed meanwhile is queued, and the box
+  says "Queue a follow-up while <agent> gets ready"
+  (`composer-words.test.ts`).
+- A refused first prompt goes back into the session's box, before what
+  was typed there, and the box says "The first message was not sent:
+  <why>" until the next message goes (`openings.test.ts`).
+- The first screen with a machine connected is the new-chat screen; its
+  place starts in the project of the machine's most recently active
+  session still among its projects, else none (`last-project.test.ts`);
+  New from a session starts in its project.
+- Send while the agent's options are read waits for them, at most 10 s;
+  what is kept for the machine is every choice the agent offers, or the
+  remembered ones unchanged when they could not be checked
+  (`picks.test.ts`).
