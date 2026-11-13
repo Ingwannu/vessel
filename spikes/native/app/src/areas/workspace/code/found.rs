@@ -28,7 +28,10 @@ pub(super) fn results(
     Some(match &search.results {
         Results::Idle => return None,
         Results::Loading => note(labels.loading, tokens).into_any_element(),
-        Results::Failed(why) => note(why.clone(), tokens).into_any_element(),
+        Results::Failed(why) => {
+            super::viewer::failed(labels.search_failed, why, 16.0, tokens).into_any_element()
+        }
+        Results::Refused => note(labels.search_refused, tokens).into_any_element(),
         Results::Found(found) if found.matches.is_empty() => {
             note(labels.nothing_found, tokens).into_any_element()
         }
@@ -65,7 +68,9 @@ fn result_row(
             Some(hit) => (hit.path.clone(), Some(hit.line), Some(hit.text.clone())),
             None => return div().into_any_element(),
         },
-        Results::Idle | Results::Loading | Results::Failed(_) => return div().into_any_element(),
+        Results::Idle | Results::Loading | Results::Failed(_) | Results::Refused => {
+            return div().into_any_element();
+        }
     };
     let (folder, name) = split_path(path.as_str());
     let head = div()

@@ -46,7 +46,10 @@ pub(super) enum Results {
     Loading,
     Found(FoundFiles),
     Grepped(GrepResult),
+    /// The machine could not search: its reason.
     Failed(String),
+    /// The query could not be sent as typed.
+    Refused,
 }
 
 /// The search's state.
@@ -80,7 +83,7 @@ impl Search {
         match &self.results {
             Results::Found(found) => found.matches.len(),
             Results::Grepped(grepped) => grepped.matches.len(),
-            Results::Idle | Results::Loading | Results::Failed(_) => 0,
+            Results::Idle | Results::Loading | Results::Failed(_) | Results::Refused => 0,
         }
     }
 }
@@ -116,6 +119,8 @@ impl Shell {
         let ask = match search.mode {
             Mode::Name => {
                 let Ok(query) = text.trim().parse() else {
+                    search.results = Results::Refused;
+                    search.list.reset(0);
                     return;
                 };
                 FileAsk::Find(FindFiles {
@@ -127,6 +132,8 @@ impl Shell {
             }
             Mode::Content => {
                 let Ok(query) = text.parse() else {
+                    search.results = Results::Refused;
+                    search.list.reset(0);
                     return;
                 };
                 FileAsk::Grep(SearchFiles {

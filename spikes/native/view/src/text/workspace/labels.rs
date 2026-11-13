@@ -129,6 +129,10 @@ pub struct Labels {
     pub by_content: &'static str,
     /// The Files tab's search results when nothing matched.
     pub nothing_found: &'static str,
+    /// The Files tab's search results when the machine could not search; its reason is shown under it.
+    pub search_failed: &'static str,
+    /// The Files tab's search results when the query cannot be sent (more than one line, or past the length the machine takes).
+    pub search_refused: &'static str,
 }
 
 /// English (the page's words).
@@ -250,6 +254,8 @@ pub const EN: Labels = Labels {
     by_name: "Name",
     by_content: "Content",
     nothing_found: "Nothing matches",
+    search_failed: "The search could not be run",
+    search_refused: "This search cannot be run as typed: one line, a name of at most 256 characters, a text of at most 1000",
 };
 
 /// Korean.
@@ -371,4 +377,6 @@ pub const KO: Labels = Labels {
     by_name: "이름",
     by_content: "내용",
     nothing_found: "일치하는 것이 없습니다",
+    search_failed: "검색을 실행하지 못했습니다",
+    search_refused: "입력한 그대로는 검색할 수 없습니다. 한 줄로, 이름은 256자, 내용은 1000자까지 입력하세요",
 };
