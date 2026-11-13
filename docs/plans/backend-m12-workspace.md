@@ -144,8 +144,7 @@ listed it).
 - A remote-tracking branch is listed by git's own name (`origin/main`);
   Paseo shows `main` and marks the local row `main (local)`.
 - Pull requests are not in Start from yet (they come with the forge).
-- The start card's running icon is a dot of the building tone (the kit
-  has no spinner yet); setup is one log, not one item per command (the
+- Setup is one log in the start card, not one item per command (the
   node streams it as one).
 - A project row in Settings carries its folder under the name: two
   Vessel projects can share a name (any folder can be one).

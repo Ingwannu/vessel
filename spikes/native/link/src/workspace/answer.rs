@@ -214,8 +214,8 @@ pub enum Answer {
     Session {
         /// Which.
         session: SessionId,
-        /// It.
-        result: Result<SessionInfo, Problem>,
+        /// It (boxed: a session's info is large beside the other answers).
+        result: Result<Box<SessionInfo>, Problem>,
     },
 }
 

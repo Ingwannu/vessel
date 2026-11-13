@@ -28,7 +28,9 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
         }
         Ask::Session(session) => Answer::Session {
             session,
-            result: call(client, vessel_proto::GetSession { session }).await,
+            result: call(client, vessel_proto::GetSession { session })
+                .await
+                .map(Box::new),
         },
     };
     reply.send(answer).await;

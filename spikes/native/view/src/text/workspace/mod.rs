@@ -40,12 +40,12 @@ pub use labels::Labels;
 
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::{FileNote, ScopeKind};
-use crate::workspace::size::size_word;
 use crate::workspace::command_changes::Compared;
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
 use crate::workspace::save::SaveFailure;
+use crate::workspace::size::size_word;
 use crate::workspace::start::Refusal as StartRefusal;
 
 /// A refusal said plainly: what happened, what to do, and what it names.

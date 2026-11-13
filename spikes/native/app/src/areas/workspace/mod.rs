@@ -9,6 +9,7 @@
 //! their words are `Lang::workspace()`'s.
 
 mod approval;
+mod code;
 mod detail;
 mod place;
 mod place_rows;
@@ -28,6 +29,7 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
+pub(crate) use code::{code_panel, code_toggle};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::projects as sidebar_projects;
@@ -47,6 +49,8 @@ pub(crate) struct Workspace {
     pub(crate) start: Option<start_card::Starting>,
     /// Starts so far (each start's key).
     starts: u64,
+    /// The code panel beside a session.
+    pub(crate) code: code::CodePanel,
 }
 
 impl Workspace {
@@ -57,6 +61,7 @@ impl Workspace {
             place: place::DraftPlace::new(window, cx),
             start: None,
             starts: 0,
+            code: code::CodePanel::new(window, cx),
         }
     }
 }
@@ -142,16 +147,17 @@ impl Shell {
             Answer::Branches { root, result } => self.branches_read(machine, &root, result),
             Answer::Start { key, step } => self.start_step(key, step),
             Answer::StartEnded { key, ended } => self.start_ended(key, ended, cx),
-            // The code panel's answers: its screens come in the next
-            // slices; until then nothing asks them.
+            Answer::Session { session, result } => self.code_session_read(session, result),
+            Answer::Changes { ask, result } => self.changes_read(&ask, result),
+            Answer::Diff { ask, result } => self.diff_read(&ask, result),
+            Answer::Listed { ask, result } => self.folder_read(&ask, result),
+            Answer::Read { ask, result } => self.file_read(&ask, result),
+            // Track G1's and the later slices' answers: nothing of this
+            // track asks them yet.
             Answer::Status { .. }
-            | Answer::Changes { .. }
-            | Answer::Diff { .. }
             | Answer::Log { .. }
             | Answer::Stashes { .. }
             | Answer::Git { .. }
-            | Answer::Listed { .. }
-            | Answer::Read { .. }
             | Answer::Saved { .. }
             | Answer::Found { .. }
             | Answer::Grepped { .. }

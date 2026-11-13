@@ -349,7 +349,7 @@ pub(crate) fn render(
             .into_any_element()
     };
     let working = view.conversation.turn_running();
-    div()
+    let screen = div()
         .size_full()
         .flex()
         .flex_col()
@@ -377,7 +377,18 @@ pub(crate) fn render(
                 .children(dock.map(column))
                 .child(composer(shell, tokens, working, window, cx))
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::conversation::overlays(shell, tokens, window, cx));
+    // Track F's slot beside the conversation column: the code panel.
+    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
+        Some(panel) => div()
+            .size_full()
+            .relative()
+            .flex()
+            .flex_row()
+            .child(screen.flex_1().min_w(px(0.0)))
+            .child(panel),
+        None => screen,
+    }
 }
 
 /// Under an ended session's conversation: that sending starts it again;
