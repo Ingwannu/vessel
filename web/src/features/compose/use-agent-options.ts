@@ -18,13 +18,16 @@ import type { HarnessRef } from "../../wire/proto";
 import type { NodeKey } from "../../wire/bridge";
 
 /** The options of `agent` under `profile` on `machine`; `wanted` is false
- * when nothing needs them (a terminal, no agent). */
+ * when nothing needs them (a terminal, no agent). `again` asks once more:
+ * a machine that would not start the agent (its secret set since, its
+ * install ended) is asked again only when the person says so, since an
+ * ask starts the agent there. */
 export function useAgentOptions(
   machine: NodeKey | null,
   agent: HarnessRef | null,
   profile: string,
   wanted: boolean,
-): OptionsState {
+): { state: OptionsState; again: () => void } {
   const fleet = useFleet();
   // Read when an answer arrives, not dependencies: a new object for the
   // same agent (`key` names it) or a label read later asks nothing again.
@@ -35,7 +38,8 @@ export function useAgentOptions(
   useEffect(() => {
     chosen.current = { agent, agents };
   });
-  const key = `${machine ?? ""}\u0000${agent === null ? "" : agentKey(agent)}\u0000${profile}`;
+  const [round, setRound] = useState(0);
+  const key = `${machine ?? ""}\u0000${agent === null ? "" : agentKey(agent)}\u0000${profile}\u0000${String(round)}`;
   const [answer, setAnswer] = useState<{
     key: string;
     state: OptionsState;
@@ -71,5 +75,10 @@ export function useAgentOptions(
       current = false;
     };
   }, [fleet, machine, profile, wanted, key]);
-  return answer?.key === key ? answer.state : { kind: "loading" };
+  return {
+    state: answer?.key === key ? answer.state : { kind: "loading" },
+    again: () => {
+      setRound((value) => value + 1);
+    },
+  };
 }

@@ -73,6 +73,10 @@ test("an added agent whose secret the machine lacks is refused in words before S
     ),
   ).toBeVisible();
   await expect(box.getByRole("button", { name: "Send" })).toBeDisabled();
+  // Asked again (the secret is still missing): refused again, in words.
+  await page.getByRole("button", { name: "Ask again" }).click();
+  await expect(page.getByText(/^Keyed agent cannot start/)).toBeVisible();
+  await expect(box.getByRole("button", { name: "Send" })).toBeDisabled();
 });
 
 test("Settings lists the agents added on a machine, found or not", async ({

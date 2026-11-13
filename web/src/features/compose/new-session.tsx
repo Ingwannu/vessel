@@ -110,6 +110,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const harness =
     harnesses.find((candidate) => sameAgent(candidate.kind, agent)) ?? null;
   const modes = harness === null ? null : agentModes(harness);
+  const agentLabel = agent === null ? "No agent" : agentName(agent, agents);
   // What the machine's last start chose, while the person has chosen
   // nothing for this agent yet (data/defaults.ts).
   const effective: Draft = {
@@ -120,17 +121,24 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     ...startingPicks(draft, defaults, nodeId, known),
   };
   const terminal = harness !== null && startsTerminal(effective, harness);
-  const options = useAgentOptions(machine, agent, effective.profile, !terminal);
+  const { state: options, again } = useAgentOptions(
+    machine,
+    agent,
+    effective.profile,
+    !terminal,
+  );
   const controls =
     harness === null
       ? ({ kind: "terminal" } as const)
-      : draftControls(effective, harness, options);
+      : draftControls(effective, harness, options, agentLabel);
   const profiles =
     machine === null || agent === null
       ? []
       : profileChoices(state.profiles[machine] ?? [], agent);
   const starter = useStarter(machine);
-  const ready = starter.ready(sendable(effective, harness, options));
+  const ready = starter.ready(
+    sendable(effective, harness, options, agentLabel),
+  );
 
   const change = (next: Partial<Draft>) => {
     setError(null);
@@ -201,7 +209,6 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     });
   };
 
-  const agentLabel = agent === null ? "No agent" : agentName(agent, agents);
   return (
     <div className="new-session">
       <div className="new-session-column">
@@ -282,6 +289,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
           blocked={ready.ok ? null : ready.reason}
           controls={controls}
           agent={agentLabel}
+          onAskAgain={options.kind === "refused" ? again : null}
         />
       </div>
     </div>

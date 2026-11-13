@@ -172,6 +172,8 @@ export function sendable(
   draft: Draft,
   harness: Harness | null,
   options: OptionsState,
+  /** What the page calls the agent (an added one's label). */
+  name: string | null = null,
 ): { ok: true } | { ok: false; reason: string | null } {
   if (draft.machine === null) {
     return { ok: false, reason: "No machine is connected." };
@@ -183,7 +185,7 @@ export function sendable(
   if (modes.kind === "neither") {
     return {
       ok: false,
-      reason: `${agentName(harness.kind)} cannot run on this machine: ${modes.reason}`,
+      reason: `${name ?? agentName(harness.kind)} cannot run on this machine: ${modes.reason}`,
     };
   }
   if (!startsTerminal(draft, harness) && options.kind === "refused") {
@@ -201,6 +203,8 @@ export function draftControls(
   draft: Draft,
   harness: Harness,
   options: OptionsState,
+  /** What the page calls the agent (an added one's label). */
+  name: string | null = null,
 ): ControlsState {
   if (startsTerminal(draft, harness)) {
     return { kind: "terminal" };
@@ -217,7 +221,7 @@ export function draftControls(
         kind: "ready",
         controls: controlsOf(
           withPicks(options.options, draft.picks),
-          agentName(harness.kind),
+          name ?? agentName(harness.kind),
         ),
       };
   }

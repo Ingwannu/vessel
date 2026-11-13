@@ -4,9 +4,11 @@
 // that machine to ask, so it is never asked for every agent at once, and
 // the card says so while it waits.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { useFleet } from "../../context";
+import { useAgents, useFleet } from "../../context";
+import { refusedStart } from "../../data/agent-choices";
+import { nodeError } from "../../data/workspace/root";
 import {
   agentHeadline,
   type AgentStatus,
@@ -93,10 +95,15 @@ function Offer({
   name: string;
 }) {
   const fleet = useFleet();
+  const agents = useAgents(machine);
   const [answer, setAnswer] = useState<Outcome<HarnessOptions> | null>(null);
+  // The agent this card was mounted for (its parent keys it by the
+  // agent's key): an added agent is a new object each time the machine's
+  // lists are read, which must not start the agent there again.
+  const asked = useRef(agent);
   useEffect(() => {
     let current = true;
-    void probeOptions(fleet, machine, agent, null).then((outcome) => {
+    void probeOptions(fleet, machine, asked.current, null).then((outcome) => {
       if (current) {
         setAnswer(outcome);
       }
@@ -104,7 +111,7 @@ function Offer({
     return () => {
       current = false;
     };
-  }, [fleet, machine, agent]);
+  }, [fleet, machine]);
   if (answer === null) {
     return (
       <SettingsSection title="What it offers">
@@ -120,8 +127,9 @@ function Offer({
     return (
       <SettingsSection title="What it offers">
         <Banner tone="error">
-          {name} did not say: {answer.problem.message}{" "}
-          {nextStep(answer.problem)}
+          {nodeError(answer.problem) === "conflict"
+            ? refusedStart(agent, agents)
+            : `${name} did not say: ${answer.problem.message} ${nextStep(answer.problem)}`}
         </Banner>
       </SettingsSection>
     );

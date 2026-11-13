@@ -1,12 +1,14 @@
 // The lines under the new-session page's box: what a worktree's start
-// shows (`useStarter`), why the last Send failed, why Send is off, and an
-// agent that did not say what it offers.
+// shows (`useStarter`), why the last Send failed, why Send is off (with
+// "Ask again" when the machine would not start the agent), and an agent
+// that did not say what it offers.
 
 import "./new-session.css";
 
 import type { ReactNode } from "react";
 
 import type { ControlsState } from "../../data/options";
+import { Button } from "../../ui/kit";
 
 export function NewSessionNotes({
   starting,
@@ -14,6 +16,7 @@ export function NewSessionNotes({
   blocked,
   controls,
   agent,
+  onAskAgain,
 }: {
   /** The worktree's start, while there is one. */
   starting: ReactNode;
@@ -24,6 +27,8 @@ export function NewSessionNotes({
   controls: ControlsState;
   /** The agent's name. */
   agent: string;
+  /** Ask the machine again, where it would not start the agent. */
+  onAskAgain: (() => void) | null;
 }) {
   return (
     <div className="new-session-notes">
@@ -33,7 +38,19 @@ export function NewSessionNotes({
           {error}
         </p>
       )}
-      {blocked === null ? null : <p className="new-session-note">{blocked}</p>}
+      {blocked === null ? null : (
+        <p className="new-session-note">
+          {blocked}
+          {onAskAgain === null ? null : (
+            <>
+              {" "}
+              <Button size="xs" variant="ghost" onClick={onAskAgain}>
+                Ask again
+              </Button>
+            </>
+          )}
+        </p>
+      )}
       {controls.kind === "failed" ? (
         <p className="new-session-note" role="status">
           {agent} did not say what it offers: {controls.message} It starts on
