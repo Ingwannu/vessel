@@ -173,6 +173,12 @@ its row frame for custom contents (such as a provider’s mark and inline
 status); ordinary `row_at` delegates to the same padding, border and
 compact wrapping frame.
 
+`kit::skeleton::pulse` owns one mounted animation phase. Its draw closure
+receives one `Opacity` to pass to every `shape`; only the neutral surface2
+shapes fade, leaving cards and borders solid. Callers supply typed shape
+sizes/corner steps and compose existing settings/card frames. The pulse
+stops scheduling frames when unmounted; reduced motion follows GPUI.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

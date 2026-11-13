@@ -366,3 +366,43 @@ part of the following Agents screen review.
 
 Token-only gate: native fmt, whole Clippy and all 407 tests passed;
 no root source changes. Exact red[300] is tested for both themes.
+
+### Shared initial-loading shapes
+
+The initial provider loading composition needs Paseo's shared
+`components/ui/skeleton.tsx` primitive. V1 reserved it for this track.
+One mounted animation invokes a caller's composition with one typed
+opacity, shared by all shapes. Only surface2 rectangles fade; card
+furniture stays solid. The one-second rise/fall uses Animated.timing's
+default inOut(ease), whose Bézier (0.42,0,1,1) is verified against the
+installed reference's TimingAnimation/Easing. A bounded polynomial
+inversion matches it at f32 drawing precision without another dependency.
+GPUI owns mount state/frame scheduling and reduced-motion policy; no
+background task survives the element.
+
+The actual GPUI probe checks shared shape opacity at mount and at a
+controlled phase, unchanged furniture opacity, reference shape bounds, no further
+animation callbacks after unmount, and the initial appearance on remount.
+Numerical fixtures compare both halves with the reference timing curve.
+Corner steps are source values: small 2, medium 6 (`styles/theme.ts`).
+The following Agents composition will supply first-use captures; these
+constant/geometry tests alone are not visual approval.
+
+The first runtime probe failed its assumed zero y-origin: the GPUI root
+filled the 80-point test viewport and centered the shapes at y30/y34. The
+probe now explicitly sets that 80-point frame and checks those independent
+centered bounds. The shared shape/pulse implementation is unchanged.
+
+A subsequent probe exposed another wrong test assumption: advancing the
+executor clock does not advance GPUI's unsynced Animation wall Instant.
+The probe now supplies deterministic phases at the GPUI easing boundary
+through the same private animation/draw path, retaining real mount and
+frame-scheduling behavior. The default animation definition's period,
+repeat policy and full timing curve are checked independently against
+reference values. It does not claim a real 500 ms elapsed-time test;
+first-use runtime captures will check the visible animation.
+
+Skeleton control gate: native fmt, whole Clippy and all 409 tests passed,
+none failed. The earlier failed probes are not counted as a pass. The
+combined tree includes the provisionally reused Ghost control; no root
+source changes or root test run are claimed for this control-only slice.

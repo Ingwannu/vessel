@@ -42,6 +42,7 @@ pub mod segmented;
 pub mod select;
 pub mod settings;
 pub mod sheet;
+pub mod skeleton;
 pub mod slider;
 pub mod tabs;
 pub mod theme;
