@@ -1,0 +1,6 @@
+# Not Vessel's 1.93: the GPUI snapshot uses `std::hint::cold_path`, stable
+# only since 1.95 (docs/plans/backend-m12-spike.md, question 9). This is
+# the toolchain Zed's own tree pins.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
