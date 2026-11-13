@@ -17,10 +17,15 @@
 //!   list takes that place when it opens. From a control the list has
 //!   Paseo's search row and no title; from the sheet it has the feature's
 //!   name above and no search (Paseo's `header`).
-//! - Differences: an agent's feature has no icon of its own here (ACP
-//!   sends none): every feature shows Paseo's default (`Settings2`), muted
-//!   (Paseo colours a few features it knows when they are on); a control
-//!   has no tooltip yet.
+//! - Differences: every control carries its feature's name (an on/off
+//!   feature its name, a choice its name quieter, then its value): Paseo
+//!   tells features apart by their own icons and their colour when on,
+//!   and ACP sends no icon, so each control here would be the same glyph
+//!   reading "Off" (the coordinator's capture of 0.0.0.0.7's first
+//!   build). An on/off feature that is on takes Paseo's colour for the
+//!   features it knows (fast mode, auto-accept, plan) and the foreground's
+//!   for others. Paseo's tooltip is on every control ("name: value" for a
+//!   choice, the feature's description or name for an on/off one).
 
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
@@ -34,6 +39,7 @@ use vessel_app_kit::ui::{
     px,
 };
 use vessel_app_kit::{PillParts, Tokens, Type, TypeExt as _, anchor_probe, glyph, pill_parts};
+
 use vessel_app_view::Controls;
 use vessel_proto::OptionId;
 
@@ -55,6 +61,11 @@ pub(crate) struct FeatureState {
     toolbar: Rc<Cell<Pixels>>,
     /// The step of Paseo's ladder the controls are at.
     density: Cell<Density>,
+    /// The composer's tooltips (one shown at most).
+    pub(crate) tips: vessel_app_kit::Tooltips,
+    /// Where the model, thinking and mode controls are drawn, for their
+    /// tooltips.
+    pub(crate) places: [Anchor; 3],
 }
 
 impl FeatureState {
@@ -65,6 +76,12 @@ impl FeatureState {
             anchors: RefCell::new(BTreeMap::new()),
             toolbar: Rc::new(Cell::new(px(0.0))),
             density: Cell::new(Density::Full),
+            tips: vessel_app_kit::Tooltips::new(),
+            places: [
+                Rc::new(Cell::new(None)),
+                Rc::new(Cell::new(None)),
+                Rc::new(Cell::new(None)),
+            ],
         }
     }
 
@@ -79,7 +96,7 @@ impl FeatureState {
 
     /// The step for `controls` at the width measured last frame (Full
     /// until the controls have been drawn once).
-    pub(crate) fn density(&self, controls: &Controls, touch: bool) -> Density {
+    pub(crate) fn density(&self, controls: &Controls, model_words: usize, touch: bool) -> Density {
         let width = f32::from(self.toolbar.get());
         if width <= 0.0 {
             return self.density.get();
@@ -87,7 +104,7 @@ impl FeatureState {
         let density = density::resolve(
             width,
             self.density.get(),
-            &presence(controls),
+            &presence(controls, model_words),
             Geometry::of(touch),
         );
         self.density.set(density);
@@ -115,23 +132,49 @@ impl FeatureState {
     }
 }
 
-/// What the controls have to show, as Paseo's floors count it.
-fn presence(controls: &Controls) -> Presence {
+/// An on/off feature's colour when on: Paseo's for the features it knows
+/// (`getFeatureHighlightColor`: fast mode and speed yellow, auto-accept
+/// green, plan blue, each its palette's 400), the foreground's for any
+/// other (Paseo leaves those muted; with no value shown, a named control
+/// has to say it is on).
+fn active_colour(id: &OptionId, otherwise: vessel_app_kit::ui::Hsla) -> vessel_app_kit::ui::Hsla {
+    match id.as_str() {
+        "fast_mode" | "fast" | "speed" => vessel_app_kit::ui::rgb(0x00fa_cc15).into(),
+        "auto_accept" => vessel_app_kit::ui::rgb(0x004a_de80).into(),
+        "plan_mode" | "plan" => vessel_app_kit::ui::rgb(0x0060_a5fa).into(),
+        _ => otherwise,
+    }
+}
+
+/// What the controls have to show, as the floors count it; `model_words`
+/// the model control's characters.
+fn presence(controls: &Controls, model_words: usize) -> Presence {
     let mut features: Vec<density::Feature> = controls
         .toggles
         .iter()
-        .map(|_| density::Feature::Toggle)
+        .map(|toggle| {
+            density::Feature::Toggle(feature_name(&toggle.name, &toggle.id).chars().count())
+        })
         .collect();
     features.extend(
         controls
             .selects
             .iter()
-            .map(|select| density::Feature::Select(select.current_name().chars().count())),
+            .map(|select| density::Feature::Select {
+                name: feature_name(&select.name, &select.id).chars().count(),
+                value: select.current_name().chars().count(),
+            }),
     );
     Presence {
-        model: true,
-        thinking: controls.effort.is_some(),
-        mode: controls.permissions.is_some(),
+        model: Some(model_words),
+        thinking: controls
+            .effort
+            .as_ref()
+            .map(|effort| effort.current_name().chars().count()),
+        mode: controls
+            .permissions
+            .as_ref()
+            .map(|mode| mode.current_name().chars().count()),
         features,
     }
 }
@@ -175,51 +218,65 @@ pub(crate) fn controls(
         .on_click(cx.listener(|this, _event, window, cx| this.open_features_sheet(window, cx)));
         return vec![open.into_any_element()];
     }
+    // Each control carries its feature's name (Vessel's, a named
+    // difference: Paseo tells its features apart by their own icons and
+    // their colour when on, and ACP sends no icon, so every control here
+    // would be the same glyph and an anonymous "Off"). Paseo's tooltip on
+    // each: a feature's own words for an on/off one, "name: value" for a
+    // choice.
+    let neutral = tokens.neutral;
     let mut pills = Vec::new();
     for toggle in &controls.toggles {
-        // On/off: a square that switches it.
+        // On/off: its name, coloured when on, one click switches it.
         let choice = toggle.choose(!toggle.on);
-        pills.push(
-            pill_parts(
-                vessel_app_kit::ui::ElementId::Name(format!("feature-{}", toggle.id).into()),
-                PillParts {
-                    leading: Some(Glyph::Sliders),
-                    ..PillParts::default()
-                },
-                false,
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.choose_option(choice.clone());
-                cx.notify();
-            }))
-            .into_any_element(),
-        );
+        let name = feature_name(&toggle.name, &toggle.id).to_owned();
+        let tip = toggle.description.clone().unwrap_or_else(|| name.clone());
+        let place = state.anchor(&toggle.id);
+        let pill = pill_parts(
+            vessel_app_kit::ui::ElementId::Name(format!("feature-{}", toggle.id).into()),
+            PillParts {
+                leading: Some(Glyph::Sliders),
+                label: Some(name.into()),
+                tint: toggle
+                    .on
+                    .then(|| active_colour(&toggle.id, neutral.foreground)),
+                ..PillParts::default()
+            },
+            false,
+            touch,
+            tokens,
+        )
+        .relative()
+        .on_click(cx.listener(move |this, _event, _window, cx| {
+            this.choose_option(choice.clone());
+            cx.notify();
+        }));
+        pills.push(state.tips.on(pill, &place, tip, touch).into_any_element());
     }
     for select in &controls.selects {
         let id = select.id.clone();
         let anchor = state.anchor(&id);
         let open = list_open && showing == Some(&id);
-        pills.push(
-            pill_parts(
-                vessel_app_kit::ui::ElementId::Name(format!("feature-{id}").into()),
-                PillParts {
-                    leading: Some(Glyph::Sliders),
-                    label: Some(select.current_name().to_owned().into()),
-                    ..PillParts::default()
-                },
-                open,
-                touch,
-                tokens,
-            )
-            .relative()
-            .child(anchor_probe(&anchor))
-            .on_click(cx.listener(move |this, _event, window, cx| {
-                this.open_feature(id.clone(), window, cx);
-            }))
-            .into_any_element(),
-        );
+        let name = feature_name(&select.name, &select.id).to_owned();
+        let value = select.current_name().to_owned();
+        let tip = format!("{name}: {value}");
+        let pill = pill_parts(
+            vessel_app_kit::ui::ElementId::Name(format!("feature-{id}").into()),
+            PillParts {
+                leading: Some(Glyph::Sliders),
+                prefix: Some(name.into()),
+                label: Some(value.into()),
+                ..PillParts::default()
+            },
+            open,
+            touch,
+            tokens,
+        )
+        .relative()
+        .on_click(cx.listener(move |this, _event, window, cx| {
+            this.open_feature(id.clone(), window, cx);
+        }));
+        pills.push(state.tips.on(pill, &anchor, tip, touch).into_any_element());
     }
     pills
 }

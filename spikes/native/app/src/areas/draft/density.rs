@@ -56,21 +56,27 @@ impl Density {
     }
 }
 
-/// A feature as the floors count it.
+/// A feature as the floors count it: every control carries the feature's
+/// name (Vessel's; Paseo's on/off control is a square and its choice shows
+/// its value alone).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Feature {
-    /// An on/off feature: a square.
-    Toggle,
-    /// A choice, with this many characters in its value.
-    Select(usize),
+    /// An on/off feature, with this many characters in its name.
+    Toggle(usize),
+    /// A choice, with its name's and its value's characters.
+    Select { name: usize, value: usize },
 }
 
 /// What the composer has to show.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Presence {
-    pub(crate) model: bool,
-    pub(crate) thinking: bool,
-    pub(crate) mode: bool,
+    /// The model control's words, in characters (the model and, when the
+    /// machine has several agents, the agent); `None` for no control.
+    pub(crate) model: Option<usize>,
+    /// The thinking control's value, in characters.
+    pub(crate) thinking: Option<usize>,
+    /// The mode control's value, in characters.
+    pub(crate) mode: Option<usize>,
     pub(crate) features: Vec<Feature>,
 }
 
@@ -133,48 +139,54 @@ fn floor(density: Density, presence: &Presence, geometry: Geometry) -> f32 {
     let chrome = chrome(geometry);
     let mut widths = Vec::new();
     match density {
+        // The labelled steps count the controls' own words (Vessel's, a
+        // named difference: Paseo's floors take fixed estimates, 70 for a
+        // model, 48 for thinking, 96 for a mode, which fit its short
+        // labels; here a model reads "Default (recommended) Claude Code" and
+        // every feature carries its name, so a fixed estimate kept the
+        // full step where its words could not fit and every control was cut
+        // to an ellipsis).
         Density::Full => {
-            if presence.model {
-                widths.push([chrome, CARET, 70.0].iter().sum());
+            if let Some(model) = presence.model {
+                widths.push([chrome, CARET, GAP, label(model)].iter().sum());
             }
-            if presence.thinking {
-                widths.push([chrome, GAP, CARET, 48.0].iter().sum());
+            if let Some(thinking) = presence.thinking {
+                widths.push([chrome, GAP, CARET, label(thinking)].iter().sum());
             }
-            if presence.mode {
-                widths.push([chrome, GAP, CARET, 96.0].iter().sum());
+            if let Some(mode) = presence.mode {
+                widths.push([chrome, GAP, CARET, label(mode)].iter().sum());
             }
             for feature in &presence.features {
                 widths.push(match feature {
-                    Feature::Toggle => geometry.control,
-                    Feature::Select(characters) => {
-                        [geometry.control, GAP, PADDING, PADDING, label(*characters)]
-                            .iter()
-                            .sum()
+                    Feature::Toggle(name) => [chrome, label(*name)].iter().sum(),
+                    Feature::Select { name, value } => {
+                        [chrome, label(*name), GAP, label(*value)].iter().sum()
                     }
                 });
             }
         }
         Density::Condensed => {
-            if presence.model {
-                widths.push([chrome, 60.0].iter().sum());
+            if let Some(model) = presence.model {
+                widths.push([chrome, GAP, label(model)].iter().sum());
             }
-            if presence.thinking {
+            if presence.thinking.is_some() {
                 widths.push(geometry.control);
             }
-            if presence.mode {
-                widths.push([chrome, 96.0].iter().sum());
+            if let Some(mode) = presence.mode {
+                widths.push([chrome, label(mode)].iter().sum());
             }
             if !presence.features.is_empty() {
                 widths.push(geometry.control);
             }
         }
         Density::Tight => {
-            if presence.model {
+            // The model at its family's width (Paseo's 56), cut after it.
+            if presence.model.is_some() {
                 widths.push([chrome, 56.0].iter().sum());
             }
             for shown in [
-                presence.thinking,
-                presence.mode,
+                presence.thinking.is_some(),
+                presence.mode.is_some(),
                 !presence.features.is_empty(),
             ] {
                 if shown {
@@ -218,13 +230,19 @@ mod tests {
     use super::*;
 
     /// Claude Code as the preview node offers it: a model, thinking, mode,
-    /// and three choices ("Off", "Off", "Default").
+    /// and three choices ("Fast mode" "Off", "Ultracode" "Off", "Agent"
+    /// "Default").
     fn claude() -> Presence {
         Presence {
-            model: true,
-            thinking: true,
-            mode: true,
-            features: vec![Feature::Select(3), Feature::Select(3), Feature::Select(7)],
+            // "Opus 5.5" and "Claude Code"; "High"; "Manual".
+            model: Some(19),
+            thinking: Some(4),
+            mode: Some(6),
+            features: vec![
+                Feature::Select { name: 9, value: 3 },
+                Feature::Select { name: 9, value: 3 },
+                Feature::Select { name: 5, value: 7 },
+            ],
         }
     }
 
@@ -238,10 +256,10 @@ mod tests {
     #[test]
     fn floors_are_pasos() {
         let pointer = Geometry::of(false);
-        // 120 + 102 + 150 + (69 + 69 + 97) + 5 gaps of 4.
-        near(floor(Density::Full, &claude(), pointer), 627.0);
-        // 96 + 28 + 132 + 28 + 3 gaps.
-        near(floor(Density::Condensed, &claude(), pointer), 296.0);
+        // 187 + 82 + 96 + three named choices of 124 + 5 gaps of 4.
+        near(floor(Density::Full, &claude(), pointer), 757.0);
+        // 173 + 28 + 78 + 28 + 3 gaps.
+        near(floor(Density::Condensed, &claude(), pointer), 319.0);
         // 92 + 28 + 28 + 28 + 3 gaps.
         near(floor(Density::Tight, &claude(), pointer), 188.0);
     }
@@ -251,7 +269,7 @@ mod tests {
         let pointer = Geometry::of(false);
         let presence = claude();
         assert_eq!(
-            resolve(760.0, Density::Full, &presence, pointer),
+            resolve(900.0, Density::Full, &presence, pointer),
             Density::Full
         );
         assert_eq!(
@@ -268,18 +286,18 @@ mod tests {
     fn a_width_near_a_floor_does_not_flip() {
         let pointer = Geometry::of(false);
         let presence = claude();
-        // 620 is under Full's floor (627) but within the hysteresis: kept.
+        // 755 is under Full's floor (757) but within the hysteresis: kept.
         assert_eq!(
-            resolve(620.0, Density::Full, &presence, pointer),
+            resolve(755.0, Density::Full, &presence, pointer),
             Density::Full
         );
         // From Condensed, Full comes back only at its floor plus 12.
         assert_eq!(
-            resolve(630.0, Density::Condensed, &presence, pointer),
+            resolve(765.0, Density::Condensed, &presence, pointer),
             Density::Condensed
         );
         assert_eq!(
-            resolve(640.0, Density::Condensed, &presence, pointer),
+            resolve(770.0, Density::Condensed, &presence, pointer),
             Density::Full
         );
     }

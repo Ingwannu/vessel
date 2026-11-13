@@ -519,6 +519,7 @@ pub(crate) fn render(
             touch,
             cx,
         ))
+        .children(shell.areas.draft.features.tips.render(tokens))
         .children(pickers::open_list(
             shell,
             &online,

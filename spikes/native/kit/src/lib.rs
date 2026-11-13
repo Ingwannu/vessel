@@ -41,6 +41,7 @@ pub mod settings;
 pub mod sheet;
 pub mod tabs;
 pub mod theme;
+pub mod tooltip;
 pub mod virtual_list;
 mod widgets;
 
@@ -61,6 +62,7 @@ pub use picker::{
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
+pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown, outline_button,

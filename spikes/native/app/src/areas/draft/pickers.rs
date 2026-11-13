@@ -197,7 +197,12 @@ pub(super) fn controls(
         Some(Shown::Loading | Shown::Failed(_)) | None => None,
     };
     let density = ready.map_or(Density::Full, |controls| {
-        draft.features.density(controls, touch)
+        let (model, agent) = model_words(shell, shown);
+        let characters = model
+            .chars()
+            .count()
+            .saturating_add(agent.map_or(0, |agent| agent.chars().count()));
+        draft.features.density(controls, characters, touch)
     });
     let caret = density.carets();
     // The row takes the card's width less the send button, and measures
@@ -208,59 +213,92 @@ pub(super) fn controls(
         .min_w_0()
         .flex()
         .flex_row()
-        .flex_wrap()
         .items_center()
         .gap(px(4.0))
+        // One line, as Paseo's: the controls give way and cut their words
+        // rather than wrap (the ladder's steps keep that rare).
+        .overflow_hidden()
         .child(draft.features.measure());
     row = row.child(model_pill(shell, shown, caret, touch, tokens, cx));
     let Some(controls) = ready else {
         return row;
     };
     if let Some(effort) = &controls.effort {
-        row = row.child(
-            pill_with(
-                "pick-thinking",
-                &lists.thinking,
-                PillParts {
-                    leading: Some(Glyph::Brain),
-                    label: density
-                        .thinking_label()
-                        .then(|| effort.current_name().to_owned().into()),
-                    quiet: None,
-                    caret,
-                },
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Thinking, window, cx);
-            })),
-        );
+        let pill = pill_with(
+            "pick-thinking",
+            &lists.thinking,
+            PillParts {
+                leading: Some(Glyph::Brain),
+                label: density
+                    .thinking_label()
+                    .then(|| effort.current_name().to_owned().into()),
+                quiet: None,
+                caret,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(cx.listener(|this, _event, window, cx| {
+            this.open_picker(Picker::Thinking, window, cx);
+        }));
+        row = row.child(draft.features.tips.on(
+            pill,
+            &draft.features.places[1],
+            shell.t.lang.options().hint_thinking,
+            touch,
+        ));
     }
     if let Some(mode) = &controls.permissions {
-        row = row.child(
-            pill_with(
-                "pick-mode",
-                &lists.mode,
-                PillParts {
-                    leading: Some(Glyph::Shield),
-                    label: density
-                        .mode_label()
-                        .then(|| mode.current_name().to_owned().into()),
-                    quiet: None,
-                    caret,
-                },
-                touch,
-                tokens,
-            )
-            .on_click(
-                cx.listener(|this, _event, window, cx| this.open_picker(Picker::Mode, window, cx)),
-            ),
+        let pill = pill_with(
+            "pick-mode",
+            &lists.mode,
+            PillParts {
+                leading: Some(Glyph::Shield),
+                label: density
+                    .mode_label()
+                    .then(|| mode.current_name().to_owned().into()),
+                quiet: None,
+                caret,
+                ..PillParts::default()
+            },
+            touch,
+            tokens,
+        )
+        .on_click(
+            cx.listener(|this, _event, window, cx| this.open_picker(Picker::Mode, window, cx)),
         );
+        row = row.child(draft.features.tips.on(
+            pill,
+            &draft.features.places[2],
+            shell.t.lang.options().hint_mode,
+            touch,
+        ));
     }
     row.children(super::features::controls(
         shell, controls, density, touch, tokens, cx,
     ))
+}
+
+/// The model control's words: the model in use and, when the machine has
+/// several agents, the agent's name (quieter).
+fn model_words(shell: &Shell, shown: Option<&Shown>) -> (String, Option<String>) {
+    let t = shell.t;
+    let words = t.lang.options();
+    let online: Vec<&Machine> = shell.fleet.online().collect();
+    let several = machine(shell, &online).is_some_and(|machine| machine.agents.len() > 1);
+    match (&shell.areas.draft.agent, shown) {
+        (None, _) => (t.agent.to_owned(), None),
+        (Some(_), Some(Shown::Loading) | None) => (words.loading.to_owned(), None),
+        (Some(agent), Some(Shown::Failed(_))) => (agent_name(agent), None),
+        (Some(agent), Some(Shown::Ready(controls))) => match &controls.model {
+            Some(model) => (
+                model.current_name().to_owned(),
+                several.then(|| agent_name(agent)),
+            ),
+            None => (agent_name(agent), None),
+        },
+    }
 }
 
 /// The model selector's pill: the model in use and, when the machine has
@@ -273,24 +311,10 @@ fn model_pill(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> vessel_app_kit::ui::Stateful<Div> {
-    let t = shell.t;
-    let words = t.lang.options();
+    let words = shell.t.lang.options();
     let draft = &shell.areas.draft;
-    let online: Vec<&Machine> = shell.fleet.online().collect();
-    let several = machine(shell, &online).is_some_and(|machine| machine.agents.len() > 1);
-    let (label, quiet) = match (&draft.agent, shown) {
-        (None, _) => (t.agent.to_owned(), None),
-        (Some(_), Some(Shown::Loading) | None) => (words.loading.to_owned(), None),
-        (Some(agent), Some(Shown::Failed(_))) => (agent_name(agent), None),
-        (Some(agent), Some(Shown::Ready(controls))) => match &controls.model {
-            Some(model) => (
-                model.current_name().to_owned(),
-                several.then(|| agent_name(agent)),
-            ),
-            None => (agent_name(agent), None),
-        },
-    };
-    pill_with(
+    let (label, quiet) = model_words(shell, shown);
+    let pill = pill_with(
         "pick-model",
         &draft.lists.model,
         PillParts {
@@ -298,11 +322,16 @@ fn model_pill(
             label: Some(label.into()),
             quiet: quiet.map(Into::into),
             caret,
+            ..PillParts::default()
         },
         touch,
         tokens,
     )
-    .on_click(cx.listener(|this, _event, window, cx| this.open_picker(Picker::Model, window, cx)))
+    .on_click(cx.listener(|this, _event, window, cx| this.open_picker(Picker::Model, window, cx)));
+    let features = &draft.features;
+    features
+        .tips
+        .on(pill, &features.places[0], words.hint_model, touch)
 }
 
 /// Under the card: the machine and the folder.
@@ -338,6 +367,7 @@ pub(super) fn place(
                     label: Some(machine_label.into()),
                     quiet: None,
                     caret: true,
+                    ..PillParts::default()
                 },
                 touch,
                 tokens,
@@ -355,6 +385,7 @@ pub(super) fn place(
                     label: Some(folder_label.into()),
                     quiet: None,
                     caret: true,
+                    ..PillParts::default()
                 },
                 touch,
                 tokens,

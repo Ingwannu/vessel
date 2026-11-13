@@ -115,6 +115,7 @@ pub fn pill(
             label: Some(label.into()),
             quiet,
             caret: true,
+            ..PillParts::default()
         },
         open,
         touch,
@@ -133,6 +134,12 @@ pub struct PillParts {
     pub label: Option<SharedString>,
     /// Words after the label, quieter.
     pub quiet: Option<SharedString>,
+    /// Words before the label, quieter (a feature's name before its
+    /// value).
+    pub prefix: Option<SharedString>,
+    /// The glyph's and the label's colour, when not the muted one (an
+    /// on/off feature that is on).
+    pub tint: Option<Hsla>,
     /// The caret after them.
     pub caret: bool,
 }
@@ -152,16 +159,21 @@ pub fn pill_parts(
     let glyph_size = if touch { 20.0 } else { 16.0 };
     let height = if touch { 44.0 } else { 28.0 };
     let square = parts.label.is_none();
+    // Paseo's toolbar control gives way when the row is short of room
+    // (`minWidth: 0, flexShrink: 1`), its words cut with an ellipsis
+    // (`numberOfLines={1}`); a square of a glyph alone does not
+    // (`toolbarIconOnly`: `flexShrink: 0`).
     div()
         .id(id)
         .flex()
         .flex_row()
         .items_center()
-        .flex_shrink_0()
         .gap(px(4.0))
         .h(px(height))
-        .when(square, |pill| pill.w(px(height)).justify_center())
-        .when(!square, |pill| pill.px(px(8.0)))
+        .when(square, |pill| {
+            pill.flex_shrink_0().w(px(height)).justify_center()
+        })
+        .when(!square, |pill| pill.min_w_0().flex_shrink(1.0).px(px(8.0)))
         .rounded(px(16.0))
         .when(open, |pill| pill.bg(neutral.surface0))
         .when(!open, |pill| {
@@ -169,20 +181,36 @@ pub fn pill_parts(
         })
         .cursor_pointer()
         .type_(Type::Body)
-        .text_color(neutral.foreground_muted)
+        .text_color(parts.tint.unwrap_or(neutral.foreground_muted))
+        .children(parts.leading.map(|leading| {
+            glyph(
+                leading,
+                glyph_size,
+                parts.tint.unwrap_or(neutral.foreground_muted),
+            )
+            .flex_shrink_0()
+        }))
+        .children(parts.prefix.map(|prefix| {
+            div()
+                .flex_shrink_0()
+                .text_color(neutral.foreground_extra_muted)
+                .child(prefix)
+        }))
         .children(
             parts
-                .leading
-                .map(|leading| glyph(leading, glyph_size, neutral.foreground_muted)),
+                .label
+                .map(|label| div().min_w_0().flex_shrink(1.0).truncate().child(label)),
         )
-        .children(parts.label)
         .children(parts.quiet.map(|quiet| {
             div()
+                .min_w_0()
+                .flex_shrink(1.0)
+                .truncate()
                 .text_color(neutral.foreground_extra_muted)
                 .child(quiet)
         }))
         .when(parts.caret, |pill| {
-            pill.child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
+            pill.child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted).flex_shrink_0())
         })
 }
 
