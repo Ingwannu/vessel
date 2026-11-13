@@ -594,6 +594,30 @@ never rebuilt.
     the staging file refused beside `Vessel.exe`. A redirected stderr
     (`Vessel.exe 2> file` from cmd) gets the error from 0.0.0.0.3.
 
+- **0.0.0.0.6**:
+  - Built from exactly `e540d74` and put in place at 08:54 UTC. It is
+    not published yet: the coordinator runs the Linux build against the
+    real node first.
+  - Files: setup 10,618,535, exe 38,234,624, zip 15,345,409, linux
+    74,692,840, tar.gz 25,241,365 bytes. The icons, the version block,
+    the sums and the signature were checked as for 0.0.0.0.4.
+  - It is the first build with the log file. Started with a scratch
+    configuration, the Linux build wrote
+    `$XDG_STATE_HOME/vessel/logs/vessel.log`:
+    - the first line is `Vessel starts label="0.0.0.0.6" os="linux"`
+    - the updater's lines follow (`feed=https://<host>/…`, a check, "up
+      to date")
+    - the feed's path appears nowhere (counted, not printed)
+  - Under wine, the Windows build wrote
+    `%LOCALAPPDATA%\Vessel\logs\vessel.log`, with wine's font panic
+    recorded with its place.
+  - Seen there, for the next build:
+    - Span fields carry stderr's colour codes into the file. The two fmt
+      layers share the formatted fields, so the file layer needs a field
+      formatter of its own.
+    - On Windows the backtrace's frames are `<unknown>`, because no
+      `.pdb` ships.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
