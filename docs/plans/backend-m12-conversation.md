@@ -21,10 +21,10 @@ neutral colours come only from `tokens.neutral.*`.
 | Session logic | `view/src/session/` | read marks (`marks`), titles and names (`titles`) |
 | Terminal logic | `view/src/terminal/` | the input sender and its queue (`sender`), the resize rule and the replay log (`frame`) |
 | Words | `view/src/text/conversation/` | the area's sentences, English and Korean (`lang.conversation()`) |
-| Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input), each on its own task |
+| Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), the queue (`queue`, drawn in the lead's slot above the composer card, `dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
@@ -62,6 +62,9 @@ Paseo screen it follows.
 | `50-find-wrapped-to-last-dark-1280`, `51-find-korean-light-390` | find: Mod+F opens the bar over the conversation's top right with the count, previous, next and close in its shell; Shift+Enter past the first match wraps to the last (5/5); on a phone it spans the width | GOAT `ThreadFindBar.tsx` (`top-3 right-3`, `w-[min(17.5rem,100%-1.5rem)]`, "1/…" while counting, the count red with no results) |
 | `52-find-marks-current-dark-1280`, `53-find-current-in-last-reply-light-1280`, `54-find-marks-in-table-dark-390` | find's matches marked in the text, the current one amber and scrolled to (inside a reply taller than the view, to its line); a search run again as the session grows keeps the current match (1/1 became 1/2) | GOAT `threadFindHighlights.ts`, `index.css` `::highlight(goat-thread-find…)`; the page's `find-bar.tsx` refresh rule |
 | `55-outline-pointed-dark-1280`, `56-outline-jumped-to-prompt-dark-1280`, `57-outline-pointed-korean-light-1280`, `58-outline-hidden-on-phone-dark-390` | the outline rail on the fleet's five-turn session: the lit prompt's pill wider, the pills near the pointer magnified, the prompt's card (two lines, Korean too), a click putting that prompt at the view's top; no rail under 918 | Paseo `agent-stream/chat-outline/rail.web.tsx`, `model.ts`, `hover-intent.ts` |
+| `59-queue-dark-1280`, `68-queue-light-1280`, `70-queue-phone-dark-390`, `71-queue-phone-light-390` | the fleet's `queued` session: three prompts waiting behind a running turn above the composer, each a row with a grip, its text on two lines (an ellipsis past them), and round buttons for edit, steer, send now and remove; on a phone the buttons on a line of their own | Paseo `composer/index.tsx` `QueuedMessageRow` (surface1, a hairline, radius 8, 12 by 8, buttons of 32 on surface2, send on the accent); GOAT `QueuedRunsControl.tsx` (grip, steer, remove, edit in place) |
+| `60`–`62` (edit), `63-drag`, `64-dropped`, `65-removed`, `66-steered`, `67-sent-now` | a queued prompt edited in its row in the kit's field and saved (the node's revision r0 to r1); a row dragged by its grip onto the first (the drop row outlined, the dragged text following the pointer) and the order the node then holds; a row taken out; a row steered into the running turn (the fake echoes "steered: …"); the last sent now, which stopped the turn ("Turn ended · cancelled") and started its own | GOAT `QueuedRunsControl.tsx`; the node's `session.queue` |
+| `72-queue-held-ko-dark-1280` | a held queue (`vessel session queue … hold`): "대기 중 · 3개 · 멈춤" with resume and clear; resume lets it move (`[queue: 3 waiting]`, no longer held) | the node's `QueueHold` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -85,7 +88,7 @@ Paseo screen it follows.
   side from 1,100 wide): shown in a conversation at least 918 wide, as
   Paseo's. Its pills change size at once (Paseo eases over 140 ms), only
   a pointer entering a slot starts the 150 ms wait (Paseo also starts it
-  on a sideways sweep), and a card cut at two lines shows no ellipsis.
+  on a sideways sweep).
 - **The title's rename**: no "Rename" tooltip on the title (the kit has
   no tooltip yet), and the keys do not go back to the title once the
   field leaves (the page returns focus to it, as a dialog to its opener).
@@ -97,6 +100,15 @@ Paseo screen it follows.
   it). A question's text is searched but not marked yet. The wrap is said
   only to a screen reader, as on the page (kept for the screen-reader
   buffer).
+- **The queue** is Paseo's row with GOAT's actions as more of Paseo's
+  round buttons. Edit happens in the row and keeps the place (GOAT; Paseo
+  moves the text back into the composer and loses the place); it is
+  checked by the node against the revision it was made from. Steer shows
+  only while a turn runs and the agent takes one (`abilities.steer`).
+  Send now interrupts a running turn, as its own button, apart from
+  steer. On a phone the four 40-point buttons go on a line under the
+  text (Paseo keeps one line, having two). Not yet: GOAT's keys on the
+  grip and its steer shortcut, a queued message's attachments.
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.
@@ -138,6 +150,11 @@ app.
   (`features/session/timeline-item.tsx`, `case "log"`). Paseo and GOAT
   never show it. The app folds a run of them into one row at "Full" and
   leaves them out while tool calls are collapsed (`view::timeline::logs`).
+- **No queue.** The page never calls `session.prompt` or `session.queue`
+  (only their types are in `wire/proto.ts`); it sends with `session.send`.
+  Prompts waiting their turn, queued by the app, the CLI or a schedule,
+  cannot be seen, edited, reordered or taken out there, and a message
+  cannot be steered or sent in place of the running turn.
 - **The find bar hides its own match on a phone.** `.find-bar` lies over
   the conversation's top at every width (`find-bar.css`); at a phone's
   width it spans the column, and a match revealed at the top of the view

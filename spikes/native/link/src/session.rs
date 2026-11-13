@@ -22,7 +22,7 @@ use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
 use vessel_client::NodeClient;
-use vessel_proto::conversation::SessionDeleted;
+use vessel_proto::conversation::{QueueChange, SessionDeleted};
 use vessel_proto::{
     ErrorCode, Mark, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
     TerminalBytes, TerminalInput, TerminalSize,
@@ -50,6 +50,9 @@ pub enum Act {
     MoveProfile(Option<ProfileName>),
     /// Keys or a size for a terminal session.
     Terminal(Outgoing),
+    /// Change the prompts waiting their turn (protocol 10): edit, move,
+    /// remove, send one now, hold, resume or clear.
+    Queue(QueueChange),
 }
 
 /// Which act an answer is for.
@@ -71,6 +74,8 @@ pub enum ActKind {
     MoveProfile,
     /// Terminal input.
     Terminal,
+    /// A change to the queue.
+    Queue,
 }
 
 impl Act {
@@ -86,6 +91,7 @@ impl Act {
             Self::Kill => ActKind::Kill,
             Self::MoveProfile(_) => ActKind::MoveProfile,
             Self::Terminal(_) => ActKind::Terminal,
+            Self::Queue(_) => ActKind::Queue,
         }
     }
 }
@@ -177,6 +183,12 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .move_profile(session, profile, false)
             .await
             .map(boxed),
+        // The queue as it stands afterwards comes back as the session's
+        // own `queue_changed` record, which the conversation follows.
+        Act::Queue(change) => client
+            .change_queue(session, change)
+            .await
+            .map(|_changed| Acted::Done),
         Act::Terminal(outgoing) => {
             let input = match outgoing {
                 Outgoing::Keys(text) => TerminalInput::Data {

@@ -200,6 +200,28 @@ done
   exit 1
 }
 
+# Prompts waiting their turn (the queue above the composer): a turn that
+# runs until it is stopped (`wait`, which also takes a steer) and three
+# prompts queued behind it, one long, one Korean, one short. Checked
+# through `vessel session queue`, one line per entry after its heading.
+start_session laptop queued "wait"
+queued=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$queued" "> wait"
+for prompt in \
+  "After this, read the fold again and write down every place a batch that ends inside a message can lose a chunk, with the lines that do it" \
+  "끝나면 한글 세션의 제목도 같이 바꿔 주세요" \
+  "Then run the tests"; do
+  for _ in $(seq 1 50); do
+    cli --node laptop send "$queued" "$prompt" --queue > /dev/null 2>&1 && break
+    sleep 0.1
+  done
+done
+waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || true)
+[ "$waiting" -eq 3 ] || {
+  echo "fleet: session $queued lacks its three queued prompts (got: $waiting)" >&2
+  exit 1
+}
+
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash
 # A pairing link for laptop (single use, ten minutes).

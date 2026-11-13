@@ -190,7 +190,12 @@ pub(super) fn rail(
                 .text_size(px(12.0))
                 .line_height(px(16.0))
                 .text_color(neutral.foreground)
-                .child(div().line_clamp(2).child(item.prompt.clone()))
+                .child(
+                    div()
+                        .line_clamp(2)
+                        .text_ellipsis()
+                        .child(item.prompt.clone()),
+                )
         });
         div()
             .id(("outline-slot", index))

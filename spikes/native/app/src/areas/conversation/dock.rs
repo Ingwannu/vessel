@@ -16,12 +16,13 @@ use vessel_app_kit::ui::{AnyElement, Context, Window};
 
 use crate::shell::Shell;
 
-/// What shows right above the composer card; `None`: nothing.
-pub(crate) const fn dock(
-    _shell: &Shell,
-    _tokens: &Tokens,
-    _window: &mut Window,
-    _cx: &mut Context<'_, Shell>,
+/// What shows right above the composer card; `None`: nothing. Today the
+/// queue of prompts waiting their turn (`queue`).
+pub(crate) fn dock(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    None
+    super::queue::queue(shell, tokens, window, cx)
 }
