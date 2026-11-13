@@ -269,3 +269,13 @@ All three requested grant cases passed once alone on the original commit:
 reinstall, slow grant and stopping during a grant. These isolated passes
 do not erase the original whole-run failures or change their ownership.
 No grant test, timeout or product policy was changed by this track.
+
+The review correction checkpoint is `7032f3cd`. V1 read its complete
+22-file diff and confirmed that all three production source findings were
+addressed, with no additional blocking source finding. This is source
+review only: the reviewer did not execute the new fixtures, and gave no
+gate, integration or UI approval. A subsequent Clippy attempt found two
+unchecked clock additions in the precision fixture's helper; those use
+checked time arithmetic now. Production source is unchanged by that fix.
+The all-target check is retried; functional regression results remain
+unverified until actually recorded.

@@ -157,7 +157,9 @@ fn machine(values: &[f64]) -> vessel_proto::usage::UsageReport {
         )
         .unwrap();
         cost::ready(&db, session, &HarnessSessionId::new("fixture")).unwrap();
-        let at = now + chrono::TimeDelta::seconds(i64::try_from(position).unwrap());
+        let at = now
+            .checked_add_signed(chrono::TimeDelta::seconds(i64::try_from(position).unwrap()))
+            .unwrap();
         let _appended = log::append(
             &db,
             session,
@@ -176,7 +178,8 @@ fn machine(values: &[f64]) -> vessel_proto::usage::UsageReport {
             period: UsagePeriod::Day,
             after: None,
         },
-        now + chrono::TimeDelta::minutes(1),
+        now.checked_add_signed(chrono::TimeDelta::minutes(1))
+            .unwrap(),
     )
     .unwrap()
 }
