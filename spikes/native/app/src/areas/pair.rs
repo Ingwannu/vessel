@@ -146,7 +146,7 @@ impl Shell {
         pair.busy = false;
         pair.offer = None;
         self.notice = Some(self.t.paired(node, route));
-        self.route = Route::Draft;
+        self.route_to(Route::Draft);
         self.settle_draft();
         cx.notify();
     }
