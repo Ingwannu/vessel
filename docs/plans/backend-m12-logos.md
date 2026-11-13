@@ -464,3 +464,27 @@ checkpoint production code; only the corrected test data differs in the
 current source. This is standalone family evidence only. New row/header,
 pill, fitted Settings and final app visual evidence remains incomplete.
 The capture driver closed its application and virtual display.
+
+### Final saved hashes and handoff
+
+- `e8ffeaa2`: coherent optical/fitted control checkpoint, explicitly WIP.
+- `d99a376d`: exact cubic-extrema fixture/source-record correction and
+  closeout validation, explicitly WIP. The production prefix is unchanged.
+- The following closeout note records these immutable hashes; no current
+  corrected whole-gate, new full UI or full Job1 pass is asserted.
+
+V1 owns the pending review. G1/G2/G3 must retain their current fallback
+until V1 accepts a final control and its source/binary/capture manifest.
+E2/S2 still see the original three-theme API. The next session starts at
+this resume record and reruns the corrected native gate before completing
+new controls/app evidence. Full Job1 acceptance precedes Job2 (ADR0049).
+The old reviewed40 images remain untouched; four new family images were
+looked at, with a separate checkpoint-binary manifest. No new row/header,
+pill/Settings or final72 app review is claimed.
+
+Both own fake nodes and all22 descendants are stopped; their PID file is
+removed. The final comparison driver closed X236 and its applications.
+No cargo/gate command remains running after the recorded test failure.
+All work used UID1000 and no ownership/mode change, push or release was
+performed. Start a fresh isolated fleet on resume; do not trust scratch
+ready/PID sentinels or reuse old node-book ports.
