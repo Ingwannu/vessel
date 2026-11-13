@@ -35,7 +35,7 @@ mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
 pub use draw::{Content, Width, menu, menu_with};
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
-pub use item::{ItemStatus, MenuItem, Tone};
+pub use item::{Dismissal, ItemStatus, MenuItem, Tone};
 use std::rc::Rc;
 pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
@@ -157,4 +157,20 @@ fn next_index(items: &[MenuItem], from: Option<usize>, direction: Direction) -> 
 }
 fn selected_index(items: &[MenuItem], highlighted: Option<usize>) -> Option<usize> {
     highlighted.filter(|index| items.get(*index).is_some_and(MenuItem::selectable))
+}
+
+// Pointer and Enter converge here so a KeepOpen action cannot accidentally
+// close before its caller publishes pending state. Escape/outside still close.
+fn pointer_choice(state: &mut MenuState, item: &MenuItem, index: usize) -> Option<usize> {
+    if !item.selectable() {
+        return None;
+    }
+    if item.dismissal == Dismissal::Close {
+        state.close();
+    }
+    Some(index)
+}
+fn keyboard_choice(state: &mut MenuState, items: &[MenuItem]) -> Option<usize> {
+    let index = selected_index(items, state.highlighted)?;
+    pointer_choice(state, items.get(index)?, index)
 }

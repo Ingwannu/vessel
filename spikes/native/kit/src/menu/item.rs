@@ -21,6 +21,16 @@ pub enum ItemStatus {
     Pending(SharedString),
 }
 
+/// Whether activation dismisses the surface before invoking its caller.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Dismissal {
+    /// Legacy/default behaviour, including actions that open another surface.
+    #[default]
+    Close,
+    /// Direct writes keep pending/result feedback in the same open menu.
+    KeepOpen,
+}
+
 /// One menu row. Existing constructors preserve their old defaults.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
@@ -36,6 +46,8 @@ pub struct MenuItem {
     pub leading: Option<Glyph>,
     /// Idle or in progress. Pending remains non-selectable even if disabled is false.
     pub status: ItemStatus,
+    /// Default Close; direct writes opt into staying on the same surface.
+    pub dismissal: Dismissal,
 }
 impl MenuItem {
     /// An ordinary item, with no leading glyph or pending state.
@@ -48,6 +60,7 @@ impl MenuItem {
             starts_group: false,
             leading: None,
             status: ItemStatus::Idle,
+            dismissal: Dismissal::Close,
         }
     }
     /// A destructive item starting a group.
@@ -74,6 +87,11 @@ impl MenuItem {
             leading: Some(glyph),
             ..self
         }
+    }
+    /// Keep all presentation/state and choose the activation policy.
+    #[must_use]
+    pub fn with_dismissal(self, dismissal: Dismissal) -> Self {
+        Self { dismissal, ..self }
     }
     /// An in-progress action, with complete caller-localized words.
     #[must_use]

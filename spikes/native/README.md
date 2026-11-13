@@ -130,6 +130,9 @@ Labels shrink on one line, as Paseo's menu does; a stale keyboard position
 from a shortened list restarts at the appropriate end.
 Trigger vectors carry explicit SVG ink: this GPUI version does not inherit
 it from a parent. Only Schedule opts into its ancestor's hover ink.
+Items default to `Dismissal::Close`; direct writes opt into `KeepOpen` via
+`with_dismissal`. Pointer and keyboard share activation policy, while Escape
+and outside dismissal stay available and pending remains unselectable.
 
 `menu::trigger_with` takes `TriggerProfile::GitHeader` for the git overflow:
 16-point glyph, 26/32 visual square, 8-point outside hit allowance (42/48),

@@ -1,6 +1,6 @@
 //! The shared menu surface and row drawing, after Paseo's menu engine.
 use super::item::{Leading, paint};
-use super::{Direction, MenuHandlers, MenuItem, MenuState, selected_index};
+use super::{Direction, MenuHandlers, MenuItem, MenuState, keyboard_choice, pointer_choice};
 use crate::{
     fonts::Type,
     popup::{self, Surfaces},
@@ -109,8 +109,7 @@ pub fn menu_with<V: 'static>(
                 menu.step(&keys_items, Direction::Previous);
             }
             "enter" | "space" => {
-                if let Some(index) = selected_index(&keys_items, menu.highlighted) {
-                    menu.close();
+                if let Some(index) = keyboard_choice(menu, &keys_items) {
                     chose(view, index, window, cx);
                 }
             }
@@ -211,6 +210,7 @@ fn row<V: 'static>(
                 .child(crate::picker::one_line(item.words())),
         );
     if item.selectable() {
+        let choice = item.clone();
         element = element
             .cursor_pointer()
             .hover(move |style| style.bg(wash))
@@ -219,9 +219,10 @@ fn row<V: 'static>(
                 cx.stop_propagation();
             })
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
-                get(view).close();
-                chose(view, index, window, cx);
-                cx.notify();
+                if let Some(index) = pointer_choice(get(view), &choice, index) {
+                    chose(view, index, window, cx);
+                    cx.notify();
+                }
             }));
     }
     element.into_any_element()

@@ -240,3 +240,62 @@ fn each_actual_svg_has_its_own_ink_in_both_themes_and_profiles() {
         }
     }
 }
+
+#[gpui::test]
+fn pointer_and_keyboard_share_close_and_keep_open_policy(cx: &mut gpui::TestAppContext) {
+    // Paseo actions-split-button.tsx passes closeOnSelect=false to direct
+    // overflow writes. Modal openers and existing callers keep the default.
+    cx.update(|cx| {
+        assert_eq!(MenuItem::new("Write").dismissal, Dismissal::Close);
+        for keyboard in [false, true] {
+            for (dismissal, remains_open) in
+                [(Dismissal::Close, false), (Dismissal::KeepOpen, true)]
+            {
+                let item = MenuItem::new("Write").with_dismissal(dismissal);
+                let mut state = MenuState::new(cx);
+                state.at = Some(Placement::Pointer(point(px(10.0), px(20.0))));
+                state.highlighted = Some(0);
+                let selected = if keyboard {
+                    keyboard_choice(&mut state, &[item])
+                } else {
+                    pointer_choice(&mut state, &item, 0)
+                };
+                assert_eq!(selected, Some(0));
+                assert_eq!(state.is_open(), remains_open);
+            }
+        }
+    });
+}
+
+#[gpui::test]
+fn pending_disabled_and_stale_choices_do_not_activate_or_dismiss(cx: &mut gpui::TestAppContext) {
+    cx.update(|cx| {
+        let pending = MenuItem::new("Write")
+            .with_dismissal(Dismissal::KeepOpen)
+            .pending("Writing...");
+        assert_eq!(pending.dismissal, Dismissal::KeepOpen);
+        let mut disabled = MenuItem::new("Write");
+        disabled.disabled = true;
+        for item in [pending, disabled] {
+            for keyboard in [false, true] {
+                let mut state = MenuState::new(cx);
+                state.at = Some(Placement::Pointer(point(px(10.0), px(20.0))));
+                state.highlighted = Some(0);
+                let selected = if keyboard {
+                    keyboard_choice(&mut state, std::slice::from_ref(&item))
+                } else {
+                    pointer_choice(&mut state, &item, 0)
+                };
+                assert_eq!(selected, None);
+                assert!(state.is_open());
+                state.highlighted = Some(99);
+                assert_eq!(
+                    keyboard_choice(&mut state, std::slice::from_ref(&item)),
+                    None
+                );
+                state.close();
+                assert!(!state.is_open());
+            }
+        }
+    });
+}
