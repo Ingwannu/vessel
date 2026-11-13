@@ -30,6 +30,7 @@ mod palette;
 mod settings;
 mod shortcuts;
 mod sidebar;
+mod sync;
 mod update;
 pub mod workspace;
 

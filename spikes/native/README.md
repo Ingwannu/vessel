@@ -110,7 +110,25 @@ parallel page layout.
 The Devices page keeps invitation text outside text fields: only an
 explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
-state and stale-response tests live in `view/src/devices/`.
+state and stale-response tests live in `view/src/devices/`. Device rows
+have one access/last-use hint; exact pairing/last-use dates and all scopes
+stay in their tooltip. Ordinary paired rows have no repeated state badge.
+The area's `devices/row.rs` composes the shared row/button so a wrapped
+badge/action group retains its trailing edge; its bounds cases live beside
+it (verification status is in the G4 notes).
+
+Settings sections register their renderer in `settings::content` and their
+presence in `settings::drawn`; the latter controls navigation, so a page
+must appear in both. State and event slots are added only when needed.
+
+Sync is read-only: `link::sync` projects manifests into names and metadata
+before a UI event exists. Partial failures remain explicit; secret values
+and tool transport settings have no field in its screen model. Local
+commands use the kit's `settings::code_row` and trailing copy button; the
+app never executes them. Member rows keep one compact version/report hint;
+conflict paths and the received-copy suffix live only in the following
+alert. The home row's actual composition has a GPUI bounds regression in
+`app/src/areas/settings/sync/frame/tests.rs` (no app shell or node starts).
 
 ### Adding a kit control
 
@@ -339,7 +357,15 @@ Settings also has checked shapes (`scripts/settings-fixtures.py`): many
 paired devices, long and Korean names, a never-seen and a revoked device;
 a home bundle with instructions, skills and MCP names; a synthetic member
 behind version zero with kept edits. These fixture reports do not run a
-real member sync loop. The second machine has no paired devices.
+real member sync loop. The second machine has no paired devices. Sync
+shapes include a current long-name member, a Korean unreported member, an executable skill and
+present/missing/local-only secret names. `settings-fixtures.py empty ROOT`
+makes the disposable second node an instructions-only home (no servers);
+`settings-fixtures.py files-empty ROOT` makes it a server-only home (no files).
+Both provide empty member and secret lists. The server-only shape names an
+empty skills directory; a home naming neither an instructions file nor a
+skills directory is refused. That shape exercises an unavailable publication;
+`standalone ROOT` returns it to the default no-home shape.
 
 Normal-build captures always mask the invitation. Revealed-state model
 checks use inert, test-only invitations in `view/src/tests/devices.rs`;
@@ -537,8 +563,8 @@ belongs to `view`; the kit knows no node or session. The Invertocat's agent
 use requires explicit GitHub Copilot wording in the same row or tooltip
 (ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
 
-The artwork picker header requests16-point ink and reserves the official
-image viewport width, rather than its rows' common32-point column. A long header title follows the reference's
+The artwork picker header requests 16-point ink and reserves the official
+image viewport width, rather than its rows' common 32-point column. A long header title follows the reference's
 single-line ellipsis. Disabled artwork retains its approved colour/opacity;
 the words and controls are muted separately. Enter validates the current
 row's availability and bounds before dispatch. The 44-point touch model
@@ -596,3 +622,8 @@ For an initial Agents-loading capture, a FIFO named `discovery-gate` in a
 fake node's scratch home holds fake Codex's version probe until the node's
 own five-second bound ends it. Remove the FIFO before ordinary probes.
 The fleet checks this fixture in an isolated scratch home using `timeout`.
+
+The disposable settings fixture also checks read-only and session-access
+device rows. For an already-seeded fake fleet, `settings-fixtures.py
+row-access <fixture-root>` updates only its named inert records; fresh
+`fleet.sh` runs seed those scopes directly.

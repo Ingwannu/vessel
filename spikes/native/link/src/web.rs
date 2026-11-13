@@ -99,6 +99,12 @@ impl Link {
             Command::Machines(ask) => self.emit(Event::Machines(
                 ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
             )),
+            Command::Sync { ticket, .. } => self.emit(Event::Sync(crate::sync::Answer {
+                ticket,
+                result: Err(vessel_app_view::sync::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                )),
+            })),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);
