@@ -52,7 +52,8 @@ pub struct Card {
     pub structured: bool,
     /// Whether its process is alive (it takes prompts).
     pub live: bool,
-    /// What it is called (its title, else its folder, else its id).
+    /// What it is called: its title, else its folder's name, else empty
+    /// (the text table says "Untitled session", as the page's `titles.ts`).
     pub title: String,
     /// The machine it runs on.
     pub machine: String,
@@ -62,10 +63,9 @@ pub struct Card {
     pub lane: Option<Lane>,
     /// The card's status line.
     pub phrase: Phrase,
-    /// Whether it waits on its owner (the card leads its lane).
-    pub needs_you: bool,
-    /// Whether work is turning (the phrase's spinner, the sidebar's dot).
-    pub working: bool,
+    /// Whether it waits on its owner or is working (its dot, its edge, its
+    /// place in the lane).
+    pub attention: Attention,
     /// When it last did something.
     pub at: DateTime<Utc>,
 }
@@ -85,6 +85,18 @@ pub enum Phrase {
     Failed,
     /// The node stopped while it was live.
     Interrupted,
+}
+
+/// What a session asks of the eye: the page's `needsYou` and `isWorking`,
+/// one value since a session is never both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum Attention {
+    /// Nothing turning, nothing asked.
+    AtRest,
+    /// Work is turning (the phrase's spinner, the sidebar's blue dot).
+    Working,
+    /// It waits on its owner (the card leads its lane, a red edge).
+    NeedsYou,
 }
 
 /// Whether a machine answered.
@@ -167,7 +179,12 @@ impl Fleet {
             .flat_map(|machine| machine.sessions.iter())
             .filter(|card| card.lane == Some(lane))
             .collect();
-        cards.sort_by(|one, two| two.needs_you.cmp(&one.needs_you).then(two.at.cmp(&one.at)));
+        cards.sort_by(|one, two| {
+            let needs_you = |card: &Card| card.attention == Attention::NeedsYou;
+            needs_you(two)
+                .cmp(&needs_you(one))
+                .then(two.at.cmp(&one.at))
+        });
         cards
     }
 
@@ -181,7 +198,7 @@ impl Fleet {
             .flat_map(|machine| machine.sessions.iter())
             .filter(|card| card.lane.is_none())
             .collect();
-        cards.sort_by(|one, two| two.at.cmp(&one.at));
+        cards.sort_by_key(|card| std::cmp::Reverse(card.at));
         cards
     }
 
@@ -220,32 +237,34 @@ impl Card {
                     .and_then(|cwd| cwd.file_name())
                     .map(|name| name.to_string_lossy().into_owned())
             })
-            .unwrap_or_else(|| session.id.to_string());
+            .unwrap_or_default();
         let agent = agent_name(&session.spec.harness);
-        let (lane, phrase, needs_you, working, at) = match &session.board {
-            Some(board) => (
-                lane_of(board.column),
-                Phrase::Node(board.display_status),
-                needs_you(board.display_status),
-                working(board.display_status),
-                board.last_activity_at,
-            ),
-            None => {
-                let live = matches!(
-                    session.status,
-                    SessionStatus::Starting | SessionStatus::Running
-                );
+        let (lane, phrase, attention, at) = session.board.as_ref().map_or_else(
+            || {
+                // An older node: placed by the process's state.
+                let starting = matches!(session.status, SessionStatus::Starting);
                 (
-                    live.then_some(Lane::Building),
+                    session.status.is_live().then_some(Lane::Building),
                     phrase_of_status(&session.status),
-                    false,
-                    matches!(session.status, SessionStatus::Starting),
+                    if starting {
+                        Attention::Working
+                    } else {
+                        Attention::AtRest
+                    },
                     session.ended_at.unwrap_or(session.created_at),
                 )
-            }
-        };
+            },
+            |board| {
+                (
+                    lane_of(board.column),
+                    Phrase::Node(board.display_status),
+                    attention_of(board.display_status),
+                    board.last_activity_at,
+                )
+            },
+        );
         Self {
-            session: session.id.clone(),
+            session: session.id,
             structured: matches!(session.spec.mode, SessionMode::Structured { .. }),
             live: session.status.is_live(),
             title,
@@ -253,8 +272,7 @@ impl Card {
             agent,
             lane,
             phrase,
-            needs_you,
-            working,
+            attention,
             at,
         }
     }
@@ -277,22 +295,35 @@ const fn lane_of(column: KanbanColumn) -> Option<Lane> {
     }
 }
 
-const fn needs_you(status: DisplayStatus) -> bool {
-    matches!(
-        status,
-        DisplayStatus::Blocked | DisplayStatus::CiFailing | DisplayStatus::ChangesRequested
-    )
-}
-
-const fn working(status: DisplayStatus) -> bool {
-    matches!(
-        status,
+/// The page's `needsYou` (blocked, failing checks nobody fixes, changes
+/// a person requested) and `isWorking` (a turn or a loop turning).
+const fn attention_of(status: DisplayStatus) -> Attention {
+    match status {
+        DisplayStatus::Blocked | DisplayStatus::CiFailing | DisplayStatus::ChangesRequested => {
+            Attention::NeedsYou
+        }
         DisplayStatus::Working
-            | DisplayStatus::FixingCi
-            | DisplayStatus::AddressingComments
-            | DisplayStatus::Reviewing
-            | DisplayStatus::ReviewPending
-    )
+        | DisplayStatus::FixingCi
+        | DisplayStatus::AddressingComments
+        | DisplayStatus::Reviewing
+        | DisplayStatus::ReviewPending => Attention::Working,
+        DisplayStatus::Exited
+        | DisplayStatus::NoSignal
+        | DisplayStatus::Interrupted
+        | DisplayStatus::AwaitingPr
+        | DisplayStatus::Idle
+        | DisplayStatus::NeedsReview
+        | DisplayStatus::ReviewScheduled
+        | DisplayStatus::ReviewFailed
+        | DisplayStatus::Draft
+        | DisplayStatus::Commented
+        | DisplayStatus::NeedsHumanReview
+        | DisplayStatus::Mergeable
+        | DisplayStatus::Approved
+        | DisplayStatus::Merged
+        | DisplayStatus::Closed
+        | DisplayStatus::Terminated => Attention::AtRest,
+    }
 }
 
 const fn phrase_of_status(status: &SessionStatus) -> Phrase {

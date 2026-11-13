@@ -92,7 +92,7 @@ impl TextField {
     pub fn set_placeholder(&self, placeholder: &str, window: &mut Window, cx: &mut App) {
         let placeholder = placeholder.to_owned();
         self.state.update(cx, |state, cx| {
-            state.set_placeholder(placeholder, window, cx)
+            state.set_placeholder(placeholder, window, cx);
         });
     }
 

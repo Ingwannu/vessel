@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Vessel
+Comment=Machines, sessions and agents, from one window
+Exec="{EXEC}"
+Icon=vessel-app
+Terminal=false
+Categories=Development;

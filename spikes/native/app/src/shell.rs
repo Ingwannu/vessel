@@ -32,6 +32,19 @@ pub(crate) struct Shell {
     /// Whether the book has been read once (an empty fleet before then is
     /// not "no machines").
     pub(crate) loaded: bool,
+    /// The route was changed where no window was at hand (an event from
+    /// the link): what arriving does (focus, placeholders) runs on the
+    /// next frame.
+    arrive_pending: bool,
+    /// The updater, in a build that updates itself (`update.rs`).
+    pub(crate) updates: Option<crate::update::Updates>,
+    /// What it is doing, as last reported.
+    pub(crate) update_state: vessel_app_updater::UpdateState,
+    /// The person asked for a check (the About screen then says the
+    /// outcome, "up to date" included).
+    pub(crate) update_asked: bool,
+    /// The note shown once after an update, until dismissed.
+    pub(crate) updated: Option<crate::update::Updated>,
 }
 
 impl Shell {
@@ -54,7 +67,14 @@ impl Shell {
             prefs: Prefs::load(),
             notice,
             loaded: false,
+            arrive_pending: false,
+            updates: None,
+            update_state: vessel_app_updater::UpdateState::Idle,
+            update_asked: false,
+            updated: None,
         };
+        crate::update::start(&mut shell, cx);
+        shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
     }
@@ -63,6 +83,13 @@ impl Shell {
         if let Some(link) = &self.link {
             link.send(command);
         }
+    }
+
+    /// Show `route` from where no window is at hand; what arriving does
+    /// runs on the next frame.
+    pub(crate) fn route_to(&mut self, route: Route) {
+        self.route = route;
+        self.arrive_pending = true;
     }
 
     /// Show `route`.
@@ -81,17 +108,23 @@ impl Shell {
                     // With no machine there is nothing to type to: pairing
                     // is the first thing to do.
                     if self.fleet.machines.is_empty() {
-                        self.route = Route::Pair;
+                        self.route_to(Route::Pair);
                         self.pairing_opened(cx);
                     }
                 }
                 self.settle_draft();
+                self.retitle();
             }
             Event::Records { session, records } => self.records(&session, &records),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
+            Event::Options {
+                machine,
+                harness,
+                outcome,
+            } => self.options_arrived(machine, harness, outcome),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
@@ -135,6 +168,9 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        if std::mem::take(&mut self.arrive_pending) {
+            routes::arrive(self.route, self, window, cx);
+        }
         let tokens = tokens(cx);
         let frame = routes::render(self.route, self, &tokens, window, cx);
         let content = div()
@@ -162,6 +198,9 @@ impl Render for Shell {
                                 .border_color(tokens.border_faint)
                                 .rounded(px(vessel_app_kit::theme::radius::R5))
                                 .overflow_hidden()
+                                .children(self.updated.as_ref().map(|updated| {
+                                    areas::about::updated(self, updated, &tokens, cx)
+                                }))
                                 .child(frame)
                                 .children(
                                     self.notice

@@ -13,7 +13,8 @@ usage:
                           [--notes FILE] [--published TEXT]
                           --artifact TARGET:PACKAGING:PATH ...
   vessel-app-feed sums --key FILE DIR
-  vessel-app-feed check --feed DIR --public KEY --channel NAME";
+  vessel-app-feed check --feed DIR --public KEY --channel NAME
+  vessel-app-feed check-sums --public KEY DIR";
 
 /// One artifact named on the command line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,6 +51,10 @@ pub(crate) enum Command {
         feed: PathBuf,
         public: String,
         channel: Channel,
+    },
+    CheckSums {
+        public: String,
+        dir: PathBuf,
     },
 }
 
@@ -128,6 +133,15 @@ pub(crate) fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command,
             };
             options.none_left()?;
             Ok(command)
+        }
+        "check-sums" => {
+            let [dir] = take_positional::<1>(positional)?;
+            let public = options.required("public")?;
+            options.none_left()?;
+            Ok(Command::CheckSums {
+                public,
+                dir: dir.into(),
+            })
         }
         other => Err(bad(format!("unknown command {other:?}"))),
     }

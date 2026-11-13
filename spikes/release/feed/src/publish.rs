@@ -143,7 +143,7 @@ pub(crate) fn check(feed: &Path, public: &str, channel: &Channel) -> Result<Stri
 }
 
 /// A public key given as its base64 line or as a `.pub` file's path.
-fn public_key(given: &str) -> Result<PublicKey, FeedError> {
+pub(crate) fn public_key(given: &str) -> Result<PublicKey, FeedError> {
     if let Ok(key) = PublicKey::from_base64(given) {
         return Ok(key);
     }

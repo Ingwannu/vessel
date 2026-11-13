@@ -68,6 +68,34 @@ pub(crate) fn write(key: &Path, dir: &Path) -> Result<String, FeedError> {
     ))
 }
 
+/// Check `SHA256SUMS.minisig` in `dir` against `SHA256SUMS` with the
+/// release key's public half, and every listed file against its sum.
+pub(crate) fn check(public: &str, dir: &Path) -> Result<String, FeedError> {
+    let key = crate::publish::public_key(public)?;
+    let sums_path = dir.join(SUMS);
+    let sums = std::fs::read_to_string(&sums_path)
+        .map_err(io(format!("reading {}", sums_path.display())))?;
+    let signature_path = dir.join(SIGNATURE);
+    let signature = std::fs::read_to_string(&signature_path)
+        .map_err(io(format!("reading {}", signature_path.display())))?;
+    key.verify(sums.as_bytes(), &signature)
+        .map_err(|error| FeedError::Check(format!("{SIGNATURE}: {error}")))?;
+    let mut count: usize = 0;
+    for line in sums.lines() {
+        let (digest, name) = line
+            .split_once("  ")
+            .ok_or_else(|| FeedError::Check(format!("{SUMS}: not a sum line: {line}")))?;
+        let (_size, actual) = hash_file(&dir.join(name))?;
+        if actual.to_string() != digest {
+            return Err(FeedError::Check(format!("{name} does not match {SUMS}")));
+        }
+        count = count.saturating_add(1);
+    }
+    Ok(format!(
+        "{SIGNATURE} verifies with the given key; {count} file(s) match {SUMS}"
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,5 +126,11 @@ mod tests {
             .unwrap()
             .verify(sums.as_bytes(), &signature)
             .unwrap();
+        let _line = check(&public, dir.path()).unwrap();
+        std::fs::write(dir.path().join("a.exe"), b"changed").unwrap();
+        assert!(matches!(
+            check(&public, dir.path()),
+            Err(FeedError::Check(_))
+        ));
     }
 }

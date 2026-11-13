@@ -16,7 +16,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 
 | Crate | Owns | Must not |
 | --- | --- | --- |
-| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the text table** (`view/src/text.rs`, English and Korean) | use any UI toolkit; do I/O |
+| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, English and Korean, one file per area) | use any UI toolkit; do I/O |
 | `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels | use any UI toolkit |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::Text`) |
@@ -45,12 +45,16 @@ app/src/
   main.rs          the window (the kit's chrome), language, theme
   shell.rs         the window's state: route, fleet, prefs, areas; link events dispatched; the frame
   routes.rs        THE registry: `Route`, what draws each, what arriving does, the sidebar's list
-  chrome.rs        what is in the title bar
+  chrome.rs        what is in the title bar (the mark and label; the update's status at the right)
+  update.rs        the updater (track R's crate) on the shell: its state followed, check now,
+                   automatic or only when asked, restart into a new build, "Updated to …" once
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
     draft.rs       the new chat: composer first, its tray of pickers
     session.rs     a session: the conversation, the composer, permissions, stop
+    about.rs       the running build and its updates (until the settings track's About
+                   section takes it), and the note shown once after an update
     board.rs, archive.rs, sidebar.rs, pair.rs
 ```
 
@@ -61,9 +65,15 @@ app/src/
    inputs, same outputs; fixture files used by path, not copied).
 2. Its node calls in `link`: a `Command` variant, an `Event` variant
    when it answers, the call in `State::handle`.
-3. Its words in `view/src/text.rs`: a field per sentence in `Text`, the
-   English in `EN`, the Korean in `KO` (a field missing from one does not
-   compile); sentences with values are methods matching on `self.lang`.
+3. Its words in `view/src/text/<area>.rs`, a file of its own: a struct
+   `<Area>Words` with one field per sentence, an `EN` and a `KO`
+   constant of it (a sentence missing from one language does not
+   compile), sentences with values as methods matching on the language,
+   and `impl Lang { pub const fn <area>(self) -> &'static <Area>Words }`;
+   one `mod` line in `view/src/text/mod.rs`. `Lang` is the one switch
+   (the system's language or `VESSEL_APP_LANG`); the shell holds it
+   (`shell.t` is the lead's `Text`; `shell.t.lang` is the switch for any
+   area's words: `shell.t.lang.conversation()`).
 4. Its screen in `app/src/areas/<area>.rs` or `app/src/areas/<area>/`:
    a state type (fields: `TextField`s, choices), an `impl Shell` block
    for what a person does there (methods on the shell, so a click reaches
@@ -85,7 +95,7 @@ coordinator first, so two tracks do not write two.
 
 ### Rules every screen follows
 
-- Words through `view::Text` only; English and Korean together.
+- Words through `view/src/text/` only; English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
   generic family anywhere.
@@ -140,8 +150,14 @@ Environment:
 - `VESSEL_APP_LANG=ko|en`: the language (default: the system's).
 - `VESSEL_APP_THEME=light|dark`: the scheme (default: the system's).
 - `VESSEL_APP_SIZE=1280x800`: the window's size.
+- `VESSEL_APP_TITLEBAR=system`: the system's title bar and frame instead
+  of the app's own (the way out if the app's bar misbehaves on a
+  platform).
+- `VESSEL_APP_NO_UPDATE` (any value): no updates for this run.
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
+  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
+  updates itself; without them it never does.
 
 ## Trying it against fake nodes, and capturing a screen
 
