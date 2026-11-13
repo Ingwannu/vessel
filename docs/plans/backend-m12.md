@@ -360,12 +360,12 @@ left unassigned.
 | A session: queue, steer, interrupt-and-send, questions, context meter and compact, plans, usage line, pin, archive, delete, unread, find, outline, read marks, started sessions under their starter | track C | has it (A, W) |
 | A session as the agent's terminal; shell terminals | track C (the terminal's surface), track F (where shells sit) | has it (C) |
 | The composer: attachments, the agent's `/` commands, `@` a file, drafts per session, recall of sent messages, a selection sent as a comment | the lead (the card), track F (`@` and the selection) | has it (A, B) |
-| Agents: every agent of a machine, any ACP agent, installed and signed in, installing from the app, defaults per agent | the lead (the selector), track E (the Agents and Models pages) | has it (G) |
+| Agents: every agent of a machine, any ACP agent, installed and signed in, installing from the app, defaults per agent | the lead (the selector), track G3 (the Agents and Models pages) | has it (G) |
 | Approvals: in the session; everything waiting, from every machine, in one place | track C; track S (the board's lane, then the inbox) | the inbox is not built |
-| Projects, worktrees, the code panel, git, pull requests and their page | track F | has it (B, B2) |
+| Projects, worktrees, the code panel, git, pull requests and their page | track F; track G1 (the git menu, the pull request pages) | has it (B, B2) |
 | Scripts, services, ports and what opens | track F | has it (C); a browser panel is not built |
-| Machines, devices, pairing links, sync | the lead (pairing), track E | has it |
-| Schedules, the recurring prompt, saved prompts, webhooks | track E, after the settings pages | has it (D) |
+| Machines, devices, pairing links, sync | the lead (pairing), track E (machines), track G4 (devices, links, sync) | has it |
+| Schedules, the recurring prompt, saved prompts, webhooks | track G2 | has it (D), but not the webhook calls |
 | The board, the archive, the sidebar (group, sort, filter, pin), the command palette, shortcuts, notifications and sound | track S | has it; the inbox is not built |
 | Settings: themes, sizes, widths, shortcuts, languages, updates, logs, diagnostics | track E (the frame and the pages), track S (shortcuts), track R (updates, logs) | more themes are not built |
 | Rewind, fork, import from an agent's history, search across sessions, parking idle agents, a handoff to another agent | after the node has them: track C | track A2, started 2026-11-13 |
@@ -385,6 +385,57 @@ What limits the pace is the accounts, not the plan: three accounts give
 about an hour of four workers per five-hour window each, two of them
 with weekly room. Two app tracks (S and E) run on the stand-in capacity
 in the gaps.
+
+### Four added tracks, held strictly (2026-11-13)
+
+The owner asked for four more workers on a second model, and said how
+they are to work: code quality and everything said so far, held very
+tightly, and reviewed well. They take rows out of the table above so
+that nobody builds the same thing twice:
+
+| Track | Branch | Takes | From |
+|---|---|---|---|
+| G1 | `backend/m12-app-git` | the git menu of a session and the pull request pages | track F (who keeps projects, the code panel and the place pills) |
+| G2 | `backend/m12-app-schedules` | schedules, their runs, saved prompts | track E |
+| G3 | `backend/m12-app-agents` | Settings › Agents and Models | track E |
+| G4 | `backend/m12-app-devices` | Settings › Devices and Sync | track E (who keeps the frame, General, Appearance, Shortcuts, Machines) |
+
+[Decision Log]
+- Purpose: more of the table built per hour without the look or the
+  code slipping, on capacity that does not come out of the three
+  accounts' windows.
+- Constraints: a second model has not seen the owner's corrections of
+  this milestone; the owner's two complaints so far were both of work
+  that passed because nobody looked closely (short fake shapes, one
+  level of a picker checked).
+- Alternatives: give them node work (rejected: the wire and the store
+  are where a mistake costs most and A2 is in them); let them share
+  areas with the running tracks (rejected: two hands in one file);
+  merge on their own report (rejected: see the constraints).
+- Choice: four areas that touch no running track's files beyond a
+  registration line or a slot; one brief of strict rules (no escape
+  hatches in the code, types that carry meaning, logic in `view` and
+  tested there against the page's cases, kit controls only, real
+  shapes in both themes, sizes and languages); the coordinator reads
+  each slice line by line and looks at each capture before the lead
+  merges it, and a slice that breaks a rule goes back.
+- Costs: the review is the coordinator's time, so slices arrive one at
+  a time, not batched; two kit controls (a split button, a QR drawing)
+  are written by these tracks, not by the lead, and the lead may ask
+  for them reshaped.
+
+What the node does not send yet, found by these tracks in their first
+hour. The app draws none of it until the node has it (nothing shown may
+do nothing); each is for a node track:
+
+| Missing | Where it shows | Until then |
+|---|---|---|
+| Open pull requests of a project with no live session (`pr.list` walks watched sessions only) | the pull request page | the page is "pull requests of this machine's sessions" and says so |
+| The webhook calls (`hook.*`): ADR 0034 has the types and the store, not the calls, the listener or the CLI | schedules | no webhook screen |
+| A machine's time zone | schedules | a rule's own zone and the viewer's zone, each named |
+| The next runs of an expression before it is saved | the schedule editor | a preview computed in the app with the node's library and the node's test cases; the lasting fix is one implementation both call |
+| Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
+| The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 
 ## The browser, first report (2026-11-13)
 
