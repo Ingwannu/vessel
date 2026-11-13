@@ -75,34 +75,64 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .flatten()
                 .map(|status| div().px(px(10.0)).child(status)),
         )
+        .child(foot(shell, tokens, cx))
+}
+
+/// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
+/// hairline over one line, its items at the left and Settings, a gear, at
+/// the right end. Here the build and "새로고침" at the left; the gear opens
+/// About until the settings track's frame lands.
+fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let t = shell.t;
+    div()
+        .mx(px(-8.0))
+        .mb(px(-8.0))
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .px(px(8.0))
+        .py(px(6.0))
+        .border_t_1()
+        .border_color(tokens.neutral.border)
+        .type_(Type::Tiny)
+        .text_color(tokens.text_tertiary)
+        .child(
+            // The build, and its updates: the About screen.
+            div()
+                .id("build")
+                .pl(px(2.0))
+                .cursor_pointer()
+                .hover(|style| style.text_color(tokens.text_secondary))
+                .child(t.build(crate::LABEL))
+                .on_click(cx.listener(|this, _event, window, cx| {
+                    this.go(Route::About, window, cx);
+                })),
+        )
+        .child("·")
         .child(
             div()
-                .flex()
-                .flex_row()
-                .gap(px(6.0))
-                .px(px(10.0))
-                .type_(Type::Tiny)
-                .text_color(tokens.text_tertiary)
-                .child(
-                    // The build, and its updates: the About screen.
-                    div()
-                        .id("build")
-                        .cursor_pointer()
-                        .hover(|style| style.text_color(tokens.text_secondary))
-                        .child(t.build(crate::LABEL))
-                        .on_click(cx.listener(|this, _event, window, cx| {
-                            this.go(Route::About, window, cx);
-                        })),
-                )
-                .child("·")
-                .child(
-                    div()
-                        .id("reload")
-                        .cursor_pointer()
-                        .hover(|style| style.text_color(tokens.text_secondary))
-                        .child(t.reload)
-                        .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
-                ),
+                .id("reload")
+                .cursor_pointer()
+                .hover(|style| style.text_color(tokens.text_secondary))
+                .child(t.reload)
+                .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
+        )
+        .child(div().flex_1())
+        .child(
+            vessel_app_kit::pill_parts(
+                "settings",
+                vessel_app_kit::PillParts {
+                    leading: Some(vessel_app_kit::assets::Glyph::Gear),
+                    ..vessel_app_kit::PillParts::default()
+                },
+                shell.route == Route::About,
+                false,
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, window, cx| {
+                this.go(Route::About, window, cx);
+            })),
         )
 }
 
