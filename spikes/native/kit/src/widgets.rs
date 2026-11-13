@@ -47,13 +47,128 @@ pub trait TypeExt: Styled + Sized {
 
 impl<E: Styled> TypeExt for E {}
 
-/// A button, as Paseo's (`components/ui/button.tsx`, size `md`): a pill
-/// at least 32 tall, 16 across, 14 at weight 500, a clear hairline; the
-/// primary one the accent with white words, the secondary `surface3` with
-/// the foreground's; pressed at 85%. No hover fill (Paseo sets none).
-/// A label wider than the room the button has wraps inside it, centred, as
-/// Paseo's `Text` does (a permission's longest answer on a phone was cut
-/// by the panel): the button is never wider than its container.
+/// Filled button meanings from Paseo's Button (`default`, `secondary`,
+/// `destructive`). Outline and ghost are outside this entry point.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonKind {
+    /// The primary action, in the app's brand accent.
+    Primary,
+    /// An ordinary action on surface3.
+    Secondary,
+    /// A destructive action, with its own foreground independent of the accent.
+    Destructive,
+}
+
+/// Whether the caller may attach a handler. Disabled buttons keep their words
+/// but have no pointer or pressed/hover treatment, as Paseo's Pressable does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonState {
+    /// Ready for the caller's handler.
+    Enabled,
+    /// The caller attaches no handler.
+    Disabled,
+}
+
+const BUTTON_HEIGHT: gpui::Pixels = px(32.0);
+const BUTTON_HORIZONTAL: gpui::Pixels = px(16.0);
+const BUTTON_GAP: gpui::Pixels = px(8.0);
+
+#[derive(Debug, Clone, Copy)]
+enum ButtonPhase {
+    Idle,
+    Hovered,
+    Pressed,
+    Disabled,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ButtonPaint {
+    fill: Hsla,
+    border: Hsla,
+    text: Hsla,
+    opacity: f32,
+}
+
+fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> ButtonPaint {
+    let neutral = tokens.neutral;
+    let (fill, text) = match kind {
+        ButtonKind::Primary => (neutral.accent, neutral.accent_foreground),
+        ButtonKind::Secondary => (neutral.surface3, neutral.foreground),
+        ButtonKind::Destructive => (neutral.destructive, neutral.destructive_foreground),
+    };
+    ButtonPaint {
+        fill,
+        border: fill,
+        text,
+        opacity: match phase {
+            ButtonPhase::Idle | ButtonPhase::Hovered => 1.0,
+            ButtonPhase::Pressed => 0.85,
+            ButtonPhase::Disabled => 0.5,
+        },
+    }
+}
+
+/// A filled button, after Paseo's `button.tsx` and `control-geometry.ts`.
+///
+/// [Decision Log]
+/// - Purpose: every delete confirmation needs the same destructive control.
+/// - Constraint: existing callers still pass a primary bool; an accent's text
+///   may change with a brand/theme and cannot stand in for destructive text.
+/// - Alternatives: screen-local red overrides; change every caller at once.
+/// - Choice: typed kind/state, the existing pill geometry and wrapping label;
+///   fill-coloured border, no hover colour change, pressed85%, disabled50%.
+/// - Why: one entry owns these values; the compatibility wrapper can retire
+///   separately, without a second look for confirmations.
+/// - Cost: a disabled caller attaches no handler, like the kit's outline button.
+#[must_use]
+pub fn button_with_kind(
+    id: impl Into<gpui::ElementId>,
+    label: impl Into<SharedString>,
+    kind: ButtonKind,
+    state: ButtonState,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let phase = match state {
+        ButtonState::Enabled => ButtonPhase::Idle,
+        ButtonState::Disabled => ButtonPhase::Disabled,
+    };
+    let paint = button_paint(kind, phase, tokens);
+    let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
+    let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
+    div()
+        .id(id)
+        .flex()
+        .flex_row()
+        .items_center()
+        .justify_center()
+        .gap(BUTTON_GAP)
+        .min_h(BUTTON_HEIGHT)
+        .min_w_0()
+        .max_w_full()
+        .px(BUTTON_HORIZONTAL)
+        .rounded_full()
+        .border_1()
+        .border_color(paint.border)
+        .bg(paint.fill)
+        .text_color(paint.text)
+        .opacity(paint.opacity)
+        .type_(Type::Label)
+        .when(state == ButtonState::Enabled, |button| {
+            button
+                .cursor_pointer()
+                .hover(move |style| {
+                    style
+                        .bg(hover.fill)
+                        .text_color(hover.text)
+                        .border_color(hover.border)
+                })
+                .active(move |style| style.opacity(pressed.opacity))
+        })
+        .child(wrapping(label.into()))
+}
+
+/// Compatibility entry point. The lead retires this bool API after migrating
+/// its callers; all drawing already delegates to the typed entry point.
 #[must_use]
 pub fn button(
     id: impl Into<gpui::ElementId>,
@@ -61,32 +176,12 @@ pub fn button(
     primary: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    let (bg, fg) = if primary {
-        (neutral.accent, neutral.accent_foreground)
+    let kind = if primary {
+        ButtonKind::Primary
     } else {
-        (neutral.surface3, neutral.foreground)
+        ButtonKind::Secondary
     };
-    div()
-        .id(id)
-        .flex()
-        .flex_row()
-        .items_center()
-        .justify_center()
-        .gap(px(8.0))
-        .min_h(px(32.0))
-        .min_w_0()
-        .max_w_full()
-        .px(px(16.0))
-        .rounded_full()
-        .border_1()
-        .border_color(gpui::transparent_black())
-        .bg(bg)
-        .text_color(fg)
-        .type_(Type::Label)
-        .cursor_pointer()
-        .active(|style| style.opacity(0.85))
-        .child(wrapping(label.into()))
+    button_with_kind(id, label, kind, ButtonState::Enabled, tokens)
 }
 
 /// A button's label: on one line while it fits, wrapped and centred when
@@ -223,3 +318,6 @@ pub fn mark_mono(size: f32, color: Hsla) -> gpui::Svg {
         .flex_shrink_0()
         .text_color(color)
 }
+
+#[cfg(test)]
+mod button_tests;
