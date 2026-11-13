@@ -46,6 +46,7 @@ pub(crate) fn turn_ended(seq: u64) -> Arc<EventRecord> {
         AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
+            point: None,
         },
     )
 }

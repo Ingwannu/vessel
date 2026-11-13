@@ -178,6 +178,9 @@ const fn refused(method: Method) -> bool {
         // change needs `admin`, which no agent holds.
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+        // Forking and rewinding a session it may operate (ADR 0052).
+        | Method::ForkSession
+        | Method::RewindSession
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

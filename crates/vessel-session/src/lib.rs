@@ -121,6 +121,7 @@ mod conversation;
 mod delivery;
 mod error;
 mod forge;
+mod forking;
 mod handle;
 mod lifecycle;
 mod marks;
@@ -138,13 +139,15 @@ pub mod terminals;
 pub use again::{Ended, Gate, NotResumable, Relaunch, Reopening, resumable};
 pub use attachments::{AttachmentError, AttachmentLoader, LoadAttachments};
 pub use config::{DEFAULT_DURABLE_CAPACITY, DEFAULT_RING_CAPACITY, RuntimeConfig};
-pub use error::{DeliveryError, InputKind, ModeKind, ParkRefusal, RemoveError, SessionError};
+pub use error::{
+    DeliveryError, InputKind, ModeKind, ParkRefusal, RemoveError, RewindRefusal, SessionError,
+};
 pub use forge::ForgeView;
 pub use handle::SessionHandle;
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use ring::{Follow, FollowError};
-pub use runtime::{Created, LaunchOptions, SessionRuntime};
+pub use runtime::{Created, ForkStart, LaunchOptions, SessionRuntime};
 /// Suggested [`RuntimeConfig::agent_handshake_timeout`].
 pub use vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT;
 /// What `SessionRuntime::probe` learned (re-exported so the node needs no

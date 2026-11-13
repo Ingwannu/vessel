@@ -20,6 +20,7 @@ mod error;
 mod event;
 mod fleet;
 pub mod forge;
+pub mod forking;
 mod forward;
 mod harness;
 mod id;
@@ -53,7 +54,7 @@ pub mod workspace;
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
     PermissionRequest, PlanEntry, PlanPriority, PlanStatus, StopReason, ToolCall, ToolCallContent,
-    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
+    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnPoint,
 };
 pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
@@ -80,10 +81,10 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId, NodeId,
-    OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
-    RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId, ToolCallId,
-    TransferId, UploadId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
+    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
+    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
+    ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

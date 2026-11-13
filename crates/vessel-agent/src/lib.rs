@@ -67,7 +67,7 @@ mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
 pub use error::{AgentError, Disconnect, InputError};
-pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT};
+pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
 pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};

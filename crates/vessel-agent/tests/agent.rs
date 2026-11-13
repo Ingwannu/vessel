@@ -42,6 +42,7 @@ mod support {
             mcp_servers: vessel_proto::ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions: false,
+            fork: None,
         }
     }
 
@@ -214,6 +215,7 @@ async fn a_full_turn_with_a_permission_round_trip() {
                     resume: true,
                     image: true,
                     audio: false,
+                    fork: true,
                 })
             }
         );
@@ -250,7 +252,8 @@ async fn a_full_turn_with_a_permission_round_trip() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
 
@@ -412,7 +415,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
 
@@ -423,7 +427,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         // Cancelling with no turn running is a no-op.
@@ -466,6 +471,7 @@ async fn resuming_loads_the_session_and_replays_its_history() {
                     resume: true,
                     image: true,
                     audio: false,
+                    fork: true,
                 })
             })
         );
@@ -611,7 +617,8 @@ async fn cancel_gets_through_a_flood_of_updates() {
             end,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         cancelled.await.unwrap().unwrap();
@@ -635,7 +642,8 @@ async fn entries_sends_updates_of_kinds_in_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         let turn = after(&agent.events, &started);
@@ -769,7 +777,8 @@ async fn a_permission_request_arriving_after_a_cancel_is_answered_cancelled() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         for event in &agent.events {

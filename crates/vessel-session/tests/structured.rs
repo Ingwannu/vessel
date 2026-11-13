@@ -241,7 +241,9 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::CommandsChanged { .. }
         | SessionEvent::UsageChanged { .. }
         | SessionEvent::Parked { .. }
-        | SessionEvent::Woken => None,
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 
@@ -303,6 +305,7 @@ async fn status_follows_the_acp_handshake() {
                             resume: true,
                             image: true,
                             audio: false,
+                            fork: true,
                         })
                     }
                 },
@@ -376,7 +379,8 @@ async fn a_turn_with_a_permission_round_trip() {
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
-                    usage: None
+                    usage: None,
+                    point: None,
                 }
             }
         );

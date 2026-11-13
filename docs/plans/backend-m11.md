@@ -8891,3 +8891,156 @@ switch, hidden when the host lacks the setting). Vessel: read
 on `unsupported` or `invalid_request` (a node older than 12); a device
 without `admin` gets `forbidden` on a change.
 
+
+### 3. Rewind and fork: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against
+Vessel's code and both installed adapters. Every claim about the
+adapters held (both advertise `fork`, both read the same anchor, an
+unknown id is `invalid_params`; Claude cuts at the last entry of that API
+message id, Codex keeps the whole turn; live and replayed ids agree:
+Claude's API message id, Codex's item id). Three blockers, seven
+should-fix, a few minor points. What changed; where this section and the
+contract disagree, this one holds:
+
+1. **Blocker: a rewind was lost by the next move, resume, export or
+   fork**, which read the harness session id from the last `ready`
+   (`SessionInfo.harness_session` and the store's column), and a
+   restarted agent's `ready` is dropped with its replay. `rewound`
+   carries the new `harness_session`; the store's projection and the
+   session's info take it from there as from `ready` (the column exists:
+   no schema change), and the actor's launch resumes it.
+2. **Blocker: "no new session if the check fails"** contradicted
+   creation, which answers once the actor starts. `session.fork` answers
+   at creation, as `session.create` does; a failed check ends the fork
+   `failed` ("the agent did not fork at the point"). The fork's actor
+   drops the load's replay and publishes its first `ready`, as a session
+   started again does.
+3. **Blocker: `place`** would put a Claude fork's transcript in the
+   source's project folder (the SDK writes it there) where a later move
+   or export of the fork, which looks under the fork's own folder, would
+   not find it. Dropped: a fork runs in the source's folder.
+4. **The check can pass a wrong fork**: (a) when the turns after the
+   point have no agent message (cancelled, failed, tool-only), a head
+   fork's last agent message is the anchor too: the check also requires
+   that no user message follows the anchor's in the replay; (b) Claude's
+   TodoWrite and Task tools arrive as `plan`, not as a tool call, and a
+   final message of only thinking: a point is a turn whose last agent
+   message is followed by nothing but usage and the turn's end (a thought,
+   a plan, a tool call or its update disqualify it). The check takes the
+   last id seen, skipping chunks without one (Codex's notices).
+5. **Simpler, taken**: the point is the turn's, not every chunk's:
+   `TurnEnded.point?: AgentMessageId`, set by `vessel-agent`'s driver
+   when the rule above holds; chunks carry no id. One rule, one place;
+   records stay the size they were.
+6. **A parked session is woken first**, then rewound, as a move does.
+7. **A failed check in a rewind** stops the fork's agent (it is alive and
+   ready) before the old conversation starts again, with the session's
+   current choices.
+8. **Branch switching**: a fork or rewind at a point uses the harness
+   session id in force when that turn ended (the last `ready` or
+   `rewound` before it), so a fork from a point a rewind left behind
+   takes the old conversation, which still holds it.
+9. **Errors**: the agent's `invalid_params` on an anchored fork is
+   `unsupported`; a profile removed since is `not_found` naming it; an
+   agent whose fork handshake does not advertise `fork` is `unsupported`
+   (sessions started before 12 stored no `fork` ability: the fork's own
+   handshake decides).
+10. **Retention** prunes a session's oldest records first, the fork's
+    `forked` record with them (only past 64 MiB of a session's log);
+    said in the docs, not kept elsewhere.
+11. **Not offered, listed**: merging a fork back (GOAT); a fork that
+    carries the transcript as context for agents without `fork`
+    (agent-orchestrator, Paseo); a failed turn as a point (its last
+    message may be cut); restoring files. `rewound.files_changed` (new):
+    how many tool calls left behind edited, deleted or moved files, so a
+    client can warn that the files were not put back.
+12. **The fork's creation** goes through `session.create`'s own path
+    (draining and installing refusals, the caller's profile grant, an
+    agent's limits and its `vessel` credential, a routed profile's model
+    token, the forge's watch); its MCP servers are resolved for it, never
+    copied from the source's launch.
+
+**One start for the check**: `session/fork` then `session/load` of the
+fork on the same connection, as the reviewer suggested: both adapters
+load a session that is already open (`claude-agent-acp`'s `loadSession`
+reads the transcript again and replays it; `codex-acp` reattaches and
+replays), so a fork costs one agent start, not two.
+
+### 3. Rewind and fork (built 2026-11-13)
+
+Protocol 12 (no new version), no schema change, ADR 0052. The design is
+the contract as its review amended it (above).
+
+Renumbered when the node integrator merged it on milestone 12's node
+line (`backend/m12-node`): protocol 13 there was already N3's schedule
+preview, and an app built at 13 has no variant for `forked` and
+`rewound`, so the two calls and the two records are `since 14` (a
+version 2-13 client reads the `vessel:` lines); `TurnEnded.point` and
+`AgentAbilities.fork` are optional fields older clients skip. What
+follows is as built on this branch, at 12.
+
+- **Wire**: `session.fork` and `session.rewind` (operate, `since 12`,
+  forwardable, through `vessel-web`'s bridge and to agents),
+  `ForkSession`, `RewindSession`, `AgentAbilities.fork`, `AgentMessageId`
+  (a handle alias), `TurnEnded.point?: TurnPoint { message, conversation
+  }`, the records `forked { from, after? }` and `rewound { after,
+  harness_session, files_changed }` with `vessel:` log lines for versions
+  2 to 11.
+- **Agent** (`vessel-agent`): the crate's `unstable_session_fork`;
+  `AgentSetup.fork` (`ForkFrom`); the handshake's `session/fork` with the
+  anchor in `_meta.jetbrains.air.fork`, then, for a point, `session/load`
+  of the fork on the same connection; the driver's `tail` (the last agent
+  message, what followed it): a turn's point at `TurnDone`, and the check
+  of a fork's replay at `Started` (`ForkRefusal::NotAtPoint`).
+- **Session runtime**: `LaunchOptions.fork` (`ForkStart`): the fork's
+  `forked` record first, its check's replay dropped, the fork cleared at
+  `ready`; `forking` (the actor's rewind: input held, the agent stopped
+  and started on the fork, the old conversation again on any failure,
+  `rewound` with the new id); `SessionHandle::rewind`; `RewindRefusal`,
+  `ForkRefused`, `RewindFailed`.
+- **Store**: the projection takes `rewound.harness_session` as it takes
+  `ready`'s.
+- **Node**: `service/forking` (the point from the `turn_ended` record;
+  the fork through `create_starting`, `session.create`'s path; the
+  rewind's count of file changes left behind from the stored records).
+- **CLI**: `vessel session fork ID [--after SEQ]`, `vessel session rewind
+  ID --after SEQ`; `vessel log` says `fork or rewind --after N` on a turn's
+  end that has a point, and shows both records.
+- **Agents**: `fork_session`, `rewind_session` (45 tools).
+- **`fake-acp`**: message ids on `plain`'s reply, `session/fork` reading
+  the anchor as the real adapters do (`FAKE_ACP_NO_FORK`,
+  `FAKE_ACP_FORK_IGNORES_POINT`), a fork's replay ending where it was
+  made.
+
+**Checked**: the driver's tail (a point only when nothing followed the
+message; an id too long; a replay that a user message follows); the
+node's end to end with the fake agent: a fork after the first of two
+turns runs on `fork~<conversation>~<message>`, its log starts with
+`forked`, the check's replay is not in it, the source untouched, and a
+fork of the whole conversation; a rewind to the first turn answers the
+new conversation, logs `rewound`, and goes on there, and a fork from the
+second turn, which the rewind left behind, still takes the old
+conversation; an agent that ignores the point: the rewind refused
+`unsupported` with the old conversation going on and no `rewound`, and a
+fork of it ending `failed` "did not fork at the point"; a record that is
+not a turn's end (`unsupported`), one that does not exist (`not_found`),
+a running turn (`conflict` for a rewind and a whole fork), an agent
+without `session/fork` (`unsupported`, and the session goes on).
+
+**Not built, and why**: the reviewer's list (merging back, a transcript
+carried as context, a failed turn as a point, files); checking a real
+`codex-acp` fork end to end (the adapter keeps item ids in `thread/fork`
+per its source, not run here: no prompt to a real agent tonight).
+
+**For the conversation track** (C): Paseo's rewind is
+`packages/app/src/components/rewind/rewind-menu.tsx` and
+`composer-restore.tsx`, from a message's actions (`components/message.tsx`;
+`agent.rewind.request`, server `agent/rewind/rewind.ts`), and GOAT's "Edit from here"
+(`apps/web/src/components/chat/useTimelineRewind.ts`). Vessel: a turn's
+end with `point` offers "Fork from here" (`session.fork { after: seq }`)
+and "Rewind to here" (`session.rewind`); "Edit from here" on a prompt is
+a rewind to the turn before it with the prompt back in the composer; a
+fork's view shows its source's records up to `after` above its own
+(`forked`); a `rewound` record folds the records between `after` and it,
+and says `files_changed` when it is not 0.

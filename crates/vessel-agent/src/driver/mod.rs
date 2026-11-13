@@ -51,6 +51,7 @@ mod commands;
 mod connection;
 mod questions;
 mod steer;
+mod tail;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -61,11 +62,11 @@ use agent_client_protocol::{Agent, Error};
 use tokio::sync::mpsc;
 use vessel_proto::{
     AgentAbilities, AgentCommand, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId,
-    OptionId, QuestionId, SessionOption, ToolCallId,
+    OptionId, QuestionId, SessionOption, ToolCallId, TurnPoint,
 };
 
 use crate::error::Disconnect;
-use crate::handshake::{self, AgentSetup, HandshakeError, Started};
+use crate::handshake::{self, AgentSetup, ForkRefusal, HandshakeError, Started};
 use crate::input::{Command, OptionsReply, SteerReply};
 use crate::mapper;
 use crate::options::{Applied, Options};
@@ -134,6 +135,9 @@ struct Driver {
     /// Tool calls already announced on the timeline.
     /// Recent ones only, so a long session does not keep them all.
     tool_calls: Recent<ToolCallId>,
+    /// The agent's last message and what followed it: a turn's point and
+    /// a fork's check (protocol 14, `tail`).
+    tail: tail::Tail,
     /// Holds the agent's lines back while this loop is behind (see
     /// `transport`); each update and permission request taken from
     /// `inbound` returns its permit.
@@ -202,15 +206,39 @@ impl Driver {
         }
     }
 
+    /// The turn's point (protocol 14): its last agent message, in the
+    /// conversation now open.
+    fn point(&self) -> Option<TurnPoint> {
+        let message = self.tail.point()?;
+        let session = self.session.as_ref()?;
+        Some(TurnPoint {
+            message,
+            conversation: HarnessSessionId::new(Arc::clone(&session.0)),
+        })
+    }
+
     /// Apply one inbound item; `Some` ends the session.
     async fn handle(&mut self, cx: &ConnectionTo<Agent>, item: Inbound) -> Option<Disconnect> {
         match item {
             Inbound::Started(Ok(Started {
                 session,
+                fork_point,
                 options,
                 abilities,
                 introduction,
             })) => {
+                // A fork at a point is checked against its replay, which
+                // came before this (protocol 14, ADR 0052).
+                if let Some(anchor) = fork_point
+                    && !self.tail.ends_with(&anchor)
+                {
+                    tracing::info!(%anchor, "the agent's fork does not end at its point");
+                    return Some(Disconnect::Handshake {
+                        message: String::from("the agent did not fork at the point"),
+                        refused: None,
+                        fork_refused: Some(ForkRefusal::NotAtPoint),
+                    });
+                }
                 let harness_session = HarnessSessionId::new(Arc::clone(&session.0));
                 self.session = Some(session);
                 self.options = options;
@@ -231,6 +259,7 @@ impl Driver {
                 return Some(Disconnect::Handshake {
                     message: describe(&error),
                     refused: error.refused().map(Box::new),
+                    fork_refused: error.fork_refused(),
                 });
             }
             Inbound::Update(notification) => {
@@ -255,6 +284,7 @@ impl Driver {
                     Ok(response) => AgentEvent::TurnEnded {
                         reason: mapper::stop_reason(response.stop_reason),
                         usage: response.usage.as_ref().map(mapper::turn_usage),
+                        point: self.point(),
                     },
                     Err(error) => AgentEvent::TurnFailed {
                         message: describe(&error),
