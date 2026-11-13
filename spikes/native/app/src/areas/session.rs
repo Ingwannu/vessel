@@ -2,7 +2,8 @@
 //! section 6.15: the prompt in the interface face, as the page draws it,
 //! monospace being for code and the terminal only; the agent's reply as
 //! Markdown body text; thoughts quieter, tool calls as rows with their
-//! state; the composer a surface at the foot; a permission above it).
+//! state; the composer a surface at the foot; over it, the conversation's slot:
+//! a permission, a question, the queue).
 //!
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
@@ -15,15 +16,15 @@
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
+    AnyElement, Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
+use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::prefs::TurnDelivery;
-use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_app_view::{Card, Conversation};
+use vessel_proto::{Delivery, EventRecord, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -332,23 +333,6 @@ impl Shell {
             cx.notify();
         }
     }
-
-    pub(crate) fn answer(
-        &mut self,
-        id: PermissionId,
-        option: PermissionOptionId,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(open) = &self.areas.session.open {
-            self.command(Command::Answer {
-                machine: open.machine.clone(),
-                session: open.session,
-                id,
-                option,
-            });
-            cx.notify();
-        }
-    }
 }
 
 pub(crate) fn render(
@@ -393,12 +377,6 @@ pub(crate) fn render(
             cx,
         ))
         .child(body)
-        .children(
-            view.conversation
-                .asked()
-                .first()
-                .map(|asked| permission(asked, shell, tokens, cx)),
-        )
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
@@ -540,47 +518,6 @@ fn composer(
             .child(div().flex().flex_row().justify_end().child(button)),
     )
     .pb(px(12.0))
-}
-
-/// The oldest permission waiting: what it is for, and a button per answer
-/// (the allowing ones primary).
-fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    // Wrapped: four long answers do not fit a phone's width.
-    let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    let buttons = asked.buttons(shell.t.lang.conversation());
-    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
-        let id = asked.id;
-        answers = answers.child(
-            button(
-                ElementId::Name(format!("answer-{index}").into()),
-                words,
-                allows,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.answer(id, option.clone(), cx);
-            })),
-        );
-    }
-    // In the chat column (`column`), so its edges are the composer's.
-    let card = div()
-        .w_full()
-        .p(px(12.0))
-        .flex()
-        .flex_col()
-        .gap(px(8.0))
-        .bg(tokens.bg_surface)
-        .border_1()
-        .border_color(tokens.st_needs_you)
-        .rounded(px(vessel_app_kit::theme::radius::R4))
-        .child(
-            div()
-                .type_(Type::Label)
-                .text_color(tokens.text_primary)
-                .child(shell.t.asks_to_run(asked.what.as_deref())),
-        )
-        .child(answers);
-    column(card).mb(px(8.0))
 }
 
 /// The first line of a prompt, at most 80 characters (the node's rule

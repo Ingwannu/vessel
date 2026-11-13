@@ -270,7 +270,11 @@ checked through `vessel session queue`: the queue above the composer is
 checked against it. Two more, `ask questions` and `ask one`, are left
 waiting on what Claude's adapter sends for its `AskUserQuestion` (three
 questions, one choosing several and one in Korean, and one question):
-the question card is checked against them.
+the question card is checked against them. Three more, `permit plan`,
+`permit codex` and `permit two`, are left waiting on permission requests
+in the real adapters' shapes (Claude Code leaving plan mode with five
+"always" answers, Codex's five answers, two at once): the permission card
+is checked against them and the `shapes-asking` session's long command.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

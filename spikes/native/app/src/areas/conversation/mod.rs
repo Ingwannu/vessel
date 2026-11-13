@@ -30,6 +30,7 @@ mod entries;
 mod find;
 mod look;
 mod outline;
+mod permission;
 mod question;
 mod queue;
 mod rename;
@@ -129,6 +130,11 @@ pub(crate) struct ConversationArea {
     pub(crate) queue_edit: Option<queue::QueueEdit>,
     /// The question waiting first, being answered over the composer.
     pub(crate) answering: Option<question::Answering>,
+    /// A permission's answer being sent.
+    pub(crate) permit_sending: Option<permission::Sending>,
+    /// Whether a plan request's plan is folded (Paseo's plan card opens
+    /// unfolded).
+    pub(crate) plan_folded: bool,
     /// The find bar, while it is open.
     pub(crate) find: Option<find::FindBar>,
     /// Each entry's folded text for find, kept between searches of the
@@ -162,6 +168,8 @@ impl ConversationArea {
             rename: None,
             queue_edit: None,
             answering: None,
+            permit_sending: None,
+            plan_folded: false,
             outline: Vec::new(),
             outline_pointer: outline::Pointer::default(),
             find: None,
@@ -231,6 +239,8 @@ impl Shell {
         area.outline.clear();
         area.queue_edit = None;
         area.answering = None;
+        area.permit_sending = None;
+        area.plan_folded = false;
         area.outline_pointer = outline::Pointer::default();
         self.command(Command::Act {
             machine: machine.to_owned(),
