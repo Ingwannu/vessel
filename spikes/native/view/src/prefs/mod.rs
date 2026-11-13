@@ -370,6 +370,16 @@ pub enum Kept {
     },
 }
 
+/// Before they are read from a place, they are kept for this launch: a
+/// default that was never read is never written over a file.
+impl Default for Kept {
+    fn default() -> Self {
+        Self::ThisLaunch {
+            why: LaunchOnly::NoPlace,
+        }
+    }
+}
+
 /// Why the preferences are kept for this launch only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
