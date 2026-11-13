@@ -47,6 +47,10 @@ pub(crate) enum NodeCommand {
         /// How long the link works: `90s`, `10m`, `2h` (at most `24h`).
         #[arg(long, default_value = "10m", value_parser = ttl_secs)]
         ttl: u32,
+        /// Let the new device read only; it cannot operate sessions or
+        /// administer this machine.
+        #[arg(long)]
+        read_only: bool,
     },
     /// List the node's paired devices, or revoke one.
     Devices {

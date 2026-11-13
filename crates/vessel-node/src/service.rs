@@ -36,6 +36,7 @@ use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
 mod fleet;
+mod fleet_control;
 mod profiles;
 mod sessions;
 mod transfers;
@@ -125,6 +126,9 @@ pub(crate) struct NodeService {
     /// The scheduler (protocol 11, `automation::schedules`).
     schedules: Schedules,
     preview_slots: Arc<tokio::sync::Semaphore>,
+    /// Membership writes are non-queueing; reads retain a separate budget.
+    fleet_mutations: Arc<tokio::sync::Semaphore>,
+    fleet_reads: Arc<tokio::sync::Semaphore>,
     /// Saved prompts (protocol 11, `automation::prompts`).
     prompts: SavedPrompts,
     /// Places for searches running at once (protocol 12, `search`).
@@ -221,6 +225,8 @@ impl NodeService {
             installs: crate::install::Installs::default(),
             schedules,
             preview_slots: Arc::new(tokio::sync::Semaphore::new(4)),
+            fleet_mutations: Arc::new(tokio::sync::Semaphore::new(1)),
+            fleet_reads: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             settings,
