@@ -24,17 +24,24 @@
 
 pub mod assets;
 pub mod chrome;
+pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod menu;
+pub mod popup;
 pub mod theme;
+pub mod virtual_list;
 mod widgets;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::TextField;
 pub use fonts::Type;
+pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use theme::{Scheme, Tokens};
+pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{TypeExt, button, choice, dot, kicker, markdown};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
