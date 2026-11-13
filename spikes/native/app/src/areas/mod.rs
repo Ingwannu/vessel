@@ -39,6 +39,7 @@ pub(crate) struct Areas {
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
     pub(crate) shortcuts: shortcuts::ShortcutListener,
+    pub(crate) sidebar: sidebar::SidebarState,
     /// The toasts on screen.
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
 }
@@ -56,6 +57,7 @@ impl Areas {
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
             shortcuts: shortcuts::ShortcutListener::new(),
+            sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
         }
     }

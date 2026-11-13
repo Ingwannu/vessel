@@ -1,7 +1,7 @@
 //! Pieces more than one area draws: a frame's title bar and foot, a
 //! session's colour.
 
-use vessel_app_kit::ui::{Div, ParentElement as _, Styled as _, div, px};
+use vessel_app_kit::ui::{Div, IntoElement, ParentElement as _, Styled as _, div, px};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::{Attention, Card};
 
@@ -25,8 +25,9 @@ pub(crate) fn title_bar(title: String, detail: Option<String>, tokens: &Tokens) 
         }))
 }
 
-/// The frame's foot: the last thing that failed or happened.
-pub(crate) fn foot(notice: String, tokens: &Tokens) -> Div {
+/// The frame's foot: the last thing that failed or happened (`notice`:
+/// its words, or an element holding them).
+pub(crate) fn foot(notice: impl IntoElement, tokens: &Tokens) -> Div {
     div()
         .px(px(16.0))
         .py(px(8.0))

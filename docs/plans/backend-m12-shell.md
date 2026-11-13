@@ -322,6 +322,45 @@ session, the letter not typed).
 
 ## Notes for later slices
 
+### Takeover audit (2026-11-13)
+
+- The inherited notification draft was preserved outside the repository
+  as a patch and its untracked area file, then its paths were restored.
+  It omitted sound, had no capture or reference comparison, and kept
+  notification policy in the drawing crate. It is not a delivered slice.
+- The unreviewed changes are `f7364ce` (board fit/tooltips), `bf14de1`
+  (palette navigation and key positions), `1ee11c9` (palette/listener and
+  kit pieces), and `04a46f7` (board confirmations and errors). None has
+  takeover review approval yet. The other commits unique to the branch
+  are merges, not additional feature slices.
+- Read Paseo's `command-center/command-center.tsx`, `list-metrics.ts`,
+  `results.ts`, `results.test.ts`, `components/ui/shortcut.tsx`,
+  `components/ui/highlighted-text-segments.ts`, and the protocol's
+  `search/text-match.ts` and tests. The palette's frame values agree;
+  its substring-only search and single highlight do not. Follow-up
+  slices must implement token matching, subsequences within words,
+  visible-field priority, relevance ordering and matching highlights.
+- Read GOAT's `components/ConfirmDialogHost.tsx`, `ui/alert-dialog.tsx`
+  and `confirmDialog.test.ts`. GOAT has no session-status board (also
+  recorded by the milestone 11 feature table), so board structure still
+  follows Vessel's page; confirmation structure follows the shared kit's
+  Paseo dialog and GOAT's cancellation/destructive-action semantics.
+- Integrated lead head `b3c0f93`. The only conflict was area state:
+  retained both the palette/listener and the lead's sidebar state.
+  Reviewed kit controls, including QR, badge and alert updates, remain.
+  Native integration gate: `cargo fmt --check` and
+  `cargo clippy --all-targets -- -D warnings` clean; `cargo test`:
+  3, 19, 14, 247, 89 passed (372 total), zero failures; doc tests empty.
+  This checks the integrated native workspace, not the root workspace
+  or final UI parity. The gate was run once on the integrated code.
+- Shared-file seam: `app/src/areas/mod.rs` keeps the three area state
+  fields and their constructors; all other incoming changes are the
+  lead's reviewed work. No runtime configuration or preview was changed.
+- N1 owns inbox and notification policy; this track consumes its view
+  decisions for the waiting lane, sidebar count, desktop delivery and
+  sound. The Shortcuts page plugs into the settings frame's existing
+  `content` and `drawn` slots and reuses its preferences model.
+
 - `notify-rust` 4.19 is already in the dependency tree (through the pinned
   GPUI snapshot): the operating system's notifications may need no new
   crate; its licence is to be checked against ADR 0014.

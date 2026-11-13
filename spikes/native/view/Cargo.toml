@@ -19,3 +19,4 @@ vessel-proto.workspace = true
 serde_json.workspace = true
 unicode-normalization.workspace = true
 
+qrcode.workspace = true
