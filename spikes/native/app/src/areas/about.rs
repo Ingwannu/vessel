@@ -4,11 +4,11 @@
 //! Also the note shown once at the top of the frame after an update
 //! ("Updated to 0.0.0.0.3", with the feed's notes), dismissible.
 
+use crate::update::UpdateState;
 use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button, choice, kicker};
-use vessel_app_updater::UpdateState;
 
 use super::common::title_bar;
 use crate::shell::Shell;

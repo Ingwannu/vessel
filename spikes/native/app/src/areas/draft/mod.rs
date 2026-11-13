@@ -122,9 +122,9 @@ impl Draft {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         // One suggestion per launch, as agent-orchestrator picks one per
         // mount; the clock's low bits are random enough for a placeholder.
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |since| since.subsec_nanos());
+        // chrono's clock, not `SystemTime`: in a browser (wasm32) std has
+        // no clock and panics, chrono reads the page's.
+        let nanos = chrono::Utc::now().timestamp_subsec_nanos();
         let suggestion = usize::try_from(nanos % 4).unwrap_or(0);
         Self {
             composer: TextField::composer(

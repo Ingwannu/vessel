@@ -51,7 +51,7 @@ app/src/
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
-    draft.rs       the new chat: composer first, its tray of pickers
+    draft/         the new chat: Paseo's composer card, its pickers (pickers.rs)
     session.rs     a session: the conversation, the composer, permissions, stop
     about.rs       the running build and its updates (until the settings track's About
                    section takes it), and the note shown once after an update
@@ -102,8 +102,27 @@ coordinator first, so two tracks do not write two.
 - An error belongs beside the control it is about; the frame's foot is
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
-  points on touch; nothing depends on hover (ADR 0036; the shell's
-  breakpoint and sheets are the lead's next slice).
+  points on touch; nothing depends on hover (ADR 0036).
+- Two widths, both named in the kit, each with its reason:
+  - `kit::breakpoint::PHONE` (768): below it the sidebar is a sheet from
+    the title bar's menu button, and the title bar's statuses are icons.
+    ADR 0036's width, the page's too, so the sidebar folds at the same
+    size on every surface.
+  - `kit::picker::COMPACT` (600, Paseo's compact width,
+    `constants/layout.ts`): below it controls are touch-sized (44), a
+    picker's list and a dialog are sheets from the bottom, and the
+    composer's card is tighter. Paseo's own width, so its controls change
+    where Paseo's do.
+  Between 600 and 768 the sidebar is a sheet and the controls are still
+  pointer-sized: a narrow desktop window, where a mouse is still likely.
+  `kit::breakpoint::INSPECTOR` (1280) folds the inspector, when there is
+  one.
+- No library's default look anywhere (the owner, on 0.0.0.0.3): fields
+  are the kit's (`TextField`: a form field, or the composer's bare text
+  in `composer_card`), pickers the kit's (`pill` and `combobox`),
+  buttons the kit's; carets and marks are the kit's vector glyphs
+  (`assets::Glyph`), never characters. Controls take their colours from
+  `tokens.neutral` (Paseo's scale); the accent is the brand's.
 
 ## Why GPUI, and which
 
@@ -134,9 +153,12 @@ Linux needs the X11 and Wayland development libraries GPUI links
 and, to run, a Vulkan driver (Mesa's is enough).
 
 The gate of this workspace (the main workspace's lints are copied into
-its manifest):
+its manifest), run from `spikes/native` with its pinned toolchain
+(`rust-toolchain.toml`), the whole workspace, never a `-p` subset; every
+track runs exactly this before it reports a slice:
 
 ```bash
+cd spikes/native
 cargo fmt --all --check
 cargo clippy --all-targets -- -D warnings
 cargo test

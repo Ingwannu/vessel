@@ -20,30 +20,54 @@
 //!   fast as it draws, and a sender waits for room, so a burst of records
 //!   slows the stream, never grows memory.
 
+#[cfg(not(target_arch = "wasm32"))]
 mod nodes;
 mod prefs;
 mod session;
+// A browser has no `vessel-client` yet (no tokio network, no files): the
+// same `Link`, `Command` and `Event`, answered from a demo fleet, so the
+// screens can be drawn and typed into from WebAssembly
+// (docs/plans/backend-m12-browser.md, questions 1 and 8).
+#[cfg(any(target_arch = "wasm32", test))]
+mod demo;
+#[cfg(target_arch = "wasm32")]
+mod web;
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
+#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
-use vessel_app_view::{Agent, Card, Fleet, Machine, Reach};
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_app_view::{Agent, Machine, Reach};
+use vessel_app_view::{Card, Fleet};
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::{
-    ContentBlock, Delivery, EventRecord, HarnessRef, OptionChoice, PermissionId,
-    PermissionOptionId, PermissionOutcome, ProtocolVersion, SessionId, SessionInfo, SessionInput,
-    SessionMode, SessionOption, SessionSpec,
+    ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
+    SessionMode, SessionSpec,
+};
+use vessel_proto::{
+    EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
+    SessionOption,
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
 pub use prefs::{Kept, Prefs, UpdateNotes};
 pub use session::{Act, ActAnswer, ActFailed, ActKind, Acted};
+#[cfg(target_arch = "wasm32")]
+pub use web::{Link, NameProblem, Offer, default_name, name_problem, read_link};
 
 /// How often the sessions of every machine are listed again. The page
 /// reads its list on the same cadence (`docs/PERFORMANCE.md`); a pushed
 /// list is a protocol change for later.
+#[cfg(not(target_arch = "wasm32"))]
 const REFRESH: Duration = Duration::from_secs(2);
 
 /// Room in each channel. Records come in pages of up to a few hundred; a
@@ -249,6 +273,7 @@ pub enum Event {
     Failed(String),
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
 pub struct Link {
@@ -256,6 +281,7 @@ pub struct Link {
     _runtime: tokio::runtime::Runtime,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Link {
     /// Start the link; `label` is the build's label, sent as this client's
     /// version. Events arrive on the receiver returned.
@@ -295,6 +321,7 @@ impl Link {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// The link's own state, owned by its task.
 struct State {
     label: String,
@@ -303,6 +330,7 @@ struct State {
     follow: Option<tokio::task::JoinHandle<()>>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// A machine connected, and what it can start (read once per connection:
 /// what is installed changes rarely, and a new connection reads it again).
 #[derive(Clone)]
@@ -311,6 +339,7 @@ struct Connected {
     agents: Vec<Agent>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
         self.reload().await;
@@ -636,6 +665,7 @@ impl State {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
@@ -654,6 +684,7 @@ impl State {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn unreachable(name: String, why: &str) -> Machine {
     Machine {
         name,
@@ -663,6 +694,7 @@ fn unreachable(name: String, why: &str) -> Machine {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
