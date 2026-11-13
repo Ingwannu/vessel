@@ -28,10 +28,10 @@ pub(super) enum Tone {
 /// A small label beside a row's title.
 pub(super) fn badge(text: impl Into<SharedString>, tone: Tone, tokens: &Tokens) -> Div {
     let color = match tone {
-        Tone::Plain => tokens.text_secondary,
+        Tone::Plain => tokens.neutral.foreground_muted,
         Tone::Ok => tokens.st_ready,
         Tone::Warn => tokens.st_review,
-        Tone::Danger => tokens.danger,
+        Tone::Danger => tokens.neutral.destructive,
     };
     div()
         .flex_none()
@@ -39,7 +39,7 @@ pub(super) fn badge(text: impl Into<SharedString>, tone: Tone, tokens: &Tokens) 
         .py(px(1.0))
         .rounded(px(radius::R1))
         .border_1()
-        .border_color(tokens.border_subtle)
+        .border_color(tokens.neutral.border)
         .type_(Type::Meta)
         .text_color(color)
         .child(text.into())
@@ -60,7 +60,7 @@ pub(super) fn page(lead: &'static str, tokens: &Tokens) -> Div {
                 .mb(px(24.0))
                 .ml(px(4.0))
                 .type_(Type::Body)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(lead),
         )
 }
@@ -90,7 +90,7 @@ pub(super) fn section(
                     div()
                         .flex_1()
                         .type_(Type::Meta)
-                        .text_color(tokens.text_secondary)
+                        .text_color(tokens.neutral.foreground_muted)
                         .child(title.into()),
                 )
                 .children(action),
@@ -105,8 +105,8 @@ pub(super) fn rows(tokens: &Tokens) -> Div {
         .flex_col()
         .rounded(px(radius::R2))
         .border_1()
-        .border_color(tokens.border_subtle)
-        .bg(tokens.bg_surface)
+        .border_color(tokens.neutral.border)
+        .bg(tokens.neutral.surface1)
         .overflow_hidden()
 }
 
@@ -139,7 +139,7 @@ pub(super) fn row(
                     column.child(
                         div()
                             .type_(Type::Meta)
-                            .text_color(tokens.text_tertiary)
+                            .text_color(tokens.neutral.foreground_muted)
                             .child(facts.join(" \u{b7} ")),
                     )
                 }),
@@ -157,7 +157,7 @@ pub(super) fn row(
 /// `row` with the hairline above it that every row but a card's first has.
 pub(super) fn divided(row: Div, index: usize, tokens: &Tokens) -> Div {
     row.when(index > 0, |row| {
-        row.border_t_1().border_color(tokens.border_subtle)
+        row.border_t_1().border_color(tokens.neutral.border)
     })
 }
 
@@ -165,7 +165,7 @@ pub(super) fn divided(row: Div, index: usize, tokens: &Tokens) -> Div {
 pub(super) fn title(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
     div()
         .type_(Type::Label)
-        .text_color(tokens.text_primary)
+        .text_color(tokens.neutral.foreground)
         .child(text.into())
 }
 
@@ -173,7 +173,7 @@ pub(super) fn title(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
 pub(super) fn fact(text: impl Into<SharedString>, mono: bool, tokens: &Tokens) -> Div {
     div()
         .type_(if mono { Type::Mono } else { Type::Meta })
-        .text_color(tokens.text_secondary)
+        .text_color(tokens.neutral.foreground_muted)
         .child(text.into())
 }
 
@@ -181,7 +181,7 @@ pub(super) fn fact(text: impl Into<SharedString>, mono: bool, tokens: &Tokens) -
 pub(super) fn empty(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
     div()
         .type_(Type::Body)
-        .text_color(tokens.text_tertiary)
+        .text_color(tokens.neutral.foreground_muted)
         .child(text.into())
 }
 
@@ -204,20 +204,20 @@ pub(super) fn banner(
         .rounded(px(radius::R2))
         .border_1()
         .border_color(if error {
-            tokens.danger
+            tokens.neutral.destructive
         } else {
-            tokens.border_subtle
+            tokens.neutral.border
         })
-        .bg(tokens.bg_surface)
+        .bg(tokens.neutral.surface1)
         .child(
             div()
                 .flex_1()
                 .min_w(px(160.0))
                 .type_(Type::Body)
                 .text_color(if error {
-                    tokens.danger
+                    tokens.neutral.destructive
                 } else {
-                    tokens.text_primary
+                    tokens.neutral.foreground
                 })
                 .child(text.into()),
         )

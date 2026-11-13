@@ -15,6 +15,7 @@ workspace = true
 vessel-app-view.workspace = true
 vessel-client.workspace = true
 vessel-proto.workspace = true
+bytes.workspace = true
 chrono.workspace = true
 dirs.workspace = true
 hostname.workspace = true

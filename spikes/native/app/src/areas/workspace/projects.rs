@@ -302,9 +302,9 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
             .gap(px(4.0))
             .mb(px(12.0))
             .type_(Type::Body)
-            .text_color(tokens.text_secondary)
+            .text_color(tokens.neutral.foreground_muted)
             .cursor_pointer()
-            .hover(|style| style.text_color(tokens.text_primary))
+            .hover(|style| style.text_color(tokens.neutral.foreground))
             .child(format!("\u{2039} {}", words.projects_on(&machine)))
             .on_click(cx.listener(|this, _event, _window, cx| {
                 this.areas.workspace.page.detail = None;
@@ -480,9 +480,9 @@ fn project_row(
                 .items_center()
                 .justify_center()
                 .rounded(px(4.0))
-                .bg(tokens.bg_active)
+                .bg(tokens.neutral.surface3)
                 .type_(Type::Tiny)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(initial),
         )
         .child(title(name, tokens));
@@ -507,10 +507,10 @@ fn project_row(
     controls = controls.child(
         div()
             .type_(Type::Label)
-            .text_color(tokens.text_tertiary)
+            .text_color(tokens.neutral.foreground_muted)
             .child("\u{203a}"),
     );
-    let hover = tokens.bg_hover;
+    let hover = tokens.neutral.surface2;
     div()
         .id(ElementId::Name(format!("project-{index}").into()))
         .cursor_pointer()
@@ -579,8 +579,8 @@ fn add_form(
         .p(px(14.0))
         .rounded(px(vessel_app_kit::theme::radius::R4))
         .border_1()
-        .border_color(tokens.border_subtle)
-        .bg(tokens.bg_elevated)
+        .border_color(tokens.neutral.border)
+        .bg(tokens.neutral.surface1)
         .child(div().type_(Type::Title).child(heading));
     if form == AddForm::Clone {
         card = card.child(labelled(labels.repository_url, state.url.element(), tokens));
@@ -590,14 +590,14 @@ fn add_form(
         .child(
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.text_tertiary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(words.add_hint(form, machine, target)),
         );
     if let Some(error) = &state.error {
         card = card.child(
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.danger)
+                .text_color(tokens.neutral.destructive)
                 .child(error.clone()),
         );
     }
@@ -636,7 +636,7 @@ fn labelled(
         .child(
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(label),
         )
         .child(field)

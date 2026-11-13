@@ -5,8 +5,8 @@
 
 use vessel_proto::conversation::QueueChanged;
 use vessel_proto::{
-    ContentBlock, Conversation, Creator, Delivered, Delivery, QueueChange, SessionId, SessionInput,
-    SessionMode,
+    ContentBlock, Conversation, Creator, Delivered, Delivery, EventSeq, QueueChange, SessionId,
+    SessionInput, SessionMode,
 };
 use vessel_session::{SessionError, SessionHandle};
 
@@ -48,6 +48,24 @@ impl Sessions {
             Found::Live { handle, .. } => {
                 let content = self.attached(&handle, content).await?;
                 Ok(handle.prompt(content, delivery, by).await?)
+            }
+            Found::Stored(_) => Err(ServiceError::Ended(id)),
+        }
+    }
+
+    /// As [`prompt`](Self::prompt), and which turn it started or joined
+    /// (protocol 11's `notify`; `SessionHandle::prompt_tracked`).
+    pub(crate) async fn prompt_tracked(
+        &self,
+        id: SessionId,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+        by: Creator,
+    ) -> Result<(Delivered, tokio::sync::oneshot::Receiver<EventSeq>), ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => {
+                let content = self.attached(&handle, content).await?;
+                Ok(handle.prompt_tracked(content, delivery, by).await?)
             }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }

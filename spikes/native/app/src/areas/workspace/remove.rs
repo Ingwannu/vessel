@@ -113,15 +113,15 @@ pub(super) fn render(
         .p(px(14.0))
         .rounded(px(radius::R4))
         .border_1()
-        .border_color(tokens.border_subtle)
-        .bg(tokens.bg_elevated)
+        .border_color(tokens.neutral.border)
+        .bg(tokens.neutral.surface1)
         .child(div().type_(Type::Title).child(words.remove_title(&branch)))
         .child(div().type_(Type::Body).child(labels.would_lose))
         .child(reasons)
         .child(
             div()
                 .type_(Type::Body)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(explain),
         );
     if let Some(error) = &removing.error {
@@ -167,7 +167,7 @@ fn buttons(
                 false,
                 tokens,
             )
-            .text_color(tokens.danger)
+            .text_color(tokens.neutral.destructive)
             .opacity(if discard { 1.0 } else { 0.5 })
             .on_click(cx.listener(move |this, _event, _window, cx| {
                 if discard {

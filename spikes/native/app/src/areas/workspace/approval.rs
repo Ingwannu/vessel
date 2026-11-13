@@ -103,19 +103,19 @@ pub(super) fn render(
         .p(px(16.0))
         .rounded(px(radius::R4))
         .border_1()
-        .border_color(tokens.border_subtle)
-        .bg(tokens.bg_elevated)
+        .border_color(tokens.neutral.border)
+        .bg(tokens.neutral.surface1)
         .child(div().type_(Type::Title).child(labels.approval_title))
         .child(
             div()
                 .type_(Type::Body)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(words.approval_copy(place, !scripts.is_empty())),
         )
         .child(
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.text_secondary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(words.compared(compared, &local())),
         )
         .child(command_list(words, labels.setup, &setup, tokens))
@@ -128,7 +128,7 @@ pub(super) fn render(
         .child(
             div()
                 .type_(Type::Mono)
-                .text_color(tokens.text_tertiary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(words.digest(asked.digest.as_str())),
         )
         .child(buttons)
@@ -237,7 +237,7 @@ fn line(words: &dyn WorkspaceWords, change: Option<Change>, text: Div, tokens: &
                 .w(px(12.0))
                 .flex_none()
                 .type_(Type::Mono)
-                .text_color(tokens.text_tertiary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(mark(change)),
         )
         .child(text.flex_1().min_w(px(0.0)))
@@ -248,9 +248,9 @@ fn code(text: impl Into<vessel_app_kit::ui::SharedString>, struck: bool, tokens:
     div()
         .type_(Type::Mono)
         .text_color(if struck {
-            tokens.text_tertiary
+            tokens.neutral.foreground_muted
         } else {
-            tokens.text_primary
+            tokens.neutral.foreground
         })
         .when(struck, vessel_app_kit::ui::Styled::line_through)
         .child(text.into())
@@ -265,14 +265,14 @@ fn command_list(
     let mut list = div().flex().flex_col().child(
         div()
             .type_(Type::Kicker)
-            .text_color(tokens.text_tertiary)
+            .text_color(tokens.neutral.foreground_muted)
             .child(title),
     );
     if lines.is_empty() {
         return list.child(
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.text_tertiary)
+                .text_color(tokens.neutral.foreground_muted)
                 .child(words.labels().none),
         );
     }
@@ -298,7 +298,7 @@ fn command_list(
                     .child(
                         div()
                             .type_(Type::Meta)
-                            .text_color(tokens.text_tertiary)
+                            .text_color(tokens.neutral.foreground_muted)
                             .child(words.was(was.as_str())),
                     ),
                 tokens,
@@ -312,7 +312,7 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
     let mut list = div().flex().flex_col().child(
         div()
             .type_(Type::Kicker)
-            .text_color(tokens.text_tertiary)
+            .text_color(tokens.neutral.foreground_muted)
             .child(words.labels().scripts_and_services),
     );
     for entry in lines {
@@ -336,13 +336,13 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                     .child(
                         div()
                             .type_(Type::Label)
-                            .text_color(tokens.text_primary)
+                            .text_color(tokens.neutral.foreground)
                             .child(script.name.as_str().to_owned()),
                     )
                     .child(
                         div()
                             .type_(Type::Meta)
-                            .text_color(tokens.text_tertiary)
+                            .text_color(tokens.neutral.foreground_muted)
                             .child(format!("{}{place}", words.script_kind(script.kind))),
                     ),
             )
@@ -351,7 +351,7 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
             text = text.child(
                 div()
                     .type_(Type::Meta)
-                    .text_color(tokens.text_tertiary)
+                    .text_color(tokens.neutral.foreground_muted)
                     .child(format!(
                         "{} \u{b7} {}",
                         words.script_change(was, script),

@@ -48,6 +48,33 @@ impl NodeClient {
             session,
             content,
             delivery,
+            notify: false,
+        })
+        .await
+    }
+
+    /// `session.prompt { notify }` (protocol 11): as
+    /// [`prompt`](Self::prompt), and the caller's own session is told,
+    /// through its queue, when the turn this prompt starts waits for an
+    /// answer and when it finishes, or the session ends. Only a session's
+    /// agent asks, on its own node.
+    ///
+    /// # Errors
+    /// As [`prompt`](Self::prompt); `invalid_request` for a caller that is
+    /// not a session's agent, `forbidden` through another node,
+    /// `unsupported` for a terminal caller, `conflict` past the bounds of
+    /// turns followed.
+    pub async fn prompt_told(
+        &self,
+        session: SessionId,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+    ) -> Result<Delivered, CallError> {
+        self.call(PromptSession {
+            session,
+            content,
+            delivery,
+            notify: true,
         })
         .await
     }

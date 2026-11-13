@@ -227,7 +227,26 @@ impl Reply {
             | Self::GetAgentStatus(_)
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
-            | Self::ReadInstall(_) => None,
+            | Self::ReadInstall(_)
+            // Protocol 11's schedules and saved prompts: a schedule's new
+            // session and a saved prompt carry a `SessionSpec`, whose agent
+            // may be an added one, but every one of these is a protocol 11
+            // method, which a node refuses on an older connection before it
+            // runs (the client does not send it either), so an older peer
+            // is never handed one. A run names its session by id.
+            | Self::ListSchedules(_)
+            | Self::GetSchedule(_)
+            | Self::CreateSchedule(_)
+            | Self::UpdateSchedule(_)
+            | Self::PauseSchedule(_)
+            | Self::ResumeSchedule(_)
+            | Self::RunSchedule(_)
+            | Self::DeleteSchedule(_)
+            | Self::ListRuns(_)
+            | Self::ListPrompts(_)
+            | Self::CreatePrompt(_)
+            | Self::UpdatePrompt(_)
+            | Self::DeletePrompt(_) => None,
         }
     }
 }

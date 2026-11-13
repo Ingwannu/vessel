@@ -399,7 +399,7 @@ pub(super) fn render(
     let id = project.id;
     let remove = div().child(
         button("project-remove", labels.remove_project, false, tokens)
-            .text_color(tokens.danger)
+            .text_color(tokens.neutral.destructive)
             .on_click(cx.listener(move |this, _event, _window, cx| this.forget_project(id, cx))),
     );
     let mut column = div().flex().flex_col().child(section(
@@ -670,7 +670,7 @@ fn snapshots(
                         true,
                         tokens,
                     )
-                    .bg(tokens.danger)
+                    .bg(tokens.neutral.destructive)
                     .opacity(if busy { 0.5 } else { 1.0 })
                     .on_click(cx.listener(move |this, _event, _window, cx| {
                         if let Some(detail) = this.areas.workspace.page.detail.as_mut()
@@ -692,7 +692,7 @@ fn snapshots(
                     false,
                     tokens,
                 )
-                .text_color(tokens.danger)
+                .text_color(tokens.neutral.destructive)
                 .on_click(cx.listener(move |this, _event, _window, cx| {
                     if let Some(detail) = this.areas.workspace.page.detail.as_mut()
                         && detail.dropping.is_none()

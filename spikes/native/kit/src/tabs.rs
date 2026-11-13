@@ -16,9 +16,8 @@
 //! - Choice: Paseo's labelled chips, which fit three in the narrowest
 //!   inspector (360 points) and need no icon or tooltip; Paseo's close
 //!   buttons and dragging are for its editor tabs and are not drawn here.
-//!   Until the theme carries Paseo's surfaces, the chosen fill is
-//!   `bg_hover` (Paseo's second surface is the ink at about 4% on white)
-//!   and a hovered one the same.
+//!   Colours are Paseo's neutrals (`tokens.neutral`): the chosen fill
+//!   `surface2`, a hovered one `surface1`, the row's hairline `border`.
 //! - Cost: the page's corner badge for a count becomes a number after the
 //!   label (the page is brought to the same, ADR 0036).
 
@@ -45,7 +44,7 @@ pub fn tab_head(tabs: Div, end: Option<Div>, tokens: &Tokens) -> Div {
         .h(px(HEAD_HEIGHT))
         .px(px(4.0))
         .border_b_1()
-        .border_color(tokens.border_subtle)
+        .border_color(tokens.neutral.border)
         .child(
             tabs.flex()
                 .flex_row()
@@ -82,7 +81,8 @@ pub fn tab(
     count: Option<u64>,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let hover = tokens.bg_hover;
+    let neutral = &tokens.neutral;
+    let hover = neutral.surface1;
     div()
         .id(id)
         .flex()
@@ -96,11 +96,11 @@ pub fn tab(
         .type_(Type::Body)
         .text_size(px(14.0))
         .text_color(if chosen {
-            tokens.text_primary
+            neutral.foreground
         } else {
-            tokens.text_secondary
+            neutral.foreground_muted
         })
-        .when(chosen, |tab| tab.bg(tokens.bg_hover))
+        .when(chosen, |tab| tab.bg(neutral.surface2))
         .when(!chosen, |tab| {
             tab.cursor_pointer().hover(move |style| style.bg(hover))
         })
@@ -108,7 +108,7 @@ pub fn tab(
         .children(count.filter(|count| *count > 0).map(|count| {
             div()
                 .type_(Type::Meta)
-                .text_color(tokens.text_tertiary)
+                .text_color(neutral.foreground_extra_muted)
                 .child(count_text(count))
         }))
 }
