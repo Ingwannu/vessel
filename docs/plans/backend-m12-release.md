@@ -741,7 +741,12 @@ never rebuilt.
     - The uninstaller removes `licenses\*.txt`, not only the fonts' texts.
     - A build already running from `397e7f44` was stopped by its process
       group and its staging directory removed before this fix went in.
-  - The set went into place at 22:39 UTC. It is not published yet.
+  - The set went into place at 22:39 UTC and was published to
+    `preview` at 22:44:11 UTC, after the coordinator's check on the real
+    node (protocol 11).
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.9 Linux
+    build took 0.0.0.0.10 by itself at 22:45:16 UTC.
   - The PNG's bytes are inside both the Windows exe and the Linux
     executable.
   - Sizes, with the change against 0.0.0.0.9:
