@@ -69,7 +69,7 @@ fn row(
                 .text_ellipsis()
                 .type_(Type::Label)
                 .text_color(tokens.text_primary)
-                .child(card.title.clone()),
+                .child(shell.t.title(&card.title).to_owned()),
         )
         .child(
             div()

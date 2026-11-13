@@ -190,6 +190,79 @@ label's directory also holds the desktop track's Linux tarball
   DirectWrite), SmartScreen's warning (Windows only), DPI scaling on a
   real display.
 
+## Build 0.0.0.0.2
+
+Built by `build.sh 0.0.0.0.2 windows-x64 linux-x64` at `d45fd96`, the
+merge of the desktop track's `5211c3c` (its gate passing), the set put
+in place at 04:48 UTC; `sha256sum -c` and `vessel-app-feed check-sums`
+(the signature with the release key's public half) both pass where the
+owner downloads from, as `build.sh`'s last two steps. Updates are not
+compiled in (no feed address yet).
+
+- **Windows**: 37 MB, GUI subsystem, static CRT; the import list is the
+  one `build.sh` allows; resources: icon, group icon, version block and
+  GPUI's manifest (`build.sh` checks all four). The installer installs,
+  registers `DisplayVersion 0.0.0.0.2` with the exe as `DisplayIcon`, and
+  uninstalls, under wine.
+- **Under wine** the build now stops earlier than 0.0.0.0.1: the
+  Direct3D 11.1 device is created and the first text (now resolved
+  before the main window opens) ends it at wine's DirectWrite, so not
+  even the window's styles can be seen running.
+- **The title bar** is the app's own (the desktop track's `chrome.rs`):
+  on Windows GPUI keeps `WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX |
+  WS_MINIMIZEBOX` on the window and hides the system bar by answering
+  `WM_NCHITTEST` itself: the app's `Drag`, `Min`, `Max` and `Close` areas
+  become `HTCAPTION`, `HTMAXBUTTON` and `HTCLOSE`, the top edge resizes
+  (read in `gpui-pre-windows` 0.3.10, the path Zed ships on Windows). Not
+  run on any Windows. If the drag or the buttons fail, the system menu
+  and the keyboard still work, because the styles are there: Alt+F4
+  closes, Alt+Space opens the window menu (Move, Size, Close), Win+arrows
+  snap, maximise and minimise, the taskbar's menu closes it. There is no
+  switch back to the system's bar; one would be a line in the kit's
+  `window_options` (the desktop track's).
+- **Linux**: 71 MB; the tarball started from an empty configuration under
+  a virtual display and drew the app's bar, the mark and the pairing
+  screen.
+
+## Icons (from build 0.0.0.0.2)
+
+The owner gave the mark on 2026-11-13 (`docs/design/brand/`, merged from
+`backend/m11` at `ad783be`; its README says how it is used). Every icon
+is made from `vessel-mark.svg` by `tools/make-icons.py` at build time
+into the build's stage; nothing generated is committed.
+
+- **The tile**: the mark in white on a `#1a5868` square with corners
+  rounded at 18.75% of its side, the mark filling 86% of it.
+- **Rasteriser**: resvg 0.50 (installed under the tools directory with
+  `cargo install`; MPL-2.0, a build tool only). ImageMagick 6 here
+  renders SVG with its own MSVG renderer: drawn at 256 px beside
+  resvg's, its nested lines come out thicker and merged, unlike the
+  owner's paths; at 16 to 24 px it looks bolder only because it is not
+  the mark. Each size is rasterised from the vector at that size.
+- **What the small sizes look like** (frames of the `.ico`, enlarged):
+  at 16 and 20 px the nested lines merge into a pale V on the tile and
+  the star is a white dot; at 24 px the star reads as a star and the V
+  as one band; at 32 px the V shows a hint of its lines; from 40 px the
+  lines separate and from 64 px it is the mark. As the brand README
+  says, a version drawn for small sizes would be the owner's to give.
+- **Windows**: `vessel.ico` (16, 20, 24, 32, 40, 48, 64, 256; PNG
+  frames, which Windows reads from Vista on) is compiled with a version
+  block (`FileDescription` Vessel, the label as product and file
+  version, so Task Manager says "Vessel") by `llvm-rc` into a `.res`
+  that lld-link links beside GPUI's manifest. `build.sh` refuses an exe
+  without the icon, the group icon, the version block and the manifest.
+  The installer and its uninstaller use the same `.ico`; its pages show
+  the mark in the brand colour on the white header (150 x 57) and in
+  white on the brand colour beside the finish page (164 x 314). Seen
+  under wine: the directory page with the header mark at the right.
+- **Linux**: the tile at 16, 24, 32, 48, 64, 128, 256 and 512 px under
+  `icons/hicolor/<n>x<n>/apps/vessel-app.png` in the tarball, a
+  `vessel-app.desktop.in`, and `install-desktop-entry.sh`, which copies
+  the icons into `~/.local/share/icons` and writes a menu entry pointing
+  at the unpacked `vessel-app` (`--remove` takes both away).
+- **Not mine**: the app's own drawing of the mark (title bar, sidebar,
+  the window's icon at run time) is the desktop track's.
+
 ## The installer
 
 NSIS (`windows/installer.nsi`, the Decision Log is at its top), built on
@@ -300,7 +373,61 @@ feed refused; a missing feed retried), 6 of the feed tool (arguments,
 key file modes, refusal to replace a key, publish then check, a changed
 artifact caught, signed sums).
 
+### End to end, on Linux, with the real app
+
+2026-11-13, a feed on a loopback static server (`python3 -m http.server`):
+
+1. `build.sh 0.0.0.0.91 linux-x64 --publish` with the feed's address and
+   the release key's public half compiled in: a 52 MB `vessel-app`, the
+   tarball, signed sums, and `preview.json` written and then read back by
+   `vessel-app-feed check` (`linux-x86_64 executable ... ok`). The build
+   took 33 min (fat LTO on a machine with a load average of 30 to 46).
+2. A label `0.0.0.0.92` published by `vessel-app-feed publish`: the
+   0.0.0.0.91 executable with 16 bytes appended (another file that still
+   runs), with notes.
+3. The 0.0.0.0.91 executable copied into a scratch directory and started
+   under a virtual display with an empty configuration. The server's log:
+
+   ```
+   "GET /preview.json HTTP/1.1" 200 -
+   "GET /0.0.0.0.92/vessel-0.0.0.0.92-linux-x64 HTTP/1.1" 200 -
+   ```
+
+   The app's: `an update is installed and runs from the next start`. The
+   file on disk was then byte for byte 0.0.0.0.92's, mode 0755, with no
+   staging file left beside it, and the window's foot read "Vessel
+   0.0.0.0.92 is installed and opens the next time Vessel starts." while
+   the sidebar's foot still said 0.0.0.0.91 (the running build).
+
+### The Windows swap, under wine
+
+The updater's tests built for `x86_64-pc-windows-msvc` (`cargo xwin test
+--no-run`) and run under wine 9.0: the 22 unit tests pass, and the five
+end-to-end ones (loopback HTTP, a real download and swap) pass once the
+first one expects what Windows does: the old executable is renamed to
+`vessel-app.old-0.0.0.0.1` beside the new one (Windows will not delete
+an executable file in use), to be removed at the next start; on Linux
+the old file is simply replaced. Wine emulates Windows' file semantics
+and does not lock a running executable as Windows does, so this shows
+the Windows code path runs, not that Windows lets it rename the running
+`Vessel.exe` (Windows does allow renaming a running image; the first
+real-Windows update is the proof).
+
 ### What the app calls
+
+Wired in by this track (coordinator, 2026-11-13) as one module,
+`spikes/native/app/src/update.rs`, and two lines in `main.rs`: when the
+build has a feed and a key, a one-thread tokio runtime of its own runs
+the updater and a GPUI task follows its state; once a build is
+installed the frame's foot says it opens at the next start. Without the
+settings nothing starts. There is no "restart now" control yet (the
+shell's screens are the desktop track's); `Updater::restart` is there
+for it. No feed address exists yet (the dist directory is behind a login
+the app cannot pass; where a public feed lives is the owner's decision),
+so every build so far is built without one and its README says it does
+not update itself.
+
+The lines, for reference:
 
 ```rust
 let updater = match vessel_app_updater::settings_from_build()? {

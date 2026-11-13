@@ -95,6 +95,9 @@ wildcard_enum_match_arm = "warn"
 vessel-app-view = { path = "view" }
 vessel-app-link = { path = "link" }
 vessel-app-kit = { path = "kit" }
+# The release track's updater (spikes/release/updater): no GPUI in it;
+# inert unless the build compiles a feed's address in.
+vessel-app-updater = { path = "../release/updater" }
 
 vessel-client = { path = "../../crates/vessel-client" }
 vessel-proto = { path = "../../crates/vessel-proto" }

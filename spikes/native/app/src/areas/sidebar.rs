@@ -67,15 +67,42 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
             )
             .on_click(cx.listener(|this, _event, window, cx| this.go(Route::Pair, window, cx))),
         )
+        .children(
+            // The title bar's update status, when the system draws the
+            // title bar and the app's is not there.
+            vessel_app_kit::chrome::system_titlebar()
+                .then(|| crate::chrome::update_status(shell, false, tokens, cx))
+                .flatten()
+                .map(|status| div().px(px(10.0)).child(status)),
+        )
         .child(
             div()
-                .id("build")
+                .flex()
+                .flex_row()
+                .gap(px(6.0))
                 .px(px(10.0))
                 .type_(Type::Tiny)
                 .text_color(tokens.text_tertiary)
-                .cursor_pointer()
-                .child(t.build(crate::LABEL))
-                .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
+                .child(
+                    // The build, and its updates: the About screen.
+                    div()
+                        .id("build")
+                        .cursor_pointer()
+                        .hover(|style| style.text_color(tokens.text_secondary))
+                        .child(t.build(crate::LABEL))
+                        .on_click(cx.listener(|this, _event, window, cx| {
+                            this.go(Route::About, window, cx);
+                        })),
+                )
+                .child("·")
+                .child(
+                    div()
+                        .id("reload")
+                        .cursor_pointer()
+                        .hover(|style| style.text_color(tokens.text_secondary))
+                        .child(t.reload)
+                        .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
+                ),
         )
 }
 
@@ -161,7 +188,7 @@ fn session_row(
                 } else {
                     tokens.text_secondary
                 })
-                .child(card.title.clone()),
+                .child(shell.t.title(&card.title).to_owned()),
         )
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);

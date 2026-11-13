@@ -27,6 +27,9 @@ vessel-proto.workspace = true
 sys-locale.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# The updater (reqwest, rustls, files): the desktop's only; a browser
+# build has `update_off.rs` instead.
+vessel-app-updater.workspace = true
 tokio.workspace = true
 tracing-subscriber.workspace = true
 

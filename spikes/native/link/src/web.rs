@@ -84,6 +84,11 @@ impl Link {
                     )),
                 }
             }
+            Command::Options { machine, harness } => self.emit(Event::Options {
+                machine,
+                harness,
+                outcome: Ok(crate::demo::options()),
+            }),
             // The demo's turns end as they start: nothing runs to stop.
             Command::Stop { .. } | Command::SavePrefs(_) => {}
             Command::Answer {

@@ -25,12 +25,13 @@ use std::collections::HashMap;
 use std::str::FromStr as _;
 
 use chrono::{DateTime, Duration, Utc};
-use vessel_app_view::{Agent, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
+use vessel_app_view::{Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
 use vessel_proto::{
     AgentEvent, ContentBlock, DisplayStatus, EventRecord, EventSeq, HarnessKind, HarnessRef,
-    PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
-    PermissionRequest, SessionEvent, SessionId, StopReason, ToolCall, ToolCallId, ToolCallStatus,
-    ToolCallUpdate, ToolKind,
+    OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, PermissionId,
+    PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
+    PermissionRequest, SessionEvent, SessionId, SessionOption, StopReason, ToolCall, ToolCallId,
+    ToolCallStatus, ToolCallUpdate, ToolKind,
 };
 
 /// The demo's sessions, each with its log.
@@ -319,6 +320,61 @@ impl Demo {
 
 const TEST_CALL: &str = "call-test";
 
+/// What every demo agent offers before a session: a model, an effort and
+/// a permission mode (the new chat's pickers), as an ACP agent lists them.
+pub(crate) fn options() -> Vec<SessionOption> {
+    let select =
+        |id: &str, name: &str, category, current: &str, values: &[(&str, &str)]| SessionOption {
+            id: OptionId::new(id),
+            name: name.to_owned(),
+            description: None,
+            category,
+            kind: OptionKind::Select {
+                current: OptionValueId::new(current),
+                values: values
+                    .iter()
+                    .map(|(value, words)| OptionValue {
+                        id: OptionValueId::new(*value),
+                        name: (*words).to_owned(),
+                        description: None,
+                        group: None,
+                    })
+                    .collect(),
+            },
+        };
+    vec![
+        select(
+            "model",
+            "Model",
+            OptionCategory::Model,
+            "opus",
+            &[
+                ("opus", "Opus 5.5"),
+                ("sonnet", "Sonnet 5.5"),
+                ("haiku", "Haiku 5.5"),
+            ],
+        ),
+        select(
+            "effort",
+            "Effort",
+            OptionCategory::ThoughtLevel,
+            "high",
+            &[("low", "Low"), ("medium", "Medium"), ("high", "High")],
+        ),
+        select(
+            "mode",
+            "Permissions",
+            OptionCategory::Mode,
+            "default",
+            &[
+                ("default", "Ask"),
+                ("acceptEdits", "Accept edits"),
+                ("plan", "Plan"),
+            ],
+        ),
+    ]
+}
+
 fn agents() -> Vec<Agent> {
     [HarnessKind::ClaudeCode, HarnessKind::Codex]
         .into_iter()
@@ -350,8 +406,13 @@ fn card(
         agent: agent_name(&HarnessRef::Known(HarnessKind::ClaudeCode)),
         lane: Some(lane),
         phrase: Phrase::Node(status),
-        needs_you: matches!(status, DisplayStatus::Blocked),
-        working: matches!(status, DisplayStatus::Working | DisplayStatus::FixingCi),
+        attention: if matches!(status, DisplayStatus::Blocked) {
+            Attention::NeedsYou
+        } else if matches!(status, DisplayStatus::Working | DisplayStatus::FixingCi) {
+            Attention::Working
+        } else {
+            Attention::AtRest
+        },
         at: now
             .checked_sub_signed(Duration::minutes(minutes_ago))
             .unwrap_or(now),
@@ -584,6 +645,20 @@ mod tests {
         let conversation = fold(&demo.records(&session));
         assert!(conversation.asked().is_empty());
         assert!(!conversation.turn_running());
+    }
+
+    #[test]
+    fn the_new_chat_gets_a_model_an_effort_and_a_mode() {
+        let categories: Vec<OptionCategory> =
+            options().iter().map(|option| option.category).collect();
+        assert_eq!(
+            categories,
+            [
+                OptionCategory::Model,
+                OptionCategory::ThoughtLevel,
+                OptionCategory::Mode
+            ]
+        );
     }
 
     #[test]

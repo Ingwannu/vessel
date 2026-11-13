@@ -22,7 +22,7 @@
 ;
 ; Built by spikes/release/build.sh:
 ;   makensis -DLABEL=<label> -DSTAGE=<dir with Vessel.exe, LICENSE.md,
-;            README.txt and licenses\>
+;            README.txt and licenses\> -DICONS=<tools/make-icons.py's output>
 ;            -DOUTFILE=<setup.exe> installer.nsi
 
 ; A 64-bit installer: the app is x64 only, so nothing is lost on Windows,
@@ -41,6 +41,9 @@ ManifestDPIAware true
 !ifndef OUTFILE
   !error "OUTFILE is required"
 !endif
+!ifndef ICONS
+  !error "ICONS is required (the directory tools/make-icons.py wrote)"
+!endif
 
 !define NAME "Vessel"
 !define PUBLISHER "Team-WICKED"
@@ -56,6 +59,17 @@ BrandingText "${NAME} ${LABEL}"
 !include "MUI2.nsh"
 
 !define MUI_ABORTWARNING
+; The mark (docs/design/brand/): the app's icon for the installer and the
+; uninstaller, the mark in the brand colour on the pages' white header, and
+; in white on the brand colour beside the finish page. The shortcut and
+; the "Installed apps" entry take the icon embedded in Vessel.exe.
+!define MUI_ICON "${ICONS}\vessel.ico"
+!define MUI_UNICON "${ICONS}\vessel.ico"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "${ICONS}\installer-header.bmp"
+!define MUI_HEADERIMAGE_UNBITMAP "${ICONS}\installer-header.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${ICONS}\installer-side.bmp"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE}"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -87,7 +101,7 @@ Section "Vessel"
   SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
-  CreateShortcut "$SMPROGRAMS\${NAME}.lnk" "$INSTDIR\${EXE}"
+  CreateShortcut "$SMPROGRAMS\${NAME}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
 
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${NAME}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${LABEL}"

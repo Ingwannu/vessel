@@ -67,7 +67,7 @@ try {
   await shot("q2-start-ko");
 
   note("2. Latin typed as key events (Playwright keyboard.type)");
-  await page.mouse.click(760, 413);
+  await page.mouse.click(760, 425);
   await page.keyboard.type("Run tests ", { delay: 30 });
   note(`  mirror: ${await mirror()}`);
 
