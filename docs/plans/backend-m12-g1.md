@@ -150,3 +150,48 @@ included in this integration.
 The pinned native workspace gate passed on this merged tree: formatting,
 Clippy with warnings denied, and all native tests. This verifies the
 integration; no screen, platform CI or screenshot is claimed by it.
+
+## Shared split button (control slice)
+
+`kit/src/split_button.rs` is the one shared split action, after Paseo's
+`git/actions-split-button.tsx`. Its joined outline is 26 points tall with
+a pointer and 44 on touch, at radius 6; the primary inset is 8/12,
+content gap 4/8, caret width equals the height, and a one-point divider
+uses `borderAccent`. Hover uses `surface2`, disabled primary opacity is
+60%, and a busy primary uses the lead's shared spinner. Busy and disabled
+states have no primary handler; the caret still opens the other actions,
+as in Paseo. Labels and callbacks belong to each area; no git policy or
+localized strings live in the control.
+
+The popup and picker were read before adding placement. `popup.rs`
+provides surfaces and geometry, not anchoring. `picker.rs` already uses
+GPUI's `Anchor` to stay on the caller's chosen side; `menu.rs` previously
+used its default top-left anchor. The new `menu_right` entry point uses
+that same primitive with `TopRight`, without changing `MenuState::open`
+or existing menu callers. Both entry points share the entire menu
+renderer, including keyboard handling, window-margin snapping, and row
+wrapping. The reason for aligning to the caret's right edge is recorded
+beside the entry point. No second popup or positioning engine is added.
+
+Paseo has no split-button-specific test file. Its
+`menu/menu-overlay.browser.test.tsx` was read: it checks that a growing
+surface keeps its anchor and can widen. Native placement remains
+computed by GPUI on every layout, rather than a snapshotted rectangle;
+actual growing/wrapping menu captures belong to the following screen
+slice. The two control tests cover the three primary states and the
+pointer/touch reference geometry. Menu navigation is unchanged.
+
+Touch targets are 44 points as the native README and ADR 0036 require;
+Paseo’s header control is 32 on touch (`control-geometry.ts`) and 26 with
+a pointer. The pointer size is retained exactly; touch is deliberately
+larger to honor the app’s target-size rule.
+
+This slice draws no area, so there is no screenshot or runtime placement
+claim. Its API difference is an explicit reusable control instead
+of Paseo's git-specific props; the area retains policy and menu content.
+
+The final control tree passed the pinned native workspace's exact gate:
+`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and
+`cargo test` (339 tests passed, none failed or ignored). No main-workspace
+code, dependency, service, permission or running account changed. The
+control slice has no app registration or screenshot claim.

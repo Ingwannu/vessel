@@ -119,6 +119,11 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+`kit/split_button.rs` supplies Paseo's joined primary action and caret:
+26-point pointer / 44-point touch geometry, shared busy spinner, disabled
+primary, and `menu_right` for the menu aligned to the caret's right edge.
+The caller owns its actions, labels and menu state.
+
 ### Rules every screen follows
 
 - Words through `view/src/text/` only; English and Korean together.

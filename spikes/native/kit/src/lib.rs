@@ -41,6 +41,7 @@ pub mod select;
 pub mod settings;
 pub mod sheet;
 pub mod slider;
+pub mod split_button;
 pub mod tabs;
 pub mod theme;
 pub mod tooltip;
@@ -56,7 +57,7 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
-pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{Start, lines_box, output_box};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
