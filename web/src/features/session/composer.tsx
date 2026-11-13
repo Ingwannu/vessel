@@ -19,11 +19,11 @@ import { hasConversation } from "../../data/delivery";
 import { isLive } from "../../data/format";
 import { canStartAgain } from "../../data/marks";
 import { queueRows } from "../../data/queue-view";
-import { searchRoot } from "../../data/suggest";
 import { recall, type Walk } from "../../data/recall";
 import { takeFirstSend, trayOf } from "../../data/trays";
 import { AttachmentStrip } from "../compose/attachment-strip";
 import { PromptBox } from "../compose/prompt-box";
+import { useSessionRoot } from "../workspace/use-session-root";
 import { SendButton } from "../compose/send-button";
 import { useDraft } from "../compose/use-draft";
 import { useSuggest } from "../compose/use-suggest";
@@ -106,10 +106,13 @@ export const Composer = memo(function Composer({
     },
   });
   const text = editing === null ? draft.text : editing.text;
+  // The code panel's root (one object while it names the same place):
+  // a new one per drawing restarted `@`'s search after every answer.
+  const sessionRoot = useSessionRoot(node, session).root;
   const suggest = useSuggest({
     node,
     commands: modern ? conversation.commands : [],
-    root: searchRoot(session.workspace),
+    root: sessionRoot,
     agent,
     text: area,
     apply: (next, caret) => {

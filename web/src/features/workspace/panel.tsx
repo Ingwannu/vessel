@@ -5,21 +5,17 @@
 // folder, or the project whose folder holds the session's own; a session
 // in no project's folder is offered to add its folder as one.
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useFleet } from "../../context";
-import {
-  projectAt,
-  projectIn,
-  tookProject,
-  useProjects,
-} from "../../data/workspace/project-store";
+import { projectIn, tookProject } from "../../data/workspace/project-store";
 import { addProject } from "../../data/workspace/projects";
-import { rootKey, sessionRoot } from "../../data/workspace/root";
+import { rootKey } from "../../data/workspace/root";
 import { Button, EmptyState, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { RelPath, SessionInfo, WorkspaceRoot } from "../../wire/proto";
+import type { RelPath, SessionInfo } from "../../wire/proto";
 import { ChangesTab } from "./changes-tab";
+import { useSessionRoot } from "./use-session-root";
 import { FilesTab, type Opened } from "./files-tab";
 
 function NoProject({ node, session }: { node: NodeKey; session: SessionInfo }) {
@@ -78,26 +74,10 @@ export function WorkspacePanel({
    * `null` back to the tree; opening one shows the Files tab. */
   onOpened: (opened: Opened | null) => void;
 }) {
-  const fleet = useFleet();
-  const projects = useProjects(fleet, node);
-  const placed = sessionRoot(session);
-  const found = placed === null ? projectAt(projects, session.spec.cwd) : null;
-  // The root as one object while it names the same place: the session's
-  // page draws again on every record the agent streams, and the tabs'
-  // reads (the comparison's poll, a file's pages, a search's settle) are
-  // effects of the root, which a new object each time would start again.
-  const projectId =
-    placed?.kind === "project" ? placed.project : (found?.id ?? null);
-  const worktreeId = placed?.kind === "worktree" ? placed.worktree : null;
-  const root = useMemo<WorkspaceRoot | null>(
-    () =>
-      worktreeId !== null
-        ? { kind: "worktree", worktree: worktreeId }
-        : projectId === null
-          ? null
-          : { kind: "project", project: projectId },
-    [projectId, worktreeId],
-  );
+  // One object while it names the same place: the tabs' reads (the
+  // comparison's poll, a file's pages, a search's settle) are effects of
+  // the root (use-session-root.ts).
+  const { root, projects } = useSessionRoot(node, session);
   if (root === null) {
     return projects.kind === "loading" ? (
       <div className="changes-pad">

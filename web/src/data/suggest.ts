@@ -18,12 +18,7 @@
 // - Cost: a file name with a space is written in quotes (`@"a b.txt"`),
 //   which is what Claude Code and Codex read; another agent may not.
 
-import type {
-  AgentCommand,
-  FoundFile,
-  SessionWorkspace,
-  WorkspaceRoot,
-} from "../wire/proto";
+import type { AgentCommand, FoundFile } from "../wire/proto";
 
 /** What the caret is in, when it is something to complete. */
 export type Trigger =
@@ -141,18 +136,4 @@ export function pathParts(file: FoundFile): PathParts {
     name: characters.slice(cut).join(""),
     marks,
   };
-}
-
-/** Where `@` searches a session's files: its worktree, else its
- * project; `null` for a session that runs in a bare folder. */
-export function searchRoot(
-  workspace: SessionWorkspace | null | undefined,
-): WorkspaceRoot | null {
-  if (workspace === undefined || workspace === null) {
-    return null;
-  }
-  const worktree = workspace.worktree;
-  return worktree === undefined || worktree === null
-    ? { kind: "project", project: workspace.project }
-    : { kind: "worktree", worktree };
 }
