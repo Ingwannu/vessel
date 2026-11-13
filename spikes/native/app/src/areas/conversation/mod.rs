@@ -213,7 +213,12 @@ impl Shell {
     }
 
     /// Records of the session followed.
-    pub(crate) fn conversation_records(&mut self, session: &SessionId, records: &[EventRecord]) {
+    pub(crate) fn conversation_records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) {
         let area = &mut self.areas.conversation;
         if area
             .shown
@@ -249,6 +254,7 @@ impl Shell {
             .min(rows_before);
         area.list
             .splice(from..rows_before, rows_after.saturating_sub(from));
+        self.find_grew(cx);
     }
 
     /// A session act answered.

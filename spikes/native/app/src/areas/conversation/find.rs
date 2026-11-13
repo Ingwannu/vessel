@@ -26,16 +26,19 @@
 //!   entry is brought into view); a search is not run again as the
 //!   session grows while the bar is open.
 
+use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    KeyDownEvent, ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _,
-    Window, div, px,
+    KeyDownEvent, ParentElement as _, Pixels, Stateful, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Reveal, TextField, Tokens, Type, TypeExt as _, breakpoint, popup};
+use vessel_app_kit::{
+    Reveal, TextField, Tokens, Type, TypeExt as _, VirtualList, breakpoint, popup,
+};
 use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, step};
 
 use crate::shell::Shell;
@@ -44,6 +47,10 @@ use crate::shell::Shell;
 /// its distance from the conversation's edges (`top-3 right-3`).
 const WIDTH: f32 = 280.0;
 const INSET: f32 = 12.0;
+
+/// What the bar covers at the conversation's top, with a gap under it:
+/// its inset, its height and 8 (on a phone it covers nothing).
+const CLEAR: f32 = 56.0;
 
 /// The pause between two slices of a search: long enough for a frame to
 /// be drawn between them.
@@ -61,8 +68,59 @@ pub(crate) struct FindBar {
     /// screen reader, as the page says it (not drawn, as the page does
     /// not show it either); the screen-reader buffer will read it.
     pub(crate) said: Option<&'static str>,
-    /// Bumped by every new query: a search for an older one stops.
+    /// Bumped by every new search: an older one stops at its next step.
     generation: u64,
+    /// Whether the search under way is a refresh of the same query.
+    refreshing: bool,
+    /// Whether the session grew again during a refresh.
+    again: bool,
+    /// The match current when a refresh began.
+    keep: Option<Match>,
+}
+
+/// What find marks on screen: its query, and the current match.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Marking<'a> {
+    pub(super) query: &'a str,
+    pub(super) current: Option<Match>,
+    /// The timeline's list, which a reply scrolls to its current match.
+    pub(super) list: &'a VirtualList,
+    /// What the bar covers at the list's top, kept clear when scrolling.
+    pub(super) clear_top: Pixels,
+}
+
+impl Marking<'_> {
+    /// The marks' key for entry `entry`: the query and, when the current
+    /// match is in it, which one.
+    pub(super) fn key(&self, entry: usize) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.query.hash(&mut hasher);
+        self.current_in(entry).hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Which match of entry `entry` is current, if one is.
+    pub(super) fn current_in(&self, entry: usize) -> Option<usize> {
+        self.current
+            .filter(|found| found.entry == entry)
+            .and_then(|found| usize::try_from(found.nth).ok())
+    }
+}
+
+impl FindBar {
+    /// What to mark, once a search has found its matches.
+    pub(super) fn marking<'a>(
+        &'a self,
+        list: &'a VirtualList,
+        narrow: bool,
+    ) -> Option<Marking<'a>> {
+        (self.finder.is_none() && !self.matches.is_empty()).then(|| Marking {
+            query: &self.query,
+            current: self.matches.get(self.index).copied(),
+            list,
+            clear_top: px(if narrow { 0.0 } else { CLEAR }),
+        })
+    }
 }
 
 impl std::fmt::Debug for FindBar {
@@ -119,6 +177,9 @@ impl Shell {
             index: 0,
             said: None,
             generation: 0,
+            refreshing: false,
+            again: false,
+            keep: None,
         });
         cx.notify();
     }
@@ -146,11 +207,45 @@ impl Shell {
         if query == bar.query {
             return;
         }
-        bar.finder = Some(Finder::new(&query));
         bar.query = query;
         bar.matches.clear();
         bar.index = 0;
         bar.said = None;
+        self.start_search(false, cx);
+        cx.notify();
+    }
+
+    /// Search again for the same query: the session grew while the bar
+    /// is open. One search at a time while it streams: a refresh asked
+    /// for during another runs once that one ends.
+    pub(super) fn find_grew(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        if bar.query.trim().is_empty() {
+            return;
+        }
+        if bar.finder.is_some() {
+            // A first search reads the log as it stands at each step and
+            // takes in the new entries; a refresh under way does not.
+            bar.again = bar.refreshing;
+            return;
+        }
+        self.start_search(true, cx);
+    }
+
+    /// Start a search for the bar's query; `refresh`: the same query
+    /// again, keeping the current match where it is.
+    fn start_search(&mut self, refresh: bool, cx: &mut Context<'_, Self>) {
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        bar.finder = Some(Finder::new(&bar.query));
+        bar.refreshing = refresh;
+        bar.again = false;
+        bar.keep = refresh
+            .then(|| bar.matches.get(bar.index).copied())
+            .flatten();
         bar.generation = bar.generation.wrapping_add(1);
         let generation = bar.generation;
         cx.spawn(async move |this, cx| {
@@ -165,7 +260,6 @@ impl Shell {
             }
         })
         .detach();
-        cx.notify();
     }
 
     /// One slice of the search for `generation`; whether it is over (done,
@@ -185,9 +279,23 @@ impl Shell {
             return false;
         };
         bar.finder = None;
-        bar.matches = matches;
-        bar.index = 0;
-        self.find_reveal(cx);
+        if bar.refreshing {
+            // The same match stays current, found again by what it is (the
+            // page's rule: a refresh must not take the reader back to it).
+            let at = bar
+                .keep
+                .and_then(|keep| matches.iter().position(|found| *found == keep));
+            bar.index = at.unwrap_or_else(|| bar.index.min(matches.len().saturating_sub(1)));
+            bar.matches = matches;
+            bar.refreshing = false;
+            if std::mem::take(&mut bar.again) {
+                self.start_search(true, cx);
+            }
+        } else {
+            bar.matches = matches;
+            bar.index = 0;
+            self.find_reveal(cx);
+        }
         cx.notify();
         true
     }
@@ -325,11 +433,17 @@ pub(super) fn bar(
                 },
             )),
         );
-    let frame = div().absolute().top(px(INSET)).right(px(INSET));
+    // On a phone the bar takes its own place above the conversation: laid
+    // over it, it would hide the very match it scrolls to (the page lays
+    // it over at every width, the same fault).
     let frame = if narrow {
-        frame.left(px(INSET))
+        div().flex_none().px(px(INSET)).pt(px(8.0)).pb(px(4.0))
     } else {
-        frame.w(px(WIDTH))
+        div()
+            .absolute()
+            .top(px(INSET))
+            .right(px(INSET))
+            .w(px(WIDTH))
     };
     Some(frame.child(shell_row).into_any_element())
 }

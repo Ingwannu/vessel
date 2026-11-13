@@ -196,8 +196,13 @@ impl Shell {
     }
 
     /// Records of the session followed.
-    pub(crate) fn records(&mut self, session: &SessionId, records: &[EventRecord]) {
-        self.conversation_records(session, records);
+    pub(crate) fn records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.conversation_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open

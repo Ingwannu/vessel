@@ -36,6 +36,10 @@ pub(crate) fn timeline(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     if area.timeline.entries().is_empty() {
         return entries::empty(&paint).into_any_element();
@@ -46,13 +50,25 @@ pub(crate) fn timeline(
             let tokens = vessel_app_kit::tokens(cx);
             row_element(shell, row, &tokens, window, cx)
         }));
+    let bar = super::find::bar(shell, tokens, window, cx);
+    if breakpoint::phone(window) {
+        return div()
+            .flex_1()
+            .min_h(px(0.0))
+            .size_full()
+            .flex()
+            .flex_col()
+            .children(bar)
+            .child(div().flex_1().min_h(px(0.0)).child(list))
+            .into_any_element();
+    }
     div()
         .flex_1()
         .min_h(px(0.0))
         .size_full()
         .relative()
         .child(list)
-        .children(super::find::bar(shell, tokens, window, cx))
+        .children(bar)
         .into_any_element()
 }
 
@@ -70,6 +86,10 @@ fn row_element(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
