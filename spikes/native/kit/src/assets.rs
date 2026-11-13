@@ -66,10 +66,12 @@ pub enum Glyph {
     Machine,
     /// Three dots: a menu of more actions (the Session actions).
     More,
+    /// Copy: two sheets, one over the other (a code block's copy).
+    Copy,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 21] = [
+const ALL: [Glyph; 22] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -91,6 +93,7 @@ const ALL: [Glyph; 21] = [
     Glyph::Folder,
     Glyph::Machine,
     Glyph::More,
+    Glyph::Copy,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -131,6 +134,7 @@ impl Glyph {
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
+            Self::Copy => "kit/copy.svg",
         }
     }
 
@@ -184,6 +188,9 @@ impl Glyph {
             ),
             Self::More => line_glyph!(
                 r#"<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>"#
+            ),
+            Self::Copy => line_glyph!(
+                r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
             ),
         }
     }
