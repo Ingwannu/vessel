@@ -135,6 +135,13 @@ export function withOpening(
   return { ...timeline, entries: [...timeline.entries, echo] };
 }
 
+/** What a session's box holds once its first prompt came back refused:
+ * that prompt, then what was typed there meanwhile (GOAT and
+ * agent-orchestrator put a refused brief back in the composer). */
+export function returnedDraft(refused: string, typed: string): string {
+  return typed.trim() === "" ? refused : `${refused}\n\n${typed}`;
+}
+
 /** Send `session`'s first prompt, kept as on its way meanwhile, and say
  * what became of it. Not awaited by the new-session page: the node
  * answers once the agent has started. */

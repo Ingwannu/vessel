@@ -6,12 +6,12 @@
 import { rememberStart } from "../../data/defaults";
 import type { Fleet } from "../../data/fleet";
 import type { Draft, OptionsState } from "../../data/new-session";
-import { deliverOpening } from "../../data/openings";
+import { deliverOpening, returnedDraft } from "../../data/openings";
 import { keptChoices } from "../../data/picks";
 import { prefer } from "../../data/prefs";
 import { handOver, sendWhenReady, trayOf } from "../../data/trays";
 import { toast } from "../../ui/toasts";
-import type { NodeKey } from "../../wire/bridge";
+import type { DraftKey, NodeKey } from "../../wire/bridge";
 import type {
   HarnessKind,
   NodeId,
@@ -42,11 +42,14 @@ export function sendFirst(
     return;
   }
   // The node answers once the agent has started; the session's page
-  // shows the prompt meanwhile.
+  // shows the prompt meanwhile. Refused, it goes back in the session's
+  // box, and the box says why (composer.tsx).
   void deliverOpening(fleet, node, session, prompt).then((state) => {
     if (state.kind === "refused") {
+      const key: DraftKey = { kind: "session", session };
+      fleet.drafts.type(key, returnedDraft(prompt, fleet.drafts.text(key)));
       toast(
-        `The session started; the prompt did not: ${state.message}`,
+        `The first message was not sent: ${state.message} It is back in the session's box.`,
         "error",
       );
     }

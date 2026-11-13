@@ -5,6 +5,7 @@ import {
   forgetOpening,
   OPENING_KEY,
   openings,
+  returnedDraft,
   settleOpening,
   startOpening,
   withOpening,
@@ -105,5 +106,15 @@ describe("a new session's first prompt", () => {
     forgetOpening(SESSION);
     expect(openings.get()).toBe(before);
     expect(withOpening(STARTING, undefined)).toBe(STARTING);
+  });
+});
+
+describe("a refused first prompt", () => {
+  it("goes back in the box, before what was typed there meanwhile", () => {
+    expect(returnedDraft("Fix the overview", "")).toBe("Fix the overview");
+    expect(returnedDraft("Fix the overview", "  ")).toBe("Fix the overview");
+    expect(returnedDraft("Fix the overview", "and the tests")).toBe(
+      "Fix the overview\n\nand the tests",
+    );
   });
 });

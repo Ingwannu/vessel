@@ -1658,7 +1658,11 @@ machine in view.
    session's log shows it at its end, "sending", from the first frame,
    until the log has it (`data/openings.ts`), and a message typed
    meanwhile is queued behind it ("Queue a follow-up while Claude Code
-   gets ready"). A terminal takes no prompt: the box's first line becomes
+   gets ready"). A first prompt the machine refuses goes back into the
+   session's box (before anything typed there meanwhile), and the box
+   says "The first message was not sent: …" until the next message goes,
+   as GOAT and agent-orchestrator return a refused brief to the
+   composer. A terminal takes no prompt: the box's first line becomes
    its title.
    A refusal is said under the box, in the danger colour; the page keeps
    what was typed. In a new worktree, Send first makes it: the commands

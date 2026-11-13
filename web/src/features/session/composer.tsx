@@ -18,7 +18,7 @@ import { agentName } from "../../data/agents";
 import { hasConversation } from "../../data/delivery";
 import { isLive } from "../../data/format";
 import { canStartAgain } from "../../data/marks";
-import { openings } from "../../data/openings";
+import { forgetOpening, openings } from "../../data/openings";
 import { queueRows } from "../../data/queue-view";
 import { recall, type Walk } from "../../data/recall";
 import { useStore } from "../../data/store";
@@ -90,6 +90,12 @@ export const Composer = memo(function Composer({
     openings,
     (kept) => kept.get(session.id)?.state.kind === "sending",
   );
+  // A first prompt the machine refused is back in the box (started.ts):
+  // the box says why until the next message goes.
+  const refused = useStore(openings, (kept) => {
+    const state = kept.get(session.id)?.state;
+    return state?.kind === "refused" ? state.message : null;
+  });
   const sender = useComposerSend({
     node,
     session,
@@ -102,6 +108,7 @@ export const Composer = memo(function Composer({
     rows,
     onSent: () => {
       walk.current = null;
+      forgetOpening(session.id);
     },
   });
   const queueActions = useQueueActions({
@@ -170,6 +177,10 @@ export const Composer = memo(function Composer({
         sender.problem !== null ? (
           <span className="prompt-problem" role="alert">
             {sender.problem}
+          </span>
+        ) : refused !== null ? (
+          <span className="prompt-problem" role="alert">
+            The first message was not sent: {refused}
           </span>
         ) : draft.note === "too-long" ? (
           "This draft is too long to keep; it stays in this tab until it is sent."
