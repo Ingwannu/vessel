@@ -141,6 +141,17 @@ pub enum Command {
         /// The agent.
         harness: HarnessRef,
     },
+    /// Start an ended or interrupted session again with its conversation
+    /// (`session.resume`, protocol 10), then send it `text`; answered
+    /// [`Event::Resumed`] or [`Event::ResumeFailed`].
+    Resume {
+        /// The machine.
+        machine: String,
+        /// The session.
+        session: SessionId,
+        /// What was typed.
+        text: String,
+    },
     /// Stop the running turn.
     Stop {
         /// The machine.
@@ -213,6 +224,18 @@ pub enum Event {
     PairFailed(String),
     /// A session act's answer.
     Acted(ActAnswer),
+    /// An ended session runs again, and the prompt was sent to it.
+    Resumed {
+        /// The session.
+        session: SessionId,
+    },
+    /// An ended session could not be started again; the node's words.
+    ResumeFailed {
+        /// The session.
+        session: SessionId,
+        /// Why.
+        why: String,
+    },
     /// What an agent offers, or why the node could not say.
     Options {
         /// The machine.
@@ -323,6 +346,11 @@ impl State {
                 self.start(&machine, harness, folder, prompt, options).await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
+            Command::Resume {
+                machine,
+                session,
+                text,
+            } => self.resume(&machine, session, text).await,
             Command::Stop { machine, session } => {
                 let input = SessionInput::CancelTurn { turn: None };
                 self.input(&machine, session, input).await;
@@ -540,6 +568,38 @@ impl State {
         };
         let events = self.events.clone();
         self.follow = Some(tokio::spawn(follow(client, session, events)));
+    }
+
+    /// Start `session` again, then send it `text`, and list the fleet
+    /// again (its card is live once more).
+    async fn resume(&mut self, machine: &str, session: SessionId, text: String) {
+        let resumed = async {
+            let client = self.client(machine)?.clone();
+            let _info = client
+                .resume_session(session)
+                .await
+                .map_err(|error| LinkError::Call(error.to_string()))?;
+            let content = vec![ContentBlock::Text { text }];
+            client
+                .prompt(session, content, Delivery::Queue)
+                .await
+                .map(|_delivered| ())
+                .map_err(|error| LinkError::Call(error.to_string()))
+        }
+        .await;
+        match resumed {
+            Ok(()) => {
+                self.emit(Event::Resumed { session }).await;
+                self.refresh().await;
+            }
+            Err(error) => {
+                self.emit(Event::ResumeFailed {
+                    session,
+                    why: error.to_string(),
+                })
+                .await;
+            }
+        }
     }
 
     async fn prompt(&self, machine: &str, session: SessionId, text: String) {

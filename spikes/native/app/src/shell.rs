@@ -125,6 +125,8 @@ impl Shell {
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
             Event::Acted(answer) => self.acted(answer, cx),
+            Event::Resumed { session } => self.resumed(session, cx),
+            Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
                 machine,
                 harness,

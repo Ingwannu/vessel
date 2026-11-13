@@ -62,6 +62,13 @@ pub(crate) struct Pending {
 /// The session area's state.
 pub(crate) struct SessionView {
     pub(crate) open: Option<Open>,
+    /// An ended session being started again: the prompt that will be sent
+    /// (shown under the conversation while it starts).
+    pub(crate) resuming: Option<String>,
+    /// Why starting it again failed, under the composer.
+    pub(crate) resume_error: Option<String>,
+    /// A failed resume's text, put back in the composer on the next frame.
+    restore: std::cell::RefCell<Option<String>>,
     pub(crate) pending: Option<Pending>,
     pub(crate) conversation: Conversation,
     pub(crate) entries: ListState,
@@ -72,6 +79,9 @@ impl SessionView {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             open: None,
+            resuming: None,
+            resume_error: None,
+            restore: std::cell::RefCell::new(None),
             pending: None,
             conversation: Conversation::default(),
             entries: ListState::new(0, ListAlignment::Bottom, px(800.0)),
@@ -93,8 +103,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let takes_prompts = open.structured && open.live;
+        // An ended session takes prompts too: sending starts it again.
+        let takes_prompts = open.structured;
         self.areas.session.pending = None;
+        self.areas.session.resuming = None;
+        self.areas.session.resume_error = None;
         self.follow(open, cx);
         let t = self.t;
         self.areas
@@ -215,15 +228,55 @@ impl Shell {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        if text.trim().is_empty() {
+        if text.trim().is_empty() || self.areas.session.resuming.is_some() {
             return;
         }
-        self.command(Command::Prompt {
-            machine: open.machine.clone(),
-            session: open.session,
-            text,
-        });
+        if open.live {
+            self.command(Command::Prompt {
+                machine: open.machine.clone(),
+                session: open.session,
+                text,
+            });
+        } else {
+            // Ended or interrupted: start it again with its conversation,
+            // then send (Paseo and GOAT continue a session the same way).
+            self.command(Command::Resume {
+                machine: open.machine.clone(),
+                session: open.session,
+                text: text.clone(),
+            });
+            self.areas.session.resuming = Some(text);
+            self.areas.session.resume_error = None;
+        }
         self.areas.session.composer.clear(window, cx);
+        cx.notify();
+    }
+
+    /// The ended session runs again: follow it afresh (its log goes on
+    /// after its final status).
+    pub(crate) fn resumed(&mut self, session: SessionId, cx: &mut Context<'_, Self>) {
+        let Some(open) = self.areas.session.open.clone() else {
+            return;
+        };
+        if open.session != session {
+            return;
+        }
+        self.areas.session.resuming = None;
+        self.follow(Open { live: true, ..open }, cx);
+    }
+
+    /// It could not be started again: say why, and put the text back.
+    pub(crate) fn resume_failed(&mut self, session: SessionId, why: String) {
+        let view = &mut self.areas.session;
+        if view
+            .open
+            .as_ref()
+            .is_none_or(|open| open.session != session)
+        {
+            return;
+        }
+        *view.restore.borrow_mut() = view.resuming.take();
+        view.resume_error = Some(why);
     }
 
     /// Stop the open session's running turn.
@@ -314,21 +367,49 @@ pub(crate) fn render(
                 .first()
                 .map(|asked| permission(asked, shell, tokens, cx)),
         )
-        .when(open.structured && open.live, |frame| {
+        .children(resume_note(shell, open, tokens))
+        .when(open.structured, |frame| {
             frame.child(composer(shell, tokens, working, window, cx))
         })
-        .when(open.structured && !open.live, |frame| {
-            frame.child(
-                div()
-                    .px(px(24.0))
-                    .py(px(12.0))
-                    .border_t_1()
-                    .border_color(tokens.border_faint)
-                    .type_(Type::Meta)
-                    .text_color(tokens.text_tertiary)
-                    .child(t.ended),
-            )
-        })
+}
+
+/// Under an ended session's conversation: that sending starts it again;
+/// while it starts, the prompt and that it is starting; why it could not.
+fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
+    if !open.structured || open.live {
+        return None;
+    }
+    let t = shell.t;
+    let view = &shell.areas.session;
+    let neutral = tokens.neutral;
+    let (text, color) = if let Some(why) = &view.resume_error {
+        (t.resume_failed(why), neutral.destructive)
+    } else if view.resuming.is_some() {
+        (t.resuming.to_owned(), tokens.st_building)
+    } else {
+        (t.ended.to_owned(), neutral.foreground_muted)
+    };
+    let mut note = div()
+        .w_full()
+        .flex()
+        .flex_col()
+        .items_center()
+        .gap(px(8.0))
+        .px(px(24.0))
+        .py(px(8.0));
+    if let Some(prompt) = &view.resuming {
+        note = note.child(person(prompt, tokens));
+    }
+    Some(
+        note.child(
+            div()
+                .w_full()
+                .max_w(px(820.0))
+                .type_(Type::Meta)
+                .text_color(color)
+                .child(text),
+        ),
+    )
 }
 
 /// The first prompt, shown while the session starts.
@@ -377,11 +458,16 @@ fn composer(
     shell: &Shell,
     tokens: &Tokens,
     working: bool,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let touch = crate::areas::draft::compact(window);
     let field = &shell.areas.session.composer;
+    let restored = shell.areas.session.restore.borrow_mut().take();
+    if let Some(text) = restored {
+        // A failed resume's text, back in the composer (once).
+        field.set_text(&text, window, cx);
+    }
     let typed = !field.text(cx).trim().is_empty();
     let stop = working && !typed;
     let button = vessel_app_kit::send_button(
