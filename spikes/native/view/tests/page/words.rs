@@ -4,11 +4,12 @@
 
 use serde_json::json;
 use vessel_app_view::timeline::{
-    EN, Entry, EntryKind, Fullness, KO, Settled, answers_of, meter_of, settled, words,
+    Entry, EntryKind, Fullness, Settled, answers_of, meter_of, meter_tokens, settled, short_tokens,
 };
 use vessel_proto::{ContextUsage, PermissionOption, PermissionOutcome, TurnUsage};
 
 use crate::support::make::{message, tool};
+use crate::support::{EN, KO};
 
 fn options() -> Vec<PermissionOption> {
     serde_json::from_value(json!([
@@ -161,9 +162,9 @@ fn the_ring_its_colour_and_its_words_by_the_references_thresholds() {
 
 #[test]
 fn counts_and_costs_as_written() {
-    assert_eq!(words::meter_tokens(950), "950");
-    assert_eq!(words::meter_tokens(84_400), "84k");
-    assert_eq!(words::meter_tokens(1_200_000), "1.2M");
+    assert_eq!(meter_tokens(950), "950");
+    assert_eq!(meter_tokens(84_400), "84k");
+    assert_eq!(meter_tokens(1_200_000), "1.2M");
     let full = meter_of(Some(&context(190_000, 200_000))).unwrap();
     assert!(
         EN.meter_lines(&full, Some((12.5, "credits")))
@@ -177,11 +178,11 @@ fn counts_and_costs_as_written() {
 
 #[test]
 fn model_calls_as_vessel_log_writes_them() {
-    assert_eq!(words::short_tokens(950), "950");
-    assert_eq!(words::short_tokens(1200), "1.2k");
-    assert_eq!(words::short_tokens(48_000), "48k");
-    assert_eq!(words::short_tokens(1_000), "1k");
-    assert_eq!(words::short_tokens(1_300_000), "1.3M");
+    assert_eq!(short_tokens(950), "950");
+    assert_eq!(short_tokens(1200), "1.2k");
+    assert_eq!(short_tokens(48_000), "48k");
+    assert_eq!(short_tokens(1_000), "1k");
+    assert_eq!(short_tokens(1_300_000), "1.3M");
     assert_eq!(EN.duration(40), "40 ms");
     assert_eq!(EN.duration(1234), "1.2 s");
     assert_eq!(EN.duration(125_000), "2 m 5 s");

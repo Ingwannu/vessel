@@ -1,11 +1,11 @@
 //! The page's `data/marks.test.ts` and `data/titles.test.ts`.
 
+use crate::support::EN;
 use serde_json::json;
 use vessel_app_view::session::{
     MarkAction, ReadView, can_start_again, check_title, has_title, mark_actions, read_through,
     session_name, title_from_prompt,
 };
-use vessel_app_view::timeline::EN;
 use vessel_proto::{EventSeq, InvalidTitle, ProtocolVersion, SessionInfo, SessionTitle};
 
 fn live() -> SessionInfo {

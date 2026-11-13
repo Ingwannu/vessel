@@ -43,6 +43,8 @@ mod usage;
 mod window;
 pub mod words;
 
+pub use words::{grouped, meter_tokens, short_tokens};
+
 pub use approval::{Answers, Settled, allows, answers_of, settled};
 pub use entry::{
     Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
@@ -61,4 +63,3 @@ pub use usage::ModelUsage;
 pub use window::{
     Align, FOLLOW, INSET, MARGIN, Span, at_end, covers, guess, off_by, offsets, scroll_for, span,
 };
-pub use words::{EN, KO, Words};

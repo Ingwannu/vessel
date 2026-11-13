@@ -10,26 +10,26 @@ use vessel_proto::workspace::{GitOperation, KeptReason};
 use vessel_proto::{InvalidTitle, SessionTitle};
 
 use super::numbers::meter_tokens;
-use super::{Lang, Words};
 use crate::session::MarkAction;
 use crate::timeline::meter::{Fullness, Meter};
+use crate::{Lang, Text};
 
-impl Words {
+impl Text {
     /// The find bar's count: "3/12" (agent-orchestrator's and GOAT's), or
     /// "No results".
     #[must_use]
-    pub fn count_text(self, count: usize, index: usize) -> String {
+    pub fn count_text(&self, count: usize, index: usize) -> String {
         if count == 0 {
-            return self.pick("No results", "결과 없음").to_owned();
+            return self.either("No results", "결과 없음").to_owned();
         }
         format!("{}/{count}", index.saturating_add(1))
     }
 
     /// The count as a screen reader says it: "3 of 12".
     #[must_use]
-    pub fn count_spoken(self, count: usize, index: usize) -> String {
+    pub fn count_spoken(&self, count: usize, index: usize) -> String {
         if count == 0 {
-            return self.pick("No results", "결과 없음").to_owned();
+            return self.either("No results", "결과 없음").to_owned();
         }
         let at = index.saturating_add(1);
         match self.lang {
@@ -40,28 +40,28 @@ impl Words {
 
     /// What a step that went round an end says.
     #[must_use]
-    pub const fn wrapped(self, forward: bool) -> &'static str {
+    pub const fn wrapped(&self, forward: bool) -> &'static str {
         if forward {
-            self.pick(
+            self.either(
                 "Wrapped to the first match.",
                 "첫 번째 결과로 돌아갔습니다.",
             )
         } else {
-            self.pick("Wrapped to the last match.", "마지막 결과로 돌아갔습니다.")
+            self.either("Wrapped to the last match.", "마지막 결과로 돌아갔습니다.")
         }
     }
 
     /// The find bar's placeholder and label.
     #[must_use]
-    pub const fn find_in_session(self) -> &'static str {
-        self.pick("Find in session", "세션에서 찾기")
+    pub const fn find_in_session(&self) -> &'static str {
+        self.either("Find in session", "세션에서 찾기")
     }
 
     /// The context ring's hover: its heading, then its lines.
     #[must_use]
-    pub fn meter_lines(self, meter: &Meter, cost: Option<(f64, &str)>) -> Vec<String> {
+    pub fn meter_lines(&self, meter: &Meter, cost: Option<(f64, &str)>) -> Vec<String> {
         let mut lines = vec![
-            self.pick("Context window", "컨텍스트 창").to_owned(),
+            self.either("Context window", "컨텍스트 창").to_owned(),
             match self.lang {
                 Lang::En => format!(
                     "{} / {} tokens ({}%)",
@@ -80,21 +80,21 @@ impl Words {
         if let Some((amount, unit)) = cost {
             lines.push(format!(
                 "{} {}",
-                self.pick("Session cost", "세션 비용"),
+                self.either("Session cost", "세션 비용"),
                 cost_label(amount, unit)
             ));
         }
         match meter.fullness {
             Fullness::Room => {}
             Fullness::Low => lines.push(
-                self.pick(
+                self.either(
                     "Room is running low. A long task may not fit.",
                     "남은 공간이 적습니다. 긴 작업은 들어가지 않을 수 있습니다.",
                 )
                 .to_owned(),
             ),
             Fullness::Full => lines.push(
-                self.pick(
+                self.either(
                     "The next turn may not fit. Compacting or starting a new conversation will reclaim room.",
                     "다음 턴이 들어가지 않을 수 있습니다. 압축하거나 새 대화를 시작하면 공간이 생깁니다.",
                 )
@@ -106,19 +106,19 @@ impl Words {
 
     /// What an untitled session with no folder is called.
     #[must_use]
-    pub const fn untitled(self) -> &'static str {
-        self.pick("Untitled session", "제목 없는 세션")
+    pub const fn untitled(&self) -> &'static str {
+        self.either("Untitled session", "제목 없는 세션")
     }
 
     /// Why `text` cannot be a title, as the field says it.
     #[must_use]
-    pub fn title_refused(self, why: InvalidTitle) -> String {
+    pub fn title_refused(&self, why: InvalidTitle) -> String {
         match why {
             InvalidTitle::Empty => self
-                .pick("A title needs some text.", "제목을 입력하세요.")
+                .either("A title needs some text.", "제목을 입력하세요.")
                 .to_owned(),
             InvalidTitle::ControlCharacter => self
-                .pick("A title is one line of text.", "제목은 한 줄이어야 합니다.")
+                .either("A title is one line of text.", "제목은 한 줄이어야 합니다.")
                 .to_owned(),
             InvalidTitle::TooLong { .. } => match self.lang {
                 Lang::En => format!("A title is at most {} characters.", SessionTitle::MAX_CHARS),
@@ -129,16 +129,16 @@ impl Words {
 
     /// A Session actions item.
     #[must_use]
-    pub const fn mark_action(self, action: MarkAction) -> &'static str {
+    pub const fn mark_action(&self, action: MarkAction) -> &'static str {
         match action {
-            MarkAction::Pin => self.pick("Pin session", "세션 고정"),
-            MarkAction::Unpin => self.pick("Unpin session", "고정 해제"),
-            MarkAction::MarkUnread => self.pick("Mark as unread", "읽지 않음으로 표시"),
-            MarkAction::MarkRead => self.pick("Mark as read", "읽음으로 표시"),
-            MarkAction::StartAgain => self.pick("Start again", "다시 시작"),
-            MarkAction::Archive => self.pick("Archive session", "세션 보관"),
-            MarkAction::Unarchive => self.pick("Unarchive", "보관 해제"),
-            MarkAction::Delete => self.pick("Delete permanently", "영구 삭제"),
+            MarkAction::Pin => self.either("Pin session", "세션 고정"),
+            MarkAction::Unpin => self.either("Unpin session", "고정 해제"),
+            MarkAction::MarkUnread => self.either("Mark as unread", "읽지 않음으로 표시"),
+            MarkAction::MarkRead => self.either("Mark as read", "읽음으로 표시"),
+            MarkAction::StartAgain => self.either("Start again", "다시 시작"),
+            MarkAction::Archive => self.either("Archive session", "세션 보관"),
+            MarkAction::Unarchive => self.either("Unarchive", "보관 해제"),
+            MarkAction::Delete => self.either("Delete permanently", "영구 삭제"),
         }
     }
 
@@ -147,7 +147,7 @@ impl Words {
     /// a node whose protocol has terminals (11), and that it can be
     /// restored.
     #[must_use]
-    pub fn archive_words(self, live: bool, machine: &str, ends_beside: bool) -> String {
+    pub fn archive_words(&self, live: bool, machine: &str, ends_beside: bool) -> String {
         let mut words = String::new();
         if live {
             let _infallible = match self.lang {
@@ -156,12 +156,12 @@ impl Words {
             };
         }
         if ends_beside {
-            words.push_str(self.pick(
+            words.push_str(self.either(
                 "The terminals and services running beside it end too; their output is kept. ",
                 "함께 실행 중인 터미널과 서비스도 끝납니다. 출력은 남습니다. ",
             ));
         }
-        words.push_str(self.pick(
+        words.push_str(self.either(
             "You can always restore it from the Archive section later.",
             "나중에 언제든 아카이브에서 복원할 수 있습니다.",
         ));
@@ -170,7 +170,7 @@ impl Words {
 
     /// Why a worktree was kept.
     #[must_use]
-    pub fn kept_reason(self, reason: &KeptReason) -> String {
+    pub fn kept_reason(&self, reason: &KeptReason) -> String {
         match (reason, self.lang) {
             (KeptReason::Uncommitted { files }, Lang::En) => format!(
                 "{files} uncommitted {}",
@@ -192,35 +192,37 @@ impl Words {
             (KeptReason::Operation { operation }, Lang::Ko) => {
                 format!("진행 중인 {}", git_operation(*operation))
             }
-            (KeptReason::Submodules, _) => self.pick("submodules", "서브모듈").to_owned(),
+            (KeptReason::Submodules, _) => self.either("submodules", "서브모듈").to_owned(),
             (KeptReason::FlaggedFiles, _) => self
-                .pick("files git was told to keep", "git이 보존하도록 지정된 파일")
+                .either("files git was told to keep", "git이 보존하도록 지정된 파일")
                 .to_owned(),
-            (KeptReason::WorktreeRefs, _) => self.pick("refs of its own", "고유한 ref").to_owned(),
+            (KeptReason::WorktreeRefs, _) => {
+                self.either("refs of its own", "고유한 ref").to_owned()
+            }
             (KeptReason::InUse, _) => self
-                .pick(
+                .either(
                     "another live session works in it",
                     "다른 실행 중인 세션이 사용 중",
                 )
                 .to_owned(),
             (KeptReason::InspectionFailed, _) => self
-                .pick(
+                .either(
                     "git could not say what it holds",
                     "git이 내용을 확인하지 못함",
                 )
                 .to_owned(),
             (KeptReason::Unknown, _) => self
-                .pick("a reason this page does not know", "이 앱이 모르는 이유")
+                .either("a reason this page does not know", "이 앱이 모르는 이유")
                 .to_owned(),
         }
     }
 
     /// What a delete's toast says became of the session's worktree.
     #[must_use]
-    pub fn deleted_line(self, kept: Option<&[KeptReason]>, removed: bool) -> Option<String> {
+    pub fn deleted_line(&self, kept: Option<&[KeptReason]>, removed: bool) -> Option<String> {
         if removed {
             return Some(
-                self.pick("Its worktree was removed.", "워크트리를 지웠습니다.")
+                self.either("Its worktree was removed.", "워크트리를 지웠습니다.")
                     .to_owned(),
             );
         }
@@ -236,24 +238,24 @@ impl Words {
 
     /// The ended banner's heading.
     #[must_use]
-    pub const fn ended_heading(self, archived: bool) -> &'static str {
+    pub const fn ended_heading(&self, archived: bool) -> &'static str {
         if archived {
-            self.pick("Session archived", "보관된 세션")
+            self.either("Session archived", "보관된 세션")
         } else {
-            self.pick("Session ended", "끝난 세션")
+            self.either("Session ended", "끝난 세션")
         }
     }
 
     /// The ended banner's line.
     #[must_use]
-    pub const fn ended_line(self, can_start_again: bool) -> &'static str {
+    pub const fn ended_line(&self, can_start_again: bool) -> &'static str {
         if can_start_again {
-            self.pick(
+            self.either(
                 "History is kept. Start the session again to continue.",
                 "기록은 남아 있습니다. 이어 가려면 세션을 다시 시작하세요.",
             )
         } else {
-            self.pick(
+            self.either(
                 "History is kept. This agent cannot pick up where it left off.",
                 "기록은 남아 있습니다. 이 에이전트는 멈춘 곳에서 이어 갈 수 없습니다.",
             )

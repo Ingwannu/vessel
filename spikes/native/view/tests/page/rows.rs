@@ -2,9 +2,10 @@
 
 use std::collections::HashSet;
 
-use vessel_app_view::timeline::{EN, FindCache, Folds, Rows, RunSummary, find_all, outline};
+use vessel_app_view::timeline::{FindCache, Folds, Rows, RunSummary, find_all, outline};
 use vessel_proto::ToolKind;
 
+use crate::support::EN;
 use crate::support::make::{conversation, message, tool};
 
 #[test]

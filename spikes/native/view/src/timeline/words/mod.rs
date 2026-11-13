@@ -1,21 +1,23 @@
-//! Every word the conversation's screens show, in English and Korean.
+//! The conversation's sentences in the app's one string table (`Text`):
+//! methods of it, in English and Korean, kept in these files.
 //!
 //! [Decision Log]
-//! - Purpose: every string through one table per language from the first
-//!   line (the milestone's rule); the English is the page's, word for
+//! - Purpose: every string through the one table, English and Korean
+//!   together (the milestone's rule); the English is the page's, word for
 //!   word, so a page test's expected sentence is this table's English
 //!   (ADR 0036: one behaviour, checked on both sides).
-//! - Constraint: the app's string table (`Text`, the lead's) is being
-//!   written at the same time on another branch; editing it from here
-//!   would conflict on every line.
-//! - Choice: the conversation's words as a table of their own, the same
-//!   shape as the app's (a language field, a `pick` for fixed words,
-//!   methods for sentences with values, each language's word order its
-//!   own), reached from the app's table by one field once both are on
-//!   one branch. The view logic returns typed values (a run's counts, a
-//!   request's outcome); only this module turns them into words.
-//! - Cost: two tables until they are joined; `Lang` here is the app's
-//!   until then.
+//! - Constraint: `view/src/text.rs` is every track's; a hundred sentences
+//!   of one area written into its struct and its two constants would make
+//!   each merge a conflict.
+//! - Choice: the conversation's sentences are methods of `Text`, as the
+//!   table's own sentences with values are (each matching on its
+//!   language, so a sentence without its Korean does not compile), in
+//!   these files: `impl Text` blocks beside the logic they word. The
+//!   view logic returns typed values (a run's counts, a request's
+//!   outcome); only these methods turn them into words.
+//! - Cost: a fixed word of the conversation is a method (`either`), not a
+//!   field of the two constants; both languages are still written side
+//!   by side and cannot be left out.
 
 mod entries;
 mod numbers;
@@ -23,43 +25,12 @@ mod session;
 
 pub use numbers::{grouped, meter_tokens, short_tokens};
 
-/// A language the words are in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Lang {
-    /// English.
-    En,
-    /// Korean.
-    Ko,
-}
+use crate::{Lang, Text};
 
-/// The conversation's words in one language.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Words {
-    lang: Lang,
-}
-
-/// The English words (the page's).
-pub const EN: Words = Words { lang: Lang::En };
-
-/// The Korean words.
-pub const KO: Words = Words { lang: Lang::Ko };
-
-impl Words {
-    /// The words of `lang`.
-    #[must_use]
-    pub const fn of(lang: Lang) -> Self {
-        Self { lang }
-    }
-
-    /// Which language these are.
-    #[must_use]
-    pub const fn lang(self) -> Lang {
-        self.lang
-    }
-
-    /// A fixed word, by language.
-    #[must_use]
-    pub const fn pick(self, en: &'static str, ko: &'static str) -> &'static str {
+impl Text {
+    /// A fixed word of the conversation, by language: both are written
+    /// where it is used, so neither can be missing.
+    pub(crate) const fn either(&self, en: &'static str, ko: &'static str) -> &'static str {
         match self.lang {
             Lang::En => en,
             Lang::Ko => ko,

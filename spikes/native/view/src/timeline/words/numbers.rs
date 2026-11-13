@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, FixedOffset, Utc};
 
-use super::{Lang, Words};
+use crate::{Lang, Text};
 
 /// `count` with thousands grouped by commas: `1,234,567` (`en-US`, which
 /// the page's turn line uses in both languages).
@@ -83,10 +83,10 @@ pub fn meter_tokens(count: u64) -> String {
     }
 }
 
-impl Words {
+impl Text {
     /// A duration in milliseconds, short: `40 ms`, `1.2 s`, `2 m 5 s`.
     #[must_use]
-    pub fn duration(self, ms: u64) -> String {
+    pub fn duration(&self, ms: u64) -> String {
         if ms < 1000 {
             return match self.lang {
                 Lang::En => format!("{ms} ms"),
@@ -116,7 +116,7 @@ impl Words {
     /// A local time of day, or a date with it when not today: `today
     /// 14:05`, `2026-11-07 14:05`. `now` carries the local offset.
     #[must_use]
-    pub fn when(self, at: DateTime<Utc>, now: DateTime<FixedOffset>) -> String {
+    pub fn when(&self, at: DateTime<Utc>, now: DateTime<FixedOffset>) -> String {
         let local = at.with_timezone(&now.timezone());
         let time = local.format("%H:%M");
         if local.date_naive() == now.date_naive() {

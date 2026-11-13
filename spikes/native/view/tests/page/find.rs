@@ -3,10 +3,11 @@
 use std::time::{Duration, Instant};
 
 use vessel_app_view::timeline::{
-    EN, Entry, FindCache, Finder, Match, find_all, fold, occurrences, query_of, readable_text,
+    Entry, FindCache, Finder, Match, find_all, fold, occurrences, query_of, readable_text,
     spans_of, step,
 };
 
+use crate::support::EN;
 use crate::support::make::{log, message, prompt, thought};
 
 #[test]
