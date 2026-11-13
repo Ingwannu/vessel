@@ -7,7 +7,11 @@ use crate::{
     badge::Variant,
     devices::{DeviceState, Problem, details, exact, time::Age},
 };
-use chrono::Duration;
+use chrono::{Duration, FixedOffset};
+
+fn offset() -> FixedOffset {
+    FixedOffset::east_opt(0).unwrap()
+}
 use vessel_proto::ErrorCode;
 
 #[test]
@@ -23,37 +27,45 @@ fn paseo_time_ago_inputs_produce_the_same_english_labels() {
         ("2026-01-15T12:00:00Z", "Jan 15"),
     ] {
         assert_eq!(
-            Lang::En.devices().compact_age(Age::of(at(date), now)),
+            Lang::En
+                .devices()
+                .compact_age(Age::of(at(date), now, offset())),
             expected
         );
     }
     for seconds in 0..60 {
         assert_eq!(
-            Lang::En
-                .devices()
-                .compact_age(Age::of(now - Duration::seconds(seconds), now)),
+            Lang::En.devices().compact_age(Age::of(
+                now - Duration::seconds(seconds),
+                now,
+                offset()
+            )),
             "just now"
         );
     }
-    assert_eq!(Age::of(now + Duration::seconds(1), now), Age::Now);
+    assert_eq!(Age::of(now + Duration::seconds(1), now, offset()), Age::Now);
     assert!(matches!(
-        Age::of(now - Duration::days(7) + Duration::milliseconds(1), now),
+        Age::of(
+            now - Duration::days(7) + Duration::milliseconds(1),
+            now,
+            offset()
+        ),
         Age::Days(6)
     ));
     assert_eq!(
-        Age::of(now - Duration::days(7), now),
+        Age::of(now - Duration::days(7), now, offset()),
         Age::Date(at("2026-07-09T12:00:00Z").date_naive())
     );
     assert_eq!(
         Lang::En
             .devices()
-            .compact_age(Age::of(now - Duration::days(7), now)),
+            .compact_age(Age::of(now - Duration::days(7), now, offset())),
         "Jul 9"
     );
     assert_eq!(
         Lang::Ko
             .devices()
-            .compact_age(Age::of(now - Duration::days(7), now)),
+            .compact_age(Age::of(now - Duration::days(7), now, offset())),
         "7월 9일"
     );
 }
@@ -100,40 +112,40 @@ fn device_badges_describe_access_and_never_invent_a_live_connection() {
 fn row_sentences_and_exact_hover_instants_are_complete_in_both_languages() {
     let now = at("2026-11-11T07:00:00Z");
     assert_eq!(
-        details(Lang::En, &phone(), now),
+        details(Lang::En, &phone(), now, offset()),
         "Can read, run sessions\nLast seen 3 minutes ago\nPaired 2 hours ago"
     );
     assert_eq!(
-        details(Lang::Ko, &phone(), now),
+        details(Lang::Ko, &phone(), now, offset()),
         "권한: 읽기, 세션 실행\n마지막 접속: 3분 전\n페어링: 2시간 전"
     );
     assert_eq!(
-        exact(Lang::En, &phone()),
-        "Paired: 2026-11-11 05:00:00 UTC\nLast seen: 2026-11-11 06:57:00 UTC"
+        exact(Lang::En, &phone(), offset()),
+        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: 2026-11-11 06:57:00 (UTC+0)"
     );
     assert_eq!(
-        exact(Lang::Ko, &phone()),
-        "페어링: 2026-11-11 05:00:00 UTC\n마지막 접속: 2026-11-11 06:57:00 UTC"
+        exact(Lang::Ko, &phone(), offset()),
+        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 2026-11-11 06:57:00 (UTC+0)"
     );
     let unseen = vessel_proto::DeviceInfo {
         last_seen: None,
         ..phone()
     };
     assert_eq!(
-        details(Lang::En, &unseen, now),
+        details(Lang::En, &unseen, now, offset()),
         "Can read, run sessions\nNo connection recorded\nPaired 2 hours ago"
     );
     assert_eq!(
-        details(Lang::Ko, &unseen, now),
+        details(Lang::Ko, &unseen, now, offset()),
         "권한: 읽기, 세션 실행\n기록된 접속이 없습니다\n페어링: 2시간 전"
     );
     assert_eq!(
-        exact(Lang::En, &unseen),
-        "Paired: 2026-11-11 05:00:00 UTC\nLast seen: Never"
+        exact(Lang::En, &unseen, offset()),
+        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: Never"
     );
     assert_eq!(
-        exact(Lang::Ko, &unseen),
-        "페어링: 2026-11-11 05:00:00 UTC\n마지막 접속: 접속한 적 없음"
+        exact(Lang::Ko, &unseen, offset()),
+        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 접속한 적 없음"
     );
 }
 
@@ -263,22 +275,18 @@ fn every_age_reads_as_a_whole_phrase_in_both_languages() {
     }
     assert_eq!(Lang::En.devices().loading_badge, "Loading");
     assert_eq!(Lang::Ko.devices().loading_badge, "불러오는 중");
-    assert_eq!(Lang::En.devices().list_failed_badge, "Failed");
-    assert_eq!(Lang::Ko.devices().list_failed_badge, "실패");
-    assert_eq!(Lang::En.devices().revoke_failed_badge, "Failed");
-    assert_eq!(Lang::Ko.devices().revoke_failed_badge, "실패");
 }
 
 #[test]
 fn every_request_state_has_one_shared_badge_meaning() {
     use crate::devices::{Inviting, Listing, Revoking, Tickets};
     let ticket = Tickets::default().next_ticket().unwrap();
-    assert_eq!(Listing::Empty.variant(), Variant::Warning);
-    assert_eq!(Listing::Loading(ticket).variant(), Variant::Warning);
+    assert_eq!(Listing::Empty.variant(), Variant::Muted);
+    assert_eq!(Listing::Loading(ticket).variant(), Variant::Muted);
     assert_eq!(Listing::Ready(Vec::new()).variant(), Variant::Success);
     assert_eq!(Listing::Failed(Problem::Offline).variant(), Variant::Error);
     assert_eq!(Inviting::Empty.variant(), Variant::Muted);
-    assert_eq!(Inviting::Loading(ticket).variant(), Variant::Warning);
+    assert_eq!(Inviting::Loading(ticket).variant(), Variant::Muted);
     assert_eq!(
         Inviting::Ready(super::pairing(at("2026-11-11T08:00:00Z"))).variant(),
         Variant::Success
@@ -289,27 +297,22 @@ fn every_request_state_has_one_shared_badge_meaning() {
     assert_eq!(
         Revoking::Sending {
             ticket,
-            device: phone().id
+            device: phone()
         }
         .variant(),
-        Variant::Warning
+        Variant::Muted
     );
     assert_eq!(Revoking::Failed(Problem::Offline).variant(), Variant::Error);
-    assert_eq!(Lang::En.devices().invite_failed_badge, "Failed");
-    assert_eq!(Lang::Ko.devices().invite_failed_badge, "실패");
 }
 
 #[test]
 fn korean_machine_and_confirmation_values_need_no_chosen_particle() {
     let words = Lang::Ko.devices();
-    assert_eq!(words.paired_with("연구실"), "페어링 대상: 연구실");
+    assert_eq!(words.paired_with("연구실"), "연구실에 페어링된 기기");
+    assert_eq!(words.revoke_title("휴대폰"), "휴대폰의 접근을 해제할까요?");
     assert_eq!(
-        words.revoke_title("휴대폰"),
-        "다음 기기의 접근을 해제할까요? 휴대폰"
-    );
-    assert_eq!(
-        words.revoke_hint("휴대폰", "연구실"),
-        "이 기기의 접근을 즉시 해제하고 열려 있는 연결을 닫습니다. 기기 이름: 휴대폰. 머신 이름: 연구실. 다시 페어링하려면 새 링크가 필요합니다."
+        words.revoke_hint("연구실"),
+        "이 기기는 지금부터 연구실에 접근할 수 없으며, 열려 있는 연결도 닫힙니다. 다시 페어링하려면 새 링크가 필요합니다."
     );
     assert_eq!(
         Lang::En.devices().paired_with("laptop"),
@@ -317,8 +320,8 @@ fn korean_machine_and_confirmation_values_need_no_chosen_particle() {
     );
     assert_eq!(Lang::En.devices().revoke_title("phone"), "Revoke phone?");
     assert_eq!(
-        Lang::En.devices().revoke_hint("phone", "laptop"),
-        "phone loses access to laptop now, and its open connections close. Pairing it again needs a new link."
+        Lang::En.devices().revoke_hint("laptop"),
+        "This device loses access to laptop now, and its open connections close. Pairing it again needs a new link."
     );
 }
 
@@ -341,6 +344,6 @@ fn the_pairing_destination_stays_with_the_form_after_the_heading_scrolls_away() 
     );
     assert_eq!(
         Lang::Ko.devices().name_hint("laptop"),
-        "페어링 대상: laptop. 10분 동안 한 번만 사용할 수 있는 링크입니다."
+        "laptop에 기기 하나를 페어링하는 링크입니다. 10분 동안 한 번만 사용할 수 있습니다."
     );
 }

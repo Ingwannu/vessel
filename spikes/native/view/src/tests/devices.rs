@@ -1,6 +1,7 @@
 //! The page's `data/devices.test.ts`, and the pairing link's showing.
 
 mod phrases;
+mod review;
 
 use chrono::{DateTime, Duration, Utc};
 use vessel_proto::DeviceInfo;
@@ -158,7 +159,15 @@ fn revocation_requires_confirmation_and_accepts_only_its_own_answer() {
     let mut revoking = Revoking::Empty;
     assert_eq!(revoking.confirm(ticket), None);
     revoking = Revoking::Confirm(phone());
+    assert_eq!(
+        revoking.confirmation().map(|device| device.label.as_str()),
+        Some("phone")
+    );
     assert_eq!(revoking.confirm(ticket), Some(phone().id));
+    assert_eq!(
+        revoking.confirmation().map(|device| device.label.as_str()),
+        Some("phone")
+    );
     assert_eq!(revoking.confirm(ticket), None);
     assert!(!revoking.answer(old, Ok(())));
     assert!(revoking.answer(ticket, Err(Problem::Offline)));
@@ -167,6 +176,7 @@ fn revocation_requires_confirmation_and_accepts_only_its_own_answer() {
     assert_eq!(revoking.confirm(ticket), Some(phone().id));
     assert!(revoking.answer(ticket, Ok(())));
     assert!(matches!(revoking, Revoking::Empty));
+    assert!(revoking.confirmation().is_none());
 }
 
 #[test]

@@ -115,6 +115,16 @@ themes, with a four-module quiet zone. `view::devices::qr` encodes with
 `qrcode` 0.14 (MIT OR Apache-2.0, default features off); neither layer
 writes a matrix or a link. QR and text share the invitation reveal gate.
 
+`kit::button_with_kind` is the filled entry: typed primary, secondary and
+destructive kinds plus enabled/disabled state. Destructive fill/border use
+`neutral.destructive`, text its separate `destructive_foreground`; hover
+keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
+no handler. The existing bool `button` delegates and stays until the lead
+retires it after moving its callers.
+
+`kit::breakpoint::TOUCH_TARGET` is the shared minimum touch target;
+screens take gaps and insets from `kit::theme::spacing`.
+
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.

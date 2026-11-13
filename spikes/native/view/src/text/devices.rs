@@ -4,7 +4,7 @@ use super::Lang;
 mod details;
 
 use crate::devices::Problem;
-use chrono::{DateTime, Utc};
+use crate::devices::time::Remaining;
 
 use vessel_proto::ErrorCode;
 
@@ -78,12 +78,6 @@ pub struct DevicesWords {
     pub expired: &'static str,
     /// Badge while the list is loading.
     pub loading_badge: &'static str,
-    /// Badge when a device read failed.
-    pub list_failed_badge: &'static str,
-    /// Badge when making a link failed.
-    pub invite_failed_badge: &'static str,
-    /// Badge when access removal failed.
-    pub revoke_failed_badge: &'static str,
 }
 
 const EN: DevicesWords = DevicesWords {
@@ -115,9 +109,6 @@ const EN: DevicesWords = DevicesWords {
     verify: "Paste the link at the other device’s prompt, never on a command line. Compare this key before connecting:",
     expired: "This invitation expired. Make a new link.",
     loading_badge: "Loading",
-    list_failed_badge: "Failed",
-    revoke_failed_badge: "Failed",
-    invite_failed_badge: "Failed",
 };
 const KO: DevicesWords = DevicesWords {
     lang: Lang::Ko,
@@ -148,9 +139,6 @@ const KO: DevicesWords = DevicesWords {
     verify: "다른 기기의 입력창에 링크를 붙여 넣으세요. 명령줄에는 넣지 마세요. 연결하기 전에 이 키가 맞는지 확인하세요:",
     expired: "초대가 만료되었습니다. 새 링크를 만드세요.",
     loading_badge: "불러오는 중",
-    list_failed_badge: "실패",
-    revoke_failed_badge: "실패",
-    invite_failed_badge: "실패",
 };
 
 impl DevicesWords {
@@ -164,7 +152,9 @@ impl DevicesWords {
                 "A link that pairs one device with {machine}; it works once, for ten minutes."
             ),
             Lang::Ko => {
-                format!("페어링 대상: {machine}. 10분 동안 한 번만 사용할 수 있는 링크입니다.")
+                format!(
+                    "{machine}에 기기 하나를 페어링하는 링크입니다. 10분 동안 한 번만 사용할 수 있습니다."
+                )
             }
         }
     }
@@ -174,7 +164,7 @@ impl DevicesWords {
     pub fn paired_with(&self, machine: &str) -> String {
         match self.lang {
             Lang::En => format!("Paired with {machine}"),
-            Lang::Ko => format!("페어링 대상: {machine}"),
+            Lang::Ko => format!("{machine}에 페어링된 기기"),
         }
     }
     /// Revocation dialog title.
@@ -182,28 +172,32 @@ impl DevicesWords {
     pub fn revoke_title(&self, name: &str) -> String {
         match self.lang {
             Lang::En => format!("Revoke {name}?"),
-            Lang::Ko => format!("다음 기기의 접근을 해제할까요? {name}"),
+            Lang::Ko => format!("{name}의 접근을 해제할까요?"),
         }
     }
     /// The consequence confirmed before revoking.
     #[must_use]
-    pub fn revoke_hint(&self, name: &str, machine: &str) -> String {
+    pub fn revoke_hint(&self, machine: &str) -> String {
         match self.lang {
             Lang::En => format!(
-                "{name} loses access to {machine} now, and its open connections close. Pairing it again needs a new link."
+                "This device loses access to {machine} now, and its open connections close. Pairing it again needs a new link."
             ),
             Lang::Ko => format!(
-                "이 기기의 접근을 즉시 해제하고 열려 있는 연결을 닫습니다. 기기 이름: {name}. 머신 이름: {machine}. 다시 페어링하려면 새 링크가 필요합니다."
+                "이 기기는 지금부터 {machine}에 접근할 수 없으며, 열려 있는 연결도 닫힙니다. 다시 페어링하려면 새 링크가 필요합니다."
             ),
         }
     }
-    /// An invitation's absolute expiry time.
+    /// Invitation row title: whole minutes left, under a minute, or the
+    /// expired sentence. `Minutes` carries a numeric count, never a date.
     #[must_use]
-    pub fn expires(&self, at: DateTime<Utc>) -> String {
-        let at = at.format("%Y-%m-%d %H:%M:%S UTC");
-        match self.lang {
-            Lang::En => format!("Expires {at}"),
-            Lang::Ko => format!("만료: {at}"),
+    pub fn expires(&self, remaining: Remaining) -> String {
+        match (self.lang, remaining) {
+            (Lang::En, Remaining::Minutes(1)) => "Expires in 1 minute".to_owned(),
+            (Lang::En, Remaining::Minutes(n)) => format!("Expires in {n} minutes"),
+            (Lang::Ko, Remaining::Minutes(n)) => format!("{n}분 뒤 만료"),
+            (Lang::En, Remaining::Soon) => "Expires in less than a minute".to_owned(),
+            (Lang::Ko, Remaining::Soon) => "1분 안에 만료".to_owned(),
+            (Lang::En | Lang::Ko, Remaining::Expired) => self.expired.to_owned(),
         }
     }
     /// A failure without ever forwarding a peer's credential-bearing text.

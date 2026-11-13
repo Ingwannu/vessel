@@ -18,6 +18,7 @@ use crate::{routes::Route, shell::Shell};
 
 pub(crate) struct Devices {
     pub(super) page: Page,
+    pub(super) offset: chrono::FixedOffset,
     pub(super) name: TextField,
     pub(super) dialog: DialogState,
     pub(super) copied: Option<&'static str>,
@@ -30,6 +31,8 @@ impl Devices {
         let name = TextField::new("", |_shell: &mut Shell, _text, _window, _cx| {}, window, cx);
         Self {
             page: Page::default(),
+            // Capture the viewer's offset once; pure view code does no system I/O.
+            offset: *chrono::Local::now().offset(),
             name,
             dialog: DialogState::new(cx),
             copied: None,
@@ -100,7 +103,7 @@ impl Shell {
         }
     }
 
-    pub(crate) fn devices_answer(&mut self, answer: Answer) {
+    pub(crate) fn devices_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.settings.devices;
         match answer {
             Answer::Listed(ticket, result) => {
@@ -122,6 +125,10 @@ impl Shell {
             }
             Answer::Invited(ticket, result) => {
                 if state.page.inviting.answer(ticket, result) {
+                    if let vessel_app_view::devices::Inviting::Ready(pairing) = &state.page.inviting
+                    {
+                        invitation::clock(pairing.expires(), cx);
+                    }
                     self.devices_list();
                 }
             }

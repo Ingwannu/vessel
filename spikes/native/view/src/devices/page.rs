@@ -79,7 +79,7 @@ impl Listing {
     #[must_use]
     pub const fn variant(&self) -> crate::badge::Variant {
         match self {
-            Self::Empty | Self::Loading(_) => crate::badge::Variant::Warning,
+            Self::Empty | Self::Loading(_) => crate::badge::Variant::Muted,
             Self::Ready(_) => crate::badge::Variant::Success,
             Self::Failed(_) => crate::badge::Variant::Error,
         }
@@ -115,8 +115,7 @@ impl Inviting {
     #[must_use]
     pub const fn variant(&self) -> crate::badge::Variant {
         match self {
-            Self::Empty => crate::badge::Variant::Muted,
-            Self::Loading(_) => crate::badge::Variant::Warning,
+            Self::Empty | Self::Loading(_) => crate::badge::Variant::Muted,
             Self::Ready(_) => crate::badge::Variant::Success,
             Self::Failed(_) => crate::badge::Variant::Error,
         }
@@ -155,8 +154,8 @@ pub enum Revoking {
     Sending {
         /// The request identity.
         ticket: Ticket,
-        /// The device whose access is being removed.
-        device: DeviceId,
+        /// Keep the confirmation's public name while its button is disabled.
+        device: DeviceInfo,
     },
     /// The call failed, shown next to the revoke controls.
     Failed(Problem),
@@ -167,9 +166,18 @@ impl Revoking {
     #[must_use]
     pub const fn variant(&self) -> crate::badge::Variant {
         match self {
-            Self::Empty | Self::Confirm(_) => crate::badge::Variant::Muted,
-            Self::Sending { .. } => crate::badge::Variant::Warning,
+            Self::Empty | Self::Confirm(_) | Self::Sending { .. } => crate::badge::Variant::Muted,
             Self::Failed(_) => crate::badge::Variant::Error,
+        }
+    }
+
+    /// Keep the same confirmation visible through the pending request.
+    /// The screen needs no second, potentially stale copy of its name.
+    #[must_use]
+    pub const fn confirmation(&self) -> Option<&DeviceInfo> {
+        match self {
+            Self::Confirm(device) | Self::Sending { device, .. } => Some(device),
+            Self::Empty | Self::Failed(_) => None,
         }
     }
 
@@ -178,9 +186,10 @@ impl Revoking {
         let Self::Confirm(info) = self else {
             return None;
         };
-        let device = info.id;
+        let device = info.clone();
+        let id = device.id;
         *self = Self::Sending { ticket, device };
-        Some(device)
+        Some(id)
     }
 
     /// Settle only the outstanding revocation. A success asks for a fresh

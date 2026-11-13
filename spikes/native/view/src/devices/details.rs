@@ -3,7 +3,7 @@
 
 use super::{scope_line, time::Age};
 use crate::{Lang, badge::Variant};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use vessel_proto::DeviceInfo;
 
 /// The node reports authentication history, not current connections.
@@ -42,12 +42,12 @@ impl DeviceState {
 
 /// The complete explanatory lines below a device's name and badge.
 #[must_use]
-pub fn details(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>) -> String {
+pub fn details(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>, offset: FixedOffset) -> String {
     let words = lang.devices();
     [
         scope_line(lang, device),
-        words.last_seen(device.last_seen.map(|seen| Age::of(seen, now))),
-        words.paired_ago(Age::of(device.created_at, now)),
+        words.last_seen(device.last_seen.map(|seen| Age::of(seen, now, offset))),
+        words.paired_ago(Age::of(device.created_at, now, offset)),
     ]
     .join("\n")
 }
@@ -55,7 +55,7 @@ pub fn details(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>) -> String {
 /// Both exact instants, for the kit's hover tooltip. Missing is said
 /// plainly; an invented date is never substituted for it.
 #[must_use]
-pub fn exact(lang: Lang, device: &DeviceInfo) -> String {
+pub fn exact(lang: Lang, device: &DeviceInfo, offset: FixedOffset) -> String {
     lang.devices()
-        .exact_times(device.created_at, device.last_seen)
+        .exact_times(device.created_at, device.last_seen, offset)
 }

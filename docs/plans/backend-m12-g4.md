@@ -29,8 +29,8 @@ credential on another page. No GPUI dependency or I/O is introduced.
 
 Paseo `utils/time.test.ts` supplies the English age cases as well: floor
 minute/hour/day units, just now below a minute, and calendar dates from
-seven days. Settings writes those ages in full words, with exact UTC
-instants (including fractional seconds) on hover. Each row sentence is
+seven days. Settings writes those ages in full words, with exact viewer-local
+instants to the second and a named UTC offset on hover. Each row sentence is
 a complete translation unit; numeric counts reach its language match.
 Korean interpolated names need no particle chosen by the implementation.
 
@@ -214,17 +214,85 @@ changed.
 
 Final visual evidence: 48 normal-build frames cover empty, failed, loading,
 long, confirmation and hidden-link states in both languages, both themes
-and 1280/390 widths. Four desktop hover frames retain exact UTC instants.
+and 1280/390 widths. Four desktop hover frames originally retained UTC instants; the review
+correction below supersedes those frames.
 Every final frame was personally inspected; the folder's manifest records
 its hash and masked state. Runtime copy/revoke frames are kept separately
 from that 52-frame set. No issued QR or link is in either set. The first
 automation pass preceded the first painted frame; it was replaced after
 checking navigation, not counted as a successful screen check.
 
-The reference's skeleton/busy decoration is represented by localized
-loading text in this kit. Revoke feedback is the fresh authoritative list
+The reference's busy state uses the kit's animated spinner as the leading
+element of a neutral badge, with a localized label. Revoke feedback is the fresh authoritative list
 and an inline failure notice, without adding a separate toast system.
 Shared helper candidates for the lead: MachineKey/Target, non-reused
 Tickets, safe Problem codes, and the toolkit-free Age thresholds. They
 remain in this area's view module rather than guessing E's unpublished
 Machines helpers.
+
+
+## Devices screen review correction
+
+The desktop lead's branch was merged first, keeping every track's glyphs
+and the accepted badge/alert followups. Its spacing commit is the reviewed
+scale; this screen now uses those constants and one kit touch target.
+The merged native gate and the required main-workspace fake-agent checks
+passed before the merge commit was finalized.
+
+The view now takes an explicit viewer offset for both old calendar dates
+and exact hover instants. The app reads that offset once from its own
+system clock. Exact instants show seconds and a named offset, never the
+node's fractional storage representation; changing the viewer's zone
+while the app runs takes effect on restart. New whole-sentence tests cover
+UTC, positive, negative and fractional-hour offsets and local date rollover.
+The original Paseo age fixtures still use an explicit zero offset.
+
+Invitations show whole minutes remaining, rounded down, then an under-one-
+minute sentence and the existing expired sentence. A pure deadline helper
+returns the next wording boundary; the app timer holds only the public
+expiry and stops when the invitation changes or the page leaves. It never
+reads or changes credential visibility. Boundary tests check each wake,
+the minute counts and the final expiry in both languages.
+
+The public verification key is its own fixed-width element below the
+instruction. Failed actions use their alert once, without a duplicate
+failure badge. Listing, making a link and revoking use neutral badges with
+the kit spinner. Korean now uses invariant particles naturally, and the
+confirmation body describes the consequence without repeating the long
+name already present in its title. Credential gates and node calls are
+unchanged. Sync remains parked until Devices is accepted.
+
+The accepted typed destructive button is included from the schedules
+track's shared control commit. Revoke uses its own foreground and no
+screen-local colour override. The confirmation retains only the device's
+public metadata while the request is sent; its destructive and cancel
+buttons are disabled with no handler, and a neutral spinner shows progress.
+The existing ticket correlation and all credential policy remain unchanged.
+
+
+The correction's full native gate passed: formatting, clippy with warnings
+as errors, 358 tests and all doc tests. The normal app build passed too.
+Retakes cover seven states (failed link, long list, confirmation, pending
+revoke, list loading, link creation and masked invitation) in English and
+Korean, dark and light, at 1280 and 390: 56 frames. Four desktop hover
+frames show local instants to seconds. A further masked frame shows the
+countdown changing from nine to eight minutes after 101 seconds without
+input or focus events. All 61 retained frames were personally inspected;
+none shows a live invitation or QR. The viewer's system offset in these
+runs is UTC+0; the other offsets are verified by the view tests.
+
+Pending-state captures pause only the disposable home node, confirm the
+revoke, then resume it and observe the device's tombstone. The unredeemable
+long-name fixture is reinstated in the scratch database between runs so
+all eight shapes use the same row. This is fixture setup, not evidence
+that a revoked real credential can authenticate again. The earlier real
+pair/authenticate/revoke/refuse check remains the separate runtime proof.
+The fixture check still passes afterward. An initial pre-paint automation
+frame was replaced; the remaining runs wait for visible content first.
+A sparse pixel sampler initially rejected a painted phone frame and was
+corrected; every resulting frame was judged directly, not by that sampler.
+
+These checks run under the ordinary account that owns the scratch fleet.
+Its token files remain 0600; the node book refers to those files rather
+than containing tokens. No production service or permission changed. No
+physical phone, QR scan or browser build is claimed by these retakes.

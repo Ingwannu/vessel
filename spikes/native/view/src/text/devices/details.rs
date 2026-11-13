@@ -1,8 +1,11 @@
 //! Device-row sentences and action failures.
 
 use super::{DevicesWords, Lang};
-use crate::devices::{DeviceState, Problem, time::Age};
-use chrono::{DateTime, Datelike as _, Utc};
+use crate::devices::{
+    DeviceState, Problem,
+    time::{Age, exact_time},
+};
+use chrono::{DateTime, Datelike as _, FixedOffset, Utc};
 
 impl DevicesWords {
     /// A short credential-state badge, distinct from its explanation.
@@ -50,7 +53,7 @@ impl DevicesWords {
             ) => self.compact_age(age),
         }
     }
-    /// Explanation below the device name. Counts are numeric; dates are UTC.
+    /// Explanation below the device name. Counts are numeric; dates use the viewer's offset.
     /// This has room for full words and must not use the badge's short label.
     #[must_use]
     pub fn last_seen(&self, age: Option<Age>) -> String {
@@ -75,7 +78,7 @@ impl DevicesWords {
             }
         }
     }
-    /// Pairing history below the device name. Counts are numeric; dates are UTC.
+    /// Pairing history below the device name. Counts are numeric; dates use the viewer's offset.
     /// Each arm is a complete translation unit rather than an age fragment.
     #[must_use]
     pub fn paired_ago(&self, age: Age) -> String {
@@ -98,20 +101,25 @@ impl DevicesWords {
             }
         }
     }
-    /// Hover tooltip: exact UTC instants include any fractions the node reports.
-    /// Unlike the row's age, these values must remain exact, not rounded.
+    /// Hover tooltip: viewer-local instants to the second, with a named
+    /// offset and no fractions. The body can wrap; this is not a badge.
     #[must_use]
-    pub fn exact_times(&self, paired: DateTime<Utc>, seen: Option<DateTime<Utc>>) -> String {
-        let paired = paired.format("%Y-%m-%d %H:%M:%S%.f UTC");
+    pub fn exact_times(
+        &self,
+        paired: DateTime<Utc>,
+        seen: Option<DateTime<Utc>>,
+        offset: FixedOffset,
+    ) -> String {
+        let paired = exact_time(paired, offset);
         match (self.lang, seen) {
             (Lang::En, None) => format!("Paired: {paired}\nLast seen: Never"),
             (Lang::Ko, None) => format!("페어링: {paired}\n마지막 접속: 접속한 적 없음"),
             (Lang::En, Some(seen)) => {
-                let seen = seen.format("%Y-%m-%d %H:%M:%S%.f UTC");
+                let seen = exact_time(seen, offset);
                 format!("Paired: {paired}\nLast seen: {seen}")
             }
             (Lang::Ko, Some(seen)) => {
-                let seen = seen.format("%Y-%m-%d %H:%M:%S%.f UTC");
+                let seen = exact_time(seen, offset);
                 format!("페어링: {paired}\n마지막 접속: {seen}")
             }
         }

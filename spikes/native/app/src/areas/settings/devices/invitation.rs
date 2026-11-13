@@ -9,6 +9,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button, outline_button, settings};
+use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_link::devices::Ask;
 use vessel_app_view::devices::{Inviting, Target, invite_label};
 
@@ -140,7 +141,7 @@ pub(super) fn render(
         tokens,
     ));
     if let Inviting::Failed(why) = state.page.inviting {
-        card = card.child(div().p(px(16.0)).child(vessel_app_kit::alert::alert(
+        card = card.child(div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
             vessel_app_kit::alert::Content {
                 title: None,
                 description: Some(div().child(words.invite_problem(why)).into_any_element()),
@@ -154,8 +155,11 @@ pub(super) fn render(
     if let Inviting::Ready(pairing) = &state.page.inviting {
         card = card
             .child(settings::row_at(
-                words.expires(pairing.expires()),
-                Some(format!("{}\n{}", words.verify, pairing.fingerprint()).into()),
+                words.expires(vessel_app_view::devices::time::Remaining::of(
+                    pairing.expires(),
+                    Utc::now(),
+                )),
+                Some(words.verify.into()),
                 None,
                 None,
                 false,
@@ -164,7 +168,14 @@ pub(super) fn render(
             ))
             .child(
                 div()
-                    .p(px(16.0))
+                    .px(px(spacing::S4))
+                    .type_(Type::Mono)
+                    .whitespace_normal()
+                    .child(pairing.fingerprint().to_owned()),
+            )
+            .child(
+                div()
+                    .p(px(spacing::S4))
                     .child(credential(shell, pairing, tokens, compact, cx)),
             );
     }
@@ -178,35 +189,29 @@ fn form(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Shel
     div()
         .flex()
         .flex_col()
-        .gap(px(12.0))
+        .gap(px(spacing::S3))
         .when(compact, Styled::w_full)
         .when(!compact, |form| form.w(px(vessel_app_kit::select::WIDTH)))
         .max_w_full()
-        .when(matches!(state.page.inviting, Inviting::Failed(_)), |form| {
-            form.child(div().flex().child(vessel_app_kit::badge::badge(
-                words.invite_failed_badge,
-                crate::badge::variant(state.page.inviting.variant()),
-                vessel_app_kit::badge::Size::Small,
-                None,
+        .when(busy, |form| {
+            form.child(super::rows::busy(
+                "devices-inviting",
+                words.creating,
+                state.page.inviting.variant(),
                 tokens,
-            )))
+            ))
         })
         .child(state.name.element(tokens, compact, cx))
-        .child(
-            button(
-                "devices-new-link",
-                if busy { words.creating } else { words.new_link },
-                true,
-                tokens,
+        .when(!busy, |form| {
+            form.child(
+                button("devices-new-link", words.new_link, true, tokens)
+                    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+                    .on_click(cx.listener(|shell, _event, _window, cx| {
+                        shell.devices_invite(cx);
+                        cx.notify();
+                    })),
             )
-            .when(compact, |button| button.min_h(px(44.0)))
-            .when(!busy, |button| {
-                button.on_click(cx.listener(|shell, _event, _window, cx| {
-                    shell.devices_invite(cx);
-                    cx.notify();
-                }))
-            }),
-        )
+        })
         .into_any_element()
 }
 
@@ -220,7 +225,12 @@ fn credential(
     let words = shell.t.lang.devices();
     let now = Utc::now();
     let link = pairing.visible_link(now);
-    let mut controls = div().flex().flex_col().gap(px(12.0)).w_full().min_w_0();
+    let mut controls = div()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S3))
+        .w_full()
+        .min_w_0();
     match pairing.matrix(now) {
         Ok(Some(matrix)) => {
             controls = controls.child(vessel_app_kit::qr::qr(
@@ -248,9 +258,7 @@ fn credential(
                 .child(words.hidden),
         ),
     };
-    if now >= pairing.expires() {
-        controls = controls.child(div().child(words.expired));
-    } else {
+    if now < pairing.expires() {
         controls = controls.child(actions(shell, link.is_some(), tokens, compact, cx));
     }
     controls = controls.child(vessel_app_kit::alert::alert(
@@ -280,7 +288,7 @@ fn actions(
     div()
         .flex()
         .flex_wrap()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .child(
             outline_button(
                 "devices-reveal",
@@ -288,7 +296,7 @@ fn actions(
                 true,
                 tokens,
             )
-            .when(compact, |button| button.min_h(px(44.0)))
+            .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
             .on_click(cx.listener(|shell, _event, _window, cx| {
                 shell.devices_reveal(cx);
                 cx.notify();
@@ -297,11 +305,36 @@ fn actions(
         .when(showing, |row| {
             row.child(
                 outline_button("devices-copy", words.copy, true, tokens)
-                    .when(compact, |button| button.min_h(px(44.0)))
+                    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
                     .on_click(cx.listener(|shell, _event, _window, cx| {
                         shell.devices_copy(cx);
                         cx.notify();
                     })),
             )
         })
+}
+
+/// A redraw clock holds only a public expiry, never the invitation. Each
+/// wake checks that the page still has that expiry; navigation or a new
+/// request ends it. It cannot reveal, copy or mask any credential.
+pub(super) fn clock(expires: chrono::DateTime<Utc>, cx: &mut Context<'_, Shell>) {
+    cx.spawn(async move |this, cx| {
+        while let Some(wait) =
+            vessel_app_view::devices::time::Remaining::next_change(expires, Utc::now())
+        {
+            cx.background_executor().timer(wait).await;
+            let keep = this.update(cx, |shell, cx| {
+                let current = matches!(&shell.areas.settings.devices.page.inviting,
+                    Inviting::Ready(pairing) if pairing.expires() == expires);
+                if current {
+                    cx.notify();
+                }
+                current
+            });
+            if !matches!(keep, Ok(true)) {
+                break;
+            }
+        }
+    })
+    .detach();
 }

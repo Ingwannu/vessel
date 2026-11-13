@@ -7,8 +7,10 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    DialogContent, DialogSize, Tokens, button, dialog as draw_dialog, outline_button,
+    ButtonKind, ButtonState, DialogContent, DialogSize, Tokens, button_with_kind,
+    dialog as draw_dialog, outline_button,
 };
+use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_link::devices::Ask;
 use vessel_app_view::devices::{Listing, Revoking, Target};
 use vessel_proto::DeviceId;
@@ -83,9 +85,8 @@ pub(super) fn dialog(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.settings.devices;
-    let Revoking::Confirm(device) = &state.page.revoking else {
-        return None;
-    };
+    let device = state.page.revoking.confirmation()?;
+    let sending = matches!(state.page.revoking, Revoking::Sending { .. });
     let Target::Online(machine) = &state.page.target else {
         return None;
     };
@@ -94,23 +95,44 @@ pub(super) fn dialog(
     let content = DialogContent {
         title: words.revoke_title(&device.label).into(),
         body: div()
-            .child(words.revoke_hint(&device.label, machine.as_str()))
+            .child(words.revoke_hint(machine.as_str()))
+            .when(sending, |body| {
+                body.child(div().mt(px(spacing::S3)).child(super::rows::busy(
+                    "devices-revoking",
+                    words.revoking,
+                    state.page.revoking.variant(),
+                    tokens,
+                )))
+            })
             .into_any_element(),
         footer: vec![
-            outline_button("device-revoke-cancel", words.cancel, true, tokens)
-                .when(compact, |button| button.min_h(px(44.0)))
-                .on_click(cx.listener(|shell, _event, window, cx| {
-                    shell.devices_cancel_revoke(window, cx);
-                }))
+            outline_button("device-revoke-cancel", words.cancel, !sending, tokens)
+                .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+                .when(!sending, |button| {
+                    button.on_click(cx.listener(|shell, _event, window, cx| {
+                        shell.devices_cancel_revoke(window, cx);
+                    }))
+                })
                 .into_any_element(),
-            button("device-revoke-confirm", words.revoke, true, tokens)
-                .bg(tokens.neutral.destructive)
-                .when(compact, |button| button.min_h(px(44.0)))
-                .on_click(cx.listener(|shell, _event, _window, cx| {
+            button_with_kind(
+                "device-revoke-confirm",
+                words.revoke,
+                ButtonKind::Destructive,
+                if sending {
+                    ButtonState::Disabled
+                } else {
+                    ButtonState::Enabled
+                },
+                tokens,
+            )
+            .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+            .when(!sending, |button| {
+                button.on_click(cx.listener(|shell, _event, _window, cx| {
                     shell.devices_revoke();
                     cx.notify();
                 }))
-                .into_any_element(),
+            })
+            .into_any_element(),
         ],
         size: DialogSize::Normal,
     };
