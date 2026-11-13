@@ -23,8 +23,10 @@
 //!   `vessel-client` and the node, in English).
 
 mod app;
+mod options;
 
 pub use app::Text;
+pub use options::OptionsText;
 
 /// A language the app speaks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

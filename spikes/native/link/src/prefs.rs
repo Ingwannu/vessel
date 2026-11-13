@@ -1,7 +1,14 @@
 //! What the app remembers between launches: the machine, agent and folder
-//! a new conversation last started with (the references remember the
-//! same: GOAT its draft's provider and project, agent-orchestrator its
-//! last agent), in a small file of the app's own beside the node book.
+//! a new conversation last started with, and the choices each agent last
+//! started with on each machine (the references remember the same: GOAT
+//! its draft's provider and project, agent-orchestrator its last agent,
+//! the page the last start's agent and choices per machine,
+//! `web/src/data/defaults.ts`), in a small file of the app's own beside
+//! the node book.
+//!
+//! The page keeps its choices with the bridge, by node id; the app has no
+//! bridge, so it keeps them here by the machine's name in the book (a
+//! renamed machine starts over). Bounded as the page bounds them.
 //!
 //! JSON rather than TOML: nobody edits it by hand, and it is replaced
 //! whole on every save (written to a temporary file, then renamed, so a
@@ -11,7 +18,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::HarnessRef;
+use vessel_proto::{ChoiceValue, HarnessRef, OptionChoice};
 
 use crate::LinkError;
 use crate::nodes::config_dir;
@@ -28,9 +35,62 @@ pub struct Prefs {
     /// The last folder used on each machine (none: its home folder).
     #[serde(default)]
     pub folders: BTreeMap<String, String>,
+    /// The choices of the last start of each agent, by machine.
+    #[serde(default)]
+    pub choices: BTreeMap<String, Vec<Kept>>,
+}
+
+/// One agent's choices on one machine.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Kept {
+    /// The agent.
+    pub agent: HarnessRef,
+    /// What it started with that differs from its own defaults.
+    pub choices: Vec<OptionChoice>,
+}
+
+/// The most choices kept for an agent (the page's `MAX_CHOICES`).
+const MAX_CHOICES: usize = 8;
+
+/// The longest id or value kept, in UTF-8 bytes (`MAX_CHOICE_BYTES`).
+const MAX_CHOICE_BYTES: usize = 64;
+
+fn fits(choice: &OptionChoice) -> bool {
+    choice.id.as_str().len() <= MAX_CHOICE_BYTES
+        && match &choice.value {
+            ChoiceValue::Select { value } => value.as_str().len() <= MAX_CHOICE_BYTES,
+            ChoiceValue::Toggle { .. } => true,
+        }
 }
 
 impl Prefs {
+    /// The choices `agent` last started with on `machine`, when kept.
+    #[must_use]
+    pub fn choices(&self, machine: &str, agent: &HarnessRef) -> Option<&[OptionChoice]> {
+        self.choices
+            .get(machine)?
+            .iter()
+            .find(|kept| &kept.agent == agent)
+            .map(|kept| kept.choices.as_slice())
+    }
+
+    /// Keep the choices a start of `agent` on `machine` was made with
+    /// (those past the bounds are not kept).
+    pub fn keep_choices(&mut self, machine: &str, agent: &HarnessRef, choices: &[OptionChoice]) {
+        let kept: Vec<OptionChoice> = choices
+            .iter()
+            .filter(|choice| fits(choice))
+            .take(MAX_CHOICES)
+            .cloned()
+            .collect();
+        let agents = self.choices.entry(machine.to_owned()).or_default();
+        agents.retain(|earlier| &earlier.agent != agent);
+        agents.push(Kept {
+            agent: agent.clone(),
+            choices: kept,
+        });
+    }
+
     fn path() -> Result<PathBuf, LinkError> {
         Ok(config_dir()?.join("vessel").join("app-prefs.json"))
     }
