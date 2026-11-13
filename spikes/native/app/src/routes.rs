@@ -21,9 +21,9 @@ pub(crate) enum Route {
     Session,
     /// Adding a machine by pairing.
     Pair,
-    /// The app's version and its updates (Zed's About and its update
-    /// settings; the start of a Settings screen).
-    About,
+    /// Settings: its sections listed in the sidebar's place, the chosen
+    /// one beside them (`areas/settings`).
+    Settings,
 }
 
 impl Route {
@@ -39,7 +39,7 @@ impl Route {
             Self::Archive => t.archive,
             Self::Session => t.app,
             Self::Pair => t.add_machine,
-            Self::About => t.lang.update().about,
+            Self::Settings => t.lang.settings().settings,
         }
     }
 }
@@ -58,7 +58,22 @@ pub(crate) fn render(
         Route::Board | Route::Archive => areas::board::render(shell, tokens, window, cx),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
-        Route::About => areas::about::render(shell, tokens, window, cx).into_any_element(),
+        Route::Settings => areas::settings::render(shell, tokens, window, cx).into_any_element(),
+    }
+}
+
+/// What stands in the sidebar's place on a wide window beside `route`.
+pub(crate) fn sidebar(
+    route: Route,
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    match route {
+        Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
+        Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
+            areas::sidebar::render(shell, tokens, cx).into_any_element()
+        }
     }
 }
 
@@ -73,6 +88,6 @@ pub(crate) fn arrive(
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
         Route::Archive => areas::archive::arrive(shell, window, cx),
-        Route::Board | Route::Session | Route::About => {}
+        Route::Board | Route::Session | Route::Settings => {}
     }
 }

@@ -147,10 +147,16 @@ impl UpdateText {
         }
     }
 
-    /// A build as Paseo writes a version: "v0.0.0.0.6".
+    /// A build as Paseo writes a version: "v0.0.0.0.6". A build made
+    /// without a label (a developer's own, labelled "dev") keeps its word:
+    /// "vdev" is no version.
     #[must_use]
     pub fn version(&self, label: &str) -> String {
-        format!("v{label}")
+        if label.starts_with(|c: char| c.is_ascii_digit()) {
+            format!("v{label}")
+        } else {
+            label.to_owned()
+        }
     }
 
     /// The update button once a build is in place: "Update to v0.0.0.0.6".
@@ -181,5 +187,17 @@ impl UpdateText {
             Lang::En => format!("Update ready: {version}"),
             Lang::Ko => format!("업데이트 준비됨: {version}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_numbered_build_reads_as_a_version_and_a_developers_as_its_word() {
+        let words = Lang::En.update();
+        assert_eq!(words.version("0.0.0.0.7"), "v0.0.0.0.7");
+        assert_eq!(words.version("dev"), "dev");
     }
 }

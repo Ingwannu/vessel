@@ -36,6 +36,7 @@ mod diff;
 mod entry;
 mod find;
 mod fold;
+mod logs;
 mod meter;
 mod outline;
 mod rows;
@@ -54,6 +55,7 @@ pub use find::{
     query_of, readable_text, searchable, spans_of, step,
 };
 pub use fold::{Change, Facts, Timeline};
+pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
 pub use rows::Rows;

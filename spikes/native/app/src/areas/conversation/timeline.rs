@@ -1,16 +1,20 @@
 //! The timeline on screen: the kit's long list over the rows, each row in
 //! the session's one chat column; a run of tool calls
-//! folded into its summary row; and what floats over the frame (the
+//! folded into its summary row, a run of the agent's log lines into one
+//! row opening to a box; and what floats over the frame (the
 //! Session actions menu, a confirm).
 
+use vessel_app_kit::output::Lines;
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    DialogContent, DialogSize, Tokens, Type, TypeExt as _, breakpoint, button, dialog, menu,
+    DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, button, dialog,
+    lines_box, menu,
 };
 use vessel_app_view::session::is_live;
+use vessel_app_view::timeline::Logs;
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
@@ -32,6 +36,10 @@ pub(crate) fn timeline(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     if area.timeline.entries().is_empty() {
         return entries::empty(&paint).into_any_element();
@@ -42,11 +50,26 @@ pub(crate) fn timeline(
             let tokens = vessel_app_kit::tokens(cx);
             row_element(shell, row, &tokens, window, cx)
         }));
+    let bar = super::find::bar(shell, tokens, window, cx);
+    if breakpoint::phone(window) {
+        return div()
+            .flex_1()
+            .min_h(px(0.0))
+            .size_full()
+            .flex()
+            .flex_col()
+            .children(bar)
+            .child(div().flex_1().min_h(px(0.0)).child(list))
+            .into_any_element();
+    }
     div()
         .flex_1()
         .min_h(px(0.0))
         .size_full()
+        .relative()
         .child(list)
+        .children(super::outline::rail(shell, tokens, window, cx))
+        .children(bar)
         .into_any_element()
 }
 
@@ -64,6 +87,10 @@ fn row_element(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
@@ -71,6 +98,32 @@ fn row_element(
     let Some(entry) = area.timeline.entries().get(index) else {
         return div().into_any_element();
     };
+    // A run of the agent's own log lines is one row at its first line
+    // (never collapsed into rows of their own: `view::timeline::logs`).
+    if let Some(run) = area.logs.run_of(index).filter(|run| run.lead == index) {
+        let open = area.open_logs.contains(&run.lead);
+        let mut content = div().flex().flex_col().gap(px(4.0)).child(run_header(
+            &paint,
+            ("log", run.lead),
+            paint.words.agent_log(run.lines()),
+            open,
+            Shell::toggle_log,
+            cx,
+        ));
+        if open {
+            let entries = area.timeline.entries();
+            content = content.child(div().ml(px(28.0)).mb(px(6.0)).child(lines_box(
+                ElementId::NamedInteger("log-lines".into(), id(run.lead)),
+                u64::try_from(run.lines()).unwrap_or(u64::MAX),
+                || Lines::text(&Logs::text(run, entries)),
+                Start::Top,
+                tokens,
+                window,
+                cx,
+            )));
+        }
+        return lane(content.into_any_element());
+    }
     let run = area
         .folds
         .as_ref()
@@ -81,9 +134,10 @@ fn row_element(
     if let Some(run) = run {
         content = content.child(run_header(
             &paint,
-            run.lead,
+            ("run", run.lead),
             paint.words.run_summary(&run.summary),
             run_open,
+            Shell::toggle_run,
             cx,
         ));
     }
@@ -119,29 +173,31 @@ fn lane(content: AnyElement) -> AnyElement {
 }
 
 /// A folded run's summary row (GOAT's work group header: its words and a
-/// chevron, a rule under it).
+/// chevron, a rule under it), for tool calls or the agent's log; a click
+/// turns it with `toggle`. `name` and the lead entry make its id.
 fn run_header(
     paint: &Paint<'_>,
-    lead: usize,
+    (name, lead): (&'static str, usize),
     summary: String,
     open: bool,
+    toggle: fn(&mut Shell, usize, &mut Context<'_, Shell>),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
     div()
-        .id(ElementId::NamedInteger("run".into(), id(lead)))
+        .id(ElementId::NamedInteger(name.into(), id(lead)))
         .flex()
         .items_center()
         .gap(px(4.0))
         .pb(px(6.0))
         .border_b_1()
         .border_color(paint.look.border)
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_run(lead, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, lead, cx)))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()

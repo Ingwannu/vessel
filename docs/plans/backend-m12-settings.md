@@ -12,8 +12,8 @@ removing an agent, the registry's catalogue, installing one).
 | --- | --- |
 | 1. The preference model and the view logic of settings and machines, with the page's cases | done |
 | 2. Preferences kept by `link` (one interface, the lead's `app-prefs.json`) | done |
-| 3. The settings frame (Paseo's layout) with a section registry; General, Appearance, About | next |
-| 4. Machines, Devices, Sync, Agents, Models; their node calls in `link` | |
+| 3. The settings frame (Paseo's layout) with a section registry; General, Appearance, About | done |
+| 4. Machines, Devices, Sync, Agents, Models; their node calls in `link` | next |
 | 5. Agents beyond the page: add, remove, catalogue, install | |
 
 ## Slice 1: the view logic
@@ -109,3 +109,80 @@ only reads the defaults), `a_file_that_cannot_be_read_is_not_written_over`.
 
 Gate: `cargo fmt --all --check` clean; `cargo clippy --all-targets --
 -D warnings` clean; `cargo test`: view 145, app 69, link 10 passed.
+
+## Slice 3: the settings frame, General, Appearance, About
+
+`app/src/areas/settings/`: `mod.rs` (the state, the Shell's verbs, the
+section registry `content`), `nav.rs` (the section list and the machine
+picker), `page.rs` (a section's page), `general.rs`, `appearance.rs`,
+`choices.rs` (each select's rows and the change it sends). `kit`
+gained `select.rs` (a trigger and its popover; a sheet on a phone) and
+`settings::row_at` (a row with an error line and a phone's stacking).
+Words: `view/src/text/settings.rs`, `view/src/text/about.rs`.
+
+**The frame, as Paseo's app.** `Route::Settings` replaces the lead's
+`Route::About`. On a wide window the section list takes the sidebar's
+place (264 wide, on the shell's ground): "Back" first, then the groups
+App (General, Appearance, Shortcuts, Notifications), Agents (the
+machine picker, Agents, Models), Machines (Machines, Projects, Devices,
+Sync), About. The page is a column 720 wide at most, a large title,
+then titled islands of rows. On a phone the list is the root page
+(rows in rounded islands, a back arrow and the title), and a section is
+pushed over it with its own back arrow; the sidebar's gear opens the
+list, its build label opens About.
+
+**Another track's section** comes in by one line in `content`
+(`Section::Shortcuts => …`), as a route does; until then the section
+says where it is coming from (`page::elsewhere`).
+
+**General**: the send key and the default send, each a select; "Kept":
+where the settings are and how long (a file, with its path and "Copy
+path"; or for this launch only, with the reason).
+
+**Appearance**: the theme as three pictures (System, Light, Dark;
+Paseo's tiles), the interface and code sizes and the conversation's
+width and display as selects. A change is applied by `Prefs::prefer`
+and saved; the theme is applied at once (`apply_theme`).
+
+**About**: the lead's card (the version, "App updates" with track R's
+state and commands, the log file) under "Vessel", then "Software in
+this app": Vessel's own licence and every crate and face the app
+ships with theirs (`view/src/about.rs`, `BUNDLED`; its test reads the
+workspace's `Cargo.toml` and `kit/src/fonts.rs`, so a dependency added
+without a row fails the gate).
+
+Run: the fake fleet (`scripts/fleet.sh`, machines build-server and
+laptop), the app on a virtual display at 1280x800 and 390x844, dark
+and light, English and Korean. Seen: the list, each section, a select
+open (a popover; a sheet on a phone), the picker, a theme change
+applied at once, the kept path copied (the notice says so), the phone's
+gear opening the list and Back returning to the conversation.
+
+### Differences from the page and Paseo, and why
+
+- **Sizes and width are selects** over the model's closed ranges
+  (interface 12–20, code 10–18, width comfortable/wide/full); Paseo
+  types a number. A closed list cannot hold a value the model refuses.
+- **The sizes are kept but not yet applied**: the kit's type steps are
+  constants. Applying them is the kit's (the lead's) change.
+- **The machines' versions** (the page's About > Machines) come with
+  slice 4, beside the Machines section that reads them.
+- **The page's About** shows the page's own build; the app shows its
+  own (the lead's card) and the software it carries.
+- **Title weight through `Type::Label`**: a raw font weight lost the
+  Hangul fallback faces (Korean drew thin), so the title is the Label
+  step at 26/32.
+- **Island ends are rounded per row** on a phone: GPUI clips
+  `overflow_hidden` to a rectangle, so the first and last rows carry
+  the corners.
+
+Lead's files touched (one line each where possible): `shell.rs` (the
+area's `start`; `routes::sidebar` in the wide sidebar's place),
+`routes.rs` (`Route::Settings`, `sidebar()`), `areas/mod.rs`,
+`areas/sidebar.rs` (the gear and the build label), `areas/about.rs`
+(`render` split into `card`, `dialogs`, `content` for the section;
+its route removed).
+
+Gate: `cargo fmt --check` clean; `cargo clippy --all-targets -- -D
+warnings` clean; `cargo test`: view 201, app 72, link 10, others 3 and
+7, all passed.

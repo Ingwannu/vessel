@@ -6,11 +6,14 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent,
-    ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, KeyDownEvent, MouseButton,
+    MouseDownEvent, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div,
+    px,
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
-use vessel_app_view::session::{CONVERSATION_PROTOCOL, MarkAction, is_live, mark_actions};
+use vessel_app_view::session::{
+    CONVERSATION_PROTOCOL, MarkAction, can_rename, is_live, mark_actions, session_name,
+};
 use vessel_proto::SessionStatus;
 
 use super::MenuAction;
@@ -29,6 +32,14 @@ pub(crate) fn bar(
     let words = shell.t.lang.conversation();
     let surfaces = popup::Surfaces::of(tokens);
     let narrow = breakpoint::phone(window);
+    // The node's answer to a rename names the bar at once; the title
+    // the frame passes follows once the session's own report comes.
+    let title = area
+        .info
+        .as_deref()
+        .and_then(|info| session_name(info, area.timeline.title()))
+        .unwrap_or(title);
+    let renamable = area.info.as_deref().is_some_and(can_rename);
     let status = area
         .info
         .as_ref()
@@ -88,14 +99,7 @@ pub(crate) fn bar(
         .px(px(12.0))
         .border_b_1()
         .border_color(surfaces.border_accent)
-        .child(
-            div()
-                .min_w(px(0.0))
-                .truncate()
-                .type_(Type::Label)
-                .text_color(tokens.neutral.foreground)
-                .child(title),
-        )
+        .child(title_element(shell, title, renamable, tokens, narrow, cx))
         .children(badge)
         .child(
             div()
@@ -108,6 +112,52 @@ pub(crate) fn bar(
         .child(div().flex_1())
         .children(refused)
         .child(actions)
+        .into_any_element()
+}
+
+/// The title: a field while it is renamed, a button that starts the
+/// rename while the session lives, else text.
+fn title_element(
+    shell: &Shell,
+    title: String,
+    renamable: bool,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    if let Some(rename) = &shell.areas.conversation.rename {
+        return div()
+            .w(px(if narrow { 200.0 } else { 320.0 }))
+            .flex_shrink_0()
+            .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
+                if event.keystroke.key == "escape" {
+                    shell.cancel_rename(cx);
+                    cx.stop_propagation();
+                }
+            }))
+            .child(rename.field.element(tokens, narrow, cx))
+            .into_any_element();
+    }
+    let text = div()
+        .min_w(px(0.0))
+        .truncate()
+        .type_(Type::Label)
+        .text_color(tokens.neutral.foreground);
+    if !renamable {
+        return text.child(title).into_any_element();
+    }
+    let surface = tokens.neutral.surface2;
+    let shown = title.clone();
+    text.id("session-title")
+        .px(px(6.0))
+        .mx(px(-6.0))
+        .rounded(px(6.0))
+        .cursor_pointer()
+        .hover(move |style| style.bg(surface))
+        .on_click(cx.listener(move |shell, _event, window, cx| {
+            shell.start_rename(&shown, window, cx);
+        }))
+        .child(title)
         .into_any_element()
 }
 

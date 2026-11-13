@@ -163,13 +163,35 @@ pub fn row_with_error(
     first: bool,
     tokens: &Tokens,
 ) -> Div {
+    row_at(title, hint, error, control, first, false, tokens)
+}
+
+/// [`row_with_error`], laid out for its width: `compact` (a phone's), its
+/// control moves under its words when both do not fit beside each other
+/// (Paseo's `compactRow`: the words at least 160 wide, 12 between).
+#[must_use]
+pub fn row_at(
+    title: impl Into<SharedString>,
+    hint: Option<SharedString>,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
-    let mut words = div().flex_1().min_w_0().flex().flex_col().child(
-        div()
-            .type_(Type::Body)
-            .text_color(neutral.foreground)
-            .child(title.into()),
-    );
+    let mut words = div()
+        .flex_1()
+        .min_w_0()
+        .when(compact, |words| words.flex_basis(px(160.0)))
+        .flex()
+        .flex_col()
+        .child(
+            div()
+                .type_(Type::Body)
+                .text_color(neutral.foreground)
+                .child(title.into()),
+        );
     if let Some(hint) = hint {
         words = words.child(
             div()
@@ -195,6 +217,7 @@ pub fn row_with_error(
         .justify_between()
         // Paseo's row content keeps 12 from its control (`marginRight`).
         .gap(px(12.0))
+        .when(compact, Styled::flex_wrap)
         .p(px(16.0))
         .when(!first, |row| row.border_t_1().border_color(neutral.border))
         .child(words)

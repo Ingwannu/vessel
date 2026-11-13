@@ -385,18 +385,42 @@ In the order the owner meets them, each as Paseo has it:
 - The composer's controls take the step of Paseo's ladder their width
   allows (`composer/agent-controls/layout.ts`, `app/src/areas/draft/density.rs`):
   `full` with carets, the thinking and mode values, and a control per
-  feature (an on/off feature a square that switches it; a choice its value,
-  opening its list with Paseo's search row); `condensed` without carets,
-  thinking as its glyph, the features as one control opening the features
-  sheet; `tight` the mode as its glyph too. Paseo's floors (a control 28,
-  its glyph 16, a caret 14, 7 per character of a label) and its 12 of
-  hysteresis; the controls' width is measured each frame. The features
-  sheet is Paseo's `AdaptiveModalSheet` (a card on a wide window): a row per
-  feature with its value, each opening its list below it with the name
-  above. Not here: Paseo's two narrowest steps (thinking, mode and
-  features folded into the model control's sheet; the model as its glyph
-  alone), and a feature's own icon and its highlight when on (ACP sends no
-  icon: every feature shows Paseo's default, muted).
+  feature carrying the feature's name and no glyph (an on/off feature its
+  name, in Paseo's highlight colour when on and muted when off, one click
+  switching it; a choice its name muted, then its value, opening its list
+  with Paseo's search row); `condensed` without carets, thinking as its
+  glyph, the features as one control (Paseo's default glyph, its only
+  mark) opening the features sheet; `tight` the mode as its glyph too.
+  Paseo's measures (a control 28, its glyph 16, a caret 14, 12 of
+  hysteresis). Differences, each with its reason:
+  - The floors are the words measured as the text system draws them
+    (rounded up), where Paseo counts 7 a character: counted, the named
+    features fitted on paper and were cut on screen.
+  - No control's words are cut while a narrower step exists: the row
+    drops a step the moment it is under the step's floor, and the
+    hysteresis holds only on the way back up (a fuller step needs its floor
+    and 12). Paseo keeps a step until 12 under its floor, cutting words
+    meanwhile, which costs it little (its features are icons by then); here
+    they carry words, and a row of ellipses is what the owner sees. Only
+    `tight`, the last step, cuts the model's words.
+  - A named feature control has no glyph: ACP sends no icon, and the one
+    default glyph on every named control said nothing and took 20 a
+    control (with it, Claude Code's row needed about 792 of the 764 it has
+    in the widest card, so the owner never saw it full).
+  Measured on the preview node: Claude Code (model, thinking, mode, three
+  choices) is full from a window of 1118 (the widest card, from 1160, has
+  42 to spare) and condensed under it; Codex (two choices) full from 1066.
+  The features sheet is Paseo's `AdaptiveModalSheet` (a card on a wide
+  window): a row per feature with its value, each opening its list below
+  it with the name above. Not here: Paseo's two narrowest steps (thinking,
+  mode and features folded into the model control's sheet; the model as
+  its glyph alone).
+- Every control in the composer's row has Paseo's tooltip
+  (`components/ui/tooltip.tsx`, `kit/src/tooltip.rs`): shown at once, 8
+  above the control and centred, Paseo's popover card, not on touch. Its
+  words are Paseo's: "name: value" on a choice, the feature's description
+  (else its name) on an on/off feature, "모델 변경", "사고 모드" and "모드
+  변경" on the model, thinking and mode. Not here: Paseo's fade in.
 - A list opens on the side its caller names, as Paseo's combobox (no flip
   on a wide window): the controls in the card above them, the machine and
   folder under the card below them, 5 from the trigger, at most 400 tall
@@ -414,8 +438,28 @@ In the order the owner meets them, each as Paseo has it:
   its website); "경로 복사" beside "로그 열기"; the switch's thumb slides in
   180 ms once switched (the track's colour changes at once).
 - The sidebar's foot is Paseo's: a hairline over one line, Settings (a
-  gear) at its right end, opening About until the settings track's frame
-  lands. Its other icons (a project, usage, hosts, help) are not here.
+  gear) at its right end, opening Settings (the settings track's frame,
+  merged for this build). Its other icons (a project, usage, hosts, help)
+  are not here.
+- Settings shows only what this build draws and applies
+  (`app/src/areas/settings/mod.rs`, `drawn` and `applied`): General,
+  Appearance and About. A section nothing draws yet (Shortcuts,
+  Notifications, Agents, Models, Machines, Projects, Devices, Sync) is not
+  listed, rather than a page saying another track will fill it. A row whose
+  value nothing reads yet is not shown: the composer's send shortcut and
+  default send (so General has no select this build), the font sizes,
+  content width, and the conversation's display (the conversation folds by
+  its own setting, not yet wired to this row). Appearance is the theme;
+  choosing one applies at once (unless `VESSEL_APP_THEME` pins it for a
+  run).
+- The agent's start-up log (an adapter's lines on its error stream before
+  the session starts) is no longer lines in the conversation (track C's
+  change, merged for this build): the app collapses tool calls until the
+  conversation's display row is wired, and collapsed the log is not drawn;
+  at "Full" (`VESSEL_APP_CONVERSATION=full`) it is one folded row, "Agent
+  log · N lines".
+- About writes a numbered build as Paseo writes a version ("v0.0.0.0.7"); a
+  developer's own build, labelled "dev", says "dev" ("vdev" is no version).
 - A button's label wider than the room the button has wraps inside it,
   centred, as Paseo's `Text` does; a button is never wider than its
   container (a permission's longest answer, "Never allow …", was cut by

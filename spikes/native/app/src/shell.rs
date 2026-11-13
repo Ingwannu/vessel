@@ -82,6 +82,7 @@ impl Shell {
             sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
+        areas::settings::start(&mut shell, window, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -122,8 +123,9 @@ impl Shell {
                 }
                 self.settle_draft();
                 self.retitle();
+                self.workspace_fleet();
             }
-            Event::Records { session, records } => self.records(&session, &records),
+            Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
@@ -144,6 +146,7 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
+            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
         }
         cx.notify();
     }
@@ -244,7 +247,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone, |row| {
-                        row.child(areas::sidebar::render(self, &tokens, cx))
+                        row.child(routes::sidebar(self.route, self, &tokens, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width

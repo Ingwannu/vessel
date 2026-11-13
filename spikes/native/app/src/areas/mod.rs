@@ -16,8 +16,10 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
 pub(crate) mod session;
+pub(crate) mod settings;
 pub(crate) mod sidebar;
 pub(crate) mod toasts;
+pub(crate) mod workspace;
 
 use vessel_app_kit::ui::{Context, Window};
 
@@ -30,6 +32,8 @@ pub(crate) struct Areas {
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
     pub(crate) conversation: conversation::ConversationArea,
+    pub(crate) settings: settings::SettingsState,
+    pub(crate) workspace: workspace::Workspace,
     pub(crate) board: board::BoardArea,
     /// The toasts on screen.
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
@@ -43,6 +47,8 @@ impl Areas {
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
+            settings: settings::SettingsState::new(window, cx),
+            workspace: workspace::Workspace::new(window, cx),
             board: board::BoardArea::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
         }

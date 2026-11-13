@@ -20,12 +20,13 @@ use chrono::{DateTime, Utc};
 use gpui::FontWeight;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::fonts::MONO;
+use vessel_app_kit::slider::spinner;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
     IntoElement as _, MouseButton, ParentElement as _, Stateful, StatefulInteractiveElement as _,
     Styled, div, px, rgb,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph, popup, spinner};
+use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph, popup};
 use vessel_app_view::Card;
 use vessel_app_view::board::{CardActions, Origin, Row, Tone};
 
@@ -442,7 +443,7 @@ fn actions(
                 let restore = asking(Ask::Delete);
                 let delete = restore.clone();
                 vec![
-                    icon_button(id("restore"), Glyph::Reopen, None, !busy, tokens)
+                    icon_button(id("restore"), Glyph::Reset, None, !busy, tokens)
                         .when(!busy, |button| {
                             button.on_click(cx.listener(move |shell, _event, _window, cx| {
                                 cx.stop_propagation();

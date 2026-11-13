@@ -58,6 +58,29 @@ enum Kind {
     Lines(Entity<TextareaState>),
 }
 
+/// Which press sends a composer's text (Settings › General › Send
+/// shortcut, the page's `compose-keys.ts`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SendOn {
+    /// Enter (and Mod+Enter) sends; Shift+Enter starts a line.
+    #[default]
+    Enter,
+    /// Mod+Enter sends; Enter and Shift+Enter start a line.
+    ModEnter,
+}
+
+impl SendOn {
+    /// Whether an Enter that is not Shift+Enter sends; `with_mod` when
+    /// Command (Control elsewhere) was held.
+    #[must_use]
+    pub const fn sends(self, with_mod: bool) -> bool {
+        match self {
+            Self::Enter => true,
+            Self::ModEnter => with_mod,
+        }
+    }
+}
+
 /// A text field: a form's one line, or a composer's text.
 #[derive(Debug, Clone)]
 pub struct TextField {
@@ -65,6 +88,9 @@ pub struct TextField {
     /// Whether it holds the keys, as its focus and blur events say (its
     /// border shows it).
     focused: Rc<Cell<bool>>,
+    /// Which press sends (a composer's; a form field's Enter always
+    /// submits).
+    send: Rc<Cell<SendOn>>,
 }
 
 impl TextField {
@@ -91,8 +117,15 @@ impl TextField {
         Self::line(placeholder, on_submit, Some(on_change), window, cx)
     }
 
-    /// A composer's text: lines that grow; Enter calls `on_submit` with
-    /// the text, Shift+Enter starts a new line.
+    /// A composer's text: lines that grow; the press [`SendOn`] names
+    /// (Enter unless [`Self::set_send_on`] says otherwise) calls
+    /// `on_submit` with the text, Shift+Enter starts a new line.
+    ///
+    /// The engine sends on Enter and Mod+Enter and starts a line on
+    /// Shift+Enter (`submit_on_enter`); in [`SendOn::ModEnter`] a plain
+    /// Enter that reaches here starts a line instead (the engine's own
+    /// Enter-starts-a-line mode would start one on Mod+Enter too, before
+    /// sending).
     pub fn composer<V: 'static>(
         placeholder: &str,
         on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
@@ -107,11 +140,28 @@ impl TextField {
                 .placeholder(placeholder)
         });
         let focused = Rc::new(Cell::new(false));
-        listen(&state, on_submit, None, Rc::clone(&focused), window, cx);
+        let send = Rc::new(Cell::new(SendOn::Enter));
+        listen(
+            &state,
+            Handlers {
+                on_submit,
+                on_change: None,
+                focused: Rc::clone(&focused),
+                send: Some(Rc::clone(&send)),
+            },
+            window,
+            cx,
+        );
         Self {
             kind: Kind::Lines(state),
             focused,
+            send,
         }
+    }
+
+    /// Which press sends a composer's text (a form field ignores it).
+    pub fn set_send_on(&self, send: SendOn) {
+        self.send.set(send);
     }
 
     fn line<V: 'static>(
@@ -126,15 +176,19 @@ impl TextField {
         let focused = Rc::new(Cell::new(false));
         listen(
             &state,
-            on_submit,
-            on_change,
-            Rc::clone(&focused),
+            Handlers {
+                on_submit,
+                on_change,
+                focused: Rc::clone(&focused),
+                send: None,
+            },
             window,
             cx,
         );
         Self {
             kind: Kind::Line(state),
             focused,
+            send: Rc::new(Cell::new(SendOn::Enter)),
         }
     }
 
@@ -175,6 +229,38 @@ impl TextField {
         self.set_text("", window, cx);
     }
 
+    /// A one-line field's input alone, without its shell: for a field
+    /// inside a control of its own (the find bar's search, with its
+    /// count and buttons in the same shell). A composer's text has no
+    /// such use and draws nothing here.
+    #[must_use]
+    pub fn input(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
+        match &self.kind {
+            Kind::Line(state) => {
+                project(state, tokens, tokens.neutral.foreground_muted, cx);
+                div()
+                    .flex_1()
+                    .min_w(px(0.0))
+                    .type_(Type::Body)
+                    .line_height(px(fonts::ui(20.0)))
+                    .text_color(tokens.neutral.foreground)
+                    .child(Input::new(state))
+                    .into_any_element()
+            }
+            Kind::Lines(_) => div().into_any_element(),
+        }
+    }
+
+    /// Its focus handle: to hear it lose the keys (a title edited in
+    /// place saves when the person leaves the field).
+    #[must_use]
+    pub fn focus_handle(&self, cx: &App) -> gpui::FocusHandle {
+        match &self.kind {
+            Kind::Line(state) => state.read(cx).focus_handle(cx),
+            Kind::Lines(state) => state.read(cx).focus_handle(cx),
+        }
+    }
+
     /// Give it the keys.
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         let handle = match &self.kind {
@@ -209,7 +295,7 @@ impl TextField {
                     })
                     .hover(move |style| style.border_color(neutral.border_accent))
                     .type_(Type::Body)
-                    .line_height(px(20.0))
+                    .line_height(px(fonts::ui(20.0)))
                     .text_color(neutral.foreground)
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
@@ -220,8 +306,8 @@ impl TextField {
                     .w_full()
                     .min_h(px(COMPOSER_MIN))
                     .type_(Type::Body)
-                    .text_size(px(15.0))
-                    .line_height(px(21.0))
+                    .text_size(px(fonts::ui(15.0)))
+                    .line_height(px(fonts::ui(21.0)))
                     .text_color(neutral.foreground)
                     .child(Textarea::new(state))
                     .into_any_element()
@@ -238,7 +324,7 @@ impl TextField {
         let text = div()
             .w_full()
             .type_(Type::Body)
-            .line_height(px(20.0))
+            .line_height(px(fonts::ui(20.0)))
             .text_color(neutral.foreground);
         match &self.kind {
             Kind::Line(state) => {
@@ -295,21 +381,46 @@ fn project<M: gpui_base::input::InputModeKind>(
 }
 
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
-fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
-    state: &Entity<gpui_base::input::InputBaseState<M>>,
+/// What a field's events call.
+struct Handlers<V: 'static> {
     on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
     on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     focused: Rc<Cell<bool>>,
+    /// A composer's send press; `None` for a form field (Enter submits).
+    send: Option<Rc<Cell<SendOn>>>,
+}
+
+fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
+    state: &Entity<gpui_base::input::InputBaseState<M>>,
+    handlers: Handlers<V>,
     window: &mut Window,
     cx: &mut Context<'_, V>,
 ) {
+    let Handlers {
+        on_submit,
+        on_change,
+        focused,
+        send,
+    } = handlers;
     cx.subscribe_in(
         state,
         window,
         move |owner, state, event: &InputEvent, window, cx| match event {
-            InputEvent::PressEnter { shift: false, .. } => {
-                let text = state.read(cx).value().to_string();
-                on_submit(owner, text, window, cx);
+            InputEvent::PressEnter {
+                shift: false,
+                secondary,
+            } => {
+                if send
+                    .as_ref()
+                    .is_some_and(|send| !send.get().sends(*secondary))
+                {
+                    // Enter starts a line here (in place of a selection,
+                    // as typing does).
+                    state.update(cx, |state, cx| state.replace("\n", window, cx));
+                } else {
+                    let text = state.read(cx).value().to_string();
+                    on_submit(owner, text, window, cx);
+                }
             }
             InputEvent::Change => {
                 if let Some(on_change) = on_change {
@@ -337,7 +448,9 @@ pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     let theme = gpui_component::Theme::global_mut(cx);
     theme.font_family = fonts::SANS.into();
     theme.mono_font_family = fonts::MONO.into();
-    theme.font_size = px(14.0);
+    theme.font_size = px(fonts::ui(14.0));
+    // Code in Markdown at the code size (the page's `--code-px`).
+    theme.mono_font_size = px(fonts::code(12.0));
     theme.radius = px(8.0);
     let neutral = tokens.neutral;
     let colors = &mut theme.colors;
@@ -357,4 +470,17 @@ pub(crate) fn apply_tokens(cx: &mut App, tokens: &Tokens) {
     // nearest token. Read by `chat_markdown`, which resolves its style
     // from this theme on every layout.
     colors.link = tokens.st_building;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SendOn;
+
+    #[test]
+    fn enter_sends_unless_the_shortcut_is_mod_enter() {
+        assert!(SendOn::Enter.sends(false));
+        assert!(SendOn::Enter.sends(true));
+        assert!(!SendOn::ModEnter.sends(false));
+        assert!(SendOn::ModEnter.sends(true));
+    }
 }

@@ -1,4 +1,5 @@
-//! The sidebar: the routes (`routes::Route::NAV`), the machines in the
+//! The sidebar: the routes (`routes::Route::NAV`), a slot for the
+//! projects ([`projects`], the workspace track's), the machines in the
 //! book with their live sessions (DESIGN.md section 6: rows on the shell,
 //! no edge of its own), adding a machine, and the build's label.
 
@@ -7,6 +8,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, dot, kicker};
+use vessel_app_view::settings::Section;
 use vessel_app_view::{Card, Machine, Reach};
 
 use super::common::card_color;
@@ -51,6 +53,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .pb(px(8.0))
         .gap(px(12.0))
         .child(nav)
+        .children(projects(shell, tokens, cx))
         .child(
             div()
                 .id("machines")
@@ -78,10 +81,30 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .child(foot(shell, tokens, cx))
 }
 
+/// The slot between the navigation rows and the machines: the projects
+/// section (track F's, Paseo's sidebar lists projects there); `None`:
+/// nothing.
+///
+/// [Decision Log]
+/// - Purpose: the projects are the workspace track's; the sidebar's frame
+///   is this one's (and track S's when it draws the full sidebar). One
+///   slot with one owner each side keeps both from editing the other's
+///   drawing, as `conversation::dock` does over the composer.
+/// - Choice: the sidebar asks for the slot's content and puts it between
+///   the navigation and the machines, at the sidebar's width; F fills
+///   this function (or replaces its body with a call into its module).
+const fn projects(
+    _shell: &Shell,
+    _tokens: &Tokens,
+    _cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    None
+}
+
 /// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
 /// hairline over one line, its items at the left and Settings, a gear, at
 /// the right end. Here the build and "새로고침" at the left; the gear opens
-/// About until the settings track's frame lands.
+/// Settings, the build Settings › About.
 fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let t = shell.t;
     div()
@@ -98,7 +121,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         .type_(Type::Tiny)
         .text_color(tokens.text_tertiary)
         .child(
-            // The build, and its updates: the About screen.
+            // The build, and its updates: Settings › About.
             div()
                 .id("build")
                 .pl(px(2.0))
@@ -106,7 +129,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                 .hover(|style| style.text_color(tokens.text_secondary))
                 .child(t.build(crate::LABEL))
                 .on_click(cx.listener(|this, _event, window, cx| {
-                    this.go(Route::About, window, cx);
+                    this.open_settings(Some(Section::About), window, cx);
                 })),
         )
         .child("·")
@@ -126,12 +149,12 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                     leading: Some(vessel_app_kit::assets::Glyph::Gear),
                     ..vessel_app_kit::PillParts::default()
                 },
-                shell.route == Route::About,
+                shell.route == Route::Settings,
                 false,
                 tokens,
             )
             .on_click(cx.listener(|this, _event, window, cx| {
-                this.go(Route::About, window, cx);
+                this.open_settings(None, window, cx);
             })),
         )
 }
