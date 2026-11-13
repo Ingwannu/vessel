@@ -16,7 +16,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 
 | Crate | Owns | Must not |
 | --- | --- | --- |
-| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, English and Korean, one file per area) | use any UI toolkit; do I/O |
+| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
 | `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels | use any UI toolkit |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::Text`) |
@@ -309,6 +309,45 @@ DISPLAY=:140 import -window root shot.png
 Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
 by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
 screen of that size.
+
+## Translation engine (staged, ADR 0039)
+
+`view::localization` sits beside the legacy tables. Its host build script
+reads `view/locales/<tag>/<area>.ftl`, validates the Fluent AST, and generates
+a typed API from English. The target library embeds the resources and does
+no I/O. Prepare `Translator::get(locale)` before drawing: plain accessors
+borrow retained fields, while messages with values are formatted when those
+values change. The allocation-counting test covers warmed plain access.
+
+`LANGUAGES` exposes each embedded tag, own name and completeness; the
+checking locale `en-XA` is excluded. `resolve_language` applies an override,
+a typed preference, or the system tag, with exact/base/English fallback.
+The source API is English, Korean must be complete with the same variables,
+and a contributed folder may be partial. Run the shared validator/report:
+
+```bash
+scripts/locale-coverage.sh
+```
+
+`view/locales/<tag>/formats.ftl` owns number separators, primary/secondary
+sizes, ten digit characters, month/weekday names, whole date/time patterns
+and the h12/h24 choice. Missing contributed settings/patterns use English.
+The build validates settings and emits static numeric rules automatically;
+adding a folder needs no separate generator command or Rust edit. Messages
+call standard `NUMBER`/`DATETIME` names. NUMBER remains numeric for plural
+selectors; DATETIME accepts typed Gregorian dates/local clock readings and
+a caller-resolved zone label. This small implementation is not complete
+Intl: no other calendars, time-zone conversion, currency/percent formatting,
+significant-digit rules or automatic numbering-system discovery. Typed
+decimals are finite, within the u32 count magnitude, and at most nine decimal
+places. Patterns currently receive minute precision. Dynamic formatting is
+performed when data changes, before painting. ICU4X is not a dependency of
+this formatting layer; ADR 0039 retains its rejected measured cost.
+
+No existing area has moved in the mechanism slice. Area owners keep their
+Rust tables until the coordinator accepts the engine and its first migration;
+the first migrated area will supply the contributor model. The pseudo-locale
+is tested in this slice; normal-screen captures follow that migration.
 
 ## A release
 
