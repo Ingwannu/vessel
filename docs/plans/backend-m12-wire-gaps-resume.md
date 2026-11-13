@@ -21,7 +21,7 @@ new slice or branch merge until the next session explicitly resumes work.
   member's grant from joining, after node creation. Existing 10/20-second
   bounds remain. Their final validation is not claimed by this note.
 
-## Current row 2, awaiting final TS generation and review
+## Historical row 2 checkpoints (superseded by final result below)
 
 Credit-stop checkpoint: preserved as the commit titled `wip: fleet membership
 controls and bounded sync status`. It is not an approved/ready slice. At that
@@ -218,3 +218,42 @@ The literal requested filtered TS regeneration command is now running:
 Do not report it passed until its result is recorded below. The previous
 TS-enabled whole run did pass the generator tests. The owned-process audit
 found no remaining fixture/node/UI process; no preview or real agent used.
+
+## Final handoff: row 2 gated, V1 review pending
+
+This section supersedes all earlier unverified checkpoints. Row 2 source is
+committed in `2ced8723`, `cc972008`, `a32a0ac6`, `caaea148`; the final clean
+root gate and grant repeats are recorded in `bcc9106c`. Full source/contract
+review is with V1, followed by the coordinator and node integrator; no merge
+approval or native UI approval is claimed. The earlier WIP commit subjects
+are retained without history rewriting.
+
+- fmt passed; whole workspace/all-targets Clippy passed.
+- Exactly `cargo test --workspace`: 105 suites, 1,666 passed, zero failed,
+  nine ignored (`row2-final-workspace-test.log`). Node units 198, E2E 151.
+- Literal TS generation passed both tests (`row2-final-typescript.log`);
+  generated declarations were already current at `caaea148`.
+- Page lint/typecheck/build, 243 unit tests and 36 E2E passed (`row2-web-*`).
+- Actual native fake-fleet start/check passed (`row2-fleet.log`,
+  `row2-fleet-results.json`), including read-only book, apply/report and
+  join/leave/sync. Assertion failure check prints one line, no traceback.
+- Reinstalled-member 4/4, grant-stop 8/8 (`row2-grant-repeats.json` and
+  twelve individual logs). Exact executable/argv, CARGO unset, UID/GID and
+  stable pre/post SHA256 are in the record; no test bound changed.
+- Final owned-process audit empty (`row2-process-audit.json`). Own fleet
+  PIDs stopped, no app/display left. UID/GID 1000; fixture directories 0700,
+  tokens/credential/books 0600. No permission/ownership modification.
+
+References followed: Paseo server `connected-hosts/index.ts` (actor authority,
+serialized persistence and secret-free summaries), `connected-hosts/session.ts`
+(connection authority/refusals), `pairing-offer.ts` and CLI `commands/daemon/
+pair.ts`. Paseo has no Vessel fleet publication/apply engine: those semantics
+reuse ADR 0012/0013 and the existing loops. Shared native files changed only
+for fake-fleet shape preparation/checks and their README; the exact hunks
+are `row2-shared-native.diff`. No app/kit screen changed; no captures claimed.
+
+Next session: first address V1 findings, then consume the reviewed protocol-13
+integration (`187dc847`) at a clean boundary and keep every N3 addition at 13,
+minimum unchanged. No new bump, no merge during this stop-limited session.
+G4 waits for reviewed row 2 calls/status, plus future rows 3/4. All other
+consumer waits and unimplemented rows 3-7 listed above remain unchanged.

@@ -178,7 +178,10 @@ mutations and a credential-free Read projection. Paseo's ConnectedHosts
 source governs actor authority, persistence before acknowledgement and
 summaries without connection secrets; fleet publication/revocation remains
 ADR 0012/0013. The accepted sync request is distinct from completed apply.
-Implementation and gate are in progress; no new calls are claimed ready.
+Implemented in `2ced8723` with runtime fixture followup `caaea148`. The final
+root gate passed (105 suites, 1,666 passed, zero failed, nine ignored), as did
+TS generation, the page gate and real fake-fleet checks. V1 review and
+protocol-13 integration remain pending; no native action UI is approved.
 
 Exact contract: root `JoinFleet { link: PairingLink, grant: Vec<Scope> }`
 returns `JoinedFleet { home: NodeInfo }`; `LeaveFleet {}` and `SyncFleet {}`
@@ -239,3 +242,29 @@ assertion were unchanged. Setup-inclusive durations were 22.42, 8.37, 4.30,
 9.05, 13.61, 9.26, 15.82 and 20.78 seconds. Already-built current fake binaries
 were used, with Cargo unavailable to the runtime locator, so no rebuild or
 unchanged whole-gate rerun was charged to those eight checks.
+
+## Row 2 final verification
+
+Final source: `caaea148` atop `2ced8723`, `cc972008`, `a32a0ac6`; documentation
+checkpoints include `73332e50` and `bcc9106c`. Whole fmt/clippy/test passed,
+with changed crates explicitly recompiled: 105 test suites, 1,666 passed,
+zero failed, nine ignored; node E2E 151 and node units 198. The literal
+filtered TS generation command passed both generators and left declarations
+unchanged. Page lint/typecheck, 243 units, build and 36 E2E passed.
+
+The first TS-enabled whole run had four failures (1,669 passed, nine ignored):
+the new lifecycle fixture queried before publication, two protocol authority/
+version lists lacked the added methods, and an existing remote fallback test
+hit its unchanged 60-second limit. The new fixtures were corrected without
+weakening assertions or deadlines. All four pass in the final whole root run;
+the earlier remote timeout remains unexplained, not waived as a load exception.
+
+Four consecutive reinstalled-member checks and eight grant-stop checks passed
+on the final whole run's exact node E2E executable, with CARGO unset and its
+pre/post hashes equal. Real fake-fleet CLI checks cover join/leave/sync, long
+member labels, applied reports, standalone refusal and read-only privacy/
+refusals. UID/GID 1000, private directories 0700, credentials/books 0600; no
+ownership or permission change. Owned fixture processes were stopped by PID.
+No native screen or other-OS runtime claim is made. See the resume note for
+log names, pending review and consumers. No new slice or branch merge followed
+the credit-stop instruction.
