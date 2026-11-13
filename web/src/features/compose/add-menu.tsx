@@ -65,14 +65,16 @@ export function AddMenu({
     >
       <div className="add-body">
         {onFiles === undefined ? null : (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="paperclip"
-            onClick={picker.open}
-          >
-            Attach files to this message
-          </Button>
+          <div className="add-files">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="paperclip"
+              onClick={picker.open}
+            >
+              Attach files to this message
+            </Button>
+          </div>
         )}
         {picker.input}
         {profiles.length > 1 ? (
