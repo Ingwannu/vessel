@@ -166,10 +166,12 @@ fn file_header(
                 .text_color(tone_colour(tone, tokens))
                 .child(letter.to_string()),
         )
+        // The name keeps its room before the folder gives up its own (a
+        // hundred files can share a long beginning).
         .child(
             div()
-                .flex_none()
-                .max_w(px(220.0))
+                .flex_shrink(1.0)
+                .min_w_0()
                 .truncate()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
@@ -178,6 +180,7 @@ fn file_header(
         .child(
             div()
                 .flex_1()
+                .flex_shrink(64.0)
                 .min_w_0()
                 .truncate()
                 .type_(Type::Meta)

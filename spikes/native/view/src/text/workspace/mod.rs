@@ -26,6 +26,8 @@
 mod en;
 mod ko;
 pub mod labels;
+mod labels_en;
+mod labels_ko;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};

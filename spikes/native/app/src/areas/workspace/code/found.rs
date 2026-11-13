@@ -28,7 +28,10 @@ pub(super) fn results(
     Some(match &search.results {
         Results::Idle => return None,
         Results::Loading => note(labels.loading, tokens).into_any_element(),
-        Results::Failed(why) => note(why.clone(), tokens).into_any_element(),
+        Results::Failed(why) => {
+            super::viewer::failed(labels.search_failed, why, 16.0, tokens).into_any_element()
+        }
+        Results::Refused => note(labels.search_refused, tokens).into_any_element(),
         Results::Found(found) if found.matches.is_empty() => {
             note(labels.nothing_found, tokens).into_any_element()
         }
@@ -65,9 +68,14 @@ fn result_row(
             Some(hit) => (hit.path.clone(), Some(hit.line), Some(hit.text.clone())),
             None => return div().into_any_element(),
         },
-        Results::Idle | Results::Loading | Results::Failed(_) => return div().into_any_element(),
+        Results::Idle | Results::Loading | Results::Failed(_) | Results::Refused => {
+            return div().into_any_element();
+        }
     };
     let (folder, name) = split_path(path.as_str());
+    // The name first and whole where it fits (a hundred files can share
+    // a long beginning); the line's number at the right, never cut; the
+    // folder on the line under it.
     let head = div()
         .flex()
         .flex_row()
@@ -76,25 +84,28 @@ fn result_row(
         .child(glyph(Glyph::File, 14.0, neutral.foreground_muted))
         .child(
             div()
-                .flex_none()
-                .max_w(px(240.0))
+                .flex_1()
+                .min_w_0()
                 .truncate()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .child(name.to_owned()),
         )
-        .child(
+        .children(line.map(|line| {
             div()
-                .flex_1()
-                .min_w_0()
-                .truncate()
+                .flex_none()
                 .type_(Type::Meta)
                 .text_color(neutral.foreground_muted)
-                .child(match line {
-                    Some(line) => format!("{folder}:{line}"),
-                    None => folder.to_owned(),
-                }),
-        );
+                .child(line.to_string())
+        }));
+    let place = (!folder.is_empty()).then(|| {
+        div()
+            .pl(px(20.0))
+            .truncate()
+            .type_(Type::Meta)
+            .text_color(neutral.foreground_muted)
+            .child(folder.to_owned())
+    });
     div()
         .id(("code-found", index))
         .w_full()
@@ -106,6 +117,7 @@ fn result_row(
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .child(head)
+        .children(place)
         .children(text.map(|text| {
             div()
                 .pl(px(20.0))

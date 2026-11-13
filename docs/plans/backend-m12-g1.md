@@ -622,3 +622,24 @@ View, Kit, Link and App compilation, and all 360 frozen source/manifest/font
 fingerprints still match after the gate. The branch-identity correction is an
 independent preceding commit from this same gate. Native wall-clock/hover,
 legacy pixel comparisons and actual Git no-write first use remain pending.
+
+## Integrating the reviewed code panel before Git first use
+
+The workspace owner's 212ed779 imports its tree context actions, directory-first
+name shrinking, tree-row extraction, machine-book follow cancellation and Hub
+unsubscribe path. This merge preserves its Files open_file entry and existing
+code_git_changed refresh contract. No Git area registration, F-side getter,
+file opener wrapper or header action slot is added by this integration; those
+must land together with their own first callers and tests. F explicitly agreed
+to a single last-child file_action_slot call after the header's counts, with
+identical Some/None footprint from the kit's shared trigger geometry. Neither
+that future call nor its runtime proof is claimed by this merge.
+
+Validation: the merged native tree passed fmt and all-target clippy with
+warnings denied; 545 runtime tests plus two documentation tests passed.
+The changed View, Link and App crates actually recompiled; all 367 frozen
+source/manifest/configuration/font fingerprints match. Only the reviewed F
+line is imported: no root/node implementation was authored, no new root test
+run or Git first-use/runtime approval is claimed. The separate README heading
+correction and resume record follow as documentation only, without a Rust
+gate rerun.
