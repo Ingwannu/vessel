@@ -183,6 +183,7 @@ export function FileView({
             fill
             value={draft}
             onChange={setDraft}
+            readOnly={saving}
             aria-label={`Edit ${path}`}
           />
         </div>

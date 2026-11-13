@@ -173,6 +173,11 @@ export function useFile(
     reading.current = true;
     void page(now.next).then((next) => {
       reading.current = false;
+      // Read past meanwhile (Edit read the rest, or a reload began): this
+      // page would put a part of the file back over the whole.
+      if (latest.current !== now) {
+        return;
+      }
       latest.current = next;
       setText(next);
     });

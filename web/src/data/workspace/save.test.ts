@@ -149,3 +149,24 @@ describe("saving an edit", () => {
     });
   });
 });
+
+describe("a conflict's two sides", () => {
+  it("are compared line by line only when the disk's file was read whole", async () => {
+    const calls: SaveCalls = {
+      write: () => Promise.resolve(refused("conflict", "changed")),
+      read: () =>
+        Promise.resolve({
+          ok: true,
+          value: {
+            version: CHANGED,
+            content: { kind: "text", text: "first page", next: 262_144 },
+          },
+        }),
+    };
+    expect(await saveText(calls, "mine", READ)).toMatchObject({
+      kind: "conflict",
+      disk: CHANGED,
+      diskText: null,
+    });
+  });
+});

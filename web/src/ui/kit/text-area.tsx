@@ -33,6 +33,9 @@ export interface TextAreaProps {
   maxRows?: number;
   "aria-label"?: string;
   disabled?: boolean;
+  /** Shown and selectable, not changed (an editor while its save is on
+   * its way: a key typed then would be lost when the save closes it). */
+  readOnly?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** For a caller that moves focus into it. */
   textAreaRef?: RefObject<HTMLTextAreaElement | null>;
@@ -57,6 +60,7 @@ export function TextArea({
   minRows = 3,
   maxRows = 10,
   disabled,
+  readOnly,
   onKeyDown,
   textAreaRef,
   fill = false,
@@ -96,6 +100,7 @@ export function TextArea({
             value={value}
             placeholder={placeholder}
             disabled={disabled}
+            readOnly={readOnly}
             spellCheck={false}
             aria-label={ariaLabel}
             onKeyDown={onKeyDown}

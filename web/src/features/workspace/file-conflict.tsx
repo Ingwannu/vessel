@@ -12,11 +12,16 @@ import { Banner, Button } from "../../ui/kit";
 import type { FileVersion } from "../../wire/proto";
 
 /** A version's modification time (milliseconds since the epoch; 0 when
- * the machine's file system does not say) as the page writes a time. */
+ * the machine's file system does not say) as the page writes a time, and
+ * its content's hash's start: two versions written in one minute with
+ * sizes that round alike still read as two. */
 function modified(version: FileVersion): string {
-  return version.modified === 0
-    ? "at a time the machine does not say"
-    : `modified ${when(new Date(version.modified).toISOString())}`;
+  const time =
+    version.modified === 0
+      ? "at a time the machine does not say"
+      : `modified ${when(new Date(version.modified).toISOString())}`;
+  const hash = version.hash ?? null;
+  return hash === null ? time : `${time}, content ${hash.slice(0, 8)}`;
 }
 
 /** How many lines differ between the disk's text and the edit. */

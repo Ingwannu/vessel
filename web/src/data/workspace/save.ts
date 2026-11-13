@@ -39,7 +39,7 @@ export type Saved =
       kind: "conflict";
       /** The disk's version now, `null` when it is gone or unreadable. */
       disk: FileVersion | null;
-      /** The disk's text (its first page), when it is text. */
+      /** The disk's text, when it is text read whole in one page. */
       diskText: string | null;
       /** The text that was refused. */
       mine: string;
@@ -72,8 +72,13 @@ async function conflictOf(calls: SaveCalls, mine: string): Promise<Saved> {
   return {
     kind: "conflict",
     disk: disk.ok ? disk.value.version : null,
+    // Only a file read whole in its first page is compared line by line:
+    // a longer one's first page against the whole edit would count all
+    // the rest as added.
     diskText:
-      disk.ok && disk.value.content.kind === "text"
+      disk.ok &&
+      disk.value.content.kind === "text" &&
+      (disk.value.content.next ?? null) === null
         ? disk.value.content.text
         : null,
     mine,
