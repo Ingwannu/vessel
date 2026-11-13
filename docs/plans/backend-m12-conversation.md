@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
@@ -61,6 +61,7 @@ Paseo screen it follows.
 | `47-agent-log-folded-full-dark-1280`, `48-agent-log-opened-full-dark-1280`, `49-agent-log-hidden-collapsed-dark-1280` | a Claude Code session's start-up log (the adapter's `[session/create] …` lines): one quiet row "Agent log · 12 lines" at the "Full" display, opening to the lines in a text box; nothing at all while tool calls are collapsed | Paseo and GOAT never show an adapter's log; the page draws every line raw (a defect, below) |
 | `50-find-wrapped-to-last-dark-1280`, `51-find-korean-light-390` | find: Mod+F opens the bar over the conversation's top right with the count, previous, next and close in its shell; Shift+Enter past the first match wraps to the last (5/5); on a phone it spans the width | GOAT `ThreadFindBar.tsx` (`top-3 right-3`, `w-[min(17.5rem,100%-1.5rem)]`, "1/…" while counting, the count red with no results) |
 | `52-find-marks-current-dark-1280`, `53-find-current-in-last-reply-light-1280`, `54-find-marks-in-table-dark-390` | find's matches marked in the text, the current one amber and scrolled to (inside a reply taller than the view, to its line); a search run again as the session grows keeps the current match (1/1 became 1/2) | GOAT `threadFindHighlights.ts`, `index.css` `::highlight(goat-thread-find…)`; the page's `find-bar.tsx` refresh rule |
+| `55-outline-pointed-dark-1280`, `56-outline-jumped-to-prompt-dark-1280`, `57-outline-pointed-korean-light-1280`, `58-outline-hidden-on-phone-dark-390` | the outline rail on the fleet's five-turn session: the lit prompt's pill wider, the pills near the pointer magnified, the prompt's card (two lines, Korean too), a click putting that prompt at the view's top; no rail under 918 | Paseo `agent-stream/chat-outline/rail.web.tsx`, `model.ts`, `hover-intent.ts` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -80,6 +81,11 @@ Paseo screen it follows.
   a grammar feature the kit does not build).
 - **Tables**: a table's outer cells keep their inset; GOAT's sit flush
   with the prose.
+- **The outline** is Paseo's rail (the page's is a card at the window's
+  side from 1,100 wide): shown in a conversation at least 918 wide, as
+  Paseo's. Its pills change size at once (Paseo eases over 140 ms), only
+  a pointer entering a slot starts the 150 ms wait (Paseo also starts it
+  on a sideways sweep), and a card cut at two lines shows no ellipsis.
 - **The title's rename**: no "Rename" tooltip on the title (the kit has
   no tooltip yet), and the keys do not go back to the title once the
   field leaves (the page returns focus to it, as a dialog to its opener).
@@ -188,7 +194,7 @@ only.
 
 ## Still to do
 
-The outline; the branch chip
+The branch chip
 rail, read marks drawn, the ended banner, the context ring, the
 inspector's Summary, the terminal view (§7), stream banners; copying a
 message and a conversation (a tool's text and a code block have their

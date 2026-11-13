@@ -156,6 +156,50 @@ wait_for laptop "$shapes" "테스트를 모두 돌렸습니다"
 check_shapes laptop "$shapes" answered
 check_shapes laptop "$asking" asking
 
+# A conversation of several turns (the outline of prompts, read marks):
+# five prompts, one long and one Korean. The fake answers a prompt it
+# has no verb for with an echo and a tool that asks for permission;
+# each is allowed, so every turn ends.
+answer_waiting() { # node id: allow the one request waiting
+  for digit in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+    cli --node "$1" session answer "$2" "$digit" allow-once 2> /dev/null && return 0
+  done
+  return 1
+}
+start_session laptop turns "plain"
+turns=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+ended=1
+wait_for laptop "$turns" "[turn ended"
+for prompt in \
+  "Read the timeline's fold and tell me where a batch that ends inside a message loses its last chunk, with the lines that do it and what you would change first" \
+  "긴 대화에서 스크롤이 끊기지 않는지 확인해 주세요" \
+  "Now run the tests again" \
+  "plain"; do
+  # The node may still be closing the turn just ended: try again.
+  for _ in $(seq 1 50); do
+    cli --node laptop send "$turns" "$prompt" > /dev/null 2>&1 && break
+    sleep 0.1
+  done
+  if [ "$prompt" != plain ]; then
+    for _ in $(seq 1 300); do
+      [ "$(log_of laptop "$turns" | grep -c '^\[permission\]')" -ge "$ended" ] && break
+      sleep 0.1
+    done
+    for _ in $(seq 1 50); do answer_waiting laptop "$turns" && break; sleep 0.1; done
+  fi
+  # Each prompt after the turn before it ended, so it is a turn of its
+  # own and not a message steered into the running one.
+  ended=$((ended + 1))
+  for _ in $(seq 1 300); do
+    [ "$(log_of laptop "$turns" | grep -c '^\[turn ended')" -ge "$ended" ] && break
+    sleep 0.1
+  done
+done
+[ "$(log_of laptop "$turns" | grep -c '^> ')" -eq 5 ] || {
+  echo "fleet: session $turns lacks its five prompts" >&2
+  exit 1
+}
+
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash
 # A pairing link for laptop (single use, ten minutes).

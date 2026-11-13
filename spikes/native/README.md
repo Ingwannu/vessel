@@ -233,7 +233,9 @@ with the start-up log the real adapter writes before the first prompt
 (ten `[session/create] …` lines, `FAKE_ACP_STARTUP_LOG`). `fleet.sh start`
 fails if either `shapes` session lacks any of it (it reads them back
 with `vessel log`), so a fake-acp built before these existed is caught:
-rebuild it.
+rebuild it. A third session on `laptop`, `turns`, holds five turns (one
+long prompt, one Korean; each tool's permission allowed): the outline of
+prompts and read marks are checked against it.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

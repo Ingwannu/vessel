@@ -165,6 +165,12 @@ impl VirtualList {
         self.state.is_following_tail()
     }
 
+    /// The view's width, once laid out (zero before).
+    #[must_use]
+    pub fn width(&self) -> Pixels {
+        self.state.viewport_bounds().size.width
+    }
+
     /// The first row in view, and how far into it the view starts.
     #[must_use]
     pub fn top(&self) -> (usize, Pixels) {

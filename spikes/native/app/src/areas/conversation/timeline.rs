@@ -68,6 +68,7 @@ pub(crate) fn timeline(
         .size_full()
         .relative()
         .child(list)
+        .children(super::outline::rail(shell, tokens, window, cx))
         .children(bar)
         .into_any_element()
 }
