@@ -1,28 +1,28 @@
 # The mark
 
-Vessel's logo, given by the owner on 2026-11-13: a V drawn as nested
-loops with a four-pointed star between its arms, in one colour.
+Vessel's logo, given by the owner on 2026-11-13 and given again the
+same day with an error corrected: a V drawn as nested loops with a
+four-pointed star between its arms, in one colour. The corrected file is
+the one kept here; the first is in the history.
 
 | File | What it is |
 |---|---|
-| `vessel-logo-source.svg` | The owner's file, byte for byte (an Illustrator export on a 2000 x 2000 canvas). Never edited. |
-| `vessel-mark.svg` | The same two shapes in the brand colour, on a square view box cropped to the artwork (`649 650 700 700`). What every client draws and every icon is made from. |
+| `vessel-logo-source.svg` | The owner's corrected file, byte for byte (an Illustrator export on a 2000 x 2000 canvas, the artwork centred and about three quarters of its width). Never edited. |
+| `vessel-mark.svg` | The same two shapes in the brand colour, on a square view box cropped to the artwork (`170 170 1660 1660`). What every client draws and every icon is made from. |
 | `vessel-mark-mono.svg` | The same with `fill="currentColor"`, for places that take the surrounding text's colour. |
 
 Brand colour: `#1a5868`.
 
 ## What differs from the owner's file, and why
 
-- **Two stray text elements are left out.** The export carried two
-  "Lorem ipsum" placeholders at 12 px inside the artwork (in a font
-  that is not embedded). They draw as specks. They are not part of the
-  mark.
-- **The margin is cropped.** The artwork fills about a third of the
-  2000 x 2000 canvas; an icon made from the whole canvas would be a
-  third of its size. The view box is a square around the artwork with
-  about 5% of air on the wide side.
+- **The margin is cropped.** The view box is a square around the
+  artwork with about 5% of air on the wide side, so whoever draws the
+  mark decides its padding (a tile, a title bar, a launcher's safe
+  zone) and not the canvas.
 
-Nothing else is touched: the paths are the owner's, not redrawn.
+Nothing else is touched: the paths are the owner's, not redrawn. (The
+first file carried two stray placeholder text elements, which the mark
+left out; the corrected file has none.)
 
 ## Using it
 

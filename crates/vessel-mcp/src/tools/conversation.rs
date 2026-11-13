@@ -69,14 +69,17 @@ impl VesselTools {
         }
     }
 
-    /// `send_input` with a `delivery`: `session.prompt`; where the log
-    /// stood just before, and what became of the prompt.
+    /// `send_input` with a `delivery` or `notify`: `session.prompt`; where
+    /// the log stood just before, and what became of the prompt. With
+    /// `notify`, the caller's own session is told about the turn it
+    /// starts (protocol 11).
     pub(super) async fn deliver(
         &self,
         node: Target,
         session: SessionId,
         text: &str,
         delivery: Delivery,
+        notify: bool,
     ) -> Result<Value, ToolError> {
         let from = self.on(node, GetSession { session }).await?.next_seq;
         let content = vec![ContentBlock::Text {
@@ -89,6 +92,7 @@ impl VesselTools {
                     session,
                     content,
                     delivery,
+                    notify,
                 },
             )
             .await?;

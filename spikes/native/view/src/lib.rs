@@ -19,6 +19,7 @@ pub mod terminal;
 mod tests;
 mod text;
 pub mod timeline;
+pub mod workspace;
 
 pub use board::{
     Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name, rows_for_scroll,

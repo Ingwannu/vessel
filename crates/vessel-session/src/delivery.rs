@@ -29,6 +29,9 @@
 //! queue's changes and its moving after a turn.
 
 mod moves;
+mod tickets;
+
+pub(crate) use tickets::TurnTicket;
 
 use tokio::sync::oneshot;
 use vessel_agent::{Attachments, InputError, SteerOutcome};
@@ -48,6 +51,8 @@ pub(crate) struct Deliver {
     pub(crate) content: Vec<ContentBlock>,
     pub(crate) delivery: Delivery,
     pub(crate) by: Creator,
+    /// Told which turn it started or joined (protocol 11, `tickets`).
+    pub(crate) turn: Option<TurnTicket>,
     pub(crate) reply: oneshot::Sender<Result<Delivered, SessionError>>,
 }
 
@@ -97,6 +102,8 @@ pub(crate) struct Desk {
     /// An interrupt waits for the turn it cancelled; that turn's end is
     /// the interrupt's, not the queue's.
     interrupting: bool,
+    /// Who waits to learn which turn their prompt started (`tickets`).
+    pub(crate) tickets: tickets::Tickets,
 }
 
 impl Desk {
@@ -120,7 +127,10 @@ impl Desk {
     pub(crate) fn observe(&mut self, event: &AgentEvent, seq: EventSeq) {
         match event {
             AgentEvent::Ready { abilities, .. } => self.ready(*abilities),
-            AgentEvent::TurnStarted { .. } => self.turn = Some(seq),
+            AgentEvent::TurnStarted { .. } => {
+                self.turn = Some(seq);
+                self.tickets.turn_started(seq);
+            }
             AgentEvent::TurnEnded { reason, .. } => {
                 let end = if *reason == StopReason::Cancelled {
                     TurnEnd::Cancelled
@@ -158,6 +168,11 @@ impl Desk {
         self.abilities
     }
 
+    /// Turns the actor started.
+    pub(crate) const fn started(&self) -> u64 {
+        self.started
+    }
+
     /// Whether a turn runs.
     pub(crate) const fn running(&self) -> bool {
         self.started > self.ended_turns
@@ -179,9 +194,15 @@ impl StructuredActor {
             content,
             delivery,
             by,
+            turn,
             reply,
         } = order;
+        let seen = self.desk.tickets.seen();
         let result = self.send_as(content, delivery, by).await;
+        if let (Ok(delivered), Some(ticket)) = (&result, turn) {
+            let started = self.desk.started();
+            self.desk.tickets.give(ticket, *delivered, seen, started);
+        }
         let _gone = reply.send(result);
     }
 

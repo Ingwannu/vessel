@@ -12,6 +12,7 @@ use vessel_proto::{
 };
 
 use crate::error::ServiceError;
+use crate::principal::Principal;
 use crate::subscribe;
 use crate::waits::Waiter;
 
@@ -62,8 +63,23 @@ impl NodeService {
     pub(super) async fn create(
         &self,
         connection: &Connection,
+        spec: SessionSpec,
+        origin: Option<SessionOrigin>,
+    ) -> Result<SessionInfo, WireError> {
+        self.create_as(connection.principal(), spec, origin, None)
+            .await
+    }
+
+    /// A session of `spec` for `principal`: `create`'s path, also a
+    /// schedule's run (protocol 11), which acts as its definer with nobody
+    /// watching: `unattended` is the line its log starts with, and its
+    /// agent is offered no questions (ADR 0033).
+    pub(crate) async fn create_as(
+        &self,
+        principal: &Principal,
         mut spec: SessionSpec,
         origin: Option<SessionOrigin>,
+        unattended: Option<String>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
@@ -78,11 +94,15 @@ impl NodeService {
         // A place resolves to the folder `cwd` names (protocol 10). In a
         // worktree, `_starting` keeps a removal out until the session is
         // live, or failed to start (ADR 0030); it is dropped on return.
-        let (notices, _starting) = self.place(connection, &mut spec).await?;
+        let (notices, _starting) = self.place(principal, &mut spec).await?;
         let mut options = self
             .launcher
-            .options(&self.profiles, &spec, &connection.principal)
+            .options(&self.profiles, &spec, principal)
             .map_err(|error| wire(&error))?;
+        if let Some(line) = unattended {
+            options.questions = false;
+            options.notices.push(line);
+        }
         // An import says where it came from; otherwise the launcher's
         // (a call delivered from another node records `remote`).
         if origin.is_some() {
@@ -91,7 +111,7 @@ impl NodeService {
         let id = SessionId::random();
         let secret = self
             .agents
-            .reserve(id, &connection.principal, self.launcher.has_tools())
+            .reserve(id, principal, self.launcher.has_tools())
             .map_err(|error| wire(&error))?;
         options.id = Some(id);
         options.notices.extend(notices);
@@ -127,7 +147,7 @@ impl NodeService {
         }
         // Its pull request, when it is placed (protocol 11).
         if let Some(handle) = self.sessions.live(info.id) {
-            self.watch_session(&handle, &connection.principal);
+            self.watch_session(&handle, principal);
         }
         Ok(self.with_workspace(info))
     }

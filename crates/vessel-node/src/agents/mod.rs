@@ -203,6 +203,15 @@ impl Agents {
         self.lock().get(&id).is_some_and(|entry| !entry.has_ended())
     }
 
+    /// What `id`'s agent may do, while its session lives: what a schedule
+    /// it made acts with when the schedule runs (protocol 11, ADR 0033).
+    pub(crate) fn scopes(&self, id: SessionId) -> Option<Vec<Scope>> {
+        self.lock()
+            .get(&id)
+            .filter(|entry| !entry.has_ended())
+            .map(|entry| entry.scopes.clone())
+    }
+
     /// The session `id` reserved a place for has started as `handle`.
     pub(crate) fn started(&self, id: SessionId, handle: SessionHandle) {
         if let Some(entry) = self.lock().get_mut(&id) {

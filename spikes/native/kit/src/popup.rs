@@ -22,7 +22,7 @@
 //!   radius 10 with a 2% edge and a softer shadow, its scrim the ink at
 //!   45%; Paseo's are the values here.
 
-use gpui::{BoxShadow, Hsla, point, px, rgb, rgba};
+use gpui::{BoxShadow, Hsla, point, px, rgba};
 
 use crate::theme::{Scheme, Tokens};
 
@@ -50,25 +50,16 @@ impl Surfaces {
     /// The surfaces of the scheme `tokens` are in.
     #[must_use]
     pub fn of(tokens: &Tokens) -> Self {
-        match tokens.scheme {
-            Scheme::Light => Self {
-                surface0: rgb(0x00ff_ffff).into(),
-                surface1: rgb(0x00fa_fafa).into(),
-                surface2: rgb(0x00f4_f4f5).into(),
-                border_accent: rgb(0x00ec_ecf1).into(),
-                foreground: rgb(0x001a_1a1e).into(),
-                foreground_muted: rgb(0x0071_717a).into(),
-                destructive: rgb(0x00b0_4138).into(),
-            },
-            Scheme::Dark => Self {
-                surface0: rgb(0x0018_1b1a).into(),
-                surface1: rgb(0x001e_2120).into(),
-                surface2: rgb(0x0027_2a29).into(),
-                border_accent: rgb(0x002f_3534).into(),
-                foreground: rgb(0x00fa_fafa).into(),
-                foreground_muted: rgb(0x00a1_a5a4).into(),
-                destructive: rgb(0x00c6_4f43).into(),
-            },
+        // The theme's neutral scale: one set of Paseo's values for the kit.
+        let neutral = &tokens.neutral;
+        Self {
+            surface0: neutral.surface0,
+            surface1: neutral.surface1,
+            surface2: neutral.surface2,
+            border_accent: neutral.border_accent,
+            foreground: neutral.foreground,
+            foreground_muted: neutral.foreground_muted,
+            destructive: neutral.destructive,
         }
     }
 }

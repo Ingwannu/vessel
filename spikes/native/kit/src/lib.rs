@@ -25,11 +25,15 @@
 pub mod assets;
 pub mod breakpoint;
 pub mod chrome;
+pub mod code;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod menu;
 pub mod popup;
+pub mod segmented;
+pub mod sheet;
+pub mod tabs;
 pub mod theme;
 pub mod virtual_list;
 mod widgets;
@@ -37,10 +41,12 @@ mod widgets;
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
 pub use assets::Assets;
+pub use code::CodeTokens;
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::TextField;
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{TypeExt, button, choice, dot, kicker, mark, mark_mono, markdown};

@@ -207,7 +207,62 @@ points wide.
 | Browser | `backend/m12-browser` | the same UI crate in a browser: does it draw, does Hangul compose, what a phone browser and a browser without WebGPU get (question 6; ADR 0036's open point) |
 | M, phone | `backend/m12-phone` | the native Android app from the UI crate; the shell as the fallback |
 | R, release | `backend/m12-release` | builds for every system, the installer, the updater |
-| next | | the board and a session's lifecycle; machines, devices, sync, agents, models and the settings; what the page never drew (agent install, schedules, export); settings kept on a node (ADR 0036) |
+| S, shell furniture (branch made, not started: waits for a free worker) | `backend/m12-app-shell` | the board and the archive in full, the sidebar in full, the command palette, the shortcut registry with its listener and settings page, notices and toasts, the system's notifications |
+| E, settings (branch made, not started: waits for a free worker) | `backend/m12-app-settings` | the settings frame and its sections, the preference model behind one interface, machine management, devices and pairing links, sync, agents, models; then installing agents |
+| next | | schedules and saved prompts, export and import; settings kept on a node (ADR 0036); the inbox and push |
+
+Who owns which area and which kit control is kept in one place for the
+workers (the tracks' brief, outside the repository) and repeated in
+`spikes/native/README.md` by the lead. In short: the lead owns the
+window, the routes, the title bar, the kit's base, the new chat and the
+composer, pairing and the update notice, and merges every track; a
+control another track owns is never written twice.
+
+Builds so far: 0.0.0.0.1 (pairing, machines, sessions, a session);
+0.0.0.0.2 (the app opens on a composer and a send opens the chat at
+once; pairing in two steps; the app's own title bar; the owner's mark;
+Korean by the system's language); 0.0.0.0.3 brings automatic updates,
+as the owner asked ("as Zed has them"): the updater track R built, a
+signed feed, the notice in the title bar.
+
+## Build 0.0.0.0.3 and the look (2026-11-13)
+
+The owner ran 0.0.0.0.3 on Windows 11 and said, in short:
+
+1. Minimise, maximise and close need a double click (a defect of the
+   app-drawn title bar on Windows).
+2. The composer's text field is "the default one": a boxed input with a
+   bright focus ring. It must be as Paseo's: one types straight into the
+   card. The same holds for dropdowns from now on.
+3. Only Claude Code is offered; and the model selector and the rest of
+   the tray were made as the builder pleased. They must be as Paseo's,
+   with GOAT.
+4. Are settings and the rest being laid out as in Paseo, "with a Paseo +
+   GOAT UI"?
+
+So the look has a named measure, for the app and, after it, for the
+page (ADR 0036 keeps them one):
+
+- **The app's layout and controls follow Paseo's app and GOAT, cloned
+  closely**: Paseo first (it is one UI on desktop, web and phone), GOAT
+  where Paseo has nothing or for the conversation's details. Values,
+  structure and behaviour are reproduced; each deliberate difference is
+  written down with its reason.
+- **Nothing looks like a component library's default.** Every control
+  has one look, defined in the kit after the references.
+- **Every agent a machine has is offered**, the built-in ones and the
+  added ones, those that cannot start shown with the reason.
+- The page's `DESIGN.md` stays the specification for behaviour the
+  references lack (the board's lanes) and is brought to the same look
+  afterwards.
+
+A value-level specification drawn from both references' source is kept
+for the workers beside their briefs.
+
+0.0.0.0.4 carries: the title bar's buttons answering one click, the
+composer and the pickers after Paseo, every agent listed, the update
+notice in the title bar, the corrected mark. A build's number, once
+published, is never built again.
 
 ## After the first builds (written out as the tracks report)
 

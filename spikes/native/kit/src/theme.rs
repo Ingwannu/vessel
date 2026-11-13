@@ -18,11 +18,108 @@ pub enum Scheme {
     Dark,
 }
 
+/// Paseo's neutral scale (`packages/app/src/styles/theme.ts`: its light
+/// theme and its default dark), by Paseo's names: what the app's controls
+/// are drawn with, so they read as Paseo's (the owner: the app's layout
+/// and controls follow Paseo and GOAT).
+///
+/// [Decision Log]
+/// - Purpose: controls looked like a library's defaults and like the
+///   page's tokens approximated; the owner named Paseo as the model.
+/// - Choice: Paseo's neutrals, value for value, in both themes. Two
+///   deliberate differences, both Vessel's brand: the accent is the mark's
+///   colour (`accent`, Paseo's is green), and the faces are Geist and
+///   Pretendard (the owner's type rule), not the system's.
+/// - The page's tokens beside them (`bg_*`, `text_*`) stay until each
+///   screen is moved; a new control uses these.
+#[derive(Debug, Clone, Copy)]
+pub struct Neutrals {
+    /// `surface0`: the background; a combobox, a dialog, a sheet.
+    pub surface0: Hsla,
+    /// `surface1`: the composer's card, a menu; a pill pressed or open.
+    pub surface1: Hsla,
+    /// `surface2`: a hovered pill or row; an input's fill.
+    pub surface2: Hsla,
+    /// `surface3`: a hovered sidebar row (light).
+    pub surface3: Hsla,
+    /// `surface4`: a selected sidebar row (light); the composer's
+    /// placeholder.
+    pub surface4: Hsla,
+    /// `surfaceSidebar`.
+    pub surface_sidebar: Hsla,
+    /// `foreground`.
+    pub foreground: Hsla,
+    /// `foregroundMuted`: a pill's value, a description.
+    pub foreground_muted: Hsla,
+    /// `foregroundExtraMuted`.
+    pub foreground_extra_muted: Hsla,
+    /// `border`: a combobox's edge.
+    pub border: Hsla,
+    /// `borderAccent`: the composer's card, a menu's edge, a field on
+    /// hover.
+    pub border_accent: Hsla,
+    /// `interactionHighlight`: a window control's hover.
+    pub interaction_highlight: Hsla,
+    /// `destructive`: the stop button, a destructive row.
+    pub destructive: Hsla,
+    /// The accent: Vessel's brand colour (Paseo's is its green): the send
+    /// button.
+    pub accent: Hsla,
+    /// What is drawn on the accent.
+    pub accent_foreground: Hsla,
+}
+
+impl Neutrals {
+    /// Paseo's light theme (`theme.ts` 270-344), the brand's accent.
+    fn light() -> Self {
+        Self {
+            surface0: rgb(0x00ff_ffff).into(),
+            surface1: rgb(0x00fa_fafa).into(),
+            surface2: rgb(0x00f4_f4f5).into(),
+            surface3: rgb(0x00e4_e4e7).into(),
+            surface4: rgb(0x00d4_d4d8).into(),
+            surface_sidebar: rgb(0x00f4_f4f5).into(),
+            foreground: rgb(0x001a_1a1e).into(),
+            foreground_muted: rgb(0x0071_717a).into(),
+            foreground_extra_muted: rgb(0x00a1_a1aa).into(),
+            border: rgb(0x00e4_e4e7).into(),
+            border_accent: rgb(0x00ec_ecf1).into(),
+            interaction_highlight: rgba(0x0000_000f).into(),
+            destructive: rgb(0x00b0_4138).into(),
+            accent: rgb(crate::assets::BRAND).into(),
+            accent_foreground: rgb(0x00ff_ffff).into(),
+        }
+    }
+
+    /// Paseo's default dark theme (`theme.ts` 391-477), the brand's accent.
+    fn dark() -> Self {
+        Self {
+            surface0: rgb(0x0018_1b1a).into(),
+            surface1: rgb(0x001e_2120).into(),
+            surface2: rgb(0x0027_2a29).into(),
+            surface3: rgb(0x0043_4645).into(),
+            surface4: rgb(0x0059_5b5b).into(),
+            surface_sidebar: rgb(0x0014_1716).into(),
+            foreground: rgb(0x00fa_fafa).into(),
+            foreground_muted: rgb(0x00a1_a5a4).into(),
+            foreground_extra_muted: rgb(0x0071_7574).into(),
+            border: rgb(0x0025_2b2a).into(),
+            border_accent: rgb(0x002f_3534).into(),
+            interaction_highlight: rgba(0xffff_ff14).into(),
+            destructive: rgb(0x00c6_4f43).into(),
+            accent: rgb(crate::assets::BRAND).into(),
+            accent_foreground: rgb(0x00ff_ffff).into(),
+        }
+    }
+}
+
 /// Every colour token the app's screens draw with.
 #[derive(Debug, Clone, Copy)]
 pub struct Tokens {
     /// Which theme these are.
     pub scheme: Scheme,
+    /// Paseo's neutral scale, for controls.
+    pub neutral: Neutrals,
     /// `--bg-shell`, `--bg-sidebar`: the sidebar and the frame's margin.
     pub bg_shell: Hsla,
     /// `--bg-base`: the page inside the frame.
@@ -92,6 +189,7 @@ impl Tokens {
     fn light() -> Self {
         Self {
             scheme: Scheme::Light,
+            neutral: Neutrals::light(),
             bg_shell: rgb(0x00f4_f4f4).into(),
             bg_base: rgb(0x00fa_fafa).into(),
             bg_surface: rgb(0x00ff_ffff).into(),
@@ -125,6 +223,7 @@ impl Tokens {
     fn dark() -> Self {
         Self {
             scheme: Scheme::Dark,
+            neutral: Neutrals::dark(),
             bg_shell: rgb(0x0012_1212).into(),
             bg_base: rgb(0x0018_1818).into(),
             bg_surface: rgb(0x0022_2222).into(),

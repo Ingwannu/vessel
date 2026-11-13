@@ -50,10 +50,16 @@ const TRAFFIC_LIGHTS: f32 = 78.0;
 /// it (Linux).
 const RESIZE_EDGE: f32 = 6.0;
 
-/// Windows 11's close button, hovered and pressed (its own colours, the one
-/// red in the chrome: it is the platform's, not the page's danger).
-const CLOSE_HOVER: u32 = 0xc42b_1cff;
-const CLOSE_PRESSED: u32 = 0xc42b_1ccc;
+/// The close button, hovered and pressed: Paseo's `rgba(232,17,35,0.9)`
+/// (Windows' own close red; the one red in the chrome, the platform's).
+const CLOSE_HOVER: u32 = 0xe811_23e6;
+const CLOSE_PRESSED: u32 = 0xe811_23b3;
+
+/// A window control's width on Windows (Paseo's, the system's own).
+const WINDOWS_CONTROL: f32 = 46.0;
+
+/// A window control's width on Linux (Paseo's).
+const LINUX_CONTROL: f32 = 36.0;
 
 /// Whether the system draws the title bar after all:
 /// `VESSEL_APP_TITLEBAR=system`. The way out while the app's own bar is
@@ -180,6 +186,21 @@ enum Control {
     Close,
 }
 
+/// One window control, as Paseo draws its own (`window-controls.tsx`,
+/// `window-chrome-presentation.ts`): on Windows a 46-wide cell whose hover
+/// is the interaction highlight, red under the close glyph (which turns
+/// white); on Linux a 36-wide cell with a circle on hover.
+///
+/// Every control occludes the bar behind it. GPUI answers Windows' hit
+/// test with the first window-control area under the mouse in paint
+/// order, and the bar (the drag area) is painted before its children:
+/// without the occlusion the bar is hit over a button, Windows is told
+/// "caption", a single click is swallowed by the move loop and a double
+/// click maximises (the owner's report on 0.0.0.0.3). Zed occludes its
+/// caption buttons the same way. On Windows the control's area is all
+/// there is: the system acts on the click, and nothing of the app's may
+/// handle it (a handler would eat the first click). Linux has no hit
+/// test: there the app acts on the click itself.
 fn control(which: Control, tokens: &Tokens) -> Stateful<Div> {
     let (id, glyph, area) = match which {
         Control::Minimize => ("window-minimize", Glyph::Minimize, WindowControlArea::Min),
@@ -188,53 +209,69 @@ fn control(which: Control, tokens: &Tokens) -> Stateful<Div> {
         Control::Close => ("window-close", Glyph::Close, WindowControlArea::Close),
     };
     let close = which == Control::Close;
+    let neutral = tokens.neutral;
     let (hover, pressed) = if close {
         (
             gpui::rgba(CLOSE_HOVER).into(),
             gpui::rgba(CLOSE_PRESSED).into(),
         )
     } else {
-        (tokens.bg_hover, tokens.bg_active)
+        (neutral.interaction_highlight, neutral.surface2)
     };
-    let ink = tokens.text_secondary;
+    let ink = neutral.foreground_muted;
     let linux = cfg!(any(target_os = "linux", target_os = "freebsd"));
-    div()
+    let icon = svg()
+        .path(glyph.path())
+        .size(px(10.0))
+        .text_color(ink)
+        .when(close, |icon| {
+            icon.group_hover(id, |style| style.text_color(gpui::white()))
+        });
+    let cell = div()
         .id(id)
         .group(id)
-        .w(px(46.0))
+        .w(px(if linux {
+            LINUX_CONTROL
+        } else {
+            WINDOWS_CONTROL
+        }))
         .h_full()
         .flex()
         .items_center()
         .justify_center()
         .flex_shrink_0()
-        .window_control_area(area)
-        .hover(move |style| style.bg(hover))
-        .active(move |style| style.bg(pressed))
-        .child(
-            svg()
-                .path(glyph.path())
-                .size(px(10.0))
-                .text_color(ink)
-                .when(close, |icon| {
-                    icon.group_hover(id, |style| style.text_color(gpui::white()))
-                }),
-        )
-        .when(linux, |button| {
-            // Linux has no hit test: the app acts on the click.
-            button
-                .on_mouse_down(MouseButton::Left, |_, window, cx| {
-                    window.prevent_default();
-                    cx.stop_propagation();
-                })
-                .on_click(move |_, window, cx| {
-                    cx.stop_propagation();
-                    match which {
-                        Control::Minimize => window.minimize_window(),
-                        Control::Maximize | Control::Restore => window.zoom_window(),
-                        Control::Close => window.remove_window(),
-                    }
-                })
-        })
+        .occlude()
+        .window_control_area(area);
+    if !linux {
+        return cell
+            .hover(move |style| style.bg(hover))
+            .active(move |style| style.bg(pressed))
+            .child(icon);
+    }
+    // Linux: a circle under the glyph on hover, and the app acts on the
+    // click.
+    cell.child(
+        div()
+            .size(px(24.0))
+            .rounded_full()
+            .flex()
+            .items_center()
+            .justify_center()
+            .group_hover(id, move |style| style.bg(hover))
+            .child(icon),
+    )
+    .on_mouse_down(MouseButton::Left, |_, window, cx| {
+        window.prevent_default();
+        cx.stop_propagation();
+    })
+    .on_click(move |_, window, cx| {
+        cx.stop_propagation();
+        match which {
+            Control::Minimize => window.minimize_window(),
+            Control::Maximize | Control::Restore => window.zoom_window(),
+            Control::Close => window.remove_window(),
+        }
+    })
 }
 
 /// The window's content inside resize edges, where the app decorates the

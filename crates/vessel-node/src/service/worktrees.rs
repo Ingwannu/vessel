@@ -124,11 +124,11 @@ impl NodeService {
     /// folder holds the node's token besides.
     pub(super) async fn place(
         &self,
-        connection: &Connection,
+        principal: &Principal,
         spec: &mut SessionSpec,
     ) -> Result<(Vec<String>, Option<Starting>), WireError> {
         let Some(place) = spec.place.as_deref() else {
-            if connection.principal().agent().is_some()
+            if principal.agent().is_some()
                 && let Some(cwd) = &spec.cwd
                 && self.workspaces.in_data_folder(cwd).await
             {
@@ -147,7 +147,7 @@ impl NodeService {
             ));
         }
         if let SessionPlace::Worktree { worktree } = place
-            && let Some(agent) = connection.principal().agent()
+            && let Some(agent) = principal.agent()
         {
             let (made_by, made_for) = self
                 .workspaces
@@ -166,7 +166,7 @@ impl NodeService {
                          created for a session it may operate",
                     ));
                 };
-                self.check_owner(connection.principal(), session).await?;
+                self.check_owner(principal, session).await?;
             }
         }
         let Placed {
