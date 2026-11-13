@@ -1,6 +1,8 @@
 # ADR 0020: One UI in a browser, a desktop app and a phone app
 
-Status: proposed, 2026-11-11. The owner asked for the product to run as a
+Status: not accepted; replaced by ADR 0035 on 2026-11-13 (the owner chose
+a native UI on GPUI over the web page in Tauri shells). Kept as the record
+of what was proposed and why. Proposed 2026-11-11. The owner asked for the product to run as a
 desktop app, in a browser and on a phone, "as Paseo does". This ADR
 records what the references do, proposes how Vessel does it, and waits for
 the owner's word before a shell is built. Milestone 9 only prepares for
