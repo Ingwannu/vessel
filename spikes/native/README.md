@@ -111,12 +111,13 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
-`kit::button_with_kind` is the filled entry: typed primary, secondary and
-destructive kinds plus enabled/disabled state. Destructive fill/border use
-`neutral.destructive`, text its separate `destructive_foreground`; hover
-keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
-no handler. The existing bool `button` delegates and stays until the lead
-retires it after moving its callers.
+`kit::button_with_kind` is the shared entry: typed primary, secondary,
+destructive and ghost kinds plus enabled/disabled state. Destructive fill
+and border use `neutral.destructive`, text its separate foreground. Ghost
+has transparent fill/border and muted text, turning foreground on hover;
+filled kinds set no hover override. Pressed is 85% and disabled 50%.
+Disabled callers attach no handler. The existing bool `button` delegates
+and stays until the lead retires it after moving its callers.
 
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
