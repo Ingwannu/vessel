@@ -202,6 +202,13 @@ confirm), `board-archived-dark-en` (the count to 1), `archive-dark-en`,
   phone, dark and light, English and Korean.
 - The title's ellipsis and the archive card's foot at the bottom, after
   the captures: same gate.
+- Merged `backend/m12-spike` at 777b2da (b5ec1e4): conflicts in the
+  kit's glyphs and modules and in the areas' wiring. Kept the lead's
+  spinner (`slider::spinner`) and glyphs (its `Reset` for the card's
+  restore), added only the board's own (Terminal, Message, Archive,
+  Trash, Pin); `Route::Archive` arrives beside the lead's Settings. fmt
+  clean; clippy clean; `cargo test`: 3, 10, 10, 215, 73, 0, 0, 0 passed,
+  none failed.
 
 ## Notes for later slices
 
