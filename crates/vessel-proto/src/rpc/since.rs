@@ -221,7 +221,9 @@ impl Call {
             | Self::ParkSession(_)
             | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
-            | Self::SetNodeSettings(_) => None,
+            | Self::SetNodeSettings(_)
+            | Self::ForkSession(_)
+            | Self::RewindSession(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

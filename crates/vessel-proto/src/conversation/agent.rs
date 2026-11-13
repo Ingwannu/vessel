@@ -24,7 +24,7 @@ use crate::model::TokenCount;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[expect(
     clippy::struct_excessive_bools,
-    reason = "four independent facts from the agent's handshake, each read on its own; \
+    reason = "five independent facts from the agent's handshake, each read on its own; \
               no combination is invalid, so there is no state machine to make an enum of"
 )]
 pub struct AgentAbilities {
@@ -42,6 +42,12 @@ pub struct AgentAbilities {
     /// A prompt may hold audio (`promptCapabilities.audio`).
     #[serde(default)]
     pub audio: bool,
+    /// The conversation can be forked (`sessionCapabilities.fork`, ACP's
+    /// unstable `session/fork`; protocol 14, ADR 0052). Absent from older
+    /// nodes and sessions started before 14: a fork's own handshake
+    /// decides, not this.
+    #[serde(default)]
+    pub fork: bool,
 }
 
 /// One command the agent offers (ACP `available_commands_update`). A

@@ -99,7 +99,9 @@ impl Reply {
             | Self::ResumeSession(info)
             | Self::MarkSession(info)
             | Self::ParkSession(info)
-            | Self::WakeSession(info) => one(info),
+            | Self::WakeSession(info)
+            | Self::ForkSession(info)
+            | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {

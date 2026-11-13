@@ -99,6 +99,8 @@ vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, 
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
 vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
+vessel session fork 3f2a --after 120         # a new session continuing the conversation from that turn's end
+vessel session rewind 3f2a --after 120       # take this session back to that turn's end
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
@@ -117,6 +119,12 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - `vessel sessions` shows each session's marks. `archive` stops a live
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
+- Forking and rewinding (protocol 14) start at a turn's end: `vessel log`
+  shows the number on its `turn ended` line. Only agents that can fork
+  their conversation (Claude Code and Codex through their ACP adapters
+  do); Vessel checks that the fork ends where it asked and refuses it
+  otherwise. A rewind keeps what came after in the log, and does not put
+  files back (it says how many changes it left).
 - An idle agent is parked (protocol 12): after an hour without activity
   (`vessel node settings --park-after MINUTES|never`, kept across
   restarts and applied at once; `vesseld --park-after` is the value of a

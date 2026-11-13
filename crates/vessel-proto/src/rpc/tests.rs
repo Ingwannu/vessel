@@ -238,6 +238,24 @@ fn protocol_twelve_methods_know_their_version_and_scope() {
     assert_eq!(twelve, PROTOCOL_TWELVE);
 }
 
+/// Protocol 14's methods (milestone 11's track A2, ADR 0052), pinned as
+/// the other versions' are. Protocol 13 (N3's preview) is pinned in
+/// `automation::preview`'s own test.
+const PROTOCOL_FOURTEEN: &[(&str, Scope)] = &[
+    ("session.fork", Scope::Operate),
+    ("session.rewind", Scope::Operate),
+];
+
+#[test]
+fn protocol_fourteen_methods_know_their_version_and_scope() {
+    let fourteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(14))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(fourteen, PROTOCOL_FOURTEEN);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -389,6 +407,8 @@ const FORWARDABLE: &[&str] = &[
     "session.search",
     "session.park",
     "session.wake",
+    "session.fork",
+    "session.rewind",
 ];
 
 #[test]

@@ -99,10 +99,10 @@ pub enum SchedulePreviewError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Call, PROTOCOL_VERSION, Request, Scope};
+    use crate::{Call, ProtocolVersion, Request, Scope};
 
     #[test]
-    fn preview_is_bounded_round_trips_and_requires_current_protocol() {
+    fn preview_is_bounded_round_trips_and_requires_protocol_13() {
         assert!(serde_json::from_str::<PreviewCount>("0").is_err());
         assert!(serde_json::from_str::<PreviewCount>("11").is_err());
         let request: PreviewSchedule =
@@ -110,7 +110,7 @@ mod tests {
         assert_eq!(request.count, PreviewCount::default());
         let call = request.into_call();
         assert_eq!(call.method().scope(), Scope::Read);
-        assert_eq!(call.since(), PROTOCOL_VERSION);
+        assert_eq!(call.since(), ProtocolVersion::new(13));
         let json = serde_json::to_string(&call).unwrap();
         assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);
     }

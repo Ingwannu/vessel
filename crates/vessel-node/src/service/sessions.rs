@@ -77,9 +77,24 @@ impl NodeService {
     pub(crate) async fn create_as(
         &self,
         principal: &Principal,
-        mut spec: SessionSpec,
+        spec: SessionSpec,
         origin: Option<SessionOrigin>,
         unattended: Option<String>,
+    ) -> Result<SessionInfo, WireError> {
+        self.create_starting(principal, spec, (origin, unattended), None)
+            .await
+    }
+
+    /// `create_as`'s path, for a session that starts as a fork of another's
+    /// conversation too (protocol 14, `forking`): the same refusals,
+    /// grants, credentials and model token as any session its caller
+    /// creates.
+    pub(super) async fn create_starting(
+        &self,
+        principal: &Principal,
+        mut spec: SessionSpec,
+        (origin, unattended): (Option<SessionOrigin>, Option<String>),
+        fork: Option<vessel_session::ForkStart>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
@@ -136,6 +151,7 @@ impl NodeService {
                 return Err(wire(&error));
             }
         }
+        options.fork = fork.map(Box::new);
         let created = self.sessions.create(spec, options).await;
         if created.is_err() {
             self.agents.forget(id);

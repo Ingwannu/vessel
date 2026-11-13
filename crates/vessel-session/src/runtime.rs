@@ -21,7 +21,7 @@ use tokio_util::task::TaskTracker;
 use vessel_proto::{EventRecord, SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
-pub use launch::LaunchOptions;
+pub use launch::{ForkStart, LaunchOptions};
 pub(crate) use parts::{ActorStart, Begin};
 
 use crate::attachments::AttachmentLoader;

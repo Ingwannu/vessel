@@ -215,6 +215,7 @@ impl SessionRuntime {
             mcp_servers,
             handshake_timeout: self.handshake_timeout(),
             questions,
+            fork: None,
         };
         // The run begins: its first record is its stored log's next.
         info.status = SessionStatus::Starting;
@@ -233,6 +234,7 @@ impl SessionRuntime {
             desk: Desk::continuing(queue),
             replaying: true,
             gate: Some(opened),
+            opening: None,
         };
         let created = self.run_structured(Launch { command, setup }, begin, notices, actor)?;
         Ok(Reopening {

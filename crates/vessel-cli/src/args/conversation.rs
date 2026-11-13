@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand};
-use vessel_proto::Delivery;
+use vessel_proto::{Delivery, EventSeq};
 
 use crate::selector::{IdPrefix, SessionSelector};
 
@@ -105,6 +105,27 @@ pub(crate) enum ConversationCommand {
     Wake {
         /// Session id, or a unique prefix of one.
         session: SessionSelector,
+    },
+    /// Start a new session that continues this one's conversation, from
+    /// the end of a turn (`--after`, a `turn_ended` record `vessel log`
+    /// shows) or as it is now; only with an agent that can fork
+    /// (protocol 14). Prints the new session.
+    Fork {
+        /// Session id, or a unique prefix of one.
+        session: SessionSelector,
+        /// The record that ends the turn to fork after.
+        #[arg(long, value_parser = crate::args::parse_seq)]
+        after: Option<EventSeq>,
+    },
+    /// Take a session back to the end of a turn: its agent continues from
+    /// there, what came after stays in the log, files are not put back
+    /// (protocol 14).
+    Rewind {
+        /// Session id, or a unique prefix of one.
+        session: SessionSelector,
+        /// The record that ends the turn to go back to.
+        #[arg(long, value_parser = crate::args::parse_seq)]
+        after: EventSeq,
     },
     /// Keep a session at the top of lists, on every device.
     Pin {

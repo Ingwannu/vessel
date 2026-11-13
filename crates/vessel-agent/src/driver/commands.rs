@@ -123,6 +123,7 @@ impl Driver {
         }
         self.turn = true;
         self.cancelling = false;
+        self.tail.reset();
         self.emit(AgentEvent::TurnStarted { content }).await;
         Ok(())
     }

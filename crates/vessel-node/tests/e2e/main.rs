@@ -47,6 +47,8 @@ mod marks;
 // Where protocol 11's pull requests and terminals meet (Unix: the
 // terminals' shell is `/bin/sh`).
 #[cfg(test)]
+mod forking;
+#[cfg(test)]
 #[cfg(unix)]
 mod meeting;
 #[cfg(test)]
@@ -57,7 +59,6 @@ mod notices;
 mod options;
 #[cfg(test)]
 mod page_wire;
-#[cfg(test)]
 mod parking;
 #[cfg(test)]
 mod profiles;
