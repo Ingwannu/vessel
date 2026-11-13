@@ -58,6 +58,7 @@ Paseo screen it follows.
 | `40-diff-in-a-capped-box-light-1280` | a 75-line diff of 240-character lines in the same box, numbered, washed red and green | GOAT's diffs (`@pierre/diffs`, `bars` indicators) |
 | `41-permission-long-command-dark-1280`, `42-permission-long-command-light-390` | a permission request whose command is one long line: it wraps, the window keeps its width | the page's permission panel |
 | `45-renamed-in-place-light-1280`, `46-empty-title-refused-light-1280` | the title renamed where it stands (the bar and the sidebar take the node's answer at once); an empty title refused in the bar | the page's `session-title.tsx` |
+| `47-agent-log-folded-full-dark-1280`, `48-agent-log-opened-full-dark-1280`, `49-agent-log-hidden-collapsed-dark-1280` | a Claude Code session's start-up log (the adapter's `[session/create] …` lines): one quiet row "Agent log · 12 lines" at the "Full" display, opening to the lines in a text box; nothing at all while tool calls are collapsed | Paseo and GOAT never show an adapter's log; the page draws every line raw (a defect, below) |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -137,6 +138,18 @@ only.
   (`field::apply_tokens` sets the link's).
 - A command's output was cut at 240 pixels and could not scroll; a diff
   ran past the window's edge. Both are now in `output`'s box.
+- A real Claude Code session opened with a dozen raw lines of its
+  adapter's start-up log (`[session/create] sessionId=… phase=settings
+  …`, the owner on build 0.0.0.0.7): the node keeps an adapter's error
+  output as `HarnessLog` records, and each was drawn as a line of the
+  conversation. The page has the same defect: it draws every log line
+  raw at both display settings (`timeline-item.tsx`, `case "log"`). In
+  the app a run of them is now one folded row at "Full" and nothing
+  while tool calls are collapsed (`view::timeline::logs`); the fake
+  agent writes the same start-up log (`FAKE_ACP_STARTUP_LOG`, on for the
+  fleet's Claude Code) and the fleet checks its ten lines come before the
+  first prompt. The fakes had never written such lines, which is why the
+  real shapes missed it.
 - Opening a run of tool calls reset the list and threw the view to the
   session's start; it now splices the run's rows where they are.
 - A permission request with a long command widened the whole main area

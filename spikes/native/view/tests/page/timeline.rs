@@ -402,7 +402,7 @@ fn twenty_thousand_entries_fold_in_batches() {
     use std::collections::HashSet;
     use std::io::Write as _;
     use std::time::Instant;
-    use vessel_app_view::timeline::{Folds, Rows};
+    use vessel_app_view::timeline::{Folds, Logs, Rows};
 
     let mut log = Log::default();
     let mut records = vec![log.agent(&json!({
@@ -424,7 +424,12 @@ fn twenty_thousand_entries_fold_in_batches() {
         let at = Instant::now();
         let _change = timeline.apply(batch);
         let folds = Folds::of(timeline.entries());
-        let rows = Rows::of(timeline.entries().len(), Some(&folds), &HashSet::new());
+        let rows = Rows::of(
+            timeline.entries().len(),
+            Some(&folds),
+            &Logs::default(),
+            &HashSet::new(),
+        );
         assert!(rows.len() <= timeline.entries().len());
         longest = longest.max(at.elapsed());
     }

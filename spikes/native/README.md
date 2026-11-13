@@ -176,6 +176,13 @@ Environment:
   of the app's own (the way out if the app's bar misbehaves on a
   platform).
 - `VESSEL_APP_NO_UPDATE` (any value): no updates for this run.
+- `VESSEL_APP_CONVERSATION=full`: conversations as the "Full" display
+  setting shows them (every tool call a row of its own; an agent's log
+  as one folded row) instead of collapsing tool calls, until the app
+  reads that setting.
+- `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
+  many entries, it scrolls itself for 600 frames and logs the median,
+  p95 and longest frame.
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
@@ -202,9 +209,12 @@ Screens are checked against the two `shapes` sessions the fleet makes on
 line and Korean, a long path, a wide diff, a command on one long line
 asking for permission with four answers, and 2,400 lines of output.
 `shapes` has its permission answered (the output in the timeline),
-`shapes-asking` is left asking. `fleet.sh start` fails if either session
-lacks them (it reads them back with `vessel log`), so a fake-acp built
-before the verb existed is caught: rebuild it.
+`shapes-asking` is left asking. Every Claude Code session also opens
+with the start-up log the real adapter writes before the first prompt
+(ten `[session/create] …` lines, `FAKE_ACP_STARTUP_LOG`). `fleet.sh start`
+fails if either `shapes` session lacks any of it (it reads them back
+with `vessel log`), so a fake-acp built before these existed is caught:
+rebuild it.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:
