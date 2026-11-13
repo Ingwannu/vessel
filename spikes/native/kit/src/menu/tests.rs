@@ -185,3 +185,20 @@ fn end_alignment_uses_actual_trigger_bounds_not_the_click_location() {
         (point(px(5.0), px(8.0)), gpui::Anchor::TopLeft)
     );
 }
+
+#[test]
+fn a_removed_highlight_restarts_navigation_in_both_directions() {
+    let items = [
+        MenuItem::new("Pause").pending("Pausing..."),
+        MenuItem::new("Run now"),
+        MenuItem::danger("Delete"),
+    ];
+    for stale in [items.len(), 99, usize::MAX] {
+        assert_eq!(next_index(&items, Some(stale), Direction::Next), Some(1));
+        assert_eq!(
+            next_index(&items, Some(stale), Direction::Previous),
+            Some(2)
+        );
+        assert_eq!(selected_index(&items, Some(stale)), None);
+    }
+}

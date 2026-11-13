@@ -136,7 +136,9 @@ fn next_index(items: &[MenuItem], from: Option<usize>, direction: Direction) -> 
     if count == 0 {
         return None;
     }
-    let mut at = from;
+    // An open menu may lose rows after a node update. A stale position must
+    // restart at the first/last selectable item, not step through old indices.
+    let mut at = from.filter(|index| *index < count);
     for _ in 0..count {
         let next = match (at, direction) {
             (None, Direction::Next) => 0,

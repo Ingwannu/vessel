@@ -126,6 +126,8 @@ accepts a reference width; the shared vertical kebab captures its real
 bounds for `MenuState::open_end`. Its pointer minimum is 20 (22 intrinsic)
 and touch target 44; `popup::TOUCH_TARGET` is the shared constant. Menu
 surface, state and drawing remain one control, split into small modules.
+Labels shrink on one line, as Paseo's menu does; a stale keyboard position
+from a shortened list restarts at the appropriate end.
 
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.

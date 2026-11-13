@@ -55,3 +55,23 @@ Tests cover exact colours/opacity in both themes, geometry, legacy defaults,
 label/glyph replacement, forward/back wrapping, no selectable items, and
 Enter on an item that became pending or disabled after highlight. No focus
 ring, new palette, screen-local notice, fixture route or data is introduced.
+
+## Review correction: one-line labels and changing rows
+
+[Decision Log]
+- Purpose: preserve Paseo's row pitch for long idle and pending labels.
+- Constraint: `menu-item.tsx` uses `numberOfLines={1}` and a content slot
+  with flexShrink 1/minWidth 0; the initial native extension wrapped words.
+- Alternative: a taller wrapping menu. That changes the reference layout.
+- Choice: the same shrinking, single-line slot, with the existing picker's
+  `one_line` normalization for line breaks and repeated whitespace.
+- Why: a menu is one of the reference's explicit single-line surfaces;
+  long screen titles can still wrap outside it.
+- Cost: long menu labels may ellipsize, as in the reference. Runtime long
+  English/Korean idle/pending captures remain part of first-use review.
+
+A menu can also shrink while open. An out-of-range keyboard highlight now
+restarts forward/back navigation from the corresponding end; Enter still
+refuses every stale, pending or disabled index. Regression cases include
+an index just beyond the list, 99 and usize::MAX in both directions.
+The shared trigger bounds and placement renderer are unchanged here.

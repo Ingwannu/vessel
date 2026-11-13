@@ -203,10 +203,12 @@ fn row<V: 'static>(
         .children(leading(index, item, paint.glyph))
         .child(
             div()
-                .flex_1()
+                .flex_shrink(1.0)
                 .min_w_0()
-                .whitespace_normal()
-                .child(item.words().clone()),
+                // Paseo's numberOfLines=1: keep every menu row at one pitch,
+                // including a pending label received after it was opened.
+                .truncate()
+                .child(crate::picker::one_line(item.words())),
         );
     if item.selectable() {
         element = element
