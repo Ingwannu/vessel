@@ -82,24 +82,21 @@ export const Composer = memo(function Composer({
     () => queueRows(conversation.queue),
     [conversation.queue],
   );
-  // While a first prompt from the new-session page is on its way, the
-  // agent is starting and that prompt's turn comes first: a message sent
-  // meanwhile is queued behind it (agent-orchestrator's "Queue a
-  // follow-up while … gets ready"; data/openings.ts).
-  const starting = useStore(
-    openings,
-    (kept) => kept.get(session.id)?.state.kind === "sending",
-  );
-  // A first prompt the machine refused is back in the box (started.ts):
-  // the box says why until the next message goes.
-  const refused = useStore(openings, (kept) => {
-    const state = kept.get(session.id)?.state;
-    return state?.kind === "refused" ? state.message : null;
-  });
+  // A first prompt from the new-session page on its way (data/openings.ts):
+  // a message sent meanwhile is queued behind it (agent-orchestrator's
+  // "Queue a follow-up while … gets ready"), and an empty box offers no
+  // Stop; refused, it is back in the box, which says why until one goes.
+  const opening = useStore(openings, (kept) => kept.get(session.id));
+  const starting = opening?.state.kind === "sending";
+  const refused =
+    opening?.state.kind === "refused" ? opening.state.message : null;
   const sender = useComposerSend({
     node,
     session,
-    timeline: starting ? { ...timeline, inTurn: true } : timeline,
+    timeline:
+      starting && draft.text.trim() !== ""
+        ? { ...timeline, inTurn: true }
+        : timeline,
     protocol,
     draft: editing === null ? draft : { ...draft, text: editing.text },
     tray,
