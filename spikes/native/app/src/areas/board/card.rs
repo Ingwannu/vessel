@@ -21,12 +21,13 @@ use gpui::FontWeight;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::fonts::MONO;
 use vessel_app_kit::slider::spinner;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
     IntoElement as _, MouseButton, ParentElement as _, Stateful, StatefulInteractiveElement as _,
     Styled, div, px, rgb,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph, popup};
+use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, alert, glyph, popup};
 use vessel_app_view::Card;
 use vessel_app_view::board::{CardActions, Origin, Row, Tone};
 
@@ -81,16 +82,21 @@ pub(crate) fn card(
         .child(title_row(shell, card, place, tokens, cx))
         .children(lines(card, tokens));
     let foot = foot(shell, card, place, tone, tokens);
+    // A failed session's error is a failure on screen: the kit's alert.
     let error = card.detail.failure.clone().map(|failure| {
         div()
-            .px(px(14.0))
-            .pt(px(6.0))
-            .pb(px(8.0))
-            .border_t_1()
-            .border_color(neutral.border)
-            .type_(Type::Tiny)
-            .text_color(neutral.destructive)
-            .child(failure)
+            .px(px(spacing::S3_5))
+            .pb(px(spacing::S2))
+            .child(alert::alert(
+                alert::Content {
+                    title: Some(failure.into()),
+                    description: None,
+                    action: None,
+                },
+                alert::Variant::Error,
+                alert::Size::ExtraSmall,
+                tokens,
+            ))
     });
     div()
         .id(ElementId::Name(format!("card-{}", card.session).into()))
