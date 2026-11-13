@@ -249,3 +249,63 @@ cases: both were captured before the change, dark and light, at 1280
 and 390. Those checks use the fake node and dismiss each decision; they
 do not stop or archive a session. The following captures compare those
 same dialogs and exercise the real hook refusal with its actions.
+
+The after checks are complete and accepted: both fitting confirmations
+retain their size and position at both widths in both themes. Comparing
+their opaque interiors gives zero changed pixels in all eight cases.
+The real hook refusal's body/output can be scrolled while its title and
+both footer actions remain fully visible at 1280 and 390, dark and light.
+
+## Linux/X11 input-method finding (existing composer)
+
+Before adding a multiline form field, the existing composer was checked
+under an isolated Xvfb display with a private `fcitx5 -D`, Hangul input
+method, configuration/home/cache directories and session D-Bus. Both
+clients used `LANG=en_US.UTF-8` and `XMODIFIERS=@im=fcitx`. No session
+prompt was submitted. A separate small Xlib control client opened the
+input method, created an input context with
+`XIMPreeditNothing | XIMStatusNothing`, selected its filter events and
+called `Xutf8LookupString` after `XFilterEvent`. Typing `gksrmf` and then
+Space committed `한`, `글`, and a space in that client. The unchanged
+Vessel composer on the same display entered `gksrmf` instead. Both
+results were inspected. The diagnostic clients and private input-method
+processes were stopped by their recorded process ids.
+
+The pinned GPUI X11 client creates an input context with
+`PREEDIT_CALLBACKS` without a status style. That is a possible cause,
+not a proved cause or fix. The coordinator assigned this existing
+composer/platform defect to the lead. G1 does not change the platform
+or editing engine. Live Hangul composition through an input method was
+not shown for the existing composer on this display; the new form
+inherits that same engine and needs the same qualification. Its own
+marked-text regression checks the shared input-handler boundary.
+
+## Shared multiline form field
+
+`TextField::form_multiline` shares the composer's input-state factory,
+input handler, composition, selection and undo. Its typed presentation
+uses the one-line form field's existing shell, including its border-only
+focus treatment. The composer and existing one-line callers keep their
+entry points. GOAT's commit dialog uses its small textarea: the outer
+minimum is 68 points (80 on touch), with 9/3-point insets and a 256-point
+cap. At the kit's 20-point line height the native engine grows from three
+to twelve complete lines, then scrolls within that cap. The form uses
+Enter for a new line and Mod+Enter to submit, independently of the chat
+composer's send shortcut. The Decision Log records the shared-engine
+constraint and the deliberate whole-line cap.
+
+The kit previously had only send-shortcut tests, with no marked-text
+composition test for its composer. The new GPUI regressions exercise
+both public constructors through the same mark-and-replace calls,
+checking partial Hangul marks, committed text and no submission. Separate
+layout checks grow a form through 1, 6, 20 and 30 lines at both densities,
+keep the complete text and require the last line to scroll into view.
+A keyboard check covers Enter and Mod+Enter. These handler/layout checks
+do not establish live platform input-method support: live Hangul through
+an input method was not shown on this display for either presentation.
+
+The new form notifies its owner after each edit so a growing field updates
+the surrounding dialog and its submit availability. A pointer regression
+blurs then clicks the real input inside and outside the kit dialog at
+both widths, checks that typing reaches the input, and checks that the
+owner renders the changed value.
