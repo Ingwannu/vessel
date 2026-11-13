@@ -388,6 +388,7 @@ fn agents() -> Vec<Agent> {
                 name: agent_name(&harness),
                 harness,
                 unavailable: None,
+                not_installed: false,
             }
         })
         .collect()

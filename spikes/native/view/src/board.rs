@@ -157,6 +157,9 @@ pub struct Agent {
     /// Why it cannot start a conversation now, in the node's words (an
     /// adapter missing, not signed in); `None` when it can.
     pub unavailable: Option<String>,
+    /// Whether it is not installed on the machine (a list says so in its
+    /// own short words rather than the node's sentence).
+    pub not_installed: bool,
 }
 
 impl Agent {
@@ -176,6 +179,7 @@ impl Agent {
                     StructuredSupport::Available => None,
                     StructuredSupport::Unavailable { reason } => Some(reason.clone()),
                 },
+                not_installed: false,
             })
             .collect()
     }
@@ -211,6 +215,7 @@ impl Agent {
                     harness: info.agent.clone(),
                     name,
                     unavailable,
+                    not_installed: installed.is_none(),
                 }
             })
             .collect();

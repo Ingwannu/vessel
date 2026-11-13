@@ -22,11 +22,12 @@ use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
 use vessel_client::NodeClient;
-use vessel_proto::conversation::SessionDeleted;
+use vessel_proto::conversation::{QueueChange, SessionDeleted};
 use vessel_proto::{
     ErrorCode, Mark, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
     TerminalBytes, TerminalInput, TerminalSize,
 };
+use vessel_proto::{QuestionAnswer, QuestionId};
 
 use crate::{Event, LinkError, State};
 
@@ -50,6 +51,12 @@ pub enum Act {
     MoveProfile(Option<ProfileName>),
     /// Keys or a size for a terminal session.
     Terminal(Outgoing),
+    /// Change the prompts waiting their turn (protocol 10): edit, move,
+    /// remove, send one now, hold, resume or clear.
+    Queue(QueueChange),
+    /// Answer a question the agent asks (protocol 10): the form filled
+    /// in, or declined. The first answer wins.
+    Answer(QuestionId, QuestionAnswer),
 }
 
 /// Which act an answer is for.
@@ -71,6 +78,10 @@ pub enum ActKind {
     MoveProfile,
     /// Terminal input.
     Terminal,
+    /// A change to the queue.
+    Queue,
+    /// An answer to a question.
+    Answer,
 }
 
 impl Act {
@@ -86,6 +97,8 @@ impl Act {
             Self::Kill => ActKind::Kill,
             Self::MoveProfile(_) => ActKind::MoveProfile,
             Self::Terminal(_) => ActKind::Terminal,
+            Self::Queue(_) => ActKind::Queue,
+            Self::Answer(..) => ActKind::Answer,
         }
     }
 }
@@ -177,6 +190,19 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .move_profile(session, profile, false)
             .await
             .map(boxed),
+        // The queue as it stands afterwards comes back as the session's
+        // own `queue_changed` record, which the conversation follows.
+        Act::Queue(change) => client
+            .change_queue(session, change)
+            .await
+            .map(|_changed| Acted::Done),
+        // The question settles as the session's own `question_resolved`
+        // record; a refusal (another client answered first, or a value
+        // that does not fit) comes back as the act's failure.
+        Act::Answer(id, answer) => client
+            .send(session, SessionInput::AnswerQuestion { id, answer })
+            .await
+            .map(|()| Acted::Done),
         Act::Terminal(outgoing) => {
             let input = match outgoing {
                 Outgoing::Keys(text) => TerminalInput::Data {

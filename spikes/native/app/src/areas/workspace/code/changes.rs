@@ -1,0 +1,593 @@
+//! The Changes tab: Paseo's diff pane in the Explorer. A toolbar (track
+//! G1's git actions first, through [`git_head`]; then the comparison as a
+//! label with a caret that opens its list, Paseo's `DiffModeMenu`; the
+//! files and lines counted at the end), then every changed file with its
+//! diff under it, folded by a click on its header. A file's diff is read
+//! when its row first comes into view, so a hundred changed files cost
+//! the calls of the ones looked at.
+
+use std::rc::Rc;
+
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::ui::{
+    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
+    px,
+};
+use vessel_app_kit::{
+    ComboHandlers, ComboHeader, ComboRow, LineTone, OutputLine, PillParts, Side, Tokens, Type,
+    TypeExt as _, combobox, diff_line, glyph,
+};
+use vessel_app_view::workspace::changes::{
+    ChangeRow, FileNote, FileState, ScopeKind, Tone, split_path, status_letter, totals,
+};
+use vessel_app_view::workspace::diff_rows::{DiffBody, DiffRow, add_page};
+use vessel_app_view::workspace::problem::Problem;
+use vessel_proto::workspace::{
+    DiffSummary, FileDiff, GetChanges, GetFileDiff, LineKind, RelPath, WorkspaceRoot,
+};
+
+use super::{Summary, frame::note};
+use crate::shell::Shell;
+use vessel_app_link::workspace::{Ask, GitAsk};
+
+/// Track G1's slot at the head of the Changes tab: the session's git
+/// actions (commit, push, pull, sync, branch, stash, discard). G1 replaces
+/// this body with one call into its area, `crate::areas::git`; `None`
+/// draws nothing.
+#[expect(clippy::missing_const_for_fn, reason = "a slot another track fills")]
+pub(crate) fn git_head(
+    _shell: &Shell,
+    _machine: &str,
+    _root: &WorkspaceRoot,
+    _tokens: &Tokens,
+    _window: &mut Window,
+    _cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    None
+}
+
+impl Shell {
+    /// Read the comparison's files, unless they are read.
+    pub(super) fn read_changes(&mut self) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        if matches!(panel.changes.summary, Summary::Ready(_)) {
+            return;
+        }
+        panel.changes.summary = Summary::Loading;
+        let scope = panel.changes.scope.scope();
+        self.ask(
+            &machine,
+            Ask::Git(GitAsk::Changes(GetChanges {
+                root,
+                scope,
+                ignore_whitespace: false,
+            })),
+        );
+    }
+
+    /// The comparison's files arrived.
+    pub(in crate::areas::workspace) fn changes_read(
+        &mut self,
+        ask: &GetChanges,
+        result: Result<DiffSummary, Problem>,
+    ) {
+        let words = self.words();
+        let panel = &mut self.areas.workspace.code;
+        if panel.root().map(|(_, root)| root) != Some(&ask.root)
+            || panel.changes.scope.scope() != ask.scope
+        {
+            return;
+        }
+        let changes = &mut panel.changes;
+        changes.summary = match result {
+            Ok(summary) => Summary::Ready(summary),
+            Err(problem) => Summary::Failed(words.problem(&problem)),
+        };
+        changes.states.clear();
+        changes.relist();
+    }
+
+    /// A page of a file's diff arrived.
+    pub(in crate::areas::workspace) fn diff_read(
+        &mut self,
+        ask: &GetFileDiff,
+        result: Result<FileDiff, Problem>,
+    ) {
+        let words = self.words();
+        let panel = &mut self.areas.workspace.code;
+        if panel.root().map(|(_, root)| root) != Some(&ask.root)
+            || panel.changes.scope.scope() != ask.scope
+        {
+            return;
+        }
+        let changes = &mut panel.changes;
+        let before = match changes.states.get(&ask.path) {
+            Some(FileState::Loading(before)) => before.clone(),
+            Some(FileState::Read(_) | FileState::Unread | FileState::Failed(_)) | None => None,
+        };
+        let state = match result {
+            Ok(page) => FileState::Read(add_page(before.as_ref(), &page)),
+            Err(problem) => FileState::Failed(words.problem(&problem)),
+        };
+        let _was = changes.states.insert(ask.path.clone(), state);
+        changes.relist();
+    }
+
+    /// Read a page of `path`'s diff (`from`: the next page's hunk).
+    fn read_diff(&mut self, path: &RelPath, from: Option<u32>) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        let changes = &mut panel.changes;
+        let before = match changes.states.get(path) {
+            Some(FileState::Read(body)) => Some(body.clone()),
+            Some(FileState::Loading(_)) => return,
+            Some(FileState::Unread | FileState::Failed(_)) | None => None,
+        };
+        let _was = changes
+            .states
+            .insert(path.clone(), FileState::Loading(before));
+        let scope = changes.scope.scope();
+        self.ask(
+            &machine,
+            Ask::Git(GitAsk::Diff(GetFileDiff {
+                root,
+                scope,
+                path: path.clone(),
+                ignore_whitespace: false,
+                from_hunk: from,
+            })),
+        );
+    }
+
+    fn fold_file(&mut self, path: RelPath, cx: &mut Context<'_, Self>) {
+        let changes = &mut self.areas.workspace.code.changes;
+        if !changes.closed.remove(&path) {
+            let _new = changes.closed.insert(path);
+        }
+        changes.relist();
+        cx.notify();
+    }
+
+    fn choose_scope(&mut self, kind: ScopeKind, cx: &mut Context<'_, Self>) {
+        let changes = &mut self.areas.workspace.code.changes;
+        changes.picker.close();
+        if changes.scope != kind {
+            changes.scope = kind;
+            changes.summary = Summary::Loading;
+            changes.closed.clear();
+            changes.states.clear();
+            changes.relist();
+            self.read_changes();
+        }
+        cx.notify();
+    }
+}
+
+/// The tab.
+pub(super) fn render(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let panel = &shell.areas.workspace.code;
+    let changes = &panel.changes;
+    let words = shell.words();
+    let labels = words.labels();
+    let body: AnyElement = match &changes.summary {
+        Summary::Loading => note(labels.loading, tokens).into_any_element(),
+        Summary::Failed(why) => note(why.clone(), tokens).into_any_element(),
+        Summary::Ready(summary) if summary.files.is_empty() => {
+            note(words.scope_empty(&changes.scope.scope()), tokens).into_any_element()
+        }
+        Summary::Ready(_) => changes
+            .list
+            .element(cx.processor(|shell: &mut Shell, index: usize, window, cx| {
+                let tokens = vessel_app_kit::tokens(cx);
+                row(shell, index, &tokens, window, cx)
+            }))
+            .into_any_element(),
+    };
+    div()
+        .flex_1()
+        .min_h(px(0.0))
+        .flex()
+        .flex_col()
+        .child(toolbar(shell, tokens, window, cx))
+        .child(div().flex_1().min_h(px(0.0)).child(body))
+        .children(scope_list(shell, tokens, window, cx))
+        .into_any_element()
+}
+
+/// G1's actions, the comparison, the counts.
+fn toolbar(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let panel = &shell.areas.workspace.code;
+    let changes = &panel.changes;
+    let words = shell.words();
+    let neutral = tokens.neutral;
+    let git = panel
+        .root()
+        .and_then(|(machine, root)| git_head(shell, machine, root, tokens, window, cx));
+    let pill = crate::areas::draft::pill_with(
+        "code-scope",
+        &changes.picker,
+        PillParts {
+            label: Some(words.scope_label(&changes.scope.scope()).into()),
+            caret: true,
+            ..PillParts::default()
+        },
+        false,
+        tokens,
+    )
+    .on_click(cx.listener(|this, _event, window, cx| {
+        let picker = &mut this.areas.workspace.code.changes.picker;
+        if picker.is_open() {
+            picker.close();
+        } else {
+            picker.open(None, window, cx);
+        }
+        cx.notify();
+    }));
+    let counts = match &changes.summary {
+        Summary::Ready(summary) if !summary.files.is_empty() => {
+            let total = totals(&summary.files);
+            Some(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(6.0))
+                    .type_(Type::Meta)
+                    .text_color(neutral.foreground_muted)
+                    .child(words.files(u64::try_from(summary.files.len()).unwrap_or(u64::MAX)))
+                    .child(
+                        div()
+                            .text_color(tokens.st_ready)
+                            .child(format!("+{}", total.added)),
+                    )
+                    .child(
+                        div()
+                            .text_color(neutral.destructive)
+                            .child(format!("\u{2212}{}", total.removed)),
+                    ),
+            )
+        }
+        Summary::Ready(_) | Summary::Loading | Summary::Failed(_) => None,
+    };
+    div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .items_center()
+        .gap(px(8.0))
+        .min_h(px(40.0))
+        .px(px(8.0))
+        .py(px(4.0))
+        .border_b_1()
+        .border_color(neutral.border)
+        .children(git)
+        .child(pill)
+        .child(div().flex_1())
+        .children(counts)
+}
+
+/// The comparison's list (Paseo's diff mode menu, the kit's list).
+fn scope_list(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let changes = &shell.areas.workspace.code.changes;
+    if !changes.picker.is_open() {
+        return None;
+    }
+    let words = shell.words();
+    let rows: Vec<ComboRow> = ScopeKind::ALL
+        .into_iter()
+        .map(|kind| {
+            let mut row = ComboRow::new(words.scope_label(&kind.scope()));
+            row.detail = Some(words.scope_detail(kind).into());
+            row.checked = kind == changes.scope;
+            row
+        })
+        .collect();
+    let header = ComboHeader {
+        title: None,
+        back: false,
+        search: false,
+        empty: SharedString::default(),
+        side: Side::Below,
+    };
+    let handlers = ComboHandlers {
+        state: |shell: &mut Shell| &mut shell.areas.workspace.code.changes.picker,
+        chose: Rc::new(
+            |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
+                if let Some(kind) = ScopeKind::ALL.get(index).copied() {
+                    shell.choose_scope(kind, cx);
+                }
+            },
+        ),
+        back: None,
+    };
+    combobox(
+        "code-scope-list",
+        &changes.picker,
+        &header,
+        &rows,
+        &handlers,
+        300.0,
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// The tone's colour.
+fn tone_colour(tone: Tone, tokens: &Tokens) -> Hsla {
+    match tone {
+        Tone::Added => tokens.st_ready,
+        Tone::Removed => tokens.neutral.destructive,
+        Tone::Modified => tokens.st_building,
+        Tone::Renamed => tokens.st_review,
+        Tone::Other => tokens.neutral.foreground_muted,
+    }
+}
+
+/// Row `index` of the list; a file's diff not read yet is asked for here,
+/// as its row comes into view.
+fn row(
+    shell: &mut Shell,
+    index: usize,
+    tokens: &Tokens,
+    _window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let changes = &shell.areas.workspace.code.changes;
+    let Summary::Ready(summary) = &changes.summary else {
+        return div().into_any_element();
+    };
+    let Some(change_row) = changes.rows.get(index).cloned() else {
+        return div().into_any_element();
+    };
+    let file_of = |file: usize| summary.files.get(file).cloned();
+    match change_row {
+        ChangeRow::File { file, open } => file_of(file).map_or_else(
+            || div().into_any_element(),
+            |change| file_header(shell, index, &change, open, tokens, cx),
+        ),
+        ChangeRow::Diff { file, row, .. } => {
+            let line = file_of(file).and_then(|change| match changes.states.get(&change.path) {
+                Some(
+                    FileState::Read(DiffBody::Rows { rows, .. })
+                    | FileState::Loading(Some(DiffBody::Rows { rows, .. })),
+                ) => rows.get(row).cloned(),
+                Some(
+                    FileState::Read(_)
+                    | FileState::Loading(_)
+                    | FileState::Unread
+                    | FileState::Failed(_),
+                )
+                | None => None,
+            });
+            line.map_or_else(|| div().into_any_element(), |line| diff_row(&line, tokens))
+        }
+        ChangeRow::Note {
+            file,
+            note: file_note,
+        } => {
+            let Some(change) = file_of(file) else {
+                return div().into_any_element();
+            };
+            match &file_note {
+                FileNote::Loading => {
+                    if matches!(
+                        changes.states.get(&change.path),
+                        None | Some(FileState::Unread)
+                    ) {
+                        shell.read_diff(&change.path, None);
+                    }
+                    note_row(shell.words().file_note(&file_note), tokens).into_any_element()
+                }
+                FileNote::More => {
+                    let more = match changes.states.get(&change.path) {
+                        Some(FileState::Read(DiffBody::Rows { more, .. })) => *more,
+                        Some(_) | None => None,
+                    };
+                    let path = change.path.clone();
+                    note_row(shell.words().file_note(&file_note), tokens)
+                        .id(("code-more", index))
+                        .cursor_pointer()
+                        .text_color(tokens.neutral.foreground)
+                        .on_click(cx.listener(move |this, _event, _window, cx| {
+                            this.read_diff(&path, more);
+                            cx.notify();
+                        }))
+                        .into_any_element()
+                }
+                FileNote::Binary
+                | FileNote::TooLarge { .. }
+                | FileNote::Submodule { .. }
+                | FileNote::Unchanged
+                | FileNote::Unknown
+                | FileNote::Failed(_) => {
+                    note_row(shell.words().file_note(&file_note), tokens).into_any_element()
+                }
+            }
+        }
+    }
+}
+
+/// A file's header: Paseo's file header (the chevron, the status letter in
+/// its tone, the name, the folder muted, the counts at the end).
+fn file_header(
+    shell: &Shell,
+    index: usize,
+    change: &vessel_proto::workspace::FileChange,
+    open: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let neutral = tokens.neutral;
+    let words = shell.words();
+    let (letter, tone) = status_letter(change.status);
+    let (folder, name) = split_path(change.path.as_str());
+    let path = change.path.clone();
+    let hover = neutral.surface2;
+    let renamed = change
+        .old_path
+        .as_ref()
+        .map(|old| format!("\u{2190} {}", old.as_str()));
+    div()
+        .id(("code-file", index))
+        .w_full()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(6.0))
+        .min_h(px(32.0))
+        .px(px(8.0))
+        .border_t_1()
+        .border_color(neutral.border)
+        .bg(neutral.surface1)
+        .cursor_pointer()
+        .hover(move |style| style.bg(hover))
+        .child(glyph(
+            if open {
+                Glyph::ChevronDown
+            } else {
+                Glyph::ChevronRight
+            },
+            12.0,
+            neutral.foreground_muted,
+        ))
+        .child(
+            div()
+                .w(px(12.0))
+                .flex_none()
+                .type_(Type::Mono)
+                .text_color(tone_colour(tone, tokens))
+                .child(letter.to_string()),
+        )
+        .child(
+            div()
+                .flex_none()
+                .max_w(px(220.0))
+                .truncate()
+                .type_(Type::Body)
+                .text_color(neutral.foreground)
+                .child(name.to_owned()),
+        )
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .truncate()
+                .type_(Type::Meta)
+                .text_color(neutral.foreground_muted)
+                .child(renamed.unwrap_or_else(|| folder.to_owned())),
+        )
+        .when(change.binary, |row| {
+            row.child(
+                div()
+                    .flex_none()
+                    .type_(Type::Meta)
+                    .text_color(neutral.foreground_muted)
+                    .child(words.status_word(change.status)),
+            )
+        })
+        .children(change.additions.map(|added| {
+            div()
+                .flex_none()
+                .type_(Type::Meta)
+                .text_color(tokens.st_ready)
+                .child(format!("+{added}"))
+        }))
+        .children(change.deletions.map(|removed| {
+            div()
+                .flex_none()
+                .type_(Type::Meta)
+                .text_color(neutral.destructive)
+                .child(format!("\u{2212}{removed}"))
+        }))
+        .on_click(cx.listener(move |this, _event, _window, cx| this.fold_file(path.clone(), cx)))
+        .into_any_element()
+}
+
+/// A row of a file's diff: a hunk's header, or a line as the kit draws a
+/// diff's line (its bar, its number, its wash), wrapped.
+fn diff_row(line: &DiffRow, tokens: &Tokens) -> AnyElement {
+    let neutral = tokens.neutral;
+    match line {
+        DiffRow::Hunk {
+            header, section, ..
+        } => div()
+            .w_full()
+            .flex()
+            .flex_row()
+            .gap(px(8.0))
+            .px(px(8.0))
+            .py(px(2.0))
+            .bg(neutral.surface1)
+            .type_(Type::Mono)
+            .text_color(neutral.foreground_muted)
+            .child(header.clone())
+            .children(
+                section
+                    .clone()
+                    .map(|section| div().truncate().child(section)),
+            )
+            .into_any_element(),
+        DiffRow::Line {
+            line,
+            text,
+            old,
+            new,
+            ..
+        } => {
+            let (tone, number) = match line {
+                LineKind::Added => (LineTone::Added, *new),
+                LineKind::Removed => (LineTone::Removed, *old),
+                LineKind::Context | LineKind::NoNewline => (LineTone::Plain, new.or(*old)),
+            };
+            diff_line(
+                &OutputLine {
+                    text: SharedString::from(text.to_string()),
+                    tone,
+                    number: number.and_then(|number| usize::try_from(number).ok()),
+                },
+                true,
+                tokens,
+            )
+        }
+        DiffRow::Cut { .. } => note_row("\u{2026}".to_owned(), tokens).into_any_element(),
+    }
+}
+
+/// A note in a file's place.
+fn note_row(text: String, tokens: &Tokens) -> Div {
+    div()
+        .w_full()
+        .px(px(28.0))
+        .py(px(6.0))
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(text)
+}

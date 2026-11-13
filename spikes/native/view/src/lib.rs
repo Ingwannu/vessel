@@ -12,10 +12,13 @@
 pub mod about;
 pub mod agent_status;
 pub mod ago;
+pub mod alert;
+pub mod badge;
 pub mod board;
 mod conversation;
 pub mod devices;
 pub mod effort;
+pub mod extras;
 mod links;
 pub mod machines;
 pub mod models;

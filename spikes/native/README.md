@@ -105,6 +105,18 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
+`kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
+warning, error and muted variants; small and extra-small sizes; optional
+leading content; semantic status tokens separate from board lane colours.
+Labels remain whole and explanations belong below their row.
+
+`kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
+with optional title, wrapping description and an indented action. It uses
+existing semantic/neutral colours and palette blue 300 / amber 500 in
+`theme/status.rs`; a notice has no focus or click behaviour. Pure logic
+returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
+Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+
 ### Rules every screen follows
 
 - Words through `view/src/text/` only; English and Korean together.
@@ -224,7 +236,8 @@ out rows of those shapes and fails if one grows past a line or runs into
 the next.
 
 Screens are checked against the two `shapes` sessions the fleet makes on
-`laptop`: a long thought, Markdown with a table, a 240-character code
+`laptop`: a long thought streamed a few characters at a time (Korean
+first, a syllable alone in a chunk), Markdown with a table, a 240-character code
 line and Korean, a long path, a wide diff, a command on one long line
 asking for permission with four answers, and 2,400 lines of output.
 `shapes` has its permission answered (the output in the timeline),
@@ -235,7 +248,14 @@ fails if either `shapes` session lacks any of it (it reads them back
 with `vessel log`), so a fake-acp built before these existed is caught:
 rebuild it. A third session on `laptop`, `turns`, holds five turns (one
 long prompt, one Korean; each tool's permission allowed): the outline of
-prompts and read marks are checked against it.
+prompts and read marks are checked against it. A fourth, `queued`,
+runs a turn that waits until stopped (`wait`, which takes a steer) with
+three prompts queued behind it (one long, one Korean, one short),
+checked through `vessel session queue`: the queue above the composer is
+checked against it. Two more, `ask questions` and `ask one`, are left
+waiting on what Claude's adapter sends for its `AskUserQuestion` (three
+questions, one choosing several and one in Korean, and one question):
+the question card is checked against them.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

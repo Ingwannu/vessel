@@ -4,6 +4,7 @@
 //! DESIGN.md section 6).
 
 use tokio::sync::mpsc;
+use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
     AsyncApp, Context, FluentBuilder as _, IntoElement, ParentElement as _, Render, Styled as _,
@@ -233,10 +234,15 @@ impl Render for Shell {
                 cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx)),
             )
         });
+        // The window's face at its root (Geist, Pretendard behind it), so
+        // text an area draws without a step of its own still has
+        // Pretendard for its Hangul (the owner's font rule; a folded row
+        // without a face split "각" into "가" and "ㄱ").
         let content = div()
             .size_full()
             .flex()
             .flex_col()
+            .face(vessel_app_kit::Type::Body)
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
