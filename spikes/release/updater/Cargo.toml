@@ -23,6 +23,12 @@ thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
+# The "Installed apps" entry's version after a self-update (src/registry.rs).
+# Already in the app's tree on Windows (GPUI's platform uses it); MIT or
+# Apache-2.0; a safe API over the registry, so no `unsafe` here.
+[target.'cfg(windows)'.dependencies]
+windows-registry = "0.6"
+
 [dev-dependencies]
 minisign.workspace = true
 tempfile.workspace = true

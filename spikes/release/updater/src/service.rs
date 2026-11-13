@@ -52,6 +52,10 @@ pub struct Settings {
     pub every: Duration,
     /// Time from start to the first check.
     pub first_after: Duration,
+    /// Whether the timer checks at all (Zed's `auto_update`); off leaves
+    /// only [`Updater::check_now`]. Changed while running with
+    /// [`Updater::set_automatic`].
+    pub automatic: bool,
 }
 
 /// What the updater is doing, for the UI.
@@ -135,6 +139,7 @@ pub enum ApplyError {
 pub struct Updater {
     state: watch::Receiver<UpdateState>,
     commands: mpsc::Sender<()>,
+    automatic: watch::Sender<bool>,
     installation: Installation,
     running: Label,
 }
@@ -153,6 +158,7 @@ impl Updater {
         let client = FeedClient::new()?;
         let (state_tx, state) = watch::channel(UpdateState::Idle);
         let (commands, commands_rx) = mpsc::channel(1);
+        let (automatic, automatic_rx) = watch::channel(settings.automatic);
         let running = settings.running.clone();
         let task = Task {
             settings,
@@ -160,10 +166,11 @@ impl Updater {
             client,
             state: state_tx,
         };
-        drop(runtime.spawn(task.run(commands_rx)));
+        drop(runtime.spawn(task.run(commands_rx, automatic_rx)));
         Ok(Self {
             state,
             commands,
+            automatic,
             installation,
             running,
         })
@@ -179,6 +186,18 @@ impl Updater {
     #[must_use]
     pub fn running(&self) -> &Label {
         &self.running
+    }
+
+    /// Turn the timer's checks on or off (the person's preference); a
+    /// check asked for with [`Self::check_now`] runs either way.
+    pub fn set_automatic(&self, on: bool) {
+        let _previous = self.automatic.send_replace(on);
+    }
+
+    /// Whether the timer checks.
+    #[must_use]
+    pub fn automatic(&self) -> bool {
+        *self.automatic.borrow()
     }
 
     /// Ask for a check now. `false` when one is already waiting, or the
@@ -213,7 +232,7 @@ struct Task {
 }
 
 impl Task {
-    async fn run(self, mut commands: mpsc::Receiver<()>) {
+    async fn run(self, mut commands: mpsc::Receiver<()>, automatic: watch::Receiver<bool>) {
         let installation = self.installation.clone();
         if tokio::task::spawn_blocking(move || installation.clean_leftovers())
             .await
@@ -230,7 +249,13 @@ impl Task {
         ticks.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             tokio::select! {
-                _ = ticks.tick() => {}
+                _ = ticks.tick() => {
+                    // Automatic updates off: the timer asks nothing; only
+                    // a check the person asks for runs.
+                    if !*automatic.borrow() {
+                        continue;
+                    }
+                }
                 command = commands.recv() => {
                     if command.is_none() {
                         return;

@@ -77,5 +77,6 @@ pub fn settings_from_build() -> Result<Option<Settings>, SettingsError> {
         target,
         every: EVERY,
         first_after: FIRST_AFTER,
+        automatic: true,
     }))
 }

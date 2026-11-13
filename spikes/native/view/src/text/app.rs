@@ -286,6 +286,15 @@ impl Text {
             ),
         }
     }
+
+    /// Said once after an update: the build now running.
+    #[must_use]
+    pub fn updated_to(&self, label: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Updated to Vessel {label}."),
+            Lang::Ko => format!("Vessel {label}(으)로 업데이트했습니다."),
+        }
+    }
 }
 
 const EN: Text = Text {

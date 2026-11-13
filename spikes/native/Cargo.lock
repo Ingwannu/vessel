@@ -7222,6 +7222,7 @@ name = "vessel-app"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "dirs 6.0.0",
  "gpui-pre",
  "gpui-pre-platform",
  "sys-locale",
@@ -7278,6 +7279,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+ "windows-registry 0.6.1",
 ]
 
 [[package]]

@@ -156,6 +156,7 @@ mod support {
             target: Target::current().unwrap(),
             every: Duration::from_secs(3600),
             first_after: Duration::ZERO,
+            automatic: true,
         }
     }
 
@@ -340,4 +341,33 @@ async fn a_missing_feed_is_a_failure_to_retry() {
     assert!(matches!(&*error, UpdateError::Fetch(_)), "{error:?}");
     // The task still runs and takes a request to check again.
     assert!(updater.check_now());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn with_automatic_updates_off_only_a_check_asked_for_runs() {
+    let feed = Feed::new();
+    feed.publish("preview", "0.0.0.0.2", NEW_BUILD);
+    let address = serve(feed.root.path().to_path_buf()).await;
+    let app_dir = tempfile::tempdir().unwrap();
+    let installation = installed_app(app_dir.path());
+    let mut off = settings(address, feed.key(), "0.0.0.0.1");
+    off.automatic = false;
+
+    let updater = Updater::start(
+        off,
+        installation.clone(),
+        &tokio::runtime::Handle::current(),
+    )
+    .unwrap();
+    // The timer's first tick (due at once) has had time to fire; with
+    // automatic updates off it must not have checked. A negative check
+    // needs a bound; 300 ms is far past the tick on any machine.
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    assert!(matches!(*updater.state().borrow(), UpdateState::Idle));
+    assert!(!updater.automatic());
+
+    assert!(updater.check_now());
+    let state = settled(&updater).await;
+    assert!(matches!(state, UpdateState::Ready { .. }), "{state:?}");
+    assert_eq!(std::fs::read(installation.executable()).unwrap(), NEW_BUILD);
 }
