@@ -7831,3 +7831,147 @@ The app's new-chat screen ends with the same flow; the page's tests in
   what is kept for the machine is every choice the agent offers, or the
   remembered ones unchanged when they could not be checked
   (`picks.test.ts`).
+
+## Track A2: contract
+
+Wave 2's last node track (`backend/m11-a2`, from `backend/m11`). Protocol
+12, raised once in this track's first slice that changes the wire (every
+later track of the wave finds it raised); store schema 13; ADRs 0037 and
+0038. Five features, each its own slice, each with its contract here
+before its code: search every session's messages; park an idle agent and
+wake it on the next prompt; rewind and fork where the agent can; import
+from the agent's own history; change the agent with a handoff. What the
+references do was read in their source on 2026-11-13 (agent-orchestrator
+and GOAT at `main`, Paseo 0.15.2) and in the installed adapters
+(`claude-agent-acp` 0.100, `codex-acp` 2.6); no prompt was sent to a real
+agent.
+
+### 1. Search every session's messages
+
+**What the references do.**
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| Over | finished chat messages (external-content FTS5, `porter unicode61`) | finished messages (contentless FTS5, `trigram remove_diacritics 1`) | titles, branches, project names only ("never an incomplete subset of transcripts"); in-session find apart |
+| Words | all must match, the last by prefix; if none matches, any may | all, as substrings; words under three characters (two-syllable Hangul) scan the newest 20,000 messages | typo-tolerant over names |
+| Order | bm25, by recency past 2,000 matches | its own ranking over at most 2,000 hits | by score |
+| Page | 8 hits, no paging | 50 matches, 2,000 hits read, 10,000 candidates | all |
+| Snippet | 24 tokens, matches wrapped in control characters | 240 characters, the match 24 in | none |
+| A message still being written | not indexed until it ends | not indexed until it ends | – |
+
+Vessel takes GOAT's tokenizer (substrings, so a Korean word with its
+particle and an identifier inside a longer one are both found), both
+references' rule that a message is indexed once it ends, and pages by
+time so a client can go on past the first page.
+
+**What is a message.** The node's log has no messages, only records; the
+index makes them:
+
+- a prompt: the text blocks of a `turn_started`, a `steered`, or a run of
+  `user_message_chunk` records (a resumed or imported conversation's
+  replay);
+- a reply: a run of `message_chunk` records' text.
+
+A run ends at the next timeline record that is not one of its chunks
+(a tool call, a thought, a plan, a permission, a question, a turn's end
+or failure, a status); records outside the timeline (`harness_log`,
+`usage_changed`, `commands_changed`, `queue_changed`, `model_call`,
+renames, option and profile changes) do not end it. A run longer than
+8 KiB of text, or than 512 records, is indexed as consecutive pieces,
+each pointing at the record where it starts, so one long reply is many
+hits rather than one cut short. Thoughts, tool calls and their output,
+plans, permissions, questions, terminal output and harness logs are not
+indexed: they are what the agent did, not what was said, and a tool's
+output would drown every word in file contents.
+
+**The index** (schema 13, `vessel-store`, ADR 0037):
+
+- `search_messages (id INTEGER PRIMARY KEY, session_id, seq, role, at,
+  text)`: one row a message piece; `id` is the message's time in
+  nanoseconds, moved forward past one already taken, so the index's own
+  order is newest first and a page is a walk of it, never a sort.
+- `search_index`: FTS5 over `text`, external content (`search_messages`
+  keeps the text once, for snippets and for the short-word scan),
+  `tokenize = 'trigram remove_diacritics 1'` (case-insensitive).
+- `sessions.search_seq`: the first record the index has not taken in
+  for good (the start of a run still open, else the next record). Every
+  session stored before schema 13 starts at its first record.
+- Built by the store's writer in the transaction that appends the
+  records, from the records it already holds; the run still open is kept
+  in the writer's memory as a cache of `[search_seq, next)`, rebuilt
+  from the log (at most one piece) after a restart or a failed batch.
+- Catching up (sessions stored before schema 13, a session whose index
+  fell behind): the writer, when nothing else is queued, indexes 2,048
+  records a step from `search_seq`, so an upgrade never delays the
+  node's start or its appends by more than one step.
+- Removed with what it indexes: `session.delete` and retention's pruning
+  delete a session's rows; the per-session byte cap's pruning deletes the
+  rows of the records it removes.
+
+**Types** (`vessel_proto::search`, new module):
+
+- `SearchQuery`: 1 to 256 characters once trimmed, at most 16 words
+  (split on whitespace); a person's text, plain in TypeScript.
+- `SearchLimit`: 1 to 100; absent means 20.
+- `SearchCursor`: where the next page starts, the node's handle (a
+  string on the wire, branded in TypeScript); only ever handed back.
+- `MessageRole`: `prompt`, `reply`.
+- `SearchHit { session: SessionId, seq: EventSeq, at, role, snippet }`:
+  `seq` is the record where the message (or its piece) starts, so a
+  client opens the session there (`session.read` from `seq`).
+- `Snippet { parts: SnippetPart[], cut_before, cut_after }`,
+  `SnippetPart { text, matched }`: at most 240 characters in all,
+  whitespace runs as one space, starting up to 24 characters before the
+  first match, every match inside it marked. Typed parts, not marker
+  characters inside a string.
+- `SearchMessages { query, session?: SessionId, before?: SearchCursor,
+  limit?: SearchLimit }` and `SearchPage { hits: SearchHit[], next?:
+  SearchCursor }`.
+
+**The call.**
+
+| Method | Scope | Request | Reply |
+| --- | --- | --- | --- |
+| `session.search` | read | `SearchMessages` | `SearchPage` |
+
+- Forwardable, like every read. Not ownership-checked: an agent reads
+  the fleet's sessions (ADR 0013), so it may search them.
+- Every word must be in the message, in any order, as a substring;
+  case-insensitive (the tokenizer's Unicode folding for words of three
+  characters or more; ASCII folding for shorter ones, which SQLite's
+  `lower` does; Hangul has no case).
+- Newest first, by the message's time. `next` is present while older
+  messages may still match; a page can hold fewer than `limit` hits and
+  still have `next` when a bound below stopped it.
+- `session` keeps the search to one session (`not_found` when unknown).
+- Failures: `invalid_request` (the query or the cursor does not parse),
+  `not_found` (the session), `internal` (the store), `unsupported` on a
+  connection older than 12 ("needs protocol 12").
+
+**Bounds.**
+
+| What | Bound | Beyond it |
+| --- | --- | --- |
+| A query | 256 characters, 16 words | `invalid_request` |
+| A page | 100 hits (20 by default) | refused |
+| Candidates read when some word is under three characters (the index finds the longer words, the short ones filter) | 10,000 a page | the page ends, `next` set |
+| A query whose every word is under three characters (no index can serve it) | 20,000 newest messages scanned a page | the page ends, `next` set |
+| An indexed piece | 8 KiB of text or 512 records | the next piece |
+| Catching up | 2,048 records a step, only while the writer is idle | the next step |
+
+**Older peers.** A client sends `session.search` only to a node of
+protocol 12 or later (`Call::since`); an older node is a typed "needs
+protocol 12" for that machine, and its sessions are left out of a
+fleet-wide search with that said. A node refuses the call on an older
+connection. No event and no existing type changes.
+
+**CLI and agents.** `vessel search <query> [--session <id>] [--limit
+<n>] [--before <cursor>]` (with the usual `--node`), one line a hit:
+session, record, time, role, the snippet with its matches marked, and
+the cursor to go on with; `--json` prints the page. The agent tool
+`search_sessions { query, session?, limit?, before? }` returns the page.
+
+**What it costs** is measured on a store of tens of thousands of
+messages (in "Track A2: progress"): the index's size beside the log's,
+an append's time with and without it, a query's time for a rare word, a
+common word, a two-character Hangul word, and catching up.
