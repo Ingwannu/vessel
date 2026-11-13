@@ -501,17 +501,17 @@ The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.
 
-The reviewed settings controls from G3's263d4a5/70bcfd5 supply the section
+The reviewed settings controls from G3's 263d4a5/70bcfd5 supply the section
 trailing slot and shared custom-content frame. Integration keeps the
 lead's code_row and hint-face delegation; its private row_faced delegates
-to that same frame. G3's64167097 supplies red_300 unchanged in both themes
+to that same frame. G3's 64167097 supplies red_300 unchanged in both themes
 for ProviderRow error detail; semantic danger/status signals stay put.
 
 `agent_mark::settings_mark(art, Size::Sixteen, SettingsRowEdge, tokens)`
 fits reviewed artwork inside the unchanged shared settings row frame.
-Its24/23-high first/following layout slot uses the existing padding for
-OpenCode's32 ×36 quiet box; the image's integer edges and name baselines
-are checked against the previous Chevron14/Bot16 composition. Generic
+Its 24/23-high first/following layout slot uses the existing padding for
+OpenCode's 32 × 36 quiet box; the image's integer edges and name baselines
+are checked against the previous Chevron 14/Bot 16 composition. Generic
 keeps that setting row's foreground colour. The kit still imports no view.
 The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
 or `settings-errors` for the real pill_parts and shared-frame fit fixtures.

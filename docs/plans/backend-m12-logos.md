@@ -285,7 +285,7 @@ follow-up geometry work; earlier family captures are fidelity evidence,
 not approval of the final family sizing or actual app surfaces.
 
 Lead checkpoint validation: native fmt, all-target Clippy (warnings denied),
-whole native tests and normal app build all exit0. The441 passed test
+whole native tests and normal app build all exit 0. The 441 passed test
 results include2 compile-fail documentation examples; no tests failed.
 The frozen Rust manifest is verified unchanged after build. This is the
 lead integration gate, with no K node implementation change or new root
@@ -309,18 +309,18 @@ with measured Paseo ink bounds. `docs/design/agent-marks/ink.md` records
 those numbers, official clear-space display boxes and every size departure.
 Only image boxes change: all vendor path sequences/fills and Gemini bytes
 remain untouched. Provider-row Generic now equals existing Glyph16; the
-common32-wide column and every default picker row's37-point pitch stay.
+common 32-wide column and every default picker row's 37-point pitch stay.
 Header/pill widths reserve each image's quiet-zone viewport; the16-point
 header vertical slot,4-point pill gap and28/44 heights remain.
 
 The existing shared frame from G3's reviewed70bcfd5 is imported unchanged.
 The new kit-only settings mark adapter uses first24/following23 layout
-heights, with OpenCode's unmodified32 ×36 image inside existing padding.
+heights, with OpenCode's unmodified 32 × 36 image inside existing padding.
 First/following placements are -6/-7; the real draw box starts10 points
 below its row top in either case, without half-point OpenCode paint.
 Official artwork stays at the first content line when an error grows the
 column; Generic retains the old centring/foreground. Name baselines are
-compared with the previous actual Chevron14/Bot16 contents. All provider
+compared with the previous actual Chevron 14/Bot 16 contents. All provider
 name columns move16 points for the common32 slot, as recorded. G3's
 application area remains untouched and Bot stays until reviewed handoff.
 
@@ -434,17 +434,17 @@ until closeout; its result and immutable hash follow in the next record.
 
 ### Closeout validation after the checkpoint
 
-The native gate for `e8ffeaa2` finished fmt and all-target Clippy with exit0,
-but whole `cargo test` exited101: 37 kit tests passed and the new ink-bound
+The native gate for `e8ffeaa2` finished fmt and all-target Clippy with exit 0,
+but whole `cargo test` exited 101: 37 kit tests passed and the new ink-bound
 fixture failed. The actual padded first/following/last/error row comparison,
 name-baseline/frame checks, all-brand row pitch and disabled pointer/key
 regressions passed. This is scoped evidence, not a whole-workspace pass.
 
 The failure exposed an inaccurate expected GitHub height. Solving the
-unchanged path's cubic derivative extrema gives bounds96 ×92.9886843692,
-which at the unchanged display box yields16 ×15.498114. The earlier
-approximate rectangle gave92.71875 and the fixture expected15.45. The
-fixture now expects15.50 with its original0.02 tolerance; no production
+unchanged path's cubic derivative extrema gives bounds 96 × 92.9886843692,
+which at the unchanged display box yields 16 × 15.498114. The earlier
+approximate rectangle gave 92.71875 and the fixture expected 15.45. The
+fixture now expects 15.50 with its original 0.02 tolerance; no production
 viewport, path, fill or proportion is changed. The source record is
 corrected. This corrected test data still needs the full native gate;
 time-limited closeout must not turn the earlier failure into a pass.
@@ -477,14 +477,48 @@ V1 owns the pending review. G1/G2/G3 must retain their current fallback
 until V1 accepts a final control and its source/binary/capture manifest.
 E2/S2 still see the original three-theme API. The next session starts at
 this resume record and reruns the corrected native gate before completing
-new controls/app evidence. Full Job1 acceptance precedes Job2 (ADR0049).
-The old reviewed40 images remain untouched; four new family images were
+new controls/app evidence. Full Job1 acceptance precedes Job2 (ADR 0049).
+The old reviewed 40 images remain untouched; four new family images were
 looked at, with a separate checkpoint-binary manifest. No new row/header,
-pill/Settings or final72 app review is claimed.
+pill/Settings or final 72 app review is claimed.
 
-Both own fake nodes and all22 descendants are stopped; their PID file is
+Both own fake nodes and all 22 descendants are stopped; their PID file is
 removed. The final comparison driver closed X236 and its applications.
 No cargo/gate command remains running after the recorded test failure.
-All work used UID1000 and no ownership/mode change, push or release was
+All work used UID 1000 and no ownership/mode change, push or release was
 performed. Start a fresh isolated fleet on resume; do not trust scratch
 ready/PID sentinels or reuse old node-book ports.
+
+### Lead takeover and closeout (2026-11-13)
+
+Track K stopped at its credit floor; the lead merged `d9eda48f` into
+`backend/m12-spike` after the node line (protocol 13) and track L's second
+slice, and finished the slice. The `wip:` commits stay in the merged
+history; the merge commit and the gate below are the record.
+
+- Ink fixture: computed again outside the kit from the unchanged GitHub
+  path (true cubic extrema): bounds 96 × 92.9886843692, so 15.498114 at a
+  16-point width. The fixture's 15.50 with its 0.02 tolerance is right.
+- Gate: the whole native gate on the merged tree (fmt, all-target Clippy,
+  build, test) exits 0.
+- The marks in the real app, on the fake fleet (dark and light, Korean and
+  English, desktop and a 390-point window): the model list, the composer
+  pill, the sidebar's session rows, the board's cards and About's
+  attributions. Each mark sits on its label's centre line; the model list's
+  rows keep one pitch (37 points on desktop, 44 in the phone's sheet) with
+  OpenCode's plate in them and draw marks at 14 (Paseo's `sm` in its model
+  rows); the pill's mark is 16 on desktop and 20 at a phone's width
+  (Paseo's toolbar glyph sizes); colour marks keep their own
+  colours and the generic glyph takes the muted text colour.
+- OpenCode (decided): its 16 × 20 plate stays at the brand minimum; it does
+  not make its row taller than its neighbours (measured above), so no
+  change.
+- Gemini CLI on the light theme (decided): the official dark tile reads at
+  the same optical size as the bare marks in the model list and its rows'
+  pitch is unchanged; it stays as the vendor publishes it, no spacing
+  change.
+- Differences from Paseo, named: Paseo tints every provider icon (muted, or
+  foreground when chosen) and has no marks in its sidebar's session rows;
+  Vessel keeps each vendor's own colours (ADR 0048) and shows the mark
+  before a session's status dot. A disabled row with a mark fades only its
+  words, as K recorded for the vendors' conditions.
