@@ -37,6 +37,7 @@ mod pairing;
 mod palette;
 mod settings;
 mod shortcuts;
+mod side_question;
 mod sidebar;
 mod update;
 pub mod workspace;
@@ -52,6 +53,7 @@ pub use pairing::PairingWords;
 pub use palette::PaletteWords;
 pub use settings::SettingsText;
 pub use shortcuts::ShortcutWords;
+pub use side_question::SideWords;
 pub use sidebar::SidebarWords;
 pub use update::UpdateText;
 
