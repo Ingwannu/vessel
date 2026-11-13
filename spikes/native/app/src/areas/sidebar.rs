@@ -52,7 +52,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .px(px(8.0))
         .pb(px(8.0))
         .gap(px(12.0))
-        .child(nav)
+        .child(nav.children(schedules(shell, tokens, cx)))
         .children(projects(shell, tokens, cx))
         .child(
             div()
@@ -79,6 +79,18 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .map(|status| div().px(px(10.0)).child(status)),
         )
         .child(foot(shell, tokens, cx))
+}
+
+/// The slot for Schedules among the navigation rows, where Paseo's
+/// sidebar has it (after its pages, before the projects): the schedules
+/// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
+/// side of the slot.
+const fn schedules(
+    _shell: &Shell,
+    _tokens: &Tokens,
+    _cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    None
 }
 
 /// The slot between the navigation rows and the machines: the projects

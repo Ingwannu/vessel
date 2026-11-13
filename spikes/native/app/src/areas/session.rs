@@ -562,9 +562,9 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
             })),
         );
     }
-    div()
-        .mx(px(12.0))
-        .mb(px(8.0))
+    // In the chat column (`column`), so its edges are the composer's.
+    let card = div()
+        .w_full()
         .p(px(12.0))
         .flex()
         .flex_col()
@@ -579,7 +579,8 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
                 .text_color(tokens.text_primary)
                 .child(shell.t.asks_to_run(asked.what.as_deref())),
         )
-        .child(answers)
+        .child(answers);
+    column(card).mb(px(8.0))
 }
 
 /// The first line of a prompt, at most 80 characters (the node's rule
