@@ -1,0 +1,184 @@
+# Milestone 12, the spike: the desktop app (questions 1, 2, 3 and 9)
+
+Status: in progress, 2026-11-13. The desktop track of the plan's Phase 0
+(`docs/plans/backend-m12.md`): the app itself on Linux, and questions 1
+(which GPUI, licences), 2 (the Linux desktop), 3 (numbers) and 9 (what
+goes wrong when GPUI is taken as it is). Windows, packaging and updates
+(questions 4 and 8) and the phone, the browser and Tauri 2 (5, 6, 7, 10)
+are other tracks' notes.
+
+The order of work changed on the day (the owner: a build to install and
+try first, the report after), so this file grows as the builds do. Every
+statement below was run and seen unless it says "read" or "not verified".
+
+Captures are under `/tmp/vessel-m12-captures/` on the machine that made
+them (not committed; file names below).
+
+## The app as built
+
+`spikes/native/` (its README has the structure and how to run it): four
+crates, `view` and `link` without anything of GPUI's, `kit` (Vessel's own
+kit over GPUI) and `app`. Build labels: `0.0.0.0.1` is the first one
+given to the owner.
+
+What the first build does, each seen working against two real nodes
+started with the testkit's fake agents (`scripts/fleet.sh`), on Linux
+under Xvfb with Mesa's software Vulkan (lavapipe):
+
+| What | Seen | Capture |
+| --- | --- | --- |
+| Machines in the book with their sessions; the board's four lanes; light theme | yes | `desktop-board-light.png` |
+| A session opened from a card: its conversation streamed from the node, drawn as a list that lays out only what is in view | yes (40 entries) | `desktop-session-light.png` |
+| Hangul typed into the composer, drawn in Pretendard, sent; the agent's reply with Hangul | yes, through `xdotool type` (no input method: see question 2) | `desktop-hangul-typed.png`, `desktop-permission-light.png` |
+| A permission asked by the agent, answered with a button; the tool call then completes | yes | `desktop-permission-light.png`, `desktop-answered-light.png` |
+| Pairing from a pasted `vessel node pair` link: the node's id, key fingerprint, routes and expiry shown; named; paired over the secure channel; the credential written (mode 600) and the node added to the book; its sessions on the board; dark theme | yes (a direct route on loopback; a relay route not verified here) | `desktop-pair-offer.png`, `desktop-paired.png` |
+
+## Question 1: which GPUI, and the licences
+
+**Read on 2026-11-13** (crates.io's API, the repositories):
+
+- `gpui` on crates.io is 0.2.2, from 2025-10-22: a year behind Zed's
+  tree. Nothing builds on it any more (`gpui-component` left it).
+- `gpui-pre` is Zed's tree republished weekly (0.3.4 … 0.3.12, the last
+  on 2026-11-09), with the platform crates split out: `gpui-pre-platform`
+  (picks the platform per target), `-linux`, `-macos`, `-windows`,
+  `-web`, `-ios`, `-wgpu`, `-apple`. There is no Android crate in it.
+- Zed's own tree (main) has `gpui_ios` (Metal through the shared Apple
+  renderer) and `gpui_web` (WebGPU, then WebGL2), Apache-2.0, and no
+  Android platform.
+- `gpui-component` (now in a repository renamed `longbridge/gpui-kit`)
+  pins one snapshot exactly per release: 0.8.1 pins `=0.3.10`, 0.9.0
+  `=0.3.11`, 0.9.1 `=0.3.12`.
+- The community mobile layer `longbridge/gpui-mobile` (published as
+  `gpui-pre-mobile`; its crates.io release 0.1.0 is from 2026-09 and
+  targets 0.3.4, its main branch pins `=0.3.10`) is licensed
+  `GPL-3.0-or-later OR AGPL-3.0-or-later OR Apache-2.0`: Vessel would
+  take it under Apache-2.0. GitHub labels the repository AGPL-3.0 because
+  of one of its three licence files; the choice is the crate's.
+
+**Chosen for the app: `gpui-pre` 0.3.10 with `gpui-component` 0.8.1**,
+because it is the newest snapshot that the component library and the
+mobile layer's main branch both pin, so one GPUI can serve the desktop,
+the phone (if that track finds it holds) and the browser. The spike's
+one lock file resolves all of it; nothing of Zed's GPL crates is in it.
+
+**Licences** (`cargo metadata --filter-platform`, the crates linked into
+`vessel-app`, normal and build dependencies; 2026-11-13):
+
+- Linux: 620 crates. All MIT, Apache-2.0, BSD-2/3-Clause, ISC, Zlib,
+  Unicode-3.0, 0BSD, CC0-1.0, BSL-1.0 or Unlicense, alone or as a choice,
+  except the ones below.
+- Of concern, and why each is acceptable under ADR 0014 (Vessel links
+  them into a binary it distributes under PolyForm Strict):
+  - `option-ext` 0.2.0, MPL-2.0 (through `dirs`, already in Vessel):
+    file-level copyleft; unmodified, its source is public; acceptable.
+  - `self_cell` 1.3.0, `Apache-2.0 OR GPL-2.0-only`: taken as Apache-2.0.
+  - `ring` 0.17, `Apache-2.0 AND ISC` (already in Vessel).
+  - `notify`, `tiny-keccak`: CC0-1.0.
+- Windows (x86_64-pc-windows-msvc): 530 crates; adds `dunce`
+  (`CC0-1.0 OR MIT-0 OR Apache-2.0`). macOS (aarch64-apple-darwin): 528
+  crates; adds `cbindgen` (MPL-2.0), a build tool, not linked.
+- Fonts embedded in the binary: Geist and Geist Mono (Vercel) and
+  Pretendard, SIL Open Font License 1.1, as the page bundles them; the
+  tarball carries their licence texts.
+- Nothing GPL-only, AGPL-only or of unknown licence is linked. Zed's own
+  crates that are GPL (its `auto_update`, its editor) are not in the tree
+  and no code was taken from them.
+
+## Question 2: the Linux desktop
+
+Run on this machine (no GPU, no display): Xvfb, Mesa 25.2's lavapipe
+(Vulkan on the CPU), `import` to capture. GPUI's Linux platform drew
+through wgpu on Vulkan, X11 (`x11: compositor present: false`).
+
+- The screen in a window, light and dark: seen (captures above).
+- Hangul drawn in Pretendard behind Geist (the kit gives every style
+  `Pretendard` as its fallback; GPUI's Linux text system, cosmic-text,
+  honours the list): seen in the sidebar, the composer and the
+  conversation. The mono stack falls back to Pretendard too
+  (`desktop-permission-light.png`, the prompt).
+- Typing Hangul without an input method: characters sent as key events
+  (`xdotool type`, one character at a time) arrive in the field, are
+  drawn and are sent. A burst of `xdotool type` dropped characters; one
+  at a time none were lost, so that is the tool's keymap race (it remaps
+  one spare keycode per character), not the app's.
+- **Typing Hangul through an input method (X11, XIM)**: fcitx5 5.1.7 with
+  its Hangul engine (installed for this; see "Packages"), in a private
+  D-Bus session and a scratch configuration, `XMODIFIERS=@im=fcitx`.
+  GPUI connected to it (`zed_xim: XConnected`); Ctrl+Space turned the
+  engine on (`fcitx5-remote`: 0 before, 2 after); the 2-set keys
+  `g k s r m f` composed 한 and 글 and a space committed "한글" into the
+  composer (`desktop-ime-committed.png`). **What does not work**: the
+  syllable being composed is not drawn at the caret. fcitx drew it in
+  its own popup at the screen's top-left corner
+  (`desktop-ime-composing.png`: the field shows 한 while 글 sits at 0,0),
+  so the caret's position does not reach the input method over XIM. A
+  person typing Korean sees each syllable only when it is finished.
+  Whether the cause is GPUI's X11 client or the component layer's input
+  (which answers the caret's bounds) is not established yet; Wayland
+  (text-input-v3) was not tried (no compositor here).
+
+## Question 3: numbers
+
+Not measured yet.
+
+## Question 9: what goes wrong when GPUI is taken as it is
+
+Each problem met, with what was run and what happened:
+
+1. **The toolchain.** `gpui-pre` 0.3.10 does not build on Rust 1.93,
+   Vessel's pin: `error[E0658]: use of unstable library feature
+   cold_path` (`gpui-pre/src/profiler.rs:473`). It needs 1.95 or later;
+   the app's workspace pins 1.98.1 (Zed's), so Vessel builds with two
+   toolchains while the app is outside its workspace, and moving the app
+   in means moving Vessel's toolchain with GPUI's.
+2. **Headless without a word.** `gpui-pre-platform` has its `x11` and
+   `wayland` features off by default. Built without them, the app ran,
+   logged nothing wrong, opened no X window (`xwininfo -root -tree`: no
+   children) and every capture was black: GPUI's Linux platform starts
+   headless when no display server it was built for is named
+   (`GraphicalEnvironment::guess_compositor`). Turning the features on
+   fixed it. An error, or a default that draws, would have saved the
+   hour.
+3. **Snapshots pinned exactly, everywhere.** Each `gpui-component`
+   release pins one weekly snapshot (`=0.3.10`, `=0.3.11`, `=0.3.12`),
+   and so does the mobile layer, so a library can only be moved with all
+   the others; the newest component release (0.9.1) cannot be used with
+   the mobile layer's newest snapshot (0.3.10).
+4. **The libraries' documentation is ahead of them.** `gpui-component`
+   0.8.1's README documents `gpui_kit::*`, the umbrella crate of a later
+   rename, not the crate it ships in; its text input lives in another
+   crate (`gpui-base`, one 12,000-line file for the input's state).
+   Working out the API took reading the sources.
+5. **Windows shaders depend on the host** (read, not built; the Windows
+   track has the details): `gpui-pre-windows`'s build script compiles its
+   HLSL with `fxc.exe` only when the build script itself runs on Windows,
+   and a debug build compiles them at run time from the crate's source
+   path, so a debug `.exe` only runs where it was built.
+6. **The window's title and activation.** `cx.activate(true)` logs
+   "activate is not implemented on Linux"; no consequence seen.
+7. **Composition is not drawn at the caret on X11** (question 2): with
+   fcitx5 over XIM the syllable being composed appears in the input
+   method's own popup at the screen's corner, not in the field.
+
+What the screens needed of the UI layer, and where it came from:
+
+| Need | From | State |
+| --- | --- | --- |
+| a list of thousands of rows of differing heights | GPUI's `list` (measured rows, only what is in view) | works; 20,000 not measured yet |
+| a text field with input methods, selection, clipboard | `gpui-component`'s input, behind the kit's `TextField` | typed keys and XIM composition commit; the composing syllable is not shown at the caret (X11) |
+| Markdown | `gpui-component`'s `TextView::markdown`, behind the kit | works |
+| fonts and fallback | GPUI's text system, the faces embedded | works |
+| a terminal's grid, menus, focus order, accessibility | — | not built yet |
+
+## Packages installed on the machine
+
+- `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,
+  `fcitx5-modules`, `libfcitx5utils2`, `libfcitx5config6`,
+  `libfcitx5core7`, `libhangul1`, `libhangul-data`, `libxcb-ewmh2`,
+  `libxcb-icccm4`, `libxcb-imdkit1`, `libxcb-keysyms1`,
+  `libxcb-xinerama0`): an input method with a Hangul engine, to test
+  composition (question 2). Run only by the test, under its own Xvfb and
+  D-Bus session; no service enabled. `fonttools` (for nothing in the end) went into a scratch
+virtual environment under `/tmp/work`; `geist` was fetched with
+`npm pack` into a scratch directory by `scripts/fonts.sh`.

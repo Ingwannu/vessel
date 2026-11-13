@@ -1,14 +1,9 @@
-//! The screens, each drawn from the shell's state with the kit's tokens
-//! and controls (DESIGN.md section 6 for each one's look).
-
-pub(crate) mod board;
-pub(crate) mod pair;
-pub(crate) mod session;
-pub(crate) mod sidebar;
+//! Pieces more than one area draws: a frame's title bar and foot, a
+//! session's colour.
 
 use vessel_app_kit::ui::{Div, ParentElement as _, Styled as _, div, px};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::Card;
+use vessel_app_view::{Attention, Card};
 
 /// The frame's title bar: a heading and a line under it.
 pub(crate) fn title_bar(title: String, detail: Option<String>, tokens: &Tokens) -> Div {
@@ -44,11 +39,9 @@ pub(crate) fn foot(notice: String, tokens: &Tokens) -> Div {
 
 /// A session's colour: needs-you first, then working, else at rest.
 pub(crate) fn card_color(card: &Card, tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
-    if card.needs_you {
-        tokens.st_needs_you
-    } else if card.working {
-        tokens.st_building
-    } else {
-        tokens.text_tertiary
+    match card.attention {
+        Attention::NeedsYou => tokens.st_needs_you,
+        Attention::Working => tokens.st_building,
+        Attention::AtRest => tokens.text_tertiary,
     }
 }

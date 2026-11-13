@@ -5,7 +5,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
-    DisplayStatus, KanbanColumn, SessionId, SessionInfo, SessionMode, SessionStatus,
+    DisplayStatus, Harness, HarnessKind, HarnessRef, KanbanColumn, SessionId, SessionInfo,
+    SessionMode, SessionStatus, StructuredSupport,
 };
 
 /// The board's four lanes (the archive is not drawn on the spike's screen).
@@ -49,7 +50,10 @@ pub struct Card {
     pub session: SessionId,
     /// Whether it is a conversation (structured) rather than a terminal.
     pub structured: bool,
-    /// What it is called (its title, else its folder, else its id).
+    /// Whether its process is alive (it takes prompts).
+    pub live: bool,
+    /// What it is called: its title, else its folder's name, else empty
+    /// (the text table says "Untitled session", as the page's `titles.ts`).
     pub title: String,
     /// The machine it runs on.
     pub machine: String,
@@ -58,13 +62,41 @@ pub struct Card {
     /// Its lane; `None` for the archive.
     pub lane: Option<Lane>,
     /// The card's status line.
-    pub phrase: String,
-    /// Whether it waits on its owner (the card leads its lane).
-    pub needs_you: bool,
-    /// Whether work is turning (the phrase's spinner, the sidebar's dot).
-    pub working: bool,
+    pub phrase: Phrase,
+    /// Whether it waits on its owner or is working (its dot, its edge, its
+    /// place in the lane).
+    pub attention: Attention,
     /// When it last did something.
     pub at: DateTime<Utc>,
+}
+
+/// A card's status line, as a value; its words are the text table's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Phrase {
+    /// The node's phrase (protocol 8).
+    Node(DisplayStatus),
+    /// From an older node, the process's state.
+    Starting,
+    /// Running.
+    Running,
+    /// Exited, with its code when the system gave one.
+    Exited(Option<i32>),
+    /// Could not start.
+    Failed,
+    /// The node stopped while it was live.
+    Interrupted,
+}
+
+/// What a session asks of the eye: the page's `needsYou` and `isWorking`,
+/// one value since a session is never both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum Attention {
+    /// Nothing turning, nothing asked.
+    AtRest,
+    /// Work is turning (the phrase's spinner, the sidebar's blue dot).
+    Working,
+    /// It waits on its owner (the card leads its lane, a red edge).
+    NeedsYou,
 }
 
 /// Whether a machine answered.
@@ -85,6 +117,46 @@ pub struct Machine {
     pub reach: Reach,
     /// Its sessions, archive included.
     pub sessions: Vec<Card>,
+    /// The agents a conversation can be started with there.
+    pub agents: Vec<Agent>,
+}
+
+/// An agent a machine can start a conversation with.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Agent {
+    /// Which one, as the node names it.
+    pub harness: HarnessRef,
+    /// Its name for people (the page's `agentName`).
+    pub name: String,
+}
+
+impl Agent {
+    /// The agents among `harnesses` that run a conversation (an ACP
+    /// adapter is there); a harness that only runs in a terminal is left
+    /// out until the app draws terminals.
+    #[must_use]
+    pub fn conversational(harnesses: &[Harness]) -> Vec<Self> {
+        harnesses
+            .iter()
+            .filter(|harness| matches!(harness.structured, StructuredSupport::Available))
+            .map(|harness| Self {
+                harness: harness.kind.clone(),
+                name: agent_name(&harness.kind),
+            })
+            .collect()
+    }
+}
+
+/// An agent's name for people (the page's `agentName`).
+#[must_use]
+pub fn agent_name(agent: &HarnessRef) -> String {
+    match agent.known() {
+        Some(HarnessKind::ClaudeCode) => "Claude Code".to_owned(),
+        Some(HarnessKind::Codex) => "Codex".to_owned(),
+        Some(HarnessKind::Gemini) => "Gemini".to_owned(),
+        Some(HarnessKind::OpenCode) => "OpenCode".to_owned(),
+        None => agent.to_string(),
+    }
 }
 
 /// Everything the screen shows.
@@ -107,8 +179,44 @@ impl Fleet {
             .flat_map(|machine| machine.sessions.iter())
             .filter(|card| card.lane == Some(lane))
             .collect();
-        cards.sort_by(|one, two| two.needs_you.cmp(&one.needs_you).then(two.at.cmp(&one.at)));
+        cards.sort_by(|one, two| {
+            let needs_you = |card: &Card| card.attention == Attention::NeedsYou;
+            needs_you(two)
+                .cmp(&needs_you(one))
+                .then(two.at.cmp(&one.at))
+        });
         cards
+    }
+
+    /// The archive: every session in no lane (ended, archived), newest
+    /// first (the page's `board().archive`).
+    #[must_use]
+    pub fn archive(&self) -> Vec<&Card> {
+        let mut cards: Vec<&Card> = self
+            .machines
+            .iter()
+            .flat_map(|machine| machine.sessions.iter())
+            .filter(|card| card.lane.is_none())
+            .collect();
+        cards.sort_by_key(|card| std::cmp::Reverse(card.at));
+        cards
+    }
+
+    /// How many sessions the board's lanes show.
+    #[must_use]
+    pub fn on_board(&self) -> usize {
+        self.machines
+            .iter()
+            .flat_map(|machine| machine.sessions.iter())
+            .filter(|card| card.lane.is_some())
+            .count()
+    }
+
+    /// The machines that answered, for starting a session.
+    pub fn online(&self) -> impl Iterator<Item = &Machine> {
+        self.machines
+            .iter()
+            .filter(|machine| machine.reach == Reach::Online)
     }
 }
 
@@ -129,57 +237,51 @@ impl Card {
                     .and_then(|cwd| cwd.file_name())
                     .map(|name| name.to_string_lossy().into_owned())
             })
-            .unwrap_or_else(|| session.id.to_string());
-        let agent = session.spec.harness.to_string();
-        let (lane, phrase, needs_you, working, at) = match &session.board {
-            Some(board) => (
-                lane_of(board.column),
-                phrase_of(board.display_status).to_owned(),
-                needs_you(board.display_status),
-                working(board.display_status),
-                board.last_activity_at,
-            ),
-            None => {
-                let live = matches!(
-                    session.status,
-                    SessionStatus::Starting | SessionStatus::Running
-                );
+            .unwrap_or_default();
+        let agent = agent_name(&session.spec.harness);
+        let (lane, phrase, attention, at) = session.board.as_ref().map_or_else(
+            || {
+                // An older node: placed by the process's state.
+                let starting = matches!(session.status, SessionStatus::Starting);
                 (
-                    live.then_some(Lane::Building),
-                    status_word(&session.status),
-                    false,
-                    matches!(session.status, SessionStatus::Starting),
+                    session.status.is_live().then_some(Lane::Building),
+                    phrase_of_status(&session.status),
+                    if starting {
+                        Attention::Working
+                    } else {
+                        Attention::AtRest
+                    },
                     session.ended_at.unwrap_or(session.created_at),
                 )
-            }
-        };
+            },
+            |board| {
+                (
+                    lane_of(board.column),
+                    Phrase::Node(board.display_status),
+                    attention_of(board.display_status),
+                    board.last_activity_at,
+                )
+            },
+        );
         Self {
-            session: session.id.clone(),
+            session: session.id,
             structured: matches!(session.spec.mode, SessionMode::Structured { .. }),
+            live: session.status.is_live(),
             title,
             machine: machine.to_owned(),
             agent,
             lane,
             phrase,
-            needs_you,
-            working,
+            attention,
             at,
         }
     }
 
-    /// "just now", "6m ago", "3h ago", "5d ago" (the page's `sinceLabel`).
+    /// Whole minutes since it last did something (the text table words
+    /// it: the page's `sinceLabel`).
     #[must_use]
-    pub fn since(&self, now: DateTime<Utc>) -> String {
-        let minutes = now.signed_duration_since(self.at).num_minutes();
-        if minutes < 1 {
-            "just now".to_owned()
-        } else if minutes < 60 {
-            format!("{minutes}m ago")
-        } else if minutes < 60 * 24 {
-            format!("{}h ago", minutes / 60)
-        } else {
-            format!("{}d ago", minutes / (60 * 24))
-        }
+    pub fn minutes_since(&self, now: DateTime<Utc>) -> i64 {
+        now.signed_duration_since(self.at).num_minutes()
     }
 }
 
@@ -193,62 +295,44 @@ const fn lane_of(column: KanbanColumn) -> Option<Lane> {
     }
 }
 
-/// The phrase's words (the page's `displayStatusLabel`).
-const fn phrase_of(status: DisplayStatus) -> &'static str {
+/// The page's `needsYou` (blocked, failing checks nobody fixes, changes
+/// a person requested) and `isWorking` (a turn or a loop turning).
+const fn attention_of(status: DisplayStatus) -> Attention {
     match status {
-        DisplayStatus::Working => "Working",
-        DisplayStatus::Blocked => "Blocked",
-        DisplayStatus::Exited => "Exited",
-        DisplayStatus::NoSignal => "No signal",
-        DisplayStatus::Interrupted => "Interrupted",
-        DisplayStatus::AwaitingPr => "Awaiting PR",
-        DisplayStatus::Idle => "Idle",
-        DisplayStatus::FixingCi => "Fixing CI failures",
-        DisplayStatus::AddressingComments => "Addressing comments",
-        DisplayStatus::NeedsReview => "Needs review",
-        DisplayStatus::ReviewScheduled => "Review scheduled",
-        DisplayStatus::Reviewing => "Reviewing",
-        DisplayStatus::ReviewFailed => "Review failed",
-        DisplayStatus::ReviewPending => "Review pending",
-        DisplayStatus::Draft => "Draft",
-        DisplayStatus::CiFailing => "CI failing",
-        DisplayStatus::Commented => "Commented",
-        DisplayStatus::ChangesRequested => "Changes requested",
-        DisplayStatus::NeedsHumanReview => "Needs human review",
-        DisplayStatus::Mergeable => "Mergeable",
-        DisplayStatus::Approved => "Approved",
-        DisplayStatus::Merged => "Merged",
-        DisplayStatus::Closed => "Closed without merge",
-        DisplayStatus::Terminated => "Terminated",
+        DisplayStatus::Blocked | DisplayStatus::CiFailing | DisplayStatus::ChangesRequested => {
+            Attention::NeedsYou
+        }
+        DisplayStatus::Working
+        | DisplayStatus::FixingCi
+        | DisplayStatus::AddressingComments
+        | DisplayStatus::Reviewing
+        | DisplayStatus::ReviewPending => Attention::Working,
+        DisplayStatus::Exited
+        | DisplayStatus::NoSignal
+        | DisplayStatus::Interrupted
+        | DisplayStatus::AwaitingPr
+        | DisplayStatus::Idle
+        | DisplayStatus::NeedsReview
+        | DisplayStatus::ReviewScheduled
+        | DisplayStatus::ReviewFailed
+        | DisplayStatus::Draft
+        | DisplayStatus::Commented
+        | DisplayStatus::NeedsHumanReview
+        | DisplayStatus::Mergeable
+        | DisplayStatus::Approved
+        | DisplayStatus::Merged
+        | DisplayStatus::Closed
+        | DisplayStatus::Terminated => Attention::AtRest,
     }
 }
 
-const fn needs_you(status: DisplayStatus) -> bool {
-    matches!(
-        status,
-        DisplayStatus::Blocked | DisplayStatus::CiFailing | DisplayStatus::ChangesRequested
-    )
-}
-
-const fn working(status: DisplayStatus) -> bool {
-    matches!(
-        status,
-        DisplayStatus::Working
-            | DisplayStatus::FixingCi
-            | DisplayStatus::AddressingComments
-            | DisplayStatus::Reviewing
-            | DisplayStatus::ReviewPending
-    )
-}
-
-fn status_word(status: &SessionStatus) -> String {
+const fn phrase_of_status(status: &SessionStatus) -> Phrase {
     match status {
-        SessionStatus::Starting => "starting".to_owned(),
-        SessionStatus::Running => "running".to_owned(),
-        SessionStatus::Exited { code: Some(code) } => format!("exited {code}"),
-        SessionStatus::Exited { code: None } => "exited".to_owned(),
-        SessionStatus::Failed { .. } => "failed".to_owned(),
-        SessionStatus::Interrupted => "interrupted".to_owned(),
+        SessionStatus::Starting => Phrase::Starting,
+        SessionStatus::Running => Phrase::Running,
+        SessionStatus::Exited { code } => Phrase::Exited(*code),
+        SessionStatus::Failed { .. } => Phrase::Failed,
+        SessionStatus::Interrupted => Phrase::Interrupted,
     }
 }
 

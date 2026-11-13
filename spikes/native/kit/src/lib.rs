@@ -22,6 +22,8 @@
 //!   text input (selection, clipboard, input methods), hidden behind
 //!   [`TextField`].
 
+pub mod assets;
+pub mod chrome;
 pub mod field;
 pub mod fonts;
 pub mod theme;
@@ -29,10 +31,11 @@ mod widgets;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 
+pub use assets::Assets;
 pub use field::TextField;
 pub use fonts::Type;
 pub use theme::{Scheme, Tokens};
-pub use widgets::{TypeExt, button, dot, kicker, markdown};
+pub use widgets::{TypeExt, button, choice, dot, kicker, markdown};
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
 /// screens import from the kit (see the module's decision log).

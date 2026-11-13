@@ -101,14 +101,20 @@ async fn read_credential(
 }
 
 /// What a pairing link offers, for a person to check before pairing: the
-/// node's id and its key's fingerprint (what `vessel node status` prints
-/// on the node), and its routes.
+/// node's key's fingerprint (printed on the node with the link), its id,
+/// its routes and when the link expires.
 #[derive(Debug, Clone)]
 pub struct Offer {
     /// The decoded offer.
-    pub(crate) offer: vessel_proto::PairingOffer,
-    /// A line to show: id, fingerprint, routes, expiry.
-    pub summary: String,
+    pub(crate) decoded: vessel_proto::PairingOffer,
+    /// The key's fingerprint, in its groups of four.
+    pub key: String,
+    /// The node's id.
+    pub node: String,
+    /// Its routes, direct ones first.
+    pub routes: Vec<String>,
+    /// When the link stops working, UTC.
+    pub expires: String,
 }
 
 /// Decode a pasted pairing link.
@@ -127,27 +133,83 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
         .chain(&offer.relays)
         .map(ToString::to_string)
         .collect();
-    let summary = format!(
-        "node {} · key {} · via {} · expires {}",
-        offer.node,
-        vessel_client::fingerprint(&offer.key),
-        routes.join(", "),
-        offer.expires.format("%Y-%m-%d %H:%M UTC"),
-    );
-    Ok(Offer { offer, summary })
+    Ok(Offer {
+        key: vessel_client::fingerprint(&offer.key),
+        node: offer.node.to_string(),
+        routes,
+        expires: offer.expires.format("%Y-%m-%d %H:%M UTC").to_string(),
+        decoded: offer,
+    })
+}
+
+/// Why a machine name will not do, in terms a person can act on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NameProblem {
+    /// Nothing typed.
+    Empty,
+    /// It is the node's key (groups of hexadecimal digits), typed where a
+    /// name goes: what the first build's screen led its owner to do.
+    LooksLikeKey,
+    /// It is a pairing link.
+    LooksLikeLink,
+    /// Not a node name (letters, digits, `.`, `_`, `-`).
+    Invalid,
+    /// The book already has a machine of that name.
+    Taken,
+}
+
+/// What is wrong with `text` as a new machine's name, if anything;
+/// `taken` are the book's names.
+#[must_use]
+pub fn name_problem(text: &str, taken: &[String]) -> Option<NameProblem> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Some(NameProblem::Empty);
+    }
+    if text.starts_with("vessel://") {
+        return Some(NameProblem::LooksLikeLink);
+    }
+    let hex = text.chars().filter(char::is_ascii_hexdigit).count();
+    if text.contains(' ') && hex >= 8 && text.chars().all(|c| c.is_ascii_hexdigit() || c == ' ') {
+        return Some(NameProblem::LooksLikeKey);
+    }
+    if text.parse::<NodeName>().is_err() {
+        return Some(NameProblem::Invalid);
+    }
+    if taken.iter().any(|name| name == text) {
+        return Some(NameProblem::Taken);
+    }
+    None
+}
+
+/// A name for a new machine that the book does not have: `machine`, then
+/// `machine-2`, `machine-3`… (the link carries no name of the node's own;
+/// the node says its name only once paired).
+#[must_use]
+pub fn default_name(taken: &[String]) -> String {
+    let free = |name: &String| !taken.contains(name);
+    std::iter::once("machine".to_owned())
+        .chain((2_u32..=999).map(|n| format!("machine-{n}")))
+        .find(free)
+        .unwrap_or_else(|| "machine".to_owned())
 }
 
 /// Pair with the node `offer` names, write the credential, and add the
 /// node to the book as `name` (as `vessel nodes add NAME --pair` does: the
 /// credential first, then the entry).
-pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<String, LinkError> {
+pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<(String, String), LinkError> {
     let name = name
         .trim()
         .parse::<NodeName>()
         .map_err(|error| LinkError::Name(error.to_string()))?;
     let config = config_dir()?;
     let book_path = NodeBook::path_in(&config);
-    let offer = &offer.offer;
+    // A taken name is refused before the invitation is spent (as the CLI
+    // does): the link works once.
+    if read_book()?.iter().any(|(taken, _)| taken == &name) {
+        return Err(LinkError::Name(format!("{name} is already in the book")));
+    }
+    let offer = &offer.decoded;
     let dialer = WsDialer::for_routes(offer.direct.iter().chain(&offer.relays))
         .map_err(|error| LinkError::Connect(error.to_string()))?;
     let device_name = hostname::get()
@@ -181,5 +243,5 @@ pub(crate) async fn pair(offer: &Offer, name: &str) -> Result<String, LinkError>
     })
     .await
     .map_err(|error| LinkError::Io(error.to_string()))??;
-    Ok(format!("paired with {node_name} via {route}"))
+    Ok((node_name, route.to_string()))
 }

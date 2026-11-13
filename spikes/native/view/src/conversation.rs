@@ -75,15 +75,31 @@ impl ToolState {
     }
 }
 
+/// Something that happened, shown in the conversation (its words are the
+/// text table's).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Notice {
+    /// The turn failed, and the agent's message.
+    TurnFailed(String),
+    /// The process ended.
+    Ended,
+    /// The process failed, and why.
+    Failed(String),
+    /// The node stopped while the session was live.
+    Interrupted,
+}
+
 /// One entry of the conversation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entry {
     /// Who it is from.
     pub speaker: Speaker,
-    /// Its text (a tool call's title).
+    /// Its text (a tool call's title); empty for a notice.
     pub text: String,
     /// A tool call's state; `None` for every other entry.
     pub tool: Option<ToolState>,
+    /// What happened, for a notice; `None` for every other entry.
+    pub notice: Option<Notice>,
 }
 
 /// A permission the agent waits for: what it wants to do, and the
@@ -93,7 +109,7 @@ pub struct Asked {
     /// The request.
     pub id: PermissionId,
     /// What it is for: the tool call's title, when known.
-    pub what: String,
+    pub what: Option<String>,
     /// The answers, in the agent's order: id, words, and whether it allows.
     pub options: Vec<(PermissionOptionId, String, bool)>,
 }
@@ -186,6 +202,7 @@ impl Conversation {
                     speaker: Speaker::Tool,
                     text: call.title.clone(),
                     tool: Some(ToolState::from_status(call.status)),
+                    notice: None,
                 });
                 let _earlier = self.tools.insert(call.id.clone(), index);
             }
@@ -208,9 +225,9 @@ impl Conversation {
                     .tools
                     .get(&request.tool_call)
                     .and_then(|index| self.entries.get(*index))
-                    .map_or_else(|| "a tool call".to_owned(), |entry| entry.text.clone());
+                    .map(|entry| entry.text.clone());
                 self.asked.push(Asked {
-                    id: request.id.clone(),
+                    id: request.id,
                     what,
                     options: request
                         .options
@@ -235,7 +252,7 @@ impl Conversation {
             AgentEvent::TurnFailed { message } => {
                 self.turn_running = false;
                 self.asked.clear();
-                self.push(Speaker::Notice, format!("The turn failed: {message}"));
+                self.notify(Notice::TurnFailed(message.clone()));
             }
             AgentEvent::Ready { .. }
             | AgentEvent::Plan { .. }
@@ -248,13 +265,13 @@ impl Conversation {
     fn status(&mut self, status: &SessionStatus) {
         let notice = match status {
             SessionStatus::Starting | SessionStatus::Running => return,
-            SessionStatus::Exited { .. } => "The session ended".to_owned(),
-            SessionStatus::Failed { message } => format!("The session failed: {message}"),
-            SessionStatus::Interrupted => "The session was interrupted".to_owned(),
+            SessionStatus::Exited { .. } => Notice::Ended,
+            SessionStatus::Failed { message } => Notice::Failed(message.clone()),
+            SessionStatus::Interrupted => Notice::Interrupted,
         };
         self.turn_running = false;
         self.asked.clear();
-        self.push(Speaker::Notice, notice);
+        self.notify(notice);
     }
 
     fn push(&mut self, speaker: Speaker, text: String) {
@@ -262,6 +279,16 @@ impl Conversation {
             speaker,
             text,
             tool: None,
+            notice: None,
+        });
+    }
+
+    fn notify(&mut self, notice: Notice) {
+        self.entries.push(Entry {
+            speaker: Speaker::Notice,
+            text: String::new(),
+            tool: None,
+            notice: Some(notice),
         });
     }
 

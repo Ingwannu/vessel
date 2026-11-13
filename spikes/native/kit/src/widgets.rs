@@ -86,3 +86,41 @@ pub fn kicker(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
 pub fn markdown(id: impl Into<gpui::ElementId>, text: impl Into<SharedString>) -> impl IntoElement {
     gpui_component::text::TextView::markdown(id, text)
 }
+
+/// One of a few choices (a machine, an agent): a pill, filled with the
+/// ink when chosen (the page's segmented choices).
+#[must_use]
+pub fn choice(
+    id: impl Into<gpui::ElementId>,
+    label: impl Into<SharedString>,
+    chosen: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let (bg, fg, edge) = if chosen {
+        (
+            tokens.btn_primary_bg,
+            tokens.btn_primary_fg,
+            tokens.btn_primary_bg,
+        )
+    } else {
+        (
+            tokens.bg_surface,
+            tokens.text_secondary,
+            tokens.border_subtle,
+        )
+    };
+    let hover = if chosen { bg } else { tokens.bg_hover };
+    div()
+        .id(id)
+        .px(px(12.0))
+        .py(px(5.0))
+        .rounded(px(radius::R2))
+        .border_1()
+        .border_color(edge)
+        .bg(bg)
+        .text_color(fg)
+        .type_(Type::Label)
+        .cursor_pointer()
+        .hover(move |style| style.bg(hover))
+        .child(label.into())
+}

@@ -89,9 +89,7 @@ async fn follow(
         match now {
             UpdateState::Ready { label, .. } => {
                 let said = shell.update(cx, |shell, cx| {
-                    shell.notice = Some(format!(
-                        "Vessel {label} is installed and opens the next time Vessel starts."
-                    ));
+                    shell.notice = Some(shell.t.update_installed(&label.to_string()));
                     cx.notify();
                 });
                 if said.is_err() {
