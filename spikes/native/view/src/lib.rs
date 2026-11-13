@@ -13,4 +13,4 @@ mod board;
 mod conversation;
 
 pub use board::{Card, Fleet, Lane, Machine, Reach, rows_for_scroll};
-pub use conversation::{Conversation, Entry, Speaker, ToolState};
+pub use conversation::{Asked, Conversation, Entry, Speaker, ToolState};

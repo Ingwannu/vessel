@@ -32,7 +32,7 @@ impl<E: Styled> TypeExt for E {}
 /// one a light well (DESIGN.md section 6, `--btn-*`).
 #[must_use]
 pub fn button(
-    id: impl Into<SharedString>,
+    id: impl Into<gpui::ElementId>,
     label: impl Into<SharedString>,
     primary: bool,
     tokens: &Tokens,
@@ -51,7 +51,7 @@ pub fn button(
         )
     };
     div()
-        .id(id.into())
+        .id(id)
         .px(px(12.0))
         .py(px(6.0))
         .rounded(px(radius::R2))
@@ -76,4 +76,13 @@ pub fn kicker(text: impl Into<SharedString>, tokens: &Tokens) -> Div {
         .type_(Type::Kicker)
         .text_color(tokens.text_tertiary)
         .child(text.into())
+}
+
+/// Markdown as an agent writes it: paragraphs, emphasis, code, lists.
+/// The component layer's renderer, behind the kit, so a screen does not
+/// depend on it; its cache is keyed by `id`, which must stay the same for
+/// the same text across frames.
+#[must_use]
+pub fn markdown(id: impl Into<gpui::ElementId>, text: impl Into<SharedString>) -> impl IntoElement {
+    gpui_component::text::TextView::markdown(id, text)
 }

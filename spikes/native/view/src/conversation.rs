@@ -21,8 +21,8 @@
 use std::collections::HashMap;
 
 use vessel_proto::{
-    AgentEvent, ContentBlock, EventRecord, EventSeq, SessionEvent, SessionStatus, ToolCallId,
-    ToolCallStatus,
+    AgentEvent, ContentBlock, EventRecord, EventSeq, PermissionId, PermissionOptionId,
+    PermissionOptionKind, SessionEvent, SessionStatus, ToolCallId, ToolCallStatus,
 };
 
 /// Who an entry is from, which decides how it is drawn.
@@ -86,11 +86,24 @@ pub struct Entry {
     pub tool: Option<ToolState>,
 }
 
+/// A permission the agent waits for: what it wants to do, and the
+/// answers it offers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Asked {
+    /// The request.
+    pub id: PermissionId,
+    /// What it is for: the tool call's title, when known.
+    pub what: String,
+    /// The answers, in the agent's order: id, words, and whether it allows.
+    pub options: Vec<(PermissionOptionId, String, bool)>,
+}
+
 /// The conversation so far.
 #[derive(Debug)]
 pub struct Conversation {
     entries: Vec<Entry>,
     tools: HashMap<ToolCallId, usize>,
+    asked: Vec<Asked>,
     next: EventSeq,
     turn_running: bool,
 }
@@ -100,6 +113,7 @@ impl Default for Conversation {
         Self {
             entries: Vec::new(),
             tools: HashMap::new(),
+            asked: Vec::new(),
             next: EventSeq::new(0),
             turn_running: false,
         }
@@ -117,6 +131,12 @@ impl Conversation {
     #[must_use]
     pub const fn next_seq(&self) -> EventSeq {
         self.next
+    }
+
+    /// The permissions waiting for an answer, oldest first.
+    #[must_use]
+    pub fn asked(&self) -> &[Asked] {
+        &self.asked
     }
 
     /// Whether a turn is running (the composer then queues).
@@ -183,19 +203,42 @@ impl Conversation {
                     }
                 }
             }
-            AgentEvent::PermissionRequested(_) => {
-                self.push(Speaker::Notice, "The agent asks for permission".to_owned());
+            AgentEvent::PermissionRequested(request) => {
+                let what = self
+                    .tools
+                    .get(&request.tool_call)
+                    .and_then(|index| self.entries.get(*index))
+                    .map_or_else(|| "a tool call".to_owned(), |entry| entry.text.clone());
+                self.asked.push(Asked {
+                    id: request.id.clone(),
+                    what,
+                    options: request
+                        .options
+                        .iter()
+                        .map(|option| {
+                            let allows = matches!(
+                                option.kind,
+                                PermissionOptionKind::AllowOnce | PermissionOptionKind::AllowAlways
+                            );
+                            (option.id.clone(), option.name.clone(), allows)
+                        })
+                        .collect(),
+                });
+            }
+            AgentEvent::PermissionResolved { id, .. } => {
+                self.asked.retain(|asked| asked.id != *id);
             }
             AgentEvent::TurnEnded { .. } => {
                 self.turn_running = false;
+                self.asked.clear();
             }
             AgentEvent::TurnFailed { message } => {
                 self.turn_running = false;
+                self.asked.clear();
                 self.push(Speaker::Notice, format!("The turn failed: {message}"));
             }
             AgentEvent::Ready { .. }
             | AgentEvent::Plan { .. }
-            | AgentEvent::PermissionResolved { .. }
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::QuestionAsked(_)
             | AgentEvent::QuestionResolved { .. } => {}
@@ -210,6 +253,7 @@ impl Conversation {
             SessionStatus::Interrupted => "The session was interrupted".to_owned(),
         };
         self.turn_running = false;
+        self.asked.clear();
         self.push(Speaker::Notice, notice);
     }
 
