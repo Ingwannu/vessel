@@ -124,3 +124,6 @@ mod tests;
 
 #[cfg(test)]
 mod format_tests;
+
+#[cfg(test)]
+mod fixture;

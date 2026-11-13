@@ -341,3 +341,18 @@ runtime packages for the Fluent stack and one native-test-only allocation
 counter over the original app; existing package versions are unchanged.
 The installed/wasm measurements above include the generated API, embedded
 catalogs, grammar, formatter code and their linked transitive costs.
+
+### Release catalog boundary (slice 2 correction)
+
+The coordinator accepted slice 1, then required its partial Japanese proof
+out of the released app. `view/locales/` is release input: every folder is
+embedded and listed. The two-message Japanese file now belongs solely to
+`view/tests/fixtures/locales/`, alongside a small complete source pair.
+Registry, fallback and coverage tests use that fixture root. The ordinary
+app ships complete English and Korean; a shipped-catalog test rejects any
+incomplete entry. Core validation and English fallback still support partial
+candidate/test catalogs, inspected with the coverage tool's `--root` mode.
+A contributor checks the current source/candidate root for zero missing
+keys and passes the native gate before adding a release folder. While the
+legacy tables remain, coverage of migrated messages alone does not prove
+an additional language covers the whole app.

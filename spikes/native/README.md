@@ -349,6 +349,38 @@ Rust tables until the coordinator accepts the engine and its first migration;
 the first migrated area will supply the contributor model. The pseudo-locale
 is tested in this slice; normal-screen captures follow that migration.
 
+
+### Add a language
+
+A folder under `view/locales/<tag>/` is embedded in the released app and
+listed in the chooser by its own `meta-name`. It is not a draft area.
+Before adding it, the coverage report must show `0 missing` and
+`complete=true` for every language being shipped, with no syntax, variable
+or formatting-rule errors; the complete native gate must pass. The staged
+app currently ships only English and Korean while legacy tables remain.
+A report over migrated messages does not prove those legacy screens are
+translated.
+
+Prepare a candidate outside `view/locales/`, alongside copies of the
+current English/Korean source folders, and inspect it without shipping it:
+
+```bash
+scripts/locale-coverage.sh --root CANDIDATE_ROOT
+```
+
+The two-message Japanese folder is solely a test fixture under
+`view/tests/fixtures/locales/`. Registry, coverage and fallback tests read
+that root; its partial translations never enter the released registry.
+To inspect that proof, from this workspace:
+
+```bash
+scripts/locale-coverage.sh --root view/tests/fixtures/locales
+```
+
+Without `--root`, the report also reads the compiled shipped-language list.
+Core validation supports partial candidates and English fallback; the
+released-catalog test requires every shipped catalog to be complete.
+
 ## A release
 
 `spikes/release/build.sh` (the release track's) builds every artifact of

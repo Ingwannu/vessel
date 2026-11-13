@@ -132,6 +132,14 @@ mod tests {
     fn translated_numeric_rules_are_generated_and_invalid_rules_fail() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
         let mut languages = super::super::read(&root).unwrap();
+        let fixture_root =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/locales");
+        let partial = super::super::read(&fixture_root)
+            .unwrap()
+            .into_iter()
+            .find(|l| l.tag == "ja")
+            .unwrap();
+        languages.push(partial);
         let template = languages
             .iter()
             .find(|l| l.tag == "en")
