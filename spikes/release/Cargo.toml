@@ -5,6 +5,10 @@
 #
 #   hello    the smallest GPUI window, to prove a target builds and runs
 #            before the app exists on it (question 4 of the plan)
+#   updater  how the app updates itself: the feed's types, verification,
+#            the download, the swap and the restart; no GPUI, so the app
+#            links it and nothing of the UI layer reaches it (question 8)
+#   feed     the tool that makes the signing key and publishes a feed
 #
 # The toolchain is the desktop track's (1.98.1): the GPUI snapshot needs
 # 1.95 or newer, and one toolchain for the app and its release keeps a
@@ -12,7 +16,7 @@
 
 [workspace]
 resolver = "3"
-members = ["hello"]
+members = ["hello", "updater", "feed"]
 # A crate copied from crates.io and patched (patches/README.md): not a
 # member, so the workspace's lints are not applied to code that is not ours.
 exclude = ["patches"]
@@ -96,6 +100,32 @@ wildcard_enum_match_arm = "warn"
 # app is written on.
 gpui = { package = "gpui-pre", version = "=0.3.10" }
 gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10" }
+
+vessel-app-updater = { path = "updater" }
+
+# The updater's and the feed tool's (ADR 0014: every one MIT, Apache-2.0
+# or both; listed with their licences in docs/plans/backend-m12-release.md).
+# The versions are the main workspace's where it has the crate, so the app,
+# which links both trees, builds one copy.
+#
+# minisign: the signature format ADR 0008 chose for `vesseld` releases and
+# Tauri's updater uses; `minisign-verify` (MIT, no dependencies of its own)
+# checks it in the app, `minisign` (MIT) makes the key and signs, in the
+# feed tool and the tests only.
+minisign = "0.10"
+minisign-verify = "0.3"
+# HTTPS as the main workspace does it (ADR 0005's amendment): rustls with
+# `ring` picked explicitly and the system's roots; no platform TLS.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "fs", "time", "sync", "macros"] }
+tracing = "0.1"
 
 [profile.release]
 # As Vessel's own release profile and the app's.

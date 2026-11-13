@@ -1,0 +1,29 @@
+[package]
+name = "vessel-app-updater"
+description = "How Vessel's native app updates itself: a signed feed, a check, a verified download, a swap and a restart"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+minisign-verify.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+rustls-native-certs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+minisign.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["io-util", "net", "rt-multi-thread"] }
