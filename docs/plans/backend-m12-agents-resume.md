@@ -141,6 +141,26 @@ starts. A checked request entry must settle that exact ticket visibly,
 with saturated/closed-channel regression coverage. This was not silently
 folded into the frozen redraw gate.
 
+## Resume-only handoff: idle runtime cleanup
+
+After closeout, E2 relayed A2 commit `a3e78dfa`: protocol-12
+`node.settings` / `node.set_settings` expose `ParkAfter`. E2 identified
+Paseo `screens/settings/idle-runtime-cleanup-card.tsx` as a host > Agents
+consumer, making G3 the proposed screen owner; confirm the full contract
+and ownership with the coordinator before implementation. E2 is not adding
+this card to its current frame slice.
+
+The relayed contract is: switching on sends `Idle` with the existing minute
+value or 60 minutes, switching off sends `Never`; `Unknown` displays Custom
+and must not be sent. Hide the card on unsupported or `invalid_request`;
+an administrator change rejected as `Forbidden` appears as an error below
+the row. These are handoff facts, not independently verified source or
+runtime results.
+
+No commit was imported, no card registered, and no implementation or gate
+started for this notification. Resume by reading A2's full immutable
+contract and the named reference, then plan it within the Agents scope.
+
 ## Local evidence index
 
 - Final gate: `/tmp/work/m12-g3/screen-redraw-gate-compact.log`.
