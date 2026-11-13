@@ -458,3 +458,16 @@ success fixture that actually held 68 digits (`InvalidText::TooLong`, max64);
 the fixture was corrected to 64, preserving the production validator. None of
 these failing trees was committed. The final whole native gate is the delivery
 check; development-only package tests are not represented as that gate.
+
+## Integrating the current desktop base before drawing
+
+The desktop lead's newer base brings its single-XIM-context Linux platform
+patch, focused marked-text query, file-failure words, translation scaffolding
+and reviewed shared glyphs. The merge preserves the accepted multiline form's
+engine, shell and tests alongside the lead's `TextField::composing` query and
+its three-field regression; neither input handler is replaced. Text registration
+keeps both the Git exports and the lead's file/localization modules. README
+keeps the already-reviewed code tooltip and summary-frame documentation. These
+are overlap resolutions, not a new control or a platform patch made by G1.
+Live Hangul composition still needs its own runtime evidence; an imported
+platform fix or passing handler tests is not that evidence.

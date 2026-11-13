@@ -95,3 +95,72 @@ Changed: `build.rs`, and three call sites of Direct Manipulation in
 
 To see both changes: unpack the published `.crate` and `diff -ru` it
 against `gpui-pre-windows/` (only `Cargo.lock` is missing on this side).
+
+## `gpui-pre-linux` 0.3.10
+
+Upstream: the `gpui-pre` snapshot of Zed's `gpui_linux` (zed@08cbb88),
+Apache-2.0 (`LICENSE-APACHE` beside it). The `.crate` it was taken from
+had SHA-256
+`7c6ffd2dce7b75cce0bb3382994912f84c2a05389a4a236bb8bd72cb098fc083`.
+Removed from the copy: its `Cargo.lock` (unused for a dependency).
+
+Changed: `src/linux/x11/client.rs` and `src/linux/x11/xim_handler.rs`,
+each marked `MODIFIED by Vessel` at the top and `Vessel patch` at each
+change.
+
+### 3. One XIM input context per window
+
+- Purpose: Hangul (and any input method with an on/off state) stays on
+  in Vessel's window across a switch of windows. Before this, a person
+  who turned Hangul on in Vessel, went to another window and came back
+  typed Latin letters while the input method's indicator still said
+  Hangul (`gksrmf` for 한글): the defect reported as "Hangul does not
+  compose on X11" (track G1, 2026-11-13).
+- Upstream's constraint: on every `FocusIn` the X11 client's
+  `enable_ime` asked the input method for a new input context
+  (`create_ic`) and never destroyed the old one nor used XIM's focus
+  requests. An input method keeps its on/off state per input context
+  (fcitx5's default, `ShareInputState=No`), and a new context starts
+  off. Measured in G1's harness (a private Xvfb, fcitx5 5.1.7 with
+  Hangul over XIM): on, other window, back, typed `gksrmf` → `gksrmf`.
+- Alternatives:
+  1. Ask people to share the input state across contexts in their input
+     method's settings (fcitx5 `ShareInputState=All`). It is theirs to
+     set, not the app's, changes every other program too, and nothing
+     tells them to.
+  2. Destroy the old context and make a new one each time. The state is
+     lost the same way.
+  3. **This change**: the XIM handler remembers each window's context
+     (made the first time the window has the focus); `FocusIn` focuses
+     it again (`XIM_SET_IC_FOCUS`) and `FocusOut` unfocuses it
+     (`XIM_UNSET_IC_FOCUS`), which is what XIM's focus requests are for.
+- Why 3: the input method sees one context per window for the window's
+  life, as with any other X client, so its state is the window's; the
+  change is a map and two requests, in the two files that handle XIM.
+- A syllable half typed when the window loses the focus: upstream reset
+  the context (`XIM_RESET_IC`), which threw it away. Now the context is
+  only unfocused and the input method decides. fcitx5 commits it when it
+  lets the app draw the composition (`UseOnTheSpot=True`: its log shows
+  `XIM commit: 하` right after `XIM_UNSET_IC_FOCUS`, and the field keeps
+  하 once); in its default style, where fcitx5 draws the composition in
+  its own popup, it drops it, as it does for any XIM program (xterm too):
+  the app never had that text, so it cannot keep it. Upstream deleted
+  the marked text in the field on `FocusOut` and still does (the
+  committed text replaces it).
+- Cost: a third change to carry at every GPUI pin (re-copy, re-apply
+  the diff of the two files). A window's context is not destroyed when
+  the window closes (one small entry in the input method per window
+  opened; the app opens few).
+- Verified on a debug build with track G1's harness (a private Xvfb, a
+  private D-Bus session, fcitx5 5.1.7 with Hangul over XIM, keys by
+  xdotool), in both fcitx5 styles; captures are local, not committed:
+
+  | Step | Before (upstream) | After |
+  |---|---|---|
+  | Hangul on, other window, back, type `gksrmf` | `한글 gksrmf` | `한글 한글` (both styles) |
+  | `gk` (하 composing), other window, back, `s` | 하 lost | on-the-spot: 하 kept once, then ㄴ composes; default: 하 dropped by fcitx5 (above) |
+  | `gk`, a click in the field, `s` | (Hangul already off) | on-the-spot: 하 kept, then ㄴ; default: composes on to 한 |
+
+- Wayland is not changed: the pinned crate's `zwp_text_input_v3` client
+  composes in place (sway nested on Xvfb, fcitx5 over input-method-v2:
+  한그 drawn with the syllable underlined, then 한글 committed).

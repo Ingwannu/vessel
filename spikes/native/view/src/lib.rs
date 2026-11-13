@@ -19,6 +19,7 @@ mod conversation;
 pub mod devices;
 pub mod effort;
 pub mod extras;
+pub mod files;
 mod links;
 pub mod machines;
 pub mod models;
@@ -48,6 +49,7 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
     own_name, with_picks,
 };
+pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
     GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, NoticeWords,

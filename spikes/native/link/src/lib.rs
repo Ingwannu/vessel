@@ -85,6 +85,11 @@ pub enum LinkError {
     /// The book could not be read or written.
     #[error("the node book: {0}")]
     Book(String),
+    /// The book does not read: where and what, never its text (it may
+    /// hold a token). The app says it in its own words
+    /// ([`Event::BookUnreadable`]).
+    #[error("the node book {} does not read", .0.path)]
+    BookFault(vessel_app_view::files::FileFault),
     /// A websocket node without a token file.
     #[error("no token file in the book for this node")]
     NoToken,
@@ -262,7 +267,7 @@ pub enum Event {
     },
     /// Pairing worked.
     Paired {
-        /// The node's own name for itself.
+        /// The machine's name in the book (as the sidebar shows it).
         node: String,
         /// How the machine answered, said in words.
         via: vessel_app_view::Via,
@@ -296,6 +301,9 @@ pub enum Event {
     },
     /// Something failed; the words to show.
     Failed(String),
+    /// The machine list does not read (the app words it, in its language;
+    /// a pairing under way stops with the same words).
+    BookUnreadable(vessel_app_view::files::FileFault),
     /// A machine answered a workspace ask.
     Workspace {
         /// The machine.
@@ -447,6 +455,7 @@ impl State {
                     self.emit(Event::Paired { node, via, address }).await;
                     self.reload().await;
                 }
+                Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
                 Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
             },
             Command::Act {
@@ -481,6 +490,10 @@ impl State {
     async fn refresh(&mut self) {
         let book = match nodes::read_book() {
             Ok(book) => book,
+            Err(LinkError::BookFault(fault)) => {
+                self.emit(Event::BookUnreadable(fault)).await;
+                return;
+            }
             Err(error) => {
                 self.emit(Event::Failed(error.to_string())).await;
                 return;

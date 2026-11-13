@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use vessel_client::book::{BookEntry, BookFile, NodeBook, NodeName};
+use vessel_client::book::{BookEntry, BookError, BookFile, NodeBook, NodeName};
 use vessel_client::secure::{RouteTimeouts, SecureConnector, WsDialer, pair_over};
 use vessel_client::{
     BearerToken, Connector as _, CredentialSource, DeviceCredential, NodeAddress, NodeClient,
@@ -23,10 +23,45 @@ pub(crate) fn config_dir() -> Result<PathBuf, LinkError> {
         .ok_or(LinkError::NoHome)
 }
 
+/// A book error for the app: one that does not read becomes a typed fault
+/// (the app words it; nothing of the file's text is carried), any other
+/// keeps the client's sentence (none of them quotes the file).
+fn book_error(error: BookError) -> LinkError {
+    use vessel_app_view::files::{FileFault, FileProblem};
+    use vessel_client::file_fault::TomlProblem;
+
+    match error {
+        BookError::Syntax { path, fault } | BookError::ProjectSyntax { path, fault } => {
+            LinkError::BookFault(FileFault {
+                path: path.display().to_string(),
+                at: fault.at.map(|at| (at.line, at.column)),
+                problem: match fault.problem {
+                    TomlProblem::NotToml => FileProblem::NotToml,
+                    TomlProblem::UnknownKey => FileProblem::UnknownKey,
+                    TomlProblem::DuplicateKey => FileProblem::DuplicateKey,
+                    TomlProblem::MissingKey => FileProblem::MissingKey,
+                    TomlProblem::WrongKind => FileProblem::WrongKind,
+                },
+                field: fault.field.map(str::to_owned),
+            })
+        }
+        other @ (BookError::Io { .. }
+        | BookError::Entry { .. }
+        | BookError::UnknownDefault { .. }
+        | BookError::Unknown { .. }
+        | BookError::Exists { .. }
+        | BookError::Missing { .. }
+        | BookError::PinnedElsewhere { .. }) => LinkError::Book(other.to_string()),
+    }
+}
+
 /// The book's nodes, in its order.
 pub(crate) fn read_book() -> Result<Vec<(NodeName, BookEntry)>, LinkError> {
-    let path = NodeBook::path_in(&config_dir()?);
-    let file = BookFile::open(&path).map_err(|error| LinkError::Book(error.to_string()))?;
+    read_book_at(&NodeBook::path_in(&config_dir()?))
+}
+
+fn read_book_at(path: &Path) -> Result<Vec<(NodeName, BookEntry)>, LinkError> {
+    let file = BookFile::open(path).map_err(book_error)?;
     Ok(file
         .book()
         .nodes
@@ -263,7 +298,7 @@ pub(crate) async fn pair(
         id: Some(offer.node),
     };
     let node_name = paired.node.name.clone();
-    let name = if prefer_node_name {
+    let name: NodeName = if prefer_node_name {
         let taken: Vec<String> = read_book()?
             .iter()
             .map(|(taken, _)| taken.as_str().to_owned())
@@ -275,15 +310,17 @@ pub(crate) async fn pair(
     } else {
         name
     };
+    // The status line names the machine as the sidebar does: by its name
+    // in the book (the node's own name may differ when the person typed
+    // another).
+    let shown = name.as_str().to_owned();
     tokio::task::spawn_blocking(move || -> Result<(), LinkError> {
         paired
             .credential
             .write(&path)
             .map_err(|error| LinkError::Credential(error.to_string()))?;
-        let mut file =
-            BookFile::open(&book_path).map_err(|error| LinkError::Book(error.to_string()))?;
-        file.add(&name, &entry)
-            .map_err(|error| LinkError::Book(error.to_string()))
+        let mut file = BookFile::open(&book_path).map_err(book_error)?;
+        file.add(&name, &entry).map_err(book_error)
     })
     .await
     .map_err(|error| LinkError::Io(error.to_string()))??;
@@ -293,12 +330,45 @@ pub(crate) async fn pair(
         }
         vessel_client::secure::Route::Relay(url) => (vessel_app_view::Via::Relay, url.to_string()),
     };
-    Ok((node_name, via, address))
+    Ok((shown, via, address))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::book_name;
+    use super::{LinkError, book_name, read_book_at};
+    use vessel_app_view::Lang;
+
+    /// A token written into the book (it takes a file) reaches the app as
+    /// a place and a kind only: the error's Display and Debug and the
+    /// footer's words in both languages never hold it (the coordinator's
+    /// review of 0.0.0.0.8, 2026-11-13).
+    #[test]
+    fn a_book_that_does_not_read_never_shows_its_text() {
+        const TOKEN: &str = "vt_live_0c4d7e2a9f81b356";
+        let dir = std::env::temp_dir().join(format!("vessel-app-book-{}", std::process::id()));
+        drop(std::fs::remove_dir_all(&dir));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("nodes.toml");
+        std::fs::write(
+            &path,
+            format!("[nodes.lab]\nurl = \"ws://127.0.0.1:9/rpc\"\ntoken = \"{TOKEN}\"\n"),
+        )
+        .unwrap();
+        let error = read_book_at(&path).unwrap_err();
+        assert!(!error.to_string().contains(TOKEN), "{error}");
+        assert!(!format!("{error:?}").contains(TOKEN));
+        let LinkError::BookFault(fault) = error else {
+            panic!("{error:?}");
+        };
+        assert_eq!(fault.at, Some((3, 9)));
+        for lang in [Lang::En, Lang::Ko] {
+            let footer = lang.machines_unreadable(&fault);
+            assert!(!footer.contains(TOKEN), "{footer}");
+            assert!(footer.contains("token = { file = "), "{footer}");
+            assert!(footer.contains("nodes.toml"), "{footer}");
+        }
+        drop(std::fs::remove_dir_all(&dir));
+    }
 
     #[test]
     fn a_node_name_becomes_a_book_name() {
