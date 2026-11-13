@@ -14,6 +14,9 @@ use vessel_rpc::{Outbound, Peer};
 
 use crate::agents::Agents;
 use crate::attachments::Attachments;
+use crate::automation::notices::Notices;
+use crate::automation::prompts::SavedPrompts;
+use crate::automation::schedules::Schedules;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -56,6 +59,12 @@ mod forge;
 // the ports their trees listen on (`terminals`, ADR 0031).
 mod scripts;
 mod terminals;
+// Protocol 11's calls: schedules (`automation`), and the runs they make
+// through the service's own checks.
+mod notices;
+mod prompts;
+mod scheduled;
+mod schedules;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -106,6 +115,13 @@ pub(crate) struct NodeService {
     catalogue: crate::catalogue::Catalogues,
     /// The last install (protocol 11, `install`).
     installs: crate::install::Installs,
+    /// The scheduler (protocol 11, `automation::schedules`).
+    schedules: Schedules,
+    /// Saved prompts (protocol 11, `automation::prompts`).
+    prompts: SavedPrompts,
+    /// Turns followed for their starters (protocol 11,
+    /// `automation::notices`).
+    notices: Arc<Notices>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -132,6 +148,7 @@ pub(crate) struct Parts {
     pub(crate) terminals: Arc<Terminals>,
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
+    pub(crate) schedules: Schedules,
 }
 
 impl NodeService {
@@ -159,7 +176,9 @@ impl NodeService {
             terminals,
             ports,
             catalogue,
+            schedules,
         } = parts;
+        let store = sessions.store().clone();
         Self {
             lsp,
             lsp_roots,
@@ -186,6 +205,9 @@ impl NodeService {
             readiness: crate::readiness::Readiness::default(),
             catalogue,
             installs: crate::install::Installs::default(),
+            schedules,
+            prompts: SavedPrompts::new(store),
+            notices: Arc::default(),
         }
     }
 

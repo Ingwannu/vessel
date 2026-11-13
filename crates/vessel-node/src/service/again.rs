@@ -50,6 +50,14 @@ impl NodeService {
             Some(SessionPlace::Project { .. }) | None => None,
         };
         let mut launch = self.launcher.again(&self.profiles, &ended.info)?;
+        // The schedules its agent made in its last run go first: a run
+        // started again is a new grant, and a heartbeat does not outlive
+        // the run that set it (ADR 0033, "Integration 3 (node)").
+        // Its only failure is a scheduler that has stopped: the node is.
+        self.schedules
+            .starting_again(id)
+            .await
+            .map_err(|_stopped| ServiceError::Draining)?;
         let secret = self
             .agents
             .reserve(id, &connection.principal, self.launcher.has_tools())?;

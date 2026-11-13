@@ -74,6 +74,12 @@ pub struct PromptSession {
     pub content: Vec<ContentBlock>,
     /// How it goes.
     pub delivery: Delivery,
+    /// Tell the caller's own session, through its queue, when the turn
+    /// this prompt starts waits for an answer and when it finishes, or
+    /// the session ends (protocol 11, ADR 0033: the starter told). Only a
+    /// session's agent asks, on its own node. Left out when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub notify: bool,
 }
 
 /// `session.queue`: change a session's queue. Needs `operate`.

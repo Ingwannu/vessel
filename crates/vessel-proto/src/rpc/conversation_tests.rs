@@ -56,8 +56,14 @@ fn the_new_calls_need_protocol_ten() {
         session,
         content: vec![text("hi")],
         delivery: Delivery::Queue,
-    }
-    .into_call();
+        notify: false,
+    };
+    let told = PromptSession {
+        notify: true,
+        ..prompt.clone()
+    };
+    assert_eq!(told.into_call().since(), ProtocolVersion::new(11));
+    let prompt = prompt.into_call();
     assert_eq!(prompt.since(), V10);
     // An answer to a question, or a prompt naming an attachment, on the
     // old call: an older node could not decode either.

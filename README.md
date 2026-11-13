@@ -462,6 +462,40 @@ dir = "web"                                # a folder inside the checkout
   `netstat` on Windows), every few seconds while someone asks; nothing is
   opened or forwarded.
 
+### Schedules and saved prompts
+
+A node runs prompts on its own (protocol 11, ADR 0033): a schedule sends
+its prompt to a new session each time, or into an existing session's
+queue, on a cron expression in a time zone or every so often. Saved
+prompts are a person's texts, named, for a project or for the machine.
+
+```bash
+vessel schedule create --name nightly --cron "0 9 * * 1-5" --tz Asia/Seoul \
+  --harness claude --project app --prompt "Look at last night's failures"
+vessel schedule create --every 30m --session 3f2a --prompt-file check.md
+vessel schedule list
+vessel schedule runs nightly                # what each run came to
+vessel schedule run nightly                 # once now
+vessel schedule edit nightly --cron "0 8 * * 1-5"
+vessel schedule pause nightly
+vessel prompt save review --project app --text "Review the open pull requests"
+vessel prompt run review --session 3f2a     # into its queue
+```
+
+- A run acts as whoever last made or changed the schedule, as they are
+  when it runs: a revoked device's schedules end, an agent's end with its
+  session. A new session's run is archived after its first turn unless
+  `--keep`; nobody is asked questions in it, and a permission it asks
+  makes the run wait (the next due times are skipped meanwhile).
+- A time the clocks skip runs once at the jump; a time they repeat runs
+  once. Due times missed while the node was stopped give one run (the
+  latest, if less than a day old; `--catch-up skip` for none).
+- Prompts never go into a running turn: they wait in the queue, and a
+  schedule never puts a second one there, nor wakes a session a person
+  stopped.
+- Saved prompts are kept by the node, never read from a repository's
+  files; agents may read them, not write them.
+
 ## Profiles, the fleet and agent tools
 
 Milestone 4 (ADRs 0011 to 0013). Each part works on its own: profiles on
@@ -684,14 +718,23 @@ waits on an answer), `change_queue`, `answer_question`,
 setup to its end; at most 8 worktrees of its own, a session in one only
 if it made it), and for terminals `create_terminal`, `list_terminals`,
 `read_terminal`, `write_terminal` (marked destructive: typing runs
-programs), `close_terminal` and `list_ports`; each but `list_nodes`
-takes `node`, so an agent can start a session on another machine and
-read its answer.
+programs), `close_terminal` and `list_ports`; each but `list_nodes` and
+the schedule tools takes `node`, so an agent can start a session on
+another machine and read its answer. On its own node: `create_schedule`,
+`create_heartbeat` (a prompt to itself, through its own queue),
+`list_schedules`, `schedule_runs`, `pause_schedule`, `resume_schedule`,
+`delete_schedule` and `list_saved_prompts`; at most 8 schedules per
+session, gone when it ends, never run now.
 
 - An agent has its creator's scopes, at most `read` and `operate`, and
   operates only on sessions it started (and theirs).
 - At most 8 live sessions of its own per node, and agents start agents at
   most 3 levels deep.
+- `send_input` and `create_session`'s first prompt take `notify` (this
+  node only): the agent's own session is told, as a message queued into
+  it, never typed into a running turn, when that prompt's turn waits for
+  an answer and when it finishes, or the session ends; once per event, at
+  most 32 turns followed per session and 60 notices an hour into it.
 - Sessions record who started them. This is attribution under one OS
   user, not a sandbox (ADR 0013).
 - Terminals only where a person allowed them (`agent_terminals = true` in

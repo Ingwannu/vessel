@@ -517,6 +517,19 @@ impl Handler for FakeNode {
         run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
         restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
         list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
+        list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
+        get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
+        create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
+        update_schedule: vessel_proto::automation::UpdateSchedule => vessel_proto::automation::ScheduleInfo;
+        pause_schedule: vessel_proto::automation::PauseSchedule => vessel_proto::automation::ScheduleInfo;
+        resume_schedule: vessel_proto::automation::ResumeSchedule => vessel_proto::automation::ScheduleInfo;
+        run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
+        delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
+        list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
+        list_prompts: vessel_proto::automation::ListPrompts => vessel_proto::automation::PromptList;
+        create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
+        update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
+        delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
     }
 }
 

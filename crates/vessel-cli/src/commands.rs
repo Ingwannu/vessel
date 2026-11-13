@@ -19,44 +19,14 @@ use crate::connect::{connect, connect_to, data_dir, is_here};
 use crate::error::CliError;
 use crate::selector::SessionSelector;
 use crate::{
-    conversation, devices, fleet, init, io, nodes, remote, render, terminals, transfer, ui,
-    workspace,
+    automation, conversation, devices, fleet, init, io, nodes, remote, render, terminals, transfer,
+    ui, workspace,
 };
 
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
-        Command::Node {
-            command:
-                NodeCommand::Start {
-                    bind,
-                    name,
-                    lsp_config,
-                    lsp_roots,
-                    lsp_full_roots,
-                },
-        } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
-        Command::Node {
-            command: NodeCommand::Install(install),
-        } => remote::install(target, install).await,
-        Command::Node {
-            command: NodeCommand::Update(update),
-        } => remote::update(target, update).await,
-        Command::Node {
-            command: NodeCommand::Status,
-        } => {
-            let client = connect(target).await?.client;
-            let node = client.node_info().await?;
-            let sessions = client.sessions().await?;
-            let text = render::node_status(&node, &sessions, env!("CARGO_PKG_VERSION"));
-            Ok(io::out(text.as_bytes()).await?)
-        }
-        Command::Node {
-            command: NodeCommand::Pair { label, ttl },
-        } => devices::pair(target, label, ttl).await,
-        Command::Node {
-            command: NodeCommand::Devices { command },
-        } => devices::devices(target, command).await,
+        Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,
         Command::Fleet { command } => Box::pin(fleet::command(target, command)).await,
         Command::Status => {
@@ -96,6 +66,8 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Shell(shell) => terminals::shell(target, shell).await,
         Command::Script { command } => terminals::script(target, command).await,
         Command::Ports(ports) => terminals::ports(target, &ports).await,
+        Command::Schedule { command } => automation::schedule(target, command).await,
+        Command::Prompt { command } => automation::prompt(target, command).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;
             let info = session.resolve(&connected.client).await?;
@@ -120,6 +92,30 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         }
         Command::Session { command } => Box::pin(session(target, command)).await,
         Command::Ui(args) => Box::pin(ui::ui(target, args)).await,
+    }
+}
+
+/// `vessel node ...`.
+async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
+    match command {
+        NodeCommand::Start {
+            bind,
+            name,
+            lsp_config,
+            lsp_roots,
+            lsp_full_roots,
+        } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
+        NodeCommand::Install(install) => remote::install(target, install).await,
+        NodeCommand::Update(update) => remote::update(target, update).await,
+        NodeCommand::Status => {
+            let client = connect(target).await?.client;
+            let node = client.node_info().await?;
+            let sessions = client.sessions().await?;
+            let text = render::node_status(&node, &sessions, env!("CARGO_PKG_VERSION"));
+            Ok(io::out(text.as_bytes()).await?)
+        }
+        NodeCommand::Pair { label, ttl } => devices::pair(target, label, ttl).await,
+        NodeCommand::Devices { command } => devices::devices(target, command).await,
     }
 }
 
