@@ -8,6 +8,7 @@
 //! `view` crate; what it asks of nodes in `link`; its words in `view`'s
 //! text table; its controls in `kit`.
 
+pub(crate) mod about;
 pub(crate) mod archive;
 pub(crate) mod board;
 pub(crate) mod common;

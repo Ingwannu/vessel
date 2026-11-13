@@ -38,6 +38,27 @@ pub struct Prefs {
     /// The choices of the last start of each agent, by machine.
     #[serde(default)]
     pub choices: BTreeMap<String, Vec<Kept>>,
+    /// Updates only when the person checks ("Update automatically" off;
+    /// `false`, the default, is on, as Zed's `auto_update` is).
+    #[serde(default)]
+    pub manual_updates: bool,
+    /// The build that ran last: a different one now was updated to, and
+    /// says so once.
+    #[serde(default)]
+    pub last_label: Option<String>,
+    /// An installed update's notes, kept until the build they describe
+    /// runs (the updater knows them only in the build that downloaded it).
+    #[serde(default)]
+    pub update_notes: Option<UpdateNotes>,
+}
+
+/// A build's notes, as its feed carried them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdateNotes {
+    /// The build.
+    pub label: String,
+    /// Its notes.
+    pub notes: String,
 }
 
 /// One agent's choices on one machine.

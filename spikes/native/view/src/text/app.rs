@@ -136,7 +136,7 @@ impl Text {
     /// The sidebar's foot.
     #[must_use]
     pub fn build(&self, label: &str) -> String {
-        format!("Vessel {label} · {}", self.reload)
+        format!("Vessel {label}")
     }
 
     /// "just now", "6m ago", "3h ago", "5d ago" (the page's `sinceLabel`).
@@ -270,20 +270,6 @@ impl Text {
         match self.lang {
             Lang::En => format!("Paired with {name} via {route}"),
             Lang::Ko => format!("{name}와(과) 연결했습니다 ({route})"),
-        }
-    }
-
-    /// The updater installed a newer build (spikes/release/updater); it
-    /// runs from the next start.
-    #[must_use]
-    pub fn update_installed(&self, label: &str) -> String {
-        match self.lang {
-            Lang::En => {
-                format!("Vessel {label} is installed and opens the next time Vessel starts.")
-            }
-            Lang::Ko => format!(
-                "Vessel {label}을(를) 설치했습니다. 다음에 Vessel을 열면 이 빌드로 시작합니다."
-            ),
         }
     }
 }

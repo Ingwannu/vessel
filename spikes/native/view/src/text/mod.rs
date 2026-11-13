@@ -24,9 +24,11 @@
 
 mod app;
 mod options;
+mod update;
 
 pub use app::Text;
 pub use options::OptionsText;
+pub use update::UpdateText;
 
 /// A language the app speaks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

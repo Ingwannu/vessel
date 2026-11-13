@@ -1,20 +1,25 @@
 //! The app's title bar (the kit draws the bar and the window's controls;
 //! this says what is in it): the mark, the app's name and the build's
-//! label.
+//! label at the left; the update's status at the right, before the
+//! window's buttons, where Zed shows its own.
 
+use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
-    Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
+use vessel_app_updater::UpdateState;
 
 use crate::shell::Shell;
+use crate::update::percent;
 
 pub(crate) fn title_bar(
     shell: &Shell,
     tokens: &Tokens,
     window: &mut Window,
-    _cx: &mut Context<'_, Shell>,
-) -> impl vessel_app_kit::ui::IntoElement {
+    cx: &mut Context<'_, Shell>,
+) -> impl IntoElement {
     let content = div()
         .flex()
         .flex_row()
@@ -36,5 +41,101 @@ pub(crate) fn title_bar(
                 .child(crate::LABEL),
         )
         .into_any_element();
-    vessel_app_kit::chrome::title_bar(content, tokens, window)
+    let narrow = vessel_app_kit::breakpoint::phone(window);
+    let status = update_status(shell, narrow, tokens, cx).map(IntoElement::into_any_element);
+    vessel_app_kit::chrome::title_bar(content, status, tokens, window)
+}
+
+/// The update's status as Zed shows it: nothing while idle or up to date;
+/// quiet words while checking and downloading; a small button once a
+/// build is in place; a quiet failure with "Try again" (never a dialog).
+/// At a phone's width, an icon only (the restart and the retry stay
+/// buttons). Also drawn in the sidebar's foot when the system draws the
+/// title bar.
+pub(crate) fn update_status(
+    shell: &Shell,
+    narrow: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<Div> {
+    let words = shell.t.lang.update();
+    let quiet = |text: String| {
+        if narrow {
+            div().child(icon(tokens.text_tertiary))
+        } else {
+            div()
+                .type_(Type::Tiny)
+                .text_color(tokens.text_tertiary)
+                .child(text)
+        }
+    };
+    match &shell.update_state {
+        UpdateState::Idle | UpdateState::UpToDate { .. } => None,
+        UpdateState::Checking => Some(quiet(words.checking.to_owned())),
+        UpdateState::Downloading {
+            received, total, ..
+        } => Some(quiet(
+            words.downloading(percent(received.get(), total.get())),
+        )),
+        UpdateState::Ready { .. } => {
+            let button = div()
+                .id("restart-to-update")
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(6.0))
+                .px(px(if narrow { 6.0 } else { 10.0 }))
+                .py(px(3.0))
+                .rounded(px(vessel_app_kit::theme::radius::R2))
+                .bg(tokens.btn_primary_bg)
+                .text_color(tokens.btn_primary_fg)
+                .type_(Type::Meta)
+                .cursor_pointer()
+                .child(icon(tokens.btn_primary_fg));
+            let button = if narrow {
+                button
+            } else {
+                button.child(words.restart)
+            };
+            Some(
+                div().child(button.on_click(cx.listener(|this, _event, _window, cx| {
+                    this.restart_to_update(cx);
+                }))),
+            )
+        }
+        UpdateState::Failed { .. } => {
+            let retry = div()
+                .id("update-try-again")
+                .type_(Type::Tiny)
+                .text_color(tokens.text_secondary)
+                .cursor_pointer()
+                .hover(|style| style.text_color(tokens.text_primary))
+                .on_click(cx.listener(|this, _event, _window, cx| this.check_for_updates(cx)));
+            Some(if narrow {
+                div().child(retry.child(icon(tokens.danger)))
+            } else {
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(8.0))
+                    .child(
+                        div()
+                            .type_(Type::Tiny)
+                            .text_color(tokens.text_tertiary)
+                            .child(words.failed),
+                    )
+                    .child(retry.underline().child(words.try_again))
+            })
+        }
+    }
+}
+
+fn icon(color: Hsla) -> AnyElement {
+    vessel_app_kit::ui::svg()
+        .path(Glyph::Update.path())
+        .size(px(13.0))
+        .flex_shrink_0()
+        .text_color(color)
+        .into_any_element()
 }

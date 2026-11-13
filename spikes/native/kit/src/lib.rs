@@ -23,6 +23,7 @@
 //!   [`TextField`].
 
 pub mod assets;
+pub mod breakpoint;
 pub mod chrome;
 pub mod field;
 pub mod fonts;
@@ -43,7 +44,7 @@ pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
         AnyElement, App, AsyncApp, Context, Div, ElementId, Entity, Hsla, ListAlignment, ListState,
-        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, uniform_list,
+        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, svg, uniform_list,
     };
 }
 
