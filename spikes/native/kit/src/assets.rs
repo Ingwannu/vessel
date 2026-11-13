@@ -109,12 +109,36 @@ pub enum Glyph {
     LightningFilled,
     /// Back to the default: an arrow turning back.
     Reset,
+    /// A terminal session (a prompt's chevron and a line).
+    Terminal,
+    /// A conversation (a speech bubble).
+    Message,
+    /// The archive (a box with its lid).
+    Archive,
+    /// Delete for good.
+    Trash,
+    /// Pinned.
+    Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// A pencil: edit (a queued message).
+    Pencil,
+    /// An arrow turning up and right: send into the running turn (GOAT's
+    /// steer, `CornerUpRight`).
+    Steer,
+    /// Six dots: a handle to drag a row by.
+    Grip,
+    /// An X on the line glyphs' grid: take a row out (a queued message;
+    /// the window's `Close` fills its box and reads heavier beside them).
+    Remove,
+    /// A file (the Files tree, Paseo's `File`).
+    File,
+    /// The code panel's toggle (Paseo's `PanelRight`).
+    PanelRight,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 43] = [
+const ALL: [Glyph; 54] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -157,7 +181,18 @@ const ALL: [Glyph; 43] = [
     Glyph::Lightning,
     Glyph::LightningFilled,
     Glyph::Reset,
+    Glyph::Terminal,
+    Glyph::Message,
+    Glyph::Archive,
+    Glyph::Trash,
+    Glyph::Pin,
     Glyph::Spinner,
+    Glyph::Pencil,
+    Glyph::Steer,
+    Glyph::Grip,
+    Glyph::Remove,
+    Glyph::File,
+    Glyph::PanelRight,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -215,11 +250,22 @@ impl Glyph {
             Self::ArrowLeft => "kit/arrow-left.svg",
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
+            Self::File => "kit/file.svg",
+            Self::PanelRight => "kit/panel-right.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
+            Self::Terminal => "kit/terminal.svg",
+            Self::Message => "kit/message.svg",
+            Self::Archive => "kit/archive.svg",
+            Self::Trash => "kit/trash.svg",
+            Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Pencil => "kit/pencil.svg",
+            Self::Steer => "kit/steer.svg",
+            Self::Grip => "kit/grip.svg",
+            Self::Remove => "kit/remove.svg",
         }
     }
 
@@ -288,6 +334,16 @@ impl Glyph {
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
             ),
+            Self::Pencil => line_glyph!(
+                r#"<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/><path d="M14.5 5.5l3 3"/>"#
+            ),
+            Self::Remove => line_glyph!(r#"<path d="M18 6L6 18M6 6l12 12"/>"#),
+            Self::Steer => {
+                line_glyph!(r#"<path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>"#)
+            }
+            Self::Grip => line_glyph!(
+                r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
+            ),
             Self::Copy => line_glyph!(
                 r#"<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>"#
             ),
@@ -334,8 +390,27 @@ impl Glyph {
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
+            Self::File => line_glyph!(
+                r#"<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>"#
+            ),
+            Self::PanelRight => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>"#
+            ),
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
+            ),
+            // The page's own drawings (`web/src/ui/kit/icon.css`, on a
+            // 16 grid at a stroke of 1), at one and a half times.
+            Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
+            Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::Archive => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
+            ),
+            Self::Trash => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
+            ),
+            Self::Pin => line_glyph!(
+                r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),
         }
     }

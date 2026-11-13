@@ -25,7 +25,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
 };
-use vessel_app_kit::{Reveal, Tokens, popup};
+use vessel_app_kit::{Reveal, Tokens, Type, TypeExt as _, popup};
 use vessel_app_view::timeline::OutlineItem;
 
 use crate::shell::Shell;
@@ -187,10 +187,16 @@ pub(super) fn rail(
                 .border_color(neutral.border)
                 .bg(neutral.surface2)
                 .shadow(shadow.clone())
+                .face(Type::Body)
                 .text_size(px(12.0))
                 .line_height(px(16.0))
                 .text_color(neutral.foreground)
-                .child(div().line_clamp(2).child(item.prompt.clone()))
+                .child(
+                    div()
+                        .line_clamp(2)
+                        .text_ellipsis()
+                        .child(item.prompt.clone()),
+                )
         });
         div()
             .id(("outline-slot", index))

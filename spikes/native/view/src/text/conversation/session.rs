@@ -7,10 +7,10 @@
 use std::fmt::Write as _;
 
 use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
-use vessel_proto::{InvalidTitle, SessionTitle};
+use vessel_proto::{InvalidTitle, QueueHold, SessionTitle};
 
-use super::ConversationWords;
 use super::numbers::meter_tokens;
+use super::{ConversationWords, plural};
 use crate::Lang;
 use crate::session::MarkAction;
 use crate::timeline::{Fullness, Meter};
@@ -50,6 +50,70 @@ impl ConversationWords {
         } else {
             self.either("Wrapped to the last match.", "마지막 결과로 돌아갔습니다.")
         }
+    }
+
+    /// The queue's heading: how many prompts wait (GOAT's "Queued").
+    #[must_use]
+    pub fn queued(&self, count: usize) -> String {
+        let count = u64::try_from(count).unwrap_or(u64::MAX);
+        match self.lang {
+            Lang::En => format!("Queued · {}", plural(count, "message", "messages")),
+            Lang::Ko => format!("대기 중 · {count}개"),
+        }
+    }
+
+    /// Why the queue does not move on its own, and what lets it go.
+    #[must_use]
+    pub const fn queue_held(&self, why: QueueHold) -> &'static str {
+        match why {
+            QueueHold::Cancelled => {
+                self.either("Paused: the turn was stopped", "멈춤: 턴을 중지했습니다")
+            }
+            QueueHold::Failed => self.either("Paused: the turn failed", "멈춤: 턴이 실패했습니다"),
+            QueueHold::Ended => self.either("Paused: the session ended", "멈춤: 세션이 끝났습니다"),
+            QueueHold::Asked => self.either("Paused", "멈춤"),
+        }
+    }
+
+    /// Let a held queue move again.
+    #[must_use]
+    pub const fn queue_resume(&self) -> &'static str {
+        self.either("Resume", "다시 진행")
+    }
+
+    /// Empty the queue.
+    #[must_use]
+    pub const fn queue_clear(&self) -> &'static str {
+        self.either("Clear", "모두 비우기")
+    }
+
+    /// A queued message's buttons, as a screen reader names them.
+    #[must_use]
+    pub const fn queue_edit(&self) -> &'static str {
+        self.either("Edit queued message", "대기 메시지 편집")
+    }
+
+    /// Send a queued message into the running turn.
+    #[must_use]
+    pub const fn queue_steer(&self) -> &'static str {
+        self.either("Steer", "진행 중인 턴에 보내기")
+    }
+
+    /// Send a queued message now: interrupting the running turn when one
+    /// runs, else starting one.
+    #[must_use]
+    pub const fn queue_send_now(&self, interrupts: bool) -> &'static str {
+        if interrupts {
+            self.either("Interrupt and send", "중단하고 보내기")
+        } else {
+            self.either("Send now", "지금 보내기")
+        }
+    }
+
+    /// Take a message out of the queue.
+    #[must_use]
+    pub const fn queue_remove(&self) -> &'static str {
+        self.either("Remove from queue", "대기열에서 빼기")
     }
 
     /// The find bar's count while the search has not reached the end:

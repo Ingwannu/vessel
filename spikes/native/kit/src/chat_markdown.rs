@@ -54,8 +54,9 @@ use gpui::{
 use gpui_component::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
 
 use crate::copy::{CopyLook, copy_button};
-use crate::fonts::MONO;
+use crate::fonts::Type;
 use crate::theme::{Scheme, Tokens};
+use crate::widgets::TypeExt as _;
 
 /// The block's corner radius (GOAT's `rounded-lg`).
 const RADIUS: f32 = 8.0;
@@ -349,7 +350,7 @@ fn corner(
         .bg(look.fill)
         .children(lang.filter(|lang| !lang.is_empty()).map(|lang| {
             div()
-                .font_family(MONO)
+                .face(Type::Mono)
                 .text_size(px(crate::fonts::code(LANGUAGE_SIZE)))
                 .text_color(look.quiet.opacity(0.72))
                 .child(lang)

@@ -84,7 +84,8 @@ pub(super) fn header(
     let labels = shell.words().labels();
     let (text, tone) = headline(shell, start);
     let icon: AnyElement = match tone {
-        Tone::Working => vessel_app_kit::dot(tokens.st_building).into_any_element(),
+        // Paseo's `LoadingSpinner` at 14 in the foreground.
+        Tone::Working => vessel_app_kit::slider::spinner("start-spinner", 14.0, neutral.foreground),
         Tone::Asking => glyph(Glyph::Shield, 14.0, neutral.foreground_muted).into_any_element(),
         Tone::Done => glyph(Glyph::Check, 14.0, tokens.st_ready).into_any_element(),
         Tone::Failed => glyph(Glyph::Alert, 14.0, neutral.destructive).into_any_element(),

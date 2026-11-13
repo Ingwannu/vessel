@@ -24,6 +24,25 @@ pub trait TypeExt: Styled + Sized {
         .text_size(px(size))
         .line_height(px(line))
     }
+
+    /// Only the face of `step` (its family and weight, Pretendard behind
+    /// it), for an element that sets its own size, or a container whose
+    /// rows do. Text whose ancestors set no face has no Pretendard behind
+    /// it: the system's fallback draws its Hangul, and at small sizes one
+    /// such font split "각" into "가" and "ㄱ" (the folded thought row read
+    /// "생가ㄱ"). A family set alone (`font_family`) keeps the fallback
+    /// list of the ancestors, so it is safe only inside a face.
+    #[must_use]
+    fn face(self, step: Type) -> Self {
+        let (_size, _line, weight) = step.metrics();
+        self.font(gpui::Font {
+            family: step.family(),
+            features: gpui::FontFeatures::default(),
+            fallbacks: Some(fonts::fallbacks()),
+            weight,
+            style: FontStyle::Normal,
+        })
+    }
 }
 
 impl<E: Styled> TypeExt for E {}

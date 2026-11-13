@@ -29,8 +29,8 @@ use vessel_app_view::board::CardDetail;
 use vessel_app_view::{Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, agent_name};
 use vessel_proto::{
     AgentEvent, ContentBlock, DisplayStatus, EventRecord, EventSeq, HarnessKind, HarnessRef,
-    OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, PermissionId,
-    PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
+    OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId, PROTOCOL_VERSION,
+    PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionOutcome,
     PermissionRequest, SessionEvent, SessionId, SessionOption, StopReason, ToolCall, ToolCallId,
     ToolCallStatus, ToolCallUpdate, ToolKind,
 };
@@ -183,18 +183,21 @@ impl Demo {
                     reach: Reach::Online,
                     sessions: on("laptop"),
                     agents: agents(),
+                    protocol: Some(PROTOCOL_VERSION),
                 },
                 Machine {
                     name: "build-server".to_owned(),
                     reach: Reach::Online,
                     sessions: on("build-server"),
                     agents: agents(),
+                    protocol: Some(PROTOCOL_VERSION),
                 },
                 Machine {
                     name: "old-box".to_owned(),
                     reach: Reach::Unreachable("no route: this is the browser's demo".to_owned()),
                     sessions: Vec::new(),
                     agents: Vec::new(),
+                    protocol: None,
                 },
             ],
             read_at: Some(now),
@@ -385,6 +388,7 @@ fn agents() -> Vec<Agent> {
                 name: agent_name(&harness),
                 harness,
                 unavailable: None,
+                not_installed: false,
             }
         })
         .collect()

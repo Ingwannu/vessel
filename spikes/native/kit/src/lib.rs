@@ -44,6 +44,7 @@ pub mod sheet;
 pub mod slider;
 pub mod tabs;
 pub mod theme;
+pub mod toast;
 pub mod tooltip;
 pub mod virtual_list;
 mod widgets;
@@ -58,13 +59,16 @@ pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
-pub use output::{Start, lines_box, output_box};
+pub use output::{
+    Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
+};
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
+pub use toast::{ToastLook, toast, toasts};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{

@@ -3,6 +3,8 @@
 //! archive; in English and Korean. The English is the page's
 //! (`features/board/*`). See `text/mod.rs` for the convention.
 
+use vessel_proto::ErrorCode;
+
 use super::Lang;
 
 impl Lang {
@@ -99,6 +101,40 @@ impl BoardWords {
         match self.lang {
             Lang::En => format!("Killed {id}"),
             Lang::Ko => format!("{id} 세션을 종료했습니다"),
+        }
+    }
+
+    /// Why a restore could not start a session again (the page's
+    /// `againProblem`): the node's code in plain words, else its own
+    /// (a conflict and a failed spawn say which).
+    #[must_use]
+    pub fn again_refused(&self, code: Option<ErrorCode>, message: &str) -> String {
+        let (en, ko) = if code == Some(ErrorCode::Unsupported) {
+            (
+                "This agent cannot pick up where it left off.",
+                "이 에이전트는 멈춘 곳에서 이어 가지 못합니다.",
+            )
+        } else if code == Some(ErrorCode::HarnessNotInstalled) {
+            (
+                "The agent is no longer installed on this machine.",
+                "이 머신에 에이전트가 더 이상 설치되어 있지 않습니다.",
+            )
+        } else if code == Some(ErrorCode::Unavailable) {
+            (
+                "The machine is stopping; try again once it is back.",
+                "머신이 멈추는 중입니다. 다시 돌아오면 시도하세요.",
+            )
+        } else if code == Some(ErrorCode::InvalidRequest) {
+            return match self.lang {
+                Lang::En => format!("Its profile is gone: {message}"),
+                Lang::Ko => format!("프로필이 없어졌습니다: {message}"),
+            };
+        } else {
+            return message.to_owned();
+        };
+        match self.lang {
+            Lang::En => en.to_owned(),
+            Lang::Ko => ko.to_owned(),
         }
     }
 
