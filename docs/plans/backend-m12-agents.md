@@ -3,6 +3,49 @@
 Track G3, branch `backend/m12-app-agents`. The contract is milestone
 11's track G and ADR 0032. This track changes no node or wire type.
 
+
+## Models: reported profile use and refresh identity (rules only)
+
+The existing `view::models` is extended, not replaced: `users` projects only
+profiles whose explicit model reference equals the listed route, keeping
+profile order, distinct accounts and the shared agent-label lookup. A profile
+with no reference is not counted from a coincidentally matching name. An empty use list
+reports only that no listed profile names the route; it does not imply
+incompatibility.
+The screen will label this information “Used by profiles”. An added agent's
+valid unrouted profile is tested without inventing a routed added profile.
+Route/profile fixture shapes follow `web/src/data/model-rows.test.ts`.
+
+`models::page` keeps unsupported methods distinct from successful empty lists.
+The current machine's cached snapshot survives a refresh failure. A selected
+machine change clears that page but preserves a monotonic ticket sequence;
+both machine and ticket must match an answer. A→B→A cannot alias the first
+A request. A duplicate request, stale answer or exhausted counter cannot
+replace the active read. These are UI-free rules; this commit adds no Models
+screen or link call and claims no visual approval.
+
+The node does not send a general agent/model compatibility list. The current
+profile validator checks its private harness descriptor before accepting a
+model (`crates/vessel-harness/src/profile/parse.rs`, the `NotRoutable` rule at
+line 148 and descriptor check at lines 269–277); its error names Claude Code
+and Codex. Native does not duplicate that capability check. `model.list` and
+`profile.list` report routes and configured use, which is the scope agreed
+with the coordinator. No node or wire change is made here.
+
+[Decision Log]
+- Purpose: make read-only model facts honest and prevent late answers from
+  crossing machine navigation.
+- Existing assets and constraints: existing route/profile fact projection,
+  shared agent labels and typed node-book keys; no general compatibility wire.
+- Alternatives: a hardcoded compatibility matrix, one reused request number
+  after every switch, or treating an old node's missing method as empty.
+- Choice: extend the existing module with explicit-use projection and one
+  current machine page whose ticket sequence survives switches.
+- Why: the UI can only claim facts actually listed by its selected node.
+- Impact: switching back rereads facts; a refresh retains the last successful
+  snapshot while its typed error is displayed. No dependency is added.
+
+
 ## Existing assets and choice
 
 Modify and reuse: `view::agent_status` and `view::models` already port
