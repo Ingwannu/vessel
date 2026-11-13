@@ -24,6 +24,15 @@ work; an app that updates itself. Zed is the model for the UI and Tauri
 2 for what surrounds it (phones, installers, updates, extensions);
 neither is taken whole (ADR 0035).
 
+And then: build the app as soon as possible and hand over a link, a
+first build labelled 0.0.0.0.1, to be tried and answered with feedback,
+again and again.
+
+So the order is turned round: **a build the owner can install comes
+first**, and the questions below are answered on the way, by the tracks
+that build it (see "Tracks"). A build is real: it talks to a real node,
+shows its machines and sessions, opens a session and sends a prompt.
+
 ## Before writing code
 
 1. **What exists.** Everything below the screen: the node, the wire
@@ -100,11 +109,37 @@ Questions, each answered with what was run and what was seen:
     is a sound phone app where the native UI cannot reach, and what it
     would need of `vessel-client` (ADR 0020 described it).
 
-The spike ends with a report (`docs/plans/backend-m12-spike.md`): each
+The spike ends with reports (one per track, see "Tracks"): each
 question's answer with its evidence, what it recommends for ADR 0035's
 open points, and a proposal for the phases below with their order.
 
-## After the spike (written out when it reports)
+## Tracks (2026-11-13)
+
+The spike's questions are split between three tracks, each in a
+worktree and a cargo workspace of its own under `spikes/` (outside the
+main workspace, which excludes `spikes` whole).
+
+| Track | Branch | Where | Builds | Questions |
+|---|---|---|---|---|
+| Desktop | `backend/m12-spike` | `spikes/native/` | the app: connecting to a node, the sidebar and a board lane, a session with its composer; the Linux artifact | 1, 2, 3, 9 |
+| R, release | `backend/m12-release` | `spikes/release/` | the Windows build from Linux, the installer, one script for every artifact, the signed update feed and the updater crate, the CI job for what cannot be built here | 4, 8 |
+| M, phone | `backend/m12-phone` | `spikes/phone/` | Android: the native layer in the emulator (time-boxed), then the Tauri 2 shell around the page as an APK; what Tauri 2 teaches; iOS and the browser from the code | 5, 6, 7, 10 |
+
+Rules the three share:
+
+- Builds carry a label the coordinator gives out (`0.0.0.0.1`, then
+  `0.0.0.0.2`, ...): a display label from a build-time variable, not the
+  crate's version. Artifacts go to one directory per label with their
+  checksums; the coordinator publishes from there.
+- Screens are written against a kit of Vessel's own; nothing of GPUI's
+  or Tauri's types reaches the crate that holds view logic.
+- Signing keys (the update feed's, Android's) are made once outside the
+  repository and never copied into it or into an artifact.
+- Each track keeps notes of what it ran and what happened
+  (`backend-m12-spike.md`, `backend-m12-release.md`,
+  `backend-m12-phone.md`): the evidence for its questions.
+
+## After the first builds (written out as the tracks report)
 
 - **View models** in Rust (`vessel-view`): the conversation folded from
   records, the board, an agent's controls, the sidebar, drafts and
