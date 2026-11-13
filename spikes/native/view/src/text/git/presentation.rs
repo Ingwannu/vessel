@@ -39,6 +39,8 @@ impl Lang {
         match (self, reason) {
             (_, Unavailable::Writing) => labels.busy,
             (_, Unavailable::Reading) => labels.read_first,
+            (_, Unavailable::StatusMissing) => labels.status_missing,
+            (_, Unavailable::StatusFailed) => labels.status_failed,
             (_, Unavailable::NoBranch) => labels.no_branch,
             (Self::En, Unavailable::NoCommits) => {
                 "This repository has no commits yet. Make its first commit before continuing."

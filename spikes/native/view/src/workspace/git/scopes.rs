@@ -13,8 +13,9 @@ pub struct CommitScope {
     pub enabled: bool,
 }
 
-/// An empty staged set cannot be chosen; all scopes wait for a current read
-/// and the repository's previous write. The submit gate rechecks the same facts.
+/// A complete empty selected scope cannot be chosen; partial zero remains
+/// unknown. All choices and submit share the same derived eligibility and wait
+/// for a current read and the repository's previous write.
 #[must_use]
 pub fn commit_scopes(read: &Reading<GitStatus>, writing: &Writing) -> [CommitScope; 3] {
     let form = read.ready().map(CommitForm::of);
@@ -26,9 +27,7 @@ pub fn commit_scopes(read: &Reading<GitStatus>, writing: &Writing) -> [CommitSco
     ]
     .map(|stage| CommitScope {
         stage,
-        enabled: ready
-            && (stage != CommitStage::Staged
-                || form.as_ref().is_some_and(|form| form.staged.get() > 0)),
+        enabled: ready && form.is_some_and(|form| form.has_changes(stage)),
     })
 }
 
@@ -60,7 +59,7 @@ mod tests {
         let empty = Reading::Ready(fixtures::status(vec![]));
         assert_eq!(
             commit_scopes(&empty, &Writing::default()),
-            expected(false, true)
+            expected(false, false)
         );
         let staged = Reading::Ready(fixtures::status(vec![StatusEntry {
             path: "src/a.rs".parse().unwrap(),

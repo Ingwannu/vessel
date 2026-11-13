@@ -18,7 +18,7 @@ use vessel_proto::workspace::{Branch, GitStatus};
 
 use crate::workspace::git_quick::{Blocked, GitAction, action_blocked, quick_action};
 
-use super::{Reading, Writing};
+use super::{CommitForm, Reading, Writing};
 
 /// What a saved stash includes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,6 +53,10 @@ pub enum Unavailable {
     Writing,
     /// The displayed facts are from a previous read.
     Reading,
+    /// No status request has supplied facts yet.
+    StatusMissing,
+    /// Reading failed and automatic polling is stopped until retry.
+    StatusFailed,
     /// A quick action's state-specific reason.
     Git(Blocked),
     /// Renaming needs a checked-out branch.
@@ -86,8 +90,11 @@ pub fn availability(
     if writing.busy() {
         return Some(Unavailable::Writing);
     }
-    let Some(status) = status.ready() else {
-        return Some(Unavailable::Reading);
+    let status = match status {
+        Reading::Empty => return Some(Unavailable::StatusMissing),
+        Reading::Failed(_) => return Some(Unavailable::StatusFailed),
+        Reading::Loading { .. } => return Some(Unavailable::Reading),
+        Reading::Ready(status) => status,
     };
     if status.head.is_none()
         && matches!(
@@ -100,6 +107,12 @@ pub fn availability(
         return Some(Unavailable::NoCommits);
     }
     match action {
+        Action::Quick(GitAction::Commit)
+            if CommitForm::of(status)
+                .has_changes(vessel_proto::workspace::CommitStage::Everything) =>
+        {
+            None
+        }
         Action::Quick(action) => action_blocked(action, status).map(Unavailable::Git),
         Action::RenameBranch => status.branch.is_none().then_some(Unavailable::NoBranch),
         Action::SaveStash(_) => status.files.is_empty().then_some(Unavailable::NoChanges),

@@ -471,3 +471,51 @@ keeps the already-reviewed code tooltip and summary-frame documentation. These
 are overlap resolutions, not a new control or a platform patch made by G1.
 Live Hangul composition still needs its own runtime evidence; an imported
 platform fix or passing handler tests is not that evidence.
+
+
+## Review corrections before the Git screen
+
+V1 returned the view-only slice with three concrete findings; that slice was
+not represented as having passed review. The selected scope's known eligibility
+now follows the node's actual `git add --update` semantics: untracked-only
+complete status cannot enable Tracked. One shared path rule supplies the path
+preview, derived counts, scope choices and submit. Already-staged additions
+remain eligible for Tracked. A partial status's zero is unknown, not proof of
+an empty scope; its preview vocabulary distinguishes “Not listed” from “none”. Complete
+empty, untracked-only (both wire spellings), mixed and staged cases exercise
+both gates, with the existing English/Korean whole scope labels.
+
+Empty, Failed and Loading reads have distinct availability. Only Loading says
+work is in progress; Failed gives retry guidance and continues to stop automatic
+polling. Whole sentences in both languages are tested against the same state
+and polling decision, rather than checking only a caption in isolation.
+
+`Writing` keeps a private-constructor `SuccessReceipt`: the exact accepted key,
+original intention (including the pinned stash entry), and complete successful
+outcome. Its existing `finish` result remains available to refresh the panel.
+Save tracked, save with new files, Apply, Pop and Drop each have their own full
+English/Korean outcome, with ref/hash in separate code facts. Apply is tested
+with the unchanged returned list; Pop/Drop with an empty list. No operation is
+guessed from that list. The legacy unlabelled tracker may only say a request
+completed; visible writes use `begin_action` with their actual intention.
+Paseo's `git/actions-store.ts` keeps success for 1000ms. The model's keyed reset
+cannot clear a newer pending request or a later success; the renderer will own
+only scheduling that same callback. Bounded outcome facts are retained for this
+short phase while the original result is consumed for repository/list refresh.
+
+Two additional pre-report regressions were caught: an arbitrary suffix could
+hide the distinct upstream origin/other/feature for branch feature (only one
+remote component may be stripped; the wire's RemoteName forbids slash), and an
+older branch-list current flag could disagree with the header's newer status.
+The picker now follows that same displayed status for its check/no-op and waits
+for both reads before enabling a choice; the original complete branch record
+is retained. These are covered by exact model and English/Korean label cases.
+No screen, live input-method or node-write proof is claimed by this correction.
+
+Validation: whole native fmt, clippy (all targets, warnings denied), and tests
+passed: 506 runtime tests plus two compile-fail documentation tests. This same
+frozen source also validates the independent MonoBody control, committed
+separately; the unchanged gate is not repeated. Earlier compile attempts caught
+BranchName/RefName comparisons (including three test constructors) and two
+Markdown documentation lints; typed name comparisons and fixtures were corrected
+without relaxing validation. No screen, node-write or live IME claim follows.

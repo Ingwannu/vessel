@@ -17,6 +17,16 @@ fn each_unavailable_reason_is_a_whole_explanation_in_both_languages() {
             "저장소 상태를 새로 읽고 있습니다. 끝난 뒤 계속하세요.",
         ),
         (
+            Unavailable::StatusMissing,
+            "Repository status has not been read yet. Read it before continuing.",
+            "저장소 상태를 아직 읽지 않았습니다. 상태를 읽은 뒤 계속하세요.",
+        ),
+        (
+            Unavailable::StatusFailed,
+            "Repository status could not be read. Refresh it before continuing.",
+            "저장소 상태를 읽지 못했습니다. 상태를 새로 읽은 뒤 계속하세요.",
+        ),
+        (
             Unavailable::NoBranch,
             "No branch is checked out. Switch to a branch before renaming it.",
             "체크아웃된 브랜치가 없습니다. 이름을 바꾸려면 먼저 브랜치로 전환하세요.",

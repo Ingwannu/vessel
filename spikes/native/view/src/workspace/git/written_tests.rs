@@ -180,3 +180,83 @@ fn a_late_reply_cannot_clear_or_replace_another_requests_pending_label() {
     );
     assert_eq!(writing.intent(), None);
 }
+
+#[test]
+fn a_stash_completion_retains_its_key_and_intention_even_when_the_list_does_not_change() {
+    let entry = vessel_proto::workspace::StashEntry {
+        index: 7,
+        message: "Keep the saved entry".into(),
+        commit: "1111111111111111111111111111111111111111".parse().unwrap(),
+        time: "2026-11-13T00:00:00Z".parse().unwrap(),
+    };
+    let unchanged = StashList {
+        entries: vec![entry.clone()],
+        more: false,
+    };
+    let mut keys = RequestKeys::default();
+    for (choice, list) in [
+        (StashChoice::Apply, unchanged),
+        (
+            StashChoice::Pop,
+            StashList {
+                entries: vec![],
+                more: false,
+            },
+        ),
+        (
+            StashChoice::Drop,
+            StashList {
+                entries: vec![],
+                more: false,
+            },
+        ),
+    ] {
+        let key = keys.issue().unwrap();
+        let stale = keys.issue().unwrap();
+        let intent = WriteIntent::Stash {
+            choice,
+            entry: entry.clone(),
+        };
+        let outcome = Success::Stashed(list);
+        let result = Ok(Written::Said(outcome.clone()));
+        let mut writing = Writing::default();
+        assert!(writing.begin_action(key, intent.clone()));
+        assert_eq!(writing.finish(stale, result.clone()), None);
+        assert_eq!(writing.intent(), Some(&intent));
+        assert_eq!(writing.success(), None);
+        assert_eq!(writing.finish(key, result.clone()), Some(result));
+        let receipt = writing.success().unwrap();
+        assert_eq!(receipt.key(), key);
+        assert_eq!(receipt.intent(), &intent);
+        assert_eq!(receipt.outcome(), &outcome);
+        assert_eq!(writing.intent(), None);
+        assert!(!writing.expire_success(stale));
+        assert!(writing.expire_success(key));
+        assert!(!writing.expire_success(key));
+    }
+}
+
+#[test]
+fn a_previous_success_timer_cannot_clear_a_new_pending_request_or_its_success() {
+    use crate::workspace::git_quick::GitAction;
+    let mut keys = RequestKeys::default();
+    let first = keys.issue().unwrap();
+    let next = keys.issue().unwrap();
+    let mut writing = Writing::default();
+    assert!(writing.begin_action(first, WriteIntent::Quick(GitAction::Fetch)));
+    assert_eq!(
+        writing.finish(first, Ok(Written::Said(Success::Fetched))),
+        Some(Ok(Written::Said(Success::Fetched)))
+    );
+    assert!(writing.begin_action(next, WriteIntent::Quick(GitAction::Pull)));
+    assert_eq!(writing.success(), None);
+    assert!(!writing.expire_success(first));
+    assert!(writing.busy());
+    assert_eq!(
+        writing.finish(next, Ok(Written::Said(Success::UpToDate))),
+        Some(Ok(Written::Said(Success::UpToDate)))
+    );
+    assert!(!writing.expire_success(first));
+    assert_eq!(writing.success().unwrap().key(), next);
+    assert_eq!(SUCCESS_DISPLAY, std::time::Duration::from_millis(1000));
+}

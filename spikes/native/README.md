@@ -435,3 +435,8 @@ to the code panel's shown machine/root and comparison. Retained draft facts
 preserve the form after a failed refresh; only a ready read authorizes a write.
 Drawing belongs to `app` through the kit, and prepared node calls belong in
 `link`; Git output is never interpreted in a drawing callback.
+
+Git's commit scope count, path preview and submit share one eligibility rule;
+a partial zero remains unknown. Failed and unread facts give retry/read guidance,
+and only a pending read says it is refreshing. Keyed success receipts retain the
+original stash intention and protect the one-second success reset from late timers.

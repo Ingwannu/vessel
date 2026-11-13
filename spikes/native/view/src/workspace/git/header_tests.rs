@@ -107,3 +107,30 @@ fn a_pending_write_wins_over_a_pending_read() {
     assert!(writing.begin(keys.issue().unwrap()));
     assert_eq!(head_activity(&reading, &writing), HeadActivity::Writing);
 }
+
+#[test]
+fn another_branch_with_the_same_tail_is_not_mistaken_for_the_current_branch() {
+    let mut status = fixtures::status(vec![]);
+    status.head = Some("1111111111111111111111111111111111111111".parse().unwrap());
+    status.branch = Some("feature".parse().unwrap());
+    status.upstream = Some(distance("origin/other/feature"));
+    assert_eq!(
+        git_head(&status, HeadActivity::Idle).state,
+        HeadState::Upstream {
+            distance: status.upstream.as_ref().unwrap(),
+            name: DistanceName::Explicit,
+        }
+    );
+    assert_eq!(
+        crate::Lang::En
+            .git_header(&status, HeadActivity::Idle)
+            .state,
+        "Up to date with origin/other/feature"
+    );
+    assert_eq!(
+        crate::Lang::Ko
+            .git_header(&status, HeadActivity::Idle)
+            .state,
+        "origin/other/feature 기준 최신 상태"
+    );
+}

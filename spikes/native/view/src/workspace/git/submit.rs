@@ -30,9 +30,9 @@ pub fn can_commit(
     {
         return false;
     }
-    status.ready().is_some_and(|status| {
-        stage != CommitStage::Staged || CommitForm::of(status).staged.get() > 0
-    })
+    status
+        .ready()
+        .is_some_and(|status| CommitForm::of(status).has_changes(stage))
 }
 
 /// The branch field's Enter and the button share validation and the

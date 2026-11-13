@@ -13,9 +13,11 @@
 //! - Cost: names are cloned for the bounded list; metadata is retained without
 //!   adding lines or badges the reference does not draw.
 
-use vessel_proto::workspace::{Branch, BranchList, Switch, WorkspaceRoot};
+use vessel_proto::workspace::{Branch, BranchList, BranchName, GitStatus, Switch, WorkspaceRoot};
 
-use super::{Reading, SwitchProblem, Writing, filter_branches, switch_request};
+use super::{
+    Action, Reading, SwitchProblem, Writing, availability, filter_branches, switch_request,
+};
 use crate::workspace::problem::Problem;
 
 /// One checked-name choice, retaining the node's complete branch record.
@@ -23,6 +25,9 @@ use crate::workspace::problem::Problem;
 pub struct BranchChoice {
     /// The full branch, used only after a keyed read was accepted.
     pub branch: Branch,
+    /// Selection follows the same repository-status name shown in the header,
+    /// not the older branch list's independently read `current` flag.
+    pub selected: bool,
     /// The shown read is current and no write owns the repository.
     pub enabled: bool,
 }
@@ -47,6 +52,7 @@ pub enum BranchChoices<'a> {
 #[must_use]
 pub fn branch_choices<'a>(
     read: &'a Reading<BranchList>,
+    status: &Reading<GitStatus>,
     writing: &Writing,
     filter: &str,
 ) -> BranchChoices<'a> {
@@ -58,11 +64,17 @@ pub fn branch_choices<'a>(
             previous: Some(list),
             ..
         } => {
-            let enabled = read.ready().is_some() && !writing.busy();
+            let enabled = read.ready().is_some()
+                && availability(Action::SwitchBranch, status, writing).is_none();
+            let current = status.shown().and_then(|status| status.branch.as_ref());
             BranchChoices::Rows {
                 rows: filter_branches(&list.branches, filter)
                     .into_iter()
-                    .map(|branch| BranchChoice { branch, enabled })
+                    .map(|branch| BranchChoice {
+                        selected: current.map(BranchName::as_str) == Some(branch.name.as_str()),
+                        branch,
+                        enabled,
+                    })
                     .collect(),
                 more: list.more,
             }
@@ -108,8 +120,9 @@ pub enum BranchSelection {
 pub fn branch_selection(
     root: WorkspaceRoot,
     branch: &Branch,
+    current: Option<&BranchName>,
 ) -> Result<BranchSelection, SwitchProblem> {
-    if branch.current {
+    if current.map(BranchName::as_str) == Some(branch.name.as_str()) {
         Ok(BranchSelection::Current)
     } else {
         switch_request(root, branch).map(BranchSelection::Switch)
@@ -147,6 +160,19 @@ mod tests {
         }
     }
 
+    fn choices<'a>(
+        read: &'a Reading<BranchList>,
+        writing: &Writing,
+        filter: &str,
+    ) -> BranchChoices<'a> {
+        branch_choices(
+            read,
+            &Reading::Ready(super::super::fixtures::status(vec![])),
+            writing,
+            filter,
+        )
+    }
+
     fn root() -> WorkspaceRoot {
         WorkspaceRoot::Project {
             project: "6f1c2a3e-0000-4000-8000-000000000001".parse().unwrap(),
@@ -161,17 +187,18 @@ mod tests {
             more: false,
         });
         assert_eq!(
-            branch_choices(&read, &Writing::default(), ""),
+            choices(&read, &Writing::default(), ""),
             BranchChoices::Rows {
                 rows: vec![BranchChoice {
                     branch: current.clone(),
+                    selected: true,
                     enabled: true
                 }],
                 more: false,
             }
         );
         assert_eq!(
-            branch_selection(root(), &current),
+            branch_selection(root(), &current, Some(&"feature".parse().unwrap())),
             Ok(BranchSelection::Current)
         );
     }
@@ -185,17 +212,18 @@ mod tests {
             more: true,
         };
         assert_eq!(
-            branch_choices(&Reading::Ready(list), &Writing::default(), " FEATURE/한글 "),
+            choices(&Reading::Ready(list), &Writing::default(), " FEATURE/한글 "),
             BranchChoices::Rows {
                 rows: vec![BranchChoice {
                     branch: remote.clone(),
+                    selected: false,
                     enabled: true
                 }],
                 more: true,
             }
         );
         assert_eq!(
-            branch_selection(root(), &remote),
+            branch_selection(root(), &remote, None),
             Ok(BranchSelection::Switch(Switch {
                 root: root(),
                 branch: "feature/한글".parse().unwrap(),
@@ -218,15 +246,16 @@ mod tests {
         let expected = BranchChoices::Rows {
             rows: vec![BranchChoice {
                 branch: entry.clone(),
+                selected: true,
                 enabled: false,
             }],
             more: false,
         };
-        assert_eq!(branch_choices(&read, &Writing::default(), ""), expected);
+        assert_eq!(choices(&read, &Writing::default(), ""), expected);
         let mut writing = Writing::default();
         assert!(writing.begin(key));
         assert_eq!(
-            branch_choices(
+            choices(
                 &Reading::Ready(BranchList {
                     branches: vec![entry],
                     more: false
@@ -241,15 +270,15 @@ mod tests {
     #[test]
     fn waiting_failure_and_an_empty_filter_result_have_different_presentations() {
         assert_eq!(
-            branch_choices(&Reading::Empty, &Writing::default(), ""),
+            choices(&Reading::Empty, &Writing::default(), ""),
             BranchChoices::Waiting
         );
         assert_eq!(
-            branch_choices(&Reading::Failed(Problem::Older), &Writing::default(), ""),
+            choices(&Reading::Failed(Problem::Older), &Writing::default(), ""),
             BranchChoices::Failed(&Problem::Older)
         );
         assert_eq!(
-            branch_choices(
+            choices(
                 &Reading::Ready(BranchList {
                     branches: vec![branch("main", true)],
                     more: true
@@ -260,6 +289,83 @@ mod tests {
             BranchChoices::Rows {
                 rows: vec![],
                 more: true
+            }
+        );
+    }
+}
+
+#[cfg(test)]
+mod live_status_tests {
+    use super::super::{RequestKeys, fixtures};
+    use super::*;
+
+    #[test]
+    fn a_new_status_name_drives_the_check_and_noop_without_discarding_the_old_list_facts() {
+        let branch = Branch {
+            name: "old".parse().unwrap(),
+            current: true,
+            default: false,
+            remote: None,
+            head: "1111111111111111111111111111111111111111".parse().unwrap(),
+            time: "2026-11-13T00:00:00Z".parse().unwrap(),
+            upstream: None,
+            worktree: None,
+        };
+        let read = Reading::Ready(BranchList {
+            branches: vec![branch.clone()],
+            more: false,
+        });
+        let mut status = fixtures::status(vec![]);
+        status.branch = Some("new".parse().unwrap());
+        let root = WorkspaceRoot::Project {
+            project: "6f1c2a3e-0000-4000-8000-000000000001".parse().unwrap(),
+        };
+        assert_eq!(
+            branch_choices(
+                &read,
+                &Reading::Ready(status.clone()),
+                &Writing::default(),
+                ""
+            ),
+            BranchChoices::Rows {
+                rows: vec![BranchChoice {
+                    branch: branch.clone(),
+                    selected: false,
+                    enabled: true
+                }],
+                more: false,
+            }
+        );
+        assert_eq!(
+            branch_selection(root, &branch, status.branch.as_ref()),
+            Ok(BranchSelection::Switch(Switch {
+                root,
+                branch: "old".parse().unwrap(),
+                create: None,
+            }))
+        );
+        status.branch = Some("old".parse().unwrap());
+        let mut older_entry = branch;
+        older_entry.current = false;
+        assert_eq!(
+            branch_selection(root, &older_entry, status.branch.as_ref()),
+            Ok(BranchSelection::Current)
+        );
+        let read = Reading::Ready(BranchList {
+            branches: vec![older_entry.clone()],
+            more: false,
+        });
+        let mut status_read = Reading::Ready(status);
+        status_read.start(RequestKeys::default().issue().unwrap());
+        assert_eq!(
+            branch_choices(&read, &status_read, &Writing::default(), ""),
+            BranchChoices::Rows {
+                rows: vec![BranchChoice {
+                    branch: older_entry,
+                    selected: true,
+                    enabled: false
+                }],
+                more: false,
             }
         );
     }

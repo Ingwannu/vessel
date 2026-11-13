@@ -16,6 +16,15 @@ impl ChangedFiles {
     }
 }
 
+/// Whether a bounded status page contains every changed path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StatusCoverage {
+    /// Zero eligible paths proves the selected scope is empty.
+    Complete,
+    /// Omitted paths may contain changes eligible for any scope.
+    Partial,
+}
+
 /// A commit dialog's initial scope and summary (the page's commit-dialog).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CommitForm {
@@ -23,6 +32,10 @@ pub struct CommitForm {
     pub changed: ChangedFiles,
     /// Number with an index change, untracked files excluded.
     pub staged: ChangedFiles,
+    /// Changed tracked paths, including already-staged additions.
+    pub tracked: ChangedFiles,
+    /// Whether an absent eligible path is known to be absent.
+    pub coverage: StatusCoverage,
     /// Staged only when there is an index change, everything otherwise.
     pub stage: CommitStage,
 }
@@ -31,14 +44,16 @@ impl CommitForm {
     /// Make the initial form from the current status, without changing it.
     #[must_use]
     pub fn of(status: &GitStatus) -> Self {
-        let staged = status
-            .files
-            .iter()
-            .filter(|file| staged(file.index))
-            .count();
+        let staged = commit_files(status, CommitStage::Staged).count();
         Self {
             changed: ChangedFiles(status.files.len()),
             staged: ChangedFiles(staged),
+            tracked: ChangedFiles(commit_files(status, CommitStage::Tracked).count()),
+            coverage: if status.more {
+                StatusCoverage::Partial
+            } else {
+                StatusCoverage::Complete
+            },
             stage: if staged == 0 {
                 CommitStage::Everything
             } else {
@@ -46,6 +61,39 @@ impl CommitForm {
             },
         }
     }
+
+    /// Known eligible count, derived once from the status. Tracked uses the
+    /// node's `git add --update` semantics, which excludes new untracked paths
+    /// while retaining staged additions. The count is a lower bound if partial.
+    #[must_use]
+    pub const fn eligible(self, stage: CommitStage) -> ChangedFiles {
+        match stage {
+            CommitStage::Staged => self.staged,
+            CommitStage::Tracked => self.tracked,
+            CommitStage::Everything => self.changed,
+        }
+    }
+
+    /// A complete zero disables both choice and submit; a partial zero is
+    /// unknown, so the authoritative node gets to decide instead of the client
+    /// claiming that omitted tracked/staged changes do not exist.
+    #[must_use]
+    pub fn has_changes(self, stage: CommitStage) -> bool {
+        self.coverage == StatusCoverage::Partial || self.eligible(stage).get() > 0
+    }
+}
+
+/// The same scope rule supplies both its eligible count and the form's path
+/// preview. The complete status remains retained; omitted paths stay unknown.
+pub fn commit_files(status: &GitStatus, stage: CommitStage) -> impl Iterator<Item = &StatusEntry> {
+    status.files.iter().filter(move |file| match stage {
+        CommitStage::Staged => staged_path(file.index),
+        CommitStage::Tracked => {
+            staged_path(file.index)
+                || (changed(file.worktree) && file.worktree != FileState::Untracked)
+        }
+        CommitStage::Everything => true,
+    })
 }
 
 /// The two actions on an index, distinguished from destructive discard.
@@ -61,7 +109,7 @@ pub enum IndexAction {
 /// A file modified both before and after staging offers both actions.
 #[must_use]
 pub fn file_actions(file: &StatusEntry) -> &'static [IndexAction] {
-    match (changed(file.worktree), staged(file.index)) {
+    match (changed(file.worktree), staged_path(file.index)) {
         (false, false) => &[],
         (true, false) => &[IndexAction::Stage],
         (false, true) => &[IndexAction::Unstage],
@@ -69,7 +117,7 @@ pub fn file_actions(file: &StatusEntry) -> &'static [IndexAction] {
     }
 }
 
-fn staged(state: FileState) -> bool {
+fn staged_path(state: FileState) -> bool {
     match state {
         FileState::Unmodified | FileState::Untracked => false,
         FileState::Modified

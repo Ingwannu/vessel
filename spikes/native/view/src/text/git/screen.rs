@@ -12,6 +12,8 @@ pub struct GitLabels {
     pub commit_files: &'static str,
     /// Short empty value in the commit summary’s path list.
     pub commit_files_none: &'static str,
+    /// Short preview value when no eligible paths were listed in a partial reply.
+    pub commit_files_unlisted: &'static str,
     /// Short warning text beside the commit summary’s default branch.
     pub commit_default_branch: &'static str,
     /// Notice when the node could not include every changed path.
@@ -27,6 +29,10 @@ pub struct GitLabels {
     pub busy: &'static str,
     /// Status sentence while existing repository facts are refreshed.
     pub read_first: &'static str,
+    /// Unavailable action guidance before any repository read has supplied facts.
+    pub status_missing: &'static str,
+    /// Unavailable action guidance after a failed read; retry is required.
+    pub status_failed: &'static str,
     /// Explanation when there is no checked-out branch to rename.
     pub no_branch: &'static str,
     /// Branch facts beneath the trigger when no upstream is configured.
@@ -127,6 +133,7 @@ const EN: GitLabels = GitLabels {
     commit_branch: "Branch",
     commit_files: "Files",
     commit_files_none: "none",
+    commit_files_unlisted: "Not listed",
     commit_default_branch: "Default branch",
     changes_more: "Only part of the changed file list is shown. More changed files exist in this repository.",
     options_tip: "Git actions",
@@ -134,6 +141,8 @@ const EN: GitLabels = GitLabels {
     reading: "Reading repository status…",
     busy: "A Git action is running. Wait for it to finish.",
     read_first: "Repository status is being refreshed. Wait for it before continuing.",
+    status_missing: "Repository status has not been read yet. Read it before continuing.",
+    status_failed: "Repository status could not be read. Refresh it before continuing.",
     no_branch: "No branch is checked out. Switch to a branch before renaming it.",
     no_upstream: "No upstream is configured for this branch.",
     push_upstream: "Push and set upstream",
@@ -187,6 +196,7 @@ const KO: GitLabels = GitLabels {
     commit_branch: "브랜치",
     commit_files: "파일",
     commit_files_none: "없음",
+    commit_files_unlisted: "목록에 없음",
     commit_default_branch: "기본 브랜치",
     changes_more: "변경 파일 목록의 일부입니다. 이 저장소에 변경된 파일이 더 있습니다.",
     options_tip: "Git 작업",
@@ -194,6 +204,8 @@ const KO: GitLabels = GitLabels {
     reading: "저장소 상태 읽는 중…",
     busy: "Git 동작을 실행 중입니다. 끝날 때까지 기다리세요.",
     read_first: "저장소 상태를 새로 읽고 있습니다. 끝난 뒤 계속하세요.",
+    status_missing: "저장소 상태를 아직 읽지 않았습니다. 상태를 읽은 뒤 계속하세요.",
+    status_failed: "저장소 상태를 읽지 못했습니다. 상태를 새로 읽은 뒤 계속하세요.",
     no_branch: "체크아웃된 브랜치가 없습니다. 이름을 바꾸려면 먼저 브랜치로 전환하세요.",
     no_upstream: "이 브랜치에 원격 추적 브랜치가 설정되지 않았습니다.",
     push_upstream: "푸시하고 원격 추적 설정",

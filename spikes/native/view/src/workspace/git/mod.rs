@@ -43,7 +43,10 @@ pub use dialog::Dialog;
 pub use discard::{DiscardDecision, DiscardEffect};
 pub use drop_stash::DropStash;
 pub use file_menu::{FileAction, FileMenu, file_menu};
-pub use form::{ChangedFiles, CommitForm, IndexAction, commit_request, file_actions};
+pub use form::{
+    ChangedFiles, CommitForm, IndexAction, StatusCoverage, commit_files, commit_request,
+    file_actions,
+};
 pub use header::{
     DistanceName, GitHead, HeadActivity, HeadName, HeadState, git_head, head_activity,
 };
@@ -59,7 +62,7 @@ pub use scopes::{CommitScope, commit_scopes};
 pub use stash::{StashChoice, stash_request};
 pub use state::{KeysExhausted, Reading, RequestKey, RequestKeys};
 pub use submit::{can_branch, can_commit};
-pub use written::{Success, UpstreamChange, Writing, Written};
+pub use written::{SUCCESS_DISPLAY, Success, SuccessReceipt, UpstreamChange, Writing, Written};
 
 #[cfg(test)]
 pub(crate) mod fixtures;
@@ -75,3 +78,6 @@ mod menu_tests;
 
 #[cfg(test)]
 mod header_tests;
+
+#[cfg(test)]
+mod eligibility_tests;

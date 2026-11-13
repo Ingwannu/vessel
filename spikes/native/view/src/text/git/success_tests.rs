@@ -2,6 +2,21 @@ use crate::Lang;
 use crate::workspace::git::{Success, UpstreamChange};
 use vessel_proto::workspace::{CommitInfo, StashList};
 
+fn receipt(
+    outcome: Success,
+    intent: crate::workspace::git::WriteIntent,
+) -> crate::workspace::git::SuccessReceipt {
+    use crate::workspace::git::{RequestKeys, Writing, Written};
+    let key = RequestKeys::default().issue().unwrap();
+    let mut writing = Writing::default();
+    assert!(writing.begin_action(key, intent));
+    assert_eq!(
+        writing.finish(key, Ok(Written::Said(outcome.clone()))),
+        Some(Ok(Written::Said(outcome)))
+    );
+    writing.success().unwrap().clone()
+}
+
 #[test]
 fn successful_outcomes_name_their_facts_in_complete_notices() {
     let old: vessel_proto::workspace::CommitId =
@@ -68,14 +83,30 @@ fn successful_outcomes_name_their_facts_in_complete_notices() {
                 entries: vec![],
                 more: false,
             }),
-            "Updated the repository's stash.",
-            "저장소의 임시 보관 목록을 갱신했습니다.",
+            "Git completed the request.",
+            "Git 요청을 완료했습니다.",
         ),
     ];
     for (success, english, korean) in cases {
         assert_eq!(success.alert_variant(), crate::alert::Variant::Success);
-        assert_eq!(Lang::En.git_success(&success).message, english);
-        assert_eq!(Lang::Ko.git_success(&success).message, korean);
+        assert_eq!(
+            Lang::En
+                .git_success(&receipt(
+                    success.clone(),
+                    crate::workspace::git::WriteIntent::Unspecified
+                ))
+                .message,
+            english
+        );
+        assert_eq!(
+            Lang::Ko
+                .git_success(&receipt(
+                    success.clone(),
+                    crate::workspace::git::WriteIntent::Unspecified
+                ))
+                .message,
+            korean
+        );
     }
 }
 
@@ -116,7 +147,10 @@ fn a_created_commit_and_both_pull_endpoints_remain_exact_separate_code_values() 
         (Lang::Ko, "커밋을 만들었습니다: Keep the facts"),
     ] {
         assert_eq!(
-            lang.git_success(&created),
+            lang.git_success(&receipt(
+                created.clone(),
+                crate::workspace::git::WriteIntent::Unspecified
+            )),
             GitSuccessText {
                 message: message.into(),
                 commits: GitSuccessCommits::Created(first_hash.clone()),
@@ -132,7 +166,10 @@ fn a_created_commit_and_both_pull_endpoints_remain_exact_separate_code_values() 
         (Lang::Ko, "최신 변경을 풀했습니다."),
     ] {
         assert_eq!(
-            lang.git_success(&pulled),
+            lang.git_success(&receipt(
+                pulled.clone(),
+                crate::workspace::git::WriteIntent::Unspecified
+            )),
             GitSuccessText {
                 message: message.into(),
                 commits: GitSuccessCommits::Pulled {
@@ -145,8 +182,96 @@ fn a_created_commit_and_both_pull_endpoints_remain_exact_separate_code_values() 
             }
         );
         assert_eq!(
-            lang.git_success(&Success::Fetched).commits,
+            lang.git_success(&receipt(
+                Success::Fetched,
+                crate::workspace::git::WriteIntent::Unspecified,
+            ))
+            .commits,
             GitSuccessCommits::None
         );
+    }
+}
+
+#[test]
+fn stash_success_names_the_completed_action_without_guessing_from_the_new_list() {
+    use crate::workspace::git::{StashChoice, StashScope, WriteIntent};
+    use crate::{GitHashText, GitSuccessCommits, GitSuccessText};
+    let entry = vessel_proto::workspace::StashEntry {
+        index: 7,
+        message: "Saved edits".into(),
+        commit: "0123456789abcdef0123456789abcdef01234567".parse().unwrap(),
+        time: "2026-11-13T00:00:00Z".parse().unwrap(),
+    };
+    let identity = GitSuccessCommits::Stash {
+        reference: "stash@{7}".into(),
+        commit: GitHashText {
+            short: "0123456789ab".into(),
+            full: entry.commit.clone(),
+        },
+    };
+    let unchanged = StashList {
+        entries: vec![entry.clone()],
+        more: false,
+    };
+    let empty = StashList {
+        entries: vec![],
+        more: false,
+    };
+    for (intent, list, en, ko, commits) in [
+        (
+            WriteIntent::SaveStash(StashScope::Tracked),
+            unchanged.clone(),
+            "Saved changes to tracked files.",
+            "추적 중인 파일의 변경을 임시 보관했습니다.",
+            GitSuccessCommits::None,
+        ),
+        (
+            WriteIntent::SaveStash(StashScope::WithUntracked),
+            unchanged.clone(),
+            "Saved changes, including new files.",
+            "새 파일을 포함한 변경을 임시 보관했습니다.",
+            GitSuccessCommits::None,
+        ),
+        (
+            WriteIntent::Stash {
+                choice: StashChoice::Apply,
+                entry: entry.clone(),
+            },
+            unchanged,
+            "Applied the saved changes. The saved entry was kept.",
+            "보관한 변경을 적용하고 보관 항목은 남겼습니다.",
+            identity.clone(),
+        ),
+        (
+            WriteIntent::Stash {
+                choice: StashChoice::Pop,
+                entry: entry.clone(),
+            },
+            empty.clone(),
+            "Applied the saved changes and removed the saved entry.",
+            "보관한 변경을 적용하고 보관 항목을 삭제했습니다.",
+            identity.clone(),
+        ),
+        (
+            WriteIntent::Stash {
+                choice: StashChoice::Drop,
+                entry,
+            },
+            empty,
+            "Deleted the saved entry without applying it.",
+            "보관 항목을 적용하지 않고 삭제했습니다.",
+            identity,
+        ),
+    ] {
+        let success = Success::Stashed(list);
+        for (lang, message) in [(Lang::En, en), (Lang::Ko, ko)] {
+            assert_eq!(
+                lang.git_success(&receipt(success.clone(), intent.clone())),
+                GitSuccessText {
+                    message: message.into(),
+                    commits: commits.clone(),
+                }
+            );
+        }
     }
 }

@@ -149,7 +149,10 @@ pub fn git_head(status: &GitStatus, activity: HeadActivity) -> GitHead<'_> {
 fn mirrors_branch(distance: &Distance, branch: &BranchName) -> bool {
     let upstream = distance.name.as_str();
     upstream == branch.as_str()
+        // RemoteName forbids '/', so strip exactly one remote component.
+        // A suffix match would hide the distinct target origin/other/feature
+        // when the checked-out branch is only feature.
         || upstream
-            .strip_suffix(branch.as_str())
-            .is_some_and(|prefix| prefix.ends_with('/'))
+            .split_once('/')
+            .is_some_and(|(_, name)| name == branch.as_str())
 }
