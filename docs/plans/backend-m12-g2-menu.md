@@ -75,3 +75,15 @@ restarts forward/back navigation from the corresponding end; Enter still
 refuses every stale, pending or disabled index. Regression cases include
 an index just beyond the list, 99 and usize::MAX in both directions.
 The shared trigger bounds and placement renderer are unchanged here.
+
+
+## Runtime correction: explicit vector ink
+
+The first native probe revealed invisible trigger vectors even though the
+bounds, click handling and menu worked. GPUI 0.3.10's `Svg::paint` requires
+its own text colour; it does not inherit the parent's colour. Both profiles
+now set ink on the SVG itself. Schedule alone uses the nearest ancestor's
+hover group to change its vector to foreground; GitHeader stays muted.
+A regression checks the actual SVG style, not merely a palette helper, in
+both themes, profiles, densities and enabled/disabled states. The original
+probe captures remain excluded evidence; corrected captures must be rebuilt.

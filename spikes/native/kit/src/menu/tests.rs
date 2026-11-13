@@ -6,7 +6,7 @@ use super::{
     trigger,
 };
 use crate::{Scheme, Tokens, assets::Glyph, popup::Surfaces};
-use gpui::{point, px};
+use gpui::{Styled as _, point, px};
 
 #[test]
 fn legacy_constructors_and_pending_labels_preserve_their_meaning() {
@@ -223,5 +223,20 @@ fn git_header_visual_and_hit_regions_do_not_resize_the_schedule_profile() {
         assert_eq!(schedule.glyph, px(14.0));
         assert_eq!(schedule.padding, px(4.0));
         assert_eq!(schedule.radius, px(4.0));
+    }
+}
+
+#[test]
+fn each_actual_svg_has_its_own_ink_in_both_themes_and_profiles() {
+    for (scheme, muted) in [(Scheme::Light, 0x0071_717a), (Scheme::Dark, 0x00a1_a5a4)] {
+        let tokens = Tokens::of(scheme);
+        for profile in [TriggerProfile::Schedule, TriggerProfile::GitHeader] {
+            for sizing in [TriggerSizing::Pointer, TriggerSizing::Touch] {
+                for state in [crate::ButtonState::Enabled, crate::ButtonState::Disabled] {
+                    let mut icon = trigger::icon(profile, sizing, state, &tokens);
+                    assert_eq!(icon.style().text.color, Some(gpui::rgb(muted).into()));
+                }
+            }
+        }
     }
 }

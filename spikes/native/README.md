@@ -128,6 +128,8 @@ and touch target 44; `popup::TOUCH_TARGET` is the shared constant. Menu
 surface, state and drawing remain one control, split into small modules.
 Labels shrink on one line, as Paseo's menu does; a stale keyboard position
 from a shortened list restarts at the appropriate end.
+Trigger vectors carry explicit SVG ink: this GPUI version does not inherit
+it from a parent. Only Schedule opts into its ancestor's hover ink.
 
 `menu::trigger_with` takes `TriggerProfile::GitHeader` for the git overflow:
 16-point glyph, 26/32 visual square, 8-point outside hit allowance (42/48),

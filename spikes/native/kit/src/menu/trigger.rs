@@ -7,7 +7,7 @@ use crate::{
     theme::{Tokens, spacing},
 };
 use gpui::prelude::*;
-use gpui::{Div, ElementId, Hsla, Pixels, Stateful, div, px, svg};
+use gpui::{Div, ElementId, Hsla, Pixels, Stateful, Svg, div, px, svg};
 
 /// The reference's pointer/touch geometry gate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,6 +87,7 @@ fn schedule_trigger(
     let hover = paint(tokens, true);
     div()
         .id(id)
+        .group(TRIGGER_GROUP)
         .relative()
         .flex()
         .items_center()
@@ -104,12 +105,7 @@ fn schedule_trigger(
                 .hover(move |style| style.text_color(hover.ink).bg(hover.fill))
         })
         .child(anchor_probe(anchor))
-        .child(
-            svg()
-                .path(Glyph::MoreVertical.path())
-                .size(geometry.glyph)
-                .flex_shrink_0(),
-        )
+        .child(icon(TriggerProfile::Schedule, sizing, state, tokens))
 }
 
 /// The reference surface that owns this trigger's visual geometry.
@@ -197,6 +193,36 @@ fn git_trigger(
                 .size(geometry.visual)
                 .rounded(geometry.radius)
                 .child(anchor_probe(anchor))
-                .child(svg().path(Glyph::MoreVertical.path()).size(geometry.glyph)),
+                .child(icon(TriggerProfile::GitHeader, sizing, state, tokens)),
+        )
+}
+
+// A group is scoped to its nearest ancestor by GPUI's hitbox stack, so rows
+// can share this name without changing another trigger's hover ink.
+const TRIGGER_GROUP: &str = "schedule-menu-trigger";
+
+pub(super) fn icon(
+    profile: TriggerProfile,
+    sizing: TriggerSizing,
+    state: crate::ButtonState,
+    tokens: &Tokens,
+) -> Svg {
+    let size = match profile {
+        TriggerProfile::Schedule => geometry(sizing).glyph,
+        TriggerProfile::GitHeader => git_geometry(sizing).glyph,
+    };
+    let idle = paint(tokens, false);
+    let hover = paint(tokens, true);
+    // This GPUI version paints SVG only when the SVG's own style has ink;
+    // a parent's text colour is not inherited by Svg::paint. Keep it on the
+    // actual vector and opt only the schedule profile into group-hover ink.
+    svg()
+        .path(Glyph::MoreVertical.path())
+        .size(size)
+        .flex_shrink_0()
+        .text_color(idle.ink)
+        .when(
+            profile == TriggerProfile::Schedule && state == crate::ButtonState::Enabled,
+            |icon| icon.group_hover(TRIGGER_GROUP, move |style| style.text_color(hover.ink)),
         )
 }
