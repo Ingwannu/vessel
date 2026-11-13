@@ -669,6 +669,36 @@ never rebuilt.
   - Labels 0.0.0.0.1 to 0.0.0.0.7 keep their old comment, because
     published labels are never rebuilt.
 
+- **0.0.0.0.8**:
+  - An earlier build from `ccfba8e` was held and set aside, never
+    published. The real build is from `c802da9`: the desktop lead's
+    `779891d4` (the permission card as Paseo's, the Linux platform
+    patch `gpui-pre-linux`, the Fluent translations) plus this track's
+    signature comment fix. Only `docs/` and `spikes/release/` differ
+    from `779891d4`.
+  - The set went into place at 18:53 UTC. It is not published yet.
+  - The signature's comment is "vessel-app 0.0.0.0.8 SHA256SUMS".
+  - Sizes against 0.0.0.0.7:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 11,638,832 | +741,103 |
+    | exe | 42,672,128 | +3,124,736 |
+    | zip | 16,872,307 | +1,082,602 |
+    | linux | 77,856,496 | +3,473,040 |
+    | tar.gz | 26,621,127 | +1,172,730 |
+
+  - The patched `gpui-pre-linux` compiled from its path in the release
+    build.
+  - The new crates (fluent-bundle, fluent-syntax, fluent-pseudo,
+    fluent-langneg, intl-memoizer, intl_pluralrules, unic-langid,
+    type-map, self_cell) are all Apache-2.0 or MIT; for self_cell,
+    "Apache-2.0 OR GPL-2.0-only", Apache-2.0 is taken. The bundle's
+    licence files are unchanged (the three OFL texts).
+  - The usual checks passed: icons, version block, stripped Linux exe
+    with a matching debuglink, symbols kept, the shipped exe starts and
+    logs without escape codes or the feed's path.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
