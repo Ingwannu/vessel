@@ -121,6 +121,18 @@ pub enum Glyph {
     Archive,
     /// Delete for good.
     Trash,
+    /// A delete action with the two interior bin strokes (legacy Trash stays).
+    Trash2,
+    /// Restore an archived item: the archive with its upward arrow.
+    ArchiveRestore,
+    /// A horizontal minus on the shared line grid.
+    Minus,
+    /// Create another branch, with the plus beside the branch's nodes.
+    GitBranchPlus,
+    /// A commit node on its history line.
+    Commit,
+    /// Undo a file change: a returning arrow, separate from Reset.
+    Undo2,
     /// Pinned.
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
@@ -142,7 +154,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 55] = [
+const ALL: [Glyph; 61] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -190,6 +202,12 @@ const ALL: [Glyph; 55] = [
     Glyph::Message,
     Glyph::Archive,
     Glyph::Trash,
+    Glyph::Trash2,
+    Glyph::ArchiveRestore,
+    Glyph::Minus,
+    Glyph::GitBranchPlus,
+    Glyph::Commit,
+    Glyph::Undo2,
     Glyph::Pin,
     Glyph::Spinner,
     Glyph::Pencil,
@@ -266,6 +284,12 @@ impl Glyph {
             Self::Message => "kit/message.svg",
             Self::Archive => "kit/archive.svg",
             Self::Trash => "kit/trash.svg",
+            Self::Trash2 => "kit/trash-2.svg",
+            Self::ArchiveRestore => "kit/archive-restore.svg",
+            Self::Minus => "kit/minus.svg",
+            Self::GitBranchPlus => "kit/git-branch-plus.svg",
+            Self::Commit => "kit/commit.svg",
+            Self::Undo2 => "kit/undo-2.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
             Self::Pencil => "kit/pencil.svg",
@@ -420,6 +444,23 @@ impl Glyph {
             Self::Trash => line_glyph!(
                 r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6"/>"#
             ),
+            Self::Trash2 => line_glyph!(
+                r#"<path d="M3.75 6h16.5M18 6v13.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5V6M9 6V4.125A1.875 1.875 0 0 1 10.875 2.25h2.25A1.875 1.875 0 0 1 15 4.125V6M9.75 9.5v8M14.25 9.5v8"/>"#
+            ),
+            Self::ArchiveRestore => line_glyph!(
+                r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5M12 17.25v-5.5M8.75 15 12 11.75 15.25 15"/>"#
+            ),
+            Self::Minus => line_glyph!(r#"<path d="M5.25 12h13.5"/>"#),
+            Self::GitBranchPlus => line_glyph!(
+                r#"<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9M15 18h6M18 15v6"/>"#
+            ),
+            // Reuse the git track's original drawing, rather than a second Commit.
+            Self::Commit => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="4"/><path d="M3 12h5M16 12h5"/>"#)
+            }
+            Self::Undo2 => {
+                line_glyph!(r#"<path d="M9 5.5 4.5 10 9 14.5M5 10h8a6 6 0 0 1 6 6v3"/>"#)
+            }
             Self::Pin => line_glyph!(
                 r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),
@@ -565,5 +606,36 @@ mod tests {
                 assert_eq!(image.get_pixel(x, y).0[3], 0);
             }
         }
+    }
+
+    #[test]
+    fn archive_and_git_glyphs_are_registered_and_unclipped() {
+        for glyph in [
+            Glyph::Trash2,
+            Glyph::ArchiveRestore,
+            Glyph::Minus,
+            Glyph::GitBranchPlus,
+            Glyph::Commit,
+            Glyph::Undo2,
+        ] {
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            let mut pixels = resvg::tiny_skia::Pixmap::new(24, 24).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::identity(),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(24, 24, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0), "{glyph:?}");
+            for at in 0..24 {
+                for (x, y) in [(at, 0), (at, 23), (0, at), (23, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0, "{glyph:?}");
+                }
+            }
+        }
+        assert_eq!(Glyph::Commit.path(), "kit/commit.svg");
     }
 }
