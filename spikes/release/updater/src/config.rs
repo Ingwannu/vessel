@@ -23,7 +23,7 @@ use crate::{
     key::{KeyError, PublicKey},
     label::{Label, LabelError},
     platform::Target,
-    service::{EVERY, FIRST_AFTER, Settings},
+    service::{EVERY, FIRST_AFTER, RETRY_AFTER, Settings},
 };
 
 /// The label compiled in; `None` for a development build.
@@ -78,5 +78,6 @@ pub fn settings_from_build() -> Result<Option<Settings>, SettingsError> {
         every: EVERY,
         first_after: FIRST_AFTER,
         automatic: true,
+        retry_after: RETRY_AFTER.to_vec(),
     }))
 }

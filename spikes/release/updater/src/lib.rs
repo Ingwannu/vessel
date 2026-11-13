@@ -60,6 +60,7 @@ mod memory;
 mod platform;
 #[cfg(windows)]
 mod registry;
+mod report;
 mod restart;
 mod service;
 mod stage;
@@ -77,6 +78,9 @@ pub use manifest::{
 };
 pub use memory::Memory;
 pub use platform::{Packaging, Target, UnknownPackaging, UnknownTarget};
+pub use report::chain;
 pub use restart::{RESTARTED_FROM, RestartError, relaunch};
-pub use service::{ApplyError, EVERY, FIRST_AFTER, Settings, UpdateError, UpdateState, Updater};
+pub use service::{
+    ApplyError, EVERY, FIRST_AFTER, RETRY_AFTER, Settings, UpdateError, UpdateState, Updater,
+};
 pub use stage::{StageError, Staged, download};

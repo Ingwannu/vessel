@@ -107,7 +107,10 @@ pub async fn download(
             // touch anything else; a failure to remove leaves it for the
             // next start's clean-up.
             if let Err(remove) = tokio::fs::remove_file(&path).await {
-                tracing::debug!(error = %remove, "a partial update was left for the next start");
+                tracing::warn!(
+                    error = %crate::report::chain(&remove),
+                    "a partial update was left for the next start"
+                );
             }
             Err(error)
         }
@@ -128,10 +131,19 @@ async fn write(
         .open(path)
         .await
         .map_err(StageError::Write)?;
+    tracing::debug!(
+        staged = %crate::service::file_name(path),
+        "the staging file is created beside the app"
+    );
     let mut response = client
         .artifact(feed, &artifact.path)
         .await
         .map_err(StageError::Fetch)?;
+    tracing::info!(
+        status = %response.status(),
+        length = ?response.content_length(),
+        "the feed answers the download"
+    );
     let mut hasher = sha2::Sha256::new();
     let mut received: u64 = 0;
     // A report every 1/64 of the file: enough for a progress bar, and a
@@ -139,10 +151,19 @@ async fn write(
     let step = expected.checked_div(64).unwrap_or(0).max(1);
     let mut next_report = step;
     loop {
-        let chunk = tokio::time::timeout(READ_STALL, response.chunk())
-            .await
-            .map_err(|_elapsed| StageError::Fetch(FetchError::Stalled))?
-            .map_err(|error| StageError::Fetch(FetchError::Unreachable(error)))?;
+        // How far it got goes to the log: a download that breaks off at
+        // the same byte each time points at something on the way.
+        let chunk = match tokio::time::timeout(READ_STALL, response.chunk()).await {
+            Ok(Ok(chunk)) => chunk,
+            Ok(Err(error)) => {
+                tracing::warn!(received, expected, "the download broke off");
+                return Err(StageError::Fetch(FetchError::unreachable(error)));
+            }
+            Err(_elapsed) => {
+                tracing::warn!(received, expected, stalled_for = ?READ_STALL, "the download stalled");
+                return Err(StageError::Fetch(FetchError::Stalled));
+            }
+        };
         let Some(chunk) = chunk else { break };
         let len = u64::try_from(chunk.len()).map_err(|_huge| StageError::TooLarge)?;
         received = received.checked_add(len).ok_or(StageError::TooLarge)?;
