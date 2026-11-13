@@ -199,6 +199,7 @@ fn deals_rows_into_lanes_the_waiting_first_then_the_most_recent() {
             reach: Reach::Online,
             sessions,
             agents: Vec::new(),
+            protocol: None,
         }],
         read_at: None,
     };
