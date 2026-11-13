@@ -141,6 +141,11 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
 
+`TextField::form_multiline` uses the same input state and form shell as
+the kit's existing fields: Enter starts a line, Mod+Enter submits, and
+after twelve lines the editor scrolls. Its marked-text regression also
+exercises the composer; platform input-method support remains shared.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its

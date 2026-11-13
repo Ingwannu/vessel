@@ -1,4 +1,4 @@
-//! Text a person types: a form field (one line) and the composer's text
+//! Text a person types: form fields and the composer's text
 //! (lines that grow), input methods included (Hangul is composed by the
 //! system's input method and committed through GPUI's input handler).
 //!
@@ -31,6 +31,25 @@
 //!   emphasis on a field being typed into, so a Vessel field shows focus
 //!   by its border alone. The composer grows to 12 lines, then scrolls
 //!   (Paseo: half the window).
+//!
+//! [Decision Log: multiline forms]
+//! - Purpose: commit messages and pull-request bodies need a form field,
+//!   rather than the composer's chat card.
+//! - Constraints: preserve one editing state, input-method handler and
+//!   border-only focus treatment; keep existing callers unchanged.
+//! - Alternatives: the composer card, a styled library textarea, or a
+//!   second editor with separate composition and keyboard handling.
+//! - Choice: two typed multiline presentations over the same factory;
+//!   the form shares the one-line field's shell. GOAT's small textarea
+//!   supplies its 68/80 minimum, 9/3 insets and 256 maximum.
+//! - Why: input methods, selection and undo cannot diverge between the
+//!   composer and a form; one-line form chrome also stays in one place.
+//! - Cost: the native form caps at twelve whole 20-point lines within
+//!   that maximum, rather than GOAT's pixel-based cap. Enter starts a
+//!   line and Mod+Enter submits. The existing engine owns scrolling.
+//! - Size: engine wiring and colour projection stay together here so
+//!   the three presentations cannot acquire separate handlers; layout
+//!   and marked-text regressions live in the separate `form_tests` module.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -55,8 +74,28 @@ enum Kind {
     /// One line.
     Line(Entity<InputState>),
     /// Lines that grow (the composer).
-    Lines(Entity<TextareaState>),
+    Lines(Entity<TextareaState>, MultilineStyle),
 }
+
+/// A multiline editor's shell; both presentations share one text engine.
+#[derive(Debug, Clone, Copy)]
+enum MultilineStyle {
+    Composer,
+    Form,
+}
+
+/// GOAT's small textarea grows within its 256-point maximum. At the
+/// kit's 20-point line height twelve complete lines fit within that cap.
+const FORM_LINES: usize = 12;
+/// Three lines plus GOAT's small insets and border fit its desktop minimum.
+const FORM_MIN_LINES: usize = 3;
+/// GOAT's small control: 66 / 78 points inside its one-point border.
+const FORM_MIN: f32 = 68.0;
+const FORM_MIN_TOUCH: f32 = 80.0;
+const FORM_MAX: f32 = 256.0;
+/// GOAT's small insets: spacing(2.5) - 1 and spacing(1) - 1.
+const FORM_INSET_X: f32 = 9.0;
+const FORM_INSET_Y: f32 = 3.0;
 
 /// Which press sends a composer's text (Settings › General › Send
 /// shortcut, the page's `compose-keys.ts`).
@@ -132,20 +171,60 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
+    }
+
+    /// A multiline form field on the one-line form field's surface.
+    /// Enter starts a line; Mod+Enter submits. It grows from three to
+    /// twelve lines, then the existing text engine scrolls. GOAT's small
+    /// textarea supplies the 68 / 80-point minimum and 256-point cap.
+    pub fn form_multiline<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        Self::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
+    }
+
+    fn multiline<V: 'static>(
+        style: MultilineStyle,
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
         let placeholder = placeholder.to_owned();
+        let minimum = match style {
+            MultilineStyle::Composer => 1,
+            MultilineStyle::Form => FORM_MIN_LINES,
+        };
+        let maximum = match style {
+            MultilineStyle::Composer => COMPOSER_LINES,
+            MultilineStyle::Form => FORM_LINES,
+        };
         let state = cx.new(|cx| {
             TextareaState::new(window, cx)
-                .auto_grow(1, COMPOSER_LINES)
+                .auto_grow(minimum, maximum)
                 .submit_on_enter(true)
                 .placeholder(placeholder)
         });
         let focused = Rc::new(Cell::new(false));
-        let send = Rc::new(Cell::new(SendOn::Enter));
+        let shortcut = match style {
+            MultilineStyle::Composer => SendOn::Enter,
+            MultilineStyle::Form => SendOn::ModEnter,
+        };
+        let send = Rc::new(Cell::new(shortcut));
         listen(
             &state,
             Handlers {
                 on_submit,
-                on_change: None,
+                // A growing form changes the surrounding dialog's layout
+                // and submit availability; its owner must see each edit.
+                on_change: match style {
+                    MultilineStyle::Composer => None,
+                    MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+                },
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -153,7 +232,7 @@ impl TextField {
             cx,
         );
         Self {
-            kind: Kind::Lines(state),
+            kind: Kind::Lines(state, style),
             focused,
             send,
         }
@@ -161,7 +240,9 @@ impl TextField {
 
     /// Which press sends a composer's text (a form field ignores it).
     pub fn set_send_on(&self, send: SendOn) {
-        self.send.set(send);
+        if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
+            self.send.set(send);
+        }
     }
 
     fn line<V: 'static>(
@@ -197,7 +278,7 @@ impl TextField {
     pub fn text(&self, cx: &App) -> String {
         match &self.kind {
             Kind::Line(state) => state.read(cx).value().to_string(),
-            Kind::Lines(state) => state.read(cx).value().to_string(),
+            Kind::Lines(state, _) => state.read(cx).value().to_string(),
         }
     }
 
@@ -206,7 +287,9 @@ impl TextField {
         let text = text.to_owned();
         match &self.kind {
             Kind::Line(state) => state.update(cx, |state, cx| state.set_value(text, window, cx)),
-            Kind::Lines(state) => state.update(cx, |state, cx| state.set_value(text, window, cx)),
+            Kind::Lines(state, _) => {
+                state.update(cx, |state, cx| state.set_value(text, window, cx));
+            }
         }
     }
 
@@ -218,7 +301,7 @@ impl TextField {
             Kind::Line(state) => state.update(cx, |state, cx| {
                 state.set_placeholder(placeholder, window, cx);
             }),
-            Kind::Lines(state) => state.update(cx, |state, cx| {
+            Kind::Lines(state, _) => state.update(cx, |state, cx| {
                 state.set_placeholder(placeholder, window, cx);
             }),
         }
@@ -247,7 +330,7 @@ impl TextField {
                     .child(Input::new(state))
                     .into_any_element()
             }
-            Kind::Lines(_) => div().into_any_element(),
+            Kind::Lines(_, _) => div().into_any_element(),
         }
     }
 
@@ -257,7 +340,7 @@ impl TextField {
     pub fn focus_handle(&self, cx: &App) -> gpui::FocusHandle {
         match &self.kind {
             Kind::Line(state) => state.read(cx).focus_handle(cx),
-            Kind::Lines(state) => state.read(cx).focus_handle(cx),
+            Kind::Lines(state, _) => state.read(cx).focus_handle(cx),
         }
     }
 
@@ -277,7 +360,7 @@ impl TextField {
             Kind::Line(state) => state.update(cx, |state, cx| {
                 state.marked_text_range(window, cx).is_some()
             }),
-            Kind::Lines(state) => state.update(cx, |state, cx| {
+            Kind::Lines(state, _) => state.update(cx, |state, cx| {
                 state.marked_text_range(window, cx).is_some()
             }),
         }
@@ -287,7 +370,7 @@ impl TextField {
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         let handle = match &self.kind {
             Kind::Line(state) => state.read(cx).focus_handle(cx),
-            Kind::Lines(state) => state.read(cx).focus_handle(cx),
+            Kind::Lines(state, _) => state.read(cx).focus_handle(cx),
         };
         handle.focus(window, cx);
     }
@@ -300,29 +383,29 @@ impl TextField {
         match &self.kind {
             Kind::Line(state) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                let focused = self.focused.get();
-                div()
-                    .flex()
-                    .items_center()
-                    .w_full()
-                    .min_h(px(if narrow { 44.0 } else { 32.0 }))
-                    .px(px(12.0))
-                    .rounded(px(8.0))
-                    .bg(neutral.surface2)
-                    .border_1()
-                    .border_color(if focused {
-                        neutral.border_accent
-                    } else {
-                        gpui::transparent_black()
-                    })
-                    .hover(move |style| style.border_color(neutral.border_accent))
-                    .type_(Type::Body)
-                    .line_height(px(fonts::ui(20.0)))
-                    .text_color(neutral.foreground)
+                form_shell(self.focused.get(), tokens, narrow)
                     .child(div().flex_1().child(Input::new(state)))
                     .into_any_element()
             }
-            Kind::Lines(state) => {
+            Kind::Lines(state, MultilineStyle::Form) => {
+                project(state, tokens, neutral.foreground_muted, cx);
+                form_shell(self.focused.get(), tokens, narrow)
+                    .flex_col()
+                    .items_stretch()
+                    .px(px(FORM_INSET_X))
+                    .py(px(FORM_INSET_Y))
+                    .min_h(px(if narrow { FORM_MIN_TOUCH } else { FORM_MIN }))
+                    .max_h(px(FORM_MAX))
+                    // The engine emits Enter and propagates the action.
+                    // This form already inserted a line or submitted in
+                    // its callback; native fallback must not insert again.
+                    .on_action(|_: &gpui_base::input::Enter, _window, cx| {
+                        cx.stop_propagation();
+                    })
+                    .child(Textarea::new(state))
+                    .into_any_element()
+            }
+            Kind::Lines(state, MultilineStyle::Composer) => {
                 project(state, tokens, neutral.surface4, cx);
                 div()
                     .w_full()
@@ -353,12 +436,35 @@ impl TextField {
                 project(state, tokens, neutral.foreground_muted, cx);
                 text.child(Input::new(state)).into_any_element()
             }
-            Kind::Lines(state) => {
+            Kind::Lines(state, _) => {
                 project(state, tokens, neutral.foreground_muted, cx);
                 text.child(Textarea::new(state)).into_any_element()
             }
         }
     }
+}
+
+/// Both form editors use the same surface and border-only focus treatment.
+fn form_shell(focused: bool, tokens: &Tokens, narrow: bool) -> gpui::Div {
+    let neutral = tokens.neutral;
+    div()
+        .flex()
+        .items_center()
+        .w_full()
+        .min_h(px(if narrow { 44.0 } else { 32.0 }))
+        .px(px(12.0))
+        .rounded(px(8.0))
+        .bg(neutral.surface2)
+        .border_1()
+        .border_color(if focused {
+            neutral.border_accent
+        } else {
+            gpui::transparent_black()
+        })
+        .hover(move |style| style.border_color(neutral.border_accent))
+        .type_(Type::Body)
+        .line_height(px(fonts::ui(20.0)))
+        .text_color(neutral.foreground)
 }
 
 /// Paseo's composer card (`inputWrapper`): `surface1`, a hairline of
@@ -516,6 +622,7 @@ mod composing_tests {
     struct Probe {
         line: TextField,
         lines: TextField,
+        form: TextField,
     }
 
     /// The fields' submit (nothing to do in this test).
@@ -527,6 +634,7 @@ mod composing_tests {
             div()
                 .child(self.line.element(&tokens, false, cx))
                 .child(self.lines.element(&tokens, false, cx))
+                .child(self.form.element(&tokens, false, cx))
         }
     }
 
@@ -536,7 +644,7 @@ mod composing_tests {
             Kind::Line(state) => state.update(cx, |state, cx| {
                 state.replace_and_mark_text_in_range(None, text, None, window, cx);
             }),
-            Kind::Lines(state) => state.update(cx, |state, cx| {
+            Kind::Lines(state, _) => state.update(cx, |state, cx| {
                 state.replace_and_mark_text_in_range(None, text, None, window, cx);
             }),
         }
@@ -545,7 +653,7 @@ mod composing_tests {
     fn unmark(field: &TextField, window: &mut Window, cx: &mut App) {
         match &field.kind {
             Kind::Line(state) => state.update(cx, |state, cx| state.unmark_text(window, cx)),
-            Kind::Lines(state) => state.update(cx, |state, cx| state.unmark_text(window, cx)),
+            Kind::Lines(state, _) => state.update(cx, |state, cx| state.unmark_text(window, cx)),
         }
     }
 
@@ -561,10 +669,15 @@ mod composing_tests {
         let (probe, cx) = cx.add_window_view(|window, cx| Probe {
             line: TextField::new("", submit, window, cx),
             lines: TextField::composer("", submit, window, cx),
+            form: TextField::form_multiline("", submit, window, cx),
         });
         cx.run_until_parked();
         probe.update_in(cx, |probe, window, cx| {
-            for (focused, other) in [(&probe.line, &probe.lines), (&probe.lines, &probe.line)] {
+            for (focused, other) in [
+                (&probe.line, &probe.lines),
+                (&probe.lines, &probe.form),
+                (&probe.form, &probe.line),
+            ] {
                 focused.focus(window, cx);
                 assert!(!focused.composing(window, cx), "nothing marked yet");
                 mark(other, "ㅎ", window, cx);
@@ -579,3 +692,6 @@ mod composing_tests {
         });
     }
 }
+
+#[cfg(test)]
+mod form_tests;
