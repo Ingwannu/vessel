@@ -91,6 +91,11 @@ app/src/
    sidebar lists it. An event from the link for it: one arm in
    `Shell::on_event` calling the area's method.
 
+The Devices page keeps invitation text outside text fields: only an
+explicit reveal projects it for up to thirty seconds or until expiry,
+whichever comes first. Copy, focus loss and navigation mask it. Its pure
+state and stale-response tests live in `view/src/devices/`.
+
 ### Adding a kit control
 
 One file per control in `kit/src/` (`widgets.rs` holds the smallest),
@@ -104,6 +109,11 @@ built from `kit::settings`: Paseo's section with its small title, the
 card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
+
+The kit's `qr.rs` draws a supplied module matrix on a white tile in both
+themes, with a four-module quiet zone. `view::devices::qr` encodes with
+`qrcode` 0.14 (MIT OR Apache-2.0, default features off); neither layer
+writes a matrix or a link. QR and text share the invitation reveal gate.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
@@ -234,6 +244,16 @@ names longer than a list and Korean ones, an on/off option with no name.
 Look at every picker with it before a build; `kit::picker`'s test lays
 out rows of those shapes and fails if one grows past a line or runs into
 the next.
+
+Settings also has checked shapes (`scripts/settings-fixtures.py`): many
+paired devices, long and Korean names, a never-seen and a revoked device;
+a home bundle with instructions, skills and MCP names; a synthetic member
+behind version zero with kept edits. These fixture reports do not run a
+real member sync loop. The second machine has no paired devices.
+
+Normal-build captures always mask the invitation. Revealed-state model
+checks use inert, test-only invitations in `view/src/tests/devices.rs`;
+no app feature can substitute a fake invitation in an installable build.
 
 Screens are checked against the two `shapes` sessions the fleet makes on
 `laptop`: a long thought, Markdown with a table, a 240-character code

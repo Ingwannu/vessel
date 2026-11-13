@@ -37,6 +37,7 @@ pub mod menu;
 pub mod output;
 pub mod picker;
 pub mod popup;
+pub mod qr;
 pub mod segmented;
 pub mod select;
 pub mod settings;

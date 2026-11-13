@@ -54,6 +54,10 @@ impl Link {
     pub fn send(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
+                ticket,
+                vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
+            ))),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

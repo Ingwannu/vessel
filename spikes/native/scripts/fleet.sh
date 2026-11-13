@@ -47,6 +47,8 @@ free_port() {
   python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
 }
 
+python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+
 : > "$root/pids"
 for name in laptop build-server; do
   port=$(free_port)
@@ -68,6 +70,8 @@ for name in laptop build-server; do
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
     "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
 done
+
+python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"

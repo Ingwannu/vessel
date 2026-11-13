@@ -25,6 +25,7 @@
 
 mod appearance;
 mod choices;
+mod devices;
 mod general;
 mod nav;
 mod page;
@@ -66,6 +67,7 @@ pub(crate) struct SettingsState {
     pub(crate) anchors: Anchors,
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
+    pub(crate) devices: devices::Devices,
 }
 
 impl SettingsState {
@@ -79,6 +81,7 @@ impl SettingsState {
             open: None,
             anchors: Anchors::default(),
             refused: None,
+            devices: devices::Devices::new(window, cx),
         }
     }
 
@@ -317,6 +320,7 @@ pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
 /// the theme is "System"; the text sizes; the composers' send shortcut;
 /// the conversation's width and display.
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    devices::start(shell, window, cx);
     apply_theme(shell, window, cx);
     apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
@@ -370,6 +374,7 @@ pub(crate) fn render(
         .child(body)
         .children(list(shell, tokens, phone, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
+        .children(devices::dialogs(shell, tokens, window, cx))
 }
 
 /// Whether `section` is drawn in this build: Settings lists only these.
@@ -380,7 +385,11 @@ pub(crate) fn render(
 pub(crate) const fn drawn(section: Section) -> bool {
     matches!(
         section,
-        Section::General | Section::Appearance | Section::About | Section::Projects
+        Section::General
+            | Section::Appearance
+            | Section::About
+            | Section::Projects
+            | Section::Devices
     )
 }
 
@@ -409,6 +418,7 @@ fn content(
 ) -> Option<AnyElement> {
     match section {
         Section::General => Some(general::render(shell, tokens, phone, cx)),
+        Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
         Section::Projects => Some(crate::areas::workspace::projects_content(
@@ -421,7 +431,6 @@ fn content(
         | Section::Agents
         | Section::Models
         | Section::Machines
-        | Section::Devices
         | Section::Sync => None,
     }
 }
