@@ -40,6 +40,8 @@ pub enum Glyph {
     Menu,
     /// A picker's caret.
     ChevronDown,
+    /// Up: the find bar's previous match.
+    ChevronUp,
     /// A row that opens a list of its own (a provider's models).
     ChevronRight,
     /// Back, from such a list.
@@ -71,7 +73,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 22] = [
+const ALL: [Glyph; 23] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -80,6 +82,7 @@ const ALL: [Glyph; 22] = [
     Glyph::Update,
     Glyph::Menu,
     Glyph::ChevronDown,
+    Glyph::ChevronUp,
     Glyph::ChevronRight,
     Glyph::ChevronLeft,
     Glyph::Check,
@@ -121,6 +124,7 @@ impl Glyph {
             Self::Update => "kit/update.svg",
             Self::Menu => "kit/menu.svg",
             Self::ChevronDown => "kit/chevron-down.svg",
+            Self::ChevronUp => "kit/chevron-up.svg",
             Self::ChevronRight => "kit/chevron-right.svg",
             Self::ChevronLeft => "kit/chevron-left.svg",
             Self::Check => "kit/check.svg",
@@ -160,6 +164,7 @@ impl Glyph {
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M1.5 3h9M1.5 6h9M1.5 9h9" fill="none" stroke="black" stroke-width="1.2" stroke-linecap="round"/></svg>"#
             }
             Self::ChevronDown => line_glyph!(r#"<path d="M6 9l6 6 6-6"/>"#),
+            Self::ChevronUp => line_glyph!(r#"<path d="M6 15l6-6 6 6"/>"#),
             Self::ChevronRight => line_glyph!(r#"<path d="M9 6l6 6-6 6"/>"#),
             Self::ChevronLeft => line_glyph!(r#"<path d="M15 6l-6 6 6 6"/>"#),
             Self::Check => line_glyph!(r#"<path d="M20 6L9 17l-5-5"/>"#),

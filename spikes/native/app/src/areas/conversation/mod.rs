@@ -26,6 +26,7 @@
 mod bar;
 mod bench;
 mod entries;
+mod find;
 mod look;
 mod rename;
 mod timeline;
@@ -34,12 +35,12 @@ mod tool;
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use vessel_app_kit::ui::{App, Context};
+use vessel_app_kit::ui::{App, Context, Subscription};
 use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::session::MarkAction;
-use vessel_app_view::timeline::{Folds, Logs, Rows, Timeline};
+use vessel_app_view::timeline::{FindCache, Folds, Logs, Rows, Timeline};
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
 
 pub(crate) use bar::bar;
@@ -114,6 +115,13 @@ pub(crate) struct ConversationArea {
     pub(crate) dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
+    /// The find bar, while it is open.
+    pub(crate) find: Option<find::FindBar>,
+    /// Each entry's folded text for find, kept between searches of the
+    /// session shown.
+    pub(crate) find_cache: FindCache,
+    /// Hears Mod+F (`find`); made once a session is first shown.
+    keys: Option<Subscription>,
     /// The scrolling measurement, when it is on.
     bench: bench::Bench,
 }
@@ -138,6 +146,9 @@ impl ConversationArea {
             confirm: None,
             dialog: DialogState::new(cx),
             rename: None,
+            find: None,
+            find_cache: FindCache::default(),
+            keys: None,
             bench: bench::Bench::default(),
         }
     }
@@ -167,7 +178,13 @@ fn collapsing() -> bool {
 impl Shell {
     /// The session area opened `session` on `machine`: start again from
     /// its first record, and read what the node says of it.
-    pub(crate) fn conversation_opened(&mut self, machine: &str, session: SessionId) {
+    pub(crate) fn conversation_opened(
+        &mut self,
+        machine: &str,
+        session: SessionId,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.hear_find(cx);
         let area = &mut self.areas.conversation;
         area.shown = Some(Shown {
             machine: machine.to_owned(),
@@ -186,6 +203,8 @@ impl Shell {
         area.menu.close();
         area.confirm = None;
         area.rename = None;
+        area.find = None;
+        area.find_cache = FindCache::default();
         self.command(Command::Act {
             machine: machine.to_owned(),
             session,

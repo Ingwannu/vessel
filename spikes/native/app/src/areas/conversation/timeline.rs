@@ -50,7 +50,9 @@ pub(crate) fn timeline(
         .flex_1()
         .min_h(px(0.0))
         .size_full()
+        .relative()
         .child(list)
+        .children(super::find::bar(shell, tokens, window, cx))
         .into_any_element()
 }
 

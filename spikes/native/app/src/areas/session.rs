@@ -121,7 +121,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session);
+        self.conversation_opened(&open.machine, open.session, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
