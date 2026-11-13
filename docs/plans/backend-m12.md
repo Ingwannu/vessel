@@ -139,6 +139,41 @@ Rules the three share:
   (`backend-m12-spike.md`, `backend-m12-release.md`,
   `backend-m12-phone.md`): the evidence for its questions.
 
+## Build 0.0.0.0.1 and what the owner said (2026-11-13)
+
+Windows (an installer, a zip) and Linux, from the desktop track's commit
+that pairs, lists machines and sessions, and opens a session. On the
+owner's Windows 11 the window opened, text drew, and pairing through the
+relay worked. The owner's words, as given:
+
+1. The app is good but awkward to use: **it should do everything the
+   page does, the same way.**
+2. Starting a first chat should be as in GOAT and agent-orchestrator:
+   **type, send, and it runs.** As it is, something feels wrong.
+3. The top of the window, with minimise, maximise and close, should be
+   **drawn by the app itself, as Zed's is**, not Windows' own bar.
+
+And from the first minutes of use: after pasting the pairing link the
+owner typed the key into the name field (the screen's wording invited
+it), and the machine the node ran on had no `vessel` command to compare
+the key with.
+
+So the milestone's scope is the page's whole surface, not a few screens:
+
+- **0.0.0.0.2**: a new session by typing and sending (the references'
+  flow, reproduced; `new-session-flow-compare` is the side-by-side the
+  workers check against); the pairing screen in two plain steps with a
+  prefilled name; the app's own title bar; a string table with Korean;
+  the app's README and a layout in which several workers add screens
+  without sharing files.
+- **Then parity, in parallel tracks**, cut from an inventory of the
+  page: the conversation in full; terminals; settings, machines,
+  devices and the fleet; projects, files, git and pull requests;
+  schedules. Each track ports its view logic into the crate without
+  GPUI first, with the page's test cases, then draws it.
+- The page's own new-session flow is brought to the references' in the
+  same pass, so the two clients do not differ.
+
 ## After the first builds (written out as the tracks report)
 
 - **View models** in Rust (`vessel-view`): the conversation folded from
