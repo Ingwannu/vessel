@@ -1,9 +1,11 @@
-# ADR 0035: The app is native, one Rust UI on GPUI
+# ADR 0035: The app is native, one Rust UI drawn as Zed draws its own
 
 Status: accepted for the desktop, 2026-11-13 (the owner's decision); the
 phone and the browser are aims, each to be shown working by the spike of
-milestone 12 before it is promised. Replaces the proposal of ADR 0020
-(one web UI in Tauri shells), which was never accepted.
+milestone 12 before it is promised. What the UI is built on (GPUI
+itself, a pinned copy of it, or lower layers with GPUI as the model) is
+open until that spike reports. Replaces the proposal of ADR 0020 (one
+web UI in Tauri shells), which was never accepted.
 
 ## Context
 
@@ -12,6 +14,16 @@ light and fast as Zed is and updates itself well. Asked to choose between
 the web page in a Tauri shell and a native UI as Zed's, the owner chose
 the native one, and asked for the phone and the web to get the same by
 installing an app, as far as that can be done.
+
+The same day the owner added a condition: Zed's is not to be used as it
+is, because that brings problems; Zed is a reference, and Tauri 2 is a
+reference too. Read here as: take from Zed how a native Rust UI is
+drawn, laid out and kept fast, and how the app updates itself, without
+binding Vessel to Zed's framework wherever that framework does not
+reach or cannot be relied on; and take from Tauri 2 what Zed does not
+have or does not aim at: one Rust core inside a desktop, an Android and
+an iOS app, installers for every system, a signed updater, and a way
+for extensions to add to the app.
 
 What existed when this was decided:
 
@@ -69,10 +81,28 @@ What was looked up on 2026-11-13 (sources in "References"):
 
 ## Decision
 
-Option 3.
+Option 3, with Zed and Tauri 2 as references and neither taken whole.
 
-- **One UI crate, in Rust, on GPUI**, for the desktop first: macOS, Linux
-  and Windows.
+- **One UI crate, in Rust, drawn on the GPU as Zed's is**, for the
+  desktop first: macOS, Linux and Windows.
+- **GPUI is the model, and a dependency only as far as it holds.** The
+  problems of taking it as it is are known: its released crate is a year
+  behind its tree; the phone and the browser exist only in snapshots and
+  community layers of that tree; its makers declined to plan iOS; its
+  interfaces change between snapshots; and Zed the editor around it is
+  under a licence Vessel cannot take code from (GPUI itself is
+  Apache-2.0). The spike decides between three ways and says what each
+  costs: depend on a pinned GPUI; keep a pinned copy Vessel can patch;
+  or build on the layers below (a GPU renderer, windowing, text shaping,
+  layout) following GPUI's design. Whichever it is, the screens are
+  written against an interface of Vessel's own kit, so the layer under
+  it can change without the screens being written a third time.
+- **Tauri 2 is the model for what surrounds the UI**: the Rust core
+  packaged into an Android and an iOS app as a library with a thin
+  native host; installers per system; an updater that checks a signed
+  release; permissions an extension is granted by name. Where the native
+  UI cannot reach a phone, a Tauri 2 shell showing the page is the
+  fallback for that phone, not the plan for the desktop.
 - **It links `vessel-client`.** The app is a client of its nodes as the
   CLI is: it reads the node book, pairs as a device, takes the direct,
   SSH and relay routes. There is no bridge, no loopback server and no
@@ -86,8 +116,8 @@ Option 3.
   the type, the references' layout: `docs/design/web-ui/DESIGN.md`) is
   carried into GPUI's theme, not redesigned.
 - **The phone and the browser use the same UI crate where the platform
-  layers hold**: Android and iOS through GPUI's mobile platform,
-  browsers through its WebAssembly one. Each is taken up only after the
+  layers hold**: Android and iOS through a mobile platform under the
+  UI, browsers through a WebAssembly one. Each is taken up only after the
   spike shows a real screen of Vessel's running there; until then, and
   wherever it does not hold, the page (`vessel ui`) remains the answer
   for a browser, and a phone uses the page.
@@ -124,15 +154,20 @@ part that was not Rust.
 - **iOS cannot be built or tried on the machines this project is built
   on** (it needs macOS and Xcode, and a developer account to reach a
   phone). Windows and macOS desktop builds are confirmed only by CI.
-- **GPUI moves fast and its released crate lags its tree.** The version
-  Vessel builds on is pinned, and moving it is work each time.
+- **GPUI moves fast and its released crate lags its tree.** Whatever
+  Vessel builds on is pinned, and moving it is work each time; a copy
+  Vessel patches is Vessel's to maintain.
 - **A browser cannot run it without WebGPU.**
 
 ## Open, decided by the spike or by the owner
 
-- Which GPUI Vessel builds on (the released crate, the snapshots the
-  mobile and web layers need, or Zed's tree), and that nothing it pulls
-  in carries a licence Vessel cannot link (ADR 0014).
+- What the UI is built on: a pinned GPUI (the released crate, or the
+  snapshots the mobile and web layers need), a copy Vessel patches, or
+  the layers below with GPUI as the model; and that nothing pulled in
+  carries a licence Vessel cannot link (ADR 0014).
+- What is taken from Tauri 2 as code (its updater, its bundler, its
+  mobile host projects are libraries and tools under MIT or Apache-2.0)
+  and what only as a design.
 - Whether Android, iOS and the browser hold (the spike).
 - Where releases are published and with what key they are signed; code
   signing on Windows and notarisation on macOS; an Apple developer
@@ -146,3 +181,4 @@ part that was not Rust.
 - Zed's issue on GPUI for iOS: `https://github.com/zed-industries/zed/issues/43206`
 - The community mobile layer: `https://github.com/longbridge/gpui-mobile`
 - The component library: `https://github.com/longbridge/gpui-component`
+- Tauri 2: `https://github.com/tauri-apps/tauri` (MIT or Apache-2.0)

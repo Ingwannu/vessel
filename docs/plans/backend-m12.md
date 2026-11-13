@@ -15,9 +15,14 @@ light and fast as Zed is, and does it update well; then, choosing: Zed's
 way, and the web and the phone too, by installing an app, as far as it
 goes.
 
-So: a desktop app that is native (no web view), on the framework Zed is
-built on; the same UI on a phone and in a browser where that can be made
-to work; an app that updates itself.
+And, the same day: Zed's is not to be used as it is, because that
+brings problems; it is a reference, and so is Tauri 2.
+
+So: a desktop app that is native (no web view), drawn as Zed draws its
+own; the same UI on a phone and in a browser where that can be made to
+work; an app that updates itself. Zed is the model for the UI and Tauri
+2 for what surrounds it (phones, installers, updates, extensions);
+neither is taken whole (ADR 0035).
 
 ## Before writing code
 
@@ -31,8 +36,10 @@ to work; an app that updates itself.
    are: the app is a client, as the CLI is. The view logic is ported to
    Rust once, with its tests' cases, into a crate with no UI in it. The
    screens are new.
-3. **Outside.** GPUI (Apache-2.0) and `gpui-component` (Apache-2.0) for
-   the UI; a terminal emulator crate for terminals, as Zed uses one;
+3. **Outside.** GPUI (Apache-2.0) and `gpui-component` (Apache-2.0) as
+   the model for the UI and, as far as the spike finds they hold, its
+   base; Tauri 2 (MIT or Apache-2.0) as the model for packaging, phones
+   and updates; a terminal emulator crate for terminals, as Zed uses one;
    the community mobile layer and GPUI's web platform, if the spike
    finds they hold. Each with its licence checked against ADR 0014.
 4. **Decision.** New development on an outside framework: ADR 0035.
@@ -72,9 +79,26 @@ Questions, each answered with what was run and what was seen:
    without WebGPU.
 7. **iOS.** Cannot be built here. From the code: what a macOS job would
    need, and what is known not to work.
-8. **Updates.** How Zed updates itself, read from its source; what
-   Vessel needs for the same (artifacts per platform, a signature, where
-   they are published), not built.
+8. **Updates.** How Zed updates itself and how Tauri 2's updater does
+   (its signature, its endpoints), read from their source; what Vessel
+   needs (artifacts per platform, a signature, where they are
+   published), not built.
+9. **Not as it is.** What goes wrong if GPUI is taken as it is, each
+   problem shown and not supposed (the released crate against the tree,
+   the snapshots, what breaks between two of them, what Vessel's screens
+   need that it lacks). Then the three ways of ADR 0035 with what each
+   costs: a pinned GPUI; a pinned copy Vessel patches; the layers below
+   (a GPU renderer, windowing, text shaping with input methods, layout)
+   with GPUI as the model. What Vessel's screens need of a UI layer, by
+   name (a list of 20,000 rows, a text field with input methods, rich
+   text, a terminal's grid, menus, focus, accessibility), against each.
+10. **Tauri 2 as the reference for the rest.** Read from its source and
+    documentation: how one Rust core becomes an Android and an iOS app;
+    its bundler's installers; its updater; its permissions and plugins.
+    What a native (no web view) app takes from each, as code or as
+    design. And the fallback: whether a Tauri 2 shell showing the page
+    is a sound phone app where the native UI cannot reach, and what it
+    would need of `vessel-client` (ADR 0020 described it).
 
 The spike ends with a report (`docs/plans/backend-m12-spike.md`): each
 question's answer with its evidence, what it recommends for ADR 0035's
