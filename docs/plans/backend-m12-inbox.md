@@ -156,8 +156,9 @@ inbox state; no timing sleeps stand in for the store commit.
 ## Progress and evidence
 
 This is a node checkpoint, not a completed or review-approved slice.
-Root formatting, whole clippy and TypeScript generation (one proto and one
-bridge generating test) passed before the final test-expectation correction.
+Root formatting and whole clippy passed after the final test-expectation
+correction. TypeScript generation (one proto and one bridge generating test)
+passed before that test-only correction.
 Web lint, typecheck, unit tests (55 files, 243 tests) and build passed. Web E2E
 finished with 35 passed and one unresolved theme-paint assertion failure:
 `page.spec.ts:34` expected `dark` and received `null`. No claim that it was
