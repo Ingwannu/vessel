@@ -312,6 +312,40 @@ What changes in how builds are checked:
   the root, not screen by screen.
 - Settings pages, About included, are Paseo's settings layout.
 
+## Build 0.0.0.0.7, and the composer's controls redrawn (2026-11-13)
+
+0.0.0.0.7: feature pills with names and tooltips, the Settings frame
+(General, Appearance with the three themes, About), pairing as a
+two-step dialog, lists opening on their trigger's side, the
+conversation against real shapes (code blocks, tables, the output box,
+the person's message as a bubble), a session renamed where its title
+stands, the adapter's start-up log out of the conversation, a plain log
+file and readable panic frames.
+
+The owner on its row of pills: not that way. What they asked for, with
+captures of the control they mean:
+
+- **One pill for the model and the effort.** It opens a small card: the
+  level's word, the model's name under it (which opens the model list as
+  before), a lightning icon that turns fast mode on and off, a reset to
+  the agent's default, and a **slider** whose steps are the agent's
+  levels.
+- **The top of the slider holds what was separate**: an agent's "ultra"
+  feature (Claude Code's Ultracode) is the last step, not a toggle of
+  its own; an agent's own top levels are simply the last steps.
+- **Fast mode shows in the slider**: with it on, the track moves and
+  feels quicker.
+- **No separate pill for an agent's other options.** The owner asked
+  what "Agent" was; a control the owner cannot name does not belong in
+  the row. What is neither effort, the top step nor fast moves to the
+  top of the model list, each with a line saying what it is.
+
+So the row is: the model-and-effort pill, the mode pill, send. This is
+the first item of 0.0.0.0.8, and the page gets the same control in its
+next pass (ADR 0036). The rule drawn from it: an agent's raw options are
+not laid out as they arrive; each is placed where a person would look
+for it, or kept out of the row.
+
 ## Everything the references do: who builds what (2026-11-13)
 
 The owner, after build 0.0.0.0.6: build every Paseo and GOAT feature,
