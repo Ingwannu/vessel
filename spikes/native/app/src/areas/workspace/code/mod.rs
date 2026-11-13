@@ -22,6 +22,7 @@
 //! - Cost: the panel follows the open session only while it is open;
 //!   reopening it reads the session again (one call).
 
+mod actions;
 mod change_rows;
 mod changes;
 mod files;
@@ -71,6 +72,8 @@ struct Target {
     machine: String,
     session: SessionId,
     place: Place,
+    /// The session's folder on the machine, for "Copy path".
+    cwd: Option<std::path::PathBuf>,
 }
 
 /// A comparison's files.
@@ -123,6 +126,7 @@ struct Files {
     list: VirtualList,
     viewer: Option<Viewer>,
     search: search::Search,
+    actions: actions::Actions,
 }
 
 /// The panel's state.
@@ -159,9 +163,15 @@ impl CodePanel {
                 list: VirtualList::new(false),
                 viewer: None,
                 search: search::Search::new(window, cx),
+                actions: actions::Actions::new(cx),
             },
             width: frame::WIDTH,
         }
+    }
+
+    /// The session's folder on the machine, when it said.
+    fn cwd(&self) -> Option<&std::path::Path> {
+        self.target.as_ref()?.cwd.as_deref()
     }
 
     /// The root shown, when the session is in one.
@@ -188,8 +198,49 @@ impl Changes {
 impl Files {
     fn relist(&mut self) {
         self.rows = tree_rows(&self.listings, &self.open);
-        self.list.reset(self.rows.len());
+        self.list.reset(self.row_count());
     }
+
+    /// The list's rows: the tree's, and the row a name is typed in.
+    fn row_count(&self) -> usize {
+        let extra = self
+            .actions
+            .editing
+            .as_ref()
+            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
+            .is_some_and(|(_, replaces)| !replaces);
+        self.rows.len().saturating_add(usize::from(extra))
+    }
+
+    /// What list row `index` draws: the typed name's row (at its depth),
+    /// or the tree's row at an index.
+    fn slot(&self, index: usize) -> Slot {
+        let Some((at, replaces)) = self
+            .actions
+            .editing
+            .as_ref()
+            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
+        else {
+            return Slot::Row(index);
+        };
+        if index == at {
+            let depth = self.rows.get(at).map_or(0, TreeRow::depth);
+            return Slot::Edit(depth);
+        }
+        if index > at && !replaces {
+            return Slot::Row(index.saturating_sub(1));
+        }
+        Slot::Row(index)
+    }
+}
+
+/// What a row of the tree's list draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Slot {
+    /// The tree's row at this index.
+    Row(usize),
+    /// The row a name is typed in, at this depth.
+    Edit(usize),
 }
 
 impl Shell {
@@ -201,8 +252,15 @@ impl Shell {
 
     /// Open or close the panel; opening it says the search field's words
     /// in the person's language (the field is made before the language is
-    /// known).
+    /// known). The bar's toggle and track S2's "toggle inspector"
+    /// shortcut both call this; with no session open it does nothing (the
+    /// panel is a session's), as the toggle is not drawn then. At a
+    /// phone's width the panel it opens takes the whole screen, as from the
+    /// toggle.
     pub(crate) fn toggle_code(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.session.open.is_none() {
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         panel.open = !panel.open;
         if panel.open {
@@ -233,6 +291,7 @@ impl Shell {
             machine: machine.clone(),
             session,
             place: Place::Reading,
+            cwd: None,
         });
         panel.changes.summary = Summary::Loading;
         panel.changes.states.clear();
@@ -260,10 +319,11 @@ impl Shell {
         else {
             return;
         };
-        target.place = match result {
-            Ok(info) => session_root(&info).map_or(Place::Outside, Place::Root),
-            Err(problem) => Place::Failed(words.problem(&problem)),
+        target.place = match &result {
+            Ok(info) => session_root(info).map_or(Place::Outside, Place::Root),
+            Err(problem) => Place::Failed(words.problem(problem)),
         };
+        target.cwd = result.ok().and_then(|info| info.spec.cwd);
         self.code_read_tab();
     }
 

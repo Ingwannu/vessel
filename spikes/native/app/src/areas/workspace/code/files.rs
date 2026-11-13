@@ -6,7 +6,7 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, VirtualList, glyph};
@@ -112,7 +112,7 @@ impl Shell {
         panel.files.relist();
     }
 
-    fn toggle_folder(&mut self, path: &RelPath, cx: &mut Context<'_, Self>) {
+    pub(super) fn toggle_folder(&mut self, path: &RelPath, cx: &mut Context<'_, Self>) {
         let files = &mut self.areas.workspace.code.files;
         if !files.open.remove(path) {
             let _new = files.open.insert(path.clone());
@@ -124,6 +124,34 @@ impl Shell {
 
     fn open_file(&mut self, path: RelPath, cx: &mut Context<'_, Self>) {
         self.open_file_at(path, None, cx);
+    }
+
+    /// Show `path` from an answer (a file just made), with no frame to
+    /// notify: the answer's own handling repaints.
+    pub(super) fn open_file_at_quietly(&mut self, path: RelPath) {
+        let panel = &mut self.areas.workspace.code;
+        let Some((machine, root)) = panel
+            .root()
+            .map(|(machine, root)| (machine.to_owned(), *root))
+        else {
+            return;
+        };
+        panel.files.viewer = Some(Viewer {
+            path: path.clone(),
+            text: Shown::Loading,
+            list: VirtualList::new(false),
+            goto: None,
+            chosen: None,
+        });
+        self.ask(
+            &machine,
+            Ask::File(FileAsk::Read(ReadFile {
+                root,
+                path,
+                offset: 0,
+                limit: None,
+            })),
+        );
     }
 
     /// Show `path`, at line `line` (from 1) when given.
@@ -235,15 +263,27 @@ pub(super) fn render(
         .flex()
         .flex_col()
         .child(super::search::bar(shell, tokens, cx))
+        .children(super::actions::refused_note(shell, tokens))
         .child(div().flex_1().min_h(px(0.0)).child(body))
+        .children(super::actions::overlays(shell, tokens, window, cx))
         .into_any_element()
 }
 
-fn indented(depth: usize) -> f32 {
+pub(super) fn indented(depth: usize) -> f32 {
     // Whole levels, at most 32 deep: an f32 from a small integer.
     let levels = u16::try_from(depth.min(32)).unwrap_or(32);
-    // `mul_add`: the lints deny arithmetic operators on floats.
-    f32::from(levels).mul_add(INDENT, 8.0)
+    // Paseo's `treeRowPaddingLeft`: 12, then 12 a level. `mul_add`: the
+    // lints deny arithmetic operators on floats.
+    f32::from(levels).mul_add(INDENT, 12.0)
+}
+
+/// Paseo's sidebar hover surface (`surfaceSidebarHover`: the third
+/// surface in the dark, the first in the light), which its trees use.
+const fn hover_surface(tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
+    match tokens.scheme {
+        vessel_app_kit::Scheme::Dark => tokens.neutral.surface3,
+        vessel_app_kit::Scheme::Light => tokens.neutral.surface1,
+    }
 }
 
 /// A row of the tree.
@@ -256,8 +296,12 @@ fn tree_row(
     let files = &shell.areas.workspace.code.files;
     let neutral = tokens.neutral;
     let labels = shell.words().labels();
-    let Some(row) = files.rows.get(index) else {
-        return div().into_any_element();
+    let row = match files.slot(index) {
+        super::Slot::Edit(depth) => return super::actions::edit_row(shell, depth, tokens, cx),
+        super::Slot::Row(at) => match files.rows.get(at) {
+            Some(row) => row,
+            None => return div().into_any_element(),
+        },
     };
     let quiet = |depth: usize, text: String| {
         div()
@@ -292,47 +336,79 @@ fn tree_row(
             };
             let folder = entry.kind == EntryKind::Dir;
             let path = path.clone();
-            let hover = neutral.surface2;
+            // Paseo's tree row (`tree-primitives.tsx`, `file-explorer-pane.tsx`):
+            // 6 above and below, 8 at the right, one 16 slot (a folder's
+            // chevron, extra muted, or the file's glyph), 8 to the name in
+            // the foreground at 0.76, whole on hover, the sidebar's hover
+            // surface. A file ignored by git is dimmer still.
+            let wash = hover_surface(tokens);
+            let name_ink = if entry.ignored {
+                neutral.foreground_extra_muted
+            } else {
+                neutral.foreground.opacity(0.76)
+            };
+            let name_hover = neutral.foreground;
             div()
                 .id(("code-tree", index))
+                .group("code-tree-row")
                 .w_full()
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(6.0))
-                .min_h(px(28.0))
+                .gap(px(8.0))
+                .py(px(6.0))
                 .pl(px(indented(*depth)))
                 .pr(px(8.0))
                 .cursor_pointer()
-                .hover(move |style| style.bg(hover))
-                .child(div().w(px(12.0)).flex_none().when(folder, |cell| {
-                    cell.child(glyph(
-                        if *open {
-                            Glyph::ChevronDown
+                .hover(move |style| style.bg(wash))
+                .child(
+                    div()
+                        .size(px(16.0))
+                        .flex_none()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(if folder {
+                            glyph(
+                                if *open {
+                                    Glyph::ChevronDown
+                                } else {
+                                    Glyph::ChevronRight
+                                },
+                                16.0,
+                                neutral.foreground_extra_muted,
+                            )
                         } else {
-                            Glyph::ChevronRight
-                        },
-                        12.0,
-                        neutral.foreground_muted,
-                    ))
-                }))
-                .child(glyph(
-                    if folder { Glyph::Folder } else { Glyph::File },
-                    14.0,
-                    neutral.foreground_muted,
-                ))
+                            glyph(Glyph::File, 16.0, neutral.foreground_muted)
+                        }),
+                )
                 .child(
                     div()
                         .flex_1()
                         .min_w_0()
                         .truncate()
                         .type_(Type::Body)
-                        .text_color(if entry.ignored {
-                            neutral.foreground_extra_muted
-                        } else {
-                            neutral.foreground
-                        })
+                        .text_color(name_ink)
+                        .group_hover("code-tree-row", move |style| style.text_color(name_hover))
                         .child(entry.name.clone()),
+                )
+                .on_mouse_down(
+                    MouseButton::Right,
+                    cx.listener({
+                        let path = path.clone();
+                        let open = *open;
+                        move |this, event: &MouseDownEvent, window, cx| {
+                            this.open_file_actions(
+                                path.clone(),
+                                folder,
+                                open,
+                                event.position,
+                                window,
+                                cx,
+                            );
+                            cx.stop_propagation();
+                        }
+                    }),
                 )
                 .on_click(cx.listener(move |this, _event, _window, cx| {
                     if folder {
