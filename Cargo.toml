@@ -1,6 +1,9 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# Milestone 12's native app spikes are workspaces of their own (one per
+# track), so this gate neither builds nor waits for them.
+exclude = ["spikes"]
 
 [workspace.package]
 version = "0.1.0"
