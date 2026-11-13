@@ -611,12 +611,27 @@ never rebuilt.
   - Under wine, the Windows build wrote
     `%LOCALAPPDATA%\Vessel\logs\vessel.log`, with wine's font panic
     recorded with its place.
-  - Seen there, for the next build:
-    - Span fields carry stderr's colour codes into the file. The two fmt
-      layers share the formatted fields, so the file layer needs a field
-      formatter of its own.
-    - On Windows the backtrace's frames are `<unknown>`, because no
-      `.pdb` ships.
+  - Seen there, and fixed after 0.0.0.0.6 was published (08:58:17
+    UTC):
+    - Span fields carried stderr's colour codes into the file. The file
+      layer now has a field formatter of its own (`4125c37`).
+    - On Windows the backtrace's frames were `<unknown>`, because no
+      `.pdb` ships. The panic line now also has `frames="exe+0x<rva> …"`
+      (`7b8d66f`). `build.sh` keeps each label's `vessel_app.pdb`, with
+      the exe's SHA-256, under `vessel-app-symbols/<label>/` beside the
+      dist root, never in the dist folder (`cfe9bd8`).
+    - 0.0.0.0.6's own `.pdb` was copied there by hand; its GUID matches
+      the exe's. Those of 0.0.0.0.1 to 0.0.0.0.5 were already
+      overwritten.
+    - `tools/pdb-frames.py <exe> <pdb> <vessel.log>` names the frames
+      from the `.pdb`'s public symbols. On a scratch build under wine,
+      the font panic read as gpui `TextSystem::resolve_font` ←
+      `gpui_component` `resolve_default_font` ← `gpui_component::init`
+      ← `vessel_app_kit::init` ← `vessel_app::main`.
+    - The release profile has no debug info, so the app's frames have
+      function names but no lines. `debug = "line-tables-only"` in the
+      desktop track's release profile would add the lines to the
+      `.pdb`; the exe itself is not changed on Windows.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 
