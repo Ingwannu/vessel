@@ -6,6 +6,7 @@ use vessel_proto::{
     SessionMode, SessionSpec, SessionStatus,
 };
 
+use crate::board::Tone;
 use crate::{Attention, Card, Fleet, Lane, Lang, Machine, Phrase, Reach};
 
 fn at(text: &str) -> DateTime<Utc> {
@@ -235,4 +236,49 @@ fn writes_how_long_ago_never_in_weeks() {
     // The same ages in Korean.
     assert_eq!(Lang::Ko.text().since(6), "6분 전");
     assert_eq!(Lang::Ko.text().since(180), "3시간 전");
+}
+
+#[test]
+fn colours_a_status_line_by_its_lane_unless_the_phrase_says_more() {
+    let tone = |column, status| {
+        card(
+            RUNNING,
+            Some(placed(column, status, "2026-11-07T10:00:00Z")),
+        )
+        .tone()
+    };
+    assert_eq!(
+        tone(KanbanColumn::Building, DisplayStatus::Working),
+        Tone::Lane
+    );
+    assert_eq!(
+        tone(KanbanColumn::Building, DisplayStatus::Blocked),
+        Tone::NeedsYou
+    );
+    assert_eq!(
+        tone(KanbanColumn::Ready, DisplayStatus::Mergeable),
+        Tone::Ready
+    );
+    assert_eq!(
+        tone(KanbanColumn::Ready, DisplayStatus::Merged),
+        Tone::Merged
+    );
+    assert_eq!(
+        tone(KanbanColumn::Ready, DisplayStatus::Closed),
+        Tone::Danger
+    );
+    assert_eq!(
+        tone(KanbanColumn::Archive, DisplayStatus::Terminated),
+        Tone::Quiet
+    );
+    // An ended session of an older node shows its own word; a failure
+    // stays visible in the archive.
+    let failed = SessionStatus::Failed {
+        message: "no login".to_owned(),
+    };
+    assert_eq!(card(failed, None).tone(), Tone::Danger);
+    assert_eq!(
+        card(SessionStatus::Exited { code: Some(0) }, None).tone(),
+        Tone::Quiet
+    );
 }

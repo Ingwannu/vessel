@@ -4,5 +4,12 @@
 //! test it follows.
 
 mod agents;
+mod archive;
 mod board;
+mod fixture;
+mod notices;
 mod options;
+mod palette;
+mod shortcuts;
+mod sidebar;
+mod tree;
