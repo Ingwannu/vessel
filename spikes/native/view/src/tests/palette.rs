@@ -5,7 +5,9 @@ use vessel_proto::{SessionInfo, SessionStatus};
 
 use super::fixture::{fleet, id, in_folder, machine, session};
 use crate::Lang;
-use crate::palette::{PaletteEntry, PaletteGroup, PaletteTarget, palette_entries, palette_groups};
+use crate::palette::{
+    PaletteEntry, PaletteGroup, PaletteTarget, kept, mark, moved, palette_entries, palette_groups,
+};
 
 /// Settings' sections as the frame names them (the page's
 /// `SETTINGS_SECTIONS`).
@@ -204,4 +206,71 @@ fn typing_filters_by_label_detail_and_id() {
     assert_eq!(by_state[0].1[0].label, "old");
     assert!(palette_groups(&all, "nothing like it").is_empty());
     assert_eq!(palette_groups(&all, "").len(), PaletteGroup::ALL.len());
+}
+
+// Paseo's `command-center/results.test.ts`.
+
+#[test]
+fn keeps_the_active_row_while_it_is_listed_else_the_first() {
+    let ids = ["workspace:first", "workspace:second"];
+    assert_eq!(
+        kept(Some("workspace:second"), &ids),
+        Some("workspace:second")
+    );
+    assert_eq!(kept(Some("missing"), &ids), Some("workspace:first"));
+    assert_eq!(kept(Some("workspace:first"), &[]), None);
+    assert_eq!(kept(None, &ids), Some("workspace:first"));
+}
+
+#[test]
+fn wraps_keyboard_selection_in_both_directions() {
+    let ids = ["workspace:first", "workspace:second"];
+    assert_eq!(
+        moved(Some("workspace:second"), &ids, true),
+        Some("workspace:first")
+    );
+    assert_eq!(
+        moved(Some("workspace:first"), &ids, false),
+        Some("workspace:second")
+    );
+    assert_eq!(moved(None, &ids, true), Some("workspace:first"));
+    assert_eq!(moved(None, &ids, false), Some("workspace:second"));
+    assert_eq!(moved(None, &[], true), None);
+}
+
+#[test]
+fn keeps_keyboard_selection_aligned_with_rows_beyond_the_first() {
+    let names: Vec<String> = (0..200).map(|index| format!("workspace:{index}")).collect();
+    let ids: Vec<&str> = names.iter().map(String::as_str).collect();
+    let mut active = ids.first().copied();
+    for _ in 0..150 {
+        active = moved(active, &ids, true);
+    }
+    assert_eq!(active, Some("workspace:150"));
+}
+
+// The query's mark: the app's own cases, after Paseo's
+// `findHighlightRanges` for the one substring this palette searches.
+
+#[test]
+fn marks_the_first_place_a_search_occurs_whatever_the_case() {
+    assert_eq!(mark("view", "Review the view"), Some(2..6));
+    assert_eq!(mark("  BOARD ", "Go to board"), Some(6..11));
+    assert_eq!(mark("", "Go to board"), None);
+    assert_eq!(mark("sync", "Go to board"), None);
+}
+
+#[test]
+fn marks_in_bytes_of_words_in_any_script() {
+    let text = "보드로 이동";
+    let found = mark("이동", text);
+    assert_eq!(
+        found.clone().and_then(|range| text.get(range)),
+        Some("이동")
+    );
+    let text = "ÉTÉ été";
+    assert_eq!(
+        mark("été", text).and_then(|range| text.get(range)),
+        Some("ÉTÉ")
+    );
 }

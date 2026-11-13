@@ -12,7 +12,7 @@ mod registry;
 
 pub use edit::{Clash, Refusal, assign, clash_of, refusal, remove_key, restore};
 pub use keys::{
-    Binding, Chord, KeyPress, MAX_BINDING, Platform, binding_words, chord_caps, chord_of,
+    Binding, Chord, KeyPress, MAX_BINDING, Platform, binding_words, chord_caps, chord_of, code_of,
     commanding, key_of, overlaps, same_chord,
 };
 pub use listing::{ShortcutFilter, ShortcutRow, modified_count, shortcut_row, shortcut_rows};

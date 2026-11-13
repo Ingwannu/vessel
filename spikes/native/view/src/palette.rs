@@ -13,6 +13,7 @@
 //!   the target it gets back.
 
 use std::cmp::Reverse;
+use std::ops::Range;
 
 use vessel_proto::SessionId;
 
@@ -238,4 +239,67 @@ pub fn palette_groups<'a, S, T>(
         })
         .filter(|(_, found)| !found.is_empty())
         .collect()
+}
+
+/// Where `text` shows a search for `query` (Paseo's `findHighlightRanges`
+/// for the one substring this palette searches): the first place it
+/// occurs, whatever the case, in bytes of `text`; `None` when it does not.
+#[must_use]
+pub fn mark(query: &str, text: &str) -> Option<Range<usize>> {
+    let needle: Vec<char> = query.trim().chars().flat_map(char::to_lowercase).collect();
+    if needle.is_empty() {
+        return None;
+    }
+    text.char_indices().find_map(|(start, _)| {
+        let rest = text.get(start..)?;
+        let length = matched_length(rest, &needle)?;
+        Some(start..start.saturating_add(length))
+    })
+}
+
+/// How many bytes at the head of `text` read as `needle` (lower case),
+/// whatever their case.
+fn matched_length(text: &str, needle: &[char]) -> Option<usize> {
+    let mut wanted = needle.iter();
+    let mut want = wanted.next();
+    for (offset, typed) in text.char_indices() {
+        for lower in typed.to_lowercase() {
+            if want != Some(&lower) {
+                return None;
+            }
+            want = wanted.next();
+        }
+        if want.is_none() {
+            return Some(offset.saturating_add(typed.len_utf8()));
+        }
+    }
+    None
+}
+
+/// The row the keyboard makes active after a search changed the rows
+/// (Paseo's `preserveActiveResultId`): the same one while it is still
+/// listed, else the first.
+#[must_use]
+pub fn kept<'a>(active: Option<&str>, ids: &[&'a str]) -> Option<&'a str> {
+    ids.iter()
+        .copied()
+        .find(|id| Some(*id) == active)
+        .or_else(|| ids.first().copied())
+}
+
+/// The row an arrow key makes active (Paseo's `moveActiveResultId`): the
+/// next or the previous, round from the last to the first and back; from
+/// none, the first going down and the last going up.
+#[must_use]
+pub fn moved<'a>(active: Option<&str>, ids: &[&'a str], forward: bool) -> Option<&'a str> {
+    let last = ids.len().checked_sub(1)?;
+    let current = active.and_then(|active| ids.iter().position(|id| *id == active));
+    let next = match (current, forward) {
+        (None, true) => 0,
+        (None, false) => last,
+        (Some(at), true) if at >= last => 0,
+        (Some(at), true) => at.saturating_add(1),
+        (Some(at), false) => at.checked_sub(1).unwrap_or(last),
+    };
+    ids.get(next).copied()
 }
