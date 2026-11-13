@@ -124,7 +124,15 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                if self.route == Route::Settings {
+                    self.agent_load(false, cx);
+                }
             }
+            Event::Agents {
+                machine,
+                request,
+                answer,
+            } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}

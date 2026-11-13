@@ -28,6 +28,7 @@ mod session;
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
+pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 #[cfg(target_arch = "wasm32")]
@@ -122,6 +123,15 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// A request for one machine’s Agents settings.
+    Agents {
+        /// Validated book key.
+        machine: agents::MachineKey,
+        /// Correlation ticket.
+        request: vessel_proto::RequestId,
+        /// The operation.
+        ask: agents::Ask,
+    },
     /// Read the book again and connect to every node in it.
     Reload,
     /// Show a session's conversation: its records from the start, then as
@@ -230,6 +240,15 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An Agents response, including background install progress.
+    Agents {
+        /// Originating machine.
+        machine: agents::MachineKey,
+        /// Original request ticket.
+        request: vessel_proto::RequestId,
+        /// Facts or typed failure.
+        answer: Result<agents::Answer, agents::AgentsError>,
+    },
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// Records of the session being followed.
@@ -318,6 +337,7 @@ impl Link {
             clients: HashMap::new(),
             follow: None,
             workspace: workspace::Hub::default(),
+            agents: agents::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -346,6 +366,7 @@ struct State {
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
     workspace: workspace::Hub,
+    agents: agents::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -377,6 +398,19 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Agents {
+                machine,
+                request,
+                ask,
+            } => {
+                let client = self
+                    .clients
+                    .get(machine.as_str())
+                    .map(|connected| connected.client.clone());
+                self.agents
+                    .ask(client, machine, request, ask, self.events.clone())
+                    .await;
+            }
             Command::Open { machine, session } => self.open(&machine, session),
             Command::Prompt {
                 machine,

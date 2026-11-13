@@ -82,3 +82,178 @@ not apply to this view-only correction. The first review pass also
 caught a test table over the function-size limit and missing code marks
 in documentation; the table became a fixture helper and documentation
 was corrected, without lint suppressions.
+
+## First screen: request and output rules
+
+The lead's app frame was merged before this slice; its whole native gate
+passed (316 tests). The screen reuses the settings machine chooser,
+section/card/row, shared badge and the new-chat option controls. Defaults
+use the existing per-machine/per-agent `Prefs::keep_choices` store.
+
+[Decision Log]
+- Purpose: a machine switch must not cancel or misattribute an install.
+- Constraints: node calls are asynchronous; output is paged and a process
+  may have exited before all its retained pages have been read.
+- Alternatives: one visible-machine snapshot, unbounded histories, or
+  request logic inside callbacks.
+- Choice: `view::agent_status::pages` keeps eight machine pages, typed
+  book keys and checked request tickets. Active pages cannot be evicted.
+  The link bounds concurrent work to four tasks, waits for output with
+  channel backpressure, validates byte cursors, and drains terminal pages
+  until an empty terminal page before reporting completion.
+- Why: a later failure message must not disappear merely because the
+  first page already said the installer exited. A lost output connection
+  is not an installer failure. Stale responses cannot complete a new job.
+- Costs: each page retains at most 1 MiB; the node has no durable install
+  history. A completed job invalidates its machine snapshot so returning
+  to that machine reads the changed installation facts.
+
+Missing-program instructions name the actual Install control only where
+the node offers it. Korean button references put a noun after the quoted
+label, so translating a label cannot break its grammatical particle.
+Commands, paths and individual argv values use fixed width and the kit's
+copy button with a 44-pixel target. This local `command_box` composition
+is potentially shareable; it is not a second kit control. Added program/arguments are quoted for sh, bash or zsh only when the
+node’s OS is known to use Unix command syntax. Every value is single-quoted,
+including empty values, with embedded apostrophes escaped. The label says
+which shells and explicitly excludes account/environment configuration.
+Other platforms retain individually labelled argv values: the node names
+no shell, and inventing cmd.exe or PowerShell syntax could change what runs.
+The CLI’s display-only space join was not reused for an executable copy.
+
+### Verified limits to the fleet
+
+The node's status result for a failed ACP check is an installed program
+with unknown sign-in and a failed-check reason. The screen shows that
+fact; it does not manufacture an installation-error badge.
+
+The pinned ACP 5.0 library prevents exercising the node's explicit
+older/newer-version states with its normal fake. Its responder's
+`jsonrpc/protocol_compat.rs::outgoing_response_to` overwrites the returned
+version with the negotiated one. Its client's `incoming_initialize_response`
+rejects an unsupported or different version before `vessel-agent` can
+reach its explicit version comparison. An attempted fake override was
+therefore removed rather than claiming a successful fixture. Both states
+remain covered by exact bilingual view tests; runtime captures of those
+two states are unavailable without a node/dependency change, outside this
+track's scope.
+
+The registry address cannot be set on the node's CLI or in its environment,
+so a fixture registry cannot be served to this fleet. Registry rules will
+use the node catalogue test's fixture shape; registry screen captures will
+be labelled as the live public list. No actual package installation is
+allowed in these checks.
+
+The list opens a detail view in this same Settings section, after Paseo’s
+provider-row navigation, with a return-to-list button. This avoids
+placing details below a potentially long agent list. Older nodes show the
+update instruction instead of administration rows that name unavailable
+controls. The current native frame still labels this nested view Agents;
+the agent’s own name is its detail-section heading.
+
+The accepted shared Alert is cherry-picked as `4faa028`. Merging it after
+the lead required one conflict resolution: the glyph list has 43 entries,
+preserving the lead’s 41 and the two added circle glyphs. Failed requests,
+status-check results, installer outcomes and attributed machine messages
+use this one kit control. Their notice variants come from pure view
+rules; a lost output reader warns without claiming a failed installer.
+
+The first visual pass caught full-width action pills and a list sentence
+pointing to an Install button hidden in details. Action buttons now fit
+their labels, keeping the kit’s 44-pixel target. The list uses a separate
+whole-sentence summary of the same typed readiness; details retain the
+accepted complete instruction directly above the control it names. Both
+places have exact bilingual fixture expectations.
+
+Each list row also states sign-in separately beneath the installation
+badge. In particular, a discovered chat adapter with a failed sign-in
+check retains the installation badge the node supports, while explicitly
+saying that the sign-in check failed. Unknown sign-in never becomes a
+successful-looking installation-only row. Details retain the complete
+reason and the node’s sign-in steps.
+
+The default-choice popup uses the composer’s 360-pixel model-list width,
+its grouping metadata, and the shared select’s end-aligned anchor. The
+220-pixel generic preference width cut ordinary model names unnecessarily
+in the first capture. The kit retains Paseo’s one-line, ellipsized option
+labels/descriptions at the final viewport boundary; no second list is drawn.
+
+A completed silent installer must not say it is still waiting for output.
+The empty-log sentence is therefore neutral for both a running and a
+terminal job: no output was received. Its exact English/Korean regression
+expectations prevent the old waiting sentence from returning.
+
+Callbacks retain the machine key that painted their control and discard
+an event after the visible machine or section changed. A queued click
+cannot redirect an install, a check or a defaults write to another machine.
+Opening a row is idempotent; the return action clears selection explicitly.
+
+The first navigation pass also exposed the shared outer scroller carrying
+a detail’s offset into another machine or the agent list. A small frame
+slot supplies a scroll element identity; Agents chooses a distinct identity
+for each machine’s list and agent detail. The frame/card implementation
+remains shared. This optional scroll-identity slot is shareable with other
+nested Settings pages; its regression test distinguishes lists, details,
+machines and book names containing punctuation.
+
+The long-command interaction check caught a layout boundary: a no-wrap
+text child could paint beyond its measured box without contributing its
+whole width to the scroll extent, and the frame accepted the horizontal
+wheel as vertical movement. The local command composition reuses the
+kit’s font measurement for an unshrinking content width and stops further
+scroll propagation after its child consumes the event. Clipboard byte
+parity alone was not counted as proof of scroll access.
+
+### Shared values and verification
+
+The lead’s spacing commit (`5e3e78a`, cherry-picked as `a37b547`) is used
+for every gap and inset in this area. Finger targets reuse the kit’s
+`popup::row_height(true)` and the command radius uses its existing value;
+these substitutions preserve the captured geometry.
+
+The capture set covers English/Korean, dark/light, and 1280/390 widths.
+Every reported image was opened and inspected. It includes available and
+unknown status, a missing built-in with an install offer, a missing added
+program without one, the absent adapter and its attributed machine
+message, failed checks, signed-out profiles and both kinds of sign-in
+help, long added commands, and fake installation progress and failure.
+The model list was also checked with the fleet’s sixteen long model names
+and multiline descriptions, including the bottom of its scrolling list.
+Original exploratory captures of the broken horizontal scroll are excluded
+from the reported folder.
+
+Interaction checks: the copied 461-byte launch command parses back to the
+fixture’s exact program and argv, using an independent shell parser and
+without executing it. Model, effort and mode changes were saved through
+the existing store and reset through the UI. A fake adapter install was
+held running while switching to another machine, failed there with exit
+7, and retained both output lines on return. Only the fake npm ran; it
+neither downloaded a package nor changed any installation. Private empty
+and unreachable-machine books exercise the empty and request-failure
+screens without changing the working fleet.
+
+The app and its fake processes ran under the same development UID/GID.
+Scratch homes and node data were private (0700), and the kept choices file
+was 0600 under the private QA launcher’s `umask 077`. The existing shared
+Prefs writer recreates its file using the caller’s umask: a later default
+launch produced 0664 inside the private 0700 directory. The QA launcher
+and documented fake-run command now set 077, and a repeated UI save and
+reset verified 0600. This shared persistence boundary was reported to the
+settings owner; its production behavior was not changed by this area.
+No production permissions changed. No real chat prompt or real
+package installation is claimed.
+
+A shared select boundary remains: keeping a phone sheet open while
+resizing to desktop retains the trigger anchor saved at opening. Closing
+and reopening uses the correct desktop anchor. The initial-width popups
+were checked; this open-overlay resize transition is reported to the lead
+and is not claimed as passing.
+
+Final screen gate after the shared spacing integration: native
+`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and
+`cargo test` passed in order, whole workspace: 342 tests passed, none
+failed. The GPUI scroll regression checks the actual laid-out bounds,
+not fixed event coordinates. The interrupted earlier run is not counted.
+The fleet’s shape assertions passed, and both shell scripts pass
+`bash -n`. No main-workspace source changed; no main-workspace gate is
+claimed. Transient request loading was not held for a synthetic capture.

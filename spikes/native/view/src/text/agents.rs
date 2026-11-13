@@ -6,6 +6,7 @@ use crate::agent_status::readiness::AgentBadge;
 use vessel_proto::agents::InstallState;
 
 mod reasons;
+mod screen;
 
 /// Agents' sentences and action labels in one language.
 #[derive(Debug)]
@@ -32,6 +33,8 @@ pub struct AgentsWords {
     pub check_status: &'static str,
     /// Install adapter
     pub install_adapter: &'static str,
+    /// The node-offered program installer control.
+    pub install: &'static str,
     /// Message from machine
     pub machine_message: &'static str,
     /// Account folder
@@ -64,6 +67,7 @@ const EN: AgentsWords = AgentsWords {
     not_required: "No sign-in needed. This profile uses a model provider configured on this machine.",
     check_status: "Check status",
     install_adapter: "Install adapter",
+    install: "Install",
     machine_message: "Message from machine",
     account_folder: "Account folder",
     account_instruction: "Use this profile's account folder, selected by the variable below. Its value stays on the machine.",
@@ -86,6 +90,7 @@ const KO: AgentsWords = AgentsWords {
     not_required: "로그인이 필요하지 않습니다. 이 프로필은 머신에 설정된 모델 공급자를 사용합니다.",
     check_status: "상태 확인",
     install_adapter: "어댑터 설치",
+    install: "설치",
     machine_message: "머신 메시지",
     account_folder: "계정 폴더",
     account_instruction: "아래 변수가 선택하는 프로필의 계정 폴더를 사용하세요. 변수 값은 머신에만 보관됩니다.",
@@ -109,14 +114,28 @@ impl Lang {
 }
 
 impl AgentsWords {
+    /// Name the actual program installer only when that action is offered.
+    #[must_use]
+    pub fn program_missing(&self) -> String {
+        let label = self.install;
+        match self.lang {
+            Lang::En => format!("Not installed on this machine. Select “{label}” below."),
+            Lang::Ko => {
+                format!("이 머신에 설치되지 않았습니다. 아래의 “{label}” 버튼을 선택하세요.")
+            }
+        }
+    }
     /// Updating an older agent is followed by the actual named check action.
     #[must_use]
     pub fn older_agent(&self) -> String {
-        let instruction = self.too_old;
         let check = self.check_status;
         match self.lang {
-            Lang::En => format!("{instruction} Select “{check}” to check again."),
-            Lang::Ko => format!("{instruction} “{check}”을 선택해 다시 확인하세요."),
+            Lang::En => format!(
+                "This agent is older than this version of Vessel supports. Update the agent. Select “{check}” to check again."
+            ),
+            Lang::Ko => format!(
+                "이 에이전트는 현재 Vessel이 지원하는 버전보다 오래되었습니다. 에이전트를 업데이트하세요. “{check}” 버튼을 선택해 다시 확인하세요."
+            ),
         }
     }
 
@@ -147,7 +166,7 @@ impl AgentsWords {
                 format!("Installed, but its chat adapter is missing. Select “{label}” below.")
             }
             Lang::Ko => format!(
-                "설치되어 있지만 대화에 필요한 어댑터가 없습니다. 아래의 “{label}”를 선택하세요."
+                "설치되어 있지만 대화에 필요한 어댑터가 없습니다. 아래의 “{label}” 버튼을 선택하세요."
             ),
         }
     }

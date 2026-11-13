@@ -54,6 +54,13 @@ impl Link {
     pub fn send(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Agents {
+                machine, request, ..
+            } => self.emit(Event::Agents {
+                machine,
+                request,
+                answer: Err(crate::agents::AgentsError::NoTransport),
+            }),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

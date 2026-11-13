@@ -42,8 +42,8 @@ fn installation_states_have_exact_badges_and_complete_instructions_in_both_langu
             Variant::Muted,
             "Not installed",
             "미설치",
-            "Not installed on this machine.",
-            "이 머신에 설치되지 않았습니다.",
+            "Not installed on this machine. Select “Install” below.",
+            "이 머신에 설치되지 않았습니다. 아래의 “설치” 버튼을 선택하세요.",
             None,
         ),
         (
@@ -53,7 +53,7 @@ fn installation_states_have_exact_badges_and_complete_instructions_in_both_langu
             "Needs attention",
             "확인 필요",
             "This agent is older than this version of Vessel supports. Update the agent. Select “Check status” to check again.",
-            "이 에이전트는 현재 Vessel이 지원하는 버전보다 오래되었습니다. 에이전트를 업데이트하세요. “상태 확인”을 선택해 다시 확인하세요.",
+            "이 에이전트는 현재 Vessel이 지원하는 버전보다 오래되었습니다. 에이전트를 업데이트하세요. “상태 확인” 버튼을 선택해 다시 확인하세요.",
             Some("0.1"),
         ),
         (
@@ -71,6 +71,14 @@ fn installation_states_have_exact_badges_and_complete_instructions_in_both_langu
         let installed = installed(json);
         assert_eq!(AgentBadge::of(&installed), badge);
         assert_eq!(readiness::version(&installed), version);
+        assert_eq!(
+            readiness::program(&installed).as_deref(),
+            Some(if badge == AgentBadge::NotInstalled {
+                "codex"
+            } else {
+                "/bin/codex"
+            })
+        );
         for (lang, label, sentence) in [(Lang::En, en_label, en), (Lang::Ko, ko_label, ko)] {
             let shown = readiness::installation(lang, &agent(), &installed, &offers());
             assert_eq!(shown.badge.label, label);
@@ -96,7 +104,7 @@ fn a_machine_diagnostic_is_attributed_separately_and_an_adapter_instruction_need
         (
             Lang::Ko,
             "확인 필요",
-            "설치되어 있지만 대화에 필요한 어댑터가 없습니다. 아래의 “어댑터 설치”를 선택하세요.",
+            "설치되어 있지만 대화에 필요한 어댑터가 없습니다. 아래의 “어댑터 설치” 버튼을 선택하세요.",
             "설치되어 있지만 이 머신에서는 대화할 수 없습니다.",
             "머신 메시지",
         ),
@@ -142,13 +150,13 @@ fn unknown_cases() -> [(serde_json::Value, AgentBadge, &'static str, &'static st
             serde_json::json!({"reason":"not_checked"}),
             AgentBadge::Unknown,
             "Select “Check status” to check it.",
-            "“상태 확인”을 선택해 확인하세요.",
+            "“상태 확인” 버튼을 선택해 확인하세요.",
         ),
         (
             serde_json::json!({"reason":"in_use"}),
             AgentBadge::Unknown,
             "A chat is using this account. Select “Check status” after it ends.",
-            "이 계정을 사용하는 대화가 있습니다. 대화가 끝난 뒤 “상태 확인”을 선택하세요.",
+            "이 계정을 사용하는 대화가 있습니다. 대화가 끝난 뒤 “상태 확인” 버튼을 선택하세요.",
         ),
         (
             serde_json::json!({"reason":"not_said"}),
@@ -160,43 +168,43 @@ fn unknown_cases() -> [(serde_json::Value, AgentBadge, &'static str, &'static st
             serde_json::json!({"reason":"no_home"}),
             AgentBadge::Unknown,
             "Set an absolute account-folder path in profiles.toml on this machine, then select “Check status”.",
-            "이 머신의 profiles.toml에서 계정 폴더를 절대 경로로 설정한 뒤 “상태 확인”을 선택하세요.",
+            "이 머신의 profiles.toml에서 계정 폴더를 절대 경로로 설정한 뒤 “상태 확인” 버튼을 선택하세요.",
         ),
         (
             serde_json::json!({"reason":"unread"}),
             AgentBadge::Unknown,
             "The machine could not understand the agent's answer. Update the agent, then select “Check status”.",
-            "머신이 에이전트의 응답을 해석하지 못했습니다. 에이전트를 업데이트한 뒤 “상태 확인”을 선택하세요.",
+            "머신이 에이전트의 응답을 해석하지 못했습니다. 에이전트를 업데이트한 뒤 “상태 확인” 버튼을 선택하세요.",
         ),
         (
             serde_json::json!({"reason":"timed_out","after":1000}),
             AgentBadge::Error,
             "The check took too long. Select “Check status” to try again.",
-            "확인 시간이 초과되었습니다. “상태 확인”을 선택해 다시 시도하세요.",
+            "확인 시간이 초과되었습니다. “상태 확인” 버튼을 선택해 다시 시도하세요.",
         ),
         (
             serde_json::json!({"reason":"failed","step":"spawn"}),
             AgentBadge::Error,
             "The agent could not start. Check that it is installed, then select “Check status”.",
-            "에이전트를 시작하지 못했습니다. 설치 여부를 확인한 뒤 “상태 확인”을 선택하세요.",
+            "에이전트를 시작하지 못했습니다. 설치 여부를 확인한 뒤 “상태 확인” 버튼을 선택하세요.",
         ),
         (
             serde_json::json!({"reason":"failed","step":"initialize"}),
             AgentBadge::Error,
             "Could not connect to the agent. Select “Check status” to try again.",
-            "에이전트에 연결하지 못했습니다. “상태 확인”을 선택해 다시 시도하세요.",
+            "에이전트에 연결하지 못했습니다. “상태 확인” 버튼을 선택해 다시 시도하세요.",
         ),
         (
             serde_json::json!({"reason":"failed","step":"session_new"}),
             AgentBadge::Error,
             "The agent could not open a chat for the check. Select “Check status” to try again.",
-            "확인을 위한 대화를 열지 못했습니다. “상태 확인”을 선택해 다시 시도하세요.",
+            "확인을 위한 대화를 열지 못했습니다. “상태 확인” 버튼을 선택해 다시 시도하세요.",
         ),
         (
             serde_json::json!({"reason":"failed","step":"exited"}),
             AgentBadge::Error,
             "The agent closed before answering. Select “Check status” to try again.",
-            "에이전트가 응답하기 전에 종료되었습니다. “상태 확인”을 선택해 다시 시도하세요.",
+            "에이전트가 응답하기 전에 종료되었습니다. “상태 확인” 버튼을 선택해 다시 시도하세요.",
         ),
     ]
 }
@@ -336,3 +344,5 @@ fn installation_progress_and_each_failure_have_exact_sentences_in_both_languages
         assert_eq!(Lang::Ko.agents().install_state(state), ko);
     }
 }
+
+mod screen;

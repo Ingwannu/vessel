@@ -101,6 +101,13 @@ app/src/
    sidebar lists it. An event from the link for it: one arm in
    `Shell::on_event` calling the area's method.
 
+Settings areas with nested pages can supply a scroll identity at the
+`scroll_id` slot next to their content registration. Agents uses one for
+its machine list and one per agent detail; a detail’s offset therefore
+cannot hide a different page’s title. Other sections retain their existing
+scroll identity. This is the frame’s one outer scroller, not an area-local
+parallel page layout.
+
 ### Adding a kit control
 
 One file per control in `kit/src/` (`widgets.rs` holds the smallest),
@@ -233,7 +240,7 @@ Environment:
 cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 # here: two nodes with fake agents and a book naming them
 scripts/fleet.sh start /tmp/fleet <the main workspace's target>/debug
-VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app
+(umask 077; VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app)
 /tmp/fleet/pair.sh                # a pairing link for `laptop`
 scripts/fleet.sh stop /tmp/fleet
 ```
@@ -262,6 +269,21 @@ with `vessel log`), so a fake-acp built before these existed is caught:
 rebuild it. A third session on `laptop`, `turns`, holds five turns (one
 long prompt, one Korean; each tool's permission allowed): the outline of
 prompts and read marks are checked against it.
+
+The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
+an added agent with a long name and argument, a definition whose program
+is missing, Codex signed out, a failed status check, agent-supplied sign-in
+steps, a missing Codex adapter on `build-server`, and a long model route.
+Each node has its own fake program directory. Its `npm`, `npx` and `uvx`
+never download or execute packages. To hold an app-started install for a
+capture, create a FIFO at `<fleet>/<machine>-home/install-gate` before
+pressing Install. Write `fail` to it to release exit 7, or `success` for
+success. The fake installer prints its output but changes no installation.
+The fleet uses private scratch directories (`umask 077`); run it as the
+same development account that runs the app. Opening the registry allows
+the node’s ordinary public catalogue fetch; all other fixture traffic is
+local. The current SDK cannot exercise older/newer-agent readiness over
+the wire; see `docs/plans/backend-m12-agents.md` for the source boundary.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

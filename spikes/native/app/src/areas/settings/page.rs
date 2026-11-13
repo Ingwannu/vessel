@@ -7,8 +7,8 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
 
@@ -23,6 +23,7 @@ pub(crate) fn layout(
     title: &str,
     body: AnyElement,
     compact: bool,
+    scroll_id: ElementId,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -55,7 +56,7 @@ pub(crate) fn layout(
         })
         .child(
             div()
-                .id("settings-page")
+                .id(scroll_id)
                 .flex_1()
                 .min_h_0()
                 .overflow_y_scroll()

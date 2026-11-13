@@ -23,6 +23,7 @@
 //! - A setting is shown once something reads it ([`applied`]); the send
 //!   shortcut is read by both composers ([`apply_composer`]).
 
+mod agents;
 mod appearance;
 mod choices;
 mod general;
@@ -66,6 +67,7 @@ pub(crate) struct SettingsState {
     pub(crate) anchors: Anchors,
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
+    pub(crate) agents: agents::AgentSettings,
 }
 
 impl SettingsState {
@@ -79,6 +81,7 @@ impl SettingsState {
             open: None,
             anchors: Anchors::default(),
             refused: None,
+            agents: agents::AgentSettings::new(window, cx),
         }
     }
 
@@ -134,6 +137,7 @@ impl Shell {
         state.pushed = section.is_some();
         state.refused = None;
         self.go(Route::Settings, window, cx);
+        self.agent_load(false, cx);
     }
 
     /// Show `section` (from the list).
@@ -146,6 +150,7 @@ impl Shell {
         };
         state.pushed = true;
         state.refused = None;
+        self.agent_load(false, cx);
         cx.notify();
     }
 
@@ -253,6 +258,7 @@ impl Shell {
                 // The row after the machines: adding one.
                 None => self.go(Route::Pair, window, cx),
             }
+            self.agent_load(false, cx);
             cx.notify();
         } else if let Some(change) = choices::change(list, index) {
             self.prefer(&change, window, cx);
@@ -346,7 +352,7 @@ pub(crate) fn render(
         let section = state.section;
         let words = shell.t.lang.settings();
         let title = words.section(section);
-        let body = content(section, shell, tokens, phone, cx)
+        let body = content(section, shell, tokens, phone, window, cx)
             .unwrap_or_else(|| page::elsewhere(words.elsewhere, tokens));
         let body = div()
             .flex()
@@ -361,7 +367,12 @@ pub(crate) fn render(
             }))
             .child(body)
             .into_any_element();
-        page::layout(title, body, phone, tokens, cx).into_any_element()
+        let scroll_id = if section == Section::Agents {
+            agents::scroll_id(shell)
+        } else {
+            "settings-page".into()
+        };
+        page::layout(title, body, phone, scroll_id, tokens, cx).into_any_element()
     };
     div()
         .size_full()
@@ -370,6 +381,7 @@ pub(crate) fn render(
         .child(body)
         .children(list(shell, tokens, phone, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
+        .children(agents::dialogs(shell, tokens, window, cx))
 }
 
 /// Whether `section` is drawn in this build: Settings lists only these.
@@ -380,7 +392,11 @@ pub(crate) fn render(
 pub(crate) const fn drawn(section: Section) -> bool {
     matches!(
         section,
-        Section::General | Section::Appearance | Section::About | Section::Projects
+        Section::General
+            | Section::Appearance
+            | Section::About
+            | Section::Projects
+            | Section::Agents
     )
 }
 
@@ -405,9 +421,11 @@ fn content(
     shell: &Shell,
     tokens: &Tokens,
     phone: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     match section {
+        Section::Agents => Some(agents::render(shell, tokens, phone, window, cx)),
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
@@ -418,7 +436,6 @@ fn content(
         // sections are this track's next slice.
         Section::Shortcuts
         | Section::Notifications
-        | Section::Agents
         | Section::Models
         | Section::Machines
         | Section::Devices

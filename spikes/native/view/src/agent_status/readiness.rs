@@ -99,6 +99,14 @@ pub struct MachineMessage<'a> {
     pub text: &'a str,
 }
 
+impl MachineMessage<'_> {
+    /// Diagnostic prose is informational; it is not itself a readiness verdict.
+    #[must_use]
+    pub const fn variant(self) -> crate::alert::Variant {
+        crate::alert::Variant::Info
+    }
+}
+
 /// The row's state and its complete explanation, with optional diagnostic detail.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Installation<'a> {
@@ -121,33 +129,37 @@ pub fn installation<'a>(
 ) -> Installation<'a> {
     let words = lang.agents();
     let state = AgentBadge::of(installed);
-    let mut machine_message = None;
-    let sentence = match installed {
+    let (sentence, machine_message) = match installed {
         Installed::Found {
             structured: StructuredSupport::Available,
             ..
-        } => words.ready.to_owned(),
+        } => (words.ready.to_owned(), None),
         Installed::Found {
             structured: StructuredSupport::Unavailable { reason },
             ..
         } => {
-            machine_message = Some(MachineMessage {
+            let machine_message = Some(MachineMessage {
                 label: words.machine_message,
                 text: reason,
             });
-            if installs(agent, installed, agents)
-                .iter()
-                .any(|offer| offer.part == InstallPart::Adapter)
-            {
-                words.adapter_missing()
-            } else {
+            let sentence = if installs(agent, installed, agents).is_empty() {
                 words.cannot_chat.to_owned()
-            }
+            } else {
+                words.adapter_missing()
+            };
+            (sentence, machine_message)
         }
-        Installed::Missing { .. } => words.not_installed.to_owned(),
-        Installed::TooOld { .. } => words.older_agent(),
-        Installed::TooNew { .. } => words.too_new.to_owned(),
-        Installed::Unknown { reason } => words.install_unknown(reason),
+        Installed::Missing { .. } => {
+            let sentence = if installs(agent, installed, agents).is_empty() {
+                words.not_installed.to_owned()
+            } else {
+                words.program_missing()
+            };
+            (sentence, None)
+        }
+        Installed::TooOld { .. } => (words.older_agent(), None),
+        Installed::TooNew { .. } => (words.too_new.to_owned(), None),
+        Installed::Unknown { reason } => (words.install_unknown(reason), None),
     };
     Installation {
         badge: Badge {
@@ -156,6 +168,49 @@ pub fn installation<'a>(
         },
         sentence,
         machine_message,
+    }
+}
+
+/// The list explains the state without naming a control hidden in details.
+/// The detail sentence, from the same facts, names its visible install/check action.
+#[must_use]
+pub fn summary(
+    lang: Lang,
+    agent: &HarnessRef,
+    installed: &Installed,
+    agents: &[AgentInfo],
+) -> String {
+    let words = lang.agents();
+    match installed {
+        Installed::Found {
+            structured: StructuredSupport::Available,
+            ..
+        } => words.ready.to_owned(),
+        Installed::Found {
+            structured: StructuredSupport::Unavailable { .. },
+            ..
+        } => {
+            if installs(agent, installed, agents).is_empty() {
+                words.cannot_chat.to_owned()
+            } else {
+                words.adapter_absent().to_owned()
+            }
+        }
+        Installed::Missing { .. } => words.not_installed.to_owned(),
+        Installed::TooOld { .. } => words.too_old.to_owned(),
+        Installed::TooNew { .. } => words.too_new.to_owned(),
+        Installed::Unknown {
+            reason: UnknownReason::Failed { .. } | UnknownReason::TimedOut { .. },
+        } => words.row_check_failed().to_owned(),
+        Installed::Unknown {
+            reason:
+                UnknownReason::NotInstalled
+                | UnknownReason::NotChecked
+                | UnknownReason::InUse
+                | UnknownReason::NotSaid
+                | UnknownReason::NoHome
+                | UnknownReason::Unread,
+        } => words.row_unknown().to_owned(),
     }
 }
 
@@ -169,6 +224,45 @@ pub fn authentication(lang: Lang, signed_in: &SignedIn) -> String {
         SignedIn::NotRequired => words.not_required.to_owned(),
         SignedIn::Unknown { reason } => words.auth_unknown(reason),
     }
+}
+
+/// Short sign-in fact in the list, without an action hidden in details.
+#[must_use]
+pub const fn authentication_summary(lang: Lang, signed_in: &SignedIn) -> &'static str {
+    let words = lang.agents();
+    match signed_in {
+        SignedIn::Yes => words.row_credentials(),
+        SignedIn::No { .. } => words.row_signed_out(),
+        SignedIn::NotRequired => words.row_no_sign_in(),
+        SignedIn::Unknown {
+            reason: UnknownReason::Failed { .. },
+        } => words.row_auth_failed(),
+        SignedIn::Unknown {
+            reason: UnknownReason::TimedOut { .. },
+        } => words.row_auth_timeout(),
+        SignedIn::Unknown {
+            reason:
+                UnknownReason::NotInstalled
+                | UnknownReason::NotChecked
+                | UnknownReason::InUse
+                | UnknownReason::NotSaid
+                | UnknownReason::NoHome
+                | UnknownReason::Unread,
+        } => words.row_auth_unknown(),
+    }
+}
+
+/// Only a compatible installed chat program can answer a defaults probe.
+/// Unknown authentication is not guessed here; the probe can ask for sign-in.
+#[must_use]
+pub const fn offers_defaults(installed: &Installed) -> bool {
+    matches!(
+        installed,
+        Installed::Found {
+            structured: StructuredSupport::Available,
+            ..
+        }
+    )
 }
 
 /// A sign-in step retains the typed facts needed to draw its value.
@@ -233,6 +327,18 @@ pub fn sign_in_help(lang: Lang, signed_in: &SignedIn) -> Vec<SignInRow<'_>> {
         });
     }
     rows
+}
+
+/// Exact path or requested program for a fixed-width copyable value.
+#[must_use]
+pub fn program(installed: &Installed) -> Option<std::borrow::Cow<'_, str>> {
+    match installed {
+        Installed::Found { path, .. }
+        | Installed::TooOld { path, .. }
+        | Installed::TooNew { path, .. } => Some(path.to_string_lossy()),
+        Installed::Missing { program } => Some(std::borrow::Cow::Borrowed(program.as_str())),
+        Installed::Unknown { .. } => None,
+    }
 }
 
 /// Version as reported, including an incompatible agent's version.
