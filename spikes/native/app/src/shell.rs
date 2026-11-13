@@ -95,6 +95,19 @@ impl Shell {
         }
     }
 
+    /// Checked device dispatch keeps a refused queue from leaving its page pending.
+    pub(crate) fn devices_send(
+        &self,
+        machine: vessel_app_view::devices::MachineKey,
+        ticket: vessel_app_view::devices::Ticket,
+        ask: vessel_app_link::devices::Ask,
+    ) -> Result<(), vessel_app_view::devices::Problem> {
+        self.link
+            .as_ref()
+            .ok_or(vessel_app_view::devices::Problem::Offline)?
+            .request_devices(machine, ticket, ask)
+    }
+
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
@@ -111,6 +124,7 @@ impl Shell {
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Fleet(fleet) => {
                 self.fleet = fleet;
                 if !self.loaded {
@@ -211,6 +225,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
+        self.settle_devices(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

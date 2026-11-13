@@ -42,6 +42,8 @@ pub enum Role {
     Logs,
     /// Find's folding of accents.
     Accents,
+    /// Pairing links as QR codes.
+    QrCodes,
     /// The face of everything.
     Face,
     /// The face of code.
@@ -85,7 +87,7 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 
 /// Every dependency of the workspace, in its manifest's order, then the
 /// faces.
-pub const BUNDLED: [Bundled; 19] = [
+pub const BUNDLED: [Bundled; 20] = [
     krate("gpui-pre", "Apache-2.0", Role::Drawing),
     krate("gpui-pre-platform", "Apache-2.0", Role::Windows),
     krate("gpui-component", "Apache-2.0", Role::Controls),
@@ -106,6 +108,7 @@ pub const BUNDLED: [Bundled; 19] = [
         "(MIT OR Apache-2.0) AND Unicode-3.0",
         Role::Accents,
     ),
+    krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
     face("Geist", Role::Face),
     face("Geist Mono", Role::CodeFace),
     face("Pretendard", Role::Hangul),

@@ -6,6 +6,9 @@
 
 use gpui::{Window, px};
 
+/// Minimum interactive target on touch, as the kit's phone controls.
+pub const TOUCH_TARGET: f32 = 44.0;
+
 /// Below this many points wide, a phone's layout.
 pub const PHONE: f32 = 768.0;
 
