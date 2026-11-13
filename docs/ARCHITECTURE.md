@@ -1028,3 +1028,14 @@ binaries, so no rustup proxy chooses a compiler from a project directory.
 `policy` refuses executable or unsupported repository configuration in
 conservative mode and returns the Cargo projects rust-analyzer may link. This is not an OS sandbox; ADR 0016
 records each server's execution risks and the full-analysis opt-in.
+
+## Native settings' machine book (milestone 12)
+
+The independent workspace under `spikes/native` keeps screen rules in `view`,
+node/file operations in `link`, shared controls in `kit`, and drawing in `app`
+(its README owns the full crate map). `view::machine_book` validates names and
+models edits and safe failure reasons. `link::machines` applies those edits
+through the existing CLI `BookFile` on the blocking pool, then publishes a fresh
+snapshot. Selection follows a successful write only; raw book errors stay at
+the file boundary because malformed content may contain credentials. No new
+wire method or store is introduced.

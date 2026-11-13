@@ -20,6 +20,7 @@
 //!   fast as it draws, and a sender waits for room, so a burst of records
 //!   slows the stream, never grows memory.
 
+pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
 mod prefs;
@@ -123,6 +124,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Read or edit the saved machine book.
+    Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
     Reload,
     /// Ask about a machine's paired devices.
@@ -242,6 +245,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A saved-machine operation completed.
+    Machines(machines::Answer),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
@@ -333,6 +338,7 @@ impl Link {
             events,
             clients: HashMap::new(),
             follow: None,
+            follow_machine: None,
             workspace: workspace::Hub::default(),
             device_calls: devices::Hub::default(),
         };
@@ -362,6 +368,7 @@ struct State {
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+    follow_machine: Option<String>,
     workspace: workspace::Hub,
     device_calls: devices::Hub,
 }
@@ -395,6 +402,7 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Machines(ask) => self.machine_book(ask).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -635,6 +643,7 @@ impl State {
 
     /// Follow `session` from its first record, replacing the one followed.
     fn open(&mut self, machine: &str, session: SessionId) {
+        self.follow_machine = None;
         if let Some(earlier) = self.follow.take() {
             earlier.abort();
         }
@@ -653,6 +662,7 @@ impl State {
             return;
         };
         let events = self.events.clone();
+        self.follow_machine = Some(machine.to_owned());
         self.follow = Some(tokio::spawn(follow(client, session, events)));
     }
 

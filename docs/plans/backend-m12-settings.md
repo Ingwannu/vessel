@@ -186,3 +186,50 @@ its route removed).
 Gate: `cargo fmt --check` clean; `cargo clippy --all-targets -- -D
 warnings` clean; `cargo test`: view 201, app 72, link 10, others 3 and
 7, all passed.
+
+## E2 takeover: machine book boundary
+
+The inherited uncommitted screen was preserved outside the repository before
+merging the desktop lead. It combined the list and detail on one page and
+reimplemented section headers and buttons inside the area. It is not accepted
+as a screen. The replacement follows Paseo's `screens/settings/host-page.tsx`
+and `host-appearance-section.tsx`; a separate screen slice will supply captures.
+The earlier table's device/agent scope is superseded: G3 owns Agents/Models,
+G4 Devices/Sync, S2 Shortcuts/Notifications, L the language row, K theme tokens.
+E2 owns the frame, General, Appearance, Machines and Diagnostics.
+
+This first replacement slice is the file boundary, not a delivered screen:
+
+- `view::machine_book::{Name, Edit, Failure}` validates the CLI's book-name
+  grammar and changes selection only after a successful write. A failed edit
+  keeps the current selection. Complete, actionable error sentences exist in
+  both languages; file content and OS errors do not cross into those sentences.
+- `link::machines` reads and edits with the existing CLI `BookFile`. No new
+  persistence file, dependency or wire message. File work uses the blocking
+  pool; actor commands serialize writes with refreshes. A successful rename
+  keeps the existing client, and forgetting the watched machine cancels only
+  the app's stream, leaving its remote session running.
+- Actual temporary-file tests check rename/default/remove, preservation of the
+  full entry and comments, external edits reread before saving, missing/taken
+  failures without byte changes, malformed input without exposing its content,
+  and owner-only permissions after repeated replacements on Unix. The existing
+  machine tests retain the page's `data/machines.test.ts` inputs/outputs.
+- Small shared seams: `link/lib.rs` module/command/event/dispatch and watched
+  machine identity; browser refusal; `view/lib.rs`, text/test registrations;
+  one shell event arm and a settings answer module. No unrelated area changed.
+- No screen captures or real-node smoke are claimed for this boundary slice.
+  Runtime UI and all offline/long/empty shapes remain the next slice.
+
+Boundary gate: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`
+and `cargo test` all exited 0. Tests: app 3, kit 19, link 20, view 243,
+page parity 89; 374 passed, no failures; doc tests passed (zero cases).
+The file permission probes ran as the ordinary developer account on isolated
+files, including a denied directory write and repeated 0600 replacements.
+No production files or permissions were changed.
+
+Verification problems encountered: an initial run overlapped a source edit,
+so its doc-test result was invalid and was discarded. Subsequent gates caught
+a documentation identifier, an error type name, and missing statement
+semicolons; those were fixed without changing lints. A mistakenly restarted
+unchanged check was stopped rather than counted. The final gate above used a
+fixed source tree. Build slots apply to subsequent build commands.

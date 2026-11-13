@@ -315,3 +315,10 @@ screen of that size.
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+Machine management uses `view::machine_book` for validated names, edit outcomes
+and safe localized failures, and `link::machines` for the CLI's existing node
+book. `BookFile` is reopened immediately before each atomic edit; the app does
+not maintain a second machine list on disk. A forget ends the app's watched
+stream only, leaving the remote session running. Original file errors remain
+at the file boundary because a malformed book can contain credentials.

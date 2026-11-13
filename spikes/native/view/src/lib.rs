@@ -20,6 +20,7 @@ pub mod devices;
 pub mod effort;
 pub mod extras;
 mod links;
+pub mod machine_book;
 pub mod machines;
 pub mod models;
 pub mod notices;
