@@ -111,7 +111,7 @@ fn set(id: &str, value: &str) -> OptionChoice {
 
 #[test]
 fn claude_codes_levels_end_with_ultracode_and_leave_out_default() {
-    let effort = Effort::of(HarnessKind::ClaudeCode, &claude("high", "off", "off"));
+    let effort = Effort::of(Some(HarnessKind::ClaudeCode), &claude("high", "off", "off"));
     let effort = effort.expect("Claude Code sends levels");
     assert_eq!(
         names(&effort),
@@ -127,9 +127,10 @@ fn claude_codes_levels_end_with_ultracode_and_leave_out_default() {
 #[test]
 fn the_top_step_turns_ultracode_on_at_the_highest_level_and_a_lower_one_off() {
     let effort =
-        Effort::of(HarnessKind::ClaudeCode, &claude("high", "off", "off")).expect("levels");
+        Effort::of(Some(HarnessKind::ClaudeCode), &claude("high", "off", "off")).expect("levels");
     assert_eq!(effort.choose(5), [level("max"), set("ultracode", "on")]);
-    let on = Effort::of(HarnessKind::ClaudeCode, &claude("max", "on", "off")).expect("levels");
+    let on =
+        Effort::of(Some(HarnessKind::ClaudeCode), &claude("max", "on", "off")).expect("levels");
     assert_eq!(on.current, Some(5));
     assert_eq!(on.choose(3), [level("xhigh"), set("ultracode", "off")]);
     // Ultracode already off: only the level.
@@ -138,16 +139,20 @@ fn the_top_step_turns_ultracode_on_at_the_highest_level_and_a_lower_one_off() {
 
 #[test]
 fn reset_is_the_agents_default_and_ultracode_off() {
-    let on = Effort::of(HarnessKind::ClaudeCode, &claude("max", "on", "on")).expect("levels");
+    let on = Effort::of(Some(HarnessKind::ClaudeCode), &claude("max", "on", "on")).expect("levels");
     assert_eq!(on.reset(), [level("default"), set("ultracode", "off")]);
-    let default =
-        Effort::of(HarnessKind::ClaudeCode, &claude("default", "off", "off")).expect("levels");
+    let default = Effort::of(
+        Some(HarnessKind::ClaudeCode),
+        &claude("default", "off", "off"),
+    )
+    .expect("levels");
     assert_eq!(default.current, None);
 }
 
 #[test]
 fn fast_is_a_select_or_the_older_toggle() {
-    let effort = Effort::of(HarnessKind::ClaudeCode, &claude("high", "off", "on")).expect("levels");
+    let effort =
+        Effort::of(Some(HarnessKind::ClaudeCode), &claude("high", "off", "on")).expect("levels");
     let fast = effort.fast.expect("a fast switch");
     assert!(fast.on());
     assert_eq!(fast.choose(false), set("fast", "off"));
@@ -160,7 +165,7 @@ fn fast_is_a_select_or_the_older_toggle() {
         category: OptionCategory::Other,
         kind: OptionKind::Toggle { on: false },
     });
-    let effort = Effort::of(HarnessKind::ClaudeCode, &older).expect("levels");
+    let effort = Effort::of(Some(HarnessKind::ClaudeCode), &older).expect("levels");
     assert_eq!(
         effort.fast,
         Some(Switch::Toggle {
@@ -198,7 +203,7 @@ fn codexs_top_levels_are_its_own_steps() {
             &[("default", "Default")],
         ),
     ];
-    let effort = Effort::of(HarnessKind::Codex, &options).expect("levels");
+    let effort = Effort::of(Some(HarnessKind::Codex), &options).expect("levels");
     assert_eq!(names(&effort), ["Low", "Medium", "High", "Max", "Ultra"]);
     assert_eq!(effort.current, Some(4));
     assert!(effort.top.is_none());
@@ -208,12 +213,13 @@ fn codexs_top_levels_are_its_own_steps() {
 
 #[test]
 fn an_agent_the_table_does_not_know_gets_its_levels_only() {
-    let effort = Effort::of(HarnessKind::Gemini, &claude("high", "off", "off")).expect("levels");
+    let effort =
+        Effort::of(Some(HarnessKind::Gemini), &claude("high", "off", "off")).expect("levels");
     assert_eq!(
         names(&effort),
         ["Low", "Medium", "High", "Extra high", "Max"]
     );
     assert!(effort.top.is_none() && effort.fast.is_none());
-    let none = Effort::of(HarnessKind::OpenCode, &[]);
+    let none = Effort::of(Some(HarnessKind::OpenCode), &[]);
     assert!(none.is_none());
 }

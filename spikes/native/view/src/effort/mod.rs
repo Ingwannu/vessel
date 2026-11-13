@@ -201,11 +201,12 @@ pub struct Effort {
 const DEFAULT: &str = "default";
 
 impl Effort {
-    /// The control for `options` from an agent of `kind`; `None` when it
+    /// The control for `options` from an agent of `kind` (`None`: one
+    /// added on the node, which the table cannot know); `None` when it
     /// sends no levels.
     #[must_use]
-    pub fn of(kind: HarnessKind, options: &[SessionOption]) -> Option<Self> {
-        let shape = KNOWN.iter().find(|shape| shape.kind == kind);
+    pub fn of(kind: Option<HarnessKind>, options: &[SessionOption]) -> Option<Self> {
+        let shape = kind.and_then(|kind| KNOWN.iter().find(|shape| shape.kind == kind));
         let (level_id, current_value, values) =
             options
                 .iter()
