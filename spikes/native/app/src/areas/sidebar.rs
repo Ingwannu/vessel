@@ -7,6 +7,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, dot, kicker};
+use vessel_app_view::settings::Section;
 use vessel_app_view::{Card, Machine, Reach};
 
 use super::common::card_color;
@@ -81,7 +82,7 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
 /// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
 /// hairline over one line, its items at the left and Settings, a gear, at
 /// the right end. Here the build and "새로고침" at the left; the gear opens
-/// About until the settings track's frame lands.
+/// Settings, the build Settings › About.
 fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let t = shell.t;
     div()
@@ -98,7 +99,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         .type_(Type::Tiny)
         .text_color(tokens.text_tertiary)
         .child(
-            // The build, and its updates: the About screen.
+            // The build, and its updates: Settings › About.
             div()
                 .id("build")
                 .pl(px(2.0))
@@ -106,7 +107,7 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                 .hover(|style| style.text_color(tokens.text_secondary))
                 .child(t.build(crate::LABEL))
                 .on_click(cx.listener(|this, _event, window, cx| {
-                    this.go(Route::About, window, cx);
+                    this.open_settings(Section::About, window, cx);
                 })),
         )
         .child("·")
@@ -126,12 +127,12 @@ fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                     leading: Some(vessel_app_kit::assets::Glyph::Gear),
                     ..vessel_app_kit::PillParts::default()
                 },
-                shell.route == Route::About,
+                shell.route == Route::Settings,
                 false,
                 tokens,
             )
             .on_click(cx.listener(|this, _event, window, cx| {
-                this.go(Route::About, window, cx);
+                this.open_settings(Section::General, window, cx);
             })),
         )
 }

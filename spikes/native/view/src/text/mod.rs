@@ -22,6 +22,7 @@
 //!   Korean none). Not translated yet: the link's errors (they come from
 //!   `vessel-client` and the node, in English).
 
+mod about;
 mod app;
 mod board;
 mod conversation;
@@ -35,6 +36,7 @@ mod shortcuts;
 mod sidebar;
 mod update;
 
+pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};

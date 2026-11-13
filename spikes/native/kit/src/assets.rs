@@ -71,10 +71,30 @@ pub enum Glyph {
     Sliders,
     /// Settings (Paseo's `Settings`: a gear).
     Gear,
+    /// Appearance (a painter's palette, Paseo's `Palette`).
+    Palette,
+    /// Shortcuts (a keyboard, Paseo's `Keyboard`).
+    Keyboard,
+    /// Notifications (a bell, Paseo's `Bell`).
+    Bell,
+    /// Models (a spark, Paseo's `Sparkles`).
+    Sparkles,
+    /// A machine as Settings lists it (Paseo's `Server`).
+    Server,
+    /// Devices (a phone, Paseo's `Smartphone`).
+    Smartphone,
+    /// Sync (two arrows round).
+    Refresh,
+    /// About (an i in a circle, Paseo's `Info`).
+    Info,
+    /// Back (Settings' way back to the workspace, Paseo's `ArrowLeft`).
+    ArrowLeft,
+    /// Adding (a machine, Paseo's `Plus`).
+    Plus,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 23] = [
+const ALL: [Glyph; 33] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -98,6 +118,16 @@ const ALL: [Glyph; 23] = [
     Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
+    Glyph::Palette,
+    Glyph::Keyboard,
+    Glyph::Bell,
+    Glyph::Sparkles,
+    Glyph::Server,
+    Glyph::Smartphone,
+    Glyph::Refresh,
+    Glyph::Info,
+    Glyph::ArrowLeft,
+    Glyph::Plus,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -140,6 +170,16 @@ impl Glyph {
             Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
+            Self::Palette => "kit/palette.svg",
+            Self::Keyboard => "kit/keyboard.svg",
+            Self::Bell => "kit/bell.svg",
+            Self::Sparkles => "kit/sparkles.svg",
+            Self::Server => "kit/server.svg",
+            Self::Smartphone => "kit/smartphone.svg",
+            Self::Refresh => "kit/refresh.svg",
+            Self::Info => "kit/info.svg",
+            Self::ArrowLeft => "kit/arrow-left.svg",
+            Self::Plus => "kit/plus.svg",
         }
     }
 
@@ -200,6 +240,32 @@ impl Glyph {
             Self::Gear => line_glyph!(
                 r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
             ),
+            Self::Palette => line_glyph!(
+                r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#
+            ),
+            Self::Keyboard => line_glyph!(
+                r#"<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>"#
+            ),
+            Self::Bell => line_glyph!(
+                r#"<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>"#
+            ),
+            Self::Sparkles => line_glyph!(
+                r#"<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15v4M17 17h4"/>"#
+            ),
+            Self::Server => line_glyph!(
+                r#"<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>"#
+            ),
+            Self::Smartphone => line_glyph!(
+                r#"<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>"#
+            ),
+            Self::Refresh => line_glyph!(
+                r#"<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>"#
+            ),
+            Self::Info => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>"#)
+            }
+            Self::ArrowLeft => line_glyph!(r#"<path d="M19 12H5M12 19l-7-7 7-7"/>"#),
+            Self::Plus => line_glyph!(r#"<path d="M12 5v14M5 12h14"/>"#),
         }
     }
 }

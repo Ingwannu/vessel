@@ -28,6 +28,7 @@ pub struct SettingsText {
     pub back: &'static str,
     pub machine: &'static str,
     pub no_machines: &'static str,
+    pub switch_machine: &'static str,
     pub elsewhere: &'static str,
     // General.
     pub general_lead: &'static str,
@@ -80,6 +81,7 @@ const EN: SettingsText = SettingsText {
     back: "Back",
     machine: "Machine",
     no_machines: "No machines yet.",
+    switch_machine: "Switch machine",
     elsewhere: "This section is drawn by another part of the app; it comes in a later build.",
     general_lead: "How the composer sends, and where Vessel keeps what you choose.",
     composer: "Composer",
@@ -129,6 +131,7 @@ const KO: SettingsText = SettingsText {
     back: "뒤로",
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
+    switch_machine: "머신 바꾸기",
     elsewhere: "이 섹션은 앱의 다른 부분이 그립니다. 다음 빌드에서 들어옵니다.",
     general_lead: "작성창이 보내는 방식과, 고른 설정을 Vessel이 보관하는 곳.",
     composer: "작성창",

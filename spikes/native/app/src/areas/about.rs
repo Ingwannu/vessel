@@ -24,6 +24,9 @@
 //!   have (Vessel's updater has the setting, track R's
 //!   `Updater::set_automatic`); "로그 경로가 복사되었습니다." is said in the
 //!   frame's foot (the app has no toast yet).
+//! - Settings › About (`areas/settings`) shows this card in Settings'
+//!   page, then Vessel's licence and the parts the app is built from with
+//!   theirs, as the page's About; its own screen and route are gone.
 
 use std::path::PathBuf;
 
@@ -39,12 +42,9 @@ use vessel_app_kit::{
     Tokens, Type, TypeExt as _, button, glyph, markdown, outline_button, settings,
 };
 
-use super::common::title_bar;
 use crate::shell::Shell;
 use crate::update::Updated;
-
-/// Paseo's settings page: at most this wide.
-const PAGE_WIDTH: f32 = 720.0;
+use vessel_app_view::about::{BUNDLED, VESSEL_LICENCE};
 
 /// About's own state: its two dialogs, and the switch's changes (for its
 /// motion).
@@ -71,13 +71,8 @@ impl AboutState {
     }
 }
 
-/// The About screen.
-pub(crate) fn render(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+/// About's card: the version, what is new, the updates, the log.
+fn card(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.update();
     let mut card = settings::card(tokens).child(settings::row(
         words.app_version,
@@ -102,32 +97,62 @@ pub(crate) fn render(
             tokens,
         ));
     }
-    card = card.child(logs_row(shell, tokens, cx));
+    card.child(logs_row(shell, tokens, cx))
+}
+
+/// About's dialogs, over the frame.
+pub(crate) fn dialogs(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> impl Iterator<Item = AnyElement> {
+    confirm_dialog(shell, tokens, window, cx)
+        .into_iter()
+        .chain(notes_dialog(shell, tokens, window, cx))
+}
+
+/// About as Settings shows it (`areas/settings`): the card, then Vessel's
+/// licence and the parts the app is built from with theirs, as the page's
+/// About (`features/settings/about.tsx`); `compact` on a phone.
+pub(crate) fn content(
+    shell: &Shell,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let words = shell.t.lang.update();
+    let about = shell.t.lang.about();
+    let mut licences = settings::card(tokens).child(settings::row_at(
+        "Vessel",
+        Some(about.licence_note.into()),
+        None,
+        Some(value(VESSEL_LICENCE.to_owned(), tokens)),
+        true,
+        compact,
+        tokens,
+    ));
+    for part in BUNDLED {
+        licences = licences.child(settings::row_at(
+            part.name,
+            Some(about.role(part.role).into()),
+            None,
+            Some(value(part.licence.to_owned(), tokens)),
+            false,
+            compact,
+            tokens,
+        ));
+    }
     div()
-        .size_full()
         .flex()
         .flex_col()
-        .child(title_bar(words.about.to_owned(), None, tokens))
-        .child(
-            div()
-                .id("about-page")
-                .flex_1()
-                .min_h_0()
-                .overflow_y_scroll()
-                .child(
-                    div().w_full().flex().flex_row().justify_center().child(
-                        div()
-                            .w_full()
-                            .max_w(px(PAGE_WIDTH))
-                            .px(px(16.0))
-                            .pt(px(24.0))
-                            .pb(px(16.0))
-                            .child(settings::section(words.about, card, tokens)),
-                    ),
-                ),
-        )
-        .children(confirm_dialog(shell, tokens, window, cx))
-        .children(notes_dialog(shell, tokens, window, cx))
+        .child(settings::section(
+            words.about,
+            card(shell, tokens, cx),
+            tokens,
+        ))
+        .child(settings::section(about.software, licences, tokens))
+        .into_any_element()
 }
 
 /// "새로운 소식": Paseo's row with a chevron, the foreground's on hover.

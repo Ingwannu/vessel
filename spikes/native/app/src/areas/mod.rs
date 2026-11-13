@@ -16,6 +16,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
 pub(crate) mod session;
+pub(crate) mod settings;
 pub(crate) mod sidebar;
 
 use vessel_app_kit::ui::{Context, Window};
@@ -29,6 +30,7 @@ pub(crate) struct Areas {
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
     pub(crate) conversation: conversation::ConversationArea,
+    pub(crate) settings: settings::SettingsState,
 }
 
 impl Areas {
@@ -39,6 +41,7 @@ impl Areas {
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
+            settings: settings::SettingsState::new(window, cx),
         }
     }
 }
