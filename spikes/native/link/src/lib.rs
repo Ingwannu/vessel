@@ -32,6 +32,7 @@ mod session;
 mod demo;
 #[cfg(target_arch = "wasm32")]
 mod web;
+pub mod workspace;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
@@ -216,6 +217,14 @@ pub enum Command {
         /// instead when it makes a free book name.
         prefer_node_name: bool,
     },
+    /// Ask a machine about its projects, worktrees, git or files; answered
+    /// by [`Event::Workspace`] (`workspace`'s module says how).
+    Workspace {
+        /// The machine.
+        machine: String,
+        /// What is asked.
+        ask: workspace::Ask,
+    },
 }
 
 /// What the link reports.
@@ -271,6 +280,13 @@ pub enum Event {
     },
     /// Something failed; the words to show.
     Failed(String),
+    /// A machine answered a workspace ask.
+    Workspace {
+        /// The machine.
+        machine: String,
+        /// The answer, with what was asked.
+        answer: workspace::Answer,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -301,6 +317,7 @@ impl Link {
             events,
             clients: HashMap::new(),
             follow: None,
+            workspace: workspace::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -328,6 +345,7 @@ struct State {
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+    workspace: workspace::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -412,6 +430,7 @@ impl State {
                 session,
                 act,
             } => self.act(&machine, session, act),
+            Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
                 match saved {
@@ -667,6 +686,18 @@ impl State {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
+    /// Hand a workspace ask to its own task, with the machine's connection.
+    fn workspace(&self, machine: String, ask: workspace::Ask) {
+        let events = self.events.clone();
+        match self.client(&machine) {
+            Ok(client) => self.workspace.ask(client.clone(), machine, ask, events),
+            Err(error) => {
+                let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
+                workspace::Hub::refuse(machine, ask, problem, events);
+            }
+        }
+    }
+
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(

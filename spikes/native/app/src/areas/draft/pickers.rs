@@ -22,6 +22,7 @@ use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 use super::density::Density;
 use super::features::feature_name;
 use super::{Probe, Shown, pill_with};
+use crate::areas::workspace::{PlacePick, PlaceRows};
 use crate::shell::Shell;
 
 /// Which picker.
@@ -33,6 +34,10 @@ pub(crate) enum Picker {
     Features,
     Machine,
     Folder,
+    /// The chosen project's isolation (track F's `workspace::place`).
+    Isolation,
+    /// A new worktree's starting branch (track F's).
+    Base,
 }
 
 /// Paseo shows a list's search row past this many rows (its composer's
@@ -57,6 +62,8 @@ pub(super) fn list_of(shell: &mut Shell, which: Picker) -> &mut ComboboxState {
         Picker::Features => &mut lists.features,
         Picker::Machine => &mut lists.machine,
         Picker::Folder => &mut lists.folder,
+        Picker::Isolation => &mut shell.areas.workspace.place.isolation,
+        Picker::Base => &mut shell.areas.workspace.place.base,
     }
 }
 
@@ -69,16 +76,20 @@ fn list_ref(shell: &Shell, which: Picker) -> &ComboboxState {
         Picker::Features => &lists.features,
         Picker::Machine => &lists.machine,
         Picker::Folder => &lists.folder,
+        Picker::Isolation => &shell.areas.workspace.place.isolation,
+        Picker::Base => &shell.areas.workspace.place.base,
     }
 }
 
-pub(super) const ALL: [Picker; 6] = [
+pub(super) const ALL: [Picker; 8] = [
     Picker::Model,
     Picker::Thinking,
     Picker::Mode,
     Picker::Features,
     Picker::Machine,
     Picker::Folder,
+    Picker::Isolation,
+    Picker::Base,
 ];
 
 /// The machine the draft is on, when online.
@@ -161,10 +172,17 @@ impl Shell {
             Picker::Machine => {
                 (self.fleet.machines.len() > SEARCH_HOSTS_PAST).then_some(words.search_hosts)
             }
-            Picker::Folder => Some(words.search_folders),
+            // With projects in the list, Paseo's project picker's search.
+            Picker::Folder => Some(if self.project_rows("").is_empty() {
+                words.search_folders
+            } else {
+                self.words().labels().search_places
+            }),
+            Picker::Base => Some(self.words().labels().search_branches),
             // A feature's list opens through `open_feature`, which says
             // where and with what.
-            Picker::Thinking | Picker::Features => None,
+            // Isolation's two rows need no search (Paseo's has none).
+            Picker::Thinking | Picker::Features | Picker::Isolation => None,
         };
         list_of(self, which).open(search, window, cx);
         cx.notify();
@@ -353,11 +371,29 @@ pub(super) fn place(
     let draft = &shell.areas.draft;
     let machine_label =
         machine(shell, online).map_or_else(|| t.machine.to_owned(), |machine| machine.name.clone());
-    let folder_label = if draft.folder.trim().is_empty() {
-        t.home_folder.to_owned()
-    } else {
-        draft.folder.clone()
-    };
+    // A project chosen (track F's `workspace::place`): the pill is the
+    // project's (its mark and name), then Paseo's Isolation and Branch.
+    let pills = shell.place_pills();
+    let folder_parts = pills.as_ref().map_or_else(
+        || PillParts {
+            leading: Some(Glyph::Folder),
+            label: Some(if draft.folder.trim().is_empty() {
+                t.home_folder.into()
+            } else {
+                draft.folder.clone().into()
+            }),
+            caret: true,
+            ..PillParts::default()
+        },
+        |pills| PillParts {
+            initial: Some(pills.initial.clone()),
+            label: Some(pills.name.clone()),
+            caret: true,
+            ..PillParts::default()
+        },
+    );
+    let isolation = pills.as_ref().and_then(|pills| pills.isolation);
+    let base = pills.and_then(|pills| pills.base);
     div()
         .flex()
         .flex_row()
@@ -387,13 +423,7 @@ pub(super) fn place(
             pill_with(
                 "pick-folder",
                 &draft.lists.folder,
-                PillParts {
-                    leading: Some(Glyph::Folder),
-                    label: Some(folder_label.into()),
-                    quiet: None,
-                    caret: true,
-                    ..PillParts::default()
-                },
+                folder_parts,
                 touch,
                 tokens,
             )
@@ -401,6 +431,40 @@ pub(super) fn place(
                 this.open_picker(Picker::Folder, window, cx);
             })),
         )
+        .children(isolation.map(|(label, leading)| {
+            pill_with(
+                "pick-isolation",
+                &shell.areas.workspace.place.isolation,
+                PillParts {
+                    leading: Some(leading),
+                    label: Some(label.into()),
+                    caret: true,
+                    ..PillParts::default()
+                },
+                touch,
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, window, cx| {
+                this.open_picker(Picker::Isolation, window, cx);
+            }))
+        }))
+        .children(base.map(|label| {
+            pill_with(
+                "pick-base",
+                &shell.areas.workspace.place.base,
+                PillParts {
+                    leading: Some(Glyph::Branch),
+                    label: Some(label),
+                    caret: true,
+                    ..PillParts::default()
+                },
+                touch,
+                tokens,
+            )
+            .on_click(cx.listener(|this, _event, window, cx| {
+                this.open_picker(Picker::Base, window, cx);
+            }))
+        }))
 }
 
 /// What a row of a list means.
@@ -414,6 +478,8 @@ enum Meaning {
     Choose(OptionChoice, bool),
     Machine(String),
     Folder(String),
+    /// A project, its isolation or its starting branch (track F's).
+    Place(PlacePick),
 }
 
 /// A list's header and rows, and what each row means.
@@ -438,7 +504,7 @@ fn build(shell: &Shell, which: Picker, query: &str, cx: &Context<'_, Shell>) -> 
             // A feature's list from a row of the features sheet opens below
             // it (Paseo's default, `bottom-start`).
             side: match which {
-                Picker::Machine | Picker::Folder => Side::Below,
+                Picker::Machine | Picker::Folder | Picker::Isolation | Picker::Base => Side::Below,
                 Picker::Features if shell.areas.draft.features.sheet => Side::Below,
                 Picker::Model | Picker::Thinking | Picker::Mode | Picker::Features => Side::Above,
             },
@@ -455,6 +521,13 @@ fn build(shell: &Shell, which: Picker, query: &str, cx: &Context<'_, Shell>) -> 
         }
         Picker::Machine => machine_rows(shell, &query, &vessel_app_kit::tokens(cx), &mut built),
         Picker::Folder => folder_rows(shell, &query, &mut built),
+        Picker::Isolation => place_rows(shell.isolation_rows(), &mut built),
+        Picker::Base => {
+            let (rows, empty) = shell.base_rows(&query);
+            built.header.search = true;
+            built.header.empty = empty.into();
+            place_rows(rows, &mut built);
+        }
     }
     built
 }
@@ -643,7 +716,12 @@ fn option_rows(shell: &Shell, which: Picker, query: &str, built: &mut Built) {
                 );
             }
         }
-        Picker::Features | Picker::Model | Picker::Machine | Picker::Folder => {
+        Picker::Features
+        | Picker::Model
+        | Picker::Machine
+        | Picker::Folder
+        | Picker::Isolation
+        | Picker::Base => {
             if let Some(id) = &shell.areas.draft.feature {
                 feature_list(shell, &controls, id, query, built);
             }
@@ -716,11 +794,25 @@ fn machine_rows(shell: &Shell, query: &str, tokens: &Tokens, built: &mut Built) 
     }
 }
 
+/// Track F's rows, as they come.
+fn place_rows(rows: PlaceRows, built: &mut Built) {
+    for (row, pick) in rows {
+        built.rows.push(row);
+        built.meanings.push(Meaning::Place(pick));
+    }
+}
+
+/// The machine's projects (track F's rows, Paseo's project picker), then
+/// the folders under their own heading, then "Add project".
 fn folder_rows(shell: &Shell, query: &str, built: &mut Built) {
     let t = shell.t;
     let words = t.lang.options();
     built.header.search = true;
     built.header.empty = words.no_folders.into();
+    let projects = shell.project_rows(query);
+    let first_folder = projects.len();
+    let with_projects = !projects.is_empty();
+    place_rows(projects, built);
     let current = shell.areas.draft.folder.trim();
     let typed = query.trim();
     let mut used: Vec<&String> = shell.prefs.folders.values().collect();
@@ -748,6 +840,13 @@ fn folder_rows(shell: &Shell, query: &str, built: &mut Built) {
         row.checked = current == folder.as_str();
         built.rows.push(row);
         built.meanings.push(Meaning::Folder(folder.clone()));
+    }
+    if with_projects && let Some(row) = built.rows.get_mut(first_folder) {
+        row.heading = Some(shell.words().labels().folders.into());
+    }
+    if let Some((row, pick)) = shell.add_project_row() {
+        built.rows.push(row);
+        built.meanings.push(Meaning::Place(pick));
     }
 }
 
@@ -794,7 +893,12 @@ fn chose(
         }
         Meaning::Folder(folder) => {
             shell.choose_folder(folder);
+            shell.forget_place();
             shell.close_picker(which, window, cx);
+        }
+        Meaning::Place(pick) => {
+            shell.close_picker(which, window, cx);
+            shell.choose_place(pick, window, cx);
         }
     }
     cx.notify();
@@ -823,6 +927,8 @@ pub(super) fn open_list(
             Picker::Features => |shell: &mut Shell| list_of(shell, Picker::Features),
             Picker::Machine => |shell: &mut Shell| list_of(shell, Picker::Machine),
             Picker::Folder => |shell: &mut Shell| list_of(shell, Picker::Folder),
+            Picker::Isolation => |shell: &mut Shell| list_of(shell, Picker::Isolation),
+            Picker::Base => |shell: &mut Shell| list_of(shell, Picker::Base),
         },
         chose: Rc::new(
             move |shell: &mut Shell, index, window: &mut Window, cx: &mut Context<'_, Shell>| {
@@ -849,7 +955,9 @@ pub(super) fn open_list(
             | Picker::Mode
             | Picker::Features
             | Picker::Machine
-            | Picker::Folder => None,
+            | Picker::Folder
+            | Picker::Isolation
+            | Picker::Base => None,
         },
     };
     vessel_app_kit::combobox(

@@ -143,6 +143,16 @@ pub fn project_among<'a>(
     best.map(|(project, _)| project)
 }
 
+/// The repository name a clone URL ends with (`org/shop.git` gives
+/// `shop`), for the clone form's help line (the page's `repositoryName`).
+#[must_use]
+pub fn repository_name(url: &str) -> Option<&str> {
+    let trimmed = url.trim().trim_end_matches('/');
+    let last = trimmed.rsplit(['/', ':']).next().unwrap_or_default();
+    let name = last.strip_suffix(".git").unwrap_or(last);
+    (!name.is_empty()).then_some(name)
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -209,6 +219,21 @@ mod tests {
         assert_eq!(view.list().map(|list| list.projects.len()), Some(2));
         view.forgot(&P1.parse().unwrap());
         assert_eq!(view.list().map(|list| list.projects.len()), Some(1));
+    }
+
+    #[test]
+    fn names_the_repository_a_clone_url_ends_with() {
+        assert_eq!(
+            repository_name("https://github.com/org/shop.git"),
+            Some("shop")
+        );
+        assert_eq!(
+            repository_name("git@github.com:org/shop.git/ "),
+            Some("shop")
+        );
+        assert_eq!(repository_name("https://host/org/shop"), Some("shop"));
+        assert_eq!(repository_name("  "), None);
+        assert_eq!(repository_name("https://host/.git"), None);
     }
 
     #[test]

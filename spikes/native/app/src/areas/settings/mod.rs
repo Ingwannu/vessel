@@ -380,7 +380,7 @@ pub(crate) fn render(
 pub(crate) const fn drawn(section: Section) -> bool {
     matches!(
         section,
-        Section::General | Section::Appearance | Section::About
+        Section::General | Section::Appearance | Section::About | Section::Projects
     )
 }
 
@@ -411,11 +411,13 @@ fn content(
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
-        // Shortcuts and Notifications are track S's, Projects track F's;
-        // the per-machine sections are this track's next slice.
+        Section::Projects => Some(crate::areas::workspace::projects_content(
+            shell, tokens, phone, cx,
+        )),
+        // Shortcuts and Notifications are track S's; the per-machine
+        // sections are this track's next slice.
         Section::Shortcuts
         | Section::Notifications
-        | Section::Projects
         | Section::Agents
         | Section::Models
         | Section::Machines

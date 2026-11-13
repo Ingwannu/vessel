@@ -200,6 +200,84 @@ done
   exit 1
 }
 
+# The workspace's shapes (track F): a monorepo on laptop whose paths are
+# long, whose working tree has well over a hundred changes (modified,
+# staged, untracked, deleted, renamed, a Hangul name) and one diff of
+# thousands of lines, with a vessel.toml naming setup, teardown, scripts
+# and services (not approved: the approval shows every one); a small
+# project whose commands are approved; a worktree on a long branch name
+# with uncommitted work (its removal lists what would be lost); and a
+# clone that failed. Checked below, so a screen captured against the
+# fleet is known to show them.
+git_in() { git -C "$1" -c user.name=fleet -c user.email=fleet@example.invalid "${@:2}"; }
+mono="$root/work/atlas-design-system-monorepo"
+deep="packages/design-system-foundations/src/components/navigation/sidebar-with-collapsible-sections"
+mkdir -p "$mono/$deep" "$mono/packages/tokens/generated" "$mono/docs/한글-문서"
+git_in "$mono" init -q -b main
+cat > "$mono/vessel.toml" <<'TOML'
+[worktree]
+setup = ["pnpm install --frozen-lockfile --prefer-offline", "pnpm --filter @atlas/design-system-foundations run build:tokens", "cp \"$VESSEL_PROJECT_ROOT/.env.example\" .env"]
+teardown = "docker compose --project-name atlas-preview down --volumes --remove-orphans"
+
+[scripts.lint]
+command = "pnpm run lint -- --max-warnings=0"
+
+[scripts.typecheck]
+command = "pnpm -r run typecheck"
+
+[services.storybook]
+command = "pnpm --filter @atlas/design-system-foundations run storybook -- --port 6006 --no-open"
+dir = "packages/design-system-foundations"
+
+[services.dev]
+command = "pnpm run dev"
+TOML
+for n in $(seq 1 80); do
+  printf 'export const item%s = %s;\n' "$n" "$n" > "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"
+done
+seq 1 3000 | sed 's/.*/export const colour& = "#&";/' > "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
+printf '# 설치 안내\n\n한글로 쓴 문서입니다.\n' > "$mono/docs/한글-문서/설치-안내.md"
+printf 'old name\n' > "$mono/docs/renamed-before.md"
+git_in "$mono" add -A && git_in "$mono" commit -q -m "The design system, as it was"
+# The working tree: 60 modified (20 of them staged), 40 untracked, 5
+# deleted, one renamed, the Hangul file edited, 2,500 lines rewritten.
+for n in $(seq 1 60); do echo "export const changed$n = true;" >> "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+for n in $(seq 1 20); do git_in "$mono" add "$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+for n in $(seq 1 40); do printf 'new %s\n' "$n" > "$mono/$deep/untracked-generated-snapshot-$n.snap"; done
+for n in $(seq 76 80); do rm "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+git_in "$mono" mv docs/renamed-before.md docs/renamed-after-a-much-longer-name.md
+printf '\n바뀐 줄입니다.\n' >> "$mono/docs/한글-문서/설치-안내.md"
+sed -i '1,2500s/"#/"oklch(/' "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
+cli --node laptop project add "$mono" > /dev/null
+small="$root/work/shop"
+mkdir -p "$small" && git_in "$small" init -q -b main
+printf '[worktree]\nsetup = "npm ci"\n\n[scripts.test]\ncommand = "npm test"\n' > "$small/vessel.toml"
+printf 'console.log("shop");\n' > "$small/index.js"
+git_in "$small" add -A && git_in "$small" commit -q -m init
+cli --node laptop project add "$small" > /dev/null
+digest=$(cli --node laptop project commands shop 2> /dev/null | grep -oE '[0-9a-f]{64}' | head -1)
+[ -n "$digest" ] && cli --node laptop project approve shop "$digest" > /dev/null 2>&1
+cli --node laptop worktree new atlas-design-system-monorepo --skip-setup \
+  --branch feature/sidebar-collapsible-sections-keyboard-navigation-and-focus-order > /dev/null 2>&1 || true
+tree=$(cli --node laptop worktree list 2> /dev/null | awk '/sidebar-collapsible/ {print $NF; exit}')
+[ -n "$tree" ] && [ -d "$tree" ] && printf 'work in progress\n' > "$tree/README-draft.md"
+cli --node laptop project clone "https://127.0.0.1:9/team/unreachable-repository.git" "$root/work" > /dev/null 2>&1 || true
+
+problems=()
+changes=$(git -C "$mono" status --porcelain | wc -l)
+[ "$changes" -ge 100 ] || problems+=("only $changes changes in the monorepo")
+big=$(git -C "$mono" diff --numstat -- packages/tokens | awk '{print $1}')
+[ "${big:-0}" -ge 2000 ] || problems+=("the large diff has ${big:-0} lines")
+listed=$(cli --node laptop project list 2> /dev/null)
+grep -q 'atlas-design-system-monorepo' <<<"$listed" || problems+=("the monorepo is not a project")
+grep -q 'clone_failed\|clone failed' <<<"$listed" || problems+=("no failed clone listed")
+[ -n "$digest" ] || problems+=("shop's commands were not approved")
+[ -n "$tree" ] || problems+=("no worktree on the long branch")
+if [ ${#problems[@]} -gt 0 ]; then
+  printf 'fleet: the workspace shapes are missing: %s\n' "${problems[*]}" >&2
+  exit 1
+fi
+
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash
 # A pairing link for laptop (single use, ten minutes).
