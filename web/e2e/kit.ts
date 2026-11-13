@@ -58,11 +58,18 @@ export function timeline(page: Page): Locator {
   return page.getByRole("region", { name: "Timeline" });
 }
 
-/** Choose `agent` in the agent, model and effort menu. */
+/** Choose `agent` in the agent, model and effort menu. The item is chosen
+ * with Enter, the menu's own keyboard path: a pointer's click waits for
+ * the submenu's box to hold still, and under load (the machine at 15 to
+ * 47) it was seen "not stable", then "detached", until the test's time
+ * ran out (app.spec.ts's terminal test, 2026-11-12). Three attempts to
+ * make the page do it on purpose (its processor slowed ten and twelve
+ * times, the bridge's answers held back, the agent's options answered
+ * while the submenu was open) did not. */
 export async function chooseAgent(page: Page, agent: string): Promise<void> {
   await page.getByRole("button", { name: /^Agent, model and effort/ }).click();
   await page.getByRole("menuitem", { name: /^Agent/ }).click();
-  await page.getByRole("menuitemradio", { name: agent }).click();
+  await page.getByRole("menuitemradio", { name: agent }).press("Enter");
   await expect(page.getByRole("menu")).toHaveCount(0);
 }
 

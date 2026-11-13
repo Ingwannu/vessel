@@ -5,7 +5,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { startSession } from "./kit";
+import { startSession, timeline } from "./kit";
 import { openUi } from "./open";
 import { applyConditions, PROFILES } from "./perf/conditions";
 
@@ -31,7 +31,10 @@ test("a theme is kept by the bridge and painted on the index before any script",
   const scheme = page.getByRole("radiogroup", { name: "Colour scheme" });
   await scheme.getByRole("radio", { name: "Dark" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  expect(await paintedTheme(page, origin)).toBe("dark");
+  // The page paints a choice at once and the bridge keeps it when the op
+  // arrives: ask the index until it is written (read once, it raced the
+  // op under load).
+  await expect.poll(() => paintedTheme(page, origin)).toBe("dark");
   // A reload is drawn dark from the first paint.
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -46,7 +49,7 @@ test("a theme is kept by the bridge and painted on the index before any script",
     .getByRole("radio", { name: "System" })
     .click();
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
-  expect(await paintedTheme(page, origin)).toBeNull();
+  await expect.poll(() => paintedTheme(page, origin)).toBeNull();
 });
 
 test("a dark theme is drawn from the first frame over a slow link", async ({
@@ -143,9 +146,12 @@ test("a screen asked for while Settings loads is not taken back by Settings' red
   await page.keyboard.press("n");
   await expect(page).toHaveURL(/\/new(\?|$)/);
   await expect(page.getByRole("form", { name: "Prompt" })).toBeVisible();
+  // Waited for from before the release: a chunk answered in between was
+  // missed by a wait set after it (under load).
+  const arrived = page.waitForResponse(/\/assets\/settings-[\w-]+\.js$/);
   release();
   // Settings' chunk arrives; nothing takes the reader back there.
-  await page.waitForResponse(/\/assets\/settings-[\w-]+\.js$/);
+  await arrived;
   await page.waitForTimeout(500);
   await expect(page).toHaveURL(/\/new(\?|$)/);
   await expect(page.getByRole("form", { name: "Prompt" })).toBeVisible();
@@ -276,7 +282,9 @@ test("with Mod+Enter chosen, Enter starts a line and Ctrl+Enter sends", async ({
     await expect(text).toHaveValue("options\n");
     await text.fill("options");
     await text.press("Control+Enter");
-    await expect(page.getByText(/^options mode=/)).toBeVisible();
+    // In the timeline: its live region repeats the newest entry's text,
+    // and a strict locator matching both failed under load.
+    await expect(timeline(page).getByText(/^options mode=/)).toBeVisible();
   } finally {
     await page.goto(SETTINGS(origin, "general"));
     await page.getByRole("combobox", { name: "Send shortcut" }).click();
