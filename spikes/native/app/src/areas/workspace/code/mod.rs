@@ -22,10 +22,13 @@
 //! - Cost: the panel follows the open session only while it is open;
 //!   reopening it reads the session again (one call).
 
+mod change_rows;
 mod changes;
 mod files;
+mod found;
 mod frame;
 mod search;
+mod viewer;
 
 use std::collections::{HashMap, HashSet};
 
