@@ -162,7 +162,6 @@ fn device_row(
         !pending,
         tokens,
     )
-    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
     .when(!pending, |button| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
             shell.devices_choose_revoke(id, window, cx);
@@ -179,19 +178,11 @@ fn device_row(
             tokens,
         )
     });
-    let control = div()
-        .flex()
-        .flex_wrap()
-        .items_center()
-        .gap(px(spacing::S2))
-        .children(badge)
-        .child(action)
-        .into_any_element();
-    let row = settings::row_at(
+    let row = super::row::compose(
         device.label.clone(),
-        Some(details(shell.t.lang, device, Utc::now(), state.offset).into()),
-        None,
-        Some(control),
+        details(shell.t.lang, device, Utc::now(), state.offset),
+        badge,
+        action,
         first,
         compact,
         tokens,

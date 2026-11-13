@@ -337,3 +337,19 @@ place and disabled. The fake-node revoke completed after each resume;
 only the inert test record was restored. No invitation was created, no
 production service or permission changed, and private credential-file
 ownership and modes passed. See the Sync notes for the combined checks.
+
+## Pending V1 followup: wrapped actions
+
+The distinguishing badge/action group previously wrapped to the next
+line's left edge on narrow rows. The area now shares one production
+composition with a bounds regression: the existing kit button stays in
+a natural-width, nonshrinking group with automatic leading margin.
+It keeps the trailing edge whether beside or beneath the text; a
+full-width group was rejected because it would move ordinary actions
+below their names too. The shared kit's geometry and button appearance
+are unchanged. The test covers badge present/absent and short/wrapping
+names, measures the actual button edge, and checks badge/button centres.
+
+This is an unverified work-in-progress correction: formatting passed,
+but compilation, the bounds test and new narrow-screen captures remain
+pending. See the Sync notes for integration/resumption requirements.

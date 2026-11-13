@@ -257,3 +257,24 @@ files remain private. No invitation was issued. All owned app, display
 and fleet processes were stopped and reaped. No physical phone, browser
 or live member pull-loop validation is claimed. The pending wire actions
 and caller-scope work remain separate until N3's reviewed delivery.
+
+## Pending V1 followup (work in progress)
+
+V1 returned the combined correction for two remaining surface problems.
+Connection metadata now takes only a protocol version; reachability is
+said once by its badge. Whole English/Korean expectations retain the
+version for both reachable and unreachable fixtures, without a full stop
+after the bare value. The Devices followup described in its own notes
+shares this work-in-progress checkpoint.
+
+Only formatting has been checked for this followup. Its full native
+gate, normal build, production bounds test execution and affected
+captures are pending; the earlier 386-test result and 68 captures belong
+to the preceding correction and do not verify these edits. The attempted
+lead integration was aborted after an intermediate lead head did not
+compile. No unfinished merge is retained. Resume by integrating the
+latest lead-reported gated head, preserving both Machines and Sync
+registrations and initializing the Sync hub in Machines' actor fixture.
+Then run the whole native gate and replace the affected connection and
+narrow device frames before resubmitting to V1. This checkpoint is not
+a UI pass or merge request.

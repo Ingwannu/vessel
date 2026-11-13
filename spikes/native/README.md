@@ -97,6 +97,9 @@ whichever comes first. Copy, focus loss and navigation mask it. Its pure
 state and stale-response tests live in `view/src/devices/`. Device rows
 have one access/last-use hint; exact pairing/last-use dates and all scopes
 stay in their tooltip. Ordinary paired rows have no repeated state badge.
+The area's `devices/row.rs` composes the shared row/button so a wrapped
+badge/action group retains its trailing edge; its bounds cases live beside
+it (verification status is in the G4 notes).
 
 Settings sections register their renderer in `settings::content` and their
 presence in `settings::drawn`; the latter controls navigation, so a page

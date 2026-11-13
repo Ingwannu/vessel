@@ -263,21 +263,21 @@ fn file_sizes_modes_and_connection_versions_are_readable_values() {
         reachable: true,
     };
     assert_eq!(
-        Lang::En.sync().connection_details(&node),
-        "This machine can be reached. Connection version 6."
+        Lang::En.sync().connection_version(node.protocol),
+        "Connection version 6"
     );
     assert_eq!(
-        Lang::Ko.sync().connection_details(&node),
-        "연결할 수 있는 머신입니다. 연결 버전: 6."
+        Lang::Ko.sync().connection_version(node.protocol),
+        "연결 버전 6"
     );
     node.reachable = false;
     assert_eq!(
-        Lang::En.sync().connection_details(&node),
-        "This machine cannot be reached. Connection version 6."
+        Lang::En.sync().connection_version(node.protocol),
+        "Connection version 6"
     );
     assert_eq!(
-        Lang::Ko.sync().connection_details(&node),
-        "연결할 수 없는 머신입니다. 연결 버전: 6."
+        Lang::Ko.sync().connection_version(node.protocol),
+        "연결 버전 6"
     );
     for (reachable, en, ko) in [
         (true, "Reachable", "연결 가능"),

@@ -1,7 +1,7 @@
 //! Row labels and complete numeric explanations; no sentence fragments.
 use super::{Lang, SyncWords};
 use crate::sync::{FileKind, FileMode, FileSize, KeptEdits, LocalCommand, Presence, Usage};
-use vessel_proto::{FleetNode, Generation};
+use vessel_proto::{Generation, ProtocolVersion};
 
 impl SyncWords {
     /// Empty secret names; a failed reference read never implies no references.
@@ -83,15 +83,14 @@ impl SyncWords {
             (Lang::Ko, false) => "연결 불가",
         }
     }
-    /// The actual connection version, in ordinary words below its name.
+    /// Extra metadata beneath a connection name; reachability is stated
+    /// only by its badge. A bare version value has no sentence punctuation.
     #[must_use]
-    pub fn connection_details(&self, node: &FleetNode) -> String {
-        let n = node.protocol.get();
-        match (self.lang, node.reachable) {
-            (Lang::En, true) => format!("This machine can be reached. Connection version {n}."),
-            (Lang::En, false) => format!("This machine cannot be reached. Connection version {n}."),
-            (Lang::Ko, true) => format!("연결할 수 있는 머신입니다. 연결 버전: {n}."),
-            (Lang::Ko, false) => format!("연결할 수 없는 머신입니다. 연결 버전: {n}."),
+    pub fn connection_version(&self, protocol: ProtocolVersion) -> String {
+        let n = protocol.get();
+        match self.lang {
+            Lang::En => format!("Connection version {n}"),
+            Lang::Ko => format!("연결 버전 {n}"),
         }
     }
     /// A secret-name row's title, separate from its identifier and presence.

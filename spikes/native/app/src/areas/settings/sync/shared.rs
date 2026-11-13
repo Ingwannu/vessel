@@ -69,7 +69,7 @@ pub(super) fn connections(
             for node in nodes {
                 card = card.child(settings::row_at(
                     node.name.clone(),
-                    Some(words.connection_details(node).into()),
+                    Some(words.connection_version(node.protocol).into()),
                     None,
                     Some(
                         frame::badge(
