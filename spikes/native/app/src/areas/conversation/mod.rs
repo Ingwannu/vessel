@@ -25,6 +25,7 @@
 
 mod bar;
 mod bench;
+mod dock;
 mod entries;
 mod find;
 mod look;
@@ -45,6 +46,7 @@ use vessel_app_view::timeline::{FindCache, Folds, Logs, OutlineItem, Rows, Timel
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
 
 pub(crate) use bar::bar;
+pub(crate) use dock::dock;
 pub(crate) use timeline::{overlays, timeline};
 
 use crate::shell::Shell;

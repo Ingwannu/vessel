@@ -367,7 +367,12 @@ pub(crate) fn render(
         )
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
-            frame.child(composer(shell, tokens, working, window, cx))
+            // The conversation's slot over the card (`conversation::dock`:
+            // the queue), at the card's width.
+            let dock = super::conversation::dock(shell, tokens, window, cx);
+            frame
+                .children(dock.map(column))
+                .child(composer(shell, tokens, working, window, cx))
         })
         .children(super::conversation::overlays(shell, tokens, window, cx))
 }
