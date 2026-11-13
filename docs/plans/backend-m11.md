@@ -8539,3 +8539,46 @@ keeps it; Vessel keeps its records); switching back to a left branch
 sessions.
 
 ADR 0052 records the choice.
+
+## Track A2: contract, 2b. Parking as a node setting (the coordinator, 2026-11-13)
+
+Parking is not usable from the app while its only control is `vesseld
+--park-after`. Paseo has a card in a host's settings
+(`packages/app/src/screens/settings/idle-runtime-cleanup-card.tsx`): one
+switch, "host-wide, persisted, and applied live by the daemon", read and
+changed through the daemon's config (`patchConfig({ idleRuntimeCleanup
+})`, `server/daemon-config-store.ts`), the card hidden when the host does
+not offer the setting.
+
+**What Vessel adds** (protocol 12, ADR 0038's terms, no schema change):
+
+- `NodeSettings { park_after: ParkAfter }`, `ParkAfter` (tagged `kind`):
+  `never`, `idle { minutes }` (1 to 10,080, a week), `unknown` (a newer
+  node's; never accepted in a change). One type for the wire and the
+  file, so a later setting is one more field.
+- `node.settings {}` (read, `since 12`, forwardable as `node.info` is):
+  the settings in force. A read-only device sees them.
+- `node.set_settings { park_after? }` (admin, `since 12`, not
+  forwardable: the node's own administration, as `profile.reload` and
+  `node.stop` are): changes what it names, answers the settings in
+  force. `invalid` for minutes out of range or `unknown`.
+- **Kept** in the data directory as `settings.json` (owner-only, replaced
+  atomically, as `agents.toml` is), written before the change is applied,
+  so a failed write changes nothing (`internal`) and the value survives a
+  restart. At start a saved value wins over `--park-after` (the flag is
+  the value of a node that has none saved; a service started with the
+  flag would otherwise undo every change at its next restart); a file
+  that does not parse is logged and set aside, and the flag's value used.
+- **Applied live**: the session runtime holds the value in a watch; each
+  structured session's actor reads it whenever it arms its idle timer
+  and re-arms when it changes (a session idle for longer than a new,
+  shorter time is parked at once). Off: no timer is armed; parked
+  sessions stay parked until something wakes them.
+- **CLI**: `vessel node settings` prints them; `vessel node settings
+  --park-after MINUTES|never` changes them (admin).
+- **Older peers**: a client older than 12 never asks; a client asking a
+  node older than 12 gets `unsupported`, and hides the card (as Paseo
+  hides it when the host lacks the feature). Agents: neither call (agents
+  hold no `admin`; the read is not in their policy either).
+
+ADR 0038 gains a paragraph; `PROTOCOL.md` and `README.md` say the same.
