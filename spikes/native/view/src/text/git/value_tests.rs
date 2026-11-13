@@ -10,7 +10,7 @@ fn upstream_counts_are_complete_sentences_including_zero_singular_and_diverged()
             0,
             0,
             "Up to date with origin/feature.",
-            "origin/feature와 같은 상태입니다.",
+            "origin/feature 기준으로 최신 상태입니다.",
         ),
         (
             1,
@@ -62,7 +62,7 @@ fn branch_sentences_distinguish_unborn_detached_and_normal_checkouts() {
     );
     assert_eq!(
         Lang::Ko.git_branch_state(&status),
-        "체크아웃된 브랜치가 없습니다. 커밋 0123456에 있습니다."
+        "체크아웃된 브랜치가 없습니다. 현재 커밋은 0123456입니다."
     );
     status.head = None;
     assert_eq!(

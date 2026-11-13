@@ -191,8 +191,8 @@ impl Lang {
         text.detail = match problem {
             TextProblem::Empty => None,
             TextProblem::TooLong { max } => Some(match self {
-                Self::En => format!("Maximum length: {}.", limit(*max)),
-                Self::Ko => format!("최대 길이: {}.", limit(*max)),
+                Self::En => format!("Maximum length: {}.", self.git_limit(*max)),
+                Self::Ko => format!("최대 길이: {}.", self.git_limit(*max)),
             }),
             TextProblem::Character { character } => Some(match self {
                 Self::En => format!("Unsupported character: {}.", self.git_character(*character)),
@@ -220,6 +220,18 @@ impl Lang {
             (Self::En | Self::Ko, value) => format!("‘{value}’"),
         }
     }
+
+    fn git_limit(self, bytes: usize) -> String {
+        if bytes >= 1024
+            && let Ok(bytes) = u64::try_from(bytes)
+        {
+            return crate::workspace::size::size_word(bytes);
+        }
+        match self {
+            Self::En => format!("{bytes} bytes"),
+            Self::Ko => format!("{bytes}바이트"),
+        }
+    }
 }
 
 fn failure(lines: Lines) -> GitFailureText {
@@ -228,8 +240,4 @@ fn failure(lines: Lines) -> GitFailureText {
         next: lines.next.to_owned(),
         detail: None,
     }
-}
-
-fn limit(bytes: usize) -> String {
-    u64::try_from(bytes).map_or_else(|_| bytes.to_string(), crate::workspace::size::size_word)
 }

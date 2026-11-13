@@ -29,7 +29,7 @@ impl Lang {
                 commits(a),
                 commits(b)
             ),
-            (Self::Ko, 0, 0) => format!("{name}와 같은 상태입니다."),
+            (Self::Ko, 0, 0) => format!("{name} 기준으로 최신 상태입니다."),
             (Self::Ko, _, 0) => format!("{name}보다 커밋 {ahead_text}개 앞서 있습니다."),
             (Self::Ko, 0, _) => format!("{name}보다 커밋 {behind_text}개 뒤처져 있습니다."),
             (Self::Ko, _, _) => {
@@ -54,7 +54,7 @@ impl Lang {
                 short(head.as_str())
             ),
             (Self::Ko, None, Some(head)) => format!(
-                "체크아웃된 브랜치가 없습니다. 커밋 {}에 있습니다.",
+                "체크아웃된 브랜치가 없습니다. 현재 커밋은 {}입니다.",
                 short(head.as_str())
             ),
             (Self::En, None, None) => "No branch is checked out. No commits yet.".to_owned(),

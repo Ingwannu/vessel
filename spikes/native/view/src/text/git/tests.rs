@@ -63,6 +63,30 @@ fn empty_and_oversized_commit_messages_say_what_to_fix_in_both_languages() {
 }
 
 #[test]
+fn a_small_name_limit_is_written_as_bytes_in_each_language() {
+    let error = InvalidText {
+        kind: TextKind::Branch,
+        problem: TextProblem::TooLong { max: 255 },
+    };
+    assert_words(
+        &Lang::En.git_name_failure(&error),
+        (
+            "The branch name is too long.",
+            "Choose a shorter branch name.",
+            Some("Maximum length: 255 bytes."),
+        ),
+    );
+    assert_words(
+        &Lang::Ko.git_name_failure(&error),
+        (
+            "브랜치 이름이 너무 깁니다.",
+            "더 짧은 브랜치 이름을 고르세요.",
+            Some("최대 길이: 255바이트."),
+        ),
+    );
+}
+
+#[test]
 fn character_and_shape_failures_keep_the_exact_detail_below_localized_guidance() {
     let nul = InvalidText {
         kind: TextKind::CommitMessage,

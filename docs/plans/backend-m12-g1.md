@@ -119,3 +119,34 @@ and PR UI are not delivered by this slice. Request keys are app-side
 only and never change a node request. No service, file permissions,
 preview unit or production account is changed; these are development
 view-model changes only.
+
+## Reuse by the code panel
+
+`Reading<T>` and `RequestKeys` are generic despite their current home
+under `workspace::git`. They stay there for now, as the first consumer's
+tested implementation. Track F should reuse them for its code panel's
+late-reply handling, then lift them to a shared view module when that
+seam is agreed; a second key issuer or read-state implementation would
+reintroduce two interpretations of the same rule.
+
+The slice's review also removed phonetic particles after interpolated
+Korean branch names and made a small limit read as "255 bytes" /
+"255바이트", while a larger limit keeps its readable "64 KB" form.
+Both sizes and the complete Korean sentences have tests.
+
+## Reviewed controls integrated before the screen
+
+The lead's branch through `777b2da` was merged before screen work, which
+brings its discrete slider and shared spinner (`103dd6d`) rather than
+another activity indicator. The separately reviewed badge control
+(`840a941`) was cherry-picked unchanged for future PR state labels. Its
+own control notes describe the semantic signals and the shared adapter;
+G1 does not introduce another badge.
+
+The integration also includes the three small follow-ups from the view
+slice's review above. No git screen or split-button registration is
+included in this integration.
+
+The pinned native workspace gate passed on this merged tree: formatting,
+Clippy with warnings denied, and all native tests. This verifies the
+integration; no screen, platform CI or screenshot is claimed by it.
