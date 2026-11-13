@@ -269,7 +269,7 @@ impl Text {
     pub fn composer_placeholder(&self, key: &str) -> String {
         match self.lang {
             Lang::En => format!("Ask the agent… ({key} sends)"),
-            Lang::Ko => format!("에이전트에게 요청하세요… ({key}로 보내기)"),
+            Lang::Ko => format!("에이전트에게 요청하세요… (보내기: {key})"),
         }
     }
 
@@ -279,7 +279,7 @@ impl Text {
     pub fn prompt_placeholder(&self, key: &str) -> String {
         match self.lang {
             Lang::En => format!("What should the agent do? ({key} starts)"),
-            Lang::Ko => format!("에이전트가 할 일을 적으세요 ({key}로 시작)"),
+            Lang::Ko => format!("에이전트가 할 일을 적으세요 (시작: {key})"),
         }
     }
 
@@ -288,16 +288,18 @@ impl Text {
     pub fn starting_on(&self, agent: &str, machine: &str) -> String {
         match self.lang {
             Lang::En => format!("Starting {agent} on {machine}…"),
-            Lang::Ko => format!("{machine}에서 {agent} 시작하는 중…"),
+            Lang::Ko => format!("{agent} 시작하는 중… ({machine})"),
         }
     }
 
-    /// Pairing worked.
+    /// The status line once a machine is paired (`name` the machine,
+    /// `route` how it is reached). No particle follows the name (a name's
+    /// last sound decides the particle; ADR 0039's interim rule).
     #[must_use]
     pub fn paired(&self, name: &str, route: &str) -> String {
         match self.lang {
             Lang::En => format!("Paired with {name} via {route}"),
-            Lang::Ko => format!("{name}와(과) 연결했습니다 ({route})"),
+            Lang::Ko => format!("머신 연결됨: {name} ({route})"),
         }
     }
 }
