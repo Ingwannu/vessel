@@ -141,6 +141,16 @@ pub(crate) struct CodePanel {
     files: Files,
     /// Its width beside the conversation (dragged at its left edge).
     width: vessel_app_kit::ui::Pixels,
+    /// Tabs whose content a git write changed while they were not shown:
+    /// read again when next shown.
+    stale: Stale,
+}
+
+/// Which tabs are to be read again when shown.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Stale {
+    changes: bool,
+    files: bool,
 }
 
 impl CodePanel {
@@ -168,6 +178,7 @@ impl CodePanel {
                 actions: actions::Actions::new(cx),
             },
             width: frame::WIDTH,
+            stale: Stale::default(),
         }
     }
 
@@ -293,6 +304,7 @@ impl Shell {
         if panel.open {
             self.search_words(window, cx);
             self.code_follow();
+            let _asked = self.code_reread_shown();
         }
         cx.notify();
     }
@@ -320,6 +332,8 @@ impl Shell {
             place: Place::Reading,
             cwd: None,
         });
+        // A new session is read whole: nothing it shows is stale.
+        panel.stale = Stale::default();
         panel.changes.summary = Summary::Loading;
         panel.changes.states.clear();
         panel.changes.closed.clear();
@@ -356,31 +370,58 @@ impl Shell {
 
     /// Track G1's call after a git write it made succeeded (a commit, a
     /// switch, a stash, a discard): when the panel shows `root` on
-    /// `machine`, what it shows is read again; what is shown stays until
-    /// the new answers replace it (no flash of an empty panel). Otherwise
-    /// nothing.
+    /// `machine`, the tab shown is read again, what it shows staying until
+    /// the new answers replace it (no flash of an empty panel); a tab not
+    /// shown, or the whole panel while closed, is read again when it is
+    /// next shown. Another machine or root: nothing.
     pub(crate) fn code_git_changed(
         &mut self,
         machine: &str,
         root: &WorkspaceRoot,
         cx: &mut Context<'_, Self>,
     ) {
-        let panel = &self.areas.workspace.code;
+        let panel = &mut self.areas.workspace.code;
         if panel.root() != Some((machine, root)) {
             return;
         }
-        let tab = panel.tab;
-        match tab {
-            Tab::Changes => self.reread_changes(),
-            Tab::Files => self.reread_files(),
+        panel.stale = Stale {
+            changes: true,
+            files: true,
+        };
+        if panel.open {
+            let _asked = self.code_reread_shown();
         }
         cx.notify();
     }
 
-    /// Read what the chosen tab shows, if not read yet.
+    /// Read the shown tab again if a git write changed it while hidden;
+    /// `true` when it was asked again.
+    fn code_reread_shown(&mut self) -> bool {
+        let panel = &mut self.areas.workspace.code;
+        match panel.tab {
+            Tab::Changes if panel.stale.changes => {
+                panel.stale.changes = false;
+                self.reread_changes();
+                true
+            }
+            Tab::Files if panel.stale.files => {
+                panel.stale.files = false;
+                self.reread_files();
+                true
+            }
+            Tab::Changes | Tab::Files => false,
+        }
+    }
+
+    /// Read what the chosen tab shows, if not read yet, or again when a
+    /// git write changed it while it was hidden.
     fn code_read_tab(&mut self) {
+        let reread = self.code_reread_shown();
         match self.areas.workspace.code.tab {
+            // Asked again already: a second ask would answer twice.
+            Tab::Changes if reread => {}
             Tab::Changes => self.read_changes(),
+            // A root never listed is not among the folders read again.
             Tab::Files => self.read_folder(&RelPath::root()),
         }
     }

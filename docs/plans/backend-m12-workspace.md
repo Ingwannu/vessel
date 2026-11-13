@@ -121,8 +121,11 @@ The panel reads where the session runs with `session.get` (the card has
 no root) and says so when the session is in no project. After a git
 write of G1's succeeds, G1 calls `Shell::code_git_changed(machine, root,
 cx)`: when the panel shows that root, the open tab is read again and
-what it shows stays until the answers replace it; the Changes tab's
-refresh button does the same.
+what it shows stays until the answers replace it; the tab not shown,
+or the whole panel while it is closed, is marked stale and read again
+when it is next shown (G1's finding: a closed panel was being read,
+and a hidden tab kept what was true before the write). The Changes
+tab's refresh button reads the open tab again.
 
 The Files tab searches: a file by its name as it is typed (`file.find`,
 keyed so a newer search stops an older one) or lines inside files on
