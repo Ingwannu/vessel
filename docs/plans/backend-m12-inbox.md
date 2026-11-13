@@ -178,3 +178,9 @@ This checkpoint stops at the current node slice. Prepared native changes
 remain outside the checkout; they are uncompiled and are not a finished API
 for another track. The committed resume note records remaining contracts;
 private working notes preserve exact draft and evidence locations.
+
+Final checkpoint: the corrected whole test was stopped at the work-window
+deadline, exit 143. It did not reach the corrected node E2E or store tests.
+Whole clippy after the correction passed; web E2E's theme failure remains
+unresolved. The slice stays WIP. All tracked test-process identities and the
+web fleet were confirmed stopped. See `backend-m12-inbox-resume.md`.

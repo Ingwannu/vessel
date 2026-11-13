@@ -8,6 +8,7 @@ was made.
 ## Committed and reviewed
 
 - Node checkpoint: `47a4bcb1` (a WIP checkpoint; not merge-ready).
+- Resume/contracts checkpoint: `146eee00`.
 - Reviewer V1 has interim source findings, not immutable-diff approval.
 - Formatting, whole clippy and both TypeScript generating tests passed before
   the final test-expectation correction. Final clippy: passed after the correction (whole workspace/all targets).
@@ -20,10 +21,14 @@ was made.
   policy/crypto/delivery/admission tests passed. The failure was the huge-form
   expected field order: all 32 recovered field payloads/options matched
   exactly, but ACP uses a lexical BTreeMap. The expected order was corrected.
-  Re-execution after that correction: pending; the next exact whole run has not finished. Later test binaries
+  Re-execution after that correction: stopped at the work-window deadline (exit 143); 131 tests passed
+  across 6 completed binaries, with no failure observed in those
+  completed binaries. It did not reach node E2E or the later store binaries. Later test binaries
   were not reached by the first run; no complete root gate is claimed.
 - No native gate, screenshots or phone-host delivery passed. The web fleet's
-  recorded processes were verified gone after its teardown.
+  recorded processes were verified gone after teardown. The final whole-test
+  process tree was stopped by verified PID identities; no live identity or
+  executable from this track's private build directory remained.
 - The Web Push dependency inventory was independently matched against its
   60 locked transitive packages and their published manifest licences; all
   28 new lock entries are listed in ADR 0041.
