@@ -17,14 +17,14 @@ neutral colours come only from `tokens.neutral.*`.
 
 | Part | Where | What it holds |
 | --- | --- | --- |
-| Timeline logic | `view/src/timeline/` | records folded into entries (`fold`), runs of tool calls (`runs`), the rows drawn (`rows`), the page's window arithmetic (`window`), find (`find`), the outline (`outline`), approvals (`approval`), the context meter (`meter`), diffs (`diff`) |
+| Timeline logic | `view/src/timeline/` | records folded into entries (`fold`), runs of tool calls (`runs`), the rows drawn (`rows`), the page's window arithmetic (`window`), find (`find`), the outline (`outline`), approvals (`approval`), a question's form (`question`: its steps, drafts, checks, the answer and the answered lines, the page's `question-form.ts` and `question-answers.ts`), the context meter (`meter`), diffs (`diff`) |
 | Session logic | `view/src/session/` | read marks (`marks`), titles and names (`titles`) |
 | Terminal logic | `view/src/terminal/` | the input sender and its queue (`sender`), the resize rule and the replay log (`frame`) |
 | Words | `view/src/text/conversation/` | the area's sentences, English and Korean (`lang.conversation()`) |
-| Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue), each on its own task |
+| Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), the queue (`queue`, drawn in the lead's slot above the composer card, `dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a question's card (`question`) and the queue (`queue`), both in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
 binary at `70e9cf2`), with a 20,000-entry fold among them.
@@ -68,6 +68,9 @@ Paseo screen it follows.
 | `60`–`62` (edit), `63-drag`, `64-dropped`, `65-removed`, `66-steered`, `67-sent-now` | a queued prompt edited in its row in the kit's field and saved (the node's revision r0 to r1); a row dragged by its grip onto the first (the drop row outlined, the dragged text following the pointer) and the order the node then holds; a row taken out; a row steered into the running turn (the fake echoes "steered: …"); the last sent now, which stopped the turn ("Turn ended · cancelled") and started its own | GOAT `QueuedRunsControl.tsx`; the node's `session.queue` |
 | `72-queue-held-ko-dark-1280` | a held queue (`vessel session queue … hold`): "대기 중 · 3개 · 멈춤" with resume and clear; resume lets it move (`[queue: 3 waiting]`, no longer held) | the node's `QueueHold` |
 | `73-before-thought-ko-dark-1280`, `74-after-thought-ko-dark-1280`, `75-thought-open-ko-dark-1280`, `76-thought-ko-light-390` | the folded thought row in Korean: "생가ㄱ" before, "생각" after; the thought opened, its Korean paragraph (streamed in 174 chunks) whole | — |
+| `77-questions-dark-1280`, `84-questions-ko-light-1280`, `86-questions-ko-dark-390` | Claude's `AskUserQuestion` with three questions (fake-acp's `ask questions`, the real adapter's form): a tab per question by its header, the question, its options as radio rows with their descriptions, the "Other..." box, Dismiss and Next; the timeline's line "Waiting on an answer"; on a phone the buttons stacked and the options scrolling past 280 | Paseo `components/question-form-card.tsx` (surface1, a hairline, radius 8, 12 inside; tabs 28 high, radius 6; options 12 by 8, controls of 18; buttons 8 by 12, radius 6, a glyph of 14) |
+| `78-picked`, `79-step2`, `80-checks-picked`, `81-step3`, `82-answered` | a pick (its row on surface2, the radio filled), Next to the question that chooses several (checkboxes, an Other answer typed beside two picks), the tab of an answered question checked, Submit on the last; the agent's answer `{"question_0":"Start a new entry","question_1":["Unit tests","Clippy with every lint"],"question_1_custom":"and the fleet check","question_2":"한국어"}`; the settled card listing each answer by its question | the page's answered card (`question-entry.tsx`) |
+| `83-one-question-dark-1280`, `85-one-question-light-390`, `87-dismissed-dark-1280` | one question (`ask one`): no tabs, the message as the question, Submit at once; Dismiss declining it (the card then says "Skipped") | Paseo's lone question ("a single 1 of 1 tab carries no information") |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
 ## Differences from the references, and why
@@ -117,6 +120,21 @@ Paseo screen it follows.
   chevron that folds the list to its first row, 40-pixel rows of one
   line, one button that is Steer or Send now by the agent, edit in the
   composer, and a held queue offering Resume only.
+- **A question's card** is Paseo's, in the slot over the composer (where
+  the permission panel also stands) rather than at the end of the
+  conversation, where Paseo draws it: its option rows therefore scroll
+  inside it past 360 (280 on a phone) instead of with the conversation.
+  The question and its options are plain text (Paseo renders their
+  Markdown); option previews are not shown (Claude's `preview` travels
+  under `_meta`, which the node does not keep); no spinner while the
+  answer goes, the buttons dim. As in Claude Code and Paseo, picking a
+  single choice clears its Other box and typing there clears the pick
+  (the page keeps both, as a note). Next and Submit wait for each of
+  Claude's questions to be answered (Paseo's rule, though Claude's form
+  requires nothing); another agent's form is held to its own `required`.
+  A yes-or-no field is two radio rows (Paseo has none). The node's own
+  check (`Question::check`) runs before the answer goes. The page
+  (`backend/m11`) walks the same steps after agent-orchestrator's dock.
 - **A diff's sign** is the bar's colour at the line's left, not a `+` or
   `-` (marks are drawn, never typed); GOAT's diff renderer offers the same
   `bars` style.

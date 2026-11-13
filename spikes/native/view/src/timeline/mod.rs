@@ -39,6 +39,7 @@ mod fold;
 mod logs;
 mod meter;
 mod outline;
+mod question;
 mod rows;
 mod runs;
 mod usage;
@@ -58,6 +59,10 @@ pub use fold::{Change, Facts, Timeline};
 pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
+pub use question::{
+    AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
+    read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
+};
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
 pub use usage::ModelUsage;

@@ -240,7 +240,10 @@ prompts and read marks are checked against it. A fourth, `queued`,
 runs a turn that waits until stopped (`wait`, which takes a steer) with
 three prompts queued behind it (one long, one Korean, one short),
 checked through `vessel session queue`: the queue above the composer is
-checked against it.
+checked against it. Two more, `ask questions` and `ask one`, are left
+waiting on what Claude's adapter sends for its `AskUserQuestion` (three
+questions, one choosing several and one in Korean, and one question):
+the question card is checked against them.
 
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:

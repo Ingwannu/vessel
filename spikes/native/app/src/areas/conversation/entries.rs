@@ -15,7 +15,10 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{FindMarks, FindPalette, Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{Entry, EntryKind, Prompt, plan_progress, settled, spans_of};
+use vessel_app_view::timeline::{
+    Entry, EntryKind, Prompt, answered_lines, plan_progress, settled, spans_of,
+};
+use vessel_proto::{Question, QuestionOutcome};
 
 use super::find::Marking;
 use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
@@ -72,11 +75,15 @@ pub(super) fn entry(
                 .into_any_element()
         }
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
-        EntryKind::Question { question, outcome } => question_card(
-            paint,
-            &question.message,
-            outcome.as_ref().map(|outcome| words.question_line(outcome)),
-        ),
+        // While it waits its form is over the composer: here only a quiet
+        // line (the page's), so the question is not drawn twice.
+        EntryKind::Question { outcome: None, .. } => {
+            meta(paint, words.question_waiting().to_owned())
+        }
+        EntryKind::Question {
+            question,
+            outcome: Some(outcome),
+        } => question_card(paint, question, outcome),
         EntryKind::Plan { entries } => {
             let (done, total) = plan_progress(entries);
             meta(paint, words.plan_line(done, total))
@@ -260,8 +267,12 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
         .into_any_element()
 }
 
-/// A question the agent asked, and how it was settled.
-fn question_card(paint: &Paint<'_>, message: &str, settled: Option<&'static str>) -> AnyElement {
+/// A settled question in the timeline: what the agent asked, each answer
+/// by its field (the page's answered card, `question-entry.tsx`), and how
+/// it was settled.
+fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutcome) -> AnyElement {
+    let words = paint.words;
+    let lines = answered_lines(question, outcome, words.question_yes_no());
     div()
         .flex()
         .flex_col()
@@ -275,14 +286,32 @@ fn question_card(paint: &Paint<'_>, message: &str, settled: Option<&'static str>
             div()
                 .type_(Type::Body)
                 .text_color(paint.tokens.neutral.foreground)
-                .child(message.to_owned()),
+                .child(question.message.clone()),
         )
-        .children(settled.map(|word| {
+        .children(lines.into_iter().map(|line| {
+            div()
+                .flex()
+                .gap(px(8.0))
+                .type_(Type::Body)
+                .child(
+                    div()
+                        .flex_none()
+                        .text_color(paint.look.secondary)
+                        .child(line.field),
+                )
+                .child(
+                    div()
+                        .min_w(px(0.0))
+                        .text_color(paint.tokens.neutral.foreground)
+                        .child(line.value),
+                )
+        }))
+        .child(
             div()
                 .text_size(px(WORK_SIZE))
                 .text_color(paint.look.secondary)
-                .child(word)
-        }))
+                .child(words.question_line(outcome)),
+        )
         .into_any_element()
 }
 

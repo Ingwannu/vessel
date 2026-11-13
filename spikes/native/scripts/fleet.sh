@@ -223,6 +223,29 @@ done
   exit 1
 }
 
+# Questions the agent asks, as Claude's adapter sends its
+# `AskUserQuestion` (fake-acp's `ask questions` and `ask one`): three
+# questions (one choosing several, one in Korean, each with its "Other"
+# box) and one. Both are left waiting, and checked through `vessel log`.
+start_session laptop questions "ask questions"
+questions=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop question "ask one"
+question=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$questions" "[question "
+wait_for laptop "$question" "[question "
+asked=$(log_of laptop "$questions")
+grep -q '^\[question [^]]*\] Please answer the following questions\.$' <<<"$asked" &&
+  [ "$(grep -c '^  question_[0-9]_custom: Other (text)$' <<<"$asked")" -eq 3 ] &&
+  grep -q '^  question_1: Checks (choose, several)$' <<<"$asked" &&
+  grep -q '^  question_2: 언어 (choose)$' <<<"$asked" || {
+  echo "fleet: session $questions lacks Claude's three questions" >&2
+  exit 1
+}
+grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of laptop "$question")" || {
+  echo "fleet: session $question lacks Claude's one question" >&2
+  exit 1
+}
+
 # Prompts waiting their turn (the queue above the composer): a turn that
 # runs until it is stopped (`wait`, which also takes a steer) and three
 # prompts queued behind it, one long, one Korean, one short. Checked
