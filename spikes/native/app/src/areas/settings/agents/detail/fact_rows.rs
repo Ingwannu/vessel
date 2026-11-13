@@ -39,11 +39,11 @@ const fn copy_size(compact: bool) -> f32 {
     }
 }
 /// A path's set width: the control's, less the copy button and its gap; on
-/// a phone the card's inner width (the control sits under the row's words
-/// there: 16 of page and 16 of row padding each side).
+/// a phone the row's content width (the control sits under the row's words
+/// there).
 fn path_width(window: &Window, compact: bool) -> f32 {
     let room = if compact {
-        spacing::S4.mul_add(-4.0, f32::from(window.viewport_size().width))
+        settings::PHONE_ROW_INSET.mul_add(-1.0, f32::from(window.viewport_size().width))
     } else {
         CONTROL
     };

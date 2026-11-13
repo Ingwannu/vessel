@@ -31,6 +31,8 @@ pub(crate) struct SyncState {
     offset: chrono::FixedOffset,
     tips: Tooltips,
     places: HashMap<DeviceId, vessel_app_kit::tooltip::Place>,
+    /// Each shared file's path tooltip, kept across frames by its path.
+    paths: std::cell::RefCell<HashMap<String, vessel_app_kit::tooltip::Place>>,
 }
 impl SyncState {
     pub(super) fn new() -> Self {
@@ -39,6 +41,7 @@ impl SyncState {
             offset: *chrono::Local::now().offset(),
             tips: Tooltips::new(),
             places: HashMap::new(),
+            paths: std::cell::RefCell::default(),
         }
     }
 }

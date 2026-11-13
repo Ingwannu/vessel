@@ -85,7 +85,9 @@ pub(super) fn render(
     body = body.child(settings::section(title, overview, tokens));
     if let Reading::Ready(snapshot) = &state.page.reading {
         body = body
-            .child(super::shared::publication(shell, snapshot, tokens, compact))
+            .child(super::shared::publication(
+                shell, snapshot, tokens, compact, window,
+            ))
             .child(super::members::render(shell, snapshot, tokens, compact))
             .child(super::shared::connections(shell, snapshot, tokens, compact))
             .child(super::shared::secrets(shell, snapshot, tokens, compact));
