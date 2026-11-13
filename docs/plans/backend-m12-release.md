@@ -362,16 +362,18 @@ and the "restart to update" of Zed.
   but its swap is not built: it answers `InstallError::Unsupported`. It
   cannot be run here; it comes with the CI's macOS job.
 
-Tests (`cargo test` in `spikes/release`): 22 unit tests of the crate
+Tests (`cargo test` in `spikes/release`): 26 unit tests of the crate
 (labels, channels, paths that try to leave the feed, digests, bounds, a
 tampered manifest, another key, another channel, a later schema, a
-duplicate, the swap, a failed swap, the clean-up), 5 end-to-end tests
-through a feed served over loopback HTTP (an update installed and the
-staging files gone; the same label is no update; bytes other than the
-signed ones never installed and the download removed; another key's
-feed refused; a missing feed retried), 6 of the feed tool (arguments,
-key file modes, refusal to replace a key, publish then check, a changed
-artifact caught, signed sums).
+duplicate, the swap, a failed swap, the clean-up, the memory file, and
+on Windows the "Installed apps" entry), 7 end-to-end tests through a
+feed served over loopback HTTP (an update installed and the staging
+files gone; the same label is no update; bytes other than the signed
+ones never installed and the download removed; another key's feed
+refused; a missing feed retried; with automatic updates off only an
+asked-for check runs; `set_automatic(true)` changes a running updater),
+6 of the feed tool (arguments, key file modes, refusal to replace a key,
+publish then check, a changed artifact caught, signed sums).
 
 ### End to end, on Linux, with the real app
 
@@ -415,34 +417,36 @@ real-Windows update is the proof).
 
 ### What the app calls
 
-Wired in by this track (coordinator, 2026-11-13) as one module,
-`spikes/native/app/src/update.rs`, and two lines in `main.rs`: when the
-build has a feed and a key, a one-thread tokio runtime of its own runs
-the updater and a GPUI task follows its state; once a build is
-installed the frame's foot says it opens at the next start. Without the
-settings nothing starts. There is no "restart now" control yet (the
-shell's screens are the desktop track's); `Updater::restart` is there
-for it. No feed address exists yet (the dist directory is behind a login
-the app cannot pass; where a public feed lives is the owner's decision),
-so every build so far is built without one and its README says it does
-not update itself.
+This track first wired the updater into `spikes/native/app` as one
+module and two lines in `main.rs`. The desktop track then rewrote
+`app/src/update.rs` around it (`f008aa0`, the update UI as Zed shows it).
+The parts are:
 
-The lines, for reference:
+- **The title bar's status**: nothing while idle, "Checking for
+  updates…", "Downloading update… 42%", "Restart to update" once a build
+  is in place, or a quiet failure with "Try again".
+- **The About screen**: "Check for updates" (`Updater::check_now`) and
+  an "Update automatically" switch.
+- **After an update**: the first start of the new build says "Updated
+  to …" once, with the feed's notes.
 
-```rust
-let updater = match vessel_app_updater::settings_from_build()? {
-    Some(settings) => {
-        let installation = vessel_app_updater::Installation::from_process(
-            settings.target.default_packaging(),
-        )?;
-        Some(vessel_app_updater::Updater::start(settings, installation, runtime_handle)?)
-    }
-    None => None, // a development build
-};
-// UI: show updater.state() (a watch); on UpdateState::Ready, a
-// "Restart to update" control calls
-// updater.restart(std::env::args_os().skip(1)) and then cx.quit().
-```
+What the app uses from the crate:
+
+- `settings_from_build()`, `Installation::from_process`,
+  `Updater::start`, `state()` (a watch), `check_now()` and
+  `restart(args)`.
+- `set_automatic(bool)` with `automatic()` (`2150243`, tested in
+  `ef832a4`). It turns the hourly checks off and on in a running
+  updater. The desktop track's first version starts a second updater
+  with a year-long period instead, and it is to switch to
+  `set_automatic`.
+- On Windows the crate also updates the installer's "Installed apps"
+  entry (`DisplayVersion`) after an update. It does this only when the
+  entry's `InstallLocation` is the updated executable's directory, so a
+  copy from the zip is left alone.
+
+From build 0.0.0.0.3 the builds have the feed compiled in (see "Builds
+with updates" below).
 
 ## Licences of what this track pulls in (ADR 0014)
 
