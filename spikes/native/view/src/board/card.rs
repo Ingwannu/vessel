@@ -40,6 +40,9 @@ pub struct CardDetail {
     pub can_start_again: bool,
     /// Why it could not start, for a failed session (the card's red line).
     pub failure: Option<String>,
+    /// Its process's state, whatever the node's phrase (the palette's
+    /// detail: the page's `statusWord`).
+    pub process: Phrase,
     /// When it was created (the sidebar's default order).
     pub created_at: DateTime<Utc>,
     /// When it last did something, by the node's clock where it says, else
@@ -119,6 +122,7 @@ impl Card {
                 | SessionStatus::Exited { .. }
                 | SessionStatus::Interrupted => None,
             },
+            process: phrase_of_status(&session.status),
             created_at: session.created_at,
             active_at: session
                 .board

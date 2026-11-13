@@ -31,12 +31,23 @@ and 11, and the two Settings sections.
 | `board` (`deal.rs`) | `board.ts` `board`, `clock.ts` | the lanes (needs-you first, then newest) and the archive (newest first); the one 15-second tick |
 | `board` (`archive.rs`) | `archive.ts`, `archive.tsx` | the archive's search; 30 a page and "Show N more" |
 | `sidebar` | `sidebar.ts` | the Display view (group, sort, ended), a row's mark, what is listed, by machine or by status, the order keys walk and the step |
+| `shortcuts` (`keys.rs`) | `shortcuts/keys.ts` | a chord from a key press (by key, else by physical code), a binding of one chord or two ("G S"), the platform's key caps and words |
+| `shortcuts` (`registry.rs`) | `shortcuts/registry.ts` | the fourteen actions, their groups, default and fixed keys, the jump digit, the overrides map and what is changed |
+| `shortcuts` (`matching.rs`) | `shortcuts/matching.ts` | what a chord runs: an action, the first key of a sequence waiting 1.5 s, or nothing; changed actions first |
+| `shortcuts` (`edit.rs`) | `shortcuts/edit.ts`, `shortcut-bridge.ts` | a recorded chord refused (no modifier, kept by the system, a text key), a clash (same, fixed, taken), assign, remove, restore, and applying the edits to the overrides |
+| `shortcuts` (`listing.rs`) | `shortcuts/listing.ts` | Settings › Shortcuts' rows: label, keys, words, changed, fixed, clashes; search by label or words; All or Modified |
+| `palette` | `commands.ts`, `palette.ts` | the palette's entries (actions, go to, machines, sessions, theme), their ids, details and keywords, the search and the groups in order |
+| `notices` | `notices.ts` | from two reads of the book, which sessions turned to needs-you or finished (never on a first sighting), and the window title's count |
 
 Tests (`view/src/tests/`), each named for the page's case it follows:
 `board.rs` (seven of `board.test.ts`, the tone case added), `tree.rs`
 (both of `tree.test.ts`, and the origin line), `archive.rs` (the three of
 `archive.test.ts`, and the pages), `sidebar.rs` (the seven of
-`sidebar.test.ts`). `fixture.rs` turns the page's short ids ("3f2a") into
+`sidebar.test.ts`), `shortcuts.rs` (the 23 of `shortcuts/*.test.ts`, and
+apply and a sequence's timeout), `palette.rs` (the eight of
+`commands.test.ts` and `palette.test.ts`, and the search),
+`notices.rs` (the page's cases, a machine first seen, the titles).
+`fixture.rs` turns the page's short ids ("3f2a") into
 session ids that start with them.
 
 ### What differs from the page, and why
@@ -55,6 +66,22 @@ session ids that start with them.
 - The browser's demo builds its cards by hand (`link/src/demo.rs`): it now
   names `detail` with the agent and the rest defaulted (one edit in the
   browser track's file, so a card made by hand still compiles).
+- The palette's machine detail is the state word only: the native book
+  has no transport yet, so no "Direct", "Over SSH" or "Paired".
+- The palette's search trims the query and is not accent-insensitive
+  (the page's Base UI collator is). A session's detail is its status word
+  and folder, as the page's; the card's board phrase is not used there.
+- A refused chord's sentence names the system, not the browser; the rules
+  are the page's unchanged, so overrides travel between surfaces (ADR
+  0036).
+- `shortcuts::apply` does what the page's bridge does when the node
+  answers an edit: the edits laid over the overrides.
+- Notices compare two `Fleet` reads, keyed by machine and session; a
+  machine absent from the earlier read is a first sighting, so its
+  sessions say nothing, as the page's first load.
+- The palette is generic over the settings section and the theme, so it
+  takes track E's `Section` and the kit's `SchemeChoice` without a second
+  enum of either.
 
 ## Run log
 
@@ -64,6 +91,10 @@ session ids that start with them.
 - Slice 1 (board and sidebar view logic): `cargo fmt --all --check` clean;
   `cargo clippy --all-targets -- -D warnings` clean; `cargo test`: 0, 3,
   8, 112, 69, 0, 0, 0 passed, none failed.
+- Merged `backend/m12-spike` at f1787fb (ea13910), clean.
+- Slice 2 (shortcuts, palette, notices view logic): fmt clean; clippy
+  clean (one `clone_from` fix); `cargo test`: 0, 5, 8, 151, 69, 0, 0, 0
+  passed, none failed.
 
 ## Notes for later slices
 
@@ -71,3 +102,10 @@ session ids that start with them.
   GPUI snapshot): the operating system's notifications may need no new
   crate; its licence is to be checked against ADR 0014.
 - Kit stand-ins: none yet.
+- The seam with track E (settings): E writes `view/src/settings.rs`
+  (`Section`) and `view/src/prefs/` (the node's preferences: `Alerts`,
+  the sidebar's view, the shortcuts map, `ShortcutEdit`). The alerts
+  choice is E's type, so `alerts.ts` is ported here only once E's lands;
+  the sidebar's `SidebarView` and the shortcuts' `Overrides` and
+  `ShortcutEdit` are then read from and written to E's types, not kept
+  twice.

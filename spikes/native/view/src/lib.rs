@@ -12,8 +12,11 @@
 pub mod board;
 mod conversation;
 mod links;
+pub mod notices;
 mod options;
+pub mod palette;
 pub mod session;
+pub mod shortcuts;
 pub mod sidebar;
 pub mod terminal;
 #[cfg(test)]
@@ -31,6 +34,6 @@ pub use options::{
     Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
 };
 pub use text::{
-    BoardWords, ConversationWords, Lang, OptionsText, SidebarWords, Text, UpdateText, grouped,
-    meter_tokens, short_tokens,
+    BoardWords, ConversationWords, Lang, NoticeWords, OptionsText, PaletteWords, ShortcutWords,
+    SidebarWords, Text, UpdateText, grouped, meter_tokens, short_tokens,
 };

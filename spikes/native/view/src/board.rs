@@ -88,11 +88,12 @@ pub struct Card {
 }
 
 /// A card's status line, as a value; its words are the text table's.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Phrase {
     /// The node's phrase (protocol 8).
     Node(DisplayStatus),
     /// From an older node, the process's state.
+    #[default]
     Starting,
     /// Running.
     Running,
