@@ -151,12 +151,28 @@ invalidation was discussed but **not implemented** before the credit stop.
 
 ## Shared link gap and remaining feature scope
 
-The coordinator assigned the shared bounded-send rejection gap to the lead.
-Legacy Link::send logs/drops Full/Closed without an answer, so correlated readers
-or writers can remain pending. Do not fork transport. Consume the lead's typed
-result and settle G1's own keys in localized words before the Git/file screens
-are merged. The lead must supply the hash/API; no runtime saturation repro was
-claimed by G1.
+The lead supplied `1b517995` on its branch after this run stopped. It reports
+its gate47 fmt/clippy/build/test all0; G1 has not merged or rerun it because the
+credit boundary still forbids a new merge. `Link::submit(command)` returns
+`Result<(), Unsent>`; `Unsent` retains the boxed command and typed Full/Closed
+reason. Legacy send remains. `Shell::command` uses submit and returns a rejected
+command to the refusal handler on the next update, after the initiating code.
+Workspace asks settle with `Ask::refused(&Problem::Unsent)` and the same identity.
+
+At the next authorized integration add the new Unsent match arm(s), including
+Git's whole localized failure text/tests. The exact words are
+“Could not send. Try again.” / “보내지 못했습니다. 다시 시도하세요.”.
+Do not turn it into an invented node/connection error or fork transport.
+The lead's regression locations are `unsent::tests` (full queue projects become
+Failed(Unsent)) and `late_answers::an_act_the_full_link_gave_back_settles_refused`.
+These are the lead's reported evidence, not G1 runtime proof.
+
+The unregistered G1 prototype introduces **Command::Git**, not only Workspace:
+when registering that new variant, extend the shared unsent settle match with
+its narrow typed refused Answer and the original machine/key/ask identity.
+The current lead match has Workspace but cannot yet cover this future variant.
+Use the same deferred Event::Git -> git_answer path; do not bypass correlation
+or replace the shared router. This extra registration is still future work.
 
 Pull requests have no G1 implementation yet. Keep the coordinator's current
 scope: pr.list means this machine's **sessions**, including exact EN/KO heading
