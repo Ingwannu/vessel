@@ -108,7 +108,7 @@ export function sessionMark(session: SessionInfo): SessionMark {
 }
 
 /** When `session` last did something, for sorting by activity. */
-function activeAt(session: SessionInfo): string {
+export function activeAt(session: SessionInfo): string {
   return (
     session.board?.last_activity_at ?? session.ended_at ?? session.created_at
   );

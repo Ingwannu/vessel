@@ -6,7 +6,7 @@
 
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
-import { choose, startSession, timeline } from "./kit";
+import { choose, openNew, startSession, timeline } from "./kit";
 import { openUi } from "./open";
 
 function composer(page: Page): Locator {
@@ -210,7 +210,7 @@ test("a new session's first message takes its files with it", async ({
   page,
 }) => {
   await openUi(page);
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await openNew(page);
   const box = composer(page);
   await box.getByRole("textbox", { name: "Prompt" }).fill("describe");
   await box.getByRole("button", { name: "Add", exact: true }).click();

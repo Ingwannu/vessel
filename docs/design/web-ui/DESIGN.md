@@ -107,8 +107,10 @@ conversation; the rest of the app must feel like an IDE's debug console.
 | **Settings** | Sections, each a page (§3.1): General, Appearance, Shortcuts, Notifications; Agents, Models; Machines, Devices, Sync; About (`data/settings.ts` is the one list) | the send key and where choices are kept; theme, font sizes, the conversation's width and display; every shortcut; notifications; each machine's agents and what they offer, its routes and profiles; the machines (add, rename, default, forget), their devices and what one shares; versions and licences |
 | **Welcome** | The first screen while no machine is connected (§3.1) | the add-machine dialog (§7.6), this machine's start command |
 
-There is no home dashboard: the index is the board once any machine is
-connected, and the welcome until then. What was the Fleet page (the
+There is no home dashboard: the index is the new-session page once any
+machine is connected (GOAT's first screen is a draft's composer; the new
+chat, 2026-11-13), and the welcome until then; the board is the
+sidebar's Board. What was the Fleet page (the
 machines and their inspector) is Settings › Machines, as
 agent-orchestrator and GOAT keep machines in their settings; Sync and
 Devices are sections there too (milestone 10, track W2).
@@ -1611,8 +1613,13 @@ machine in view.
 1. **Where it runs**, in the tray (GOAT's workspace selector beside the
    machine): the machine named in the address, else the one last chosen,
    else the book's default, else the first; only a connected one. Then
-   the project ("No project" keeps the folder field, which suggests where
-   sessions already ran) and, in a git project, Local (its folder as it
+   the project: until the person chooses, the one asked for (the
+   sidebar's "+" on its row, or New from a session in it), else the
+   project of the machine's most recently active session still among its
+   projects (GOAT's "most recently updated project",
+   `data/workspace/last-project.ts`), else "No project", which keeps the
+   folder field (it suggests where sessions already ran); and, in a git
+   project, Local (its folder as it
    is), New worktree with the base it starts from ("From main"), or
    Existing branch. A project still cloning, a branch name git refuses,
    or no branch chosen holds Send with the reason under the box.

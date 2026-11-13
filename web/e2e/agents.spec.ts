@@ -7,12 +7,12 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { choose, chooseAgent, timeline } from "./kit";
+import { choose, chooseAgent, openNew, timeline } from "./kit";
 import { openUi } from "./open";
 
 /** The new-session page on laptop with `agent` chosen. */
 async function newWith(page: Page, agent: string): Promise<void> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await openNew(page);
   await expect(
     page.getByRole("heading", { name: "What do you want to work on?" }),
   ).toBeVisible();

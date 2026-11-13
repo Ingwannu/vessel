@@ -822,8 +822,10 @@ vessel log 3f2a                              # model calls: route, model, tokens
 `vessel ui` serves Vessel's web UI on this machine and opens it in the
 browser on Unix (on Windows, open the printed address).
 
-- **New session** (the sidebar, the title bar's New, the command palette,
-  or `n`) asks what you want to work on. Under the box choose the agent
+- **New session** (the first screen once a machine is connected, the
+  sidebar, the title bar's New, the command palette, or `n`) asks what
+  you want to work on, in the project you worked in last on that machine
+  (from a session, its project). Under the box choose the agent
   and, from what that agent itself offers on that machine, its model, its
   effort, its on/off settings and its permissions; under the "+" a profile
   and "Open as terminal"; under the box the machine, then the project

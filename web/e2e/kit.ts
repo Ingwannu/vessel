@@ -26,30 +26,55 @@ export async function optionOf(
   return page.getByRole("option", { name: option });
 }
 
-/** The new-session page, opened from the title bar's New, on `node`
- * with Claude Code; opened as a terminal for `"Terminal"`. Nothing is
- * sent yet: the prompt box is returned, its text empty. */
+/** The new-session page (the index's, else the title bar's New) on
+ * `node` with Claude Code, in no project (the home folder); opened as a
+ * terminal for `"Terminal"`. Nothing is sent yet: the prompt box is
+ * returned, its text empty. */
 export async function newSessionPage(
   page: Page,
   node: string,
   mode: "Structured" | "Terminal",
 ): Promise<Locator> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "What do you want to work on?" }),
-  ).toBeVisible();
+  await openNew(page);
   await choose(
     page,
     page.getByRole("combobox", { name: "Machine" }),
     new RegExp(`^${node}\\b`),
   );
   await chooseAgent(page, "Claude Code");
+  // Where the tests' sessions run: the machine's home folder, as before
+  // the page started a new session in the project worked in last (the
+  // new chat, 2026-11-13); a test that wants a project chooses it.
+  const project = page.getByRole("combobox", { name: "Project" });
+  if (
+    (await project.isVisible()) &&
+    !(await project.innerText()).includes("No project")
+  ) {
+    await choose(page, project, /^No project/);
+  }
   if (mode === "Terminal") {
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("switch", { name: "Open as terminal" }).click();
     await page.keyboard.press("Escape");
   }
   return page.getByRole("form", { name: "Prompt" });
+}
+
+/** The new-session page: the index opens it (the first screen is a
+ * composer, as GOAT's), any other page by its title bar's New. */
+export async function openNew(page: Page): Promise<void> {
+  const heading = page.getByRole("heading", {
+    name: "What do you want to work on?",
+  });
+  const button = page.getByRole("button", { name: "New", exact: true });
+  // The index draws the shell (with a New) before it goes on to the new
+  // chat: a New pressed then is taken away with it.
+  await page.waitForURL((url) => url.pathname !== "/");
+  await expect(heading.or(button)).toBeVisible();
+  if (!(await heading.isVisible())) {
+    await button.click();
+  }
+  await expect(heading).toBeVisible();
 }
 
 /** Close the open menu with Escape, once it holds the focus: a menu

@@ -9,7 +9,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { choose, chooseAgent, timeline } from "./kit";
+import { choose, chooseAgent, newSessionPage, openNew, timeline } from "./kit";
 import { openUi } from "./open";
 import { shot } from "./shot";
 
@@ -20,7 +20,7 @@ test("type, send, and the chat is open with the prompt in it before the agent ha
   page,
 }) => {
   await openUi(page);
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await openNew(page);
   await choose(
     page,
     page.getByRole("combobox", { name: "Machine" }),
@@ -68,4 +68,37 @@ test("type, send, and the chat is open with the prompt in it before the agent ha
   await expect(
     page.getByRole("heading", { name: "What do you want to work on?" }),
   ).toHaveCount(0);
+});
+
+test("the first screen is a new chat in the project worked in last, and New from a session starts in its project", async ({
+  page,
+}) => {
+  const origin = await openUi(page);
+  const heading = page.getByRole("heading", {
+    name: "What do you want to work on?",
+  });
+  const project = page.getByRole("combobox", { name: "Project" });
+  // The index opens a new chat (GOAT's first screen), the cursor in it.
+  await expect(heading).toBeVisible();
+  await expect(page).toHaveURL(/\/new$/);
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeFocused();
+  const box = await newSessionPage(page, "laptop", "Structured");
+  await choose(page, project, /^notes\b/);
+  await box.getByRole("textbox", { name: "Prompt" }).fill("plain");
+  await box.getByRole("button", { name: "Send" }).click();
+  await expect(timeline(page).getByText("echo: plain")).toBeVisible();
+  // New from that session starts in its project.
+  await page.getByRole("button", { name: "New", exact: true }).click();
+  await expect(heading).toBeVisible();
+  await expect(project).toHaveText(/notes/);
+  // A new visit: the first screen starts in it too, laptop's latest
+  // session having run there.
+  await page.goto(`${origin}/`);
+  await expect(heading).toBeVisible();
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Machine" }),
+    /^laptop\b/,
+  );
+  await expect(project).toHaveText(/notes/);
 });

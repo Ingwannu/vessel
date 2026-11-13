@@ -54,6 +54,15 @@ export async function launchUi(
   return { url, origin: new URL(url).origin };
 }
 
+/** Launch address `url` opening `path` instead of the index (which opens
+ * a new chat since 2026-11-13): the one-use code is in the fragment, and
+ * the page reads it on any path. */
+export function launchAt(url: string, path: string): string {
+  const at = new URL(url);
+  at.pathname = path;
+  return at.toString();
+}
+
 export async function openUi(page: Page): Promise<string> {
   const { url, origin } = await launchUi(page);
   try {

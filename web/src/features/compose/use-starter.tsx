@@ -8,6 +8,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -24,6 +25,7 @@ import {
   placeSpec,
   projectPlace,
 } from "../../data/workspace/place";
+import { lastProject } from "../../data/workspace/last-project";
 import { projectIn, useProjects } from "../../data/workspace/project-store";
 import {
   type WantedPlace,
@@ -85,15 +87,26 @@ export function useStarter(machine: NodeKey | null): Starter {
   // while the page is already open.
   const [held, setHeld] = useState<{
     machine: NodeKey | null;
-    place: Place;
+    /** `null` until the person chooses a place. */
+    place: Place | null;
     wanted: WantedPlace | null;
-  }>({ machine, place: NO_PLACE, wanted: null });
+  }>({ machine, place: null, wanted: null });
+  // Until then, the project the machine's latest session ran in (GOAT's
+  // "most recently updated project", data/workspace/last-project.ts).
+  const sessions = useFleetState((state) =>
+    machine === null ? undefined : state.sessions[machine],
+  );
+  const last = lastProject(sessions, projects);
+  const fallback = useMemo(
+    () => (last === null ? NO_PLACE : projectPlace(last)),
+    [last],
+  );
   const place =
     wanted !== null && wanted !== held.wanted && wanted.node === machine
       ? projectPlace(wanted.project)
-      : held.machine === machine
+      : held.machine === machine && held.place !== null
         ? held.place
-        : NO_PLACE;
+        : fallback;
   const [step, setStep] = useState<Step>({ kind: "idle" });
   // Who waits on the person's answer to the question on screen: the
   // dialog's and the card's buttons answer it.

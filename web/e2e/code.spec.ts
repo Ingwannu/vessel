@@ -282,12 +282,13 @@ test("projects are added from Settings, and a failed clone says why", async ({
   await expect(page.getByText(/^nothing: /)).toBeVisible();
   // The sidebar's "+" on a project starts the next session there, also
   // when the new-session page is already open.
+  // (It opens in the project laptop's latest session ran in, shop.)
   await page.goto(`${origin}/new`);
   await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
-    /No project/,
-  );
-  await page.getByRole("button", { name: "New session in shop" }).click();
-  await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
     /shop/,
+  );
+  await page.getByRole("button", { name: "New session in notes" }).click();
+  await expect(page.getByRole("combobox", { name: "Project" })).toHaveText(
+    /notes/,
   );
 });

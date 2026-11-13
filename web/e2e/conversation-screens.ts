@@ -7,7 +7,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { startSession, timeline } from "./kit";
+import { openNew, startSession, timeline } from "./kit";
 import { openUi } from "./open";
 import { shot } from "./shot";
 
@@ -153,7 +153,7 @@ async function newFiles(
   scheme: Scheme,
 ): Promise<void> {
   // The new-session page's "+" holds the files for the first message.
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await openNew(page);
   const box = page.getByRole("form", { name: "Prompt" });
   await box
     .getByRole("textbox", { name: "Prompt" })
