@@ -532,6 +532,15 @@ used. New screens are drawn in the native app first.
 
 ## Left for the owner
 
+- **Agents' own logos.** Paseo shows each provider's mark beside its
+  name (rows of agents, schedules, the model list). Those are other
+  companies' trademarks and Paseo's files are not taken, so the app
+  shows one generic agent glyph in that place on every screen. Whether
+  Vessel ships the vendors' official marks (each under its own brand
+  terms) is the owner's to decide; nothing else in the layout depends
+  on it.
+
+
 - Where releases are published, the signing key, Windows code signing,
   macOS notarisation, an Apple developer account for iOS.
 - Whether CI may build what this machine cannot (Windows, macOS, iOS):
