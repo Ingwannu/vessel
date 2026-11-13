@@ -340,3 +340,12 @@ row's availability and bounds before dispatch. The 44-point touch model
 pill holds OpenCode's 32 × 36 clear-space box; the short pointer pill and
 inline spots use Generic. A Settings ProviderRow needs a fitted adapter,
 not an unconstrained 36-high child inside its padded content band.
+
+`view::AgentMark::of` maps only typed node identities; `app::agent_mark`
+adapts them to kit artwork once. The draft, sidebar and board call that
+adapter. Added agents retain Generic even if their labels mention a brand.
+Settings › About lists vendor sources, trademark terms and the Gemini
+original's separate software licence. For long-name capture fixtures,
+after `scripts/fleet.sh start ROOT TARGET`, run
+`bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
+bilingual titles and full custom-agent labels before captures.

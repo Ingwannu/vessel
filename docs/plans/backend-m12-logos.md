@@ -212,3 +212,54 @@ The source and binary hashes and exact file list accompany the review.
 These prove this picker and pill control, not a Settings ProviderRow:
 its distinct 56-point/padded geometry needs a separate fitted adapter and
 actual card/adjacent-row evidence before that consumer replaces Bot.
+
+## App slice
+
+The sole semantic mapping is `view::AgentMark::of(&HarnessRef)`: all four
+built-in variants map exhaustively, every added command maps to Generic.
+Tests cover the reference's custom-Claude profile case, unknown/fake ids,
+case and suffix traps, and the fake fleet's long-label custom commands.
+The sole artwork adapter is `app::agent_mark`; no surface guesses a logo
+from a model name, an agent label, or a registry icon address.
+
+The draft's provider rows, model rows (including global search), provider
+header and non-fast model pill use that adapter. The same draft control is
+reused by a new session and an open conversation. Fast mode retains its
+reference lightning icon. Existing CardDetail already preserves the
+node's typed harness; the sidebar and board use it directly. The sidebar
+keeps its independent status dot; the board replaces the prior letter tile.
+OpenCode uses Generic on these inline surfaces because its clear-space
+box would not fit. No schedules or Settings Agents files are edited.
+
+Settings About gains an artwork attribution section using its existing
+settings card/rows and source/terms links. All five shipped marks have a
+named owner; Google has a separate software-licence link because that
+licence does not grant trademark permission. English and Korean whole
+sentences live in `view::text::marks`, with translator context and tests.
+This is added in the existing About manner: Paseo's settings About and
+Vessel's licence list; there is no new interactive control or page.
+
+`scripts/mark-fixtures.sh ROOT TARGET` extends an already-started fake
+fleet with long bilingual session titles, Gemini/OpenCode identities, and two custom agent
+labels that mention a real brand but retain their added identities. Its
+checks read the real node's persisted titles and its CLI's full added-agent
+records and saved harness identities, failing if any exact expected shape is missing. It runs no real
+agent and uses only the fake fleet's scratch configuration. The first
+attempt found the previous scratch node processes had exited; no runtime
+success was inferred from stale PID files. A supervised fresh fleet is
+used for final captures.
+
+A 390-wide runtime check found that the existing effort card had no anchor
+on touch: the tooltip deliberately does not measure there, but the card
+needs the same trigger bounds. The model pill now attaches the existing
+kit anchor probe on touch. This is a small draw/wire seam, preserving the
+reference's absence of mobile tooltips while making the model control open.
+Prototype captures document the failure; final captures use the rebuilt
+source, not those prototypes. The final changed-source gate passed fmt, all-target clippy with warnings
+denied, and all 375 native tests, including the new identity/attribution
+tests and real picker callback regression. The normal app binary and final
+app-surface captures remain a separate runtime check; their build was
+interrupted while queued and only that phase is resumed. The earlier
+390-wide calibration successfully opened the touch model card, selected
+a long model and OpenCode, and showed the sidebar, board and all five
+About records. It is intermediate evidence, not the final binary manifest.
