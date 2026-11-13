@@ -28,6 +28,7 @@ mod bench;
 mod entries;
 mod find;
 mod look;
+mod outline;
 mod rename;
 mod timeline;
 mod tool;
@@ -40,7 +41,7 @@ use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::session::MarkAction;
-use vessel_app_view::timeline::{FindCache, Folds, Logs, Rows, Timeline};
+use vessel_app_view::timeline::{FindCache, Folds, Logs, OutlineItem, Rows, Timeline, outline};
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
 
 pub(crate) use bar::bar;
@@ -115,6 +116,10 @@ pub(crate) struct ConversationArea {
     pub(crate) dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
+    /// The prompts, for the outline rail.
+    pub(crate) outline: Vec<OutlineItem>,
+    /// Where the pointer is on the rail.
+    pub(crate) outline_pointer: outline::Pointer,
     /// The find bar, while it is open.
     pub(crate) find: Option<find::FindBar>,
     /// Each entry's folded text for find, kept between searches of the
@@ -146,6 +151,8 @@ impl ConversationArea {
             confirm: None,
             dialog: DialogState::new(cx),
             rename: None,
+            outline: Vec::new(),
+            outline_pointer: outline::Pointer::default(),
             find: None,
             find_cache: FindCache::default(),
             keys: None,
@@ -205,6 +212,8 @@ impl Shell {
         area.rename = None;
         area.find = None;
         area.find_cache = FindCache::default();
+        area.outline.clear();
+        area.outline_pointer = outline::Pointer::default();
         self.command(Command::Act {
             machine: machine.to_owned(),
             session,
@@ -236,6 +245,7 @@ impl Shell {
             area.folds = Some(Folds::of(area.timeline.entries()));
         }
         area.logs = Logs::of(area.timeline.entries());
+        area.outline = outline(area.timeline.entries());
         area.rows_again();
         let rows_after = area.rows.len();
         // Rows are entries less folded members, so a batch can add rows
