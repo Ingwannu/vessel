@@ -526,7 +526,7 @@ without relaxing validation. No screen, node-write or live IME claim follows.
 [Decision Log]
 - Purpose: reproduce GOAT's `GitActionsControl.tsx` text-sm summary inherited by
   its font-mono file rows: 14/20, normal.
-- Existing constraint: the kit's Mono12/20 is already used by paths/logs and
+- Existing constraint: the kit's Mono 12/20 is already used by paths/logs and
   must stay unchanged; UI and code preferences are independent.
 - Alternatives: area font literals, or a UI-scaled label with a code family.
 - Choice: `Type::MonoBody` adds 14/20 normal on the code scale and mono face;
@@ -643,3 +643,19 @@ line is imported: no root/node implementation was authored, no new root test
 run or Git first-use/runtime approval is claimed. The separate README heading
 correction and resume record follow as documentation only, without a Rust
 gate rerun.
+
+## Credit-stop continuation record
+
+The closing F integration is committed as
+`15adf0c3d986df9175b4bda79cddc7ce7d1bf300`, after its whole native gate.
+`backend-m12-g1-resume.md` records committed/reviewed scope, the unregistered
+prototypes and their source-only archive, exact missing APIs/callers/evidence,
+and what F/G2/the lead are waiting on. The README's empty heading and altered
+Rules heading are corrected in this documentation-only follow-up, as V1 asked;
+no Rust gate is repeated for it. Git screen (b) and pull requests remain
+unfinished and unapproved; neither is registered by this closing slice.
+
+At 20:55:07 UTC all own fake nodes/harnesses/probes and the verified virtual
+display were stopped by PID; no build remained running. The isolated failed-read
+index was restored to 0644. Execution used UID/GID 1000, with no production owner
+or mode change. No push, release or preview-node operation was performed.

@@ -182,7 +182,6 @@ uses the code face for a whole path or hash. Existing `on` stays body text.
 `kit::form_summary` supplies GOAT’s branch/files summary and fixed file-list
 inset. Static outer edges keep the content geometry and never take focus.
 
-#
 `kit/toast.rs` retains its legacy toast entry and adds `toast_with` for typed
 content/optional hover wiring. Info uses neutral chrome and foreground Info16,
 with no close control. `view::toasts` owns its keyed monotonic3200ms lifetime,
@@ -190,7 +189,7 @@ pausing and resuming the remainder; old callbacks cannot clear a replacement.
 Legacy Ok4s/Error-persistent cards keep their stack and controls. Only older
 Info is replaced, an explicit compatibility difference from Paseo's single card.
 
-## Rules every screen follows
+### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
 keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
