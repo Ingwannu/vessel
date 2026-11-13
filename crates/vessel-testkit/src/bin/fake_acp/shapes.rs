@@ -3,7 +3,8 @@
 //! (the owner, on the app's build 0.0.0.0.5: screens had only been seen
 //! with the fakes' short texts, and broke on real ones).
 //!
-//! The turn, in order: a long thought; a message with a heading, a table
+//! The turn, in order: a long thought, Korean first, streamed a few
+//! characters at a time as a real agent streams it; a message with a heading, a table
 //! with a long cell, a code block wider than any window, a list, a link
 //! and Korean paragraphs; a read of a file with a long path; an edit whose
 //! diff has wide lines; a command whose title and input are a long shell
@@ -80,9 +81,11 @@ pub(crate) async fn shapes(
     turn: &CancellationToken,
 ) -> Result<StopReason, Error> {
     let say = |update| cx.send_notification(SessionNotification::new(session.clone(), update));
-    say(SessionUpdate::AgentThoughtChunk(ContentChunk::new(text(
-        &thought(),
-    ))))?;
+    for chunk in thought_chunks() {
+        say(SessionUpdate::AgentThoughtChunk(ContentChunk::new(text(
+            &chunk,
+        ))))?;
+    }
     say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
         &message(),
     ))))?;
@@ -152,9 +155,37 @@ pub(crate) async fn shapes(
     Ok(StopReason::EndTurn)
 }
 
-/// A thought of several paragraphs.
+/// The sizes, in characters, the thought is cut into, over and over: a
+/// real agent's chunks are a few characters, and the first two here are
+/// one syllable each ("생", "각"), the finest a stream can cut Hangul: a
+/// chunk is JSON text, so it never ends inside a character, and a
+/// syllable is one. The owner saw "생가ㄱ" in the folded thought row
+/// (build 0.0.0.0.7); the text was whole, the font was not (the app's
+/// rows now carry Pretendard), and this keeps such a stream in the
+/// shapes the screens are checked against.
+const THOUGHT_SIZES: [usize; 7] = [1, 1, 2, 3, 1, 5, 8];
+
+/// The thought, in the chunks it is streamed in.
+fn thought_chunks() -> Vec<String> {
+    let chars: Vec<char> = thought().chars().collect();
+    let mut chunks = Vec::new();
+    let mut at = 0_usize;
+    for size in THOUGHT_SIZES.iter().cycle() {
+        let Some(rest) = chars.get(at..).filter(|rest| !rest.is_empty()) else {
+            break;
+        };
+        let taken = rest.len().min(*size);
+        chunks.push(rest.iter().take(taken).collect());
+        at = at.saturating_add(taken);
+    }
+    chunks
+}
+
+/// A thought of several paragraphs, the first in Korean.
 fn thought() -> String {
     [
+        "생각을 정리하면, 묶음의 끝이 메시지 안에 걸릴 때 두 번째 조각이 빠집니다. \
+         먼저 접기를 읽고, 그다음 셸의 묶음을 보겠습니다.",
         "The failure is in the timeline's fold, not in the transport: the records arrive \
          in order, and the entry that goes missing is the second chunk of a message that \
          follows a tool call.",
@@ -282,6 +313,18 @@ mod tests {
                 .chars()
                 .any(|c| ('\u{ac00}'..='\u{d7a3}').contains(&c))
         );
+    }
+
+    // A thought streamed as a real agent streams it: many chunks of a few
+    // characters, one syllable alone among them, adding up to the whole.
+    #[test]
+    fn the_thought_streams_in_small_chunks_with_korean() {
+        let chunks = super::thought_chunks();
+        assert!(chunks.len() > 100);
+        assert_eq!(chunks.concat(), super::thought());
+        assert_eq!(chunks.first().map(String::as_str), Some("생"));
+        assert_eq!(chunks.get(1).map(String::as_str), Some("각"));
+        assert!(chunks.iter().all(|chunk| chunk.chars().count() <= 8));
     }
 
     #[test]

@@ -36,6 +36,10 @@ pub(crate) fn timeline(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     if area.timeline.entries().is_empty() {
         return entries::empty(&paint).into_any_element();
@@ -46,11 +50,30 @@ pub(crate) fn timeline(
             let tokens = vessel_app_kit::tokens(cx);
             row_element(shell, row, &tokens, window, cx)
         }));
+    let bar = super::find::bar(shell, tokens, window, cx);
+    if breakpoint::phone(window) {
+        return div()
+            .flex_1()
+            .min_h(px(0.0))
+            .size_full()
+            .face(Type::Body)
+            .flex()
+            .flex_col()
+            .children(bar)
+            .child(div().flex_1().min_h(px(0.0)).child(list))
+            .into_any_element();
+    }
+    // Every row draws its words in the kit's faces with Pretendard behind
+    // them, whether or not the row names its own type.
     div()
         .flex_1()
         .min_h(px(0.0))
         .size_full()
+        .face(Type::Body)
+        .relative()
         .child(list)
+        .children(super::outline::rail(shell, tokens, window, cx))
+        .children(bar)
         .into_any_element()
 }
 
@@ -68,6 +91,10 @@ fn row_element(
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
+        find: area
+            .find
+            .as_ref()
+            .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
     };
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
@@ -169,8 +196,9 @@ fn run_header(
         .pb(px(6.0))
         .border_b_1()
         .border_color(paint.look.border)
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .face(Type::Meta)
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))

@@ -9,14 +9,14 @@ use vessel_proto::workspace::{
     WorktreeRefusal,
 };
 
-use super::super::branch_name::BranchNameProblem;
-use super::super::changes::ScopeKind;
-use super::super::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
-use super::super::git_quick::{Blocked, GitAction};
-use super::super::place::PlaceProblem;
-use super::super::problem::Problem;
-use super::super::save::SaveFailure;
-use super::{Local, WorkspaceWords};
+use super::{AddForm, Labels, Local, WorkspaceWords, labels};
+use crate::workspace::branch_name::BranchNameProblem;
+use crate::workspace::changes::ScopeKind;
+use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::git_quick::{Blocked, GitAction};
+use crate::workspace::place::PlaceProblem;
+use crate::workspace::problem::Problem;
+use crate::workspace::save::SaveFailure;
 
 /// Korean.
 #[derive(Debug, Clone, Copy)]
@@ -523,5 +523,130 @@ impl WorkspaceWords for Ko {
             SaveFailure::NoGuard => "읽을 때 파일이 너무 커서 비교할 수 없었으므로, 덮어쓰지 않고는 저장할 수 없습니다. 다시 불러와 편집하세요.".to_owned(),
             SaveFailure::Call(problem) => self.problem(problem),
         }
+    }
+
+    fn labels(&self) -> &'static Labels {
+        &labels::KO
+    }
+
+    fn projects_on(&self, machine: &str) -> String {
+        format!("{machine}의 프로젝트")
+    }
+
+    fn no_projects_body(&self, machine: &str) -> String {
+        format!("{machine}의 폴더를 추가하거나, 그곳에 저장소를 복제하거나, 새로 시작하세요.")
+    }
+
+    fn older_machine(&self, machine: &str) -> String {
+        format!("{machine}의 Vessel은 프로젝트를 지원하지 않는 이전 버전입니다.")
+    }
+
+    fn forgot(&self, name: &str) -> String {
+        format!("{name}을(를) 목록에서 지웠습니다. 파일은 그대로 있습니다")
+    }
+
+    fn not_removed(&self, name: &str, why: &str) -> String {
+        format!("{name}을(를) 제거하지 못했습니다: {why}")
+    }
+
+    fn live(&self, count: usize) -> String {
+        format!("실행 중 {count}개")
+    }
+
+    fn kept(&self, reason: &str) -> String {
+        format!("남긴 이유: {reason}")
+    }
+
+    fn commands_title(&self, setup: usize, teardown: usize, scripts: usize) -> String {
+        let lists = format!("셋업 {setup}개, 정리 {teardown}개");
+        if scripts == 0 {
+            lists
+        } else {
+            format!("{lists}, 스크립트·서비스 {scripts}개")
+        }
+    }
+
+    fn invalid_commands(&self, message: &str) -> String {
+        format!("vessel.toml을 읽을 수 없어 아무것도 실행하지 않습니다: {message}")
+    }
+
+    fn commands_not(&self, approved: bool, why: &str) -> String {
+        let what = if approved {
+            "승인하지"
+        } else {
+            "철회하지"
+        };
+        format!("명령을 {what} 못했습니다: {why}")
+    }
+
+    fn setup_not_started(&self, why: &str) -> String {
+        format!("셋업을 시작하지 못했습니다: {why}")
+    }
+
+    fn removed(&self, branch: &str, snapshot: Option<&str>) -> String {
+        match snapshot {
+            None => format!("{branch}을(를) 제거했습니다"),
+            Some(commit) => {
+                format!("{branch}을(를) 제거했습니다. 작업은 스냅숏 {commit}에 남아 있습니다")
+            }
+        }
+    }
+
+    fn remove_title(&self, branch: &str) -> String {
+        format!("\"{branch}\"을(를) 제거할까요?")
+    }
+
+    fn discard_says(&self, path: &str, branch: &str) -> String {
+        format!(
+            "버리면 {path} 폴더와 커밋하지 않은 변경, 브랜치 {branch}가 지워지고, 다른 브랜치에 없는 커밋은 사라집니다."
+        )
+    }
+
+    fn snapshot_not_dropped(&self, name: &str, why: &str) -> String {
+        format!("{name}의 스냅숏을 삭제하지 못했습니다: {why}")
+    }
+
+    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String {
+        match (form, clone_target) {
+            (AddForm::Clone, None) => {
+                format!("{machine}의 폴더입니다. 저장소는 그 안의 폴더에 들어갑니다.")
+            }
+            (AddForm::Clone, Some((folder, name))) => {
+                format!("저장소는 {folder}/{name}에 만들어집니다.")
+            }
+            (AddForm::New, _) => {
+                format!("{machine}의 비어 있거나 새 폴더입니다. git이 그곳에 저장소를 시작합니다.")
+            }
+            (AddForm::Folder, _) => format!(
+                "{machine}의 절대 경로 폴더입니다. 저장소 안이면 저장소의 최상위가 프로젝트가 됩니다."
+            ),
+        }
+    }
+
+    fn approval_copy(&self, place: &str, scripts: bool) -> String {
+        let started = if scripts {
+            " 스크립트와 서비스는 누군가 시작할 때 실행됩니다."
+        } else {
+            ""
+        };
+        format!(
+            "저장소의 vessel.toml에 이 명령들이 있습니다. 셋업과 정리는 {place} 내 계정과 환경으로 실행됩니다.{started} 승인은 정확히 이 세트에만 해당하며, 명령이 하나라도 바뀌면 다시 묻습니다."
+        )
+    }
+
+    fn approval_place(&self, project: &str, machine: &str, each: bool) -> String {
+        if each {
+            format!("{machine}에 있는 {project}의 새 워크트리마다")
+        } else {
+            format!("{machine}에 있는 {project}의 새 워크트리에서")
+        }
+    }
+
+    fn digest(&self, digest: &str) -> String {
+        format!("다이제스트 {digest}")
+    }
+
+    fn was(&self, command: &str) -> String {
+        format!("이전: {command}")
     }
 }

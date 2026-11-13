@@ -20,9 +20,8 @@
 //!   page's rules (`Prefs::prefer`), the app saves, and what shows at once
 //!   (the theme) is applied. `VESSEL_APP_THEME` still pins the scheme for
 //!   one run (captures).
-//! - Differences: the interface and code sizes are kept and shown but not
-//!   applied yet (the kit's type scale is fixed); the conversation's width
-//!   and display are read by the conversation's track.
+//! - A setting is shown once something reads it ([`applied`]); the send
+//!   shortcut is read by both composers ([`apply_composer`]).
 
 mod appearance;
 mod choices;
@@ -35,12 +34,14 @@ use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, IntoElement as _, ParentElement as _, Styled as _, Window, div,
     px,
 };
-use vessel_app_kit::{ComboHandlers, ComboboxState, Scheme, Tokens, Type, TypeExt as _, combobox};
+use vessel_app_kit::{
+    ComboHandlers, ComboboxState, Scheme, SendOn, Tokens, Type, TypeExt as _, combobox,
+};
 use vessel_app_link::Command;
-use vessel_app_view::prefs::{PreferenceChange, Theme};
+use vessel_app_view::prefs::{PreferenceChange, SendKey, Theme, send_key_label};
 use vessel_app_view::settings::Section;
 
-pub(crate) use choices::List;
+pub(crate) use choices::{List, primary};
 pub(crate) use nav::sidebar;
 
 use crate::routes::Route;
@@ -170,15 +171,41 @@ impl Shell {
     pub(crate) fn prefer(
         &mut self,
         change: &PreferenceChange,
-        window: &Window,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
                 self.command(Command::SavePrefs(self.prefs.clone()));
-                if matches!(change, PreferenceChange::Theme(_)) {
-                    apply_theme(self, window, cx);
+                match change {
+                    PreferenceChange::Theme(_) => apply_theme(self, window, cx),
+                    PreferenceChange::Send(_) => apply_composer(self, window, cx),
+                    PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
+                        apply_text_sizes(self, cx);
+                    }
+                    PreferenceChange::ContentWidth(width) => {
+                        crate::areas::session::set_content_width(*width);
+                        let list = &self.areas.conversation.list;
+                        list.changed(0..list.rows());
+                    }
+                    PreferenceChange::Conversation(display) => {
+                        self.conversation_display(*display);
+                    }
+                    // Read where they are drawn, on the next frame.
+                    PreferenceChange::SidebarPanel(_)
+                    | PreferenceChange::InspectorPanel(_)
+                    | PreferenceChange::Delivery(_)
+                    | PreferenceChange::Alerts(_)
+                    | PreferenceChange::TitleCount(_)
+                    | PreferenceChange::SidebarGroup(_)
+                    | PreferenceChange::SidebarSort(_)
+                    | PreferenceChange::SidebarEnded(_)
+                    | PreferenceChange::Shortcuts { .. }
+                    | PreferenceChange::ResetShortcuts
+                    | PreferenceChange::DefaultAgent { .. }
+                    | PreferenceChange::AgentDefaults { .. }
+                    | PreferenceChange::ForgetDefaults { .. } => {}
                 }
             }
             Err(refused) => {
@@ -249,10 +276,53 @@ pub(crate) fn apply_theme(shell: &Shell, window: &Window, cx: &mut App) {
     }
 }
 
+/// The send shortcut as a person reads it ("Enter", "Ctrl+Enter").
+pub(crate) fn send_key_words(shell: &Shell) -> String {
+    send_key_label(shell.prefs.settings.composer.send, primary())
+}
+
+/// Both composers as the preferences say: which press sends, and the
+/// session's placeholder naming it (the new chat's names it when it
+/// arrives, `draft::arrive`).
+pub(crate) fn apply_composer(shell: &Shell, window: &mut Window, cx: &mut App) {
+    let send = match shell.prefs.settings.composer.send {
+        SendKey::Enter => SendOn::Enter,
+        SendKey::ModEnter => SendOn::ModEnter,
+    };
+    shell.areas.session.composer.set_send_on(send);
+    shell.areas.draft.composer.set_send_on(send);
+    let placeholder = shell.t.composer_placeholder(&send_key_words(shell));
+    shell
+        .areas
+        .session
+        .composer
+        .set_placeholder(&placeholder, window, cx);
+}
+
+/// The interface's and code's text sizes, drawn everywhere (the kit's
+/// type scale); the conversation's rows measured again at them.
+pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
+    let appearance = &shell.prefs.settings.appearance;
+    vessel_app_kit::set_text_sizes(
+        cx,
+        appearance.interface_size.get(),
+        appearance.code_size.get(),
+    );
+    let list = &shell.areas.conversation.list;
+    list.changed(0..list.rows());
+    shell.areas.session.entries.remeasure();
+}
+
 /// At start: the kept theme, and the system's appearance followed while
-/// the theme is "System".
-pub(crate) fn start(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+/// the theme is "System"; the text sizes; the composers' send shortcut;
+/// the conversation's width and display.
+pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     apply_theme(shell, window, cx);
+    apply_text_sizes(shell, cx);
+    apply_composer(shell, window, cx);
+    let appearance = shell.prefs.settings.appearance;
+    crate::areas::session::set_content_width(appearance.content_width);
+    shell.conversation_display(appearance.conversation);
     cx.observe_window_appearance(window, |shell, window, cx| {
         apply_theme(shell, window, cx);
     })
@@ -310,7 +380,7 @@ pub(crate) fn render(
 pub(crate) const fn drawn(section: Section) -> bool {
     matches!(
         section,
-        Section::General | Section::Appearance | Section::About
+        Section::General | Section::Appearance | Section::About | Section::Projects
     )
 }
 
@@ -321,13 +391,13 @@ pub(crate) const fn drawn(section: Section) -> bool {
 /// they change is drawn.
 pub(crate) const fn applied(list: List) -> bool {
     match list {
-        List::Machine => true,
-        List::Send
+        List::Machine
+        | List::Send
         | List::Delivery
         | List::Interface
         | List::Code
         | List::Width
-        | List::Display => false,
+        | List::Display => true,
     }
 }
 
@@ -344,11 +414,13 @@ fn content(
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
-        // Shortcuts and Notifications are track S's, Projects track F's;
-        // the per-machine sections are this track's next slice.
+        Section::Projects => Some(crate::areas::workspace::projects_content(
+            shell, tokens, phone, cx,
+        )),
+        // Shortcuts and Notifications are track S's; the per-machine
+        // sections are this track's next slice.
         Section::Shortcuts
         | Section::Notifications
-        | Section::Projects
         | Section::Agents
         | Section::Models
         | Section::Machines

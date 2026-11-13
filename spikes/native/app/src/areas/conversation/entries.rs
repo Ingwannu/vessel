@@ -9,14 +9,18 @@ use chrono::Local;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
-    div, px, relative,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, HighlightStyle,
+    InteractiveElement as _, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, StyledText, Window, div, px, relative,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, chat_markdown};
+use vessel_app_kit::{FindMarks, FindPalette, Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{Entry, EntryKind, Prompt, plan_progress, settled};
+use vessel_app_view::timeline::{
+    Entry, EntryKind, Prompt, answered_lines, plan_progress, settled, spans_of,
+};
+use vessel_proto::{Question, QuestionOutcome};
 
+use super::find::Marking;
 use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
 use super::tool;
 use crate::shell::Shell;
@@ -26,6 +30,8 @@ pub(super) struct Paint<'a> {
     pub(super) words: &'static ConversationWords,
     pub(super) tokens: &'a Tokens,
     pub(super) look: Look,
+    /// What find marks, while its bar shows matches.
+    pub(super) find: Option<Marking<'a>>,
 }
 
 /// Entry `index` as its row.
@@ -39,9 +45,10 @@ pub(super) fn entry(
 ) -> AnyElement {
     let words = paint.words;
     match &entry.kind {
-        EntryKind::Prompt(prompt) => person(paint, prompt, None),
+        EntryKind::Prompt(prompt) => person(paint, index, prompt, None),
         EntryKind::Steer { text, attachments } => person(
             paint,
+            index,
             &Prompt {
                 text: text.clone(),
                 replayed: false,
@@ -50,17 +57,7 @@ pub(super) fn entry(
             },
             Some(words.steered().to_owned()),
         ),
-        EntryKind::Message { text } => div()
-            .px(px(4.0))
-            .py(px(2.0))
-            .type_(Type::Body)
-            .text_color(paint.tokens.neutral.foreground)
-            .child(chat_markdown(
-                ElementId::NamedInteger("message".into(), id(index)),
-                text.clone(),
-                paint.tokens,
-            ))
-            .into_any_element(),
+        EntryKind::Message { text } => message(paint, index, text, entry.rev, window, cx),
         EntryKind::Thought { text } => {
             let head = work_row(paint, index, words.thought().to_owned(), None, open, cx);
             div()
@@ -78,11 +75,15 @@ pub(super) fn entry(
                 .into_any_element()
         }
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
-        EntryKind::Question { question, outcome } => question_card(
-            paint,
-            &question.message,
-            outcome.as_ref().map(|outcome| words.question_line(outcome)),
-        ),
+        // While it waits its form is over the composer: here only a quiet
+        // line (the page's), so the question is not drawn twice.
+        EntryKind::Question { outcome: None, .. } => {
+            meta(paint, words.question_waiting().to_owned())
+        }
+        EntryKind::Question {
+            question,
+            outcome: Some(outcome),
+        } => question_card(paint, question, outcome),
         EntryKind::Plan { entries } => {
             let (done, total) = plan_progress(entries);
             meta(paint, words.plan_line(done, total))
@@ -104,7 +105,7 @@ pub(super) fn entry(
         EntryKind::Log { line } => div()
             .px(px(4.0))
             .type_(Type::Mono)
-            .text_size(px(12.0))
+            .text_size(px(vessel_app_kit::fonts::ui(12.0)))
             .text_color(paint.look.secondary)
             .child(line.clone())
             .into_any_element(),
@@ -128,7 +129,7 @@ pub(super) fn id(index: usize) -> u64 {
 
 /// A person's prompt or steer: GOAT's bubble on the right, 70% of the
 /// lane at most, on the message surface; its corner word above it.
-fn person(paint: &Paint<'_>, prompt: &Prompt, corner: Option<String>) -> AnyElement {
+fn person(paint: &Paint<'_>, index: usize, prompt: &Prompt, corner: Option<String>) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
     let files = (!prompt.attachments.is_empty()).then(|| {
         div()
@@ -176,7 +177,7 @@ fn person(paint: &Paint<'_>, prompt: &Prompt, corner: Option<String>) -> AnyElem
                         div()
                             .type_(Type::Body)
                             .text_color(paint.tokens.neutral.foreground)
-                            .child(prompt.text.clone()),
+                            .child(marked_text(paint, index, &prompt.text)),
                     )
                 }),
         )
@@ -202,8 +203,9 @@ pub(super) fn work_row(
         .min_h(px(WORK_LINE))
         .px(px(4.0))
         .rounded(px(6.0))
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .face(Type::Meta)
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
@@ -224,8 +226,9 @@ pub(super) fn work_row(
 fn meta(paint: &Paint<'_>, text: String) -> AnyElement {
     div()
         .px(px(4.0))
-        .text_size(px(WORK_SIZE))
-        .line_height(px(WORK_LINE))
+        .face(Type::Meta)
+        .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+        .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
         .text_color(paint.look.secondary)
         .child(text)
         .into_any_element()
@@ -256,7 +259,7 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
             div()
                 .min_w(px(0.0))
                 .truncate()
-                .text_size(px(12.0))
+                .text_size(px(vessel_app_kit::fonts::ui(12.0)))
                 .text_color(ink)
                 .child(text),
         )
@@ -264,8 +267,12 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
         .into_any_element()
 }
 
-/// A question the agent asked, and how it was settled.
-fn question_card(paint: &Paint<'_>, message: &str, settled: Option<&'static str>) -> AnyElement {
+/// A settled question in the timeline: what the agent asked, each answer
+/// by its field (the page's answered card, `question-entry.tsx`), and how
+/// it was settled.
+fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutcome) -> AnyElement {
+    let words = paint.words;
+    let lines = answered_lines(question, outcome, words.question_yes_no());
     div()
         .flex()
         .flex_col()
@@ -279,14 +286,32 @@ fn question_card(paint: &Paint<'_>, message: &str, settled: Option<&'static str>
             div()
                 .type_(Type::Body)
                 .text_color(paint.tokens.neutral.foreground)
-                .child(message.to_owned()),
+                .child(question.message.clone()),
         )
-        .children(settled.map(|word| {
+        .children(lines.into_iter().map(|line| {
             div()
-                .text_size(px(WORK_SIZE))
-                .text_color(paint.look.secondary)
-                .child(word)
+                .flex()
+                .gap(px(8.0))
+                .type_(Type::Body)
+                .child(
+                    div()
+                        .flex_none()
+                        .text_color(paint.look.secondary)
+                        .child(line.field),
+                )
+                .child(
+                    div()
+                        .min_w(px(0.0))
+                        .text_color(paint.tokens.neutral.foreground)
+                        .child(line.value),
+                )
         }))
+        .child(
+            div()
+                .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
+                .text_color(paint.look.secondary)
+                .child(words.question_line(outcome)),
+        )
         .into_any_element()
 }
 
@@ -315,4 +340,73 @@ pub(super) fn disclosure(open: bool, color: vessel_app_kit::ui::Hsla) -> Div {
         .flex()
         .justify_center()
         .child(glyph(which, 14.0, color))
+}
+
+/// A plain text (a person's message) with find's matches in it marked:
+/// every one on yellow, the current one on amber in dark ink (GOAT's
+/// find highlights).
+fn marked_text(paint: &Paint<'_>, index: usize, text: &str) -> StyledText {
+    let styled = StyledText::new(text.to_owned());
+    let Some(find) = paint.find else {
+        return styled;
+    };
+    let palette = FindPalette::of(paint.tokens);
+    let current = find.current_in(index);
+    let marks = spans_of(text, find.query)
+        .into_iter()
+        .enumerate()
+        .map(|(nth, span)| {
+            let style = if Some(nth) == current {
+                HighlightStyle {
+                    background_color: Some(palette.current),
+                    color: Some(palette.current_ink),
+                    ..HighlightStyle::default()
+                }
+            } else {
+                HighlightStyle {
+                    background_color: Some(palette.found),
+                    ..HighlightStyle::default()
+                }
+            };
+            (span, style)
+        });
+    styled.with_highlights(marks)
+}
+
+/// The agent's reply: its Markdown on the lane, find's matches marked.
+fn message(
+    paint: &Paint<'_>,
+    index: usize,
+    text: &str,
+    rev: u32,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let spans = |rendered: &str| {
+        paint
+            .find
+            .map_or_else(Vec::new, |find| spans_of(rendered, find.query))
+    };
+    let marks = paint.find.map(|find| FindMarks {
+        list: find.list,
+        clear_top: find.clear_top,
+        key: find.key(index),
+        spans: &spans,
+        current: find.current_in(index),
+    });
+    div()
+        .px(px(4.0))
+        .py(px(2.0))
+        .type_(Type::Body)
+        .text_color(paint.tokens.neutral.foreground)
+        .child(chat_markdown(
+            ElementId::NamedInteger("message".into(), id(index)),
+            text,
+            u64::from(rev),
+            marks.as_ref(),
+            paint.tokens,
+            window,
+            cx,
+        ))
+        .into_any_element()
 }

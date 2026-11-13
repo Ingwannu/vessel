@@ -6,7 +6,7 @@
 //! the app's.
 //!
 //! One module per subject, as the page has them; the words of all of them
-//! are [`words`]'s, one table per language.
+//! are [`words`]'s (`text/workspace/`), one table per language.
 
 pub mod branch_name;
 pub mod changes;
@@ -26,5 +26,7 @@ pub mod setup_log;
 pub mod size;
 pub mod start;
 pub mod syntax;
-pub mod words;
 pub mod worktrees;
+
+/// The area's words: `text/workspace/`, by the app's convention.
+pub use crate::text::workspace as words;

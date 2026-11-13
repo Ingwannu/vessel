@@ -92,6 +92,81 @@ page's lexer is ported rule for rule instead (no new dependency, a token is
 a byte range of the line). If the page moves to grammars, both move
 together. The decision log is in `syntax/mod.rs`.
 
+## 3. Screens (`spikes/native/app/src/areas/workspace/`)
+
+| File | Screen | Reference |
+| --- | --- | --- |
+| `projects.rs`, `detail.rs`, `approval.rs`, `remove.rs` | Settings > Projects: a machine's projects (the machine Settings' picker chose), add (folder, clone with progress, new), a project's page (commands and their approval, worktrees, snapshots, removal) | Paseo's `projects-screen.tsx` and `project-settings-screen.tsx` |
+| `place.rs`, `place_rows.rs` | the new chat's place: the folder pill's list leads with the machine's projects, then the folders, then "Add project"; a project chosen brings Isolation (Local, New worktree) and Branch ("Start from") pills | Paseo's `screens/new-workspace/form/` |
+| `sidebar.rs` | the sidebar's projects section (the lead's slot `sidebar::projects`): Paseo's section header with an add button, a row per project of every online machine (its mark, its name, the machine when more than one has projects); a row starts a new chat in the project, one not ready opens Settings > Projects; past eight rows, "All projects" | Paseo's `sidebar-workspace-list.tsx` project rows, `sidebar-section-header.tsx` |
+| `code/` (`frame.rs`, `changes.rs`, `files.rs`) | the code panel beside a session: Changes (the comparison chosen from Paseo's mode list: Uncommitted, Staged, Unstaged, since the base; every file with its status letter, folder and counts, its diff under it as the kit draws a diff's lines, read when its row first comes into view, folded by a click; "Show the rest" for a diff past the node's page) and Files (a tree read folder by folder, a file shown with numbered lines coloured by the page's lexer, Back) | Paseo's Explorer (`docs/explorer-sidebar.md`, `git/diff-pane.tsx`, `panels/files-panel.tsx`) |
+| `start_card.rs`, `start_header.rs` | a chat started in a new worktree: the session's screen opens at once with the prompt; the card under it shows the worktree being made, the approval when the project's commands need one, setup's log, and after a failed setup Stop, Start anyway, Try again | Paseo's `panels/setup-panel.tsx`; GOAT's thread that prepares its environment |
+
+The seam with the desktop lead: the lead's `draft/pickers.rs` keeps the
+pills and the kit's lists; two pickers (`Isolation`, `Base`) and one row
+meaning (`Place`) hand the rows and the choice to this track;
+`draft/mod.rs`'s Send asks `place_blocked` first and hands a project's
+start to `start_in_place` (a start without a project is the lead's
+`Command::Start` as before); the pending session screen draws
+`start_card` where it said "starting". The link's start walk
+(`link/src/workspace/start.rs`) runs a project's folder as it is
+(`SessionPlace::Project`) as well as a new worktree.
+
+The code panel's seams: `code_panel(shell, tokens, window, cx)` beside
+the conversation column in the lead's `session.rs`, `code_toggle(shell,
+tokens, narrow, cx)` in track C's bar; track G1's git actions at the head
+of the Changes tab through `code::changes::git_head(shell, machine, root,
+tokens, window, cx) -> Option<AnyElement>` (its body is G1's one call).
+The panel reads where the session runs with `session.get` (the card has
+no root) and says so when the session is in no project.
+
+### Checked against the fake fleet
+
+`scripts/fleet.sh start` builds the workspace's shapes and stops when one
+is missing: a monorepo with long paths, over a hundred changes (modified,
+staged, untracked, deleted, renamed, a Hangul name) and a diff of 2,500
+lines, with a `vessel.toml` naming setup, teardown, scripts and services;
+a small project whose commands are approved; a worktree on a long branch
+with uncommitted work; a failed clone. Against it, at 1280 (dark and
+light, English and Korean) and 390 (Korean): Settings > Projects on the
+second machine, the place list (projects, folders, Add project; a sheet
+at 390), Isolation, Start from, and a Send in a new worktree of the small
+project whose setup fails (`npm` is not on the fleet's path): the
+session's screen opened at once, the card showed the failure and its
+log, and Start anyway created the session in the worktree (the sidebar
+listed it). The code panel against the monorepo: 110 changed files
+(a binary one, a rename, a Hangul path, 2,500 rewritten lines), the tree
+with an empty folder, the 3,000-line file in the viewer, a file the
+machine may not read; dark and light, English and Korean, 1280 and 390
+(the panel takes the whole screen there).
+
+### Differences from Paseo, named
+
+- The place list holds projects and folders under two headings; Paseo's
+  new workspace has no folder field (a Paseo workspace is always a
+  project's). Vessel keeps the folder for machines without projects.
+- Isolation is remembered while the app runs, not across launches.
+- The pills' words say what they are (the owner's test: a person must
+  know what each pill is without being told): Paseo's "Local" and "New
+  worktree" read "In the project folder" / "In a new worktree" ("프로젝트
+  폴더에서" / "새 워크트리에서"), and the branch pill carries "Start from"
+  ("시작 브랜치") before the branch, where Paseo's badge shows the branch
+  alone. Each also has a tooltip.
+- The code panel is 440 wide (Paseo's Explorer: 320, resizable) because
+  a file's diff is drawn in it (Paseo opens a diff in the main pane);
+  it does not resize yet. A diff's lines wrap (Paseo scrolls them by
+  default, wrapping on request): a row of a long list cannot scroll
+  sideways on its own.
+- A sidebar project row starts a new chat in the project; Paseo's folds
+  out the project's workspaces (Vessel lists sessions under machines).
+- A remote-tracking branch is listed by git's own name (`origin/main`);
+  Paseo shows `main` and marks the local row `main (local)`.
+- Pull requests are not in Start from yet (they come with the forge).
+- Setup is one log in the start card, not one item per command (the
+  node streams it as one).
+- A project row in Settings carries its folder under the name: two
+  Vessel projects can share a name (any folder can be one).
+
 ## Problems met
 
 - `cargo clippy -p vessel-app-view --all-targets -- -D warnings` on the

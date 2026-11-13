@@ -1,8 +1,10 @@
 //! What removing a worktree would lose, and which choices the removal
 //! dialog offers (the page's `remove-worktree-dialog.tsx` and
 //! `snapshotCovers` in `worktree-words.ts`): every reason the node gave is
-//! listed, a snapshot is offered only when it keeps everything listed, and
-//! discarding is always offered, last, as the destructive one.
+//! listed; while something uses the worktree (a live session, a terminal,
+//! setup) neither removal is offered; else a snapshot is offered only when
+//! it keeps everything listed, and discarding always, as the destructive
+//! one.
 
 use vessel_proto::workspace::{IfLost, KeptReason};
 
@@ -23,11 +25,21 @@ pub const fn snapshot_covers(reason: KeptReason) -> bool {
     }
 }
 
-/// The removal dialog's choices for the reasons a worktree was kept, in the
-/// order drawn: a snapshot first when it keeps every reason, then discard.
+/// Whether something uses the worktree, so that neither removal can run.
+#[must_use]
+pub fn in_use(reasons: &[KeptReason]) -> bool {
+    reasons.contains(&KeptReason::InUse)
+}
+
+/// The removal dialog's choices for the reasons a worktree was kept: a
+/// snapshot when it keeps every reason, and discard; none while it is in
+/// use.
 #[must_use]
 pub fn removal_choices(reasons: &[KeptReason]) -> Vec<IfLost> {
     let mut choices = Vec::with_capacity(2);
+    if in_use(reasons) {
+        return choices;
+    }
     if !reasons.is_empty() && reasons.iter().copied().all(snapshot_covers) {
         choices.push(IfLost::Snapshot);
     }
@@ -61,6 +73,9 @@ mod tests {
                 }
             ]),
             [IfLost::Discard]
+        );
+        assert!(
+            removal_choices(&[KeptReason::InUse, KeptReason::Uncommitted { files: 1 }]).is_empty()
         );
     }
 }

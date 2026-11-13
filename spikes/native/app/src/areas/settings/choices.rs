@@ -31,7 +31,7 @@ pub(crate) enum List {
 }
 
 /// The platform's main modifier, as the send key's words name it.
-const fn primary() -> &'static str {
+pub(crate) const fn primary() -> &'static str {
     if cfg!(target_os = "macos") {
         "⌘"
     } else {

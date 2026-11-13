@@ -9,9 +9,7 @@
 //! The page's control (a track on the field fill with a lifted thumb,
 //! DESIGN.md 6.13) differs; the owner's rule makes Paseo's the look
 //! (ADR 0036, the brief's "The look"), the page's the behaviour (one of a
-//! few, all in view). Until the kit's theme carries Paseo's surfaces, the
-//! chosen fill is `bg_active` and the hovered `bg_hover`, the nearest of
-//! the theme's.
+//! few, all in view). Colours are Paseo's neutrals (`tokens.neutral`).
 //!
 //! The control draws; the caller owns the value and is told of a choice
 //! through each segment's click, as the kit's other controls do.
@@ -79,7 +77,8 @@ pub fn segment(
         SegmentSize::Medium => (12.0, 14.0),
         SegmentSize::Small => (8.0, 12.0),
     };
-    let hover = tokens.bg_hover;
+    let neutral = &tokens.neutral;
+    let hover = neutral.surface2;
     div()
         .id(id)
         .flex()
@@ -92,13 +91,13 @@ pub fn segment(
         .px(px(padding))
         .rounded_full()
         .type_(Type::Body)
-        .text_size(px(text))
+        .text_size(px(crate::fonts::ui(text)))
         .text_color(if chosen {
-            tokens.text_primary
+            neutral.foreground
         } else {
-            tokens.text_secondary
+            neutral.foreground_muted
         })
-        .when(chosen, |segment| segment.bg(tokens.bg_active))
+        .when(chosen, |segment| segment.bg(neutral.surface3))
         .when(!enabled, |segment| segment.opacity(0.5))
         .when(enabled && !chosen, |segment| {
             segment.cursor_pointer().hover(move |style| style.bg(hover))

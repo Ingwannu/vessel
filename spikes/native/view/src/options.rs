@@ -110,6 +110,11 @@ pub struct Controls {
     pub toggles: Vec<ToggleControl>,
     /// Other choices, after the switches.
     pub selects: Vec<SelectControl>,
+    /// The one effort control (`crate::effort`): the levels, the top step
+    /// and fast, when the agent sends levels. The options it drives are
+    /// still listed above; a composer that shows it leaves them out of
+    /// its other controls (`Effort::drives`).
+    pub slider: Option<crate::effort::Effort>,
 }
 
 impl Controls {
@@ -217,6 +222,21 @@ pub fn controls_of(options: &[SessionOption], agent: &str, lang: Lang) -> Contro
         }
     }
     out
+}
+
+/// [`controls_of`], with the effort control for an agent of `kind`
+/// (`None`: one added on the node).
+#[must_use]
+pub fn controls_with_effort(
+    options: &[SessionOption],
+    kind: Option<vessel_proto::HarnessKind>,
+    agent: &str,
+    lang: Lang,
+) -> Controls {
+    Controls {
+        slider: crate::effort::Effort::of(kind, options),
+        ..controls_of(options, agent, lang)
+    }
 }
 
 /// Choices made before a session exists, one per option, in the order

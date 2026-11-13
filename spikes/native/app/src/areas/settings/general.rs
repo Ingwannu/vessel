@@ -38,25 +38,30 @@ pub(crate) fn render(
         SendKey::Enter => words.enter_sends,
         SendKey::ModEnter => words.shortcut_sends,
     };
+    // Each row once the composer reads its value (`super::applied`).
     let sending = settings::card(tokens)
-        .child(settings::row_at(
-            words.send_shortcut,
-            Some(send_hint.into()),
-            None,
-            Some(select_for(List::Send, shell, compact, tokens, cx)),
-            true,
-            compact,
-            tokens,
-        ))
-        .child(settings::row_at(
-            words.default_send,
-            Some(words.delivery_note(composer.delivery).into()),
-            None,
-            Some(select_for(List::Delivery, shell, compact, tokens, cx)),
-            false,
-            compact,
-            tokens,
-        ));
+        .when(applied(List::Send), |card| {
+            card.child(settings::row_at(
+                words.send_shortcut,
+                Some(send_hint.into()),
+                None,
+                Some(select_for(List::Send, shell, compact, tokens, cx)),
+                true,
+                compact,
+                tokens,
+            ))
+        })
+        .when(applied(List::Delivery), |card| {
+            card.child(settings::row_at(
+                words.default_send,
+                Some(words.delivery_note(composer.delivery).into()),
+                None,
+                Some(select_for(List::Delivery, shell, compact, tokens, cx)),
+                !applied(List::Send),
+                compact,
+                tokens,
+            ))
+        });
     let kept = &shell.prefs.kept;
     // The file's path under the note, its copy at the right (as About's log
     // file); this launch only, said with why.
@@ -98,8 +103,6 @@ pub(crate) fn render(
         compact,
         tokens,
     ));
-    // The composer's rows only once the composer reads them
-    // (`super::applied`).
     let shown = applied(List::Send) || applied(List::Delivery);
     div()
         .flex()

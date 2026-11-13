@@ -35,6 +35,7 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod update;
+pub mod workspace;
 
 pub use about::AboutText;
 pub use app::Text;

@@ -12,9 +12,13 @@
 pub mod about;
 pub mod agent_status;
 pub mod ago;
+pub mod alert;
+pub mod badge;
 pub mod board;
 mod conversation;
 pub mod devices;
+pub mod effort;
+pub mod extras;
 mod links;
 pub mod machines;
 pub mod models;
@@ -32,6 +36,7 @@ pub mod terminal;
 mod tests;
 mod text;
 pub mod timeline;
+pub mod toasts;
 pub mod workspace;
 
 pub use board::{
@@ -40,7 +45,8 @@ pub use board::{
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
 pub use options::{
-    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, own_name, with_picks,
+    Controls, Picks, SelectControl, ToggleControl, choices_for, controls_of, controls_with_effort,
+    own_name, with_picks,
 };
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,

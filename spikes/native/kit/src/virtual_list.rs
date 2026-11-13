@@ -31,8 +31,8 @@
 use std::ops::Range;
 
 use gpui::{
-    AnyElement, App, FollowMode, List, ListAlignment, ListOffset, ListState, Pixels, Styled as _,
-    Window, list, px,
+    AnyElement, App, Bounds, FollowMode, List, ListAlignment, ListOffset, ListState, Pixels,
+    Styled as _, Window, list, px,
 };
 
 /// How far past the view rows are drawn and measured, each way (the
@@ -42,6 +42,10 @@ const OVERDRAW: f32 = 1200.0;
 /// The gap left above a row put at the view's top (the page's `INSET`),
 /// as the offset into the row the view starts at: above it.
 const INSET_ABOVE: f32 = -16.0;
+
+/// The page's `INSET`: the gap kept between something brought into view
+/// and the view's edge.
+const INSET: f32 = 16.0;
 
 /// Where a row goes when the list goes to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -123,6 +127,27 @@ impl VirtualList {
         }
     }
 
+    /// Bring `bounds` into view, moving as little as it can, with the
+    /// page's 16-pixel inset, and `above` clear at the top for what floats
+    /// over the list there (the find bar): a line inside a row taller
+    /// than the view, in window coordinates (a reply's renderer reports
+    /// find's current match so, `TextView::on_reveal`).
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "pixel geometry: positions on screen, far from any overflow"
+    )]
+    pub fn reveal_bounds(&self, bounds: Bounds<Pixels>, above: Pixels) {
+        let view = self.state.viewport_bounds();
+        let inset = px(INSET);
+        let top = view.top() + inset.max(above);
+        let bottom = view.bottom() - inset;
+        if bounds.top() < top {
+            self.state.scroll_by(bounds.top() - top);
+        } else if bounds.bottom() > bottom {
+            self.state.scroll_by(bounds.bottom() - bottom);
+        }
+    }
+
     /// Scroll by `distance` (negative: up, which stops following the
     /// end).
     pub fn scroll_by(&self, distance: Pixels) {
@@ -138,6 +163,12 @@ impl VirtualList {
     #[must_use]
     pub fn following(&self) -> bool {
         self.state.is_following_tail()
+    }
+
+    /// The view's width, once laid out (zero before).
+    #[must_use]
+    pub fn width(&self) -> Pixels {
+        self.state.viewport_bounds().size.width
     }
 
     /// The first row in view, and how far into it the view starts.

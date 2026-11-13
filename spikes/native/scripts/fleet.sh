@@ -120,7 +120,30 @@ check_shapes() { # node id answered|asking
   [ "$startup" -eq 10 ] || problems+=("the start-up log's ten lines before the prompt (got: $startup)")
   # The entries: the thought, the message's table (header, rule, four
   # rows), three tool calls, the permission with four answers.
-  grep -q '^(thinking) The failure is in the timeline' <<<"$log" || problems+=("the thought")
+  # The thought, streamed a few characters at a time (one syllable
+  # alone among them) and put back together from `vessel log`, which
+  # prints each chunk as a `(thinking) …` line and a chunk's own line
+  # breaks as lines without it, up to the message's heading: many chunks,
+  # its Korean sentence and English whole, and no Hangul letter loose from
+  # its syllable (the owner's "생가ㄱ").
+  local thought
+  thought=$(python3 -c '
+import sys
+chunks, text, inside = 0, "", False
+for line in sys.stdin.read().split("\n"):
+    if line.startswith("(thinking) "):
+        inside, chunks, text = True, chunks + 1, text + line[len("(thinking) "):]
+    elif inside and line.startswith("## "):
+        break
+    elif inside:
+        text += "\n" + line
+loose = any("\u3131" <= c <= "\u318e" or "\u1100" <= c <= "\u11ff" for c in text)
+whole = "생각을 정리하면, 묶음의 끝이 메시지 안에 걸릴 때 두 번째 조각이 빠집니다." in text
+english = "The failure is in the timeline" in text
+print("ok" if chunks > 100 and whole and english and not loose else
+      f"chunks={chunks} korean={whole} english={english} loose={loose}")
+' <<<"$log")
+  [ "$thought" = ok ] || problems+=("the thought streamed whole ($thought)")
   [ "$(grep -c '^| ' <<<"$log")" -eq 6 ] || problems+=("the table's six lines")
   [ "$(grep -c '^\[tool\] ' <<<"$log")" -eq 3 ] || problems+=("three tool calls")
   grep -q '^  4) Never allow commands' <<<"$log" || problems+=("the permission's four answers")
@@ -155,6 +178,184 @@ done
 wait_for laptop "$shapes" "테스트를 모두 돌렸습니다"
 check_shapes laptop "$shapes" answered
 check_shapes laptop "$asking" asking
+
+# A conversation of several turns (the outline of prompts, read marks):
+# five prompts, one long and one Korean. The fake answers a prompt it
+# has no verb for with an echo and a tool that asks for permission;
+# each is allowed, so every turn ends.
+answer_waiting() { # node id: allow the one request waiting
+  for digit in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+    cli --node "$1" session answer "$2" "$digit" allow-once 2> /dev/null && return 0
+  done
+  return 1
+}
+start_session laptop turns "plain"
+turns=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+ended=1
+wait_for laptop "$turns" "[turn ended"
+for prompt in \
+  "Read the timeline's fold and tell me where a batch that ends inside a message loses its last chunk, with the lines that do it and what you would change first" \
+  "긴 대화에서 스크롤이 끊기지 않는지 확인해 주세요" \
+  "Now run the tests again" \
+  "plain"; do
+  # The node may still be closing the turn just ended: try again.
+  for _ in $(seq 1 50); do
+    cli --node laptop send "$turns" "$prompt" > /dev/null 2>&1 && break
+    sleep 0.1
+  done
+  if [ "$prompt" != plain ]; then
+    for _ in $(seq 1 300); do
+      [ "$(log_of laptop "$turns" | grep -c '^\[permission\]')" -ge "$ended" ] && break
+      sleep 0.1
+    done
+    for _ in $(seq 1 50); do answer_waiting laptop "$turns" && break; sleep 0.1; done
+  fi
+  # Each prompt after the turn before it ended, so it is a turn of its
+  # own and not a message steered into the running one.
+  ended=$((ended + 1))
+  for _ in $(seq 1 300); do
+    [ "$(log_of laptop "$turns" | grep -c '^\[turn ended')" -ge "$ended" ] && break
+    sleep 0.1
+  done
+done
+[ "$(log_of laptop "$turns" | grep -c '^> ')" -eq 5 ] || {
+  echo "fleet: session $turns lacks its five prompts" >&2
+  exit 1
+}
+
+# The workspace's shapes (track F): a monorepo on laptop whose paths are
+# long, whose working tree has well over a hundred changes (modified,
+# staged, untracked, deleted, renamed, a Hangul name) and one diff of
+# thousands of lines, with a vessel.toml naming setup, teardown, scripts
+# and services (not approved: the approval shows every one); a small
+# project whose commands are approved; a worktree on a long branch name
+# with uncommitted work (its removal lists what would be lost); and a
+# clone that failed. Checked below, so a screen captured against the
+# fleet is known to show them.
+git_in() { git -C "$1" -c user.name=fleet -c user.email=fleet@example.invalid "${@:2}"; }
+mono="$root/work/atlas-design-system-monorepo"
+deep="packages/design-system-foundations/src/components/navigation/sidebar-with-collapsible-sections"
+mkdir -p "$mono/$deep" "$mono/packages/tokens/generated" "$mono/docs/한글-문서"
+git_in "$mono" init -q -b main
+cat > "$mono/vessel.toml" <<'TOML'
+[worktree]
+setup = ["pnpm install --frozen-lockfile --prefer-offline", "pnpm --filter @atlas/design-system-foundations run build:tokens", "cp \"$VESSEL_PROJECT_ROOT/.env.example\" .env"]
+teardown = "docker compose --project-name atlas-preview down --volumes --remove-orphans"
+
+[scripts.lint]
+command = "pnpm run lint -- --max-warnings=0"
+
+[scripts.typecheck]
+command = "pnpm -r run typecheck"
+
+[services.storybook]
+command = "pnpm --filter @atlas/design-system-foundations run storybook -- --port 6006 --no-open"
+dir = "packages/design-system-foundations"
+
+[services.dev]
+command = "pnpm run dev"
+TOML
+for n in $(seq 1 80); do
+  printf 'export const item%s = %s;\n' "$n" "$n" > "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"
+done
+seq 1 3000 | sed 's/.*/export const colour& = "#&";/' > "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
+printf '# 설치 안내\n\n한글로 쓴 문서입니다.\n' > "$mono/docs/한글-문서/설치-안내.md"
+printf 'old name\n' > "$mono/docs/renamed-before.md"
+mkdir -p "$mono/assets"
+head -c 4096 /dev/urandom > "$mono/assets/brand-mark.bin"
+git_in "$mono" add -A && git_in "$mono" commit -q -m "The design system, as it was"
+# The working tree: 60 modified (20 of them staged), 40 untracked, 5
+# deleted, one renamed, the Hangul file edited, 2,500 lines rewritten.
+for n in $(seq 1 60); do echo "export const changed$n = true;" >> "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+for n in $(seq 1 20); do git_in "$mono" add "$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+for n in $(seq 1 40); do printf 'new %s\n' "$n" > "$mono/$deep/untracked-generated-snapshot-$n.snap"; done
+for n in $(seq 76 80); do rm "$mono/$deep/collapsible-section-item-with-long-name-$n.tsx"; done
+git_in "$mono" mv docs/renamed-before.md docs/renamed-after-a-much-longer-name.md
+printf '\n바뀐 줄입니다.\n' >> "$mono/docs/한글-문서/설치-안내.md"
+# A binary file changed, a folder with nothing in it (the Files tree's
+# empty folder), and a file no one may read (a failed read).
+head -c 4096 /dev/urandom > "$mono/assets/brand-mark.bin"
+mkdir -p "$mono/packages/empty-folder"
+printf 'not for reading\n' > "$mono/unreadable-notes.txt"
+chmod 000 "$mono/unreadable-notes.txt"
+sed -i '1,2500s/"#/"oklch(/' "$mono/packages/tokens/generated/generated-colour-scale-for-every-theme.ts"
+cli --node laptop project add "$mono" > /dev/null
+small="$root/work/shop"
+mkdir -p "$small" && git_in "$small" init -q -b main
+printf '[worktree]\nsetup = "npm ci"\n\n[scripts.test]\ncommand = "npm test"\n' > "$small/vessel.toml"
+printf 'console.log("shop");\n' > "$small/index.js"
+git_in "$small" add -A && git_in "$small" commit -q -m init
+cli --node laptop project add "$small" > /dev/null
+digest=$(cli --node laptop project commands shop 2> /dev/null | grep -oE '[0-9a-f]{64}' | head -1)
+[ -n "$digest" ] && cli --node laptop project approve shop "$digest" > /dev/null 2>&1
+cli --node laptop worktree new atlas-design-system-monorepo --skip-setup \
+  --branch feature/sidebar-collapsible-sections-keyboard-navigation-and-focus-order > /dev/null 2>&1 || true
+tree=$(cli --node laptop worktree list 2> /dev/null | awk '/sidebar-collapsible/ {print $NF; exit}')
+[ -n "$tree" ] && [ -d "$tree" ] && printf 'work in progress\n' > "$tree/README-draft.md"
+cli --node laptop project clone "https://127.0.0.1:9/team/unreachable-repository.git" "$root/work" > /dev/null 2>&1 || true
+
+problems=()
+changes=$(git -C "$mono" status --porcelain | wc -l)
+[ "$changes" -ge 100 ] || problems+=("only $changes changes in the monorepo")
+big=$(git -C "$mono" diff --numstat -- packages/tokens | awk '{print $1}')
+[ "${big:-0}" -ge 2000 ] || problems+=("the large diff has ${big:-0} lines")
+listed=$(cli --node laptop project list 2> /dev/null)
+grep -q 'atlas-design-system-monorepo' <<<"$listed" || problems+=("the monorepo is not a project")
+grep -q 'clone_failed\|clone failed' <<<"$listed" || problems+=("no failed clone listed")
+[ -n "$digest" ] || problems+=("shop's commands were not approved")
+[ -n "$tree" ] || problems+=("no worktree on the long branch")
+git -C "$mono" diff --numstat -- assets | grep -q '^-' || problems+=("no binary change")
+[ -d "$mono/packages/empty-folder" ] && [ -z "$(ls -A "$mono/packages/empty-folder")" ] || problems+=("no empty folder")
+[ -e "$mono/unreadable-notes.txt" ] && ! [ -r "$mono/unreadable-notes.txt" ] || problems+=("no unreadable file")
+if [ ${#problems[@]} -gt 0 ]; then
+  printf 'fleet: the workspace shapes are missing: %s\n' "${problems[*]}" >&2
+  exit 1
+fi
+
+# Questions the agent asks, as Claude's adapter sends its
+# `AskUserQuestion` (fake-acp's `ask questions` and `ask one`): three
+# questions (one choosing several, one in Korean, each with its "Other"
+# box) and one. Both are left waiting, and checked through `vessel log`.
+start_session laptop questions "ask questions"
+questions=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop question "ask one"
+question=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$questions" "[question "
+wait_for laptop "$question" "[question "
+asked=$(log_of laptop "$questions")
+grep -q '^\[question [^]]*\] Please answer the following questions\.$' <<<"$asked" &&
+  [ "$(grep -c '^  question_[0-9]_custom: Other (text)$' <<<"$asked")" -eq 3 ] &&
+  grep -q '^  question_1: Checks (choose, several)$' <<<"$asked" &&
+  grep -q '^  question_2: 언어 (choose)$' <<<"$asked" || {
+  echo "fleet: session $questions lacks Claude's three questions" >&2
+  exit 1
+}
+grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of laptop "$question")" || {
+  echo "fleet: session $question lacks Claude's one question" >&2
+  exit 1
+}
+
+# Prompts waiting their turn (the queue above the composer): a turn that
+# runs until it is stopped (`wait`, which also takes a steer) and three
+# prompts queued behind it, one long, one Korean, one short. Checked
+# through `vessel session queue`, one line per entry after its heading.
+start_session laptop queued "wait"
+queued=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$queued" "> wait"
+for prompt in \
+  "After this, read the fold again and write down every place a batch that ends inside a message can lose a chunk, with the lines that do it" \
+  "끝나면 한글 세션의 제목도 같이 바꿔 주세요" \
+  "Then run the tests"; do
+  for _ in $(seq 1 50); do
+    cli --node laptop send "$queued" "$prompt" --queue > /dev/null 2>&1 && break
+    sleep 0.1
+  done
+done
+waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || true)
+[ "$waiting" -eq 3 ] || {
+  echo "fleet: session $queued lacks its three queued prompts (got: $waiting)" >&2
+  exit 1
+}
 
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash

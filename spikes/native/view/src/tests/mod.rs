@@ -20,4 +20,5 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod sync;
+mod toasts;
 mod tree;

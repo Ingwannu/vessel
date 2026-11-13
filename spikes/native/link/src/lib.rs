@@ -32,6 +32,7 @@ mod session;
 mod demo;
 #[cfg(target_arch = "wasm32")]
 mod web;
+pub mod workspace;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
@@ -139,6 +140,8 @@ pub enum Command {
         session: SessionId,
         /// What was typed.
         text: String,
+        /// What it does while a turn runs (Settings' default send).
+        delivery: Delivery,
     },
     /// Start a conversation: create the session, send its first prompt,
     /// and report it [`Event::Started`].
@@ -216,6 +219,14 @@ pub enum Command {
         /// instead when it makes a free book name.
         prefer_node_name: bool,
     },
+    /// Ask a machine about its projects, worktrees, git or files; answered
+    /// by [`Event::Workspace`] (`workspace`'s module says how).
+    Workspace {
+        /// The machine.
+        machine: String,
+        /// What is asked.
+        ask: workspace::Ask,
+    },
 }
 
 /// What the link reports.
@@ -271,6 +282,13 @@ pub enum Event {
     },
     /// Something failed; the words to show.
     Failed(String),
+    /// A machine answered a workspace ask.
+    Workspace {
+        /// The machine.
+        machine: String,
+        /// The answer, with what was asked.
+        answer: workspace::Answer,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -301,6 +319,7 @@ impl Link {
             events,
             clients: HashMap::new(),
             follow: None,
+            workspace: workspace::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -328,6 +347,7 @@ struct State {
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     follow: Option<tokio::task::JoinHandle<()>>,
+    workspace: workspace::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -364,7 +384,8 @@ impl State {
                 machine,
                 session,
                 text,
-            } => self.prompt(&machine, session, text).await,
+                delivery,
+            } => self.prompt(&machine, session, text, delivery).await,
             Command::Start {
                 machine,
                 harness,
@@ -412,6 +433,7 @@ impl State {
                 session,
                 act,
             } => self.act(&machine, session, act),
+            Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
                 match saved {
@@ -459,6 +481,7 @@ impl State {
                                 .map(|session| Card::from_session(&name, session))
                                 .collect(),
                             agents: connected.agents.clone(),
+                            protocol: Some(connected.client.protocol()),
                             name: name.clone(),
                             reach: Reach::Online,
                         };
@@ -644,7 +667,7 @@ impl State {
         }
     }
 
-    async fn prompt(&self, machine: &str, session: SessionId, text: String) {
+    async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
                 LinkError::NotConnected(machine.to_owned()).to_string(),
@@ -653,7 +676,7 @@ impl State {
             return;
         };
         let content = vec![ContentBlock::Text { text }];
-        match client.prompt(session, content, Delivery::Queue).await {
+        match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
                 self.emit(Event::Failed(
@@ -667,6 +690,18 @@ impl State {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
+    /// Hand a workspace ask to its own task, with the machine's connection.
+    fn workspace(&self, machine: String, ask: workspace::Ask) {
+        let events = self.events.clone();
+        match self.client(&machine) {
+            Ok(client) => self.workspace.ask(client.clone(), machine, ask, events),
+            Err(error) => {
+                let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
+                workspace::Hub::refuse(machine, ask, problem, events);
+            }
+        }
+    }
+
     async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             self.emit(Event::Failed(
@@ -691,6 +726,7 @@ fn unreachable(name: String, why: &str) -> Machine {
         reach: Reach::Unreachable(why.to_owned()),
         sessions: Vec::new(),
         agents: Vec::new(),
+        protocol: None,
     }
 }
 

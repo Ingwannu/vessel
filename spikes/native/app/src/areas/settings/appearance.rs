@@ -16,8 +16,7 @@
 //! - Differences: the sizes and the width are selects over the model's
 //!   values (Paseo types a number of pixels): the model keeps closed
 //!   ranges (`prefs/appearance.rs`), so a choice cannot be out of them.
-//!   The sizes are kept, not yet applied: the kit's type steps are
-//!   constants today.
+//!   A row shows once what it changes is drawn from it (`super::applied`).
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
@@ -48,46 +47,52 @@ pub(crate) fn render(
     }
     let theme = settings::card(tokens).p(px(12.0)).child(grid);
     let typography = settings::card(tokens)
-        .child(settings::row_at(
-            words.interface_font,
-            Some(words.interface_font_note.into()),
-            None,
-            Some(select_for(List::Interface, shell, compact, tokens, cx)),
-            true,
-            compact,
-            tokens,
-        ))
-        .child(settings::row_at(
-            words.code_font,
-            Some(words.code_font_note.into()),
-            None,
-            Some(select_for(List::Code, shell, compact, tokens, cx)),
-            false,
-            compact,
-            tokens,
-        ));
+        .when(applied(List::Interface), |card| {
+            card.child(settings::row_at(
+                words.interface_font,
+                Some(words.interface_font_note.into()),
+                None,
+                Some(select_for(List::Interface, shell, compact, tokens, cx)),
+                true,
+                compact,
+                tokens,
+            ))
+        })
+        .when(applied(List::Code), |card| {
+            card.child(settings::row_at(
+                words.code_font,
+                Some(words.code_font_note.into()),
+                None,
+                Some(select_for(List::Code, shell, compact, tokens, cx)),
+                !applied(List::Interface),
+                compact,
+                tokens,
+            ))
+        });
     let conversation = settings::card(tokens)
-        .child(settings::row_at(
-            words.content_width,
-            Some(words.content_width_note.into()),
-            None,
-            Some(select_for(List::Width, shell, compact, tokens, cx)),
-            true,
-            compact,
-            tokens,
-        ))
-        .child(settings::row_at(
-            words.conversation_display,
-            Some(words.conversation_display_note.into()),
-            None,
-            Some(select_for(List::Display, shell, compact, tokens, cx)),
-            false,
-            compact,
-            tokens,
-        ));
-    // The sizes and the conversation's rows only once what they change is
-    // drawn from them (`super::applied`): the kit's type steps are fixed
-    // and the conversation's column does not read its width yet.
+        .when(applied(List::Width), |card| {
+            card.child(settings::row_at(
+                words.content_width,
+                Some(words.content_width_note.into()),
+                None,
+                Some(select_for(List::Width, shell, compact, tokens, cx)),
+                true,
+                compact,
+                tokens,
+            ))
+        })
+        .when(applied(List::Display), |card| {
+            card.child(settings::row_at(
+                words.conversation_display,
+                Some(words.conversation_display_note.into()),
+                None,
+                Some(select_for(List::Display, shell, compact, tokens, cx)),
+                !applied(List::Width),
+                compact,
+                tokens,
+            ))
+        });
+    // Each row once what it changes is drawn from it (`super::applied`).
     let sizes = applied(List::Interface) || applied(List::Code);
     let conversation_shown = applied(List::Width) || applied(List::Display);
     div()

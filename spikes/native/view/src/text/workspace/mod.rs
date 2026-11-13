@@ -1,4 +1,5 @@
-//! The workspace's words, in English and Korean: one table per language
+//! The workspace's words (track F's area, `text/mod.rs`'s convention), in
+//! English and Korean: one table per language
 //! ([`En`], [`Ko`]), each a whole implementation of [`WorkspaceWords`], so
 //! a sentence added to one language and not the other does not compile.
 //! The English is the page's, word for word (`data/workspace/*-words.ts`,
@@ -24,6 +25,7 @@
 
 mod en;
 mod ko;
+pub mod labels;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
@@ -34,14 +36,17 @@ use vessel_proto::workspace::{
 
 pub use en::En;
 pub use ko::Ko;
+pub use labels::Labels;
 
-use super::branch_name::BranchNameProblem;
-use super::changes::ScopeKind;
-use super::command_changes::Compared;
-use super::git_quick::{Blocked, GitAction};
-use super::place::PlaceProblem;
-use super::problem::Problem;
-use super::save::SaveFailure;
+use crate::workspace::branch_name::BranchNameProblem;
+use crate::workspace::changes::{FileNote, ScopeKind};
+use crate::workspace::command_changes::Compared;
+use crate::workspace::git_quick::{Blocked, GitAction};
+use crate::workspace::place::PlaceProblem;
+use crate::workspace::problem::Problem;
+use crate::workspace::save::SaveFailure;
+use crate::workspace::size::size_word;
+use crate::workspace::start::Refusal as StartRefusal;
 
 /// A refusal said plainly: what happened, what to do, and what it names.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,6 +59,39 @@ pub struct RefusalWords<'a> {
     pub paths: &'a [RelPath],
     /// Text to show as it came (a hook's output, the remote's message).
     pub output: Option<&'a str>,
+}
+
+/// Which way a project is added (the add form's three titles and hints).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AddForm {
+    /// A folder on the machine.
+    Folder,
+    /// A repository cloned into a folder.
+    Clone,
+    /// A new repository in an empty folder.
+    New,
+}
+
+/// The workspace's table of `lang`.
+impl super::Lang {
+    /// The workspace's words in this language.
+    #[must_use]
+    pub const fn workspace(self) -> &'static dyn WorkspaceWords {
+        match self {
+            Self::En => &En,
+            Self::Ko => &Ko,
+        }
+    }
+
+    /// The workspace screens' fixed words, where a `const fn` needs them
+    /// (a route's name).
+    #[must_use]
+    pub const fn workspace_labels(self) -> &'static Labels {
+        match self {
+            Self::En => &labels::EN,
+            Self::Ko => &labels::KO,
+        }
+    }
 }
 
 /// A time and the day it is read on, in the reader's zone: what "today"
@@ -131,6 +169,87 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn problem(&self, problem: &Problem) -> String;
     /// A save that wrote nothing.
     fn save_failure(&self, failure: &SaveFailure) -> String;
+
+    /// The screens' fixed words.
+    fn labels(&self) -> &'static Labels;
+    /// "Projects on laptop".
+    fn projects_on(&self, machine: &str) -> String;
+    /// The empty list's line.
+    fn no_projects_body(&self, machine: &str) -> String;
+    /// A machine older than projects.
+    fn older_machine(&self, machine: &str) -> String;
+    /// A project forgotten.
+    fn forgot(&self, name: &str) -> String;
+    /// Something not removed, and why.
+    fn not_removed(&self, name: &str, why: &str) -> String;
+    /// How many live sessions.
+    fn live(&self, count: usize) -> String;
+    /// Why tidying kept a worktree.
+    fn kept(&self, reason: &str) -> String;
+    /// "2 setup, 1 teardown, 3 scripts and services".
+    fn commands_title(&self, setup: usize, teardown: usize, scripts: usize) -> String;
+    /// A `vessel.toml` that does not parse.
+    fn invalid_commands(&self, message: &str) -> String;
+    /// An approval or a withdrawal refused.
+    fn commands_not(&self, approved: bool, why: &str) -> String;
+    /// Setup not started again.
+    fn setup_not_started(&self, why: &str) -> String;
+    /// A worktree removed, with the snapshot kept first.
+    fn removed(&self, branch: &str, snapshot: Option<&str>) -> String;
+    /// The removal dialog's title.
+    fn remove_title(&self, branch: &str) -> String;
+    /// What discarding destroys.
+    fn discard_says(&self, path: &str, branch: &str) -> String;
+    /// A snapshot not dropped.
+    fn snapshot_not_dropped(&self, name: &str, why: &str) -> String;
+    /// The add form's help line: `clone_target` is the folder and the
+    /// repository's name a clone lands in, when both are known.
+    fn add_hint(&self, form: AddForm, machine: &str, clone_target: Option<(&str, &str)>) -> String;
+    /// The approval dialog's first paragraph.
+    fn approval_copy(&self, place: &str, scripts: bool) -> String;
+    /// Where a project's setup runs ("in each new worktree of shop on laptop").
+    fn approval_place(&self, project: &str, machine: &str, each: bool) -> String;
+    /// The set's digest line.
+    fn digest(&self, digest: &str) -> String;
+    /// An edited command's old text.
+    fn was(&self, command: &str) -> String;
+
+    /// A note in a file's place in the Changes list.
+    fn file_note(&self, note: &FileNote) -> String {
+        let labels = self.labels();
+        match note {
+            FileNote::Loading => labels.loading.to_owned(),
+            FileNote::More => labels.show_rest.to_owned(),
+            FileNote::Binary => labels.binary_file.to_owned(),
+            FileNote::TooLarge { bytes } => {
+                format!("{} ({})", labels.too_large, size_word(*bytes))
+            }
+            FileNote::Submodule { from, to } => format!(
+                "{}: {} \u{2192} {}",
+                labels.submodule,
+                from.as_deref().unwrap_or("\u{2014}"),
+                to.as_deref().unwrap_or("\u{2014}")
+            ),
+            FileNote::Unchanged => labels.no_content_change.to_owned(),
+            FileNote::Unknown => labels.unknown_content.to_owned(),
+            FileNote::Failed(message) => message.clone(),
+        }
+    }
+
+    /// Why a start stopped, in a sentence.
+    fn start_refusal(&self, refusal: &StartRefusal) -> String {
+        let labels = self.labels();
+        match refusal {
+            StartRefusal::Worktree(reason) => self.worktree_refusal(reason),
+            StartRefusal::CommandsUnreadable => labels.commands_unreadable.to_owned(),
+            StartRefusal::NotFollowed { branch, problem } => format!(
+                "{} ({}): {}",
+                labels.setup_not_followed,
+                branch.as_deref().unwrap_or(labels.detached),
+                self.problem(problem)
+            ),
+        }
+    }
 
     /// `refusal` in plain words, with the paths and output it names.
     fn refusal<'a>(&self, refusal: &'a GitRefusal) -> RefusalWords<'a> {

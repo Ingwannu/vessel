@@ -25,8 +25,13 @@
 
 mod bar;
 mod bench;
+mod dock;
 mod entries;
+mod find;
 mod look;
+mod outline;
+mod question;
+mod queue;
 mod rename;
 mod timeline;
 mod tool;
@@ -34,15 +39,17 @@ mod tool;
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use vessel_app_kit::ui::{App, Context};
+use vessel_app_kit::ui::{App, Context, Subscription};
 use vessel_app_kit::{DialogState, MenuHandlers, MenuState, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
+use vessel_app_view::prefs::ConversationDisplay;
 use vessel_app_view::session::MarkAction;
-use vessel_app_view::timeline::{Folds, Logs, Rows, Timeline};
+use vessel_app_view::timeline::{FindCache, Folds, Logs, OutlineItem, Rows, Timeline, outline};
 use vessel_proto::{EventRecord, Mark, SessionId, SessionInfo};
 
 pub(crate) use bar::bar;
+pub(crate) use dock::dock;
 pub(crate) use timeline::{overlays, timeline};
 
 use crate::shell::Shell;
@@ -114,6 +121,21 @@ pub(crate) struct ConversationArea {
     pub(crate) dialog: DialogState,
     /// The title, while it is renamed in place.
     pub(crate) rename: Option<rename::Rename>,
+    /// The prompts, for the outline rail.
+    pub(crate) outline: Vec<OutlineItem>,
+    /// Where the pointer is on the rail.
+    pub(crate) outline_pointer: outline::Pointer,
+    /// A queued message edited in its row.
+    pub(crate) queue_edit: Option<queue::QueueEdit>,
+    /// The question waiting first, being answered over the composer.
+    pub(crate) answering: Option<question::Answering>,
+    /// The find bar, while it is open.
+    pub(crate) find: Option<find::FindBar>,
+    /// Each entry's folded text for find, kept between searches of the
+    /// session shown.
+    pub(crate) find_cache: FindCache,
+    /// Hears Mod+F (`find`); made once a session is first shown.
+    keys: Option<Subscription>,
     /// The scrolling measurement, when it is on.
     bench: bench::Bench,
 }
@@ -127,7 +149,7 @@ impl ConversationArea {
             open_runs: HashSet::new(),
             logs: Logs::default(),
             open_logs: HashSet::new(),
-            collapse: collapsing(),
+            collapse: collapsing(None),
             toggled: HashSet::new(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
@@ -138,6 +160,13 @@ impl ConversationArea {
             confirm: None,
             dialog: DialogState::new(cx),
             rename: None,
+            queue_edit: None,
+            answering: None,
+            outline: Vec::new(),
+            outline_pointer: outline::Pointer::default(),
+            find: None,
+            find_cache: FindCache::default(),
+            keys: None,
             bench: bench::Bench::default(),
         }
     }
@@ -154,20 +183,31 @@ impl ConversationArea {
     }
 }
 
-/// Whether the conversation collapses tool calls: until the app reads
-/// the person's display setting (the settings track's preference, whose
-/// default is "Full"), it collapses them, as it has since its first
-/// build; `VESSEL_APP_CONVERSATION=full` shows it as "Full" does (every
-/// tool call a row, an agent's log as one folded row), so that setting's
-/// screens can be seen and checked now.
-fn collapsing() -> bool {
-    std::env::var("VESSEL_APP_CONVERSATION").map_or(true, |display| display != "full")
+/// Whether the conversation collapses tool calls: as Settings ›
+/// Appearance › Conversation display says (`display`; "Full": every tool
+/// call a row, an agent's log as one folded row; "Collapse tool calls":
+/// runs of tool calls one row each, the log not shown), unless
+/// `VESSEL_APP_CONVERSATION` (`full` or `collapse`) pins it for a run, for
+/// captures. Before the preferences are read (`None`), collapsed, as the
+/// app has drawn it since its first build.
+fn collapsing(display: Option<ConversationDisplay>) -> bool {
+    match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
+        Ok("full") => false,
+        Ok("collapse") => true,
+        _ => display.is_none_or(|display| display == ConversationDisplay::CollapseTools),
+    }
 }
 
 impl Shell {
     /// The session area opened `session` on `machine`: start again from
     /// its first record, and read what the node says of it.
-    pub(crate) fn conversation_opened(&mut self, machine: &str, session: SessionId) {
+    pub(crate) fn conversation_opened(
+        &mut self,
+        machine: &str,
+        session: SessionId,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.hear_find(cx);
         let area = &mut self.areas.conversation;
         area.shown = Some(Shown {
             machine: machine.to_owned(),
@@ -186,6 +226,12 @@ impl Shell {
         area.menu.close();
         area.confirm = None;
         area.rename = None;
+        area.find = None;
+        area.find_cache = FindCache::default();
+        area.outline.clear();
+        area.queue_edit = None;
+        area.answering = None;
+        area.outline_pointer = outline::Pointer::default();
         self.command(Command::Act {
             machine: machine.to_owned(),
             session,
@@ -193,8 +239,28 @@ impl Shell {
         });
     }
 
+    /// The conversation as Settings' display says: its runs folded or
+    /// not, every row measured again (the list starts over at the end).
+    pub(crate) fn conversation_display(&mut self, display: ConversationDisplay) {
+        let collapse = collapsing(Some(display));
+        let area = &mut self.areas.conversation;
+        if area.collapse == collapse {
+            return;
+        }
+        area.collapse = collapse;
+        area.folds = collapse.then(|| Folds::of(area.timeline.entries()));
+        area.open_runs.clear();
+        area.rows_again();
+        area.list.reset(area.rows.len());
+    }
+
     /// Records of the session followed.
-    pub(crate) fn conversation_records(&mut self, session: &SessionId, records: &[EventRecord]) {
+    pub(crate) fn conversation_records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) {
         let area = &mut self.areas.conversation;
         if area
             .shown
@@ -212,6 +278,7 @@ impl Shell {
             area.folds = Some(Folds::of(area.timeline.entries()));
         }
         area.logs = Logs::of(area.timeline.entries());
+        area.outline = outline(area.timeline.entries());
         area.rows_again();
         let rows_after = area.rows.len();
         // Rows are entries less folded members, so a batch can add rows
@@ -230,6 +297,7 @@ impl Shell {
             .min(rows_before);
         area.list
             .splice(from..rows_before, rows_after.saturating_sub(from));
+        self.find_grew(cx);
     }
 
     /// A session act answered.

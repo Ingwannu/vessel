@@ -107,7 +107,9 @@ fn item(
                 .whitespace_nowrap()
                 .text_ellipsis()
                 .type_(Type::Body)
-                .when(compact, |label| label.text_size(px(16.0)))
+                .when(compact, |label| {
+                    label.text_size(px(vessel_app_kit::fonts::ui(16.0)))
+                })
                 .text_color(if shown {
                     neutral.foreground
                 } else {

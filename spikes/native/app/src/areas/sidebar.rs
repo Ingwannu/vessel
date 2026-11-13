@@ -1,4 +1,5 @@
-//! The sidebar: the routes (`routes::Route::NAV`), the machines in the
+//! The sidebar: the routes (`routes::Route::NAV`), a slot for the
+//! projects ([`projects`], the workspace track's), the machines in the
 //! book with their live sessions (DESIGN.md section 6: rows on the shell,
 //! no edge of its own), adding a machine, and the build's label.
 
@@ -51,7 +52,8 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
         .px(px(8.0))
         .pb(px(8.0))
         .gap(px(12.0))
-        .child(nav)
+        .child(nav.children(schedules(shell, tokens, cx)))
+        .children(projects(shell, tokens, cx))
         .child(
             div()
                 .id("machines")
@@ -77,6 +79,38 @@ pub(crate) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 .map(|status| div().px(px(10.0)).child(status)),
         )
         .child(foot(shell, tokens, cx))
+}
+
+/// The slot for Schedules among the navigation rows, where Paseo's
+/// sidebar has it (after its pages, before the projects): the schedules
+/// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
+/// side of the slot.
+const fn schedules(
+    _shell: &Shell,
+    _tokens: &Tokens,
+    _cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    None
+}
+
+/// The slot between the navigation rows and the machines: the projects
+/// section (track F's, Paseo's sidebar lists projects there); `None`:
+/// nothing.
+///
+/// [Decision Log]
+/// - Purpose: the projects are the workspace track's; the sidebar's frame
+///   is this one's (and track S's when it draws the full sidebar). One
+///   slot with one owner each side keeps both from editing the other's
+///   drawing, as `conversation::dock` does over the composer.
+/// - Choice: the sidebar asks for the slot's content and puts it between
+///   the navigation and the machines, at the sidebar's width; F fills
+///   this function (or replaces its body with a call into its module).
+fn projects(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    crate::areas::workspace::sidebar_projects(shell, tokens, cx)
 }
 
 /// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a

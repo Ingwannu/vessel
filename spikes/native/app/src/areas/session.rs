@@ -12,14 +12,18 @@
 //! (agent-orchestrator's local echo and its "gets ready" line), and the
 //! conversation takes its place when the first record arrives.
 
+use std::cell::Cell;
+
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
 use vessel_app_link::Command;
+use vessel_app_view::prefs::ContentWidth;
+use vessel_app_view::prefs::TurnDelivery;
 use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -109,11 +113,13 @@ impl Shell {
         self.areas.session.resuming = None;
         self.areas.session.resume_error = None;
         self.follow(open, cx);
-        let t = self.t;
+        let placeholder = self
+            .t
+            .composer_placeholder(&super::settings::send_key_words(self));
         self.areas
             .session
             .composer
-            .set_placeholder(t.composer_placeholder, window, cx);
+            .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
         }
@@ -121,7 +127,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session);
+        self.conversation_opened(&open.machine, open.session, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
@@ -196,8 +202,13 @@ impl Shell {
     }
 
     /// Records of the session followed.
-    pub(crate) fn records(&mut self, session: &SessionId, records: &[EventRecord]) {
-        self.conversation_records(session, records);
+    pub(crate) fn records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.conversation_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open
@@ -234,10 +245,12 @@ impl Shell {
             return;
         }
         if open.live {
+            let delivery = self.delivery();
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
                 text,
+                delivery,
             });
         } else {
             // Ended or interrupted: start it again with its conversation,
@@ -252,6 +265,34 @@ impl Shell {
         }
         self.areas.session.composer.clear(window, cx);
         cx.notify();
+    }
+
+    /// What a plain send does: with no turn running, start one (or wait
+    /// behind prompts already queued); while one runs, what Settings'
+    /// default send says (wait in the queue, join the turn, or stop it and
+    /// start), joining only for an agent that takes it (`abilities.steer`;
+    /// otherwise the queue).
+    fn delivery(&self) -> Delivery {
+        if !self.areas.session.conversation.turn_running() {
+            return Delivery::Queue;
+        }
+        match self.prefs.settings.composer.delivery {
+            TurnDelivery::Steer if self.steers() => Delivery::Steer,
+            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
+            TurnDelivery::Interrupt => Delivery::Interrupt,
+        }
+    }
+
+    /// Whether the open session's agent takes a message into a running
+    /// turn.
+    pub(crate) fn steers(&self) -> bool {
+        self.areas
+            .conversation
+            .timeline
+            .facts()
+            .abilities
+            .as_ref()
+            .is_some_and(|abilities| abilities.steer)
     }
 
     /// The ended session runs again: follow it afresh (its log goes on
@@ -321,7 +362,7 @@ pub(crate) fn render(
     if let Some(pending) = &view.pending
         && view.conversation.entries().is_empty()
     {
-        return starting(pending, shell, tokens);
+        return starting(pending, shell, tokens, window, cx);
     }
     let Some(open) = &view.open else {
         return div();
@@ -339,7 +380,7 @@ pub(crate) fn render(
             .into_any_element()
     };
     let working = view.conversation.turn_running();
-    div()
+    let screen = div()
         .size_full()
         .flex()
         .flex_col()
@@ -360,9 +401,25 @@ pub(crate) fn render(
         )
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
-            frame.child(composer(shell, tokens, working, window, cx))
+            // The conversation's slot over the card (`conversation::dock`:
+            // the queue), at the card's width.
+            let dock = super::conversation::dock(shell, tokens, window, cx);
+            frame
+                .children(dock.map(column))
+                .child(composer(shell, tokens, working, window, cx))
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::conversation::overlays(shell, tokens, window, cx));
+    // Track F's slot beside the conversation column: the code panel.
+    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
+        Some(panel) => div()
+            .size_full()
+            .relative()
+            .flex()
+            .flex_row()
+            .child(screen.flex_1().min_w(px(0.0)))
+            .child(panel),
+        None => screen,
+    }
 }
 
 /// Under an ended session's conversation: that sending starts it again;
@@ -390,9 +447,17 @@ fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     )))
 }
 
-/// The first prompt, shown while the session starts.
-fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
+/// The first prompt, shown while the session starts; in a new worktree,
+/// track F's card of its steps in place of the line that says so.
+fn starting(
+    pending: &Pending,
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let t = shell.t;
+    let card = crate::areas::workspace::start_card(shell, tokens, window, cx);
     let title: String = pending
         .prompt
         .lines()
@@ -417,13 +482,16 @@ fn starting(pending: &Pending, shell: &Shell, tokens: &Tokens) -> Div {
                 .flex_col()
                 .justify_end()
                 .child(person(&pending.prompt, tokens))
-                .child(column(
-                    div()
-                        .py(px(8.0))
-                        .type_(Type::Meta)
-                        .text_color(tokens.st_building)
-                        .child(t.starting_on(&pending.agent, &pending.machine)),
-                )),
+                .child(column(card.map_or_else(
+                    || {
+                        div()
+                            .py(px(8.0))
+                            .type_(Type::Meta)
+                            .text_color(tokens.st_building)
+                            .child(t.starting_on(&pending.agent, &pending.machine))
+                    },
+                    |card| div().py(px(8.0)).child(card),
+                ))),
         )
 }
 
@@ -479,14 +547,14 @@ fn composer(
 fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     // Wrapped: four long answers do not fit a phone's width.
     let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    for (index, (option, words, allows)) in asked.options.iter().enumerate() {
+    let buttons = asked.buttons(shell.t.lang.conversation());
+    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
         let id = asked.id;
-        let option = option.clone();
         answers = answers.child(
             button(
                 ElementId::Name(format!("answer-{index}").into()),
-                words.clone(),
-                *allows,
+                words,
+                allows,
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {
@@ -494,9 +562,9 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
             })),
         );
     }
-    div()
-        .mx(px(12.0))
-        .mb(px(8.0))
+    // In the chat column (`column`), so its edges are the composer's.
+    let card = div()
+        .w_full()
         .p(px(12.0))
         .flex()
         .flex_col()
@@ -511,7 +579,8 @@ fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_
                 .text_color(tokens.text_primary)
                 .child(shell.t.asks_to_run(asked.what.as_deref())),
         )
-        .child(answers)
+        .child(answers);
+    column(card).mb(px(8.0))
 }
 
 /// The first line of a prompt, at most 80 characters (the node's rule
@@ -537,15 +606,49 @@ const COLUMN_WIDTH: f32 = 820.0;
 /// The column's distance from the window's edges.
 const COLUMN_INSET: f32 = 16.0;
 
+thread_local! {
+    /// How wide the chat column grows (Settings › Appearance › Content
+    /// width); `None`: the window's width.
+    ///
+    /// [Decision Log]
+    /// - Purpose: the person's content width, for the conversation and
+    ///   the composer under it together (the page's `--content-width` on
+    ///   `.timeline-column` and `.session-dock-column`).
+    /// - Choice: one value read by [`column`], which every row of the
+    ///   conversation and the composer is drawn in, set by
+    ///   [`set_content_width`]. Kept beside the column rather than passed
+    ///   to it: the conversation's rows are drawn by its list where the
+    ///   settings are not at hand, and one value keeps the composer and
+    ///   the messages on the same edges.
+    /// - Difference: "Comfortable" is Paseo's chat column, 820, where the
+    ///   page takes agent-orchestrator's 768 (the owner's rule: Paseo's
+    ///   app); "Wide" is GOAT's 1152 as the page's, "Full" the window's.
+    static CONTENT_WIDTH: Cell<Option<f32>> = const { Cell::new(Some(COLUMN_WIDTH)) };
+}
+
+/// The chat column grows to `width` (the next frame draws it).
+pub(crate) fn set_content_width(width: ContentWidth) {
+    let points = match width {
+        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
+        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    };
+    CONTENT_WIDTH.set(points);
+}
+
 /// `content` in the chat column.
 pub(crate) fn column(content: impl IntoElement) -> Div {
+    let inner = div().w_full().child(content);
+    let inner = match CONTENT_WIDTH.get() {
+        Some(width) => inner.max_w(px(width)),
+        None => inner,
+    };
     div()
         .w_full()
         .flex()
         .flex_row()
         .justify_center()
         .px(px(COLUMN_INSET))
-        .child(div().w_full().max_w(px(COLUMN_WIDTH)).child(content))
+        .child(inner)
 }
 
 /// A person's message, in the chat column.

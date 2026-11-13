@@ -39,8 +39,8 @@ pub(crate) fn layout(
                     // Paseo's 26 at weight 500: the label step's face and
                     // fallbacks (Hangul), larger.
                     .type_(Type::Label)
-                    .text_size(px(26.0))
-                    .line_height(px(32.0))
+                    .text_size(px(vessel_app_kit::fonts::ui(26.0)))
+                    .line_height(px(vessel_app_kit::fonts::ui(32.0)))
                     .text_color(tokens.neutral.foreground)
                     .child(title.to_owned()),
             )
@@ -110,7 +110,7 @@ pub(crate) fn compact_header(
                 .whitespace_nowrap()
                 .text_ellipsis()
                 .type_(Type::Label)
-                .text_size(px(16.0))
+                .text_size(px(vessel_app_kit::fonts::ui(16.0)))
                 .text_color(neutral.foreground)
                 .child(title.to_owned()),
         )

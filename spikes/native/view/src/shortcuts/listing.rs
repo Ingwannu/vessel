@@ -4,8 +4,11 @@
 //! its keys; with the search over names and keys and the "Modified"
 //! filter.
 
+use std::collections::BTreeMap;
+
 use super::keys::{Binding, Platform, binding_words, overlaps};
-use super::registry::{Action, Overrides, ShortcutGroup, bindings_of, jump_shown, modified};
+use super::registry::{Action, ShortcutGroup, bindings_of, jump_shown, modified};
+use crate::prefs::{ActionId, Bindings};
 use crate::text::ShortcutWords;
 
 /// One action's row.
@@ -41,7 +44,7 @@ pub enum ShortcutFilter {
 fn clashes_of(
     action: Action,
     bindings: &[Binding],
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     platform: Platform,
 ) -> Vec<Action> {
     Action::ALL
@@ -60,7 +63,7 @@ fn clashes_of(
 #[must_use]
 pub fn shortcut_row(
     action: Action,
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     platform: Platform,
     words: &ShortcutWords,
 ) -> ShortcutRow {
@@ -113,7 +116,7 @@ fn found(row: &ShortcutRow, query: &str) -> bool {
 #[must_use]
 pub fn shortcut_rows(
     group: ShortcutGroup,
-    overrides: &Overrides,
+    overrides: &BTreeMap<ActionId, Bindings>,
     platform: Platform,
     query: &str,
     filter: ShortcutFilter,
@@ -128,7 +131,7 @@ pub fn shortcut_rows(
 
 /// How many actions differ from their defaults.
 #[must_use]
-pub fn modified_count(overrides: &Overrides) -> usize {
+pub fn modified_count(overrides: &BTreeMap<ActionId, Bindings>) -> usize {
     Action::ALL
         .into_iter()
         .filter(|action| modified(*action, overrides))

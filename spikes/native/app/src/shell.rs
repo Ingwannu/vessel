@@ -4,6 +4,7 @@
 //! DESIGN.md section 6).
 
 use tokio::sync::mpsc;
+use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
     AsyncApp, Context, FluentBuilder as _, IntoElement, ParentElement as _, Render, Styled as _,
@@ -82,7 +83,7 @@ impl Shell {
             sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
-        areas::settings::start(&shell, window, cx);
+        areas::settings::start(&mut shell, window, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -123,13 +124,18 @@ impl Shell {
                 }
                 self.settle_draft();
                 self.retitle();
+                self.workspace_fleet();
             }
-            Event::Records { session, records } => self.records(&session, &records),
+            Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, route } => self.paired(&node, &route, cx),
             Event::PairFailed(why) => self.pair_failed(why),
-            Event::Acted(answer) => self.acted(answer, cx),
+            Event::Acted(answer) => {
+                if let Some(answer) = self.board_acted(answer, cx) {
+                    self.acted(answer, cx);
+                }
+            }
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
@@ -141,6 +147,7 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
+            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
         }
         cx.notify();
     }
@@ -226,10 +233,15 @@ impl Render for Shell {
                 cx.listener(|this, _event, _window, cx| this.toggle_sidebar(cx)),
             )
         });
+        // The window's face at its root (Geist, Pretendard behind it), so
+        // text an area draws without a step of its own still has
+        // Pretendard for its Hangul (the owner's font rule; a folded row
+        // without a face split "각" into "가" and "ㄱ").
         let content = div()
             .size_full()
             .flex()
             .flex_col()
+            .face(vessel_app_kit::Type::Body)
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
@@ -279,7 +291,8 @@ impl Render for Shell {
                     // Under the title bar, so its menu button stays to close
                     // it with.
                     .children(sheet),
-            );
+            )
+            .children(areas::toasts::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

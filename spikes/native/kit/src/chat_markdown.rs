@@ -44,15 +44,19 @@
 //!   highlighted (the renderer's highlighter needs a grammar feature the
 //!   kit does not build).
 
+use std::ops::Range;
+
 use gpui::{
-    AnyElement, App, ElementId, Hsla, IntoElement, Overflow, ParentElement as _, SharedString,
-    StyleRefinement, Styled as _, WhiteSpace, Window, div, px, relative,
+    AnyElement, App, AppContext as _, ElementId, Entity, Hsla, IntoElement as _, Overflow,
+    ParentElement as _, Pixels, SharedString, StyleRefinement, Styled as _, WhiteSpace, Window,
+    div, px, relative,
 };
-use gpui_component::text::{TextView, TextViewStyle};
+use gpui_component::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
 
 use crate::copy::{CopyLook, copy_button};
-use crate::fonts::MONO;
+use crate::fonts::Type;
 use crate::theme::{Scheme, Tokens};
+use crate::widgets::TypeExt as _;
 
 /// The block's corner radius (GOAT's `rounded-lg`).
 const RADIUS: f32 = 8.0;
@@ -116,17 +120,121 @@ impl Look {
     }
 }
 
-/// A reply's Markdown, its code blocks drawn as GOAT draws them. `id`
-/// keys the renderer's cache and must stay the same for the same text
-/// across frames.
-#[must_use]
+/// Find's colours (GOAT's `::highlight(goat-thread-find)` and
+/// `goat-thread-find-active`, `index.css`, their oklch in sRGB): every
+/// match washed yellow, the current one amber. Not neutral colours, so
+/// not the kit's neutral steps.
+#[derive(Debug, Clone, Copy)]
+pub struct FindPalette {
+    /// Behind every match: oklch(0.915 0.11 85) light, oklch(0.55 0.1
+    /// 85) dark.
+    pub found: Hsla,
+    /// Behind the current one: oklch(0.774 0.152 74.3).
+    pub current: Hsla,
+    /// The current one's ink, where the text's colour can be set (a plain
+    /// text; a reply's renderer paints backgrounds only): oklch(0.216
+    /// 0.028 77.4).
+    pub current_ink: Hsla,
+}
+
+impl FindPalette {
+    /// The palette for `tokens`' scheme.
+    #[must_use]
+    pub fn of(tokens: &Tokens) -> Self {
+        let found = match tokens.scheme {
+            Scheme::Light => gpui::rgb(0x00ff_de8b),
+            Scheme::Dark => gpui::rgb(0x008c_6c1f),
+        };
+        Self {
+            found: found.into(),
+            current: gpui::rgb(0x00ee_a52b).into(),
+            current_ink: gpui::rgb(0x0021_180a).into(),
+        }
+    }
+}
+
+/// What find marks in a reply.
+pub struct FindMarks<'a> {
+    /// Where the reply's list scrolls the current match into view (the
+    /// renderer cannot scroll a list it does not own).
+    pub list: &'a crate::VirtualList,
+    /// What to keep clear at the list's top when scrolling there (the
+    /// find bar floats over it).
+    pub clear_top: Pixels,
+    /// Changes whenever the query or the current match does: the marks
+    /// are worked out again only then (and when the text changes).
+    pub key: u64,
+    /// Where the query occurs in a text, as byte ranges of it (the view's
+    /// `timeline::spans_of`), run on the text as the reply is drawn.
+    pub spans: &'a dyn Fn(&str) -> Vec<Range<usize>>,
+    /// Which of them is the current match: marked apart and scrolled to.
+    pub current: Option<usize>,
+}
+
+impl std::fmt::Debug for FindMarks<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FindMarks")
+            .field("key", &self.key)
+            .field("current", &self.current)
+            .finish_non_exhaustive()
+    }
+}
+
+/// A reply's renderer state, kept across frames by the reply's id.
+struct Kept {
+    state: Entity<TextViewState>,
+    /// The version of the text it holds.
+    version: u64,
+    /// The marks' key it shows; `None`: none shown.
+    marked: Option<u64>,
+}
+
+/// A reply's Markdown, its code blocks drawn as GOAT draws them, find's
+/// matches marked when `marks` says. `id` keys the reply's renderer
+/// state and must stay the same for the same reply across frames;
+/// `version` changes whenever `text` does (an entry's revision).
 pub fn chat_markdown(
     id: impl Into<ElementId>,
-    text: impl Into<SharedString>,
+    text: &str,
+    version: u64,
+    marks: Option<&FindMarks<'_>>,
     tokens: &Tokens,
-) -> impl IntoElement {
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     let look = Look::of(tokens);
-    TextView::markdown(id, text)
+    let palette = FindPalette::of(tokens);
+    let kept = window.use_keyed_state(id.into(), cx, |_, cx| Kept {
+        state: cx.new(|cx| TextViewState::markdown(text, cx)),
+        version,
+        marked: None,
+    });
+    let state = kept.update(cx, |kept, cx| {
+        if kept.version != version {
+            kept.version = version;
+            kept.state.update(cx, |state, cx| state.set_text(text, cx));
+            kept.marked = None;
+        }
+        let state = kept.state.clone();
+        match marks {
+            Some(marks) if kept.marked != Some(marks.key) => {
+                kept.marked = state.update(cx, |state, cx| mark(state, marks, palette, cx));
+            }
+            None if kept.marked.is_some() => {
+                state.update(cx, TextViewState::clear_range_highlights);
+                kept.marked = None;
+            }
+            Some(_) | None => {}
+        }
+        state
+    });
+    let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
+    TextView::new(&state)
+        .on_reveal(move |bounds, _window, _cx| {
+            if let Some((list, clear_top)) = &list {
+                list.reveal_bounds(bounds, *clear_top);
+            }
+        })
         .style(
             TextViewStyle::default()
                 .code_block(block(look))
@@ -137,6 +245,39 @@ pub fn chat_markdown(
         .code_block_actions(move |code, window, cx| {
             corner(code.code(), code.lang(), look, window, cx)
         })
+        .into_any_element()
+}
+
+/// Mark `marks` in the reply `state` holds and scroll to the current
+/// one; the key marked, or `None` while the text is not laid out yet (it
+/// is tried again next frame).
+fn mark(
+    state: &mut TextViewState,
+    marks: &FindMarks<'_>,
+    palette: FindPalette,
+    cx: &mut gpui::Context<'_, TextViewState>,
+) -> Option<u64> {
+    let rendered = state.rendered_text();
+    if rendered.is_empty() {
+        return None;
+    }
+    let spans = (marks.spans)(rendered.as_str());
+    let current = marks.current.and_then(|nth| spans.get(nth).cloned());
+    let highlights = spans.iter().enumerate().map(|(nth, span)| {
+        let color = if Some(nth) == marks.current {
+            palette.current
+        } else {
+            palette.found
+        };
+        RangeHighlight::new(span.clone(), color)
+    });
+    // A range the renderer refuses (text outside every block) leaves the
+    // reply unmarked rather than failing the frame.
+    let _refused = state.set_range_highlights(highlights, cx);
+    if let Some(current) = current {
+        let _not_taken = state.reveal_range(current, cx);
+    }
+    Some(marks.key)
 }
 
 /// The block's style over the renderer's.
@@ -175,7 +316,7 @@ fn table() -> StyleRefinement {
         .bg(gpui::transparent_black())
         .border_color(gpui::transparent_black())
         .rounded(px(0.0))
-        .text_size(px(TABLE_SIZE));
+        .text_size(px(crate::fonts::ui(TABLE_SIZE)));
     style.overflow.x = Some(Overflow::Scroll);
     style
 }
@@ -209,8 +350,8 @@ fn corner(
         .bg(look.fill)
         .children(lang.filter(|lang| !lang.is_empty()).map(|lang| {
             div()
-                .font_family(MONO)
-                .text_size(px(LANGUAGE_SIZE))
+                .face(Type::Mono)
+                .text_size(px(crate::fonts::code(LANGUAGE_SIZE)))
                 .text_color(look.quiet.opacity(0.72))
                 .child(lang)
         }))
