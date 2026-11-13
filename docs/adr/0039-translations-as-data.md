@@ -419,3 +419,10 @@ This includes the unchanged lead late-answer regressions and all four
 actual-dispatch input/caret/focus retention tests. The final standalone
 wasm command is still queued at the overnight checkpoint; its eventual
 exit is recorded separately rather than inferred from native success.
+
+The final standalone `vessel-app-view` check for
+`wasm32-unknown-unknown` then completed with its own recorded exit zero
+(41.25s after waiting for a slot). The full sequential native/wasm runner
+completed with exit zero, with frozen compiled-source hashes unchanged.
+This closes the pending-target checkpoint above; review of the model is
+still pending and no broader platform/runtime acceptance is inferred.

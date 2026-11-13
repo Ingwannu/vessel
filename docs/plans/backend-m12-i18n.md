@@ -571,3 +571,23 @@ already complete. V1 received the native result first; no V1/coordinator
 approval of this model is claimed. After the wasm result, send the final
 immutable range and report to V1, then follow its findings/approval before
 asking the coordinator to accept the model. Do not start another slice.
+
+### Final implementation/gate result, 21:36 UTC
+
+All five final commands now have exit zero in `s2-final-gate-2.json`:
+native format, all-target Clippy, normal build, whole native test (432
+ordinary plus two compile-fail), and standalone `vessel-app-view` check for
+`wasm32-unknown-unknown`. The final wasm command recompiled view and
+completed in 41.25s after its slot wait. This supersedes the pending-target
+checkpoints above; the earlier outer-session 143 is not used as evidence.
+The full sequential runner has completed with exit zero. Frozen compiled
+input hashes remain identical to the source in `8da03f18`; follow-up
+commits record documents only. All UI proof and cleanup described above
+are complete. No build, private fleet or display is left running.
+
+Send the final immutable range to V1 for the model review. The status is
+implementation/gate complete, review pending, not coordinator acceptance.
+C/F/E2 have the unchanged source hash and the exact foreign-line report.
+The next session begins with V1's findings/approval; only after acceptance
+and a clean lead-head merge can the released next areas start. The
+About roles and S2 ownership holds listed above still remain pending.
