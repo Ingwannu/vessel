@@ -209,7 +209,8 @@ pub(crate) fn controls(
         return Vec::new();
     }
     if density.aggregate_features() {
-        // Paseo's features control: the default glyph alone.
+        // Paseo's features control: the default glyph alone (its only
+        // mark).
         let open = pill_parts(
             "pick-features",
             PillParts {
@@ -223,10 +224,11 @@ pub(crate) fn controls(
         .on_click(cx.listener(|this, _event, window, cx| this.open_features_sheet(window, cx)));
         return vec![open.into_any_element()];
     }
-    // Each control carries its feature's name (Vessel's, a named
-    // difference: Paseo tells its features apart by their own icons and
-    // their colour when on, and ACP sends no icon, so every control here
-    // would be the same glyph and an anonymous "Off"). Paseo's tooltip on
+    // Each control carries its feature's name and no glyph (Vessel's, a
+    // named difference: Paseo tells its features apart by their own icons
+    // and their colour when on; ACP sends no icon, so every control here
+    // would be the same glyph and an anonymous "Off", and once named, the
+    // one glyph says nothing and takes 20 a control). Paseo's tooltip on
     // each: a feature's own words for an on/off one, "name: value" for a
     // choice.
     let neutral = tokens.neutral;
@@ -240,7 +242,6 @@ pub(crate) fn controls(
         let pill = pill_parts(
             vessel_app_kit::ui::ElementId::Name(format!("feature-{}", toggle.id).into()),
             PillParts {
-                leading: Some(Glyph::Sliders),
                 label: Some(name.into()),
                 tint: toggle
                     .on
@@ -268,7 +269,6 @@ pub(crate) fn controls(
         let pill = pill_parts(
             vessel_app_kit::ui::ElementId::Name(format!("feature-{id}").into()),
             PillParts {
-                leading: Some(Glyph::Sliders),
                 prefix: Some(name.into()),
                 label: Some(value.into()),
                 ..PillParts::default()

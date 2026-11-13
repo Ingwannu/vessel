@@ -385,22 +385,36 @@ In the order the owner meets them, each as Paseo has it:
 - The composer's controls take the step of Paseo's ladder their width
   allows (`composer/agent-controls/layout.ts`, `app/src/areas/draft/density.rs`):
   `full` with carets, the thinking and mode values, and a control per
-  feature carrying the feature's name (an on/off feature its name, in
-  Paseo's highlight colour when on and muted when off, one click switching
-  it; a choice its name muted, then its value, opening its list with
-  Paseo's search row); `condensed` without carets, thinking as its glyph,
-  the features as one control opening the features sheet; `tight` the mode
-  as its glyph too. Paseo's floors (a control 28, its glyph 16, a caret 14)
-  and its 12 of hysteresis; where Paseo counts 7 per character, the floors
-  here are the words measured as the text system draws them (counted, the
-  named features fitted on paper and were cut on screen). A control never
-  wraps: past its floor it shrinks and cuts its words, as Paseo's
-  (`minWidth 0`, `flexShrink 1`, one line). The features sheet is Paseo's
-  `AdaptiveModalSheet` (a card on a wide window): a row per feature with
-  its value, each opening its list below it with the name above. Not here:
-  Paseo's two narrowest steps (thinking, mode and features folded into the
-  model control's sheet; the model as its glyph alone), and a feature's own
-  icon (ACP sends none: every feature shows Paseo's default glyph).
+  feature carrying the feature's name and no glyph (an on/off feature its
+  name, in Paseo's highlight colour when on and muted when off, one click
+  switching it; a choice its name muted, then its value, opening its list
+  with Paseo's search row); `condensed` without carets, thinking as its
+  glyph, the features as one control (Paseo's default glyph, its only
+  mark) opening the features sheet; `tight` the mode as its glyph too.
+  Paseo's measures (a control 28, its glyph 16, a caret 14, 12 of
+  hysteresis). Differences, each with its reason:
+  - The floors are the words measured as the text system draws them
+    (rounded up), where Paseo counts 7 a character: counted, the named
+    features fitted on paper and were cut on screen.
+  - No control's words are cut while a narrower step exists: the row
+    drops a step the moment it is under the step's floor, and the
+    hysteresis holds only on the way back up (a fuller step needs its floor
+    and 12). Paseo keeps a step until 12 under its floor, cutting words
+    meanwhile, which costs it little (its features are icons by then); here
+    they carry words, and a row of ellipses is what the owner sees. Only
+    `tight`, the last step, cuts the model's words.
+  - A named feature control has no glyph: ACP sends no icon, and the one
+    default glyph on every named control said nothing and took 20 a
+    control (with it, Claude Code's row needed about 792 of the 764 it has
+    in the widest card, so the owner never saw it full).
+  Measured on the preview node: Claude Code (model, thinking, mode, three
+  choices) is full from a window of 1118 (the widest card, from 1160, has
+  42 to spare) and condensed under it; Codex (two choices) full from 1066.
+  The features sheet is Paseo's `AdaptiveModalSheet` (a card on a wide
+  window): a row per feature with its value, each opening its list below
+  it with the name above. Not here: Paseo's two narrowest steps (thinking,
+  mode and features folded into the model control's sheet; the model as
+  its glyph alone).
 - Every control in the composer's row has Paseo's tooltip
   (`components/ui/tooltip.tsx`, `kit/src/tooltip.rs`): shown at once, 8
   above the control and centred, Paseo's popover card, not on touch. Its

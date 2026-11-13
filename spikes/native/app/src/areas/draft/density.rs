@@ -10,14 +10,27 @@
 //!   labels go and the features fold into one control that opens their
 //!   sheet (0.0.0.0.6 always folded them).
 //! - Choice: Paseo's numbers: a pointer control 28 high, its glyph 16, 8
-//!   inside, 4 between glyph and label and between controls, a caret 14;
-//!   a label estimated at 7 per character; a step is kept until the width
-//!   is 12 under its floor and taken back only 12 over it.
-//! - Differences: Paseo's two narrowest steps (`compact`: thinking, mode
-//!   and features folded into the model control's sheet; `iconOnly`) are
-//!   not here: under `tight` the controls stay as `tight` shows them, and
-//!   under 600 they are touch-sized as before. The font scale is 1 (the
-//!   app has no text size setting yet).
+//!   inside, 4 between glyph and label and between controls, a caret 14,
+//!   12 of hysteresis.
+//! - Differences, each with its reason:
+//!   - The floors count the controls' own words as the text system draws
+//!     them, where Paseo estimates (70 for a model, 48 for thinking, 96
+//!     for a mode, 7 a character): here a model reads "Opus 5.5 Claude
+//!     Code" and every feature carries its name, and the estimate kept
+//!     the full step where the words did not fit.
+//!   - No control's words are cut while a narrower step exists: the step
+//!     drops the moment the row is under its floor, and the hysteresis
+//!     holds only on the way back up (a fuller step needs its floor and
+//!     12). Paseo keeps a step until 12 under its floor, cutting the
+//!     words meanwhile, which costs it little (its features are icons by
+//!     then); here the features carry words and a row of ellipses is what
+//!     the owner sees (the coordinator, 0.0.0.0.7). Only `tight`, the last
+//!     step, cuts the model's words (at Paseo's 56).
+//!   - Paseo's two narrowest steps (`compact`: thinking, mode and features
+//!     folded into the model control's sheet; `iconOnly`) are not here:
+//!     under `tight` the controls stay as `tight` shows them, and under
+//!     600 they are touch-sized as before. The font scale is 1 (the app
+//!     has no text size setting yet).
 
 /// A step of the ladder.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -57,8 +70,10 @@ impl Density {
 }
 
 /// A feature as the floors count it, by its words' measured widths: every
-/// control carries the feature's name (Vessel's; Paseo's on/off control is
-/// a square and its choice shows its value alone).
+/// control carries the feature's name and no glyph (Vessel's; Paseo's
+/// on/off control is a square of the feature's icon and its choice shows
+/// its icon and value; ACP sends no icon, and one glyph on every named
+/// control says nothing).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Feature {
     /// An on/off feature: its name's width.
@@ -71,7 +86,7 @@ pub(crate) enum Feature {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct Presence {
     /// The model control's words' width (the model and, when the machine
-    /// has several agents, the agent); `None` for no control.
+    /// has several agents, the gap and the agent); `None` for no control.
     pub(crate) model: Option<f32>,
     /// The thinking control's value's width.
     pub(crate) thinking: Option<f32>,
@@ -108,14 +123,15 @@ const GAP: f32 = 4.0;
 const PADDING: f32 = 8.0;
 const CARET: f32 = 14.0;
 const HYSTERESIS: f32 = 12.0;
-/// The same, below a floor.
-const KEEP: f32 = -12.0;
 
 /// A labelled control's own chrome: its padding either side, its glyph,
 /// and the gap to its label.
 fn chrome(geometry: Geometry) -> f32 {
     [PADDING, PADDING, geometry.glyph, GAP].iter().sum()
 }
+
+/// A feature's control's chrome: its padding either side (no glyph).
+const FEATURE_CHROME: f32 = 16.0;
 
 /// `count` times `each` (`mul_add`: no arithmetic operator).
 fn times(count: usize, each: f32) -> f32 {
@@ -133,36 +149,31 @@ fn floor(density: Density, presence: &Presence, geometry: Geometry) -> f32 {
     let chrome = chrome(geometry);
     let mut widths = Vec::new();
     match density {
-        // The labelled steps count the controls' own words, measured
-        // (Vessel's, a named difference: Paseo's floors take fixed
-        // estimates, 70 for a model, 48 for thinking, 96 for a mode, 7 a
-        // character, which fit its short labels; here a model reads
-        // "Default (recommended) Claude Code", every feature carries its
-        // name, and the estimate kept the full step where the words did
-        // not fit, every control cut to an ellipsis).
+        // A control's chrome, then: the model's words and its caret (a gap
+        // before it); a value and its caret; a feature's name, and a
+        // choice's value after a gap.
         Density::Full => {
-            // A control's chrome, then: the model's two words and its caret
-            // (a gap before each); a value and its caret; a feature's name,
-            // and a choice's value after a gap.
             if let Some(model) = presence.model {
-                widths.push([chrome, GAP, GAP, CARET, model].iter().sum());
+                widths.push([chrome, model, GAP, CARET].iter().sum());
             }
             if let Some(thinking) = presence.thinking {
-                widths.push([chrome, GAP, CARET, thinking].iter().sum());
+                widths.push([chrome, thinking, GAP, CARET].iter().sum());
             }
             if let Some(mode) = presence.mode {
-                widths.push([chrome, GAP, CARET, mode].iter().sum());
+                widths.push([chrome, mode, GAP, CARET].iter().sum());
             }
             for feature in &presence.features {
                 widths.push(match feature {
-                    Feature::Toggle(name) => [chrome, *name].iter().sum(),
-                    Feature::Select { name, value } => [chrome, *name, GAP, *value].iter().sum(),
+                    Feature::Toggle(name) => [FEATURE_CHROME, *name].iter().sum(),
+                    Feature::Select { name, value } => {
+                        [FEATURE_CHROME, *name, GAP, *value].iter().sum()
+                    }
                 });
             }
         }
         Density::Condensed => {
             if let Some(model) = presence.model {
-                widths.push([chrome, GAP, model].iter().sum());
+                widths.push([chrome, model].iter().sum());
             }
             if presence.thinking.is_some() {
                 widths.push(geometry.control);
@@ -194,8 +205,8 @@ fn floor(density: Density, presence: &Presence, geometry: Geometry) -> f32 {
 }
 
 /// The widest step whose floor fits `available`: a step wider than the
-/// current one needs its floor and the hysteresis, the current one keeps
-/// until the width is the hysteresis under its floor.
+/// current one needs its floor and the hysteresis, the current one and
+/// narrower ones their floor (under it, words would be cut).
 pub(crate) fn resolve(
     available: f32,
     current: Density,
@@ -208,10 +219,10 @@ pub(crate) fn resolve(
         .unwrap_or_default();
     for (step, density) in LADDER.iter().enumerate() {
         let floor = floor(*density, presence, geometry);
-        let required = match step.cmp(&current_step) {
-            std::cmp::Ordering::Less => floor.mul_add(1.0, HYSTERESIS),
-            std::cmp::Ordering::Equal => floor.mul_add(1.0, KEEP),
-            std::cmp::Ordering::Greater => floor,
+        let required = if step < current_step {
+            floor.mul_add(1.0, HYSTERESIS)
+        } else {
+            floor
         };
         if available >= required {
             return *density;
@@ -225,12 +236,12 @@ mod tests {
     use super::*;
 
     /// Claude Code as the preview node offers it, at 7 a character: a
-    /// model ("Opus 5.5", "Claude Code"), thinking ("High"), mode
+    /// model ("Opus 5.5", a gap, "Claude Code"), thinking ("High"), mode
     /// ("Manual"), and three choices ("Fast mode" "Off", "Ultracode" "Off",
     /// "Agent" "Default").
     fn claude() -> Presence {
         Presence {
-            model: Some(133.0),
+            model: Some(137.0),
             thinking: Some(28.0),
             mode: Some(42.0),
             features: vec![
@@ -258,10 +269,10 @@ mod tests {
     }
 
     #[test]
-    fn floors_are_pasos() {
+    fn floors_count_every_word_and_its_chrome() {
         let pointer = Geometry::of(false);
-        // 191 + 82 + 96 + three named choices of 124 + 5 gaps of 4.
-        near(floor(Density::Full, &claude(), pointer), 761.0);
+        // 191 + 82 + 96 + three named choices of 104 (no glyph) + 5 gaps.
+        near(floor(Density::Full, &claude(), pointer), 701.0);
         // 173 + 28 + 78 + 28 + 3 gaps.
         near(floor(Density::Condensed, &claude(), pointer), 319.0);
         // 92 + 28 + 28 + 28 + 3 gaps.
@@ -287,22 +298,32 @@ mod tests {
     }
 
     #[test]
-    fn a_width_near_a_floor_does_not_flip() {
+    fn a_step_drops_under_its_floor_and_comes_back_over_it_and_twelve() {
         let pointer = Geometry::of(false);
         let presence = claude();
-        // 755 is under Full's floor (761) but within the hysteresis: kept.
+        // At its floor (701) Full keeps; a point under, it drops at once
+        // (its words would be cut).
         assert_eq!(
-            resolve(755.0, Density::Full, &presence, pointer),
+            resolve(701.0, Density::Full, &presence, pointer),
             Density::Full
+        );
+        assert_eq!(
+            resolve(700.0, Density::Full, &presence, pointer),
+            Density::Condensed
         );
         // From Condensed, Full comes back only at its floor plus 12.
         assert_eq!(
-            resolve(770.0, Density::Condensed, &presence, pointer),
+            resolve(712.0, Density::Condensed, &presence, pointer),
             Density::Condensed
         );
         assert_eq!(
-            resolve(775.0, Density::Condensed, &presence, pointer),
+            resolve(713.0, Density::Condensed, &presence, pointer),
             Density::Full
+        );
+        // Condensed itself drops at its floor too.
+        assert_eq!(
+            resolve(318.0, Density::Condensed, &presence, pointer),
+            Density::Tight
         );
     }
 }

@@ -200,9 +200,11 @@ pub(super) fn controls(
     let density = ready.map_or(Density::Full, |controls| {
         let (model, agent) = model_words(shell, shown);
         let measure = |text: &str| vessel_app_kit::fonts::measure(window, text, Type::Body);
-        let width = [measure(&model), agent.as_deref().map_or(0.0, measure)]
-            .iter()
-            .sum();
+        // The model, and the gap before the agent with the agent.
+        let agent = agent
+            .as_deref()
+            .map_or(0.0, |agent| [WORD_GAP, measure(agent)].iter().sum());
+        let width = [measure(&model), agent].iter().sum();
         draft.features.density(controls, width, touch, window)
     });
     let caret = density.carets();
@@ -216,8 +218,9 @@ pub(super) fn controls(
         .flex_row()
         .items_center()
         .gap(px(4.0))
-        // One line, as Paseo's: the controls give way and cut their words
-        // rather than wrap (the ladder's steps keep that rare).
+        // One line, as Paseo's. The ladder drops a step before any
+        // control's words would be cut (`density`); only its last step
+        // cuts the model's.
         .overflow_hidden()
         .child(draft.features.measure());
     row = row.child(model_pill(shell, shown, caret, touch, tokens, cx));
@@ -280,6 +283,9 @@ pub(super) fn controls(
         shell, controls, density, touch, tokens, cx,
     ))
 }
+
+/// The kit's pill's gap between its words.
+const WORD_GAP: f32 = 4.0;
 
 /// The model control's words: the model in use and, when the machine has
 /// several agents, the agent's name (quieter).
