@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), the look (`look`), the scroll bench (`bench`) |
 
 Other areas use the conversation through seams, each one call:
 
@@ -93,6 +93,8 @@ Paseo screen it follows.
 | `permit/13-plan-ko-dark-1280`, `permit/14-codex-ko-dark-1280` | a direction with three answers or more keeps the agent's names: the plan exit's six allows ("Yes, manually approve edits" primary), Codex's "Yes, proceed" beside its two "always" allows; a lone reject is still 거부 | Paseo's agent labels on ACP |
 | `plan/01-plans-en-dark-1280`, `plan/04-plans-ko-dark-1280`, `plan/03-plans-ko-light-390` | the fleet's `plans` session (fake-acp's `plans`, Claude Code's shape): a row per change, "Created 4 tasks", "Started", "Completed" as the next starts, "Added" once work began, each with Paseo's mark and the step's words after; on a phone the step cut to a line | Paseo `types/stream.ts` `deriveTaskActivities`; `components/message.tsx` `TodoListCard` |
 | `plan/02-plans-open-en-dark-1280`, `plan/06-plans-open-en-light-1280`, `plan/07-plans-open-en-dark-390`, `plan/05-created-open-ko-dark-1280` | a row opened: the plan as it stood then, Paseo's `TaskListRow`s (done struck through, extra muted; under way in the running blue; to do muted rings); the "Created" row holds the four steps it was made with | Paseo `components/task-list-row.tsx` |
+| `plan/m-01-amber-en-dark-1280`, `plan/m-02-card-amber-en-dark-1280`, `plan/m-04-red-card-ko-light-1280`, `plan/m-05-room-en-dark-390` | the context meter left of the send button (the fleet's `context-*` sessions, fake-acp's `usage <tokens>`): Paseo's ring at 75% in amber, at 95% in red, at 0.6% in the muted ink; its card: "Context window", the share used, used and maximum tokens, the session's cost, GOAT's "Compact context" | Paseo `components/context-window-meter.tsx`, `context-window-details.tsx`; GOAT `chat/ContextWindowMeter.tsx` |
+| `plan/m-03-compact-sent-running-en-dark-1280`, `plan/m-06-room-card-en-dark-390`, `plan/m-07-closed-by-press-outside-390` | Compact sent as the agent's `/compact`; while that turn runs the card holds the button, faded, with its reason; on a phone the card opens on a press and closes on a press outside | GOAT's disabled compact with its reason; Paseo's press-to-open on touch |
 | `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
@@ -309,8 +311,9 @@ done yet:
   app's shortcuts (track S2) to bind `Shell::conversation_steer_next` and
   `Shell::conversation_edit_latest_queued`; the area's own Mod+F
   observer goes once they bind Find.
-- **The context meter and compact**: Paseo's ring and its hover card (on
-  touch, opened by a press); compact; the turn's usage line.
+- **The turn's usage line** and a limit notice are track N2's, in the
+  two lines it adds over the composer (the seams above); the turn's own
+  token count stays on its divider.
 - **Pin, archive, unread** marks drawn in the conversation.
 - **Chat settings** (Settings › Chat, track E2 draws the page): always
   expand reasoning, the outline shown or not, collapse whole turns; each
