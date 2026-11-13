@@ -483,6 +483,69 @@ reference before anyone takes it:
 | No face at the window's root, so text without a type lost its Korean fallback | `shell.rs` | found by C, with the lead |
 | **Hangul does not compose in the composer on Linux under X11** (fcitx5 over XIM; a control client in the same display composes) | the pinned GPUI's X11 input, not proved | open: the lead after build 0.0.0.0.8. Composing was shown in the browser and on Android; Windows and Wayland are unverified |
 
+## The night of 2026-11-13: everything that is left
+
+The owner, about 15:30 UTC: ship the agents' official logos; use both
+models as each fits and finish the whole implementation overnight; the
+UI and UX at the highest quality. The measure is unchanged (the
+feature tables of milestone 11). A row counts when the node does it
+under test, the app shows it as the reference does (compared value for
+value, both themes, both sizes, both languages, real shapes), and it
+passed review. What is not finished by morning is reported as not
+finished.
+
+| Track | Branch | Builds | Model |
+|---|---|---|---|
+| lead, C, F, A2, R | as before | integration; the conversation; projects and the code panel; park, rewind, fork, import, handoff; builds | first |
+| G1–G4, L | as before | git menu and pull requests; schedules; Agents and Models; Devices and Sync; translations | second |
+| K | `backend/m12-logos` | the agents' official marks as one kit control (ADR 0048); then Paseo's theme list (ADR 0049) | second |
+| S2 | `backend/m12-app-shell` | track S's list, taken over: board, archive, sidebar, palette, shortcuts, notifications and sound; then the inbox lane | second |
+| E2 | `backend/m12-app-settings` | track E's list, taken over: settings frame, General, Appearance, Machines, Diagnostics | second |
+| N1 | `backend/m12-inbox` | the inbox across machines and push (ADRs 0040, 0041), node to screen | second |
+| N2 | `backend/m12-usage` | usage and limits (ADR 0042), node to screen | second |
+| N3 | `backend/m12-wire-gaps` | every row of "What the node does not send yet", the webhook calls included (ADR 0043) | second |
+| N5 | `backend/m12-session-extras` | a side question, one prompt to several models, the conversation/terminal switch, delivered files (ADRs 0045–0047); then a reviewing agent, spreading by load | second |
+| V1 | none (reads only) | reviews every slice of the second model's tracks before the coordinator | second |
+
+Still without a track tonight, given out as tracks finish:
+diagnostics over the wire, updating the node from the app, the browser
+panel and agents driving a browser, dictation, plugins, the page's
+parity pass, the phone app, the browser as a surface.
+
+[Decision Log]
+- Purpose: every remaining row built in one night without the look or
+  the node's safety slipping.
+- Constraints: the first model's accounts hold two or three workers at
+  a time through the night, so they are kept for integration, the
+  conversation, the tracks already deep in the node, and builds. The
+  second model's weekly allowance ran out at 13:15 UTC and its workers
+  spend the owner's credit; a watcher outside the coordinator stops
+  them at a floor. The machine holds about fifteen workers. The
+  coordinator's own review was already the narrowest point with five
+  workers.
+- Alternatives: (1) keep node work off the second model, as decided on
+  2026-11-13 morning: then the node's missing rows (the inbox, usage,
+  the wire gaps) wait for windows that do not exist tonight. (2) Many
+  more app-only workers: the app rows that are left mostly wait on the
+  node. (3) No reviewer, the coordinator reads everything: slices wait
+  hours and the coordinator's own window ends before the night does.
+- Choice: vertical tracks on the second model for the node's missing
+  rows (ADR first, tests against the testkit, one protocol bump per
+  branch renumbered at merge); a reviewer on the second model reads
+  every slice against the reference's source and the strict brief
+  first; the coordinator looks at what the reviewer passed; node
+  slices are read again by the first model before they reach the
+  lead's branch; nothing of it reaches the preview node unreviewed.
+  Tracks S and E moved from the stand-in capacity (which could not
+  finish them) to the second model, each by taking over the worktree.
+- Why: it reverses this morning's "no node work for the second model"
+  only where the alternative is that the row is not built at all, and
+  keeps a first-model reading before merge where a mistake costs most.
+- Costs: a second review layer can pass what it should not; what the
+  coordinator then returns is written down as the reviewer's miss.
+  More branches touch the protocol number at once; the merge order is
+  serial. Credit is spent; the cap is the floor.
+
 ## The browser, first report (2026-11-13)
 
 The browser track built the same `app` crate for `wasm32` (GPUI's web
@@ -532,14 +595,11 @@ used. New screens are drawn in the native app first.
 
 ## Left for the owner
 
-- **Agents' own logos.** Paseo shows each provider's mark beside its
-  name (rows of agents, schedules, the model list). Those are other
-  companies' trademarks and Paseo's files are not taken, so the app
-  shows one generic agent glyph in that place on every screen. Whether
-  Vessel ships the vendors' official marks (each under its own brand
-  terms) is the owner's to decide; nothing else in the layout depends
-  on it.
-
+- ~~Agents' own logos~~: decided 2026-11-13 ("ship the official
+  logos"). Track K ships each vendor's own mark from the vendor's own
+  brand page or repository, under that brand's terms, recorded with its
+  source, date and hash (ADR 0048). A vendor whose terms ask for
+  written permission is listed for the owner in K's report.
 
 - Where releases are published, the signing key, Windows code signing,
   macOS notarisation, an Apple developer account for iOS.
