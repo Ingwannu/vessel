@@ -74,7 +74,10 @@ pub use picker::{
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
-pub use toast::{ToastLook, toast, toasts};
+pub use toast::{
+    ToastContent, ToastDismiss, ToastHandlers, ToastHover, ToastHovered, ToastLook, toast,
+    toast_with, toasts,
+};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{

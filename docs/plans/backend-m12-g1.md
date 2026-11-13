@@ -578,3 +578,47 @@ Validation: the shared frozen native gate passed fmt, all-target clippy with
 warnings denied, and 541 runtime tests plus two documentation tests. The
 independent Info control uses this same source gate; no unchanged gate rerun.
 No Git screen, node write or live input-method proof is claimed here.
+
+## Shared Info toast for a known unavailable action
+
+[Decision Log]
+- Purpose: Paseo's git/use-actions.tsx38–58 explains unavailableMessage with a
+  default-chrome toast, foreground Info16 and duration3200, before returning
+  without calling the action handler.
+- Constraint: existing Plain/Error renderer callers and Ok4s/Error-persistent
+  semantics remain unchanged; no second card renderer or clock I/O in view.
+- Alternatives: area paint, a successful/error toast for advice, or a timer that
+  restarts the full lifetime on every hover-out.
+- Choice: additive ToastLook/ToastTone Info, shared toast_with entry and typed
+  optional hover callback, injected monotonic time and keyed running phases.
+- Why: toast-host.tsx has no close control for this card, pauses the remainder
+  on hover, and rejects dismissals for a card that has been replaced.
+- Cost: old timer tasks may wake and be rejected; only the new Info replaces
+  older Info. Paseo replaces every previous kind; retaining the legacy stack
+  and persistent errors is an explicit compatibility departure, not parity.
+
+The app/areas/toasts.rs bridge is the necessary shared caller seam: exhaustive
+Info look, monotonic start/wake/hover, and optional typed hover handlers. The
+same renderer keeps legacy chrome and dismiss controls; Info has no close.
+Tests cover exact3200 vs legacy4s/no-expiry, the final millisecond, early wake,
+remaining-time pause/resume, duplicate start, stale id/timer/hover-out, replacement
+while hovered, dismissal while paused, and a persistent legacy error surviving.
+Actual wall-clock/hover captures, legacy pixels and a kept-open Git menu with
+zero node writes are still required; model tests do not claim that UI evidence.
+
+The first integration attempt exposed a source-installation hazard: preserved
+modification times let Cargo retain an older cached View library, so that
+attempt did not prove the changed View code. Prepared source is now installed
+with current timestamps; a reported gate must show the changed crates actually
+checked/recompiled. No cargo clean is used. The subsequent real compilation
+caught the clock's required Clone, unused return values and a scheduler that
+needed no self parameter; explicit validation
+and whole-result test assertions replaced those omissions. No failing attempt
+is represented as a passing gate.
+
+Validation: whole native fmt and all-target clippy with warnings denied passed;
+541 runtime tests plus two documentation tests passed. Logs explicitly show
+View, Kit, Link and App compilation, and all 360 frozen source/manifest/font
+fingerprints still match after the gate. The branch-identity correction is an
+independent preceding commit from this same gate. Native wall-clock/hover,
+legacy pixel comparisons and actual Git no-write first use remain pending.
