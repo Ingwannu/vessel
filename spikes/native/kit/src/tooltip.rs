@@ -67,6 +67,37 @@ impl Content {
     }
 }
 
+/// Resolved sizes stay on the same scale as their face.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Metrics {
+    face: Type,
+    size: f32,
+    line: f32,
+}
+
+impl Content {
+    fn metrics(&self) -> Metrics {
+        self.metrics_with(crate::fonts::ui, crate::fonts::code)
+    }
+
+    // Separate callbacks let regressions exercise unequal UI/code settings
+    // without changing the process-wide font settings of parallel tests.
+    fn metrics_with(&self, interface: fn(f32) -> f32, code: fn(f32) -> f32) -> Metrics {
+        match self {
+            Self::Text(_) => Metrics {
+                face: self.face(),
+                size: interface(14.0),
+                line: interface(LINE),
+            },
+            Self::Code(_) => Metrics {
+                face: self.face(),
+                size: code(CODE_SIZE),
+                line: code(CODE_LINE),
+            },
+        }
+    }
+}
+
 /// A screen's tooltips: at most one shown.
 #[derive(Debug, Clone, Default)]
 pub struct Tooltips {
@@ -155,6 +186,7 @@ impl Tooltips {
             Scheme::Dark => neutral.surface2,
         };
         let top = point(bounds.center().x, bounds.top());
+        let metrics = tip.content.metrics();
         let card = div()
             .max_w(px(280.0))
             .py(px(4.0))
@@ -164,8 +196,9 @@ impl Tooltips {
             .border_1()
             .border_color(neutral.border_accent)
             .shadow(popup::shadow_md(tokens))
-            .type_(tip.content.face())
-            .line_height(px(crate::fonts::ui(LINE)))
+            .type_(metrics.face)
+            .text_size(px(metrics.size))
+            .line_height(px(metrics.line))
             .text_color(neutral.foreground)
             .child(tip.content.text().clone());
         Some(
@@ -189,6 +222,10 @@ const ABOVE: f32 = -8.0;
 /// Paseo's `fontSize.base * 1.4`.
 const LINE: f32 = 19.6;
 
+/// GOAT's code tooltip: text-[11px], leading-relaxed (11 × 1.625).
+const CODE_SIZE: f32 = 11.0;
+const CODE_LINE: f32 = 17.875;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -202,5 +239,38 @@ mod tests {
         assert_eq!(code.face(), Type::Mono);
         assert_eq!(text.text(), &path);
         assert_eq!(code.text(), &path);
+    }
+}
+
+#[cfg(test)]
+mod independent_scale_tests {
+    use super::*;
+
+    #[test]
+    fn code_size_eighteen_does_not_take_its_line_height_from_interface_size_fourteen() {
+        fn interface_fourteen(points: f32) -> f32 {
+            points
+        }
+        fn code_eighteen(points: f32) -> f32 {
+            points.mul_add(1.5, 0.0)
+        }
+        let code = Content::Code("a-long-unbroken-path.rs".into());
+        let text = Content::Text("An ordinary tooltip.".into());
+        assert_eq!(
+            code.metrics_with(interface_fourteen, code_eighteen),
+            Metrics {
+                face: Type::Mono,
+                size: 16.5,
+                line: 26.8125,
+            }
+        );
+        assert_eq!(
+            text.metrics_with(interface_fourteen, code_eighteen),
+            Metrics {
+                face: Type::Body,
+                size: 14.0,
+                line: 19.6,
+            }
+        );
     }
 }

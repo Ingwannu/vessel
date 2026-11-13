@@ -345,7 +345,7 @@ The six-argument frame leaves content, state, layout and tokens visible.
 - Constraint: existing tooltips use body text and must keep their presentation.
 - Alternatives: put a full path in body text, or draw another popup in an area.
 - Choice: `Tooltips::on_code` shares the same attach/render path and every
-  chrome/placement value, with typed content selecting the code face only.
+  chrome/placement value, with typed content selecting its own face/metrics.
 - Why: existing `on` callers stay unchanged; one tooltip surface serves both.
 - Cost: touch still has no tooltip, as before. A narrow pointer capture checks
   code wrapping at 390; it does not claim that touch gains hover interaction.
@@ -371,3 +371,14 @@ too and does not expand its corner radius, changing the reference’s paint. Set
 all of their callers stay untouched. Exact paint/geometry and a real GPUI
 layout test check that the edge does not steal a pixel from either frame.
 The existing virtual list supplies content; no new text/list engine.
+
+The code tooltip’s literal GOAT typography (`ui/tooltip.tsx`) is 11 points
+with leading-relaxed (17.875), both scaled by the independent code-size
+setting. Ordinary `on` remains 14 / 19.6 on the interface scale. A returned
+review caught the first implementation overriding the code line with an
+interface-scaled line; unequal UI14/code18 now has an explicit regression
+without mutating global font settings during parallel tests. The native
+control deliberately keeps the existing shared Paseo chrome: maximum280
+(rather than GOAT max-w-120 /480), radius12, insets4/8 and existing placement.
+The pinned engine wraps an unbroken path within that width. This shares
+one popup surface rather than silently claiming GOAT’s whole geometry.
