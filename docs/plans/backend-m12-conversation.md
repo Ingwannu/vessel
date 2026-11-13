@@ -9,7 +9,7 @@ written down only, rewind, fork, cross-session search, export and import.
 Branch `backend/m12-app-conversation`, off the desktop lead's
 `backend/m12-spike`.
 
-The look is GOAT's chat (`/home/dev/refs/goat/apps/web/src/components/chat/`,
+The look is GOAT's chat (`apps/web/src/components/chat/` in the GOAT reference checkout,
 the reference notes' Appendix G), the controls Paseo's (Appendix P);
 neutral colours come only from `tokens.neutral.*`.
 
@@ -44,7 +44,7 @@ count, which `vessel log` does not print.
 
 ## Captures
 
-In `/tmp/work/m12-conv/shots/` (not committed), each beside the GOAT or
+In a local folder, not committed, each beside the GOAT or
 Paseo screen it follows.
 
 | Capture | What it shows | Its reference |
