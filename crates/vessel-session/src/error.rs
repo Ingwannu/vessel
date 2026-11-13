@@ -85,6 +85,17 @@ pub enum SessionError {
     /// The session has ended and accepts no more input.
     #[error("the session has ended")]
     Ended,
+    /// The session's agent is parked (protocol 12, ADR 0038): what goes
+    /// straight to the agent (an answer) has nothing to go to; a prompt or
+    /// `session.wake` starts it again.
+    #[error("the session's agent is parked; a prompt or a wake starts it again")]
+    Parked,
+    /// The session's agent cannot be parked now (protocol 12).
+    #[error("the session's agent cannot be parked: {0}")]
+    NotParked(#[from] ParkRefusal),
+    /// Starting a parked session's agent again failed; it stays parked.
+    #[error("the session's agent did not start again: {0}")]
+    WakeFailed(String),
     /// An ended session cannot start again (protocol 10's
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
@@ -95,6 +106,30 @@ pub enum SessionError {
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
+}
+
+/// Why a session's agent was not parked (protocol 12's `session.park`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ParkRefusal {
+    /// A terminal session: its harness is its own interface.
+    #[error("a terminal session's harness is not parked")]
+    Terminal,
+    /// Its agent did not say it can resume a session (`loadSession`), or it
+    /// has no session id yet: its conversation would be lost.
+    #[error("its agent cannot resume a conversation")]
+    CannotResume,
+    /// Its agent is still starting or moving.
+    #[error("its agent is starting or moving")]
+    NotReady,
+    /// A turn runs.
+    #[error("a turn is running")]
+    TurnRunning,
+    /// A permission or a question waits for an answer.
+    #[error("the agent waits for an answer")]
+    Waiting,
+    /// The queue would start its next prompt.
+    #[error("the queue has prompts that are not held")]
+    QueueMoving,
 }
 
 /// Why a prompt was not delivered (protocol 10's `session.prompt`).
@@ -138,6 +173,7 @@ impl SessionError {
             | Self::NoOptions
             | Self::Terminal(_)
             | Self::NotResumable(_)
+            | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
             | Self::Attachment(AttachmentError::NoLoader)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
@@ -164,9 +200,11 @@ impl SessionError {
                 | AttachmentError::NotTaken { .. }
                 | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
-            Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
-                ErrorCode::SpawnFailed
-            }
+            Self::Spawn(_)
+            | Self::StartAgent(_)
+            | Self::McpFile(_)
+            | Self::Probe(_)
+            | Self::WakeFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
             // An agent this node has not added (ADR 0032).
             | Self::Launch(HarnessError::NotDefined { .. })
@@ -177,6 +215,14 @@ impl SessionError {
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })
             | Self::Moving
+            // Nothing waits on a parked session: an answer has no request.
+            | Self::Parked
+            | Self::NotParked(
+                ParkRefusal::NotReady
+                | ParkRefusal::TurnRunning
+                | ParkRefusal::Waiting
+                | ParkRefusal::QueueMoving,
+            )
             // The agent's refusal of an option change: the session is in a
             // state where it does not take it.
             | Self::Input(

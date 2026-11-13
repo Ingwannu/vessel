@@ -1,11 +1,13 @@
 // Buttons and icon buttons: every variant at every size, with an icon,
-// busy, disabled, and a long Korean label.
+// busy, disabled, and a long Korean label; a split button with its menu.
 
 import {
   Button,
   type ButtonSize,
   type ButtonVariant,
   IconButton,
+  MenuItem,
+  SplitButton,
   Tooltip,
 } from "../../ui/kit";
 import { Section, Specimens } from "./section";
@@ -51,6 +53,37 @@ export function Buttons() {
           <IconButton label="Kill" icon="kill" variant="danger" />
         </Tooltip>
         <IconButton label="Disabled" icon="more" disabled />
+      </Specimens>
+      <Specimens caption="split: the action now, the others behind its chevron">
+        <SplitButton
+          label="Commit"
+          icon="git-commit"
+          onClick={() => undefined}
+          menuLabel="Git action options"
+          menu={
+            <>
+              <MenuItem icon="upload" onSelect={() => undefined}>
+                Push
+              </MenuItem>
+              <MenuItem icon="download" onSelect={() => undefined}>
+                Pull
+              </MenuItem>
+            </>
+          }
+        />
+        <SplitButton
+          label="Push"
+          icon="upload"
+          onClick={() => undefined}
+          disabled
+          reason="No local commits to push."
+          menuLabel="Git action options"
+          menu={
+            <MenuItem icon="refresh" onSelect={() => undefined}>
+              Fetch
+            </MenuItem>
+          }
+        />
       </Specimens>
     </Section>
   );

@@ -1,0 +1,115 @@
+/* "Projects" in the sidebar (sidebar-projects.tsx), agent-orchestrator's
+   project rows: 32px, the folder's mark swapping to a chevron on hover
+   (turned when open), the name, the machine in the passive ink when
+   several have projects, the live count; a "+" 4px from the right on
+   hover; the open project's sessions 14px in. The group takes at most
+   two fifths of the sidebar and scrolls on its own, so the machines keep
+   their room. */
+
+.side-projects {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 40%;
+  min-height: 0;
+}
+
+.side-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+.side-project {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item.project {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  padding-right: 34px;
+}
+
+.project-mark {
+  position: relative;
+  display: grid;
+  flex: 0 0 16px;
+  place-items: center;
+}
+
+.project-mark > .ico {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--d-2) var(--ease),
+    transform var(--d-2) var(--ease);
+}
+
+.project-mark > .ico:last-child {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.nav-item.project:hover .project-mark > .ico:first-child,
+.nav-item.project:focus-visible .project-mark > .ico:first-child {
+  opacity: 0;
+}
+
+.nav-item.project:hover .project-mark > .ico:last-child,
+.nav-item.project:focus-visible .project-mark > .ico:last-child {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nav-item.project[aria-expanded="true"] .project-mark > .ico:last-child {
+  transform: rotate(90deg);
+}
+
+.project-machine {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: var(--t-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity var(--d-2) var(--ease);
+}
+
+.side-project:hover .project-actions,
+.side-project:focus-within .project-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .project-actions {
+    opacity: 1;
+  }
+}
+
+.nav-item.sub.in-project,
+.side-empty.in-project {
+  margin-left: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-mark > .ico,
+  .project-actions {
+    transition: none;
+  }
+}

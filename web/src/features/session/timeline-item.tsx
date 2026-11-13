@@ -6,11 +6,14 @@
 import { memo, type ReactNode } from "react";
 
 import { settled, settledLine } from "../../data/approval";
+import { turnTokens } from "../../data/context-meter";
 import { when } from "../../data/format";
 import { Markdown } from "../../data/markdown";
 import { apiName, callParts } from "../../data/models";
 import type { Entry } from "../../data/timeline-model";
 import { Icon, Tooltip } from "../../ui/kit";
+import { PromptFiles } from "./prompt-files";
+import { QuestionEntry } from "./question-entry";
 import { ToolCard } from "./tool-card";
 
 function Meta({
@@ -60,11 +63,31 @@ function Item({ entry }: { entry: Entry }) {
         >
           <span className="glyph" aria-hidden="true" />
           <span className="when">
-            {entry.replayed ? "replayed" : `turn ${String(entry.turn)}`}
+            {entry.sending === true
+              ? "sending"
+              : entry.replayed
+                ? "replayed"
+                : `turn ${String(entry.turn)}`}
           </span>
-          <div className="prompt">{entry.text}</div>
+          <PromptFiles files={entry.attachments} />
+          {entry.text === "" ? null : (
+            <div className="prompt">{entry.text}</div>
+          )}
         </div>
       );
+    case "steer":
+      return (
+        <div className="t-item user steer" data-entry={entry.key}>
+          <span className="glyph" aria-hidden="true" />
+          <span className="when">steered</span>
+          <PromptFiles files={entry.attachments} />
+          {entry.text === "" ? null : (
+            <div className="prompt">{entry.text}</div>
+          )}
+        </div>
+      );
+    case "question":
+      return <QuestionEntry entry={entry} />;
     case "message":
       return (
         <div className="t-item" data-entry={entry.key} data-kind="message">
@@ -118,6 +141,9 @@ function Item({ entry }: { entry: Entry }) {
         <Meta>
           <p className="t-meta">
             Turn ended · {entry.reason.replace("_", " ")}
+            {entry.usage === null ? null : (
+              <span className="turn-tokens"> · {turnTokens(entry.usage)}</span>
+            )}
           </p>
         </Meta>
       );

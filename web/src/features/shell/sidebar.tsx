@@ -14,8 +14,10 @@ import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import { useWhere } from "../../data/where";
-import { Icon, Kbd } from "../../ui/kit";
+import { BrandMark, Icon, Kbd } from "../../ui/kit";
 import { SidebarSearch } from "../palette/palette";
+import { SidebarProjects } from "../projects/sidebar-projects";
+import { PHONE, useMedia } from "./use-media";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
 import { SidebarSettings } from "./sidebar-settings";
@@ -23,23 +25,8 @@ import { SidebarStatuses } from "./sidebar-statuses";
 import { useShortcutWords } from "../shortcuts/use-keys";
 import { machineInView, useNewSession } from "./use-new-session";
 
-const MARK = (
-  <span className="mark" aria-hidden="true">
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 8.5 6 2.5 10 8.5" />
-      <path d="M4 8.5h4" />
-    </svg>
-  </span>
-);
+// The owner's mark at the text's size (ui/kit/brand-mark.tsx).
+const MARK = <BrandMark size={18} className="mark" />;
 
 /** A sidebar row's class: `active` marks the current place. */
 export function rowClass(active: boolean, extra = ""): string {
@@ -66,6 +53,7 @@ export function Sidebar({
   const inSettings = place === "settings";
   const grouping = useStore(prefs, (state) => state.values.sidebar.group);
   const newKeys = useShortcutWords("new-session");
+  const phone = useMedia(PHONE);
   return (
     <nav
       className="sidebar"
@@ -119,6 +107,12 @@ export function Sidebar({
           <span className="count">{live}</span>
         </Link>
       </div>
+      {/* The projects are read when their group is first drawn; on a phone
+          the sidebar beside the page is hidden, so its group waits for the
+          sheet (no `project.list` at a phone's start). */}
+      {inSettings || (onPick === undefined && phone) ? null : (
+        <SidebarProjects />
+      )}
       {inSettings ? (
         <SidebarSettings current={where.segments[1] ?? null} />
       ) : grouping === "machine" ? (

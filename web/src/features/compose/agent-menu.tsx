@@ -10,18 +10,17 @@
 
 import type { OptionChoice } from "../../wire/proto";
 import type { AgentChoice } from "../../data/agent-choices";
-import { agentKey, agentKindOf } from "../../data/agents";
+import { agentKey } from "../../data/agents";
 import {
   AGENT_LABEL,
   type ControlsState,
   currentName,
-  pickerLabel,
-  pickerName,
   type SelectControl,
   selectChoice,
   slotLabel,
   toggleChoice,
 } from "../../data/options";
+import { pickerLabel, pickerName } from "../../data/picker";
 import {
   Button,
   Menu,
@@ -33,7 +32,7 @@ import {
   MenuSwitchItem,
   Spinner,
 } from "../../ui/kit";
-import type { HarnessKind, HarnessRef } from "../../wire/proto";
+import type { HarnessRef } from "../../wire/proto";
 
 export interface AgentMenuProps {
   /** The agent, and the others it could be (`null`: it cannot change, as
@@ -44,7 +43,7 @@ export interface AgentMenuProps {
     value: HarnessRef;
     name: string;
     choices: readonly AgentChoice[] | null;
-    onChange: (agent: HarnessKind) => void;
+    onChange: (agent: HarnessRef) => void;
   };
   state: ControlsState;
   onChoose: (choice: OptionChoice) => void;
@@ -98,6 +97,7 @@ function TriggerLabel({ state, name }: { state: ControlsState; name: string }) {
         </>
       );
     case "failed":
+    case "refused":
     case "terminal":
       return <span className="trigger-label">{name}</span>;
     case "ready": {
@@ -142,9 +142,12 @@ export function AgentMenu({
         <MenuRadioGroup<string>
           value={agentKey(agent.value)}
           onChange={(key) => {
-            const kind = agentKindOf(key);
-            if (kind !== null) {
-              agent.onChange(kind);
+            // Compared by key: an added agent is an object (data/agents.ts).
+            const chosen = agent.choices?.find(
+              (choice) => choice.value === key,
+            );
+            if (chosen !== undefined) {
+              agent.onChange(chosen.agent);
             }
           }}
           options={
@@ -220,6 +223,8 @@ function AgentNote({ state }: { state: ControlsState }) {
           own defaults.
         </MenuNote>
       );
+    case "refused":
+      return <MenuNote>{state.message}</MenuNote>;
     case "terminal":
       return (
         <MenuNote>

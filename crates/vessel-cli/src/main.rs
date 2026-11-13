@@ -25,6 +25,7 @@ mod nodes;
 mod pair;
 mod remote;
 mod render;
+mod search;
 mod secret;
 mod selector;
 mod terminals;
@@ -108,6 +109,7 @@ async fn cli() -> ExitCode {
         | Command::Attach { .. }
         | Command::Send(_)
         | Command::Log { .. }
+        | Command::Search(_)
         | Command::Kill { .. }
         | Command::Session { .. }
         | Command::Project { .. }

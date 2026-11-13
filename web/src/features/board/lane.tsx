@@ -6,8 +6,22 @@
 import type { Card, Lane as LaneName } from "../../data/board";
 import { laneLabel } from "../../data/board";
 import type { FleetState } from "../../data/fleet";
+import { hasConversation } from "../../data/delivery";
+import { isLive } from "../../data/format";
+import { labelOf } from "../../data/nodes";
 import { Button } from "../../ui/kit";
+import { EndedCardActions } from "./card-actions";
 import { SessionCard } from "./session-card";
+
+/** Whether `card` is an ended session on a machine that keeps marks: it
+ * stays in its lane until archived, and its card offers to archive it. */
+function endedWithMarks(card: Card, state: FleetState): boolean {
+  const status = state.statuses[card.node];
+  return (
+    !isLive(card.session) &&
+    hasConversation(status?.state === "connected" ? status.protocol : null)
+  );
+}
 
 export function Lane({
   lane,
@@ -43,6 +57,16 @@ export function Lane({
               state={state}
               scoped={scoped}
               onKill={onKill}
+              {...(endedWithMarks(card, state)
+                ? {
+                    actions: (
+                      <EndedCardActions
+                        card={card}
+                        label={labelOf(state, card.node)}
+                      />
+                    ),
+                  }
+                : {})}
             />
           ))}
         </ul>

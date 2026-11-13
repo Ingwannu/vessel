@@ -3,7 +3,7 @@
 // per row, in the page's words. Read-only: routes and profiles are edited
 // in the machine's own `models.toml` and `profiles.toml`.
 
-import type { ModelRoute, ProfileInfo } from "../wire/proto";
+import type { AgentInfo, ModelRoute, ProfileInfo } from "../wire/proto";
 import { agentName } from "./agents";
 import { apiName } from "./models";
 
@@ -19,13 +19,17 @@ export function routeFacts(route: ModelRoute): string[] {
   ];
 }
 
-/** A profile's line: the agent it runs, the route its models come from
+/** A profile's line: the agent it runs (an added one by its label in
+ * `agents`, its machine's `agent.list`), the route its models come from
  * (else the agent's own), and how many variables it sets. */
-export function profileFacts(profile: ProfileInfo): string[] {
+export function profileFacts(
+  profile: ProfileInfo,
+  agents: readonly AgentInfo[] = [],
+): string[] {
   const route = profile.model ?? null;
   const sets = profile.sets.length;
   return [
-    agentName(profile.harness),
+    agentName(profile.harness, agents),
     route === null ? "the agent's own models" : `models from ${route}`,
     ...(sets === 0
       ? []

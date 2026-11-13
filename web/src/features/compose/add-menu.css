@@ -7,3 +7,11 @@
   gap: 12px;
   margin-top: 12px;
 }
+
+/* The attach button keeps its own width, its icon in line with the
+   fields' labels (less its 10px of padding), instead of stretching
+   with its label centred. */
+.add-files {
+  display: flex;
+  margin-left: -10px;
+}
