@@ -3,5 +3,6 @@
 //! one specification, checked on both sides). Each test names the page's
 //! test it follows.
 
+mod agents;
 mod board;
 mod options;

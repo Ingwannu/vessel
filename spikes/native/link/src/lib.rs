@@ -458,12 +458,25 @@ impl State {
         entry: &vessel_client::book::BookEntry,
     ) -> Result<Connected, LinkError> {
         let client = nodes::connect(entry, nodes::client_info(&self.label)).await?;
-        let agents = match client.harnesses().await {
-            Ok(harnesses) => Agent::all(&harnesses),
+        let harnesses = match client.harnesses().await {
+            Ok(harnesses) => harnesses,
             Err(error) => {
                 tracing::warn!(%error, "could not list the machine's agents");
                 Vec::new()
             }
+        };
+        // `agent.list` (protocol 11) names every agent the node knows, the
+        // ones not installed too; `harness.list` only the installed.
+        let agents = if client.protocol() >= ProtocolVersion::new(11) {
+            match client.call(vessel_proto::agents::ListAgents {}).await {
+                Ok(known) => Agent::known(&harnesses, &known),
+                Err(error) => {
+                    tracing::warn!(%error, "could not read the node's agent list");
+                    Agent::all(&harnesses)
+                }
+            }
+        } else {
+            Agent::all(&harnesses)
         };
         Ok(Connected { client, agents })
     }
