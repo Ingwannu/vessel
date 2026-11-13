@@ -11,7 +11,8 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
 - 처음 열면 기계가 없으므로 "Add a machine" 화면이 나옵니다. 추가할 기계에서
   `vessel node pair` 를 실행해 나온 링크를 그 칸에 붙여 넣고 Enter, 키가
   그 기계의 `vessel node status` 와 같은지 확인한 뒤 이름을 붙여 Pair 를
-  누릅니다. 노드 목록과 기기 자격 증명은 vessel CLI와 같은 곳에 둡니다.
+  누릅니다. 노드 목록과 기기 자격 증명은 vessel CLI와 같은 곳
+  (%APPDATA%\vessel)에 둡니다.
 - {UPDATES_KO}
 
 [English]
@@ -27,7 +28,9 @@ Vessel {LABEL} — Windows 10 (1703 이후) / 11, x64
   `vessel node pair` on the machine to add, paste the link it prints into
   the field and press Enter, check the key against `vessel node status`
   there, name it and press Pair. The node book and device credentials are
-  the vessel CLI's.
+  the vessel CLI's (%APPDATA%\vessel).
 - {UPDATES_EN}
 
 Vessel is source-available under PolyForm Strict 1.0.0 (LICENSE.md).
+Embedded fonts: Geist and Geist Mono (Vercel), Pretendard; SIL Open Font
+License 1.1, texts in licenses\.

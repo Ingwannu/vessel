@@ -182,6 +182,10 @@ label's directory also holds the desktop track's Linux tarball
   including an `Vessel.exe.old-*` and a `.vessel-update-*.part` placed
   there to stand for the updater's leftovers. The installer's own pages
   (directory choice, finish with "run Vessel") were not seen.
+- **The fonts' licence**: the app embeds Geist, Geist Mono and
+  Pretendard (SIL OFL 1.1), whose licence asks every copy to carry its
+  text; the zip, the installer and the tarball carry them in
+  `licenses/` (added at 03:30 UTC; the first 03:26 set lacked them).
 - **Not done on this machine and why**: a drawn frame of the app (wine's
   DirectWrite), SmartScreen's warning (Windows only), DPI scaling on a
   real display.

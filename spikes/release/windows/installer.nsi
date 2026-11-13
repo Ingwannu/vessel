@@ -21,7 +21,8 @@
 ;   installer until the owner has a certificate.
 ;
 ; Built by spikes/release/build.sh:
-;   makensis -DLABEL=<label> -DSTAGE=<dir with Vessel.exe and LICENSE.md>
+;   makensis -DLABEL=<label> -DSTAGE=<dir with Vessel.exe, LICENSE.md,
+;            README.txt and licenses\>
 ;            -DOUTFILE=<setup.exe> installer.nsi
 
 ; A 64-bit installer: the app is x64 only, so nothing is lost on Windows,
@@ -80,6 +81,10 @@ Section "Vessel"
   File "${STAGE}\${EXE}"
   File "${STAGE}\LICENSE.md"
   File "${STAGE}\README.txt"
+  ; The embedded fonts' licence (SIL OFL 1.1 asks each copy to carry it).
+  SetOutPath "$INSTDIR\licenses"
+  File "${STAGE}\licenses\*.txt"
+  SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
   CreateShortcut "$SMPROGRAMS\${NAME}.lnk" "$INSTDIR\${EXE}"
@@ -100,6 +105,8 @@ Section "Uninstall"
   Delete "$INSTDIR\${EXE}"
   Delete "$INSTDIR\LICENSE.md"
   Delete "$INSTDIR\README.txt"
+  Delete "$INSTDIR\licenses\*-OFL.txt"
+  RMDir "$INSTDIR\licenses"
   ; What the app's own updates leave beside it: a build moved aside while
   ; it ran, and a download cut short.
   Delete "$INSTDIR\${EXE}.old-*"

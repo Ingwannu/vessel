@@ -14,10 +14,12 @@
 # place, so the directory the owner downloads from never holds a
 # half-written set. The last step checks the sums again where they landed.
 # Contents:
-#   vessel-LABEL-windows-x64.zip        Vessel.exe, LICENSE.md, README.txt
+#   vessel-LABEL-windows-x64.zip        Vessel.exe, LICENSE.md, README.txt,
+#                                       licenses/ (the embedded fonts' OFL)
 #   vessel-LABEL-windows-x64-setup.exe  per-user installer (NSIS)
 #   vessel-LABEL-windows-x64.exe        the executable alone: the update
-#   vessel-LABEL-linux-x64.tar.gz       vessel, LICENSE.md, README.txt
+#   vessel-LABEL-linux-x64.tar.gz       vessel-app, LICENSE.md, README.txt,
+#                                       licenses/
 #   vessel-LABEL-linux-x64              the executable alone: the update
 #   SHA256SUMS (and SHA256SUMS.minisig when a signing key is given)
 #
@@ -121,6 +123,14 @@ else
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
 fi
 
+# The SIL Open Font License asks that each copy of the fonts carry the
+# licence; the app embeds Geist, Geist Mono and Pretendard, so every
+# package carries their texts (fonts.sh puts them beside the fonts).
+licenses() {
+    mkdir -p "$1/licenses"
+    cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
+}
+
 readme() {
     sed -e "s/{LABEL}/$label/g" -e "s/{UPDATES_KO}/$updates_ko/" -e "s/{UPDATES_EN}/$updates_en/" "$1"
 }
@@ -170,6 +180,7 @@ build_windows() {
     mkdir -p "$dir"
     cp "$exe" "$dir/Vessel.exe"
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
+    licenses "$dir"
     readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
     (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/vessel-$label-windows-x64.zip" Vessel)
     cp "$exe" "$out/vessel-$label-windows-x64.exe"
@@ -185,8 +196,10 @@ build_linux() {
     rm -f "$out/$name" "$out/$name.tar.gz"
     local dir="$stage/linux/$name"
     mkdir -p "$dir"
-    cp "$bin" "$dir/vessel"
+    # Not `vessel`: that is the command line's name.
+    cp "$bin" "$dir/vessel-app"
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
+    licenses "$dir"
     readme "$here/linux/README.txt" >"$dir/README.txt"
     tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$stage/linux" -czf "$out/$name.tar.gz" "$name"
     cp "$bin" "$out/$name"

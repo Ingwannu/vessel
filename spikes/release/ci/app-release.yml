@@ -104,6 +104,9 @@ jobs:
           mkdir -p "$stage" dist
           cp spikes/native/target/x86_64-pc-windows-msvc/release/vessel-app.exe "$stage/Vessel.exe"
           cp LICENSE.md "$stage/"
+          mkdir -p "$stage/licenses" && cp spikes/native/assets/fonts/*-OFL.txt "$stage/licenses/"
+          # build.sh fills the update lines from what the build links; here
+          # the same choice is made from whether the feed is configured.
           sed "s/{LABEL}/$label/g" spikes/release/windows/README.txt | sed 's/$/\r/' > "$stage/README.txt"
           cp "$stage/Vessel.exe" "dist/vessel-$label-windows-x64.exe"
           (cd "$RUNNER_TEMP/stage" && 7z a -tzip "$GITHUB_WORKSPACE/dist/vessel-$label-windows-x64.zip" Vessel)
@@ -225,8 +228,9 @@ jobs:
           label="$VESSEL_BUILD_LABEL"
           name="vessel-$label-linux-x64"
           mkdir -p "$RUNNER_TEMP/$name" dist
-          cp spikes/native/target/release/vessel-app "$RUNNER_TEMP/$name/vessel"
+          cp spikes/native/target/release/vessel-app "$RUNNER_TEMP/$name/vessel-app"
           cp LICENSE.md "$RUNNER_TEMP/$name/"
+          mkdir -p "$RUNNER_TEMP/$name/licenses" && cp spikes/native/assets/fonts/*-OFL.txt "$RUNNER_TEMP/$name/licenses/"
           sed "s/{LABEL}/$label/g" spikes/release/linux/README.txt > "$RUNNER_TEMP/$name/README.txt"
           tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$RUNNER_TEMP" -czf "dist/$name.tar.gz" "$name"
           cp spikes/native/target/release/vessel-app "dist/$name"
