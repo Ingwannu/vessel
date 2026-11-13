@@ -1,10 +1,5 @@
-//! The screens, each drawn from the shell's state with the kit's tokens
-//! and controls (DESIGN.md section 6 for each one's look).
-
-pub(crate) mod board;
-pub(crate) mod pair;
-pub(crate) mod session;
-pub(crate) mod sidebar;
+//! Pieces more than one area draws: a frame's title bar and foot, a
+//! session's colour.
 
 use vessel_app_kit::ui::{Div, ParentElement as _, Styled as _, div, px};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
