@@ -296,6 +296,17 @@ impl Shell {
     /// panel is a session's), as the toggle is not drawn then. At a
     /// phone's width the panel it opens takes the whole screen, as from the
     /// toggle.
+    /// Something was put in the session's composer from the panel: at a
+    /// phone's width the panel covers the composer, so it closes and the
+    /// composer is seen with what was added (Paseo's compact layout closes
+    /// its Explorer sheet when a choice goes to the main pane); beside the
+    /// conversation it stays.
+    fn code_handed_to_composer(&mut self, window: &Window) {
+        if vessel_app_kit::breakpoint::phone(window) {
+            self.areas.workspace.code.open = false;
+        }
+    }
+
     pub(crate) fn toggle_code(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if self.areas.session.open.is_none() {
             return;

@@ -255,6 +255,7 @@ impl Shell {
         if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
             viewer.chosen = None;
         }
+        self.code_handed_to_composer(window);
         cx.notify();
     }
 }

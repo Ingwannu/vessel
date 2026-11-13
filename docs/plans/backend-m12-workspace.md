@@ -147,7 +147,10 @@ inside files; the count line is this panel's own. In a file
 shown, a click on a line's number chooses it, Shift-click extends the
 choice, and "Add lines 12–20 to chat" puts agent-orchestrator's
 reference (the page's `reference.ts`) at the end of the session's
-draft. The panel is resized by dragging its left edge (320 at least,
+draft. At a phone's width, where the panel covers the conversation, the
+panel closes after it (and after the tree's "Add to chat") so the draft
+is seen with what was added, as Paseo's compact layout closes its
+Explorer sheet. The panel is resized by dragging its left edge (320 at least,
 the conversation keeps 480 of the row, whatever the sidebar's width).
 
 ### Checked against the fake fleet
