@@ -108,8 +108,50 @@ pub fn pill(
     touch: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    pill_parts(
+        id,
+        PillParts {
+            leading,
+            label: Some(label.into()),
+            quiet,
+            caret: true,
+        },
+        open,
+        touch,
+        tokens,
+    )
+}
+
+/// What a pill shows: Paseo's toolbar control drops its caret, then its
+/// label, as the composer narrows (`composer/agent-controls/layout.ts`).
+#[derive(Debug, Clone, Default)]
+pub struct PillParts {
+    /// The glyph before the label.
+    pub leading: Option<Glyph>,
+    /// The label; `None` for a square of the glyph alone (Paseo's
+    /// `toolbarIconOnly`).
+    pub label: Option<SharedString>,
+    /// Words after the label, quieter.
+    pub quiet: Option<SharedString>,
+    /// The caret after them.
+    pub caret: bool,
+}
+
+/// A pill of `parts` (see [`pill`]): Paseo's toolbar control, 28 high (44
+/// on touch), 8 inside, its glyph 16 (20 on touch); without a label a
+/// square of the same height.
+#[must_use]
+pub fn pill_parts(
+    id: impl Into<ElementId>,
+    parts: PillParts,
+    open: bool,
+    touch: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
     let neutral = tokens.neutral;
-    let glyph_size = if touch { 20.0 } else { 14.0 };
+    let glyph_size = if touch { 20.0 } else { 16.0 };
+    let height = if touch { 44.0 } else { 28.0 };
+    let square = parts.label.is_none();
     div()
         .id(id)
         .flex()
@@ -117,8 +159,9 @@ pub fn pill(
         .items_center()
         .flex_shrink_0()
         .gap(px(4.0))
-        .h(px(if touch { 44.0 } else { 28.0 }))
-        .px(px(8.0))
+        .h(px(height))
+        .when(square, |pill| pill.w(px(height)).justify_center())
+        .when(!square, |pill| pill.px(px(8.0)))
         .rounded(px(16.0))
         .when(open, |pill| pill.bg(neutral.surface0))
         .when(!open, |pill| {
@@ -127,14 +170,37 @@ pub fn pill(
         .cursor_pointer()
         .type_(Type::Body)
         .text_color(neutral.foreground_muted)
-        .children(leading.map(|leading| glyph(leading, glyph_size, neutral.foreground_muted)))
-        .child(label.into())
-        .children(quiet.map(|quiet| {
+        .children(
+            parts
+                .leading
+                .map(|leading| glyph(leading, glyph_size, neutral.foreground_muted)),
+        )
+        .children(parts.label)
+        .children(parts.quiet.map(|quiet| {
             div()
                 .text_color(neutral.foreground_extra_muted)
                 .child(quiet)
         }))
-        .child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
+        .when(parts.caret, |pill| {
+            pill.child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
+        })
+}
+
+/// Where an element is drawn, recorded in `cell` every frame (an absolute
+/// layer over its parent): the anchor of a list opened from it later
+/// ([`ComboboxState::set_anchor`]), when several triggers share one list.
+#[must_use]
+pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
+    let cell = Rc::clone(cell);
+    canvas(
+        move |bounds, _window, _cx| cell.set(Some(bounds)),
+        |_, (), _, _| {},
+    )
+    .absolute()
+    .top_0()
+    .left_0()
+    .size_full()
+    .into_any_element()
 }
 
 /// What the round button beside the composer does.
@@ -335,16 +401,13 @@ impl ComboboxState {
     /// the list to open from.
     #[must_use]
     pub fn anchor(&self) -> AnyElement {
-        let cell = Rc::clone(&self.anchor);
-        canvas(
-            move |bounds, _window, _cx| cell.set(Some(bounds)),
-            |_, (), _, _| {},
-        )
-        .absolute()
-        .top_0()
-        .left_0()
-        .size_full()
-        .into_any_element()
+        anchor_probe(&self.anchor)
+    }
+
+    /// Open next from where another trigger was drawn (one list shared by
+    /// several triggers: a pill per feature, a row of the features sheet).
+    pub fn set_anchor(&self, bounds: Option<Bounds<Pixels>>) {
+        self.anchor.set(bounds);
     }
 
     fn step(&mut self, rows: &[ComboRow], forward: bool) {
@@ -507,7 +570,9 @@ pub fn combobox<V: 'static>(
             .snap_to_window_with_margin(px(EDGE))
             .child(panel)
     };
-    Some(deferred(element).with_priority(1).into_any_element())
+    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
+    // from a row of the features sheet.
+    Some(deferred(element).with_priority(3).into_any_element())
 }
 
 /// Paseo's `size` middleware: a list is at most 400 tall and never taller

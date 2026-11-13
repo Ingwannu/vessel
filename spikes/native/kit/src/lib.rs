@@ -49,8 +49,8 @@ pub use field::{TextField, composer_card};
 pub use fonts::Type;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
 pub use picker::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, SendKind, Side, combobox, glyph,
-    pill, send_button,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
+    anchor_probe, combobox, glyph, pill, pill_parts, send_button,
 };
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
@@ -64,8 +64,9 @@ pub use widgets::{
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Context, Div, ElementId, Entity, Hsla, ListAlignment, ListState,
-        Pixels, SharedString, Stateful, WeakEntity, Window, div, list, px, svg, uniform_list,
+        AnyElement, App, AsyncApp, Bounds, Context, Div, ElementId, Entity, Hsla, ListAlignment,
+        ListState, Pixels, SharedString, Stateful, WeakEntity, Window, canvas, div, list, px,
+        relative, svg, uniform_list,
     };
 }
 

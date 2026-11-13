@@ -35,7 +35,7 @@
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Context, FocusHandle, KeyDownEvent, MouseButton, SharedString, Window,
-    deferred, div, px, relative, svg,
+    anchored, deferred, div, point, px, relative, svg,
 };
 
 use crate::assets::Glyph;
@@ -110,6 +110,7 @@ pub fn dialog<V: 'static>(
     state: &DialogState,
     content: DialogContent,
     tokens: &Tokens,
+    window: &Window,
     narrow: bool,
     close: fn(&mut V, &mut Window, &mut Context<'_, V>),
     cx: &mut Context<'_, V>,
@@ -177,12 +178,13 @@ pub fn dialog<V: 'static>(
                 .child(content.body),
         )
         .children(footer);
+    // The whole window, wherever the screen that keeps it open is drawn
+    // (Paseo's overlay is `absoluteFill` of the window).
+    let size = window.viewport_size();
     let scrim = div()
         .id("dialog-scrim")
-        .absolute()
-        .top_0()
-        .left_0()
-        .size_full()
+        .w(size.width)
+        .h(size.height)
         .flex()
         .justify_center()
         .occlude()
@@ -198,9 +200,13 @@ pub fn dialog<V: 'static>(
     } else {
         scrim.items_center().p(px(24.0)).bg(popup::scrim())
     };
-    deferred(scrim.child(card))
-        .with_priority(2)
-        .into_any_element()
+    deferred(
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(scrim.child(card)),
+    )
+    .with_priority(2)
+    .into_any_element()
 }
 
 /// A sheet's drag handle (Gorhom's indicator, as Paseo themes it: zinc

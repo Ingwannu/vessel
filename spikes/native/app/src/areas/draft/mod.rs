@@ -39,18 +39,18 @@
 //! yet. The choices are kept only once the agent's options are known: a
 //! start sent while they load keeps the earlier ones.
 
+mod density;
+mod features;
 mod pickers;
 
 use std::collections::HashMap;
 
-use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
 use vessel_app_kit::{
-    ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, pill,
-    send_button,
+    ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, send_button,
 };
 use vessel_app_link::Command;
 use vessel_app_view::{Controls, Machine, Picks, agent_name, choices_for, controls_of, with_picks};
@@ -98,9 +98,10 @@ pub(crate) struct Draft {
     /// The agent whose models the model selector shows; `None` for the
     /// list of agents.
     pub(crate) browsing: Option<HarnessRef>,
-    /// The feature whose own list the features list shows (Paseo pushes a
-    /// feature's list over the features sheet); `None` for the features.
+    /// The feature whose list the features list shows.
     pub(crate) feature: Option<vessel_proto::OptionId>,
+    /// The features' controls and sheet.
+    pub(crate) features: features::FeatureState,
     /// Which of the suggestions is the placeholder (one per launch).
     suggestion: usize,
     /// Why the last send did not go, shown under the composer.
@@ -149,6 +150,7 @@ impl Draft {
             },
             browsing: None,
             feature: None,
+            features: features::FeatureState::new(cx),
             suggestion,
             error: None,
             sending: None,
@@ -506,6 +508,17 @@ pub(crate) fn render(
         .justify_center()
         .px(px(if touch { 12.0 } else { 32.0 }))
         .child(column)
+        .children(features::sheet(
+            shell,
+            match &shown {
+                Some(Shown::Ready(controls)) => Some(controls.as_ref()),
+                Some(Shown::Loading | Shown::Failed(_)) | None => None,
+            },
+            tokens,
+            window,
+            touch,
+            cx,
+        ))
         .children(pickers::open_list(
             shell,
             &online,
@@ -525,21 +538,11 @@ fn note(text: String, color: Hsla) -> Div {
 pub(crate) fn pill_with(
     id: &'static str,
     list: &ComboboxState,
-    leading: Option<Glyph>,
-    label: String,
-    quiet: Option<String>,
+    parts: vessel_app_kit::PillParts,
     touch: bool,
     tokens: &Tokens,
 ) -> vessel_app_kit::ui::Stateful<Div> {
-    pill(
-        id,
-        leading,
-        label,
-        quiet.map(Into::into),
-        list.is_open(),
-        touch,
-        tokens,
-    )
-    .relative()
-    .child(list.anchor())
+    vessel_app_kit::pill_parts(id, parts, list.is_open(), touch, tokens)
+        .relative()
+        .child(list.anchor())
 }

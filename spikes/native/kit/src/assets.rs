@@ -64,10 +64,15 @@ pub enum Glyph {
     Folder,
     /// A machine.
     Machine,
+    /// An agent's feature, and the features (Paseo's `Settings2`: two
+    /// sliders).
+    Sliders,
+    /// Settings (Paseo's `Settings`: a gear).
+    Gear,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 20] = [
+const ALL: [Glyph; 22] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -88,6 +93,8 @@ const ALL: [Glyph; 20] = [
     Glyph::Alert,
     Glyph::Folder,
     Glyph::Machine,
+    Glyph::Sliders,
+    Glyph::Gear,
 ];
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
@@ -127,6 +134,8 @@ impl Glyph {
             Self::Alert => "kit/alert.svg",
             Self::Folder => "kit/folder.svg",
             Self::Machine => "kit/machine.svg",
+            Self::Sliders => "kit/sliders.svg",
+            Self::Gear => "kit/gear.svg",
         }
     }
 
@@ -177,6 +186,12 @@ impl Glyph {
             ),
             Self::Machine => line_glyph!(
                 r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
+            ),
+            Self::Sliders => line_glyph!(
+                r#"<path d="M19.5 7H10M14 17H4.5"/><circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="17" r="2.75"/>"#
+            ),
+            Self::Gear => line_glyph!(
+                r#"<circle cx="12" cy="12" r="3"/><path d="M12 2.75v2.5M12 18.75v2.5M2.75 12h2.5M18.75 12h2.5M5.46 5.46l1.77 1.77M16.77 16.77l1.77 1.77M5.46 18.54l1.77-1.77M16.77 7.23l1.77-1.77"/><circle cx="12" cy="12" r="6.25"/>"#
             ),
         }
     }

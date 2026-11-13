@@ -13,10 +13,14 @@ use vessel_app_kit::ui::{
     AnyElement, Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
     Window, div, px,
 };
-use vessel_app_kit::{ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, Side, Tokens};
+use vessel_app_kit::{
+    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, Side, Tokens,
+};
 use vessel_app_view::{Agent, Controls, Machine, Reach, SelectControl, agent_name, controls_of};
 use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 
+use super::density::Density;
+use super::features::feature_name;
 use super::{Probe, Shown, pill_with};
 use crate::shell::Shell;
 
@@ -44,7 +48,7 @@ const MODEL_WIDTH: f32 = 360.0;
 /// The other lists' width.
 const LIST_WIDTH: f32 = 300.0;
 
-fn list_of(shell: &mut Shell, which: Picker) -> &mut ComboboxState {
+pub(super) fn list_of(shell: &mut Shell, which: Picker) -> &mut ComboboxState {
     let lists = &mut shell.areas.draft.lists;
     match which {
         Picker::Model => &mut lists.model,
@@ -68,7 +72,7 @@ fn list_ref(shell: &Shell, which: Picker) -> &ComboboxState {
     }
 }
 
-const ALL: [Picker; 6] = [
+pub(super) const ALL: [Picker; 6] = [
     Picker::Model,
     Picker::Thinking,
     Picker::Mode,
@@ -158,11 +162,9 @@ impl Shell {
                 (self.fleet.machines.len() > SEARCH_HOSTS_PAST).then_some(words.search_hosts)
             }
             Picker::Folder => Some(words.search_folders),
-            Picker::Features => {
-                self.areas.draft.feature = None;
-                None
-            }
-            Picker::Thinking => None,
+            // A feature's list opens through `open_feature`, which says
+            // where and with what.
+            Picker::Thinking | Picker::Features => None,
         };
         list_of(self, which).open(search, window, cx);
         cx.notify();
@@ -170,13 +172,17 @@ impl Shell {
 
     fn close_picker(&mut self, which: Picker, window: &mut Window, cx: &mut Context<'_, Self>) {
         list_of(self, which).close();
-        self.areas.draft.composer.focus(window, cx);
+        // Back to the features sheet when the list was opened from it.
+        if !self.areas.draft.features.sheet {
+            self.areas.draft.composer.focus(window, cx);
+        }
         cx.notify();
     }
 }
 
 /// The controls in the card: the model selector, then thinking, mode and
-/// features when the agent offers them (Paseo's order).
+/// features when the agent offers them (Paseo's order), at the step of
+/// Paseo's ladder the card's width allows (`density.rs`).
 pub(super) fn controls(
     shell: &Shell,
     shown: Option<&Shown>,
@@ -184,44 +190,30 @@ pub(super) fn controls(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let t = shell.t;
-    let words = t.lang.options();
-    let lists = &shell.areas.draft.lists;
+    let draft = &shell.areas.draft;
+    let lists = &draft.lists;
+    let ready = match shown {
+        Some(Shown::Ready(controls)) => Some(controls.as_ref()),
+        Some(Shown::Loading | Shown::Failed(_)) | None => None,
+    };
+    let density = ready.map_or(Density::Full, |controls| {
+        draft.features.density(controls, touch)
+    });
+    let caret = density.carets();
+    // The row takes the card's width less the send button, and measures
+    // it for the next frame (Paseo's `onLayout`).
     let mut row = div()
+        .relative()
+        .flex_1()
+        .min_w_0()
         .flex()
         .flex_row()
         .flex_wrap()
         .items_center()
-        .gap(px(4.0));
-    let online: Vec<&Machine> = shell.fleet.online().collect();
-    let several = machine(shell, &online).is_some_and(|machine| machine.agents.len() > 1);
-    let (label, quiet) = match (&shell.areas.draft.agent, shown) {
-        (None, _) => (t.agent.to_owned(), None),
-        (Some(_), Some(Shown::Loading) | None) => (words.loading.to_owned(), None),
-        (Some(agent), Some(Shown::Failed(_))) => (agent_name(agent), None),
-        (Some(agent), Some(Shown::Ready(controls))) => match &controls.model {
-            Some(model) => (
-                model.current_name().to_owned(),
-                several.then(|| agent_name(agent)),
-            ),
-            None => (agent_name(agent), None),
-        },
-    };
-    row = row.child(
-        pill_with(
-            "pick-model",
-            &lists.model,
-            Some(Glyph::Bot),
-            label,
-            quiet,
-            touch,
-            tokens,
-        )
-        .on_click(
-            cx.listener(|this, _event, window, cx| this.open_picker(Picker::Model, window, cx)),
-        ),
-    );
-    let Some(Shown::Ready(controls)) = shown else {
+        .gap(px(4.0))
+        .child(draft.features.measure());
+    row = row.child(model_pill(shell, shown, caret, touch, tokens, cx));
+    let Some(controls) = ready else {
         return row;
     };
     if let Some(effort) = &controls.effort {
@@ -229,9 +221,14 @@ pub(super) fn controls(
             pill_with(
                 "pick-thinking",
                 &lists.thinking,
-                Some(Glyph::Brain),
-                effort.current_name().to_owned(),
-                None,
+                PillParts {
+                    leading: Some(Glyph::Brain),
+                    label: density
+                        .thinking_label()
+                        .then(|| effort.current_name().to_owned().into()),
+                    quiet: None,
+                    caret,
+                },
                 touch,
                 tokens,
             )
@@ -245,9 +242,14 @@ pub(super) fn controls(
             pill_with(
                 "pick-mode",
                 &lists.mode,
-                Some(Glyph::Shield),
-                mode.current_name().to_owned(),
-                None,
+                PillParts {
+                    leading: Some(Glyph::Shield),
+                    label: density
+                        .mode_label()
+                        .then(|| mode.current_name().to_owned().into()),
+                    quiet: None,
+                    caret,
+                },
                 touch,
                 tokens,
             )
@@ -256,23 +258,51 @@ pub(super) fn controls(
             ),
         );
     }
-    if !controls.toggles.is_empty() || !controls.selects.is_empty() {
-        row = row.child(
-            pill_with(
-                "pick-features",
-                &lists.features,
-                None,
-                words.features.to_owned(),
-                None,
-                touch,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_picker(Picker::Features, window, cx);
-            })),
-        );
-    }
-    row
+    row.children(super::features::controls(
+        shell, controls, density, touch, tokens, cx,
+    ))
+}
+
+/// The model selector's pill: the model in use and, when the machine has
+/// several agents, the agent's name quieter.
+fn model_pill(
+    shell: &Shell,
+    shown: Option<&Shown>,
+    caret: bool,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> vessel_app_kit::ui::Stateful<Div> {
+    let t = shell.t;
+    let words = t.lang.options();
+    let draft = &shell.areas.draft;
+    let online: Vec<&Machine> = shell.fleet.online().collect();
+    let several = machine(shell, &online).is_some_and(|machine| machine.agents.len() > 1);
+    let (label, quiet) = match (&draft.agent, shown) {
+        (None, _) => (t.agent.to_owned(), None),
+        (Some(_), Some(Shown::Loading) | None) => (words.loading.to_owned(), None),
+        (Some(agent), Some(Shown::Failed(_))) => (agent_name(agent), None),
+        (Some(agent), Some(Shown::Ready(controls))) => match &controls.model {
+            Some(model) => (
+                model.current_name().to_owned(),
+                several.then(|| agent_name(agent)),
+            ),
+            None => (agent_name(agent), None),
+        },
+    };
+    pill_with(
+        "pick-model",
+        &draft.lists.model,
+        PillParts {
+            leading: Some(Glyph::Bot),
+            label: Some(label.into()),
+            quiet: quiet.map(Into::into),
+            caret,
+        },
+        touch,
+        tokens,
+    )
+    .on_click(cx.listener(|this, _event, window, cx| this.open_picker(Picker::Model, window, cx)))
 }
 
 /// Under the card: the machine and the folder.
@@ -303,9 +333,12 @@ pub(super) fn place(
             pill_with(
                 "pick-machine",
                 &draft.lists.machine,
-                Some(Glyph::Machine),
-                machine_label,
-                None,
+                PillParts {
+                    leading: Some(Glyph::Machine),
+                    label: Some(machine_label.into()),
+                    quiet: None,
+                    caret: true,
+                },
                 touch,
                 tokens,
             )
@@ -317,9 +350,12 @@ pub(super) fn place(
             pill_with(
                 "pick-folder",
                 &draft.lists.folder,
-                Some(Glyph::Folder),
-                folder_label,
-                None,
+                PillParts {
+                    leading: Some(Glyph::Folder),
+                    label: Some(folder_label.into()),
+                    quiet: None,
+                    caret: true,
+                },
                 touch,
                 tokens,
             )
@@ -336,11 +372,8 @@ enum Meaning {
     Browse(HarnessRef),
     /// Start on this agent, with this choice (none: its default model).
     Agent(HarnessRef, Option<OptionChoice>),
-    /// One of the draft agent's options; `close` the list after it (else
-    /// back to the features).
+    /// One of the draft agent's options; `close` the list after it.
     Choose(OptionChoice, bool),
-    /// Open a feature's own list.
-    Feature(OptionId),
     Machine(String),
     Folder(String),
 }
@@ -364,8 +397,11 @@ fn build(shell: &Shell, which: Picker, query: &str, cx: &Context<'_, Shell>) -> 
             empty: words.no_matches.into(),
             // The controls in the card open above it, those under it below
             // (Paseo's `top-start` and `bottom-start`).
+            // A feature's list from a row of the features sheet opens below
+            // it (Paseo's default, `bottom-start`).
             side: match which {
                 Picker::Machine | Picker::Folder => Side::Below,
+                Picker::Features if shell.areas.draft.features.sheet => Side::Below,
                 Picker::Model | Picker::Thinking | Picker::Mode | Picker::Features => Side::Above,
             },
         },
@@ -570,76 +606,51 @@ fn option_rows(shell: &Shell, which: Picker, query: &str, built: &mut Built) {
             }
         }
         Picker::Features | Picker::Model | Picker::Machine | Picker::Folder => {
-            match &shell.areas.draft.feature {
-                Some(id) => feature_list(shell, &controls, id, built),
-                None => feature_rows(shell, &controls, built),
+            if let Some(id) = &shell.areas.draft.feature {
+                feature_list(shell, &controls, id, query, built);
             }
         }
     }
 }
 
-/// A feature's name, its id when the agent gave it none.
-fn feature_name<'a>(name: &'a str, id: &'a OptionId) -> &'a str {
-    if name.trim().is_empty() {
-        id.as_str()
-    } else {
-        name
-    }
-}
-
-/// The features (Paseo's features sheet, `SheetFeatureItem`): a row per
-/// feature with its name and its value ("켜짐", "꺼짐", or the chosen
-/// option), each opening its own list. Paseo shows no description there,
-/// and an on/off feature is a row like the others, not a switch: it
-/// opens "켜짐" and "꺼짐".
-fn feature_rows(shell: &Shell, controls: &Controls, built: &mut Built) {
+/// One feature's list (Paseo's combobox of the feature's options): from
+/// its control, a search row and no title; from the features sheet, its
+/// name above and no search. "켜짐" and "꺼짐" for an on/off feature (only
+/// the sheet opens one: its control switches it), the option names alone
+/// for a choice, the one in effect checked; a choice closes the list.
+fn feature_list(shell: &Shell, controls: &Controls, id: &OptionId, query: &str, built: &mut Built) {
     let words = shell.t.lang.options();
-    for toggle in &controls.toggles {
-        let mut row = ComboRow::new(feature_name(&toggle.name, &toggle.id).to_owned());
-        row.trailing = Some(
-            if toggle.on {
-                words.setting_on
-            } else {
-                words.setting_off
-            }
-            .into(),
-        );
-        built.rows.push(row);
-        built.meanings.push(Meaning::Feature(toggle.id.clone()));
-    }
-    for select in &controls.selects {
-        let mut row = ComboRow::new(feature_name(&select.name, &select.id).to_owned());
-        row.trailing = Some(select.current_name().to_owned().into());
-        built.rows.push(row);
-        built.meanings.push(Meaning::Feature(select.id.clone()));
-    }
-}
-
-/// One feature's own list (Paseo's pushed combobox): its name above with
-/// a way back, no search; "켜짐" and "꺼짐" for an on/off feature, the
-/// option names alone for a choice, the one in effect checked.
-fn feature_list(shell: &Shell, controls: &Controls, id: &OptionId, built: &mut Built) {
-    let words = shell.t.lang.options();
-    built.header.back = true;
+    let from_sheet = shell.areas.draft.features.sheet;
+    built.header.search = !from_sheet;
     if let Some(toggle) = controls.toggles.iter().find(|toggle| &toggle.id == id) {
-        built.header.title = Some(feature_name(&toggle.name, &toggle.id).to_owned().into());
+        if from_sheet {
+            built.header.title = Some(feature_name(&toggle.name, &toggle.id).to_owned().into());
+        }
         for (on, label) in [(true, words.setting_on), (false, words.setting_off)] {
+            if !matches(label, query) {
+                continue;
+            }
             let mut row = ComboRow::new(label);
             row.checked = toggle.on == on;
             built.rows.push(row);
             built
                 .meanings
-                .push(Meaning::Choose(toggle.choose(on), false));
+                .push(Meaning::Choose(toggle.choose(on), true));
         }
     } else if let Some(select) = controls.selects.iter().find(|select| &select.id == id) {
-        built.header.title = Some(feature_name(&select.name, &select.id).to_owned().into());
+        if from_sheet {
+            built.header.title = Some(feature_name(&select.name, &select.id).to_owned().into());
+        }
         for value in &select.values {
+            if !matches(&value.name, query) {
+                continue;
+            }
             let mut row = ComboRow::new(value.name.clone());
             row.checked = value.id == select.current;
             built.rows.push(row);
             built
                 .meanings
-                .push(Meaning::Choose(select.choose(value.id.clone()), false));
+                .push(Meaning::Choose(select.choose(value.id.clone()), true));
         }
     }
 }
@@ -737,13 +748,8 @@ fn chose(
             shell.choose_option(choice);
             if close {
                 shell.close_picker(which, window, cx);
-            } else {
-                // Paseo closes a feature's list on a choice, back on the
-                // features.
-                shell.areas.draft.feature = None;
             }
         }
-        Meaning::Feature(id) => shell.areas.draft.feature = Some(id),
         Meaning::Machine(name) => {
             list_of(shell, which).close();
             shell.choose_machine(name, window, cx);
@@ -801,15 +807,11 @@ pub(super) fn open_list(
                 );
                 Some(back)
             }
-            Picker::Features => {
-                let back: vessel_app_kit::picker::Back<Shell> = Rc::new(
-                    |shell: &mut Shell, _window: &mut Window, _cx: &mut Context<'_, Shell>| {
-                        shell.areas.draft.feature = None;
-                    },
-                );
-                Some(back)
-            }
-            Picker::Thinking | Picker::Mode | Picker::Machine | Picker::Folder => None,
+            Picker::Thinking
+            | Picker::Mode
+            | Picker::Features
+            | Picker::Machine
+            | Picker::Folder => None,
         },
     };
     vessel_app_kit::combobox(
