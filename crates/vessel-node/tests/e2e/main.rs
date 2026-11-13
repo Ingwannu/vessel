@@ -103,3 +103,6 @@ mod transfers_across;
 mod waiting;
 #[cfg(test)]
 mod workspace;
+
+#[cfg(test)]
+mod usage;

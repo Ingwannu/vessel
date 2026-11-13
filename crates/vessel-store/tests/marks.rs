@@ -306,7 +306,10 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
         .execute_batch(
-            "DROP TABLE hook_keys;
+            "DROP TABLE usage_samples;
+             DROP TABLE usage_meta;
+             ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+             DROP TABLE hook_keys;
              DROP TABLE hook_deliveries;
              DROP TABLE hooks;
              DROP TABLE saved_prompts;

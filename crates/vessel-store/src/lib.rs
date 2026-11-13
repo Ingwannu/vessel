@@ -68,6 +68,7 @@ mod recovery;
 mod schema;
 mod store;
 mod token;
+mod usage;
 mod workspace;
 mod writer;
 

@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Formatting a usage report failed.
+    #[error("could not format the usage report")]
+    UsageFormat(#[from] std::fmt::Error),
     /// Explicit operator LSP configuration failed.
     #[error(transparent)]
     LspConfiguration(#[from] vessel_node::LspConfigError),

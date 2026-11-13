@@ -30,6 +30,7 @@ mod selector;
 mod terminals;
 mod transfer;
 mod ui;
+mod usage;
 mod view;
 mod workspace;
 
@@ -116,6 +117,7 @@ async fn cli() -> ExitCode {
         | Command::Shell(_)
         | Command::Script { .. }
         | Command::Ports(_)
+        | Command::Usage { .. }
         | Command::Schedule { .. }
         | Command::Prompt { .. }
         | Command::Init(_)

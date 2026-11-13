@@ -15,6 +15,7 @@ chrono.workspace = true
 dirs.workspace = true
 getrandom.workspace = true
 rusqlite.workspace = true
+rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 # SHA-256 of device credentials (ADR 0010), and of attachments (ADR

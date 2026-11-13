@@ -368,6 +368,8 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Reported tokens and permitted costs (protocol 12, ADR 0042).
+    QueryUsage / query_usage / "usage.query" [Read, 12]: crate::usage::QueryUsage => crate::usage::UsageReport;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Every schedule on the node (protocol 11).
     ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;

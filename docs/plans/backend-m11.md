@@ -212,7 +212,7 @@ one platform, or a narrower form), `–` does not. AO is agent-orchestrator.
 | Sidebar: group, sort, filter, pin | ● | ● | ● | ◐ by machine | W, A |
 | A notification inbox that survives a reload | ● | ● | ● | – | E |
 | Desktop notification and sound | ● | ● | ● | – | W |
-| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ a record per routed call | F |
+| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ routed calls and reported ACP usage aggregates; account limits pending | F / N2 |
 | Pull requests page | ● | ● | – | – | B2 |
 
 ### Settings and the rest

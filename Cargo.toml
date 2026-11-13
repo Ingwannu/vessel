@@ -77,6 +77,8 @@ str_to_string = "warn"
 wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
+# Checked decimal money arithmetic, ADR 0042 (MIT).
+rust_decimal = { version = "1.43", default-features = false, features = ["std"] }
 vessel-agent = { path = "crates/vessel-agent" }
 vessel-client = { path = "crates/vessel-client" }
 vessel-fleet = { path = "crates/vessel-fleet" }

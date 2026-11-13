@@ -34,6 +34,8 @@ mod terminals;
 mod transfers;
 #[cfg(test)]
 mod ui;
+#[cfg(test)]
+mod usage;
 
 use support::{Fixture, within};
 

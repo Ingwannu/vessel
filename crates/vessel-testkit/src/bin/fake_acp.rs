@@ -82,6 +82,8 @@
 //!     <n> bytes` (the base64 decoded), `link <name> <type> <size> read
 //!     <n>` (the bytes of the file its `file:` URI names, or
 //!     `unreadable`), then `end_turn`;
+//!   - `usage-burst`: 101 cumulative cost updates, for sparse read-only pages;
+//!     `FAKE_ACP_LOAD_USAGE` replays .5 USD while loading, before Ready.
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
 //!     20 in, 10 out);
@@ -310,6 +312,7 @@ async fn serve() -> ExitCode {
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
+    let load_usage = std::env::var_os("FAKE_ACP_LOAD_USAGE").is_some();
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let state: Shared = Arc::new(Mutex::new(State::new()));
@@ -411,6 +414,13 @@ async fn serve() -> ExitCode {
                             update,
                         ))
                     };
+                    // Real adapters can replay their cumulative session
+                    // cost before load's response and the driver's Ready.
+                    if load_usage {
+                        say(SessionUpdate::UsageUpdate(
+                            UsageUpdate::new(1200, 200_000).cost(Cost::new(0.5, "USD")),
+                        ))?;
+                    }
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
                         "earlier question",
                     ))))?;
@@ -491,6 +501,22 @@ async fn serve() -> ExitCode {
                                 "switched {}",
                                 mode.trim()
                             )))),
+                        ))?;
+                        return responder.respond(PromptResponse::new(StopReason::EndTurn));
+                    }
+                    if prompt == "usage-burst" {
+                        for amount in 1_u32..=101 {
+                            cx.send_notification(SessionNotification::new(
+                                request.session_id.clone(),
+                                SessionUpdate::UsageUpdate(
+                                    UsageUpdate::new(1200, 200_000)
+                                        .cost(Cost::new(f64::from(amount), "USD")),
+                                ),
+                            ))?;
+                        }
+                        cx.send_notification(SessionNotification::new(
+                            request.session_id.clone(),
+                            SessionUpdate::AgentMessageChunk(ContentChunk::new(text("used"))),
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }

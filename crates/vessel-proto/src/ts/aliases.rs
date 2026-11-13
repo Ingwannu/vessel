@@ -175,6 +175,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
     ("RepoPath", Alias::Named),
+    ("ReportCount", Alias::Quantity),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("RunNumber", Alias::Quantity),

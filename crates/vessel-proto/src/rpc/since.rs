@@ -212,6 +212,7 @@ impl Call {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)

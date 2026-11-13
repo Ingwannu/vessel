@@ -16,10 +16,13 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
-/// Undoes schemas 12 to 10: the schedules', saved prompts' and hooks'
+/// Undoes the usage ledger and schemas 12 to 10: the schedules' and hooks'
 /// tables, the set an approval covered, and pull request feedback's
 /// tables.
-const UNDO_SCHEMAS_10_TO_12: &str = "DROP TABLE hook_keys;
+const UNDO_SCHEMAS_AFTER_9: &str = "DROP TABLE usage_samples;
+     DROP TABLE usage_meta;
+     ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+     DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
      DROP TABLE saved_prompts;
@@ -56,7 +59,7 @@ mod build {
 }
 
 #[tokio::test]
-async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
+async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;
     let app = project();
@@ -66,7 +69,7 @@ async fn an_approval_from_schema_9_walks_to_12_and_new_ones_keep_their_set() {
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_TO_12).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_AFTER_9).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",

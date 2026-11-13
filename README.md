@@ -1109,3 +1109,18 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+### Reported usage
+
+```bash
+vessel usage machine --period day       # past 24 hours; --period week is past 7 days
+vessel usage agent claude --period week # all profiles; --profile selects one recorded name
+vessel usage session 3f2a               # retained totals and up to 100 reports
+vessel usage session 3f2a --after 100    # the next page; totals are unchanged
+```
+
+Counts and costs are only what the agent reported. Context occupancy is
+separate; missing reports are not zero and costs in different units stay
+separate. Accounting starts with this version, retains at most 90 days
+and 100,000 reports, and follows session deletion. New usage queries need
+read scope; cost in these queries additionally needs operate scope.

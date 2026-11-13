@@ -4,12 +4,15 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 12 to 7 (protocols 10 and 11), so a test can take a
+/// Undoes the usage ledger, then schemas 12 to 7, so a test can take a
 /// database further back: the schedules', saved prompts' and hooks' tables
 /// (12), pull request feedback (10; 11's column goes with `approvals`), the
 /// workspace's tables (9), retention's index (schema 1's in its place, 8),
 /// the conversation's columns and the attachments table (7).
-const UNDO_SCHEMAS_7_TO_12: &str = "DROP TABLE hook_keys;
+const UNDO_SCHEMAS_AFTER_6: &str = "DROP TABLE usage_samples;
+     DROP TABLE usage_meta;
+     ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+     DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
      DROP TABLE saved_prompts;
@@ -149,7 +152,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_12).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_AFTER_6).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).

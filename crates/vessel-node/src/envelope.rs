@@ -629,6 +629,9 @@ async fn run_here(
             Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
         }
         Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
+        Call::QueryUsage(request) => {
+            Reply::QueryUsage(guard.query_usage(connection, request).await?)
+        }
         Call::ListPrompts(request) => {
             Reply::ListPrompts(guard.list_prompts(connection, request).await?)
         }

@@ -1277,3 +1277,45 @@ Nodes speak 2..=3. Version 3 only adds, so version 2 peers keep working.
 
 REST routes and one websocket per session stream. Replaced entirely by
 version 2.
+
+## Protocol 12: reported usage (milestone 12, ADR 0042)
+
+`usage.query` requires `read`. `QueryUsage` selects the machine, an
+agent/profile or a session, and a rolling day/week (or all retained
+samples of a session). `after` pages the session's samples by exclusive
+event sequence. Totals are independent of that cursor. At most 100 samples
+and 256 agent/profile groups are returned. Optional counts stay absent
+when the agent did not report them. Cache counts are not added again to
+input or total tokens. Cost units are never combined.
+
+`UsageReport` declares accounting start, age retention and incomplete
+coverage. `cost_visibility` distinguishes no reported cost from cost
+withheld because the caller lacks `operate`. That withholding covers
+totals, groups and individual cost samples in this new call. Existing
+session/event calls retain their earlier cost visibility contract.
+Agents may query only their own session on its own machine; delegated
+calls apply the destination's existing scope intersection. A machine or
+agent query with the session period/cursor is `invalid_request`, a missing
+session `not_found`, a scope/ownership refusal `forbidden`.
+
+The minimum protocol remains 2. No event changed. New calls are refused
+by the existing negotiated-version guard on an older node; an old client
+continues reading the existing ACP reports in the conversation log.
+
+Cost timing and optional-field coverage (ADR 0042): `current_costs` is the
+session's latest cumulative agent report, independent of the requested
+rolling period. Increment samples carry `since`; an interval crossing the
+period boundary contributes an unaccounted-cost notice, never its whole
+charge to that period. Existing/resumed/unknown counters produce baseline
+samples until their increments can be observed. `optional_reports` counts
+turns reporting each cache/reasoning field; their sums are reported
+subtotals, with missing turns explicitly distinguishable.
+
+A read-only session page can have no visible samples and still have a
+`next` cursor: the page contained only costs. Clients continue while
+`next` exists and do not interpret an empty page as end-of-history.
+
+For `UsageScope::Agent`, an omitted profile includes every recorded profile
+of that agent. A supplied name restricts the historical profile recorded
+with the sample. Account quota lookup is a different scope: its default
+profile identifies a configured login, never an aggregate of accounts.

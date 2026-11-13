@@ -170,6 +170,7 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::usage::QueryUsage,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -310,6 +311,7 @@ untargeted!(
 );
 
 guarded! {
+    query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
     node_info: GetNode => NodeInfo;
     list_harnesses: ListHarnesses => Vec<Harness>;
     list_sessions: ListSessions => Vec<SessionInfo>;

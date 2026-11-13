@@ -1,7 +1,7 @@
 //! Protocol 5 against older connections: a raw client that offers only one
 //! version, so the server cannot negotiate up.
 
-use vessel_proto::{CreateSession, GetManifest, Hello};
+use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
@@ -133,8 +133,36 @@ async fn an_already_built_call_newer_than_the_connection_is_not_sent() {
     assert!(matches!(
         client.call_any(call).await,
         Err(CallError::NotInProtocol {
-            method: vessel_proto::Method::ListProfiles,
+            method: Method::ListProfiles,
             ..
         })
     ));
+}
+
+#[tokio::test]
+async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
+    use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
+    let previous = QueryUsage::METHOD.since().get().saturating_sub(1);
+    let (mut client, mut served) = raw_client(previous).await;
+    let call = QueryUsage {
+        scope: UsageScope::Machine,
+        period: UsagePeriod::Day,
+        after: None,
+    }
+    .into_call();
+    let error = refusal(&call_raw(&mut client, 1, call).await);
+    assert_eq!(error.code, ErrorCode::Unsupported);
+    let response = call_raw(&mut client, 2, GetNode.into_call()).await;
+    assert!(matches!(
+        serde_json::from_str::<ServerFrame>(&response).unwrap(),
+        ServerFrame::Response {
+            outcome: Outcome::Ok(Reply::NodeInfo(_)),
+            ..
+        }
+    ));
+    assert_eq!(served.seen.recv().await.unwrap().method(), Method::NodeInfo);
+    assert!(
+        served.seen.try_recv().is_err(),
+        "usage never reached the handler"
+    );
 }

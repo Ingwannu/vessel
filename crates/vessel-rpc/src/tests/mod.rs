@@ -582,6 +582,7 @@ impl Handler for Fake {
         run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
         delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
         list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
+        query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
         list_prompts: vessel_proto::automation::ListPrompts => vessel_proto::automation::PromptList;
         create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
         update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
