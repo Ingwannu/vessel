@@ -105,6 +105,13 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
+`kit::button_with_kind` is the filled entry: typed primary, secondary and
+destructive kinds plus enabled/disabled state. Destructive fill/border use
+`neutral.destructive`, text its separate `destructive_foreground`; hover
+keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
+no handler. The existing bool `button` delegates and stays until the lead
+retires it after moving its callers.
+
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
@@ -117,7 +124,15 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+`kit/dialog.rs` keeps a fitting dialog at its natural size. When its
+content exceeds the card's existing height limit, only the body scrolls;
+the heading and footer actions retain their size and remain reachable.
+
 ### Rules every screen follows
+
+`kit::theme::spacing` contains Paseo's complete spacing scale, with its
+keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
+Its exact-value test keeps every step comparable with `styles/theme.ts`.
 
 - Words through `view/src/text/` only; English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal

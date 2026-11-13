@@ -391,10 +391,13 @@ pub(crate) const fn drawn(section: Section) -> bool {
 /// they change is drawn.
 pub(crate) const fn applied(list: List) -> bool {
     match list {
-        List::Machine | List::Send | List::Interface | List::Code | List::Width | List::Display => {
-            true
-        }
-        List::Delivery => false,
+        List::Machine
+        | List::Send
+        | List::Delivery
+        | List::Interface
+        | List::Code
+        | List::Width
+        | List::Display => true,
     }
 }
 
