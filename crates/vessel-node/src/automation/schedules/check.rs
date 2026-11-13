@@ -1,10 +1,11 @@
 //! A definition's time checked before it is kept (the contract's
 //! `schedule.create`): its zone exists, its cron has a due time, its end
-//! is after its first due time. And what fills it: an `every` without an
-//! anchor gets the moment it was set, so its phase survives restarts.
+//! is after its first due time, and what follows a new session's run is
+//! one this node knows. And what fills it: an `every` without an anchor
+//! gets the moment it was set, so its phase survives restarts.
 
 use chrono::{DateTime, Utc};
-use vessel_proto::automation::{Cadence, CatchUp, ScheduleDefinition, ScheduleTarget};
+use vessel_proto::automation::{AfterRun, Cadence, CatchUp, ScheduleDefinition, ScheduleTarget};
 
 use crate::automation::error::AutomationError;
 use crate::automation::time::{Due, NotComputable, Zones};
@@ -29,6 +30,20 @@ pub(super) fn settle(
     if matches!(definition.target, ScheduleTarget::Unknown) {
         return Err(AutomationError::Invalid(
             "a target this node does not know".to_owned(),
+        ));
+    }
+    // Neither archived nor waited for, each run's session would stay
+    // live beside the next (the join's code review, finding 4).
+    if matches!(
+        definition.target,
+        ScheduleTarget::NewSession {
+            after: AfterRun::Unknown,
+            ..
+        }
+    ) {
+        return Err(AutomationError::Invalid(
+            "what happens to a run's session after its turn is one this node does not know"
+                .to_owned(),
         ));
     }
     let due = Due::of(&definition.cadence, now, zones).map_err(|error| match error {
@@ -97,6 +112,30 @@ mod tests {
                 anchor: Some(now),
             }
         );
+    }
+
+    #[test]
+    fn an_after_this_node_does_not_know_is_refused() {
+        let zones = Zones::default();
+        let mut unknown = definition(Cadence::Every {
+            seconds: EverySeconds::try_from(600).unwrap(),
+            anchor: None,
+        });
+        unknown.target = ScheduleTarget::NewSession {
+            spec: Box::new(vessel_proto::SessionSpec::new(
+                vessel_proto::HarnessKind::ClaudeCode,
+                vessel_proto::SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
+            )),
+            after: AfterRun::Unknown,
+        };
+        assert!(matches!(
+            settle(&zones, &mut unknown, at("2026-01-01T10:00:00Z")),
+            Err(AutomationError::Invalid(_))
+        ));
     }
 
     #[test]
