@@ -9,6 +9,11 @@ fn a_panic_is_in_the_log_file_with_where_it_happened() {
         logging.file(),
         Some(dir.path().join(vessel_app_log::FILE).as_path())
     );
+    // A span with a field, as zbus logs inside one: stderr colours it,
+    // the file must not (0.0.0.0.6's file had stderr's escape codes).
+    tracing::info_span!("caching", task_name = "proxy").in_scope(|| {
+        tracing::warn!("inside a span");
+    });
     let caught = std::panic::catch_unwind(|| panic!("boom 7f3c"));
     assert!(caught.is_err());
     let text = std::fs::read_to_string(dir.path().join(vessel_app_log::FILE)).unwrap();
@@ -21,4 +26,12 @@ fn a_panic_is_in_the_log_file_with_where_it_happened() {
         "{text}"
     );
     assert!(text.contains("panic.rs"), "no place in:\n{text}");
+    assert!(
+        text.contains("task_name=\"proxy\""),
+        "no span field in:\n{text}"
+    );
+    assert!(
+        !text.contains('\u{1b}'),
+        "colour codes in the file:\n{text}"
+    );
 }

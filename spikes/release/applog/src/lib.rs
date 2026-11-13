@@ -106,6 +106,7 @@ pub fn init_in(dir: Option<&Path>, label: &str) -> Logging {
             let path = rotating.current();
             let layer = tracing_subscriber::fmt::layer()
                 .with_ansi(false)
+                .fmt_fields(PlainFields::default())
                 .with_writer(FileLog(Arc::new(rotating)));
             (Some(layer), Some(path), None)
         }
@@ -146,6 +147,25 @@ fn record_panics() {
         tracing::error!(message, place, %backtrace, "the app panicked");
         previous(info);
     }));
+}
+
+/// The file layer's field formatter: `DefaultFields` under a type of its
+/// own. `tracing-subscriber` keeps a span's formatted fields in the span,
+/// keyed by the formatter's type, and the layer that sees the span first
+/// formats them; with one type for both layers the file got stderr's
+/// colour codes (seen in 0.0.0.0.6's `vessel.log`). Its own type makes
+/// the file layer format them itself, without colour.
+#[derive(Debug, Default)]
+struct PlainFields(tracing_subscriber::fmt::format::DefaultFields);
+
+impl<'writer> tracing_subscriber::fmt::FormatFields<'writer> for PlainFields {
+    fn format_fields<R: tracing_subscriber::field::RecordFields>(
+        &self,
+        writer: tracing_subscriber::fmt::format::Writer<'writer>,
+        fields: R,
+    ) -> std::fmt::Result {
+        self.0.format_fields(writer, fields)
+    }
 }
 
 /// The file layer's writer.
