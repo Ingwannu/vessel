@@ -44,8 +44,8 @@ Tests (`view/src/tests/`), each named for the page's case it follows:
 (both of `tree.test.ts`, and the origin line), `archive.rs` (the three of
 `archive.test.ts`, and the pages), `sidebar.rs` (the seven of
 `sidebar.test.ts`), `shortcuts.rs` (the 23 of `shortcuts/*.test.ts`, and
-apply and a sequence's timeout), `palette.rs` (the eight of
-`commands.test.ts` and `palette.test.ts`, and the search),
+apply and a sequence's timeout), `palette.rs` (the eight cases from
+`commands.test.ts`, plus native selection and highlight regressions),
 `notices.rs` (the page's cases, a machine first seen, the titles).
 `fixture.rs` turns the page's short ids ("3f2a") into
 session ids that start with them.
@@ -68,9 +68,10 @@ session ids that start with them.
   browser track's file, so a card made by hand still compiles).
 - The palette's machine detail is the state word only: the native book
   has no transport yet, so no "Direct", "Over SSH" or "Paired".
-- The palette's search trims the query and is not accent-insensitive
-  (the page's Base UI collator is). A session's detail is its status word
-  and folder, as the page's; the card's board phrase is not used there.
+- The palette follows Paseo's token matcher rather than the page's
+  accent-insensitive Base UI collator. A session's detail stays the
+  page's status word and folder; these are Vessel session navigation,
+  rather than Paseo's workspace, agent and file-search scopes.
 - A refused chord's sentence names the system, not the browser; the rules
   are the page's unchanged, so overrides travel between surfaces (ADR
   0036).
@@ -193,10 +194,11 @@ its key, one per chord; the search's place marked `surface3` behind the
 foreground; a theme's check; the empty line. At a phone's width it is a
 sheet from the bottom with its handle.
 
-`app/areas/palette.rs` lists `view::palette`'s entries for the fleet as
-it is (the page's `paletteEntries`), filtered and grouped as the page
-does, with Paseo's keyboard (`kept` and `moved`, its
-`preserveActiveResultId` and `moveActiveResultId`): Up and Down move the
+`app/areas/palette.rs` lists the page's commands and navigation targets
+for the current fleet, with Paseo's token matching, relevance bands and
+five recent sessions before a query. Archived sessions are excluded.
+Paseo's keyboard (`preserveActiveResultId`, `moveActiveResultId` and
+`interaction.ts`) supplies selection identity: Up and Down move the
 active row and scroll it into sight, Enter or a click runs it, Escape or a
 press on the dimmed page closes it and the keys go back where they were.
 Its glyphs are the page's `iconOf` (Plus, Machine, Board, the Settings
@@ -227,16 +229,16 @@ same glyph as Settings' list.
 - Paseo's look, not the page's: no foot with the keys (Paseo's command
   center has none), the second line under the title, the keys of a row's
   shortcut on its right (the page's rows have none).
-- Settings sections are listed only when Settings draws them (General,
-  Appearance, Projects, About today), and machines only once Settings ›
-  Machines is drawn: a placeholder would be a dead end. Go to Machines,
+- Settings sections are listed only when Settings draws them, and
+  machines only once Settings › Machines is drawn: a placeholder would
+  be a dead end. Go to Machines,
   Sync and Devices by key open Settings at its first section until then
   (`open_settings`' own rule).
 - A row the pointer is over is tinted as the active one but does not
   become it (Paseo's hover); the keyboard's row stays.
-- The search's mark is the whole query, the first place it occurs
-  (Paseo marks each word; this palette's search is one substring, as the
-  page's `found`).
+- Each matching query token is marked, including the scattered runs of
+  a subsequence. A query selects the best result afresh; a passive fleet
+  refresh preserves identity without scrolling, as Paseo does.
 - The keys GPUI's field would take first (its Up, Down, Enter and Escape
   actions) are caught by the panel before the field (`capture_action`),
   as the page's list keeps them from its input.
@@ -250,12 +252,16 @@ same glyph as Settings' list.
   default keys with a modifier overlap none of the field's bindings
   (checked against them: the field's are Ctrl or Cmd with `[`, `]`, A,
   arrows, Home, End, Backspace, Delete); a key the person binds may.
-- While an input method composes, the system holds the keys (X11's and
-  Wayland's input methods, macOS's marked text); checked on Linux only.
+- Input-method suppression is not yet proved by this listener. The
+  input owner has a focused-field marked-text query; a window-wide seam
+  is requested because other areas' private fields must also be covered.
+  GPUI's character-input preference must independently suppress AltGr
+  shortcuts. Source/API tests and a live X11 input-method check are
+  separate evidence; neither is claimed by the palette captures.
 - The sidebar's search row (DESIGN.md §2.2) is the lead's sidebar: asked
   of the lead (`Shell::open_palette` opens it).
 
-### Captures (the scratch directory's `shots/`)
+### Inherited captures (before the strict takeover; not review approval)
 
 `palette-dark-en` (opened by Ctrl+K), `palette-query-dark-en` ("ses":
 marks in title and second line), `palette-down-light-ko` (Korean, light,
@@ -267,7 +273,11 @@ the composer), `palette-enter-dark-en` (Enter on "board"),
 Settings to the board), `key-n-dark-en` (`N` from the board to a new
 session, the letter not typed).
 
-## Run log
+## Inherited run log (before the strict takeover)
+
+These are the stopped worker's records, retained as history. The
+takeover audit below records the new gates and runtime evidence; these
+older claims are not substituted for independent review.
 
 - Merged `backend/m12-spike` at edd22cd (fast-forward).
 - The kit embeds the page's fonts (`scripts/fonts.sh`, not committed);
@@ -383,6 +393,38 @@ the Unicode next-line character; a regression keeps this boundary from
 drifting to Rust's different `is_whitespace` set. Runtime captures and
 the consuming screen's visual approval remain separate from this gate.
 
+Runtime audit of the consuming palette: 70 original captures in the
+scratch `palette-captures` folder, all inspected against the reference
+components named above. `live` covers six states in each of the eight
+size/theme/language combinations: initial, long mixed-script titles and
+paths, arrow selection, changed query, reopened and no matches.
+`empty` and `offline` add eight captures each; the latter is a cold
+connection failure, not a warm disconnect. Commands remain available
+without a session section. `actions` adds three desktop English and
+three compact Korean captures: selecting Dark, opening the board and
+opening General. The saved theme preference was also read back. These
+last two destination screens demonstrate navigation, not approval of
+the board or the settings frame.
+
+The actual capture canvases are 1280×800 and 390×844. A scratch manifest
+records every original image's dimensions and SHA-256 and the debug
+executable's build id; labelled QA sheets are separate from the
+originals. The app window was explicitly focused before inputs. The
+fresh executable followed the 393-test gate. The final evidence-only
+notes correction changes no Rust or fixture code, so the unchanged
+native gate is reused rather than repeated. All capture processes and
+the disposable fleet were stopped afterwards by their recorded PIDs.
+
+Remaining palette departures: the compact sheet stays at the initial
+60% snap without the reference's drag or fade; the registry names
+Vessel's available commands and sessions instead of Paseo's workspace,
+agent and file scopes. There is no asynchronous file-search loading or
+error row to capture in this local registry. Settings commands are
+registered as their destination areas become drawn. Composition,
+AltGr, terminal ownership and privately observed shortcuts still belong
+to the following registry slice; the palette's captures do not prove
+those boundaries.
+
 - The inherited notification draft was preserved outside the repository
   as a patch and its untracked area file, then its paths were restored.
   It omitted sound, had no capture or reference comparison, and kept
@@ -395,9 +437,9 @@ the consuming screen's visual approval remain separate from this gate.
 - Read Paseo's `command-center/command-center.tsx`, `list-metrics.ts`,
   `results.ts`, `results.test.ts`, `components/ui/shortcut.tsx`,
   `components/ui/highlighted-text-segments.ts`, and the protocol's
-  `search/text-match.ts` and tests. The palette's frame values agree;
-  its substring-only search and single highlight do not. Follow-up
-  slices must implement token matching, subsequences within words,
+  `search/text-match.ts` and tests. The inherited frame values agreed;
+  the substring-only search and single highlight did not. The follow-up
+  above replaces those with token matching, subsequences within words,
   visible-field priority, relevance ordering and matching highlights.
 - Read GOAT's `components/ConfirmDialogHost.tsx`, `ui/alert-dialog.tsx`
   and `confirmDialog.test.ts`. GOAT has no session-status board (also
