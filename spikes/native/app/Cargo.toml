@@ -51,3 +51,7 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = { version = "0.1", features = ["log"] }
 # The page's language from `navigator.languages`.
 sys-locale = { version = "0.3", features = ["js"] }
+
+# GPUI's test context for the areas' state tests.
+[dev-dependencies]
+gpui = { workspace = true, features = ["test-support"] }
