@@ -96,6 +96,15 @@ explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
 state and stale-response tests live in `view/src/devices/`.
 
+Settings sections register their renderer in `settings::content` and their
+presence in `settings::drawn`; the latter controls navigation, so a page
+must appear in both. State and event slots are added only when needed.
+
+Sync is read-only: `link::sync` projects manifests into names and metadata
+before a UI event exists. Partial failures remain explicit; secret values
+and tool transport settings have no field in its screen model. Local
+commands use the kit's copy button and are never executed by the app.
+
 ### Adding a kit control
 
 One file per control in `kit/src/` (`widgets.rs` holds the smallest),
@@ -263,7 +272,15 @@ Settings also has checked shapes (`scripts/settings-fixtures.py`): many
 paired devices, long and Korean names, a never-seen and a revoked device;
 a home bundle with instructions, skills and MCP names; a synthetic member
 behind version zero with kept edits. These fixture reports do not run a
-real member sync loop. The second machine has no paired devices.
+real member sync loop. The second machine has no paired devices. Sync
+shapes include a current long-name member, a Korean unreported member, an executable skill and
+present/missing/local-only secret names. `settings-fixtures.py empty ROOT`
+makes the disposable second node an instructions-only home (no servers);
+`settings-fixtures.py files-empty ROOT` makes it a server-only home (no files).
+Both provide empty member and secret lists. The server-only shape names an
+empty skills directory; a home naming neither an instructions file nor a
+skills directory is refused. That shape exercises an unavailable publication;
+`standalone ROOT` returns it to the default no-home shape.
 
 Normal-build captures always mask the invitation. Revealed-state model
 checks use inert, test-only invitations in `view/src/tests/devices.rs`;

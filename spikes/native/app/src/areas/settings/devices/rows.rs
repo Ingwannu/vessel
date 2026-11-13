@@ -154,11 +154,20 @@ fn device_row(
     let words = shell.t.lang.devices();
     let state = &shell.areas.settings.devices;
     let id = device.id;
-    let action = outline_button(format!("device-revoke-{id}"), words.revoke, true, tokens)
-        .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-        .on_click(cx.listener(move |shell, _event, window, cx| {
+    let pending = matches!(state.page.revoking, Revoking::Sending { .. });
+    // Keep the row's geometry while its confirmation is open above it.
+    let action = outline_button(
+        format!("device-revoke-{id}"),
+        words.revoke,
+        !pending,
+        tokens,
+    )
+    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+    .when(!pending, |button| {
+        button.on_click(cx.listener(move |shell, _event, window, cx| {
             shell.devices_choose_revoke(id, window, cx);
-        }));
+        }))
+    });
     let device_state = DeviceState::of(device);
     let badge = vessel_app_kit::badge::badge(
         words.state(device_state),
@@ -173,10 +182,7 @@ fn device_row(
         .items_center()
         .gap(px(spacing::S2))
         .child(badge)
-        .when(
-            !matches!(state.page.revoking, Revoking::Sending { .. }),
-            |control| control.child(action),
-        )
+        .child(action)
         .into_any_element();
     let row = settings::row_at(
         device.label.clone(),

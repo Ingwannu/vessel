@@ -31,6 +31,7 @@ mod session;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
@@ -133,6 +134,13 @@ pub enum Command {
         ticket: vessel_app_view::devices::Ticket,
         /// The device operation.
         ask: devices::Ask,
+    },
+    /// Read-only sharing status for one selected machine.
+    Sync {
+        /// Its parsed node-book identity.
+        machine: vessel_app_view::devices::MachineKey,
+        /// Correlation identity reserved by the page.
+        ticket: vessel_app_view::devices::Ticket,
     },
     /// Show a session's conversation: its records from the start, then as
     /// they arrive. Replaces the session followed before.
@@ -244,6 +252,8 @@ pub enum Event {
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
     Devices(devices::Answer),
+    /// Safe, correlated sharing status.
+    Sync(sync::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
@@ -331,6 +341,7 @@ impl Link {
             follow: None,
             workspace: workspace::Hub::default(),
             device_calls: devices::Hub::default(),
+            sync_calls: sync::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -360,6 +371,7 @@ struct State {
     follow: Option<tokio::task::JoinHandle<()>>,
     workspace: workspace::Hub,
     device_calls: devices::Hub,
+    sync_calls: sync::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -391,6 +403,7 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::Devices {
                 machine,
                 ticket,

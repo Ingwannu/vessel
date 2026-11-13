@@ -29,6 +29,7 @@ mod devices;
 mod general;
 mod nav;
 mod page;
+mod sync;
 
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
@@ -68,6 +69,7 @@ pub(crate) struct SettingsState {
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
     pub(crate) devices: devices::Devices,
+    pub(crate) sync: sync::SyncState,
 }
 
 impl SettingsState {
@@ -82,6 +84,7 @@ impl SettingsState {
             anchors: Anchors::default(),
             refused: None,
             devices: devices::Devices::new(window, cx),
+            sync: sync::SyncState::new(),
         }
     }
 
@@ -350,7 +353,7 @@ pub(crate) fn render(
         let section = state.section;
         let words = shell.t.lang.settings();
         let title = words.section(section);
-        let body = content(section, shell, tokens, phone, cx)
+        let body = content(section, shell, tokens, phone, window, cx)
             .unwrap_or_else(|| page::elsewhere(words.elsewhere, tokens));
         let body = div()
             .flex()
@@ -390,6 +393,7 @@ pub(crate) const fn drawn(section: Section) -> bool {
             | Section::About
             | Section::Projects
             | Section::Devices
+            | Section::Sync
     )
 }
 
@@ -414,11 +418,13 @@ fn content(
     shell: &Shell,
     tokens: &Tokens,
     phone: bool,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     match section {
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
+        Section::Sync => Some(sync::render(shell, tokens, phone, window, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
         Section::Projects => Some(crate::areas::workspace::projects_content(
@@ -430,8 +436,7 @@ fn content(
         | Section::Notifications
         | Section::Agents
         | Section::Models
-        | Section::Machines
-        | Section::Sync => None,
+        | Section::Machines => None,
     }
 }
 

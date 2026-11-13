@@ -296,3 +296,11 @@ These checks run under the ordinary account that owns the scratch fleet.
 Its token files remain 0600; the node book refers to those files rather
 than containing tokens. No production service or permission changed. No
 physical phone, QR scan or browser build is claimed by these retakes.
+
+
+## Sync slice
+
+The read-only Sync design, source comparisons, wire gaps, privacy checks
+and evidence are in [the Sync notes](backend-m12-g4-sync.md). The Devices
+row followup in that slice retains disabled buttons while its revoke
+confirmation is open, preserving the layout underneath it.
