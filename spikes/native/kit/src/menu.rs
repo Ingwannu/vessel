@@ -2,10 +2,13 @@
 //! `ui/kit/menu.tsx`): the Session actions, a machine's, a project's.
 //!
 //! [Decision Log]
-//! - Purpose: one menu for every screen, with the page's look (13-pixel
-//!   rows about 32 pixels tall, the highlighted row on a 4% wash, a
-//!   hairline between groups, the one destructive row in danger) and its
-//!   behaviour (arrow keys, Enter, Escape and a click outside to close).
+//! - Purpose: one menu for every screen, with Paseo's look (the owner's
+//!   rule: Paseo's app, cloned; its `components/ui/menu/`): rows of 14
+//!   points, 28 tall (44 on a phone), inset 4 from the edges at radius 6;
+//!   a hovered or keyboard-highlighted row on `surface2`, never a ring; a
+//!   full-width rule between groups; the destructive row in
+//!   `destructive`; arrow keys (wrapping), Home and End, Enter or Space,
+//!   Escape and a click outside to close.
 //! - Alternatives: `gpui-component`'s popup menu (its own theme, actions
 //!   and key contexts registered app-wide, submenus we do not need yet;
 //!   screens would then depend on its types).
@@ -14,8 +17,9 @@
 //!   frame, over everything, at the point it was opened from, kept
 //!   inside the window. A chosen row is handed back by index, so the
 //!   screen keeps its own list of what each row does.
-//! - Cost: no typeahead and no submenus yet (no menu of ours needs them);
-//!   rows are 44 pixels on a narrow window, for a finger.
+//! - Cost: no submenus, group labels or check rows yet (no menu of ours
+//!   needs them); a phone shows the same popover with 44-point rows, as
+//!   Paseo's menus do unless they ask for a sheet (none of ours does yet).
 
 use std::rc::Rc;
 
@@ -26,9 +30,21 @@ use gpui::{
 };
 
 use crate::fonts::Type;
-use crate::popup;
-use crate::theme::{Tokens, radius};
+use crate::popup::{self, Surfaces};
+use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+
+/// The narrowest a menu is (Paseo's `minWidth`).
+const MIN_WIDTH: f32 = 180.0;
+
+/// The widest a menu is, before its words wrap.
+const MAX_WIDTH: f32 = 320.0;
+
+/// How far under its trigger a menu opens (Paseo's `offset`).
+const OFFSET: f32 = 4.0;
+
+/// A row's line height (Paseo's `MENU_ITEM_LINE_HEIGHT`).
+const ROW_LINE: f32 = 18.0;
 
 /// A row's tone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,6 +223,9 @@ pub fn menu<V: 'static>(
         get(view).close();
         cx.notify();
     });
+    let surfaces = Surfaces::of(tokens);
+    // Paseo's page: 4 above the first row and below the last, no gap
+    // between rows, the rule between groups the full width.
     let mut panel = div()
         .id(id.into())
         .track_focus(&state.focus)
@@ -215,26 +234,26 @@ pub fn menu<V: 'static>(
         .occlude()
         .flex()
         .flex_col()
-        .gap(px(1.0))
-        .min_w(px(160.0))
-        .max_w(px(320.0))
-        .p(px(4.0))
-        .bg(popup::fill(tokens))
+        .min_w(px(MIN_WIDTH))
+        .max_w(px(MAX_WIDTH))
+        .py(px(4.0))
+        .bg(surfaces.surface1)
         .border_1()
-        .border_color(popup::edge(tokens))
-        .rounded(px(radius::R4))
-        .shadow(popup::shadow(tokens));
+        .border_color(surfaces.border_accent)
+        .rounded(px(popup::MENU_RADIUS))
+        .overflow_hidden()
+        .shadow(popup::shadow_md(tokens));
     for (index, item) in items.iter().enumerate() {
         if item.starts_group && index > 0 {
-            panel = panel.child(div().my(px(4.0)).h(px(1.0)).bg(tokens.border_subtle));
+            panel = panel.child(div().my(px(4.0)).h(px(1.0)).bg(surfaces.border_accent));
         }
-        panel = panel.child(row(index, item, state, handlers, tokens, narrow, cx));
+        panel = panel.child(row(index, item, state, handlers, &surfaces, narrow, cx));
     }
     Some(
         deferred(
             anchored()
                 .position(at)
-                .offset(gpui::point(px(0.0), px(6.0)))
+                .offset(gpui::point(px(0.0), px(OFFSET)))
                 .snap_to_window_with_margin(px(8.0))
                 .child(panel),
         )
@@ -248,33 +267,18 @@ fn row<V: 'static>(
     item: &MenuItem,
     state: &MenuState,
     handlers: &MenuHandlers<V>,
-    tokens: &Tokens,
+    surfaces: &Surfaces,
     narrow: bool,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let highlighted = state.highlighted == Some(index);
-    let (ink, wash) = match item.tone {
-        Tone::Plain => (
-            if highlighted {
-                tokens.text_primary
-            } else {
-                tokens.text_secondary
-            },
-            tokens.bg_hover,
-        ),
-        Tone::Danger => (
-            tokens.danger,
-            gpui::Hsla {
-                a: 0.12,
-                ..tokens.danger
-            },
-        ),
+    // Paseo's row: hovered, focused and open rows alike on `surface2`,
+    // never a ring; the destructive row only in its words' colour.
+    let ink = match item.tone {
+        Tone::Plain => surfaces.foreground,
+        Tone::Danger => surfaces.destructive,
     };
-    let ink = if item.disabled {
-        tokens.text_disabled
-    } else {
-        ink
-    };
+    let wash = surfaces.surface2;
     let get = handlers.state;
     let chose = Rc::clone(&handlers.chose);
     let mut element = div()
@@ -284,12 +288,16 @@ fn row<V: 'static>(
         ))
         .flex()
         .items_center()
+        .gap(px(8.0))
         .min_h(px(popup::row_height(narrow)))
+        .mx(px(4.0))
         .px(px(8.0))
-        .py(px(6.0))
-        .rounded(px(radius::R2))
-        .type_(Type::Label)
+        .py(px(4.0))
+        .rounded(px(popup::ROW_RADIUS))
+        .type_(Type::Body)
+        .line_height(px(ROW_LINE))
         .text_color(ink)
+        .when(item.disabled, |row| row.opacity(0.5))
         .when(highlighted && !item.disabled, |row| row.bg(wash))
         .child(item.label.clone());
     if !item.disabled {

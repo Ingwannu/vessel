@@ -1,70 +1,122 @@
-//! The popup surface every floating thing shares (menus, dialogs, and
-//! the lead's sheets and tooltips): DESIGN.md section 4.6, the
-//! reference's popup recipe, so they cannot drift apart.
+//! The surfaces every floating thing shares (menus, dialogs, a phone's
+//! sheets, the composer's pickers): Paseo's app, cloned (the owner's rule
+//! after build 0.0.0.0.3: the app's controls follow Paseo and GOAT; the
+//! values and their sources are in the reference notes' "Appendix P",
+//! A10 and B5).
 //!
-//! The design's popup tokens (`--popup-edge`, `--popup-shadow`,
-//! `--overlay`) are the ink or black at a given strength; they are
-//! derived here from the scheme's tokens rather than added to every
-//! scheme's table, so the theme file stays the lead's.
+//! [Decision Log]
+//! - Purpose: one recipe for every popup, so a menu, a dialog and a
+//!   picker cannot drift apart, in Paseo's values: a menu on `surface1`
+//!   edged with `borderAccent` at radius 8 under the medium shadow; a
+//!   dialog card on `surface0` edged with `surface2` at radius 12 over a
+//!   55% black scrim; a phone's sheet on `surface0` with its top corners
+//!   at 16 over a 45% scrim.
+//! - Constraint: the kit's theme does not hold Paseo's surface scale yet
+//!   (the lead is adding `surface0` to `surface4`, `border` and
+//!   `borderAccent`); the theme file is the lead's.
+//! - Choice: [`Surfaces`] holds those values per scheme, named as Paseo
+//!   names them, so moving them into `Tokens` is a rename; the controls
+//!   read them only through this module.
+//! - Differences from the page's DESIGN.md (the references win for the
+//!   app, ADR 0036 brings the page along): the page's popup is white at
+//!   radius 10 with a 2% edge and a softer shadow, its scrim the ink at
+//!   45%; Paseo's are the values here.
 
-use gpui::{BoxShadow, Hsla, black, point, px};
+use gpui::{BoxShadow, Hsla, point, px, rgb, rgba};
 
 use crate::theme::{Scheme, Tokens};
 
-/// The popup's fill (`--popup-bg`: white; `#2E2E2E` in dark).
-#[must_use]
-pub const fn fill(tokens: &Tokens) -> Hsla {
-    tokens.bg_elevated
+/// Paseo's surface scale and the colours drawn on it, for one scheme
+/// (Paseo's `theme.ts`: its light theme, and its default dark).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Surfaces {
+    /// `surface0`: a dialog's card, a sheet.
+    pub surface0: Hsla,
+    /// `surface1`: a menu.
+    pub surface1: Hsla,
+    /// `surface2`: a hovered, focused or open row; a dialog's edge.
+    pub surface2: Hsla,
+    /// `borderAccent`: a menu's edge and its separators.
+    pub border_accent: Hsla,
+    /// `foreground`: a row's words.
+    pub foreground: Hsla,
+    /// `foregroundMuted`: a group's label, a description.
+    pub foreground_muted: Hsla,
+    /// `destructive`: the destructive row's words.
+    pub destructive: Hsla,
 }
 
-/// The popup's edge (`--popup-edge`): the ink at 2%.
-#[must_use]
-pub const fn edge(tokens: &Tokens) -> Hsla {
-    Hsla {
-        a: 0.02,
-        ..tokens.text_primary
+impl Surfaces {
+    /// The surfaces of the scheme `tokens` are in.
+    #[must_use]
+    pub fn of(tokens: &Tokens) -> Self {
+        match tokens.scheme {
+            Scheme::Light => Self {
+                surface0: rgb(0x00ff_ffff).into(),
+                surface1: rgb(0x00fa_fafa).into(),
+                surface2: rgb(0x00f4_f4f5).into(),
+                border_accent: rgb(0x00ec_ecf1).into(),
+                foreground: rgb(0x001a_1a1e).into(),
+                foreground_muted: rgb(0x0071_717a).into(),
+                destructive: rgb(0x00b0_4138).into(),
+            },
+            Scheme::Dark => Self {
+                surface0: rgb(0x0018_1b1a).into(),
+                surface1: rgb(0x001e_2120).into(),
+                surface2: rgb(0x0027_2a29).into(),
+                border_accent: rgb(0x002f_3534).into(),
+                foreground: rgb(0x00fa_fafa).into(),
+                foreground_muted: rgb(0x00a1_a5a4).into(),
+                destructive: rgb(0x00c6_4f43).into(),
+            },
+        }
     }
 }
 
-/// The popup's shadow (`--popup-shadow`): `0 4px 12px -4px` of the ink at
-/// 5%, black at 14% in dark.
+/// Paseo's medium shadow (`theme.shadow.md`), under a menu: 4 down, 16 of
+/// blur, black at 4% light; 4 down, 8 of blur, black at 20% dark.
 #[must_use]
-pub fn shadow(tokens: &Tokens) -> Vec<BoxShadow> {
-    let color = match tokens.scheme {
-        Scheme::Light => Hsla {
-            a: 0.05,
-            ..tokens.text_primary
-        },
-        Scheme::Dark => Hsla { a: 0.14, ..black() },
+pub fn shadow_md(tokens: &Tokens) -> Vec<BoxShadow> {
+    let (alpha, blur) = match tokens.scheme {
+        Scheme::Light => (0x0a, 16.0),
+        Scheme::Dark => (0x33, 8.0),
     };
     vec![BoxShadow {
-        color,
+        color: rgba(alpha).into(),
         offset: point(px(0.0), px(4.0)),
-        blur_radius: px(12.0),
-        spread_radius: px(-4.0),
+        blur_radius: px(blur),
+        spread_radius: px(0.0),
         inset: false,
     }]
 }
 
-/// A dialog's scrim (`--overlay`): the ink at 45% light, the page's own
-/// black at 85% dark. No blur behind it.
+/// A dialog's scrim on a wide window: black at 55%.
 #[must_use]
-pub const fn scrim(tokens: &Tokens) -> Hsla {
-    match tokens.scheme {
-        Scheme::Light => Hsla {
-            a: 0.45,
-            ..tokens.text_primary
-        },
-        Scheme::Dark => Hsla {
-            a: 0.85,
-            ..tokens.bg_shell
-        },
-    }
+pub fn scrim() -> Hsla {
+    rgba(0x0000_008c).into()
 }
 
-/// A row's height in a popup: the reference's 32 pixels, 44 on a narrow
-/// (touch) window (ADR 0036).
+/// A phone's sheet's scrim: black at 45%.
+#[must_use]
+pub fn sheet_scrim() -> Hsla {
+    rgba(0x0000_0073).into()
+}
+
+/// A menu's radius (Paseo's `lg`).
+pub const MENU_RADIUS: f32 = 8.0;
+
+/// A menu row's radius (Paseo's `md`).
+pub const ROW_RADIUS: f32 = 6.0;
+
+/// A dialog card's radius (Paseo's `xl`).
+pub const DIALOG_RADIUS: f32 = 12.0;
+
+/// A sheet's top corners (Paseo's `2xl`).
+pub const SHEET_RADIUS: f32 = 16.0;
+
+/// A row's height: Paseo's tight row, 28 points with a pointer, 44 on a
+/// phone (a finger's target).
 #[must_use]
 pub const fn row_height(narrow: bool) -> f32 {
-    if narrow { 44.0 } else { 32.0 }
+    if narrow { 44.0 } else { 28.0 }
 }
