@@ -23,12 +23,14 @@
 //!   reopening it reads the session again (one call).
 
 mod actions;
+mod actions_view;
 mod change_rows;
 mod changes;
 mod files;
 mod found;
 mod frame;
 mod search;
+mod tree;
 mod viewer;
 
 use std::collections::{HashMap, HashSet};
