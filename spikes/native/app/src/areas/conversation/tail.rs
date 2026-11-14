@@ -67,7 +67,11 @@ impl ConversationArea {
         let mut rows = Vec::new();
         if let Some(text) = &self.tail.pending {
             rows.push(TailRow::Pending(text.clone()));
-            rows.push(TailRow::Working(None));
+            // A message steered into (or interrupting) the running turn:
+            // the turn's elapsed time goes on under it.
+            rows.push(TailRow::Working(
+                running.then(|| self.turn_started()).flatten(),
+            ));
         } else if running {
             rows.push(TailRow::Working(self.turn_started()));
         }
@@ -128,8 +132,8 @@ impl ConversationArea {
         self.tail.shown.borrow_mut().clear();
     }
 
-    /// Entries from `from` came in: a prompt with the pending words
-    /// settles it.
+    /// Entries from `from` came in: a prompt or a steer with the pending
+    /// words settles it.
     pub(super) fn tail_took(&mut self, from: usize) {
         let Some(text) = self.tail.pending.as_deref() else {
             return;
@@ -141,11 +145,16 @@ impl ConversationArea {
             .unwrap_or_default()
             .iter()
             .any(|entry| {
-                if let EntryKind::Prompt(prompt) = &entry.kind {
-                    prompt.text.trim() == text.trim()
+                // A message steered into the running turn is recorded as
+                // the turn's steer, any other as a prompt.
+                let sent = if let EntryKind::Prompt(prompt) = &entry.kind {
+                    Some(prompt.text.as_str())
+                } else if let EntryKind::Steer { text: steered, .. } = &entry.kind {
+                    Some(steered.as_str())
                 } else {
-                    false
-                }
+                    None
+                };
+                sent.is_some_and(|sent| sent.trim() == text.trim())
             });
         if recorded {
             self.tail.pending = None;

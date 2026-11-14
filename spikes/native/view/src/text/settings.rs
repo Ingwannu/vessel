@@ -283,19 +283,19 @@ impl SettingsText {
     pub const fn delivery_note(&self, delivery: TurnDelivery) -> &'static str {
         match (self.lang, delivery) {
             (Lang::En, TurnDelivery::Queue) => {
-                "A message sent while the agent works waits, and goes when its turn ends."
+                "A message sent while the agent works waits, and goes when its turn ends; while a permission request waits, it stops the turn instead."
             }
             (Lang::En, TurnDelivery::Steer) => {
-                "A message sent while the agent works joins its turn, where the agent can take one; it waits otherwise."
+                "A message sent while the agent works joins its turn, where the agent can take one; otherwise it stops the turn and starts the next."
             }
             (Lang::En, TurnDelivery::Interrupt) => {
                 "A message sent while the agent works stops its turn and starts the next."
             }
             (Lang::Ko, TurnDelivery::Queue) => {
-                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다."
+                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다. 권한 요청이 기다리는 동안에는 지금 차례를 멈추고 갑니다."
             }
             (Lang::Ko, TurnDelivery::Steer) => {
-                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 기다립니다."
+                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 지금 차례를 멈추고 다음 차례를 시작합니다."
             }
             (Lang::Ko, TurnDelivery::Interrupt) => {
                 "에이전트가 일하는 동안 보낸 메시지는 지금 차례를 멈추고 다음 차례를 시작합니다."

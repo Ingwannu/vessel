@@ -195,10 +195,13 @@ impl SendKey {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnDelivery {
-    /// It waits in the session's queue for the turn to end.
-    #[default]
+    /// It waits in the session's queue for the turn to end (behind a
+    /// permission request it interrupts: `session::send_delivery`).
     Queue,
-    /// It joins the running turn, where the agent can steer.
+    /// It joins the running turn, where the agent can steer; otherwise it
+    /// replaces the turn. Paseo's default (`storage.ts`, the owner's word
+    /// 45).
+    #[default]
     Steer,
     /// The turn is stopped and it starts the next.
     Interrupt,

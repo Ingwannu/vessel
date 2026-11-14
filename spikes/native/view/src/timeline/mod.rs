@@ -43,6 +43,7 @@ mod outline;
 mod permission;
 mod plan;
 mod question;
+mod question_step;
 mod rows;
 mod runs;
 mod usage;
@@ -52,11 +53,11 @@ pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
     Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, ToolView, block_text,
-    plan_progress, prompt_parts,
+    first_reply, plan_progress, prompt_parts,
 };
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
-    query_of, readable_text, searchable, spans_of, step,
+    query_of, readable_text, searchable, spans_of, start_at, step,
 };
 pub use fold::{Change, Facts, Timeline};
 pub use live::Live;
@@ -68,6 +69,9 @@ pub use plan::{PlanActivity, all_pending, plan_activities};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
+};
+pub use question_step::{
+    Choice, Pick, box_is_other, choices, pick, picked, step_header, step_prompt, text_target, typed,
 };
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
