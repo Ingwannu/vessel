@@ -878,8 +878,22 @@ never rebuilt.
     green there, 705 tests), checked out detached and run through the
     machine's build slots (`cargo-slot`, slot 4 after 826 s in line);
     this branch then merged it.
-  - The set went into place at 12:45:12 UTC on 2026-11-14. It is not
-    published yet: the coordinator's Linux smoke test comes first.
+  - The set went into place at 12:45:12 UTC on 2026-11-14 and was
+    published to `preview` at 13:34:12 UTC, after the coordinator's
+    smoke test on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.14 Linux
+    build took 0.0.0.0.15 by itself at 13:40:29 UTC. The `/dl/` page is
+    behind the preview's sign-in (302 from outside); its list, rendered
+    with the proxy's own function over the dist folder, puts 0.0.0.0.15
+    first.
+  - A fault in this track's checks, found the same hour: the debuglink
+    check ran `objcopy --dump-section` with no output file, which rewrote
+    the dist folder's Linux executable in place for 0.0.0.0.13, .14 and
+    .15 (each before its publish: same bytes, new mtime; every label's
+    sums and the three signatures verify after). The check now reads a
+    copy and writes its output elsewhere, and leaves the dist file's
+    mtime unchanged.
   - New in the build: the patched `gpui-base` 0.8.1 (a steady caret
     while motion is held), compiled from `spikes/release/patches/gpui-base`
     (the build log names that path).
