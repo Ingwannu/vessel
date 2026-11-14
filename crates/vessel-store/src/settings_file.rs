@@ -93,6 +93,7 @@ mod tests {
             park_after: Some(ParkAfter::Idle {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
+            drivers: None,
         };
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));

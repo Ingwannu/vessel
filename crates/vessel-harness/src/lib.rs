@@ -51,6 +51,7 @@
 //! [`CommandSpec`]: vessel_proc::CommandSpec
 
 mod added;
+mod direct;
 mod discover;
 mod env;
 mod error;
@@ -74,11 +75,12 @@ pub use added::{
     PASSED_ON, add_agent, command as added_command, installer, parse_agents, passed_on,
     remove_agent,
 };
+pub use direct::{Direct, DirectProtocol, Version, VersionFit, direct, version_check};
 pub use discover::{discover, discover_added};
 pub use env::HarnessEnv;
 pub use error::HarnessError;
 pub use home::{home, login_check};
-pub use launch::{Launch, launch};
+pub use launch::{Launch, launch, launch_direct};
 pub use layout::{HarnessLayout, layout};
 pub use login_status::{LoginStatus, MAX_STATUS_OUTPUT, read_login_status};
 pub use lookup::Lookup;

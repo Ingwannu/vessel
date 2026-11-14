@@ -211,6 +211,11 @@ pub enum RemoveError {
 impl SessionError {
     /// The wire error code for this failure.
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per kind of failure, so a new kind must choose its code; the list is \
+                  the point"
+    )]
     pub const fn code(&self) -> ErrorCode {
         match self {
             // An added agent's program not found is its "not installed"
@@ -218,7 +223,12 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. } | HarnessError::AgentMissing { .. }) => {
                 ErrorCode::HarnessNotInstalled
             }
-            Self::Launch(HarnessError::StructuredUnavailable { .. } | HarnessError::NoTerminal { .. })
+            Self::Launch(
+                HarnessError::StructuredUnavailable { .. }
+                | HarnessError::NoTerminal { .. }
+                | HarnessError::NoDirect { .. },
+            )
+            | Self::StartAgent(vessel_agent::AgentError::NoDriver(_))
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)

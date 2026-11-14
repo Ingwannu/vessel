@@ -517,6 +517,27 @@ fn a_forwarded_call_nests_its_inner_call() {
     assert_eq!(inner.since(), V6);
 }
 
+/// Protocol 18's drivers (ADR 0057): a settings change naming them needs
+/// 18, where an older node would ignore them and keep the agents on ACP;
+/// one that does not, 12.
+#[test]
+fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
+    use crate::settings::{AgentDriver, SetAgentDrivers, SetNodeSettings};
+    let parking = SetNodeSettings {
+        park_after: Some(crate::parking::ParkAfter::Never),
+        drivers: None,
+    };
+    assert_eq!(parking.into_call().since(), ProtocolVersion::new(12));
+    let drivers = SetNodeSettings {
+        park_after: None,
+        drivers: Some(SetAgentDrivers {
+            codex: Some(AgentDriver::Acp),
+            ..SetAgentDrivers::default()
+        }),
+    };
+    assert_eq!(drivers.into_call().since(), ProtocolVersion::new(18));
+}
+
 /// Protocol 11's write guard (the join of wave 2's first half): a write
 /// guarded by its content needs 11, which a protocol 10 node could not
 /// decode; one that creates only, or writes whatever is there, does not.

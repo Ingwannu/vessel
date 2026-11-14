@@ -5,7 +5,9 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand, ValueEnum};
+use vessel_proto::HarnessKind;
 use vessel_proto::parking::{IdleMinutes, ParkAfter};
+use vessel_proto::settings::AgentDriver;
 
 use super::ttl_secs;
 
@@ -64,7 +66,30 @@ pub(crate) enum NodeCommand {
         /// is stopped (parked): minutes (1 to 10080), or `never`.
         #[arg(long, value_name = "MINUTES|never", value_parser = park_after)]
         park_after: Option<ParkAfter>,
+        /// Which protocol drives an agent's new sessions: `acp`, or
+        /// `direct`, its own (Codex, Claude Code and `OpenCode`; refused
+        /// until this build offers it). Repeat for several agents.
+        #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
+        driver: Vec<(HarnessKind, AgentDriver)>,
     },
+}
+
+/// `--driver`: an agent's name, `=`, then `acp` or `direct`.
+fn driver(text: &str) -> Result<(HarnessKind, AgentDriver), String> {
+    let (agent, driver) = text
+        .split_once('=')
+        .ok_or_else(|| format!("`{text}` is not AGENT=acp or AGENT=direct"))?;
+    let kind = agent
+        .parse::<HarnessKind>()
+        .ok()
+        .filter(|kind| *kind != HarnessKind::Gemini)
+        .ok_or_else(|| format!("`{agent}` is not codex, claude or opencode"))?;
+    let driver = match driver.trim() {
+        "acp" => AgentDriver::Acp,
+        "direct" => AgentDriver::Direct,
+        other => return Err(format!("`{other}` is not acp or direct")),
+    };
+    Ok((kind, driver))
 }
 
 /// `--park-after`: minutes, or `never` (`0` and `off` too).
@@ -150,5 +175,21 @@ mod tests {
         );
         assert!(park_after("10081").is_err());
         assert!(park_after("soon").is_err());
+    }
+
+    #[test]
+    fn driver_takes_an_agent_and_a_protocol() {
+        assert_eq!(
+            driver("codex=direct"),
+            Ok((HarnessKind::Codex, AgentDriver::Direct))
+        );
+        assert_eq!(
+            driver("claude=acp"),
+            Ok((HarnessKind::ClaudeCode, AgentDriver::Acp))
+        );
+        assert!(driver("codex").is_err());
+        assert!(driver("codex=fast").is_err());
+        assert!(driver("vim=acp").is_err());
+        assert!(driver("gemini=acp").is_err(), "no protocol of its own");
     }
 }

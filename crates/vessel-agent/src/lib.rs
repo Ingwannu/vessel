@@ -9,6 +9,8 @@
 //!
 //! - `process`: [`AgentProcess`], spawning through `vessel-proc` (own
 //!   process group) and starting the tasks below;
+//! - `drivers`: which protocol drives an agent ([`Driver`], ADR 0057); ACP
+//!   is the only one built so far;
 //! - `driver`: the ACP connection and the session state machine
 //!   (handshake, prompt, cancel, permission and question round trips);
 //! - `transport`: the agent's stdio as the SDK's line transport, holding
@@ -49,7 +51,10 @@
 
 mod abilities;
 mod attached;
+mod claude;
+mod codex;
 mod driver;
+mod drivers;
 mod error;
 mod handshake;
 mod history;
@@ -58,6 +63,7 @@ mod introduction;
 mod mapper;
 mod mcp;
 mod model;
+mod opencode;
 mod options;
 mod output;
 mod permissions;
@@ -69,17 +75,18 @@ mod stderr;
 mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
+pub use drivers::Driver;
 pub use error::{AgentError, Disconnect, InputError};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
 pub use history::{
     HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,
-    NotACursor, history,
+    NotACursor, history, history_with,
 };
 pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
-pub use probe::{ProbeError, Probed, probe};
+pub use probe::{ProbeError, Probed, probe, probe_with};
 pub use process::AgentProcess;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.

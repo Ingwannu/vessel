@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use vessel_agent::AgentSetup;
+use vessel_agent::{AgentSetup, Driver};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
     Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionEvent,
@@ -312,7 +312,7 @@ impl SessionRuntime {
             begin,
             notices,
             (Input::Terminal(pty.input()), pty.pid()),
-            None,
+            (None, Driver::Acp),
         );
         let actor = TerminalActor {
             pty,
@@ -330,8 +330,12 @@ impl SessionRuntime {
         start: AgentStart,
         record: Record,
     ) -> Result<Created, SessionError> {
-        let AgentCommand { command, cwd } =
-            self.agent_command(spec.clone(), profile, proxy).await?;
+        let AgentCommand {
+            command,
+            cwd,
+            driver,
+            notices: chosen,
+        } = self.agent_command(spec.clone(), profile, proxy).await?;
         let setup = AgentSetup {
             cwd,
             model: start.model,
@@ -342,7 +346,8 @@ impl SessionRuntime {
             questions: start.questions,
             fork: start.fork.as_ref().map(|fork| Box::new(fork.agent.clone())),
         };
-        let (begin, notices) = record.begin(spec);
+        let (begin, mut notices) = record.begin(spec);
+        notices.extend(chosen);
         // A fork's log starts by saying what it forked, and drops the
         // replay of its check (protocol 14): the conversation is the
         // source's log, not copied.
@@ -356,6 +361,15 @@ impl SessionRuntime {
                 })),
                 ..ActorStart::default()
             });
-        self.run_structured(Launch { command, setup }, begin, notices, actor)
+        self.run_structured(
+            Launch {
+                command,
+                setup,
+                driver,
+            },
+            begin,
+            notices,
+            actor,
+        )
     }
 }

@@ -211,7 +211,7 @@ impl SessionRuntime {
         let Relaunch {
             profile,
             mcp_servers,
-            notices,
+            mut notices,
             model_proxy,
             questions,
         } = launch;
@@ -219,7 +219,15 @@ impl SessionRuntime {
         // Launched under its current profile, which a move may have
         // changed since its spec was written.
         let spec = info.spec.clone().with_profile(profile.name().clone());
-        let AgentCommand { command, cwd } = self.agent_command(spec, profile, model_proxy).await?;
+        // Its driver chosen again, as for a new session: it ended, so
+        // nothing of its last run's agent carries on (`runtime::drivers`).
+        let AgentCommand {
+            command,
+            cwd,
+            driver,
+            notices: chosen,
+        } = self.agent_command(spec, profile, model_proxy).await?;
+        notices.extend(chosen);
         // The model it asked for at creation, as a move passes it on.
         let model = match &info.spec.mode {
             SessionMode::Structured { model, .. } => model.clone(),
@@ -254,7 +262,12 @@ impl SessionRuntime {
             gate: Some(opened),
             opening: None,
         };
-        let created = self.run_structured(Launch { command, setup }, begin, notices, actor)?;
+        let launch = Launch {
+            command,
+            setup,
+            driver,
+        };
+        let created = self.run_structured(launch, begin, notices, actor)?;
         claim.keep();
         Ok(Reopening {
             created,
