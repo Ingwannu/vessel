@@ -15,3 +15,12 @@ composer-option-refused = { $reason ->
     [unavailable] The change couldn't be sent now. Try again in a moment.
    *[other] The change didn't go through. Try again.
     }
+
+## What an agent offers, kept and refreshed behind the list (owner word 28).
+## Reference: Paseo's provider snapshot keeps the last list; it shows no
+## words when a refresh fails. Ours says so once, quietly, in the list.
+
+# A muted line at the top of the model, effort or permissions list when the
+# list shown is the last one kept and asking the machine again failed. One
+# sentence; the list still works.
+composer-offers-stale = This list couldn't be refreshed, so it may be out of date.

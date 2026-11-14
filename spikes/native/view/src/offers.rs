@@ -1,0 +1,382 @@
+//! What an agent on a machine offers (its options: models, efforts,
+//! permissions modes, on/off options), kept so a control opens on the last
+//! list at once and refreshed behind it (owner word 28: "keep it, refresh
+//! it in the background, and show it the moment it is clicked").
+//!
+//! [Decision Log]
+//! - Purpose: opening the model, effort or permissions control showed a
+//!   spinner until the node answered `harness.options`, which can take
+//!   seconds (the node starts the agent to ask it when its own ten-minute
+//!   copy is gone), and again after every restart.
+//! - Constraint: the lists are the agent's, never Vessel's (ADR 0022): a
+//!   kept list is only ever the agent's last answer, shown until a newer
+//!   one; nothing is invented when there is none. A refresh must not move
+//!   the row under the pointer or lose the person's choice.
+//! - Followed: Paseo's provider snapshot. It keeps the last snapshot per
+//!   host and folder on disk (`data/provider-snapshot-cache.ts`, versioned,
+//!   size-bounded), hands it to the query as its first data, and refetches
+//!   when a selector opens (`hooks/use-providers-snapshot.ts`,
+//!   `selectorOpenRefetchDecision`: always when the selected provider has
+//!   no entry yet, else when stale); models are shown whenever any exist,
+//!   loading or the error only when none (`provider-selection.ts`,
+//!   `buildEntryModelSelection`); a remembered choice the agent stopped
+//!   offering falls back to what is shown (`resolveEffectiveComposerModeId`;
+//!   here the agent's own value, by `with_picks`).
+//! - Alternatives: keep asking on every open, as before (the spinner the
+//!   owner reported); refresh on a timer (asks agents no one is looking
+//!   at, and starts them on the node); replace the shown list wholesale on
+//!   an answer, as Paseo's query does (Paseo's virtualised list keys rows
+//!   by id; the kit's list highlights by index, so a row added above would
+//!   move the highlight and the row under the pointer).
+//! - Choice: one store per machine and agent here, without a clock of its
+//!   own (`now` is passed in) and without I/O; the link keeps the copy on
+//!   disk and hands it over at connect (`link::offers`). An answer that
+//!   arrives while a list is open is laid over the shown one ([`arrange`]):
+//!   what stays keeps its place, what is new goes after it (after its
+//!   group's last value when it has one), what is gone leaves.
+//! - Trade-offs: a closed list takes the agent's order as sent; an open
+//!   one may show a new value at its end until it is opened again. A value
+//!   removed above the pointer still moves the rows under it up by one.
+//!   Requests are bounded by [`OPEN_GAP`], [`RETRY_GAP`] and one request
+//!   in flight per agent: ten opens are one request.
+
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+
+use vessel_proto::{HarnessRef, OptionKind, OptionValue, SessionOption};
+
+/// After a good answer, opening a control does not ask again for this
+/// long (the node's own copy lasts ten minutes, so a sooner ask only reads
+/// it back; the bound keeps a burst of opens to one request).
+pub const OPEN_GAP: Duration = Duration::from_secs(30);
+
+/// After a failed answer, opening a control asks again only after this
+/// long (an offline machine answers at once, so without it every open
+/// would be a request).
+pub const RETRY_GAP: Duration = Duration::from_secs(10);
+
+/// A request unanswered for this long no longer holds back the next one
+/// (the link always answers, but a call can hang on a dying connection).
+pub const ASK_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Whose list: an agent on a machine (by the machine's name in the book;
+/// the link keys its file by the node's id, so a name given to another
+/// node never shows this one's list).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct OfferKey {
+    /// The machine's name.
+    pub machine: String,
+    /// The agent.
+    pub agent: HarnessRef,
+}
+
+impl OfferKey {
+    /// The key of `agent` on `machine`.
+    #[must_use]
+    pub fn new(machine: impl Into<String>, agent: HarnessRef) -> Self {
+        Self {
+            machine: machine.into(),
+            agent,
+        }
+    }
+}
+
+/// Why a refresh is wanted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Why {
+    /// A control opened, or the draft settled on the agent.
+    Open,
+    /// The machine connected (again).
+    Connect,
+    /// The machine's agents changed (one installed, removed, updated).
+    AgentsChanged,
+    /// The person asked again (Settings › Agents' retry): asks unless a
+    /// request is in flight, however recent the last answer.
+    Retry,
+}
+
+/// How current a shown list is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Freshness {
+    /// The agent's answer this run.
+    Fresh,
+    /// Kept from an earlier run, not refreshed yet.
+    Kept,
+    /// The last refresh failed; this is the earlier list.
+    Stale,
+}
+
+/// What a control shows for an agent (Paseo's `ProviderModelSelection`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Offered<'a> {
+    /// A list, shown at once whenever there is one.
+    Ready {
+        /// The options, in the order shown.
+        options: &'a [SessionOption],
+        /// How current it is ([`Freshness::Stale`] is said once, quietly).
+        freshness: Freshness,
+    },
+    /// No list yet, and one is coming (the first time only).
+    Loading,
+    /// No list, and the last ask failed: why.
+    Failed(&'a str),
+}
+
+/// What an answer did to the store.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Arrival {
+    /// The list shown changed (or appeared): draw again.
+    Changed,
+    /// The same list, now confirmed fresh.
+    Same,
+    /// The refresh failed; the earlier list stays, marked stale.
+    KeptStale,
+    /// The first ask failed: nothing to show but why.
+    Failed,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Entry {
+    /// The list shown, and how current it is.
+    copy: Option<(Vec<SessionOption>, Freshness)>,
+    /// Why the last ask failed, while there is no list.
+    failed: Option<String>,
+    /// When the request in flight was sent.
+    asked: Option<Instant>,
+    /// When the last answer came, and whether it was a list.
+    answered: Option<(Instant, bool)>,
+}
+
+/// Every agent's list the app knows, by machine and agent.
+#[derive(Debug, Clone, Default)]
+pub struct Offers {
+    entries: HashMap<OfferKey, Entry>,
+}
+
+impl Offers {
+    /// What a control for `key` shows now. An agent never asked about is
+    /// [`Offered::Loading`]: the caller asks in the same frame.
+    #[must_use]
+    pub fn offered(&self, key: &OfferKey) -> Offered<'_> {
+        let Some(entry) = self.entries.get(key) else {
+            return Offered::Loading;
+        };
+        match (&entry.copy, &entry.failed) {
+            (Some((options, freshness)), _) => Offered::Ready {
+                options,
+                freshness: *freshness,
+            },
+            (None, Some(why)) if entry.asked.is_none() => Offered::Failed(why),
+            (None, _) => Offered::Loading,
+        }
+    }
+
+    /// The list for `key`, however current, if there is one.
+    #[must_use]
+    pub fn options(&self, key: &OfferKey) -> Option<&[SessionOption]> {
+        self.entries
+            .get(key)
+            .and_then(|entry| entry.copy.as_ref())
+            .map(|(options, _)| options.as_slice())
+    }
+
+    /// Whether the store has anything for `key`: a list, a request or an
+    /// answer of this run (a draft settling on an agent asks only when it
+    /// has nothing; a control opening asks by [`Offers::should_ask`]).
+    #[must_use]
+    pub fn known(&self, key: &OfferKey) -> bool {
+        self.entries.contains_key(key)
+    }
+
+    /// Whether a request for `key` is in flight at `now` (a retry is not
+    /// offered meanwhile).
+    #[must_use]
+    pub fn asking(&self, key: &OfferKey, now: Instant) -> bool {
+        self.entries
+            .get(key)
+            .and_then(|entry| entry.asked)
+            .is_some_and(|asked| now.saturating_duration_since(asked) < ASK_TIMEOUT)
+    }
+
+    /// Whether to ask the agent now, for `why`, at `now`: never while a
+    /// request is in flight; on an open, not within [`OPEN_GAP`] of a good
+    /// answer nor [`RETRY_GAP`] of a failed one; a connection, a change
+    /// of the machine's agents and a person's retry always ask.
+    #[must_use]
+    pub fn should_ask(&self, key: &OfferKey, why: Why, now: Instant) -> bool {
+        let Some(entry) = self.entries.get(key) else {
+            return true;
+        };
+        if self.asking(key, now) {
+            return false;
+        }
+        if why != Why::Open {
+            return true;
+        }
+        match entry.answered {
+            Some((at, true)) => now.saturating_duration_since(at) >= OPEN_GAP,
+            Some((at, false)) => now.saturating_duration_since(at) >= RETRY_GAP,
+            None => true,
+        }
+    }
+
+    /// Note a request for `key` sent at `now`.
+    pub fn asked(&mut self, key: OfferKey, now: Instant) {
+        self.entries.entry(key).or_default().asked = Some(now);
+    }
+
+    /// [`Offers::should_ask`], and when it says so, [`Offers::asked`]:
+    /// `true` when the caller is to send the request.
+    pub fn want(&mut self, key: &OfferKey, why: Why, now: Instant) -> bool {
+        let ask = self.should_ask(key, why, now);
+        if ask {
+            self.asked(key.clone(), now);
+        }
+        ask
+    }
+
+    /// A list kept from an earlier run, handed over at connect. Taken only
+    /// when there is no list yet: an answer of this run is newer.
+    pub fn kept(&mut self, key: OfferKey, options: Vec<SessionOption>) -> Arrival {
+        let entry = self.entries.entry(key).or_default();
+        if entry.copy.is_some() {
+            return Arrival::Same;
+        }
+        entry.copy = Some((options, Freshness::Kept));
+        entry.failed = None;
+        Arrival::Changed
+    }
+
+    /// The agent's answer for `key` at `now`. `open`: a list showing it is
+    /// open, so a new list is laid over the shown one ([`arrange`]) rather
+    /// than replacing it. A failure keeps a list there is, marked stale.
+    pub fn answered(
+        &mut self,
+        key: OfferKey,
+        outcome: Result<Vec<SessionOption>, String>,
+        open: bool,
+        now: Instant,
+    ) -> Arrival {
+        let entry = self.entries.entry(key).or_default();
+        entry.asked = None;
+        entry.answered = Some((now, outcome.is_ok()));
+        match outcome {
+            Ok(fresh) => {
+                entry.failed = None;
+                let (options, changed) = match entry.copy.take() {
+                    Some((shown, _)) => {
+                        let options = if open { arrange(fresh, &shown) } else { fresh };
+                        let changed = options != shown;
+                        (options, changed)
+                    }
+                    None => (fresh, true),
+                };
+                entry.copy = Some((options, Freshness::Fresh));
+                if changed {
+                    Arrival::Changed
+                } else {
+                    Arrival::Same
+                }
+            }
+            Err(why) => {
+                if let Some((_, freshness)) = &mut entry.copy {
+                    *freshness = Freshness::Stale;
+                    Arrival::KeptStale
+                } else {
+                    entry.failed = Some(why);
+                    Arrival::Failed
+                }
+            }
+        }
+    }
+
+    /// The agents of `machine` the store has a list for (asked again when
+    /// the machine connects).
+    #[must_use]
+    pub fn agents_on(&self, machine: &str) -> Vec<HarnessRef> {
+        let mut agents: Vec<HarnessRef> = self
+            .entries
+            .iter()
+            .filter(|(key, entry)| key.machine == machine && entry.copy.is_some())
+            .map(|(key, _)| key.agent.clone())
+            .collect();
+        agents.sort_by_key(|agent| format!("{agent:?}"));
+        agents
+    }
+
+    /// The machine `from` is called `to` now: its lists follow the name.
+    pub fn renamed(&mut self, from: &str, to: &str) {
+        self.entries = std::mem::take(&mut self.entries)
+            .into_iter()
+            .map(|(mut key, entry)| {
+                if key.machine == from {
+                    to.clone_into(&mut key.machine);
+                }
+                (key, entry)
+            })
+            .collect();
+    }
+
+    /// The machine `name` is forgotten: its lists go.
+    pub fn forgotten(&mut self, name: &str) {
+        self.entries.retain(|key, _| key.machine != name);
+    }
+}
+
+/// A fresh answer laid over the list shown, so nothing under the pointer
+/// moves: the options and values that stay keep their places, in the
+/// shown order; new ones follow (a new value after the last value of its
+/// group, so a group's values stay together; else at the end); gone ones
+/// leave. Everything else (names, descriptions, the value in effect, a
+/// changed kind) is the fresh answer's.
+#[must_use]
+pub fn arrange(fresh: Vec<SessionOption>, shown: &[SessionOption]) -> Vec<SessionOption> {
+    let mut pool: Vec<Option<SessionOption>> = fresh.into_iter().map(Some).collect();
+    let mut arranged = Vec::with_capacity(pool.len());
+    for old in shown {
+        if let Some(new) = take_where(&mut pool, |new| new.id == old.id) {
+            arranged.push(arrange_values(new, old));
+        }
+    }
+    arranged.extend(pool.into_iter().flatten());
+    arranged
+}
+
+/// An option's values laid over the shown ones ([`arrange`]).
+fn arrange_values(mut fresh: SessionOption, shown: &SessionOption) -> SessionOption {
+    if let (OptionKind::Select { values, .. }, OptionKind::Select { values: old, .. }) =
+        (&mut fresh.kind, &shown.kind)
+    {
+        let mut pool: Vec<Option<OptionValue>> =
+            std::mem::take(values).into_iter().map(Some).collect();
+        let mut ordered: Vec<OptionValue> = Vec::with_capacity(pool.len());
+        for value in old {
+            if let Some(kept) = take_where(&mut pool, |new| new.id == value.id) {
+                ordered.push(kept);
+            }
+        }
+        for new in pool.into_iter().flatten() {
+            let after = new.group.as_ref().and_then(|group| {
+                ordered
+                    .iter()
+                    .rposition(|value| value.group.as_ref() == Some(group))
+            });
+            match after {
+                Some(last) => ordered.insert(last.saturating_add(1), new),
+                None => ordered.push(new),
+            }
+        }
+        *values = ordered;
+    }
+    fresh
+}
+
+/// The first item of `pool` that `matches`, taken out of it.
+fn take_where<T>(pool: &mut [Option<T>], matches: impl Fn(&T) -> bool) -> Option<T> {
+    pool.iter_mut()
+        .find(|slot| slot.as_ref().is_some_and(&matches))
+        .and_then(Option::take)
+}
+
+#[cfg(test)]
+mod tests;

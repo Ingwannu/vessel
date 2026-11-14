@@ -28,6 +28,7 @@ pub mod machines;
 pub mod mark_attributions;
 pub mod models;
 pub mod notices;
+pub mod offers;
 mod options;
 pub mod pairing;
 pub mod palette;

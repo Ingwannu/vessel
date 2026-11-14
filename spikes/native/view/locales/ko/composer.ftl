@@ -10,3 +10,9 @@ composer-option-refused = { $reason ->
     [unavailable] 지금은 변경을 보낼 수 없습니다. 잠시 후 다시 시도하세요.
    *[other] 변경이 적용되지 않았습니다. 다시 시도하세요.
     }
+
+## What an agent offers, kept and refreshed behind the list (owner word 28).
+
+# 목록이 저장해 둔 마지막 목록이고, 기기에 다시 묻지 못했을 때 목록 맨 위에
+# 흐리게 보이는 한 줄. 목록은 그대로 쓸 수 있다.
+composer-offers-stale = 이 목록을 새로 받지 못해 최신이 아닐 수 있습니다.
