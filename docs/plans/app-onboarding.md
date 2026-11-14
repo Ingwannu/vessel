@@ -196,9 +196,12 @@ whose action is `onboarding.reopen()`.
 
 - **Done:** ADR 0071 (status: proposed) and this plan, including the
   returned slice's three fixes (tools switch via ADR 0065, phone step
-  as device pairing, theme list shared with Appearance). No protocol
-  number. No new `node.settings` key in this tree.
-- **Half-done:** nothing committed.
-- **Next:** slice 2, the model, with `Client` and the six steps. The
-  model does not name a machine. Do not open slice 3 before those
-  tests pass.
+  as device pairing, theme list shared with Appearance). Slice 2: the
+  model in `view/src/onboarding` (phase, visit, completion time) and
+  its tests. No protocol number. No new `node.settings` key in this
+  tree. The model does not name a machine, and it does not store the
+  tools switch or an in-flight add: the screen calls `next` with the
+  visit from the stay where that write started, after the write succeeds.
+- **Half-done:** nothing.
+- **Next:** slice 3, the screens in `app/src/areas/onboarding/`, kit
+  controls only. Do not edit the shell or Settings.

@@ -29,6 +29,7 @@ pub mod mark_attributions;
 pub mod models;
 pub mod notices;
 pub mod offers;
+pub mod onboarding;
 mod options;
 pub mod pairing;
 pub mod palette;
