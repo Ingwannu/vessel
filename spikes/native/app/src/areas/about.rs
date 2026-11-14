@@ -454,7 +454,7 @@ pub(crate) fn updated(
         .child(
             div()
                 .flex_1()
-                .min_w(px(0.0))
+                .min_w_0()
                 .flex()
                 .flex_col()
                 .gap(px(4.0))
