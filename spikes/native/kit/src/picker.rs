@@ -419,6 +419,10 @@ pub struct ComboHeader {
     pub search: bool,
     /// Shown when no row is left (the search matched nothing).
     pub empty: SharedString,
+    /// A muted line above the rows, that may wrap: what to know about the
+    /// list as a whole (it could not be refreshed, so it may be out of
+    /// date). Paseo has none; `None` for none.
+    pub note: Option<SharedString>,
     /// Which side of its trigger the list opens on.
     pub side: Side,
 }
@@ -654,6 +658,9 @@ pub fn combobox<V: 'static>(
     if header.search {
         panel = panel.child(search_row(state, tokens, cx));
     }
+    if let Some(note) = &header.note {
+        panel = panel.child(note_row(note.clone(), tokens));
+    }
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
     ));
@@ -836,6 +843,20 @@ fn leading_column(rows: &[ComboRow]) -> Option<f32> {
     rows.iter()
         .filter_map(|row| row.leading.as_ref().and_then(leading_width))
         .reduce(f32::max)
+}
+
+/// The header's note ([`ComboHeader::note`]): muted, small, wrapping,
+/// above the rows.
+fn note_row(note: SharedString, tokens: &Tokens) -> Div {
+    div()
+        .flex_none()
+        .px(px(12.0))
+        .pt(px(8.0))
+        .pb(px(4.0))
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .whitespace_normal()
+        .child(note)
 }
 
 /// The title row: a way back when it leads back, the title in 14 medium.

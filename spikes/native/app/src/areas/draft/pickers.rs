@@ -538,6 +538,7 @@ fn build(shell: &Shell, which: Picker, query: &str, cx: &Context<'_, Shell>) -> 
             back: false,
             search: false,
             empty: words.no_matches.into(),
+            note: None,
             // The controls in the card open above it, those under it below
             // (Paseo's `top-start` and `bottom-start`).
             // An option's list opens from the model control, above it.
