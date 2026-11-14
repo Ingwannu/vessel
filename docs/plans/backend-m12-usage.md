@@ -346,3 +346,21 @@ cost must not silently become new spend.
 The resumed full Rust gate and required full web gate, including its own
 headless fake-fleet Playwright suite, are pending. Previous failures and
 scoped passes above describe the older tree, not this merge.
+
+### Merged Rust baseline verification
+
+The node merge is preserved as `2b9ec3a2`. On that merged source,
+formatting and all-target workspace Clippy passed. TypeScript regeneration
+passed both selected tests. The complete workspace test run passed:
+1,802 passed, 0 failed, 10 existing ignored tests across 110 result groups,
+including doc-tests. No test was excluded by this track.
+
+All 174 node end-to-end tests passed, including the four usage cases.
+The formerly failing grant and scheduled-session cases passed on this
+node line. The five cost-precision regressions, queued/running cancellation
+admission regression, CLI whole-output unit fixtures and CLI process
+usage fixture also passed. The changed crates were compiled in this run.
+
+The full web gate is still pending. This Rust baseline is not integration
+approval: the replay-observation accounting boundary described above
+remains to be fixed, and external limits lookup remains unimplemented.
