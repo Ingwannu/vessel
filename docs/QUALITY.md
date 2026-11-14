@@ -355,7 +355,8 @@ thing belongs to the lowest crate whose job it is.
 readers hold both.
 **Check.** Review; the size budgets as the measurable proxy.
 **Today.** Every one of the 737 product files starts with `//!`; no
-module is named `utils`, `common`, `helpers` or `misc`. Files that hold
+module is named `utils`, `common`, `helpers` or `misc`. Native: all 353
+files have the header; one `common` module (`app/src/areas/common.rs`). Files that hold
 more than one thing are named in the audit (`vessel-node/src/models/
 proxy.rs`, `fleet/links.rs`, `vessel-agent/src/codex/session.rs`).
 
@@ -380,8 +381,12 @@ vessel-proto` (since 2026-11-14); ADR 0001's map also lacked `vessel-agent
 them. Sideways reaching (`super::super::`): 5 sites in the node line.
 `HarnessKind::<variant>` outside `vessel-harness`: 5 uses in
 `vessel-session/src/runtime/drivers.rs`, not yet read for whether they
-decide behaviour. Native (its README's table): 2 (`app/src/web.rs` names
-`gpui_platform` outside `main.rs`).
+decide behaviour. Native: `spikes/native/README.md`'s tables (edges,
+owners of GPUI's crates, Fluent and tokio, and names only some files may
+use) and `spikes/release/README.md`'s are held by the same script
+(`--workspace`); 0 today, after the README named the browser's entry point
+(`app/src/web.rs`) beside `main.rs` as a place `gpui_platform` belongs.
+`super::super::`: 8 sites.
 
 ### M3. File budget: 500 lines of product code
 
@@ -394,8 +399,10 @@ to the list.
 stop them growing (the target in `AGENTS.md` was "about 400").
 **Check.** `scripts/check-rust-size.mjs`.
 **Today.** 33 files listed (7 over 800; the largest
-`vessel-node/src/models/proxy.rs`, 1,592). Native: 21 over 500 (5 over
-800), not yet under the check.
+`vessel-node/src/models/proxy.rs`, 1,592). Native: 22 listed in
+`spikes/native/scripts/rust-size-allow.txt` (6 over 800; the largest
+`app/src/areas/draft/pickers.rs`, 1,190); the release tools: none over
+500.
 
 ### M4. Function budget: 60 lines
 
@@ -454,12 +461,18 @@ has no `tests/` directory, 51.
 ### M8. The native app's screens use the kit's tokens
 
 **Rule.** (`spikes/native`) Colours, type, spacing and radii come from the
-kit's tokens, never a literal in a screen.
+kit's tokens, never a literal in a screen; no crate of the workspace
+writes a hex colour outside the kit's tokens (`kit/src/theme.rs`,
+`kit/src/theme/`).
 **Why.** A literal spacing is a design decision made once per call site;
 the token is the decision made once.
-**Check.** Review today; a literal ratchet over `app/src` is planned.
-**Today.** 511 `px(<number>)` literals in `app/src` (382 of them equal a
-spacing step), 4 colour literals.
+**Check.** `spikes/native/scripts/check-tokens.mjs`: per file and kind,
+listed in `spikes/native/scripts/tokens-allow.txt`, only falling; review
+for type and radii.
+**Today.** In `app/src`, 443 `px(<number>)` equal to a spacing step (0
+included) and 90 others; 44 hex colours outside the kit's tokens (40 in
+the kit's own files: code highlighting 18, the agents' marks 8; 4 in
+`app`).
 
 ## The page's TypeScript (`web/`)
 
