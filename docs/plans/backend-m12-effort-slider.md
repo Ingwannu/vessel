@@ -127,3 +127,39 @@ points and painted as one image (the luminosity blend computed per
 sample in sRGB); the warning's shimmer is a colour per character in one
 text run; the bolt's tooltip has no dimmed second line; a hovered stop
 grows without darkening; no keyboard focus ring on the thumb yet.
+
+## Known costs (2026-11-14, 0.0.0.0.14)
+
+Measured on the release build on a virtual display (lavapipe, a software
+renderer; `top` over 5 s), the way the coordinator measured 0.0.0.0.13:
+
+| State | 0.0.0.0.13 | 0.0.0.0.14 |
+| --- | --- | --- |
+| Card open, middle stop | 6.6 % | 0.4 % |
+| Card open, top stop, pointer on it | 517 % | 0.4 % |
+| Card open, Fast, pointer on it | 508 % | 0.4 % |
+| Board, idle (working spinners) | 530 % | 0.4 % |
+| New session, composer focused, idle | about 31 % | about 31 % |
+
+The caret, after the patched gpui-base (0.0.0.0.15; the same release
+build settings, the composer focused by arriving on the new-session
+screen, the pointer still; two 5 s readings each):
+
+| Window | 0.0.0.0.14 | 0.0.0.0.15 | 0.0.0.0.15 with `VESSEL_APP_REDUCE_MOTION=0` |
+| --- | --- | --- | --- |
+| 1280 × 800 | 29.1 %, 32.6 % | 0.4 %, 0.4 % | 28.2 %, 29.9 % (the caret blinks) |
+| 1920 × 1200 | 64.6 %, 60.2 % | 0.6 %, 0.8 % | |
+
+- On a software renderer the whole app holds its motion still
+  (`app::motion::note_renderer`); with `VESSEL_APP_REDUCE_MOTION=0` the
+  card's top stop costs 125 % and Fast 222 % while the pointer is on the
+  card, 0.6 % once its decorations have come to rest.
+- The text caret's blink (gpui-base's `BlinkCursor`, every 500 ms, each
+  toggle a whole-window redraw) was a known cost on 0.0.0.0.14. Since
+  0.0.0.0.15 gpui-base is a patched copy whose caret is steady while
+  motion is held (`spikes/release/patches/README.md`, change 4); with
+  motion allowed on a real GPU it blinks as before (to be measured on
+  Windows, track R).
+- GPUI repaints the whole window on any change (only cached views reuse a
+  frame, and the shell is one view): the costs above are bounded by
+  asking for fewer frames, not by repainting less.
