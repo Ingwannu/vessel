@@ -795,10 +795,54 @@ never rebuilt.
     device. That sentence is wrong for a refusal from a standalone
     protocol 11 node. Everything else in that check passed.
   - The folder stays where it is. It is never published, and the label
-    is never rebuilt. The feed keeps serving 0.0.0.0.11.
-  - The next build is 0.0.0.0.13, from a later commit of the desktop
-    lead. That commit carries this fix and the owner's fixes to the
+    is never rebuilt. The feed served 0.0.0.0.11 until 0.0.0.0.13.
+  - 0.0.0.0.13 hides Settings › Sync until its page is right on every
+    kind of machine (`ce880e4d`), and carries the owner's fixes to the
     marks and the slider.
+
+- **0.0.0.0.13**:
+  - Built from exactly `9461f149`, the desktop lead's head (protocol
+    15), checked out detached; this branch then merged it.
+  - The set went into place at 03:46:57 UTC on 2026-11-14 and was
+    published to `preview` at 03:53:49 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.11 Linux
+    build took 0.0.0.0.13 by itself at 03:56:13 UTC, past the withheld
+    label.
+  - Sizes, with the change against 0.0.0.0.11, the last published:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 12,746,999 | +154,184 |
+    | exe | 46,142,976 | +519,680 |
+    | zip | 18,566,980 | +27,118 |
+    | linux | 82,670,256 | +569,936 |
+    | tar.gz | 28,732,276 | +61,026 |
+
+  - The Gemini CLI PNG is gone. Five 64-byte slices of it are found in
+    0.0.0.0.11's executables and in neither of 0.0.0.0.13's, which carry
+    the spark's vector path instead. Against the withheld 0.0.0.0.12
+    the executables grew (exe +104,448, linux +188,368) while the zip
+    and tar.gz shrank (-116,379, -76,125).
+  - The spark comes from `google/adk-docs` under Apache-2.0
+    (`docs/design/agent-marks/README.md`), so `google-Apache-2.0.txt`
+    still belongs to something shipped. Every package carries the 4
+    texts, as before.
+  - The new card paints per frame while it moves or shows the top stop's
+    field. The packaged Linux build's CPU was read against two fake
+    nodes (`scripts/fleet.sh`) on Xvfb with Mesa's software Vulkan. That
+    is an upper bound, not what a desktop with a GPU sees.
+
+    | State | This track | Coordinator (real node) |
+    |---|---|---|
+    | card closed | 7.3% of a core | about 6% |
+    | open, middle stop (High) | 7.9% | about the same |
+    | open, top stop (Ultracode) | 307% | about 310% (Fast on: 320%) |
+
+    The frame-rate work goes to the desktop lead for the next build.
+  - The usual checks passed. The 4 headless WARNs (no desktop portal on
+    Xvfb) are the same as in 0.0.0.0.12's run.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 

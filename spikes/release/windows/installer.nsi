@@ -97,7 +97,7 @@ Section "Vessel"
   File "${STAGE}\README.txt"
   ; The licences of what the app embeds: the fonts' (SIL OFL 1.1 asks
   ; each copy to carry it) and the agents' marks' (Apache-2.0 for the
-  ; Gemini CLI icon); build.sh's licenses() fills the folder.
+  ; Gemini spark); build.sh's licenses() fills the folder.
   SetOutPath "$INSTDIR\licenses"
   File "${STAGE}\licenses\*.txt"
   SetOutPath "$INSTDIR"
