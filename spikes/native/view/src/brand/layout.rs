@@ -10,7 +10,10 @@
 //!   bottom under the pickers.
 //! - Open session: the V grown into a frame in the side margins, its apex
 //!   below the screen; as many loops as the margin holds after the air
-//!   kept beside the column (4, 3, 2), none under two.
+//!   kept beside the column (4, 3, 2), none under two; its arms lean in as
+//!   far as the margin allows and no further than
+//!   [`ratios::FRAME_LEAN_DEGREES`], so on a wide window they end in the
+//!   margin as in the owner's sketch, not at the composer's corners.
 #![expect(
     clippy::float_arithmetic,
     reason = "placing lines against measured boxes is float geometry; each formula mirrors the study's drawing"
@@ -200,8 +203,9 @@ pub fn session(screen: &Session) -> Figure {
     let half = ratios::half_band(loops, pitch);
     let centre = f32::midpoint(column_left, column_right);
     let top_x = content.x + margin + half;
-    let bottom_x = top_x.max(column_left - air - half);
     let top_y = content.y + 18.0 + half;
+    let lean = ratios::FRAME_LEAN_DEGREES.to_radians().tan() * (content.bottom() - top_y);
+    let bottom_x = top_x.max((column_left - air - half).min(top_x + lean));
     let apex_y = if bottom_x - top_x < 1.0 {
         top_y + FAR
     } else {

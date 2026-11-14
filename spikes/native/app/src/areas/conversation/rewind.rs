@@ -47,8 +47,9 @@ use crate::shell::Shell;
 /// The trailing row's height (Paseo's 24-point icon buttons).
 const ROW: f32 = 24.0;
 
-/// The undo mark's corners (Paseo's `borderRadius.md`).
-const RADIUS: f32 = 6.0;
+/// The undo mark's corner: six points, between the kit's `R1` and `R2`;
+/// the kit has no radius of this size yet.
+const MARK_RADIUS: f32 = 6.0;
 
 /// A rewind being chosen or sent.
 pub(crate) struct Rewinding {
@@ -212,7 +213,7 @@ fn undo(
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(RADIUS))
+        .rounded(px(MARK_RADIUS))
         .when(locked, |mark| mark.opacity(0.5))
         .when(!locked, |mark| {
             mark.cursor_pointer()

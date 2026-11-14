@@ -232,3 +232,42 @@ fn a_loop_only_one_screen_has_fades_out() {
     let last = between(&from, &to, avatar, at(1.0));
     assert_eq!(last.v.map(|v| (v.loops, v.outer)), Some((4, 0.0)));
 }
+
+/// The frame's left arm's lean from the vertical, in degrees.
+fn lean(figure: &Figure) -> f32 {
+    let arms = figure.v.map(|v| v.arms).expect("a frame");
+    (arms.apex.x - arms.left.x)
+        .atan2(arms.apex.y - arms.left.y)
+        .to_degrees()
+}
+
+#[test]
+fn the_frame_leans_in_as_the_sketch_does() {
+    // 2560 x 1440: the margin would allow about 28°; the arms stop at the
+    // sketch's lean and end short of the column
+    let wide = session(&session_at(
+        area(264.0, 73.0, 2551.0, 1431.0),
+        998.0,
+        1818.0,
+    ));
+    assert!((lean(&wide) - ratios::FRAME_LEAN_DEGREES).abs() < 0.5);
+    let column = area(998.0, 73.0, 1818.0, 1431.0);
+    assert!(clearance(&wide, column) > 100.0, "ends in the margin");
+    // 1920 x 1080: the margin itself allows about 19°
+    let full_hd = session(&session_at(
+        area(264.0, 73.0, 1911.0, 1071.0),
+        678.0,
+        1498.0,
+    ));
+    assert!((15.0..=ratios::FRAME_LEAN_DEGREES).contains(&lean(&full_hd)));
+    // 1280: the margin allows only a few degrees
+    let narrow = session(&session_at(area(264.0, 73.0, 1271.0, 791.0), 358.0, 1177.0));
+    assert!(lean(&narrow) < 5.0);
+}
+
+#[test]
+fn a_union_holds_both_boxes() {
+    let pickers = area(377.0, 516.0, 586.0, 529.0);
+    let note = area(358.0, 541.0, 640.0, 556.0);
+    assert_eq!(pickers.union(note), area(358.0, 516.0, 640.0, 556.0));
+}

@@ -100,6 +100,15 @@ measured ratios.
 - One app launch on the virtual display failed with "failed to connect to
   X server: Unknown connection error" while the server was up; the same
   command a minute later worked.
+- On the first run (no machine) the new session shows a note under the
+  pickers ("머신이 없습니다. 먼저 머신을 추가하세요."); the drawing measured only
+  the heading, the card and the pickers, so at 800 × 600 and 390 the V's
+  bottom passed under that note. Every child after the pickers now counts
+  with them.
+- At 2560 × 1440 the open session's frame, leaning in as far as the margin
+  allowed, reached about 28° and met the composer's corners; the owner's
+  sketch draws 18–20° ending in the margin. The lean is capped at 20°
+  (1920 × 1080 stays at its margin's 19°).
 
 ## Open
 

@@ -451,6 +451,17 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   buttons the kit's; carets and marks are the kit's vector glyphs
   (`assets::Glyph`), never characters. Controls take their colours from
   `tokens.neutral` (Paseo's scale); the accent is the brand's.
+- A struct pattern over a protocol type (`vessel_proto`) ends with `..`,
+  so a field a newer node adds does not break the app (old and new peers
+  are both accepted). The exception is a type that carries what a person
+  approves or agrees to (today `ProjectCommands::Listed` in
+  `Listed::of`, and the worktree's `NeedsApproval` that carries it): its
+  pattern names every field on purpose, with a comment saying so, so
+  that a new field breaks the build until the screen shows it or refuses
+  it by type. Ignoring it would let a person approve something the
+  screen never showed. A permission request and an install offer are
+  read by field access, which no added field breaks; giving them the
+  same guard is an open item.
 
 ### The brand's drawing (ADR 0059)
 
@@ -475,7 +486,8 @@ avatar).
 
 `app::brand` is the shell's `brand`: the new session's column gives
 `on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
-composer's card and the pickers after `skip` children), the session's
+composer's card and the pickers after `skip` children; any later child,
+such as the "no machine yet" note, counts with the pickers), the session's
 screen gives `shell.brand.session_body(viewport)` and its composer's column
 `shell.brand.session_column()`, the row waiting for the reply gives
 `shell.brand.reply_head()` (its first child is the avatar's slot, where the
