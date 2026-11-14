@@ -6,11 +6,14 @@
 //! - Constraint: a program writes as many lines as it likes, as wide as
 //!   the grid; at the setting's maximum and the grid's widest that is a
 //!   billion cells, far past any memory the app may take.
-//! - Choice: a line keeps no trailing unprinted cells, and history is
-//!   bounded twice: by the setting's line count and by [`CELL_LIMIT`]
-//!   cells in all. Whichever bound is reached first drops the oldest line.
-//!   A cell is 20 bytes (a glyph, two colours and six attributes; a test
-//!   pins it), so the cell bound is at most 80 MiB of history.
+//! - Choice: a line that ended hard keeps no trailing unprinted cells (a
+//!   soft-wrapped one keeps them for reflow, and is at most as wide as the
+//!   grid), and history is bounded twice: by the setting's line count and
+//!   by [`CELL_LIMIT`] cells in all. Whichever bound is reached first drops
+//!   the oldest line. A cell is 20 bytes (a glyph, two colours and six
+//!   attributes; a test pins it), so cells are at most 80 MiB; each line
+//!   also costs a 32-byte header, about 32 MiB more at the 1,000,000-line
+//!   setting, so about 112 MiB at most.
 //! - Alternative: lines at the grid's full width (xterm.js), or the line
 //!   count alone; either lets a program fill memory with wide lines.
 //! - Cost: with a high setting and long lines the cell bound comes first,

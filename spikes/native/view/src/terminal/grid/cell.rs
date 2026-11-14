@@ -151,13 +151,30 @@ impl Line {
         self.fix_pairs(last.saturating_sub(1), last, blank);
     }
 
+    /// At most `cols` wide: cut, a wide scalar cut in half at the edge
+    /// blanked; a shorter line is left as it is (only rows shown are
+    /// padded).
+    pub(super) fn cut(mut self, cols: u16, blank: Cell) -> Self {
+        let cols = usize::from(cols);
+        if self.cells.len() > cols {
+            self.cells.truncate(cols);
+            self.fix_pairs(cols.saturating_sub(1), cols, blank);
+        }
+        self
+    }
+
     /// Blank the half pairs in cells `from..to` and on either side of them.
     pub(super) fn fix_pairs(&mut self, from: usize, to: usize, blank: Cell) {
         super::width::fix_pairs(&mut self.cells, from, to, blank);
     }
 
-    /// Without its trailing unprinted cells (a line kept in history).
+    /// Without its trailing unprinted cells when it ended hard (a line
+    /// kept in history). A soft-wrapped line keeps them: a gap erased at its
+    /// end is part of the line reflow joins (xterm.js keeps it too).
     pub(super) fn trimmed(mut self) -> Self {
+        if self.wrap == Wrap::Soft {
+            return self;
+        }
         let kept = self
             .cells
             .iter()

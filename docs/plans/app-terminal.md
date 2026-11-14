@@ -325,10 +325,14 @@ grid, and that an unchanged generation draws nothing), not described.
 - Blink (SGR 5, 6), overline (53) and the underline's colour (58) are
   read and dropped; xterm.js draws them. Blink needs a timer over the
   cells, and an underline colour adds four bytes to every cell history
-  keeps. Bold in the eight ANSI colours is drawn bright and inverse
-  swaps after that, faint is half ink, concealed is no ink: xterm.js's
-  defaults, which Paseo keeps (`terminal-emulator-runtime.ts` 555–571:
-  no `drawBoldTextInBrightColors`, `minimumContrastRatio: 1`).
+  keeps. Inverse swaps the colours first, then bold draws a foreground
+  in one of the eight ANSI colours bright; faint is half ink, concealed
+  is no ink: xterm.js's defaults, which Paseo keeps
+  (`terminal-emulator-runtime.ts` 555–571: no
+  `drawBoldTextInBrightColors`, `minimumContrastRatio: 1`), in xterm.js
+  6.1.0-beta.336's order (`addon-webgl/src/TextureAtlas.ts` 519–526
+  swaps, then 355 and 364–366 brighten; `DomRendererRowFactory.ts`
+  347–355, then 437–438).
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
 - A file that is not already on the node is not uploaded. There is no
@@ -402,11 +406,23 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
 - P6, reflow (`grid/reflow.rs`): a width change joins the primary
   screen's and history's soft-wrapped lines and cuts them again (a row
   ends a cell early rather than split a wide pair; a one-column grid
-  blanks pairs), the cursor carried as an offset into its line, blank
-  rows below it dropped before any line leaves for history, a pending
-  wrap kept only on the new last column. The alternate screen is cut or
-  padded. While it shows, the primary's saved cursor is clamped, not
-  remapped.
+  blanks pairs), as xterm.js does with Paseo's options: the run of lines
+  holding the cursor is only cut (`reflowCursorLine` false; the shell
+  redraws it), a soft row gives up only the one blank a wide scalar
+  left (an erased gap stays), rows going to history are not padded (the
+  peak is history's cells and one screen). Blank rows below the cursor
+  go before any line leaves for history; rows a program printed below
+  the cursor that no longer fit under it are dropped. The alternate
+  screen is cut or padded. While it shows, the primary's saved cursor
+  is clamped, not remapped.
+- V2's returns folded in before the P1–P6 gate: rows 56 (paint order,
+  `CSI ? u`, one-parameter DSR and the OSC trim stated, the error
+  messages and the reply bound named) and 57 (reflow's memory, the
+  cursor's run, the soft trim).
+- For T1: a line feed at the bottom allocates a blank row and trims the
+  leaving one; a 16 KiB call of line feeds at 1,024 columns is about
+  320 MiB of allocation and fill. Measure one worst-case `feed` before
+  choosing the thread live bytes are applied on.
 - Next: T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as

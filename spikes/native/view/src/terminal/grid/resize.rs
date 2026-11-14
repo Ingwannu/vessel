@@ -5,7 +5,7 @@
 
 use super::cell::{Cell, Line};
 use super::modes::{At, Pending, Shown};
-use super::reflow::{Spot, reflow};
+use super::reflow::reflow;
 use super::screen::{Region, Screen};
 use super::{Grid, History};
 use crate::terminal::size::GridSize;
@@ -46,20 +46,20 @@ impl Grid {
         self.changed();
     }
 
-    /// History and the primary screen reflowed to `size`'s width, the
-    /// screen being their last rows (blank rows below the cursor dropped
-    /// first; the cursor's row always on it). Returns the cursor when the
-    /// primary screen is showing.
+    /// History and the primary screen reflowed to `size`'s width (the
+    /// cursor's run of lines only cut, `reflow`), the screen being their
+    /// last rows: blank rows below the cursor go first, and the cursor's row
+    /// is always on it, so rows a program printed below the cursor that no
+    /// longer fit under it are dropped (xterm.js moves its viewport
+    /// instead). Returns the cursor when the primary screen is showing.
     fn reflow_primary(&mut self, size: GridSize) -> Option<At> {
         let mut lines = self.history.take_all();
         let base = lines.len();
         lines.append(&mut self.primary.take_lines());
-        let cursor = (self.shown == Shown::Primary).then(|| Spot {
-            line: base.saturating_add(usize::from(self.at.row)),
-            col: usize::from(self.at.col),
-        });
-        let (mut lines, spot) = reflow(lines, cursor, size.cols());
-        let keep = spot.map_or(0, |spot| spot.line.saturating_add(1));
+        let cursor =
+            (self.shown == Shown::Primary).then(|| base.saturating_add(usize::from(self.at.row)));
+        let (mut lines, moved) = reflow(lines, cursor, size.cols());
+        let keep = moved.map_or(0, |line| line.saturating_add(1));
         while lines.len() > keep && lines.last().is_some_and(Line::is_blank) {
             drop(lines.pop());
         }
@@ -67,19 +67,21 @@ impl Grid {
         let start = lines
             .len()
             .saturating_sub(rows)
-            .min(spot.map_or(usize::MAX, |spot| spot.line));
+            .min(moved.unwrap_or(usize::MAX));
         let mut screen = lines.split_off(start);
         screen.truncate(rows);
+        for line in &mut screen {
+            line.fit(size.cols(), Cell::BLANK);
+        }
         screen.resize_with(rows, || Line::blank(size.cols(), Cell::BLANK));
         for line in lines {
             self.history.push(line);
         }
         self.primary.set_lines(screen);
-        let spot = spot?;
-        let row = u16::try_from(spot.line.saturating_sub(start)).unwrap_or(u16::MAX);
-        let col = u16::try_from(spot.col).unwrap_or(u16::MAX);
-        // A pending wrap stays pending only at the new last column; else
-        // the cursor stands after the character it followed.
+        let row = u16::try_from(moved?.saturating_sub(start)).unwrap_or(u16::MAX);
+        let col = self.at.col;
+        // The cursor's line was not reflowed: it keeps its column. A
+        // pending wrap with room after it becomes the next cell.
         Some(match self.at.pending {
             Pending::Wrap if col < size.last_col() => At {
                 row,

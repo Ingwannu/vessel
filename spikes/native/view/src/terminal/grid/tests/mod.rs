@@ -83,6 +83,14 @@ fn check(grid: &Grid) {
     }
     assert!(grid.at.row < grid.size.rows() && grid.at.col < grid.size.cols());
     assert!(grid.history.cells() <= super::CELL_LIMIT);
+    // Reflow keeps history no wider than the grid.
+    for index in 0..grid.history.len() {
+        let width = grid
+            .history
+            .line(index)
+            .map_or(0, |line| line.cells().len());
+        assert!(width <= cols);
+    }
     let limit = usize::try_from(grid.history.limit().get()).unwrap_or(usize::MAX);
     assert!(grid.history.len() <= limit);
     let back = grid.snapshot(Scroll(u32::MAX));
