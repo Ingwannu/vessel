@@ -51,6 +51,9 @@ pub(crate) struct Tail {
     pending: Option<String>,
     /// When it was sent: it arrives on screen (`motion`).
     pending_at: Option<std::time::Instant>,
+    /// Its first frame was logged (the time from Enter to the message
+    /// drawn, slice M's measure).
+    pending_logged: Cell<bool>,
     /// The rows the list holds now, after the entries' rows.
     shown: RefCell<Vec<TailRow>>,
     /// A redraw is due for the working footer's elapsed time.
@@ -93,6 +96,17 @@ impl ConversationArea {
         self.list
             .splice(start..start.saturating_add(shown.len()), wanted.len());
         *shown = wanted;
+    }
+
+    /// The pending message is drawn: the first time, how long after it
+    /// was sent (debug log, for the measure).
+    pub(super) fn pending_drawn(&self) {
+        if self.tail.pending_logged.replace(true) {
+            return;
+        }
+        if let Some(at) = self.tail.pending_at {
+            tracing::debug!(after_us = at.elapsed().as_micros(), "a message sent: drawn");
+        }
     }
 
     /// Whether the pending message was sent just now.
@@ -173,6 +187,8 @@ impl Shell {
         }
         self.areas.conversation.tail.pending = Some(text.to_owned());
         self.areas.conversation.tail.pending_at = Some(std::time::Instant::now());
+        self.areas.conversation.tail.pending_logged.set(false);
+        tracing::debug!("a message sent: pending");
         cx.notify();
     }
 

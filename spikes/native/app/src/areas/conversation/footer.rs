@@ -38,6 +38,10 @@ use crate::shell::Shell;
 /// Paseo's `STREAM_METADATA_FONT_SIZE`.
 const METADATA: f32 = 12.0;
 
+/// Where the reply bubbles start (the avatar's column and its gap): the
+/// footers line up under them.
+const BUBBLE_COLUMN: f32 = 36.0;
+
 /// The footer of the turn that ended at entry `index` (its `turn_ended`).
 pub(super) fn completed(
     paint: &Paint<'_>,
@@ -94,6 +98,7 @@ pub(super) fn completed(
         .items_center()
         .gap(px(8.0))
         .min_h(px(24.0))
+        .ml(px(BUBBLE_COLUMN))
         .children((!reply.is_empty()).then(|| {
             copy_button(
                 ElementId::NamedInteger("turn-copy".into(), id(index)),
@@ -120,6 +125,7 @@ pub(super) fn working(paint: &Paint<'_>, since: Option<DateTime<Utc>>) -> AnyEle
         .items_center()
         .gap(px(8.0))
         .min_h(px(24.0))
+        .ml(px(BUBBLE_COLUMN))
         .child(vessel_app_kit::slider::spinner(
             "turn-working",
             14.0,

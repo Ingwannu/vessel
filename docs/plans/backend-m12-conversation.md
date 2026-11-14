@@ -58,6 +58,63 @@ command on one long line asking for permission with four answers, and
 either lacks the shapes; the verb's own tests hold the output's line
 count, which `vessel log` does not print.
 
+## Slice M: the conversation as a message exchange (2026-11-14)
+
+The owner on 0.0.0.0.13 (words 33, 36–39 of the common brief): the
+session view as Paseo's, sending as sending a message, the reply a
+bubble beside the agent's mark, quick motion. Read for it: Paseo's
+`components/message.tsx` (`UserMessage`, `AssistantMessage`,
+`AssistantTurnFooter`), `assistant-turn-footer-label.ts`,
+`assistant-fork-menu.tsx`, `agent-stream/turn-footer.tsx` and
+`agent-stream/view.tsx` (the stream, its pending message), the
+composer's `submit.ts` (a failed send), `types/stream.ts` (what a stream
+holds) and `docs/agent-lifecycle.md` (an agent is closed, never ended
+for the person: the next prompt resumes its provider session).
+
+Sending: a message that starts a turn (no turn running, or a session
+that ended, was interrupted or released) shows at once as the person's
+message after the entries (`tail`), with Paseo's working footer under
+it (a 14-point spinner, the elapsed time once the turn's prompt is
+in); an ended session is started again underneath. When the node
+records the prompt the pending row gives way to it. A failed send puts
+the words back in the composer with the error under the conversation
+(Paseo's send error). A send into a running turn goes to the queue or
+joins the turn, as before.
+
+What left the timeline, and where each fact is now:
+
+| Line | Now |
+| --- | --- |
+| "Session starting / running / exited / interrupted / failed · time" | not drawn; the session's state is the header's chip (nothing while it runs) |
+| "Agent ready" | not drawn (Paseo has nothing); the working footer ends when the agent answers |
+| "Agent released while idle", "Agent resumed" | not drawn; the header's "Released" chip and its tooltip ("Send a message to resume.") |
+| "Model call · route · model" | not drawn (gateway accounting) |
+| "Turn ended · reason · tokens · in · out · cache" | Paseo's turn footer: the reply's copy button and "Worked for 14s" ("작업 시간 14s"), the end time while pointed at; a turn that did not end normally adds its reason ("· cancelled"); the session's tokens and cost are the context meter's card; a turn's own tokens are no longer shown |
+| the ended card ("Session ended … Start again") | gone for a session that can go on (the next message starts it again); kept for an archived session (Paseo's archived callout) and for one whose agent cannot go on |
+| the held message box and "Restarting the session…" (the composer's) | the message in the conversation and the working footer |
+| "released" on a sidebar row and a board card | gone: an idle session reads idle, as in Paseo; the header keeps it |
+
+Kept in the timeline: messages, thoughts, tool rows, plans, questions,
+permissions, the agent's log behind its own disclosure, a turn that
+failed (its words: the person must see them), a profile change (the
+person's own act).
+
+The reply: the owner's bubble (Paseo's reply has none): Paseo's user
+bubble mirrored (16 inside, radius 16 with the corner toward the agent
+at 4) on `surface1` edged with a hairline, as wide as the column so a
+code block or a wide table scrolls sideways inside it and the bubble
+never passes the column; beside a turn's first reply a 28-point circle
+with the session's agent's mark (worker B's star-to-circle morph is to
+be mounted in that circle). The person's bubble takes Paseo's values:
+`surface3`, 16 inside, the corner toward the writer at 4, as wide as
+the column needs.
+
+Motion (`motion`): a message sent rises in over 150 ms, a reply over
+300 ms, on `cubic-bezier(.23,1,.32,1)` (GPUI's `ease_out_quint`); only
+what just arrived moves, so nothing replays on scrolling and an idle
+session draws nothing for it; `VESSEL_APP_MOTION=off` draws the end
+state until the lead's setting exists.
+
 ## Captures
 
 In a local folder, not committed, each beside the GOAT or

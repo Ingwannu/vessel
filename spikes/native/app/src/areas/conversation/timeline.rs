@@ -134,6 +134,7 @@ fn row_element(
         return lane(match tail {
             TailRow::Pending(text) => {
                 let index = area.timeline.entries().len();
+                area.pending_drawn();
                 let row = entries::pending(&paint, index, &text);
                 if area.pending_fresh() {
                     super::motion::arrive(
