@@ -4,7 +4,7 @@
 
 use super::{check, cursor, history, model, play, screen};
 use crate::terminal::grid::history::History;
-use crate::terminal::grid::{CELL_LIMIT, Cell, Line};
+use crate::terminal::grid::{CELL_LIMIT, Cell, Line, Pen};
 use crate::terminal::{GridSize, ScrollbackLines, TerminalError};
 
 #[test]
@@ -93,6 +93,15 @@ fn history_keeps_at_most_the_settings_lines() {
 }
 
 #[test]
+fn a_cell_is_twenty_bytes_so_history_is_at_most_eighty_mib() {
+    assert_eq!(size_of::<Cell>(), 20);
+    assert_eq!(
+        CELL_LIMIT.saturating_mul(size_of::<Cell>()),
+        80 * 1024 * 1024
+    );
+}
+
+#[test]
 fn history_keeps_at_most_its_cells_whatever_the_setting() {
     let mut history = History::new(ScrollbackLines::new(ScrollbackLines::MAX).unwrap_or_default());
     let wide = usize::from(GridSize::MAX_COLS);
@@ -102,7 +111,7 @@ fn history_keeps_at_most_its_cells_whatever_the_setting() {
         .saturating_add(100);
     for _ in 0..lines {
         let mut line = Line::blank(GridSize::MAX_COLS, Cell::BLANK);
-        line.cells_mut().fill(Cell::scalar('x'));
+        line.cells_mut().fill(Cell::printed('x', Pen::PLAIN));
         history.push(line);
     }
     assert!(history.cells() <= CELL_LIMIT);
@@ -150,7 +159,7 @@ impl Seeded {
     }
 
     /// One token: text, a control, a CSI with odd parameters, a mode, an
-    /// escape, or a raw byte.
+    /// escape, an SGR with sub-parameters, or a raw byte.
     fn token(&mut self, out: &mut Vec<u8>) {
         const FINALS: &[u8] = b"ABCDEFGHIJKLMPSTXZ@`abdefghlmnrsu";
         const MODES: &[&[u8]] = &[
@@ -158,7 +167,7 @@ impl Seeded {
         ];
         const ESCAPES: &[&[u8]] = &[b"D", b"E", b"H", b"M", b"7", b"8", b"c", b"(B", b"#8"];
         const CONTROLS: &[&[u8]] = &[b"\r", b"\n", b"\t", b"\x08", b"\x0b", b"\x07", b"\r\n"];
-        match self.below(8) {
+        match self.below(9) {
             0 | 1 => out.extend_from_slice("text 한글 ".as_bytes()),
             2 => out.extend_from_slice(self.pick(CONTROLS)),
             3 | 4 => {
@@ -179,6 +188,16 @@ impl Seeded {
             6 => {
                 out.push(0x1b);
                 out.extend_from_slice(self.pick(ESCAPES));
+            }
+            7 => {
+                // SGR with colon sub-parameters, often cut short.
+                out.extend_from_slice(b"\x1b[");
+                out.extend_from_slice(self.pick(&[&b"38"[..], b"48", b"58", b"4"]));
+                for _ in 0..self.below(7) {
+                    out.push(b':');
+                    self.number(out);
+                }
+                out.push(b'm');
             }
             _ => out.push(self.next().to_le_bytes().first().copied().unwrap_or(0)),
         }

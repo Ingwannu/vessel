@@ -17,7 +17,8 @@ impl Grid {
         if size == self.size {
             return;
         }
-        let (old, blank) = (self.size, self.blank());
+        // New cells are plain, not the pen's background (xterm.js).
+        let (old, blank) = (self.size, Cell::BLANK);
         self.primary.fit_cols(size.cols(), blank);
         self.alternate.fit_cols(size.cols(), blank);
         self.tabs.resize(old.cols(), size.cols());

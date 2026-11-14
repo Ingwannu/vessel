@@ -189,11 +189,12 @@ Bounds:
   through 1,000,000. Lines are kept as output arrives; the oldest line
   is dropped when the count is passed, which is the bound, not a
   discarded command. History is also bounded by cells: a line keeps no
-  trailing unprinted cells, and past 8 Mi cells in all the oldest line
+  trailing unprinted cells, and past 4 Mi cells in all the oldest line
   goes, whichever bound comes first (at the setting's maximum and the
-  grid's widest, lines alone would be a billion cells; at the default a
-  line would have to average over 800 printed cells for the cell bound
-  to come first). The node's ring is unchanged (4,096 records, 1
+  grid's widest, lines alone would be a billion cells). A cell is 20
+  bytes (a glyph, two colours, six attributes; a test pins it), so
+  history is at most 80 MiB; at the default a line would have to
+  average over 419 printed cells for the cell bound to come first. The node's ring is unchanged (4,096 records, 1
   MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
   many bytes it consumed. The rest stays with the caller. A frame feeds

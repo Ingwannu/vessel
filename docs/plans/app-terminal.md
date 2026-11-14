@@ -190,7 +190,7 @@ them the model holds enums.
 Zero on either axis is `TerminalError::Empty`, over the bounds
 `TerminalError::TooLarge`, and nothing is resized; `GridSize::within`
 draws a node's larger size at the bounds. History is also capped at
-8 Mi cells (lines keep no trailing blanks).
+4 Mi cells, 80 MiB at 20 bytes a cell (lines keep no trailing blanks).
 `FeedBudget` is 16 × 1024 bytes, the PTY read.
 
 **Cells.** A cell is a scalar (or the continuation of the previous
@@ -311,6 +311,13 @@ grid, and that an unchanged generation draws nothing), not described.
   has closed, with nobody qualified, is answered by nobody, and the
   program waits. The app shows no error of its own.
 - A dangerous path is refused, not stripped.
+- Blink (SGR 5, 6), overline (53) and the underline's colour (58) are
+  read and dropped; xterm.js draws them. Blink needs a timer over the
+  cells, and an underline colour adds four bytes to every cell history
+  keeps. Bold in the eight ANSI colours is drawn bright and inverse
+  swaps after that, faint is half ink, concealed is no ink: xterm.js's
+  defaults, which Paseo keeps (`terminal-emulator-runtime.ts` 555–571:
+  no `drawBoldTextInBrightColors`, `minimumContrastRatio: 1`).
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
 - A file that is not already on the node is not uploaded. There is no
@@ -359,8 +366,13 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   `TerminalModel::replay`. Its saved-cursor test found a P1 defect: `vte` sends a
   bare `CSI s` as one parameter of 0, so the empty-list check never
   held (fixed with a test).
-- Next: attributes and colours, wide and combining cells, reflow, the
-  answered set; then T1's
+- P3, attributes and colours (`grid/pen.rs`, `grid/sgr.rs`,
+  `paint/`): the pen on every cell, SGR in its semicolon and colon
+  forms (a malformed colour is skipped with its values, not read as
+  codes), erase in the background only, DECSC keeping the pen, resize
+  padding plain; `paint` resolves a pen in a `Palette` (the 16 from
+  `tokens.terminal`, the cube and grey ramp past them).
+- Next: wide and combining cells, reflow, the answered set; then T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the

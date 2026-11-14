@@ -9,7 +9,7 @@ use super::screen::Region;
 use crate::terminal::parse::{Count, Position};
 
 impl Grid {
-    /// Print `c` at the cursor (one cell wide in this slice).
+    /// Print `c` at the cursor with the pen (one cell wide in this slice).
     pub(super) fn print(&mut self, c: char) {
         if self.at.pending == Pending::Wrap && self.modes.auto_wrap == AutoWrap::Wrap {
             let row = self.at.row;
@@ -24,12 +24,13 @@ impl Grid {
         if self.modes.insert == Insert::Insert {
             self.screen_mut().insert_cells(row, col, 1, blank);
         }
+        let printed = Cell::printed(c, self.pen);
         if let Some(cell) = self
             .screen_mut()
             .line_mut(row)
             .and_then(|line| line.cell_mut(col))
         {
-            *cell = Cell::scalar(c);
+            *cell = printed;
         }
         if col < self.size.last_col() {
             self.at.col = col.saturating_add(1);
@@ -154,16 +155,18 @@ impl Grid {
             at: self.at,
             origin: self.modes.origin,
             auto_wrap: self.modes.auto_wrap,
+            pen: self.pen,
         };
         *self.saved_slot() = Some(saved);
     }
 
     /// DECRC: what DECSC kept, clamped to the grid; with nothing kept, the
-    /// home cell and the modes' reset values (xterm's rule).
+    /// home cell, the modes' reset values and the plain pen (xterm's rule).
     pub(super) fn restore_cursor(&mut self) {
         let saved = self.saved_slot().unwrap_or_default();
         self.modes.origin = saved.origin;
         self.modes.auto_wrap = saved.auto_wrap;
+        self.pen = saved.pen;
         self.at = At {
             row: saved.at.row.min(self.size.last_row()),
             col: saved.at.col.min(self.size.last_col()),

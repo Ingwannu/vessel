@@ -105,10 +105,13 @@ impl Grid {
             Csi::EraseChars(n) => self.erase_chars(*n),
             Csi::ScrollUp(n) => self.scroll_up(*n),
             Csi::ScrollDown(n) => self.scroll_down(*n),
-            // The pen is the attributes slice's; queries are the
-            // answered-query slice's; the cursor's shape is the app's bar.
-            Csi::Graphic(_)
-            | Csi::Status(_)
+            Csi::Graphic(groups) => {
+                super::sgr::apply(&mut self.pen, groups);
+                return Effect::Silent;
+            }
+            // Queries are the answered-query slice's; the cursor's shape
+            // is the app's bar.
+            Csi::Status(_)
             | Csi::Attributes(_)
             | Csi::CursorStyle
             | Csi::RefusedQuery

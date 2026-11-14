@@ -1,9 +1,11 @@
 //! A cell and a line of cells.
 //!
-//! A cell is plain data the kit can paint. The attributes slice adds the
-//! colours and the pen; the wide-cell slice adds the continuation of a
-//! wide scalar. Every erase takes the blank to write (`Grid::blank`), so
-//! erasing in the current background is a change in one place.
+//! A cell is plain data the kit can paint: a glyph and the pen it was
+//! printed or erased with. The wide-cell slice adds the continuation of a
+//! wide scalar. Every erase takes the blank to write (`Grid::blank`, the
+//! current background).
+
+use super::pen::Pen;
 
 /// What occupies a cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,23 +16,36 @@ pub enum Glyph {
     Scalar(char),
 }
 
-/// One cell of the grid.
+/// One cell of the grid: 20 bytes (a test pins it; history's bound is
+/// counted in cells).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cell {
     glyph: Glyph,
+    pen: Pen,
 }
 
 impl Cell {
     /// An unprinted cell in the default attributes.
     pub const BLANK: Self = Self {
         glyph: Glyph::Empty,
+        pen: Pen::PLAIN,
     };
 
-    /// A printed scalar.
+    /// `c` printed with `pen`.
     #[must_use]
-    pub const fn scalar(c: char) -> Self {
+    pub const fn printed(c: char, pen: Pen) -> Self {
         Self {
             glyph: Glyph::Scalar(c),
+            pen,
+        }
+    }
+
+    /// An unprinted cell erased with `pen` (its background).
+    #[must_use]
+    pub const fn blank(pen: Pen) -> Self {
+        Self {
+            glyph: Glyph::Empty,
+            pen,
         }
     }
 
@@ -38,6 +53,12 @@ impl Cell {
     #[must_use]
     pub const fn glyph(self) -> Glyph {
         self.glyph
+    }
+
+    /// The pen.
+    #[must_use]
+    pub const fn pen(self) -> Pen {
+        self.pen
     }
 }
 

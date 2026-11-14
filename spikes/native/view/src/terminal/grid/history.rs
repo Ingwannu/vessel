@@ -9,11 +9,13 @@
 //! - Choice: a line keeps no trailing unprinted cells, and history is
 //!   bounded twice: by the setting's line count and by [`CELL_LIMIT`]
 //!   cells in all. Whichever bound is reached first drops the oldest line.
+//!   A cell is 20 bytes (a glyph, two colours and six attributes; a test
+//!   pins it), so the cell bound is at most 80 MiB of history.
 //! - Alternative: lines at the grid's full width (xterm.js), or the line
 //!   count alone; either lets a program fill memory with wide lines.
 //! - Cost: with a high setting and long lines the cell bound comes first,
 //!   so fewer lines are kept than the setting names. At the default
-//!   (10,000 lines) a line would have to average over 800 printed cells
+//!   (10,000 lines) a line would have to average over 419 printed cells
 //!   for that to happen.
 
 use std::collections::VecDeque;
@@ -22,7 +24,7 @@ use super::cell::Line;
 use crate::terminal::size::ScrollbackLines;
 
 /// The most cells history holds, across all its lines.
-pub const CELL_LIMIT: usize = 8 * 1024 * 1024;
+pub const CELL_LIMIT: usize = 4 * 1024 * 1024;
 
 /// History, oldest first.
 #[derive(Debug)]

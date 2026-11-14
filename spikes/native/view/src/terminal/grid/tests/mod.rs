@@ -4,6 +4,7 @@
 
 mod behaviour;
 mod hostile;
+mod pen;
 
 use super::{Cell, CursorCell, Glyph, Grid, Scroll, Wrap};
 use crate::terminal::{GridSize, ScrollbackLines, TerminalModel};

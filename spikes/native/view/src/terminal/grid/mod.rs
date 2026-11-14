@@ -13,8 +13,7 @@
 //!   top; `CSI S` does not keep it; entering the alternate screen clears it
 //!   and keeps the cursor; a resize resets both regions; a taller primary
 //!   screen takes lines back from history.
-//! - Not in this slice: the pen and colours (`CSI m`), wide and combining
-//!   characters, reflow of soft-wrapped lines on a width change (a resize
+//! - Not in this slice: wide and combining characters, reflow of soft-wrapped lines on a width change (a resize
 //!   cuts or pads each row for now), and answers to queries.
 //! - Bounds: two screens of at most 512 Ki cells each; history at most
 //!   the setting's lines and `history::CELL_LIMIT` cells; a title at most
@@ -26,8 +25,10 @@ mod edit;
 mod history;
 mod modes;
 mod motion;
+mod pen;
 mod resize;
 mod screen;
+mod sgr;
 mod tabs;
 
 #[cfg(test)]
@@ -36,6 +37,7 @@ mod tests;
 pub use cell::{Cell, Glyph, Line, Wrap};
 pub use history::CELL_LIMIT;
 pub use modes::{Bracketed, CursorKeys, Shown, Visibility};
+pub use pen::{Colour, Concealment, Pen, Polarity, Rgb, Slant, Strike, Underline, Weight};
 
 use history::History;
 use modes::{At, Modes, Saved};
@@ -102,6 +104,8 @@ pub struct Grid {
     saved_alternate: Option<Saved>,
     tabs: TabStops,
     modes: Modes,
+    /// What the next printed cell is drawn with (SGR).
+    pen: Pen,
     title: Option<String>,
     generation: Generation,
 }
@@ -121,6 +125,7 @@ impl Grid {
             saved_alternate: None,
             tabs: TabStops::new(size.cols()),
             modes: Modes::default(),
+            pen: Pen::PLAIN,
             title: None,
             generation: Generation::default(),
         }
@@ -242,14 +247,10 @@ impl Grid {
         }
     }
 
-    /// The blank an erase writes (the attributes slice gives it the pen's
-    /// background).
-    #[expect(
-        clippy::unused_self,
-        reason = "the attributes slice reads the pen here; every erase already asks the grid"
-    )]
+    /// The blank an erase writes: the current background, nothing else
+    /// (xterm.js's erase attributes).
     const fn blank(&self) -> Cell {
-        Cell::BLANK
+        Cell::blank(self.pen.erase())
     }
 
     const fn saved_slot(&mut self) -> &mut Option<Saved> {

@@ -1,6 +1,8 @@
 //! The modes a program sets, each its own two-valued type (no `bool`
 //! crosses the grid's boundary), and the cursor they move.
 
+use super::pen::Pen;
+
 /// IRM: whether a printed character replaces the cell or pushes the line
 /// right.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -106,10 +108,11 @@ pub(super) struct At {
     pub(super) pending: Pending,
 }
 
-/// What DECSC keeps and DECRC restores (the attributes slice adds the pen).
+/// What DECSC keeps and DECRC restores.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(super) struct Saved {
     pub(super) at: At,
     pub(super) origin: Origin,
     pub(super) auto_wrap: AutoWrap,
+    pub(super) pen: Pen,
 }
