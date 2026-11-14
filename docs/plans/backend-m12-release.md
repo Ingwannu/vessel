@@ -7,7 +7,7 @@ track's is). Answers questions 4 (Windows and macOS) and 8 (updates) of
 
 Read first: ADR 0035 (the native app), ADR 0008 (how `vesseld` releases
 are signed and installed), ADR 0014 (what may be linked), and
-`spikes/release/patches/README.md` (the patched GPUI crate).
+`spikes/release/patches/README.md` (the patched GPUI crates).
 
 ## What this track owns
 
@@ -17,7 +17,9 @@ spikes/release/
   hello/                 the smallest GPUI window (a target's first proof)
   updater/               vessel-app-updater: the app's updater, no GPUI
   feed/                  vessel-app-feed: release key, signed feed, sums
-  patches/               gpui-pre-windows 0.3.10, patched (README there)
+  patches/               patched crates (README there): gpui-pre-windows and
+                         gpui-pre-linux 0.3.10, and from 0.0.0.0.15
+                         gpui-base 0.8.1 (a steady caret while motion is held)
   tools/fxc-wine         Microsoft's fxc.exe under wine, for GPUI's shaders
   tools/fetch-fxc.py     fetches fxc.exe and d3dcompiler_47.dll from the SDK
   windows/installer.nsi  the per-user installer
@@ -26,9 +28,11 @@ spikes/release/
 ```
 
 The app itself is the desktop track's (`spikes/native/`, merged from
-`backend/m12-spike`). This track adds one section to its manifest: the
-`[patch.crates-io]` line that points `gpui-pre-windows` at the patched
-copy, which only a Windows build compiles.
+`backend/m12-spike`). Its manifest's `[patch.crates-io]` section points
+each patched crate at its copy here: `gpui-pre-windows` (compiled only by
+a Windows build), `gpui-pre-linux` (only by a Linux build) and, from
+0.0.0.0.15, `gpui-base` (both). The release workspace uses none of
+gpui-base, so its own patch table is unchanged.
 
 ## Running it
 
