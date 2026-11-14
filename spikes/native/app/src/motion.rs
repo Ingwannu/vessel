@@ -200,3 +200,20 @@ pub(crate) fn note_renderer(window: &gpui::Window, cx: &mut App) {
     }
 }
 
+#[cfg(test)]
+mod token_tests {
+    use vessel_app_kit::motion::{QUICK, STANDARD, ease};
+    use vessel_app_view::slider::motion::{DRAG_GLIDE, GLIDE, SLIDE};
+
+    /// The effort slider's model (`view`, which cannot read the kit)
+    /// restates the kit's motion tokens; this keeps them one set.
+    #[test]
+    fn the_slider_moves_by_the_kit_tokens() {
+        assert!((DRAG_GLIDE - QUICK.as_secs_f32()).abs() < 1e-6);
+        assert!((GLIDE - STANDARD.as_secs_f32()).abs() < 1e-6);
+        for step in 0..=20_u8 {
+            let t = f32::from(step) / 20.0;
+            assert!((SLIDE.at(t) - ease(t)).abs() < 1e-3, "at {t}");
+        }
+    }
+}
