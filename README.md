@@ -183,6 +183,35 @@ Vessel records only the visible question as user input. The provider may
 retain the supplied parent context in its own conversation files, which
 can be included in a native session export.
 
+### One prompt to several models
+
+`session compare` makes a separate Git worktree and structured session for
+one to eight selections. Write a JSON array to `targets.json`, for example:
+
+```json
+[{"harness":"claude-code","model":"MODEL_A"},{"harness":"codex","model":"MODEL_B"}]
+```
+
+Use model ids offered by your agent; optional `profile` and `options`
+are the normal structured-session choices. Then run:
+
+```bash
+vessel session compare --project PROJECT_ID --base main --targets targets.json "Check this change" --attach notes.md --json
+```
+
+The base resolves once, and every model receives the same text and stored
+file bytes. Setup must be approved through the normal project commands;
+comparison never approves, skips setup, queues or steers. Partial failures
+keep successful sessions. The final report lists every known branch,
+worktree, session and upload/offset, including effects whose reply was lost.
+A partial run exits nonzero; inspect those resources before an explicit new
+attempt. Reports cannot resume a job across CLI processes. Continue or
+remove the ordinary sessions/worktrees with their existing commands.
+`--on NODE_ID` selects a fleet destination; the project id belongs to it.
+No provider is prompted merely to discover its options. Agent credentials
+cannot use this helper: the existing git.log agent guard refuses its base
+preflight. No new agent tool or authority is added.
+
 ### Another machine, over SSH
 
 Any machine you can `ssh` to with a key works (Linux or macOS,

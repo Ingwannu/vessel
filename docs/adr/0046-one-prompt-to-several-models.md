@@ -1,6 +1,6 @@
 # 0046: One prompt to several independent sessions
 
-Date: 2026-11-14. Status: proposed contract, implementation not started.
+Date: 2026-11-14. Status: implemented; local whole gate passed; V1 implementation review pending.
 
 ## Context and reference
 
@@ -60,7 +60,10 @@ selection's successful work. A failed comparison is not an atomic rollback.
 - `job.prepare()` is the initial preparation command, admitted once;
   repeated prepare returns the existing checkpoint, with no new calls.
   It runs shared read-only preflight: connection/destination
-  protocol, Git project and provider/profile availability. All calls use
+  protocol, Git project and provider/profile availability. A successful
+  harness.options with absent structured capabilities is unavailable, not
+  permission to create worktrees; a real all-false capability set remains
+  valid for text-only structured input. All calls use
   call_on for that retained destination, including attachment and event
   reads; a member's ids must not fall through to the home. Resolve the base
   once through git.log (limit one), then use that same CommitId for every
@@ -156,7 +159,9 @@ Copy snapshots through attachment.read/begin/write/finish, with at most two
 active selections and one <=1 MiB byte chunk per active copy, sliced to the
 destination's advertised write limit. Never buffer a complete file. Check
 source totals, expected size, empty/oversized chunks, accepted offsets and
-finished reference metadata. A mismatch is terminal for that target; an
+finished reference metadata. An id actually returned by finish is retained
+separately even if its other metadata is rejected; it is not accepted as
+prompt content. A mismatch is terminal for that target; an
 incomplete copy can never proceed to its prompt.
 
 Every attachment.read has a 45-second response deadline. Every begin,
@@ -186,9 +191,11 @@ issuing another operation. The outcomes are:
 
 Disconnect or an unexpected reply likewise makes an admitted mutation
 uncertain. A local definitive NotInProtocol/RequestIdsExhausted refusal is
-unsent; a valid node refusal is recorded as a terminal typed failure with
-its phase/resources and does not promise rollback of partial uploads. No
-mutation is retried automatically, even though ordinary attachment.write
+unsent; a definitive node refusal is recorded as a terminal typed failure with
+its phase/resources and does not promise rollback of partial uploads. A
+forwarding hop can encode a downstream loss or I/O failure as Unavailable
+or Internal; these are conservatively Uncertain for admitted mutations,
+with their original typed node error retained. No mutation is retried automatically, even though ordinary attachment.write
 can acknowledge a repeated piece idempotently. Partial uploads retain their
 existing expiry semantics. These terminal copy states expose recovery data,
 not an executable upload-resume token. Finite read/copy failure preserves
@@ -235,9 +242,17 @@ introduced.
 
 Every request uses the same caller and ordinary node guards. Shared
 project/git/provider reads need read, creation/uploads/prompt need operate;
-read-only or operate-only callers fail preflight without a worktree. Agent
-callers retain their existing ownership, depth and resource limits; the
-helper adds no tool, grant or alternate principal. Fleet users compose the
+operate-only callers fail read/forward preflight. Read-only callers may pass
+those reads, then their first ordinary worktree.create is Forbidden before
+creating a resource. Both cases create zero worktrees; there is no synthetic
+mutation probe or caller-scope introspection call. Agent callers are refused
+at git.log during this preflight on the current
+node line: agents use their own file/git tools. The helper is therefore
+unavailable to agent credentials; it adds no tool, grant, proxy or alternate
+principal, and does not skip pinning for Commit input. Ordinary agent
+worktree/session ownership, depth and resource limits stay unchanged. The
+existing ninth-worktree Limit case is tested separately from this helper's
+Preflight/Forbidden and zero-new-resource outcome. Fleet users compose the
 same typed calls on the selected destination through the existing route;
 no comparison payload or credential is interpreted by a relay.
 
@@ -317,5 +332,29 @@ Additional required boundaries from contract review:
   settle once. Dropping/cancelling the owner ends further work and keeps
   Started results unchanged; passive snapshots cannot restart it.
 
-Whole root gate is required after implementation; no code or implementation
-approval exists for this contract yet.
+Whole root gate is required after implementation; V1 implementation review
+remains separate from the accepted contract.
+
+### Implementation choices
+
+The client worker prepares/copies one selection at a time, within the
+at-most-two bound; acknowledged model turns run independently on the node.
+This avoids a second upload scheduler and keeps one chunk in memory; large
+common files take longer to fan out. The CLI adds a direct dependency on
+the existing workspace serde crate (MIT OR Apache-2.0) for its typed passive
+JSON resource report, rather than assembling JSON strings. It reuses the
+single-send file reader; source upload uses the same retained destination,
+finite deadlines and explicit upload/offset trail. No new external crate,
+wire method or scope is introduced. The only dependency edge added is the
+CLI's direct use of the workspace's existing serde package.
+
+### Implementation verification
+
+The changed-tree whole gate passed fmt, workspace all-target Clippy,
+workspace Rust tests (1,827 passed, zero failed, ten existing ignored), both
+comparison compile-fail API examples, TypeScript generation checks (two),
+web lint/typecheck, all 417 web unit tests, the production bundle, bundled
+Rust binaries and all 62 Playwright E2E tests against isolated fake agents.
+The full source manifest matched before and after generation and testing.
+Earlier timeout failures and their isolated passes remain separate in the
+track plan. These are local results, not V1 implementation or app approval.

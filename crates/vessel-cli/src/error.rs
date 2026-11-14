@@ -13,6 +13,13 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Bounded comparison input or command ownership.
+    #[error(transparent)]
+    ComparisonInput(#[from] vessel_client::comparison::InputError),
+    #[error(transparent)]
+    ComparisonJob(#[from] vessel_client::comparison::JobError),
+    #[error(transparent)]
+    Comparison(#[from] crate::conversation::comparison::CompareError),
     /// Explicit operator LSP configuration failed.
     #[error(transparent)]
     LspConfiguration(#[from] vessel_node::LspConfigError),

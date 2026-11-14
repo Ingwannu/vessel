@@ -13,6 +13,8 @@ mod automation;
 #[cfg(test)]
 mod canary;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod devices;
