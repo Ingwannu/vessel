@@ -15,7 +15,7 @@ use super::parts::{ActorStart, Begin};
 use super::{Created, SessionRuntime};
 use crate::error::SessionError;
 use crate::handle::Input;
-use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove};
+use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove, Restart};
 use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
 
@@ -258,6 +258,12 @@ impl SessionRuntime {
             model_proxy,
         } = request;
         let to = (!profile.is_default()).then(|| profile.name().clone());
+        // One agent per conversation (`claims`): from the link on, its
+        // files are under the target profile too, so the move claims it
+        // there before it starts, and the session holds both after.
+        let mut profiles = self.held(id, info.profile.as_ref());
+        let _target = profiles.insert(to.clone());
+        let claim = self.claim(id, &info.spec.harness, profiles, &harness_session)?;
         let spec = info.spec.with_profile(profile.name().clone());
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
@@ -313,7 +319,20 @@ impl SessionRuntime {
         if control.send(Control::Move(Box::new(order))).await.is_err() {
             return Err(SessionError::Ended);
         }
-        answer.await.map_err(|_ended| SessionError::Ended)??;
+        let moved = answer.await.map_err(|_ended| SessionError::Ended)?;
+        // A move whose new agent did not start leaves its links in the
+        // target home (`moving`), so the session holds that profile too. A
+        // parked session that did not wake never linked.
+        if matches!(
+            moved,
+            Ok(())
+                | Err(MoveError::Restart(
+                    Restart::Spawn(_) | Restart::Handshake(_) | Restart::Exited(_)
+                ))
+        ) {
+            claim.keep();
+        }
+        moved?;
         Ok(handle.info())
     }
 }

@@ -9279,6 +9279,26 @@ one), and imports with `session.create { harness, profile, cwd: entry.cwd,
 title: entry.title, mode: structured { resume: entry.harness_session } }`;
 `conflict` means another session runs it.
 
+**Claim fix (the integrator's review of slice 4, 2026-11-14)**: the
+claim compared the current profile only, so a moved session's
+conversation could take a second agent: (a) an import under the profile
+it moved away from, (b) an import under the target during the move, (c)
+`session.resume` of an ended moved session while an import under an
+earlier profile ran. Now a session holds its conversation under every
+profile its files are linked into (`runtime::claims`): `move_profile`
+claims the target before it links and keeps it (also when the new agent
+did not start: its links stay), `start_again` claims the profile it was
+created under, its current one and both sides of every `profile_changed`
+its log holds (`vessel-store`'s `EndedSession::moved_through`), and the
+default profile compares as one whether it is named or not. Checked end
+to end: after two moves, an import under each of the three profiles is
+`conflict` naming the session; ended, an import under the middle one
+runs and `session.resume` is `conflict` naming the import (failing when
+the store's moves are ignored); after the import ends it starts again.
+A device paired with `read` alone is refused `agent.history`
+(`forbidden`). PROTOCOL.md (version 17) and ADR 0053 say so, and ADR
+0053 notes what forwarding with the default grant shows a home's person.
+
 ## Track A2: Daybreak for Codex (the owner's request, 2026-11-14)
 
 The owner asked for a Daybreak switch for Codex in the model detail

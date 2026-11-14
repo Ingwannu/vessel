@@ -3,6 +3,7 @@
 //! own starts (a terminal's program in a PTY, a structured session's
 //! agent through `agent`).
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use chrono::Utc;
@@ -230,11 +231,13 @@ impl SessionRuntime {
                 options,
             } => {
                 // One agent per conversation (`claims`): held until the
-                // session is registered.
+                // session is registered. A new session holds its profile
+                // alone, which the live check reads from its info.
                 let _claim = resume
                     .as_ref()
                     .map(|conversation| {
-                        self.claim(id, &spec.harness, spec.profile.as_ref(), conversation)
+                        let profiles = BTreeSet::from([spec.profile.clone()]);
+                        self.claim(id, &spec.harness, profiles, conversation)
                     })
                     .transpose()?;
                 let start = AgentStart {

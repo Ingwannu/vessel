@@ -64,14 +64,19 @@ session publishes the load's replay as its log.
 - **Import is `session.create`** with `resume`, the entry's folder, the
   profile it was listed under and its title; nothing new on the wire.
 - **One agent per conversation**: a start that resumes a conversation
-  (`session.create`, `session.resume`) is refused `conflict` while
-  another live session is on it under the same profile or starting on
-  it, so a double click or a stale `in_vessel` cannot put two agents on
-  one transcript. Per profile, because the transcript is in the
-  profile's home: another profile's copy is another file, and `session
-  move` resumes the copy before it stops the source. A move between
-  profiles links the files instead, so an import under the profile a
-  session moved away from is not caught (its entry names the session).
+  (`session.create`, `session.resume`) or a move to another profile
+  (`session.move_profile`) is refused `conflict` while another live
+  session holds it or is starting on it or moving it, so a double click
+  or a stale `in_vessel` cannot put two agents on one transcript. Held
+  per profile, because the transcript is in the profile's home: another
+  profile's copy is another file (the CLI's `session copy` and `session
+  move` export and import, and resume the copy before the source stops).
+  `session.move_profile` hard-links the files instead, for good, so a
+  session holds its conversation under every profile it went through,
+  and a session started again under those its log's moves name. The
+  default profile counts as one whether it is named or not.
+  (Corrected 2026-11-14 after the integrator's review: the first version
+  compared the current profile only, and missed a moved session's.)
 - **Who**: `operate`, as the import; forwardable as `session.create` is;
   refused to agents. Two listings at once on a node, `unavailable`
   beyond.
@@ -102,6 +107,15 @@ click from corrupting a transcript.
   with nothing in them are listed (Paseo drops them by loading each).
 - Refusing agents is a person's view, not a boundary: an agent can read
   its harness's files with its own tools.
+- Forwarded through a fleet: a member's default grant to its home
+  (`read` and `operate`) lets a person on the home list the member's
+  agent conversations, titles included, from every folder (no `cwd`).
+  That person can already start an agent on the member, which reads the
+  same files; a member that should not show them grants its home `read`
+  alone.
+- A log pruned past a session's first move (retention) no longer names
+  that move's profiles, so the session started again does not hold its
+  conversation under them.
 - Not offered: previews; a search over the agent's list (a client's
   filter over pages it loaded); copying a transcript into Vessel without
   the agent.
