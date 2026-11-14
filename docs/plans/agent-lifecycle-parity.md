@@ -229,6 +229,9 @@ No row of the crate table changes.
 
 ## Resume point
 
+- The unassigned-input tests also assert the refusal reason, so another
+  unsupported import or harness cannot masquerade as the feature guard.
+
 - Corrective verification: the first whole run stopped at a missing
   Markdown code delimiter in the ingress module documentation. The comment
   is fixed; no rule or test expectation changes. The exact corrective head

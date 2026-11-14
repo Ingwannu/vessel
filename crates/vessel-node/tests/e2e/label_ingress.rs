@@ -1,7 +1,6 @@
 //! Unassigned labels stay durable but cannot enter through existing wire methods.
 //! Missing update targets prove the refusal precedes lookup as well as writes/spawns.
 
-use crate::agents::code;
 use crate::support::{Fixture, structured_spec, within};
 use vessel_proto::automation::{
     AfterRun, Cadence, CatchUp, CreatePrompt, CreateSchedule, EverySeconds, ListPrompts,
@@ -78,8 +77,15 @@ async fn every_labelled_request_kind_is_refused_before_work_at_current_protocol(
         let spec = structured_spec(&fixture, None).with_labels(labels(r#"{"env":"prod"}"#));
         for call in labelled_requests(spec) {
             let method = call.method();
-            let result = client.call_any(UnaryCall::try_from(call).unwrap()).await;
-            assert_eq!(code(result), ErrorCode::Unsupported, "{method:?}");
+            let error = client
+                .call_any(UnaryCall::try_from(call).unwrap())
+                .await
+                .unwrap_err();
+            assert_eq!(error.code(), Some(ErrorCode::Unsupported), "{method:?}");
+            assert!(
+                error.to_string().contains("no assigned protocol"),
+                "{method:?}: {error}"
+            );
         }
         assert!(client.sessions().await.unwrap().is_empty());
         assert!(
@@ -137,9 +143,11 @@ async fn a_starting_import_refuses_before_export_while_storage_keeps_hidden_labe
             cwd: Some(destination.clone()),
             start: true,
         };
-        assert_eq!(
-            code(client.import_session(request).await),
-            ErrorCode::Unsupported
+        let error = client.import_session(request).await.unwrap_err();
+        assert_eq!(error.code(), Some(ErrorCode::Unsupported));
+        assert!(
+            error.to_string().contains("no assigned protocol"),
+            "{error}"
         );
         assert!(!destination.exists());
         assert_eq!(client.sessions().await.unwrap().len(), 1);
