@@ -274,3 +274,21 @@ The value contract's generated-title paragraph now names raw UTF-16 units
 and the two owning constants directly. The older ambiguous word
 "characters" must not be read as the user-title scalar count. Code and
 validation scope are unchanged; the exact-commit whole gate is still next.
+
+### Project reader contract and resume point
+
+The next small slice reuses the existing regular, contained and bounded
+`vessel.toml` byte reader and adds a style decoder under `project_file`.
+No dependency or crate edge is added. A separate decoder is necessary
+because malformed command sections must not stop independent style reads,
+and styles must never change the command approval digest. Standard serde
+and the existing TOML decoder cover the data; no external API is needed.
+
+Reference read: `build-metadata-prompt.ts` 7–61, project schema 55–75 and
+`workspace-git-service.ts` 924–933. Per-kind replacement, blank fallback,
+malformed siblings and legacy-key handling follow those reads. The named
+raw scalar cap and the planned checkout-root/non-Git-folder policy are
+Vessel differences, with their reasons in the ADR. This helper does not
+resolve Git or issue model calls. Current resume point: contract recorded;
+reader implementation and adjacent filesystem/decoder tests come next,
+then its narrow checks and whole gate. No node wiring is claimed.

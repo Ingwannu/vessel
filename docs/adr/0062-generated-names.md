@@ -277,6 +277,36 @@ by settings validation when the setting is wired. This value-only slice
 adds neither settings fields nor registered calls: availability checks and
 persistent writes belong to the following settings slice.
 
+### Project style reader
+
+The style reader reuses the existing `ProjectFile::read_in` file-opening
+policy through one shared byte reader: regular file, contained path and
+`MAX_BYTES`, with ADR 0027's same-user check/open race unchanged. It must
+not parse or run commands, alter their approval digest, walk ancestors or
+claim a stronger sandbox. It blocks; the node calls it through
+`spawn_blocking` when generation is wired. Each known table is decoded
+independently, so one malformed style does not erase valid siblings.
+Unknown project keys, including the legacy key, remain ignored.
+
+A nonblank instruction is limited by `MAX_STYLE_CHARS` Unicode scalar
+values before trimming; padding cannot repair an oversized instruction.
+Blank instructions select the default style. The cap is a Vessel cost
+bound, absent from Paseo's style schema. Errors retain typed parser causes
+inside this edge but only table and failure classes are logged, never
+project text; style values redact their Debug representation too.
+
+Root resolution is a stated difference when the node wires this reader.
+Vessel will use the actual checkout root, or the session's working folder
+outside Git, consistently with its existing project-file policy. Paseo's
+`resolveRepoRoot` prefers the main repository for its own worktrees and
+throws outside Git (`workspace-git-service.ts` 924–933); its prompt helper
+then skips overrides (`build-metadata-prompt.ts` 45–57). Keeping a worktree's
+own checked-out `vessel.toml` avoids reading another checkout's policy.
+A non-repository folder can already contain Vessel project instructions;
+only the style is consumed, with the output and tool-safety contract fixed.
+The reader itself accepts an already resolved folder; it does not implement
+or verify the node's later root-selection path.
+
 ### A session title's origin
 
 `TitleOrigin` is `typed`, `given`, `generated`, or `unknown`.
