@@ -65,12 +65,7 @@ fn keeps_the_place_a_status_implies_for_a_node_that_sends_none() {
     let ended = card(SessionStatus::Exited { code: Some(0) }, None);
     assert_eq!(ended.lane, None);
     assert_eq!(t.phrase(&ended.phrase), "exited 0");
-    let failed = card(
-        SessionStatus::Failed {
-            message: "no login".to_owned(),
-        },
-        None,
-    );
+    let failed = card(SessionStatus::failed("no login"), None);
     assert_eq!(failed.lane, None);
     assert_eq!(failed.phrase, Phrase::Failed);
 }
@@ -274,9 +269,7 @@ fn colours_a_status_line_by_its_lane_unless_the_phrase_says_more() {
     );
     // An ended session of an older node shows its own word; a failure
     // stays visible in the archive.
-    let failed = SessionStatus::Failed {
-        message: "no login".to_owned(),
-    };
+    let failed = SessionStatus::failed("no login");
     assert_eq!(card(failed, None).tone(), Tone::Danger);
     assert_eq!(
         card(SessionStatus::Exited { code: Some(0) }, None).tone(),

@@ -124,7 +124,7 @@ pub(crate) enum HandshakeError {
     CannotFork,
     #[error("`session/fork` failed")]
     Fork(#[source] Error),
-    #[error("the agent did not fork at the point")]
+    #[error("the agent did not fork at the chosen point")]
     NotAtPoint,
     #[error("`session/new` failed")]
     NewSession {
@@ -221,6 +221,10 @@ pub(crate) struct Started {
     /// The point a fork was asked at, for the driver to check against the
     /// fork's replay (protocol 14).
     pub(crate) fork_point: Option<AgentMessageId>,
+    /// The agent deletes a session it keeps (`sessionCapabilities.delete`):
+    /// a fork that fails its check is deleted rather than left in the
+    /// agent's history (protocol 14).
+    pub(crate) deletes: bool,
     pub(crate) options: Options,
     pub(crate) abilities: AgentAbilities,
     pub(crate) introduction: Introduction,
@@ -340,6 +344,7 @@ pub(crate) async fn run(
     Ok(Started {
         session,
         fork_point,
+        deletes: deletes(&initialized),
         options,
         abilities,
         introduction,
@@ -400,18 +405,63 @@ async fn forked(
             None,
         ));
     };
-    let loaded = cx
+    let loaded = match cx
         .send_request(
             acp::LoadSessionRequest::new(session.clone(), &setup.cwd).mcp_servers(servers),
         )
         .block_task()
         .await
-        .map_err(HandshakeError::LoadSession)?;
+    {
+        Ok(loaded) => loaded,
+        Err(error) => {
+            // The fork exists but cannot be checked: nobody will use it.
+            if deletes(initialized) {
+                delete_orphan(cx, &session).await;
+            }
+            return Err(HandshakeError::LoadSession(error));
+        }
+    };
     Ok((
         session,
         Options::new(loaded.config_options, loaded.modes),
         Some(point.clone()),
     ))
+}
+
+/// Whether the agent deletes a session it keeps (`sessionCapabilities.delete`;
+/// both installed adapters do: Claude's deletes the transcript, Codex's
+/// archives the thread, either way it leaves the agent's list).
+fn deletes(initialized: &acp::InitializeResponse) -> bool {
+    initialized
+        .agent_capabilities
+        .session_capabilities
+        .delete
+        .is_some()
+}
+
+/// How long deleting a refused fork may take before it is given up.
+const DELETE_WITHIN: Duration = Duration::from_secs(5);
+
+/// Delete a fork made for a check that refused it (or could not run), so
+/// it is not left in the agent's history as a conversation nobody holds
+/// (protocol 14, ADR 0052). Best effort: a failure is logged, the refusal
+/// stands either way.
+pub(crate) async fn delete_orphan(cx: &ConnectionTo<Agent>, session: &acp::SessionId) {
+    let deleted = tokio::time::timeout(
+        DELETE_WITHIN,
+        cx.send_request(acp::DeleteSessionRequest::new(session.clone()))
+            .block_task(),
+    )
+    .await;
+    match deleted {
+        Ok(Ok(_)) => tracing::info!(%session, "deleted the refused fork from the agent's history"),
+        Ok(Err(error)) => {
+            tracing::warn!(%session, %error, "the agent did not delete the refused fork");
+        }
+        Err(_elapsed) => {
+            tracing::warn!(%session, "the agent did not delete the refused fork in time");
+        }
+    }
 }
 
 /// The fork point as both installed adapters read it.

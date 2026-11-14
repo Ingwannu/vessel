@@ -112,13 +112,50 @@ start to `start_in_place` (a start without a project is the lead's
 (`link/src/workspace/start.rs`) runs a project's folder as it is
 (`SessionPlace::Project`) as well as a new worktree.
 
-The code panel's seams: `code_panel(shell, tokens, window, cx)` beside
-the conversation column in the lead's `session.rs`, `code_toggle(shell,
+The code panel's seams: `code_beside(shell, screen, tokens, window, cx)`
+in the lead's `session.rs` (the session screen comes back with the panel
+beside its conversation column when the panel is out; the row is this
+track's so a drag at the panel's edge measures the row and leaves the
+conversation 480, and a narrower window takes the panel's width first,
+down to 320), `code_toggle(shell,
 tokens, narrow, cx)` in track C's bar; track G1's git actions at the head
 of the Changes tab through `code::changes::git_head(shell, machine, root,
 tokens, window, cx) -> Option<AnyElement>` (its body is G1's one call).
 The panel reads where the session runs with `session.get` (the card has
-no root) and says so when the session is in no project.
+no root) and says so when the session is in no project. After a git
+write of G1's succeeds, G1 calls `Shell::code_git_changed(machine, root,
+cx)`: when the panel shows that root, the open tab is read again and
+what it shows stays until the answers replace it; the tab not shown,
+or the whole panel while it is closed, is marked stale and read again
+when it is next shown (G1's finding: a closed panel was being read,
+and a hidden tab kept what was true before the write). The Changes
+tab's refresh button reads the open tab again.
+
+The Files tab searches: a file by its name as it is typed (`file.find`,
+keyed so a newer search stops an older one) or lines inside files on
+Enter (`file.grep`, literal, smart case), the two chosen by a segmented
+control beside the field; a hit opens the file at its line. An answer
+to any query but the one last sent is dropped: the node replaces an
+older find only when a newer one is sent, so after the field is
+emptied, refused as typed or switched, a late answer would otherwise
+show results the field no longer asks for. A line
+over the results says how many were found, and when the machine
+stopped early (a find over part of a large folder, a search in files
+past its 200 lines) it says so and asks for a narrower search. What
+made a result match is marked as Paseo's `components/ui/highlighted-text.tsx`
+marks it (the surface3 tint, the text in the foreground): a name's
+matched characters (the node counts them over the whole path, so the
+name and its folder are marked apart) and the words on a line (moved
+by the indent the row takes off). Paseo's explorer has no search
+inside files; the count line is this panel's own. In a file
+shown, a click on a line's number chooses it, Shift-click extends the
+choice, and "Add lines 12–20 to chat" puts agent-orchestrator's
+reference (the page's `reference.ts`) at the end of the session's
+draft. At a phone's width, where the panel covers the conversation, the
+panel closes after it (and after the tree's "Add to chat") so the draft
+is seen with what was added, as Paseo's compact layout closes its
+Explorer sheet. The panel is resized by dragging its left edge (320 at least,
+the conversation keeps 480 of the row, whatever the sidebar's width).
 
 ### Checked against the fake fleet
 
@@ -152,9 +189,11 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   폴더에서" / "새 워크트리에서"), and the branch pill carries "Start from"
   ("시작 브랜치") before the branch, where Paseo's badge shows the branch
   alone. Each also has a tooltip.
-- The code panel is 440 wide (Paseo's Explorer: 320, resizable) because
-  a file's diff is drawn in it (Paseo opens a diff in the main pane);
-  it does not resize yet. A diff's lines wrap (Paseo scrolls them by
+- The code panel starts 440 wide and is dragged no narrower than 320
+  (Paseo's Explorer: 320 and 240) because a file's diff is drawn in it
+  (Paseo opens a diff in the main pane).
+- A search inside files runs on Enter (Paseo's runs as typed, after a
+  pause): the node's grep has no key to stop an older one. A diff's lines wrap (Paseo scrolls them by
   default, wrapping on request): a row of a long list cannot scroll
   sideways on its own.
 - A sidebar project row starts a new chat in the project; Paseo's folds

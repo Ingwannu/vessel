@@ -159,7 +159,22 @@ impl StructuredActor {
                 {
                     Ok(()) => self.parking.harness_session = old,
                     Err(again) => {
+                        // No agent runs now, and none will: the session
+                        // ends `failed` (`unrecoverable`) as soon as the
+                        // loop sees the agent gone, its conversation id the
+                        // one it had (no `ready` or `rewound` was logged),
+                        // so `session.resume` picks it up from before the
+                        // rewind. Not parked: a wake would only try the
+                        // same start again without anyone asking.
                         tracing::warn!(%again, "the old conversation did not start again either");
+                        self.parking.harness_session = old;
+                        self.outputs_open = false;
+                        let message = format!(
+                            "the rewind failed and the agent could not start the conversation \
+                             again ({again}); resume the session to go on from before the rewind"
+                        );
+                        self.unrecoverable = Some(message.clone());
+                        return Err(SessionError::RewindFailed(message));
                     }
                 }
                 Err(match failure {

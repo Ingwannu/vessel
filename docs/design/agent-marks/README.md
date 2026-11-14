@@ -1,11 +1,11 @@
 # Agent artwork: sources and rights
 
-Retrieved 2026-11-13. These trademarks belong to their respective owners;
-Vessel displays them to identify the agent, without endorsement. Vendor
-artwork is excluded from Vessel's licence. Only drawing path data is kept
-for restricted vectors; no original archive or SVG is redistributed. The
-unchanged official Gemini CLI PNG is redistributed under its repository's
-Apache-2.0 licence (text beside this file), with trademark rights reserved.
+Retrieved 2026-11-13; Gemini replaced 2026-11-14. These trademarks belong
+to their respective owners; Vessel displays them to identify the agent,
+without endorsement. Vendor artwork is excluded from Vessel's licence.
+Only drawing path data is kept; no original archive or SVG file is
+redistributed. Gemini's spark comes from a Google repository published
+under Apache-2.0 (text beside this file), with trademark rights reserved.
 
 ## Claude Code
 
@@ -55,17 +55,19 @@ Apache-2.0 licence (text beside this file), with trademark rights reserved.
 
 ## Gemini CLI
 
-- Mark: the vendor's official Gemini CLI application icon (PNG, not traced).
-- Source page: https://github.com/google-gemini/gemini-cli/tree/main/packages/vscode-ide-companion/assets
-- Download: https://raw.githubusercontent.com/google-gemini/gemini-cli/main/packages/vscode-ide-companion/assets/icon.png
-- Original SHA-256: `351e9f5b1bf863d738cd7be4ed040a625a1419450ae7fc490143e4042b7c2438`.
-- Terms: https://github.com/google-gemini/gemini-cli/blob/main/LICENSE and https://about.google/brand-resource-center/guidance/
-- Terms summary: the repository distributes its files under Apache-2.0, allowing redistribution with the licence and notices, but does not grant trademark rights. Google's product-icon guidance requires an approval request; preserve the icon unchanged, attribute Google, and do not imply endorsement.
+- Mark: Google's Gemini spark, the "Standard product icon" export (vector, Google's own gradient `#346bf1` → `#3186ff` → `#4fa0ff`).
+- Source page: https://github.com/google/adk-docs/blob/main/docs/integrations/assets/gemini-spark.svg (Google's Agent Development Kit documentation, in the `google` organisation).
+- Download, pinned: https://raw.githubusercontent.com/google/adk-docs/94636546e5377a2cd74d90ae81c5b7874739dda6/docs/integrations/assets/gemini-spark.svg (commit "Update integrations assets (#1255)", 2026-02-06; git blob `62f07e26`).
+- Original SHA-256: `068b3fb370ae6473fea495e2ea05de028e7372d4bcef2fe3a9d4bc50f15c2d5e`.
+- Kept: the path and the gradient (stops, coordinates, transform) unchanged; dropped: the Illustrator comment, the element ids and the empty bounding rectangle. The 192-unit view box and its 8-unit inset are Google's.
+- Terms: https://github.com/google/adk-docs/blob/main/LICENSE (Apache-2.0, no NOTICE file) and https://about.google/brand-resource-center/brand-elements/
+- Terms summary: the repository distributes its files under Apache-2.0, allowing redistribution with the licence, but does not grant trademark rights. Google's product-icon guidance requires an approval request; keep the icon unchanged, attribute Google, and do not imply endorsement.
 
-The icon was inspected as a 1645 × 1645 PNG. Using the exact raster avoids
-tracing it into an unofficial vector; the existing image renderer already
-supports it. Its pixels and SHA-256 are unchanged in the app. No vector
-asset was fabricated from the empty SVG in Google's older JS sample.
+Until 2026-11-14 the app showed the Gemini CLI application icon (a dark
+plate with a prompt, a 1645-pixel PNG from google-gemini/gemini-cli). The
+owner asked for the Gemini mark itself, the spark Paseo and GOAT show; the
+spark above replaces it, from Google's own repository, not from Paseo or
+an icon set. The PNG and its use are gone from the app.
 
 
 ## For the owner
@@ -101,6 +103,19 @@ colours and opacity while words/trailing controls receive55% opacity.
 Generic/glyph rows keep their existing whole-row disabled treatment.
 
 The current Invertocat source is shared by the agent and typed forge
-uses; no second asset is embedded. The unchanged Gemini CLI plate remains
-in both themes after the public brand/own-repository recheck. Owner
-permission requirements above remain separate from its software licence.
+uses; no second asset is embedded. Gemini's spark is the same in both
+themes. Owner permission requirements above remain separate from its
+software licence.
+
+## Drawing at the display's pixels (2026-11-14)
+
+Every mark is rasterised from its vector at the device pixels it lands on
+(`kit/src/agent_mark/raster.rs`, whose Decision Log says why GPUI's
+`img()` broke the marks at 1.25 and 1.5). The proof is
+`kit/examples/mark_sharpness.rs`: each mark at 14, 16 and 20 in cells off
+the pixel grid, captured at `Xft.dpi` 96, 120, 144 and 192, cropped and
+compared with librsvg (`rsvg-convert`) at the same device box. Measured
+2026-11-14 over 120 crops (5 marks × 3 sizes × 4 scales × 2 themes): mean
+absolute error 0.0024 (largest 0.0081) after, against 0.062 before; the
+largest single-pixel difference after is 0.17 on an anti-aliased edge,
+where two rasterisers round coverage differently.

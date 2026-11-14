@@ -287,7 +287,7 @@ impl Conversation {
         let notice = match status {
             SessionStatus::Starting | SessionStatus::Running => return,
             SessionStatus::Exited { .. } => Notice::Ended,
-            SessionStatus::Failed { message } => Notice::Failed(message.clone()),
+            SessionStatus::Failed { message, .. } => Notice::Failed(message.clone()),
             SessionStatus::Interrupted => Notice::Interrupted,
         };
         self.turn_running = false;

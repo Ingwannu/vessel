@@ -40,9 +40,9 @@ pub const MARKS: [MarkAttribution; 5] = [
         mark: AgentMark::Gemini,
         name: "Gemini CLI",
         owner: "Google",
-        source: "https://github.com/google-gemini/gemini-cli/tree/main/packages/vscode-ide-companion/assets",
+        source: "https://github.com/google/adk-docs/blob/main/docs/integrations/assets/gemini-spark.svg",
         terms: "https://about.google/brand-resource-center/brand-elements/",
-        licence: Some("https://github.com/google-gemini/gemini-cli/blob/main/LICENSE"),
+        licence: Some("https://github.com/google/adk-docs/blob/main/LICENSE"),
     },
     MarkAttribution {
         mark: AgentMark::OpenCode,

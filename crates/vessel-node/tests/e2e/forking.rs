@@ -19,6 +19,10 @@ const PROFILES: &str = r#"
 harness = "claude"
 env = { FAKE_ACP_FORK_IGNORES_POINT = "1" }
 
+[profiles.breaks]
+harness = "claude"
+env = { FAKE_ACP_LOAD_FAILS = "1" }
+
 [profiles.cannot]
 harness = "claude"
 env = { FAKE_ACP_NO_FORK = "1" }
@@ -41,6 +45,18 @@ async fn running(
     })
     .await;
     (id, stream, seen)
+}
+
+/// Whether the agent wrote a line starting with `start` on stderr.
+fn said_on_stderr(seen: &[EventRecord], start: &str) -> bool {
+    seen.iter().any(|record| {
+        matches!(
+            &record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::HarnessLog { line }
+            } if line.starts_with(start)
+        )
+    })
 }
 
 /// The last turn's end in `seen`: its record and its point.
@@ -276,8 +292,8 @@ async fn an_agent_that_ignores_the_point_is_caught_and_nothing_changes() {
                 .iter()
                 .any(|record| matches!(record.event, SessionEvent::Rewound { .. }))
         );
-
-        // A fork of it is created, then fails its check.
+        // A fork of it is created, then fails its check: a failed session
+        // that never held a conversation, its agent's fork deleted.
         let fork = client
             .call(ForkSession {
                 session: id,
@@ -291,11 +307,20 @@ async fn an_agent_that_ignores_the_point_is_caught_and_nothing_changes() {
             matches!(status_of(record), Some(SessionStatus::Failed { .. }))
         })
         .await;
-        let Some(SessionStatus::Failed { message }) = forked_seen.iter().rev().find_map(status_of)
+        let Some(SessionStatus::Failed {
+            message,
+            empty_fork,
+        }) = forked_seen.iter().rev().find_map(status_of)
         else {
             panic!("failed");
         };
-        assert!(message.contains("did not fork at the point"), "{message}");
+        assert_eq!(message, "the agent did not fork at the chosen point");
+        assert!(empty_fork);
+        assert!(
+            said_on_stderr(&forked_seen, "fake-acp: deleted fork~"),
+            "{forked_seen:#?}"
+        );
+        assert_eq!(client.session(fork.id).await.unwrap().harness_session, None);
         node.stop().await.unwrap();
     })
     .await;
@@ -403,6 +428,68 @@ async fn what_is_not_a_point_and_what_cannot_fork_are_refused() {
             ask(&client, &mut stream, &mut seen, cannot, "plain").await,
             "echo: plain",
             "it goes on"
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A rewind whose fork fails, after which the old conversation does not
+/// start again either (the agent cannot load any conversation): the
+/// session ends `failed` with a sentence that says to resume it, its
+/// conversation id the one it had, and no agent left running.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_rewind_that_cannot_start_any_conversation_ends_the_session_failed() {
+    within(async {
+        let fixture = Fixture::new();
+        std::fs::write(fixture.data_dir().profiles_path(), PROFILES).unwrap();
+        let node = fixture.start().await;
+        let client = fixture.connect(&node).await;
+        let (id, mut stream, mut seen) = running(&fixture, &client, Some("breaks")).await;
+        let _first = ask(&client, &mut stream, &mut seen, id, "plain").await;
+        let (first, _point) = last_point(&seen);
+        let before = client.session(id).await.unwrap().harness_session;
+        assert!(before.is_some());
+
+        assert_eq!(
+            code(
+                client
+                    .call(RewindSession {
+                        session: id,
+                        after: first
+                    })
+                    .await
+            ),
+            ErrorCode::SpawnFailed
+        );
+        read_until(&mut stream, &mut seen, |record| {
+            matches!(status_of(record), Some(SessionStatus::Failed { .. }))
+        })
+        .await;
+        let Some(SessionStatus::Failed {
+            message,
+            empty_fork,
+        }) = seen.iter().rev().find_map(status_of)
+        else {
+            panic!("failed");
+        };
+        assert!(
+            message.starts_with(
+                "the rewind failed and the agent could not start the conversation again"
+            ) && message.ends_with("resume the session to go on from before the rewind"),
+            "{message}"
+        );
+        assert!(!empty_fork);
+        assert!(
+            !seen
+                .iter()
+                .any(|record| matches!(record.event, SessionEvent::Rewound { .. }))
+        );
+        let after = client.session(id).await.unwrap();
+        assert!(matches!(after.status, SessionStatus::Failed { .. }));
+        assert_eq!(
+            after.harness_session, before,
+            "its conversation is the one it had"
         );
         node.stop().await.unwrap();
     })

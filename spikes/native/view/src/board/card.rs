@@ -116,7 +116,7 @@ impl Card {
             marks: session.marks,
             can_start_again: can_start_again(session),
             failure: match &session.status {
-                SessionStatus::Failed { message } => Some(message.clone()),
+                SessionStatus::Failed { message, .. } => Some(message.clone()),
                 SessionStatus::Starting
                 | SessionStatus::Running
                 | SessionStatus::Exited { .. }

@@ -239,7 +239,7 @@ pub(crate) async fn ready(handle: &SessionHandle) -> Result<SessionInfo, Service
     };
     let why = match status {
         SessionStatus::Running => return Ok(handle.info()),
-        SessionStatus::Failed { message } => message,
+        SessionStatus::Failed { message, .. } => message,
         SessionStatus::Starting | SessionStatus::Exited { .. } | SessionStatus::Interrupted => {
             "it was stopped before its agent was ready".to_owned()
         }

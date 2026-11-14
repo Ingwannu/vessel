@@ -118,7 +118,7 @@ async fn a_choice_not_offered_fails_the_session() {
             .start(structured(vec![select("mode", "yolo")]))
             .await;
         let end = handle.ended().await;
-        let SessionStatus::Failed { message } = &end.status else {
+        let SessionStatus::Failed { message, .. } = &end.status else {
             panic!("failed: {:?}", end.status);
         };
         assert!(

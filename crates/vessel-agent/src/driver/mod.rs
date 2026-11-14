@@ -223,18 +223,23 @@ impl Driver {
             Inbound::Started(Ok(Started {
                 session,
                 fork_point,
+                deletes,
                 options,
                 abilities,
                 introduction,
             })) => {
                 // A fork at a point is checked against its replay, which
-                // came before this (protocol 14, ADR 0052).
+                // came before this (protocol 14, ADR 0052). A refused fork
+                // is deleted where the agent can, not left in its history.
                 if let Some(anchor) = fork_point
                     && !self.tail.ends_with(&anchor)
                 {
                     tracing::info!(%anchor, "the agent's fork does not end at its point");
+                    if deletes {
+                        handshake::delete_orphan(cx, &session).await;
+                    }
                     return Some(Disconnect::Handshake {
-                        message: String::from("the agent did not fork at the point"),
+                        message: String::from("the agent did not fork at the chosen point"),
                         refused: None,
                         fork_refused: Some(ForkRefusal::NotAtPoint),
                     });

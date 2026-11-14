@@ -446,7 +446,7 @@ async fn a_model_the_agent_does_not_offer_fails_the_session() {
             .unwrap();
         let stored = collect(created.durable);
         let mut follower = Follower::new(&created.handle);
-        let SessionStatus::Failed { message } = follower.until_end().await else {
+        let SessionStatus::Failed { message, .. } = follower.until_end().await else {
             panic!("a failed handshake fails the session");
         };
         assert!(

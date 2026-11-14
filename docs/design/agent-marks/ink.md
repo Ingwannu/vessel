@@ -32,7 +32,7 @@ are deliberate differences, not stretched substitutes.
 | Claude Spark, 93.6 ink inside its 141 clear-space viewport | 18.077 / 21.090 / 24.103 / 30.128 square | 16 × 16 |
 | OpenAI Blossom, 484.137 × 479.816 in 721 square | 16.530 / 19.285 / 22.040 / 27.550 square | 14.800 × 14.667 |
 | GitHub Invertocat, 96 × 92.989 in 128 square | 16 / 18.667 / 21.333 / 26.667 square | 16 × 15.498 |
-| Gemini CLI unchanged 1645-square PNG | 12 / 14 / 16 / 20 square | 16-square plate |
+| Gemini spark, 176 ink inside Google's 192 square | 13.091 / 15.273 / 17.455 / 21.818 square | 16 × 16 |
 | OpenCode | 32 × 36 at every requested size that has room | 16 × 20 |
 
 A provider row still reserves a common 32-wide layout column and keeps
@@ -71,5 +71,8 @@ assets/permission to the Hub. The repository provides the unchanged CLI
 plate and terminal-text snapshots, with no located bare or light variant
 of that product icon. No public, appropriately sourced bare alternative
 was located in this check; this does not assert none exists in Google's
-private brand resources. Keep the official PNG in both themes. Its dark
-plate is a recorded family difference; it is never stripped or recoloured.
+private brand resources. (Superseded 2026-11-14: the owner asked for the
+Gemini spark rather than the CLI plate, and Google's own
+`google/adk-docs` repository publishes the spark as a vector under
+Apache-2.0; see the source list. The spark's ink matches the reference's
+16 at 16, its gradient unchanged in both themes.)
