@@ -121,4 +121,6 @@ pub use shutdown::signal;
 pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build
 // a `Config` without depending on `vessel-store` themselves.
+/// Local lifecycle commands share the node's persistent lock rather than a PID file.
+pub use vessel_store::NodeLock;
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};

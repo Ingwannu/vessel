@@ -10,6 +10,7 @@ use crate::selector::SessionSelector;
 
 mod agents;
 mod automation;
+mod control;
 mod conversation;
 mod fleet;
 mod forge;
@@ -22,6 +23,7 @@ mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
+pub(crate) use control::{Confirmation, Stop, StopPolicy};
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};

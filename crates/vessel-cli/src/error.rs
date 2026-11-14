@@ -13,6 +13,27 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Local lifecycle checks preserve the store's original I/O cause.
+    #[error("cannot inspect the node lock")]
+    NodeLock(#[source] vessel_node::StoreError),
+    /// A stale owner record is never evidence of a running node.
+    #[error("the node is not running")]
+    NodeNotRunning,
+    /// A held lock without a valid owner must not be mistaken for a stale record.
+    #[error("the node lock is held but its owner record is unavailable")]
+    NodeOwnerUnavailable,
+    /// A graceful stop exceeded its complete command deadline.
+    #[error("the node did not finish the graceful stop before --timeout")]
+    StopTimedOut(#[source] tokio::time::error::Elapsed),
+    /// Older peers must refuse before a lifecycle method is sent.
+    #[error("the running node cannot be stopped over the wire; stop it on its machine")]
+    StopUnsupported(#[source] CallError),
+    /// Existing sessions require an explicit interruption or drain choice.
+    #[error("not stopped: live sessions remain; see the list above")]
+    StopHasLiveSessions,
+    /// The interactive interruption confirmation was declined.
+    #[error("not confirmed; nothing was stopped")]
+    StopNotConfirmed,
     /// Explicit operator LSP configuration failed.
     #[error(transparent)]
     LspConfiguration(#[from] vessel_node::LspConfigError),

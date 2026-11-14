@@ -82,6 +82,14 @@ shutdown stays stopped. Existing service files are preserved; an older
 macOS agent with unconditional `KeepAlive` still starts again after a
 clean exit until you remove and recreate it with `vessel init --service`.
 
+`vessel node stop` requests graceful shutdown through the node's Admin
+permission. With live sessions it lists them and refuses; `--when-idle`
+returns after starting a drain, and `--now --yes` interrupts them. Without
+`--yes`, interruption requires a terminal confirmation. `--timeout` bounds
+the command in positive seconds (default 15). Local success observes the
+shutdown connection closing; remote success only confirms the request.
+Forced cleanup, service-manager finalization and restart are pending.
+
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 

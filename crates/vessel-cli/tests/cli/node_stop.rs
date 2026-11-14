@@ -1,0 +1,221 @@
+//! The shutdown command must preserve sessions until a person chooses otherwise.
+//! All harnesses are testkit fakes; nodes bind only OS-selected loopback ports.
+
+use vessel_proto::{ErrorCode, NodeState, SessionStatus};
+use vessel_store::DataDir;
+
+use crate::support::{Fixture, within};
+
+async fn terminal(fixture: &Fixture) -> vessel_proto::SessionId {
+    let started = fixture
+        .vessel(&["run", "claude", "--detach", "--cwd", &fixture.cwd()], b"")
+        .await;
+    assert!(started.ok, "{}", started.stderr);
+    started.stdout.trim().parse().unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn graceful_stop_closes_the_connection_and_releases_the_lock() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let ran = fixture.vessel(&["node", "stop"], b"").await;
+        assert!(ran.ok, "{}", ran.stderr);
+        assert!(ran.stdout.contains("closed its shutdown connection"));
+        owner.closed().await;
+        let lock = std::fs::File::open(DataDir::new(fixture.data()).lock_path()).unwrap();
+        fixture.stop().await;
+        // Retain the inode across fixture cleanup, so deletion of its path
+        // cannot accidentally make this assertion pass.
+        lock.try_lock().unwrap();
+        lock.unlock().unwrap();
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn live_sessions_are_listed_and_stay_running_without_a_timing_choice() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let session = terminal(&fixture).await;
+        let ran = fixture.vessel(&["node", "stop"], b"").await;
+        assert!(!ran.ok);
+        assert!(ran.stdout.contains(&session.to_string()));
+        assert!(ran.stderr.contains("not stopped"));
+        let client = fixture.owner().await;
+        assert!(client.session(session).await.unwrap().status.is_live());
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Serving);
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn now_without_yes_on_a_pipe_interrupts_nothing() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let session = terminal(&fixture).await;
+        let ran = fixture.vessel(&["node", "stop", "--now"], b"yes\n").await;
+        assert!(!ran.ok);
+        assert!(ran.stderr.contains("--yes"));
+        let client = fixture.owner().await;
+        assert!(client.session(session).await.unwrap().status.is_live());
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Serving);
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn drain_rejects_new_sessions_and_exits_only_after_the_live_session_ends() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let session = terminal(&fixture).await;
+        let client = fixture.owner().await;
+        let spec = client.session(session).await.unwrap().spec;
+        let ran = fixture.vessel(&["node", "stop", "--when-idle"], b"").await;
+        assert!(ran.ok, "{}", ran.stderr);
+        assert!(ran.stdout.contains("draining"));
+        assert_eq!(client.node_info().await.unwrap().state, NodeState::Draining);
+        let refused = client.create_session(spec).await.unwrap_err();
+        assert_eq!(refused.code(), Some(ErrorCode::Unavailable));
+        assert!(client.session(session).await.unwrap().status.is_live());
+        let ended = fixture
+            .vessel(&["attach", &session.to_string()], b"exit\r")
+            .await;
+        assert!(ended.ok, "{}", ended.stderr);
+        client.closed().await;
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn explicit_interruption_is_persisted_and_not_resumed_on_restart() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let session = terminal(&fixture).await;
+        let ran = fixture
+            .vessel(&["node", "stop", "--now", "--yes"], b"")
+            .await;
+        assert!(ran.ok, "{}", ran.stderr);
+        let fixture = fixture.restart().await;
+        let client = fixture.owner().await;
+        assert_eq!(
+            client.session(session).await.unwrap().status,
+            SessionStatus::Interrupted
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn command_deadline_covers_a_connection_that_never_completes_its_handshake() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        // The listener stays open without completing the handshake. The only
+        // timer is the product's deadline, not test synchronization.
+        let ran = fixture
+            .vessel_at(
+                &address,
+                fixture.data(),
+                &["node", "stop", "--timeout", "0.05"],
+                b"",
+            )
+            .await;
+        assert!(!ran.ok);
+        assert!(ran.stderr.contains("--timeout"), "{}", ran.stderr);
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_stale_owner_record_does_not_claim_the_stopped_node_is_running() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let ran = fixture.vessel(&["node", "stop"], b"").await;
+        assert!(ran.ok, "{}", ran.stderr);
+        let stale = tempfile::tempdir().unwrap();
+        let address = fixture.node_address();
+        let stale_dir = DataDir::new(stale.path());
+        let copied_bytes = std::fs::copy(
+            DataDir::new(fixture.data()).owner_path(),
+            stale_dir.owner_path(),
+        )
+        .unwrap();
+        assert!(copied_bytes > 0);
+        drop(std::fs::File::create(stale_dir.lock_path()).unwrap());
+        fixture.stop().await;
+        let ran =
+            crate::support::vessel_in(stale.path(), &["--node", &address, "node", "stop"], b"")
+                .await;
+        assert!(!ran.ok);
+        assert!(
+            ran.stderr.contains("the node is not running"),
+            "{}",
+            ran.stderr
+        );
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_unreadable_live_owner_is_refused_without_shutting_down_the_node() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let dir = DataDir::new(fixture.data());
+        std::fs::write(dir.owner_path(), "invalid owner").unwrap();
+        let ran = fixture.vessel(&["node", "stop"], b"").await;
+        assert!(!ran.ok);
+        assert!(
+            ran.stderr
+                .contains("lock is held but its owner record is unavailable"),
+            "{}",
+            ran.stderr
+        );
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_loopback_book_endpoint_uses_its_own_token_file_without_a_local_lock() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let client_home = tempfile::tempdir().unwrap();
+        let address = fixture.node_address();
+        let token_path = DataDir::new(fixture.data()).token_path();
+        let token_file = token_path.to_str().unwrap();
+        let added = crate::support::vessel_in(
+            client_home.path(),
+            &[
+                "nodes",
+                "add",
+                "test-endpoint",
+                &address,
+                "--token-file",
+                token_file,
+            ],
+            b"",
+        )
+        .await;
+        assert!(added.ok, "{}", added.stderr);
+        let stopped = crate::support::vessel_in(
+            client_home.path(),
+            &["--node", "test-endpoint", "node", "stop"],
+            b"",
+        )
+        .await;
+        assert!(stopped.ok, "{}", stopped.stderr);
+        fixture.stop().await;
+    })
+    .await;
+}

@@ -1,6 +1,6 @@
 //! `vessel`: the command-line client for Vessel nodes.
 //!
-//! Commands: `node start`, `node install`, `nodes`, `status`, `harnesses`,
+//! Commands: `node start`, `node stop`, `node install`, `nodes`, `status`, `harnesses`,
 //! `sessions`, `run`, `attach`, `send`, `log`, `kill`, `session` (a
 //! session's profile, queue, answers, marks, starting again, deletion). Everything goes through
 //! `vessel-client`; this crate only parses arguments, resolves the token,
@@ -22,6 +22,7 @@ mod history;
 mod init;
 mod io;
 mod log;
+mod node_ctl;
 mod nodes;
 mod pair;
 mod remote;

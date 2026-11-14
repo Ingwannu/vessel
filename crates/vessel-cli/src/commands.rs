@@ -111,6 +111,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
         } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
+        NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
         NodeCommand::Status => {
             let client = connect(target).await?.client;
             let node = client.node_info().await?;

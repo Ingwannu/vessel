@@ -6,15 +6,16 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: slice 1 contract, proposed status. Slice 2a changes the existing
-  launchd template to restart failed exits only; a test pins preservation
-  of older unconditional agents. No command is added in slice 2a.
-- Half-done: stop/restart command drafts have not passed compilation or
-  review. They are excluded from slice 2a and require revision: waits must
-  use events, inputs and errors must be typed, and refusal tests must
-  exercise commands rather than only compare strings.
-- Next: slice 2b implements graceful stop with live-session safeguards;
-  slice 2c adds verified forced cleanup and restart. Then slices 3 and 4.
+- Done: slice 1 contract and slice 2a launchd clean-exit policy. Slice 2b
+  adds graceful `node stop`, typed policy and bounded positive deadlines.
+  Its tests exercise session protection, confirmation, drain rejection,
+  interruption persistence, stale owners and handshake expiry.
+- Half-done: force, matching-service finalization and restart are not in
+  this slice. Older unconditional launchd agents may start again; the
+  README names that existing limitation. No command claims a lock-free
+  postcondition solely from connection closure.
+- Next: slice 2c adds verified forced cleanup and service finalization;
+  slice 2d adds restart, then slices 3 and 4.
 
 ## Existing asset check
 
@@ -143,7 +144,7 @@ not run. Nothing under `web/` changes.
 ### Slice 2: `vessel node stop` and `vessel node restart`
 
 Split into 2a (launchd clean-exit policy), 2b (graceful stop) and 2c
-(verified forced cleanup and restart), each with its own tests and gate.
+(verified forced cleanup and service finalization), then 2d (restart), each with its own tests and gate.
 2a reuses `init/service.rs` and `write_once`: no dependency or crate edge
 is added. Standard-library rendering and the existing service manager
 are sufficient. Unlike Paseo's retained supervisor launch
@@ -249,3 +250,32 @@ The ADR has the full table. The ones a review will look for:
 - remote restart is refused; remote stop works;
 - `restart_required` and `override_controlled` exist and are empty;
 - saved `park_after` keeps beating the flag.
+
+## Slice 2b implementation evidence
+
+- Read Paseo `packages/cli/src/commands/daemon/stop.ts` 13–21
+  (15-second graceful and 3-second forced defaults), 44–71 (remaining
+  deadline, RPC, local-only force), 95–98 (remote exit unverified);
+  `local-daemon.ts` 74–79 (positive finite seconds, rounded up to ms).
+- Reused `NodeClient::closed` and the existing Admin-scoped `stop_node`;
+  the lock is re-exported through `vessel-node` for local lifecycle checks,
+  without adding a dependency edge or duplicating persistence rules.
+  The preflight lock check applies only when connection uses the implicit
+  local token: a book endpoint's explicit token file may name a different
+  local data directory and must still be usable over the RPC.
+- `[modify]`: extend CLI dispatch and arguments; reuse the update's live
+  listing and confirmation. Those existing functions now receive the
+  resolved target and live-session slice; confirmation returns a typed
+  reply so the new call crosses no raw name/count/boolean boundary.
+  The update command retains the same output and approval rule. A supervisor, external API or new dependency
+  is unnecessary for graceful shutdown. The Rust standard library parses
+  deadlines; unrepresentable monotonic deadlines are typed refusals.
+- Differences already decided in ADR 0064: explicit live-session consent,
+  drain choice and no terminal preservation. New numerical refusal:
+  values too large for the monotonic clock are refused rather than
+  becoming an overflowing deadline. This is a checked-arithmetic safety floor.
+- Current slice limit: graceful stop only. `--force`, `--kill-timeout`,
+  service-manager finalization and `restart` follow separately. Windows
+  uses the same graceful RPC and event; actual Windows and macOS execution
+  still require those operating systems.
+- No wire changes or generated TypeScript changes.
