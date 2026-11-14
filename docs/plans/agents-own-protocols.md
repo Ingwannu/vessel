@@ -204,11 +204,16 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
      `--disallowedTools=AskUserQuestion` (always, until slice 2 makes it
      follow `setup.questions`), `--session-id=<new UUID>` or
      `--resume=<UUID>` (anything else refused: `--resume` would read a
-     name or a path), `--permission-mode=<mode>` from one exhaustive match
-     (only `bypassPermissions` adds `--allow-dangerously-skip-permissions`;
-     no mode chosen passes none, so the person's own default mode holds,
-     bypass included, unknown to the node, exactly as with the ACP
-     adapter), `--model=<id>`, `--mcp-config=<file>` in
+     name or a path), `--permission-mode=<mode>` always, from one
+     exhaustive match: Paseo's five (`plan`, `default`, `acceptEdits`,
+     `auto`, `bypassPermissions`) with Paseo's default `auto` for a
+     session that chose none, so the node always knows the mode and a
+     setting in the person's Claude folder never picks it (a stated
+     difference from the ACP path); `dontAsk` is accepted, not offered;
+     under Bedrock or Vertex `auto` is refused before spawning and the
+     default is `default`, as Paseo does; only `bypassPermissions` adds
+     `--allow-dangerously-skip-permissions`), `--model=<id>`,
+     `--mcp-config=<file>` in
      the node's private directory (`vessel_harness::claude_mcp_file`).
      Value flags use `=`. Nothing is added to the environment. A fork, an
      option other than the mode, or MCP servers without the private
@@ -233,18 +238,33 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
 2. **Permissions and questions.**
    - Every tool request comes through `can_use_tool` (`--permission-prompt-
      tool stdio`), with its suggestions as the agent's choices.
-   - `AskUserQuestion` becomes a question.
+   - `AskUserQuestion` becomes a question; plan approval (`ExitPlanMode`)
+     as Paseo shows it.
    - `--allow-dangerously-skip-permissions` is passed only for a bypass
      session.
    - After this slice the setting may select `direct` for Claude Code.
 3. **Options.** Model, effort, fast and permission mode, changed live
    with `set_model` and `set_permission_mode`, or by restarting with
-   `--resume` where the contract fails.
+   `--resume` where the contract fails. As Paseo has them: the models
+   from `initialize`'s list, each gated by its minimum Claude Code version
+   (Opus 5.5 2.1.280, Sonnet 5.5 2.1.284, Haiku 5.5 2.1.293) against
+   `init`'s `claude_code_version`; efforts low to max and `ultracode`;
+   fast with `apply_flag_settings`; a live switch into bypass restarts
+   with `--resume`, since only a launch for a bypass session carries the
+   skip-permissions flag (a stated difference: Paseo always passes it).
+   Steering (a prompt into the running turn) and images (jpeg, png, gif,
+   webp) come here too.
 4. **History, rewind, fork.** `--fork-session`, and resuming at a message.
-   `rewind_files` restores files, which ADR 0052 could not.
+   `rewind_files` restores files, which ADR 0052 could not; it needs
+   `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING` at launch, the one
+   variable the launch's allow-list then admits.
 5. **The rest.** `probe`, the sign-in check (`claude auth status`, already
-   used), context usage, subagent transcripts, MCP servers
-   (`--mcp-config`, as today).
+   used), context usage, subagent transcripts and text, an interrupt that
+   spares background tasks, slash commands, MCP servers (`--mcp-config`,
+   built in slice 1). Usage from the stream's own `rate_limit_event`
+   frames: never from the agent's credential files, which Paseo's usage
+   plugin reads (a stated difference, the credential invariant). No
+   system-prompt append (Paseo sends one).
 
 ## OpenCode (third)
 
@@ -307,9 +327,10 @@ checked against `/doc`.
     nothing on the CLI's side but the request;
   - a wake before the session's first turn: Claude Code writes the
     transcript only once a turn starts, so `--resume=<launched id>` may
-    find no conversation (A2's read). If so, slice 4 starts an unused id
-    again with `--session-id`, which needs the launch to know that no turn
-    ran: a seam question for then;
+    find no conversation (A2's read). What the CLI does then is not
+    guessed; the driver fails the handshake at once when the CLI exits
+    before it is ready, naming the resume (tested with the fake), so the
+    wake fails typed and the session stays parked to be tried again;
   - whether prompts the node sends should carry `origin: {kind: human}`
     (the SDK asks hosts wrapping keyboard input to say so; scheduled
     prompts are not typed by a person);

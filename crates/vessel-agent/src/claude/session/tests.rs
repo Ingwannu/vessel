@@ -278,6 +278,37 @@ async fn a_resumed_session_is_ready_with_the_conversation_it_resumes() {
     .await;
 }
 
+/// A session parked before its first turn is woken with `--resume` of a
+/// conversation Claude Code has not written yet (it writes one once a turn
+/// starts). Whatever the real CLI does then is to be verified on a real
+/// turn; the driver's part is to fail the handshake at once, naming the
+/// resume, so the wake fails (typed, the session stays parked to be tried
+/// again) instead of waiting for the handshake's time.
+#[tokio::test]
+async fn a_resume_of_a_conversation_never_written_fails_the_handshake_at_once() {
+    within(async {
+        let id = "5d0c3c1e-8f3a-4e8e-9c55-2f0f3a1b7c42";
+        let mut session = start(
+            AgentSetup {
+                resume: Some(HarnessSessionId::new(id)),
+                ..setup()
+            },
+            &[("FAKE_CLAUDE_NO_TRANSCRIPTS", "1")],
+        );
+        let started = std::time::Instant::now();
+        assert!(matches!(
+            session.disconnected().await,
+            Disconnect::Handshake { message, .. }
+                if message.contains("resuming conversation") && message.contains(id)
+        ));
+        assert!(
+            started.elapsed() < setup().handshake_timeout,
+            "not the handshake's time running out"
+        );
+    })
+    .await;
+}
+
 #[tokio::test]
 async fn a_tool_request_is_denied_and_the_log_says_why() {
     within(async {

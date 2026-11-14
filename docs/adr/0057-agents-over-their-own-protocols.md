@@ -137,8 +137,11 @@ weighed:
     request is answered by the node or denied; a frame the driver does
     not understand is a denial and ends the turn with a typed error,
     never an allow; no permission-skipping flag unless the session's mode
-    is bypass; MCP configuration and anything secret go in a file only the
-    node's user can read, never on the command line.
+    is bypass; the mode is always passed (Paseo's default, `auto`, when the
+    session chose none), so a setting in the person's own Claude folder,
+    which the node cannot see, never decides it; MCP configuration and
+    anything secret go in a file only the node's user can read, never on
+    the command line.
   - **Credentials**: the driver never reads, copies or proxies the agent's
     credential files or tokens, and never presents a login of its own: it
     runs the person's own installed `claude` under the person's own login

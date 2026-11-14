@@ -24,11 +24,19 @@
 //!   be a UUID: `--resume` also takes a name or a transcript's path, and
 //!   an id the agent cannot have made is refused, never read as a path.
 //! - Permissions: every tool request is asked of the host over the control
-//!   protocol (`--permission-prompt-tool=stdio`); the mode is the session's
-//!   choice, mapped by one exhaustive match, and only the bypass mode adds
-//!   `--allow-dangerously-skip-permissions`. With no mode chosen no
-//!   `--permission-mode` is passed, so the person's own default holds, as
-//!   it does for Claude Code's ACP adapter.
+//!   protocol (`--permission-prompt-tool=stdio`). The mode is always passed
+//!   (`--permission-mode`), so the node always knows it and a setting in
+//!   the person's own Claude folder, which the node cannot see, never picks
+//!   it (the coordinator's decision, 2026-11-14; the ACP adapter, unlike
+//!   this, leaves it to that setting). The modes and the default are
+//!   Paseo's (the owner's "the setup exactly as Paseo's"): `plan`,
+//!   `default`, `acceptEdits`, `auto` (the default) and
+//!   `bypassPermissions`; `dontAsk`, which the CLI documents, is accepted
+//!   but not offered. Under Bedrock or Vertex (`CLAUDE_CODE_USE_BEDROCK`,
+//!   `CLAUDE_CODE_USE_VERTEX` true in the agent's environment) `auto` is
+//!   not offered, a choice of it is refused before spawning, and the
+//!   default is `default`, as Paseo does. One exhaustive match maps them,
+//!   and only `bypassPermissions` adds `--allow-dangerously-skip-permissions`.
 //! - Questions: slice 1 does not ask questions, so `AskUserQuestion` is
 //!   always removed (`--disallowedTools=AskUserQuestion`). Slice 2 removes
 //!   it exactly when `AgentSetup::questions` is false, the node's one
@@ -41,7 +49,7 @@ use std::ffi::OsString;
 use std::sync::Arc;
 
 use vessel_harness::WrittenMcpFile;
-use vessel_proc::CommandSpec;
+use vessel_proc::{CommandSpec, EnvValue, Environment};
 use vessel_proto::{ChoiceValue, HarnessSessionId, OptionChoice, OptionId, OptionValueId};
 
 use crate::error::{AgentError, LaunchRefusal};
@@ -58,6 +66,8 @@ pub(crate) struct Launched {
     /// The conversation the session runs: minted here for a new one, the
     /// one it resumes otherwise.
     pub(super) conversation: HarnessSessionId,
+    /// Whether the launch resumes `conversation` (`--resume`).
+    pub(super) resumed: bool,
     /// The MCP configuration file, removed when the session ends.
     _mcp: Option<WrittenMcpFile>,
 }
@@ -65,29 +75,41 @@ pub(crate) struct Launched {
 /// A permission mode Claude Code takes (`--permission-mode`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Mode {
+    Plan,
     Default,
     AcceptEdits,
-    Plan,
+    Auto,
     DontAsk,
     Bypass,
 }
 
 impl Mode {
-    /// Every mode, in the order the adapter offers them.
-    pub(super) const ALL: [Self; 5] = [
+    /// Every mode a launch takes.
+    pub(super) const ALL: [Self; 6] = [
+        Self::Plan,
         Self::Default,
         Self::AcceptEdits,
-        Self::Plan,
+        Self::Auto,
         Self::DontAsk,
+        Self::Bypass,
+    ];
+
+    /// The modes offered, Paseo's five in Paseo's order.
+    pub(super) const OFFERED: [Self; 5] = [
+        Self::Plan,
+        Self::Default,
+        Self::AcceptEdits,
+        Self::Auto,
         Self::Bypass,
     ];
 
     /// Its name, in the option and on the command line.
     pub(super) const fn name(self) -> &'static str {
         match self {
+            Self::Plan => "plan",
             Self::Default => "default",
             Self::AcceptEdits => "acceptEdits",
-            Self::Plan => "plan",
+            Self::Auto => "auto",
             Self::DontAsk => "dontAsk",
             Self::Bypass => "bypassPermissions",
         }
@@ -114,12 +136,18 @@ pub(crate) fn launch(
     if setup.fork.is_some() {
         return Err(LaunchRefusal::Fork(ForkRefusal::CannotFork).into());
     }
-    let mode = mode(&setup.options)?;
+    let auto_unavailable = auto_unavailable_on(command);
+    let mode = match mode(&setup.options, auto_unavailable)? {
+        Some(chosen) => chosen,
+        None if auto_unavailable.is_some() => Mode::Default,
+        None => Mode::Auto,
+    };
     let mut args: Vec<OsString> = vec![
         "--include-partial-messages".into(),
         "--permission-prompt-tool=stdio".into(),
         "--disallowedTools=AskUserQuestion".into(),
     ];
+    let resumed = setup.resume.is_some();
     let conversation = if let Some(resumed) = &setup.resume {
         let Ok(id) = uuid::Uuid::parse_str(resumed.as_str()) else {
             return Err(LaunchRefusal::Conversation(resumed.to_string()).into());
@@ -131,11 +159,9 @@ pub(crate) fn launch(
         args.push(flag("--session-id=", &id));
         HarnessSessionId::new(id)
     };
-    if let Some(mode) = mode {
-        args.push(flag("--permission-mode=", mode.name()));
-        if mode == Mode::Bypass {
-            args.push("--allow-dangerously-skip-permissions".into());
-        }
+    args.push(flag("--permission-mode=", mode.name()));
+    if mode == Mode::Bypass {
+        args.push("--allow-dangerously-skip-permissions".into());
     }
     if let Some(model) = &setup.model {
         args.push(flag("--model=", model.as_str()));
@@ -153,6 +179,7 @@ pub(crate) fn launch(
         shaped,
         Launched {
             conversation,
+            resumed,
             _mcp: mcp,
         },
     ))
@@ -164,16 +191,57 @@ fn flag(name: &str, value: &str) -> OsString {
     flag
 }
 
+/// The provider `auto` is unavailable on, when the agent's environment
+/// sends Claude Code to Bedrock or Vertex (Paseo's
+/// `claudeAutoModeUnavailableOn`): the command's own setting, else, when
+/// the agent inherits the node's environment, the node's, which it then
+/// sees (as `vessel_harness`'s launch checks what the child inherits).
+fn auto_unavailable_on(command: &CommandSpec) -> Option<&'static str> {
+    let set = |name: &str| {
+        let value = match command.env_change(name) {
+            Some(EnvValue::Set(value)) => Some(value.clone()),
+            Some(EnvValue::Remove) => None,
+            None => match command.environment {
+                Environment::Inherit => std::env::var_os(name),
+                Environment::Clear => None,
+            },
+        };
+        value.is_some_and(|value| {
+            let value = value.to_string_lossy().trim().to_ascii_lowercase();
+            !matches!(value.as_str(), "" | "0" | "false" | "no" | "off")
+        })
+    };
+    if set("CLAUDE_CODE_USE_BEDROCK") {
+        Some("Bedrock")
+    } else if set("CLAUDE_CODE_USE_VERTEX") {
+        Some("Vertex")
+    } else {
+        None
+    }
+}
+
 /// The permission mode chosen, if any; any other option is refused (the
-/// options slice adds model, effort and speed).
-fn mode(options: &[OptionChoice]) -> Result<Option<Mode>, LaunchRefusal> {
-    let offered = || vec![OptionId::new(MODE)];
+/// options slice adds model, effort and speed), and `auto` where it is
+/// unavailable (`auto_unavailable`).
+fn mode(
+    options: &[OptionChoice],
+    auto_unavailable: Option<&'static str>,
+) -> Result<Option<Mode>, LaunchRefusal> {
+    let offered = |id: &OptionId, value: &OptionValueId| OptionError::NotOffered {
+        id: id.clone(),
+        value: value.clone(),
+        offered: Mode::OFFERED
+            .iter()
+            .filter(|mode| !(**mode == Mode::Auto && auto_unavailable.is_some()))
+            .map(|mode| OptionValueId::new(mode.name()))
+            .collect(),
+    };
     let mut chosen = None;
     for choice in options {
         if choice.id.as_str() != MODE {
             return Err(OptionError::Unknown {
                 id: choice.id.clone(),
-                offered: offered(),
+                offered: vec![OptionId::new(MODE)],
             }
             .into());
         }
@@ -185,16 +253,12 @@ fn mode(options: &[OptionChoice]) -> Result<Option<Mode>, LaunchRefusal> {
             .into());
         };
         let Some(mode) = Mode::named(value.as_str()) else {
-            return Err(OptionError::NotOffered {
-                id: choice.id.clone(),
-                value: value.clone(),
-                offered: Mode::ALL
-                    .iter()
-                    .map(|mode| OptionValueId::new(mode.name()))
-                    .collect(),
-            }
-            .into());
+            return Err(offered(&choice.id, value).into());
         };
+        if let (Mode::Auto, Some(provider)) = (mode, auto_unavailable) {
+            tracing::info!(provider, "auto mode refused: it needs the Anthropic API");
+            return Err(offered(&choice.id, value).into());
+        }
         // A later choice of the same option wins, as it does over ACP.
         chosen = Some(mode);
     }

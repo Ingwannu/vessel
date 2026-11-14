@@ -33,6 +33,10 @@ fn command() -> CommandSpec {
         ])
         .env("CLAUDE_CONFIG_DIR", "/home/someone/.claude-alt")
         .env_remove("ANTHROPIC_API_KEY")
+        // Whatever the machine running the tests has: the provider is the
+        // command's to say (`auto` is unavailable on Bedrock and Vertex).
+        .env_remove("CLAUDE_CODE_USE_BEDROCK")
+        .env_remove("CLAUDE_CODE_USE_VERTEX")
 }
 
 fn setup() -> AgentSetup {
@@ -134,6 +138,7 @@ fn a_new_conversation_gets_its_id_on_the_command_line_and_nothing_else_is_added(
             "--permission-prompt-tool=stdio",
             "--disallowedTools=AskUserQuestion",
             session.as_str(),
+            "--permission-mode=auto",
         ]
     );
     assert!(uuid::Uuid::parse_str(launched.conversation.as_str()).is_ok());
@@ -211,11 +216,60 @@ fn each_mode_is_its_flag_and_only_bypass_skips_permissions() {
         assert_eq!(skips, known == Mode::Bypass, "{known:?}");
         assert!(args.iter().all(|arg| allowed(arg, None)));
     }
+    // No mode chosen: Paseo's default, passed, never the person's own
+    // setting the node cannot see.
     let (args, _) = launched(&setup());
-    assert!(
-        !args.iter().any(|arg| arg.starts_with("--permission-mode")),
-        "no mode chosen: the person's own default"
-    );
+    let modes: Vec<&String> = args
+        .iter()
+        .filter(|arg| arg.starts_with("--permission-mode"))
+        .collect();
+    assert_eq!(modes, ["--permission-mode=auto"]);
+}
+
+/// The command with `name` set to `value`, as a profile would set it.
+fn with(name: &str, value: &str) -> CommandSpec {
+    command().env(name, value)
+}
+
+#[test]
+fn on_bedrock_or_vertex_auto_is_refused_and_the_default_is_default() {
+    for (name, value) in [
+        ("CLAUDE_CODE_USE_BEDROCK", "1"),
+        ("CLAUDE_CODE_USE_VERTEX", " TRUE "),
+    ] {
+        let elsewhere = with(name, value);
+        let (shaped, _) = launch(&elsewhere, &setup()).unwrap();
+        assert!(
+            shaped
+                .args
+                .iter()
+                .any(|arg| arg == "--permission-mode=default"),
+            "{name}"
+        );
+        let auto = AgentSetup {
+            options: vec![mode("auto")],
+            ..setup()
+        };
+        let Err(AgentError::Refused(LaunchRefusal::Option(OptionError::NotOffered {
+            offered,
+            ..
+        }))) = launch(&elsewhere, &auto)
+        else {
+            panic!("{name}: auto launched");
+        };
+        assert!(!offered.iter().any(|value| value.as_str() == "auto"));
+        assert_eq!(offered.len(), Mode::OFFERED.len() - 1);
+    }
+    for off in ["0", "false", "no", "off", ""] {
+        let (shaped, _) = launch(&with("CLAUDE_CODE_USE_BEDROCK", off), &setup()).unwrap();
+        assert!(
+            shaped
+                .args
+                .iter()
+                .any(|arg| arg == "--permission-mode=auto"),
+            "{off:?} is not on"
+        );
+    }
 }
 
 #[test]
@@ -226,7 +280,7 @@ fn a_mode_or_an_option_claude_code_does_not_take_is_refused() {
     };
     assert!(matches!(
         refused(&unknown_mode),
-        LaunchRefusal::Option(OptionError::NotOffered { ref offered, .. }) if offered.len() == Mode::ALL.len()
+        LaunchRefusal::Option(OptionError::NotOffered { ref offered, .. }) if offered.len() == Mode::OFFERED.len()
     ));
     let toggled = AgentSetup {
         options: vec![OptionChoice {

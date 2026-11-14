@@ -29,6 +29,9 @@
 //!     (no tool use id), waits for the answer, then for an interrupt;
 //!   - `garbage`: writes a line that is not JSON;
 //!   - anything else: a streamed reply, `Hello there`.
+//! - With `FAKE_CLAUDE_NO_TRANSCRIPTS` set, `--resume=<id>` finds no
+//!   conversation: it says so on stderr and exits with code 1 before
+//!   reading anything.
 //! - Anything else exits with code 2.
 
 use std::io::BufRead as _;
@@ -67,6 +70,18 @@ fn main() -> ExitCode {
             || format!("fake-claude-{}", std::process::id()),
             str::to_owned,
         );
+    // `FAKE_CLAUDE_NO_TRANSCRIPTS`: no conversation was ever written, as
+    // for a session parked before its first turn; a resume then fails at
+    // once, with the CLI's reason on stderr (its words unverified).
+    if std::env::var_os("FAKE_CLAUDE_NO_TRANSCRIPTS").is_some()
+        && let Some(id) = args.iter().find_map(|arg| arg.strip_prefix("--resume="))
+    {
+        let _said = said(
+            &mut std::io::stderr(),
+            &format!("No conversation found with session ID: {id}"),
+        );
+        return ExitCode::from(1);
+    }
     match Fake::new(session).serve() {
         Ok(Some(code)) => ExitCode::from(code),
         Ok(None) => ExitCode::SUCCESS,

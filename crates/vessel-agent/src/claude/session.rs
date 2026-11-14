@@ -93,6 +93,7 @@ pub(super) async fn run(
         outputs,
         handshake_timeout: setup.handshake_timeout,
         conversation: launched.conversation.clone(),
+        resumed: launched.resumed,
         _launched: launched,
         translator: Translator::default(),
         next: 0,
@@ -111,6 +112,8 @@ struct Session {
     handshake_timeout: Duration,
     /// The conversation, as the launch named it.
     conversation: HarnessSessionId,
+    /// Whether the launch resumed it.
+    resumed: bool,
     /// Kept for the session's life: its MCP file goes with it.
     _launched: Launched,
     translator: Translator,
@@ -157,6 +160,14 @@ impl Session {
                     Some(Err(Ended::Closed)) | None => {
                         return if self.ready {
                             Disconnect::Closed
+                        } else if self.resumed {
+                            // Whatever the CLI's reason (its log has it): a
+                            // wake then fails, typed, and the session stays
+                            // parked to be tried again, never waits.
+                            handshake_failed(format!(
+                                "Claude Code exited before it was ready, resuming conversation {}",
+                                self.conversation
+                            ))
                         } else {
                             handshake_failed("Claude Code exited before it was ready".to_owned())
                         };
