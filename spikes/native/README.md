@@ -673,6 +673,17 @@ with `HOME=ROOT` for either book: they name their credentials from it.
 A branch name is drawn on one line cut in its middle, never wrapped
 (`app/src/areas/git/name.rs`).
 
+A session's pull request (`app/src/areas/pulls/`, rules in
+`view::workspace::pull`) is read from its card (`CardDetail.pull_request`,
+the node's watcher keeps it fresh) and asked on the same workspace channel
+(`Ask::Pull`: `pr.get`, `pr.open`). The git menu offers Create PR or View
+PR after the remote actions (Paseo's `git/policy.ts`); Create PR opens a
+form with `gh pr create --fill`'s defaults, as the node takes no title
+from a model. The link at the head of the Changes tab opens its facts; a
+card shows its number, state and checks under the branch. The fleet's
+nodes reach no forge (the remotes are bare repositories), so the screens
+there show why a pull request cannot be opened.
+
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.

@@ -744,7 +744,10 @@ one, and is read again five seconds later.
   `combobox.tsx`), which hides what tells `feature/…-레이아웃` from
   `origin/feature/…-레이아웃`. The header and the switcher keep the kit
   controls' interface face; the commit form and saved entries use the code
-  face. Switcher rows have no tooltip (the kit's combobox row has none).
+  face. The switcher is as wide as its trigger (at least 280, at most
+  420; the screen's width on a phone), and a row cut in its middle
+  carries its whole name as a code-face tooltip (`ComboRow::tooltip`,
+  a control-only kit commit).
 - **A saved entry's subject is split** (`git::stash_subject`, git's fixed
   `On <branch>: ` and `WIP on <branch>: ` prefixes; a ref name cannot hold
   `:`): the message wraps as words, the branch is its own one-line row.
@@ -764,6 +767,56 @@ one, and is read again five seconds later.
   back to is not built: the node's saved entries carry no branch of their
   own (Paseo tags its own entries), so which entry belongs to a branch
   could only be guessed from its message.
+
+## G1b, slice 2: a session's pull request (2026-11-14)
+
+### What the node gives, and what it does not
+
+- The summary rides on the session (`SessionInfo.pull_request`: access,
+  the last summary read, whether feedback goes to the session), kept fresh
+  by the node's watcher, for live sessions with a project or a worktree.
+  The app's cards carry it (`CardDetail.pull_request`, one field and one
+  line in track S's `view/src/board/card.rs`).
+- `pr.get` gives it whole (checks with counts and at most twenty failing
+  runs, reviews' standing, merge methods); `pr.open` opens one from the
+  session's branch (the node pushes it first for a person, never for an
+  agent). Both travel on the workspace pair (`Ask::Pull`, `Answer::Pull`,
+  `link/src/workspace/pulls.rs`), as `session.get` does: no new variant
+  in the lead's `Command` or `Event`.
+- `pr.list` covers watched (live) sessions only, so no project-wide pull
+  request page is drawn from it.
+
+### What is drawn, and from which reference file
+
+| Part | Reference followed | Where |
+|---|---|---|
+| Create PR / View PR in the git menu, after the remote actions, and why not | Paseo `git/policy.ts` (`buildPrAction`, `getCreatePrUnavailableMessage`, `secondaryIds`), `git/use-actions.tsx` (`handlePrAction`) | `view/src/workspace/pull/{entry,menu}.rs`, `app/src/areas/git/menu.rs` |
+| The link at the head of the Changes tab | Paseo `git/diff-pane.tsx` `ChangesPullRequestLink`, `git/pull-request-state-icon.tsx` | `app/src/areas/pulls/link.rs` |
+| The facts | Paseo `git/pull-request-panel/pane.tsx`, `checks-summary.ts`, the `checksOverview` words | `view/src/workspace/pull/facts.rs`, `app/src/areas/pulls/facts.rs` |
+| The Create pull request form | `gh pr create` (title, body, base, draft) and its `--fill` defaults; GOAT's form layout as the commit form | `view/src/workspace/pull/{open,bases}.rs`, `app/src/areas/pulls/form.rs` |
+| Words | Paseo `i18n/resources/{en,ko}.ts` (`workspace.git.actions`, `workspace.git.pr`, `panels.pullRequest`) | `view/locales/{en,ko}/pulls.ftl` |
+
+### Differences from the references, each with its reason
+
+- **A form where Paseo sends none**: Paseo's daemon writes the title and
+  description with a model; this node takes the person's title
+  (`PullTitle`) and never prompts an agent. Its defaults are `gh`'s:
+  one new commit gives its subject; several give the branch name with
+  `-` and `_` as spaces and their subjects, oldest first, as a list. The
+  base defaults to the one the worktree was made from (Paseo's stored
+  base ref), else the node's default branch.
+- **The facts are a dialog** opened from the link, where Paseo's are a tab
+  beside Changes: a tab is track F's panel and tab bar; a dialog needs
+  neither. View PR (the menu) opens the page, as Paseo's does.
+- **Checks are counts plus the failing runs**, and Activity is the
+  reviews' pills (approved, changes requested, unresolved threads), the
+  verdict and mergeability: the node sends no passed or skipped runs by
+  name and no timeline. "Add to chat" comes with the feedback slice.
+- **Merged is drawn in the accent**: Paseo's purple is not in this
+  palette.
+- **The node's finer reasons** (signed out, refused, rate-limited,
+  unreachable, at its watch limit, session ended) each have their own
+  sentence in Paseo's voice, where Paseo has one "isn't connected".
 
 ### Resume (2026-11-14 04:40 UTC, stopped for the account window)
 
