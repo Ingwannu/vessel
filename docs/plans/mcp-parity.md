@@ -11,17 +11,13 @@ a restart reads. Nothing here widens an agent principal past ADR 0013.
   No protocol number is registered. `PROTOCOL_VERSION` stays 20.
   `MCP_PARITY` is the constant the integrator sets, and it is not in
   code yet. Status of the ADR is proposed.
-- Half-done, not in this commit: a start on slice 2 in the working
-  tree (`crates/vessel-mcp/src/tools/driving.rs`,
-  `crates/vessel-mcp/src/tools/offer.rs`, and the edits to
-  `tools.rs`, `tools/automation.rs`, `tests/automation.rs`,
-  `tests/mcp.rs`). Keep it. Do not revert it. It is not gated, and
-  the new dispatch must not match tool names as strings or return
-  `serde_json::Value` past the edge (the ADR: tool ids are a closed
-  enum).
-- Next: finish slice 2, the missing tools the ADR marks `missing`,
-  each one a call the principal can already make. Do not start slice
-  3 until slice 2 is gated.
+- This commit: the settings key is the one field `mcp`, class
+  reloadable. The three sub-fields are not key-enum variants, and
+  this ADR does not name a `config set` path under them.
+- Next: slice 2, the missing tools. A tool name is decoded once into
+  an enum. Do not match the client's text again, and do not return
+  `serde_json::Value` from a new function. Do not start slice 3
+  until slice 2 is gated.
 
 ## What Paseo does
 
@@ -93,8 +89,9 @@ table (ADR 0015). The ADR says so.
    is refused. A stored name only a newer build knows is kept and
    disables nothing. The fields are gated on `MCP_PARITY`; the number
    is given at merge. A reply below that constant omits them.
-   `docs/PROTOCOL.md` in this slice. Reload class is in the ADR:
-   inject and policy at the next session start, serve at once.
+   `docs/PROTOCOL.md` in this slice. The key's class is reloadable.
+   Applied means: inject and policy at the next session start, serve
+   at once.
 4. **HTTP.** Loopback child, `POST /mcp/agents`, no query, `AgentAuth`
    in the bearer and the header `Vessel-Session`, same principal as
    stdio. No agent is given the endpoint in this milestone, so the

@@ -237,25 +237,26 @@ not registered in this commit. The number is given at merge.
 ### Policy, per agent kind
 
 Paseo's shape, not a three-way mode. One top-level key on
-`node.settings`, named `mcp`. It is not three keys. ADR 0064's closed
-key enum is `park_after` and `drivers` today, and it classes
-`daemon.mcp.enabled` and `daemon.mcp.injectIntoAgents` as **None**
-("there is no switch"). That row is not edited in this tree. At merge
-the enum gains three variants, all **reloadable**, none start-time,
-and none pinned by a launch flag, so a reload does not put them in
-`restart_required` or `override_controlled`:
+`node.settings`, named `mcp`. ADR 0064 makes every field of
+`SetNodeSettings` one variant of its key enum, and the class is
+decided by the ADR that adds the field. This field is that one
+variant. Its class is **reloadable**: not start-time, and not pinned
+by a launch flag, so a reload does not put it in `restart_required`
+or `override_controlled`. It is not three variants. This ADR does not
+edit ADR 0064, and it does not name a path under `vessel node config`.
+The command that sets the field is ADR 0064's, over `mcp`.
 
-| Variant | Paseo path | What "applied" means |
+A reload that finds the saved `mcp` object changed lists that one key
+as applied once each sub-field's effect below has been done. The
+effects are not the same moment:
+
+| Sub-field | Paseo path | What "applied" means |
 | --- | --- | --- |
-| `mcp_inject` | `daemon.mcp.injectIntoAgents` (`RELOADABLE_PATHS` line 185) | The next session start: create, resume, and a profile move that restarts the harness. A session already running keeps the server it was given. |
-| `mcp_serve` | `daemon.mcp.enabled` (line 184) | At once. The supervised child starts, or it is stopped and nothing is left listening. |
-| `mcp_policy` | `agents.providers` (line 202), the `paseoTools` field only | The next session start of that harness. A running session keeps the list it started with. |
+| `inject` | `daemon.mcp.injectIntoAgents` (`RELOADABLE_PATHS` line 185) | The next session start: create, resume, and a profile move that restarts the harness. A session already running keeps the server it was given. |
+| `serve` | `daemon.mcp.enabled` (line 184) | At once. The supervised child starts, or it is stopped and nothing is left listening. |
+| `policy` | `agents.providers` (line 202), the `paseoTools` field only | The next session start of that harness. A running session keeps the list it started with. |
 
-`agents.providers` stays **None** as a config key of its own (ADR
-0064). The denylist lives under `mcp_policy`. `config set` and
-`config unset` name these variants. Until the enum gains them, ADR
-0064 refuses a name other than `park_after` or `drivers`, and this
-track does not store the value through that refusal.
+`agents.providers` is not this key. The denylist is `mcp.policy`.
 
 - `mcp.inject` (Paseo's `daemon.mcp.injectIntoAgents`). A directory
   this build creates stores **false** before it creates `node.id`.
@@ -328,11 +329,11 @@ install.
 
 ### Where a person turns inject on
 
-`vessel node config set mcp_inject true`. The value is a JSON boolean.
-The command is ADR 0064's, and it accepts the name only once that
-enum has the variant. The same change is `node.set_settings` with
-`mcp.inject`, admin, once the field exists. `config unset mcp_inject`
-stores false; it does not delete the `mcp` key. See migration.
+`node.set_settings` with `mcp.inject` set to the JSON boolean `true`,
+admin, once the field exists. The same object carries `serve` and
+`policy` when those change. The CLI that writes the field is ADR
+0064's `vessel node config set` over `mcp`. This ADR does not choose
+how that command spells a sub-field.
 
 The app row is the one Paseo puts on the host page's Orchestration
 card. Paseo's English title is "Enable Paseo tools" (`en.ts` line
@@ -369,15 +370,15 @@ start creates it. The check is the file's presence. It does not open
 - `mcp` is present. Missing `inject` or `serve` inside it is false.
   That is not a second migration.
 
-Unset of `mcp_inject` or `mcp_serve` stores false inside the object.
-It does not remove `mcp`. Stated difference from ADR 0064's unset of
-`park_after`, which deletes the key so the flag returns: `mcp.inject`
-has no flag, and a deleted key on a directory that already has
-`node.id` is the upgrade signal. Unset's effect is still the fresh
-default. Unset of `mcp_policy` removes the list, so every harness is
-the absent policy. Deleting `settings.json` and restarting a
-directory that still has `node.id` takes the upgrade path again, so
-inject comes back on. A person who wanted it off sets it off again.
+Setting `mcp.inject` or `mcp.serve` to false stores that false inside
+the object. It does not remove `mcp`. `mcp.inject` has no flag, and a
+missing `mcp` on a directory that already has `node.id` is the upgrade
+signal, so clearing the whole key would turn inject back on at the
+next start. A person who wants inject off sends `mcp.inject: false`.
+Setting `policy` to an empty list is the absent policy, every harness
+included. Deleting `settings.json` and restarting a directory that
+still has `node.id` takes the upgrade path again, so inject comes
+back on. A person who wanted it off sets it off again.
 
 `node.set_settings` carries the change field by field, admin, as it
 does for parking and drivers. A client that sets `mcp` speaks
@@ -413,7 +414,7 @@ A second front of the same server, not a second authority.
   and terminates that child's job on Windows (`child.rs` lines 113 to
   137; `lib.rs` lines 28 to 31). It is not a systemd unit and not a
   launchd agent. A failure to start it is that crate's spawn error,
-  `mcp_serve` is not applied, and nothing is left listening. The
+  `serve` is not applied, and nothing is left listening. The
   error names no secret: the child holds none in its environment, on
   its command line, or in a file the node writes for it. Each request
   brings its own.
