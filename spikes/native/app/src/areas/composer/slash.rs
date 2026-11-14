@@ -54,13 +54,14 @@ impl Shell {
             return None;
         }
         let field = &self.areas.session.composer;
+        let text = field.text(cx);
+        // A recalled message is sent as it was, a leading `/name` too
+        // (Paseo's recall: no menu over it).
+        if self.areas.composer.recall.showing(&text) {
+            return None;
+        }
         let commands = self.session_commands();
-        Menu::of(
-            &field.text(cx),
-            field.caret(cx),
-            commands,
-            &self.areas.composer.slash,
-        )
+        Menu::of(&text, field.caret(cx), commands, &self.areas.composer.slash)
     }
 
     /// A key the session's composer offered: the menu takes the arrows,
@@ -79,10 +80,11 @@ impl Shell {
                 .map(|command| command.name.as_str().to_owned());
             (menu.range.query.clone(), menu.rows.len(), menu.range, name)
         }) else {
-            return KeyAnswer::Pass;
+            // No menu: Up and Down walk the messages sent (`drafts.rs`).
+            return self.recall_key(key, window, cx);
         };
         if rows == 0 {
-            return KeyAnswer::Pass;
+            return self.recall_key(key, window, cx);
         }
         let chosen = &mut self.areas.composer.slash;
         let _now = chosen.follow(&query, rows);

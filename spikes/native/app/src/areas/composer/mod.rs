@@ -9,6 +9,7 @@
 //! The rules are `vessel_app_view::composer`'s; this only wires them to
 //! the shell, the link and the toasts.
 
+mod drafts;
 pub(crate) mod modes;
 pub(crate) mod offers;
 pub(crate) mod running;
@@ -17,9 +18,12 @@ mod slash;
 use std::cell::{OnceCell, RefCell};
 use std::time::Instant;
 
+pub(crate) use drafts::keep_drafts;
 pub(crate) use running::ControlsTarget;
 pub(crate) use slash::{menu, text};
 use vessel_app_kit::autocomplete::{AutocompleteState, Listing};
+use vessel_app_view::composer::drafts::Drafts;
+use vessel_app_view::composer::recall::Recall;
 use vessel_app_view::composer::reveal::Reveal;
 use vessel_app_view::composer::running::InFlight;
 use vessel_app_view::composer::slash::Chosen;
@@ -43,6 +47,12 @@ pub(crate) struct ComposerArea {
     pub(crate) last_menu: RefCell<Option<(Listing, Option<usize>)>>,
     /// When this area first measured time: the glides' clock.
     epoch: OnceCell<Instant>,
+    /// What was typed and not sent, per session and for the new chat.
+    pub(crate) drafts: Drafts,
+    /// A write of the drafts is waiting for typing to settle.
+    pub(crate) saving: bool,
+    /// The sent message Up and Down show in the session composer, if one.
+    pub(crate) recall: Recall,
 }
 
 impl ComposerArea {
