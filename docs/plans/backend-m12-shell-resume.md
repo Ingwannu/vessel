@@ -1,5 +1,10 @@
 # Shell track resume checkpoint
 
+> 2026-11-14 (track S3): the two prepared patches below are installed and
+> gated as `0cf43664` (kit correction) and `153da701` (palette consumer);
+> see `backend-m12-shell.md`, "Palette finished". What follows is the
+> earlier checkpoint, kept as it was written.
+
 Branch: `backend/m12-app-shell`. This session stops after the integration
 checkpoint; no next feature slice was started. Read the binding track
 briefs again before resuming. The detailed running notes and artifacts

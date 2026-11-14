@@ -604,3 +604,66 @@ No further control, consumer or merge starts in this session. See
 artifacts, review ownership, dependencies and the next work order. The
 old70 captures remain evidence only for `08382d9`/`6d29e29`; there is no
 new executable or real-shape capture for `babeeb16` or this merge.
+
+### Palette finished (track S3, 2026-11-14)
+
+Commits: `e2a4ada3` (merge of the lead's line, 135 commits; two additive
+conflicts: the kit's glyph list and the README), `0cf43664` (kit: the
+desktop panel closes at once, only its entrance fades), `153da701` (the
+palette consumes the typed caption and the motion; the sidebar's Search
+row and the title bar's search mark open it).
+
+Reference files followed: Paseo `command-center/command-center.tsx`
+(panel 640 by 560, max 92% by 80%; the desktop Modal unmounted at close,
+`if (!state.open) return null`; the compact `IsolatedBottomSheetModal`
+with pan-down close and backdrop 0.45), `components/ui/highlighted-text-segments.ts`
+(`findHighlightRanges`: one mark per query token), `components/sidebar/sidebar-nav-rows.tsx`
+(`SidebarSearchRow`) and `sidebar-nav/model.ts` (header rows: new,
+history, search, schedules).
+
+What was checked, on the fake fleet paired as a person (the app's own
+configuration directory, the pairing modal reached through the palette,
+the link typed by the capture driver from a variable and never shown or
+kept; `--token-file` owner tokens were not used):
+- Both themes, both languages, 1280 by 800 and 390 by 844: the empty
+  query (commands, Settings sections, themes), a query matching eight
+  long English and Korean titles with long paths (the path in the code
+  face, its match marked inside the path), a Korean query, no match
+  (Paseo's fixed 560 panel with its one line), keyboard selection, close.
+- Motion, measured from frame strips (an X11 grabber at about 60 Hz;
+  software Vulkan draws far slower, so a strip shows few app frames):
+  the desktop panel's band brightness goes 103 → 119 → 122 on opening
+  (one frame inside the 250 ms fade) and 122 → 103 in one step on
+  closing; with the app's reduced-motion flag it goes 103 → 122 in one
+  step. The phone sheet settles at its 60% stop with the spring's tail
+  (its top at 369, 357, 352, 350, 349, 348 points) and straight to 348
+  with reduced motion; dragging the handle to 90% follows the pointer
+  (303, 280, 269 … 94) and pan-down follows it until the sheet is gone.
+
+Differences from Paseo, named:
+- A session row leads with the Message or Terminal glyph and says
+  "status · path". Paseo's agent row leads with the provider's mark with
+  a status badge on it, says "host · path" (the host only with several
+  hosts) and the time since its last activity after it, outside the
+  search. The kit's command row takes a glyph only; the agent mark and
+  status badge need a control change in `kit/command`, asked of the lead.
+- The title bar's search mark has no tooltip: the kit's tooltip opens
+  above its trigger, which is outside the window at the title bar.
+- The Messages group (every session's messages, track C's search) is
+  not drawn yet: its seam is on C's branch (`69d2003f`), not yet on the
+  lead's; the group goes after the command groups once it is merged.
+- xdotool typed only the first syllable of a two-syllable Korean query
+  on Xvfb; the Korean query captures show that syllable's marks.
+
+Problems met: the prepared kit correction failed clippy once
+(`match_same_arms`: two arms both 0.0; merged into one), and one prepared
+test expected every occurrence of a token marked, which neither the
+shared matcher nor Paseo does (corrected to one match per token). Two
+capture runs typed a pairing link into the new chat's composer (a click
+on "Add a machine" did not open the modal in time); the captures were
+deleted, nothing kept the text, and the link was never used. A capture
+display number was used at the same time by another worker's client;
+the driver now starts its Xvfb with an authority cookie of its own.
+
+Captures: the scratch directory's `s3/shots/palette/` (matrix) and
+`s3/shots/palette-motion/` (strips, with `times.txt` per strip).
