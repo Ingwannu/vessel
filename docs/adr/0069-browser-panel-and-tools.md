@@ -1,8 +1,10 @@
 # ADR 0069: One browser, owned by the node
 
-Status: proposed, 2026-11-14. Documents only. No browser code is written
-until this ADR is accepted. The inventory, the line references and the
-slice order are `docs/plans/browser.md`.
+Status: accepted for slice 2 (the tool surface on a test double); the
+engine (which Chromium, how it reaches the node) awaits the owner.
+
+The inventory, the line references and the slice order are
+`docs/plans/browser.md`.
 
 ## Purpose and intent
 

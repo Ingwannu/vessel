@@ -37,8 +37,10 @@ to 399). This plan follows the source.
   proxy is set. Whether the proxy-resolving TCP factory exempts
   loopback unless the launch says otherwise. WebTransport's source.
   The bytes inside a harness transcript.
-- **Next:** wait for review of ADR 0069. Do not start slice 2 before
-  that. Merge sets `BROWSER_PROTOCOL`.
+- **Next:** slice 2, the tool surface. Accepted for that slice only.
+  The engine (which Chromium, how it reaches the node) waits for the
+  owner. Merge sets `BROWSER_PROTOCOL`. No Chromium download or
+  process in slice 2.
 
 ## Existing asset check
 
