@@ -142,6 +142,12 @@ What Paseo does, and so the app (`view::composer::{slash, matching}`,
   is typed).
 - The chosen command's card above the list: its name, what it does and
   the input it takes; the empty line "No commands found".
+- The menu is never taller than the room above the card, less 12 from
+  the top (`autocomplete-popover.tsx`'s `maxHeight`): the list scrolls
+  within it and the chosen command's card keeps its height. Paseo counts
+  from the top of its window; the app counts from under its own title
+  bar, so the menu never covers it (at 800 by 600, thirty commands left
+  the window's top before this).
 
 The commands are the session's own report (`commands_changed`); until it
 arrives, its agent's last session's report, kept in the store and on the
@@ -300,7 +306,8 @@ What the app does (`view::composer::{drafts, recall}`,
 - Up in an empty session composer shows the last message sent in the
   session, Up again the one before, Down the next newer, then the empty
   composer; a message equal to the one after it, or empty, is skipped.
-  Within a recalled message of several lines the arrows move between its
+  The caret is at the recalled message's end, as Paseo leaves it, so
+  within a recalled message of several lines the arrows move between its
   lines first. The first edit gives the arrows back to the caret. A
   recalled message is not a draft until it is edited, and a `/name` at
   its start does not open the command menu (it is sent as it was). An
