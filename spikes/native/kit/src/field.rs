@@ -58,6 +58,8 @@ use gpui::prelude::*;
 use gpui::{AnyElement, App, Context, Entity, Focusable as _, Window, div, px};
 use gpui_base::input::{Input, InputEditorStyle, InputEvent, InputState, Textarea, TextareaState};
 
+pub mod composer_hooks;
+
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;

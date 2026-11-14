@@ -188,8 +188,11 @@ reference (the page's `reference.ts`) at the end of the session's
 draft. At a phone's width, where the panel covers the conversation, the
 panel closes after it (and after the tree's "Add to chat") so the draft
 is seen with what was added, as Paseo's compact layout closes its
-Explorer sheet. The panel is resized by dragging its left edge (320 at least,
-the conversation keeps 480 of the row, whatever the sidebar's width).
+Explorer sheet. The panel is resized by dragging its left edge with the
+kit's resize handle, the sidebar's too (the owner's word 29; 320 at least,
+the conversation keeps 480 of the row, whatever the sidebar's width); the
+width is kept across restarts and a double-click on the edge returns to
+440 (`docs/plans/backend-m12-spike.md`, "Resizable side panels").
 
 ### Checked against the fake fleet
 

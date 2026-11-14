@@ -33,7 +33,14 @@ pub fn settings_mark(
     edge: SettingsRowEdge,
     tokens: &Tokens,
 ) -> Div {
-    let image = render(art, size, Space::Lockup, tokens, tokens.neutral.foreground);
+    let image = render(
+        art,
+        size,
+        Space::Lockup,
+        tokens,
+        tokens.neutral.foreground,
+        None,
+    );
     let image = if art == Some(OPENCODE) {
         let top = match edge {
             SettingsRowEdge::First => -6.0,

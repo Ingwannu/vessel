@@ -152,8 +152,10 @@ pub(crate) struct CodePanel {
     target: Option<Target>,
     changes: Changes,
     files: Files,
-    /// Its width beside the conversation (dragged at its left edge).
-    width: vessel_app_kit::ui::Pixels,
+    /// Its left edge, dragged to resize it (`frame::PANEL`).
+    edge: crate::areas::edge::PanelEdge,
+    /// The width of the row of conversation and panel, last frame.
+    row: std::rc::Rc<std::cell::Cell<Option<f32>>>,
     /// Tabs whose content a git write changed while they were not shown:
     /// read again when next shown.
     stale: Stale,
@@ -193,7 +195,8 @@ impl CodePanel {
                 actions: actions::Actions::new(cx),
                 narrow: std::cell::Cell::new(false),
             },
-            width: frame::WIDTH,
+            edge: crate::areas::edge::PanelEdge::new(),
+            row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),
             finder: elsewhere::Finder::default(),
         }

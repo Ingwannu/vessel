@@ -23,6 +23,7 @@
 mod entries;
 mod meter;
 mod numbers;
+mod parking;
 mod permission;
 mod question;
 mod search;

@@ -141,6 +141,15 @@ pub struct Layout {
     /// The inspector (a session's summary).
     #[serde(deserialize_with = "lenient")]
     pub inspector: Panel,
+    /// The sidebar's width when dragged, whole points (`None`: the
+    /// default, `panels::SIDEBAR`). Not written while `None`, so the
+    /// document the page and the bridge share is unchanged until a panel
+    /// is dragged.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sidebar_width: Option<u16>,
+    /// The code panel's width when dragged (`panels::CODE_PANEL`).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub panel_width: Option<u16>,
 }
 
 /// Whether a panel shows.

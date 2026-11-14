@@ -10,7 +10,9 @@ use vessel_proto::{
     ToolLocation, TurnUsage,
 };
 
-use super::entry::{Entry, EntryKey, EntryKind, Permission, Prompt, TextKind, ToolView};
+use super::entry::{
+    Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, TextKind, ToolView,
+};
 use super::usage::ModelUsage;
 
 /// What protocol 10's events say beyond the entries, for the composer and
@@ -195,6 +197,7 @@ impl Timeline {
             | EntryKind::TurnFailed { .. }
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }
@@ -329,12 +332,16 @@ impl Timeline {
                 );
             }
             // A parked session's agent stopped and started again (protocol
-            // 12, ADR 0038, track A2): the timeline does not draw it yet
-            // (track C's, with A2's slice); the session's own status
-            // records still say whether it runs.
+            // 12, ADR 0038): a line each, as a status change is.
+            SessionEvent::Parked { reason } => {
+                self.push(
+                    record,
+                    EntryKind::Parking(ParkingChange::Parked(reason.clone())),
+                );
+            }
+            SessionEvent::Woken => self.push(record, EntryKind::Parking(ParkingChange::Woken)),
+            // A fork's and a rewind's records are drawn with that slice.
             SessionEvent::Terminal(_)
-            | SessionEvent::Parked { .. }
-            | SessionEvent::Woken
             | SessionEvent::Forked { .. }
             | SessionEvent::Rewound { .. } => {}
             SessionEvent::Agent { event } => self.agent(record, event),
@@ -457,6 +464,7 @@ impl Timeline {
             | EntryKind::TurnFailed { .. }
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }

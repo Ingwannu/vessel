@@ -21,8 +21,9 @@
 //!   heads its Host group. Without a machine its place is "Add machine",
 //!   as Paseo's "Add host".
 //! - Differences: the list stands on the shell, as the workspace sidebar
-//!   does, at its width (264), not on `surfaceSidebar` with an edge at
-//!   Paseo's 320: the frame beside it does not move when Settings opens.
+//!   does, at its width (dragged at the same edge, `areas::sidebar::frame`),
+//!   not on `surfaceSidebar` with an edge at Paseo's 320: the frame beside
+//!   it does not move when Settings opens.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
@@ -41,9 +42,6 @@ use crate::shell::Shell;
 
 /// The machine picker's list (Paseo's `desktopMinWidth`).
 pub(crate) const PICKER_WIDTH: f32 = 240.0;
-
-/// The workspace sidebar's width (`areas/sidebar.rs`).
-const WIDTH: f32 = 264.0;
 
 /// A section's glyph (Paseo's for the sections it has).
 const fn section_glyph(section: Section) -> Glyph {
@@ -253,9 +251,7 @@ fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Sh
 pub(crate) fn sidebar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
     div()
-        .w(px(WIDTH))
-        .flex_shrink_0()
-        .h_full()
+        .size_full()
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
@@ -316,6 +312,7 @@ pub(crate) fn picker_header(shell: &Shell, compact: bool) -> ComboHeader {
         back: false,
         search: false,
         empty: words.no_machines.into(),
+        note: None,
         side: Side::Below,
     }
 }

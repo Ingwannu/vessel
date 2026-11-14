@@ -51,6 +51,7 @@ pub(super) fn overlay(
         back: preview.header.is_some(),
         search: false,
         empty: "".into(),
+        note: None,
         side: Side::Above,
     };
     let handlers = ComboHandlers {
