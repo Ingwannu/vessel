@@ -22,13 +22,15 @@ impl AgentsWords {
             (Lang::Ko, Row::Loading) => "불러오는 중",
         }
     }
-    /// Machine-scoped Agents section heading. Value is a machine label;
+    /// The Providers page's list heading, scoped to the chosen machine:
+    /// Paseo's `settings.providers.title` ("Providers", "프로바이더"), the
+    /// page's own title, with the machine named. Value is a machine label;
     /// wrapping is allowed. Korean 의 is invariant for every label.
     #[must_use]
     pub fn row_section(&self, machine: &str) -> String {
         match self.lang {
-            Lang::En => format!("Agents on {machine}"),
-            Lang::Ko => format!("{machine}의 에이전트"),
+            Lang::En => format!("Providers on {machine}"),
+            Lang::Ko => format!("{machine}의 프로바이더"),
         }
     }
 }
