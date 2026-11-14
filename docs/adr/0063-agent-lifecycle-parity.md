@@ -93,11 +93,16 @@ uses to publish the number, not in this one.
 ### Labels
 
 A label is a `LabelKey` and a `LabelValue`. A key is trimmed, then 1 to
-64 Unicode scalars, with no ASCII control and no `=`. A value is not
-trimmed, 0 to 256 scalars, with no ASCII control. A session holds at
-most 32, in a `SessionLabels` map ordered by key. A key starting with
-`vessel.` is reserved and refused. Anything else is `invalid_request`
-naming the key, before a session is created or a row written.
+64 Unicode scalars, containing neither `=` nor any character for which
+`char::is_control` is true. A value is not trimmed, 0 to 256 scalars,
+and likewise contains no character for which `char::is_control` is true.
+That is the same refusal `SessionTitle` already uses
+(`crates/vessel-proto/src/title.rs`, `FromStr`): every control,
+including the C1 controls U+0080 to U+009F. A
+session holds at most 32, in a `SessionLabels` map ordered by key. A
+key starting with `vessel.` is reserved and refused. Anything else is
+`invalid_request` naming the key, before a session is created or a row
+written.
 
 The public patch only sets keys. Keys omitted from the patch stay.
 There is no clear. An empty patch is `invalid_request` ("nothing to
@@ -248,10 +253,12 @@ Vessel does not copy it.
 
 - Labels have no maximum in Paseo's schema (`messages.ts:915`,
   `labels: z.record(z.string(), z.string()).default({})`). Vessel caps a
-  key at 64 scalars, a value at 256, and a session at 32, and refuses a
-  control character or `=`. Reason: a pairing label is already bounded
-  at 64 scalars, and an unbounded map is a reply the other list calls
-  refuse rather than cut.
+  key at 64 scalars, a value at 256, and a session at 32, and refuses
+  `=` and every character for which `char::is_control` is true, the same
+  check `SessionTitle` uses, including the C1 controls. Reason: a pairing
+  label is already bounded at 64 scalars, and an unbounded map is a reply
+  the other list calls refuse rather than cut. A control the title
+  refuses must not reach the same list through a label.
 - Paseo deletes one key with `null` (`applyLabelPatch`,
   `agent-manager.ts:631`). The CLI and MCP send only strings. Vessel's
   public patch only sets keys. Reason: the public surface has no

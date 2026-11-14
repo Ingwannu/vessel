@@ -119,7 +119,7 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 
 | Asset | Where | Decision |
 | --- | --- | --- |
-| Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. |
+| Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. Keys and values reuse the title's control check (`char::is_control`, including C1). |
 | Marks as columns | schema 7 | Modify: the next schema append adds `labels` (JSON text, null is empty) and `listing` (`shown` default). The number is whatever the migration list's length is at merge. |
 | Unit `session.list` | `rpc/requests.rs` | Modify: a struct that still decodes `params: null`. |
 | `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
@@ -142,7 +142,8 @@ bounds, the map and the timestamps.
    copy, `session.labels`, `labels_changed` and its stand-in, the list
    filter, the labels column on the next schema append, CLI `--label`, MCP `labels` and
    `set_labels`. Tests beside the parser, the patch, the filter and the
-   old-peer rewrite.
+   old-peer rewrite. The parser refuses `char::is_control` on a key and
+   on a value, and one test names the C1 character U+0085.
 3. **Background.** `SessionListing`, creation inheritance, the `listing`
    column on the same schema append as the labels column when that
    append has not shipped yet, otherwise the append after it.
@@ -173,10 +174,10 @@ No row of the crate table changes.
 
 ## Tests the contract requires
 
-- A key of 64 scalars is kept; 65, empty, a control, `=`, and `vessel.`
-  are `invalid_request` and write nothing.
-- A value of 256 is kept; 257, or a newline, is refused. An empty value
-  is kept.
+- A key of 64 scalars is kept; 65, empty, U+0000, the C1 character
+  U+0085, `=`, and `vessel.` are `invalid_request` and write nothing.
+- A value of 256 is kept; 257, a newline, or U+0085 is refused. An empty
+  value is kept.
 - The 33rd label is refused and the previous 32 stay.
 - A patch changes the keys it names and no other. `{}` is refused.
 - `session.list` with two pairs returns only a session that has both.
@@ -200,7 +201,9 @@ No row of the crate table changes.
 ## Resume point
 
 - Done: slice 1, the ADR and this plan. No code. `PROTOCOL_VERSION` is
-  not changed. The number is `lifecycle::SINCE`, set at merge.
+  not changed. The number is `lifecycle::SINCE`, set at merge. Keys and
+  values refuse `char::is_control`, as `SessionTitle` does, including
+  C1; the contract's test names U+0085.
 - Half-done: nothing.
 - Next: slice 2, labels, starting at `vessel-proto` (`LabelKey`,
   `lifecycle::SINCE`, and the `session.labels` row). Do not change
