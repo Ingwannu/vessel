@@ -44,6 +44,7 @@ mod density;
 mod effort_card;
 mod features;
 mod pickers;
+mod probe;
 
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
@@ -57,7 +58,7 @@ use vessel_app_view::offers::Offered;
 use vessel_app_view::{
     Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
 };
-use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
+use vessel_proto::{HarnessRef, OptionChoice};
 
 use crate::areas::composer::{draft_menu, draft_text};
 use crate::routes::Route;
@@ -239,63 +240,6 @@ impl Shell {
         self.probe(false);
     }
 
-    /// Ask the draft's machine what its agent offers: when not asked yet,
-    /// or (`again`) to refresh an answer or retry a failure.
-    pub(crate) fn probe(&mut self, again: bool) {
-        let Some(key) = self.areas.draft.settled.clone() else {
-            return;
-        };
-        self.probe_agent(key, again);
-    }
-
-    /// Ask what `key`'s agent offers on its machine: when nothing is
-    /// known of it yet, or (`again`) when a control opens, as the store
-    /// allows (one request in flight, none soon after an answer; track P's
-    /// `areas::composer::offers`).
-    pub(crate) fn probe_agent(&mut self, key: (String, HarnessRef), again: bool) {
-        let (machine, harness) = key;
-        if again || !self.offers_known(&machine, &harness) {
-            self.want_offers(machine, harness, vessel_app_view::offers::Why::Open);
-        }
-    }
-
-    /// An agent's options arrived; the store takes them (a failure to
-    /// refresh keeps what was shown, said as not fresh).
-    pub(crate) fn options_arrived(
-        &mut self,
-        machine: String,
-        harness: HarnessRef,
-        outcome: Result<Vec<SessionOption>, String>,
-    ) {
-        if let Ok(options) = &outcome {
-            // Which ids an agent sends, for the effort table
-            // (`view::effort::ROLES`): ids, categories and kinds only.
-            let shape: Vec<String> = options
-                .iter()
-                .map(|option| match &option.kind {
-                    vessel_proto::OptionKind::Select { values, .. } => format!(
-                        "{} ({:?}, select of {})",
-                        option.id.as_str(),
-                        option.category,
-                        values
-                            .iter()
-                            .map(|value| value.id.as_str())
-                            .collect::<Vec<_>>()
-                            .join("|")
-                    ),
-                    vessel_proto::OptionKind::Toggle { .. } => {
-                        format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
-                    }
-                    vessel_proto::OptionKind::Unknown => {
-                        format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
-                    }
-                })
-                .collect();
-            tracing::info!(agent = ?harness, options = %shape.join(", "), "an agent's options");
-        }
-        self.offers_arrived(machine, harness, outcome);
-    }
-
     /// The choices the draft starts with: the person's, once they chose
     /// any; until then the machine's last start of this agent's.
     pub(crate) fn effective_picks(&self) -> Picks {
@@ -450,6 +394,7 @@ impl Shell {
         draft.chosen = false;
         draft.composer.clear(window, cx);
         self.begin_pending(machine, agent_name(&harness), text, cx);
+        self.brand.sent();
         self.route = Route::Session;
         cx.notify();
     }
@@ -533,9 +478,14 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .gap(px(12.0))
-        .child(vessel_app_kit::mark(40.0, tokens))
+        // The brand's drawing measures the heading, the card and the
+        // pickers (worker B's `brand.rs`); it is the mark, drawn large.
+        .on_children_prepainted(shell.brand.new_session(0))
         .child(
             div()
+                // As wide as its words, so the brand's drawing measures the
+                // text and not the column (worker B's `brand.rs`).
+                .self_start()
                 .type_(Type::Title)
                 .text_size(px(vessel_app_kit::fonts::ui(22.0)))
                 .line_height(px(vessel_app_kit::fonts::ui(28.0)))
@@ -543,7 +493,7 @@ pub(crate) fn render(
                 .child(t.welcome),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx));
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }

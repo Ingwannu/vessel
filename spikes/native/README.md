@@ -96,6 +96,9 @@ app/src/
   chrome.rs        what is in the title bar (the mark and label; the update's status at the right)
   update.rs        the updater (track R's crate) on the shell: its state followed, check now,
                    automatic or only when asked, restart into a new build, "Updated to …" once
+  brand.rs         the brand's drawing behind the content panel (ADR 0059): the screens report
+                   their boxes while laid out, the backdrop draws the same frame; the first
+                   message's journey; brand/avatar.rs, the agent message's avatar
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
@@ -415,6 +418,51 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   (`assets::Glyph`), never characters. Controls take their colours from
   `tokens.neutral` (Paseo's scale); the accent is the brand's.
 
+### The brand's drawing (ADR 0059)
+
+`view::brand` decides the mark's large multiline drawing without a toolkit:
+the measured ratios (`ratios`), offset lines with concentric turns, loops
+and the star (`geometry`), where each screen's drawing goes and how it
+steps down as the window narrows (`layout`), the first message's journey
+(`motion`: 300 ms move, 150 ms star to circle, 150 ms the agent's mark, the
+kit's motion tokens and curve), and the shapes the kit paints. Its
+tests place the drawing over the real screens' measured boxes (1280, 1920
+and 390 wide) and check it never comes within 12 points of text.
+
+`kit::vector` paints shapes it is given (points with a stroke or a fill,
+a share of one theme ink) as the agent marks are painted: rasterised at
+exactly the device pixels they cover and drawn 1:1, cached by content
+(twelve rasters, at most two of them panel-sized; one pushed out is
+dropped from GPUI's atlas). `vector::drawing` makes its shapes at paint
+time, so a backdrop can use boxes the content measured in the same frame,
+and rasterises only the area it fills (the open session's frame runs far
+below the screen); `vector::inline` draws in a box of its own (the
+avatar).
+
+`app::brand` is the shell's `brand`: the new session's column gives
+`on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
+composer's card and the pickers after `skip` children), the session's
+screen gives `shell.brand.session_body(viewport)` and its composer's column
+`shell.brand.session_column()`, the row waiting for the reply gives
+`shell.brand.reply_head()` (its first child is the avatar's slot, where the
+star lands), `shell.brand.sent()` starts the journey, and `brand::avatar(…)`
+draws an agent message's avatar. The
+journey steps once per presented frame while it runs; held motion (reduced,
+off, a software renderer) shows its end at once.
+
+`kit::window_glyph` draws the title bar's minimise, maximise, restore and
+close glyphs in the mark's line language (one line, round ends, corners on
+half a pitch, the back stroke broken one gap short of the front one) at 9
+points, in whole device pixels at every scale: the line `⌊scale + ¼⌋`
+pixels (1, 1, 1, 2), the gap at least two, straight strokes on whole rows
+through `vector::snapped`. The cells, their fills and their hit areas stay
+the chrome's. `kit::frame::panel_edges` draws the content panel's edge as
+two lines one pitch apart (one at a phone's width) with GPUI quads whose
+boxes and widths are whole device pixels; it sits in a parent that does not
+clip and replaces the panel's own border. `kit/examples/window_glyphs.rs`
+is the audit sheet: every glyph in the bar's four states and the two-line
+edge, captured at 1, 1.25, 1.5 and 2 (`GPUI_X11_SCALE_FACTOR`).
+
 ## Why GPUI, and which
 
 ADR 0035: the app is native, drawn as Zed draws its own; Zed's framework
@@ -482,6 +530,9 @@ Environment:
   setting shows them (every tool call a row of its own; an agent's log
   as one folded row) instead of collapsing tool calls, until the app
   reads that setting.
+- `VESSEL_APP_SLOW_MOTION=<n>`: the brand's first-message journey runs
+  n times slower, so a capture on a virtual display can take its frames
+  (with `VESSEL_APP_REDUCE_MOTION=0`). Nothing is stored.
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.
