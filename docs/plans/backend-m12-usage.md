@@ -450,3 +450,15 @@ are not implemented by this slice. Native screens and controls are outside
 this resumed node-only scope. Real credentials and vendor endpoints were
 not used; a live-account check remains unverified by instruction. Commands
 ran as the workspace owner, with no service permission or ACL changes.
+
+### Execution provenance limitation
+
+The final accounting run did not retain a pre/post frozen-source manifest.
+Its command results, compilation logs, immutable source commit and subsequent
+generated-declaration/document commits are retained, but these do not
+retrospectively establish the working tree's cryptographic identity during
+execution or pin untracked build inputs. Review and integration approval
+are still pending. No pre-run attestation is being reconstructed, and the
+unchanged gate is not rerun to conceal this missing record. The next
+genuinely changed slice will capture its selected inputs and identities
+before and after execution.
