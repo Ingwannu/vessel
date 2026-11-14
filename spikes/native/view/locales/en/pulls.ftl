@@ -25,8 +25,9 @@ pulls-failed = Failed to create PR
 pulls-no-commits = Create PR isn't available because this branch doesn't have any new commits yet
 # Why Create PR is unavailable: a detached HEAD.
 pulls-no-branch = Create PR isn't available because you aren't on a branch
-# Why Create PR is unavailable: the branch's remote is missing.
-pulls-no-remote = Create PR isn't available here because this branch is not connected to a remote yet
+# Why Create PR is unavailable: the branch has no remote, or its remote is a
+# path or a host that is not a forge (the node says the same for both).
+pulls-no-remote = Create PR isn't available because this branch has no GitHub remote
 # Why Create PR is unavailable: the machine reads no forge at $host.
 pulls-no-forge = Create PR isn't available right now because { $host } isn't connected
 # Why Create PR is unavailable: the machine is not signed in to $host.

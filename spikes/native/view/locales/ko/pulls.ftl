@@ -8,7 +8,7 @@ pulls-failed = PR을 생성하지 못했습니다
 
 pulls-no-commits = 이 브랜치에 아직 새 커밋이 없어 PR 생성을 사용할 수 없습니다
 pulls-no-branch = 브랜치에 있지 않아 PR 생성을 사용할 수 없습니다
-pulls-no-remote = 이 브랜치가 아직 원격에 연결되어 있지 않아 여기서 PR 생성을 사용할 수 없습니다
+pulls-no-remote = 이 브랜치에 GitHub 원격이 없어 PR 생성을 사용할 수 없습니다
 pulls-no-forge = { $host }{ PARTICLE($host, "subject") } 연결되어 있지 않기 때문에 지금은 PR 생성을 사용할 수 없습니다
 pulls-signed-out = 이 머신이 { $host }에 로그인되어 있지 않아 PR 생성을 사용할 수 없습니다. 머신에서 gh auth login을 실행하세요.
 pulls-refused = { $host }{ PARTICLE($host, "subject") } 이 머신의 로그인을 거부해 PR 생성을 사용할 수 없습니다
