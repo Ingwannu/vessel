@@ -27,6 +27,7 @@ mod automation;
 mod conversation;
 mod forge;
 mod forking;
+mod id;
 mod lsp;
 mod search;
 mod sessions;
@@ -107,39 +108,70 @@ impl VesselTools {
     }
 
     async fn call(&self, name: &str, args: &JsonObject) -> Result<Value, ToolError> {
-        match name {
-            name if name.starts_with("vessel_lsp_") => self.lsp(name, args).await,
-            "list_nodes" => Ok(json!(self.client.call(ListNodes).await?)),
-            "list_sessions" => {
+        match id::decode(name) {
+            id::Decoded::Tool(tool) => self.dispatch(tool, args).await,
+            id::Decoded::LspPrefix => self.lsp(name, args).await,
+            id::Decoded::Unknown => Err(ToolError::Arguments(format!("no tool `{name}`"))),
+        }
+    }
+
+    /// Run a tool whose name was already decoded.
+    async fn dispatch(&self, tool: id::ToolId, args: &JsonObject) -> Result<Value, ToolError> {
+        let name = tool.as_str();
+        match tool {
+            id::ToolId::LspWorkspaceSymbols
+            | id::ToolId::LspDocumentSymbols
+            | id::ToolId::LspDefinition
+            | id::ToolId::LspReferences
+            | id::ToolId::LspHover
+            | id::ToolId::LspImplementations
+            | id::ToolId::LspTypeDefinition
+            | id::ToolId::LspIncomingCalls
+            | id::ToolId::LspOutgoingCalls
+            | id::ToolId::LspDiagnostics => self.lsp(name, args).await,
+            id::ToolId::ListNodes => Ok(json!(self.client.call(ListNodes).await?)),
+            id::ToolId::ListSessions => {
                 let node = self.target(args).await?;
                 Ok(json!(self.on(node, ListSessions).await?))
             }
-            "list_projects" | "list_worktrees" | "create_worktree" => {
+            id::ToolId::ListProjects | id::ToolId::ListWorktrees | id::ToolId::CreateWorktree => {
                 self.workspace(name, args).await
             }
-            "get_pull_request" | "open_pull_request" => self.forge(name, args).await,
-            "search_sessions" => self.search(args).await,
-            "fork_session" | "rewind_session" => self.forking(name, args).await,
-            "create_session" => self.create_session(args).await,
-            "send_input" => self.send_input(args).await,
-            "answer_permission" => self.answer_permission(args).await,
-            "read_events" => self.read_events(args).await,
-            "wait_turn" => self.wait_turn(args).await,
-            "read_conversation" | "change_queue" | "answer_question" | "resume_session"
-            | "archive_session" => self.conversation(name, args).await,
-            "create_terminal" | "list_terminals" | "read_terminal" | "write_terminal"
-            | "close_terminal" | "list_ports" => self.terminals(name, args).await,
-            "create_schedule" | "create_heartbeat" | "list_schedules" | "schedule_runs"
-            | "pause_schedule" | "resume_schedule" | "delete_schedule" | "list_saved_prompts" => {
-                self.automation(name, args).await
+            id::ToolId::GetPullRequest | id::ToolId::OpenPullRequest => {
+                self.forge(name, args).await
             }
-            "kill_session" => {
+            id::ToolId::SearchSessions => self.search(args).await,
+            id::ToolId::ForkSession | id::ToolId::RewindSession => self.forking(name, args).await,
+            id::ToolId::CreateSession => self.create_session(args).await,
+            id::ToolId::SendInput => self.send_input(args).await,
+            id::ToolId::AnswerPermission => self.answer_permission(args).await,
+            id::ToolId::ReadEvents => self.read_events(args).await,
+            id::ToolId::WaitTurn => self.wait_turn(args).await,
+            id::ToolId::ReadConversation
+            | id::ToolId::ChangeQueue
+            | id::ToolId::AnswerQuestion
+            | id::ToolId::ResumeSession
+            | id::ToolId::ArchiveSession => self.conversation(name, args).await,
+            id::ToolId::CreateTerminal
+            | id::ToolId::ListTerminals
+            | id::ToolId::ReadTerminal
+            | id::ToolId::WriteTerminal
+            | id::ToolId::CloseTerminal
+            | id::ToolId::ListPorts => self.terminals(name, args).await,
+            id::ToolId::CreateSchedule
+            | id::ToolId::CreateHeartbeat
+            | id::ToolId::ListSchedules
+            | id::ToolId::ScheduleRuns
+            | id::ToolId::PauseSchedule
+            | id::ToolId::ResumeSchedule
+            | id::ToolId::DeleteSchedule
+            | id::ToolId::ListSavedPrompts => self.automation(name, args).await,
+            id::ToolId::KillSession => {
                 let node = self.target(args).await?;
                 let session = session(args)?;
                 let _ack = self.on(node, KillSession { session }).await?;
                 Ok(json!({ "killed": session }))
             }
-            other => Err(ToolError::Arguments(format!("no tool `{other}`"))),
         }
     }
 
