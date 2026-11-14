@@ -21,13 +21,13 @@ section are relative to the Paseo source tree inspected on 2026-11-14.
 | same, `3794–3795` | `daemonDiagnostics: z.boolean().optional()` | The app checks whether the daemon offers the feature |
 | `packages/server/src/server/authorization/operation-permissions.ts:83,318` | `"diagnostics.request": "daemon.read"` / `"diagnostics.response": "daemon.read"` | Read authority, not daemon management |
 | `packages/server/src/server/session/daemon/daemon-session.ts:293–315` | `const diagnostic = await collectDaemonDiagnostics({` | The daemon collects its own facts and echoes the request id |
-| same, `317–325` | `diagnostic: \`Paseo diagnostics\n  Error: ${` | A collection failure is visible rather than an empty success |
+| same, `317–325` | `error instanceof Error ? error.message : String(error)` | A collection failure is visible rather than an empty success |
 | `packages/server/src/server/session/daemon/diagnostics.ts:63–107` | `return redactDiagnostic(sections.filter(Boolean).join("\n\n"), options);` | Sections are collected separately, then joined and redacted |
 | same, `127–155` | `{ label: "PATH", value: getEnvValue("PATH", "Path") ?? "unset" }` | Paseo includes process environment and home; Vessel deliberately excludes these values |
-| same, `216–235` | `provider.error ? \`${provider.provider} (${provider.error})\` : provider.provider` | Availability includes a reason; Vessel uses closed reasons, not the error text |
+| same, `216–235` | `provider.error` | Availability includes a reason; Vessel uses closed reasons, not the error text |
 | same, `58–61,426–457` | `const LOG_TAIL_LINES = 80;` / `const LOG_TAIL_MAX_BYTES = 64 * 1024;` | Paseo has a bounded recent log tail, not merely a boolean error flag |
 | same, `543–567` | `.replace(/paseo:\/\/\S+/gi, "paseo://[redacted]")` | Paseo masks configured endpoints, links and credential patterns after collection |
-| `packages/app/src/diagnostics/app-diagnostic-report.ts:15–16,108–142` | `return [title, ...entries.map((entry) => \`  ${entry.label}: ${entry.value}\`)].join("\n");` | A copyable section/indented-label report with client-side redaction |
+| `packages/app/src/diagnostics/app-diagnostic-report.ts:15–16,108–142` | `formatDiagnosticSection(title: string, entries: DiagnosticEntry[])` | A copyable section/indented-label report with client-side redaction |
 | `packages/app/src/components/app-diagnostic-sheet.tsx:111–123` | `for (const host of hosts)` | Per-machine progress and a combined client report |
 | same, `131–151,175–200` | `runIdRef.current += 1;` | Closing/refresh supersedes old results; Copy and Refresh are explicit controls |
 | same, `264–309` | `if (serverInfo?.features?.daemonDiagnostics === true)` | Offline, unsupported and failed hosts retain explicit per-host status |
