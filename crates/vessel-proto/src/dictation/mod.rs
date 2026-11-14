@@ -14,9 +14,17 @@ use crate::key::serde_via_text;
 
 mod error;
 mod local_model;
+mod patch;
+mod secret_ref;
+mod settings;
 mod settings_values;
 
 pub use local_model::{LocalModelId, UnknownLocalModelId};
+pub use patch::DictationChange;
+pub use secret_ref::{RedactedNameError, SecretReference};
+pub use settings::{
+    DictationProvider, DictationSettings, DictationSwitch, KeyPresence, SetDictation,
+};
 pub use settings_values::{EndpointBase, EndpointModel, Language};
 
 pub use error::DictationDecodeError;

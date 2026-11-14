@@ -5,6 +5,7 @@ use super::{
     MIN_ID_CHARS, MIN_RATE, PCM_SAMPLE_BYTES,
 };
 
+use super::secret_ref::RedactedNameError;
 use super::settings_values::{MAX_LANGUAGE_CHARS, MAX_MODEL_CHARS, MAX_URL_BYTES, MIN_TEXT_CHARS};
 
 /// Invalid dictation input, refused before a node opens a provider.
@@ -49,4 +50,26 @@ pub enum DictationDecodeError {
     /// Catalogue IDs remain tokens even when read from a newer node.
     #[error("a dictation local model is {min} to {max} ASCII letters, digits, dots, underscores or hyphens", min = MIN_TEXT_CHARS, max = MAX_MODEL_CHARS)]
     LocalModel,
+    /// Future choices can be read but must not be newly selected.
+    #[error("this node does not know that dictation switch; send on or off")]
+    UnknownSwitch,
+    /// Provider selection stays a closed typed choice.
+    #[error("this node does not know that dictation provider; send local or endpoint")]
+    UnknownProvider,
+    /// Unknown catalogue IDs are retained on read, never newly applied.
+    #[error("this node does not know that local dictation model")]
+    UnknownLocalModel,
+    /// A stored reference is not a place to paste a credential value.
+    #[error("a dictation key must name a stored node secret")]
+    SecretReference {
+        /// The central validator's cause, after submitted text is removed.
+        #[source]
+        source: Option<RedactedNameError>,
+    },
+    /// A local site must not silently retain unused endpoint configuration.
+    #[error("dictation endpoint options require the endpoint provider")]
+    EndpointFields,
+    /// An endpoint must not silently retain an unused local selection.
+    #[error("a dictation local model requires the local provider")]
+    LocalFields,
 }

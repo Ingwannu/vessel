@@ -209,7 +209,8 @@ It is being rebuilt in responsibility-sized parts:
   provider, settings, or node behaviour yet.
 - 2b1: validated provider metadata and the local-model catalogue; no settings
   object or I/O yet.
-- 2b2: settings object and persistence, using the existing settings/secret path.
+- 2b2a: unregistered settings values and strict keep/set/reset patch.
+- 2b2b: settings persistence and wiring, using the existing settings/secret path.
 - 2c onward: bounded audio processing, endpoint, stream actor and the five
   RPC rows, split at those responsibility boundaries with their refusal tests.
 - 3: the CLI file client, after the node service passes review.
@@ -309,9 +310,13 @@ validated before writing; any refusal leaves file and in-force settings unchange
 Wiring owes future-file preservation, legacy-writer, deletion-race and whole-
 provider-patch failure tests named in ADR 0067.
 
-Half-done: unregistered contract values are in development. Keep/set/reset,
-provider changes and reference privacy have targeted tests; no persistence path
-is implemented yet. Finish the returned docs first, then the value-only gate.
+The unregistered contract values now have keep/set/reset decoding, pure merged-
+provider validation and redacted secret references. A null provider clears its
+site even when local was already selected, matching Paseo. Targeted TS-enabled
+tests pass, including numeric credential pastes and nullable reset declarations;
+the whole gate on this value-only commit is next. No persistence path,
+NodeSettings field or method is implemented. The corrected document has its
+own fast gate; neither gate proves the later file/race/atomic-write contract.
 
 Next stage audio/owner and endpoint code under the test-only module declaration.
 Those reviews establish staged source behaviour, not a product path. Wiring
