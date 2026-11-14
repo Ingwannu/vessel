@@ -116,8 +116,8 @@ cannot use `_`. Slice 1 *calls* two of them, from the shared
 create, `create_starting`
 (`crates/vessel-node/src/service/sessions.rs` lines 114 to 125).
 
-- `agent.create.before`, waiting. It is the first step of that
-  function.
+- `agent.create.before`, waiting. It runs after the draining
+  refusal and before `refuse_installing`.
 - `agent.create.after`, not waiting. It runs only after
   `sessions.create` has returned the session and the claim and
   the watch that already follow a successful create have run.
@@ -142,21 +142,24 @@ through `create_core_as` (`service/side_questions.rs` line 114).
 Calling the hooks only from `create_session` left those out. The
 call moves onto `create_starting`.
 
-`agent.create.before` runs before the checks that read the spec.
-Those checks stay in the order they have now, after the hook: the
-draining refusal, `refuse_installing` on `spec.harness` (line
-125), `place`, the grant, and the credential (`agents.reserve`).
-A harness the hook replaced is what `refuse_installing` reads.
-The body of `agents.reserve` was not read, so this record does
-not say the grant inspects the harness. Slice 1 adds no second
-authorization.
+`agent.create.before` runs after the draining refusal and before
+the checks that read the spec. The draining refusal stays the
+first statement of `create_starting` (`sessions.rs` lines 122 to
+124). Paseo calls `assertAcceptingAgentRegistrations` and then
+the hook (`agent-manager.ts` lines 1361 and 1364). The same
+order: refuse a create the node is not accepting, then the hook.
+The hook is inserted after that refusal and before
+`refuse_installing`, and it moves no existing check. A waiting
+hook is up to 30 seconds, so it does not run for a create the
+draining check is about to refuse.
 
-Paseo calls `assertAcceptingAgentRegistrations` before the hook
-(`agent-manager.ts` line 1361). Vessel runs the hook and then the
-draining check. That is a stated difference. The reason is that
-the hook is one insertion at the top, and the checks that already
-exist keep their order. A draining node still refuses and stores
-nothing. The replacement is discarded with that refusal.
+The checks that read the spec stay in the order they have now,
+after the hook: `refuse_installing` on `spec.harness` (line 125),
+`place`, the grant, and the credential (`agents.reserve`). A
+harness the hook replaced is what `refuse_installing` reads. The
+body of `agents.reserve` was not read, so this record does not
+say the grant inspects the harness. Slice 1 adds no second
+authorization.
 
 These creates do not fire either hook:
 

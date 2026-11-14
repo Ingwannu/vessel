@@ -39,7 +39,7 @@ The contract is the "Slice 1" section of ADR 0068. Short form:
   from `create_starting`. The RPC, a schedule, a fork and a new
   side question pass through them. An import (an origin is set)
   and a rewind do not.
-- Before is the first step, before the draining check and
+- Before runs after the draining refusal and before
   `refuse_installing`. It may replace `title` and `harness`. A
   change to `cwd`, `place`, `profile` or `mode`, or a handler
   error, is `InvalidRequest`. The message names the plugin and
@@ -87,8 +87,9 @@ are separate decisions. They are not implied by slice 4.
   gets the number given at merge), no settings key is listed, the
   helper's reach and the Windows path are written, test handlers
   are `cfg(test)` only. Corrected again: both create hooks sit
-  on `create_starting`, before the checks that read the spec, and
-  import and rewind are the skips, with the reasons in the ADR.
+  on `create_starting`. The before hook follows the draining
+  refusal and precedes the checks that read the spec. Import and
+  rewind are the skips, with the reasons in the ADR.
   A refusal is `InvalidRequest`. A timeout is `Unavailable`. No
   code. No crate.
 - Half-done: nothing in code. The ADR is still proposed.
