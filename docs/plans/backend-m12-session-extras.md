@@ -1,7 +1,7 @@
 # Milestone 12: session extras (N5)
 
 Status: row 1 node implementation and integration gates passed, 2026-11-14;
-implementation review is pending. The results under resumed integration
+V1 reported implementation PASS for 85c60716. Merge is not claimed. The results under resumed integration
 below supersede the old checkpoint's unverified wire/web status.
 This session owns node, wire, client, CLI, testkit and contracts only.
 Native preparation below remains historical WIP for the app owners; no
@@ -626,7 +626,9 @@ this worktree or target directory. No owned fleet or virtual display remains.
 No preview node/unit/port, real-provider prompt, service permission, account
 configuration, push or release operation was used. All local commands ran
 as the checkout's ordinary user, preserving existing ownership and modes.
-Implementation review and any resulting fixes are still owed before merge.
+At that handoff, implementation review was still owed. V1 subsequently
+reported implementation PASS for 85c60716; node integration and app/UI
+approval are separate and are not claimed by that decision.
 
 ## Row 2: node contract proposal (ADR 0046)
 
@@ -657,3 +659,50 @@ including chunk copy and readiness/setup reads, use that destination through
 the ordinary typed route; member ids must never fall through to a home.
 The contract bounds RPC/readiness/setup waits and treats a mutating deadline
 as uncertain, not permission to resend. No existing test timeout is changed.
+
+
+### Row 2 contract review: three accepted boundary corrections
+
+V1 returned a1ad971e/a896ac17 before implementation. The composition choice
+was accepted; the three findings are accepted without changing node guards:
+
+1. Delegated worktree reads and exhausted local wait slots can remove wait.
+   The first no-progress reply returns the same WaitingSetup/WaitingReady
+   state without an automatic reissue. The sole job enforces at least one
+   second before another observation; earlier continuation is local-only.
+   Setup/readiness observation budgets remain finite. Tests must use an
+   actual member/relay and a local exhausted-slot connection, not an ideal
+   long-poll mock, for both setup and event/readiness paths.
+2. Attachment reads are bounded to 45 seconds, begin/write/finish to 120.
+   Whole copy is at most thirty minutes per target, with 120 seconds of no
+   acknowledged-byte progress ending a copy. The exact phase, known upload,
+   acknowledged offset, attempted byte range and resource trail survive
+   deadlines/lost replies/cancellation. Unknown mutations are UncertainCopy;
+   incomplete copies never prompt or automatically resend. Existing upload
+   expiry is not used as a request timeout. Stalled reads and lost begin,
+   write and finish have separate tests.
+3. One nonclone client ComparisonJob owns target transitions and the frozen
+   common snapshot; start no longer consumes mixed pending ownership.
+   Passive snapshots cannot restart work. Source binding requires Ready
+   only initially; later pending targets use those same stored refs/text
+   after the source is Started or ended, or fail if it is removed/changed.
+   Dropping a method reply future retains the owner/operation. Explicit
+   cancel or owner drop stops later phases and turns an admitted unresolved
+   session-create/upload/prompt into typed uncertainty, never a restored
+   waiting continuation. Ready+WaitingSetup, later identical bytes, sent-once
+   successes and cancellation during continued session-create are required.
+
+The corrected API details and outcome table live in ADR 0046. Shared input
+is validated before binding/first prompts; a rejected candidate is unbound,
+whereas a bound snapshot cannot be replaced by a newer draft. The CLI must
+cancel before printing its final report if exiting with pending work; no
+executable continuation is promised across CLI processes. No server registry
+or durable idempotency claim is introduced. GOAT's cited SSH fanout fixture
+is predispatch refusal coverage only; positive fanout is proved by the new
+real-node/fake-agent tests when implemented.
+
+No production code, generated wire, gate, fleet, service or permissions were
+changed for this revision. The unchanged 85c60716 whole-gate results remain
+separate; no code gate is rerun for this documentation-only correction.
+Row 1 implementation PASS is V1's reported decision, not app/UI approval.
+Row 2 remains contract review pending and implementation not started.
