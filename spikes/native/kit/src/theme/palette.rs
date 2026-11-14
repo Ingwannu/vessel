@@ -258,14 +258,6 @@ mod tests {
         clippy::float_arithmetic,
         reason = "relative luminance is defined with these operations"
     )]
-    #![expect(
-        clippy::float_cmp,
-        reason = "the floor is the unrounded ratio truncated to two decimals"
-    )]
-    #![expect(
-        clippy::expect_used,
-        reason = "a channel masked to 0xff fits in a byte"
-    )]
 
     use super::{CLAUDE, FOREGROUND, GHOSTTY, MIDNIGHT, PURE_BLACK, Tint, WHITE, ZINC, paint};
     use crate::assets::BRAND;
@@ -441,12 +433,11 @@ mod tests {
 
     fn accent_floor(id: ThemeId) -> f64 {
         match id {
-            ThemeId::Light | ThemeId::Dark => 7.95,
+            ThemeId::Light | ThemeId::Dark | ThemeId::PureBlack => 7.95,
             ThemeId::Zinc => 13.96,
             ThemeId::Midnight => 4.81,
             ThemeId::Claude => 3.12,
             ThemeId::Ghostty => 4.62,
-            ThemeId::PureBlack => 7.95,
         }
     }
 
@@ -454,11 +445,10 @@ mod tests {
         match id {
             ThemeId::Light => 5.73,
             ThemeId::Dark => 4.56,
-            ThemeId::Zinc => 4.74,
+            ThemeId::Zinc | ThemeId::PureBlack => 4.74,
             ThemeId::Midnight => 4.72,
             ThemeId::Claude => 4.28,
             ThemeId::Ghostty => 4.71,
-            ThemeId::PureBlack => 4.74,
         }
     }
 
