@@ -785,6 +785,48 @@ Captures: the scratch directory's `s3/shots/motion/` (frames with
 `times.txt` per strip; `strips/` on above off, and the numbers beside
 each).
 
+### The sidebar's list and its Display menu (track S3, 2026-11-14)
+
+Commit: `ad667abe`. The sidebar draws through the view's model of the
+page's sidebar (`Fleet::sidebar_machines`, `sidebar_statuses`; the same
+list Alt+[ and Alt+] walk): grouped by machine (the default) or by
+status, sorted by creation or last activity, ended sessions only when
+asked, pinned first, five to a machine and ten to a status group, then
+"N more", which opens the board (on that machine when grouped by
+machine). A row leads with the agent's mark and the page's mark of what
+the session is doing (spinner, needs-you dot, hollow dot, dash, the muted
+fill for unread); an unread title is primary at medium weight; grouped
+by status, the machine's name is at the right.
+
+Reference files followed: Paseo
+`components/sidebar/display-preferences/{model.ts,menu.tsx}` (the
+Settings2 mark at the list heading, a 232-wide surface aligned to the
+trigger's end, root rows naming each decision with its value, one page
+per decision, options with marks on the grouping page only, a choice
+closing the menu) and `components/left-sidebar.tsx`
+(`WorkspacesSectionHeader`); the page's `features/shell/{sidebar-machines,
+sidebar-statuses,sidebar-view-menu,session-mark}.tsx` and `sidebar.css`
+(the decisions, the marks' sizes and colours, "N more").
+
+Differences, named: a page replaces the root in place with a way back on
+a wide window too (Paseo opens a flyout by hover intent; the kit's list
+has no flyout); "Show ended sessions" is a switch on the root (Paseo has
+no such decision; the page's menu had it); a session row has no branch
+chip yet (the workspace track's to draw); a machine's row is the native
+sidebar's (name, state, the unreachable line) rather than the page's
+dot, name and live count.
+
+Structure: `app/src/areas/sidebar/` is one file per part (`mod.rs` the
+frame and its rows, `machines.rs`, `statuses.rs`, `session_row.rs`,
+`display.rs`, `foot.rs`), spacing on the kit's steps (the quality audit's
+S3 rows 1 and 6); what each Display row is and does is
+`view::sidebar::display`, tested without a window.
+
+Capture note: a book paired by the CLI under `HOME=<person>` names its
+credential `~/config/…`; an app run with another HOME reports the
+machine unreachable ("the device credential … No such file"). The
+capture driver rewrites that path in its per-run copy.
+
 ### Resume point (track S3, 2026-11-14 15:40 UTC)
 
 - Done and reported: palette (`153da701`, accepted); `view::matcher`

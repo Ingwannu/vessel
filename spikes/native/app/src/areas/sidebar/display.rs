@@ -14,10 +14,9 @@ use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::Leading;
-use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    AnyElement, Bounds, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
+    AnyElement, Bounds, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    Pixels, StatefulInteractiveElement as _, Styled as _, Window, div, px, svg,
 };
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Tokens, combobox, select,
@@ -28,8 +27,10 @@ use crate::shell::Shell;
 
 /// Paseo's `MENU_WIDTH`.
 const WIDTH: f32 = 232.0;
-/// The trigger's square, around its 14-point mark.
-const TRIGGER: f32 = 20.0;
+/// The trigger's square, around its 14-point mark (Paseo's 28).
+const TRIGGER: f32 = 28.0;
+/// Its corners: Paseo's `borderRadius.md`; the kit has no 6 step.
+const CORNER: f32 = 6.0;
 /// Paseo's mark size in the heading.
 const MARK: f32 = 14.0;
 
@@ -71,7 +72,6 @@ impl Shell {
 /// The trigger at the heading's right.
 pub(super) fn trigger(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
     let menu = &shell.areas.sidebar.display;
-    let open = menu.list.is_open();
     div()
         .id("sidebar-display")
         .relative()
@@ -80,10 +80,9 @@ pub(super) fn trigger(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(radius::R4))
+        .rounded(px(CORNER))
         .cursor_pointer()
-        .when(open, |trigger| trigger.bg(tokens.neutral.surface2))
-        .hover(|style| style.bg(tokens.neutral.surface2))
+        .hover(|style| style.bg(tokens.bg_hover))
         .child(
             svg()
                 .path(Glyph::Sliders.path())
