@@ -7,7 +7,7 @@ track's is). Answers questions 4 (Windows and macOS) and 8 (updates) of
 
 Read first: ADR 0035 (the native app), ADR 0008 (how `vesseld` releases
 are signed and installed), ADR 0014 (what may be linked), and
-`spikes/release/patches/README.md` (the patched GPUI crate).
+`spikes/release/patches/README.md` (the patched GPUI crates).
 
 ## What this track owns
 
@@ -17,7 +17,9 @@ spikes/release/
   hello/                 the smallest GPUI window (a target's first proof)
   updater/               vessel-app-updater: the app's updater, no GPUI
   feed/                  vessel-app-feed: release key, signed feed, sums
-  patches/               gpui-pre-windows 0.3.10, patched (README there)
+  patches/               patched crates (README there): gpui-pre-windows and
+                         gpui-pre-linux 0.3.10, and from 0.0.0.0.15
+                         gpui-base 0.8.1 (a steady caret while motion is held)
   tools/fxc-wine         Microsoft's fxc.exe under wine, for GPUI's shaders
   tools/fetch-fxc.py     fetches fxc.exe and d3dcompiler_47.dll from the SDK
   windows/installer.nsi  the per-user installer
@@ -26,9 +28,11 @@ spikes/release/
 ```
 
 The app itself is the desktop track's (`spikes/native/`, merged from
-`backend/m12-spike`). This track adds one section to its manifest: the
-`[patch.crates-io]` line that points `gpui-pre-windows` at the patched
-copy, which only a Windows build compiles.
+`backend/m12-spike`). Its manifest's `[patch.crates-io]` section points
+each patched crate at its copy here: `gpui-pre-windows` (compiled only by
+a Windows build), `gpui-pre-linux` (only by a Linux build) and, from
+0.0.0.0.15, `gpui-base` (both). The release workspace uses none of
+gpui-base, so its own patch table is unchanged.
 
 ## Running it
 
@@ -764,6 +768,110 @@ never rebuilt.
   - The usual checks passed: the signature's comment, icons, version
     block, stripped Linux exe with a matching debuglink, symbols kept,
     and a clean log.
+
+- **0.0.0.0.11**:
+  - Built from exactly `f0c1d540`, the desktop lead's head, which holds
+    this track's branch up to `d2260ce3`. The app speaks protocol 14.
+  - The set went into place at 23:55 UTC and was published to
+    `preview` at 00:00:36 UTC on 2026-11-14, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.10 Linux
+    build took 0.0.0.0.11 by itself at 00:01:53 UTC.
+  - Sizes, with the change against 0.0.0.0.10: setup 12,592,815
+    (+132,302), exe 45,623,296 (+609,280), zip 18,539,862 (+236,408),
+    linux 82,100,320 (+505,576), tar.gz 28,671,250 (+168,449).
+  - No new crates and no new assets.
+  - The usual checks passed. The shipped Linux build made its log
+    folder 0700 and `vessel.log` 0600 (`02d8fe0b`).
+
+- **0.0.0.0.12**:
+  - Built from `509ef7f`: the desktop lead's `280927b0` (protocol 15)
+    merged into this branch. Only `docs/` differs from `280927b0`.
+  - The set went into place at 00:35 UTC on 2026-11-14.
+  - Sizes, with the change against 0.0.0.0.11: setup 12,680,258
+    (+87,443), exe 46,038,528 (+415,232), zip 18,683,359 (+143,497),
+    linux 82,481,888 (+381,568), tar.gz 28,808,401 (+137,151).
+  - No new crates and no new assets. The usual checks passed.
+  - **Built and withheld; the label is skipped.** The coordinator's
+    check on the real node found the new Settings › Sync page telling an
+    admin device that it has no permission and should use an admin
+    device. That sentence is wrong for a refusal from a standalone
+    protocol 11 node. Everything else in that check passed.
+  - The folder stays where it is. It is never published, and the label
+    is never rebuilt. The feed served 0.0.0.0.11 until 0.0.0.0.13.
+  - 0.0.0.0.13 hides Settings › Sync until its page is right on every
+    kind of machine (`ce880e4d`), and carries the owner's fixes to the
+    marks and the slider.
+
+- **0.0.0.0.13**:
+  - Built from exactly `9461f149`, the desktop lead's head (protocol
+    15), checked out detached; this branch then merged it.
+  - The set went into place at 03:46:57 UTC on 2026-11-14 and was
+    published to `preview` at 03:53:49 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.11 Linux
+    build took 0.0.0.0.13 by itself at 03:56:13 UTC, past the withheld
+    label.
+  - Sizes, with the change against 0.0.0.0.11, the last published:
+
+    | File | Bytes | Change |
+    |---|---|---|
+    | setup | 12,746,999 | +154,184 |
+    | exe | 46,142,976 | +519,680 |
+    | zip | 18,566,980 | +27,118 |
+    | linux | 82,670,256 | +569,936 |
+    | tar.gz | 28,732,276 | +61,026 |
+
+  - The Gemini CLI PNG is gone. Five 64-byte slices of it are found in
+    0.0.0.0.11's executables and in neither of 0.0.0.0.13's, which carry
+    the spark's vector path instead. Against the withheld 0.0.0.0.12
+    the executables grew (exe +104,448, linux +188,368) while the zip
+    and tar.gz shrank (-116,379, -76,125).
+  - The spark comes from `google/adk-docs` under Apache-2.0
+    (`docs/design/agent-marks/README.md`), so `google-Apache-2.0.txt`
+    still belongs to something shipped. Every package carries the 4
+    texts, as before.
+  - The new card paints per frame while it moves or shows the top stop's
+    field. The packaged Linux build's CPU was read against two fake
+    nodes (`scripts/fleet.sh`) on Xvfb with Mesa's software Vulkan. That
+    is an upper bound, not what a desktop with a GPU sees.
+
+    | State | This track | Coordinator (real node) |
+    |---|---|---|
+    | card closed | 7.3% of a core | about 6% |
+    | open, middle stop (High) | 7.9% | about the same |
+    | open, top stop (Ultracode) | 307% | about 310% (Fast on: 320%) |
+
+    The frame-rate work goes to the desktop lead for the next build.
+  - The usual checks passed. The 4 headless WARNs (no desktop portal on
+    Xvfb) are the same as in 0.0.0.0.12's run.
+
+- **0.0.0.0.14**:
+  - Built from exactly `a792d766`, the desktop lead's head (the native
+    gate passed at `52344564`; above it only plans), checked out
+    detached; this branch then merged it.
+  - The set went into place at 06:04:53 UTC on 2026-11-14 and was
+    published to `preview` at 06:55:18 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.13 Linux
+    build took 0.0.0.0.14 by itself at 06:57:04 UTC.
+  - The notes carry one known cost: with the composer focused, the
+    caret's blink repaints the window (on the software renderer about
+    31% of a core at 1280×800 and 62% at 1920×1200, the coordinator's
+    reading). It is the desktop lead's first follow-up.
+  - In it: the slider's fill inside its pill, popovers that take the
+    pointer, the card's decorations at 30 frames a second coming to
+    rest, the whole app's motion held still on a software renderer, and
+    no redraw for an unchanged fleet read.
+  - Sizes, with the change against 0.0.0.0.13: setup 12,751,182
+    (+4,183), exe 46,177,792 (+34,816), zip 18,583,488 (+16,508), linux
+    82,676,920 (+6,664), tar.gz 28,748,306 (+16,030).
+  - The usual checks passed. On Xvfb the shipped Linux build logged "a
+    software renderer: the app holds its motion still" and used 0.3% of
+    a core over 15 s on its first screen with no node.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 
