@@ -28,6 +28,9 @@ use crate::shell::Shell;
 /// Paseo's `desktopMinWidth`.
 const SWITCHER_WIDTH: f32 = 280.0;
 
+/// The widest the list grows to follow a wide header.
+const SWITCHER_WIDEST: f32 = 420.0;
+
 /// A switcher row's parts besides its name (the kit's combobox row): the
 /// list's 4-point inset each side, the row's 12-point insets, the 14-point
 /// branch glyph, two 8-point gaps and the 16-point check, and two points
@@ -63,24 +66,31 @@ pub(super) fn switcher(
         BranchChoices::Failed(problem) => (Vec::new(), lang.git_call_failure(problem).title),
         BranchChoices::Rows { rows, .. } => (rows, labels.empty_branches.to_owned()),
     };
-    // Each name on one line cut in its middle (`name.rs`): `origin/…` and
-    // the topic at the end are what tell two rows apart. The list is
-    // Paseo's 280 wide, or the window's width as a sheet below `COMPACT`.
-    let list = if window.viewport_size().width < px(vessel_app_kit::picker::COMPACT) {
+    // The list is at least as wide as the branch name's box in the header
+    // (Paseo's 280 at the least, about 420 at the most), so two names that
+    // share both ends still read apart; the window's width as a sheet
+    // below `COMPACT`. Each name is one line cut in its middle (`name.rs`),
+    // the whole name in the row's tooltip when cut.
+    let width = if window.viewport_size().width < px(vessel_app_kit::picker::COMPACT) {
         f32::from(window.viewport_size().width)
     } else {
-        SWITCHER_WIDTH
+        git.branch_room.get().map_or(SWITCHER_WIDTH, |bounds| {
+            f32::from(bounds.size.width).clamp(SWITCHER_WIDTH, SWITCHER_WIDEST)
+        })
     };
-    let room = ROW_CHROME.mul_add(-1.0, list);
+    let room = ROW_CHROME.mul_add(-1.0, width);
     let rows: Vec<ComboRow> = rows
         .iter()
-        .map(|choice| ComboRow {
-            leading: Some(Leading::SmallGlyph(Glyph::Branch)),
-            checked: choice.selected,
-            disabled: !choice.enabled,
-            ..ComboRow::new(
-                name::one_line(window, choice.branch.name.as_str(), Type::Body, room).text,
-            )
+        .map(|choice| {
+            let whole = choice.branch.name.as_str();
+            let shown = name::one_line(window, whole, Type::Body, room);
+            ComboRow {
+                leading: Some(Leading::SmallGlyph(Glyph::Branch)),
+                checked: choice.selected,
+                disabled: !choice.enabled,
+                tooltip: shown.cut.then(|| whole.to_owned().into()),
+                ..ComboRow::new(shown.text)
+            }
         })
         .collect();
     let header = ComboHeader {
@@ -103,7 +113,7 @@ pub(super) fn switcher(
         &header,
         &rows,
         &handlers,
-        SWITCHER_WIDTH,
+        width,
         tokens,
         window,
         cx,
