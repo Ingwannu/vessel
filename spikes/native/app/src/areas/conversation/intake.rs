@@ -108,6 +108,10 @@ impl ConversationArea {
         }
         self.logs = Logs::of(self.timeline.entries());
         self.outline = outline(self.timeline.entries());
+        // The rail lists the conversation's prompts: not what a rewind
+        // left behind.
+        let timeline = &self.timeline;
+        self.outline.retain(|item| !timeline.rewound(item.entry));
         self.rows_again();
         let rows_after = self.rows.len();
         // Rows are entries less folded members, so a batch can add rows
