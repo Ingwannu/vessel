@@ -116,6 +116,17 @@ impl Shell {
                 shown.machine == answer.machine && shown.session == answer.session
             }))
         .then_some(answer.session);
+        // A rewind's answer for the session shown lifts its menu's lock
+        // and puts the message back (`rewind`).
+        if self
+            .areas
+            .conversation
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.machine == answer.machine && shown.session == answer.session)
+        {
+            self.rewind_answered(&answer);
+        }
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);
         }

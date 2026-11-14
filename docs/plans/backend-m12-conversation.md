@@ -159,6 +159,38 @@ the new rules; the setting's page is track E3's. An install that saved
 "queue" before keeps it (the preferences store every field, so a saved
 default cannot be told from a choice).
 
+## Rewind and fork (protocol 14, ADR 0052; started 2026-11-14)
+
+Plan: Paseo's controls on our node's calls. Paseo puts **rewind** in
+the trailing row under the person's message (its time, an undo mark,
+copy; `components/message.tsx` `UserMessage`, `rewind/rewind-menu.tsx`):
+a menu headed "This action cannot be undone" with one row per mode the
+agent supports, and the rewound message goes back into the composer
+(`rewind/composer-restore.tsx`). It puts **fork** in the reply's turn
+footer between copy and "Worked for" (`assistant-fork-menu.tsx`). Our
+node rewinds and forks only at a turn's end the agent named (a point,
+`TurnPoint`), rewinds the conversation only (files are not put back;
+the record says how many tool calls changed them), and forks into a new
+session (no tabs or workspaces).
+
+| Slice | What | Reference |
+| --- | --- | --- |
+| R1 | the person's message's trailing row (time, rewind, copy); rewind to the turn end before it (`session.rewind`), the rewound message back in the composer; the entries rewound away drawn no more (they stay in the fold and the log: entries are never removed) | Paseo `UserMessage`, `RewindMenu` (conversation mode) |
+| F1 | the turn footer's fork menu; `session.fork` at that turn's end; the new session opened; its first line says where it came from | Paseo `AssistantForkMenu` (one target: a new session) |
+| F2 | a fork that never had a conversation (`empty_fork`): its reason and Remove | ADR 0052 addendum (track A2) |
+
+Each slice: rules in `view` with tests, captures at 1280, 390 and
+800 × 600, the gate, a report.
+
+R1 done (2026-11-14; 9b8eadfb, 92ef3ed9, ba96e64a): on the fake fleet a
+rewind to the first turn's end left the second turn behind (no longer
+drawn, nor on the outline rail, nor found), the node logged "rewound to
+record 21", and the message went back into the empty composer.
+Differences from Paseo, kept: one mode (the conversation); no tooltip on
+the undo mark yet; the row's height is kept while it is hidden (Paseo's
+trailing row also keeps its place). The fake agent names a point only
+for its `plain` reply, so the fleet's other sessions offer no rewind.
+
 ## Module layout (2026-11-14, the owner's word 44)
 
 `app/src/areas/conversation/` after the split (no behaviour change;

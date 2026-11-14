@@ -82,6 +82,8 @@ pub struct Timeline {
     /// the composer's dock asks about.
     pub(super) waiting: BTreeSet<usize>,
     pub(super) questions: HashMap<QuestionId, usize>,
+    /// Entries a rewind left behind (`rewind.rs`), as index ranges.
+    pub(super) rewound: Vec<std::ops::Range<usize>>,
     /// The batch being folded: where it began, and what it changed.
     pub(super) batch: Change,
 }
@@ -107,6 +109,7 @@ impl Default for Timeline {
             permissions: HashMap::new(),
             waiting: BTreeSet::new(),
             questions: HashMap::new(),
+            rewound: Vec::new(),
             batch: Change::default(),
         }
     }
@@ -340,10 +343,10 @@ impl Timeline {
                 );
             }
             SessionEvent::Woken => self.push(record, EntryKind::Parking(ParkingChange::Woken)),
-            // A fork's and a rewind's records are drawn with that slice.
-            SessionEvent::Terminal(_)
-            | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => {}
+            // A rewind leaves what followed its turn's end behind
+            // (`rewind.rs`); a fork's record is drawn with slice F1.
+            SessionEvent::Rewound { after, .. } => self.rewound_to(*after),
+            SessionEvent::Terminal(_) | SessionEvent::Forked { .. } => {}
             SessionEvent::Agent { event, .. } => self.agent(record, event),
             SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,

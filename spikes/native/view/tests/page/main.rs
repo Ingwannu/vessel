@@ -15,6 +15,8 @@ mod plan;
 #[cfg(test)]
 mod question;
 #[cfg(test)]
+mod rewind;
+#[cfg(test)]
 mod rows;
 #[cfg(test)]
 mod session;

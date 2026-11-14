@@ -227,6 +227,9 @@ pub enum EntryKind {
         reason: StopReason,
         /// Its tokens, where the agent reported them.
         usage: Option<TurnUsage>,
+        /// The agent named this turn's end (protocol 14's `point`): the
+        /// conversation can be rewound or forked here.
+        point: bool,
     },
     /// The turn failed.
     TurnFailed {

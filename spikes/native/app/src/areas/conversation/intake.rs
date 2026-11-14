@@ -43,6 +43,13 @@ impl ConversationArea {
                 return Followup::None;
             }
         }
+        // A refused rewind is the notice's (Paseo's toast), said by
+        // `rewind`, not a refusal beside a control.
+        if answer.kind == ActKind::Rewind
+            && matches!(answer.result, Err(ActFailed { code: Some(_), .. }))
+        {
+            return Followup::None;
+        }
         match answer.result {
             Ok(Acted::Session(info)) => {
                 self.refused = None;
@@ -101,6 +108,10 @@ impl ConversationArea {
         }
         self.logs = Logs::of(self.timeline.entries());
         self.outline = outline(self.timeline.entries());
+        // The rail lists the conversation's prompts: not what a rewind
+        // left behind.
+        let timeline = &self.timeline;
+        self.outline.retain(|item| !timeline.rewound(item.entry));
         self.rows_again();
         let rows_after = self.rows.len();
         // Rows are entries less folded members, so a batch can add rows
