@@ -112,7 +112,8 @@ process by name. Test-written executables use Sandbox::executable.
    Testkit binary or fakes feature only: shipped vesseld must honor no fake
    forge environment switch or flag. Test real FakeForge behavior, whole
    root gate, V1, integrator; give the blocked PR-screen track the exact
-   command and seed format after merge. No implementation/contract started.
+   command and seed format after merge. Contract first recorded in `39df0f9c`, moved to assigned ADR 0060 before
+   implementation. Project-wide PR listing will use ADR 0061.
 2. Actual row 5, project PRs without a live session. The earlier resumed
    instruction's claim that it was already integrated at 13 was withdrawn:
    both b981f5f2 and later 18d86c2a still have Read/11 unit pr.list and
