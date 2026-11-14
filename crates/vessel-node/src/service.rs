@@ -374,6 +374,16 @@ impl NodeService {
         Ok(Ack)
     }
 
+    /// The authenticated caller's grant, without device administration.
+    #[expect(clippy::unused_async, reason = "uniform generated async handler shape")]
+    pub(crate) async fn device_self(
+        &self,
+        connection: &Connection,
+        _: vessel_proto::GetDeviceSelf,
+    ) -> Result<vessel_proto::DeviceSelf, WireError> {
+        Ok(connection.principal().device_self())
+    }
+
     /// `device.invite` (ADR 0010): a single-use pairing link.
     #[expect(
         clippy::unused_async,

@@ -66,3 +66,59 @@ its bare generation with the current home's and label it up to date. Leaving
 keeps materialized files. Existing in-flight apply can finish. Unknown future
 roles/problems are explicit variants; old peers refuse new calls before send
 or dispatch. This adds no new scope and changes no minimum protocol version.
+
+## Row 3 amendment: authenticated self-inspection (2026-11-14)
+
+Status: accepted as protocol 20 at the node line's merge (proposed as 19; N5 took 19); fleet controls above are
+already on the node line at 15. The integrator assigns the final version.
+
+[Decision Log]
+- Purpose: a paired client must know its own effective grant before drawing
+  actions, including when it holds no `read`, without listing other devices.
+- Existing assets: the admitted `Principal` is the guard's authority source;
+  agents are already clipped and delegated calls already intersect grants.
+  Device/agent revocation closes their connections. Preserve that lifecycle.
+- Alternatives: require Read or Admin, infer authority from failed writes,
+  query a device row (wrong for delegated calls), or mark the method Read
+  while hiding a special exception in the guard. None states the real rule.
+- Choice: `GetDeviceSelf {}` / `device.self` returns `DeviceSelf { device?,
+  scopes }`. The request rejects unknown fields, so it cannot select an id.
+  The method table explicitly declares `Authenticated`; `Method::scope()`
+  becomes `Option<Scope>`, with None meaning authentication without an extra
+  scope, never anonymous access. The same generated guard checks every row.
+  No new grantable scope and no minimum-version change.
+- Why: a query and a later operation see the same connection principal,
+  rather than a second interpretation of the database. The paired device
+  gets only its own id; owner, agent and delegated calls get no device id,
+  especially not the delivering home's credential identity. Scopes are
+  canonical, duplicate-free, at most `Scope::ALL` (currently five), with no
+  I/O, additional queue or mutable state.
+- Costs: Rust users of method metadata must handle None. Every previous
+  method retains its Some(scope), pinned in the tests. Scopes describe the
+  grant, not resource ownership, agent limits or profile policy: the node's
+  existing checks remain authoritative. In-flight calls retain the existing
+  revocation semantics; reconnect learns its newly admitted authority.
+
+Like Paseo's `websocket-server.ts::buildServerInfoStatusPayload`, read the
+session's actual permissions, not an account-wide list. Its
+`authorization/operation-permissions.ts` explicitly classifies operations
+that need no additional permission; Vessel expresses that in its generated
+table. Vessel keeps a typed query instead of adding another Welcome field.
+`session.test.ts`'s restricted and replaced grants ground the boundary tests;
+Vessel closes revoked connections rather than replacing their principals.
+
+Forwarding is allowed, reporting the target's effective intersection and no
+transport-device id. The envelope retains its existing hop scopes, so a
+caller without Read cannot acquire forwarding by asking for self-inspection.
+Every hop decodes and re-encodes the inner typed call: its required version
+must include the inner call's fields/method too, or an old hop could reject
+an unknown variant or silently drop a newer field. `Call::since` therefore
+carries that requirement through forward/relay/deliver. A client and server
+refuse an older hop before sending/dispatching; there is no guessed authority
+fallback when the query is unavailable.
+
+Client: `NodeClient::device_self() -> Result<DeviceSelf, CallError>`.
+CLI: `vessel node devices self`, branching before Admin-only device listing.
+The fake fleet uses CLI pipes for pairing, a person-scoped app book separate
+from its bootstrap operator book, plus Read-only and Sync-only self queries.
+No native screen or page component belongs to this slice.

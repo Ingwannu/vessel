@@ -68,8 +68,8 @@ pub use conversation::{
     QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
 };
 pub use device::{
-    DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
-    PreambleReply, RefusalReason, RevokeDevice, Scope,
+    DeviceInfo, DeviceSecret, DeviceSelf, GetDeviceSelf, Invitation, InvitationSecret,
+    InviteDevice, ListDevices, Preamble, PreambleReply, RefusalReason, RevokeDevice, Scope,
 };
 pub use error::{ErrorCode, ErrorDetail, WireError};
 pub use event::{EventRecord, SessionEvent};

@@ -390,6 +390,7 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetDeviceSelf
             | Self::GetFleetStatus
             | Self::PreviewSchedule
             | Self::ListSchedules

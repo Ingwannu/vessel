@@ -4,11 +4,24 @@
 //! itself is the parent's `rpc_methods!` invocation, the one place the
 //! protocol is defined; the names the expansion uses resolve there.
 
+// Authentication is a requirement, not an additional grantable scope.
+// Keeping it in the table avoids a hidden exception in the node's guard.
+macro_rules! method_scope {
+    (Authenticated) => {
+        None
+    };
+    ($scope:ident) => {
+        Some(Scope::$scope)
+    };
+}
+
 /// Declares every RPC method in one table.
 ///
 /// Each row: `Variant / handler_fn / "wire.name" [Scope, since]: Request => Response;`
 /// The scope column (protocol 4, ADR 0010) is what a paired device must hold
-/// to call the method; adding a method without one does not compile. `since`
+/// to call the method; `Authenticated` explicitly requires no extra scope.
+/// Every call still requires an admitted connection. Adding an unclassified
+/// method does not compile. `since`
 /// (protocol 5) is the first protocol version with the method: the client
 /// refuses to send it on an older connection and the node refuses to run it
 /// there, so neither side relies on the other ignoring what it cannot know.
@@ -37,11 +50,12 @@ macro_rules! rpc_methods {
                 }
             }
 
-            /// The scope a paired device needs to call it.
+            /// The additional scope needed on an authenticated connection.
+            /// None never means anonymous access (ADR 0044).
             #[must_use]
-            pub const fn scope(self) -> Scope {
+            pub const fn scope(self) -> Option<Scope> {
                 match self {
-                    $( Self::$variant => Scope::$scope, )*
+                    $( Self::$variant => method_scope!($scope), )*
                 }
             }
 

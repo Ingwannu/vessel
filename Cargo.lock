@@ -3713,6 +3713,7 @@ dependencies = [
  "tokio-tungstenite",
  "tokio-util",
  "url",
+ "vessel-proto",
 ]
 
 [[package]]

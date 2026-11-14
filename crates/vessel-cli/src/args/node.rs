@@ -151,6 +151,10 @@ pub(crate) enum Source {
 /// `vessel node devices ...`.
 #[derive(Debug, Subcommand)]
 pub(crate) enum DevicesCommand {
+    /// Show this connection's own device id and effective scopes. Works
+    /// without Read or Admin; does not list other devices.
+    #[command(name = "self")]
+    SelfInfo,
     /// Revoke a device: it is refused from now on and its open connections
     /// close. Other devices are not affected.
     Revoke {

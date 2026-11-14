@@ -154,3 +154,41 @@ async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
     assert_eq!(error.code, ErrorCode::Unsupported);
     assert!(served.seen.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
+    use vessel_proto::{Deliver, Forward, GetDeviceSelf, Origin, OriginBy, RelayCall};
+    let previous = GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap();
+    let (mut client, mut served) = raw_client(previous).await;
+    let query = GetDeviceSelf {}.into_call();
+    let origin = Origin {
+        node: NodeId::random(),
+        by: OriginBy::Owner,
+        scopes: vec![],
+    };
+    for call in [
+        query.clone(),
+        Forward {
+            node: NodeId::random(),
+            call: Box::new(query.clone()),
+        }
+        .into_call(),
+        RelayCall {
+            node: NodeId::random(),
+            call: Box::new(query.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        Deliver {
+            call: Box::new(query),
+            origin,
+        }
+        .into_call(),
+    ] {
+        assert_eq!(
+            refusal(&call_raw(&mut client, 1, call).await).code,
+            ErrorCode::Unsupported
+        );
+        assert!(served.seen.try_recv().is_err());
+    }
+}

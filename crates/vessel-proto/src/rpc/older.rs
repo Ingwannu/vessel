@@ -52,6 +52,14 @@ impl Reply {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
+            Self::GetDeviceSelf(authority) => {
+                let newer = |scope: &Scope| scope.since() > protocol;
+                authority.scopes.iter().any(newer).then(|| {
+                    let mut authority = authority.clone();
+                    authority.scopes.retain(|scope| !newer(scope));
+                    Self::GetDeviceSelf(authority)
+                })
+            }
             Self::ListDevices(devices) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
                 let changed = devices.iter().any(|device| device.scopes.iter().any(newer));

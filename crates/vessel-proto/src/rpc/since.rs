@@ -23,6 +23,15 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            // Every hop decodes the typed inner call. It must know its
+            // method and fields too; an older hop could otherwise drop a
+            // newer field before the target sees it (ADR 0044), as a
+            // protocol-18 home would drop `session.create`'s
+            // `side_question_of` and start a plain session (ADR 0045; N5
+            // and N3 each added this rule, merged here as one).
+            Self::Forward(request) => Some(request.call.since().get()),
+            Self::Relay(request) => Some(request.call.since().get()),
+            Self::Deliver(request) => Some(request.call.since().get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
@@ -88,12 +97,6 @@ impl Call {
             Self::UpdatePrompt(request) => side_spec(request.session.as_deref()),
             Self::CreateSchedule(request) => side_target(&request.definition.target),
             Self::UpdateSchedule(request) => side_target(&request.definition.target),
-            // An older hop decodes optional fields before forwarding.
-            // Preserve side links rather than silently creating a normal
-            // session on a newer target. Pre-19 routing stays unchanged.
-            Self::Forward(request) => preserving_side_call(&request.call),
-            Self::Relay(request) => preserving_side_call(&request.call),
-            Self::Deliver(request) => preserving_side_call(&request.call),
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
@@ -105,6 +108,7 @@ impl Call {
             | Self::Subscribe(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
+            | Self::GetDeviceSelf(_)
             | Self::ListDevices(_)
             | Self::RevokeDevice(_)
             | Self::ReloadProfiles(_)
@@ -260,11 +264,4 @@ fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }
-}
-
-// New fields must survive every decoding hop, not just the final target.
-// A protocol-18 home would discard side_question_of from session.create.
-fn preserving_side_call(call: &Call) -> Option<u32> {
-    let needed = call.since().get();
-    (needed >= 19).then_some(needed)
 }

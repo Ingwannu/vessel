@@ -618,6 +618,9 @@ async fn run_here(
             Reply::LeaveFleet(guard.leave_fleet(connection, request).await?)
         }
         Call::SyncFleet(request) => Reply::SyncFleet(guard.sync_fleet(connection, request).await?),
+        Call::GetDeviceSelf(request) => {
+            Reply::GetDeviceSelf(guard.device_self(connection, request).await?)
+        }
         Call::GetFleetStatus(request) => {
             Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
         }

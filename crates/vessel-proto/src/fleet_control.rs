@@ -175,7 +175,10 @@ mod tests {
             let method = call.method();
             let encoded = serde_json::to_string(&call).unwrap();
             assert_eq!(serde_json::from_str::<Call>(&encoded).unwrap(), call);
-            assert_eq!(method.scope(), scope);
+            assert_eq!(
+                method.scope().expect("legacy method requires a scope"),
+                scope
+            );
             assert_eq!(method.forwardable(), forwarded);
         }
     }
