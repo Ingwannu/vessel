@@ -379,6 +379,7 @@ start_session laptop context-ended "usage 120000"
 stopped=$(tail -1 "$root/sessions" | cut -d' ' -f2)
 wait_for laptop "$stopped" "[turn ended"
 cli --node laptop kill "$stopped" > /dev/null
+wait_for laptop "$stopped" "[session exited"
 
 # An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
 # the whole list in each update): created, sent again unchanged, a step

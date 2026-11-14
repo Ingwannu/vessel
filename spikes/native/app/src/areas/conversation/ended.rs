@@ -134,6 +134,23 @@ pub(super) fn banner(
 }
 
 impl Shell {
+    /// Whether the session shown has ended and its agent cannot pick up
+    /// where it left off (the banner says so and offers no Start again):
+    /// the composer then sends nothing, since a send would only try to
+    /// start it again. `false` while it runs, can be started again, or is
+    /// not yet described.
+    #[expect(
+        dead_code,
+        reason = "the lead's composer reads it at its merge (no send, the field read-only); remove with its first call"
+    )]
+    pub(crate) fn conversation_cannot_resume(&self) -> bool {
+        self.areas
+            .conversation
+            .info
+            .as_deref()
+            .is_some_and(|info| !is_live(info) && !can_start_again(info))
+    }
+
     /// Start the session shown again (the banner's button, the menu's
     /// row): once, until the node answers.
     pub(super) fn conversation_start_again(&mut self, cx: &mut Context<'_, Self>) {

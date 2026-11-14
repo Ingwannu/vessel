@@ -276,6 +276,9 @@ fn card(
     };
     div()
         .id("context-meter-card")
+        // A press on the card stays on it: without this it reached what
+        // lies under it (the ended banner's Start again).
+        .occlude()
         .flex()
         .flex_col()
         .gap(px(8.0))
