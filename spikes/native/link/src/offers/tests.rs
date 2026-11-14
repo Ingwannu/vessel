@@ -55,14 +55,20 @@ fn a_list_written_reads_back_for_its_node_only() {
     let laptop = NodeId::random();
     let desk = NodeId::random();
     let mut store = Store::load(Some(path.clone()));
-    assert!(store.keep(laptop, claude(), None, models(&["a", "b"]), at(0)));
-    assert!(store.keep(desk, claude(), None, models(&["c"]), at(1)));
+    assert!(store.keep(
+        laptop,
+        claude(),
+        None,
+        Said::Options(models(&["a", "b"])),
+        at(0)
+    ));
+    assert!(store.keep(desk, claude(), None, Said::Options(models(&["c"])), at(1)));
     store.save().unwrap();
     let read = Store::load(Some(path));
     let on_laptop = read.for_node(&laptop);
     assert_eq!(on_laptop.len(), 1);
-    assert_eq!(on_laptop[0].options, models(&["a", "b"]));
-    assert_eq!(read.for_node(&desk)[0].options, models(&["c"]));
+    assert_eq!(on_laptop[0].options, Some(models(&["a", "b"])));
+    assert_eq!(read.for_node(&desk)[0].options, Some(models(&["c"])));
     assert!(read.for_node(&NodeId::random()).is_empty());
 }
 
@@ -73,14 +79,26 @@ fn the_file_is_owner_only_in_an_owner_only_folder() {
 
     let path = scratch("modes");
     let mut store = Store::load(Some(path.clone()));
-    let _changed = store.keep(NodeId::random(), claude(), None, models(&["a"]), at(0));
+    let _changed = store.keep(
+        NodeId::random(),
+        claude(),
+        None,
+        Said::Options(models(&["a"])),
+        at(0),
+    );
     store.save().unwrap();
     let mode =
         |path: &std::path::Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
     assert_eq!(mode(&path), 0o600, "the file");
     assert_eq!(mode(path.parent().unwrap()), 0o700, "its folder");
     // Written again (temporary file, then rename): still owner-only.
-    let _changed = store.keep(NodeId::random(), claude(), None, models(&["b"]), at(1));
+    let _changed = store.keep(
+        NodeId::random(),
+        claude(),
+        None,
+        Said::Options(models(&["b"])),
+        at(1),
+    );
     store.save().unwrap();
     assert_eq!(mode(&path), 0o600, "the file, rewritten");
     assert!(
@@ -93,14 +111,20 @@ fn the_file_is_owner_only_in_an_owner_only_folder() {
 fn the_same_list_is_not_a_change_and_a_different_one_is() {
     let node = NodeId::random();
     let mut store = Store::load(None);
-    assert!(store.keep(node, claude(), None, models(&["a"]), at(0)));
-    assert!(!store.keep(node, claude(), None, models(&["a"]), at(5)));
+    assert!(store.keep(node, claude(), None, Said::Options(models(&["a"])), at(0)));
+    assert!(!store.keep(node, claude(), None, Said::Options(models(&["a"])), at(5)));
     assert_eq!(
         store.for_node(&node)[0].at,
         at(0),
         "the same list keeps its time"
     );
-    assert!(store.keep(node, claude(), None, models(&["a", "b"]), at(6)));
+    assert!(store.keep(
+        node,
+        claude(),
+        None,
+        Said::Options(models(&["a", "b"])),
+        at(6)
+    ));
     assert_eq!(store.for_node(&node).len(), 1, "replaced, not added");
     assert_eq!(store.for_node(&node)[0].at, at(6));
 }
@@ -110,13 +134,19 @@ fn agents_and_profiles_are_kept_apart() {
     let node = NodeId::random();
     let work: ProfileName = "work".parse().unwrap();
     let mut store = Store::load(None);
-    assert!(store.keep(node, claude(), None, models(&["a"]), at(0)));
-    assert!(store.keep(node, claude(), Some(work.clone()), models(&["w"]), at(1)));
+    assert!(store.keep(node, claude(), None, Said::Options(models(&["a"])), at(0)));
+    assert!(store.keep(
+        node,
+        claude(),
+        Some(work.clone()),
+        Said::Options(models(&["w"])),
+        at(1)
+    ));
     assert!(store.keep(
         node,
         HarnessRef::Known(HarnessKind::Codex),
         None,
-        models(&["x"]),
+        Said::Options(models(&["x"])),
         at(2)
     ));
     let kept = store.for_node(&node);
@@ -124,7 +154,7 @@ fn agents_and_profiles_are_kept_apart() {
     assert_eq!(
         kept.iter()
             .find(|kept| kept.profile.as_ref() == Some(&work))
-            .map(|kept| kept.options.clone()),
+            .and_then(|kept| kept.options.clone()),
         Some(models(&["w"]))
     );
 }
@@ -149,7 +179,7 @@ fn a_file_of_another_version_or_that_does_not_read_is_dropped() {
     assert!(Store::load(Some(path.clone())).for_node(&node).is_empty());
     // The next write replaces it with this version's.
     let mut store = Store::load(Some(path.clone()));
-    let _changed = store.keep(node, claude(), None, models(&["a"]), at(0));
+    let _changed = store.keep(node, claude(), None, Said::Options(models(&["a"])), at(0));
     store.save().unwrap();
     assert_eq!(Store::load(Some(path)).for_node(&node).len(), 1);
 }
@@ -159,7 +189,13 @@ fn at_most_max_entries_are_kept_the_oldest_going_first() {
     let mut store = Store::load(None);
     let nodes: Vec<NodeId> = (0..=MAX_ENTRIES).map(|_| NodeId::random()).collect();
     for (minute, node) in (0_i64..).zip(&nodes) {
-        let _changed = store.keep(*node, claude(), None, models(&["a"]), at(minute));
+        let _changed = store.keep(
+            *node,
+            claude(),
+            None,
+            Said::Options(models(&["a"])),
+            at(minute),
+        );
     }
     assert_eq!(store.entries.len(), MAX_ENTRIES);
     assert!(store.for_node(&nodes[0]).is_empty(), "the oldest went");
@@ -181,7 +217,13 @@ fn the_file_stays_within_max_bytes() {
     let ids: Vec<&str> = many.iter().map(String::as_str).collect();
     let nodes: Vec<NodeId> = (0..11).map(|_| NodeId::random()).collect();
     for (minute, node) in (0_i64..).zip(&nodes) {
-        let _changed = store.keep(*node, claude(), None, models(&ids), at(minute));
+        let _changed = store.keep(
+            *node,
+            claude(),
+            None,
+            Said::Options(models(&ids)),
+            at(minute),
+        );
     }
     let bytes = store.encoded().unwrap().len();
     assert!(bytes <= MAX_BYTES, "{bytes} bytes");
@@ -194,7 +236,13 @@ fn the_file_stays_within_max_bytes() {
 fn the_file_holds_only_what_the_agents_said_and_whose_it_was() {
     let path = scratch("fields");
     let mut store = Store::load(Some(path.clone()));
-    let _changed = store.keep(NodeId::random(), claude(), None, models(&["a"]), at(0));
+    let _changed = store.keep(
+        NodeId::random(),
+        claude(),
+        None,
+        Said::Options(models(&["a"])),
+        at(0),
+    );
     store.save().unwrap();
     let written: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
@@ -217,6 +265,51 @@ fn the_file_holds_only_what_the_agents_said_and_whose_it_was() {
 #[test]
 fn without_a_state_folder_nothing_is_written() {
     let mut store = Store::load(None);
-    let _changed = store.keep(NodeId::random(), claude(), None, models(&["a"]), at(0));
+    let _changed = store.keep(
+        NodeId::random(),
+        claude(),
+        None,
+        Said::Options(models(&["a"])),
+        at(0),
+    );
     assert!(store.save().is_ok());
+}
+
+#[test]
+fn commands_are_kept_beside_options_and_neither_undoes_the_other() {
+    let path = scratch("commands");
+    let node = NodeId::random();
+    let mut store = Store::load(Some(path.clone()));
+    let commands = vec![AgentCommand {
+        name: "review".parse().unwrap(),
+        description: "Review the change".to_owned(),
+        hint: None,
+    }];
+    // Commands first (a session reported them before any options).
+    assert!(store.keep(
+        node,
+        claude(),
+        None,
+        Said::Commands(commands.clone()),
+        at(0)
+    ));
+    assert_eq!(
+        store.for_node(&node)[0].options,
+        None,
+        "options not known yet"
+    );
+    assert!(store.keep(node, claude(), None, Said::Options(models(&["a"])), at(1)));
+    assert!(!store.keep(
+        node,
+        claude(),
+        None,
+        Said::Commands(commands.clone()),
+        at(2)
+    ));
+    store.save().unwrap();
+    let read = Store::load(Some(path));
+    let kept = read.for_node(&node);
+    assert_eq!(kept.len(), 1, "one entry for the agent");
+    assert_eq!(kept[0].options, Some(models(&["a"])));
+    assert_eq!(kept[0].commands, Some(commands));
 }

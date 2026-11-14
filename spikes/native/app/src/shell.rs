@@ -235,7 +235,11 @@ impl Shell {
                 request,
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
-            Event::Records { session, records } => self.records(&session, &records, cx),
+            Event::Records { session, records } => {
+                self.records(&session, &records, cx);
+                // Track P: a session's reported `/` commands kept for its agent.
+                self.offers_commands_seen();
+            }
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),

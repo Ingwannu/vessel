@@ -61,14 +61,14 @@ use vessel_app_view::{Agent, Machine, Reach};
 use vessel_app_view::{Card, Fleet};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+use vessel_proto::{
+    AgentCommand, EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId,
+    SessionId, SessionOption,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::{
     ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
     SessionMode, SessionSpec,
-};
-use vessel_proto::{
-    EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
-    SessionOption,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -268,6 +268,17 @@ pub enum Command {
         /// The agent.
         harness: HarnessRef,
     },
+    /// Keep `harness`'s `/` commands, as a session of it on `machine`
+    /// reported them, on this device for the next run (its options' file;
+    /// nothing is answered). A browser keeps none.
+    KeepCommands {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
+        /// Its commands, in its order.
+        commands: Vec<AgentCommand>,
+    },
     /// Start an ended or interrupted session again with its conversation
     /// (`session.resume`, protocol 10), then send it `text`; answered
     /// [`Event::Resumed`] or [`Event::ResumeFailed`].
@@ -409,8 +420,8 @@ pub enum Event {
     OptionsKept {
         /// The machine.
         machine: String,
-        /// Each agent's list.
-        lists: Vec<(HarnessRef, Vec<SessionOption>)>,
+        /// Each agent's lists.
+        lists: Vec<KeptLists>,
     },
     /// Something failed; the words to show.
     Failed(String),
@@ -436,6 +447,18 @@ pub enum Event {
     },
     /// A machine answered a search ([`Command::Search`]).
     Searched(search::Answer),
+}
+
+/// What an agent on a machine said last time, kept on this device
+/// ([`Event::OptionsKept`]): either half may be unknown.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeptLists {
+    /// The agent.
+    pub harness: HarnessRef,
+    /// Its options (`harness.options`), when it answered.
+    pub options: Option<Vec<SessionOption>>,
+    /// Its `/` commands, when a session of it reported them.
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -620,6 +643,11 @@ impl State {
                 self.start(&machine, harness, folder, prompt, options).await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
+            Command::KeepCommands {
+                machine,
+                harness,
+                commands,
+            } => self.keep_commands(&machine, harness, commands),
             Command::Resume {
                 machine,
                 session,
@@ -773,12 +801,16 @@ impl State {
     /// any are kept ([`Event::OptionsKept`]).
     async fn hand_kept(&self, machine: &str, client: &NodeClient) {
         let node = &client.node().id;
-        let lists: Vec<(HarnessRef, Vec<SessionOption>)> = match self.offers.lock() {
+        let lists: Vec<KeptLists> = match self.offers.lock() {
             Ok(store) => store
                 .for_node(node)
                 .into_iter()
                 .filter(|kept| kept.profile.is_none())
-                .map(|kept| (kept.agent.clone(), kept.options.clone()))
+                .map(|kept| KeptLists {
+                    harness: kept.agent.clone(),
+                    options: kept.options.clone(),
+                    commands: kept.commands.clone(),
+                })
                 .collect(),
             Err(_poisoned) => Vec::new(),
         };
@@ -789,6 +821,23 @@ impl State {
             })
             .await;
         }
+    }
+
+    /// Keep a session's reported commands for `harness` on `machine`'s
+    /// node (by its id, as its options are); a machine not connected has no
+    /// id to keep them under, and they are dropped (its next session
+    /// reports them again).
+    fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
+        let Ok(client) = self.client(machine) else {
+            return;
+        };
+        drop(tokio::spawn(keep_offers(
+            std::sync::Arc::clone(&self.offers),
+            client.node().id,
+            harness,
+            offers::Said::Commands(commands),
+            Utc::now(),
+        )));
     }
 
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
@@ -863,7 +912,7 @@ impl State {
                             store,
                             client.node().id,
                             harness.clone(),
-                            offered.options.clone(),
+                            offers::Said::Options(offered.options.clone()),
                             offered.probed_at,
                         )));
                     }
@@ -994,14 +1043,14 @@ async fn keep_offers(
     store: std::sync::Arc<std::sync::Mutex<offers::Store>>,
     node: vessel_proto::NodeId,
     harness: HarnessRef,
-    options: Vec<SessionOption>,
+    said: offers::Said,
     at: chrono::DateTime<Utc>,
 ) {
     let kept = tokio::task::spawn_blocking(move || {
         let mut store = store
             .lock()
             .map_err(|_poisoned| std::io::Error::other("the kept lists' lock is poisoned"))?;
-        if store.keep(node, harness, None, options, at) {
+        if store.keep(node, harness, None, said, at) {
             store.save()
         } else {
             Ok(())

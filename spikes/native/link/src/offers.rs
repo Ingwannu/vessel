@@ -1,6 +1,7 @@
 //! Agents' lists kept on disk between runs (owner word 28): what each
-//! agent on each node last answered to `harness.options`, handed to the
-//! app when the node connects so a control opens on it at once
+//! agent on each node last answered to `harness.options`, and the `/`
+//! commands a session of it last reported, handed to the app when the node
+//! connects so a control opens on it at once
 //! (`vessel_app_view::offers` decides what is shown and when to ask).
 //!
 //! [Decision Log]
@@ -36,11 +37,12 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::{HarnessRef, NodeId, ProfileName, SessionOption};
+use vessel_proto::{AgentCommand, HarnessRef, NodeId, ProfileName, SessionOption};
 
 /// The file's format. Another number (an older or newer build's) is not
-/// read: the file is replaced by the next answer.
-pub(crate) const VERSION: u32 = 1;
+/// read: the file is replaced by the next answer. 2: options and commands
+/// each optional (1 held options only, unreleased).
+pub(crate) const VERSION: u32 = 2;
 
 /// At most this many lists (agents on nodes); the oldest go first.
 pub(crate) const MAX_ENTRIES: usize = 64;
@@ -62,10 +64,24 @@ pub(crate) struct Kept {
     /// The agent's profile, when the list is a profile's.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) profile: Option<ProfileName>,
-    /// When the node answered it.
+    /// When it last changed.
     pub(crate) at: DateTime<Utc>,
-    /// The list, as the agent sent it.
-    pub(crate) options: Vec<SessionOption>,
+    /// The options, as the agent sent them; `None` until it answered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) options: Option<Vec<SessionOption>>,
+    /// The `/` commands, as a session of the agent reported them; `None`
+    /// until one did (`harness.options` carries none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) commands: Option<Vec<AgentCommand>>,
+}
+
+/// What an agent said, to keep.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Said {
+    /// Its options (`harness.options`).
+    Options(Vec<SessionOption>),
+    /// Its commands (a session's report).
+    Commands(Vec<AgentCommand>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -141,36 +157,44 @@ impl Store {
         found
     }
 
-    /// Keep `options` as `agent`'s list on `node` (for `profile`),
-    /// answered `at`; `true` when that changed the kept lists (the file is
-    /// then to be written).
+    /// Keep what `agent` on `node` (for `profile`) said, at `at`; `true`
+    /// when that changed the kept lists (the file is then to be written).
+    /// The other half of its entry (options or commands) is left as kept.
     pub(crate) fn keep(
         &mut self,
         node: NodeId,
         agent: HarnessRef,
         profile: Option<ProfileName>,
-        options: Vec<SessionOption>,
+        said: Said,
         at: DateTime<Utc>,
     ) -> bool {
-        let same =
-            |kept: &Kept| kept.node == node && kept.agent == agent && kept.profile == profile;
-        if let Some(kept) = self.entries.iter_mut().find(|kept| same(kept)) {
-            if kept.options == options {
-                return false;
-            }
-            kept.options = options;
-            kept.at = at;
-        } else {
+        let found = self
+            .entries
+            .iter()
+            .position(|kept| kept.node == node && kept.agent == agent && kept.profile == profile);
+        let index = found.unwrap_or_else(|| {
             self.entries.push(Kept {
                 node,
                 agent,
                 profile,
                 at,
-                options,
+                options: None,
+                commands: None,
             });
+            self.entries.len().saturating_sub(1)
+        });
+        let Some(kept) = self.entries.get_mut(index) else {
+            return false;
+        };
+        let changed = match said {
+            Said::Options(options) => replace(&mut kept.options, options),
+            Said::Commands(commands) => replace(&mut kept.commands, commands),
+        };
+        if changed {
+            kept.at = at;
+            let _dropped = self.bound();
         }
-        let _dropped = self.bound();
-        true
+        changed
     }
 
     /// Drop the oldest lists until at most [`MAX_ENTRIES`] and
@@ -222,6 +246,15 @@ impl Store {
     fn path(&self) -> Option<&std::path::Path> {
         self.path.as_deref()
     }
+}
+
+/// Put `new` in `slot` unless it holds the same; whether it changed.
+fn replace<T: PartialEq>(slot: &mut Option<T>, new: T) -> bool {
+    if slot.as_ref() == Some(&new) {
+        return false;
+    }
+    *slot = Some(new);
+    true
 }
 
 /// [`Stored`] by reference, for writing without copying the lists.

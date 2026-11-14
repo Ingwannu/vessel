@@ -8,10 +8,12 @@
 
 use std::time::Instant;
 
-use vessel_app_link::Command;
+use vessel_app_link::{Command, KeptLists};
 use vessel_app_view::offers::{Anchored, Arrival, OfferKey, Offered, Why};
 use vessel_app_view::{Fleet, Reach};
-use vessel_proto::{HarnessRef, SessionOption};
+use vessel_proto::{AgentCommand, HarnessRef, SessionOption};
+
+use super::ControlsTarget;
 
 use crate::shell::Shell;
 
@@ -91,18 +93,67 @@ impl Shell {
     }
 
     /// The link's kept lists for a machine that just connected: shown at
-    /// once where there is nothing newer, then each asked again.
-    pub(crate) fn offers_kept(
-        &mut self,
-        machine: &str,
-        lists: Vec<(HarnessRef, Vec<SessionOption>)>,
-    ) {
-        for (agent, options) in lists {
+    /// once where there is nothing newer, then the options asked again
+    /// (commands are a session's report: the next session of the agent
+    /// refreshes them).
+    pub(crate) fn offers_kept(&mut self, machine: &str, lists: Vec<KeptLists>) {
+        for kept in lists {
+            let agent = kept.harness;
+            let ask = kept.options.is_some();
             let key = OfferKey::new(machine, agent.clone());
-            if self.areas.composer.offers.kept(key, options) == Arrival::Changed {
+            if self
+                .areas
+                .composer
+                .offers
+                .kept(key, kept.options, kept.commands)
+                == Arrival::Changed
+            {
                 tracing::debug!(%machine, ?agent, "a kept list shown");
             }
-            self.want_offers(machine.to_owned(), agent, Why::Connect);
+            if ask {
+                self.want_offers(machine.to_owned(), agent, Why::Connect);
+            }
+        }
+    }
+
+    /// The `/` commands of the session on screen: what it reported, else
+    /// what its agent's last session reported (kept, so the menu opens on
+    /// a list before this session's report arrives); `None` when neither.
+    pub(crate) fn session_commands(&self) -> Option<&[AgentCommand]> {
+        let ControlsTarget::Session { machine, agent, .. } = self.controls_target() else {
+            return None;
+        };
+        self.areas
+            .conversation
+            .timeline
+            .facts()
+            .commands
+            .as_deref()
+            .or_else(|| {
+                self.areas
+                    .composer
+                    .offers
+                    .commands(&OfferKey::new(machine, agent))
+            })
+    }
+
+    /// Records of the session on screen arrived: when its agent's reported
+    /// commands differ from the kept ones, the store takes them and the
+    /// link keeps them on the device.
+    pub(crate) fn offers_commands_seen(&mut self) {
+        let ControlsTarget::Session { machine, agent, .. } = self.controls_target() else {
+            return;
+        };
+        let Some(reported) = self.areas.conversation.timeline.facts().commands.clone() else {
+            return;
+        };
+        let key = OfferKey::new(machine.clone(), agent.clone());
+        if self.areas.composer.offers.commands_reported(key, &reported) {
+            self.command(Command::KeepCommands {
+                machine,
+                harness: agent,
+                commands: reported,
+            });
         }
     }
 
