@@ -337,10 +337,10 @@ pub fn plan_progress(entries: &[PlanEntry]) -> (usize, usize) {
 #[must_use]
 pub fn block_text(block: &ContentBlock) -> String {
     match block {
-        ContentBlock::Text { text } => text.clone(),
-        ContentBlock::ResourceLink { uri, name } => format!("[{name}]({uri})"),
+        ContentBlock::Text { text, .. } => text.clone(),
+        ContentBlock::ResourceLink { uri, name, .. } => format!("[{name}]({uri})"),
         ContentBlock::Opaque { .. } => String::new(),
-        ContentBlock::Attachment { attachment } => format!("[{}]", attachment.name),
+        ContentBlock::Attachment { attachment, .. } => format!("[{}]", attachment.name),
     }
 }
 
@@ -351,7 +351,7 @@ pub fn prompt_parts(content: &[ContentBlock]) -> (String, Vec<AttachmentRef>) {
     let mut attachments = Vec::new();
     for block in content {
         match block {
-            ContentBlock::Attachment { attachment } => attachments.push(attachment.clone()),
+            ContentBlock::Attachment { attachment, .. } => attachments.push(attachment.clone()),
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
             | ContentBlock::Opaque { .. } => text.push_str(&block_text(block)),

@@ -318,7 +318,7 @@ impl Timeline {
 
     fn record(&mut self, record: &EventRecord) {
         match &record.event {
-            SessionEvent::Status { status } => {
+            SessionEvent::Status { status, .. } => {
                 self.status = Some(status.clone());
                 if !status.is_live() {
                     self.turn = None;
@@ -333,7 +333,7 @@ impl Timeline {
             }
             // A parked session's agent stopped and started again (protocol
             // 12, ADR 0038): a line each, as a status change is.
-            SessionEvent::Parked { reason } => {
+            SessionEvent::Parked { reason, .. } => {
                 self.push(
                     record,
                     EntryKind::Parking(ParkingChange::Parked(reason.clone())),
@@ -344,8 +344,8 @@ impl Timeline {
             SessionEvent::Terminal(_)
             | SessionEvent::Forked { .. }
             | SessionEvent::Rewound { .. } => {}
-            SessionEvent::Agent { event } => self.agent(record, event),
-            SessionEvent::ProfileChanged { from, to } => self.push(
+            SessionEvent::Agent { event, .. } => self.agent(record, event),
+            SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,
                 EntryKind::Profile {
                     from: from.clone(),
@@ -357,13 +357,13 @@ impl Timeline {
                 self.push(record, EntryKind::Model(call.clone()));
             }
             // The whole set each time, so the last one is the truth.
-            SessionEvent::OptionsChanged { options } => self.options = Some(options.clone()),
-            SessionEvent::Renamed { title } => self.title = Some(title.clone()),
-            SessionEvent::QueueChanged { queue } => self.facts.queue = Some(queue.clone()),
-            SessionEvent::CommandsChanged { commands } => {
+            SessionEvent::OptionsChanged { options, .. } => self.options = Some(options.clone()),
+            SessionEvent::Renamed { title, .. } => self.title = Some(title.clone()),
+            SessionEvent::QueueChanged { queue, .. } => self.facts.queue = Some(queue.clone()),
+            SessionEvent::CommandsChanged { commands, .. } => {
                 self.facts.commands = Some(commands.clone());
             }
-            SessionEvent::UsageChanged { usage } => self.facts.context = Some(usage.clone()),
+            SessionEvent::UsageChanged { usage, .. } => self.facts.context = Some(usage.clone()),
         }
     }
 

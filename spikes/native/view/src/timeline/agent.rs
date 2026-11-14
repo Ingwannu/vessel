@@ -15,6 +15,7 @@ impl Timeline {
             AgentEvent::Ready {
                 harness_session,
                 abilities,
+                ..
             } => {
                 self.facts.abilities.clone_from(abilities);
                 self.push(
@@ -24,7 +25,7 @@ impl Timeline {
                     },
                 );
             }
-            AgentEvent::TurnStarted { content } => {
+            AgentEvent::TurnStarted { content, .. } => {
                 self.turns = self.turns.saturating_add(1);
                 self.turn = Some(record.seq);
                 let (text, attachments) = prompt_parts(content);
@@ -38,13 +39,13 @@ impl Timeline {
                     }),
                 );
             }
-            AgentEvent::UserMessageChunk { content } => {
+            AgentEvent::UserMessageChunk { content, .. } => {
                 self.merge(record, TextKind::Prompt, &block_text(content));
             }
-            AgentEvent::MessageChunk { content } => {
+            AgentEvent::MessageChunk { content, .. } => {
                 self.merge(record, TextKind::Message, &block_text(content));
             }
-            AgentEvent::ThoughtChunk { content } => {
+            AgentEvent::ThoughtChunk { content, .. } => {
                 self.merge(record, TextKind::Thought, &block_text(content));
             }
             AgentEvent::ToolCall(call) => self.tool(record, ToolView::announced(call)),
@@ -52,7 +53,7 @@ impl Timeline {
                 let tool = ToolView::after(self.find_tool(&update.id), update);
                 self.tool(record, tool);
             }
-            AgentEvent::Plan { entries } => self.planned(record, entries),
+            AgentEvent::Plan { entries, .. } => self.planned(record, entries),
             AgentEvent::PermissionRequested(_)
             | AgentEvent::PermissionResolved { .. }
             | AgentEvent::TurnEnded { .. }
@@ -86,7 +87,7 @@ impl Timeline {
                     }),
                 );
             }
-            AgentEvent::PermissionResolved { id, outcome } => {
+            AgentEvent::PermissionResolved { id, outcome, .. } => {
                 let Some(index) = self.permissions.get(id).copied() else {
                     return;
                 };
@@ -111,7 +112,7 @@ impl Timeline {
                     },
                 );
             }
-            AgentEvent::TurnFailed { message } => {
+            AgentEvent::TurnFailed { message, .. } => {
                 self.turn = None;
                 self.attention = Some(record.seq);
                 self.push(
@@ -121,15 +122,15 @@ impl Timeline {
                     },
                 );
             }
-            AgentEvent::HarnessLog { line } => {
+            AgentEvent::HarnessLog { line, .. } => {
                 self.push(record, EntryKind::Log { line: line.clone() });
             }
-            AgentEvent::Steered { content } => {
+            AgentEvent::Steered { content, .. } => {
                 let (text, attachments) = prompt_parts(content);
                 self.push(record, EntryKind::Steer { text, attachments });
             }
             AgentEvent::QuestionAsked(question) => self.asked(record, question),
-            AgentEvent::QuestionResolved { id, outcome } => {
+            AgentEvent::QuestionResolved { id, outcome, .. } => {
                 let Some(index) = self.questions.get(id).copied() else {
                     return;
                 };
