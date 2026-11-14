@@ -14,7 +14,9 @@ use vessel_app_view::timeline::{FindCache, Folds, Live, Logs, OutlineItem, Rows,
 use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
 use super::actions::{AgentLog, Confirm, MenuAction};
-use super::{bench, find, meter, outline, permission, question, queue, read, rename, search, tail};
+use super::{
+    bench, find, meter, outline, permission, question, queue, read, rename, rewind, search, tail,
+};
 
 /// What the shell does after an act's answer reached the conversation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,6 +140,8 @@ pub(crate) struct ConversationArea {
     pub(crate) meter: meter::MeterState,
     /// Marking the session read while it is in front.
     pub(super) read: read::ReadMarks,
+    /// A rewind being chosen under a person's message, or sent.
+    pub(super) rewinding: rewind::Rewinding,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -199,6 +203,7 @@ impl ConversationArea {
             answering: None,
             meter: meter::MeterState::default(),
             read: read::ReadMarks::default(),
+            rewinding: rewind::Rewinding::new(cx),
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),
@@ -239,6 +244,7 @@ impl ConversationArea {
         self.shown = None;
         self.lost = None;
         self.read = read::ReadMarks::default();
+        self.rewinding.clear();
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();

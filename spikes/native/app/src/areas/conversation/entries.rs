@@ -39,6 +39,10 @@ pub(super) struct Paint<'a> {
     pub(super) entries: &'a [Entry],
     /// The session's agent: its mark in a reply's avatar.
     pub(super) agent: Option<&'a vessel_proto::HarnessRef>,
+    /// The conversation's timeline, when a rewind may be asked now (the
+    /// session area's live conversation, between turns): a person's
+    /// message offers it where it can go (`rewind`).
+    pub(super) rewinds: Option<&'a vessel_app_view::timeline::Timeline>,
 }
 
 /// Entry `index` as its row.

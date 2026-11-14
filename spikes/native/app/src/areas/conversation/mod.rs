@@ -67,6 +67,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+mod rewind;
 pub(crate) mod search;
 mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).

@@ -43,6 +43,13 @@ impl ConversationArea {
                 return Followup::None;
             }
         }
+        // A refused rewind is the notice's (Paseo's toast), said by
+        // `rewind`, not a refusal beside a control.
+        if answer.kind == ActKind::Rewind
+            && matches!(answer.result, Err(ActFailed { code: Some(_), .. }))
+        {
+            return Followup::None;
+        }
         match answer.result {
             Ok(Acted::Session(info)) => {
                 self.refused = None;
