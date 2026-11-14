@@ -204,12 +204,14 @@ impl Shell {
         ask: &FindFiles,
         result: Result<FoundFiles, Problem>,
     ) {
+        if ask.key != Some(self.areas.workspace.code.files.search.key) {
+            // Another field's find (track P's `@`, `code_find_files`).
+            super::elsewhere::found_elsewhere(self, ask, result);
+            return;
+        }
         let words = self.words();
         let search = &mut self.areas.workspace.code.files.search;
-        if ask.key != Some(search.key)
-            || search.mode != Mode::Name
-            || search.asked.as_deref() != Some(ask.query.as_str())
-        {
+        if search.mode != Mode::Name || search.asked.as_deref() != Some(ask.query.as_str()) {
             return;
         }
         search.results = match result {

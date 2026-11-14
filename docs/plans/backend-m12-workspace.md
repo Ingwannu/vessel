@@ -131,6 +131,20 @@ when it is next shown (G1's finding: a closed panel was being read,
 and a hidden tab kept what was true before the write). The Changes
 tab's refresh button reads the open tab again.
 
+Track P's seams (the composer): a selection or a file handed to the
+composer is a value, `view::workspace::reference::FileReference` (root,
+path, an optional `LineRange`, the text sent), keyed, titled and
+subtitled as Paseo's `WorkspaceFileComposerAttachment`
+(`attachments/workspace-file.ts`); P's `Shell::composer_add_reference`
+shows it as a chip and sends its text. Until that entry exists the panel
+puts the text in the draft as before. `@` in the composer finds files
+through `Shell::code_find_files(key, query, limit)` (P's own search key;
+the open session's root is read once per session and kept, a find asked
+before it is known waits for it and says `FindRefused::Reading`); an
+answer under a key that is not the panel's goes to
+`code::elsewhere::found_elsewhere`, P's slot. The node's find returns
+files only (its index is `git ls-files`), so `@` offers no folders.
+
 The Files tab searches: a file by its name as it is typed (`file.find`,
 keyed so a newer search stops an older one) or lines inside files on
 Enter (`file.grep`, literal, smart case), the two chosen by a segmented

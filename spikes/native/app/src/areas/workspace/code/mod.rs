@@ -27,6 +27,7 @@ mod actions;
 mod actions_view;
 mod change_rows;
 mod changes;
+mod elsewhere;
 mod files;
 mod found;
 mod frame;
@@ -45,6 +46,7 @@ use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
+pub(crate) use elsewhere::FindRefused;
 pub(crate) use frame::{code_beside, code_toggle};
 
 use crate::shell::Shell;
@@ -145,6 +147,8 @@ pub(crate) struct CodePanel {
     /// Tabs whose content a git write changed while they were not shown:
     /// read again when next shown.
     stale: Stale,
+    /// Each session's root for finds from other areas (`code_find_files`).
+    finder: elsewhere::Finder,
 }
 
 /// Which tabs are to be read again when shown.
@@ -180,12 +184,14 @@ impl CodePanel {
             },
             width: frame::WIDTH,
             stale: Stale::default(),
+            finder: elsewhere::Finder::default(),
         }
     }
 
     /// The machine was renamed in the book: the panel goes on under the
     /// new name.
     pub(in crate::areas::workspace) fn machine_renamed(&mut self, from: &str, to: &str) {
+        self.finder.machine_gone(from);
         if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
             to.clone_into(&mut target.machine);
         }
@@ -193,6 +199,7 @@ impl CodePanel {
 
     /// The machine was forgotten: nothing of it is shown or read again.
     pub(in crate::areas::workspace) fn machine_forgot(&mut self, name: &str) {
+        self.finder.machine_gone(name);
         if self
             .target
             .as_ref()
@@ -363,6 +370,7 @@ impl Shell {
         session: SessionId,
         result: Result<Box<SessionInfo>, Problem>,
     ) {
+        self.finder_session_read(session, &result);
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
         let Some(target) = panel

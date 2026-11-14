@@ -17,7 +17,7 @@
 //! - Cost: a selection's lines are copied into the draft; a later edit of
 //!   the file does not change them.
 
-use vessel_proto::workspace::LineKind;
+use vessel_proto::workspace::{LineKind, RelPath, WorkspaceRoot};
 
 /// The most a reference carries, in characters.
 pub const MAX_REFERENCE: usize = 8192;
@@ -148,6 +148,88 @@ pub fn with_reference(draft: &str, reference: &str) -> String {
     }
 }
 
+/// Lines of a file, from 1, `first` at most `last`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LineRange {
+    /// The first line.
+    pub first: u32,
+    /// The last line.
+    pub last: u32,
+}
+
+impl LineRange {
+    /// The range, `None` when `first` is 0 or past `last` (Paseo's
+    /// `isWorkspaceFileComposerAttachment` refuses the same).
+    #[must_use]
+    pub const fn new(first: u32, last: u32) -> Option<Self> {
+        if first == 0 || first > last {
+            None
+        } else {
+            Some(Self { first, last })
+        }
+    }
+}
+
+/// A file, or some of its lines, handed to the composer as a chip (Paseo's
+/// `WorkspaceFileComposerAttachment`, `attachments/workspace-file.ts`):
+/// the composer shows its title and subtitle above the input and sends
+/// `text` with the message. Made by the code panel ("Add lines to chat",
+/// the tree's "Add to chat"); the composer's chips are track P's.
+///
+/// Difference from Paseo, named: Paseo sends only "Workspace file: path,
+/// Lines: a-b" and the agent reads the file; here `text` carries the lines
+/// themselves in agent-orchestrator's form (`file_reference`), so what the
+/// person saw is what the agent gets even if the file changes after.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileReference {
+    /// The root on the session's machine.
+    pub root: WorkspaceRoot,
+    /// The file.
+    pub path: RelPath,
+    /// Some of its lines; `None`: the whole file (Paseo's `whole_file`).
+    pub lines: Option<LineRange>,
+    /// What is sent with the message.
+    pub text: String,
+}
+
+impl FileReference {
+    /// One chip per file and range: a second of the same is not added
+    /// (Paseo's `getWorkspaceFileAttachmentKey`).
+    #[must_use]
+    pub fn key(&self) -> String {
+        match self.lines {
+            None => format!("{}:whole_file", self.path.as_str()),
+            Some(range) => format!(
+                "{}:line_range:{}-{}",
+                self.path.as_str(),
+                range.first,
+                range.last
+            ),
+        }
+    }
+
+    /// The chip's title: the file's name.
+    #[must_use]
+    pub fn title(&self) -> &str {
+        self.path.file_name().unwrap_or_else(|| self.path.as_str())
+    }
+
+    /// The chip's subtitle: the path, and the lines when some (Paseo's
+    /// `getWorkspaceFileAttachmentSubtitle`, its hyphen kept).
+    #[must_use]
+    pub fn subtitle(&self) -> String {
+        match self.lines {
+            None => self.path.as_str().to_owned(),
+            Some(range) => format!(
+                "{} \u{b7} {}-{}",
+                self.path.as_str(),
+                range.first,
+                range.last
+            ),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     //! The page's `panel-model.test.ts`, "a selection sent to the composer".
@@ -204,5 +286,34 @@ mod tests {
     fn goes_after_what_the_draft_holds() {
         assert_eq!(with_reference("", "\n\nref"), "ref");
         assert_eq!(with_reference("Fix this:", "\n\nref"), "Fix this:\n\nref");
+    }
+
+    #[test]
+    fn a_file_reference_is_keyed_and_named_as_paseo_s_chip_is() {
+        use super::{FileReference, LineRange};
+        use vessel_proto::workspace::{RelPath, WorkspaceRoot};
+        let Ok(path) = "docs/한글-문서/설치-안내.md".parse::<RelPath>() else {
+            panic!("a path");
+        };
+        let root = WorkspaceRoot::Project {
+            project: vessel_proto::ProjectId::random(),
+        };
+        let whole = FileReference {
+            root,
+            path: path.clone(),
+            lines: None,
+            text: String::new(),
+        };
+        assert_eq!(whole.key(), "docs/한글-문서/설치-안내.md:whole_file");
+        assert_eq!(whole.title(), "설치-안내.md");
+        assert_eq!(whole.subtitle(), "docs/한글-문서/설치-안내.md");
+        let some = FileReference {
+            lines: LineRange::new(12, 20),
+            ..whole
+        };
+        assert_eq!(some.key(), "docs/한글-문서/설치-안내.md:line_range:12-20");
+        assert_eq!(some.subtitle(), "docs/한글-문서/설치-안내.md \u{b7} 12-20");
+        assert_eq!(LineRange::new(0, 3), None);
+        assert_eq!(LineRange::new(5, 4), None);
     }
 }

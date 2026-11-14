@@ -30,6 +30,8 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
+#[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
+pub(crate) use code::FindRefused;
 pub(crate) use code::{code_beside, code_toggle};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
