@@ -1,25 +1,41 @@
 # ADR 0062: Generated names
 
-Status: accepted, 2026-11-14. This commit is the contract only. The
-wire number below is provisional; the node integrator assigns the final
-one. Nothing in this commit generates a name, and `PROTOCOL_VERSION`
-stays 20 until the types that speak the new fields exist: a version
-with no types would claim a wire this build does not speak.
+Status: proposed, 2026-11-14. Acceptance is recorded when review
+passes. This commit is the contract only. The protocol number is the
+one given at merge. This decision does not choose it. `PROTOCOL_VERSION`
+stays at the base, 20, until that merge. New calls and new fields are
+gated on one constant, `GENERATED_NAMES`, in `vessel-proto`: the
+integrator sets that constant and no other line of this decision.
+Nothing here generates a name yet, so the constant is not in the code
+of this commit.
 
 The plan is `docs/plans/generated-names.md`. It names the Paseo files
 and lines this decision follows.
 
 ## Purpose and intent
 
-Paseo asks a model for four short texts, apart from the agent a person
-is talking to: a workspace's title, a new worktree's branch name, a
-commit message, and a pull request's title and body. Vessel today names
-a session from the title a person typed or from the first line of its
-first prompt, cut at 80 characters (ADR 0022), and generates nothing.
+Paseo asks a model, apart from the agent a person is talking to, for a
+**workspace** title, a new worktree's branch name, a commit message,
+and a pull request's title and body. It does not ask a model for an
+agent's title. That title is only the explicit one or the first line of
+the prompt, cut at 60 (`create-agent-title.ts` 1–48; the import path
+uses the same pair, `agent-manager.ts` 694–698). A project key that
+used to prompt for an agent title was removed in v0.1.96
+(`paseo-config-schema.ts` 69–70). The model runs once per created
+workspace, not once per agent: a directory workspace just created with
+a prompt (`session.ts` 4522–4531), a `workspace.create` that carries a
+first agent (`session.ts` 6921–6930), or a created worktree
+(`session.ts` 7493, `scheduleForWorktree`). The write lands on the
+workspace record (`workspace-auto-name.ts` 176–188), and only when that
+record's title is empty or still the provisional line.
 
-The intent is the same four texts, with Paseo's defaults, limits and
-the rule that a person's own words win, without ever delaying the
-moment a session starts.
+Vessel has no workspace title. The name on the board is the session's
+(ADR 0022): a typed title, or the first line of the first prompt cut at
+80. This decision generates **that session title**, which is not what
+Paseo generates. The difference, the reason and the cost are under
+"Why this and not the others". The other three texts follow Paseo's
+triggers. A person's own words win, and a session's start does not
+wait.
 
 ## Existing implementation and constraints
 
@@ -94,14 +110,17 @@ failed fill becomes fixed fallback text.
 
 ## The choice
 
-Provisional protocol **21**. Every new field is optional and skipped
-when absent, so a peer that ignores unknown JSON fields keeps working.
-A peer below 21 is not sent the new methods (`since` refuses them, as
-every method since protocol 5). `node.set_settings` stays a protocol 12
-method; a client sends `metadata` only when the peer speaks 21, and a
-node of 21 is the one that applies it. Absence of `metadata` on a
-settings answer means this peer does not generate (an older node). An
-empty provider list, present, means automatic.
+The number is `GENERATED_NAMES`, given at merge. Every new field is
+optional and skipped when absent, so a peer that ignores unknown JSON
+fields keeps working. A peer below that constant is not sent the new
+methods (`since` refuses them, as every method since protocol 5).
+`node.set_settings` stays the method ADR 0038 added; a client sends
+`metadata` only when the peer speaks `GENERATED_NAMES`, and only a node
+that has that constant applies it. Absence of `metadata` on a settings
+answer means this peer does not generate. An empty provider list,
+present, means automatic. This decision adds that one top-level key and
+no other. It does not list the keys other decisions add; those appear
+on the settings type when they merge.
 
 ### The seam
 
@@ -118,7 +137,11 @@ The prompt's source material is the person's text or a diff, wrapped so
 the model is told to treat it as material and not as instructions. A
 project's style instructions replace only the style section.
 
-Which route, in order, the same order as Paseo's automatic list:
+Which route, in order, the same order as Paseo's automatic list.
+The match is case-insensitive, as Paseo's is on the model id and its
+label (`structured-generation-providers.ts` 232–237). `ModelRoute` has
+no label. The route name stands in for it, so the needle is looked for
+in the model id, the `small_model` id and the route name.
 
 1. A route whose model id, `small_model` id or route name contains
    `haiku`.
@@ -130,14 +153,22 @@ Which route, in order, the same order as Paseo's automatic list:
 
 The first route that exists is the one call. Manual mode does not use
 this list: it uses `metadata.providers`, in the stored order, and again
-only the first entry whose route exists. An entry's `model`, when set,
-must be that route's model or its `small_model` (ADR 0015, decision 5);
+only the first entry whose route exists. A later entry that repeats the
+same route, model and effort is dropped, as Paseo dedupes
+(`dedupeProviders`, line 74). An entry's `model`, when set, must be
+that route's model or its `small_model` (ADR 0015, decision 5);
 anything else is a refused setting, not a call. An entry's `effort`,
 when set, is a closed set (`minimal`, `low`, `medium`, `high`, `max`),
-mapped in the node onto `vessel-llm`'s effort. An unknown effort is
-refused on write, as an unknown `park_after` is. When the entry omits
-effort, the provider's default stands, except the automatic
-`gpt-5.4-mini` match, which asks for low.
+mapped in the node onto `vessel-llm`'s effort. A value outside that set
+is refused on write, as an unknown `park_after` is. Paseo instead keeps
+the string and, at generation, replaces a thinking id the model does
+not offer with the model's default (`resolveThinkingOptionId`,
+263–276). The same outcome is used here for a value the provider's API
+cannot say: Anthropic's wire effort is `low`, `medium`, `high` and
+`max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
+call and the provider's default stands. When the entry omits effort,
+the provider's default stands, except the automatic `gpt-5.4-mini`
+match, which asks for low.
 
 No resolvable route: no call. The fallback below applies, and the node
 logs the class (`no route`), never the prompt.
@@ -164,15 +195,25 @@ route's model. Paseo prefers a small model; `small_model` is that field.
   `metadata.pull`, each an `instructions` string of at most 1 024
   characters. A longer string refuses that table (the default style is
   used, and the log names the table and `too long`, not the text).
-  Blank instructions are the same as omitting them. For a worktree the
-  node reads the blob of `vessel.toml` on the base commit when that
-  blob exists, which is Paseo's committed file, and otherwise the file
-  at the project root. A directory that is not a repository reads the
-  file at its root. A file that does not parse contributes no
-  instructions; generation continues with the defaults and the log names
-  the existing project-file error class, not the file's body. The
-  functional contract (what to return, the JSON shape, the limits, the
-  refusal to follow instructions inside the source) is not replaceable.
+Blank instructions are the same as omitting them. The file is read
+from the disk at the cwd's repository root, which is what
+`readPaseoConfig(repoRoot)` does (`build-metadata-prompt.ts` 45–57,
+`paseo-config-file.ts` 284–289): a filesystem read, not a blob from
+the base commit. A directory that is not a repository reads the file
+at its root. A file that does not parse contributes no instructions;
+generation continues with the defaults and the log names the existing
+project-file error class, not the file's body. The functional contract
+(what to return, the JSON shape, the limits, the refusal to follow
+instructions inside the source) is not replaceable.
+
+These four tables are this decision's. ADR 0066's table already names
+them (`[metadata.title]`, `[metadata.branch]`, `[metadata.commit]`,
+`[metadata.pull]`) and leaves them out of the command digest; that
+track does not parse them. A legacy `agentTitle` key is ignored, as
+0066's row says and as Paseo only keeps so an old file still parses.
+The names differ from Paseo's `metadataGeneration.title`,
+`branchName`, `commitMessage` and `pullRequest`, and 1 024 characters
+is a bound Paseo does not have. Both are stated below.
 
 The settings screen is not part of this change. It calls the methods
 in the plan's "What a screen calls".
@@ -190,8 +231,8 @@ in the plan's "What a screen calls".
   `spec.title`** is eligible to be replaced, and only while it is still
   that title.
 - `generated`: this generator's title, after it parsed.
-- `unknown`: the field was absent (a record from before protocol 21, or
-  a newer origin). Generation does not replace an unknown title. A
+- `unknown`: the field was absent (a record from before `GENERATED_NAMES`,
+  or a newer origin). Generation does not replace an unknown title. A
   person's old typed title and an old prompt line cannot be told apart,
   so neither is overwritten.
 
@@ -201,7 +242,7 @@ protocol 9, because a peer of 9 that ignores an unknown field still
 reads `title`. The node still sends the field to an older peer: the
 workspace's event decoder does not refuse unknown fields, and a hop must
 not drop one (protocol 20). `since` of the event does not move.
-`SessionInfo` from a node below 21 omits the field.
+`SessionInfo` from a node below `GENERATED_NAMES` omits the field.
 
 Generation is scheduled only after `session.create` has published the
 given title and returned. It is not scheduled for a terminal session, a
@@ -217,22 +258,50 @@ characters, Paseo's schema bound, which is inside the typed bound of
 120. The branch, when one is asked for in the same call, must parse as
 a `BranchName` and as Paseo's slug: lower-case letters, digits, hyphens
 and slashes, no leading or trailing hyphen, no `--`, at most 100
-characters. The branch is not the title rewritten into a slug. One call
-returns both fields whenever a placeholder branch is eligible; a session
-with nothing to rename still receives a branch field and ignores it, so
-a title never costs a second call. A field that does not parse refuses
-the whole answer: the given title stays, and the placeholder branch
-stays. There is no second call to repair it.
+characters. The branch is not the title rewritten into a slug. When the session's
+title and the worktree's branch are both eligible, one call returns
+both fields. When only one is eligible, the call asks for that one, so
+a title never costs a second call and a branch never costs a second
+call. A field that does not parse refuses the whole answer of that
+call: the given title stays, and the placeholder branch stays. There is
+no second call to repair it. Paseo's provisional line is cut at 60 and
+an explicit title may be 200 (`create-agent-title.ts` 3,
+`agent-title-limits.ts` 1). Those stay 80 and 120 here, because ADR
+0022 already published them: a stored title of 80 characters would
+become illegal if the cut moved to 60, and a typed title of 121
+characters is already refused.
 
 ### Branch names
 
-Eligible only when this create made the branch and its name is still
-the placeholder (`vessel/<8 hex>` or whatever `WorktreeBranch::New`
-stored). A name the person sent is not eligible. The rename goes
-through the existing `git.rename_branch` path, which updates the
-worktree's stored `branch` and `created_branch`. That write is not
-pushed: a client sees the new name the next time it reads the worktree.
-This decision adds no event for it.
+`session.create` does not make a branch. `SessionPlace::Worktree` names
+a worktree that already exists (`worktree.rs` 385–389). The placeholder
+is made by `worktree.create` (protocol 10) when `WorktreeBranch::New`
+or `Snapshot` omits the name. `choose` (`worktrees/start.rs`) then
+calls `branch_for` (line 118): `vessel/` plus the worktree id's short
+hex, stored as `created_branch`.
+
+The stored worktree gains `branch_auto_name`, absent when the person
+named the branch or the branch already existed:
+
+- `pending { placeholder }`, written in the same save as the new
+  worktree. `placeholder` is that `created_branch`.
+- `attempted { placeholder }`, written **before** the model is called,
+  including when the branch checked out now is already not the
+  placeholder (then there is no call for the branch and no rename).
+  A restart therefore tries a worktree at most once, as Paseo marks
+  `attempted` before it generates (`paseo-worktree-service.ts`
+  211–218).
+
+The seed is the first prompt of the first structured session whose
+place is that worktree and whose prompt has text. A generated name
+equal to the placeholder is refused (`paseo-worktree-service.ts` 226).
+The rename then goes through `git.rename_branch`, which updates the
+stored `branch` and `created_branch`. That write is not pushed. Paseo
+does notify: `notifyGitMutation(..., "rename-branch")` and
+`emitWorkspaceUpdateForCwd` (`workspace-auto-name.ts` 149–152). A
+client here sees the new name the next time it reads the worktree.
+The session title, by contrast, is pushed: `renamed` is the event a
+follower already applies. No new event is added for the branch.
 
 If the desired name exists, the node tries `name-2` through `name-50`,
 skipping a candidate equal to the placeholder, and keeps the placeholder
@@ -242,17 +311,20 @@ while the model ran wins, and the generated name is dropped.
 
 ### Commit message and pull-request text
 
-Two calls, both `operate`, provisional since 21. They do not commit and
-do not open a pull request.
+Two calls, both `operate`, `since` equal to `GENERATED_NAMES` (the
+number given at merge). They do not commit and do not open a pull
+request.
 
 - `text.commit { root }` answers `{ message, source }`.
 - `text.pull { root, base? }` answers `{ title, body, source }`.
 
 `source` is `generated` or `fallback`. `root` is the workspace root the
-git calls already take. `base` is the branch `pr.open` already takes; absent
-means the project's default branch, as there. The diff is the uncommitted
-diff for a commit message, and the diff against `base` for a pull
-request. An empty diff is a fallback, not a call.
+git calls already take. `base` is the branch `pr.open` already takes;
+absent means the project's default branch, as there. The diff is the
+uncommitted diff for a commit message, and the diff against `base` for
+a pull request. An empty diff is still one call: the source text says
+there is no diff, as Paseo's generator sends `(No diff available)`
+(`git-metadata-generator.ts`, the shared prompt builder).
 
 The caller then sends the text to `git.commit` or `pr.open` as it does
 today. Those two calls do not grow an optional message and do not call
@@ -274,8 +346,8 @@ words. The body fallback is not: Paseo's body names Paseo. A fallback
 answer has `source: fallback` and a reason from the refusal enum, so a
 screen can say the words were not the model's. The RPC itself succeeds:
 the caller always has text it may use. A refusal that is not a bad
-answer (no route, the upstream failed, the clock fired, the diff was
-empty) uses the same fallback.
+answer (no route, the upstream failed, the clock fired) uses the same
+fallback.
 
 ### Refusal
 
@@ -318,6 +390,24 @@ a `given` one. The generation is a later task on the node. A failure of
 that task does not fail the session. `text.commit` and `text.pull` do
 wait: the caller asked for the text. Their wait is the 20 second bound.
 
+## What leaves the node
+
+The completion leaves the node only by the path ADR 0015 already
+allows: `vessel-llm`'s client, to the base URL of the one route
+`models.toml` names, with redirects off and no proxy. The credential
+is that route's key, the one `secrets.toml` names, held by the node for
+the length of the call. It is not put in the prompt, the log, the
+`ModelCall` record, or the session's environment. A missing route, a
+model the route does not allow, a key the client refuses as not
+distinctive, and the 20 second deadline each refuse the call. The test
+arm of the generator's enum is compiled only under `cfg(test)`. A
+release build has no fake that answers.
+
+No signal handler, systemd unit or launchd job is started. The wait is
+the HTTP client's deadline, the same call on Windows as on any other
+system. There is no Windows-only refusal because there is no
+Unix-only mechanism.
+
 ## Why this and not the others
 
 The route and `vessel-llm` are the only path that already holds a key
@@ -328,6 +418,16 @@ prompt line, which would replace a typed title that happens to match.
 Leaving `git.commit` and `pr.open` alone keeps every current caller
 working on protocol 10 and 11. Optional fields, not a new `since` on
 `renamed`, keep a peer of 9 able to read a rename.
+
+The generated name is put on the session, not on a workspace, because
+the board reads `SessionInfo.title` and Vessel has no other title for
+a place. That is the opposite of Paseo's write. The cost is how often
+the model runs: one call per new structured session that had no
+`spec.title`, against Paseo's one call per created workspace. Four
+such sessions in one worktree are four calls here and one there. A day
+that opens twenty is twenty calls, each still one route, 16 384
+characters and 20 seconds. A session in a place that already exists
+still costs a call here, and costs Paseo nothing.
 
 ## Advantages, costs and effects
 
@@ -345,6 +445,13 @@ working on protocol 10 and 11. Optional fields, not a new `since` on
 - The input cap drops source material Paseo would have sent (a whole
   prompt, a 120 000 character commit patch, a 200 000 character pull
   request patch). A long diff is named from its head.
+- A given title can be 20 characters longer than Paseo's provisional
+  line (80 against 60) before a generation replaces it, and a person
+  cannot type the 200 characters Paseo allows (the typed bound stays
+  120).
+- A branch rename is not pushed. A screen that does not read the
+  worktree again keeps showing the placeholder. The session title is
+  pushed, as `renamed`, which is the event that screen already applies.
 - `vessel-workspace` gains a reader for `[metadata]`, in its own file:
   `project_file.rs` is already near the 500 line budget. No new
   dependency. The architecture table gains a phrase when that module
