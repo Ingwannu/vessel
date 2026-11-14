@@ -37,6 +37,7 @@ pub mod dialog;
 pub mod field;
 pub mod fonts;
 pub mod menu;
+pub mod motion;
 pub mod output;
 pub mod picker;
 pub mod popup;
