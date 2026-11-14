@@ -168,7 +168,10 @@ fn draw<V: 'static>(
                 .map_or(1.0, |g| g.backdrop),
         ))
     } else {
-        scrim.justify_start().pt(px(TOP)).bg(rgba(0x0000_0080))
+        scrim
+            .justify_start()
+            .pt(px(TOP))
+            .bg(rgba(crate::theme::COMMAND_SCRIM))
     };
     let scrim = scrim.when(!frame.compact, |scrim| {
         scrim.opacity(animation.map_or(1.0, |a| a.motion.opacity))

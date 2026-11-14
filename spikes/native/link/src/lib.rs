@@ -654,7 +654,7 @@ impl State {
                 harness,
                 commands,
             } => self.keep_commands(&machine, harness, commands),
-            Command::SaveDrafts(drafts) => save_drafts(drafts),
+            Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
             Command::Resume {
                 machine,
                 session,
@@ -838,7 +838,7 @@ impl State {
         let Ok(client) = self.client(machine) else {
             return;
         };
-        drop(tokio::spawn(keep_offers(
+        drop(tokio::spawn(offers::keep_answer(
             std::sync::Arc::clone(&self.offers),
             client.node().id,
             harness,
@@ -915,7 +915,7 @@ impl State {
                     // Kept beside the answer, not before it: the disk
                     // never delays what the app shows.
                     if let Ok(offered) = &answer {
-                        drop(tokio::spawn(keep_offers(
+                        drop(tokio::spawn(offers::keep_answer(
                             store,
                             client.node().id,
                             harness.clone(),
@@ -1040,45 +1040,6 @@ impl State {
             ))
             .await;
         }
-    }
-}
-
-/// Write the composers' drafts on the blocking pool; a failure is logged
-/// (never their text).
-#[cfg(not(target_arch = "wasm32"))]
-fn save_drafts(drafts: vessel_app_view::composer::drafts::Drafts) {
-    drop(tokio::task::spawn_blocking(move || {
-        if let Err(error) = drafts::save(&drafts) {
-            tracing::warn!(%error, "the drafts could not be kept");
-        }
-    }));
-}
-
-/// Keep an agent's answer on this device, written only when it differs
-/// from the kept one; a write that fails is logged (the list is a cache).
-#[cfg(not(target_arch = "wasm32"))]
-async fn keep_offers(
-    store: std::sync::Arc<std::sync::Mutex<offers::Store>>,
-    node: vessel_proto::NodeId,
-    harness: HarnessRef,
-    said: offers::Said,
-    at: chrono::DateTime<Utc>,
-) {
-    let kept = tokio::task::spawn_blocking(move || {
-        let mut store = store
-            .lock()
-            .map_err(|_poisoned| std::io::Error::other("the kept lists' lock is poisoned"))?;
-        if store.keep(node, harness, None, said, at) {
-            store.save()
-        } else {
-            Ok(())
-        }
-    })
-    .await;
-    match kept {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => tracing::warn!(%error, "an agent's list could not be kept"),
-        Err(error) => tracing::warn!(%error, "an agent's list was not kept"),
     }
 }
 

@@ -8,6 +8,10 @@
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
 pub mod spacing;
+
+/// The desktop command panel's scrim: black at 50 % (track S3's, after
+/// Paseo's command center), as `rgba` takes it.
+pub const COMMAND_SCRIM: u32 = 0x0000_0080;
 mod status;
 pub use status::{Signal, Status};
 

@@ -266,3 +266,30 @@ struct StoredRef<'a> {
 
 #[cfg(test)]
 mod tests;
+
+/// Keep an agent's answer on this device, written only when it differs
+/// from the kept one; a write that fails is logged (the list is a cache).
+pub(crate) async fn keep_answer(
+    store: std::sync::Arc<std::sync::Mutex<Store>>,
+    node: vessel_proto::NodeId,
+    harness: HarnessRef,
+    said: Said,
+    at: DateTime<Utc>,
+) {
+    let kept = tokio::task::spawn_blocking(move || {
+        let mut store = store
+            .lock()
+            .map_err(|_poisoned| std::io::Error::other("the kept lists' lock is poisoned"))?;
+        if store.keep(node, harness, None, said, at) {
+            store.save()
+        } else {
+            Ok(())
+        }
+    })
+    .await;
+    match kept {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "an agent's list could not be kept"),
+        Err(error) => tracing::warn!(%error, "an agent's list was not kept"),
+    }
+}
