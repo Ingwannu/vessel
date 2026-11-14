@@ -244,6 +244,24 @@ conversation it was forked from could not be read: … Open the session
 again to try again."; opening the session again, or another session
 and then this one, reads it again.
 
+F2 done (2026-11-14): a fork that never held a conversation (its
+status `failed` with `empty_fork`, ADR 0052's addendum) has a banner
+over the composer in the ended banner's callout: "The fork did not
+start", why in the person's words (`view::timeline::empty_fork`: the
+node's "the agent did not fork at the chosen point" → "The agent did not
+fork at the chosen point. Nothing here can go on; remove it and fork
+again."; "cannot fork" likewise; any other start failure in the node's
+words), and Remove (`session.delete`, no confirm: nothing is lost). Once
+removed, the session it was forked from opens (where the person forked
+from), when the list holds it; a refused Remove is said under the
+banner. An empty fork reads no origin, and drops one read before it
+failed; its composer sends nothing. Its records decide (the timeline's
+last status), before the node's description is read again. On the fake
+fleet (`FAKE_ACP_FORK_IGNORES_POINT=1` on the laptop node for one fork,
+then back): `shots/m/112` (en dark 1280), `113` (ko light 800 × 600),
+`114` (en light 390), `115-*` (Remove, then the origin open). Paseo has
+no empty fork: its fork is a draft until sent.
+
 ## Module layout (2026-11-14, the owner's word 44)
 
 `app/src/areas/conversation/` after the split (no behaviour change;
