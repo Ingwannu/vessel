@@ -226,6 +226,14 @@ before the text sees them. `KeyAnswer::Pass` leaves everything as before
 (Enter sends, Tab indents); `Taken` stops the key. An input method
 composing is never asked. Screens take a key only while their menu shows.
 
+`kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
+list): rows drawn best last (nearest the text), the chosen one on
+`surface2`, a chosen command's card above the list, the loading, empty and
+failed states as one muted line; at most 220 high, scrolling, the chosen
+row kept in view. `cargo run -p vessel-app-kit --example autocomplete`
+with `VESSEL_AUTOCOMPLETE_SCENE` (`commands`, `long`, `files`, `empty`,
+`loading`, `failed`, `scroll`) and `VESSEL_APP_THEME` draws each state.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.

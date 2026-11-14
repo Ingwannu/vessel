@@ -25,6 +25,7 @@
 pub mod agent_mark;
 pub mod alert;
 pub mod assets;
+pub mod autocomplete;
 pub mod badge;
 pub mod breakpoint;
 pub mod card_button;
