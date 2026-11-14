@@ -653,6 +653,10 @@ impl WorkspaceWords for Ko {
         }
     }
 
+    fn editor_lines(&self, count: usize) -> String {
+        format!("{count}줄")
+    }
+
     fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
         if capped {
             format!("가장 가까운 파일 {files}개만 보입니다. 이름을 더 입력해 좁혀 보세요")

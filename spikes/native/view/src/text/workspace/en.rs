@@ -675,6 +675,10 @@ impl WorkspaceWords for En {
         }
     }
 
+    fn editor_lines(&self, count: usize) -> String {
+        counted_len(count, "line", "lines")
+    }
+
     fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
         let found = counted_len(files, "file", "files");
         if capped {
