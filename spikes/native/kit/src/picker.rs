@@ -596,6 +596,7 @@ pub fn combobox<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    let list_id: ElementId = id.into();
     if !state.open {
         return None;
     }
@@ -610,7 +611,7 @@ pub fn combobox<V: 'static>(
     });
 
     let mut panel = div()
-        .id(id.into())
+        .id(list_id.clone())
         .track_focus(&state.focus)
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
@@ -657,6 +658,18 @@ pub fn combobox<V: 'static>(
         header, rows, state, handlers, compact, tokens, cx,
     ));
 
+    // Word 39: the list arrives as Paseo's popover does (opacity and a
+    // small rise, `popup::appear`); a phone's sheet over the surface
+    // length. It leaves at once, as Paseo's desktop popovers do.
+    let panel = popup::appear(
+        ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
+        panel,
+        if compact {
+            crate::motion::STANDARD
+        } else {
+            crate::motion::QUICK
+        },
+    );
     let element = if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
         let size = window.viewport_size();

@@ -218,7 +218,8 @@ The kit validates ranges and merges overlaps; matching/ranking stay in
 while their prose prefixes use the interface caption metrics.
 
 A host opts into persistent `CommandState` and `command_frame_animated`
-for RNW's 250 ms desktop entering fade and the shared `sheet::snap`
+for the desktop entering fade (the motion tokens' surface length and
+curve) and the shared `sheet::snap`
 60/90% stops, pan-down dismissal and content-scroll handoff. The static
 entry point and existing edge-sheet API remain available. The desktop
 panel has no exit animation: Paseo's Command Center unmounts its Modal
@@ -256,6 +257,16 @@ receives one `Opacity` to pass to every `shape`; only the neutral surface2
 shapes fade, leaving cards and borders solid. Callers supply typed shape
 sizes/corner steps and compose existing settings/card frames. The pulse
 stops scheduling frames when unmounted; reduced motion follows GPUI.
+
+`kit::popup::appear` is how a floating surface arrives (the owner's word
+39): from clear to solid and four points below its place, over a length
+from `kit::motion` on its curve; menus, a combobox's list and tooltips
+use the quick length (Paseo's menu enters in 150 ms), dialogs, sheets and
+toasts the surface length. Nothing plays on the way out: Paseo's desktop
+popovers, menus and dialogs unmount at once. `popup::fill_in` fills the
+row a list's keyboard position arrives on over the quick length. Held
+motion (Animations off, reduced motion, a software renderer) draws every
+end state at once (GPUI's `with_animation`).
 
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and
