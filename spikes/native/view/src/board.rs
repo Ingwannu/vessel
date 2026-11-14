@@ -23,7 +23,7 @@ pub use tree::Row;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::agents::{AgentDetail, AgentInfo, InstallPart};
+use vessel_proto::agents::{AgentDetail, AgentInfo, InstallOffer, InstallPart};
 use vessel_proto::{
     DisplayStatus, Harness, HarnessKind, HarnessRef, ProtocolVersion, SessionId, StructuredSupport,
 };
@@ -292,15 +292,25 @@ fn not_installed(detail: &AgentDetail) -> String {
     match detail {
         AgentDetail::Known { installs, .. } => installs
             .iter()
-            .find(|offer| offer.part == InstallPart::Harness)
+            .find(|offer| {
+                matches!(
+                    offer,
+                    InstallOffer {
+                        part: InstallPart::Harness,
+                        command: _
+                    }
+                )
+            })
             .or_else(|| installs.first())
             .map_or_else(
                 || "not installed on this machine".to_owned(),
                 |offer| {
-                    format!(
-                        "not installed on this machine (install it with `{}`)",
-                        offer.command
-                    )
+                    // Every field named, no `..`: this sentence offers the
+                    // install, so a field the node adds must break the build
+                    // until it is shown or refused (README, "Rules every
+                    // screen follows").
+                    let InstallOffer { part: _, command } = offer;
+                    format!("not installed on this machine (install it with `{command}`)")
                 },
             ),
         AgentDetail::Added { added } => format!(
