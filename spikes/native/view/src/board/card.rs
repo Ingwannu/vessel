@@ -15,7 +15,7 @@ use crate::session::{can_start_again, folder_name};
 /// and what the sidebar sorts and marks by (`data/sidebar.ts`). Its own
 /// struct, with a default, so a card made by hand (the browser's demo)
 /// names only what it needs.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CardDetail {
     /// Which agent runs it, as the node names it (its mark's letter);
     /// `None` on a card made by hand.

@@ -138,3 +138,15 @@ mod tests {
         }
     }
 }
+
+/// Whether the window draws on a software renderer (llvmpipe, lavapipe,
+/// Windows' basic render driver): the effort card then moves as under
+/// reduced motion (the coordinator, on 0.0.0.0.13: its field cost about
+/// three cores there). `VESSEL_APP_REDUCE_MOTION=0` lifts this too, so the
+/// moving card can be measured on a virtual display; nothing is stored.
+pub(crate) fn software(window: &gpui::Window) -> bool {
+    forced() != Some(false)
+        && window
+            .gpu_specs()
+            .is_some_and(|specs| specs.is_software_emulated)
+}

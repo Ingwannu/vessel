@@ -63,7 +63,7 @@ impl Lane {
 }
 
 /// One session's card.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Card {
     /// The session.
     pub session: SessionId,
@@ -142,7 +142,7 @@ pub enum Via {
 }
 
 /// A machine in the sidebar.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Machine {
     /// Its name in the node book.
     pub name: String,
@@ -283,7 +283,7 @@ pub fn agent_name(agent: &HarnessRef) -> String {
 }
 
 /// Everything the screen shows.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Fleet {
     /// The machines, in the book's order.
     pub machines: Vec<Machine>,

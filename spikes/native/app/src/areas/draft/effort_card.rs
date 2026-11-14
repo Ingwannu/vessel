@@ -364,6 +364,7 @@ pub(crate) fn card(
     controls: Option<&Controls>,
     touch: bool,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.draft.effort;
@@ -378,16 +379,7 @@ pub(crate) fn card(
         .fast
         .as_ref()
         .is_some_and(vessel_app_view::effort::Switch::on);
-    let frame = state.motion.borrow_mut().frame(
-        Input {
-            stops: effort.steps.len(),
-            current: effort.current,
-            maximum: effort.maximum(),
-            fast: fast_on,
-            reduce: cx.reduce_motion(),
-        },
-        state.now(),
-    );
+    let frame = frame_now(state, effort, fast_on, window, cx);
     let shown = state.motion.borrow().shown(effort.current);
     let surface = match tokens.scheme {
         Scheme::Light => neutral.surface0,
@@ -406,7 +398,11 @@ pub(crate) fn card(
         touch,
     };
     let top = title_row(shell, &title, tokens, cx);
-    let paint = paint(&frame, tokens);
+    let mut paint = paint(&frame, tokens);
+    // The ring when the slider has the keys (Tab reaches it, an arrow key
+    // moves it), as the reference's thumb under `:focus-visible`; Vessel's
+    // ring token, not the reference's blue.
+    paint.ring = state.slider.keyboard_focused(window).then_some(tokens.ring);
     let slider = slider::block(slider::slider(
         "effort-slider",
         &state.slider,
@@ -416,8 +412,9 @@ pub(crate) fn card(
         &events(cx),
     ));
     let pill_place = place;
-    let card = div()
-        .id("effort-card")
+    // Its own layer: the composer under it is not hovered and does not
+    // show its text cursor through it (the owner, word 27).
+    let card = popup::layer(div().id("effort-card"))
         .w(px(WIDTH))
         .p(px(PAD))
         .flex()
@@ -429,6 +426,12 @@ pub(crate) fn card(
         .shadow(popup::shadow_md(tokens))
         .child(top)
         .child(div().min_h(px(TITLE)).py(px(4.0)).child(slider))
+        .on_hover(cx.listener(|shell, over: &bool, _window, cx| {
+            let card = &shell.areas.draft.effort;
+            let now = card.now();
+            card.motion.borrow_mut().engage(*over, now);
+            cx.notify();
+        }))
         .on_mouse_down_out(
             cx.listener(move |shell, event: &gpui::MouseDownEvent, _window, cx| {
                 // A press on the control itself toggles the card there.
@@ -439,11 +442,21 @@ pub(crate) fn card(
         )
         .on_key_down(
             cx.listener(|shell, event: &gpui::KeyDownEvent, window, cx| {
-                if event.keystroke.key == "escape" {
-                    shell.areas.draft.effort.set_open(false);
-                    shell.areas.draft.composer.focus(window, cx);
-                    cx.notify();
+                match event.keystroke.key.as_str() {
+                    "escape" => {
+                        shell.areas.draft.effort.set_open(false);
+                        shell.areas.draft.composer.focus(window, cx);
+                    }
+                    // Tab (either way) reaches the slider, the card's one
+                    // keyboard control (the bolt, the title and the reset
+                    // are pointer targets, as the reference's).
+                    "tab" => {
+                        shell.areas.draft.effort.slider.focus(window, cx);
+                        cx.stop_propagation();
+                    }
+                    _ => return,
                 }
+                cx.notify();
             }),
         );
     Some(
@@ -457,6 +470,30 @@ pub(crate) fn card(
         )
         .with_priority(3)
         .into_any_element(),
+    )
+}
+
+/// The slider's frame now.
+fn frame_now(
+    state: &CardState,
+    effort: &Effort,
+    fast_on: bool,
+    window: &Window,
+    cx: &App,
+) -> Frame {
+    state.motion.borrow_mut().frame(
+        Input {
+            stops: effort.steps.len(),
+            current: effort.current,
+            maximum: effort.maximum(),
+            fast: fast_on,
+            // A software renderer (llvmpipe, lavapipe, Windows' basic
+            // render driver) draws the card as under reduced motion: the
+            // colours change, nothing moves (measured on 0.0.0.0.13: the
+            // moving field cost about three cores there).
+            reduce: cx.reduce_motion() || crate::motion::software(window),
+        },
+        state.now(),
     )
 }
 
@@ -709,6 +746,8 @@ fn paint(frame: &Frame, tokens: &Tokens) -> Paint {
         field,
         fill: accent,
         moving: frame.moving,
+        smooth: frame.smooth,
+        ring: None,
     }
 }
 
