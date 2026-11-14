@@ -1,7 +1,9 @@
 # The first-run walkthrough
 
-ADR 0071 is the contract. This file is the order of work and the
-Paseo behaviour it was taken from.
+ADR 0071 is the contract. Its status is proposed until review passes
+it. This file is the order of work and the Paseo behaviour it was
+taken from. No protocol number is reserved. No `node.settings` key
+is added.
 
 Paseo 0.15.4 is the reference. Paths below are that repository's
 packages. Vessel paths are this repository.
@@ -34,9 +36,11 @@ packages. Vessel paths are this repository.
 - **A project.** `ProjectAsk::List` and `ProjectAsk::Add`. Paseo's
   suggestions come from each agent's history, pre-checked at three
   sessions in 30 days (`project-suggestions/internal/suggestions.ts`
-  5–6, 52–56). The node keeps no such history. Decision: no
-  suggestion list. Add is the existing add. Continue with nothing in
-  flight moves on, as Paseo's Continue does when nothing is checked.
+  5–6, 52–56). Not read: a node API of that history. A search of
+  `spikes/native` found no project-suggestion list. Decision: no
+  suggestion list, because inventing one would not be Paseo's data.
+  Add is the existing add. Continue with nothing in flight moves on,
+  as Paseo's Continue does when nothing is checked.
 - **The record.** The app's `app-prefs.json` (`link` `prefs.rs`), a
   new `setup` field, not a field of `Preferences`. `view` still does
   no I/O. No new crate, no new dependency (`chrono` is already
@@ -173,7 +177,10 @@ whose action is `onboarding.reopen()`.
 
 ## Resume point
 
-- **Done:** the decision and this plan. No code.
-- **Half-done:** nothing.
+- **Done:** ADR 0071 (status: proposed) and this plan. No protocol
+  number, no `node.settings` key. No code committed.
+- **Half-done:** nothing committed.
 - **Next:** slice 2, the model, starting from ADR 0071's phase, visit
-  and record. Do not open slice 3 before those tests pass.
+  and record. The model does not name a machine (which machine the
+  shell selects when several are paired was not read). Do not open
+  slice 3 before those tests pass.

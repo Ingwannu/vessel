@@ -1,8 +1,10 @@
 # ADR 0071: The first-run walkthrough is a model in `view`
 
-Status: accepted for the native app, 2026-11-14. The log is not
+Status: proposed, 2026-11-14, until review passes it. The log is not
 contiguous; 0052 is the previous ADR in this tree. No wire call is
-added. No crate edge is added, so `docs/ARCHITECTURE.md` is unchanged.
+added, so no protocol number is taken and none is reserved for later.
+No `node.settings` key is added: completion is not a node setting.
+No crate edge is added, so `docs/ARCHITECTURE.md` is unchanged.
 The screen and the call that mounts it are later slices of
 `docs/plans/app-onboarding.md`; this decision is the contract they
 implement.
@@ -52,12 +54,21 @@ that tree):
 - Steps, in order, each one's own screen under `internal/steps/`:
   1. Appearance (`appearance-step.tsx`): the shared theme picker.
      Picking a tile applies it at once (`appearance/theme-picker.tsx`
-     26–45). Continue only moves on. Built-in choices lead with the
-     system (`auto`), then light, dark, and further palettes
-     (`styles/theme.ts` 783–798); contributed themes follow.
-  2. Providers (`providers-step.tsx`): the Settings providers section
-     for that host. Continue only moves on. Nothing is required to be
-     signed in.
+     26–45, the comment at 26–29 and `updateSettings` at 40–44).
+     Continue only moves on, because the modal's primary action
+     special-cases only projects and orchestration
+     (`onboarding-modal.tsx` 160–199) and this step is the plain
+     advance. Built-in choices that were read lead with the system
+     (`auto`, `theme-picker.tsx` 18–22), then light and dark
+     (`styles/theme.ts` 783–798); zinc begins at 799. The rest of
+     `THEME_OPTIONS` was not read. Contributed themes are rendered
+     after the built-ins (`theme-picker.tsx` 57–63). What
+     `useContributedThemes` loads was not read.
+  2. Providers (`providers-step.tsx`, the whole file, 10 lines): it
+     renders `ProvidersSection` for that host and nothing else.
+     Continue only moves on (`onboarding-modal.tsx` 160–199, the
+     fall-through). The section's own sign-in, install and removal
+     were not read past its start (`providers-section.tsx` 356–419).
   3. Projects (`projects-step.tsx`): add a folder, list folders
      already added, and suggestions from agent history. A folder used
      at least three times in the last 30 days starts checked
@@ -72,8 +83,10 @@ that tree):
      Continue, and Continue moves on only when every offered switch
      took. A switch the host cannot do is not offered.
   5. Phone, only when the client is not a compact phone
-     (`model.ts` 23–26 and 86–88; `use-open-onboarding.ts` 6–14):
-     store links, then relay pairing or Tailscale.
+     (`model.ts` 23–26 and 86–88; `use-open-onboarding.ts` 6–14).
+     What was read of `steps/phone-step.tsx`: store links, a relay
+     pairing modal, and a Tailscale docs row. The file was read
+     through its styles.
 - Skip setup is on every step but the last and closes setup
   (`onboarding-modal.tsx` 78–84). The sheet's close does the same.
   The last step's primary is Finish: that step's own work runs, then
@@ -112,8 +125,10 @@ What Vessel already has, and must be reused rather than copied:
   asked for. Sign-in help is the node's command, copied, never a
   command the app invents (`app` `areas/settings/agents/detail/sign_in.rs`).
 - A project is `ProjectAsk::Add` and `ProjectAsk::List` on the machine
-  (`link` `workspace`). There is no list of folders remembered from
-  agent history.
+  (`link` `workspace`). Not read: a node API that lists folders from
+  agent history. A search of `spikes/native` found no such list (the
+  only "suggestions" there are the composer's placeholders). The
+  step does not invent one.
 - The app's memory between launches is one file, `app-prefs.json`,
   replaced whole, left untouched when it cannot be read (`link`
   `prefs.rs`). The settings document inside it is what will follow
@@ -140,8 +155,10 @@ What Vessel already has, and must be reused rather than copied:
   of nodes it pairs with (ADR 0035). A daemon the app spawned would be
   a second kind of node.
 - **Default the orchestration switches on and install.** `vessel init`
-  will not install on `--yes` alone. A walkthrough that installs
-  unless the person opts out would break that consent.
+  will not install on `--yes` alone (`crates/vessel-cli/src/init/mod.rs`
+  16–21, read). A walkthrough that installs unless the person opts out
+  would break that consent. The Windows behaviour of `--service` was
+  not read, and this walkthrough does not call it.
 - **Wait forever for a host before showing setup**, as Paseo waits for
   its daemon. With no daemon, a new person would see the empty app
   and never the walkthrough.
@@ -165,21 +182,29 @@ Always these four, in this order, on every launch, at every width:
 | `Agents` | Sees each agent as the node's last check left it, and can ask for `Ask::Check` or copy the node's sign-in command | Only what those existing calls already write. Continue does not require a sign-in |
 | `Project` | Adds a folder with `ProjectAsk::Add`, and sees folders `ProjectAsk::List` already returned | The project, when the add succeeds. Continue with no add in flight moves on, even at zero projects. An add still in flight moves on only when it succeeds, and only if the person is still on that visit |
 
-The machine the agents and project steps use is the first machine in
-the fleet's existing order, once one is paired. With none, those steps
-say so and Continue still moves.
+The model does not name a machine. Which paired machine the agents
+and project steps show is the shell's existing selection. Not read:
+the rule that picks one when several are paired. The screens must not
+invent an order. With none paired, those steps say so and Continue
+still moves.
 
 ### The phase
 
 `Deciding`, `Hidden`, or `Open`.
 
-`Open` carries the step and a `Visit` (a newtype over `u64`, starting
-at 1 on each opening). A move that changes the step takes a new visit,
-by `checked_add`. If the visit cannot grow, the move does not happen.
-Back on the first step, and a jump to the step already showing, do not
-take a new visit. `next` takes the visit the caller saw: a mismatch,
-or a phase that is not open, does nothing. From `Project`, a matching
-`next` finishes setup.
+`Open` carries the step and a `Visit` (a newtype over `u64`). A new
+model starts at 1. Reopen and each move take the next number; it does
+not restart, which is Paseo's `visits += 1` (`model.ts` 82–90) and is
+what makes a visit from before a reopen fail the check. Paseo's number
+has no saturation rule (not read: any cap in that file; the counter is
+a plain `let visits = 0`). Here it grows by `checked_add`. If it cannot
+grow, the move does not happen, so a wrapped number cannot equal a
+stale visit. That is a difference, and the reason is checked
+arithmetic. Back on the first step, and a jump to the step already
+showing, do not take a new visit. `next` takes the visit the caller
+saw: a mismatch, or a phase that is not open, does nothing. From
+`Project`, a matching `next` finishes setup even when the counter
+cannot grow, because finishing is not a move to another step.
 
 `complete` from any phase hides setup and asks for the record to be
 written. That is Skip, the sheet's close, and Finish. The Skip control
@@ -244,6 +269,18 @@ reads whatever is on disk.
 - No new wire call, and `vessel init` is unchanged.
 - The shell and Settings are not edited by this work. The plan names
   the lines their owners mount.
+
+### What it reaches
+
+Nothing of its own. It does not open a browser, listen for HTTP, spawn
+a helper, or run a script at startup. It does not use signals, systemd
+or launchd, so there is no Windows path to add and no Windows refusal
+to write. The later screens call pairing, agent checks and project add
+as those calls already exist; whose credential they use was not
+re-read for this decision (the app README says the app uses the node
+book and device credentials the CLI uses). The model's tests are
+values in the test process. They do not listen, and a release build
+has no fake that answers.
 
 ## Why this and not the others
 
