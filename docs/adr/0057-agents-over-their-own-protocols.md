@@ -320,3 +320,28 @@ holds.
   `--version` and their protocol's first exchange (`initialize`; a
   `system` `init` and a `result` frame). `OpenCode`'s fake needs an HTTP
   server and comes with its first slice.
+
+## Codex slice 1, as built (2026-11-14)
+
+The Codex driver starts and resumes a thread, runs turns, streams their
+messages, reasoning summaries, plans, tool-like items and tokens, steers
+and interrupts a turn, and declines every approval with a line in the
+session's log. It is built (`codex::BUILT`) and not offered
+(`selectable` false), because a driver that cannot ask a person must not
+run a session. Choices made here:
+
+- **No JSON-RPC library**: Codex's lines leave out `jsonrpc`, which the
+  ACP SDK requires; the driver reads and writes the four shapes itself
+  (`codex/wire.rs`), one reader and one writer task, the loop matching
+  answers to its requests by id and never awaiting one in place.
+- **Typed subset, checked**: the messages used are types
+  (`codex/protocol.rs`) that ignore unknown fields and keep unknown kinds
+  as `Other`; `schema/app-server.json` holds the 43 definitions of Codex
+  0.166.0's schema they follow; a test checks every field and value used
+  is there, and another regenerates them from an installed Codex of at
+  least 0.166.0 and fails on any change.
+- **Tokens**: a turn's usage is the growth of the thread's total over
+  the turn; the context's fullness is the last request against
+  `modelContextWindow`.
+- **Until slice 2**, the thread runs `on-request` in a `workspace-write`
+  sandbox (Paseo's default).

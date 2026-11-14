@@ -28,6 +28,11 @@ on Linux: in `web/`, `npm run lint`, `npm run typecheck`, `npm test`,
 wire types also regenerate the TypeScript declarations: `VESSEL_WRITE_TS=1
 cargo test -p vessel-proto -p vessel-web --features ts --lib typescript`,
 and commit `web/src/wire/`.
+With a Codex of at least the version `crates/vessel-agent/src/codex/contract.rs`
+names installed, a change to the Codex driver adds `VESSEL_CODEX_CONTRACT=1
+cargo test -p vessel-agent --lib codex::contract`: it regenerates the
+app-server schema from that Codex and fails when a definition the driver
+follows changed.
 CI does not replace the local gate: run it before pushing, and report both.
 Code that only builds on Linux must be behind `cfg(unix)` with a working (or
 explicitly erroring) Windows path.
@@ -153,7 +158,10 @@ ADR 0001 records why; `docs/plans/backend-m1.md` says who owns which crate.
 - Decoders are tested against recorded fixtures under `tests/fixtures/`
   (real harness output, trimmed, with secrets removed).
 - Process-level tests use a small fake harness binary built from the
-  workspace, never the real `claude`/`codex`, and never the network.
+  workspace, never the real `claude`/`codex`, and never the network. One
+  exception, opt-in (`VESSEL_CODEX_CONTRACT`, section 1): the Codex
+  driver's contract test runs the installed `codex` to generate its
+  schema, nothing else, in an empty environment with temporary homes.
 - A node started in a test gets a temporary home and no harness home
   variables (`HarnessEnv::new(temp)` in `Config::new`); library code never
   reads the user's home or `CLAUDE_CONFIG_DIR`/`CODEX_HOME`/`HOME` from the

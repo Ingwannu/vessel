@@ -121,16 +121,34 @@ test regenerates it when `codex` is installed.
      setting cannot select the driver yet.
    - `fake_codex_app_server` replays schema-shaped messages.
 2. **Permissions and questions.**
+   - **The mode** is an option of its own here (it decides what is
+     asked), with codex-acp's id and values so a session's choices carry
+     over between drivers: `mode` = `read-only` (on-request, read-only
+     sandbox), `workspace-write` (on-request, workspace-write),
+     `agent` (on-request, workspace-write, reviewer `auto_review`; the
+     default, as codex-acp's) and `agent-full-access` (never,
+     danger-full-access; the only one that sets either). It goes with
+     `thread/start` and `thread/resume`, and a change goes with the next
+     `turn/start` (`approvalPolicy`, `approvalsReviewer`,
+     `sandboxPolicy`).
    - The approval requests (`item/commandExecution/requestApproval`,
      `item/fileChange/requestApproval`,
-     `item/permissions/requestApproval`) become permission requests, with
-     the agent's own choices.
+     `item/permissions/requestApproval`) become permission requests on
+     the item's tool call (announced from the request when `item/started`
+     has not come), with the agent's own choices: a command's
+     `availableDecisions` (accept, accept for the session, accept with
+     the proposed rule, decline, cancel), a file change's four, more
+     permissions for the turn or the session, or none. The answer goes
+     back as the decision chosen; a cancel, the turn's end and the
+     connection's withdraw what is open (`cancel`, no permissions).
    - `item/tool/requestUserInput` and `mcpServer/elicitation/request`
-     become questions.
-   - The session's mode maps to approval policy and sandbox, as in
-     Paseo's presets. Full access is never set unless the mode is full
-     access.
-   - After this slice the setting may select `direct` for Codex.
+     (form mode) become questions: a question with options is a choice,
+     one without (or with `isOther`) is text; an elicitation's form is
+     read as ACP's (both are MCP's schema). With questions off (nobody
+     watches), they are answered empty or declined at once, with a line
+     in the log; other elicitation modes are declined.
+   - After this slice the setting may select `direct` for Codex
+     (`selectable`).
 3. **Options.**
    - `model/list` gives models and efforts.
    - Speed is a select of the model's `serviceTiers` plus the default.
@@ -224,7 +242,15 @@ checked against `/doc`.
   - `thread/revert` on a real thread;
   - steering;
   - the user's `codex` (0.156.1 here) against the schema of 0.166.0
-    (codex-acp's bundled CLI).
+    (codex-acp's bundled CLI). Below 0.166.0 the node runs Codex over
+    ACP (the version gate), and the contract test that regenerates the
+    schema skips; both run once a Codex of at least 0.166.0 is installed;
+  - (slice 1) a thread started with `approvalPolicy: on-request` and
+    `sandbox: workspace-write`, and resumed with `excludeTurns`; which
+    items a real turn sends with deltas and which whole; the order of
+    `turn/start`'s answer and `turn/started`; the token usage a real turn
+    reports (`modelContextWindow` above all); `userAgent`'s form, which the
+    introduced version is read from.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
     follows 2.1.246);
@@ -250,3 +276,41 @@ checked against `/doc`.
   listing; the CLI's `--driver`; the fakes' first exchange.
 - Not reachable yet, so not checked end to end: a session that runs a
   direct driver. The first driver slice that sets `BUILT` checks it.
+- Codex slice 1 (start, prompt, stream): built, `BUILT` true, not offered
+  (`selectable` false until slice 2). `crates/vessel-agent/src/codex/`:
+  `wire` (JSON-RPC lines without `jsonrpc`, at most 64 MiB a line, a
+  writer task), `protocol` (the subset as types, read leniently),
+  `mapper` (items, deltas, plans, tokens, turn ends; prompts as text and
+  mentions), `session` (the loop: `initialize`, `initialized`,
+  `thread/start` or `thread/resume` with `excludeTurns`, then `Options`
+  empty and `Ready`; turns with `turn/start`, `turn/steer`,
+  `turn/interrupt`; every approval declined with a line in the log;
+  other threads' notifications ignored), `contract` (the fields and
+  values used are in `schema/app-server.json`, the 43 definitions of
+  0.166.0's schema the driver follows; regenerated from an installed
+  Codex of at least 0.166.0 and compared). A fork is refused at the
+  handshake (`CannotFork`) and a listing answers `CannotList` until slice
+  4; options are empty until slice 3, so a session asked for a choice
+  fails its handshake (as for an option an ACP agent does not offer);
+  MCP servers are not passed until slice 3 (`config`), so a direct Codex
+  session has no Vessel tools yet, and its log says which it runs
+  without.
+  The thread runs `on-request` in a `workspace-write` sandbox, Paseo's
+  default; slice 2 maps the session's mode instead. Checked against
+  `fake-codex-app-server` (its scenarios in its file): the handshake's
+  order and a prompt sent before it, a streamed reply (another thread's
+  delta left out), usage and the turn's tokens, reasoning, a command, a
+  plan, a message without deltas, a declined approval and its log line,
+  a steer and a cancel, a failed turn, an agent that exits mid-turn, a
+  resume, a missing thread and a fork refused at the handshake, a probe.
+- Codex slice 1, after the integrator's review (2026-11-14): choices and
+  tool servers are never dropped unannounced (above); the running turn's
+  id is `turn/start`'s answer's alone, and only its `turn/completed` ends
+  it (another client's turn on the thread does not), one that does not
+  read ending it failed; a message that does not serialize is not sent
+  and its caller is answered as for a closed input; a `file:` link's
+  percent escapes are decoded. The contract test that runs the installed
+  `codex` is opt-in (`VESSEL_CODEX_CONTRACT`, set only by the gate's step
+  in AGENTS.md section 1, the one exception in section 8), in an empty
+  environment but `PATH` with temporary homes, its output in a temporary
+  directory, and says on standard error when it skips.

@@ -20,10 +20,12 @@
 //! - `fake-provider`: an OpenAI-compatible model provider on loopback for
 //!   the model routing smoke's `--fake` run (milestone 5). See
 //!   `src/bin/fake_provider.rs`.
-//! - `fake-codex-app-server` and `fake-claude-stream`: Codex and Claude
-//!   Code over their own protocols (ADR 0057), skeletons that answer
-//!   `--version` and the first exchange; each driver slice extends its
-//!   own. See their files in `src/bin/`.
+//! - `fake-codex-app-server`: Codex over its app-server protocol (ADR
+//!   0057): threads, and turns whose first word picks a scenario (a
+//!   streamed reply, reasoning, a command, a plan, an approval asked, a
+//!   turn that waits for a steer or an interrupt, a failure, an exit).
+//!   `fake-claude-stream`: Claude Code over stream-json, a skeleton. Each
+//!   driver slice extends its own. See their files in `src/bin/`.
 //!
 //! Both harness fakes answer `report <path>` by writing their arguments,
 //! environment and (ACP) MCP servers to that file ([`write_report`]), so a
@@ -127,8 +129,8 @@ pub enum Fake {
     /// logging each call to `$FAKE_TOOL_LOG`. See `src/bin/fake_tool.rs`.
     Tool,
     /// `fake-codex-app-server`: `codex` over its app-server protocol (ADR
-    /// 0057), a skeleton each Codex driver slice extends. See
-    /// `src/bin/fake_codex_app_server.rs`.
+    /// 0057), with turns whose first word picks a scenario; each Codex
+    /// driver slice extends it. See `src/bin/fake_codex_app_server.rs`.
     CodexAppServer,
     /// `fake-claude-stream`: `claude` over stream-json (ADR 0057), a
     /// skeleton each Claude Code driver slice extends. See
