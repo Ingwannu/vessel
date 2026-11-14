@@ -768,7 +768,12 @@ never rebuilt.
 - **0.0.0.0.11**:
   - Built from exactly `f0c1d540`, the desktop lead's head, which holds
     this track's branch up to `d2260ce3`. The app speaks protocol 14.
-  - The set went into place at 23:55 UTC. It is not published yet.
+  - The set went into place at 23:55 UTC and was published to
+    `preview` at 00:00:36 UTC on 2026-11-14, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.10 Linux
+    build took 0.0.0.0.11 by itself at 00:01:53 UTC.
   - Sizes, with the change against 0.0.0.0.10: setup 12,592,815
     (+132,302), exe 45,623,296 (+609,280), zip 18,539,862 (+236,408),
     linux 82,100,320 (+505,576), tar.gz 28,671,250 (+168,449).
