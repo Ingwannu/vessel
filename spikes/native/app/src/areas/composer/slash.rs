@@ -9,22 +9,20 @@
 //! has, what its last session said, kept on the device (the store,
 //! `offers.rs`), so the menu opens on a list at once.
 //!
-//! It opens and closes over `slider::motion`'s glide (the owner's word 39;
-//! Paseo's popover appears at once): `composer::reveal` holds how open it
+//! It opens and closes over the kit's `motion::STANDARD` (a surface coming
+//! and going; the owner's word 39; Paseo's popover appears at once), its
+//! chosen row's fill over `QUICK`: `composer::reveal` holds how open it
 //! is, the last rows stay drawn while it closes, and frames are asked only
-//! while it moves.
+//! while it moves; held motion (`motion::held`) is the end at once.
 
-use std::time::Duration;
-
-use vessel_app_kit::Tokens;
 use vessel_app_kit::autocomplete::{AutocompleteRow, Listing, Motion, RowKind, autocomplete};
 use vessel_app_kit::field::composer_hooks::{ComposerKey, KeyAnswer, hooked};
 use vessel_app_kit::ui::{
     AnyElement, App, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _,
     Window, div, px,
 };
+use vessel_app_kit::{Tokens, motion};
 use vessel_app_view::composer::slash::{Menu, Step, apply};
-use vessel_app_view::slider::motion::{DRAG_GLIDE, SLIDE};
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -37,13 +35,11 @@ const LIFT: f32 = 4.0;
 /// (the lints keep float arithmetic out of the code; a test holds the sum).
 const OFFSET_LOW: f32 = 8.0;
 
-/// The app's motion for the list's rows (the chosen row's fill).
-fn motion() -> Motion {
-    Motion {
-        ease: |progress| SLIDE.at(progress),
-        length: Duration::from_secs_f32(DRAG_GLIDE),
-    }
-}
+/// The list's rows' motion: the chosen row's fill, a control's own change.
+const ROWS: Motion = Motion {
+    ease: motion::ease,
+    length: motion::QUICK,
+};
 
 impl Shell {
     /// The `/` menu of the session's composer, when its caret is in a
@@ -183,7 +179,12 @@ pub(crate) fn menu(
         .slash_menu(cx)
         .map(|menu| (listing_of(shell, &menu), menu.chosen));
     let mut reveal = area.reveal.borrow_mut();
-    reveal.follow(current.is_some(), now, cx.reduce_motion());
+    let length = if motion::held(cx) {
+        0.0
+    } else {
+        motion::STANDARD.as_secs_f32()
+    };
+    reveal.follow(current.is_some(), now, length);
     let Some(shown) = reveal.shown(now) else {
         drop(area.last_menu.borrow_mut().take());
         return None;
@@ -205,7 +206,7 @@ pub(crate) fn menu(
         chosen,
         &area.list,
         Shell::command_clicked,
-        motion(),
+        ROWS,
         tokens,
         cx,
     );
