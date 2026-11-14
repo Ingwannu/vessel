@@ -48,7 +48,7 @@ pub(crate) const PICKER_WIDTH: f32 = 240.0;
 /// `HOST_SECTION_ITEMS`, Lucide's names in the comments) where the kit
 /// has it. Where it does not yet, the nearest kit glyph stands in, named
 /// as one; each of those is a section not drawn yet, so not listed.
-const fn section_glyph(section: Section) -> Glyph {
+pub(crate) const fn section_glyph(section: Section) -> Glyph {
     match section {
         Section::General => Glyph::Gear,
         Section::Appearance => Glyph::Palette,

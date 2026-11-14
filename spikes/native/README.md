@@ -73,6 +73,18 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+The command palette's matching lives in the shared pure `view::matcher`
+module; its cursor and result bands stay in `view::palette`. Provider
+catalogs reuse the same parsed `Query` and opaque ordered `Score` with
+their visible name/id fields. Each query token must match a visible label/subtitle or hidden
+keyword; subsequences stay within a word. Visible matches rank first,
+command groups rank by relevance, and session navigation follows below
+them by match tier and last activity. Before searching, only five recent
+sessions appear; archived sessions are excluded. A query resets selection
+to the best result; passive fleet updates retain identity and do not
+scroll. The app only supplies entries, draws kit rows and reveals the
+selection when the person types or presses an arrow.
+
 ## The app's layout
 
 ```
@@ -225,6 +237,39 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
+
+`kit/command.rs` supplies Paseo's Command Center pieces. The canonical
+`command_row_parts` renderer accepts semantic prose and code-path captions
+with separate UTF-8 marks; the existing plain-row APIs delegate to it.
+The kit validates ranges and merges overlaps; matching/ranking stay in
+`view`. Paths use the existing code face and code-size preference at 12/16,
+while their prose prefixes use the interface caption metrics.
+
+A host opts into persistent `CommandState` and `command_frame_animated`
+for RNW's 250 ms desktop entering fade and the shared `sheet::snap`
+60/90% stops, pan-down dismissal and content-scroll handoff. The static
+entry point and existing edge-sheet API remain available. The desktop
+panel has no exit animation: Paseo's Command Center unmounts its Modal
+at close (`command-center.tsx`, `if (!state.open) return null`), so only
+the entering curve runs. The compact sheet closes with its spring, and
+its backdrop keeps input until it is gone, as `sheet-backdrop.web.tsx`
+keeps its target until the portal dismisses. `CommandState::is_open` is
+the logical state (input and focus); the host presents and samples
+state, restores prior focus once at close, and stops drawing only when
+`CommandMotion::hidden` becomes true. A zero-height window waits for a
+resize instead of requesting frames. Direct dragging remains available
+with the App's reduced-motion flag; springs and fades finish at once.
+The App supplies this flag. On Linux/FreeBSD its portal follower reads and
+subscribes to the system preference; `VESSEL_APP_REDUCE_MOTION=1` or `0`
+forces the flag for one execution and skips that follower. Nothing is
+saved. Actual OS startup/live-change behavior remains unverified here;
+Windows/macOS system following is still absent.
+
+GPUI provides pointer coordinates and native capture, but no recognizer
+velocity: a bounded 100 ms/eight-sample history supplies release velocity.
+The shared spring follows the installed Reanimated helper (including its
+64 ms delayed-frame cap); its numeric fixtures were sampled from that
+helper.
 
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates
@@ -489,6 +534,13 @@ the question card is checked against them. Three more, `permit plan`,
 in the real adapters' shapes (Claude Code leaving plan mode with five
 "always" answers, Codex's five answers, two at once): the permission card
 is checked against them and the `shapes-asking` session's long command.
+
+`scripts/shell-fixtures.py` adds eight long English/Korean session titles
+and long working paths through the real CLI, pins two and archives two.
+It reads the disposable node's durable projection to fail startup when
+these shapes are missing. It refuses a book outside disposable loopback
+endpoints or an adapter that is not the real-shape fake. This tests shell
+layout against node data rather than hand-built screen rows.
 
 The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
 an added agent with a long name and argument, a definition whose program

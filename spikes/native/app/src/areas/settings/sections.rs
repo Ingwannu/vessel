@@ -62,8 +62,8 @@ fn page(section: Section) -> Option<Draw> {
         Section::Sync => {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
-        // Not drawn yet. Shortcuts is track S3's page (one line here when
-        // it lands). Sidebar, Chat, Notifications, Diagnostics, Overview
+        Section::Shortcuts => Some(crate::areas::shortcuts::page::render),
+        // Not drawn yet. Sidebar, Chat, Notifications, Diagnostics, Overview
         // and Agents are this track's next slices; the rest have nothing
         // behind them in Vessel yet (`refs/notes/paseo-parity-settings.md`).
         Section::Sidebar
@@ -72,7 +72,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Browser
         | Section::Editor
         | Section::Files
-        | Section::Shortcuts
         | Section::Integrations
         | Section::Notifications
         | Section::Permissions

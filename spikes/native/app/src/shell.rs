@@ -113,6 +113,7 @@ impl Shell {
         };
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
+        areas::shortcuts::listen(&mut shell, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -412,6 +413,8 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .face(vessel_app_kit::Type::Body)
+            // Every key-up, for the shortcuts' repeat check (track S's).
+            .on_key_up(cx.listener(|this, _event, _window, _cx| this.areas.shortcuts.released()))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
@@ -462,7 +465,8 @@ impl Render for Shell {
                     // it with.
                     .children(sheet),
             )
-            .children(areas::toasts::render(self, &tokens, window, cx));
+            .children(areas::toasts::render(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
