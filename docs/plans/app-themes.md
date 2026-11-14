@@ -102,11 +102,12 @@ Do not start a second theme type in the app.
   syntax themes are routed, not decided here.
 - Returned, then fixed: slice 2. `df0b0f2a` states Pure black's
   destructive floor as 4.74 (4.745), Zinc's truncation, because both
-  fills are `#c44a4a`. This commit puts the contrast `expect` on
+  fills are `#c44a4a`. `736e444a` puts the contrast `expect` on
   `channel`, `linear` and `contrast` only, and asserts Light and
-  Dark equal the shipped tokens.
+  Dark equal the shipped tokens. The native gate on that commit is
+  green.
 - Half-done: nothing in the preference (slice 3).
-- Next: after that fix is gated, slice 3. The theme id, content
-  size 10–21 default 15, and the two font families in `view::prefs`,
-  applied in the same turn. Do not widen the shipped interface or
-  code ranges; those are routed.
+- Next: slice 3. The theme id, content size 10–21 default 15, and
+  the two font families in `view::prefs`, applied in the same turn.
+  Do not widen the shipped interface or code ranges; those are
+  routed.
