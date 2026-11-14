@@ -53,6 +53,8 @@ pub struct ShortcutWords {
     pub in_use: &'static str,
     /// That question's button that moves it. One word.
     pub reassign: &'static str,
+    /// Between an action's two keys on its row ("Ctrl+K or /"). One word.
+    pub or: &'static str,
 }
 
 impl ShortcutWords {
@@ -151,6 +153,7 @@ const EN: ShortcutWords = ShortcutWords {
     cancel: "Cancel",
     in_use: "Shortcut already in use",
     reassign: "Reassign",
+    or: "or",
 };
 
 const KO: ShortcutWords = ShortcutWords {
@@ -169,7 +172,7 @@ const KO: ShortcutWords = ShortcutWords {
         "세션 1–9로 이동",
         "세션에서 찾기",
         "입력창으로 이동",
-        "대기 중인 첫 메시지 지금 보내기",
+        "첫 대기 메시지 보내기",
         "마지막 대기 메시지 편집",
         "사이드바 보이기·숨기기",
         "요약 보이기·숨기기",
@@ -190,4 +193,5 @@ const KO: ShortcutWords = ShortcutWords {
     cancel: "취소",
     in_use: "이미 쓰이는 단축키",
     reassign: "다시 지정",
+    or: "또는",
 };

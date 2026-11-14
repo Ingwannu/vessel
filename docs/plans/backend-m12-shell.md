@@ -668,6 +668,35 @@ the driver now starts its Xvfb with an authority cookie of its own.
 Captures: the scratch directory's `s3/shots/palette/` (matrix) and
 `s3/shots/palette-motion/` (strips, with `times.txt` per strip).
 
+### Settings › Shortcuts finished (track S3, 2026-11-14)
+
+Commits: `62f80a87` (every app-wide key goes through the registry: GOAT's
+queue keys, Mod+Shift+Enter sends the first queued message and Alt+Up
+edits the latest one; a held key does not repeat an action), `b0818ba5`
+(the page), and the follow-up that writes an action's two keys as two
+("G M or G F") and shortens the Korean label that wrapped at 390.
+
+Reference files followed: Paseo `screens/settings/keyboard-shortcuts-section.tsx`
+(one section per group, "Reset all" at the first section's head while a
+key is changed, the row's 32-point menu slot kept empty for a fixed row,
+recording in the row on `surface2` with Done and Cancel),
+`keyboard/keyboard-shortcuts.ts` (the bindings), GOAT
+`packages/shared/src/keybindings.ts` (the queue's keys).
+
+Checked on the CLI-paired fake fleet: both themes, both languages, 1280
+by 800 and 390 by 844, 800 by 600 and 1024 by 700, scales 1, 1.25, 1.5
+and 2 (the menu's dots and the key badges stay sharp): the page, its
+scroll, the row menu, recording, a refused key (no modifier), a key
+another action has, the "Shortcut already in use" question, and the page
+after reassigning ("Not set" on the action that lost it, "Reset all" at
+the head). Captures: the scratch directory's `s3/shots/shortcuts/`.
+
+Not done, named: the page is drawn at a phone's width too (Settings'
+frame hides desktop-only sections once its section table lands); a
+modifier held alone is not shown before the key (GPUI's interceptor
+hears keys, not modifier changes); the row menu has no leading glyphs
+(the kit's menu has none yet).
+
 ### Resume point (track S3, 2026-11-14 04:40 UTC)
 
 - Done: palette (`153da701`, accepted); `view::matcher` rename after C's
