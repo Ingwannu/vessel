@@ -163,8 +163,11 @@ impl Shell {
             Answer::Status { root, result } => self.git_status_read(machine, &root, result),
             Answer::Stashes { root, result } => self.git_stashes_read(machine, &root, result),
             Answer::Git { write, result } => self.git_written(machine, &write, result, cx),
-            // Nothing of the app asks these yet.
-            Answer::Log { .. } | Answer::Saved { .. } => {}
+            // Track G1b's: the pull request form's defaults and its calls.
+            Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
+            Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
+            // Nothing of the app asks this yet.
+            Answer::Saved { .. } => {}
         }
         cx.notify();
     }

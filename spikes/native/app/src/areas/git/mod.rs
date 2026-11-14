@@ -49,6 +49,7 @@ use vessel_proto::workspace::{BranchList, CommitStage, GitStatus, StashList, Wor
 use crate::shell::Shell;
 
 pub(crate) use head::slot;
+pub(crate) use menu::failure_body;
 
 /// The repository the area follows: the one the Changes tab shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -246,7 +247,7 @@ impl Shell {
     }
 
     /// Ask for the branch list (the switcher opened).
-    fn git_read_branches(&mut self) {
+    pub(crate) fn git_read_branches(&mut self) {
         let Some(target) = self.areas.git.target.clone() else {
             return;
         };

@@ -79,7 +79,8 @@ pub(crate) fn card(
         .py(px(10.0))
         .children(origin(shell, row, tokens, cx))
         .child(title_row(shell, card, place, tokens, cx))
-        .children(lines(card, tokens));
+        .children(lines(card, tokens))
+        .children(crate::areas::pulls::card_items(card, shell.words, tokens));
     let foot = foot(shell, card, place, tone, tokens);
     let error = card.detail.failure.clone().map(|failure| {
         div()

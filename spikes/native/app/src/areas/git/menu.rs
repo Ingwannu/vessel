@@ -20,7 +20,9 @@ use vessel_app_kit::{
 use vessel_app_view::workspace::git::{Action, Issue, Unavailable, rows, step};
 use vessel_app_view::workspace::git_quick::GitAction;
 use vessel_app_view::workspace::problem::Problem;
+use vessel_app_view::workspace::pull::{MenuEntry, PullEntry, with_pull};
 use vessel_app_view::{GitFailureText, Lang};
+use vessel_proto::workspace::GitStatus;
 
 use crate::shell::Shell;
 
@@ -46,23 +48,58 @@ fn items(shell: &Shell) -> Vec<MenuItem> {
         return Vec::new();
     };
     let running = git.writing.intent();
-    rows(&git.status, &git.writing)
+    entries(shell, status)
         .into_iter()
-        .map(|row| {
-            let label = match running {
-                Some(intent) if intent.action() == Some(row.action) => lang.git_pending(intent),
-                Some(_) | None => lang.git_action_label(row.action, status),
-            };
-            MenuItem {
-                label: label.into(),
-                tone: vessel_app_kit::menu::Tone::Plain,
-                // Paseo's `isActionDisabled`: only a running write takes a
-                // row out of reach; any other reason is said on choice.
-                disabled: row.unavailable == Some(Unavailable::Writing),
-                starts_group: row.starts_group,
+        .map(|entry| match entry {
+            MenuEntry::Git(row) => {
+                let label = match running {
+                    Some(intent) if intent.action() == Some(row.action) => lang.git_pending(intent),
+                    Some(_) | None => lang.git_action_label(row.action, status),
+                };
+                MenuItem {
+                    label: label.into(),
+                    tone: vessel_app_kit::menu::Tone::Plain,
+                    // Paseo's `isActionDisabled`: only a running write takes
+                    // a row out of reach; any other reason is said on choice.
+                    disabled: row.unavailable == Some(Unavailable::Writing),
+                    starts_group: row.starts_group,
+                }
             }
+            MenuEntry::Pull(pull) => pull_item(shell, &pull),
         })
         .collect()
+}
+
+/// The git rows with the pull request entry after the remote ones.
+fn entries(shell: &Shell, status: &GitStatus) -> Vec<MenuEntry> {
+    let git = &shell.areas.git;
+    with_pull(rows(&git.status, &git.writing), shell.pulls_entry(status))
+}
+
+/// Paseo's pull request row: "View PR" with one read, else "Create PR"
+/// ("Creating PR..." while it is out); it waits while a git write runs
+/// (the node pushes the branch before opening one).
+fn pull_item(shell: &Shell, entry: &PullEntry) -> MenuItem {
+    let words = shell.words.pulls();
+    let sending = shell
+        .areas
+        .pulls
+        .form
+        .as_ref()
+        .is_some_and(|form| form.sending.is_some());
+    let label = match entry {
+        PullEntry::View { .. } => words.view(),
+        PullEntry::Create | PullEntry::Unavailable(_) | PullEntry::Hidden if sending => {
+            words.creating()
+        }
+        PullEntry::Create | PullEntry::Unavailable(_) | PullEntry::Hidden => words.create(),
+    };
+    MenuItem {
+        label: label.into(),
+        tone: vessel_app_kit::menu::Tone::Plain,
+        disabled: shell.areas.git.writing.busy() || sending,
+        starts_group: true,
+    }
 }
 
 /// The menu, when open, under the split button's right edge.
@@ -79,11 +116,16 @@ pub(super) fn overlay(
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.git.menu,
         chose: std::rc::Rc::new(|shell: &mut Shell, index, window, cx| {
-            let chosen = rows(&shell.areas.git.status, &shell.areas.git.writing)
-                .get(index)
-                .map(|row| row.action);
-            if let Some(action) = chosen {
-                shell.git_choose(action, window, cx);
+            let Some(status) = shell.areas.git.status.shown().cloned() else {
+                return;
+            };
+            match entries(shell, &status).get(index) {
+                Some(MenuEntry::Git(row)) => shell.git_choose(row.action, window, cx),
+                Some(MenuEntry::Pull(_)) => {
+                    shell.areas.git.menu.close();
+                    shell.pulls_chosen(window, cx);
+                }
+                None => {}
             }
         }),
     };
@@ -146,7 +188,7 @@ impl Shell {
 
 /// A failure's three parts: what happened, what to do, git's own words
 /// under them in the fixed-width face.
-pub(super) fn failure_body(text: &GitFailureText, tokens: &Tokens) -> AnyElement {
+pub(crate) fn failure_body(text: &GitFailureText, tokens: &Tokens) -> AnyElement {
     div()
         .flex()
         .flex_col()
