@@ -938,6 +938,83 @@ CRT, SDK libraries, `fxc.exe` and `d3dcompiler_47.dll` (Microsoft's
 terms; only the static CRT ends up in the exe, as in every MSVC build);
 NSIS (zlib); wine (LGPL, only to run tools and tests).
 
+## CI for the native app and the release crates (2026-11-14)
+
+`.github/workflows/native.yml`: one Linux job that runs the native gate
+exactly as `spikes/native/README.md` states it (`cargo fmt --all --check`,
+`cargo clippy --all-targets -- -D warnings`, `cargo test`, from
+`spikes/native`), then the same three in `spikes/release` (updater, feed
+tool, log, hello). It runs as `ci.yml` does: every push to `main` and
+`backend/**`, every pull request, and by hand. Nothing in it publishes or
+signs: the token is read-only and it uses no secret. It is active for a
+branch once a commit holding it is pushed (the owner's step, through a
+pull request to `main`; this track pushes nothing).
+
+[Decision Log]
+- Purpose: the quality audit found no CI for the native app or the
+  release crates. `ci.yml` checks only the main workspace, and
+  `spikes/release/ci/app-release.yml` is a release recipe that does not
+  run. Each track ran the gate by hand; nothing checked a merge.
+- Constraints:
+  - Both are workspaces of their own, on Rust 1.98.1 (`rust-toolchain.toml`;
+    the GPUI snapshot needs 1.95 or newer, the main workspace stays on 1.93).
+  - GPUI links `libxcb`, `libxkbcommon` and `libxkbcommon-x11` on Linux
+    (the shipped executable's `NEEDED` entries); fontconfig, freetype,
+    Wayland and Vulkan are loaded at run time.
+  - The app embeds its faces with `include_bytes!` and they are not
+    committed (`spikes/native/.gitignore`), so the kit does not compile
+    without them.
+  - The native app depends on the main workspace's `vessel-client`,
+    `vessel-rpc` and `vessel-proto` by path.
+  - The repository is public, so standard hosted runners cost nothing.
+- Alternatives:
+  - A job in `ci.yml`: its matrix and its 1.93 toolchain are the main
+    workspace's, and two toolchains in one job confuse its cache.
+  - Windows and macOS runners: the Windows build is a cross build that
+    `build.sh` makes and checks for every label (a hosted Windows build
+    would check a second way of building it), and macOS is not released.
+    Worth adding when the Windows-only code grows.
+  - A path filter on `spikes/**`: it would miss a change in the main
+    workspace's crates that breaks the app.
+- Choice: one Linux job, both gates in sequence, no path filter.
+  - The faces as the README says: `npm ci` in `web/` (Pretendard comes from
+    the page's packages, cached by `setup-node`), then `scripts/fonts.sh`
+    (Geist through `npm pack`).
+  - The toolchain read from both `rust-toolchain.toml` files, failing if
+    they differ.
+  - `Swatinem/rust-cache` over both workspaces' `target`.
+- Costs:
+  - Run time, measured 2026-11-14 on this machine with 4 jobs (a hosted
+    runner has 4 vCPUs) while it was busy (load about 18 on 16 cores):
+
+    | Step | Cold (s) | Cached (s) |
+    |---|---|---|
+    | `npm ci` | 9 | |
+    | `fonts.sh` | 1 | |
+    | native fmt / clippy / test | 5 / 175 / 642 | – / 96 / 486 |
+    | release fmt / clippy / test | 1 / 87 / 150 | – / 65 / 176 |
+    | cargo steps in all | about 18 min | about 14 min |
+
+    The cache saves little because the workspace's own test binaries link
+    GPUI and are rebuilt on every run (`cargo test` compiles for 9.5 of
+    its 10.7 cold minutes; the 610 native and 47 release tests run in
+    about 12 s). With setup and the cache's upload, expect about 20-25
+    minutes, then 15-18. The job's timeout is 60.
+  - Disk: a cold run's targets reach about 13 GB (native) and 3.4 GB
+    (release). The job first removes the image's Android, .NET, Haskell
+    and CodeQL toolsets and prints the free space before and after. If it
+    ever runs out, `CARGO_PROFILE_DEV_DEBUG=line-tables-only` for the job
+    is the next step (smaller test binaries, the same results).
+  - The cache counts against the repository's 10 GB, with `ci.yml`'s;
+    GitHub evicts the oldest entries first.
+- Measured: 610 native tests passed (1 ignored: the window capture, which
+  needs a display) and 47 release tests passed, with no display, no
+  Vulkan and a fresh target.
+  - Run by `run.sh` and `warm.sh` in a scratch worktree of this branch
+    (removed afterwards); the cached run first dropped what rust-cache
+    drops, the local path packages.
+  - The workflow itself has not run on GitHub yet; its YAML parses.
+
 ## CI: what the owner decides
 
 `spikes/release/ci/app-release.yml` builds Windows x64 (natively, with a
