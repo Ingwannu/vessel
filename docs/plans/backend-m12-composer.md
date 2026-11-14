@@ -11,7 +11,7 @@ named below with its reason.
 | --- | --- | --- |
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
-| b | `/` the agent's commands | built (a running session's composer) |
+| b | `/` the agent's commands | built (a running session's composer and the new chat's) |
 | c | Attach images and files | not started |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | built |
@@ -146,14 +146,19 @@ What Paseo does, and so the app (`view::composer::{slash, matching}`,
 The commands are the session's own report (`commands_changed`); until it
 arrives, its agent's last session's report, kept in the store and on the
 device with the agent's options (`offers`: a session's report wins over a
-kept copy and is kept when it differs).
+kept copy and is kept when it differs). The new chat's menu lists the kept
+report of the agent it would start on its machine.
 
 Deliberate differences:
 
-- **Only a running structured session's composer** has the menu: the node
-  sends no commands for a chat not started (`harness.options` carries
-  none). The kept copy could serve the new chat; not done (the draft's
-  composer is the lead's), proposed.
+- **The new chat lists the kept commands.** Paseo's new chat asks its
+  daemon for the commands of the agent it would start; the node reports
+  commands only from a running session (`harness.options` carries none),
+  so the new chat's menu lists what that agent's last session on that
+  machine said, kept on the device, and says so when none has yet
+  (`composer-commands-unknown`). Each composer keeps its own choice,
+  scroll and glide. The menu is drawn over the draft's card through two
+  seam lines in `app/src/areas/draft/mod.rs` (the lead's).
 - **At the prompt's start only.** Paseo also completes a skill's `/name`
   in the middle of a prompt; ACP does not say which commands are skills.
 - **Motion** (the owner's word 39; Paseo's popover appears at once): the
