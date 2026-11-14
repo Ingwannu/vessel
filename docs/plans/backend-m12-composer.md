@@ -12,7 +12,7 @@ named below with its reason.
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
 | b | `/` the agent's commands | built (a running session's composer and the new chat's) |
-| c | Attach images and files | rules, tray and uploads built (c1); the composer's pills, button, paste and drop next (c2); sent messages' pictures after (c3) |
+| c | Attach images and files | built in both composers (c1 rules and uploads, c2 the screen); sent messages' pictures next (c3) |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | built |
 
@@ -366,6 +366,26 @@ How it behaves (`view::composer::{attach, tray, trays}`, `link::attachments`):
   chat's), sixteen at most, the least recently used dropped first; the new
   chat's becomes its session's once the session exists.
 
+On screen (`app/src/areas/composer/{attach,files}.rs`, the kit's
+`attachment`):
+
+- The attach button (Paseo's `+`, 28 across, 44 on touch) leads the
+  composer's left group and opens Paseo's menu: Add image, Upload file
+  (the system's file dialog). Files dropped on the card (its edge takes the
+  accent while files are dragged over it) and images or files pasted into
+  the text join the tray too.
+- The tray sits over the text: an image as its 48 by 48 picture, any other
+  file as its name over its extension; the remove button at the top left
+  shows on hover (always on touch). A file on its way shows its progress
+  along its pill's foot; a refused or failed one has a red edge and says
+  why in its second line, and a click on a failed one tries it again.
+- Send in a session's composer with files takes the text with them: the
+  composer empties, the message shows in the conversation, and the prompt
+  goes once every file is in. Send in the new chat with files starts the
+  session without its prompt; once the session exists its tray is the
+  session's, once its agent has said what it takes (its first records)
+  the files go, and the prompt follows.
+
 Deliberate differences:
 
 - **Uploaded at Send.** Paseo keeps a picked file on the device and sends
@@ -373,3 +393,15 @@ Deliberate differences:
   live session, in pieces, before the prompt names it.
 - **Removing a file looks at the refused ones again** (the page keeps them
   refused until its session changes).
+- **No image viewer yet.** A click on Paseo's image pill opens the image;
+  here a click does nothing but retry a failed file.
+- **The menu's rows have no icons** (the kit's menu has none), and both
+  rows open the same dialog: GPUI's file dialog takes no type filter.
+  Paseo's issue, pull request and plugin rows are not Vessel's yet.
+- **The node's limits are this build's.** The app does not read a
+  conversation's own limits; the node checks again at `attachment.begin`
+  and its refusal shows on the pill.
+- **An ended session's files wait.** Send in a session that is not running
+  starts it again with the text (as before); its files go with the next
+  send once it runs.
+
