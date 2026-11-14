@@ -79,8 +79,10 @@ nothing.
   `renamed` event. A screen keeps showing `title`. It does not ask for a
   title to be generated, and it does not hide a `given` title while a
   generation might still replace it.
-- **A branch** needs no new call. A rename arrives as the worktree's
-  branch change that `git.rename_branch` already publishes.
+- **A branch** needs no new call. `git.rename_branch` updates the
+  stored worktree (`branch` and `created_branch`) and does not push.
+  A screen sees the new name on its next read of the worktree. This
+  change adds no event.
 - **Commit and pull-request text**, when those screens exist, call
   `text.commit` `{ root }` and `text.pull` `{ root, base? }` (`operate`,
   provisional protocol 21). The answer is the text plus `source`:
@@ -114,8 +116,7 @@ that already uses `..` is left alone.
 ## Resume point
 
 - **Done:** slice 1, the contract, in ADR 0062 and this file. No code.
-  The contract commit is `77c80674`. This resume line is the only
-  change after it.
+  The branch's commits after `backend/m12-quality` are this slice.
 - **Half-done:** nothing.
 - **Next:** slice 2, starting with `crates/vessel-proto/src/names.rs` and
   the settings field, then the generator against a fake completion,

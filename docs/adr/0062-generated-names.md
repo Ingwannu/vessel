@@ -229,8 +229,10 @@ stays. There is no second call to repair it.
 Eligible only when this create made the branch and its name is still
 the placeholder (`vessel/<8 hex>` or whatever `WorktreeBranch::New`
 stored). A name the person sent is not eligible. The rename goes
-through the existing `git.rename_branch` path, so a client watching the
-worktree sees the branch change it already understands. No new event.
+through the existing `git.rename_branch` path, which updates the
+worktree's stored `branch` and `created_branch`. That write is not
+pushed: a client sees the new name the next time it reads the worktree.
+This decision adds no event for it.
 
 If the desired name exists, the node tries `name-2` through `name-50`,
 skipping a candidate equal to the placeholder, and keeps the placeholder
@@ -286,10 +288,12 @@ The log and the `ModelCall` record carry the route, the model, the
 token counts, the stop, the failure class and the duration. They do
 not carry the prompt, the diff, the completion, or a key (ADR 0015,
 decision 10). A title or branch generation records a `ModelCall` on
-that session. A `text.commit` or `text.pull` records one only when a
-session id was not required for the call; the answer's `source` is what
-the caller sees either way. No session id is added to those two calls
-in this decision: they name a root, as `git.commit` does.
+that session. The record's route is the route the generation called,
+which may not be the route the session was launched with. A
+`text.commit` or `text.pull` names a root, not a session, so it does not
+append a `ModelCall`; the answer's `source` is what the caller has, and
+the node log has the class, the route and the duration. No session id
+is added to those two calls: they name a root, as `git.commit` does.
 
 ### Cost
 
