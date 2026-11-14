@@ -100,11 +100,13 @@ Do not start a second theme type in the app.
   Paseo's green `#20744A` is the mark's colour on Light, Dark and
   Pure black. Interface range, code range, content width and the
   syntax themes are routed, not decided here.
-- Done, pending the native gate: slice 2, `ThemeId` and the five
-  dark palettes in `kit/src/theme/palette.rs`. Light and Dark are
-  the existing functions. The contrast test is beside them.
+- Returned: slice 2 (`6e51c58c`, `f0fcae1f`). The palettes stay.
+  This commit corrects ADR 0070: Pure black's destructive floor is
+  4.74 (4.745), Zinc's truncation, because both fills are `#c44a4a`.
+  The expect's width and the Light/Dark equality assertion are the
+  next commit, then the native gate.
 - Half-done: nothing in the preference (slice 3).
-- Next: after the gate, slice 3. The theme id, content size 10–21
-  default 15, and the two font families in `view::prefs`, applied
-  in the same turn. Do not widen the shipped interface or code
-  ranges; those are routed.
+- Next: after that fix is gated, slice 3. The theme id, content
+  size 10–21 default 15, and the two font families in `view::prefs`,
+  applied in the same turn. Do not widen the shipped interface or
+  code ranges; those are routed.
