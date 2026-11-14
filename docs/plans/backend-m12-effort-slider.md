@@ -127,3 +127,31 @@ points and painted as one image (the luminosity blend computed per
 sample in sRGB); the warning's shimmer is a colour per character in one
 text run; the bolt's tooltip has no dimmed second line; a hovered stop
 grows without darkening; no keyboard focus ring on the thumb yet.
+
+## Known costs (2026-11-14, 0.0.0.0.14)
+
+Measured on the release build on a virtual display (lavapipe, a software
+renderer; `top` over 5 s), the way the coordinator measured 0.0.0.0.13:
+
+| State | 0.0.0.0.13 | 0.0.0.0.14 |
+| --- | --- | --- |
+| Card open, middle stop | 6.6 % | 0.4 % |
+| Card open, top stop, pointer on it | 517 % | 0.4 % |
+| Card open, Fast, pointer on it | 508 % | 0.4 % |
+| Board, idle (working spinners) | 530 % | 0.4 % |
+| New session, composer focused, idle | about 31 % | about 31 % |
+
+- On a software renderer the whole app holds its motion still
+  (`app::motion::note_renderer`); with `VESSEL_APP_REDUCE_MOTION=0` the
+  card's top stop costs 125 % and Fast 222 % while the pointer is on the
+  card, 0.6 % once its decorations have come to rest.
+- Left as a known cost: the text caret's blink. gpui-base's `BlinkCursor`
+  toggles every 500 ms and does not follow reduced motion (its type is
+  private to the crate); each toggle redraws the whole window, about 31 %
+  of a core on the software renderer while a text field has the keys.
+  Changing it means carrying a patched gpui-base (5.3 MB, 201 files); not
+  for this cut (the coordinator, 2026-11-14). On a real GPU it is to be
+  measured first (track R on Windows).
+- GPUI repaints the whole window on any change (only cached views reuse a
+  frame, and the shell is one view): the costs above are bounded by
+  asking for fewer frames, not by repainting less.

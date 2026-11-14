@@ -253,8 +253,16 @@ fn the_top_stop_and_fast_animate_until_reduced() {
     assert!(top.at_maximum && !top.burst.is_empty());
     assert_eq!(top.field.map(|(_, reveal)| reveal), Some(0.0));
     assert!(top.moving);
-    let later = motion.frame(input(Some(5), false, false), 5.0);
-    assert!(later.burst.is_empty() && later.moving, "the field moves on");
+    let held = motion.frame(input(Some(5), false, false), 1.5);
+    assert!(held.burst.is_empty() && held.moving, "the field moves on");
+    let rested = motion.frame(input(Some(5), false, false), 5.0);
+    assert!(!rested.moving, "left alone, it comes to rest");
+    motion.engage(true, 5.0);
+    let engaged = motion.frame(input(Some(5), false, false), 5.1);
+    assert!(
+        engaged.moving && !engaged.smooth,
+        "the pointer back: it moves, at 30 a second"
+    );
     let fast = motion.frame(input(Some(2), true, false), 6.0);
     assert_eq!(fast.dots.len(), flair::FAST_DOTS);
     let mut still = Motion::default();
@@ -282,4 +290,26 @@ fn the_warning_shows_while_dragged_to_the_top() {
     assert!(!motion.dragging());
     let reopened = motion.frame(input(Some(3), false, false), 9.0);
     assert!(reopened.warning.is_none() && !reopened.moving);
+}
+
+/// The decorations' clock slows to a stop a few seconds after the pointer
+/// leaves the card, and the dots fade as it slows.
+#[test]
+fn the_decorations_come_to_rest_after_the_pointer_leaves() {
+    let mut motion = Motion::default();
+    motion.engage(true, 0.0);
+    let on = motion.frame(input(Some(2), true, false), 0.0);
+    assert!(on.moving && !on.dots.is_empty());
+    motion.engage(false, 1.0);
+    let held = motion.frame(input(Some(2), true, false), 2.5);
+    assert!(held.moving, "2 s after it leaves, still going");
+    let slowing = motion.frame(input(Some(2), true, false), 3.6);
+    let faded = slowing
+        .dots
+        .iter()
+        .map(|dot| dot.opacity)
+        .fold(0.0_f32, f32::max);
+    assert!(slowing.moving && faded < 0.9, "{faded}");
+    let still = motion.frame(input(Some(2), true, false), 6.0);
+    assert!(!still.moving && still.dots.is_empty());
 }
