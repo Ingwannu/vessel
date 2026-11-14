@@ -252,7 +252,7 @@ impl<'de> Deserialize<'de> for SessionLabels {
             type Value = SessionLabels;
 
             fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("at most 32 validated string labels")
+                write!(f, "at most {} validated string labels", SessionLabels::MAX)
             }
 
             fn visit_map<A: MapAccess<'de>>(self, mut input: A) -> Result<Self::Value, A::Error> {
