@@ -1,0 +1,207 @@
+# ADR 0073: A terminal grid for the native app
+
+Status: accepted, 2026-11-14 (milestone 12, the native app,
+`docs/plans/app-terminal.md`). No new wire. A terminal session's bytes
+stay `TerminalInput` / `SessionEvent::Terminal` (ADR 0003); a shell
+beside a session stays protocol 11 (ADR 0031). The parser is `vte`
+0.15, reserved to `vessel-app-view` in `spikes/native/README.md`.
+
+## Purpose and intent
+
+The native app draws no terminal. The page draws one with xterm.js, and
+only for a session that is itself a terminal. Paseo also draws shells
+beside a session: create, rename, kill, a scrollback of 10,000 lines
+unless the person changed it, find in that scrollback, and a paste of
+text, of a file's path and of a clipboard image's path. The app has to
+do those from the bytes the node already forwards. It must not grow a
+second PTY, and it must not copy another editor's terminal.
+
+## Existing implementation and constraints
+
+The node already runs the PTY (`vessel-pty`, `portable-pty`) and keeps
+each terminal's log in memory: 4,096 records and 1 MiB
+(`vessel_session::terminals::Scrollback::DEFAULT`, ADR 0031). One read
+is at most 16 KiB (`vessel_pty::threads::READ_BUFFER`). A shell is a
+`TerminalId` with the session's terminal transport: `terminal.subscribe`
+/ `terminal.read` / `terminal.send`, plus create, rename and kill. The
+client crate already follows one (`follow_terminal`). Nothing in that
+path parses the bytes.
+
+The page's view (`web/src/features/session/terminal-view.tsx`) replays
+those bytes into xterm.js with a hardcoded scrollback of 5,000 lines,
+and sends a size only after the view has focus and the person has typed.
+`view::terminal` already has that rule (`ResizeRule`), the ordered
+sender (`TerminalSender`, one send in flight, at most 1,048,576
+characters waiting) and the fold of a session log into byte slices
+(`TerminalLog`). `link` already delivers a session's keys and sizes
+(`Act::Terminal`). There is no grid, no shell follow in `link`, and no
+cell drawing in the kit.
+
+`view` does no I/O and no UI, and nothing of GPUI reaches it (ADR 0035).
+`kit` does not know sessions. So the grid cannot live in `kit`, and the
+renderer cannot import `view`. The app is the only crate that sees both.
+Library code takes no `unsafe` (the workspace forbids it); a dependency
+may, inside itself. A new dependency is named here with its licence, its
+size and why the standard library does not do the job. No protocol
+field is added: the proto crate is shared, and mouse reports, resize
+intent and a file-upload call are not on the wire today.
+
+## Alternatives considered
+
+**Who parses.**
+
+1. `alacritty_terminal` 0.26.0 (published 2026-04-06, 411,445 bytes,
+   8,625 lines of Rust, licence Apache-2.0 only, rustc 1.85, edition
+   2024). It is a terminal library, and it already contains `vte`. It
+   also contains a PTY: `rustix-openpty`, `polling`, `signal-hook`,
+   `home`, `libc`, and on Windows `miow`, `piper` and `windows-sys`,
+   plus `base64`, `parking_lot`, `regex-automata` and `unicode-width`.
+   The app has no PTY to open. The crate's public grid is Alacritty's
+   release surface (0.24, 0.25 and 0.26 each moved it), so `kit` would
+   still need a snapshot of our own or a dependency on that surface.
+   `home` reads a home directory, which library code here does not.
+2. `vte` 0.15.0 (published 2025-02-02, 57,487 bytes, 2,942 lines,
+   licence Apache-2.0 OR MIT, rustc 1.62.1). A parser only: `Parser::advance`
+   and a `Perform` implementation. Default feature `std` pulls `memchr`.
+   The `ansi` feature (and `serde`) is not taken. Maintained by
+   Alacritty's publishers; 0.15.0 is the current release.
+3. A parser written here, or copied from Alacritty, xterm.js or WezTerm.
+   The state machine is Paul Williams' ANSI parser plus UTF-8 and the
+   OSC exceptions `vte` already documents. Copying an editor's terminal
+   is refused. Writing the same machine is a second parser to maintain,
+   and the standard library has none.
+
+**Who owns the grid.**
+
+1. `alacritty_terminal`'s grid, wrapped. Rejected with option 1: the PTY
+   stack comes with it, and the kit still cannot name those types.
+2. The grid in `kit`, the parser beside the drawing. Rejected: `kit`
+   must not know a session, a mode or a key sequence, and a test of
+   Korean width should not start GPUI.
+3. The grid and the key encoding in `view`, a snapshot the app copies
+   into a kit control that only draws cells. This matches the crate
+   table.
+
+**Widths.**
+
+1. `unicode-width` 0.2.3 (published 2026-10-28, 209,503 bytes, the UAX
+   #11 tables, licence MIT OR Apache-2.0). Already in the native lock
+   through `gpui-component`. Default feature `cjk`. A Hangul syllable
+   is width 2. It measures scalars, not grapheme clusters.
+2. Paseo's `@xterm/addon-unicode-graphemes` table, copied. Refused: it
+   is another terminal's data. No dual-licensed crate in the lock does
+   that table's job (one emoji cluster, one Indic conjunct, one cell).
+
+## The choice
+
+`vte` 0.15, feature `std` only, is the parser, and only
+`vessel-app-view` may depend on it. The grid is new code in `view`:
+bytes in, cells out, keys and pastes back to bytes. No source from
+Alacritty, xterm or WezTerm is copied in. `unicode-width` 0.2.3, with
+its default `cjk` feature, is the width of a scalar; it is not given an
+exclusive owner, because `gpui-component` already uses it. Both
+dependencies land in the grid's commit, not in this one; the README
+reserves `vte` now so that commit is the one the boundary check allows.
+
+The split:
+
+- `view` holds the model and the encoding. It does not draw, and it
+  does not read the network, the disk or the clock. The existing
+  sender, resize rule and session-log fold stay; the grid is a module
+  beside them.
+- `kit` gains a control that draws a grid of cells it is given. It does
+  not parse, and it does not name a session or a node. Colours and the
+  cursor come from the kit's tokens (the page's `--term-*` palette
+  lives there when the control does), never a hex literal in the
+  screen.
+- `link` follows a shell with the client crate's existing
+  `follow_terminal` and sends input with the existing `terminal.send`.
+  A session that is a terminal keeps `Act::Terminal`. The same grid
+  consumes both streams.
+- `app` copies a changed snapshot into the kit control. It is the only
+  crate that sees both types, because neither may depend on the other.
+
+Bounds:
+
+- Scrollback is a line count, default 10,000, allowed 0 through
+  1,000,000 (Paseo's setting). Lines are kept as output arrives; the
+  oldest line is dropped when the count is passed, which is the bound,
+  not a discarded command. The node's ring is unchanged (4,096 records,
+  1 MiB): a reconnect cannot show bytes the node has already dropped.
+- One feed applies at most 16 KiB, the PTY's read size, and reports how
+  many bytes it consumed. The rest stays with the caller. A frame feeds
+  at most once, so one frame parses at most 16 KiB. That ceiling is not
+  a measured optimum; the renderer measures frame time when it exists.
+- The empty size is refused. Anything else the wire can hold (`u16`,
+  and the wire's 80×24 when nobody has resized) is a size. Resize of
+  the model is immediate. The screen waits 100 ms of an unchanged
+  measurement before asking, and only a view that has focus and has
+  typed sends it (`ResizeRule`, already).
+
+What the model answers, in the grid's commit, is fixed by recorded
+bytes rather than by a second copy of xterm's tables: SGR colour,
+a Hangul syllable of width 2 and its continuation cell, the alternate
+screen, bracketed paste, and a UTF-8 sequence split across two feeds.
+An unknown sequence is ignored and the rest of the feed is kept (that
+is the parser's rule, not a dropped command). A query a local terminal
+answers (cursor position, primary device attributes) becomes reply
+bytes the link sends as input, because the node does not answer them.
+
+## Why this and not the others
+
+The PTY already exists on the node. `alacritty_terminal` would put
+another one, and a home-directory read, in the UI process, for a grid
+the kit cannot name. `vte` is the maintained parser those libraries
+share, two orders of magnitude smaller, and dual-licensed; the grid is
+the part this app has to own so `view` can test it without GPUI.
+Writing or copying the parser fails the reason `vte` exists and the
+rule against taking an editor's terminal. Scalar width is enough to
+place Hangul; Paseo's cluster table is a different, larger choice and
+is not smuggled in as a copy.
+
+## Advantages, costs and effects
+
+- The app can draw a session's terminal and a shell from one model.
+  Create, rename, kill and the follow are calls the node already has.
+  No protocol number is taken.
+- `view` grows a `vte` dependency (57,487 bytes, plus `memchr` through
+  its default feature) and a direct `unicode-width` dependency the lock
+  already has. Neither crate is vendored. Their `unsafe`, if any, stays
+  inside them.
+- A feed of the whole 1 MiB ring takes many frames (1 MiB / 16 KiB).
+  Interactive output is one read, so the first feed is the read.
+- Paseo's 5 ms output coalescer is not copied. The node already chunks
+  at 16 KiB; a timer in `view` would be I/O-shaped.
+- Paseo's refit ladders (0, 48, 144, 320 ms, and the emulator's waits up
+  to 2 s) are not copied. They paper over a layout that has not measured
+  yet. GPUI measures; the 100 ms debounce is the one wait, and it is a
+  debounce.
+- Cluster width differs from Paseo. Paseo gives one cell of width 2 to
+  an emoji cluster (VS16, a skin tone, a flag, a ZWJ sequence) and one
+  column to an Indic conjunct (`docs/terminal-rendering.md` in Paseo).
+  `unicode-width` counts scalars. A program that asks the cursor where
+  it is will disagree with Paseo on those clusters. Hangul syllables
+  agree (width 2). The difference is recorded in the plan; it is not
+  papered over.
+- A path paste that contains `` ` $ | & > ~ # ! ^ * ; < `` is refused
+  with a typed error. Paseo deletes those characters and pastes what
+  remains (`prepareTerminalPath`). Deleting them pastes a different
+  path and drops characters without saying so.
+- Inline images (Sixel, iTerm) are not cells. Paseo loads an image
+  addon to draw them. A pasted image is a file whose path is pasted,
+  which is Paseo's paste, not its drawing. There is no terminal
+  file-upload call on the wire: a path on the node is pasted through
+  `TerminalInput`; bytes that still have to be uploaded wait for a call
+  the coordinator assigns. This ADR does not add one.
+- Mouse reporting is not on Vessel's `TerminalInput` (Paseo's terminal
+  input has a mouse message). Selection stays in the app. No field is
+  added to get it.
+- The web page keeps a scrollback of 5,000 and has no setting. The app
+  follows Paseo's 10,000, not the page's 5,000.
+- The node's shell choice is unchanged (ADR 0031). Paseo's saved
+  profiles (a name, a command, arguments, per host) are not added.
+- Find walks the grid in `view` (case-insensitive, not a regular
+  expression, next and previous, at most 20,000 highlights and a
+  `limited` flag when the count is past that). The kit draws the marks
+  later. Terminal activity hooks, the tablet key bar and the phone
+  renderer are out of this decision.
