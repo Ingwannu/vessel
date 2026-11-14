@@ -613,7 +613,9 @@ pub fn combobox<V: 'static>(
         .id(id.into())
         .track_focus(&state.focus)
         .capture_key_down(on_key)
+        // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
+        .cursor_default()
         .flex()
         .flex_col()
         .bg(surfaces.surface0)

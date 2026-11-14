@@ -1,6 +1,20 @@
 //! The slider's state through time: what the pointer, the keys and the
 //! wheel did, and what each frame draws. The app keeps one per card and
 //! hands each frame to the kit's control, which only draws it.
+//!
+//! [Decision Log] (the coordinator's measure of 0.0.0.0.13, 2026-11-14:
+//! under a software renderer the card at its top stop cost about three
+//! cores for as long as it stayed open)
+//! - Purpose: the decorations cost nothing once they have been seen.
+//! - Choice: the field and Fast's dots run on their own clock, which runs
+//!   while the pointer is over the card or the slider is held, and for 2 s
+//!   after it leaves or after a change (reaching the top stop, Fast
+//!   switched), then slows to a stop over 1.5 s; a frame says whether it
+//!   needs the display's every frame (the thumb gliding or springing) or
+//!   only the decorations' 30 a second ([`Frame::smooth`]).
+//! - Difference, named: the Codex app's field and dots move for as long
+//!   as its menu is open; here they come to rest a few seconds after the
+//!   pointer leaves the card (the dots fade as they slow).
 #![expect(
     clippy::float_arithmetic,
     reason = "times and positions are float formulas"
@@ -46,8 +60,11 @@ pub struct Frame {
     pub warning: Option<f32>,
     /// Whether the shown stop is the top one (its colours).
     pub at_maximum: bool,
-    /// Whether anything moves: the control asks for the next frame.
+    /// Whether anything moves: the control asks for a next frame.
     pub moving: bool,
+    /// Whether that next frame is the display's next (the thumb glides or
+    /// springs); otherwise the decorations' 30 a second are enough.
+    pub smooth: bool,
 }
 
 /// How long the stops take to come back after Fast is turned off.
@@ -58,6 +75,10 @@ const TOP_BACK: f32 = 0.2;
 const STOPS_SETTLE: f32 = 1.3;
 /// Seconds treated as "long ago" for a state the card opened in.
 const LONG_AGO: f32 = 1.0e3;
+/// How long the decorations run on after the pointer leaves or a change.
+const HOLD: f32 = 2.0;
+/// How long they take to come to rest after that.
+const STILLING: f32 = 1.5;
 
 /// A press: the stop in effect when it began.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +103,12 @@ pub struct Motion {
     warning: Option<f32>,
     burst: Option<f32>,
     field: Option<f32>,
+    /// The pointer over the card.
+    engaged: bool,
+    /// When the pointer last left, or the last change.
+    active: f32,
+    /// The decorations' own clock, seconds.
+    clock: f32,
 }
 
 impl Motion {
@@ -127,6 +154,12 @@ impl Motion {
         self.hovered = over;
     }
 
+    /// The pointer onto or off the card at `now`.
+    pub const fn engage(&mut self, over: bool, now: f32) {
+        self.engaged = over;
+        self.active = now;
+    }
+
     /// A wheel's `delta` units at `now`: the stops to move.
     pub fn wheel(&mut self, delta: f32, now: f32) -> i32 {
         self.wheel.add(delta, now)
@@ -141,6 +174,10 @@ impl Motion {
     /// The frame at `now` for `input`.
     pub fn frame(&mut self, input: Input, now: f32) -> Frame {
         let elapsed = self.last.map_or(0.0, |last| (now - last).max(0.0));
+        if self.last.is_none() {
+            // Opening the card is a change: the decorations run a while.
+            self.active = now;
+        }
         self.last = Some(now);
         let shown = self.shown(input.current);
         let at_maximum = shown.is_some() && shown == input.maximum;
@@ -148,6 +185,10 @@ impl Motion {
         let (thumb, springing) = self.spring(input.reduce, elapsed);
         let top_since = self.top_stop(at_maximum, now);
         let (fast_stops, fast_since) = self.fast_mode(input.fast, fraction, now);
+        if top_since <= 0.0 || fast_since <= 0.0 {
+            self.active = now;
+        }
+        let speed = self.pace(input.reduce, elapsed, now);
         if self.pressed.is_some() && at_maximum {
             let _shown = self.warning.get_or_insert(now);
         } else {
@@ -162,20 +203,24 @@ impl Motion {
                 )
             })
             .collect();
-        let (burst, dots) = self.particles(input.reduce, now);
+        let (burst, dots) = self.particles(input.reduce, now, speed);
+        let clock = self.clock;
         let field = self.field.map(|reveal| {
             if input.reduce {
-                (0.0, flair::REVEAL_TIME)
+                (clock, flair::REVEAL_TIME)
             } else {
-                (now, now - reveal)
+                (clock, now - reveal)
             }
         });
+        let revealing = field.is_some_and(|(_, reveal)| reveal < flair::REVEAL_TIME);
         let warning = self.warning.map(|since| now - since);
         let stops_moving = !input.reduce && (top_since < STOPS_SETTLE || fast_since < STOPS_SETTLE);
+        let decorating = !input.reduce && speed > 0.0 && (!dots.is_empty() || field.is_some());
         let moving = gliding
             || springing
             || !burst.is_empty()
-            || (!input.reduce && (!dots.is_empty() || field.is_some()))
+            || decorating
+            || (!input.reduce && revealing)
             || warning.is_some_and(|since| since < flair::SHIMMER_TIME)
             || stops_moving;
         Frame {
@@ -188,7 +233,27 @@ impl Motion {
             warning,
             at_maximum,
             moving,
+            smooth: gliding || springing,
         }
+    }
+
+    /// Advance the decorations' clock by `elapsed` at its pace now, and
+    /// return the pace: 1 while engaged and for [`HOLD`] after, then
+    /// slowing to 0 over [`STILLING`]; 0 under reduced motion.
+    fn pace(&mut self, reduce: bool, elapsed: f32, now: f32) -> f32 {
+        if self.engaged || self.pressed.is_some() {
+            self.active = now;
+        }
+        let since = now - self.active;
+        let speed = if reduce {
+            0.0
+        } else if since <= HOLD {
+            1.0
+        } else {
+            1.0 - super::motion::EASE_OUT.at(((since - HOLD) / STILLING).clamp(0.0, 1.0))
+        };
+        self.clock += elapsed * speed;
+        speed
     }
 
     /// The thumb's place gliding to `shown`'s; whether it still glides.
@@ -260,7 +325,8 @@ impl Motion {
         }
         let since = self.fast.map_or(LONG_AGO, |(_, since)| now - since);
         if on {
-            let _started = self.dots.get_or_insert((now, fraction.unwrap_or(0.0)));
+            let clock = self.clock;
+            let _started = self.dots.get_or_insert((clock, fraction.unwrap_or(0.0)));
         } else {
             self.dots = None;
         }
@@ -274,7 +340,7 @@ impl Motion {
 
     /// The burst's particles and Fast's dots at `now` (none with reduced
     /// motion).
-    fn particles(&mut self, reduce: bool, now: f32) -> (Vec<(Dot, f32)>, Vec<Dot>) {
+    fn particles(&mut self, reduce: bool, now: f32, speed: f32) -> (Vec<(Dot, f32)>, Vec<Dot>) {
         let burst: Vec<(Dot, f32)> = match self.burst {
             Some(start) if !reduce => (0..flair::BURST_PARTICLES.len())
                 .filter_map(|index| {
@@ -287,8 +353,12 @@ impl Motion {
             self.burst = None;
         }
         let dots = match self.dots {
-            Some((start, from)) if !reduce => (0..flair::FAST_DOTS)
-                .map(|index| flair::fast_dot(index, now - start, from))
+            Some((start, from)) if !reduce && speed > 0.0 => (0..flair::FAST_DOTS)
+                .map(|index| {
+                    let mut dot = flair::fast_dot(index, self.clock - start, from);
+                    dot.opacity *= speed;
+                    dot
+                })
                 .collect(),
             _ => Vec::new(),
         };

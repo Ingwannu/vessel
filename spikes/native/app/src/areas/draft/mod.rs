@@ -647,7 +647,7 @@ fn overlays(
         Some(Shown::Loading | Shown::Failed(_)) | None => None,
     };
     let mut over = Vec::new();
-    over.extend(effort_card::card(shell, ready, touch, tokens, cx));
+    over.extend(effort_card::card(shell, ready, touch, tokens, window, cx));
     over.extend(shell.areas.draft.features.tips.render(tokens));
     over.extend(pickers::open_list(shell, online, shown, tokens, window, cx));
     over
