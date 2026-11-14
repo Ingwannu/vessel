@@ -276,3 +276,22 @@ ownership or permission change. Owned fixture processes were stopped by PID.
 No native screen or other-OS runtime claim is made. See the resume note for
 log names, pending review and consumers. No new slice or branch merge followed
 the credit-stop instruction.
+
+## Row 3: self authority, contract before code
+
+ADR 0044's 2026-11-14 amendment defines the query, authentication-only method
+metadata, canonical scopes, identity privacy, old-hop version gate and CLI.
+Provisionally protocol 19 after merging node-line `b981f5f2` (protocol 18).
+The final report names the new call/fields so the integrator can renumber.
+Existing fleet controls are already merged at 15, fleet.published at 16.
+
+Baseline verification before new feature work: whole fmt/clippy passed;
+110 suites, 1,771 Rust tests passed, zero failed, ten ignored. Page lint,
+typecheck, 417 units, build and all 62 Playwright cases passed. Logs are
+`resumed/base2-*` in this track's scratch folder. The first baseline attempt
+passed 1,771 tests but failed compiling the web doctest because this worker
+rebuilt the bundle during the Rust gate. The corrected execution first
+froze all 165 built assets using the supported VESSEL_WEB_DIST override,
+then ran the full gate without asset mutation. No failure was waived and no
+product source changed to force a pass. No new feature code preceded the
+clean baseline. Keep assets stable during every subsequent Rust gate.

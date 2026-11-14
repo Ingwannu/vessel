@@ -1,7 +1,14 @@
-# N3 resume after the overnight credit stop
+# N3 resume and current checkpoint
 
-The coordinator's stop instruction limits this session to row 2. Start no
-new slice or branch merge until the next session explicitly resumes work.
+Resumed 2026-11-14. The previous credit stop is superseded: node-side rows
+3 onward are authorized, one slice at a time. Node branch fast-forwarded to
+`b981f5f2`, protocol 18. Baseline gate passed: 110 suites / 1,771 passed /
+0 failed / 10 ignored, page units 417 and full Playwright 62. See the new
+row 3 contract and the final sections below; older checkpoints are history.
+Row 3 ADR is recorded before implementation. No row 3 code is built yet.
+Review goes to V1 only; it forwards accepted work to the node integrator.
+Do not message the integrator or lead directly unless answering them.
+Keep project=vessel and machine cargo slots; every gate runs detached.
 
 ## Committed and reviewed
 
