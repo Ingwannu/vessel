@@ -23,8 +23,10 @@
 
 mod card;
 mod facts;
+mod feedback;
 mod form;
 mod link;
+mod merge;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, DialogState, TextField};
@@ -115,6 +117,16 @@ pub(crate) struct PullsArea {
     pub(crate) draft_turn: u64,
     pub(crate) tips: vessel_app_kit::Tooltips,
     pub(crate) link_tip: vessel_app_kit::tooltip::Place,
+    /// The whole pull request last read (its merge methods).
+    pub(crate) whole: Option<merge::Whole>,
+    /// A read of it for the menu is out, for that session.
+    pub(crate) reading_whole: Option<SessionId>,
+    /// The merge sent, while it is out.
+    pub(crate) merging: Option<Box<vessel_proto::forge::MergePullRequest>>,
+    /// The feedback change sent, while it is out.
+    pub(crate) feedback_sending: Option<vessel_proto::forge::SetFeedback>,
+    /// The feedback switch's changes.
+    pub(crate) feedback_turn: u64,
 }
 
 impl PullsArea {
@@ -140,6 +152,11 @@ impl PullsArea {
             draft_turn: 0,
             tips: vessel_app_kit::Tooltips::new(),
             link_tip: vessel_app_kit::tooltip::Place::default(),
+            whole: None,
+            reading_whole: None,
+            merging: None,
+            feedback_sending: None,
+            feedback_turn: 0,
         }
     }
 }
@@ -373,6 +390,10 @@ impl Shell {
         match answer {
             PullAnswer::Read { session, result } => self.pulls_read(machine, session, result),
             PullAnswer::Opened { ask, result } => self.pulls_opened(machine, &ask, result, cx),
+            PullAnswer::Merged { ask, result } => self.pulls_merged(&ask, result, cx),
+            PullAnswer::Feedback { ask, result } => {
+                self.pulls_feedback_answered(&ask, result, cx);
+            }
         }
         cx.notify();
     }
@@ -383,6 +404,19 @@ impl Shell {
         session: SessionId,
         result: Result<Box<PullRequestView>, Problem>,
     ) {
+        // Whoever asked, the whole pull request read is the menu's too
+        // (its merge methods).
+        let pulls = &mut self.areas.pulls;
+        if pulls.reading_whole == Some(session) {
+            pulls.reading_whole = None;
+        }
+        if let Some(pull) = result
+            .as_ref()
+            .ok()
+            .and_then(|view| view.pull_request.clone())
+        {
+            pulls.whole = Some(merge::Whole { session, pull });
+        }
         let Some(facts) =
             self.areas.pulls.facts.as_mut().filter(|facts| {
                 facts.subject.machine == machine && facts.subject.session == session

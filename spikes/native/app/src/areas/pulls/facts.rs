@@ -51,7 +51,10 @@ pub(crate) fn dialog(
         FactsRead::Loading => (loading(tokens), None),
         FactsRead::Failed(problem) => (failed(shell, problem, tokens), None),
         FactsRead::Ready(view) => match &view.pull_request {
-            Some(pull) => (whole(shell, pull, tokens), Some(pull.summary.url.clone())),
+            Some(pull) => (
+                whole(shell, pull, view.feedback, tokens, narrow, cx),
+                Some(pull.summary.url.clone()),
+            ),
             None => (empty(shell, view, tokens), None),
         },
     };
@@ -177,7 +180,14 @@ fn empty(shell: &Shell, view: &PullRequestView, tokens: &Tokens) -> AnyElement {
 }
 
 /// The header, the checks and the reviews.
-fn whole(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
+fn whole(
+    shell: &Shell,
+    pull: &PullRequest,
+    feedback: bool,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     div()
         .flex()
         .flex_col()
@@ -187,6 +197,8 @@ fn whole(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
         .child(checks(shell, pull, tokens))
         .child(divider(tokens))
         .child(activity(shell, pull, tokens))
+        .child(divider(tokens))
+        .child(super::feedback::row(shell, feedback, tokens, touch, cx))
         .into_any_element()
 }
 

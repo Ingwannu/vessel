@@ -852,6 +852,21 @@ below an 800x600 window.
   unreachable, at its watch limit, session ended) each have their own
   sentence in Paseo's voice, where Paseo has one "isn't connected".
 
+### Resume (2026-11-14 15:50 UTC, paused by the coordinator for the account windows)
+
+- Slice 3 (merge and feedback) is a WIP commit on this branch, after the
+  hand-off head `0036db7c`: `view::workspace::pull::{merge, merge_words}`
+  with tests, the merge rows in `pull::menu`, the words in `pulls.ftl`,
+  `PullAsk::Merge`/`Feedback` and their answers in the link,
+  `app/src/areas/pulls/{merge,feedback}.rs`, the menu's merge rows and
+  the facts' feedback switch. Clippy is clean on it (gate p4); its tests
+  were not run (the gate was stopped at the pause). Resume: run the whole
+  gate, fix what it finds, then split the WIP commit by responsibility
+  as slice 2 was.
+- On waking (the coordinator, once track N3's fake forge is on the node
+  line): capture the Create PR form first, then the facts, the link, the
+  card line, and slice 3's rows and switch.
+
 ### Resume (2026-11-14 15:00 UTC)
 
 - Done: slice 1 with its matrix fixes and the idle fix; slice 2's rules,
@@ -861,8 +876,30 @@ below an 800x600 window.
   pane but captured only up to "Create PR isn't available" until a node
   can read a forge); track S3's kit transitions for the menu, the
   switcher, the dialogs and the tooltips; G2's kit menu controls.
-- Next: the merge slice (`pr.merge`, pinned number, head and method,
-  Paseo's confirmation) and the feedback switch (`pr.feedback`).
+- Next: the merge slice and the feedback switch. Design, from Paseo's
+  `git/policy.ts` (`canMergePr`, `buildDirectPullRequestMergeAction`) and
+  the node's contract (`forge/calls.rs`):
+  - Paseo merges on one choice, with no confirmation: "Merge PR
+    (squash)", "(merge)", "(rebase)" (ko "PR 병합(스쿼시)" …), pending
+    "Merging PR...", done "PR merged". The rows show only when the pull
+    request is open, not a draft, not conflicting, and the branch is
+    clean and in step with its remote (Paseo's `aheadOfOrigin` and
+    `behindOfOrigin` zero, `hasUncommittedChanges` false); each method
+    only when the repository allows it.
+  - The allowed methods are in `pr.get`'s whole pull request
+    (`merge_methods`), not in the card's summary: the git area reads it
+    when its session has one and again after each refresh that changed
+    the summary's `updated_at`.
+  - `pr.merge` pins the number and the head the person looked at
+    (`summary.head_commit`); a push since is `MergeRefusal::HeadMoved`.
+    Each refusal gets Paseo's sentence where it has one (`mergePrDraft`,
+    `mergePrClosed`, `mergePrConflicts`, `mergePrQueue`,
+    `mergePrNotReady`), else its own in Paseo's voice; the forge's own
+    words go under it as for `pr.open`.
+  - Feedback (`pr.feedback`, `SetFeedback`): a switch in the facts dialog
+    ("Send failing checks and reviews to the session"), its state from
+    `SessionPullRequest.feedback`.
+  - Captures wait for track N3's fake forge, as slice 2's facts do.
 - Capture helpers (outside the repository): `app.sh` (own display, own
   authority file), `drive.py`, `matrix*.sh`, `idle-cpu.sh`. The menu's
   rows below Fetch move down by one group when Create PR is offered:
