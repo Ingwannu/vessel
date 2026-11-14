@@ -931,6 +931,37 @@ never rebuilt.
     file's mtime unchanged). The shipped Linux build on Xvfb held its
     motion and used 0.5% of a core on its first screen.
 
+- **0.0.0.0.17**:
+  - Built from exactly `56a7cbd3`, the desktop lead's merge of the file
+    editor, checked out detached and run through `cargo-slot`'s priority
+    lane (`VESSEL_SLOT_PRIORITY=1`, 5 jobs, a slot at once); this branch
+    then merged it. Windows took 7 min 49 s, Linux 22 min 47 s.
+  - The set went into place at 23:11:14 UTC on 2026-11-14 and was
+    published to `preview` at 23:30:47 UTC, after the coordinator's
+    smoke test on the real node (by then on the node line `a365d295`).
+    The notes carry one known problem: ended (interrupted or exited)
+    sessions are hidden in the sidebar by default; the Display menu's
+    "Show ended sessions" shows them, and the next build shows them by
+    default.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, each byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.16 Linux
+    build took 0.0.0.0.17 by itself 19 s after its start (23:32:40 UTC;
+    no error, no leftover `.part`, no feed token in its log). The `/dl/`
+    page answers 200 on the proxy's loopback port with the public host
+    name (a plain GET, the unit untouched) and lists 0.0.0.0.17 first
+    with its seven files; from outside it answers 302 (sign-in).
+  - Sizes, with the change against 0.0.0.0.16: setup 13,484,447
+    (+324,482), exe 49,435,648 (+1,591,296), zip 19,698,508 (+478,316),
+    linux 86,414,936 (+1,705,968), tar.gz 29,920,176 (+494,735).
+  - The usual checks passed: icons the same as 0.0.0.0.16, the Windows
+    version resource 0.0.0.0.17, the debuglink read from a copy (CRC
+    matches, the dist file's mtime unchanged), the four licence texts in
+    both archives, no feed token or path in the build log. The updated
+    Linux build (the one that replaced 0.0.0.0.16) on Xvfb held its
+    motion (software renderer) and used 0.5% of a core on its first
+    screen, ERROR 0.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
