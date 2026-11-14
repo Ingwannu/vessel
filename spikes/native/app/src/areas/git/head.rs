@@ -4,6 +4,7 @@
 
 use std::rc::Rc;
 
+use gpui::AnimationExt as _;
 use vessel_app_kit::split_button::{
     MenuPhase, PrimaryState, SplitContent, SplitHandlers, split_button,
 };
@@ -11,7 +12,7 @@ use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_label::{LabelLayout, State, trigger};
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    StatefulInteractiveElement as _, Styled, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::workspace::git::{
@@ -82,7 +83,17 @@ pub(crate) fn slot(
         ),
     };
     if git.open.is_none() && git.dropping.is_none() && git.confirm_switch.is_none() {
-        head = head.children(menu::issue(shell, tokens, window, cx));
+        // The owner's word 39: a row that opens arrives in the surface
+        // transition (opacity, 300 ms on the kit's curve; at once while
+        // motion is held). Its element state lives while it is shown, so
+        // each new appearance after none runs it again.
+        head = head.children(menu::issue(shell, tokens, window, cx).map(|issue| {
+            issue.with_animation(
+                "git-issue-arrives",
+                vessel_app_kit::motion::transition(vessel_app_kit::motion::STANDARD),
+                Styled::opacity,
+            )
+        }));
     }
     Some(
         head.children(menu::overlay(shell, tokens, touch, cx))
