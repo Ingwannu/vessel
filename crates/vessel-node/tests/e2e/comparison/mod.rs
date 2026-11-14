@@ -102,8 +102,19 @@ async fn changed(job: &ComparisonJob, predicate: impl Fn(&Snapshot) -> bool) -> 
     })
     .await
 }
+/// The node, with a silence limit beyond any clock jump here: the deadline
+/// tests (`faults/deadlines.rs`) pause the node's clock and advance it 46 s
+/// and 121 s at once, past the 30 s after which the node drops a client it
+/// has not heard from (`/rpc` and `/secure` alike), and no pong can come
+/// back across a jump. Keepalive is not what these tests are about.
 async fn start_node(fixture: &Fixture) -> vessel_node::Node {
     fixture
-        .start_with(|config| config.harness_lookup = crate::workspace::lookup(fixture))
+        .start_with(|config| {
+            config.harness_lookup = crate::workspace::lookup(fixture);
+            config.keepalive = vessel_relay::Keepalive {
+                ping: std::time::Duration::from_secs(10),
+                silence: std::time::Duration::from_secs(3_600),
+            };
+        })
         .await
 }
