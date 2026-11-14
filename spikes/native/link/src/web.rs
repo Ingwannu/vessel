@@ -154,6 +154,17 @@ impl Link {
             Command::Pair { .. } => self.emit(Event::PairFailed(
                 vessel_app_view::pairing::PairProblem::Browser,
             )),
+            // The demo fleet keeps no search index: every machine finds
+            // nothing.
+            Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
+                machine: ask.machine,
+                ticket: ask.ticket,
+                result: Ok(vessel_proto::search::SearchPage {
+                    hits: Vec::new(),
+                    next: None,
+                    reached: None,
+                }),
+            })),
         }
     }
 

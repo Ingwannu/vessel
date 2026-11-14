@@ -248,6 +248,7 @@ impl Shell {
                 self.notice = Some(why);
             }
             Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
+            Event::Searched(answer) => self.message_searched(answer, cx),
         }
         cx.notify();
     }

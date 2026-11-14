@@ -59,6 +59,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+pub(crate) mod search;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
@@ -284,6 +285,8 @@ pub(crate) struct ConversationArea {
     /// The node refused to start the session again: its code and words,
     /// said under the ended banner.
     again_refused: Option<(Option<ErrorCode>, String)>,
+    /// The palette's message search (kept when another session shows).
+    pub(crate) search: search::Searching,
     /// The session's machine is not connected (records stopped, or an act,
     /// a prompt or an input found no connection): the transport's words.
     /// Said once, in the bar, in the app's words; these only in the line's
@@ -351,6 +354,7 @@ impl ConversationArea {
             refused: None,
             starting_again: false,
             again_refused: None,
+            search: search::Searching::default(),
             lost: None,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
@@ -486,10 +490,6 @@ impl ConversationArea {
     /// request it lists): now if it is read, else once it is; the first
     /// row when the log no longer holds it (its request is then drawn from
     /// the node's word, [`Self::live`]).
-    #[expect(
-        dead_code,
-        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
-    )]
     pub(crate) fn reveal(&mut self, seq: EventSeq) {
         self.reveal = Some(seq);
         self.revealed();
@@ -779,10 +779,6 @@ impl Shell {
     /// Bring record `seq` of the session shown into view (the inbox
     /// opening a session at what it lists; call it after the session area
     /// opened the session).
-    #[expect(
-        dead_code,
-        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
-    )]
     pub(crate) fn conversation_reveal(&mut self, seq: EventSeq, cx: &mut Context<'_, Self>) {
         self.areas.conversation.reveal(seq);
         cx.notify();
