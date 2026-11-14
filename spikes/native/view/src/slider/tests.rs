@@ -6,6 +6,7 @@
 
 use super::flair::{self, FastStops};
 use super::motion::{EASE, GLIDE, GROW, SETTLE, SLIDE, Spring, Tween, Wheel};
+use super::state::{Input, Motion};
 use super::{along, commits, fraction, stop_under};
 
 fn near(a: f32, b: f32, within: f32) -> bool {
@@ -191,4 +192,94 @@ fn the_warning_shimmers_once() {
         .map(|step| flair::shimmer(0.5, f32::from(step) * 0.005))
         .fold(0.0_f32, f32::max);
     assert!(lit > 0.5, "{lit}");
+}
+
+fn input(current: Option<usize>, fast: bool, reduce: bool) -> Input {
+    Input {
+        stops: 6,
+        current,
+        maximum: Some(5),
+        fast,
+        reduce,
+    }
+}
+
+/// A drag across stops sends one choice, on release, and only a change.
+#[test]
+fn a_drag_previews_live_and_sends_once() {
+    let mut motion = Motion::default();
+    motion.press(2, Some(2));
+    motion.drag(3);
+    motion.drag(4);
+    assert_eq!(motion.shown(Some(2)), Some(4), "the word follows live");
+    assert_eq!(motion.release(), Some(4));
+    motion.press(4, Some(4));
+    motion.drag(3);
+    motion.drag(4);
+    assert_eq!(motion.release(), None, "back where it began: nothing sent");
+    assert_eq!(motion.release(), None);
+}
+
+/// The thumb glides to a new stop and rests; with reduced motion it
+/// jumps and nothing asks for frames.
+#[test]
+fn the_thumb_glides_then_rests() {
+    let mut motion = Motion::default();
+    let first = motion.frame(input(Some(1), false, false), 0.0);
+    assert!(near(first.fraction.expect("a stop"), 0.2, 1e-4));
+    assert!(!first.moving, "at rest on opening");
+    let going = motion.frame(input(Some(3), false, false), 0.1);
+    assert!(going.moving);
+    let halfway = motion.frame(input(Some(3), false, false), 0.2);
+    let x = halfway.fraction.expect("a stop");
+    assert!(x > 0.2 && x < 0.6, "{x}");
+    let done = motion.frame(input(Some(3), false, false), 1.0);
+    assert!(near(done.fraction.expect("a stop"), 0.6, 1e-4));
+    assert!(!done.moving);
+    let mut still = Motion::default();
+    let _first = still.frame(input(Some(1), false, true), 0.0);
+    let jumped = still.frame(input(Some(3), false, true), 0.1);
+    assert!(near(jumped.fraction.expect("a stop"), 0.6, 1e-4));
+    assert!(!jumped.moving);
+}
+
+/// Arriving on the top stop bursts and reveals the field; the field and
+/// Fast's dots keep the frames coming, reduced motion stops them.
+#[test]
+fn the_top_stop_and_fast_animate_until_reduced() {
+    let mut motion = Motion::default();
+    let _below = motion.frame(input(Some(4), false, false), 0.0);
+    let top = motion.frame(input(Some(5), false, false), 0.1);
+    assert!(top.at_maximum && !top.burst.is_empty());
+    assert_eq!(top.field.map(|(_, reveal)| reveal), Some(0.0));
+    assert!(top.moving);
+    let later = motion.frame(input(Some(5), false, false), 5.0);
+    assert!(later.burst.is_empty() && later.moving, "the field moves on");
+    let fast = motion.frame(input(Some(2), true, false), 6.0);
+    assert_eq!(fast.dots.len(), flair::FAST_DOTS);
+    let mut still = Motion::default();
+    let calm = still.frame(input(Some(5), true, true), 0.0);
+    assert!(calm.at_maximum && calm.dots.is_empty() && !calm.moving);
+    assert!(
+        calm.stops
+            .iter()
+            .all(|(dot, _)| near(dot.opacity, 0.0, 1e-3))
+    );
+}
+
+/// While dragged onto the top stop the warning shows; closing the card
+/// drops everything.
+#[test]
+fn the_warning_shows_while_dragged_to_the_top() {
+    let mut motion = Motion::default();
+    let _rest = motion.frame(input(Some(3), false, false), 0.0);
+    motion.press(3, Some(3));
+    motion.drag(5);
+    let dragged = motion.frame(input(Some(3), false, false), 0.1);
+    assert_eq!(dragged.warning, Some(0.0));
+    assert!(motion.dragging());
+    motion.close();
+    assert!(!motion.dragging());
+    let reopened = motion.frame(input(Some(3), false, false), 9.0);
+    assert!(reopened.warning.is_none() && !reopened.moving);
 }
