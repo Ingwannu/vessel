@@ -164,12 +164,12 @@ pub enum RewindRefusal {
 }
 
 /// A fork refusal in words.
-const fn fork_refusal(refusal: vessel_agent::ForkRefusal) -> &'static str {
+/// A fork's refusal as a person reads it (a failed fork's status, a
+/// rewind's answer).
+pub(crate) const fn fork_refusal(refusal: vessel_agent::ForkRefusal) -> &'static str {
     match refusal {
-        vessel_agent::ForkRefusal::CannotFork => {
-            "the agent cannot fork a conversation (it does not offer session/fork)"
-        }
-        vessel_agent::ForkRefusal::NotAtPoint => "the agent did not fork at the point",
+        vessel_agent::ForkRefusal::CannotFork => "the agent cannot fork a conversation",
+        vessel_agent::ForkRefusal::NotAtPoint => "the agent did not fork at the chosen point",
     }
 }
 

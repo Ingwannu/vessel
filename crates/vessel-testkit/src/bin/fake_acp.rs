@@ -46,6 +46,8 @@
 //!   (`_meta.jetbrains.air.fork.messageId`, as the real adapters read it)
 //!   or `head`; with `FAKE_ACP_FORK_IGNORES_POINT` set always `head`, an
 //!   agent that ignores the anchor. Options as `session/new`.
+//! - `session/delete` (offered): says `fake-acp: deleted <id>` on stderr,
+//!   so a test sees a refused fork deleted.
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` and an agent message chunk `replayed <id>` whose
 //!   message id is where a fork was made (`<at>`, `head-last` for `head`,
@@ -146,12 +148,13 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use agent_client_protocol::v1::schema::{
     AgentCapabilities, AuthMethod, AuthMethodAgent, AvailableCommand, AvailableCommandInput,
     AvailableCommandsUpdate, CancelNotification, Content, ContentBlock, ContentChunk, Cost,
-    ElicitationCapabilities, ForkSessionRequest, ForkSessionResponse, Implementation,
-    InitializeRequest, InitializeResponse, LoadSessionRequest, LoadSessionResponse,
-    McpCapabilities, McpServer, MessageId, NewSessionRequest, NewSessionResponse, PermissionOption,
-    PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities,
-    PromptRequest, PromptResponse, RequestPermissionOutcome, RequestPermissionRequest,
-    SessionCapabilities, SessionForkCapabilities, SessionId, SessionNotification, SessionUpdate,
+    DeleteSessionRequest, DeleteSessionResponse, ElicitationCapabilities, ForkSessionRequest,
+    ForkSessionResponse, Implementation, InitializeRequest, InitializeResponse, LoadSessionRequest,
+    LoadSessionResponse, McpCapabilities, McpServer, MessageId, NewSessionRequest,
+    NewSessionResponse, PermissionOption, PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority,
+    PlanEntryStatus, PromptCapabilities, PromptRequest, PromptResponse, RequestPermissionOutcome,
+    RequestPermissionRequest, SessionCapabilities, SessionDeleteCapabilities,
+    SessionForkCapabilities, SessionId, SessionNotification, SessionUpdate,
     SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SetSessionModeRequest,
     SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
     ToolCallUpdate, ToolCallUpdateFields, ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
@@ -394,7 +397,8 @@ async fn serve() -> ExitCode {
                                 .mcp_capabilities(McpCapabilities::new().http(http_mcp))
                                 .session_capabilities(
                                     SessionCapabilities::new()
-                                        .fork(forks.then(SessionForkCapabilities::new)),
+                                        .fork(forks.then(SessionForkCapabilities::new))
+                                        .delete(SessionDeleteCapabilities::new()),
                                 ),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
@@ -444,6 +448,14 @@ async fn serve() -> ExitCode {
                     responder.respond(response)?;
                     cx.send_notification(commands(session))
                 }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: DeleteSessionRequest, responder, _cx| {
+                // Said on stderr, so a test sees it in the session's log.
+                complain(&format!("fake-acp: deleted {}", request.session_id.0));
+                responder.respond(DeleteSessionResponse::new())
             },
             agent_client_protocol::on_receive_request!(),
         )

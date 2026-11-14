@@ -90,6 +90,7 @@ impl SessionRuntime {
             parking,
             park_setting,
             opening,
+            unrecoverable: None,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
