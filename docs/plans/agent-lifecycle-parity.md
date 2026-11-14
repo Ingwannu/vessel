@@ -231,24 +231,31 @@ No row of the crate table changes.
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
-- Implemented and locally gated: slice 2b keeps creation/current labels
-  separately in durable storage. `lifecycle_version::SINCE` is unassigned
-  (`None`); both maps are hidden at every protocol in direct replies,
-  lists, subscriptions, saved/scheduled specs, transfers and forwarding.
-  Event pages carry no label record until the later event slice.
-- Existing session/prompt/schedule inputs with labels are refused before
-  work. Starting imports refuse labelled metadata before placement or
-  starting a session; local sources are checked before export. Tests check
-  the unassigned-protocol reason and reopen the durable maps.
-- The corrective whole gate passed: Rust 1978 passed, none failed, 12 ignored;
-  TypeScript generation and diff, web checks, 417 unit tests and 62 browser
-  tests passed. Review of the corrective slice remains separate.
+- The named node head is merged without rewriting earlier commits. Its
+  usage ledger, shared compatibility cases and document paragraphs remain.
+- Slice 2b keeps creation/current labels separately in durable storage.
+  `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
+  hidden in direct replies, lists, subscriptions, saved/scheduled specs,
+  transfers and forwarding. Event pages have no label record yet.
+- Existing session/prompt/schedule inputs and starting imports refuse
+  labelled metadata before work. Tests assert the unassigned-protocol
+  reason and reopen the separate durable maps.
+- The earlier corrective wire gate passed: Rust 1978 passed, none failed,
+  12 ignored; TypeScript generation and diff, web checks, 417 unit tests
+  and 62 browser tests passed.
+- The store review correction appends labels to the migration table and
+  leaves the migration runner byte for byte unchanged. `LABELS_SCHEMA`
+  binds its provisional array length and the legacy-row/null/idempotence
+  test. Integration assigns the number. Head rollback SQL is unchanged,
+  preceded by the label-column rollback.
+- That correction's whole Rust gate reported 1978 passed, one failed and
+  12 ignored. Its sole failure was the shared proxy deadline test's outer
+  budget; the authorized single exact confirmation passed. Both results
+  were submitted separately, preserving the initial failure. Other steps
+  passed; the correction changes no wire or page surface.
 - The shared `required_protocol()` accessor is owned by the protocol layer.
   Until its integration, the node ingress guard supplies the typed refusal;
   no new registered call or second client mechanism is introduced here.
-- `LABELS_SCHEMA` derives the provisional append from the head migration
-  count; integration assigns it. Existing rollback cases retain their
-  statements and expectations, preceded by the label-column rollback.
 - Separate refactor: the three legacy Profile/Via/Title text-column adapters
   use a consuming serde string deserializer. The validating types and typed
   column/source errors remain; the quote/backslash, title trimming and

@@ -90,6 +90,8 @@ pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at
 const FIRST_MARK: usize = 14;
 /// Where `attention_seq` is in [`SESSION_COLUMNS`].
 const ATTENTION: usize = 18;
+/// Where the separate current-label projection is in [`SESSION_COLUMNS`].
+const LABELS: usize = 19;
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -143,7 +145,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     info.marks = kept.marks(attention_from_sql(row.get(ATTENTION)?)?);
     // Labels migration: the current labels. NULL is none, including every row
     // stored before the column existed. A bad value is corrupt, never kept.
-    info.labels = match row.get::<_, Option<String>>(19)? {
+    info.labels = match row.get::<_, Option<String>>(LABELS)? {
         None => SessionLabels::new(),
         Some(text) => decode(id, Column::Labels, &text)?,
     };

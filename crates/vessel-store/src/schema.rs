@@ -397,9 +397,16 @@ CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
 END;
 ";
 
+/// The provisional labels schema follows the integrated migrations.
+/// Integration changes this one assignment when another migration lands.
+const LABELS_SCHEMA: usize = 16;
+
+/// Current labels are separate from the original creation specification.
+const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[
+const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -415,30 +422,21 @@ const MIGRATIONS: &[&str] = &[
     V13,
     SIDE_CONTEXT,
     USAGE_LEDGER,
+    LABELS,
 ];
-
-/// Current labels are separate from the original creation specification.
-const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
-
-/// Provisional append after the head's newest schema; integration assigns it.
-const LABELS_SCHEMA: usize = MIGRATIONS.len().saturating_add(1);
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
     let found: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-    let supported = i64::try_from(LABELS_SCHEMA).unwrap_or(i64::MAX);
+    let supported = i64::try_from(MIGRATIONS.len()).unwrap_or(i64::MAX);
     if found > supported {
         return Err(StoreError::NewerSchema { found, supported });
     }
     let done = usize::try_from(found).unwrap_or(0);
-    if done >= LABELS_SCHEMA {
+    let pending = MIGRATIONS.get(done..).unwrap_or_default();
+    if pending.is_empty() {
         return Ok(());
     }
-    let pending = MIGRATIONS
-        .iter()
-        .copied()
-        .chain(std::iter::once(LABELS))
-        .skip(done);
     let transaction = connection.transaction()?;
     for migration in pending {
         transaction.execute_batch(migration)?;
@@ -475,3 +473,7 @@ pub(crate) fn configure_writer(connection: &Connection) -> Result<(), StoreError
     connection.pragma_update(None, "synchronous", "normal")?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "schema/labels.rs"]
+mod labels;
