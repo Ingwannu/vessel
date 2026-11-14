@@ -32,6 +32,8 @@ mod offers;
 // The composers' drafts kept between runs (track P's row e).
 #[cfg(not(target_arch = "wasm32"))]
 pub mod drafts;
+// A composer's files sent to their session (track P's row c).
+pub mod attachments;
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
@@ -274,6 +276,12 @@ pub enum Command {
     /// Keep the composers' drafts on this device (written on the blocking
     /// pool; nothing is answered). A browser keeps none.
     SaveDrafts(vessel_app_view::composer::drafts::Drafts),
+    /// Send a composer's file to its session, beside the other commands;
+    /// each step answered [`Event::Upload`] (track P's row c).
+    Attach(attachments::Attach),
+    /// Send a prompt with the files already sent for it (queued when a
+    /// turn runs).
+    PromptFiles(attachments::WithFiles),
     /// Keep `harness`'s `/` commands, as a session of it on `machine`
     /// reported them, on this device for the next run (its options' file;
     /// nothing is answered). A browser keeps none.
@@ -380,6 +388,15 @@ pub enum Event {
     },
     /// A session started from the app, to open.
     Started(Card),
+    /// A step of a composer's file on its way to its session.
+    Upload {
+        /// The session.
+        session: SessionId,
+        /// The file's place in the composer's tray.
+        key: vessel_app_view::composer::tray::ItemKey,
+        /// What happened.
+        step: attachments::Step,
+    },
     /// A prompt was delivered.
     Sent {
         /// The session.
@@ -655,6 +672,8 @@ impl State {
                 commands,
             } => self.keep_commands(&machine, harness, commands),
             Command::SaveDrafts(drafts) => save_drafts(drafts),
+            Command::Attach(attach) => self.attach(attach),
+            Command::PromptFiles(prompt) => self.prompt_files(prompt).await,
             Command::Resume {
                 machine,
                 session,
@@ -901,6 +920,16 @@ impl State {
         }
     }
 
+    /// Send a composer's file beside the other commands
+    /// (`attachments::spawn`).
+    fn attach(&self, attach: attachments::Attach) {
+        let client = self
+            .client(&attach.machine)
+            .cloned()
+            .map_err(|error| error.to_string());
+        attachments::spawn(client, attach, self.events.clone());
+    }
+
     /// Ask `machine` what `harness` offers, beside the other commands (the
     /// node may start the agent to answer). A machine not connected is
     /// answered at once with why.
@@ -996,12 +1025,29 @@ impl State {
     }
 
     async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
+        let content = vec![ContentBlock::Text { text }];
+        self.deliver(machine, session, content, delivery).await;
+    }
+
+    /// A prompt with its files (track P's row c).
+    async fn prompt_files(&self, prompt: attachments::WithFiles) {
+        let content = prompt_content(prompt.text, prompt.attachments);
+        self.deliver(&prompt.machine, prompt.session, content, prompt.delivery)
+            .await;
+    }
+
+    async fn deliver(
+        &self,
+        machine: &str,
+        session: SessionId,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+    ) {
         let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
             let why = LinkError::NotConnected(machine.to_owned()).to_string();
             self.emit(Event::SessionLost { session, why }).await;
             return;
         };
-        let content = vec![ContentBlock::Text { text }];
         match client.prompt(session, content, delivery).await {
             Ok(_delivered) => self.emit(Event::Sent { session }).await,
             Err(error) => {
@@ -1041,6 +1087,23 @@ impl State {
             .await;
         }
     }
+}
+
+/// A prompt's content: its text (when there is any), then each file, as
+/// the CLI's `vessel send --attach` orders them.
+#[cfg(not(target_arch = "wasm32"))]
+fn prompt_content(
+    text: String,
+    attachments: Vec<vessel_proto::AttachmentRef>,
+) -> Vec<ContentBlock> {
+    let text = (!text.is_empty()).then_some(ContentBlock::Text { text });
+    text.into_iter()
+        .chain(
+            attachments
+                .into_iter()
+                .map(|attachment| ContentBlock::Attachment { attachment }),
+        )
+        .collect()
 }
 
 /// Write the composers' drafts on the blocking pool; a failure is logged
