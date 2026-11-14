@@ -18,11 +18,12 @@ route and nothing else (`spikes/native/app/src/shell.rs`). `vessel
 init` prepares a node and is safe to repeat; it is not this
 walkthrough.
 
-The walkthrough should be Paseo's, as far as the app can offer it
-today: a theme, a machine connected by pairing, the agents the node
-has already checked, and a first project. The rules of when it opens,
-when it is skipped, and when it is shown again are Paseo's. What the
-app cannot do is written here as a difference, not dropped.
+The walkthrough should be Paseo's: a theme, a machine connected by
+pairing, the agents the node has already checked, a first project,
+the tools switch, and pairing a phone. The rules of when it opens,
+when it is skipped, and when it is shown again are Paseo's. A step
+is omitted only for a reason that is still true after the sibling
+ADRs merge.
 
 ## Existing implementation and constraints
 
@@ -154,11 +155,13 @@ What Vessel already has, and must be reused rather than copied:
   Vessel's node is a process the person installs; the app is a client
   of nodes it pairs with (ADR 0035). A daemon the app spawned would be
   a second kind of node.
-- **Default the orchestration switches on and install.** `vessel init`
-  will not install on `--yes` alone (`crates/vessel-cli/src/init/mod.rs`
-  16–21, read). A walkthrough that installs unless the person opts out
-  would break that consent. The Windows behaviour of `--service` was
-  not read, and this walkthrough does not call it.
+- **Install skills and the CLI from the orchestration step, default
+  on.** The tools switch is kept, default on, because that is not an
+  install: it writes one settings field. Skills and the CLI are
+  installs. `vessel init` will not install on `--yes` alone
+  (`crates/vessel-cli/src/init/mod.rs` 16–21, read). The Windows
+  behaviour of `--service` was not read, and this walkthrough does
+  not call it.
 - **Wait forever for a host before showing setup**, as Paseo waits for
   its daemon. With no daemon, a new person would see the empty app
   and never the walkthrough.
@@ -173,20 +176,46 @@ write. `link` writes that record. The screens in
 
 ### The steps
 
-Always these four, in this order, on every launch, at every width:
+These steps, in this order. `Phone` is dropped only for
+`Client::Phone`, fixed when the phase leaves `Deciding`.
 
 | Step | What the person does | What is written, and when |
 | --- | --- | --- |
-| `Theme` | Picks system, light, or dark | `PreferenceChange::Theme` at the pick, the way Settings does. Continue does not write it again |
+| `Theme` | Picks from the same list Settings › Appearance draws, in that order | `PreferenceChange::Theme` at the pick. Continue does not write it again |
 | `Machine` | Pairs a node with the existing pairing flow (`Command::Pair`, `view::pairing`) | The node book, when pairing succeeds. Continue does not require a machine |
 | `Agents` | Sees each agent as the node's last check left it, and can ask for `Ask::Check` or copy the node's sign-in command | Only what those existing calls already write. Continue does not require a sign-in |
 | `Project` | Adds a folder with `ProjectAsk::Add`, and sees folders `ProjectAsk::List` already returned | The project, when the add succeeds. Continue with no add in flight moves on, even at zero projects. An add still in flight moves on only when it succeeds, and only if the person is still on that visit |
+| `Orchestration` | The tools switch, on to start, as Paseo's `ALL_ON` | On Continue, `node.set_settings` for the one key ADR 0065 adds (added at merge). Not written before Continue. A failed write does not move on. Skills and the CLI are not switches |
+| `Phone` | The device invitation Settings › Devices already makes (`view::devices`, ADR 0010) | The node's pairing link, only while that screen already shows one. Continue does not require a phone to be paired |
 
-The model does not name a machine. Which paired machine the agents
-and project steps show is the shell's existing selection. Not read:
-the rule that picks one when several are paired. The screens must not
-invent an order. With none paired, those steps say so and Continue
-still moves.
+`Phone` is in the list on the desktop app at every window width. It is
+omitted when this app is itself the phone, because the phone is the
+thing being paired (`steps/phone-step.tsx` is that pairing, read
+through its styles; Paseo also drops the step when the client is a
+phone, `model.ts` 23–26). `breakpoint::phone` is a width
+(`kit/src/breakpoint.rs` 20–22) and is not this test. A search of
+`spikes/native` found no `target_os = "android"` cfg; the caller passes
+`Client::Phone` or `Client::Desktop`. Not read: the phone target's
+entry point.
+
+The tools switch is offered only when the machine's settings carry
+ADR 0065's key and this device holds `Scope::Admin` (`SetNodeSettings`
+needs admin, `crates/vessel-proto/src/settings.rs` 33–36). Otherwise
+the step is still shown and Continue only moves on. Paseo always
+offers the tools switch (`orchestration-setup.ts`, `offered.tools` is
+`true`; read with `ALL_ON`). Offering it only when the key and admin
+are there is the same rule as Paseo's "a switch the host cannot do is
+not offered", applied to a key this tree does not have yet. The
+field's name was not read: ADR 0065 is not in this tree. This step
+writes that field and no other key. How the shell learns the device's
+scopes was not re-read; the caller passes admin or not.
+
+The model does not name a machine. Which paired machine the later
+steps show is the shell's existing selection. Not read: the rule that
+picks one when several are paired. The screens must not invent an
+order. With none paired, those steps say so and Continue still moves,
+except the tools write, which has no machine to take it and so is not
+offered.
 
 ### The phase
 
@@ -202,13 +231,13 @@ grow, the move does not happen, so a wrapped number cannot equal a
 stale visit. That is a difference, and the reason is checked
 arithmetic. Back on the first step, and a jump to the step already
 showing, do not take a new visit. `next` takes the visit the caller
-saw: a mismatch, or a phase that is not open, does nothing. From
-`Project`, a matching `next` finishes setup even when the counter
-cannot grow, because finishing is not a move to another step.
+saw: a mismatch, or a phase that is not open, does nothing. From the
+last step in the list, a matching `next` finishes setup even when the
+counter cannot grow, because finishing is not a move to another step.
 
 `complete` from any phase hides setup and asks for the record to be
 written. That is Skip, the sheet's close, and Finish. The Skip control
-is not drawn on `Project`; Finish is `next` from there. Hidden means
+is not drawn on the last step; Finish is `next` from there. Hidden means
 this launch does not open it again unless `reopen` is called.
 
 `reopen` opens `Theme` on a new visit from any phase, including
@@ -218,14 +247,17 @@ project that appears during setup cannot close it.
 
 ### When a launch opens it
 
-The model starts `Deciding`, with the completion and the machines not
-yet noted. Either note may arrive first.
+The model starts `Deciding`, with the completion, the client and the
+machines not yet noted. Any note may arrive first.
 
 - Completed record, or the prefs file could not be read at all: hide.
-  Do not wait for the machines. The unreadable file is not written, the
-  rule `link`'s prefs already have; the model only refuses to open.
-- Pending, and no paired machine: open. This is the difference from
-  Paseo, and the reason is below.
+  Do not wait for the machines or the client. The unreadable file is
+  not written, the rule `link`'s prefs already have; the model only
+  refuses to open.
+- Pending, and the client not yet noted: stay `Deciding`, so a phone
+  build cannot open with the phone step and then drop it.
+- Pending, the client noted, and no paired machine: open. This is the
+  difference from Paseo, and the reason is below.
 - Pending, and every paired machine's project list is still unknown:
   stay `Deciding`.
 - Pending, and any paired machine has a project: hide, as already set
@@ -275,12 +307,16 @@ reads whatever is on disk.
 Nothing of its own. It does not open a browser, listen for HTTP, spawn
 a helper, or run a script at startup. It does not use signals, systemd
 or launchd, so there is no Windows path to add and no Windows refusal
-to write. The later screens call pairing, agent checks and project add
-as those calls already exist; whose credential they use was not
-re-read for this decision (the app README says the app uses the node
-book and device credentials the CLI uses). The model's tests are
-values in the test process. They do not listen, and a release build
-has no fake that answers.
+to write. The later screens call pairing, agent checks, project add,
+`node.set_settings` and the device invitation as those calls already
+exist. A device invitation is a credential (`view` `devices.rs` 1–12,
+read): the walkthrough uses that screen's rule and does not log the
+link, put it in a test failure, or leave it in a capture's name.
+Whose credential the other calls use was not re-read (the app README
+says the app uses the node book and device credentials the CLI uses).
+`node.set_settings` is refused without `Scope::Admin`. The model's
+tests are values in the test process. They do not listen, and a
+release build has no fake that answers.
 
 ## Why this and not the others
 
@@ -311,10 +347,11 @@ because Paseo's checked folders do.
   overwritten.
 - The step they were on is forgotten when the app quits. That is
   Paseo's cost, kept on purpose.
-- Theme, pairing, agent checks, and project add stay the calls they
-  already are. The walkthrough does not grow a second copy of any of
-  them.
-- Orchestration, the phone step, contributed themes, extra palettes,
-  agent-history suggestions, and `paseo onboard` are not offered. The
-  differences are listed in the plan. Nothing in those steps is
-  silently skipped while claiming to be the same step.
+- Theme, pairing, agent checks, project add and the device invitation
+  stay the calls they already are. The theme list is Settings ›
+  Appearance's, so ADR 0070's registry (added at merge) is drawn here
+  without a second list. This tree's Appearance draws `Theme::ALL`
+  (system, light, dark), read in `prefs/appearance.rs`.
+- Not offered, with reasons in the plan: the skills switch, the CLI
+  switch, store links, agent-history suggestions, and `paseo onboard`.
+  The tools switch and the phone step are offered.

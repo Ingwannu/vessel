@@ -67,10 +67,10 @@ match `internal/model.test.ts` case for case, under the names here.
 | Stays hidden once completed | A `completed_at` hides, and a later empty fleet does not open |
 | Decides only after the record has loaded | Neither note is assumed; completed hides without the machines |
 | Stays open if the first project appears during setup | Notes after leaving `Deciding` do nothing |
-| Omits the phone step on a phone | No phone step at any width (stated difference) |
+| Omits the phone step on a phone | `Client::Phone` omits `Phone`. A narrow window does not: `breakpoint::phone` is a width |
 | Moves inside the list; back stops at the first | `back` and `go_to` |
 | A late advance from a visit already left does nothing | `next` checks `Visit` |
-| The last step finishes, unless that visit was left | `next` from `Project` returns the record |
+| The last step finishes, unless that visit was left | `next` from `Phone`, or from `Orchestration` when the client is a phone |
 | Closing writes the record, so the next launch stays hidden | `complete` |
 | Reopen starts at the first step for someone who finished | `reopen` |
 | Subscribers see each change | Not ported: the caller notifies. The assertions are on the phase |
@@ -88,17 +88,26 @@ with.
    asks about voice. Vessel's app pairs a node. With no machine the
    walkthrough opens, so the connect step can run. `vessel init` is
    not changed and is not called from the walkthrough.
-2. **No orchestration step.** Paseo's three switches default on and
-   write daemon config, skills and the CLI (`orchestration-setup.ts`).
-   The app has no such switches. Folding `vessel init`'s installs in,
-   default on, would break init's rule that `--yes` alone does not
-   install.
-3. **No phone step.** Paseo adds it only off a compact phone, and a
-   native phone never opens setup. This app is the client at every
-   width, including 390, so the same four steps show; the narrow
-   layout stacks, as Paseo's compact sheet does.
-4. **Three themes, not Paseo's grid.** System, light, dark, system
-   first, applied at the pick.
+2. **Skills and the CLI are not switches.** Paseo's three switches
+   default on (`orchestration-setup.ts` `ALL_ON`). The tools switch
+   is kept, default on, and writes ADR 0065's key through
+   `node.set_settings` when the machine carries that key and this
+   device holds admin; otherwise it is not offered and the step still
+   shows. Skills and the CLI stay out: they are installs, and
+   `vessel init` does not install on `--yes` alone. ADR 0065 is not
+   in this tree (added at merge); the field name was not read.
+3. **No store links on the phone step.** The step is the device
+   invitation Settings › Devices already makes (`view::devices`,
+   `vessel node pair` in `crates/vessel-cli/src/devices.rs`). A
+   search of the native tree and the docs found no store URL, so
+   none is invented. The step is omitted when this app is the phone,
+   not when the window is narrow. Paseo also never opens setup on a
+   native phone (`onboarding-host.tsx` 16–18). Here the other steps
+   still open on a phone, because this app is that client (ADR 0036).
+4. **The theme list is Settings › Appearance's**, not a list kept
+   here. Today that is `Theme::ALL`. ADR 0070 (added at merge) is
+   the registry; this step draws whatever Appearance draws after
+   that merge. Not a difference of three themes.
 5. **No history suggestions.** Add a folder, list what the machine has.
 6. **The record lives in `app-prefs.json`**, field `setup.completed_at`,
    snake case, RFC 3339. Paseo's key is `@paseo:onboarding` with
@@ -107,9 +116,9 @@ with.
    replaced whole. An unreadable file hides setup and is not saved.
 7. **No `subscribe`.** Same transitions; the shell notifies.
 8. **Show setup again** uses the same button words. The description
-   names these steps, not phone pairing. The row is not removed on a
-   narrow window. The button is always enabled: reopen does not need
-   a host, because the connect step is how a host appears. Paseo
+   names these steps, including phone pairing. The row is not removed
+   on a narrow window. The button is always enabled: reopen does not
+   need a host, because the connect step is how a host appears. Paseo
    disables it with no host (`use-open-onboarding.ts` 6–15).
 
 ## Words
@@ -128,11 +137,19 @@ where the step exists:
 - Project: label "Projects", title "Add your projects", description
   "Where do you want your agents to work on", button "Add project",
   badge "Added".
+- Orchestration: label "Orchestration", title "Let agents use Vessel",
+  description "Let your agents create workspaces and talk to other
+  agents". Paseo's title names Paseo. Only the tools switch is drawn.
+- Phone: label "Mobile", title "Take your agents with you". Paseo's
+  description names a published app and store buttons; those URLs are
+  not in this tree, so the description is "Pair a phone with this
+  machine."
 - Machine, which Paseo does not have: label "Machine", title "Connect
   a machine", description "Pair a node you already run. This app does
   not start one".
 - Settings row: "First-run setup", "Walk through appearance, a
-  machine, your agents and a project again", "Show setup again".
+  machine, your agents, a project and phone pairing again", "Show
+  setup again".
 
 ## Layout
 
@@ -177,10 +194,11 @@ whose action is `onboarding.reopen()`.
 
 ## Resume point
 
-- **Done:** ADR 0071 (status: proposed) and this plan. No protocol
-  number, no `node.settings` key. No code committed.
+- **Done:** ADR 0071 (status: proposed) and this plan, including the
+  returned slice's three fixes (tools switch via ADR 0065, phone step
+  as device pairing, theme list shared with Appearance). No protocol
+  number. No new `node.settings` key in this tree.
 - **Half-done:** nothing committed.
-- **Next:** slice 2, the model, starting from ADR 0071's phase, visit
-  and record. The model does not name a machine (which machine the
-  shell selects when several are paired was not read). Do not open
-  slice 3 before those tests pass.
+- **Next:** slice 2, the model, with `Client` and the six steps. The
+  model does not name a machine. Do not open slice 3 before those
+  tests pass.
