@@ -12,3 +12,15 @@ pub fn owner_self() -> DeviceSelf {
         scopes: Scope::ALL.to_vec(),
     }
 }
+
+/// The full refusal when no advertised route can carry an invitation.
+#[must_use]
+pub fn unreachable_invitation() -> vessel_proto::WireError {
+    vessel_proto::WireError {
+        code: vessel_proto::ErrorCode::Conflict,
+        message: "this node has no pairing route; configure --public with a reachable address or --relay, then create a new invitation".to_owned(),
+        detail: Some(vessel_proto::ErrorDetail::DeviceInvite {
+            reason: vessel_proto::DeviceInviteError::NoRoutes,
+        }),
+    }
+}

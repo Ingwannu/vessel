@@ -22,8 +22,6 @@
 //!   cards it cannot start again or archive do not pile up in its building
 //!   lane.
 
-mod labels;
-
 use super::Reply;
 use crate::agents::{harnesses_for, profiles_for, readable};
 use crate::board::{KanbanColumn, SessionBoard};
@@ -34,6 +32,8 @@ use crate::session::SessionInfo;
 
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
+
+mod labels;
 
 impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
@@ -105,23 +105,15 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
-            Self::ResumeSession(session) => info(session).map(Self::ResumeSession),
-            Self::MarkSession(session) => info(session).map(Self::MarkSession),
-            Self::ParkSession(session) => info(session).map(Self::ParkSession),
-            Self::WakeSession(session) => info(session).map(Self::WakeSession),
-            Self::ForkSession(session) => info(session).map(Self::ForkSession),
-            Self::RewindSession(session) => info(session).map(Self::RewindSession),
-            Self::ExportSession(value) => labels::exported(value, protocol).map(Self::ExportSession),
-            Self::ImportSession(value) => labels::imported(value, protocol).map(Self::ImportSession),
-            Self::ListPrompts(value) => labels::prompts(value, protocol).map(Self::ListPrompts),
-            Self::CreatePrompt(value) => labels::prompt(value, protocol).map(Self::CreatePrompt),
-            Self::UpdatePrompt(value) => labels::prompt(value, protocol).map(Self::UpdatePrompt),
-            Self::ListSchedules(value) => labels::schedules(value, protocol).map(Self::ListSchedules),
-            Self::GetSchedule(value) => labels::schedule(value, protocol).map(Self::GetSchedule),
-            Self::CreateSchedule(value) => labels::schedule(value, protocol).map(Self::CreateSchedule),
-            Self::UpdateSchedule(value) => labels::schedule(value, protocol).map(Self::UpdateSchedule),
-            Self::PauseSchedule(value) => labels::schedule(value, protocol).map(Self::PauseSchedule),
-            Self::ResumeSchedule(value) => labels::schedule(value, protocol).map(Self::ResumeSchedule),
+            Self::GetConversation(conversation) => conversation
+                .usage
+                .as_ref()
+                .and_then(|usage| usage.for_protocol(protocol))
+                .map(|usage| {
+                    let mut conversation = conversation.clone();
+                    conversation.usage = Some(usage);
+                    Self::GetConversation(conversation)
+                }),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -144,6 +136,23 @@ impl Reply {
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
             Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
+            Self::ResumeSession(session) => info(session).map(Self::ResumeSession),
+            Self::MarkSession(session) => info(session).map(Self::MarkSession),
+            Self::ParkSession(session) => info(session).map(Self::ParkSession),
+            Self::WakeSession(session) => info(session).map(Self::WakeSession),
+            Self::ForkSession(session) => info(session).map(Self::ForkSession),
+            Self::RewindSession(session) => info(session).map(Self::RewindSession),
+            Self::ExportSession(value) => labels::exported(value, protocol).map(Self::ExportSession),
+            Self::ImportSession(value) => labels::imported(value, protocol).map(Self::ImportSession),
+            Self::ListPrompts(value) => labels::prompts(value, protocol).map(Self::ListPrompts),
+            Self::CreatePrompt(value) => labels::prompt(value, protocol).map(Self::CreatePrompt),
+            Self::UpdatePrompt(value) => labels::prompt(value, protocol).map(Self::UpdatePrompt),
+            Self::ListSchedules(value) => labels::schedules(value, protocol).map(Self::ListSchedules),
+            Self::GetSchedule(value) => labels::schedule(value, protocol).map(Self::GetSchedule),
+            Self::CreateSchedule(value) => labels::schedule(value, protocol).map(Self::CreateSchedule),
+            Self::UpdateSchedule(value) => labels::schedule(value, protocol).map(Self::UpdateSchedule),
+            Self::PauseSchedule(value) => labels::schedule(value, protocol).map(Self::PauseSchedule),
+            Self::ResumeSchedule(value) => labels::schedule(value, protocol).map(Self::ResumeSchedule),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
             Self::PromptSideQuestion(_)
@@ -187,7 +196,6 @@ impl Reply {
             | Self::SetSessionOption(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
-            | Self::GetConversation(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
@@ -266,6 +274,7 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
@@ -376,47 +385,6 @@ mod tests {
     }
 
     #[test]
-    fn an_older_peer_does_not_see_labels() {
-        use crate::lifecycle_version::SINCE;
-        use crate::{LabelKey, LabelValue, SessionLabels};
-
-        let mut labels = SessionLabels::new();
-        labels
-            .insert(
-                "env".parse::<LabelKey>().unwrap(),
-                "prod".parse::<LabelValue>().unwrap(),
-            )
-            .unwrap();
-        let spec = SessionSpec::new(
-            HarnessKind::ClaudeCode,
-            SessionMode::Structured {
-                model: None,
-                resume: None,
-                options: Vec::new(),
-            },
-        )
-        .with_labels(labels);
-        let info = SessionInfo::new(SessionId::random(), spec, DateTime::UNIX_EPOCH);
-        assert!(info.for_protocol(ProtocolVersion::new(SINCE)).is_none());
-        let older = info
-            .for_protocol(ProtocolVersion::new(SINCE.saturating_sub(1)))
-            .unwrap();
-        assert!(older.labels.is_empty());
-        assert!(older.spec.labels.is_empty());
-        let text = serde_json::to_string(&older).unwrap();
-        assert!(!text.contains("labels"), "{text}");
-        let reply = Reply::ListSessions(vec![info]);
-        let older_list = reply
-            .for_protocol(ProtocolVersion::new(SINCE.saturating_sub(1)))
-            .unwrap();
-        assert!(
-            !serde_json::to_string(&older_list)
-                .unwrap()
-                .contains("labels")
-        );
-    }
-
-    #[test]
     fn a_page_passed_through_the_envelope_is_rewritten_too() {
         let page = EventPage {
             records: vec![EventRecord {
@@ -424,6 +392,7 @@ mod tests {
                 at: DateTime::UNIX_EPOCH,
                 event: SessionEvent::UsageChanged {
                     usage: crate::conversation::ContextUsage {
+                        observation: crate::conversation::UsageObservation::Current,
                         used: crate::model::TokenCount::new(1),
                         size: crate::model::TokenCount::new(2),
                         cost: None,

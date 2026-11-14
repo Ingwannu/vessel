@@ -175,6 +175,7 @@ fn session_events_of_ten_reach_older_clients_as_log_lines() {
 
     let usage = SessionEvent::UsageChanged {
         usage: ContextUsage {
+            observation: crate::conversation::UsageObservation::Current,
             used: TokenCount::new(41_200),
             size: TokenCount::new(200_000),
             cost: None,

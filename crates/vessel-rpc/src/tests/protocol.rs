@@ -1,12 +1,17 @@
-//! Requests against older connections: each peer offers one version,
-//! so negotiation cannot hide an unsupported field or method.
+//! Protocol 5 against older connections: a raw client that offers only one
+//! version, so the server cannot negotiate up.
 
-use vessel_proto::{CreateSession, GetManifest, Hello};
+use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
+    let (client, served, _) = raw_client_with_node(version).await;
+    (client, served)
+}
+
+async fn raw_client_with_node(version: u32) -> (MemoryTransport, Served, NodeId) {
     let (mut client_end, server_end) = pair();
     let served = serve(server_end);
     let version = ProtocolVersion::new(version);
@@ -26,7 +31,7 @@ async fn raw_client(version: u32) -> (MemoryTransport, Served) {
         panic!("expected a welcome, got {welcome}");
     };
     assert_eq!(welcome.protocol, version);
-    (client_end, served)
+    (client_end, served, welcome.node.id)
 }
 
 /// Send one call and return the text of the next frame.
@@ -40,30 +45,6 @@ async fn call_raw(client: &mut MemoryTransport, id: u64, call: Call) -> String {
         .await
         .unwrap();
     client.next().await.unwrap().unwrap()
-}
-
-/// Negotiate a client with a node that cannot raise its advertised version.
-async fn older_node(version: ProtocolVersion) -> (Connection, MemoryTransport) {
-    let (client_end, mut server_end) = pair();
-    let older_node = async move {
-        let hello = server_end.next().await.unwrap().unwrap();
-        let _hello: ClientFrame = serde_json::from_str(&hello).unwrap();
-        let welcome = ServerFrame::Welcome(vessel_proto::Welcome {
-            protocol: version,
-            node: node(),
-        });
-        server_end
-            .send(serde_json::to_string(&welcome).unwrap())
-            .await
-            .unwrap();
-        server_end
-    };
-    let config = ClientConfig::default();
-    let (client, server_end) = tokio::join!(
-        Connection::connect(client_end, client_info(), &config),
-        older_node
-    );
-    (client.unwrap(), server_end)
 }
 
 fn refusal(text: &str) -> WireError {
@@ -132,12 +113,32 @@ async fn an_older_connection_reads_a_stand_in_for_a_newer_event() {
 /// typed calls are: one newer than the connection is not sent.
 #[tokio::test]
 async fn an_already_built_call_newer_than_the_connection_is_not_sent() {
-    let (client, _server) = older_node(ProtocolVersion::new(4)).await;
+    let (client_end, mut server_end) = pair();
+    // A node that speaks protocol 4 only.
+    let older_node = async move {
+        let hello = server_end.next().await.unwrap().unwrap();
+        let _hello: ClientFrame = serde_json::from_str(&hello).unwrap();
+        let welcome = ServerFrame::Welcome(vessel_proto::Welcome {
+            protocol: ProtocolVersion::new(4),
+            node: node(),
+        });
+        server_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        server_end
+    };
+    let config = ClientConfig::default();
+    let (client, _server_end) = tokio::join!(
+        Connection::connect(client_end, client_info(), &config),
+        older_node
+    );
+    let client = client.unwrap();
     let call = UnaryCall::try_from(ListProfiles { harness: None }.into_call()).unwrap();
     assert!(matches!(
         client.call_any(call).await,
         Err(CallError::NotInProtocol {
-            method: vessel_proto::Method::ListProfiles,
+            method: Method::ListProfiles,
             ..
         })
     ));
@@ -195,6 +196,89 @@ async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
         );
         assert!(served.seen.try_recv().is_err());
     }
+}
+
+#[tokio::test]
+async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
+    use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
+    let previous = QueryUsage::METHOD.since().get().saturating_sub(1);
+    let (mut client, mut served, target) = raw_client_with_node(previous).await;
+    let call = QueryUsage {
+        scope: UsageScope::Machine,
+        period: UsagePeriod::Day,
+        after: None,
+    }
+    .into_call();
+    for wrapped in usage_envelopes(call, target) {
+        let expected = WireError::new(
+            ErrorCode::Unsupported,
+            format!(
+                "`{}` as sent needs protocol {}; this connection speaks {}",
+                wrapped.method().as_str(),
+                QueryUsage::METHOD.since(),
+                previous
+            ),
+        );
+        assert_eq!(refusal(&call_raw(&mut client, 1, wrapped).await), expected);
+        assert!(
+            served.seen.try_recv().is_err(),
+            "no unsupported envelope reached dispatch"
+        );
+    }
+    // Supported envelopes reach the handler unchanged on the same older
+    // connection. This fake deliberately refuses their payloads, recording
+    // them first; a version refusal must never substitute for that dispatch.
+    for supported in usage_envelopes(GetNode.into_call(), target)
+        .into_iter()
+        .skip(1)
+    {
+        let actual = refusal(&call_raw(&mut client, 1, supported.clone()).await);
+        assert_eq!(
+            actual,
+            WireError::new(ErrorCode::Unsupported, "not in this fake")
+        );
+        assert_eq!(served.seen.recv().await.unwrap(), supported);
+    }
+    let response = call_raw(&mut client, 2, GetNode.into_call()).await;
+    assert!(matches!(
+        serde_json::from_str::<ServerFrame>(&response).unwrap(),
+        ServerFrame::Response {
+            outcome: Outcome::Ok(Reply::NodeInfo(_)),
+            ..
+        }
+    ));
+    assert_eq!(served.seen.recv().await.unwrap().method(), Method::NodeInfo);
+    assert!(
+        served.seen.try_recv().is_err(),
+        "usage never reached the handler"
+    );
+}
+
+fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
+    let origin = vessel_proto::Origin {
+        node,
+        by: vessel_proto::OriginBy::Owner,
+        scopes: vec![],
+    };
+    [
+        call.clone(),
+        vessel_proto::Forward {
+            node,
+            call: Box::new(call.clone()),
+        }
+        .into_call(),
+        vessel_proto::RelayCall {
+            node,
+            call: Box::new(call.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        vessel_proto::Deliver {
+            call: Box::new(call),
+            origin,
+        }
+        .into_call(),
+    ]
 }
 
 fn labeled_creation_calls() -> [Call; 2] {

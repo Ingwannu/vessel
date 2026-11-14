@@ -367,10 +367,35 @@ END;
 /// retention and is independent of the partial transcript tail.
 const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
 
-/// Schema 15: a session's current labels as JSON (ADR 0063). NULL is none.
-/// The number is this list's length when the feature merges; here it is 15,
-/// the entry after the side-plan column.
-const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
+/// The usage ledger (schema 15). Reported usage is independent of the
+/// event byte cap, but deleted with its session. Baselines belong to
+/// native sessions, not agent processes.
+const USAGE_LEDGER: &str = "
+ALTER TABLE sessions ADD COLUMN usage_cost_baseline TEXT;
+CREATE TABLE usage_meta (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    started_at INTEGER NOT NULL,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    pruned_through INTEGER
+) STRICT;
+INSERT INTO usage_meta(singleton, started_at) VALUES (1, unixepoch() * 1000000000);
+CREATE TABLE usage_samples (
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    harness TEXT NOT NULL,
+    profile TEXT NOT NULL,
+    sample TEXT NOT NULL,
+    PRIMARY KEY(session_id, seq)
+) STRICT, WITHOUT ROWID;
+CREATE INDEX usage_time ON usage_samples(at);
+CREATE TRIGGER usage_count_insert AFTER INSERT ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count + 1;
+END;
+CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count - 1;
+END;
+";
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
@@ -389,21 +414,31 @@ const MIGRATIONS: &[&str] = &[
     V12,
     V13,
     SIDE_CONTEXT,
-    LABELS,
+    USAGE_LEDGER,
 ];
+
+/// Current labels are separate from the original creation specification.
+const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
+
+/// Provisional append after the head's newest schema; integration assigns it.
+const LABELS_SCHEMA: usize = MIGRATIONS.len().saturating_add(1);
 
 /// Bring the database to the newest schema.
 pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
     let found: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-    let supported = i64::try_from(MIGRATIONS.len()).unwrap_or(i64::MAX);
+    let supported = i64::try_from(LABELS_SCHEMA).unwrap_or(i64::MAX);
     if found > supported {
         return Err(StoreError::NewerSchema { found, supported });
     }
     let done = usize::try_from(found).unwrap_or(0);
-    let pending = MIGRATIONS.get(done..).unwrap_or_default();
-    if pending.is_empty() {
+    if done >= LABELS_SCHEMA {
         return Ok(());
     }
+    let pending = MIGRATIONS
+        .iter()
+        .copied()
+        .chain(std::iter::once(LABELS))
+        .skip(done);
     let transaction = connection.transaction()?;
     for migration in pending {
         transaction.execute_batch(migration)?;

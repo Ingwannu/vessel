@@ -60,12 +60,16 @@ mod tests {
         ScheduleTarget, UpdatePrompt, UpdateSchedule,
     };
     use crate::{
-        Call, CreateSession, HarnessKind, PROTOCOL_VERSION, SavedPromptId, ScheduleId, SessionMode,
+        Call, CreateSession, HarnessKind, ProtocolVersion, SavedPromptId, ScheduleId, SessionMode,
         SessionSpec,
     };
 
+    /// The version side conversations came in; calls added later carry
+    /// their own number, so this is not `PROTOCOL_VERSION`.
+    const SIDE_QUESTIONS: ProtocolVersion = ProtocolVersion::new(19);
+
     #[test]
-    fn every_direct_and_nested_side_spec_requires_the_current_protocol() {
+    fn every_direct_and_nested_side_spec_requires_protocol_19() {
         let parent = SessionId::random();
         let mut spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
@@ -127,7 +131,7 @@ mod tests {
             }),
         ];
         for call in calls {
-            assert_eq!(call.since(), PROTOCOL_VERSION);
+            assert_eq!(call.since(), SIDE_QUESTIONS);
             let encoded = serde_json::to_string(&call).unwrap();
             let decoded: Call = serde_json::from_str(&encoded).unwrap();
             assert_eq!(decoded, call);
@@ -152,7 +156,7 @@ mod tests {
                 }),
             ];
             for envelope in envelopes {
-                assert_eq!(envelope.since(), PROTOCOL_VERSION);
+                assert_eq!(envelope.since(), SIDE_QUESTIONS);
             }
         }
     }

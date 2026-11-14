@@ -137,6 +137,13 @@ impl Devices {
         paired: Option<oneshot::Sender<DeviceId>>,
         routes: Option<Routes>,
     ) -> Result<Invitation, ServiceError> {
+        // A bind address does not advertise a route. Validate the selected
+        // callback override too, before randomness or pending admission;
+        // probing cannot prove reachability from another device (ADR 0044).
+        let routes = routes.unwrap_or_else(|| self.routes.clone());
+        if routes.relays.is_empty() && routes.direct.is_empty() {
+            return Err(ServiceError::NoPairingRoutes);
+        }
         let key = self.key;
         if request.ttl_secs == 0 {
             return Err(ServiceError::InvalidTtl);
@@ -149,7 +156,6 @@ impl Devices {
         let mut bytes = [0_u8; 16];
         getrandom::fill(&mut bytes).map_err(ServiceError::Random)?;
         let invite = InvitationSecret::from_bytes(bytes);
-        let routes = routes.unwrap_or_else(|| self.routes.clone());
         let offer = PairingOffer {
             v: OfferVersion,
             node: self.node,

@@ -404,6 +404,7 @@ impl Method {
             | Self::ListRuns
             // Saved prompts: readable from another node; written only on
             // their own (the service refuses a delegated writer).
+            | Self::QueryUsage
             | Self::ListPrompts
             | Self::CreatePrompt
             | Self::UpdatePrompt

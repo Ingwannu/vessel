@@ -67,18 +67,15 @@ mod support {
             Self::with_adapter(|bin, acp| {
                 #[cfg(unix)]
                 {
-                    use std::os::unix::fs::PermissionsExt as _;
                     let wrapper = bin.join("claude-agent-acp");
-                    std::fs::write(
+                    vessel_testkit::write_executable(
                         &wrapper,
-                        format!(
+                        &format!(
                             "#!/bin/sh\nFAKE_ACP_HANG=initialize exec '{}' \"$@\"\n",
                             acp.display()
                         ),
                     )
                     .unwrap();
-                    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755))
-                        .unwrap();
                 }
                 #[cfg(windows)]
                 std::fs::write(

@@ -322,9 +322,11 @@ async fn model_calls(handle: &SessionHandle, records: Records) -> Vec<ModelCall>
         .collect()
 }
 
-/// Fail a test that hangs rather than hang the suite.
+/// Fail a test that hangs rather than hang the suite; the clock starts once
+/// the fakes are built (`Fixture::with` finds `fake-tui`, whose first use
+/// builds them).
 async fn within(test: impl Future<Output = ()>) {
-    tokio::time::timeout(Duration::from_secs(60), Box::pin(test))
+    vessel_testkit::within(Duration::from_secs(60), Box::pin(test))
         .await
         .unwrap();
 }

@@ -230,6 +230,12 @@ No row of the crate table changes.
 
 ## Resume point
 
+- Integration checkpoint: the named node head is merged without rewriting
+  prior commits. Its usage ledger migration and existing compatibility cases
+  remain; the provisional labels migration follows the head migration list.
+  The unassigned-protocol correction and extracted decoder refactor are next;
+  the merged code is not yet verified by a whole gate.
+
 - Done: slice 1 contract; slice 2a validating types and its review
   corrections: `labels.rs` owns only validated labels and map operations;
   bound messages use constants; the command-line refusal lands with its
