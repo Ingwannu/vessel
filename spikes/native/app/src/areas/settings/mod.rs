@@ -229,6 +229,8 @@ impl Shell {
                     }
                     // Read where they are drawn, on the next frame.
                     PreferenceChange::SidebarPanel(_)
+                    | PreferenceChange::SidebarWidth(_)
+                    | PreferenceChange::PanelWidth(_)
                     | PreferenceChange::InspectorPanel(_)
                     | PreferenceChange::Delivery(_)
                     | PreferenceChange::Alerts(_)

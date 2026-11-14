@@ -30,6 +30,7 @@ pub mod notices;
 mod options;
 pub mod pairing;
 pub mod palette;
+pub mod panels;
 pub mod prefs;
 pub mod search;
 pub mod session;

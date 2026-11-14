@@ -14,6 +14,7 @@ pub(crate) mod board;
 pub(crate) mod common;
 pub(crate) mod conversation;
 pub(crate) mod draft;
+pub(crate) mod edge;
 pub(crate) mod pair;
 pub(crate) mod session;
 pub(crate) mod settings;

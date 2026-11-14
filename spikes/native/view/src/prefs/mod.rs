@@ -141,6 +141,13 @@ pub struct Layout {
     /// The inspector (a session's summary).
     #[serde(deserialize_with = "lenient")]
     pub inspector: Panel,
+    /// The sidebar's width when dragged, whole points (`None`: the
+    /// default, `panels::SIDEBAR`).
+    #[serde(deserialize_with = "lenient")]
+    pub sidebar_width: Option<u16>,
+    /// The code panel's width when dragged (`panels::CODE_PANEL`).
+    #[serde(deserialize_with = "lenient")]
+    pub panel_width: Option<u16>,
 }
 
 /// Whether a panel shows.

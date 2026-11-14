@@ -30,6 +30,10 @@ pub enum PreferenceChange {
     Conversation(ConversationDisplay),
     /// Whether the sidebar shows.
     SidebarPanel(Panel),
+    /// The sidebar's width (`None`: back to the default).
+    SidebarWidth(Option<u16>),
+    /// The code panel's width (`None`: back to the default).
+    PanelWidth(Option<u16>),
     /// Whether the inspector shows.
     InspectorPanel(Panel),
     /// Which key sends.
@@ -175,6 +179,8 @@ impl Preferences {
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,
+            PreferenceChange::SidebarWidth(width) => self.layout.sidebar_width = *width,
+            PreferenceChange::PanelWidth(width) => self.layout.panel_width = *width,
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,
             PreferenceChange::Send(send) => self.composer.send = *send,
             PreferenceChange::Delivery(delivery) => self.composer.delivery = *delivery,
