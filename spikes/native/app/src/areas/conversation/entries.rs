@@ -115,7 +115,7 @@ pub(super) fn entry(
             .text_color(paint.look.secondary)
             .child(line.clone())
             .into_any_element(),
-        EntryKind::Status { .. } => meta(
+        EntryKind::Status { .. } | EntryKind::Parking(_) => meta(
             paint,
             format!(
                 "{} · {}",

@@ -279,9 +279,9 @@ pub(crate) struct ConversationArea {
     /// The last act the node refused, and its words: shown beside the
     /// control it is about.
     pub(crate) refused: Option<(ActKind, String)>,
-    /// Start again is on its way (the ended banner's button, the menu's
-    /// row): neither sends it a second time.
-    starting_again: bool,
+    /// Start again, or a wake after a failed resume, is on its way (the
+    /// banner's button, the menu's row): none is sent a second time.
+    restarting: bool,
     /// The node refused to start the session again: its code and words,
     /// said under the ended banner.
     again_refused: Option<(Option<ErrorCode>, String)>,
@@ -294,6 +294,8 @@ pub(crate) struct ConversationArea {
     pub(crate) lost: Option<String>,
     /// The tooltip of that line and where it is drawn.
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
+    /// The tooltip of the bar's word for a released agent.
+    pub(crate) parked_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The Session actions menu, and what its rows do.
     pub(crate) menu: MenuState,
     pub(crate) menu_rows: Vec<MenuAction>,
@@ -352,11 +354,15 @@ impl ConversationArea {
             list: VirtualList::new(true),
             info: None,
             refused: None,
-            starting_again: false,
+            restarting: false,
             again_refused: None,
             search: search::Searching::default(),
             lost: None,
             lost_tip: (
+                vessel_app_kit::Tooltips::new(),
+                Rc::new(std::cell::Cell::new(None)),
+            ),
+            parked_tip: (
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
             ),
@@ -399,8 +405,8 @@ impl ConversationArea {
         if !for_shown || self.read_answered(&answer) {
             return Followup::None;
         }
-        if answer.kind == ActKind::StartAgain {
-            self.starting_again = false;
+        if matches!(answer.kind, ActKind::StartAgain | ActKind::Wake) {
+            self.restarting = false;
             self.again_refused = None;
             // The node's refusal is said under the ended banner, in the
             // words for it; a lost connection stays the bar's.
@@ -469,7 +475,7 @@ impl ConversationArea {
         self.list.reset(0);
         self.info = None;
         self.refused = None;
-        self.starting_again = false;
+        self.restarting = false;
         self.again_refused = None;
         self.menu.close();
         self.confirm = None;

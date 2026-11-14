@@ -81,6 +81,8 @@ impl Card {
             | Phrase::Exited(_)
             | Phrase::Failed
             | Phrase::Interrupted => Tone::Lane,
+            Phrase::Released => Tone::Quiet,
+            Phrase::ResumeFailed => Tone::Danger,
         }
     }
 

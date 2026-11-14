@@ -431,6 +431,7 @@ impl ConversationWords {
                 Lang::En => format!("Session {}", self.state(status)),
                 Lang::Ko => format!("세션 {}", self.state(status)),
             },
+            EntryKind::Parking(change) => self.parking_line(change),
             EntryKind::Profile { from, to } => self.profile_line(from.as_ref(), to.as_ref()),
             EntryKind::Model(call) => format!(
                 "{} · {} · {}",

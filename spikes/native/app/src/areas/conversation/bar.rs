@@ -12,7 +12,8 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{MenuItem, Tokens, Type, TypeExt as _, breakpoint, popup};
 use vessel_app_view::session::{
-    CONVERSATION_PROTOCOL, MarkAction, can_rename, is_live, mark_actions, session_name,
+    CONVERSATION_PROTOCOL, MarkAction, ParkState, can_rename, is_live, mark_actions, park_state,
+    session_name,
 };
 use vessel_proto::SessionStatus;
 
@@ -45,7 +46,13 @@ pub(crate) fn bar(
         .as_ref()
         .map(|info| &info.status)
         .filter(|status| !matches!(status, SessionStatus::Running));
-    let badge = status.map(|status| {
+    // A released agent reads as released (Paseo's word), not running.
+    let parked = area
+        .info
+        .as_deref()
+        .and_then(park_state)
+        .map(|state| parked_chip(shell, &state, tokens, narrow));
+    let badge = status.filter(|_| parked.is_none()).map(|status| {
         let color = match status {
             SessionStatus::Starting => tokens.st_building,
             SessionStatus::Running => tokens.st_ready,
@@ -102,6 +109,7 @@ pub(crate) fn bar(
         .border_color(surfaces.border_accent)
         .child(title_element(shell, title, renamable, tokens, narrow, cx))
         .children(badge)
+        .children(parked)
         .child(
             div()
                 .min_w(px(0.0))
@@ -116,6 +124,41 @@ pub(crate) fn bar(
         // Track F's slot: the code panel's toggle.
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
         .child(actions)
+        .into_any_element()
+}
+
+/// The bar's word for a released agent, quiet as an idle session is, or
+/// for a resume that failed, in the danger colour; its tooltip says what a
+/// send does, or the node's words for the failure.
+fn parked_chip(shell: &Shell, state: &ParkState, tokens: &Tokens, narrow: bool) -> AnyElement {
+    let area = &shell.areas.conversation;
+    let words = shell.t.lang.conversation();
+    let (word, color, tip) = match state {
+        ParkState::Released => (
+            words.parked_word(),
+            tokens.neutral.foreground_extra_muted,
+            words.parked_hint().to_owned(),
+        ),
+        ParkState::ResumeFailed(why) => (
+            words.resume_failed_word(),
+            tokens.neutral.destructive,
+            why.clone(),
+        ),
+    };
+    let chip = div()
+        .id("session-parked")
+        .flex_shrink_0()
+        .px(px(6.0))
+        .rounded(px(4.0))
+        .bg(popup::Surfaces::of(tokens).surface2)
+        .type_(Type::Meta)
+        .text_color(color)
+        .child(word);
+    let (tips, place) = &area.parked_tip;
+    div()
+        .flex_shrink_0()
+        .child(tips.on(chip, place, tip, narrow))
+        .children(tips.render(tokens))
         .into_any_element()
 }
 
