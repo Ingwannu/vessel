@@ -1,6 +1,6 @@
 # ADR 0061: Open pull requests of a project without a session
 
-Status: accepted contract; value and callable delivery are separate stages.
+Status: accepted value contract; provider/service staging amendment proposed.
 Amends ADR 0029's session-only discovery, not its watch or write rules.
 
 ## Context and existing assets
@@ -159,3 +159,74 @@ Root checks, the explicit forge-fixture feature gate and generated-type
 checks apply; adding a callable wire contract also requires both older-peer
 directions and the web checks. No stage claims project listing works until
 the actual node/client/CLI path is executed.
+
+## Proposed provider and service staging
+
+[Decision Log]
+- Purpose and intent: exercise the actual provider, registered-root checks
+  and bounded cache before a transport method can safely be registered.
+- Existing implementation and constraints: `Forge` is the existing open
+  provider interface; GitHub whole reads own the neutral facts mapping.
+  `Credentials` already decides host binding, expiry and retry cooldown.
+  An unconnected ordinary node module would otherwise be dead product code.
+- Alternatives: duplicate GitHub HTTP/auth/facts in the node, change
+  visibility to hide dead-code warnings, add a second feature flag, or
+  stage only the node entry while extending the existing provider normally.
+- Choice: extend `Forge` with a repository-page operation implemented by
+  GitHub and the actual shared FakeForge. Factor the common summary decoder
+  out of whole reads, preserving their facts and error precedence. Keep
+  the unconnected node service under `cfg(test)` until reviewed wiring
+  removes that attribute.
+- Why: provider behavior remains real and shared, and tests drive the
+  intended node actor without adding a product endpoint or a testing-only
+  abstraction. No private entry is made public to silence a lint.
+- Advantages, costs and effects: staged tests can prove real root,
+  cancellation and cache behavior; they cannot establish product wiring.
+  The wiring change must re-read and gate the product configuration before
+  this service reaches the node integration line.
+
+The GitHub page uses the whole read's head/context limits through named
+constants. A typed query envelope replaces ad-hoc JSON construction. Shared
+external summary fields decode known states into enums once; both reads use
+the existing checks/review/mergeability functions. Missing or malformed
+essential values fail whole. Partial GraphQL errors are never accepted as
+a complete page. The fixed API target, credential policy, sensitive header,
+redirect, byte, time and quota controls remain the existing provider's.
+
+Credential-associated cache keys use an opaque `CredentialIdentity`, with
+the validated host and allocation markers, not token text or a token-derived
+hash. The credential cache retains a marker when refreshing the same value
+and source, and replaces it when credentials change or leave the cache.
+Every observed refusal also changes an invalidation marker, even while the
+existing retry cooldown suppresses another `gh` lookup. Keys remain bounded
+by the page cache; `Debug` discloses neither tokens nor marker addresses.
+The loader compares identity before and after its read and refuses to
+publish across a change. A global refusal marker may invalidate other
+hosts' pages too: conservative extra reads are preferable to associating
+facts with an unconfirmed credential. Host token selection and retry
+deadlines themselves do not change.
+
+The node actor owns the cache, flights and bounded command channel.
+`MAX_ACTIVE` admits requests before filesystem, credentials or network
+work. A request owns an `Arc` admission guard; a clone remains inside the
+shared blocking root resolver until it really exits. Queued completions
+and coalesced waiters retain admission until the actor processes them.
+Dropping the RPC receiver cannot release a still-running job's admission
+or strand other waiters. Stop closes new admission and cancels owned jobs;
+a blocking closure keeps its guard independently until completion.
+
+`MAX_KEYS` bounds retained cache slots. `FRESH` follows Paseo's cache
+lifetime; cached responses preserve the original `read_at`. Ordinary reads
+may reuse a still-fresh page while refresh runs. Refresh joins an existing
+refresh, but does not join an older ordinary load. The actor keeps a typed
+load identity until all older flights finish: a late ordinary result cannot
+overwrite a newer refresh or resurrect a page after that refresh failed.
+Failures are shared with their current waiters and are not reused by a
+later request. Slots with active flights are not silently evicted.
+
+Tests of this stage use real FakeForge state and loopback HTTP responses,
+driven cache time and barriers for completion/cancellation order, and actual
+registered git folders including base, detached and unborn checkouts.
+Transport permissions, forwarding, older peers and client/CLI/fleet
+consumers remain the following wiring stage. The unassigned feature constant
+and method table remain unchanged throughout service staging.

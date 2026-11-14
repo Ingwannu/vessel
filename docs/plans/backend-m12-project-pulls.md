@@ -85,3 +85,20 @@ wiring is available; its review is separate from product integration.
 The following wiring stage must add the actual client/CLI/fleet consumers,
 authority and older-peer fixtures, then execute the callable path before
 claiming this gap is filled.
+
+## Provider/service stage: contract before installation
+
+The amendment in ADR 0061 records the next implementation choice before
+prepared source is installed: extend the existing `Forge` interface and
+reuse one summary decoder, associate cache keys with the credential cache's
+opaque host-bound generation, and stage an actor with bounded admission,
+cache slots and refresh ordering. No new HTTP client, credential source,
+dependency, protocol assignment or product endpoint is introduced.
+
+Unbuilt preparation covers the provider and identity helpers; it has not
+been executed or claimed as runtime evidence. The node entry remains a
+test-only stage until shared protocol admission and the connection request
+budget are ready for reviewed wiring. Product integration, exact transport
+consumers and their gate remain separate work. The next checks must run
+the changed crates narrowly before a whole gate; the prior passing value
+gate is retained and is not repeated on an unchanged source tree.
