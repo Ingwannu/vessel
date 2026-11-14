@@ -276,7 +276,9 @@ fn draw<V: 'static>(
         .track_focus(&state.focus)
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
+        // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
+        .cursor_default()
         .flex()
         .flex_col()
         .min_w(px(MIN_WIDTH))

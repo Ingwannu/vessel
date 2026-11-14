@@ -66,6 +66,9 @@ const BURST_DOT: f32 = 5.0;
 const FAST_DOT: f32 = 3.0;
 /// The field's sampling step, points.
 const FIELD_STEP: f32 = 2.0;
+/// The decorations' frame time: 30 a second (the reference's motion is
+/// slow; the display's every frame is spent only on the thumb's glide).
+const DECORATION_FRAME: Duration = Duration::from_millis(33);
 /// A line of wheel scrolling, in the reference's units.
 const WHEEL_LINE: f32 = 30.0;
 
@@ -122,8 +125,14 @@ pub struct Paint {
     pub field: Option<Sampler>,
     /// The fill's colour.
     pub fill: Hsla,
-    /// Whether anything moves (the next frame is asked for).
+    /// Whether anything moves (a next frame is asked for).
     pub moving: bool,
+    /// Whether that frame is the display's next (the thumb gliding or
+    /// springing); otherwise one 1/30 s later (the decorations).
+    pub smooth: bool,
+    /// Whether the slider has the keys and the last input was a key: the
+    /// thumb shows the focus ring (the reference's `:focus-visible`).
+    pub ring: Option<Hsla>,
 }
 
 impl std::fmt::Debug for Paint {
@@ -169,6 +178,8 @@ pub struct SliderState {
     track: Rc<Cell<Option<Bounds<Pixels>>>>,
     /// Whether the pointer is pressed on it.
     pressed: Rc<Cell<bool>>,
+    /// A decorations' frame is already asked for.
+    ticking: Rc<Cell<bool>>,
     /// The field's image last painted, dropped when the next is.
     field: Rc<RefCell<Option<Arc<RenderImage>>>>,
 }
@@ -177,16 +188,26 @@ impl SliderState {
     /// A slider not pressed.
     pub fn new(cx: &mut App) -> Self {
         Self {
-            focus: cx.focus_handle(),
+            // A tab stop: the kit's root moves the keys with Tab
+            // (`focus_next`), and the slider must be reachable that way.
+            focus: cx.focus_handle().tab_stop(true),
             track: Rc::new(Cell::new(None)),
             pressed: Rc::new(Cell::new(false)),
             field: Rc::new(RefCell::new(None)),
+            ticking: Rc::new(Cell::new(false)),
         }
     }
 
     /// Give it the keys (the arrow keys move it).
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         self.focus.focus(window, cx);
+    }
+
+    /// Whether it has the keys and they were the last input (the ring
+    /// shows then, not after a click).
+    #[must_use]
+    pub fn keyboard_focused(&self, window: &Window) -> bool {
+        self.focus.is_focused(window) && window.last_input_was_keyboard()
     }
 }
 
@@ -249,9 +270,9 @@ pub fn slider(
                     particle,
                 )
             }))
-            .child(thumb(centre, height, paint.thumb, tokens, events));
+            .child(thumb(centre, height, paint, tokens, events));
     }
-    root.child(frames(state, paint.moving, events))
+    root.child(frames(state, paint, events))
         .on_mouse_down(MouseButton::Left, press(state, events))
         .on_mouse_up(MouseButton::Left, release(state, events))
         .on_mouse_up_out(MouseButton::Left, release(state, events))
@@ -296,14 +317,26 @@ fn track(
     tokens: &Tokens,
 ) -> AnyElement {
     let measure = Rc::clone(&state.track);
+    // No border on the track itself: GPUI places absolute children inside
+    // a border, so the fill (24 tall) sat half a point low and showed
+    // under the track (the owner, on 0.0.0.0.13, word 26). The hairline
+    // is a layer of its own, under the fill, as the reference's inset
+    // shadow is under its range.
+    let radius = px(TRACK.mul_add(0.5, 0.0));
     let mut track = div()
         .relative()
         .w_full()
         .h(px(TRACK))
-        .rounded(px(TRACK.mul_add(0.5, 0.0)))
+        .rounded(radius)
         .bg(tokens.neutral.foreground.opacity(0.10))
-        .border(px(0.5))
-        .border_color(tokens.neutral.border)
+        .child(
+            div()
+                .absolute()
+                .size_full()
+                .rounded(radius)
+                .border(px(0.5))
+                .border_color(tokens.neutral.border),
+        )
         .child(
             canvas(
                 move |bounds, _window, _cx| measure.set(Some(bounds)),
@@ -313,22 +346,40 @@ fn track(
             .size_full(),
         );
     if let Some(fill) = thumb_x {
+        // The fill is a whole pill whose right cap is centred on the
+        // thumb's centre: its left end is always the track's 12-point cap
+        // (a fill narrower than the track is tall had its corners cut to
+        // half its width, the "square" end at the lowest stop the owner
+        // saw), and its right cap, 12 round, lies under the 14-round thumb.
+        let span = fill.mul_add(1.0, TRACK.mul_add(0.5, 0.0));
         let mut filled = div()
             .absolute()
             .left_0()
             .top_0()
-            .h(px(TRACK))
-            .w(px(fill))
-            .rounded_l(px(TRACK.mul_add(0.5, 0.0)))
-            .bg(paint.fill)
+            .bottom_0()
+            .w(px(span))
+            .rounded(radius)
             .overflow_hidden();
-        if let Some(sampler) = &paint.field {
-            filled = filled.child(field(state, Rc::clone(sampler), fill, width));
-        }
+        filled = match &paint.field {
+            // The field's image carries the fill's colour where it is not
+            // yet revealed, so nothing is painted under it: a fill under
+            // the image showed as a one-pixel rim at fractional scales,
+            // where the image's bounds are snapped and the fill's are not.
+            Some(sampler) => {
+                filled.child(field(state, Rc::clone(sampler), fill, width, paint.fill))
+            }
+            None => filled.bg(paint.fill),
+        };
         filled = filled.children(paint.dots.iter().map(|particle| {
             let x = particle.x.mul_add(width.mul_add(-1.0, 0.0), fill);
             let y = particle.y.mul_add(TRACK, 0.0);
-            dot_at(x, y, FAST_DOT, particle).shadow(vec![BoxShadow {
+            // GPUI clips to rectangles: a dot near the track's round end
+            // fades by how much of it (and its glow) is inside the pill.
+            let mut particle = *particle;
+            particle.opacity = particle
+                .opacity
+                .mul_add(inside_pill(x, y, FAST_DOT.mul_add(1.5, 0.0), width), 0.0);
+            dot_at(x, y, FAST_DOT, &particle).shadow(vec![BoxShadow {
                 color: hsla(0.0, 0.0, 1.0, 0.34),
                 offset: point(px(0.0), px(0.0)),
                 blur_radius: px(5.0),
@@ -355,15 +406,21 @@ fn track(
                 tokens.neutral.foreground.opacity(0.35)
             };
             let size = DOT.mul_add(stop.scale, 0.0);
+            let centre = TRACK.mul_add(0.5, 0.0);
+            // A stop sliding away (Fast) leaves through the round end, not
+            // past it: faded by how much of it is inside the pill.
+            let opacity = stop
+                .opacity
+                .mul_add(inside_pill(x, centre, size.mul_add(0.5, 0.0), width), 0.0);
             div()
                 .absolute()
                 .left(px(DOT_HIT.mul_add(-0.5, x)))
-                .top(px(DOT_HIT.mul_add(-0.5, TRACK.mul_add(0.5, -0.5))))
+                .top(px(DOT_HIT.mul_add(-0.5, centre)))
                 .size(px(DOT_HIT))
                 .flex()
                 .items_center()
                 .justify_center()
-                .opacity(stop.opacity)
+                .opacity(opacity)
                 .group("slider-stop")
                 .child(
                     div()
@@ -376,6 +433,19 @@ fn track(
                 )
         }))
         .into_any_element()
+}
+
+/// How much of a round mark of `radius` centred at (`x`, `y`) lies inside
+/// the track's pill, `width` wide and 24 tall: 1 inside, 0 outside, fading
+/// over a point at the outline. GPUI's content masks are rectangles, so
+/// the round ends are cut here, in what is painted.
+#[expect(clippy::float_arithmetic, reason = "a distance to the pill's outline")]
+fn inside_pill(x: f32, y: f32, radius: f32, width: f32) -> f32 {
+    let half = TRACK * 0.5;
+    let centre_x = x.clamp(half, (width - half).max(half));
+    let (dx, dy) = (x - centre_x, y - half);
+    let distance = (dx * dx + dy * dy).sqrt();
+    (half - distance - radius + 1.0).clamp(0.0, 1.0)
 }
 
 /// A round particle of `size` centred at (`x`, `y`).
@@ -393,8 +463,9 @@ fn dot_at(x: f32, y: f32, size: f32, particle: &Particle) -> gpui::Div {
 
 /// The thumb, white with a hairline edge and a faint shadow, at `centre`;
 /// its 34-point hit area reports hovering.
-fn thumb(centre: f32, height: f32, scale: f32, tokens: &Tokens, events: &Events) -> AnyElement {
-    let size = THUMB.mul_add(scale, 0.0);
+fn thumb(centre: f32, height: f32, paint: &Paint, tokens: &Tokens, events: &Events) -> AnyElement {
+    let size = THUMB.mul_add(paint.thumb, 0.0);
+    let ring = paint.ring;
     let hover = Rc::clone(&events.hover);
     div()
         .id("slider-thumb")
@@ -414,36 +485,44 @@ fn thumb(centre: f32, height: f32, scale: f32, tokens: &Tokens, events: &Events)
                 .bg(white())
                 .border(px(0.5))
                 .border_color(tokens.neutral.border_accent)
-                .shadow(vec![BoxShadow {
-                    color: hsla(0.0, 0.0, 0.0, 0.10),
-                    offset: point(px(0.0), px(0.0)),
-                    blur_radius: px(2.0),
-                    spread_radius: px(0.0),
-                    inset: false,
-                }]),
+                .shadow(
+                    // The reference's faint shadow; with the keys, its
+                    // 2-point ring around the thumb.
+                    std::iter::once(BoxShadow {
+                        color: hsla(0.0, 0.0, 0.0, 0.10),
+                        offset: point(px(0.0), px(0.0)),
+                        blur_radius: px(2.0),
+                        spread_radius: px(0.0),
+                        inset: false,
+                    })
+                    .chain(ring.map(|colour| BoxShadow {
+                        color: colour,
+                        offset: point(px(0.0), px(0.0)),
+                        blur_radius: px(0.0),
+                        spread_radius: px(2.0),
+                        inset: false,
+                    }))
+                    .collect(),
+                ),
         )
         .into_any_element()
 }
 
 /// The field over the fill, sampled every 2 points into one image.
-fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32) -> AnyElement {
+fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32, under: Hsla) -> AnyElement {
     let last = Rc::clone(&state.field);
     canvas(
         |_, _, _| {},
         move |bounds, (), window, cx| {
-            let Some(image) = field_image(&sampler, fill, width) else {
+            let span = f32::from(bounds.size.width);
+            let Some(image) = field_image(&sampler, fill, span, width, under) else {
                 return;
             };
             if let Some(previous) = last.borrow_mut().replace(Arc::clone(&image)) {
                 cx.drop_image(previous, Some(window));
             }
             let radius = px(TRACK.mul_add(0.5, 0.0));
-            let corners = Corners {
-                top_left: radius,
-                top_right: px(0.0),
-                bottom_right: px(0.0),
-                bottom_left: radius,
-            };
+            let corners = Corners::all(radius);
             if let Err(error) = window.paint_image(bounds, bounds, corners, image, 0, false) {
                 tracing::warn!(%error, "the slider's field could not be drawn");
             }
@@ -456,10 +535,18 @@ fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32) -> AnyEle
     .into_any_element()
 }
 
-/// The field's samples as an image (BGRA, straight alpha, as GPUI's
-/// images are), `fill` points wide.
-fn field_image(sampler: &Sampler, fill: f32, width: f32) -> Option<Arc<RenderImage>> {
-    let columns = (fill.mul_add(FIELD_STEP.recip(), 0.0).ceil()).clamp(1.0, 2048.0);
+/// The field's samples as an image (BGRA, opaque, as GPUI's images are),
+/// `span` points wide, the thumb `fill` points along: where the field is
+/// not yet revealed the sample is the fill's own colour `under`.
+fn field_image(
+    sampler: &Sampler,
+    fill: f32,
+    span: f32,
+    width: f32,
+    under: Hsla,
+) -> Option<Arc<RenderImage>> {
+    let base = under.to_rgb();
+    let columns = (span.mul_add(FIELD_STEP.recip(), 0.0).ceil()).clamp(1.0, 2048.0);
     let rows = TRACK.mul_add(FIELD_STEP.recip(), 0.0);
     let (count_x, count_y) = (whole(columns), whole(rows));
     let mut bytes = Vec::with_capacity(
@@ -470,8 +557,16 @@ fn field_image(sampler: &Sampler, fill: f32, width: f32) -> Option<Arc<RenderIma
         let up = y.mul_add(TRACK.recip().mul_add(-1.0, 0.0), 1.0);
         for column in 0..count_x {
             let x = centre_of(column).mul_add(FIELD_STEP, 0.0);
-            let [red, green, blue, alpha] = sampler(x, up, fill, width);
-            bytes.extend([byte(blue), byte(green), byte(red), byte(alpha)]);
+            let [red, green, blue, shown] = sampler(x, up, fill, width);
+            let over = |field: f32, fill: f32| {
+                field.mul_add(shown, fill.mul_add(shown.mul_add(-1.0, 1.0), 0.0))
+            };
+            bytes.extend([
+                byte(over(blue, base.b)),
+                byte(over(green, base.g)),
+                byte(over(red, base.r)),
+                u8::MAX,
+            ]);
         }
     }
     let buffer = image::RgbaImage::from_raw(count_x, count_y, bytes)?;
@@ -507,18 +602,30 @@ fn byte(channel: f32) -> u8 {
 
 /// Asks for the next frame while the paint moves, and while pressed hears
 /// the pointer's moves anywhere in the window.
-fn frames(state: &SliderState, moving: bool, events: &Events) -> AnyElement {
+fn frames(state: &SliderState, paint: &Paint, events: &Events) -> AnyElement {
     let pressed = Rc::clone(&state.pressed);
     let track = Rc::clone(&state.track);
+    let ticking = Rc::clone(&state.ticking);
     let drag = Rc::clone(&events.drag);
+    let (moving, smooth) = (paint.moving, paint.smooth);
     canvas(
         |_, _, _| {},
-        move |_bounds, (), window, _cx| {
+        move |_bounds, (), window, cx| {
             // Asked only while the paint moves (under reduced motion the
             // caller's frames hold still): a resting or closed card does
-            // not tick.
-            if moving {
+            // not tick. The thumb's glide takes the display's frames; the
+            // decorations one frame each 1/30 s, from one timer at a time.
+            if moving && smooth {
                 window.request_animation_frame();
+            } else if moving && !ticking.replace(true) {
+                let ticking = Rc::clone(&ticking);
+                window
+                    .spawn(cx, async move |cx| {
+                        cx.background_executor().timer(DECORATION_FRAME).await;
+                        ticking.set(false);
+                        let _drawn = cx.update(|window, _cx| window.refresh());
+                    })
+                    .detach();
             }
             if !pressed.get() {
                 return;
@@ -629,6 +736,18 @@ mod tests {
         assert!((share(px(90.0), track) - 0.0).abs() < 1e-6);
         assert!((share(px(150.0), track) - 0.25).abs() < 1e-6);
         assert!((share(px(400.0), track) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_mark_past_the_round_end_is_not_drawn() {
+        // In the middle, inside; at the very left, a mark centred on the
+        // end's curve is outside; one sliding 85 to the left is gone.
+        assert!((super::inside_pill(100.0, 12.0, 2.0, 230.0) - 1.0).abs() < 1e-6);
+        assert!(super::inside_pill(1.0, 12.0, 2.0, 230.0) < 1e-6);
+        assert!(super::inside_pill(-60.0, 12.0, 2.0, 230.0) < 1e-6);
+        // A fast dot by the top edge near the left end is cut.
+        assert!(super::inside_pill(4.0, 3.0, 2.0, 230.0) < 1e-6);
+        assert!((super::inside_pill(13.0, 12.0, 2.0, 230.0) - 1.0).abs() < 1e-6);
     }
 
     #[test]

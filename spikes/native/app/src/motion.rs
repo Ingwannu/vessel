@@ -20,8 +20,44 @@
 //!   coordinator's to decide) and macOS (not built).
 //! - Cost: one portal connection on a task of its own, as GPUI's own
 //!   colour-scheme follower keeps.
+//!
+//! One flag for every reason motion is held (the coordinator, 2026-11-14,
+//! word 39: "off, reduced motion and a software renderer = the end state
+//! at once"): the system's preference, a software renderer and the app's
+//! own Animations setting are each kept here and the flag is their "or"
+//! ([`apply`]). Everything that moves reads `cx.reduce_motion()`: GPUI's
+//! animations end at once under it, the kit's controls hold still, and the
+//! text caret stops blinking (the patched gpui-base,
+//! `spikes/release/patches/README.md`).
+
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use gpui::App;
+
+/// Whether the window draws on a software renderer ([`note_renderer`]).
+static SOFTWARE: AtomicBool = AtomicBool::new(false);
+/// The system's reduced motion, as last read ([`follow`]).
+static SYSTEM: AtomicBool = AtomicBool::new(false);
+/// The app's Animations setting is off ([`animations`]).
+static OFF: AtomicBool = AtomicBool::new(false);
+
+/// Set GPUI's flag from the reasons kept here; a forced value wins.
+fn apply(cx: &mut App) {
+    let held = forced().unwrap_or_else(|| {
+        SYSTEM.load(Ordering::Relaxed)
+            || SOFTWARE.load(Ordering::Relaxed)
+            || OFF.load(Ordering::Relaxed)
+    });
+    cx.set_reduce_motion(held);
+}
+
+/// Settings › Appearance › Animations (track S3's setting, word 39): off
+/// holds every motion as reduced motion does.
+#[expect(dead_code, reason = "track S3's Animations setting calls it")]
+pub(crate) fn animations(on: bool, cx: &mut App) {
+    OFF.store(!on, Ordering::Relaxed);
+    apply(cx);
+}
 
 /// `VESSEL_APP_REDUCE_MOTION=1` (or `0`): the flag fixed for this run and
 /// the system not followed, as `VESSEL_APP_THEME` fixes the scheme, so a
@@ -45,8 +81,8 @@ pub(crate) fn follow(cx: &mut App) {
     const GNOME: &str = "org.gnome.desktop.interface";
     const ANIMATIONS: &str = "enable-animations";
 
-    if let Some(reduce) = forced() {
-        cx.set_reduce_motion(reduce);
+    if forced().is_some() {
+        apply(cx);
         return;
     }
     cx.spawn(async move |cx| {
@@ -54,7 +90,10 @@ pub(crate) fn follow(cx: &mut App) {
             tracing::debug!("no desktop portal: reduce motion stays off");
             return;
         };
-        let mut set = |reduce: bool| cx.update(|cx| cx.set_reduce_motion(reduce));
+        let mut set = |reduce: bool| {
+            SYSTEM.store(reduce, Ordering::Relaxed);
+            cx.update(apply);
+        };
         // Each source is subscribed to before it is read, so a change
         // between the two is in the stream and the last value applied is
         // the newest (track V1's review: read-then-subscribe could miss it
@@ -102,9 +141,7 @@ async fn latest(
 /// forced.
 #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
 pub(crate) fn follow(cx: &mut App) {
-    if let Some(reduce) = forced() {
-        cx.set_reduce_motion(reduce);
-    }
+    apply(cx);
 }
 
 #[cfg(all(test, any(target_os = "linux", target_os = "freebsd")))]
@@ -135,6 +172,48 @@ mod tests {
             ));
             assert_eq!(applied.last(), Some(&newest), "{first} then {changes:?}");
             assert_eq!(applied.len(), changes.len() + 1);
+        }
+    }
+}
+
+/// Note the window's renderer: on a software one (llvmpipe, lavapipe,
+/// Windows' basic render driver) the whole app moves as under reduced
+/// motion. Every frame there is the whole window drawn by the processor:
+/// on 0.0.0.0.13 the board's working spinners cost about five cores and
+/// the effort card's field three (the coordinator's measure and the lead's,
+/// release build on a virtual display, 2026-11-14). GPUI's animations and
+/// the kit's controls hold still under the flag; the colours still change;
+/// the caret is steady (its blink cost about 31 % of a core at 1280 × 800
+/// and 62 % at 1920 × 1200 on 0.0.0.0.14, the coordinator's measure).
+/// `VESSEL_APP_REDUCE_MOTION=0` keeps the motion, to measure it.
+pub(crate) fn note_renderer(window: &gpui::Window, cx: &mut App) {
+    if forced() == Some(false) {
+        return;
+    }
+    let software = window
+        .gpu_specs()
+        .is_some_and(|specs| specs.is_software_emulated);
+    if software {
+        SOFTWARE.store(true, Ordering::Relaxed);
+        apply(cx);
+        tracing::info!("a software renderer: the app holds its motion still");
+    }
+}
+
+#[cfg(test)]
+mod token_tests {
+    use vessel_app_kit::motion::{QUICK, STANDARD, ease};
+    use vessel_app_view::slider::motion::{DRAG_GLIDE, GLIDE, SLIDE};
+
+    /// The effort slider's model (`view`, which cannot read the kit)
+    /// restates the kit's motion tokens; this keeps them one set.
+    #[test]
+    fn the_slider_moves_by_the_kit_tokens() {
+        assert!((DRAG_GLIDE - QUICK.as_secs_f32()).abs() < 1e-6);
+        assert!((GLIDE - STANDARD.as_secs_f32()).abs() < 1e-6);
+        for step in 0..=20_u8 {
+            let t = f32::from(step) / 20.0;
+            assert!((SLIDE.at(t) - ease(t)).abs() < 1e-3, "at {t}");
         }
     }
 }

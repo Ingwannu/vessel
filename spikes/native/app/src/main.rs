@@ -72,6 +72,7 @@ fn main() {
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {
+                motion::note_renderer(window, cx);
                 let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
                 vessel_app_kit::root(shell, window, cx)
             });
