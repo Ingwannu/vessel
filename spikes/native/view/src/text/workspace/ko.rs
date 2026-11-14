@@ -114,9 +114,7 @@ impl WorkspaceWords for Ko {
             BranchNameProblem::Reserved(name) => {
                 format!("\u{201c}{name}\u{201d}은(는) git이 받는 브랜치 이름이 아닙니다.")
             }
-            BranchNameProblem::LeadingDash => {
-                "브랜치 이름은 대시(-)로 시작할 수 없습니다.".to_owned()
-            }
+            BranchNameProblem::LeadingDash => "브랜치 이름은 대시(-)로 시작할 수 없습니다.".into(),
             BranchNameProblem::SpaceOrControl => {
                 "브랜치 이름에 공백이나 제어 문자를 넣을 수 없습니다.".to_owned()
             }
@@ -262,9 +260,7 @@ impl WorkspaceWords for Ko {
             KeptReason::Submodules => "변경을 검사하지 않는 서브모듈".to_owned(),
             KeptReason::FlaggedFiles => "git이 변경을 보여 주지 않도록 표시된 파일".to_owned(),
             KeptReason::WorktreeRefs => "이 워크트리만의 참조".to_owned(),
-            KeptReason::InUse => {
-                "실행 중인 세션, 터미널이나 서비스, 또는 셋업이 쓰는 중".to_owned()
-            }
+            KeptReason::InUse => "실행 중인 세션, 터미널이나 서비스, 또는 셋업이 쓰는 중".into(),
             KeptReason::InspectionFailed => "git이 검사하지 못함".to_owned(),
             KeptReason::Unknown => "이 앱이 모르는 이유".to_owned(),
         }
@@ -651,6 +647,10 @@ impl WorkspaceWords for Ko {
         } else {
             format!("{first}\u{2013}{last}번 줄 채팅에 추가")
         }
+    }
+
+    fn editor_lines(&self, count: usize) -> String {
+        format!("{count}줄")
     }
 
     fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
