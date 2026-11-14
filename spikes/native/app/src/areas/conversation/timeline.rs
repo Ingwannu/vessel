@@ -139,7 +139,6 @@ fn row_element(
                 if area.pending_fresh() {
                     super::motion::settle(
                         ElementId::NamedInteger("pending-arrive".into(), id(index)),
-                        super::motion::FAST,
                         row,
                     )
                 } else {
@@ -188,7 +187,6 @@ fn row_element(
         content = content.child(if arriving {
             super::motion::arrive(
                 ElementId::NamedInteger("reply-arrive".into(), id(index)),
-                super::motion::SLOW,
                 drawn,
             )
         } else {

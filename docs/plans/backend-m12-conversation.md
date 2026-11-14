@@ -114,12 +114,17 @@ be mounted in that circle). The person's bubble takes Paseo's values:
 `surface3`, 16 inside, the corner toward the writer at 4, as wide as
 the column needs.
 
-Motion (`motion`): a message sent is drawn whole on its first frame
-and rises into place over 150 ms (a fade would leave Enter's next frame
-nearly empty), a reply fades and rises in over 300 ms, on `cubic-bezier(.23,1,.32,1)` (GPUI's `ease_out_quint`); only
-what just arrived moves, so nothing replays on scrolling and an idle
-session draws nothing for it; `VESSEL_APP_MOTION=off` draws the end
-state until the lead's setting exists.
+Motion (`conversation::motion`, on the kit's tokens
+`vessel_app_kit::motion`): two one-shot transitions, both `STANDARD`
+(300 ms on `cubic-bezier(.23,1,.32,1)`: a message arriving is a
+surface, by the lead's rule). A message sent is drawn whole on its
+first frame and rises 6 points into place (a fade would leave Enter's
+next frame nearly empty); a reply fades and rises in. Only what just
+arrived moves, so nothing replays on scrolling and an idle session
+draws nothing for it; while motion is held (Animations off, reduced
+motion, a software renderer) GPUI draws both at their end at once. The
+working footer's elapsed time is drawn again once a second while a turn
+runs, and not otherwise.
 
 ## Captures
 
