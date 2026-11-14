@@ -416,3 +416,37 @@ On the replay correction, latest all-target workspace Clippy and both
 TypeScript regeneration tests passed. The generated wire declaration now
 includes optional `observation` and the closed `UsageObservation` enum.
 The correction's whole Rust and web runs are still pending.
+
+### Final gated accounting slice after replay correction
+
+Production correction `57ebcb3c` and generated declarations `c7063c08`
+passed formatting, full-workspace/all-target Clippy and both TypeScript
+generation tests. The whole workspace run passed 1,807 tests, with
+0 failures and 10 existing ignored cases across 110 result groups. All
+177 node end-to-end tests passed, including the 3 replay cases.
+
+Web lint, typecheck, all 417 unit tests in 81 files and the production
+build passed. Rust binaries were built after the bundle with the bundle
+required. Served main JavaScript and favicon matched the built files.
+All 62 Playwright tests passed (3.6 minutes); the large timeline case
+passed in 26.2 seconds. Traces, screenshots and video stayed off.
+
+A screen can call `NodeClient::usage(QueryUsage)` for session totals or
+rolling machine/agent totals. A session sample page continues while
+`next` exists, even if cost redaction left its visible samples empty.
+`optional_reports` gives per-field coverage; `unreported` preserves whole
+turns missing counts. `current_costs` is a cumulative observation, distinct
+from period spending. Cost requires operate permission and remains grouped
+by reported unit. A session's context report is not an aggregate input.
+
+The provisional additions are `usage.query` and optional
+`ContextUsage.observation` in protocol 19; the minimum is unchanged at 2.
+The usage ledger remains schema 14 after the node line's search migration.
+No other new call, event kind, scope or migration was added by the replay
+correction. Integration may renumber the additions.
+
+External account-limit lookup, limit-notice facts and recovery scheduling
+are not implemented by this slice. Native screens and controls are outside
+this resumed node-only scope. Real credentials and vendor endpoints were
+not used; a live-account check remains unverified by instruction. Commands
+ran as the workspace owner, with no service permission or ACL changes.
