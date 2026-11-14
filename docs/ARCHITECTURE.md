@@ -1098,6 +1098,25 @@ share a fixed book path and the same typed boundary. Syntax failures reuse the
 shared safe `FileFault` projection; other file failures use closed reasons.
 A failed edit does not refresh or mutate the existing clients or session follow.
 
+## Native agents' option lists (milestone 12, track P)
+
+What each agent on each machine offers (`harness.options`: models, efforts,
+permissions modes, on/off options; and the `/` commands a session of it last
+reported) is one store, `view::offers`, held by the
+app's composer area and read by every control that draws those lists. It
+decides what is shown (the list there is, however old; loading or the error
+only when there is none), when to ask again (on open, at connect, when a
+machine's agents change or a person retries; one request per agent in
+flight, none within 30 s of a good answer on open) and how an answer lands in
+an open list (new rows at the edge away from its anchor, the shown rows in
+place). `link::offers` keeps the last answers on the
+device between runs in one owner-only, versioned, bounded file in the app's
+state folder, keyed by the node's id (not a book's name), written only when an
+answer differs; a machine that connects gets its kept lists
+(`Event::OptionsKept`) before the fleet shows it online. No new wire method.
+The rules, bounds and what was followed from Paseo's provider snapshot are in
+`docs/plans/backend-m12-composer.md`.
+
 ## Protocol 13: schedule preview (N3)
 
 `NodeInfo.timezone` carries the startup-detected system IANA name; unknown

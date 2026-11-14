@@ -72,6 +72,9 @@ pub enum Act {
     /// `options_changed` record; the agent's refusal (one it cannot make
     /// mid-turn, a value it does not take) is the act's failure.
     SetOption(OptionChoice),
+    /// Start a parked session's agent again (`session.wake`, protocol 12):
+    /// the session as it then stands, its `parked` cleared.
+    Wake,
 }
 
 /// Which act an answer is for.
@@ -103,6 +106,8 @@ pub enum ActKind {
     Conversation,
     /// A change to one of its options.
     SetOption,
+    /// A parked agent started again.
+    Wake,
 }
 
 impl Act {
@@ -123,6 +128,7 @@ impl Act {
             Self::Permit(..) => ActKind::Permit,
             Self::Conversation => ActKind::Conversation,
             Self::SetOption(_) => ActKind::SetOption,
+            Self::Wake => ActKind::Wake,
         }
     }
 }
@@ -210,6 +216,10 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         Act::Rename(title) => client.rename(session, title).await.map(boxed),
         Act::Mark(mark) => client.mark(session, mark).await.map(boxed),
         Act::StartAgain => client.resume_session(session).await.map(boxed),
+        Act::Wake => client
+            .call(vessel_proto::parking::WakeSession { session })
+            .await
+            .map(boxed),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
         // The options as they now stand also arrive as the session's own
@@ -265,8 +275,16 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
                 .map(|()| Acted::Done)
         }
     };
+    // A node's refusal is its own sentence (its code is beside it), not the
+    // client's wrapping of it ("the node returned an error: Conflict: …").
     done.map_err(|error| ActFailed {
         code: error.code(),
-        message: error.to_string(),
+        message: match &error {
+            vessel_client::CallError::Remote(wire) => wire.message.clone(),
+            vessel_client::CallError::Disconnected
+            | vessel_client::CallError::UnexpectedReply(_)
+            | vessel_client::CallError::RequestIdsExhausted
+            | vessel_client::CallError::NotInProtocol { .. } => error.to_string(),
+        },
     })
 }

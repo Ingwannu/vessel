@@ -549,6 +549,30 @@ values and keyboard (arrows, Home, End; one choice per drag), the card
 anchored above the control, the remaining options at the top of the
 model combobox, and the ladder's three steps with the same floors.
 
+## Motion: one set of tokens, one held flag (0.0.0.0.15)
+
+The owner's word 39 (2026-11-14): quick, fine transitions on every change
+a person causes; Settings › Appearance › Animations on or off; off, the
+system's reduced motion and a software renderer give the end state at
+once; nothing animates continuously.
+
+- Tokens: `vessel_app_kit::motion` (`QUICK` 150 ms for a control's own
+  change, `STANDARD` 300 ms for a surface, `CURVE`
+  `cubic-bezier(.23, 1, .32, 1)`, `ease`, `transition(length)`, `held`).
+  Every track reads its lengths and curve there; the effort slider's
+  model in `view` restates them and an app test pins the two together.
+- One flag: `app::motion` keeps each reason motion is held (the system's
+  preference, a software renderer, the Animations setting through
+  `motion::animations`) and sets GPUI's `App::reduce_motion` to their
+  "or". GPUI's `with_animation` draws a one-shot transition's end at
+  once under it; hand-driven motion asks `motion::held`.
+- The caret: gpui-base blinked it every 500 ms whatever the flag, and
+  each blink redrew the window (31 % of a core at 1280 × 800, 62 % at
+  1920 × 1200 on a software renderer, 0.0.0.0.14). gpui-base is now a
+  patched copy (`spikes/release/patches/README.md`, change 4) whose
+  caret is steady while the flag is set. Measures in
+  `backend-m12-effort-slider.md`, "Known costs".
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

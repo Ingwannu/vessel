@@ -50,8 +50,10 @@ pub(crate) mod dock;
 mod ended;
 mod entries;
 mod find;
+mod footer;
 mod look;
 mod meter;
+mod motion;
 mod outline;
 mod permission;
 mod plan;
@@ -60,6 +62,7 @@ mod queue;
 mod read;
 mod rename;
 pub(crate) mod search;
+mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
@@ -76,9 +79,10 @@ use vessel_app_view::session::{MarkAction, is_live};
 use vessel_app_view::timeline::{
     FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, ToolView, outline,
 };
+use vessel_proto::parking::Parked;
 use vessel_proto::{
     ErrorCode, EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer,
-    QuestionId, SessionId, SessionInfo, ToolCallId,
+    QuestionId, SessionEvent, SessionId, SessionInfo, ToolCallId,
 };
 
 pub(crate) use bar::bar;
@@ -247,6 +251,17 @@ pub(crate) enum MenuAction {
     CopyId,
     /// Kill a live session.
     Kill,
+    /// Show the agent's own log (its lines are not in the conversation).
+    AgentLog,
+}
+
+/// Whether the agent's own log is shown in its dialog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AgentLog {
+    /// Not shown.
+    Hidden,
+    /// Shown over the conversation.
+    Shown,
 }
 
 /// The conversation area's state.
@@ -261,8 +276,9 @@ pub(crate) struct ConversationArea {
     pub(crate) open_runs: HashSet<usize>,
     /// The agent's own log lines, by run (`view::timeline::logs`).
     pub(crate) logs: Logs,
-    /// The log runs opened, by their first line's entry.
-    pub(crate) open_logs: HashSet<usize>,
+    /// Whether the agent's log is shown (the Session actions' "Agent
+    /// log").
+    pub(crate) agent_log: AgentLog,
     /// Whether tool calls are collapsed (Settings' "Collapse tool calls"
     /// against "Full"); see [`collapsing`].
     collapse: bool,
@@ -279,14 +295,20 @@ pub(crate) struct ConversationArea {
     /// The last act the node refused, and its words: shown beside the
     /// control it is about.
     pub(crate) refused: Option<(ActKind, String)>,
-    /// Start again is on its way (the ended banner's button, the menu's
-    /// row): neither sends it a second time.
-    starting_again: bool,
+    /// Start again, or a wake after a failed resume, is on its way (the
+    /// banner's button, the menu's row): none is sent a second time.
+    restarting: bool,
     /// The node refused to start the session again: its code and words,
     /// said under the ended banner.
     again_refused: Option<(Option<ErrorCode>, String)>,
     /// The palette's message search (kept when another session shows).
     pub(crate) search: search::Searching,
+    /// The rows after the entries: the message sent and not yet
+    /// recorded, the working footer.
+    tail: tail::Tail,
+    /// The first entry of the last batch that came while the session was
+    /// shown, and when: its replies grow in (`motion`).
+    fresh: Option<(usize, std::time::Instant)>,
     /// The session's machine is not connected (records stopped, or an act,
     /// a prompt or an input found no connection): the transport's words.
     /// Said once, in the bar, in the app's words; these only in the line's
@@ -294,6 +316,8 @@ pub(crate) struct ConversationArea {
     pub(crate) lost: Option<String>,
     /// The tooltip of that line and where it is drawn.
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
+    /// The tooltip of the bar's word for a released agent.
+    pub(crate) parked_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The Session actions menu, and what its rows do.
     pub(crate) menu: MenuState,
     pub(crate) menu_rows: Vec<MenuAction>,
@@ -345,18 +369,24 @@ impl ConversationArea {
             folds: None,
             open_runs: HashSet::new(),
             logs: Logs::default(),
-            open_logs: HashSet::new(),
+            agent_log: AgentLog::Hidden,
             collapse: collapsing(None),
             toggled: HashSet::new(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
             info: None,
             refused: None,
-            starting_again: false,
+            restarting: false,
             again_refused: None,
             search: search::Searching::default(),
+            tail: tail::Tail::default(),
+            fresh: None,
             lost: None,
             lost_tip: (
+                vessel_app_kit::Tooltips::new(),
+                Rc::new(std::cell::Cell::new(None)),
+            ),
+            parked_tip: (
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
             ),
@@ -399,8 +429,8 @@ impl ConversationArea {
         if !for_shown || self.read_answered(&answer) {
             return Followup::None;
         }
-        if answer.kind == ActKind::StartAgain {
-            self.starting_again = false;
+        if matches!(answer.kind, ActKind::StartAgain | ActKind::Wake) {
+            self.restarting = false;
             self.again_refused = None;
             // The node's refusal is said under the ended banner, in the
             // words for it; a lost connection stays the bar's.
@@ -447,11 +477,43 @@ impl ConversationArea {
     /// the session's records are folded from its first again
     /// ([`Self::take`]). Asks the node nothing.
     pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        // The session shown opened again (started again after it ended,
+        // or chosen again): what it shows stays, and the records read
+        // again from its start add only what is new (Paseo's agent reopens
+        // its conversation; nothing is reloaded).
+        if self
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.machine == machine && shown.session == session)
+        {
+            return;
+        }
         self.clear();
         self.shown = Some(Shown {
             machine: machine.to_owned(),
             session,
         });
+    }
+
+    /// The session's own `parked` and `woken` records keep the session's
+    /// description current, so the bar and the banner say released or not
+    /// as the timeline does (the description is read only when the
+    /// session opens and after an act). In order: a log read from its
+    /// start ends where the session stands.
+    fn follow_parking(&mut self, records: &[EventRecord]) {
+        let Some(info) = self.info.as_mut() else {
+            return;
+        };
+        for record in records {
+            if let SessionEvent::Parked { reason } = &record.event {
+                info.parked = Some(Parked {
+                    since: record.at,
+                    reason: reason.clone(),
+                });
+            } else if matches!(record.event, SessionEvent::Woken) {
+                info.parked = None;
+            }
+        }
     }
 
     /// Show nothing: what was shown is dropped, here only.
@@ -463,13 +525,15 @@ impl ConversationArea {
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
         self.logs = Logs::default();
-        self.open_logs.clear();
+        self.agent_log = AgentLog::Hidden;
         self.toggled.clear();
         self.rows = Rows::All(0);
         self.list.reset(0);
+        self.tail = tail::Tail::default();
+        self.fresh = None;
         self.info = None;
         self.refused = None;
-        self.starting_again = false;
+        self.restarting = false;
         self.again_refused = None;
         self.menu.close();
         self.confirm = None;
@@ -533,10 +597,16 @@ impl ConversationArea {
         }
         // Records arriving for this session: the connection is back.
         self.lost = None;
+        self.follow_parking(records);
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
         if change.is_empty(self.timeline.entries().len()) {
             return false;
+        }
+        self.tail_took(change.added_from);
+        // A batch after the first read: what it brings arrives on screen.
+        if change.added_from > 0 {
+            self.fresh = Some((change.added_from, std::time::Instant::now()));
         }
         if self.folds.is_some() {
             self.folds = Some(Folds::of(self.timeline.entries()));
@@ -576,28 +646,17 @@ impl ConversationArea {
         // Only the run's own rows change: its lead's row stays where it
         // was and its members come or go right after it. Splicing there
         // (not resetting the list) keeps the view where the person is.
-        match self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
-            Some(row) => {
-                let next = row.saturating_add(1);
-                let gone = before.saturating_sub(after);
-                self.list.splice(
-                    next..next.saturating_add(gone),
-                    after.saturating_sub(before),
-                );
-                self.list.changed(row..next);
-            }
-            None => self.list.reset(after),
-        }
-    }
-
-    /// Open or close a run of the agent's log lines: only its own row
-    /// changes (the lines show in its box, never as rows).
-    fn toggle_log(&mut self, lead: usize) {
-        if !self.open_logs.remove(&lead) {
-            let _new = self.open_logs.insert(lead);
-        }
         if let Some(row) = self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
-            self.list.changed(row..row.saturating_add(1));
+            let next = row.saturating_add(1);
+            let gone = before.saturating_sub(after);
+            self.list.splice(
+                next..next.saturating_add(gone),
+                after.saturating_sub(before),
+            );
+            self.list.changed(row..next);
+        } else {
+            self.list.reset(after);
+            self.tail_dropped();
         }
     }
 
@@ -671,6 +730,7 @@ impl Shell {
         area.open_runs.clear();
         area.rows_again();
         area.list.reset(area.rows.len());
+        area.tail_dropped();
     }
 
     /// Records of the session followed.
@@ -792,15 +852,6 @@ impl Shell {
         }
     }
 
-    /// Open or close a run of the agent's log lines in the conversation
-    /// at `seat`.
-    pub(crate) fn toggle_log(&mut self, seat: Seat, lead: usize, cx: &mut Context<'_, Self>) {
-        if let Some(area) = (seat.get_mut)(self) {
-            area.toggle_log(lead);
-            cx.notify();
-        }
-    }
-
     /// Open or close one entry's disclosure in the conversation at `seat`.
     pub(crate) fn toggle_entry(&mut self, seat: Seat, entry: usize, cx: &mut Context<'_, Self>) {
         if let Some(area) = (seat.get_mut)(self) {
@@ -843,6 +894,12 @@ impl Shell {
                     self.conversation_marked_unread(&shown.machine, shown.session);
                 }
                 self.mark(mark);
+                None
+            }
+            MenuAction::AgentLog => {
+                self.areas.conversation.agent_log = AgentLog::Shown;
+                self.areas.conversation.dialog.focus(window, cx);
+                cx.notify();
                 None
             }
             MenuAction::CopyId => {
@@ -930,6 +987,16 @@ impl Shell {
             area.clear();
             cx.notify();
         }
+    }
+
+    /// The agent's log was closed.
+    pub(crate) fn dismiss_log(
+        &mut self,
+        _window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.conversation.agent_log = AgentLog::Hidden;
+        cx.notify();
     }
 
     /// The confirm open was dismissed.

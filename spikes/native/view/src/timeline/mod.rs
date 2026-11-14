@@ -51,8 +51,8 @@ mod window;
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text};
 pub use entry::{
-    Entry, EntryKey, EntryKind, Permission, Prompt, ToolView, block_text, plan_progress,
-    prompt_parts,
+    Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, ToolView, block_text,
+    plan_progress, prompt_parts,
 };
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
