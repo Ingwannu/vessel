@@ -239,9 +239,15 @@ in the plan's "What a screen calls".
 The field is `SessionInfo.title_origin` and `SessionEvent::Renamed.origin`,
 both optional. Absent decodes as `unknown`. A `renamed` event stays
 protocol 9, because a peer of 9 that ignores an unknown field still
-reads `title`. The node still sends the field to an older peer: the
-workspace's event decoder does not refuse unknown fields, and a hop must
-not drop one (protocol 20). `since` of the event does not move.
+reads `title`. The node still sends a known origin to an older peer:
+the event decoder ignores unknown fields, so the title remains readable. `since` of the
+event does not move. An older fleet hop decodes and re-encodes a typed
+`Forwarded.reply` (`forward.rs`), so it can discard this additive reply
+field. The next reader then sees `unknown` and cannot treat that title as
+eligible for generation. Protocol 20's envelope version rule protects
+request fields; it does not preserve unknown reply fields. The
+compatibility test exercises an older-shaped decoder and encoder; a
+mixed-version binary fleet remains a manual verification.
 `SessionInfo` from a node below `GENERATED_NAMES` omits the field.
 
 Generation is scheduled only after `session.create` has published the
@@ -267,9 +273,17 @@ call: the given title stays, and the placeholder branch stays. There is
 no second call to repair it. Paseo's provisional line is cut at 60 and
 an explicit title may be 200 (`create-agent-title.ts` 3,
 `agent-title-limits.ts` 1). Those stay 80 and 120 here, because ADR
-0022 already published them: a stored title of 80 characters would
-become illegal if the cut moved to 60, and a typed title of 121
-characters is already refused.
+0022 already published them. Moving the provisional cut would change
+how new sessions are named; it would not invalidate an already stored
+title. Increasing the typed bound would admit titles that older peers
+refuse, including a title of 121 characters. This feature preserves both
+existing rules.
+The existing constructors count Unicode scalar values and retain inner
+prompt whitespace (control characters become spaces). Paseo collapses
+that whitespace and its provisional clamp uses UTF-16 code units
+(`create-agent-title.ts` 4–18). This decision preserves ADR 0022's
+constructors rather than renormalizing a session's current title.
+
 
 ### Branch names
 

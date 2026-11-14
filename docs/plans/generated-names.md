@@ -91,10 +91,14 @@ ADR 0062 records each one with its reason. Short form:
     is refused when the setting is written. Paseo keeps the string and
     replaces an id the model does not offer at generation time
     (`resolveThinkingOptionId`, 263–276).
-15. A provisional title stays cut at 80, and a typed title at 120 (ADR
-    0022). Paseo's provisional cut is 60 and an explicit title may be
-    200. Moving either bound would refuse a title the wire already
-    stores, or accept one it refuses.
+15. The ADR 0022 constructors stay: a provisional title is cut at 80
+    Unicode scalar values and a typed title allows 120. Internal prompt
+    whitespace is retained, with control characters replaced by spaces.
+    Paseo collapses whitespace and uses JavaScript's UTF-16 slicing at 60;
+    its explicit bound is 200 UTF-16 units (`create-agent-title.ts` 4–18,
+    `agent-title-limits.ts` 1). Preserving the existing constructors keeps
+    new prompt-derived names consistent with earlier Vessel sessions and
+    keeps the wire's accepted title set stable.
 
 ## What a screen calls
 
@@ -143,8 +147,8 @@ Slice 2's files, one responsibility each, and not a second `name.rs`
 - `TitleOrigin` beside `SessionTitle` in `crates/vessel-proto/src/title.rs`
   (187 lines). The event and `SessionInfo` gain the field.
 - The settings types in `crates/vessel-proto/src/settings.rs` (198 lines).
-- `branch_auto_name` in its own file under `crates/vessel-proto/src/workspace/`.
-  `worktree.rs` is 477 lines, so it gains one field and no more.
+- `branch_auto_name` belongs to slice 3, in its own file under
+  `crates/vessel-proto/src/workspace/`; it is not part of session generation.
 - `text.commit` and `text.pull` in `crates/vessel-proto/src/draft_text.rs`,
   only those two calls. Not in slice 2's code; the file waits for slice 4.
 - The generator in `crates/vessel-node/src/models/draft/` (the choice of
@@ -162,14 +166,36 @@ that already uses `..` is left alone.
 
 ## Resume point
 
-- **Done:** slice 1, the contract, in ADR 0062 and this file. No code.
-  The branch's commits after `backend/m12-quality` are this slice.
-- **Half-done:** nothing.
-- **Next:** slice 2, starting with `TitleOrigin` in `title.rs` and the
-  settings field in `settings.rs`, then the generator against a fake
-  completion, then the session-title task that does not hold
-  `session.create`. Not `names.rs`.
-  `PROTOCOL_VERSION` stays at the base. New fields compare against
-  `GENERATED_NAMES` only, and that constant's value is written at merge.
-  `docs/PROTOCOL.md` gains its section in the same merge, not with a
-  number this plan invents.
+- **Done:** slice 1 contract passed review. ADR 0062 remains proposed.
+- **Source review requested:** slice 2a adds title origin to the session, rename event,
+  actor and durable projection. Schema 15 leaves every older title
+  unknown, including one whose create specification has a title.
+  Wire tests cover old events and old session info in both directions.
+  A typed older forwarding hop may discard origin, retaining the title
+  and decoding it as unknown at the next reader. The ADR corrects the
+  earlier unverified assumption that protocol 20 preserves reply fields:
+  `Forwarded.reply` is typed (`forward.rs` 123–126); version 20's rule
+  applies to the inner request (`docs/PROTOCOL.md` 42–47).
+  Runtime tests assert prompt-derived and typed origins against the fake
+  harness; store tests cover migration, each origin and reopening.
+- **Remaining slice 2:** 2b settings and project instructions; 2c the
+  bounded completion seam; 2d automatic scheduling and application. The
+  application must compare the expected given title inside the actor:
+  a read before queuing a rename leaves a race with a person's rename.
+- **Gate status:** the full workspace run is incomplete: the known
+  protocol-version assertion and a connector timeout remain base failures.
+  The store reopening fixture initially failed on the expected recovery
+  event; the corrected fixture asserts that event and all rename origins,
+  and its two tests pass. TypeScript generation and all web checks pass
+  (417 unit tests and 62 browser tests). Source review proceeds while the
+  base fixes await integration; this is not a green whole gate.
+- **Next:** 2b settings and project instructions, then merge the authorized
+  node head and run the whole gate with both nested-build prerequisites.
+  No generation exists in 2a. Nothing calls a model. No branch work starts
+  before slice 2 is complete.
+- `PROTOCOL_VERSION` stays at the base. `GENERATED_NAMES` is the single
+  merge-assigned threshold. Until assigned, `SessionInfo` omits its
+  origin; a known rename origin remains an additive field, as the ADR
+  requires. Generated TypeScript is regenerated with each wire slice.
+- Not verified: real models, live nodes, UI interactions, an actual
+  old-binary forwarding hop, Windows or macOS execution.

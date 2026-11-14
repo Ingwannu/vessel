@@ -233,6 +233,7 @@ impl Launcher {
             model: None,
             model_proxy: None,
             fork: None,
+            title_origin: None,
         })
     }
 

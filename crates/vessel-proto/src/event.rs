@@ -102,6 +102,12 @@ pub enum SessionEvent {
     Renamed {
         /// The title now.
         title: SessionTitle,
+        /// Who produced it (ADR 0062). Absent decodes as unknown. The
+        /// event stays protocol 9: a peer that ignores an unknown field
+        /// still reads `title`. A typed older hop may omit the origin;
+        /// the next reader then keeps the title with unknown origin.
+        #[serde(default, skip_serializing_if = "crate::title::TitleOrigin::is_unknown")]
+        origin: crate::title::TitleOrigin,
     },
     /// The session's queue changed (protocol 10, ADR 0024): a prompt
     /// queued, edited, moved, removed or started, or the queue held or let
@@ -231,7 +237,7 @@ impl SessionEvent {
                     line: format!("vessel: options: {}", SessionOption::summary(options)),
                 },
             }),
-            Self::Renamed { title } => Some(Self::Agent {
+            Self::Renamed { title, .. } => Some(Self::Agent {
                 event: AgentEvent::HarnessLog {
                     line: format!("vessel: renamed to {title}"),
                 },

@@ -6704,7 +6704,14 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: SessionTitle, } | { "type": "queue_changed", 
+title: SessionTitle, 
+/**
+ * Who produced it (ADR 0062). Absent decodes as unknown. The
+ * event stays protocol 9: a peer that ignores an unknown field
+ * still reads `title`. A typed older hop may omit the origin;
+ * the next reader then keeps the title with unknown origin.
+ */
+origin?: TitleOrigin, } | { "type": "queue_changed", 
 /**
  * The queue now.
  */
@@ -6852,6 +6859,13 @@ board?: SessionBoard | null,
  * from older nodes; a client then names it by its folder.
  */
 title?: SessionTitle | null, 
+/**
+ * Who produced [`title`](Self::title) (ADR 0062). Absent means
+ * [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
+ * build does not speak the field yet, or the row was stored before
+ * it. A `renamed` event carries the same origin.
+ */
+title_origin?: TitleOrigin, 
 /**
  * What a person marked on it: pinned, archived, unread (protocol 10,
  * ADR 0026). Kept by the node, so every client sees the same; left
@@ -8009,6 +8023,14 @@ reasons: Array<KeptReason>, });
  * An IANA time zone's name, as a person chose it (`Asia/Seoul`).
  */
 export type TimeZoneName = string;
+
+/**
+ * Who produced the session's current title (ADR 0062). Absent on the wire
+ * decodes as [`Unknown`](Self::Unknown): a record from before generated
+ * names, or an origin this build does not know. Generation replaces only
+ * [`Given`](Self::Given).
+ */
+export type TitleOrigin = "typed" | "given" | "generated" | "unknown";
 
 /**
  * A number of tokens.

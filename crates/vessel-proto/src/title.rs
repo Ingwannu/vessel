@@ -31,6 +31,8 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 /// A session's title: one line of text a person reads.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
@@ -132,6 +134,49 @@ impl fmt::Display for SessionTitle {
 
 crate::key::serde_via_text!(SessionTitle);
 
+/// Who produced the session's current title (ADR 0062). Absent on the wire
+/// decodes as [`Unknown`](Self::Unknown): a record from before generated
+/// names, or an origin this build does not know. Generation replaces only
+/// [`Given`](Self::Given).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum TitleOrigin {
+    /// A person wrote it (`SessionSpec.title` or `session.rename`).
+    Typed,
+    /// The node cut it from text (`SessionTitle::from_prompt`), including a
+    /// fork's derived title.
+    Given,
+    /// The generator's title, after it parsed.
+    Generated,
+    /// Not recorded, or an origin added later. Not replaced.
+    #[default]
+    #[serde(other)]
+    Unknown,
+}
+
+impl TitleOrigin {
+    /// Whether no reliable producer was recorded for an older title.
+    #[must_use]
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+
+    /// Leave the field out of `SessionInfo`: unknown, or this build does
+    /// not speak [`GENERATED_NAMES`](crate::node::GENERATED_NAMES) yet.
+    /// A `renamed` event still carries a known origin. Its version does
+    /// not move. A typed older hop can discard origin; its next reader
+    /// treats that title as unknown and never replaces it automatically.
+    #[must_use]
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's skip_serializing_if callback requires a borrowed field"
+    )]
+    pub(crate) const fn omit_on_info(&self) -> bool {
+        self.is_unknown() || !crate::node::speaks_generated_names()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,5 +228,91 @@ mod tests {
         );
         // What a prompt gives is always a title a person could type.
         assert_eq!(long.as_str().parse::<SessionTitle>(), Ok(long));
+    }
+
+    /// An origin this build does not name is unknown, and unknown is the
+    /// field's absence. A known origin round-trips.
+    #[test]
+    fn an_absent_origin_is_unknown_and_a_known_one_round_trips() {
+        assert_eq!(
+            serde_json::from_str::<TitleOrigin>("\"later\"").unwrap(),
+            TitleOrigin::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<TitleOrigin>("\"given\"").unwrap(),
+            TitleOrigin::Given
+        );
+        assert_eq!(
+            serde_json::to_string(&TitleOrigin::Generated).unwrap(),
+            "\"generated\""
+        );
+        assert!(TitleOrigin::omit_on_info(&TitleOrigin::Unknown));
+        assert_eq!(
+            TitleOrigin::omit_on_info(&TitleOrigin::Typed),
+            !crate::node::speaks_generated_names()
+        );
+    }
+
+    #[test]
+    fn renames_from_older_nodes_and_to_older_clients_keep_the_title() {
+        use crate::{ProtocolVersion, SessionEvent};
+        #[derive(serde::Deserialize, serde::Serialize)]
+        #[serde(tag = "type", rename_all = "snake_case")]
+        enum OldRename {
+            Renamed { title: SessionTitle },
+        }
+        let old = r#"{"type":"renamed","title":"My title"}"#;
+        let read: SessionEvent = serde_json::from_str(old).unwrap();
+        assert!(matches!(
+            read,
+            SessionEvent::Renamed {
+                origin: TitleOrigin::Unknown,
+                ..
+            }
+        ));
+        let event = SessionEvent::Renamed {
+            title: "My title".parse().unwrap(),
+            origin: TitleOrigin::Generated,
+        };
+        assert_eq!(event.since(), ProtocolVersion::new(9));
+        assert_eq!(event.for_protocol(ProtocolVersion::new(9)), None);
+        let encoded = serde_json::to_string(&event).unwrap();
+        let older: OldRename = serde_json::from_str(&encoded).unwrap();
+        let OldRename::Renamed { title } = &older;
+        assert_eq!(title.as_str(), "My title");
+        // A typed older hop drops an additive reply field when it encodes
+        // again. Unknown origin keeps the surviving title ineligible.
+        let forwarded = serde_json::to_string(&older).unwrap();
+        let after_hop: SessionEvent = serde_json::from_str(&forwarded).unwrap();
+        assert_eq!(after_hop, read);
+        assert_eq!(
+            serde_json::from_str::<SessionEvent>(&encoded).unwrap(),
+            event
+        );
+        assert!(!serde_json::to_string(&read).unwrap().contains("origin"));
+    }
+
+    #[test]
+    fn an_old_session_info_is_unknown_even_when_its_spec_has_a_title() {
+        use crate::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
+        let spec = SessionSpec::new(
+            HarnessKind::Codex,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        )
+        .with_title("Mine".parse().unwrap());
+        let mut info = SessionInfo::new(SessionId::random(), spec, chrono::Utc::now());
+        assert_eq!(info.title_origin, TitleOrigin::Typed);
+        // Removing the field models a pre-origin node without inferring
+        // who authored a title from its text or the create specification.
+        info.title_origin = TitleOrigin::Unknown;
+        let encoded = serde_json::to_string(&info).unwrap();
+        assert!(!encoded.contains("title_origin"));
+        let read: SessionInfo = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(read.title_origin, TitleOrigin::Unknown);
+        assert_eq!(read.title, info.title);
     }
 }

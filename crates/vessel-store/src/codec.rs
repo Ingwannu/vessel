@@ -65,15 +65,18 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(
 }
 
 /// The columns [`session_from_row`] expects, in order: the marks'
-/// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then `attention_seq`.
+/// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then `attention_seq`
+/// and schema 15's `title_origin`.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
      via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
-     attention_seq";
+     attention_seq, title_origin";
 
 /// Where the marks' columns start in [`SESSION_COLUMNS`].
 const FIRST_MARK: usize = 14;
 /// Where `attention_seq` is in [`SESSION_COLUMNS`].
 const ATTENTION: usize = 18;
+/// Where `title_origin` is in [`SESSION_COLUMNS`] (schema 15).
+const TITLE_ORIGIN: usize = 19;
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -149,6 +152,13 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     let kept = StoredMarks::from_row(row, FIRST_MARK)?.kept()?;
     info.marks = kept.marks(attention_from_sql(row.get(ATTENTION)?)?);
     info.board = stored_board(&info, kept.is_archived());
+    // Schema 15: who produced the title. `NULL` (every row from before
+    // it) is unknown, which generation does not replace.
+    info.title_origin = row
+        .get::<_, Option<String>>(TITLE_ORIGIN)?
+        .map(|origin| decode::<vessel_proto::TitleOrigin>(id, Column::TitleOrigin, &origin))
+        .transpose()?
+        .unwrap_or_default();
     Ok(info)
 }
 

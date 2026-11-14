@@ -97,7 +97,7 @@ impl Conversation {
             SessionEvent::OptionsChanged { options } => {
                 self.line(format!("[options: {}]", render::options(options)))
             }
-            SessionEvent::Renamed { title } => self.line(format!("[renamed: {title}]")),
+            SessionEvent::Renamed { title, .. } => self.line(format!("[renamed: {title}]")),
             SessionEvent::QueueChanged { queue } => self.line(render::queue(queue)),
             SessionEvent::CommandsChanged { commands } => {
                 self.line(format!("[commands: {}]", render::commands(commands)))

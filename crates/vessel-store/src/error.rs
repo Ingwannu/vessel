@@ -50,6 +50,8 @@ pub enum Column {
     Queue,
     /// The bounded latest plan (schema 14, ADR 0045).
     LatestPlan,
+    /// `sessions.title_origin` (a `TitleOrigin`, schema 15).
+    TitleOrigin,
 }
 
 /// Anything that can go wrong in the store.

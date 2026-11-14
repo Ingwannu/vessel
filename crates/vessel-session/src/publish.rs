@@ -242,7 +242,7 @@ enum InfoChange {
     /// it can do, which the info carries as the store's row does.
     Ready(HarnessSessionId, Option<AgentAbilities>),
     Profile(Option<ProfileName>),
-    Title(SessionTitle),
+    Title(SessionTitle, vessel_proto::TitleOrigin),
     /// Its agent was parked (`Some`) or woken (protocol 12).
     Parked(Option<vessel_proto::parking::ParkReason>),
 }
@@ -259,7 +259,7 @@ impl InfoChange {
                     },
             } => Self::Ready(harness_session.clone(), *abilities),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
-            SessionEvent::Renamed { title } => Self::Title(title.clone()),
+            SessionEvent::Renamed { title, origin } => Self::Title(title.clone(), *origin),
             SessionEvent::Parked { reason } => Self::Parked(Some(reason.clone())),
             SessionEvent::Woken => Self::Parked(None),
             // The agent's conversation from a rewind on (protocol 14): the
@@ -307,8 +307,9 @@ impl InfoChange {
                 info.profile = profile;
                 true
             }
-            Self::Title(title) => {
+            Self::Title(title, origin) => {
                 info.title = Some(title);
+                info.title_origin = origin;
                 true
             }
             Self::Parked(reason) => {

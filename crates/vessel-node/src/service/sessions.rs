@@ -174,6 +174,9 @@ impl NodeService {
                 return Err(wire(&error));
             }
         }
+        if fork.is_some() {
+            options.title_origin = Some(vessel_proto::TitleOrigin::Given);
+        }
         options.fork = fork.map(Box::new);
         let created = self.sessions.create(spec, options, lease).await;
         if created.is_err() {

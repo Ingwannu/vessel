@@ -97,6 +97,8 @@ pub(crate) struct Lifecycle {
 #[derive(Debug)]
 pub(crate) struct Rename {
     pub(crate) title: SessionTitle,
+    /// Who produced `title`. A person's `session.rename` is typed.
+    pub(crate) origin: vessel_proto::TitleOrigin,
     pub(crate) done: oneshot::Sender<()>,
 }
 
@@ -152,7 +154,7 @@ impl Lifecycle {
 
     /// Publish a rename and answer it.
     pub(crate) async fn renamed<P: Stoppable>(&mut self, process: &mut P, rename: Rename) {
-        self.rename(process, rename.title).await;
+        self.rename(process, rename.title, rename.origin).await;
         // The caller may have given up; the title stands.
         let _gone = rename.done.send(());
     }
@@ -174,9 +176,15 @@ impl Lifecycle {
     }
 
     /// Publish `title` as the session's title.
-    pub(crate) async fn rename<P: Stoppable>(&mut self, process: &mut P, title: SessionTitle) {
+    pub(crate) async fn rename<P: Stoppable>(
+        &mut self,
+        process: &mut P,
+        title: SessionTitle,
+        origin: vessel_proto::TitleOrigin,
+    ) {
         self.titled = true;
-        self.publish(process, SessionEvent::Renamed { title }).await;
+        self.publish(process, SessionEvent::Renamed { title, origin })
+            .await;
     }
 
     /// Publish a status change.

@@ -18,7 +18,8 @@ mod fixtures;
 
 /// Undoes schemas 14 to 10: side plans, search, schedules, saved prompts,
 /// hooks, the set an approval covered, and pull request feedback.
-const UNDO_SCHEMAS_10_TO_14: &str = "ALTER TABLE sessions DROP COLUMN latest_plan;
+const UNDO_SCHEMAS_10_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+     ALTER TABLE sessions DROP COLUMN latest_plan;
      DROP TRIGGER sessions_search_gone;
      DROP TRIGGER sessions_search_pruned;
      DROP TABLE search_index;
@@ -74,7 +75,7 @@ async fn an_approval_from_schema_9_walks_to_the_newest_and_new_ones_keep_their_s
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_TO_14).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_10_TO_15).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",

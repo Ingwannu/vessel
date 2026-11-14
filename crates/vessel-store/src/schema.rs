@@ -367,6 +367,10 @@ END;
 /// retention and is independent of the partial transcript tail.
 const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
 
+/// A session title's origin (schema 15, ADR 0062). `NULL` is unknown: a
+/// row from before this version, which generation does not replace.
+const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
 const MIGRATIONS: &[&str] = &[
@@ -384,6 +388,7 @@ const MIGRATIONS: &[&str] = &[
     V12,
     V13,
     SIDE_CONTEXT,
+    TITLE_ORIGIN,
 ];
 
 /// Bring the database to the newest schema.

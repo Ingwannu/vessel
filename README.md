@@ -80,6 +80,12 @@ cargo build --release
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 
+A session title uses the first nonempty prompt line, up to 80 Unicode
+scalar values, unless a title was supplied. Typed titles allow 120. The
+node records who supplied a title so later generation can preserve a
+person's choice; older titles have unknown origin (ADR 0062). Automatic
+generation is not enabled yet in this build.
+
 ### A conversation: the queue, files, questions, marks
 
 A structured session's next message can go in while its agent still
@@ -1121,6 +1127,7 @@ automatic failure screenshots are disabled.
 | `VESSEL_RELAY_TRUSTED_PROXY` | `vesseld relay --trusted-proxy`, comma-separated | none |
 | `VESSEL_RELAY_MAX_NODES`, `VESSEL_RELAY_MAX_REGISTERING`, `VESSEL_RELAY_MAX_CLIENTS`, `VESSEL_RELAY_MAX_CLIENTS_PER_NODE`, `VESSEL_RELAY_MAX_BYTES_PER_SECOND`, `VESSEL_RELAY_MAX_CONNECTIONS`, `VESSEL_RELAY_MAX_UNAUTHENTICATED`, `VESSEL_RELAY_MAX_CONNECTIONS_PER_ADDRESS`, `VESSEL_RELAY_MAX_REGISTERING_PER_ADDRESS`, `VESSEL_RELAY_RESERVED_REGISTERING`, `VESSEL_RELAY_MAX_CLIENTS_PER_ADDRESS`, `VESSEL_RELAY_MAX_NODE_CLIENTS_PER_ADDRESS` | the `vesseld relay` limits of the same names ("Running a relay") | 128, 64, 384, 128, 16 MiB, 1000, 400, 16, 7, 16, 16, 4 |
 | `VESSEL_NODE_SOCKET`, `VESSEL_AGENT_SESSION`, `VESSEL_AGENT_SECRET` | `vessel mcp` only: set by the node in each session's `vessel` MCP server | set by the node |
+
 
 ## Layout
 

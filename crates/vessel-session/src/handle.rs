@@ -293,7 +293,11 @@ impl SessionHandle {
         let (done, renamed) = oneshot::channel();
         self.0
             .renames
-            .send(Rename { title, done })
+            .send(Rename {
+                title,
+                origin: vessel_proto::TitleOrigin::Typed,
+                done,
+            })
             .await
             .map_err(|_ended| SessionError::Ended)?;
         renamed.await.map_err(|_ended| SessionError::Ended)?;

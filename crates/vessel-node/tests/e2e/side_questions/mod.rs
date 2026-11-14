@@ -80,7 +80,7 @@ async fn side_questions_leave_a_running_parent_unchanged_and_refresh_context() {
         client.send(parent.id, prompt("wait")).await.unwrap();
         // The first prompt also publishes its automatic title after TurnStarted.
         // Freeze the comparison only after that ordinary parent update.
-        read_until(&mut parent_stream, &mut Vec::new(), |record| matches!(&record.event, vessel_proto::SessionEvent::Renamed { title } if title.as_str() == "wait")).await;
+        read_until(&mut parent_stream, &mut Vec::new(), |record| matches!(&record.event, vessel_proto::SessionEvent::Renamed { title, .. } if title.as_str() == "wait")).await;
         let before = read_all(&client, parent.id).await;
         let side = client.open_side_question(parent.id).await.unwrap();
         assert_ne!(side.id, parent.id);

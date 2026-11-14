@@ -76,7 +76,8 @@ async fn device_windows_keep_a_stable_cursor_and_explicit_incompleteness() {
 /// hooks (12), pull request feedback (10; 11's column goes with `approvals`), the
 /// workspace's tables (9), retention's index (schema 1's in its place, 8),
 /// the conversation's columns and the attachments table (7).
-const UNDO_SCHEMAS_7_TO_14: &str = "ALTER TABLE sessions DROP COLUMN latest_plan;
+const UNDO_SCHEMAS_7_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+     ALTER TABLE sessions DROP COLUMN latest_plan;
      DROP TRIGGER sessions_search_gone;
      DROP TRIGGER sessions_search_pruned;
      DROP TABLE search_index;
@@ -225,7 +226,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_14).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_15).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their
     // model (5).
