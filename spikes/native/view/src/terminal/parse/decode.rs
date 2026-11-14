@@ -70,15 +70,15 @@ fn plain(params: &Params, action: char) -> Csi {
         },
         // Primary device attributes: no parameter, or 0, and nothing else.
         'c' => {
-            if params.len() <= 1 && first(params) == 0 {
+            if bare(params) {
                 Csi::Attributes(Attributes::Primary)
             } else {
                 Csi::Attributes(Attributes::Other)
             }
         }
         // With parameters `s` is DECSLRM (margins), not kept.
-        's' if params.is_empty() => Csi::SaveCursor,
-        'u' if params.is_empty() => Csi::RestoreCursor,
+        's' if bare(params) => Csi::SaveCursor,
+        'u' if bare(params) => Csi::RestoreCursor,
         // Window operations, the title and size reports among them.
         't' => Csi::RefusedQuery,
         _ => Csi::Unsupported,
@@ -143,11 +143,21 @@ fn modes(params: &Params, kind: fn(u16) -> Mode) -> Vec<Mode> {
 }
 
 /// SGR's groups as sent; an empty `CSI m` is one group `[0]` (reset).
+/// `vte` already sends `[0]` for it; the guard keeps that true if it ever
+/// sends an empty list.
 fn groups(params: &Params) -> Vec<Group> {
     if params.is_empty() {
         return vec![vec![0]];
     }
     params.iter().map(<[u16]>::to_vec).collect()
+}
+
+/// Whether the sequence carried no parameter. `vte` dispatches the
+/// parameter being collected even when none was written, so `CSI s`
+/// arrives as one parameter of 0 (never as an empty list), the same as
+/// `CSI 0 s`.
+fn bare(params: &Params) -> bool {
+    params.len() <= 1 && first(params) == 0
 }
 
 /// The first parameter's value; 0 when there is none.

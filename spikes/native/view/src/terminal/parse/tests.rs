@@ -63,6 +63,16 @@ fn a_hangul_syllable_split_across_calls_prints_once() {
 }
 
 #[test]
+fn a_bare_save_or_restore_is_scosc_and_one_with_margins_is_not() {
+    // `vte` sends a bare sequence as one parameter of 0.
+    assert_eq!(live(b"\x1b[s"), [Action::Csi(Csi::SaveCursor)]);
+    assert_eq!(live(b"\x1b[0s"), [Action::Csi(Csi::SaveCursor)]);
+    assert_eq!(live(b"\x1b[u"), [Action::Csi(Csi::RestoreCursor)]);
+    assert_eq!(live(b"\x1b[2;40s"), [Action::Csi(Csi::Unsupported)]);
+    assert_eq!(live(b"\x1b[1u"), [Action::Csi(Csi::Unsupported)]);
+}
+
+#[test]
 fn the_answered_queries_have_their_own_shapes() {
     assert_eq!(
         live(b"\x1b[c\x1b[0c\x1b[5n\x1b[6n\x1b[?6n\x1b]10;?\x07\x1b]11;?\x1b\\\x1b]12;?\x07"),
