@@ -292,7 +292,8 @@ avatar).
 
 `app::brand` is the shell's `brand`: the new session's column gives
 `on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
-composer's card and the pickers after `skip` children), the session's
+composer's card and the pickers after `skip` children; any later child,
+such as the "no machine yet" note, counts with the pickers), the session's
 screen gives `shell.brand.session_body(viewport)` and its composer's column
 `shell.brand.session_column()`, the row waiting for the reply gives
 `shell.brand.reply_head()` (its first child is the avatar's slot, where the

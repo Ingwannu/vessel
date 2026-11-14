@@ -264,3 +264,10 @@ fn the_frame_leans_in_as_the_sketch_does() {
     let narrow = session(&session_at(area(264.0, 73.0, 1271.0, 791.0), 358.0, 1177.0));
     assert!(lean(&narrow) < 5.0);
 }
+
+#[test]
+fn a_union_holds_both_boxes() {
+    let pickers = area(377.0, 516.0, 586.0, 529.0);
+    let note = area(358.0, 541.0, 640.0, 556.0);
+    assert_eq!(pickers.union(note), area(358.0, 516.0, 640.0, 556.0));
+}

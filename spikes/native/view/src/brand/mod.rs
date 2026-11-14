@@ -82,6 +82,21 @@ impl Area {
         let bottom = self.y + self.h;
         bottom
     }
+
+    /// The smallest area holding both: several boxes the drawing keeps
+    /// clear of as one (the pickers and a note under them; the empty
+    /// board's title, line and button).
+    #[must_use]
+    pub fn union(self, other: Self) -> Self {
+        let (x, y) = (self.x.min(other.x), self.y.min(other.y));
+        let (right, bottom) = (
+            self.right().max(other.right()),
+            self.bottom().max(other.bottom()),
+        );
+        #[expect(clippy::float_arithmetic, reason = "a size is edge minus origin")]
+        let (w, h) = (right - x, bottom - y);
+        Self { x, y, w, h }
+    }
 }
 
 /// The V's centre line: up-left arm top, apex, up-right arm top.
