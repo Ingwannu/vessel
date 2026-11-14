@@ -40,7 +40,7 @@ These are source-only observations; no real Paseo daemon was exercised.
    relay state counts. A copied report shows `~`, never a home/address/key.
 3. Missing/stale facts have a reason. A partially failed report retains its
    available sections without suggesting an empty node or healthy store.
-4. Recent failed node calls show bounded static method/code/time entries with
+4. Recent failed node calls show bounded code/time entries with
    RPC-only coverage, observation start and loss indicator. They contain no
    raw message, log, request body, caller id or resource id.
 5. Refresh recollects without launching an agent, checking a login, running
@@ -77,7 +77,7 @@ sentinel for None. A source dependency is not an invitation to add another gate.
 
 ### Named adversarial fixtures
 
-- Put fake secret values, URLs, pairing links, path-like labels, program paths,
+- Put fake secret values, URLs, pairing links, custom agent names, labels, program paths,
   free-form versions and raw error text in the underlying sources. Serialize
   and render the report; assert every canary is absent, including Debug and
   malformed-value failures. Home is the fixed redacted value.
@@ -91,7 +91,7 @@ sentinel for None. A source dependency is not an invitation to add another gate.
 - Hold two blocking readers, cancel their callers and attempt a third report:
   it remains Busy until the original blocking work releases its guards. A
   deterministic pool barrier replaces sleeps/retries or longer deadlines.
-- Record static RPC failures with hostile raw messages. Retain only 32 from
+- Record typed RPC failures with hostile raw messages and method parameters. Retain only 32 from
   15 minutes, disclose loss/eviction, exclude envelope duplicate observations,
   and clear on a new node instance. Observation overload never changes a
   method's original result; transport-only errors are not claimed observed.

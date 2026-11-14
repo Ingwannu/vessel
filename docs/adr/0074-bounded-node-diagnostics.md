@@ -67,19 +67,22 @@ The planned `DiagnosticReport` contains only these sections:
 |---|---|---|
 | Node | stable node id, collection time, normalized binary version, OS/architecture, Serving/Draining, monotonic uptime | lifecycle and node-instance clock; never hostname/name/key |
 | Store | readable/unavailable, expected and observed schema, current stored session counts | one bounded reader transaction; no file path, SQL, file content, repair or integrity guarantee |
-| Agents | at most 64 built-in/custom ids, executable presence, structured availability, cached numeric version and check age/reason | existing registry/readiness plus metadata-only discovery; no label, program/path, arguments or output |
+| Agents | at most 64 built-in ids/report-local custom slots, executable presence, structured availability, cached numeric version and check age/reason | existing registry/readiness plus metadata-only discovery; no label, program/path, arguments or output |
 | Sessions | stored total and status counts, current live/parked runtime counts | count projections; no session ids, titles, prompts, projects, paths or transcripts |
 | Listener | configured/bound state and LocalSocket/LocalPipe/DirectTcp kinds | startup/runtime state, never address, port, socket/pipe name or route URL |
-| Relay | counts by Connecting/Registered/Backoff/Stopped state, configured/callback origin | existing watches; no endpoint, ticket, token, peer key or last error string |
-| Recent failures | last 32 retained failed local typed RPC completions within 15 minutes: static method, ErrorCode, time; omission indicator | bounded in-memory journal, explicitly RPC-only coverage; not a log tail |
+| Relay | counts by Connecting/Registered/Refused/Stopped state, configured/callback origin | existing watches; no endpoint, ticket, token, peer key or last error string |
+| Recent failures | last 32 retained failed local typed RPC completions within 15 minutes: ErrorCode and time; omission indicator | bounded in-memory journal, explicitly RPC-only coverage; not a log tail |
 
 Node version is its compiled package version, projected into numeric components
 and prerelease/build-presence flags without copying arbitrary suffix text.
 Agent versions are optional numeric components from already observed facts;
 unparseable/free-form words become UnknownVersion. Existing `AgentVersion`
 is bounded but permits arbitrary words, so it is not copied as diagnostic text.
-Agent ids reuse `HarnessRef`; human-supplied labels and profile names are not
-needed for the operational report. The local client knows its selected machine.
+Built-ins reuse `HarnessKind`. An added `HarnessRef` contains a person-chosen
+`AgentName` (including dots), so custom entries use report-local numeric slots
+1–64 instead. Labels, names and profile names are not copied. This trades
+custom-name identification for a report that cannot export an address or
+secret placed in such a name. The local client knows its selected machine.
 
 No request starts an agent, runs `--version`, a sign-in command, a shell, git,
 gh, a network probe, a repair or a migration. Metadata-only executable lookup
@@ -98,9 +101,10 @@ cross-runtime/SQLite global transaction; section timestamps make that clear.
 ### Recent failure coverage
 
 Paseo reads its last log lines. Vessel instead records only completed typed
-RPC failures at the common guarded service boundary. Method names and error
-codes are closed sets; error messages, arguments, principals and resource ids
-never enter this journal. Envelope wrappers are excluded to avoid counting a
+RPC failures at the common guarded service boundary. Only the existing error
+code and timestamp enter it; messages, method names, arguments, principals and
+resource ids do not. Omitting method variants also avoids putting a future
+method unknown to an older reporting client into an otherwise supported reply. Envelope wrappers are excluded to avoid counting a
 single local inner failure again as its wrapper. Transport/handshake/parser
 failures and errors written only by background tasks are outside its coverage.
 The renderer says "failed node calls", not "all errors" or "no errors".
