@@ -216,7 +216,7 @@ mod tests {
         };
         let call = request.clone().into_call();
         assert!(call.since() <= PROTOCOL_VERSION);
-        assert_eq!(call.method().scope(), Scope::Read);
+        assert_eq!(call.method().scope(), Some(Scope::Read));
         assert_eq!(MIN_PROTOCOL_VERSION, ProtocolVersion::new(2));
         assert_eq!(
             serde_json::from_str::<QueryUsage>(&serde_json::to_string(&request).unwrap()).unwrap(),
