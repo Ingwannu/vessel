@@ -909,8 +909,15 @@ never rebuilt.
     green there, 990 tests), checked out detached and run through
     `cargo-slot` (slot 2 after 718 s in line, 5 jobs); this branch then
     merged it.
-  - The set went into place at 17:14:45 UTC on 2026-11-14. It is not
-    published yet: the coordinator's smoke test comes first.
+  - The set went into place at 17:14:45 UTC on 2026-11-14 and was
+    published to `preview` at 18:34:05 UTC, after the coordinator's
+    smoke test on the real node. The notes carry one known problem: in a
+    window about 800 wide with the right panel open, the conversation
+    column is squeezed (fixed in the next build).
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature; the published 0.0.0.0.15 Linux
+    build took 0.0.0.0.16 by itself at 18:35:39 UTC; the `/dl/` list (the
+    proxy's own function over the dist folder) puts 0.0.0.0.16 first.
   - Gemini's mark is now Google's own file from Google's CDN, embedded
     byte for byte (27,794 bytes, the SHA-256 in
     `docs/design/agent-marks/README.md`); three slices of it are in both
