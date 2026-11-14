@@ -76,9 +76,10 @@ use vessel_app_view::session::{MarkAction, is_live};
 use vessel_app_view::timeline::{
     FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, ToolView, outline,
 };
+use vessel_proto::parking::Parked;
 use vessel_proto::{
     ErrorCode, EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer,
-    QuestionId, SessionId, SessionInfo, ToolCallId,
+    QuestionId, SessionEvent, SessionId, SessionInfo, ToolCallId,
 };
 
 pub(crate) use bar::bar;
@@ -460,6 +461,27 @@ impl ConversationArea {
         });
     }
 
+    /// The session's own `parked` and `woken` records keep the session's
+    /// description current, so the bar and the banner say released or not
+    /// as the timeline does (the description is read only when the
+    /// session opens and after an act). In order: a log read from its
+    /// start ends where the session stands.
+    fn follow_parking(&mut self, records: &[EventRecord]) {
+        let Some(info) = self.info.as_mut() else {
+            return;
+        };
+        for record in records {
+            if let SessionEvent::Parked { reason } = &record.event {
+                info.parked = Some(Parked {
+                    since: record.at,
+                    reason: reason.clone(),
+                });
+            } else if matches!(record.event, SessionEvent::Woken) {
+                info.parked = None;
+            }
+        }
+    }
+
     /// Show nothing: what was shown is dropped, here only.
     fn clear(&mut self) {
         self.shown = None;
@@ -539,6 +561,7 @@ impl ConversationArea {
         }
         // Records arriving for this session: the connection is back.
         self.lost = None;
+        self.follow_parking(records);
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
         if change.is_empty(self.timeline.entries().len()) {

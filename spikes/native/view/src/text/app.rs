@@ -180,8 +180,8 @@ impl Text {
             },
             Phrase::Failed => self.pick("failed", "실패"),
             Phrase::Interrupted => self.pick("interrupted", "중단됨"),
-            Phrase::Released => self.pick("released", "해제됨"),
-            Phrase::ResumeFailed => self.pick("resume failed", "재개 실패"),
+            Phrase::Released => self.pick("Released", "해제됨"),
+            Phrase::ResumeFailed => self.pick("Resume failed", "재개 실패"),
         }
     }
 
