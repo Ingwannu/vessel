@@ -136,10 +136,11 @@ wide scalar), a width of 0, 1 or 2, and attributes: colours as
 enums. A continuation is not a second character. Selection and find
 skip it.
 
-**Model.** `TerminalModel::new(size, scrollback)`. `feed(&[u8]) -> Feed`
-applies at most one budget and returns `consumed` plus any reply bytes
-(cursor position, primary device attributes). The caller keeps the
-tail. `resize(GridSize)` reflows the primary screen's soft-wrapped
+**Model.** `TerminalModel::new(size, scrollback)`. `replay(&[u8]) -> Feed` applies at most one budget and returns no
+replies. History, attach and every viewer that `ResizeRule` does not
+let send use only `replay`. `feed(&[u8]) -> Feed` is the same parse and
+may return reply bytes; the link calls it only for the one viewer that
+has focus and has typed. The caller keeps the tail of either. `resize(GridSize)` reflows the primary screen's soft-wrapped
 lines and resizes the alternate screen without merging it into
 scrollback. `paste(text)` encodes bracketed paste when the program has
 turned that mode on, and returns the bytes; it does not send them.
@@ -157,19 +158,22 @@ terminal answers is a reply, not a draw. The link sends replies as
 `TerminalInput::Data`, through the existing sender, so they stay in
 order with keys.
 
-**Path paste.** `quote_path` produces the bytes Paseo would paste for a
-path that contains none of `` ` $ | & > ~ # ! ^ * ; < ``. A path that
-contains one is `TerminalError::Path`, naming the path only by the fact
-of the refusal (the message must not need the path to be useful, and
-must not echo a secret; a path is not a secret, but the error names the
-rule, not a rewritten path). Windows-shaped paths (`A:\`, `\\`) are
-quoted Paseo's way; the shape is external text, decoded once.
+**Path paste.** `quote_path(path, platform)` takes the node's platform.
+POSIX: a path containing `` ` $ | & > ~ # ! ^ * ; < `` is
+`TerminalError::Path` (the message names the rule, not the path). An
+accepted path doubles backslashes, then single-quotes, or `$'...'` with
+`'` as `\'` when both quote marks occur, or `\'` inside single quotes
+when only `'` occurs (Paseo's three forms, `terminal-path.ts` 6–20,
+read). Windows: no refusal of those characters (Paseo does not delete
+them there); a space is wrapped in `"` and any other path is unchanged
+(`escapeWindowsPath`, lines 22–27, read).
 
 **What the fixtures pin** (slice 2, beside the model): a coloured run,
 `한` as width 2 plus a continuation, the same syllable split across two
 feeds, the alternate screen and back, bracketed paste on and off, an
-arrow in normal and application mode, a cursor-position query answered
-with the cursor's cell.
+arrow in normal and application mode, a live cursor-position query
+answered with the cursor's cell, and the same query through `replay`
+answered with no bytes.
 
 **Link (slice 3).** A shell's follow is `follow_terminal` on the testkit's
 fake, never a real shell. Input, replies and resizes go through one
@@ -203,9 +207,11 @@ grid, and that an unchanged generation draws nothing), not described.
 
 ## Resume point
 
-- Done: ADR 0073 (status proposed) and this contract. `vte` is reserved
-  to `vessel-app-view` in `spikes/native/README.md`. No settings key, no
-  new call, no number at merge.
+- Done: ADR 0073 (status proposed) and this contract, including the
+  returned slice's three rules: `replay` never answers, path quoting for
+  both node platforms, scrollback on `view::prefs::Preferences`. `vte`
+  is reserved to `vessel-app-view`. No settings key on the node, no new
+  call, no number at merge.
 - Half-done: nothing in the commits. A draft of `types.rs` and `grid.rs`
   may sit uncommitted in the worktree; it is not part of a commit until
   the parser, keys, paste, find and tests build with it.

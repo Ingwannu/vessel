@@ -48,9 +48,11 @@ field are added, so there is no number to give at merge. Mouse reports,
 resize intent and a file upload are not added either.
 
 This ADR adds no `node.settings` key. Paseo keeps the scrollback count
-in the app, not on the daemon (`storage.ts` lines 54–56, read). A
-settings track that persists the count adds its own key at merge; that
-key is not listed here.
+in the app, under Settings › General, not on the daemon (`storage.ts`
+lines 54–56, read: default 10,000, 0 through 1,000,000). In Vessel it is
+one field of `view::prefs::Preferences`, per device, default
+`ScrollbackLines::DEFAULT`, and a missing field is that default. The
+Settings row that edits it is not this track's screen.
 
 The grid reaches nothing outside the process it is called in. It does
 not start a program, listen, or read a credential. The bytes are the
@@ -137,11 +139,11 @@ The split:
 
 Bounds:
 
-- Scrollback is a line count, default 10,000, allowed 0 through
-  1,000,000 (Paseo's setting). Lines are kept as output arrives; the
-  oldest line is dropped when the count is passed, which is the bound,
-  not a discarded command. The node's ring is unchanged (4,096 records,
-  1 MiB): a reconnect cannot show bytes the node has already dropped.
+- Scrollback is that preferences field: default 10,000, allowed 0
+  through 1,000,000. Lines are kept as output arrives; the oldest line
+  is dropped when the count is passed, which is the bound, not a
+  discarded command. The node's ring is unchanged (4,096 records, 1
+  MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
   many bytes it consumed. The rest stays with the caller. A frame feeds
   at most once, so one frame parses at most 16 KiB. That ceiling is not
@@ -157,9 +159,28 @@ bytes rather than by a second copy of xterm's tables: SGR colour,
 a Hangul syllable of width 2 and its continuation cell, the alternate
 screen, bracketed paste, and a UTF-8 sequence split across two feeds.
 An unknown sequence is ignored and the rest of the feed is kept (that
-is the parser's rule, not a dropped command). A query a local terminal
-answers (cursor position, primary device attributes) becomes reply
-bytes the link sends as input, because the node does not answer them.
+is the parser's rule, not a dropped command).
+
+Who answers a query is a difference from Paseo. Paseo's daemon answers
+cursor reports and replays the screen from its own buffer, once, for
+every viewer (`packages/app/src/terminal/character-widths.ts` lines 3–5,
+read). Vessel's node does not parse, so it cannot answer. The app does
+not take that job for history, and not every viewer answers a live
+query:
+
+- `replay` applies bytes and returns no replies. Attach, resume and any
+  fold of the ring use only `replay`. A cursor-position query in that
+  history moves the grid and types nothing. The grid's tests feed
+  `ESC [ 6 n` through `replay` and assert the reply is empty.
+- `feed` may return reply bytes (cursor position, primary device
+  attributes). The link sends those bytes only for the one viewer
+  `ResizeRule` already allows to send: it has focus and the person has
+  typed. Every other viewer, including a second window, applies the
+  same live bytes with `replay`.
+- The page's xterm.js also answers. This track does not change the
+  page, so a page that is open beside the answering native viewer can
+  still answer the same live query. That remaining double answer is
+  stated, not hidden.
 
 ## Why this and not the others
 
@@ -197,10 +218,22 @@ is not smuggled in as a copy.
   it is will disagree with Paseo on those clusters. Hangul syllables
   agree (width 2). The difference is recorded in the plan; it is not
   papered over.
-- A path paste that contains `` ` $ | & > ~ # ! ^ * ; < `` is refused
-  with a typed error. Paseo deletes those characters and pastes what
-  remains (`prepareTerminalPath`). Deleting them pastes a different
-  path and drops characters without saying so.
+- A path paste. Paseo's whole rule (`terminal-path.ts` lines 1–36,
+  read): the path's shape picks the branch (`A:\`, `A:/` or `\\` is
+  Windows). A Windows path is unchanged, or wrapped in double quotes
+  when it contains a space. Any other path doubles each backslash,
+  deletes `` ` $ | & > ~ # ! ^ * ; < ``, then single-quotes the result,
+  or uses `$'...'` with `'` written as `\'` when both `'` and `"`
+  occur, or the same `\'` inside single quotes when only `'` occurs.
+  Vessel does not delete. On a POSIX node those characters are
+  `TerminalError::Path` (a different path would be pasted). An accepted
+  path is then quoted as Paseo quotes after the deletion: backslashes
+  doubled, then the same three quote forms. On a Windows node there is
+  no deletion in Paseo, so Vessel does not refuse those characters
+  either: a space is wrapped in double quotes and every other path is
+  unchanged. Which branch runs is the node's platform, passed in by the
+  link, not the path's shape and not the app's operating system: the
+  shell that receives the paste is the node's, and a shape can lie.
 - Inline images (Sixel, iTerm) are not cells. Paseo loads an image
   addon to draw them. A pasted image is a file whose path is pasted,
   which is Paseo's paste, not its drawing. There is no terminal
