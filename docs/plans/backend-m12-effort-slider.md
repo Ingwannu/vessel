@@ -77,11 +77,23 @@ named as differences.
    frame clock only while the card is drawn and something moves (measure:
    no frame requests with the card closed); reduced motion jumps and
    draws no drift, burst or moving field, colours still change.
-3. The painted field: GPUI has no WebGL or blend modes. Painted with
-   blurred quads / gradients over the fill on the frame clock; every
-   difference from the app (the luminosity blend above all) named in the
-   control's Decision Log. Judged by frame strips: every 100 ms for 3 s
-   at the top stop and with Fast on, both themes.
+3. The painted field: GPUI has no WebGL or blend modes. The app's field
+   is a weighted mean of 12 colours at Gaussian blobs
+   (`exp(-12 d^2)`) whose centres move on sines (speed 1.25, each its own
+   frequencies, each weight pulsing 0.7-1.0), mixed 4 % toward its dark
+   violet, a 0.9 gamma and a little grain; it is cheap enough to compute
+   on the CPU at the fill's device size each frame, painted as one image
+   (the previous frame's image dropped from the atlas). The 2 s reveal is
+   a mask: a 120 px soft edge sweeping from the right end to the left.
+   Every difference from the app (the luminosity blend above all) is
+   named in the control's Decision Log. Judged by frame strips: every
+   100 ms for 3 s at the top stop and with Fast on, both themes.
+   Burst: 16 particles from 0.25 to 1.28 scale at 22 %, then to 0.55 at
+   their own offsets (about 34 px out), staggered 0-14 ms, every fourth
+   mixed 18-32 % toward blue. Fast dots: 14, each pass 1.9 s scaled by
+   up to ±20 % per dot, rows spread over 12-88 % of the track's height,
+   opacity 0.4-1.0, scale 0.5-0.95, fading in over the first 8 % and out
+   over the last 8 % of the pass.
 4. The card (`app/src/areas/draft/effort_card.rs`): the title block as
    one target with one hover (item 3); the bolt as the reference's
    32 × 32 button, accent when on, purple at the top stop; the warning
