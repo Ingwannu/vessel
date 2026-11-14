@@ -1,7 +1,10 @@
 # ADR 0073: A terminal grid for the native app
 
 Status: proposed, 2026-11-14 (milestone 12, the native app,
-`docs/plans/app-terminal.md`). No new wire and no number to be given at
+`docs/plans/app-terminal.md`). Taken over by track C the same day: the
+corrections of that reading (the node's other terminal calls, Paseo's
+attach, find, keys and colours read from its source, where the grid is
+drawn) are folded into the text below. No new wire and no number to be given at
 merge: a session's bytes stay `TerminalInput` / `SessionEvent::Terminal`
 (ADR 0003), and a shell uses the calls ADR 0031 already records. The
 parser is `vte` 0.15, reserved to `vessel-app-view` in
@@ -24,9 +27,29 @@ each terminal's log in memory: 4,096 records and 1 MiB
 (`vessel_session::terminals::Scrollback::DEFAULT`, ADR 0031). One read
 is at most 16 KiB (`vessel_pty::threads::READ_BUFFER`). A shell is a
 `TerminalId` with the session's terminal transport: `terminal.subscribe`
-/ `terminal.read` / `terminal.send`, plus create, rename and kill. The
-client crate already follows one (`follow_terminal`). Nothing in that
-path parses the bytes.
+/ `terminal.read` (pages of at most 512 records) / `terminal.send` (at
+most 64 KiB a call, `SendTerminal::MAX_BYTES`, refused above it in
+`vessel-node/src/service/terminals.rs`), plus `terminal.create`,
+`terminal.list`, `terminal.get` (which waits up to 30 s for a change),
+`terminal.rename`, `terminal.kill` (ends the process, keeps the terminal
+and its output) and `terminal.close` (ends it if it runs, and forgets
+it), all protocol 11. A project's script run and service are terminals
+too, without input (`TerminalKind::takes_input`). The client crate
+already follows one (`follow_terminal`). Nothing in that path parses the
+bytes. A session that is itself a terminal keeps its bytes in its log,
+which the node stores whole (`vessel-session/src/ring.rs`: a session's
+ring is a cache; only a shell's ring is bounded by bytes), so its
+history can be far larger than a shell's 1 MiB. No call turns a
+conversation into a terminal or back.
+
+Paseo's daemon parses and keeps a screen of its own: on attach a client
+asks for a serialized snapshot (`terminal-restore-options.ts` 19–21,
+`mode: "visible-snapshot"`, with the scrollback setting's line count) and
+gets it in chunks of 64 KiB (`server/src/terminal/terminal-replay.ts`
+24). Its client xterm draws and never answers a query
+(`terminal-emulator-runtime.ts` 641–660: CSI `c`, `n`, `R`, DECRQM and
+OSC 10–12 are swallowed; 941 writes a replay with input suppressed).
+Vessel's node keeps raw bytes only, so the app replays those.
 
 The page's view (`web/src/features/session/terminal-view.tsx`) replays
 those bytes into xterm.js with a hardcoded scrollback of 5,000 lines,
@@ -52,7 +75,10 @@ in the app, under Settings › General, not on the daemon (`storage.ts`
 lines 54–56, read: default 10,000, 0 through 1,000,000). In Vessel it is
 one field of `view::prefs::Preferences`, per device, default
 `ScrollbackLines::DEFAULT`, and a missing field is that default. The
-Settings row that edits it is not this track's screen.
+Settings row that edits it is Paseo's (a number field 112 wide, digits
+only, kept on blur; "Terminal scrollback" / "Lines kept in the built-in
+terminal buffer", `terminal-section.tsx` 44–65, `en.ts` 2561); it comes
+with find (slice T4), drawn with track E3, who owns Settings.
 
 The grid reaches nothing outside the process it is called in. It does
 not start a program, listen, or read a credential. The bytes are the
@@ -126,10 +152,25 @@ The split:
   sender, resize rule and session-log fold stay; the grid is a module
   beside them.
 - `kit` gains a control that draws a grid of cells it is given. It does
-  not parse, and it does not name a session or a node. Colours and the
-  cursor come from the kit's tokens (the page's `--term-*` palette
-  lives there when the control does), never a hex literal in the
-  screen.
+  not parse, and it does not name a session or a node. It is a GPUI
+  element of its own: for each visible row, runs of cells with one style
+  are shaped once and placed on the cell grid (a glyph's x is its cell's,
+  not the font's advance, so a Hangul syllable from Pretendard still
+  covers exactly two cells); backgrounds are merged quads; a row whose
+  cells did not change keeps its shaped line. The face is the kit's code
+  face (a real code font, then Pretendard, then monospace: TYPE-07, no
+  new font), at the code size with a line height of 1.0 (Paseo's
+  `lineHeight: 1.0`, `terminal-emulator-runtime.ts` 564). The cursor is
+  Paseo's bar (`cursorStyle: "bar"`, `cursorBlink: true`, 560–561),
+  blinking only while the terminal has focus. Colours are the kit's
+  tokens, taken from Paseo's terminal palette (`styles/theme.ts`:
+  `lightTerminalAnsi` 242–256, `darkTerminalAnsi` 373–386, foreground,
+  cursor and selection beside them), never a hex literal in a screen.
+- The grid is drawn as a view of its own (an entity, drawn with the
+  kit's `cached_view`), the rule `app/src/region.rs` and the README's
+  "Rules every screen follows" set for heavy parts: a terminal's bytes
+  notify that view only, never the shell, so output does not draw the
+  sidebar, the conversation or the composer again.
 - `link` follows a shell with the client crate's existing
   `follow_terminal` and sends input with the existing `terminal.send`.
   A session that is a terminal keeps `Act::Terminal`. The same grid
@@ -146,8 +187,17 @@ Bounds:
   MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
   many bytes it consumed. The rest stays with the caller. A frame feeds
-  at most once, so one frame parses at most 16 KiB. That ceiling is not
-  a measured optimum; the renderer measures frame time when it exists.
+  live bytes at most once, so one frame parses at most 16 KiB of live
+  output. That ceiling is not a measured optimum; the renderer measures
+  frame time.
+- History is not fed frame by frame. On open, the terminal's ring (a
+  shell) or its log (a session that is a terminal, which can be many
+  megabytes) is read page by page (`terminal.read` / `session.read`, 512
+  records) and replayed into a model on a background executor; the
+  screen shows a loading row until that model is handed over, and live
+  records that arrived meanwhile follow it. The model is plain data, so
+  it can be built off the UI thread; `view` still does no I/O (the app
+  reads, `view` parses).
 - The empty size is refused. Anything else the wire can hold (`u16`,
   and the wire's 80×24 when nobody has resized) is a size. Resize of
   the model is immediate. The screen waits 100 ms of an unchanged
@@ -170,7 +220,12 @@ primary-device query (`CSI c` or `CSI 0 c`) becomes
 1-based, `ESC [ row ; col R`, and the private form (`CSI ? 6 n`)
 becomes `ESC [ ? row ; col R`. An OSC colour query (`OSC 10`, `11` or
 `12` with `?`) becomes the three fixed `rgb:` replies in the map at
-lines 45–49 of the same file (read). The app's note says the same
+lines 45–49 of the same file (read), dark ones whatever Paseo's theme.
+Vessel answers those three with the colours the grid is drawn in
+(foreground, background, cursor of the scheme shown), given to the model
+as values: a program that asks whether the background is light then
+gets the truth in the light scheme. That is a difference from Paseo,
+stated. The app's note says the same
 thing: the daemon answers cursor reports from its own buffer
 (`packages/app/src/terminal/character-widths.ts` lines 3–5, read). A
 program that asked and got nothing waits; Paseo's helper then writes
@@ -232,8 +287,9 @@ is not smuggled in as a copy.
   its default feature) and a direct `unicode-width` dependency the lock
   already has. Neither crate is vendored. Their `unsafe`, if any, stays
   inside them.
-- A feed of the whole 1 MiB ring takes many frames (1 MiB / 16 KiB).
-  Interactive output is one read, so the first feed is the read.
+- History is replayed off the UI thread (above), so a long log costs a
+  loading row, not frames; interactive output is one read, so a live
+  feed is one read.
 - Paseo's 5 ms output coalescer is not copied. The node already chunks
   at 16 KiB; a timer in `view` would be I/O-shaped.
 - Paseo's refit ladders (0, 48, 144, 320 ms, and the emulator's waits up
@@ -286,14 +342,37 @@ is not smuggled in as a copy.
 - The node's shell choice is unchanged (ADR 0031). Paseo's saved
   profiles (a name, a command, arguments, per host) are not added.
 - Find walks the grid in `view` (case-insensitive, not a regular
-  expression, next and previous, at most 20,000 highlights and a
-  `limited` flag when the count is past that: `FIND_HIGHLIGHT_LIMIT`
-  and `emitFindResult`, read). Next and previous stop at the ends.
-  Whether Paseo's search wraps was not read, so the model does not
-  invent a wrap. The kit draws the marks later. Terminal activity
+  expression, incremental while typing, next and previous, at most
+  20,000 highlights and a `limited` flag at that count:
+  `terminal-emulator-runtime.ts` 53, 273–286, 516). Next and previous
+  wrap at the ends, as Paseo's do: its search is xterm's add-on, whose
+  engine wraps both ways (`addons/addon-search/src/SearchEngine.ts`, "If
+  we hit the bottom and didn't search from the very top wrap back up").
+  The bar is Paseo's pane find (`terminal/find/index.tsx`, the
+  `paneFind` words: "No matches", "{current} of {total}", "{total}
+  matches", a `+` after the total when limited). Terminal activity
   hooks, the tablet key bar and the phone renderer are out of this
   decision.
-- The key names Paseo accepts are in `terminal-keys.ts` lines 20–47
-  (read). The bytes those names become on the PTY were not read. The
-  grid's tests pin the bytes this model sends; they are not claimed as
-  a copy of Paseo's until those bytes are read.
+- The bytes a key becomes are Paseo's, read from its encoder
+  (`packages/protocol/src/terminal-key-input.ts`): arrows `ESC [ A`…, or
+  `ESC O A`… in application cursor mode, `ESC [ 1 ; m X` with modifiers
+  (m = 1, +1 shift, +2 alt, +4 ctrl, +8 meta, 19–26); Home and End
+  `ESC [ H` / `ESC [ F` in both modes (194, 196); Insert, Delete, Page
+  Up, Page Down `ESC [ 2 ~`, `3 ~`, `5 ~`, `6 ~`; F1–F4 `ESC O P`…`S`,
+  F5–F12 `ESC [ 15 ~`…`24 ~` (148–162); Ctrl+letter is the letter minus
+  64 (99), Alt prefixes ESC (62–64); Enter `\r`, Backspace `0x7f`, Tab,
+  Shift+Tab `ESC [ Z`. The grid's tests pin these bytes.
+- A send carries at most 64 KiB (`SendTerminal::MAX_BYTES`, refused
+  above it by the node): keys, a paste and a reply are split at a
+  character boundary into sends that size, in order.
+- Closing a shell's tab is Paseo's: a confirm ("Close terminal?", "Any
+  running process in this terminal will be stopped immediately.",
+  `en.ts` 712–713), then the terminal is gone (`terminal.close`). Stop
+  (`terminal.kill`) keeps the ended terminal and its output. A script's
+  run and a service are listed beside the shells and take no input.
+- Resize: Paseo's daemon has a size owner and a pane claims it on focus
+  (`terminal-size-ownership.ts`, `terminal-pane-focus-claim.ts`); our
+  node has no owner, so the app keeps the page's rule (a view that has
+  focus and has typed sends sizes, `ResizeRule`). Stated.
+- No call switches a session between its conversation and a terminal,
+  so that switch is not offered.
