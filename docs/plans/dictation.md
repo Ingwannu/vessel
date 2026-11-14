@@ -238,7 +238,8 @@ settings field, stream task or provider. Generated wire bytes are unchanged.
 
 Review of 2a returned its bare version and repeated bounds. This commit
 corrects both: a typed base-version reference and named bounds used in
-checks and diagnostics. It also clarifies why the public accessors exist.
+checks and diagnostics. It also clarifies why the public accessors exist. The strict lint gate
+requires the prelude `size_of` spelling for the sample-width constant.
 The correction must pass its exact-commit gate and be reported for review.
 
 Half-done: the previous settings/service draft remains outside the repository

@@ -26,7 +26,7 @@ const MAX_ID_CHARS: usize = 64;
 const MIN_RATE: u32 = 8_000;
 const MAX_RATE: u32 = 48_000;
 const MAX_FINISH_MS: u32 = 300_000;
-const PCM_SAMPLE_BYTES: usize = std::mem::size_of::<i16>();
+const PCM_SAMPLE_BYTES: usize = size_of::<i16>();
 const KIB_BYTES: usize = 1024;
 
 /// Longest PCM16 chunk. One second at 48 kHz is 96 000 bytes, so this also
