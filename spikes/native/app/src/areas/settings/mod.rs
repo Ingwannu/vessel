@@ -33,6 +33,7 @@ mod book;
 mod chat;
 mod choices;
 pub(crate) mod connected;
+mod connections;
 mod devices;
 mod diagnostics;
 mod general;
@@ -94,6 +95,8 @@ pub(crate) struct SettingsState {
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
     overview: overview::State,
+    /// The book as read for the machine pages (Overview, Connections).
+    book: book::BookRead,
     language: language::State,
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
@@ -118,6 +121,7 @@ impl SettingsState {
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
+            book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,

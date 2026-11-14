@@ -10,6 +10,7 @@ mod agents;
 mod archive;
 mod board;
 mod compose_keys;
+mod connections;
 mod delivery;
 mod devices;
 mod diagnostics;
