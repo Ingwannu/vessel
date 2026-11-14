@@ -72,6 +72,10 @@ Gemini's: Google's own file, embedded unchanged.
   reaches outside). GPUI's rasteriser draws embedded JPEG
   (`resvg` with `raster-images`), so the outline stays sharp at every
   scale and the colour field, a smooth blend, is resampled.
+- Sharpness (the same proof as below, `kit/examples/mark_sharpness.rs`
+  at 96/120/144/192 dpi, both themes, 14/16/20 points, 24 crops against
+  librsvg at the same device box, 2026-11-14): mean absolute error
+  0.0011-0.0021, largest single-pixel difference 0.094.
 - Terms: https://about.google/brand-resource-center/brand-elements/.
   Google publishes no licence with the file; it is used only to identify
   the Gemini agent, unchanged, attributed to Google, without implying
