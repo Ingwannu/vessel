@@ -561,7 +561,11 @@ GitHub forge pages. `forge_mark(Forge::GitHub, size, tokens)` supplies the
 second typed use without a second copy. An agent mark's identity still
 belongs to `view`; the kit knows no node or session. The Invertocat's agent
 use requires explicit GitHub Copilot wording in the same row or tooltip
-(ADR 0048). The unchanged official Gemini CLI PNG is the sole raster mark.
+(ADR 0048). Every mark, Gemini's gradient spark included, is a vector
+rasterised at the device pixels it lands on (`agent_mark/raster.rs`);
+none goes through GPUI's `img()`, which stretched a once-rasterised
+texture and broke the marks at 1.25 and 1.5. The sharpness sheet
+`kit/examples/mark_sharpness.rs` is the check.
 
 The artwork picker header requests 16-point ink and reserves the official
 image viewport width, rather than its rows' common 32-point column. A long header title follows the reference's
@@ -576,7 +580,7 @@ not an unconstrained 36-high child inside its padded content band.
 adapts them to kit artwork once. The draft, sidebar and board call that
 adapter. Added agents retain Generic even if their labels mention a brand.
 Settings › About lists vendor sources, trademark terms and the Gemini
-original's separate software licence. For long-name capture fixtures,
+spark's separate software licence. For long-name capture fixtures,
 after `scripts/fleet.sh start ROOT TARGET`, run
 `bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
 bilingual titles and full custom-agent labels before captures.

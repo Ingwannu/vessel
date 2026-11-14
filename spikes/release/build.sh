@@ -143,9 +143,10 @@ fi
 # - The SIL Open Font License asks that each copy of the fonts carry the
 #   licence; the app embeds Geist, Geist Mono and Pretendard (fonts.sh
 #   puts their texts beside the fonts).
-# - The agents' marks (docs/design/agent-marks/README.md): from 0.0.0.0.10
-#   the app embeds the official Gemini CLI icon unchanged, redistributed
-#   under Apache-2.0, whose section 4(a) asks that recipients of the
+# - The agents' marks (docs/design/agent-marks/README.md): from 0.0.0.0.13
+#   the app embeds Google's Gemini spark (path and gradient) from a Google
+#   repository under Apache-2.0 (0.0.0.0.10-0.0.0.0.12: the Gemini CLI
+#   icon, same licence), whose section 4(a) asks that recipients of the
 #   object form get a copy of the licence. Every text beside the marks is
 #   carried, so a mark added later brings its licence without a change
 #   here. (The restricted marks keep only path data and ship no text.)
