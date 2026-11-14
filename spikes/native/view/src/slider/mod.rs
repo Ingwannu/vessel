@@ -14,10 +14,14 @@
 //!   each new stop (150 ms while dragging, 300 ms otherwise, one easing);
 //!   the thumb grows on hover and press with a spring. There is no
 //!   continuous follow and no pull near a stop.
-//! - Alternatives: a thumb following the pointer with a magnetic pull (the
-//!   first reading of the owner's words, dropped when the reference was
-//!   read); GPUI's `Animation` (a fixed duration from a start, no way to
-//!   retarget mid-flight from the value it has reached).
+//! - Since 0.0.0.0.15 a drag differs ([`drag`], the owner's words 41-42:
+//!   the stepped glide read as not smooth): the thumb follows the pointer
+//!   with a pull onto each stop and springs onto the stop on release; the
+//!   stop under a pointer is the nearest one along the line between the
+//!   end stops (where the thumb sits), not the share of the whole
+//!   control. Clicks, keys and the wheel keep the reference's glide.
+//! - Alternatives: GPUI's `Animation` (a fixed duration from a start, no
+//!   way to retarget mid-flight from the value it has reached).
 //! - Choice: the motion is state the kit keeps and steps on the frame
 //!   clock ([`motion`]): a tween restarted from where it is, a spring
 //!   integrated per frame. Geometry and the commit rule are here; the top
@@ -25,6 +29,7 @@
 //! - Cost: the kit must ask for frames while something moves and stop
 //!   asking when it rests (measured on the card closed: no frames).
 
+pub mod drag;
 pub mod flair;
 pub mod motion;
 pub mod state;
@@ -73,20 +78,6 @@ pub fn fraction(index: usize, stops: usize) -> f32 {
 pub fn along(fraction: f32, width: f32) -> f32 {
     let line = INSET.mul_add(-2.0, width).max(0.0);
     fraction.mul_add(line, INSET)
-}
-
-/// The stop under a pointer `x` from the track's start, `width` wide: the
-/// reference maps the whole width, so the end stops' zones are a little
-/// shorter than the middle ones'.
-#[must_use]
-pub fn stop_under(x: f32, width: f32, stops: usize) -> usize {
-    let last = stops.saturating_sub(1);
-    if last == 0 || width <= 0.0 {
-        return 0;
-    }
-    let share = x.mul_add(width.recip(), 0.0).clamp(0.0, 1.0);
-    let at = share.mul_add(float(last), 0.0).round();
-    (0..=last).find(|index| float(*index) >= at).unwrap_or(last)
 }
 
 /// Whether a drag that began on `pressed` and ended on `released` sends a

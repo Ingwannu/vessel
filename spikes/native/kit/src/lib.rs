@@ -35,6 +35,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod frame_log;
 pub mod menu;
 pub mod motion;
 pub mod output;
