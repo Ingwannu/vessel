@@ -191,13 +191,18 @@ shown and a partial comparison cannot claim the commands are unchanged.
   fact, not a declared or allocated service port.
 - Implemented value contract: `ExecPath` keeps private literal text and
   its Unix, Windows or shared grammar. Its decoder and serde check raw
-  components without filesystem access or native normalization; four
+  components without filesystem access or native normalization; five
   portable fixture tests cover prefix forms, components, round trips and
   the shared byte bound. Rust's Windows prefix source also recognizes a
   forward slash in the verbatim UNC marker; the remaining verbatim
   components still use backslashes. The type is not yet a wire field or
   project-file key. Native invocation and the Windows command-script
   refusal remain later typed checks, with their tests still owed.
+- Approval display: the absolute path now shares `RelPath`'s control
+  character refusal. LF, CR, ESC, another C0, DEL and C1 are tested through
+  both text and serde for Unix, drive and UNC paths; NUL keeps its own
+  diagnostic. The absolute per-component limit remains a native execution
+  check, with its reason in ADR 0066.
 - Then: add the nonempty allocation block and project-relative program
   path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
   serde through private owners; share the existing JavaScript trim rule

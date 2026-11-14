@@ -46,6 +46,9 @@ pub enum InvalidExecPath {
     /// NUL would truncate an operating-system argument.
     #[error("an executable path cannot contain NUL")]
     Nul,
+    /// Control text could redraw or hide the path a person is approving.
+    #[error("an executable path cannot contain a control character")]
+    Control,
 }
 
 impl ExecPath {
@@ -74,6 +77,9 @@ impl FromStr for ExecPath {
         }
         if text.contains('\0') {
             return Err(InvalidExecPath::Nul);
+        }
+        if text.chars().any(char::is_control) {
+            return Err(InvalidExecPath::Control);
         }
         let unix = text
             .strip_prefix('/')

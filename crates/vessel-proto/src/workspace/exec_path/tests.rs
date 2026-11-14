@@ -72,6 +72,26 @@ fn literal_backslashes_and_verbatim_separators_are_not_reinterpreted() {
 }
 
 #[test]
+fn control_characters_cannot_redraw_the_approved_path() {
+    for control in ['\n', '\r', '\u{1b}', '\u{7}', '\u{7f}', '\u{85}'] {
+        for prefix in ["/tools/", r"C:\tools\", r"\\host\share\"] {
+            let text = format!("{prefix}port{control}name");
+            assert_eq!(
+                text.parse::<ExecPath>().unwrap_err(),
+                InvalidExecPath::Control,
+                "{text:?}"
+            );
+            let json = serde_json::to_string(&text).unwrap();
+            assert!(serde_json::from_str::<ExecPath>(&json).is_err(), "{text:?}");
+        }
+    }
+    assert_eq!(
+        "/tools/port\0name".parse::<ExecPath>().unwrap_err(),
+        InvalidExecPath::Nul
+    );
+}
+
+#[test]
 fn the_shared_byte_bound_applies_to_both_text_and_serde() {
     let root = "/";
     let text = format!("{root}{}", "x".repeat(ExecPath::MAX_BYTES - root.len()));

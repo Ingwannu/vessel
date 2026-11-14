@@ -226,7 +226,8 @@ Ports. Allocation for one service, in this order: its own `port` if it
 has one; otherwise `port_script` if the block has one; otherwise `range`
 if the block has one; otherwise an ephemeral port. `port_script` is not
 passed to a shell. A relative path is a `RelPath` and is joined to the
-root the way `dir` is. An absolute path is a newtype: absolute, no NUL,
+root the way `dir` is. An absolute path is a newtype: absolute, no NUL or
+other control character,
 at most 4096 bytes, no empty, `.` or `..` component, and that text is
 what the approval shows and what is executed (no symlink resolution
 before the digest, so the digest does not depend on the machine). The
@@ -250,7 +251,8 @@ unused range is still a change to the set a person approved.
   node on another operating system. Decoding a Windows node's approval on
   Unix must not turn a valid path into a transport error.
 - Existing constraints: `RelPath` supplies the relative-path rules. An
-  absolute path has the same byte bound (`RelPath::MAX_BYTES`), no NUL,
+  absolute path has the same byte bound (`RelPath::MAX_BYTES`), no NUL or
+  other control character,
   and no empty, dot or parent component. These are lexical rules; neither
   parsing nor hashing may touch the filesystem.
 - Alternatives considered: use the decoder host's `Path::is_absolute`;
@@ -281,6 +283,16 @@ unused range is still a change to the set a person approved.
   path can reach a network share with the node user's credentials, just
   as an absolute local path can reach an executable outside the project.
   No new dependency or crate edge is needed.
+
+Both path types refuse the same `char::is_control` set, including NUL,
+line breaks, terminal escape controls, DEL and C1. NUL retains its own
+diagnostic. This is an approval security floor: control text must not hide
+or redraw what a person sees while the node later executes the full path.
+Absolute paths deliberately do not inherit `RelPath::MAX_PART_BYTES`.
+They can name a foreign filesystem whose component limits differ; native
+component limits are checked at execution along with existence and format.
+The shared overall byte cap still bounds inspection and transport. This
+does not add a filesystem probe to either decoding or hashing.
 
 #### Port-script selection and nonempty allocation values
 
