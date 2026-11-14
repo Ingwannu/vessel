@@ -651,3 +651,9 @@ comparison surface is the app owners' work and can consume these outcomes.
 This is a proposed contract only; implementation has not started. The gate
 results for 85c60716 remain its unchanged code's evidence, not evidence for
 this proposed feature. V1 contract review is required before implementation.
+
+Row 2's prepared handle retains one explicit destination NodeId. All calls,
+including chunk copy and readiness/setup reads, use that destination through
+the ordinary typed route; member ids must never fall through to a home.
+The contract bounds RPC/readiness/setup waits and treats a mutating deadline
+as uncertain, not permission to resend. No existing test timeout is changed.

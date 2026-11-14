@@ -49,9 +49,14 @@ selection's successful work. A failed comparison is not an atomic rollback.
   optional ProfileName/ModelId and OptionChoice values, not an arbitrary
   SessionSpec: no terminal, resume, cwd, place or side link. At most 32
   choices and 16 KiB encoded target metadata; at most 128 KiB for the CLI's
-  complete typed target manifest. A stable bounded SelectionIndex identifies
+  complete typed target manifest. Unknown manifest fields are refused,
+  rather than silently accepting resume/terminal/path/credential fields. A stable bounded SelectionIndex identifies
   outcomes in input order, independent of asynchronous completion.
-- `NodeClient::prepare_comparison(plan)`: shared read-only preflight checks
+- `NodeClient::prepare_comparison(destination: NodeId, plan)`: one explicit
+  selected destination, retained in the prepared handle. Every read,
+  creation, upload and prompt uses call_on for that same node; a home
+  connection must not accidentally receive a member's ids. Shared read-only
+  preflight checks
   the protocol, Git project and selected provider/profile availability.
   Resolve the chosen base once with `git.log` (limit one); all new worktrees
   use that same CommitId, even if the branch advances during the operation.
@@ -64,7 +69,11 @@ selection's successful work. A failed comparison is not an atomic rollback.
   Failed with phase/resources/reason, WaitingSetup with its same worktree,
   or Uncertain with phase/resources and the generated branch name. There
   are at most two in-flight selections; no unbounded task or output list.
-  Individual RPC/readiness waits are bounded. A setup still running after
+  Metadata/provider/readiness waits are at most 45 seconds; mutating
+  worktree/session/prompt calls at most 120 seconds. A timeout after a
+  mutation was admitted is Uncertain, never an automatic retry. Setup/event
+  reads use the existing at-most-30-second long poll, with a 45-second
+  transport deadline, rather than a sleep/poll loop. A setup still running after
   ten minutes returns WaitingSetup, not a fabricated failure or new worktree.
   Continuing that typed handle observes the same setup and creates its
   session at most once; it never repeats worktree creation.
