@@ -9,8 +9,8 @@ use vessel_proto::parking::ParkReason;
 use vessel_proto::{
     AttachmentRef, ContentBlock, EventSeq, HarnessSessionId, ModelCall, PermissionId,
     PermissionOutcome, PermissionRequest, PlanEntry, PlanStatus, ProfileName, Question, QuestionId,
-    QuestionOutcome, RawJson, SessionStatus, StopReason, ToolCall, ToolCallContent, ToolCallId,
-    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnUsage,
+    QuestionOutcome, RawJson, SessionId, SessionStatus, StopReason, ToolCall, ToolCallContent,
+    ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnUsage,
 };
 
 use super::plan::PlanActivity;
@@ -249,6 +249,15 @@ pub enum EntryKind {
     /// The session's agent was released or resumed while the session
     /// stayed live (protocol 12, ADR 0038).
     Parking(ParkingChange),
+    /// The session began as a fork of another (protocol 14, ADR 0052):
+    /// its first line says where it came from (`fork.rs`).
+    Forked {
+        /// The session forked.
+        from: SessionId,
+        /// The turn's end of `from` it continues from; `None`: the whole
+        /// conversation as it then stood.
+        after: Option<EventSeq>,
+    },
     /// The session's profile changed (protocol 5).
     Profile {
         /// From; `None` for the default.
@@ -290,6 +299,7 @@ impl EntryKind {
                 | Self::Log { .. }
                 | Self::Status { .. }
                 | Self::Parking(_)
+                | Self::Forked { .. }
                 | Self::Profile { .. }
                 | Self::Model(_),
                 TextKind::Prompt | TextKind::Message | TextKind::Thought,

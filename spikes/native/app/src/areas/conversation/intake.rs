@@ -43,9 +43,9 @@ impl ConversationArea {
                 return Followup::None;
             }
         }
-        // A refused rewind is the notice's (Paseo's toast), said by
-        // `rewind`, not a refusal beside a control.
-        if answer.kind == ActKind::Rewind
+        // A refused rewind or fork is the notice's (Paseo's toast), said
+        // by `rewind` and `fork`, not a refusal beside a control.
+        if matches!(answer.kind, ActKind::Rewind | ActKind::Fork)
             && matches!(answer.result, Err(ActFailed { code: Some(_), .. }))
         {
             return Followup::None;
@@ -59,6 +59,8 @@ impl ConversationArea {
                 self.refused = None;
                 self.info = None;
             }
+            // The new session's; the one shown stands as it was.
+            Ok(Acted::Forked(_)) => self.refused = None,
             Ok(Acted::Done) => {
                 self.refused = None;
                 // An answer went: what still waits is read again, so a

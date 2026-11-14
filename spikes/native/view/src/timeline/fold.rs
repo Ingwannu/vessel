@@ -201,6 +201,7 @@ impl Timeline {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }
@@ -344,9 +345,16 @@ impl Timeline {
             }
             SessionEvent::Woken => self.push(record, EntryKind::Parking(ParkingChange::Woken)),
             // A rewind leaves what followed its turn's end behind
-            // (`rewind.rs`); a fork's record is drawn with slice F1.
+            // (`rewind.rs`); a fork's record is its first line (`fork.rs`).
             SessionEvent::Rewound { after, .. } => self.rewound_to(*after),
-            SessionEvent::Terminal(_) | SessionEvent::Forked { .. } => {}
+            SessionEvent::Forked { from, after, .. } => self.push(
+                record,
+                EntryKind::Forked {
+                    from: *from,
+                    after: *after,
+                },
+            ),
+            SessionEvent::Terminal(_) => {}
             SessionEvent::Agent { event, .. } => self.agent(record, event),
             SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,
@@ -468,6 +476,7 @@ impl Timeline {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }

@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod find;
 #[cfg(test)]
+mod fork;
+#[cfg(test)]
 mod outline;
 #[cfg(test)]
 mod permission;

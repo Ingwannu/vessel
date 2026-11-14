@@ -15,7 +15,8 @@ use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
 use super::actions::{AgentLog, Confirm, MenuAction};
 use super::{
-    bench, find, meter, outline, permission, question, queue, read, rename, rewind, search, tail,
+    bench, find, fork, meter, outline, permission, question, queue, read, rename, rewind, search,
+    tail,
 };
 
 /// What the shell does after an act's answer reached the conversation.
@@ -142,6 +143,8 @@ pub(crate) struct ConversationArea {
     pub(super) read: read::ReadMarks,
     /// A rewind being chosen under a person's message, or sent.
     pub(super) rewinding: rewind::Rewinding,
+    /// A fork being chosen in a turn's footer, sent, or opening.
+    pub(super) forking: fork::Forking,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -204,6 +207,7 @@ impl ConversationArea {
             meter: meter::MeterState::default(),
             read: read::ReadMarks::default(),
             rewinding: rewind::Rewinding::new(cx),
+            forking: fork::Forking::new(cx),
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),
@@ -245,6 +249,7 @@ impl ConversationArea {
         self.lost = None;
         self.read = read::ReadMarks::default();
         self.rewinding.clear();
+        self.forking.clear();
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();

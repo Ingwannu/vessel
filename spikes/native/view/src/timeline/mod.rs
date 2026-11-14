@@ -37,6 +37,7 @@ mod entry;
 mod failure;
 mod find;
 mod fold;
+mod fork;
 mod live;
 mod logs;
 mod meter;
@@ -63,6 +64,7 @@ pub use find::{
     query_of, readable_text, searchable, spans_of, start_at, step,
 };
 pub use fold::{Change, Facts, Timeline};
+pub use fork::fork_point;
 pub use live::Live;
 pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};

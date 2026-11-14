@@ -36,6 +36,10 @@ pub(crate) fn timeline(
     if shell.areas.conversation.rewinding.has_restore() {
         cx.defer_in(window, Shell::rewind_restore);
     }
+    // A fork's new session opened, on a frame with a window.
+    if shell.areas.conversation.forking.has_opening() {
+        cx.defer_in(window, Shell::forked_open);
+    }
     let list = rows(shell, Seat::SESSION, tokens, window, cx);
     if shell.areas.conversation.timeline.entries().is_empty() {
         return list;
@@ -100,7 +104,7 @@ pub(crate) fn rows(
 
 /// How the rows of `area` (kept at `seat`) are drawn.
 fn paint<'a>(
-    shell: &Shell,
+    shell: &'a Shell,
     area: &'a ConversationArea,
     seat: Seat,
     tokens: &'a Tokens,
@@ -118,6 +122,9 @@ fn paint<'a>(
         entries: area.timeline.entries(),
         agent: area.info.as_deref().map(|info| &info.spec.harness),
         rewinds: rewinds(shell, area).then_some(&area.timeline),
+        forks: std::ptr::eq(area, &raw const shell.areas.conversation)
+            .then_some((&area.timeline, &area.forking)),
+        fleet: &shell.fleet,
     }
 }
 
@@ -303,6 +310,40 @@ fn run_header(
         .into_any_element()
 }
 
+/// The menus and tooltips of going back in the conversation: rewind
+/// under a person's message (`rewind`), fork under a turn's footer
+/// (`fork`).
+fn going_back(
+    shell: &Shell,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let area = &shell.areas.conversation;
+    let mut floating = Vec::new();
+    floating.extend(menu(
+        "rewind-menu",
+        &area.rewinding.menu,
+        &super::rewind::menu_items(shell),
+        &Shell::rewind_menu_handlers(),
+        tokens,
+        narrow,
+        cx,
+    ));
+    floating.extend(area.rewinding.tips.render(tokens));
+    floating.extend(menu(
+        "fork-menu",
+        &area.forking.menu,
+        &super::fork::menu_items(shell),
+        &Shell::fork_menu_handlers(),
+        tokens,
+        narrow,
+        cx,
+    ));
+    floating.extend(area.forking.tips.render(tokens));
+    floating
+}
+
 /// What floats over the frame: the Session actions menu when open, the
 /// confirm when one is asked.
 pub(crate) fn overlays(
@@ -316,18 +357,7 @@ pub(crate) fn overlays(
     let words = shell.t.lang.conversation();
     let mut floating = Vec::new();
     floating.extend(super::search::example(shell, tokens, window, cx));
-    // The rewind menu under a person's message (`rewind`).
-    floating.extend(menu(
-        "rewind-menu",
-        &area.rewinding.menu,
-        &super::rewind::menu_items(shell),
-        &Shell::rewind_menu_handlers(),
-        tokens,
-        narrow,
-        cx,
-    ));
-    // The undo mark's tooltip ("Rewind to this message").
-    floating.extend(area.rewinding.tips.render(tokens));
+    floating.extend(going_back(shell, tokens, narrow, cx));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(
         "session-actions",

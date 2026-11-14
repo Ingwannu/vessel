@@ -332,6 +332,8 @@ fn body(
         entries: &[],
         agent: None,
         rewinds: None,
+        forks: None,
+        fleet: &shell.fleet,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

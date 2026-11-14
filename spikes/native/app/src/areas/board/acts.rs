@@ -158,6 +158,7 @@ impl Shell {
         let said = self.t.lang.conversation();
         match answer.result {
             Ok(Acted::Session(info)) => self.fleet.put_session(&answer.machine, &info),
+            Ok(Acted::Forked(info)) => self.fleet.add_session(&answer.machine, &info),
             Ok(Acted::Deleted(deleted)) => {
                 self.fleet.drop_session(&answer.machine, answer.session);
                 let kept = deleted
