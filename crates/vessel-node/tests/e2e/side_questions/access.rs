@@ -35,7 +35,10 @@ async fn both_scopes_are_required_and_agents_cannot_manufacture_side_links() {
     within(async {
         let fixture = Fixture::new();
         let node = fixture
-            .start_with(|config| config.vessel_mcp = Some(crate::agents::vessel_mcp(&fixture)))
+            .start_with(|config| {
+                config.vessel_mcp = Some(crate::agents::vessel_mcp(&fixture));
+                crate::secure::advertise_placeholder_route(config);
+            })
             .await;
         let owner = fixture.connect(&node).await;
         let mut parent = crate::agents::structured(&owner, &fixture).await;

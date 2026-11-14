@@ -11,7 +11,12 @@ use vessel_proto::{
 async fn one_scope_callers_leave_zero_worktrees_at_the_existing_refusal_phase() {
     within(async {
         let fixture = Fixture::new();
-        let node = start_node(&fixture).await;
+        let node = fixture
+            .start_with(|config| {
+                config.harness_lookup = crate::workspace::lookup(&fixture);
+                crate::secure::advertise_placeholder_route(config);
+            })
+            .await;
         let owner = fixture.connect(&node).await;
         let (_folder, project) = crate::tidying::project(&owner).await;
         for (scopes, phase) in [

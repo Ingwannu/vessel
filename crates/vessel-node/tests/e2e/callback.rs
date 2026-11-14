@@ -161,9 +161,7 @@ async fn direct_home(sources: &std::path::Path) -> Member {
     let node = fixture
         .start_with(|config| {
             config.name = Some("home".to_owned());
-            // Pairing is explicit; the test replaces this placeholder
-            // with the ephemeral listener before using the offer.
-            config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+            crate::secure::advertise_placeholder_route(config);
             config.fleet = fleet_config(HarnessKind::ClaudeCode, applied);
         })
         .await;

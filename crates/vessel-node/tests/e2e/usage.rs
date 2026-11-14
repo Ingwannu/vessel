@@ -26,7 +26,9 @@ fn code<T: std::fmt::Debug>(result: Result<T, CallError>) -> ErrorCode {
 async fn reports_survive_restart_and_viewers_never_get_cost() {
     within(async {
         let fixture = Fixture::new();
-        let node = fixture.start().await;
+        let node = fixture
+            .start_with(crate::secure::advertise_placeholder_route)
+            .await;
         let owner = fixture.connect(&node).await;
         let running = structured(&owner, &fixture).await;
         // `credential` is not needed here. Ordinary fake usage has a

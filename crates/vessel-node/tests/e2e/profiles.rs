@@ -301,11 +301,7 @@ async fn a_devices_session_records_the_device() {
     within(async {
         let fixture = Fixture::new();
         let node = fixture
-            .start_with(|config| {
-                // The offer is rewritten to the live route below; the issuer
-                // must still have an explicitly advertised pairing route.
-                config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
-            })
+            .start_with(crate::secure::advertise_placeholder_route)
             .await;
         let owner = fixture.connect(&node).await;
         let direct: RouteUrl = format!("ws://{}", node.address().unwrap()).parse().unwrap();
