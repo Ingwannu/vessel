@@ -1279,3 +1279,8 @@ uses that shared configuration; it retains its own address validation,
 HTTP policy and deadlines. This extraction introduces no destination,
 credential, request or new dependency. Later asynchronous callers must run
 the synchronous root loading on a blocking worker.
+
+`FleetFiles::resolved_secret` reuses the node's secret parser and lookup,
+returning the existing non-serializable `ResolvedValue` for internal header
+consumers. The `secret_value` wire-copy wrapper delegates to it; no new RPC
+can read a secret and storage/refusal behaviour is unchanged.

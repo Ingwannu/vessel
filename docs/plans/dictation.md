@@ -250,23 +250,39 @@ fetch/cache/refusal behaviour, not a real HTTPS handshake or every OS trust
 store. The future endpoint must invoke synchronous root loading on a
 blocking worker; this extraction preserves catalogue initialization timing.
 
+## Resolved secret lookup extraction
+
+Decision: modify and reuse the existing secret reader/getter. The header
+consumer needs the existing non-serializable `ResolvedValue`, whereas
+`secret_value` deliberately constructs a serializable wire value for
+`secret.copy`. `FleetFiles::resolved_secret` keeps parsing and lookup in the
+secret owner; the old wire wrapper delegates and keeps its behaviour.
+An inherent method avoids a new module export or wider visibility. No
+store format, credential, scope, error or dependency changes.
+
+Existing tests remain unchanged: `set_and_remove_keep_comments_and_other_entries`
+and `errors_never_show_a_value` in the secret module, and the actual fleet
+copy test `a_secret_is_copied_only_where_the_home_was_granted_admin`.
+The endpoint that consumes the new helper is a later slice; this does not
+verify sending its header or authenticating to a real provider.
+
 ## Resume point
 
-Done: 2a and its review corrections passed. 2b1 provider metadata source
-review passed; its whole gate is owed after the shared side-question race
-is fixed and the coordinator names a node head to merge. No retry or waiver
-of that failure. No call or settings field is registered.
+Done: 2a and its corrections passed review. 2b1 provider metadata source
+passed; its whole gate is owed after the shared side-question fix and the
+coordinator's named node-head merge. TLS extraction `9ed08e9a` passed its
+own exact-commit gate and review. No call or settings field is registered.
 
-This commit extracts only OS roots/ring/ALPN into `http_tls`, preserving
-catalogue behaviour. It needs its own unchanged-test gate and review row.
+This commit extracts only an internal resolved secret lookup and delegates
+the existing copy wrapper. It needs its own unchanged-test gate and review
+row before the endpoint uses it.
 
-Half-done: the remaining settings and service code is private preparation.
-The next independent prerequisite is a non-serializable secret lookup using
-the existing store, also a separate behaviour-preserving commit. New call
-registration waits for the shared `required_protocol` accessor and uses an
-unassigned `Option<ProtocolVersion>` under A6; no second mechanism.
+Half-done: settings and service code remains private preparation. Registration
+waits for the shared `required_protocol` accessor; A6 uses an unassigned
+`Option<ProtocolVersion>`, with new data hidden until assignment. No second
+mechanism is added.
 
-Next: gate/report TLS extraction, then the secret lookup extraction; merge
-the node head only when named, close the owed whole gate, and continue the
-settings and stream service. Local engines and the app microphone remain
-deferred. The CLI file client follows the node service.
+Next: gate/report the resolved lookup; merge the node head only when named,
+close the owed whole gate, then continue settings and stream service.
+Local engines and the app microphone remain deferred. The CLI file client
+follows the node service.
