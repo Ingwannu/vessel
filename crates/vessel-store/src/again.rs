@@ -26,10 +26,12 @@
 //!   `next_seq` it read.
 //! - Cost: two statements per start again; nothing on any other path.
 
+use std::collections::BTreeSet;
+
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
-    ContextUsage, EventSeq, KeptMarks, OptionChoice, PromptQueue, SessionId, SessionInfo,
-    SessionStatus,
+    ContextUsage, EventSeq, KeptMarks, OptionChoice, ProfileName, PromptQueue, SessionEvent,
+    SessionId, SessionInfo, SessionStatus,
 };
 
 use crate::codec::{choices_from_sql, decode, encode, seq_from_sql, seq_to_sql};
@@ -56,6 +58,10 @@ pub struct EndedSession {
     /// The last record of its log that asked for attention, which the
     /// next run's unread starts from.
     pub attention: Option<EventSeq>,
+    /// The profiles its files were linked into by moves (`profile_changed`
+    /// records, either side; `None` the default), still in its log: its
+    /// conversation is one file under each (ADR 0053's claim).
+    pub moved_through: BTreeSet<Option<ProfileName>>,
 }
 
 /// The columns a run continues from, as stored.
@@ -97,7 +103,9 @@ pub(crate) fn ended_session(
     else {
         return Ok(None);
     };
+    let moved_through = moved_through(&transaction, id)?;
     Ok(Some(EndedSession {
+        moved_through,
         choices: choices_from_sql(id, choices)?,
         queue: queue
             .map(|queue| decode(id, Column::Queue, &queue))
@@ -109,6 +117,29 @@ pub(crate) fn ended_session(
         attention: attention_from_sql(attention)?,
         info,
     }))
+}
+
+/// The profiles `id`'s moves linked its files into: both sides of every
+/// `profile_changed` record its log still holds. Only those records are
+/// read (they begin with their tag), so a long log is not decoded.
+fn moved_through(
+    connection: &Connection,
+    id: SessionId,
+) -> Result<BTreeSet<Option<ProfileName>>, StoreError> {
+    let mut statement = connection.prepare_cached(
+        "SELECT event FROM events WHERE session_id = ?1 \
+         AND event LIKE '{\"type\":\"profile_changed\"%' ORDER BY seq",
+    )?;
+    let mut rows = statement.query([id.to_string()])?;
+    let mut profiles = BTreeSet::new();
+    while let Some(row) = rows.next()? {
+        let text: String = row.get(0)?;
+        if let SessionEvent::ProfileChanged { from, to } = decode(id, Column::Event, &text)? {
+            let _from = profiles.insert(from);
+            let _to = profiles.insert(to);
+        }
+    }
+    Ok(profiles)
 }
 
 /// Reopen `session`'s row for a run whose first record is `next`; its

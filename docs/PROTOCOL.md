@@ -59,24 +59,22 @@ One method; types in `vessel_proto::history`.
   harness_session }`, the entry's `cwd`, the `profile` it was listed
   under and, for a title, its `title`; the agent's replay is the new
   session's log.
-- A node of 17 refuses `session.create` with `resume` and
-  `session.resume` with `conflict` while another live session (parked
-  included) is on that conversation under the same profile, or starting
-  on it: two agents on one transcript would corrupt it. This is the
-  node's own check, so a client of any version meets it. A copy into
-  another profile (`session.export` then `session.import`, which the
-  CLI's `vessel session copy` and `vessel session move` use; the move
-  kills the source after the copy runs) is another file and is not
-  refused. `session.move_profile` instead hard-links the transcript into
-  the target profile's home and stops the old agent before it starts the
-  new one, so it never runs two agents itself; but the check is by
-  profile, so it does not catch an import of that conversation under the
-  profile the session moved away from (the same file, linked), nor under
-  the target profile while the move is between its stop and its
-  `profile_changed`. The listing marks such an entry `in_vessel`; a
-  client opens that session rather than import it. Track A2 is closing
-  both (a moved session holds its conversation under every profile it
-  was linked into).
+- A node of 17 refuses `session.create` with `resume`,
+  `session.resume` and `session.move_profile` with `conflict` while
+  another live session (parked included) holds that conversation, or is
+  starting on it or moving it: two agents on one transcript would
+  corrupt it. A session holds its conversation under every profile its
+  transcript is in: the one it started under, and each profile
+  `session.move_profile` took it to or from, since a move hard-links the
+  transcript into the target home for good (also when the new agent did
+  not start). A session started again holds the profiles of the moves
+  its log still records. The default profile is one profile whether it
+  is named or not. This is the node's own check, so a client of any
+  version meets it. A copy into another profile (`session.export` then
+  `session.import`, which the CLI's `vessel session copy` and `vessel
+  session move` use; the move kills the source after the copy runs) is
+  another file and is not refused. The listing marks such an entry
+  `in_vessel`; a client opens that session rather than import it.
 - Errors: `invalid_request` (a relative folder, a cursor no listing gave,
   the agent refusing it), `unsupported` (an agent that does not list or
   load over ACP), `not_found` (a profile or added agent that is not

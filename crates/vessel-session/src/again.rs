@@ -37,13 +37,15 @@
 //!   one that starts and fails its handshake or `session/load` leaves
 //!   `starting`, then `failed` with the reason, as a new session does.
 
+use std::collections::BTreeSet;
+
 use chrono::Utc;
 use tokio::sync::oneshot;
 use vessel_agent::AgentSetup;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    ContextUsage, EventSeq, HarnessSessionId, OptionChoice, PromptQueue, ResolvedMcpServers,
-    SessionInfo, SessionMarks, SessionMode, SessionStatus,
+    ContextUsage, EventSeq, HarnessSessionId, OptionChoice, ProfileName, PromptQueue,
+    ResolvedMcpServers, SessionInfo, SessionMarks, SessionMode, SessionStatus,
 };
 
 use crate::conversation::Seen;
@@ -70,6 +72,11 @@ pub struct Ended {
     pub usage: Option<ContextUsage>,
     /// The last record of its log that asked for attention.
     pub attention: Option<EventSeq>,
+    /// The profiles its moves linked its files into (either side of each
+    /// `profile_changed` its log holds; `None` the default). Its
+    /// conversation is one file under each of them, so a start again
+    /// claims it under all (`runtime::claims`).
+    pub moved_through: BTreeSet<Option<ProfileName>>,
 }
 
 /// What a start again runs with: the node's choices for this launch, as
@@ -187,19 +194,20 @@ impl SessionRuntime {
             queue,
             usage,
             attention,
+            moved_through,
         } = ended;
         let harness_session = resumable(&info)?.clone();
         if self.get(info.id).is_some() {
             return Err(SessionError::DuplicateId(info.id));
         }
-        // One agent per conversation (`runtime::claims`): held until the
-        // session is registered.
-        let _claim = self.claim(
-            info.id,
-            &info.spec.harness,
-            info.profile.as_ref(),
-            &harness_session,
-        )?;
+        // One agent per conversation (`runtime::claims`), under every
+        // profile its files are in: the one it was created under, the ones
+        // its moves linked, and its current one. Held until the session is
+        // registered, then kept.
+        let mut profiles = moved_through;
+        let _created = profiles.insert(info.spec.profile.clone());
+        let _current = profiles.insert(info.profile.clone());
+        let claim = self.claim(info.id, &info.spec.harness, profiles, &harness_session)?;
         let Relaunch {
             profile,
             mcp_servers,
@@ -247,6 +255,7 @@ impl SessionRuntime {
             opening: None,
         };
         let created = self.run_structured(Launch { command, setup }, begin, notices, actor)?;
+        claim.keep();
         Ok(Reopening {
             created,
             gate: Gate(gate),

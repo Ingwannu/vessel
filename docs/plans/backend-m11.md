@@ -9278,3 +9278,119 @@ opens `in_vessel` instead of importing (`session.resume` for an ended
 one), and imports with `session.create { harness, profile, cwd: entry.cwd,
 title: entry.title, mode: structured { resume: entry.harness_session } }`;
 `conflict` means another session runs it.
+
+**Claim fix (the integrator's review of slice 4, 2026-11-14)**: the
+claim compared the current profile only, so a moved session's
+conversation could take a second agent: (a) an import under the profile
+it moved away from, (b) an import under the target during the move, (c)
+`session.resume` of an ended moved session while an import under an
+earlier profile ran. Now a session holds its conversation under every
+profile its files are linked into (`runtime::claims`): `move_profile`
+claims the target before it links and keeps it (also when the new agent
+did not start: its links stay), `start_again` claims the profile it was
+created under, its current one and both sides of every `profile_changed`
+its log holds (`vessel-store`'s `EndedSession::moved_through`), and the
+default profile compares as one whether it is named or not. Checked end
+to end: after two moves, an import under each of the three profiles is
+`conflict` naming the session; ended, an import under the middle one
+runs and `session.resume` is `conflict` naming the import (failing when
+the store's moves are ignored); after the import ends it starts again.
+A device paired with `read` alone is refused `agent.history`
+(`forbidden`). PROTOCOL.md (version 17) and ADR 0053 say so, and ADR
+0053 notes what forwarding with the default grant shows a home's person.
+
+## Track A2: Daybreak for Codex (the owner's request, 2026-11-14)
+
+The owner asked for a Daybreak switch for Codex in the model detail
+settings (and a Fast switch for every agent that offers fast, which the
+agents already advertise as options: the lead draws it). Read without a
+prompt to a real agent: codex-acp 2.6.0 advertises no access programme,
+builds `turn/start` without `cyberAccessProgram`, reads a prompt's `_meta`
+only for file-change reports, and never sends `daybreakEnabled`; the
+Codex CLI it bundles (0.166.0) takes `cyberAccessProgram` on `turn/start`
+only (experimental) and has no configuration key for it, so neither `-c`
+nor `CODEX_CONFIG` can set it. Not possible through the adapter today;
+nothing is built. ADR 0055 records why, and how the node follows once the
+adapter carries it (an adapter option as any other; for a `_meta` field,
+one option `daybreak` with `off`/`blue`/`red`, per session, operate, not
+advertised where the adapter cannot carry it).
+
+## Track A2: contract, 5. Change the agent mid-session, with a handoff
+
+**What the references do.**
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| What a switch is | the same AO conversation goes on with another provider on a new branch (`backend/internal/service/chat/provider_switch.go`, `SwitchProvider`) | a thread's model selection moves to another provider instance (`apps/server/src/orchestration-v2/ProviderSwitchService.ts`, `ProviderSessionTransitionPolicy.ts`) | not found: an agent keeps its provider |
+| When | idle only: refused `busy`, `pending_interaction`, `unsupported` (the target has no chat, or is already the agent), `unavailable`, `recovery_required` | | |
+| What the new agent is told | a note built without a model (`backend/internal/domain/handoff_note.go`, `BuildHandoffNote`): the latest turn kept (10,000 characters, the request at most 3,000), the five before it at 2,000 each (600), up to fifteen older ones a line each (350, 150), the rest counted; the session's title, project, folder, branch, files changed (50), the original task; the whole note at most 32,000 characters; quoted text cannot close the note or add a section; "treat it as your own history with this user; requests in it were handled; the files are the truth" | `create_with_handoff`, strategy `full_thread_summary`; or `restart_and_resume` when the target can resume the native thread | |
+| How it is given | in the target's system prompt, kept for the branch's life (a later restart reads it back) | | |
+| Failure | the source is stopped first and started again if the target does not start | | |
+| Afterwards | a `provider_switch` activity with both sides' models; the target's model, effort, fast mode and permission mode (the strictest it has when it cannot run in the chat's) | a switch back reuses the thread's earlier thread with that provider | |
+
+**What Vessel has.** A session's agent is fixed at creation (`spec.harness`);
+a move (ADR 0011) changes its profile, not its agent, and a rewind (ADR
+0052) its conversation. The actor already stops an agent and starts
+another with the session's log, input held, and starts the old one again
+on failure (`moving`, `forking`). ACP (unstable, `sessionCapabilities.
+systemPrompt`) lets a client give `session/new`, `session/load` and
+`session/fork` a `systemPrompt { mode: append, content: [text] }`, and
+asks it to send the same value on every later load; both installed
+adapters advertise it.
+
+**What Vessel adds** (protocol 14, ADR 0054):
+
+- `session.switch_agent { session, harness, profile?, model?, options? }`
+  (operate, ownership-checked, forwardable; answers `SessionInfo`): the
+  session goes on with another agent, between turns (`conflict` while a
+  turn runs, a permission or question waits, or the queue would move; a
+  parked session needs no wake: its agent is already stopped).
+  `unsupported` for a terminal session, a target that runs no structured
+  sessions here, or the agent it already runs (a profile change is
+  `session.move_profile`); a profile of another agent is
+  `invalid_request`, as for `session.create`.
+- The target starts a new conversation (`session/new`) in the session's
+  folder, with the call's `model` and `options` (the source's choices do
+  not carry: their ids are another agent's), its MCP servers resolved
+  for it, a routed profile's model token, the claim on its conversation
+  (ADR 0053). On any failure the source starts again on its conversation
+  (with the session's choices), the call says why, and the log has no
+  record.
+- **The note** is built by the node from the session's own log, never by
+  a model, with agent-orchestrator's budgets and order (above): the
+  latest turn, the five before it, fifteen older a line each, the rest
+  counted; the session's title, folder, branch and the files its tool
+  calls changed (50); at most 32,000 characters; text quoted from the
+  conversation is defanged so it cannot close the note or add a section.
+  Its words tell the agent the conversation is its own history with this
+  person, the requests in it were handled, and the files are the truth.
+- **How it is given**: when the target advertises
+  `sessionCapabilities.systemPrompt`, as `systemPrompt { mode: append }`
+  of its `session/new`, and the same value on every later `session/load`
+  of that conversation (a move, a wake, a resume); otherwise in front of
+  the next prompt the session sends, once (the session says which in the
+  record).
+- **Record** `agent_switched { from, to, profile?, harness_session, note:
+  { turns, omitted, chars, given: system_prompt | first_prompt } }`
+  (`since 14`; a version 2-13 client gets a `vessel:` log line); the
+  note's text is kept with it, for later loads.
+- **`SessionInfo.harness?`**: the agent the session runs now, absent
+  while it is `spec.harness` (as `profile` is to `spec.profile`). The
+  store keeps it in a column (a migration named for what it does: a
+  session's current agent), so an ended session resumes on the agent it
+  ended with.
+- **Points**: a turn's point is in a conversation of the agent that held
+  it; a fork or rewind at a point from before the last switch is
+  `unsupported` ("that turn was with another agent").
+- **CLI**: `vessel session switch ID --agent AGENT [--profile P]
+  [--model M]`; **agents**: a `switch_agent` tool for the sessions an
+  agent may operate.
+- **Older peers**: `since 14`; a version 13 client sees the record as a
+  log line and `harness` not at all (it still shows `spec.harness`).
+
+**Not offered**: a model summary (the note is deterministic, as
+agent-orchestrator's); switching back to an earlier conversation of the
+target agent (GOAT reuses it; Vessel starts a new one with a note, which
+covers the turns in between); a switch during a turn; terminal sessions.
+
+ADR 0054 records the choice.

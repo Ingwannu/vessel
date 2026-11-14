@@ -4,18 +4,21 @@
 //! (`session.create` with `resume`) replays one into a new session's log
 //! and marks its entry, a second import of it is refused while the first
 //! runs, a long conversation imports within the handshake, and the
-//! refusals.
+//! refusals, a device paired with `read` alone among them.
 
 use std::time::Instant;
 
+use vessel_client::Connector as _;
+use vessel_client::secure::{RouteTimeouts, pair_over};
 use vessel_proto::history::{AgentHistoryPage, GetAgentHistory};
 use vessel_proto::{
     AgentEvent, ContentBlock, ErrorCode, EventSeq, HarnessKind, HarnessRef, HarnessSessionId,
-    SessionEvent, SessionId, SessionStatus,
+    Scope, SessionEvent, SessionId, SessionStatus,
 };
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
-use crate::support::{Fixture, read_until, status_of, structured_spec, within};
+use crate::secure::{Relay, device_via, dialer, relayed_with};
+use crate::support::{Fixture, client, read_until, status_of, structured_spec, within};
 
 const PROFILES: &str = r#"
 [profiles.cannot]
@@ -195,6 +198,39 @@ async fn a_long_conversation_imports_within_the_handshake() {
             "a long conversation imported"
         );
         assert_eq!(replayed, 10_000);
+    })
+    .await;
+}
+
+/// Listing an agent's conversations reads its files and leads to starting
+/// one (`operate`, ADR 0053): a device paired with `read` alone is
+/// refused.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_read_only_device_is_refused_the_listing() {
+    within(async {
+        let relay = Relay::start().await;
+        let fixture = Fixture::new();
+        let node = relayed_with(&fixture, &[&relay.url], |_config| {}).await;
+        let owner = fixture.connect(&node).await;
+        let offer = owner
+            .invite_with_scopes(None, 600, vec![Scope::Read])
+            .await
+            .unwrap()
+            .link
+            .decode()
+            .unwrap();
+        let (paired, _route) = pair_over(&dialer(), &offer, "reader", RouteTimeouts::default())
+            .await
+            .unwrap();
+        let reader = device_via(dialer(), &paired, &[], &[&relay.url])
+            .connect(client())
+            .await
+            .unwrap();
+        assert_eq!(
+            code(reader.call(asked(&fixture, None)).await),
+            ErrorCode::Forbidden
+        );
+        assert!(owner.call(asked(&fixture, None)).await.is_ok());
     })
     .await;
 }

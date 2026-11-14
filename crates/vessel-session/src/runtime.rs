@@ -218,6 +218,8 @@ impl SessionRuntime {
             Entry::Occupied(_) => return Err(RemoveError::Running(id)),
             Entry::Vacant(_) => return Err(RemoveError::NotFound(id)),
         };
+        // Ended, so it held no conversation for the live check already.
+        self.release(id);
         tracing::debug!(session = %id, "session removed from the runtime");
         Ok(removed.info())
     }
