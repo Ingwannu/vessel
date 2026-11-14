@@ -9,7 +9,7 @@ use vessel_proto::{
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
-use crate::session::{ParkState, can_start_again, folder_name, park_state};
+use crate::session::{can_start_again, folder_name};
 
 /// What a card shows besides its place (the page's `session-card.tsx`),
 /// and what the sidebar sorts and marks by (`data/sidebar.ts`). Its own
@@ -86,14 +86,6 @@ impl Card {
                 )
             },
         );
-        // A released agent says so in place of the node's phrase (the
-        // node's board still calls the session idle); a failed resume waits
-        // on its owner.
-        let (phrase, attention) = match park_state(session) {
-            Some(ParkState::Released) => (Phrase::Released, Attention::AtRest),
-            Some(ParkState::ResumeFailed(_)) => (Phrase::ResumeFailed, Attention::NeedsYou),
-            None => (phrase, attention),
-        };
         let model = session.model.as_ref().map_or_else(
             || match &session.spec.mode {
                 SessionMode::Structured { model, .. } => model.as_ref().map(ToString::to_string),

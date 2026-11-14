@@ -107,11 +107,6 @@ pub enum Phrase {
     Failed,
     /// The node stopped while it was live.
     Interrupted,
-    /// Live, its agent released while idle (protocol 12, Paseo's word):
-    /// the next prompt resumes it.
-    Released,
-    /// Live, its agent released, and starting it again failed.
-    ResumeFailed,
 }
 
 /// What a session asks of the eye: the page's `needsYou` and `isWorking`,

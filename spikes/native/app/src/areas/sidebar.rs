@@ -12,7 +12,6 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Tooltips, Type, TypeExt as _, dot, kicker};
-use vessel_app_view::board::Phrase;
 use vessel_app_view::settings::Section;
 use vessel_app_view::{Card, Machine, Reach};
 
@@ -359,10 +358,6 @@ fn session_row(
                 })
                 .child(shell.t.title(&card.title).to_owned()),
         )
-        // A released agent reads as released here too (track C, protocol
-        // 12): the card's phrase after the title, quiet, or in the danger
-        // colour when its resume failed.
-        .children(parked_word(shell, card, tokens))
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
         }))
@@ -429,24 +424,3 @@ pub(crate) fn nav_row(
 
 use vessel_app_kit::ui::FluentBuilder as _;
 
-/// A session row's word for a released agent, or for one whose resume
-/// failed; `None` otherwise.
-fn parked_word(shell: &Shell, card: &Card, tokens: &Tokens) -> Option<Div> {
-    let color = match card.phrase {
-        Phrase::Released => tokens.text_tertiary,
-        Phrase::ResumeFailed => tokens.danger,
-        Phrase::Node(_)
-        | Phrase::Starting
-        | Phrase::Running
-        | Phrase::Exited(_)
-        | Phrase::Failed
-        | Phrase::Interrupted => return None,
-    };
-    Some(
-        div()
-            .flex_none()
-            .type_(Type::Meta)
-            .text_color(color)
-            .child(shell.t.phrase(&card.phrase)),
-    )
-}
