@@ -80,6 +80,11 @@ pub enum Act {
     /// the session as it then stands; its `rewound` record follows in the
     /// log.
     Rewind(EventSeq),
+    /// A new session continuing this one's conversation from the end of
+    /// the turn whose `turn_ended` record is this one, or as it is now
+    /// (`session.fork`, protocol 14): the new session, as `session.create`
+    /// answers it; its `forked` record opens its log.
+    Fork(Option<EventSeq>),
 }
 
 /// Which act an answer is for.
@@ -115,6 +120,8 @@ pub enum ActKind {
     Wake,
     /// A rewind.
     Rewind,
+    /// A fork.
+    Fork,
 }
 
 impl Act {
@@ -137,6 +144,7 @@ impl Act {
             Self::SetOption(_) => ActKind::SetOption,
             Self::Wake => ActKind::Wake,
             Self::Rewind(_) => ActKind::Rewind,
+            Self::Fork(_) => ActKind::Fork,
         }
     }
 }
@@ -153,6 +161,9 @@ pub enum Acted {
     Done,
     /// What the session holds now.
     Conversation(Box<Conversation>),
+    /// The new session a fork made (not the session acted on, whose
+    /// description stands).
+    Forked(Box<SessionInfo>),
 }
 
 /// Why a session act failed: the node's code, when it answered with one,
@@ -232,6 +243,10 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .call(vessel_proto::forking::RewindSession { session, after })
             .await
             .map(boxed),
+        Act::Fork(after) => client
+            .call(vessel_proto::forking::ForkSession { session, after })
+            .await
+            .map(|info| Acted::Forked(Box::new(info))),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
         // The options as they now stand also arrive as the session's own

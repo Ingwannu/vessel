@@ -105,6 +105,9 @@ impl Shell {
                     |kept| format!("{}. {kept}", words.session_deleted()),
                 ));
             }
+            // A fork's new session is listed at once (the list's next
+            // read would list it too).
+            Ok(Acted::Forked(info)) => self.fleet.add_session(&answer.machine, info),
             Ok(Acted::Done | Acted::Conversation(_)) | Err(_) => {}
         }
         // Started again: the session area follows it afresh (the node ends
@@ -126,6 +129,7 @@ impl Shell {
             .is_some_and(|shown| shown.machine == answer.machine && shown.session == answer.session)
         {
             self.rewind_answered(&answer);
+            self.fork_answered(&answer);
         }
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);

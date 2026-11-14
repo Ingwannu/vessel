@@ -167,6 +167,7 @@ fn close(runs: &mut Vec<ToolRun>, entries: &[Entry], from: usize, to: usize) {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => {}
         }

@@ -453,6 +453,8 @@ impl ConversationWords {
                 Lang::Ko => format!("세션 {}", self.state(status)),
             },
             EntryKind::Parking(change) => self.parking_line(change),
+            // The source's title is the screen's to find (the fleet's).
+            EntryKind::Forked { .. } => self.forked_from(None),
             EntryKind::Profile { from, to } => self.profile_line(from.as_ref(), to.as_ref()),
             EntryKind::Model(call) => format!(
                 "{} · {} · {}",

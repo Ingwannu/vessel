@@ -55,6 +55,7 @@ mod entries;
 mod find;
 mod follow;
 mod footer;
+mod fork;
 mod intake;
 mod look;
 mod meter;

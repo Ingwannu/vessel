@@ -186,10 +186,29 @@ R1 done (2026-11-14; 9b8eadfb, 92ef3ed9, ba96e64a): on the fake fleet a
 rewind to the first turn's end left the second turn behind (no longer
 drawn, nor on the outline rail, nor found), the node logged "rewound to
 record 21", and the message went back into the empty composer.
-Differences from Paseo, kept: one mode (the conversation); no tooltip on
-the undo mark yet; the row's height is kept while it is hidden (Paseo's
-trailing row also keeps its place). The fake agent names a point only
-for its `plain` reply, so the fleet's other sessions offer no rewind.
+Differences from Paseo, kept: one mode (the conversation); the row's
+height is kept while it is hidden (Paseo's trailing row also keeps its
+place). The undo mark's tooltip ("Rewind to this message", the kit's
+tooltip; none on a phone, as Paseo's) followed R1 on 2026-11-14. The
+fake agent names a point only for its `plain` reply, so the fleet's
+other sessions offer no rewind.
+
+F1 done (2026-11-14): a turn's footer whose end the agent named shows
+Paseo's `Split` mark between copy and "Worked for" (tooltip "Fork chat
+from here"); its menu's one row "Fork in a new session" asks
+`session.fork` at that turn's end; the new session is listed at once
+(`Fleet::add_session`) and opened on the next frame, its first line
+"Forked from “plain” · today 18:55" (the source's title from the list,
+`Fleet::title_of`); a refusal is the notice's ("Failed to fork chat:
+…"). Rules in `view::timeline::fork_point` with tests
+(`view/tests/page/fork.rs`). On the fake fleet at 1280, 390 and
+800 × 600 the fork opened as "plain (fork)". Differences from Paseo,
+kept: one target (a new session; Paseo's are a tab or a workspace);
+the menu closes when chosen and the mark stays locked until the answer
+(Paseo keeps the row pending); no fork from the working turn (the node
+refuses a whole-conversation fork while a turn runs); the fork shows
+only its own records (Paseo's draft carries the forked context; the
+agent holds ours).
 
 ## Module layout (2026-11-14, the owner's word 44)
 
@@ -209,6 +228,8 @@ draws and wires.
 | `question.rs` / `question/card.rs` | the answer's state and controls / the card's drawing; the step's rules are `view::timeline::question_step` |
 | `queue.rs` / `queue/rows.rs` | the queue's edit and acts / its rows, grip and buttons |
 | `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
+| `rewind.rs` | the person's message's trailing row (time, undo, copy), the rewind menu, the act, the message back into the composer; where it can go is `view::timeline::rewind_point` |
+| `fork.rs` | the turn footer's fork mark and menu, the act, the new session listed and opened; where it can go is `view::timeline::fork_point` |
 
 Moved to `view` with tests: `question_step` (choices, pick, typed,
 header, prompt, text target), `start_at`, `first_reply`.
