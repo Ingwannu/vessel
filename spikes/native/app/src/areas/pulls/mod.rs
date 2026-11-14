@@ -40,7 +40,7 @@ use vessel_proto::SessionId;
 use vessel_proto::forge::{
     GetPullRequest, OpenPullRequest, OpenRefusal, PullRequestView, SessionPullRequest,
 };
-use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, WorkspaceRoot};
+use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, RefName, WorkspaceRoot};
 
 use crate::shell::Shell;
 
@@ -78,6 +78,12 @@ pub(crate) struct Form {
     pub(crate) subject: Subject,
     pub(crate) branch: String,
     pub(crate) draft: OpenDraft,
+    /// The base the node measures the folder against, as it names it
+    /// (`origin/main` for a project whose remote HEAD names it); the form
+    /// starts from it (`form::form_base`).
+    pub(crate) proposed: Option<RefName>,
+    /// Whether the person chose a base; until then `draft.base` is unused.
+    pub(crate) base_chosen: bool,
     /// The log read for the defaults, while it is out.
     pub(crate) prefilling: Option<ReadLog>,
     /// Defaults read and not yet put in the fields (the answer comes
@@ -226,10 +232,7 @@ impl Shell {
             .as_ref()
             .map(ToString::to_string)
             .unwrap_or_default();
-        let base = status
-            .base
-            .as_ref()
-            .and_then(|base| base.name.as_str().parse().ok());
+        let proposed = status.base.as_ref().map(|base| base.name.clone());
         // Without a count, the head commit alone gives the title (`gh`'s
         // one-commit rule); the node says if nothing is new.
         let limit = status
@@ -247,10 +250,9 @@ impl Shell {
         let pulls = &mut self.areas.pulls;
         pulls.form = Some(Form {
             subject,
-            draft: OpenDraft {
-                base,
-                ..OpenDraft::default()
-            },
+            draft: OpenDraft::default(),
+            proposed,
+            base_chosen: false,
             branch,
             prefilling: Some(log),
             fill: None,
@@ -308,10 +310,17 @@ impl Shell {
 
     /// Enter in the title, Mod+Enter in the description, or Create PR.
     pub(crate) fn pulls_submit(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        let base = self
+            .areas
+            .pulls
+            .form
+            .as_ref()
+            .map(|form| form::form_base(self, form));
         let pulls = &mut self.areas.pulls;
         let Some(form) = pulls.form.as_mut().filter(|form| form.sending.is_none()) else {
             return;
         };
+        form.draft.base = base.flatten();
         form.draft.title = pulls.title.text(cx);
         form.draft.body = pulls.body.text(cx);
         match open_request(form.subject.session, &form.draft) {

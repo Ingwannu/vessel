@@ -16,8 +16,8 @@ use vessel_app_kit::dialog::{DialogContent, DialogSize};
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, HighlightStyle, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, StyledText, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, button_with_kind,
@@ -213,28 +213,35 @@ fn divider(tokens: &Tokens) -> AnyElement {
         .into_any_element()
 }
 
-/// Paseo's header: the title with " #42" muted, then the state's glyph
-/// and word, then the repository.
+/// Paseo's header (`pull-request-panel/pane.tsx` 524-552): the title at
+/// the body size and weight with " #42" muted in the same run of text,
+/// so a wrapped title carries the number at its end, then the state's
+/// glyph and word, then the repository.
 fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     let summary = &pull.summary;
     let phase = PullPhase::of(summary);
     let repo = summary.repo.path.as_str().to_owned();
+    let mut title = summary.title.as_str().to_owned();
+    let start = title.len();
+    title.push_str(&format!(" #{}", summary.number.get()));
+    let number = vec![(
+        start..title.len(),
+        HighlightStyle {
+            color: Some(neutral.foreground_muted),
+            ..HighlightStyle::default()
+        },
+    )];
     div()
         .flex()
         .flex_col()
         .gap(px(spacing::S1))
         .child(
             div()
-                .type_(Type::Title)
+                .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .whitespace_normal()
-                .child(summary.title.as_str().to_owned())
-                .child(
-                    div()
-                        .text_color(neutral.foreground_muted)
-                        .child(format!(" #{}", summary.number.get())),
-                ),
+                .child(StyledText::new(title).with_highlights(number)),
         )
         .child(
             div()
