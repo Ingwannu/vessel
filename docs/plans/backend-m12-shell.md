@@ -785,22 +785,29 @@ Captures: the scratch directory's `s3/shots/motion/` (frames with
 `times.txt` per strip; `strips/` on above off, and the numbers beside
 each).
 
-### Resume point (track S3, 2026-11-14 04:40 UTC)
+### Resume point (track S3, 2026-11-14 15:40 UTC)
 
-- Done: palette (`153da701`, accepted); `view::matcher` rename after C's
-  `view::search` (`b89e4528`); every app-wide key through the registry with
-  GOAT's queue keys and repeat suppression (`62f80a87`); Settings ›
-  Shortcuts page (`b0818ba5`). The gate (fmt, clippy, test) passed on
-  `b0818ba5`'s tree.
-- Half-done: Settings › Shortcuts has no captures yet (both themes, both
-  sizes, both languages, recording, a refused key, the reassign question,
-  scale 1.25/1.5 and the pointer over the palette and its sheet, per the
-  owner's words 26-27); pair the capture fleet by the CLI pipe from now on.
-- Next: those captures and the slice-2 report; then the palette's Messages
-  group (C's seams on the lead since `9461f149`: `message_search_query`,
+- Done and reported: palette (`153da701`, accepted); `view::matcher`
+  (`b89e4528`); app-wide keys (`62f80a87`); Settings › Shortcuts
+  (`b0818ba5`, `d3bb4f53`, captures passed by the coordinator; handed to
+  the lead for 0.0.0.0.16 up to `d3bb4f53`); word 39 (`17bfe083`,
+  `9f237519`, `a1fa3c4c`, `49ac8dae`, notes above).
+- Waiting on others: the sidebar's width and the right panel's
+  transitions (the lead's resize work); the palette's Messages group (the
+  lead merging `b89e4528`; C's seams `message_search_query`,
   `message_search_rows`, `message_row`, `message_search_note`,
-  `open_search_hit`, `message_search_more`), tell C to remove `example`
-  and `hear_find`; then the sidebar (group, sort, filter, pin, unread,
-  children), then notifications. Kit requests (command row with agent
-  mark, status badge, elapsed time; a tooltip that opens downward) are
-  with the lead.
+  `open_search_hit`, `message_search_more`; then tell C to remove
+  `example` and `hear_find`); a toast strip (a reachable capture fleet).
+- Next: the sidebar slice. `view/src/sidebar.rs` already has the page's
+  model (`Fleet::sidebar_machines`, `sidebar_statuses`, `listed`: group by
+  machine or status, sort by created or activity, ended hidden, pinned
+  first), and `Fleet::sidebar_order` already drives Alt+[ and Alt+]; the
+  app's `areas/sidebar.rs` does not draw through it yet. Paseo's
+  references: `components/sidebar/display-preferences/{model.ts,menu.tsx}`
+  (the Display menu at the sidebar's head, one page per decision) and
+  `components/sidebar/sidebar-workspace-menu.tsx` (the row menu: pin,
+  mark as read or unread, archive, copy path). With it, the quality
+  audit's S3 rows 1 (split `sidebar.rs`, add tests) and 6 (its `px`
+  literals to `spacing`). Then notifications (E3 waits for the delivery
+  function's name for its Test button). Settings › Sidebar stays hidden
+  (E3) until the sidebar reads its items.
